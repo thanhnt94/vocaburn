@@ -1,0 +1,178 @@
+import os
+import re
+import json
+import hashlib
+import asyncio
+import edge_tts
+from gtts import gTTS
+import logging
+
+logger = logging.getLogger(__name__)
+
+class AudioGenerator:
+    PROMPT_REGEX = re.compile(r'^\s*([a-z]{2})(?:\(([mf])\))?:\s*(.+)$', re.MULTILINE)
+    
+    # Premium Microsoft Edge TTS Voices mapping
+    EDGE_VOICES = {
+        'ja': 'ja-JP-NanamiNeural',
+        'vi': 'vi-VN-HoaiMyNeural',
+        'en': 'en-US-AriaNeural',
+        'zh': 'zh-CN-XiaoxiaoNeural',
+        'ko': 'ko-KR-SunHiNeural',
+        'fr': 'fr-FR-DeniseNeural',
+        'de': 'de-DE-KillianNeural',
+        'es': 'es-ES-ElviraNeural',
+        'ru': 'ru-RU-SvetlanaNeural',
+        'it': 'it-IT-ElsaNeural'
+    }
+
+    @staticmethod
+    def parse_segments(text: str):
+        if not text:
+            return []
+            
+        segments = []
+        
+        # Check if text is in bracket format, e.g., [ja:人生][vi:cuộc đời]
+        bracket_matches = re.findall(r'\[([a-z]{2,3}(?:-[a-zA-Z0-9]+)?):\s*([^\]]+)\]', text)
+        if bracket_matches:
+            for lang, content in bracket_matches:
+                segments.append({
+                    'text': content.strip(),
+                    'lang': lang.strip().lower()
+                })
+            return segments
+            
+        # Fallback to line-by-line format
+        lines = text.split('\n')
+        current_lang = 'en'
+        
+        for line in lines:
+            if not line.strip():
+                continue 
+                
+            match = AudioGenerator.PROMPT_REGEX.match(line)
+            if match:
+                lang = match.group(1)
+                content = match.group(3)
+                current_lang = lang
+                segments.append({
+                    'text': content.strip(),
+                    'lang': lang
+                })
+            else:
+                segments.append({
+                    'text': line.strip(),
+                    'lang': current_lang
+                })
+                
+        return segments
+
+    @classmethod
+    async def generate_tts(cls, text: str, output_path: str) -> bool:
+        """
+        Generates premium TTS audio file using Microsoft Edge TTS as primary,
+        falling back to Google TTS (gTTS) if Edge TTS fails or voice is unsupported.
+        Supports multi-language segments and merges them if pydub is available.
+        """
+        try:
+            segments = cls.parse_segments(text)
+            if not segments:
+                return False
+                
+            os.makedirs(os.path.dirname(output_path), exist_ok=True)
+            
+            # 1. Synthesize all segments to temp files
+            temp_files = []
+            import tempfile
+            
+            for i, seg in enumerate(segments):
+                seg_text = seg['text']
+                if not seg_text.strip():
+                    continue
+                    
+                lang = seg['lang']
+                
+                # Create Temp File
+                fd, temp_path = tempfile.mkstemp(suffix=f"_{i}.mp3")
+                os.close(fd)
+                
+                # Try Edge TTS first (Primary)
+                success_edge = False
+                voice_edge = cls.EDGE_VOICES.get(lang)
+                
+                if voice_edge:
+                    try:
+                        communicate = edge_tts.Communicate(seg_text, voice_edge)
+                        await communicate.save(temp_path)
+                        success_edge = True
+                    except Exception as ee:
+                        logger.error(f"Edge TTS failed for segment '{seg_text[:20]}', falling back to gTTS: {ee}")
+                
+                # Fallback to gTTS if Edge TTS failed or lang not supported
+                if not success_edge:
+                    try:
+                        # run gtts in thread since it's synchronous/blocking
+                        def run_gtts():
+                            tts = gTTS(text=seg_text, lang=lang)
+                            tts.save(temp_path)
+                        await asyncio.to_thread(run_gtts)
+                    except Exception as ge:
+                        logger.error(f"gTTS fallback failed for segment: {ge}")
+                        # Clean up and exit if both failed
+                        if os.path.exists(temp_path):
+                            os.remove(temp_path)
+                        return False
+                        
+                temp_files.append(temp_path)
+                
+            if not temp_files:
+                return False
+                
+            # 2. Concatenate
+            if len(temp_files) == 1:
+                # Only 1 segment, direct copy from temp to final
+                import shutil
+                shutil.copyfile(temp_files[0], output_path)
+                success = True
+            else:
+                # Merge using pydub
+                try:
+                    from pydub import AudioSegment
+                    
+                    def concat_task():
+                        combined = AudioSegment.empty()
+                        pause = AudioSegment.silent(duration=300) # 300ms pause
+                        
+                        for idx, tf in enumerate(temp_files):
+                            if idx > 0:
+                                combined += pause
+                            combined += AudioSegment.from_file(tf)
+                            
+                        combined.export(output_path, format="mp3")
+                        
+                    await asyncio.to_thread(concat_task)
+                    success = True
+                except Exception as pe:
+                    logger.error(f"Pydub concatenation failed (missing ffmpeg), falling back to first segment: {pe}")
+                    # Fallback copy first segment
+                    import shutil
+                    shutil.copyfile(temp_files[0], output_path)
+                    success = True
+                    
+            # 3. Clean up temp files
+            for tf in temp_files:
+                if os.path.exists(tf):
+                    try:
+                        os.remove(tf)
+                    except:
+                        pass
+                        
+            return success
+        except Exception as e:
+            logger.error(f"AudioGenerator error: {e}")
+            return False
+
+    @classmethod
+    def get_voice_hash(cls, text: str) -> str:
+        return hashlib.md5(text.encode('utf-8')).hexdigest()
