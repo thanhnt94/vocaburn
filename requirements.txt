@@ -1,0 +1,33 @@
+# QuizMind Backend Requirements
+# Core
+fastapi
+uvicorn[standard]
+gunicorn>=21.2.0
+python-multipart
+jinja2
+python-dotenv==1.0.1
+httpx
+requests>=2.31.0
+werkzeug==3.0.3
+
+# Database
+sqlalchemy[asyncio]
+aiosqlite
+alembic>=1.13.0
+
+# Data Processing (Excel/CSV)
+# Pinning numpy to avoid (X86_V2) optimization errors on some VPS CPUs
+numpy==1.25.2
+pandas
+openpyxl
+
+# Data Validation & Config
+pydantic[email]>=2.0.0
+pydantic-settings
+email-validator
+
+# AI Integration
+google-genai
+
+# Memory Scheduling
+fsrs
