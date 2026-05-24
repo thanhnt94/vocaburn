@@ -1,0 +1,130 @@
+@import "tailwindcss";
+
+@theme {
+  --color-primary: #6366f1;
+  --color-primary-dark: #4f46e5;
+  --color-secondary: #a855f7;
+  
+  --font-sans: "Outfit", system-ui, -apple-system, sans-serif;
+}
+
+html, body, #root {
+  margin: 0;
+  padding: 0;
+  overflow-x: hidden !important;
+}
+
+@layer base {
+  body {
+    @apply bg-slate-50 text-slate-900 font-sans;
+  }
+}
+
+@layer components {
+  .glass-card {
+    @apply bg-white/70 backdrop-blur-xl border border-slate-200/50 shadow-sm;
+  }
+  
+  .btn-primary {
+    @apply px-6 py-3 bg-indigo-600 text-white rounded-2xl font-bold uppercase tracking-widest hover:bg-indigo-700 transition-all active:scale-95 shadow-lg shadow-indigo-100;
+  }
+
+  .premium-glass {
+    @apply bg-white/70 backdrop-blur-3xl border border-white/20 shadow-[0_8px_32px_rgba(31,38,135,0.07)];
+  }
+}
+
+/* Custom animations from SSR version */
+@keyframes success-pop { 0% { transform: scale(1); } 50% { transform: scale(1.02); } 100% { transform: scale(1); } }
+.card-success { animation: success-pop 0.4s ease; border-color: #10B981 !important; }
+
+@keyframes error-shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-4px); } 75% { transform: translateX(4px); } }
+.card-error { animation: error-shake 0.3s ease; border-color: #EF4444 !important; }
+
+.white-pre-wrap { white-space: pre-wrap; }
+@layer utilities {
+  .no-scrollbar::-webkit-scrollbar { display: none; }
+  .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+  
+  .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+  .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+  .custom-scrollbar::-webkit-scrollbar-thumb { background: #E2E8F0; border-radius: 10px; }
+  .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #CBD5E1; }
+}
+
+.markdown-content ul { list-style-type: none; margin-left: 1.5rem; margin-top: 1rem; margin-bottom: 1rem; }
+.markdown-content ol { list-style-type: decimal; margin-left: 1.5rem; margin-top: 1rem; margin-bottom: 1rem; }
+.markdown-content li { 
+  @apply relative mb-4 text-slate-700 leading-relaxed;
+}
+.markdown-content ul li::before {
+  content: "•";
+  @apply absolute -left-5 text-indigo-500 font-black;
+}
+.markdown-content p { margin-bottom: 1.5rem; line-height: 2.2; @apply text-slate-600 font-medium; }
+
+.markdown-content h1, .markdown-content h2, .markdown-content h3 { 
+  @apply font-black text-slate-900 tracking-tight mt-10 mb-5 flex items-center gap-3;
+}
+.markdown-content h1 { @apply text-2xl text-indigo-600; }
+.markdown-content h2 { @apply text-xl text-slate-800; }
+.markdown-content h3 { @apply text-lg text-slate-800; }
+
+.markdown-content h1::before, .markdown-content h2::before {
+  content: "";
+  @apply w-1.5 h-6 bg-indigo-500 rounded-full inline-block;
+}
+
+/* Table Styling - PodLearn Style */
+.markdown-content table {
+  @apply w-full border-separate border-spacing-0 border border-slate-200 rounded-[1.5rem] overflow-hidden my-8 shadow-sm bg-white;
+  display: table;
+}
+.markdown-content th {
+  @apply bg-slate-50 text-slate-400 font-black uppercase tracking-[0.15em] px-5 py-4 text-left border-b border-slate-100 text-[10px];
+}
+.markdown-content td {
+  @apply px-5 py-4 border-b border-slate-50 text-slate-700 font-bold align-middle text-xs;
+}
+.markdown-content tr:last-child td { border-bottom: none; }
+.markdown-content tr:hover td { @apply bg-indigo-50/30; }
+
+/* Furigana (Ruby) Support - Professional Baseline Alignment */
+.markdown-content ruby {
+  display: inline-ruby;
+  ruby-position: over;
+  vertical-align: baseline;
+}
+.markdown-content rt {
+  display: ruby-text;
+  @apply text-[9px] font-black text-indigo-500 uppercase tracking-tighter;
+  font-family: var(--font-sans);
+}
+
+/* Blockquote & Code */
+.markdown-content blockquote {
+  @apply pl-6 border-l-4 border-indigo-500 bg-indigo-50/30 py-4 pr-4 rounded-r-2xl text-indigo-900 font-bold italic my-6;
+}
+.markdown-content code {
+  @apply px-2 py-0.5 bg-indigo-50 text-indigo-600 rounded-lg font-bold text-[0.9em] border border-indigo-100;
+}
+
+/* Strong & Emphasis */
+.markdown-content strong { @apply font-black text-indigo-600; }
+.markdown-content em { @apply italic text-slate-400 font-medium; }
+
+/* AI Specific spacing */
+.ai-glow {
+  @apply bg-white border border-slate-100 shadow-2xl shadow-indigo-100/10;
+}
+
+/* 3D Flippable Card Utilities */
+.perspective-1000 {
+  perspective: 1000px;
+}
+.preserve-3d {
+  transform-style: preserve-3d;
+}
+.backface-hidden {
+  backface-visibility: hidden;
+}
