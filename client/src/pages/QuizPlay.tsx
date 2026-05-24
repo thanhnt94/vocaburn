@@ -322,11 +322,43 @@ export default function QuizPlay() {
 
   const parseUTCDate = (dateStr: string | null | undefined): Date => {
     if (!dateStr) return new Date();
-    let formatted = dateStr;
-    if (!dateStr.endsWith('Z') && !dateStr.includes('+') && !dateStr.slice(5).includes('-')) {
-      formatted = dateStr + 'Z';
+    try {
+      // 1. Replace space with 'T' to meet standard ISO specification
+      let formatted = dateStr.trim().replace(' ', 'T');
+      // 2. Truncate microseconds (6 digits) to milliseconds (3 digits)
+      const dotIndex = formatted.indexOf('.');
+      if (dotIndex !== -1) {
+        const parts = formatted.split('.');
+        const timePart = parts[0];
+        let subPart = parts[1];
+        let suffix = '';
+        if (subPart.endsWith('Z')) {
+          suffix = 'Z';
+          subPart = subPart.slice(0, -1);
+        } else if (subPart.includes('+')) {
+          const plusIdx = subPart.indexOf('+');
+          suffix = subPart.substring(plusIdx);
+          subPart = subPart.substring(0, plusIdx);
+        }
+        subPart = subPart.substring(0, 3);
+        formatted = `${timePart}.${subPart}${suffix}`;
+      }
+      
+      // 3. Ensure 'Z' is appended if no timezone is specified
+      // Check timezone specifier safely after the 'T' separator to prevent matching hyphens in the date part
+      const tIndex = formatted.indexOf('T');
+      const timePartAfterT = tIndex !== -1 ? formatted.slice(tIndex) : '';
+      const hasTimezone = formatted.includes('Z') || formatted.includes('+') || timePartAfterT.includes('-');
+      
+      if (!hasTimezone) {
+        formatted = formatted + 'Z';
+      }
+      const d = new Date(formatted);
+      if (!isNaN(d.getTime())) return d;
+    } catch (e) {
+      console.error("parseUTCDate error:", e);
     }
-    return new Date(formatted);
+    return new Date();
   }
 
   const isCardUnlocked = (() => {
@@ -1374,15 +1406,39 @@ export default function QuizPlay() {
     }
   }
 
+  const getInsightText = () => {
+    if (!currentQuestion) return 'No detail.';
+    // 1. Prefer others.explain or others.explanation if present
+    const othersExplain = currentQuestion.others?.explain || currentQuestion.others?.explanation;
+    if (othersExplain) return othersExplain;
+    // 2. Try other_content
+    if (currentQuestion.others?.other_content && typeof currentQuestion.others.other_content === 'string') {
+      return currentQuestion.others.other_content;
+    }
+    // 3. Fallback to explanation
+    return currentQuestion.explanation || 'No detail.';
+  }
+
   const saveInsight = async () => {
     if (!currentQuestion) return
     try {
+      const targetKey = currentQuestion.others?.explanation ? 'explanation' : 'explain';
+      const updatedOthers = {
+        ...(currentQuestion.others || {}),
+        [targetKey]: insightInput
+      };
+      
       await axios.patch(`/api/v1/quiz/question/${currentQuestion.id}`, { 
-        explanation: insightInput 
+        others: { [targetKey]: insightInput } 
       })
+      
       setSession((prev: any) => {
+        if (!prev) return prev
         const newQs = [...prev.questions]
-        newQs[currentIndex].explanation = insightInput
+        newQs[currentIndex] = {
+          ...newQs[currentIndex],
+          others: updatedOthers
+        }
         return { ...prev, questions: newQs }
       })
       setIsEditingInsight(false)
@@ -1472,7 +1528,7 @@ export default function QuizPlay() {
 
   const copyCurrentTabContent = (type: 'default' | 'prompt' | 'question' = 'default') => {
     let content = ''
-    if (activeFeedbackTab === 'insight') content = currentQuestion?.explanation || ''
+    if (activeFeedbackTab === 'insight') content = getInsightText()
     else if (activeFeedbackTab === 'ai') {
       if (type === 'question') {
         content = currentQuestion?.content || ''
@@ -1510,7 +1566,7 @@ export default function QuizPlay() {
     if (activeFeedbackTab === 'insight') {
       if (isEditingInsight) saveInsight()
       else {
-        setInsightInput(currentQuestion?.explanation || '')
+        setInsightInput(getInsightText() === 'No detail.' ? '' : getInsightText())
         setIsEditingInsight(true)
       }
     } else if (activeFeedbackTab === 'ai') {
@@ -1537,7 +1593,7 @@ export default function QuizPlay() {
     if (!showFeedback) return null
     
     const tabs = [
-      { id: 'insight', label: 'INSIGHT', icon: Lightbulb, color: 'text-amber-500', bg: 'bg-amber-100', hasContent: !!currentQuestion?.explanation },
+      { id: 'insight', label: 'INSIGHT', icon: Lightbulb, color: 'text-amber-500', bg: 'bg-amber-100', hasContent: !!getInsightText() && getInsightText() !== 'No detail.' },
       { id: 'ai', label: 'AI ANALYSIS', icon: Sparkles, color: 'text-indigo-600', bg: 'bg-indigo-100', hasContent: !!currentQuestion?.ai_explanation },
       { id: 'note', label: 'PERSONAL NOTE', icon: StickyNote, color: 'text-slate-400', bg: 'bg-slate-100', hasContent: !!personalNote }
     ]
@@ -1563,7 +1619,7 @@ export default function QuizPlay() {
                       />
                     ) : (
                       <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeRaw]} components={MarkdownComponents}>
-                        {parseBBCodeToHtml(currentQuestion?.explanation || 'No detail.')}
+                        {parseBBCodeToHtml(getInsightText())}
                       </ReactMarkdown>
                     )}
                  </div>
@@ -2330,7 +2386,7 @@ export default function QuizPlay() {
         </aside>
 
         <div className="w-full max-w-4xl min-w-0 flex flex-col overflow-hidden h-full">
-          <div className="flex-1 flex flex-col overflow-hidden pr-2 pb-2">
+          <div className="flex-1 flex flex-col overflow-hidden md:pr-2 md:pb-2 pr-0 pb-0">
             
 
           <AnimatePresence mode="wait">
@@ -2342,36 +2398,22 @@ export default function QuizPlay() {
               className="flex-1 flex flex-col h-full w-full min-h-0"
             >
               {/* 3D perspective flippable Flashcard Container */}
-              <div 
-                className="perspective-1000 w-full h-full flex-1 cursor-pointer relative select-none min-h-0"
-                onClick={(e) => {
-                  console.log("DEBUG CLICK: PERSPECTIVE CONTAINER clicked! isFlipped:", isFlipped, "target:", e.target);
-                  if (!isFlipped) {
-                    setIsFlipped(true)
-                    setShowFeedback(true)
-                  }
-                }}
-              >
+              <div className="perspective-1000 w-full h-full flex-1 relative min-h-0">
                 <div
                   className="preserve-3d w-full h-full relative transition-transform duration-700 ease-out-quint"
-                  onClick={(e) => {
-                    console.log("DEBUG CLICK: 3D WRAPPER clicked! target:", e.target);
-                  }}
                   style={{
                     transform: isFlipped ? 'rotateY(180deg)' : 'rotateY(0deg)',
                     transformStyle: 'preserve-3d',
                   }}
                 >
-                  {/* FRONT SIDE */}
+                   {/* FRONT SIDE */}
                   <div
-                    className="absolute inset-0 backface-hidden bg-white/95 backdrop-blur-md rounded-[3rem] border border-slate-100 p-8 flex flex-col justify-between shadow-2xl shadow-indigo-100/40"
-                    onClick={(e) => {
-                      console.log("DEBUG CLICK: FRONT SIDE clicked! target:", e.target);
-                    }}
+                    className="absolute inset-0 backface-hidden bg-white md:rounded-[3rem] rounded-[2rem] border border-slate-100 md:p-8 p-4 py-6 md:py-8 flex flex-col justify-between shadow-2xl shadow-indigo-100/40"
                     style={{
                       backfaceVisibility: 'hidden',
-                      transform: 'translateZ(10px)',
-                      transformStyle: 'preserve-3d',
+                      transform: 'none',
+                      WebkitFontSmoothing: 'antialiased',
+                      MozOsxFontSmoothing: 'grayscale',
                       pointerEvents: 'auto',
                       zIndex: isFlipped ? 1 : 2,
                       visibility: isFlipped ? 'hidden' : 'visible',
@@ -2381,17 +2423,13 @@ export default function QuizPlay() {
                     {/* Top Stats Banner */}
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
-                        <div className="w-10 h-10 flex items-center justify-center bg-indigo-600 rounded-2xl text-white font-black text-sm shadow-lg shadow-indigo-100">
-                          {currentIndex + 1}
-                        </div>
-                        <span className="text-[10px] font-black tracking-widest text-slate-400 uppercase">Flashcard</span>
+                        <span className="text-[10px] font-black tracking-widest text-indigo-600 bg-indigo-50 px-3 py-1.5 rounded-xl border border-indigo-100 uppercase shadow-sm">
+                          FRONT CARD
+                        </span>
                       </div>
                       
                       <div className="flex items-center gap-2">
                         {currentQuestion && getMasteryPill(currentQuestion.box_level || 1)}
-                        <span className="text-[10px] font-black tracking-widest text-slate-400 bg-slate-50 px-3 py-1.5 rounded-xl border border-slate-100 uppercase">
-                          Attempts: {currentQuestion?.stats?.total || 0}
-                        </span>
                       </div>
                     </div>
 
@@ -2404,13 +2442,13 @@ export default function QuizPlay() {
                           className="max-h-40 md:max-h-48 object-contain rounded-3xl border border-slate-100/80 shadow-md bg-slate-50/50 p-1.5 animate-in zoom-in-95 duration-500"
                         />
                       )}
-                      <div className="text-3xl md:text-4xl font-black text-slate-800 tracking-tight leading-normal max-w-2xl markdown-content text-center flex flex-col items-center justify-center">
+                      <div className="text-3xl md:text-4xl font-black text-slate-800 tracking-tight leading-normal max-w-2xl markdown-content text-center flex flex-col items-center justify-center whitespace-pre-wrap">
                         <ReactMarkdown 
                           remarkPlugins={[remarkGfm]} 
                           rehypePlugins={[rehypeRaw]} 
                           components={{
                             ...MarkdownComponents,
-                            p: ({ children }) => <span className="inline-block">{children}</span>
+                            p: ({ children }) => <p className="mb-2 last:mb-0 whitespace-pre-wrap">{children}</p>
                           }}
                         >
                           {parseBBCodeToHtml(currentQuestion?.content || '')}
@@ -2433,14 +2471,12 @@ export default function QuizPlay() {
 
                   {/* BACK SIDE */}
                   <div
-                    className="absolute inset-0 backface-hidden bg-white/95 backdrop-blur-md rounded-[3rem] border border-slate-200 p-8 flex flex-col justify-between shadow-2xl shadow-indigo-100/40"
-                    onClick={(e) => {
-                      console.log("DEBUG CLICK: BACK SIDE clicked! target:", e.target);
-                    }}
+                    className="absolute inset-0 backface-hidden bg-white md:rounded-[3rem] rounded-[2rem] border border-slate-200 md:p-8 p-4 py-6 md:py-8 flex flex-col justify-between shadow-2xl shadow-indigo-100/40"
                     style={{
                       backfaceVisibility: 'hidden',
-                      transform: 'rotateY(180deg) translateZ(10px)',
-                      transformStyle: 'preserve-3d',
+                      transform: 'rotateY(180deg)',
+                      WebkitFontSmoothing: 'antialiased',
+                      MozOsxFontSmoothing: 'grayscale',
                       pointerEvents: 'auto',
                       zIndex: isFlipped ? 2 : 1,
                       visibility: isFlipped ? 'visible' : 'hidden',
@@ -2449,28 +2485,33 @@ export default function QuizPlay() {
                   >
                     {/* Top Banner */}
                     <div className="flex items-center justify-between">
-                      <span className="text-[10px] font-black tracking-widest text-emerald-600 bg-emerald-50 px-3 py-1.5 rounded-xl border border-emerald-100 uppercase">
-                        REVEALED DEFINITION
-                      </span>
+                      <div className="flex items-center gap-2">
+                        <span className="text-[10px] font-black tracking-widest text-emerald-600 bg-emerald-50 px-3 py-1.5 rounded-xl border border-emerald-100 uppercase shadow-sm">
+                          BACK CARD
+                        </span>
+                      </div>
+                      
+                      <div className="flex items-center gap-2">
+                        {currentQuestion && getMasteryPill(currentQuestion.box_level || 1)}
+                      </div>
                     </div>
 
                     {/* Definition & explanation */}
-                    <div className="flex-1 overflow-y-auto custom-scrollbar my-4 flex flex-col gap-4 text-left pr-2">
-                      {/* Show the correct options or direct explanation */}
-                      {currentQuestion?.options && currentQuestion.options.length > 0 && (
+                    <div className="flex-1 overflow-y-auto custom-scrollbar my-3 md:my-4 flex flex-col gap-3 md:gap-4 text-left pr-1 md:pr-2">
+                       {/* Show the correct options or direct explanation */}
+                       {currentQuestion?.options && currentQuestion.options.length > 0 && (
                         <div className="space-y-2">
-                          <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block">Definition</span>
-                          <div className="p-6 rounded-3xl bg-emerald-50/50 border border-emerald-100/80 flex items-start gap-4">
+                          <div className="md:p-6 p-4 rounded-3xl bg-emerald-50/50 border border-emerald-100/80 flex items-start gap-4">
                             <div className="w-8 h-8 rounded-xl bg-emerald-500 flex items-center justify-center text-white font-black text-lg shadow-md shrink-0 mt-0.5">
                               ✓
                             </div>
-                            <div className="text-slate-800 font-extrabold text-2xl md:text-3xl lg:text-4xl leading-snug markdown-content flex-1">
+                            <div className="text-slate-800 font-extrabold text-2xl md:text-3xl lg:text-4xl leading-snug markdown-content flex-1 whitespace-pre-wrap">
                               <ReactMarkdown 
                                 remarkPlugins={[remarkGfm]} 
                                 rehypePlugins={[rehypeRaw]} 
                                 components={{
                                   ...MarkdownComponents,
-                                  p: ({ children }) => <span className="inline-block">{children}</span>
+                                  p: ({ children }) => <p className="mb-2 last:mb-0 whitespace-pre-wrap">{children}</p>
                                 }}
                               >
                                 {parseBBCodeToHtml(currentQuestion.options.find(o => o.is_correct)?.content || "Definition revealed.")}
@@ -2482,7 +2523,6 @@ export default function QuizPlay() {
 
                       {currentQuestion?.others?.back_img && (
                         <div className="space-y-2">
-                          <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block">Back Visual</span>
                           <img 
                             src={currentQuestion.others.back_img} 
                             alt="Back Visual" 
@@ -2493,14 +2533,13 @@ export default function QuizPlay() {
 
                       {currentQuestion?.explanation && (
                         <div className="flex-1 w-full bg-white text-left flex flex-col min-h-0">
-                          <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block mb-3">Usage Context & Sentences</span>
-                          <div className="text-slate-700 font-bold text-xl md:text-2xl leading-relaxed markdown-content flex-1 overflow-y-auto custom-scrollbar">
+                          <div className="text-slate-700 font-bold text-xl md:text-2xl leading-relaxed markdown-content flex-1 overflow-y-auto custom-scrollbar whitespace-pre-wrap">
                             <ReactMarkdown 
                               remarkPlugins={[remarkGfm]} 
                               rehypePlugins={[rehypeRaw]} 
                               components={{
                                 ...MarkdownComponents,
-                                p: ({ children }) => <span className="inline-block">{children}</span>
+                                p: ({ children }) => <p className="mb-2 last:mb-0 whitespace-pre-wrap">{children}</p>
                               }}
                             >
                               {parseBBCodeToHtml(currentQuestion.explanation)}
@@ -2511,21 +2550,63 @@ export default function QuizPlay() {
                     </div>
 
                     {/* FSRS Stats Row */}
-                    {currentQuestion?.fsrs && (
-                      <div className="flex items-center justify-around bg-white rounded-2xl p-3 border border-slate-100/60 text-[10px] text-slate-400 font-bold">
-                        <div>
-                          State: <span className="text-indigo-500 font-black">{['New', 'Learning', 'Review', 'Relearning'][currentQuestion.fsrs.state || 0]}</span>
+                    {currentQuestion?.fsrs && (() => {
+                      const stateLabels = ['New', 'Learning', 'Review', 'Relearning'];
+                      const stateColors = [
+                        'bg-blue-500/10 text-blue-600 border-blue-500/20 shadow-sm shadow-blue-500/5',
+                        'bg-amber-500/10 text-amber-600 border-amber-500/20 shadow-sm shadow-amber-500/5',
+                        'bg-emerald-500/10 text-emerald-600 border-emerald-500/20 shadow-sm shadow-emerald-500/5',
+                        'bg-rose-500/10 text-rose-600 border-rose-500/20 shadow-sm shadow-rose-500/5'
+                      ];
+                      const stateDots = [
+                        'bg-blue-500 shadow-blue-500/50',
+                        'bg-amber-500 shadow-amber-500/50',
+                        'bg-emerald-50 shadow-emerald-500/50',
+                        'bg-rose-500 shadow-rose-500/50'
+                      ];
+                      const stateIdx = currentQuestion.fsrs.state || 0;
+                      return (
+                        <div className="flex items-center justify-between bg-gradient-to-r from-slate-50/80 via-white to-slate-50/80 rounded-2xl md:p-3 p-2 md:py-2.5 py-1.5 border border-slate-100/90 text-[10px] font-bold shadow-[0_4px_20px_rgba(0,0,0,0.01),inset_0_1px_2px_rgba(255,255,255,0.6)] backdrop-blur-md gap-2 w-full md:mt-3 mt-1.5">
+                          <div className="flex flex-col items-center gap-0.5 flex-1 justify-center">
+                            <span className="text-[8px] font-black text-slate-400 uppercase tracking-[0.15em]">State</span>
+                            <span className={cn("px-2.5 py-0.5 rounded-lg border text-[9px] font-black uppercase tracking-wider flex items-center gap-1 transition-all duration-300", stateColors[stateIdx])}>
+                              <span className={cn("w-1.5 h-1.5 rounded-full animate-pulse shadow-[0_0_8px_var(--tw-shadow-color)]", stateDots[stateIdx])} />
+                              {stateLabels[stateIdx]}
+                            </span>
+                          </div>
+                          <div className="w-px h-7 bg-gradient-to-b from-slate-100 via-slate-200/60 to-slate-100" />
+                          <div className="flex flex-col items-center gap-0.5 flex-1 justify-center">
+                            <span className="text-[8px] font-black text-slate-400 uppercase tracking-[0.15em] flex items-center gap-1">
+                              <Clock className="w-3 h-3 text-indigo-400" /> Stability
+                            </span>
+                            <span className="bg-indigo-50/40 text-indigo-600 border border-indigo-100/30 px-2.5 py-0.5 rounded-lg font-black text-[11px] shadow-sm flex items-center gap-1">
+                              {currentQuestion.fsrs.stability ? (
+                                <>
+                                  <span className="text-[11px] tracking-tight">{currentQuestion.fsrs.stability.toFixed(2)}</span>
+                                  <span className="text-[8px] font-bold opacity-75">d</span>
+                                </>
+                              ) : (
+                                'none'
+                              )}
+                            </span>
+                          </div>
+                          <div className="w-px h-7 bg-gradient-to-b from-slate-100 via-slate-200/60 to-slate-100" />
+                          <div className="flex flex-col items-center gap-0.5 flex-1 justify-center">
+                            <span className="text-[8px] font-black text-slate-400 uppercase tracking-[0.15em] flex items-center gap-1">
+                              <Sliders className="w-3 h-3 text-purple-400" /> Difficulty
+                            </span>
+                            <span className="bg-purple-50/40 text-purple-600 border border-purple-100/30 px-2.5 py-0.5 rounded-lg font-black text-[11px] shadow-sm flex items-center gap-1">
+                              {currentQuestion.fsrs.difficulty ? (
+                                <span className="text-[11px] tracking-tight">{currentQuestion.fsrs.difficulty.toFixed(2)}</span>
+                              ) : (
+                                'none'
+                              )}
+                            </span>
+                          </div>
                         </div>
-                        <div className="w-px h-4 bg-slate-100" />
-                        <div>
-                          Stability: <span className="text-slate-500 font-black">{currentQuestion.fsrs.stability ? `${currentQuestion.fsrs.stability.toFixed(2)}d` : 'none'}</span>
-                        </div>
-                        <div className="w-px h-4 bg-slate-100" />
-                        <div>
-                          Difficulty: <span className="text-slate-500 font-black">{currentQuestion.fsrs.difficulty ? `${currentQuestion.fsrs.difficulty.toFixed(2)}` : 'none'}</span>
-                        </div>
-                      </div>
-                    )}
+                      );
+                    })()}
+
 
                     {/* FSRS Buttons Grid (Visible inside card back, hidden after rating until it unlocks) */}
                     {isFlipped && !hasRated && (
@@ -2729,12 +2810,20 @@ export default function QuizPlay() {
               )}
             </button>
           ) : (
-            <button 
-              onClick={handleNext}
-              className="flex-1 h-12 bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-600 text-white font-black text-xs rounded-2xl shadow-lg shadow-emerald-300/50 flex items-center justify-center gap-2.5 uppercase tracking-widest active:scale-[0.98] transition-all hover:shadow-emerald-400/60 hover:shadow-xl"
-            >
-              NEXT CARD <ChevronRight className="w-4 h-4" />
-            </button>
+            <div className="flex-1 flex gap-3 h-12">
+              <button 
+                onClick={() => setIsFlipped(prev => !prev)}
+                className="flex-1 h-12 bg-gradient-to-r from-indigo-50 to-indigo-100/80 hover:from-indigo-100 hover:to-indigo-200 text-indigo-600 border border-indigo-200/50 font-black text-xs rounded-2xl flex items-center justify-center gap-2 uppercase tracking-widest active:scale-[0.98] transition-all"
+              >
+                {isFlipped ? "FLIP FRONT" : "FLIP BACK"}
+              </button>
+              <button 
+                onClick={handleNext}
+                className="flex-[2] h-12 bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-600 text-white font-black text-xs rounded-2xl shadow-lg shadow-emerald-300/50 flex items-center justify-center gap-2.5 uppercase tracking-widest active:scale-[0.98] transition-all hover:shadow-emerald-400/60 hover:shadow-xl"
+              >
+                NEXT CARD <ChevronRight className="w-4 h-4" />
+              </button>
+            </div>
           )}
         </div>
       </footer>
