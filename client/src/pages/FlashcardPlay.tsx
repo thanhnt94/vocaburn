@@ -1105,6 +1105,14 @@ export default function FlashcardPlay() {
     setCurrentIndex(idx)
     setIsFlipped(false)
     setActivelyRatedCurrentCard(false)
+
+    // Đóng toàn bộ các popup, toast, thông báo thành tựu khi chuyển sang câu mới
+    setGoalToast(prev => prev ? { ...prev, visible: false } : null)
+    setShowGoalCelebration(false)
+    setBadgeVisible(false)
+    setActiveUnlockedBadge(null)
+    setActiveMasteryUpgrade(null)
+    setLearningModeAlert(null)
     
     // Check if the card is unlocked (clock drift buffered) to reset selectedOption for new reviews
     const q = session?.questions?.[idx]
