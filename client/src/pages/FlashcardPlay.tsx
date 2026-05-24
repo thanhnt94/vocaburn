@@ -196,11 +196,39 @@ const speakMultiLanguage = (text: string) => {
     }
   }
 
+  const voices = typeof window !== 'undefined' ? window.speechSynthesis.getVoices() : [];
+
   segments.forEach((seg) => {
     if (!seg.text) return;
     const u = new SpeechSynthesisUtterance(seg.text);
     u.lang = seg.langCode;
     u.rate = 0.85;
+
+    // Tự động tìm giọng Nữ chất lượng cao cho tiếng Việt (vi-VN)
+    if (seg.langCode.toLowerCase().startsWith('vi')) {
+      const viVoice = voices.find(v => {
+        const name = v.name.toLowerCase();
+        const lang = v.lang.toLowerCase();
+        const isVi = lang === 'vi-vn' || lang.startsWith('vi');
+        if (!isVi) return false;
+        
+        // Ưu tiên các giọng nữ nổi tiếng như HoaiMy (Edge), Linh/An (Windows), giọng Google tiếng Việt online, hoặc chứa từ khóa 'female'/'nữ'
+        return name.includes('hoaimy') || 
+               name.includes('linh') || 
+               name.includes('an') || 
+               name.includes('female') || 
+               name.includes('nữ') || 
+               name.includes('google');
+      });
+      if (viVoice) {
+        u.voice = viVoice;
+      } else {
+        // Dự phòng giọng tiếng Việt bất kỳ nếu không tìm thấy giọng nữ đặc trưng
+        const anyVi = voices.find(v => v.lang.toLowerCase() === 'vi-vn' || v.lang.toLowerCase().startsWith('vi'));
+        if (anyVi) u.voice = anyVi;
+      }
+    }
+
     window.speechSynthesis.speak(u);
   });
 }
