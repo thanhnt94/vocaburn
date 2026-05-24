@@ -56,7 +56,7 @@ const MarkdownComponents = {
   }
 }
 
-const ImportQuiz = () => {
+const ImportFlashcard = () => {
   const navigate = useNavigate()
   const [isUploading, setIsUploading] = useState(false)
   const [isPreviewing, setIsPreviewing] = useState(false)
@@ -586,4 +586,4 @@ const ImportQuiz = () => {
   )
 }
 
-export default ImportQuiz
+export default ImportFlashcard

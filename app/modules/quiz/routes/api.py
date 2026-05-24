@@ -8,7 +8,7 @@ from app.core.db import get_db
 from app.modules.quiz.services.excel_service import ExcelQuizService
 from app.modules.quiz.services.quiz_service import QuizService
 from app.modules.quiz.services.ai_service import ai_service
-from app.modules.quiz.schemas import QuizSchema, QuestionSchema, OptionSchema
+from app.modules.quiz.schemas import QuizSchema, QuestionSchema
 import json
 import re
 import os
@@ -178,8 +178,14 @@ async def record_answer(request: Request, data: dict, db: AsyncSession = Depends
     is_correct = data.get("is_correct", False)
     time_spent = int(data.get("time_spent", 0))
     question_id = int(data.get("question_id"))
-    selected_option_id = int(data.get("option_id")) if data.get("option_id") else None
     local_date = data.get("local_date")
+
+    # Map incoming rating or fall back to is_correct early
+    rating_val = data.get("rating")
+    if rating_val is not None:
+        rating_val = int(rating_val)
+    else:
+        rating_val = 3 if is_correct else 1
 
     q_res = await db.execute(select(Question).filter(Question.id == question_id))
     question = q_res.scalar_one_or_none()
@@ -199,9 +205,9 @@ async def record_answer(request: Request, data: dict, db: AsyncSession = Depends
         db_answer = UserAnswer(
             attempt_id=attempt.id,
             question_id=question_id,
-            selected_option_id=selected_option_id,
             is_correct=is_correct,
-            active_time=float(time_spent)
+            active_time=float(time_spent),
+            rating=rating_val
         )
         db.add(db_answer)
         await db.flush()
@@ -232,13 +238,6 @@ async def record_answer(request: Request, data: dict, db: AsyncSession = Depends
             await db.flush()
 
         old_box_level = mastery.box_level
-        
-        # Map incoming rating or fall back to is_correct
-        rating_val = data.get("rating")
-        if rating_val is not None:
-            rating_val = int(rating_val)
-        else:
-            rating_val = 3 if is_correct else 1
             
         rating_map = {
             1: Rating.Again,
@@ -707,10 +706,7 @@ async def get_quiz_play_data(request: Request, quiz_id: int, db: AsyncSession = 
                 "last_review": m_last_review.isoformat() if m_last_review else None,
                 "intervals": intervals
             },
-            "options": [
-                {"id": o.id, "content": o.content, "is_correct": o.is_correct}
-                for o in q.options
-            ],
+            "options": [],
             "image": q.image,
             "audio": q.audio,
             "others": q.others
@@ -941,9 +937,9 @@ async def get_quiz_notes(request: Request, quiz_id: int, db: AsyncSession = Depe
 
 @router.get("/{quiz_id}/questions")
 async def get_quiz_questions(quiz_id: int, page: int = 1, size: int = 50, search: str = "", db: AsyncSession = Depends(get_db)):
-    from app.modules.quiz.models import Question, Option
+    from app.modules.quiz.models import Question
     
-    query = select(Question).where(Question.quiz_id == quiz_id).options(selectinload(Question.options))
+    query = select(Question).where(Question.quiz_id == quiz_id)
     if search:
         query = query.filter(Question.content.ilike(f"%{search}%"))
     
@@ -975,17 +971,11 @@ async def get_quiz_questions(quiz_id: int, page: int = 1, size: int = 50, search
                 "content": q.content,
                 "explanation": q.explanation,
                 "ai_explanation": q.ai_explanation,
-                "points": q.points,
+                "points": 1,
                 "image": q.image,
                 "audio": q.audio,
                 "stats": stats_map.get(q.id, {"total": 0, "correct": 0, "wrong": 0}),
-                "options": [
-                    {
-                        "id": o.id,
-                        "content": o.content,
-                        "is_correct": o.is_correct
-                    } for o in q.options
-                ]
+                "options": []
             } for i, q in enumerate(qs)
         ],
         "total": total,

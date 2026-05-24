@@ -149,6 +149,7 @@ async def get_me(request: Request, db: AsyncSession = Depends(get_db)):
 @app.get("/login")
 @app.get("/dashboard")
 @app.get("/quiz/{path:path}")
+@app.get("/flashcard/{path:path}")
 @app.get("/profile")
 @app.get("/stats")
 @app.get("/settings")

@@ -191,35 +191,7 @@ class ExcelQuizService:
             others_dict["back_audio_content"] = get_val("back_audio_content")
 
             options_list = []
-            if has_options:
-                # Multiple choice quiz
-                q_type = get_val("question_type") or "single_choice"
-                if q_type == "nan" or q_type == "normal" or q_type == "flashcard":
-                    q_type = "single_choice"
-
-                ans_col = next((c for c in ["correct_answer", "correct", "answer"] if c in df_data.columns), "correct_answer")
-                raw_answer = get_val(ans_col).strip()
-                clean_raw_answer = raw_answer.lower().rstrip('.').rstrip(')').strip()
-                
-                answer_map = {
-                    "a": "option_a", "b": "option_b", "c": "option_c", "d": "option_d",
-                    "1": "option_a", "2": "option_b", "3": "option_c", "4": "option_d"
-                }
-                target_opt_key_by_index = answer_map.get(clean_raw_answer)
-
-                for opt_key in ["option_a", "option_b", "option_c", "option_d"]:
-                    opt_content = get_val(opt_key)
-                    if opt_content and opt_content.lower() != "nan":
-                        clean_opt_content = opt_content.lower().strip()
-                        is_correct = (clean_opt_content == clean_raw_answer or opt_key == target_opt_key_by_index)
-                        
-                        options_list.append({
-                            "content": opt_content,
-                            "is_correct": is_correct
-                        })
-            else:
-                # Flashcard / Vocabulary item
-                q_type = "flashcard"
+            q_type = "flashcard"
 
             question_data = {
                 "content": front_text,

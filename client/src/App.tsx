@@ -6,16 +6,16 @@ import Dashboard from './pages/Dashboard'
 import Landing from './pages/Landing'
 import Login from './pages/Login'
 import Admin from './pages/Admin'
-import QuizPlay from './pages/QuizPlay'
-import QuizDetail from './pages/QuizDetail'
+import FlashcardPlay from './pages/FlashcardPlay'
+import FlashcardDetail from './pages/FlashcardDetail'
 import Profile from './pages/Profile'
 import Stats from './pages/Stats'
 import Settings from './pages/Settings'
-import ManageQuizzes from './pages/ManageQuizzes'
-import ImportQuiz from './pages/ImportQuiz'
-import EditQuiz from './pages/EditQuiz'
+import ManageFlashcards from './pages/ManageFlashcards'
+import ImportFlashcard from './pages/ImportFlashcard'
+import EditFlashcard from './pages/EditFlashcard'
 import EditQuestions from './pages/EditQuestions'
-import QuizRoom from './pages/QuizRoom'
+import FlashcardRoom from './pages/FlashcardRoom'
 import RoomJoin from './pages/RoomJoin'
 import Layout from './components/Layout'
 
@@ -63,9 +63,9 @@ function AppContent() {
           <Route path="/profile" element={isLoggedIn ? <Profile /> : <Navigate to="/login" replace />} />
           <Route path="/stats" element={isLoggedIn ? <Stats /> : <Navigate to="/login" replace />} />
           <Route path="/settings" element={isLoggedIn ? <Settings /> : <Navigate to="/login" replace />} />
-          <Route path="/manage" element={isLoggedIn ? <ManageQuizzes /> : <Navigate to="/login" replace />} />
-          <Route path="/manage/import" element={isLoggedIn ? <ImportQuiz /> : <Navigate to="/login" replace />} />
-          <Route path="/manage/edit/:id" element={isLoggedIn ? <EditQuiz /> : <Navigate to="/login" replace />} />
+          <Route path="/manage" element={isLoggedIn ? <ManageFlashcards /> : <Navigate to="/login" replace />} />
+          <Route path="/manage/import" element={isLoggedIn ? <ImportFlashcard /> : <Navigate to="/login" replace />} />
+          <Route path="/manage/edit/:id" element={isLoggedIn ? <EditFlashcard /> : <Navigate to="/login" replace />} />
           <Route path="/manage/edit/:id/questions" element={isLoggedIn ? <EditQuestions /> : <Navigate to="/login" replace />} />
           <Route path="/room/join" element={isLoggedIn ? <RoomJoin /> : <Navigate to="/login" replace />} />
           
@@ -74,9 +74,9 @@ function AppContent() {
         </Route>
 
         {/* Fullscreen Protected Views */}
-        <Route path="/quiz/:id" element={isLoggedIn ? <QuizDetail /> : <Navigate to="/login" replace />} />
-        <Route path="/quiz/:id/play" element={isLoggedIn ? <QuizPlay /> : <Navigate to="/login" replace />} />
-        <Route path="/room/:code" element={isLoggedIn ? <QuizRoom /> : <Navigate to="/login" replace />} />
+        <Route path="/flashcard/:id" element={isLoggedIn ? <FlashcardDetail /> : <Navigate to="/login" replace />} />
+        <Route path="/flashcard/:id/play" element={isLoggedIn ? <FlashcardPlay /> : <Navigate to="/login" replace />} />
+        <Route path="/room/:code" element={isLoggedIn ? <FlashcardRoom /> : <Navigate to="/login" replace />} />
 
         {/* Catch-all Redirect */}
         <Route path="*" element={<Navigate to="/" replace />} />

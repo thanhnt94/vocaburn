@@ -1,8 +1,8 @@
-from sqlalchemy import func, Integer, select
+from sqlalchemy import func, Integer, select, case
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
-from app.modules.quiz.models import Quiz, Question, Option, Category
-from app.modules.quiz.schemas import QuizSchema, QuestionSchema, CategorySchema
+from app.modules.quiz.models import Quiz, Question, Category
+from app.modules.quiz.schemas import QuizSchema, QuestionSchema
 
 class QuizService:
     @staticmethod
@@ -30,21 +30,9 @@ class QuizService:
             question_type=question_data.question_type,
             explanation=question_data.explanation,
             ai_explanation=question_data.ai_explanation,
-            others=question_data.others,
-            points=question_data.points
+            others=question_data.others
         )
         db.add(db_question)
-        await db.commit()
-        await db.refresh(db_question)
-        
-        for opt in question_data.options:
-            db_opt = Option(
-                question_id=db_question.id,
-                content=opt.content,
-                is_correct=opt.is_correct
-            )
-            db.add(db_opt)
-        
         await db.commit()
         await db.refresh(db_question)
         return db_question
@@ -61,14 +49,8 @@ class QuizService:
                 question_type=q_data.question_type,
                 explanation=q_data.explanation,
                 ai_explanation=q_data.ai_explanation,
-                others=q_data.others,
-                points=q_data.points
+                others=q_data.others
             )
-            # Associate Option objects using the options relationship
-            db_question.options = [
-                Option(content=opt.content, is_correct=opt.is_correct)
-                for opt in q_data.options
-            ]
             db_questions.append(db_question)
             
         db.add_all(db_questions)
@@ -119,7 +101,7 @@ class QuizService:
     @staticmethod
     async def get_quiz_by_id(db: AsyncSession, quiz_id: int):
         result = await db.execute(
-            select(Quiz).where(Quiz.id == quiz_id).options(selectinload(Quiz.questions).selectinload(Question.options), selectinload(Quiz.tags))
+            select(Quiz).where(Quiz.id == quiz_id).options(selectinload(Quiz.questions), selectinload(Quiz.tags))
         )
         return result.scalar_one_or_none()
 
@@ -128,7 +110,7 @@ class QuizService:
         from app.modules.quiz.models import UserAnswer, Question, QuizAttempt
         
         result = await db.execute(
-            select(Quiz).where(Quiz.id == quiz_id).options(selectinload(Quiz.questions).selectinload(Question.options), selectinload(Quiz.tags))
+            select(Quiz).where(Quiz.id == quiz_id).options(selectinload(Quiz.questions), selectinload(Quiz.tags))
         )
         quiz = result.scalar_one_or_none()
         if not quiz:
@@ -139,7 +121,11 @@ class QuizService:
             UserAnswer.question_id,
             func.count(UserAnswer.id).label("total"),
             func.sum(func.cast(UserAnswer.is_correct, Integer)).label("correct"),
-            func.avg(UserAnswer.active_time).label("avg_time")
+            func.avg(UserAnswer.active_time).label("avg_time"),
+            func.sum(case((UserAnswer.rating == 1, 1), else_=0)).label("again_count"),
+            func.sum(case((UserAnswer.rating == 2, 1), else_=0)).label("hard_count"),
+            func.sum(case((UserAnswer.rating == 3, 1), else_=0)).label("good_count"),
+            func.sum(case((UserAnswer.rating == 4, 1), else_=0)).label("easy_count")
         ).join(Question).where(Question.quiz_id == quiz_id)
         
         if user_id:
@@ -156,11 +142,28 @@ class QuizService:
             total = row.total if row else 0
             correct = row.correct if row else 0
             
+            again = int(row.again_count or 0) if row else 0
+            hard = int(row.hard_count or 0) if row else 0
+            good = int(row.good_count or 0) if row else 0
+            easy = int(row.easy_count or 0) if row else 0
+            
+            # Fallback for old rows lacking direct ratings
+            total_rated = again + hard + good + easy
+            if total > total_rated:
+                missing_correct = max(0, correct - (good + easy + hard))
+                missing_incorrect = max(0, (total - correct) - again)
+                good += missing_correct
+                again += missing_incorrect
+                
             q.stats = {
                 "total": total,
                 "correct": correct,
                 "wrong": total - correct,
-                "avg_time": round(row.avg_time if row else 0, 1)
+                "avg_time": round(row.avg_time if row else 0, 1),
+                "again_count": again,
+                "hard_count": hard,
+                "good_count": good,
+                "easy_count": easy
             }
         
         return quiz

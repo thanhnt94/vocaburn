@@ -28,7 +28,7 @@ import {
 import axios from 'axios'
 import { cn } from '@/lib/utils'
 
-const EditQuiz = () => {
+const EditFlashcard = () => {
   const { id } = useParams()
   const navigate = useNavigate()
   const [isSaving, setIsSaving] = useState(false)
@@ -525,4 +525,4 @@ const Textarea = ({ label, value, onChange, rows, placeholder }: { label: string
   </div>
 )
 
-export default EditQuiz
+export default EditFlashcard

@@ -52,16 +52,16 @@ html, body, #root {
   .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #CBD5E1; }
 }
 
-.markdown-content ul { list-style-type: none; margin-left: 1.5rem; margin-top: 1rem; margin-bottom: 1rem; }
-.markdown-content ol { list-style-type: decimal; margin-left: 1.5rem; margin-top: 1rem; margin-bottom: 1rem; }
+.markdown-content ul { list-style-type: none; margin-left: 1.5rem; margin-top: 0.6rem; margin-bottom: 0.6rem; }
+.markdown-content ol { list-style-type: decimal; margin-left: 1.5rem; margin-top: 0.6rem; margin-bottom: 0.6rem; }
 .markdown-content li { 
-  @apply relative mb-4 text-slate-700 leading-relaxed;
+  @apply relative mb-2 text-slate-700 leading-relaxed;
 }
 .markdown-content ul li::before {
   content: "•";
   @apply absolute -left-5 text-indigo-500 font-black;
 }
-.markdown-content p { margin-bottom: 1.5rem; line-height: 2.2; @apply text-slate-600 font-medium; }
+.markdown-content p { margin-bottom: 0.6rem; line-height: 1.6; @apply text-slate-600 font-medium; }
 
 .markdown-content h1, .markdown-content h2, .markdown-content h3 { 
   @apply font-black text-slate-900 tracking-tight mt-10 mb-5 flex items-center gap-3;

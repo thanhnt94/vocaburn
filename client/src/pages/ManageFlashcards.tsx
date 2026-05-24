@@ -6,7 +6,7 @@ import axios from 'axios'
 import { cn } from '@/lib/utils'
 import { motion, AnimatePresence } from 'framer-motion'
 
-export default function ManageQuizzes() {
+export default function ManageFlashcards() {
   const queryClient = useQueryClient()
   const [searchQuery, setSearchQuery] = useState('')
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
@@ -22,12 +22,12 @@ export default function ManageQuizzes() {
   })
 
   const handleDelete = async (id: number) => {
-    if (!confirm('Are you sure you want to delete this quiz collection?')) return
+    if (!confirm('Are you sure you want to delete this deck?')) return
     try {
       await axios.delete(`/api/v1/quiz/${id}`)
       queryClient.invalidateQueries({ queryKey: ['manage-quizzes'] })
     } catch (err) {
-      alert('Failed to delete collection')
+      alert('Failed to delete deck')
     }
   }
 
@@ -40,7 +40,7 @@ export default function ManageQuizzes() {
       setNewQuiz({ title: '', description: '', cover_image: '' })
       queryClient.invalidateQueries({ queryKey: ['manage-quizzes'] })
     } catch (err) {
-      alert('Failed to create quiz')
+      alert('Failed to create deck')
     } finally {
       setIsSubmitting(false)
     }
@@ -212,7 +212,7 @@ export default function ManageQuizzes() {
                   onClick={() => setIsCreateModalOpen(true)}
                   className="mt-6 inline-flex items-center gap-2 px-8 py-3.5 bg-indigo-600 text-white text-[10px] font-black rounded-2xl hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-100 uppercase tracking-widest"
                >
-                  Create Your First Quiz
+                  Create Your First Deck
                </button>
             </div>
          )}
@@ -238,7 +238,7 @@ export default function ManageQuizzes() {
                   <div className="p-8">
                      <div className="flex items-center justify-between mb-8">
                         <div>
-                           <h2 className="text-xl font-black text-slate-800 uppercase italic">Create New Quiz</h2>
+                           <h2 className="text-xl font-black text-slate-800 uppercase italic">Create New Deck</h2>
                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-1">Define your collection baseline</p>
                         </div>
                         <button onClick={() => setIsCreateModalOpen(false)} className="w-10 h-10 flex items-center justify-center bg-slate-50 rounded-xl text-slate-400 hover:text-slate-600 transition-all">
@@ -248,7 +248,7 @@ export default function ManageQuizzes() {
 
                      <form onSubmit={handleCreateQuiz} className="space-y-6">
                         <div className="space-y-1.5">
-                           <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Quiz Title</label>
+                           <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Deck Title</label>
                            <input 
                               required
                               type="text" 

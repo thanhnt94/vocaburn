@@ -276,7 +276,7 @@ export default function Dashboard() {
                <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                <input 
                  type="text" 
-                 placeholder="Search quiz decks..." 
+                 placeholder="Search decks..." 
                  value={searchQuery}
                  onChange={(e) => setSearchQuery(e.target.value)}
                  className="w-full h-11 bg-slate-50 border border-slate-200 rounded-2xl pl-10 pr-4 text-xs font-semibold outline-none focus:bg-white focus:ring-4 focus:ring-indigo-500/5 transition-all shadow-inner"
@@ -663,7 +663,7 @@ export default function Dashboard() {
                                    )}
                                 </div>
                                 <Link 
-                                   to={`/quiz/${quiz.id}/play`}
+                                   to={`/flashcard/${quiz.id}/play`}
                                    className="w-11 h-11 rounded-2xl bg-indigo-600 text-white flex items-center justify-center shadow-lg shadow-indigo-200 hover:scale-110 active:scale-95 transition-all"
                                    title="Start Studying Now"
                                 >
@@ -678,7 +678,7 @@ export default function Dashboard() {
                                 </div>
                                 <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
                                   <BrainCircuit className="w-3.5 h-3.5 text-slate-400" />
-                                  {quiz.questions_count} Quiz Questions
+                                  {quiz.questions_count} Flashcards
                                 </p>
                              </div>
                            </div>
@@ -721,7 +721,7 @@ export default function Dashboard() {
                                     </>
                                   )}
                                   <Link 
-                                    to={`/quiz/${quiz.id}`} 
+                                    to={`/flashcard/${quiz.id}`} 
                                     className="w-9 h-9 bg-white hover:bg-slate-50 text-slate-600 border border-slate-200 rounded-full flex items-center justify-center transition-all shadow-sm active:scale-95 hover:scale-105"
                                     title="View Deck Details"
                                   >
@@ -758,7 +758,7 @@ export default function Dashboard() {
                  <motion.div key={quiz.id} layout initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: idx * 0.01 }}>
                    <div className="bg-white rounded-[1.75rem] border border-slate-200/60 p-4.5 shadow-sm active:scale-[0.97] transition-all relative overflow-hidden flex flex-col gap-3">
                       <div className="flex items-center gap-4 text-left">
-                         <Link to={`/quiz/${quiz.id}`} className="w-14 h-14 rounded-2xl flex-shrink-0 overflow-hidden shadow-md transition-all relative">
+                         <Link to={`/flashcard/${quiz.id}`} className="w-14 h-14 rounded-2xl flex-shrink-0 overflow-hidden shadow-md transition-all relative">
                             {quiz.cover_image ? (
                               <img src={quiz.cover_image} alt="" className="w-full h-full object-cover" />
                             ) : (
@@ -775,18 +775,18 @@ export default function Dashboard() {
                             )}
                          </Link>
                          <div className="flex-1 min-w-0">
-                            <Link to={`/quiz/${quiz.id}`}>
+                            <Link to={`/flashcard/${quiz.id}`}>
                                <h3 className="text-[13px] font-black text-slate-800 leading-tight mb-1 truncate">{quiz.title}</h3>
                             </Link>
                             <div className="flex items-center gap-2">
                                <div className="flex items-center gap-1 bg-slate-50 px-1.5 py-0.5 rounded border border-slate-100">
                                   <BrainCircuit className="w-2.5 h-2.5 text-slate-400" />
-                                  <span className="text-[8px] font-black text-slate-500 uppercase">{quiz.questions_count} Questions</span>
+                                  <span className="text-[8px] font-black text-slate-500 uppercase">{quiz.questions_count} Flashcards</span>
                                </div>
                                {quiz.tags?.[0] && <span className="text-[8px] font-black text-indigo-500 uppercase tracking-widest">#{quiz.tags[0]}</span>}
                             </div>
                          </div>
-                         <Link to={`/quiz/${quiz.id}/play`} className="w-10 h-10 rounded-xl bg-indigo-600 text-white flex items-center justify-center shadow-md shadow-indigo-200 active:scale-90 transition-all">
+                         <Link to={`/flashcard/${quiz.id}/play`} className="w-10 h-10 rounded-xl bg-indigo-600 text-white flex items-center justify-center shadow-md shadow-indigo-200 active:scale-90 transition-all">
                             <Play className="w-4 h-4 fill-white ml-0.5" />
                          </Link>
                       </div>
@@ -830,7 +830,7 @@ export default function Dashboard() {
                             )}
                          </div>
                          <Link 
-                            to={`/quiz/${quiz.id}`} 
+                            to={`/flashcard/${quiz.id}`} 
                             className="w-8 h-8 rounded-full bg-white text-slate-600 border border-slate-200/50 flex items-center justify-center active:scale-95 hover:scale-105"
                             title="View Deck Details"
                          >

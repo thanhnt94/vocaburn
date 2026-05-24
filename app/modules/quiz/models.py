@@ -13,14 +13,14 @@ class Category(Base):
     quizzes = relationship("Quiz", back_populates="category")
 
 class Quiz(Base):
-    __tablename__ = "quizzes"
+    __tablename__ = "flashcard_decks"
     id = Column(Integer, primary_key=True, index=True)
     title = Column(String(255), index=True)
     description = Column(Text, nullable=True)
     category_id = Column(Integer, ForeignKey("categories.id"), index=True)
     creator_id = Column(Integer, nullable=True) # ID of the user who created/uploaded it
     ai_prompt = Column(Text, nullable=True) # System prompt for AI generation related to this quiz
-    instruction = Column(Text, nullable=True) # General instruction for the entire quiz (e.g. JLPT problem description)
+    instruction = Column(Text, nullable=True) # General instruction for the entire quiz
     cover_image = Column(String(512), nullable=True) # URL to the cover image
     time_limit = Column(Integer, default=0) # in minutes, 0 means no limit
     is_active = Column(Boolean, default=True)
@@ -28,39 +28,28 @@ class Quiz(Base):
     
     category = relationship("Category", back_populates="quizzes")
     questions = relationship("Question", back_populates="quiz", cascade="all, delete-orphan")
-    tags = relationship("Tag", secondary="quiz_tags", back_populates="quizzes")
+    tags = relationship("Tag", secondary="deck_tags", back_populates="quizzes")
     collaborators = relationship("QuizCollaborator", back_populates="quiz", cascade="all, delete-orphan")
 
 class Question(Base):
-    __tablename__ = "questions"
+    __tablename__ = "flashcards"
     id = Column(Integer, primary_key=True, index=True)
-    quiz_id = Column(Integer, ForeignKey("quizzes.id"), index=True)
+    quiz_id = Column(Integer, ForeignKey("flashcard_decks.id"), index=True)
     content = Column(Text, nullable=False)
     image = Column(String(512), nullable=True)
     audio = Column(String(512), nullable=True)
-    question_type = Column(String(50), default="single_choice")
+    question_type = Column(String(50), default="flashcard")
     explanation = Column(Text, nullable=True)
     ai_explanation = Column(Text, nullable=True)
     others = Column(JSON, nullable=True)
-    points = Column(Integer, default=1)
     
     quiz = relationship("Quiz", back_populates="questions")
-    options = relationship("Option", back_populates="question", cascade="all, delete-orphan")
-
-class Option(Base):
-    __tablename__ = "options"
-    id = Column(Integer, primary_key=True, index=True)
-    question_id = Column(Integer, ForeignKey("questions.id"), index=True)
-    content = Column(Text, nullable=False)
-    is_correct = Column(Boolean, default=False)
-    
-    question = relationship("Question", back_populates="options")
 
 class QuizAttempt(Base):
-    __tablename__ = "quiz_attempts"
+    __tablename__ = "deck_attempts"
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id"), index=True)
-    quiz_id = Column(Integer, ForeignKey("quizzes.id"), index=True)
+    quiz_id = Column(Integer, ForeignKey("flashcard_decks.id"), index=True)
     mode = Column(String(50)) # sequential, random, mastery
     score = Column(Integer, default=0)
     total_questions = Column(Integer, default=0)
@@ -71,32 +60,32 @@ class QuizAttempt(Base):
     answers = relationship("UserAnswer", back_populates="attempt", cascade="all, delete-orphan")
 
 class UserAnswer(Base):
-    __tablename__ = "user_answers"
+    __tablename__ = "card_answers"
     id = Column(Integer, primary_key=True, index=True)
-    attempt_id = Column(Integer, ForeignKey("quiz_attempts.id"), index=True)
-    question_id = Column(Integer, ForeignKey("questions.id"), index=True)
-    selected_option_id = Column(Integer, ForeignKey("options.id"), nullable=True)
+    attempt_id = Column(Integer, ForeignKey("deck_attempts.id"), index=True)
+    question_id = Column(Integer, ForeignKey("flashcards.id"), index=True)
     is_correct = Column(Boolean, default=False)
     active_time = Column(Float, default=0.0)
+    rating = Column(Integer, nullable=True) # FSRS Rating: 1=Again, 2=Hard, 3=Good, 4=Easy
     created_at = Column(DateTime, default=datetime.utcnow)
     
     attempt = relationship("QuizAttempt", back_populates="answers")
 
 class QuizSession(Base):
-    __tablename__ = "quiz_sessions"
+    __tablename__ = "deck_sessions"
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, index=True)
-    quiz_id = Column(Integer, ForeignKey("quizzes.id"), index=True)
+    quiz_id = Column(Integer, ForeignKey("flashcard_decks.id"), index=True)
     mode = Column(String) # classic, chaos, mastery, batch
     current_index = Column(Integer, default=0)
     state_json = Column(String) # For storing question order/answers
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
 class UserQuestionNote(Base):
-    __tablename__ = "user_question_notes"
+    __tablename__ = "user_card_notes"
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id"), index=True)
-    question_id = Column(Integer, ForeignKey("questions.id"), index=True)
+    question_id = Column(Integer, ForeignKey("flashcards.id"), index=True)
     content = Column(Text, nullable=False)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
@@ -108,21 +97,21 @@ class Tag(Base):
     name = Column(String(50), unique=True, index=True)
     created_at = Column(DateTime, default=datetime.utcnow)
     
-    quizzes = relationship("Quiz", secondary="quiz_tags", back_populates="tags")
+    quizzes = relationship("Quiz", secondary="deck_tags", back_populates="tags")
 
 class QuizTag(Base):
-    __tablename__ = "quiz_tags"
-    quiz_id = Column(Integer, ForeignKey("quizzes.id"), primary_key=True)
+    __tablename__ = "deck_tags"
+    quiz_id = Column(Integer, ForeignKey("flashcard_decks.id"), primary_key=True)
     tag_id = Column(Integer, ForeignKey("tags.id"), primary_key=True)
 
 class QuizRoom(Base):
-    __tablename__ = "quiz_rooms"
+    __tablename__ = "deck_rooms"
     id = Column(Integer, primary_key=True, index=True)
-    quiz_id = Column(Integer, ForeignKey("quizzes.id"), index=True)
+    quiz_id = Column(Integer, ForeignKey("flashcard_decks.id"), index=True)
     room_code = Column(String(20), unique=True, index=True)
     host_id = Column(Integer, ForeignKey("users.id"), index=True)
     status = Column(String(50), default="waiting") # waiting, active, finished
-    settings = Column(JSON, nullable=True) # { "show_leaderboard": true, "auto_start": false }
+    settings = Column(JSON, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
     started_at = Column(DateTime, nullable=True)
     finished_at = Column(DateTime, nullable=True)
@@ -132,9 +121,9 @@ class QuizRoom(Base):
     participants = relationship("QuizRoomParticipant", back_populates="room", cascade="all, delete-orphan")
 
 class QuizRoomParticipant(Base):
-    __tablename__ = "quiz_room_participants"
+    __tablename__ = "deck_room_participants"
     id = Column(Integer, primary_key=True, index=True)
-    room_id = Column(Integer, ForeignKey("quiz_rooms.id"), index=True)
+    room_id = Column(Integer, ForeignKey("deck_rooms.id"), index=True)
     user_id = Column(Integer, ForeignKey("users.id"), index=True)
     is_ready = Column(Boolean, default=False)
     score = Column(Integer, default=0)
@@ -146,9 +135,9 @@ class QuizRoomParticipant(Base):
     user = relationship("User")
 
 class QuizRoomChat(Base):
-    __tablename__ = "quiz_room_chats"
+    __tablename__ = "deck_room_chats"
     id = Column(Integer, primary_key=True, index=True)
-    room_id = Column(Integer, ForeignKey("quiz_rooms.id", ondelete="CASCADE"), index=True)
+    room_id = Column(Integer, ForeignKey("deck_rooms.id", ondelete="CASCADE"), index=True)
     user_id = Column(Integer, ForeignKey("users.id"), index=True)
     message = Column(Text, nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow)
@@ -157,8 +146,8 @@ class QuizRoomChat(Base):
     user = relationship("User")
 
 class QuizCollaborator(Base):
-    __tablename__ = "quiz_collaborators"
-    quiz_id = Column(Integer, ForeignKey("quizzes.id"), primary_key=True)
+    __tablename__ = "deck_collaborators"
+    quiz_id = Column(Integer, ForeignKey("flashcard_decks.id"), primary_key=True)
     user_id = Column(Integer, ForeignKey("users.id"), primary_key=True)
     added_at = Column(DateTime, default=datetime.utcnow)
     
@@ -166,10 +155,10 @@ class QuizCollaborator(Base):
     user = relationship("User")
 
 class UserQuizGoal(Base):
-    __tablename__ = "user_quiz_goals"
+    __tablename__ = "user_deck_goals"
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id"), index=True)
-    quiz_id = Column(Integer, ForeignKey("quizzes.id"), index=True)
+    quiz_id = Column(Integer, ForeignKey("flashcard_decks.id"), index=True)
     daily_target = Column(Integer, default=5)
     streak_count = Column(Integer, default=0)
     last_completed_date = Column(String(50), nullable=True) # YYYY-MM-DD
@@ -181,7 +170,7 @@ class UserQuizGoal(Base):
 class UserDailyProgress(Base):
     __tablename__ = "user_daily_progress"
     id = Column(Integer, primary_key=True, index=True)
-    goal_id = Column(Integer, ForeignKey("user_quiz_goals.id"), index=True)
+    goal_id = Column(Integer, ForeignKey("user_deck_goals.id"), index=True)
     date = Column(String(50), index=True) # YYYY-MM-DD
     count_done = Column(Integer, default=0)
     is_target_met = Column(Boolean, default=False)
@@ -190,10 +179,10 @@ class UserDailyProgress(Base):
     goal = relationship("UserQuizGoal")
 
 class UserQuestionMastery(Base):
-    __tablename__ = "user_question_mastery"
+    __tablename__ = "user_card_mastery"
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id"), index=True)
-    question_id = Column(Integer, ForeignKey("questions.id"), index=True)
+    question_id = Column(Integer, ForeignKey("flashcards.id"), index=True)
     box_level = Column(Integer, default=1)  # Leitner system box 1-5 (Mastery level)
     consecutive_correct = Column(Integer, default=0)
     last_answered = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)

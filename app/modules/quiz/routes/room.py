@@ -3,7 +3,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func, update, desc
 from sqlalchemy.orm import selectinload
 from app.core.db import get_db
-from app.modules.quiz.models import Quiz, Question, Option, QuizRoom, QuizRoomParticipant, QuizAttempt, UserAnswer, QuizRoomChat
+from app.modules.quiz.models import Quiz, Question, QuizRoom, QuizRoomParticipant, QuizAttempt, UserAnswer, QuizRoomChat
 from app.modules.auth.services.auth_service import AuthService
 import random
 import string
@@ -226,9 +226,13 @@ async def submit_room_answer(request: Request, room_code: str, data: dict, db: A
         raise HTTPException(status_code=403, detail="You are not in this room")
         
     question_id = data.get("question_id")
-    option_id = data.get("option_id")
     is_correct = data.get("is_correct", False)
     time_spent = data.get("time_spent", 0)
+    rating_val = data.get("rating")
+    if rating_val is not None:
+        rating_val = int(rating_val)
+    else:
+        rating_val = 3 if is_correct else 1
     
     # Record in personal log (QuizAttempt)
     attempt_res = await db.execute(
@@ -281,9 +285,9 @@ async def submit_room_answer(request: Request, room_code: str, data: dict, db: A
     db_answer = UserAnswer(
         attempt_id=attempt.id,
         question_id=question_id,
-        selected_option_id=option_id,
         is_correct=is_correct,
-        active_time=float(time_spent)
+        active_time=float(time_spent),
+        rating=rating_val
     )
     db.add(db_answer)
     

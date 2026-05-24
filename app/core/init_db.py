@@ -1,4 +1,4 @@
-from app.modules.quiz.models import Category, Quiz, Question, Option
+from app.modules.quiz.models import Category, Quiz, Question
 from app.modules.auth.models import User
 from app.modules.gamification.models import UserGamification, Badge
 from app.modules.notification.models import Notification
@@ -18,7 +18,7 @@ async def init_db():
         # Custom SQLite migration for FSRS v6 columns in UserQuestionMastery
         from sqlalchemy import text
         def migrate_fsrs_columns(connection):
-            result = connection.execute(text("PRAGMA table_info(user_question_mastery);"))
+            result = connection.execute(text("PRAGMA table_info(user_card_mastery);"))
             columns = {row[1] for row in result.fetchall()}
             
             new_columns = [
@@ -32,10 +32,10 @@ async def init_db():
             
             for col_name, col_type in new_columns:
                 if col_name not in columns:
-                    print(f"[MIGRATE] Adding column {col_name} ({col_type}) to user_question_mastery...")
-                    connection.execute(text(f"ALTER TABLE user_question_mastery ADD COLUMN {col_name} {col_type}"))
+                    print(f"[MIGRATE] Adding column {col_name} ({col_type}) to user_card_mastery...")
+                    connection.execute(text(f"ALTER TABLE user_card_mastery ADD COLUMN {col_name} {col_type}"))
                     
-            connection.execute(text("CREATE INDEX IF NOT EXISTS ix_user_question_mastery_due ON user_question_mastery(due)"))
+            connection.execute(text("CREATE INDEX IF NOT EXISTS ix_user_card_mastery_due ON user_card_mastery(due)"))
             
         await conn.run_sync(migrate_fsrs_columns)
         
@@ -180,8 +180,7 @@ async def init_db():
                     quiz_id=quiz.id,
                     content=front,
                     explanation=back,
-                    question_type="flashcard",
-                    points=1
+                    question_type="flashcard"
                 )
                 db.add(q)
             await db.commit()
@@ -224,8 +223,7 @@ async def init_db():
                     quiz_id=quiz.id,
                     content=front,
                     explanation=back,
-                    question_type="flashcard",
-                    points=1
+                    question_type="flashcard"
                 )
                 db.add(q)
             await db.commit()
@@ -267,8 +265,7 @@ async def init_db():
                     quiz_id=quiz.id,
                     content=front,
                     explanation=back,
-                    question_type="flashcard",
-                    points=1
+                    question_type="flashcard"
                 )
                 db.add(q)
             await db.commit()

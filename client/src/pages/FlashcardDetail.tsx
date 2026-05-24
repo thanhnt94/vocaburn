@@ -370,14 +370,14 @@ export default function QuizDetail() {
                   await axios.delete(`/api/v1/quiz/${id}/session`)
                   // Refresh the query to update UI
                   queryClient.invalidateQueries({ queryKey: ['quiz-session', id] })
-                  navigate(`/quiz/${id}/play`)
+                  navigate(`/flashcard/${id}/play`)
                 }}
                 className="flex-1 py-5 bg-white border-2 border-indigo-100 text-indigo-600 font-black text-sm md:text-base rounded-2xl active:scale-95 transition-all tracking-widest uppercase"
               >
                 START FRESH (RESET)
               </button>
               <button 
-                onClick={() => navigate(`/quiz/${id}/play`)}
+                onClick={() => navigate(`/flashcard/${id}/play`)}
                 className="flex-[2] py-5 bg-indigo-600 text-white font-black text-sm md:text-base rounded-2xl shadow-xl shadow-indigo-500/30 active:scale-95 transition-all tracking-widest uppercase"
               >
                 CONTINUE LEARNING
@@ -385,7 +385,7 @@ export default function QuizDetail() {
             </>
           ) : (
             <button 
-              onClick={() => navigate(`/quiz/${id}/play`)}
+              onClick={() => navigate(`/flashcard/${id}/play`)}
               className="w-full py-5 bg-indigo-600 text-white font-black text-sm md:text-base rounded-2xl shadow-xl shadow-indigo-500/30 active:scale-95 transition-all tracking-widest uppercase"
             >
               START LEARNING
