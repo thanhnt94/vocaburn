@@ -33,13 +33,16 @@ def upgrade() -> None:
         )
         options_recreated = True
 
-    # 2. Drop selected_option_id column if present
+    # 2. Drop selected_option_id column if present and add rating if missing
     active_answers_table = 'card_answers' if 'card_answers' in tables else 'user_answers'
     if active_answers_table in tables:
         ans_cols = [c['name'] for c in insp.get_columns(active_answers_table)]
         if 'selected_option_id' in ans_cols:
             with op.batch_alter_table(active_answers_table) as batch_op:
                 batch_op.drop_column('selected_option_id')
+        if 'rating' not in ans_cols:
+            with op.batch_alter_table(active_answers_table) as batch_op:
+                batch_op.add_column(sa.Column('rating', sa.Integer(), nullable=True))
 
     # 3. Drop the options table
     op.drop_table('options')
@@ -121,10 +124,13 @@ def downgrade() -> None:
             with op.batch_alter_table(active_cards_table) as batch_op:
                 batch_op.add_column(sa.Column('points', sa.Integer(), server_default='1'))
 
-    # 4. Re-add selected_option_id to user_answers if missing
+    # 4. Re-add selected_option_id to user_answers if missing, and drop rating if present
     active_answers_table = 'user_answers' if 'user_answers' in tables else 'card_answers'
     if active_answers_table in tables:
         ans_cols = [c['name'] for c in insp.get_columns(active_answers_table)]
         if 'selected_option_id' not in ans_cols:
             with op.batch_alter_table(active_answers_table) as batch_op:
                 batch_op.add_column(sa.Column('selected_option_id', sa.Integer(), nullable=True))
+        if 'rating' in ans_cols:
+            with op.batch_alter_table(active_answers_table) as batch_op:
+                batch_op.drop_column('rating')
