@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import confetti from 'canvas-confetti'
 import { useParams, useNavigate } from 'react-router-dom'
-import { ChevronLeft, ChevronRight, LayoutGrid, Timer, Flame, Trophy, Check, X, Sparkles, Lightbulb, StickyNote, Play, Target, CheckCircle2, XCircle, Clock, BookOpen, Hash, Copy, Edit3, Brain, FileText, HelpCircle, Sliders, ListOrdered, Shuffle, EyeOff, AlertCircle, TrendingUp, Award } from 'lucide-react'
+import { ChevronLeft, ChevronRight, LayoutGrid, Timer, Flame, Trophy, Check, X, Sparkles, Lightbulb, StickyNote, Play, Target, CheckCircle2, XCircle, Clock, BookOpen, Hash, Copy, Edit3, Brain, FileText, HelpCircle, Sliders, ListOrdered, Shuffle, EyeOff, AlertCircle, TrendingUp, Award, Lock } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import axios from 'axios'
 import ReactMarkdown from 'react-markdown'
@@ -43,6 +43,14 @@ interface Question {
     due: string | null
     last_review: string | null
     intervals: Record<number, string>
+  }
+  practice?: {
+    question: string
+    choices?: string[]
+    correct_index?: number
+    correct_answer?: string
+    question_key: string
+    answer_key: string
   }
 }
 const TypewriterText = ({ text }: { text: string }) => {
@@ -308,6 +316,7 @@ export default function FlashcardPlay() {
   const [activeMasteryUpgrade, setActiveMasteryUpgrade] = useState<any | null>(null)
   const [editFormData, setEditFormData] = useState<any>(null)
   const [sessionAnswers, setSessionAnswers] = useState<Record<number, number | number[]>>({})
+  const [practiceAnswers, setPracticeAnswers] = useState<Record<number, number>>({})
   const [isEditingPrompt, setIsEditingPrompt] = useState(false)
   const [promptInput, setPromptInput] = useState('')
   // ── Engagement State ──
@@ -344,6 +353,322 @@ export default function FlashcardPlay() {
     type?: 'info' | 'warning';
   } | null>(null)
   const [justAnswered, setJustAnswered] = useState(false)
+  
+  // ── Multi-Modal Practice State Hooks ──
+  const [mainTab, setMainTab] = useState<'fsrs' | 'practice'>(() => (localStorage.getItem('vocab_main_tab') as 'fsrs' | 'practice') || 'fsrs')
+  const [practiceSubMode, setPracticeSubMode] = useState<'mcq' | 'typing' | 'listening'>(() => (localStorage.getItem('vocab_practice_submode') as 'mcq' | 'typing' | 'listening') || 'mcq')
+  const [practiceNeedsSetup, setPracticeNeedsSetup] = useState(false)
+  const [practiceDisabled, setPracticeDisabled] = useState(false)
+  const [availableColumns, setAvailableColumns] = useState<string[]>([])
+  const [setupPairs, setSetupPairs] = useState<{q: string, a: string}[]>([{ q: 'front', a: 'back' }])
+  const [setupNumChoices, setSetupNumChoices] = useState<number>(4)
+  const [typingInput, setTypingInput] = useState('')
+  const [typingFeedback, setTypingFeedback] = useState<{ checked: boolean; isCorrect: boolean } | null>(null)
+  const [currentPracticeData, setCurrentPracticeData] = useState<any>(null)
+
+  // ── Client-side Dynamic Practice Generator ──
+  const stripBBCode = (text: string): string => {
+    if (!text) return "";
+    return text.replace(/\[\/?[a-zA-Z0-9=#_\-]+\]/g, '');
+  };
+
+  const isJapanese = (text: string): boolean => {
+    if (!text) return false;
+    for (let i = 0; i < text.length; i++) {
+      const c = text[i];
+      if (
+        (c >= '\u4e00' && c <= '\u9fff') || 
+        (c >= '\u3400' && c <= '\u4dbf') ||
+        (c >= '\u3040' && c <= '\u309f') || 
+        (c >= '\u30a0' && c <= '\u30ff')
+      ) {
+        return true;
+      }
+    }
+    return false;
+  };
+
+  const getJpPattern = (text: string): string => {
+    if (!text) return "";
+    if (isJapanese(text)) {
+      const pattern: string[] = [];
+      for (let i = 0; i < text.length; i++) {
+        const char = text[i];
+        if ((char >= '\u4e00' && char <= '\u9fff') || (char >= '\u3400' && char <= '\u4dbf')) {
+          pattern.push('K');
+        } else if (char >= '\u3040' && char <= '\u309f') {
+          pattern.push('H');
+        } else if (char >= '\u30a0' && char <= '\u30ff') {
+          pattern.push('C');
+        } else {
+          pattern.push('O');
+        }
+      }
+      return pattern.join('');
+    } else {
+      const words = text.trim().split(/\s+/).filter(Boolean);
+      return `W${words.length}`;
+    }
+  };
+
+  const extractTokens = (text: string): Set<string> => {
+    if (!text) return new Set();
+    const kanji = new Set<string>();
+    for (let i = 0; i < text.length; i++) {
+      const char = text[i];
+      if ((char >= '\u4e00' && char <= '\u9fff') || (char >= '\u3400' && char <= '\u4dbf')) {
+        kanji.add(char);
+      }
+    }
+    if (kanji.size > 0) return kanji;
+    
+    const words = text.split(/[\s,.;:/|()]+/).map(w => w.trim().toLowerCase()).filter(w => w.length > 1);
+    return new Set(words);
+  };
+
+  const tokensOverlapHigh = (tokensA: Set<string>, tokensB: Set<string>): boolean => {
+    if (tokensA.size === 0 || tokensB.size === 0) return false;
+    let sharedCount = 0;
+    tokensA.forEach(t => {
+      if (tokensB.has(t)) sharedCount++;
+    });
+    if (sharedCount === 0) return false;
+    const smallerSize = Math.min(tokensA.size, tokensB.size);
+    return (sharedCount / smallerSize) >= 0.6;
+  };
+
+  const selectDistractors = (
+    correctItem: { text: string; q_text: string; front: string; back: string; id: number; type: string },
+    candidatePool: Array<{ text: string; front: string; back: string; id: number; type: string }>,
+    amount: number
+  ): Array<{ text: string; front: string; back: string; id: number; type: string }> => {
+    if (!candidatePool || candidatePool.length === 0 || amount <= 0) return [];
+
+    const c_disp = stripBBCode(correctItem.text).trim();
+    const c_back = stripBBCode(correctItem.back).trim();
+    const c_q_text = stripBBCode(correctItem.q_text).trim();
+    const target_pattern = getJpPattern(c_disp);
+    const answer_is_jp = isJapanese(c_disp);
+
+    const c_back_tokens = !isJapanese(c_back) ? extractTokens(c_back) : new Set<string>();
+    const c_q_tokens = (c_q_text && !isJapanese(c_q_text)) ? extractTokens(c_q_text) : new Set<string>();
+    const c_disp_tokens_vn = !answer_is_jp ? extractTokens(c_disp) : new Set<string>();
+
+    const same_pattern_pool: typeof candidatePool = [];
+    const other_pool: typeof candidatePool = [];
+    const seen_texts = new Set<string>();
+    seen_texts.add(c_disp.toLowerCase());
+
+    for (const cand of candidatePool) {
+      const d_disp = stripBBCode(cand.text).trim();
+      const d_disp_lower = d_disp.toLowerCase();
+
+      // Dedup
+      if (seen_texts.has(d_disp_lower)) continue;
+
+      // Hard filters
+      const d_back = stripBBCode(cand.back).trim();
+      if (!isJapanese(d_back) && c_back_tokens.size > 0) {
+        const d_back_tokens = extractTokens(d_back);
+        if (tokensOverlapHigh(d_back_tokens, c_back_tokens)) continue;
+      }
+
+      if (!answer_is_jp && c_disp_tokens_vn.size > 0) {
+        const d_disp_tokens = extractTokens(d_disp);
+        if (tokensOverlapHigh(d_disp_tokens, c_disp_tokens_vn)) continue;
+      }
+
+      if (c_q_tokens.size > 0) {
+        const d_back_tokens_q = !isJapanese(d_back) ? extractTokens(d_back) : new Set<string>();
+        if (d_back_tokens_q.size > 0 && tokensOverlapHigh(d_back_tokens_q, c_q_tokens)) continue;
+        
+        if (!answer_is_jp) {
+          const d_disp_tokens_q = extractTokens(d_disp);
+          if (tokensOverlapHigh(d_disp_tokens_q, c_q_tokens)) continue;
+        }
+      }
+
+      seen_texts.add(d_disp_lower);
+
+      if (getJpPattern(d_disp) === target_pattern) {
+        same_pattern_pool.push(cand);
+      } else {
+        other_pool.push(cand);
+      }
+    }
+
+    let final_pool = same_pattern_pool;
+    if (same_pattern_pool.length < amount) {
+      final_pool = same_pattern_pool.concat(other_pool);
+    }
+
+    if (final_pool.length === 0) return [];
+
+    // Score candidates
+    const scored = final_pool.map(cand => {
+      let score = 0;
+      const d_disp = stripBBCode(cand.text).trim();
+      const d_pattern = getJpPattern(d_disp);
+      const d_tokens = extractTokens(d_disp);
+      
+      if (d_pattern === target_pattern) score += 100;
+
+      const c_tokens = extractTokens(c_disp);
+      const shared_tokens = new Set([...c_tokens].filter(x => d_tokens.has(x)));
+      if (answer_is_jp) {
+        score += shared_tokens.size * 150;
+      } else {
+        score -= shared_tokens.size * 200;
+      }
+
+      const c_front_tokens = extractTokens(stripBBCode(correctItem.front).trim());
+      const d_front_tokens = extractTokens(stripBBCode(cand.front).trim());
+      const shared_front = new Set([...c_front_tokens].filter(x => d_front_tokens.has(x)));
+      score += shared_front.size * 80;
+
+      if (d_disp.length === c_disp.length) score += 20;
+      if (cand.type && correctItem.type && cand.type === correctItem.type) score += 30;
+
+      return { score, cand };
+    });
+
+    // Shuffle first, then sort by score descending
+    scored.sort(() => Math.random() - 0.5);
+    scored.sort((a, b) => b.score - a.score);
+
+    const selected: typeof candidatePool = [];
+    const selected_texts = new Set<string>();
+    selected_texts.add(c_disp.toLowerCase());
+
+    for (const item of scored) {
+      if (selected.length >= amount) break;
+      const cand_text = stripBBCode(item.cand.text).trim().toLowerCase();
+      if (!selected_texts.has(cand_text)) {
+        selected.push(item.cand);
+        selected_texts.add(cand_text);
+      }
+    }
+
+    return selected;
+  };
+
+  const generatePracticeQuestion = (idx: number, customSubMode?: string) => {
+    if (!session || !session.questions || session.questions.length === 0) return;
+    const qObj = session.questions[idx];
+    if (!qObj) return;
+
+    const subMode = customSubMode || practiceSubMode;
+
+    // Pick a random pair from setupPairs
+    const activePair = setupPairs && setupPairs.length > 0
+      ? setupPairs[Math.floor(Math.random() * setupPairs.length)]
+      : { q: 'front', a: 'back' };
+
+    const question_key = activePair.q;
+    const answer_key = activePair.a;
+    const num_choices = setupNumChoices || 4;
+
+    const getVal = (item: any, key: string): string => {
+      if (!item) return "";
+      const val = item[key] !== undefined && item[key] !== null
+        ? item[key]
+        : (item.others && typeof item.others === 'object' ? item.others[key] : "");
+      return String(val ?? "").trim();
+    };
+
+    const questionText = getVal(qObj, question_key);
+    const correctAns = getVal(qObj, answer_key);
+
+    const item_front = getVal(qObj, 'front');
+    const item_back = getVal(qObj, 'back');
+
+    if (subMode === 'mcq' || subMode === 'listening') {
+      // Build candidate pool
+      const all_items_data = session.questions.map((q: any) => ({
+        id: q.id,
+        front: getVal(q, 'front'),
+        back: getVal(q, 'back'),
+        others: q.others
+      }));
+
+      // Random sample from all items to speed up
+      const sampleSize = Math.min(all_items_data.length, 50);
+      const shuffled_items: any[] = [];
+      const usedIndices = new Set<number>();
+      while (shuffled_items.length < sampleSize && usedIndices.size < all_items_data.length) {
+        const randIdx = Math.floor(Math.random() * all_items_data.length);
+        if (!usedIndices.has(randIdx)) {
+          usedIndices.add(randIdx);
+          shuffled_items.push(all_items_data[randIdx]);
+        }
+      }
+
+      const distractor_pool: any[] = [];
+      for (const other of shuffled_items) {
+        if (distractor_pool.length >= 20) break;
+        if (other.id !== qObj.id) {
+          const d_val = getVal(other, answer_key);
+          const d_front = getVal(other, 'front');
+          const d_back = getVal(other, 'back');
+          if (d_val && d_val.toLowerCase() !== 'nan') {
+            distractor_pool.push({
+              text: d_val,
+              front: d_front,
+              back: d_back,
+              id: other.id,
+              type: (other.others && typeof other.others === 'object' ? (other.others.type || other.others.pos || '') : '')
+            });
+          }
+        }
+      }
+
+      const correct_item_data = {
+        text: correctAns,
+        q_text: questionText,
+        front: item_front,
+        back: item_back,
+        id: qObj.id,
+        type: (qObj.others && typeof qObj.others === 'object' ? (qObj.others.type || qObj.others.pos || '') : '')
+      };
+
+      const needed = num_choices - 1;
+      const selectedDistractors = selectDistractors(correct_item_data, distractor_pool, needed);
+
+      // Assemble choices
+      const choices_data = ([correct_item_data] as any[]).concat(selectedDistractors);
+      // Shuffle choices_data
+      choices_data.sort(() => Math.random() - 0.5);
+
+      const choices = choices_data.map(c => c.text);
+      const choice_item_ids = choices_data.map(c => c.id);
+      const correct_index = choices.indexOf(correctAns);
+
+      setCurrentPracticeData({
+        question: questionText,
+        choices,
+        choice_item_ids,
+        correct_index: correct_index !== -1 ? correct_index : 0,
+        correct_answer: correctAns,
+        question_key,
+        answer_key
+      });
+    } else if (subMode === 'typing') {
+      setCurrentPracticeData({
+        question: questionText,
+        correct_answer: correctAns,
+        question_key,
+        answer_key
+      });
+    }
+  };
+
+  useEffect(() => {
+    if (mainTab === 'practice' && session?.questions && session.questions.length > 0) {
+      generatePracticeQuestion(currentIndex);
+    } else {
+      setCurrentPracticeData(null);
+    }
+  }, [currentIndex, mainTab, practiceSubMode, session, setupPairs, setupNumChoices]);
 
   const timerRef = useRef<any>(null)
   const currentQuestion: Question | null = session?.questions?.[currentIndex] || null
@@ -540,23 +865,57 @@ export default function FlashcardPlay() {
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.repeat) return;
-      // 1. Ignore if typing inside input, textarea, or contentEditable elements
+      
       const activeElement = document.activeElement;
       if (activeElement) {
         const tagName = activeElement.tagName.toLowerCase();
         if (tagName === 'input' || tagName === 'textarea' || activeElement.getAttribute('contenteditable') === 'true') {
+          if (e.key === 'Enter' && mainTab === 'practice' && practiceSubMode === 'typing') {
+            e.preventDefault();
+            if (showFeedback) {
+              handleNext();
+            } else {
+              handleTypingAnswer();
+            }
+          }
           return;
         }
       }
 
-      // 2. Ignore if any modal or dialog overlay is active
       if (isSessionSummaryOpen || isQuitModalOpen || isEditModalOpen || isMapOpen || isFeedbackOpen) {
         return;
       }
 
       const key = e.key.toLowerCase();
 
-      // 3. Handle card flip or rating submissions
+      // Practice Mode Hotkeys
+      if (mainTab === 'practice') {
+        if (['mcq', 'listening'].includes(practiceSubMode)) {
+          if (e.key === ' ' || e.key === 'Enter') {
+            e.preventDefault();
+            if (showFeedback) {
+              handleNext();
+            }
+          } else if (!showFeedback && currentPracticeData?.choices) {
+            const choicesCount = currentPracticeData.choices.length;
+            const keyNum = parseInt(e.key);
+            if (!isNaN(keyNum) && keyNum >= 1 && keyNum <= choicesCount) {
+              e.preventDefault();
+              handleMCQAnswer(keyNum - 1);
+            }
+          }
+        } else if (practiceSubMode === 'typing') {
+          if (e.key === ' ' || e.key === 'Enter') {
+            e.preventDefault();
+            if (showFeedback) {
+              handleNext();
+            }
+          }
+        }
+        return;
+      }
+
+      // 3. Handle card flip or FSRS rating submissions
       if (e.key === ' ' || e.key === 'Enter') {
         e.preventDefault();
         if (!isFlipped) {
@@ -589,7 +948,10 @@ export default function FlashcardPlay() {
     sessionAnswers,
     activeMode,
     isFlipped,
-    hasRated
+    hasRated,
+    mainTab,
+    practiceSubMode,
+    typingInput
   ])
 
   useEffect(() => {
@@ -597,6 +959,17 @@ export default function FlashcardPlay() {
       fetchNote()
     }
   }, [currentIndex, currentQuestion])
+
+  useEffect(() => {
+    if (mainTab === 'practice' && practiceSubMode === 'listening' && currentPracticeData) {
+      const { question, question_key } = currentPracticeData;
+      if (question_key === 'front') {
+        playCardAudio('front');
+      } else {
+        speakMultiLanguage(question);
+      }
+    }
+  }, [currentIndex, mainTab, practiceSubMode, currentPracticeData])
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -611,10 +984,11 @@ export default function FlashcardPlay() {
     fetchUser()
   }, [user, setUser, setGamify])
 
-  const fetchSession = async () => {
+  const fetchSession = async (activeTab = mainTab, subMode = practiceSubMode) => {
     try {
+      const modeParam = activeTab === 'practice' ? `?mode=${subMode}` : ''
       const [quizRes, goalsRes, sessionRes] = await Promise.all([
-        axios.get(`/api/v1/quiz/${id}/play-data`),
+        axios.get(`/api/v1/quiz/${id}/play-data${modeParam}`),
         axios.get('/api/v1/quiz/goals/active', {
           params: { local_date: new Date().toLocaleDateString('en-CA') }
         }).catch(e => {
@@ -631,6 +1005,12 @@ export default function FlashcardPlay() {
       setSession({ ...quizRes.data, questions })
       setPromptInput(quizRes.data.ai_prompt || '')
       setInitialTotalXP(quizRes.data.user_total_xp || 0)
+      setPracticeNeedsSetup(!!quizRes.data.practice_needs_setup)
+      setPracticeDisabled(!!quizRes.data.practice_disabled)
+      
+      if (activeTab === 'practice') {
+        fetchPracticeSettings()
+      }
 
       const activeGoalData = goalsRes.data.find((g: any) => g.quiz_id === Number(id))
       if (activeGoalData) {
@@ -640,6 +1020,8 @@ export default function FlashcardPlay() {
       if (sessionRes.data) {
         const restoredAnswers = sessionRes.data.state?.sessionAnswers || {}
         setSessionAnswers(restoredAnswers)
+        const restoredPractice = sessionRes.data.state?.practiceAnswers || {}
+        setPracticeAnswers(restoredPractice)
         
         let curIdx = sessionRes.data.current_index || 0
         
@@ -723,9 +1105,29 @@ export default function FlashcardPlay() {
         
         // Update local state to reflect which questions are answered in this session
         // but DO NOT manually increment stats, as the backend quiz play-data already includes them.
-        if (typeof restoredAnswers[curIdx] === 'number') {
-          setSelectedOption(restoredAnswers[curIdx])
-          setShowFeedback(true)
+        const isPractice = activeTab === 'practice';
+        const activeRestored = isPractice ? restoredPractice : restoredAnswers;
+        
+        if (isPractice) {
+          if (activeRestored[curIdx] !== undefined) {
+            setSelectedOption(activeRestored[curIdx]);
+            setShowFeedback(true);
+            if (subMode === 'typing') {
+              setTypingFeedback({ checked: true, isCorrect: activeRestored[curIdx] === 3 });
+            }
+          } else {
+            setSelectedOption(null);
+            setShowFeedback(false);
+            setTypingFeedback(null);
+          }
+        } else {
+          if (typeof activeRestored[curIdx] === 'number') {
+            setSelectedOption(activeRestored[curIdx]);
+            setShowFeedback(true);
+          } else {
+            setSelectedOption(null);
+            setShowFeedback(false);
+          }
         }
 
         if (sessionRes.data.state?.sessionXP) {
@@ -740,6 +1142,44 @@ export default function FlashcardPlay() {
     }
   }
 
+
+  const fetchPracticeSettings = async () => {
+    try {
+      const res = await axios.get(`/api/v1/quiz/${id}/practice-settings`)
+      setAvailableColumns(res.data.available_columns || [])
+      
+      const userSettings = res.data.user_settings
+      const creatorSettings = res.data.creator_settings
+      
+      if (userSettings && userSettings.active_pairs) {
+        setSetupPairs(userSettings.active_pairs)
+        setSetupNumChoices(userSettings.num_choices || 4)
+      } else if (creatorSettings && creatorSettings.active_pairs) {
+        setSetupPairs(creatorSettings.active_pairs)
+        setSetupNumChoices(creatorSettings.num_choices || 4)
+      } else {
+        setSetupPairs([{ q: 'front', a: 'back' }])
+        setSetupNumChoices(4)
+      }
+    } catch (e) {
+      console.error("Failed to load practice settings", e)
+    }
+  }
+
+  const savePracticeSettings = async (customPairs = setupPairs, numChoices = setupNumChoices, isCreator = false) => {
+    try {
+      await axios.post(`/api/v1/quiz/${id}/practice-settings`, {
+        settings: {
+          active_pairs: customPairs,
+          num_choices: numChoices
+        },
+        is_creator: isCreator
+      })
+      await fetchSession()
+    } catch (e) {
+      alert("Lỗi khi lưu cấu hình luyện tập.")
+    }
+  }
 
   const fetchNote = async () => {
     if (!currentQuestion) return
@@ -760,13 +1200,15 @@ export default function FlashcardPlay() {
     }
   }
 
-  const saveSession = async (newAnswers: Record<number, number | number[]>, newIndex: number, currentXP: number = sessionXP, currentStreak: number = streak) => {
+  const saveSession = async (newAnswers: Record<number, any>, newIndex: number, currentXP: number = sessionXP, currentStreak: number = streak) => {
     try {
+      const isPractice = mainTab === 'practice';
       await axios.post(`/api/v1/quiz/${id}/session`, {
         mode: "sequential",
         current_index: newIndex,
         state: { 
-          sessionAnswers: newAnswers,
+          sessionAnswers: isPractice ? sessionAnswers : newAnswers,
+          practiceAnswers: isPractice ? newAnswers : practiceAnswers,
           sessionXP: currentXP,
           streak: currentStreak
         }
@@ -1115,11 +1557,124 @@ export default function FlashcardPlay() {
     await handleReviewRating(rating)
   }
 
+  const handleMCQAnswer = async (choiceIdx: number) => {
+    if (showFeedback || !currentQuestion || !currentPracticeData) return;
+    
+    setSelectedOption(choiceIdx);
+    setShowFeedback(true);
+    setJustAnswered(true);
+    
+    const isCorrect = choiceIdx === currentPracticeData.correct_index;
+    
+    const newAnswers = { ...practiceAnswers, [currentIndex]: choiceIdx };
+    setPracticeAnswers(newAnswers);
+    
+    let updatedXP = sessionXP;
+    let updatedStreak = streak;
+    
+    if (isCorrect) {
+      updatedStreak = streak + 1;
+      setStreak(updatedStreak);
+      const xpGained = 10;
+      updatedXP = sessionXP + xpGained;
+      setSessionXP(updatedXP);
+      setInitialTotalXP(prev => prev + xpGained);
+      
+      setXpFloat({ visible: true, amount: xpGained });
+      setTimeout(() => setXpFloat({ visible: false, amount: 0 }), 1500);
+      
+      confetti({ particleCount: 80, spread: 50, origin: { y: 0.6 } });
+      setBadgeMessage("Chính xác! 🎯 +10 XP");
+    } else {
+      updatedStreak = 0;
+      setStreak(0);
+      setBadgeMessage("Chưa chính xác! 😅");
+    }
+    
+    setBadgeVisible(true);
+    setTimeout(() => setBadgeVisible(false), 2000);
+    
+    saveSession(newAnswers, currentIndex, updatedXP, updatedStreak);
+    
+    try {
+      await axios.post('/api/v1/quiz/record_answer', {
+        question_id: currentQuestion.id,
+        is_correct: isCorrect,
+        is_practice: true,
+        rating: isCorrect ? 3 : 1,
+        time_spent: timeLeft,
+        local_date: new Date().toLocaleDateString('en-CA')
+      });
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const handleTypingAnswer = async () => {
+    if (showFeedback || !currentQuestion || !currentPracticeData) return;
+    
+    const correctAns = currentPracticeData.correct_answer || '';
+    const cleanCorrect = correctAns.replace(/<[^<]+?>/g, '').trim().toLowerCase();
+    const cleanInput = typingInput.trim().toLowerCase();
+    
+    const isCorrect = cleanInput === cleanCorrect;
+    
+    setShowFeedback(true);
+    setJustAnswered(true);
+    setTypingFeedback({ checked: true, isCorrect });
+    
+    const newAnswers = { ...practiceAnswers, [currentIndex]: isCorrect ? 3 : 0 };
+    setPracticeAnswers(newAnswers);
+    
+    let updatedXP = sessionXP;
+    let updatedStreak = streak;
+    
+    if (isCorrect) {
+      updatedStreak = streak + 1;
+      setStreak(updatedStreak);
+      const xpGained = 15;
+      updatedXP = sessionXP + xpGained;
+      setSessionXP(updatedXP);
+      setInitialTotalXP(prev => prev + xpGained);
+      
+      setXpFloat({ visible: true, amount: xpGained });
+      setTimeout(() => setXpFloat({ visible: false, amount: 0 }), 1500);
+      
+      confetti({ particleCount: 100, spread: 60, origin: { y: 0.6 } });
+      setBadgeMessage("Xuất sắc! ⌨️ +15 XP");
+    } else {
+      updatedStreak = 0;
+      setStreak(0);
+      setBadgeMessage("Nhầm một chút rồi! 💪");
+    }
+    
+    setBadgeVisible(true);
+    setTimeout(() => setBadgeVisible(false), 2000);
+    
+    saveSession(newAnswers, currentIndex, updatedXP, updatedStreak);
+    
+    try {
+      await axios.post('/api/v1/quiz/record_answer', {
+        question_id: currentQuestion.id,
+        is_correct: isCorrect,
+        is_practice: true,
+        rating: isCorrect ? 3 : 1,
+        time_spent: timeLeft,
+        local_date: new Date().toLocaleDateString('en-CA')
+      });
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
   const navigateToQuestion = (idx: number) => {
     setCurrentIndex(idx)
     setIsFlipped(false)
     setActivelyRatedCurrentCard(false)
     setJustAnswered(false)
+    setTypingInput('')
+    setTypingFeedback(null)
+    setSelectedOption(null)
 
     // Đóng toàn bộ các popup, toast, thông báo thành tựu khi chuyển sang câu mới
     setGoalToast(prev => prev ? { ...prev, visible: false } : null)
@@ -1129,30 +1684,48 @@ export default function FlashcardPlay() {
     setActiveMasteryUpgrade(null)
     setLearningModeAlert(null)
     
-    // Check if the card is unlocked (clock drift buffered) to reset selectedOption for new reviews
-    const q = session?.questions?.[idx]
-    const isUnlocked = (() => {
-      if (!q || !q.fsrs || !q.fsrs.due) return true;
-      return parseUTCDate(q.fsrs.due).getTime() - 30000 <= new Date().getTime();
-    })()
+    const isPractice = mainTab === 'practice';
 
-    const prevOpt = sessionAnswers[idx]
-    const hasRatedThisSession = prevOpt !== undefined
-    const lastRating = Array.isArray(prevOpt) 
-      ? prevOpt[prevOpt.length - 1] 
-      : (typeof prevOpt === 'number' ? prevOpt : null)
-
-    if (hasRatedThisSession && lastRating !== null && !isUnlocked) {
-      setSelectedOption(lastRating)
-      setShowFeedback(false)
+    if (isPractice) {
+      const prevAns = practiceAnswers[idx]
+      if (prevAns !== undefined) {
+        setSelectedOption(prevAns)
+        setShowFeedback(true)
+        if (practiceSubMode === 'typing') {
+          setTypingFeedback({ checked: true, isCorrect: prevAns === 3 })
+        }
+      } else {
+        setSelectedOption(null)
+        setShowFeedback(false)
+        setTimeLeft(0)
+      }
     } else {
-      setSelectedOption(null)
-      setShowFeedback(false)
-      setTimeLeft(0)
+      // Check if the card is unlocked (clock drift buffered) to reset selectedOption for new reviews
+      const q = session?.questions?.[idx]
+      const isUnlocked = (() => {
+        if (!q || !q.fsrs || !q.fsrs.due) return true;
+        return parseUTCDate(q.fsrs.due).getTime() - 30000 <= new Date().getTime();
+      })()
+
+      const prevOpt = sessionAnswers[idx]
+      const hasRatedThisSession = prevOpt !== undefined
+      const lastRating = Array.isArray(prevOpt) 
+        ? prevOpt[prevOpt.length - 1] 
+        : (typeof prevOpt === 'number' ? prevOpt : null)
+
+      if (hasRatedThisSession && lastRating !== null && !isUnlocked) {
+        setSelectedOption(lastRating)
+        setShowFeedback(false)
+      } else {
+        setSelectedOption(null)
+        setShowFeedback(false)
+        setTimeLeft(0)
+      }
     }
+    
     setIsEditingNote(false)
     setIsEditingAI(false)
-    saveSession(sessionAnswers, idx)
+    saveSession(isPractice ? practiceAnswers : sessionAnswers, idx)
   }
 
   const handleNext = () => {
@@ -1160,6 +1733,26 @@ export default function FlashcardPlay() {
 
     const questions = session.questions
     const total = questions.length
+
+    if (mainTab === 'practice') {
+      let nextIdx = -1;
+      const currentMode = activeMode === 'random' ? 'random' : 'sequential';
+      if (currentMode === 'random') {
+        // Pick any random card from the entire deck
+        nextIdx = Math.floor(Math.random() * total);
+      } else {
+        // Wrap around to 0 when reaching the end of the deck sequentially
+        nextIdx = (currentIndex + 1) % total;
+      }
+      
+      // Clear the answer for the next card so the user can practice it again
+      const newAnswers = { ...practiceAnswers };
+      delete newAnswers[nextIdx];
+      setPracticeAnswers(newAnswers);
+      
+      navigateToQuestion(nextIdx);
+      return;
+    }
 
     let updatedAnswers = { ...sessionAnswers }
 
@@ -1171,9 +1764,11 @@ export default function FlashcardPlay() {
       return -1
     }
 
+    const currentMode = activeMode;
+
     let nextIdx = -1
 
-    if (activeMode === 'fsrs') {
+    if (currentMode === 'fsrs') {
       const now = new Date()
       const scoredQuestions = questions.map((q: any, idx: number) => {
         const isCurrentlyUnlocked = (() => {
@@ -1206,9 +1801,26 @@ export default function FlashcardPlay() {
       if (best && best.score > -1000) {
         nextIdx = best.idx
       }
-    } else if (activeMode === 'sequential') {
-      nextIdx = Math.min(currentIndex + 1, total - 1)
-    } else if (activeMode === 'random') {
+    } else if (currentMode === 'sequential') {
+      // Find the first unanswered card starting from the next index sequentially
+      let found = -1;
+      for (let i = currentIndex + 1; i < total; i++) {
+        if (updatedAnswers[i] === undefined) {
+          found = i;
+          break;
+        }
+      }
+      // If not found, wrap around to search from the beginning
+      if (found === -1) {
+        for (let i = 0; i <= currentIndex; i++) {
+          if (updatedAnswers[i] === undefined) {
+            found = i;
+            break;
+          }
+        }
+      }
+      nextIdx = found !== -1 ? found : Math.min(currentIndex + 1, total - 1);
+    } else if (currentMode === 'random') {
       // Find a random index not answered in THIS session
       const pool = questions.map((_: any, i: number) => i).filter((i: number) => updatedAnswers[i] === undefined)
       if (pool.length > 0) {
@@ -1300,6 +1912,7 @@ export default function FlashcardPlay() {
 
     let targetIdx = -1
     let alertMsg = ''
+    let updatedAnswers = mainTab === 'practice' ? { ...practiceAnswers } : { ...sessionAnswers }
 
     if (mode === 'fsrs') {
       const now = new Date()
@@ -1308,7 +1921,7 @@ export default function FlashcardPlay() {
           if (!q.fsrs || !q.fsrs.due) return true;
           return parseUTCDate(q.fsrs.due).getTime() - 30000 <= now.getTime();
         })()
-        const hasAnswered = sessionAnswers[idx] !== undefined && !isCurrentlyUnlocked
+        const hasAnswered = updatedAnswers[idx] !== undefined && !isCurrentlyUnlocked
         if (hasAnswered) return { idx, score: -1000 }
         
         const fsrs = q.fsrs
@@ -1337,7 +1950,7 @@ export default function FlashcardPlay() {
     } else if (mode === 'unseen') {
       targetIdx = questions.findIndex((q: any, i: number) => 
         (q.stats?.total || 0) === 0 && 
-        sessionAnswers[i] === undefined
+        updatedAnswers[i] === undefined
       )
       if (targetIdx === -1) {
         alertMsg = 'All cards have been attempted! Serving remaining cards sequentially.'
@@ -1345,7 +1958,7 @@ export default function FlashcardPlay() {
     } else if (mode === 'review') {
       targetIdx = questions.findIndex((q: any, i: number) => 
         ((q.stats?.total || 0) - (q.stats?.correct || 0)) > 0 && 
-        sessionAnswers[i] === undefined
+        updatedAnswers[i] === undefined
       )
       if (targetIdx === -1) {
         alertMsg = "No incorrect cards found yet! We'll serve questions sequentially until mistakes are recorded."
@@ -1356,7 +1969,7 @@ export default function FlashcardPlay() {
       let maxWrongs = -1
 
       for (let i = 0; i < total; i++) {
-        if (sessionAnswers[i] !== undefined) continue
+        if (updatedAnswers[i] !== undefined) continue
 
         const q = questions[i]
         const t = q.stats?.total || 0
@@ -1382,16 +1995,32 @@ export default function FlashcardPlay() {
         alertMsg = 'No attempted cards found yet! Serving sequentially until difficulty stats are gathered.'
       }
     } else if (mode === 'random') {
-      if (sessionAnswers[currentIndex] === undefined) {
+      if (updatedAnswers[currentIndex] === undefined) {
         targetIdx = currentIndex
       } else {
-        const pool = questions.map((_: any, i: number) => i).filter((i: number) => sessionAnswers[i] === undefined)
+        const pool = questions.map((_: any, i: number) => i).filter((i: number) => updatedAnswers[i] === undefined)
         if (pool.length > 0) {
           targetIdx = pool[Math.floor(Math.random() * pool.length)]
         }
       }
     } else if (mode === 'sequential') {
-      targetIdx = questions.findIndex((_: any, i: number) => sessionAnswers[i] === undefined)
+      // Find the first unanswered card starting from the next index sequentially
+      let found = -1;
+      for (let i = currentIndex + 1; i < total; i++) {
+        if (updatedAnswers[i] === undefined) {
+          found = i;
+          break;
+        }
+      }
+      if (found === -1) {
+        for (let i = 0; i <= currentIndex; i++) {
+          if (updatedAnswers[i] === undefined) {
+            found = i;
+            break;
+          }
+        }
+      }
+      targetIdx = found !== -1 ? found : Math.min(currentIndex + 1, total - 1);
     }
 
     if (alertMsg) {
@@ -2028,7 +2657,381 @@ export default function FlashcardPlay() {
     )
   }
 
+  const renderPracticeLockScreen = () => {
+    return (
+      <div className="flex-1 bg-white/60 backdrop-blur-xl md:rounded-[3rem] rounded-[2rem] border border-slate-100 md:p-12 p-6 flex flex-col items-center justify-center text-center shadow-2xl shadow-indigo-100/40 min-h-[400px]">
+        <div className="max-w-md mx-auto space-y-6">
+          <motion.div 
+            initial={{ scale: 0.8, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ type: "spring", damping: 15 }}
+            className="w-20 h-20 bg-indigo-50 border border-indigo-100/80 rounded-[2rem] flex items-center justify-center text-indigo-500 mx-auto shadow-inner"
+          >
+            <Lock className="w-10 h-10" />
+          </motion.div>
+          
+          <div className="space-y-2">
+            <h2 className="text-xl font-black text-slate-800 uppercase tracking-tight italic">
+              Chế độ luyện tập chưa mở
+            </h2>
+            <p className="text-xs text-slate-400 font-medium leading-relaxed max-w-sm mx-auto">
+              Chủ sở hữu bộ thẻ chưa cấu hình thiết lập luyện tập (MCQ, Gõ từ, Nghe) cho bộ thẻ này. Chỉ chủ sở hữu mới có quyền kích hoạt chế độ luyện tập.
+            </p>
+          </div>
+          
+          <div className="pt-2">
+            <div className="inline-flex items-center gap-2 px-4 py-2 bg-slate-50 border border-slate-100 rounded-2xl text-[10px] font-black text-slate-400 uppercase tracking-wider">
+              <span>Hỏi-Đáp chưa được thiết lập</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  const renderPracticeSetupScreen = () => {
+    return (
+      <div className="flex-1 bg-white md:rounded-[3rem] rounded-[2rem] border border-slate-100 md:p-8 p-6 flex flex-col justify-between shadow-2xl shadow-indigo-100/40 min-h-0 overflow-y-auto">
+        <div className="max-w-2xl mx-auto w-full py-4">
+          <div className="text-center mb-6">
+            <div className="w-14 h-14 bg-indigo-50 rounded-2xl flex items-center justify-center text-indigo-600 mx-auto mb-3 border border-indigo-100">
+              <Sliders className="w-7 h-7" />
+            </div>
+            <h2 className="text-xl font-black text-slate-800">Cấu hình Luyện tập</h2>
+            <p className="text-xs text-slate-400 mt-1">Chọn các cặp cột dữ liệu bạn muốn ghép cặp làm câu hỏi và câu trả lời.</p>
+          </div>
+
+          <div className="space-y-4 mb-6">
+            <span className="text-[10px] font-black text-slate-400 tracking-wider uppercase block">Các cặp cột hỏi-đáp đang học</span>
+            {setupPairs.map((pair, idx) => (
+              <div key={idx} className="flex items-center gap-3 bg-slate-50 p-4 rounded-2xl border border-slate-100">
+                <div className="flex-1">
+                  <label className="text-[9px] font-black text-slate-400 uppercase tracking-wider block mb-1">Cột Câu hỏi</label>
+                  <select
+                    value={pair.q}
+                    onChange={(e) => {
+                      const newPairs = [...setupPairs];
+                      newPairs[idx].q = e.target.value;
+                      setSetupPairs(newPairs);
+                    }}
+                    className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-700 outline-none focus:border-indigo-500 transition-all"
+                  >
+                    {availableColumns.map(col => (
+                      <option key={col} value={col}>{col.toUpperCase()}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="text-slate-300 font-bold text-xs mt-4">➔</div>
+
+                <div className="flex-1">
+                  <label className="text-[9px] font-black text-slate-400 uppercase tracking-wider block mb-1">Cột Đáp án</label>
+                  <select
+                    value={pair.a}
+                    onChange={(e) => {
+                      const newPairs = [...setupPairs];
+                      newPairs[idx].a = e.target.value;
+                      setSetupPairs(newPairs);
+                    }}
+                    className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-700 outline-none focus:border-indigo-500 transition-all"
+                  >
+                    {availableColumns.map(col => (
+                      <option key={col} value={col}>{col.toUpperCase()}</option>
+                    ))}
+                  </select>
+                </div>
+
+                {setupPairs.length > 1 && (
+                  <button
+                    onClick={() => {
+                      const newPairs = setupPairs.filter((_, i) => i !== idx);
+                      setSetupPairs(newPairs);
+                    }}
+                    className="mt-4 p-2 rounded-xl bg-rose-50 text-rose-500 hover:bg-rose-100 transition-all border border-rose-100"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                )}
+              </div>
+            ))}
+
+            <button
+              onClick={() => setSetupPairs([...setupPairs, { q: 'front', a: 'back' }])}
+              className="w-full py-3 rounded-2xl border border-dashed border-slate-200 text-slate-500 hover:text-indigo-600 hover:border-indigo-300 hover:bg-indigo-50/20 text-xs font-bold transition-all flex items-center justify-center gap-1.5"
+            >
+              <span>+ Thêm cặp hỏi-đáp</span>
+            </button>
+          </div>
+
+          {practiceSubMode === 'mcq' && (
+            <div className="mb-6 bg-slate-50 p-4 rounded-2xl border border-slate-100">
+              <label className="text-[10px] font-black text-slate-400 tracking-wider uppercase block mb-2">Số lượng Lựa chọn MCQ</label>
+              <div className="grid grid-cols-4 gap-2">
+                {[3, 4, 5, 6].map(num => (
+                  <button
+                    key={num}
+                    onClick={() => setSetupNumChoices(num)}
+                    className={cn(
+                      "py-2 rounded-xl text-xs font-black transition-all border",
+                      setupNumChoices === num
+                        ? "bg-white border-indigo-500 text-indigo-600 shadow-sm shadow-indigo-100"
+                        : "bg-white border-slate-200 text-slate-500 hover:text-slate-700 hover:border-slate-300"
+                    )}
+                  >
+                    {num} Lựa chọn {num === 4 && "(Gợi ý)"}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+
+        <div className="max-w-2xl mx-auto w-full flex flex-col md:flex-row gap-3 pt-4 border-t border-slate-50">
+          {canEdit && (
+            <button
+              onClick={() => savePracticeSettings(setupPairs, setupNumChoices, true)}
+              className="flex-1 py-4 rounded-2xl bg-slate-50 border border-slate-200 text-slate-600 font-black text-xs uppercase hover:bg-slate-100 active:scale-95 transition-all shadow-sm flex items-center justify-center gap-1.5"
+            >
+              <Sliders className="w-4 h-4" />
+              <span>Đặt làm mặc định Deck</span>
+            </button>
+          )}
+
+          <button
+            onClick={() => savePracticeSettings(setupPairs, setupNumChoices, false)}
+            className="flex-[2] py-4 rounded-2xl bg-gradient-to-r from-indigo-500 to-purple-600 text-white font-black text-xs uppercase hover:shadow-lg hover:shadow-indigo-100 active:scale-95 transition-all flex items-center justify-center gap-1.5"
+          >
+            <Sparkles className="w-4 h-4" />
+            <span>Lưu & Bắt đầu học 🚀</span>
+          </button>
+        </div>
+      </div>
+    );
+  };
+
+  const renderPracticeScreen = () => {
+    const practiceData = currentPracticeData;
+    if (!currentQuestion || !practiceData) {
+      return (
+        <div className="flex-1 bg-white md:rounded-[3rem] rounded-[2rem] border border-slate-100 flex items-center justify-center font-bold text-slate-400">
+          Chưa có câu hỏi luyện tập nào sẵn sàng...
+        </div>
+      );
+    }
+
+    const { question, choices, correct_index, correct_answer, question_key, answer_key } = practiceData;
+    const answered = practiceAnswers[currentIndex] !== undefined;
+
+    return (
+      <div className="flex-1 bg-white md:rounded-[3rem] rounded-[2rem] border border-slate-100 md:p-8 p-6 flex flex-col justify-between shadow-2xl shadow-indigo-100/40 min-h-0 overflow-y-auto">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2">
+            <span className="text-[9px] font-black tracking-wider text-indigo-600 bg-indigo-50/80 px-2.5 py-1.5 rounded-lg border border-indigo-100/50 uppercase shadow-sm flex items-center gap-1">
+              <span>{question_key.toUpperCase()}</span>
+              <span className="opacity-60">➔</span>
+              <span className="font-extrabold">{answer_key.toUpperCase()}</span>
+            </span>
+          </div>
+          <span className="text-[10px] font-black tracking-wider text-slate-500 bg-slate-50 px-2.5 py-1.5 rounded-lg border border-slate-100 shadow-sm">
+            {currentIndex + 1} / {session.questions?.length || 0}
+          </span>
+        </div>
+
+        <div className="flex-1 flex flex-col items-center justify-center py-6 text-center">
+          {currentQuestion.image && practiceSubMode !== 'listening' && (
+            <img 
+              src={currentQuestion.image} 
+              alt="Question" 
+              className="max-h-36 object-contain rounded-2xl mb-4 border border-slate-100 shadow-sm" 
+            />
+          )}
+          
+          {practiceSubMode === 'listening' ? (
+            <div className="flex flex-col items-center gap-4">
+              <div 
+                onClick={() => {
+                  const { question: qText, question_key: qKey } = practiceData!;
+                  if (qKey === 'front') {
+                    playCardAudio('front');
+                  } else {
+                    speakMultiLanguage(qText);
+                  }
+                }}
+                className="relative w-24 h-24 rounded-full bg-indigo-50 border border-indigo-100 flex items-center justify-center shadow-lg shadow-indigo-100/50 hover:bg-indigo-100/30 active:scale-95 transition-all cursor-pointer group"
+                title="Nhấn để nghe lại"
+              >
+                <div className="absolute inset-0 rounded-full bg-indigo-400/10 animate-ping" />
+                <div className="absolute inset-2 rounded-full bg-indigo-300/20 animate-pulse" />
+                <Play className="w-8 h-8 text-indigo-600 fill-indigo-600 group-hover:scale-110 transition-transform" />
+              </div>
+              <span className="text-[10px] font-black text-slate-400 tracking-wider uppercase mt-2">Nhấn để nghe lại</span>
+            </div>
+          ) : (
+            <h2 className="text-2xl md:text-3xl font-black text-slate-800 leading-normal max-w-2xl px-4">
+              <TypewriterText text={question} />
+            </h2>
+          )}
+        </div>
+
+        <div className="w-full max-w-2xl mx-auto pt-4 border-t border-slate-50">
+          {['mcq', 'listening'].includes(practiceSubMode) && choices && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
+              {choices.map((choice: string, idx: number) => {
+                const isSelected = selectedOption === idx;
+                const isCorrectChoice = idx === correct_index;
+                
+                let btnStyle = "border-slate-200 hover:bg-slate-50 text-slate-700 active:scale-[0.98] ";
+                
+                if (answered) {
+                  if (isCorrectChoice) {
+                    btnStyle = "bg-emerald-500 border-emerald-600 text-white shadow-lg shadow-emerald-100 scale-[1.02] ";
+                  } else if (isSelected) {
+                    btnStyle = "bg-rose-500 border-rose-600 text-white shadow-lg shadow-rose-100 ";
+                  } else {
+                    btnStyle = "border-slate-100 bg-slate-50 opacity-40 text-slate-400 pointer-events-none ";
+                  }
+                }
+
+                return (
+                  <button
+                    key={idx}
+                    onClick={() => handleMCQAnswer(idx)}
+                    disabled={answered}
+                    className={cn(
+                      "group p-4 rounded-2xl border text-left font-bold text-sm transition-all duration-200 flex items-center justify-between gap-3 min-h-[56px] shadow-sm",
+                      btnStyle
+                    )}
+                  >
+                    <div className="flex items-center gap-3">
+                      <span className={cn(
+                        "w-5 h-5 rounded-lg flex items-center justify-center text-[10px] font-black border",
+                        answered && isCorrectChoice ? "bg-white text-emerald-600 border-emerald-400" :
+                        answered && isSelected ? "bg-white text-rose-600 border-rose-400" :
+                        "bg-white border-slate-200 text-slate-400"
+                      )}>
+                        {idx + 1}
+                      </span>
+                      <span dangerouslySetInnerHTML={{ __html: parseBBCodeToHtml(choice) }} />
+                    </div>
+
+                    {answered && isCorrectChoice && (
+                      <Check className="w-4 h-4 stroke-[3] text-white flex-shrink-0" />
+                    )}
+                    {answered && isSelected && !isCorrectChoice && (
+                      <X className="w-4 h-4 stroke-[3] text-white flex-shrink-0" />
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+
+          {practiceSubMode === 'typing' && (
+            <div className="space-y-4 mb-4">
+              {!answered ? (
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={typingInput}
+                    onChange={(e) => setTypingInput(e.target.value)}
+                    placeholder="Gõ từ vựng..."
+                    autoFocus
+                    className="flex-1 bg-slate-50 border border-slate-200 rounded-2xl px-4 py-3 text-sm font-bold text-slate-800 outline-none focus:border-indigo-500 focus:bg-white transition-all shadow-inner"
+                  />
+                  <button
+                    onClick={handleTypingAnswer}
+                    className="px-6 py-3 rounded-2xl bg-indigo-600 text-white font-black text-xs uppercase hover:bg-indigo-700 hover:shadow-lg hover:shadow-indigo-100 active:scale-95 transition-all"
+                  >
+                    Kiểm tra
+                  </button>
+                </div>
+              ) : typingFeedback && (
+                <div className="space-y-3">
+                  <div className={cn(
+                    "flex items-center gap-3 p-4 rounded-2xl border",
+                    typingFeedback.isCorrect 
+                      ? "bg-emerald-50/50 border-emerald-200 text-emerald-800" 
+                      : "bg-rose-50/50 border-rose-200 text-rose-800"
+                  )}>
+                    <div className={cn(
+                      "w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 text-white shadow-sm",
+                      typingFeedback.isCorrect ? "bg-emerald-500" : "bg-rose-500"
+                    )}>
+                      {typingFeedback.isCorrect ? <Check className="w-4 h-4 stroke-[3]" /> : <X className="w-4 h-4 stroke-[3]" />}
+                    </div>
+                    <div className="text-xs">
+                      <p className="font-black uppercase tracking-wider text-[9px] opacity-60">Đáp án của bạn</p>
+                      <p className="font-bold text-sm">{typingInput || "(Trống)"}</p>
+                    </div>
+                  </div>
+
+                  {!typingFeedback.isCorrect && (
+                    <div className="p-4 bg-emerald-50/50 border border-emerald-100 rounded-2xl text-emerald-800 text-xs">
+                      <p className="font-black uppercase tracking-wider text-[9px] opacity-60">Đáp án chính xác</p>
+                      <p className="font-bold text-sm mt-0.5" dangerouslySetInnerHTML={{ __html: parseBBCodeToHtml(correct_answer || '') }} />
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+
+
+        </div>
+      </div>
+    );
+  };
+
   const renderSessionStats = () => {
+    const isPractice = mainTab === 'practice';
+    
+    if (isPractice) {
+      const answeredCount = Object.keys(practiceAnswers).length;
+      const correctCount = Object.entries(practiceAnswers).filter(([idx, ansIdx]) => {
+        const q = session?.questions?.[Number(idx)];
+        if (!q || !q.practice) return false;
+        if (practiceSubMode === 'typing') {
+          return ansIdx === 3;
+        }
+        return ansIdx === q.practice.correct_index;
+      }).length;
+      const wrongCount = answeredCount - correctCount;
+      const accuracy = answeredCount > 0 ? Math.round((correctCount / answeredCount) * 100) : 0;
+
+      return (
+        <div className="bg-slate-50/80 rounded-[1.5rem] p-4 mb-4 border border-slate-100">
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">PRACTICE SUMMARY</span>
+            <div className="flex items-center gap-1.5 px-2 py-0.5 bg-indigo-600 rounded-full text-white">
+              <Target className="w-2.5 h-2.5" />
+              <span className="text-[9px] font-black">ACCURACY: {accuracy}%</span>
+            </div>
+          </div>
+
+          <div className="flex items-center justify-between p-3 bg-white rounded-2xl shadow-sm border border-slate-100/50 mb-3">
+            <div className="flex items-center gap-2">
+              <div className="w-7 h-7 rounded-lg bg-indigo-50 flex items-center justify-center text-indigo-600">
+                <BookOpen className="w-4 h-4" />
+              </div>
+              <span className="text-[10px] font-bold text-slate-400 uppercase">QUESTIONS DONE</span>
+            </div>
+            <span className="text-lg font-black text-slate-700">{answeredCount}</span>
+          </div>
+
+          <div className="grid grid-cols-2 gap-2">
+            <div className="flex flex-col items-center p-2.5 bg-emerald-50 rounded-xl border border-emerald-100/40">
+              <span className="text-[14px] font-black text-emerald-600">{correctCount}</span>
+              <span className="text-[8px] font-black text-emerald-400 uppercase tracking-wider">CORRECT</span>
+            </div>
+            <div className="flex flex-col items-center p-2.5 bg-rose-50 rounded-xl border border-rose-100/40">
+              <span className="text-[14px] font-black text-rose-600">{wrongCount}</span>
+              <span className="text-[8px] font-black text-rose-400 uppercase tracking-wider">WRONG</span>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
     const answeredCount = Object.keys(sessionAnswers).length
     const finalRatings = Object.values(sessionAnswers).map(val => Array.isArray(val) ? val[val.length - 1] : val)
     const againCount = finalRatings.filter(val => val === 0).length
@@ -2083,107 +3086,121 @@ export default function FlashcardPlay() {
     )
   }
 
-  const renderQuestionMapGrid = () => (
-    <div className="grid grid-cols-8 md:grid-cols-10 lg:grid-cols-5 gap-3 p-1 pb-4">
-      {session.questions?.map((q: any, i: number) => {
-        const hasAttemptedThisSession = sessionAnswers[i] !== undefined
-        const attemptedRatings = Array.isArray(sessionAnswers[i]) 
-          ? (sessionAnswers[i] as number[]) 
-          : (typeof sessionAnswers[i] === 'number' ? [sessionAnswers[i] as number] : [])
-        const selectedOptIdx = attemptedRatings.length > 0 ? attemptedRatings[attemptedRatings.length - 1] : null
+  const renderQuestionMapGrid = () => {
+    const isPractice = mainTab === 'practice';
+    return (
+      <div className="grid grid-cols-8 md:grid-cols-10 lg:grid-cols-5 gap-3 p-1 pb-4">
+        {session.questions?.map((q: any, i: number) => {
+          const hasAttemptedThisSession = isPractice 
+            ? practiceAnswers[i] !== undefined 
+            : sessionAnswers[i] !== undefined;
+            
+          const selectedOptIdx = isPractice 
+            ? practiceAnswers[i] 
+            : (() => {
+                const attemptedRatings = Array.isArray(sessionAnswers[i]) 
+                  ? (sessionAnswers[i] as number[]) 
+                  : (typeof sessionAnswers[i] === 'number' ? [sessionAnswers[i] as number] : []);
+                return attemptedRatings.length > 0 ? attemptedRatings[attemptedRatings.length - 1] : null;
+              })();
 
-        const isActive = currentIndex === i
+          const isActive = currentIndex === i
 
-        let fsrsClass = "border-slate-100 hover:border-indigo-200 bg-white text-slate-500 hover:bg-slate-50/50 font-bold"
-        let fsrsStyle: any = {}
+          let fsrsClass = "border-slate-100 hover:border-indigo-200 bg-white text-slate-500 hover:bg-slate-50/50 font-bold"
+          let fsrsStyle: any = {}
 
-        const stats = q.stats || { total: 0, again_count: 0, hard_count: 0, good_count: 0, easy_count: 0 }
-        const totalReviews = stats.total || 0
+          const stats = q.stats || { total: 0, again_count: 0, hard_count: 0, good_count: 0, easy_count: 0 }
+          const totalReviews = stats.total || 0
 
-        if (totalReviews > 0) {
-          const again = stats.again_count || 0
-          const hard = stats.hard_count || 0
-          const good = stats.good_count || 0
-          const easy = stats.easy_count || 0
-          const total = again + hard + good + easy
+          if (totalReviews > 0) {
+            const again = stats.again_count || 0
+            const hard = stats.hard_count || 0
+            const good = stats.good_count || 0
+            const easy = stats.easy_count || 0
+            const total = again + hard + good + easy
 
-          if (total > 0) {
-            const segments: string[] = []
-            let currentPct = 0
-            if (again > 0) {
-              const nextPct = currentPct + (again / total) * 100
-              segments.push(`#ffe4e6 ${currentPct.toFixed(1)}%, #ffe4e6 ${nextPct.toFixed(1)}%`)
-              currentPct = nextPct
-            }
-            if (hard > 0) {
-              const nextPct = currentPct + (hard / total) * 100
-              segments.push(`#fef3c7 ${currentPct.toFixed(1)}%, #fef3c7 ${nextPct.toFixed(1)}%`)
-              currentPct = nextPct
-            }
-            if (good > 0) {
-              const nextPct = currentPct + (good / total) * 100
-              segments.push(`#e0e7ff ${currentPct.toFixed(1)}%, #e0e7ff ${nextPct.toFixed(1)}%`)
-              currentPct = nextPct
-            }
-            if (easy > 0) {
-              const nextPct = currentPct + (easy / total) * 100
-              segments.push(`#d1fae5 ${currentPct.toFixed(1)}%, #d1fae5 ${nextPct.toFixed(1)}%`)
-              currentPct = nextPct
-            }
+            if (total > 0) {
+              const segments: string[] = []
+              let currentPct = 0
+              if (again > 0) {
+                const nextPct = currentPct + (again / total) * 100
+                segments.push(`#ffe4e6 ${currentPct.toFixed(1)}%, #ffe4e6 ${nextPct.toFixed(1)}%`)
+                currentPct = nextPct
+              }
+              if (hard > 0) {
+                const nextPct = currentPct + (hard / total) * 100
+                segments.push(`#fef3c7 ${currentPct.toFixed(1)}%, #fef3c7 ${nextPct.toFixed(1)}%`)
+                currentPct = nextPct
+              }
+              if (good > 0) {
+                const nextPct = currentPct + (good / total) * 100
+                segments.push(`#e0e7ff ${currentPct.toFixed(1)}%, #e0e7ff ${nextPct.toFixed(1)}%`)
+                currentPct = nextPct
+              }
+              if (easy > 0) {
+                const nextPct = currentPct + (easy / total) * 100
+                segments.push(`#d1fae5 ${currentPct.toFixed(1)}%, #d1fae5 ${nextPct.toFixed(1)}%`)
+                currentPct = nextPct
+              }
 
-            fsrsStyle = {
-              background: `linear-gradient(to top, ${segments.join(', ')})`,
-              color: '#1e293b',
-              borderColor: '#cbd5e1'
-            }
-            fsrsClass = "shadow-sm animate-in zoom-in-95 duration-200 font-bold text-slate-800 border-slate-300"
-          } else {
-            const box = q.box_level || 1
-            if (box === 5) {
-              fsrsClass = "border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100/60"
-            } else if (box === 4) {
-              fsrsClass = "border-indigo-200 bg-indigo-50 text-indigo-700 hover:bg-indigo-100/60"
-            } else if (box === 3 || box === 2) {
-              fsrsClass = "border-amber-200 bg-amber-50/70 text-amber-700 hover:bg-amber-100/60"
+              fsrsStyle = {
+                background: `linear-gradient(to top, ${segments.join(', ')})`,
+                color: '#1e293b',
+                borderColor: '#cbd5e1'
+              }
+              fsrsClass = "shadow-sm animate-in zoom-in-95 duration-200 font-bold text-slate-800 border-slate-300"
             } else {
-              fsrsClass = "border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-100/60"
+              const box = q.box_level || 1
+              if (box === 5) {
+                fsrsClass = "border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100/60"
+              } else if (box === 4) {
+                fsrsClass = "border-indigo-200 bg-indigo-50 text-indigo-700 hover:bg-indigo-100/60"
+              } else if (box === 3 || box === 2) {
+                fsrsClass = "border-amber-200 bg-amber-50/70 text-amber-700 hover:bg-amber-100/60"
+              } else {
+                fsrsClass = "border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-100/60"
+              }
             }
           }
-        }
 
-        return (
-          <button 
-            key={i} 
-            onClick={() => {
-              navigateToQuestion(i)
-              setIsMapOpen(false)
-            }}
-            className={cn(
-              "relative aspect-square rounded-xl border flex flex-col items-center justify-center font-black text-[11px] transition-all duration-200",
-              isActive 
-                ? "border-indigo-600 ring-4 ring-indigo-500/30 z-10 scale-105 shadow-md" 
-                : "",
-              fsrsClass
-            )}
-            style={fsrsStyle}
-          >
-            <span className={cn("relative z-10 text-[12px] text-slate-800")}>{i + 1}</span>
-            {hasAttemptedThisSession && (
-              <span className={cn(
-                "text-[6px] font-black tracking-tighter opacity-90 mt-0.5 uppercase z-10 relative",
-                selectedOptIdx === 0 ? "text-rose-600" :
-                selectedOptIdx === 1 ? "text-amber-600" :
-                selectedOptIdx === 2 ? "text-indigo-600" :
-                "text-emerald-600"
-              )}>
-                {selectedOptIdx === 0 ? "AGAIN" : selectedOptIdx === 1 ? "HARD" : selectedOptIdx === 2 ? "GOOD" : "EASY"}
-              </span>
-            )}
-          </button>
-        )
-      })}
-    </div>
-  )
+          return (
+            <button 
+              key={i} 
+              onClick={() => {
+                navigateToQuestion(i)
+                setIsMapOpen(false)
+              }}
+              className={cn(
+                "relative aspect-square rounded-xl border flex flex-col items-center justify-center font-black text-[11px] transition-all duration-200",
+                isActive 
+                  ? "border-indigo-600 ring-4 ring-indigo-500/30 z-10 scale-105 shadow-md" 
+                  : "",
+                fsrsClass
+              )}
+              style={fsrsStyle}
+            >
+              <span className={cn("relative z-10 text-[12px] text-slate-800")}>{i + 1}</span>
+              {hasAttemptedThisSession && (
+                <span className={cn(
+                  "text-[6px] font-black tracking-tighter opacity-90 mt-0.5 uppercase z-10 relative",
+                  isPractice
+                    ? (selectedOptIdx === q.practice?.correct_index ? "text-emerald-600" : "text-rose-600")
+                    : (selectedOptIdx === 0 ? "text-rose-600" :
+                       selectedOptIdx === 1 ? "text-amber-600" :
+                       selectedOptIdx === 2 ? "text-indigo-600" :
+                       "text-emerald-600")
+                )}>
+                  {isPractice
+                    ? (selectedOptIdx === q.practice?.correct_index ? "CORRECT" : "WRONG")
+                    : (selectedOptIdx === 0 ? "AGAIN" : selectedOptIdx === 1 ? "HARD" : selectedOptIdx === 2 ? "GOOD" : "EASY")}
+                </span>
+              )}
+            </button>
+          )
+        })}
+      </div>
+    );
+  }
 
   if (!session) return <div className="min-h-screen flex items-center justify-center font-black animate-pulse">LOADING SESSION...</div>
 
@@ -2437,13 +3454,134 @@ export default function FlashcardPlay() {
         </div>
       </header>
 
+      {/* Dynamic Mode Switcher Bar */}
+      <div className="flex-shrink-0 bg-white/80 backdrop-blur-md border-b border-slate-100/50 px-4 py-2 flex flex-col sm:flex-row items-center justify-center sm:justify-between gap-3 z-50 max-w-4xl mx-auto w-full rounded-b-2xl shadow-sm">
+        {/* Left Side: Main Mode Tabs */}
+        <div className="flex bg-slate-100/60 p-0.5 rounded-xl border border-slate-200/30 shadow-inner">
+          <button
+            onClick={() => {
+              setMainTab('fsrs');
+              localStorage.setItem('vocab_main_tab', 'fsrs');
+              setSessionAnswers({});
+              setPracticeAnswers({});
+              setSelectedOption(null);
+              setShowFeedback(false);
+              fetchSession('fsrs');
+            }}
+            className={cn(
+              "px-4 py-1.5 rounded-lg text-[10px] font-black transition-all duration-300 flex items-center gap-1.5 uppercase tracking-wider",
+              mainTab === 'fsrs' 
+                ? "bg-white text-indigo-600 shadow-sm border border-slate-200/10" 
+                : "text-slate-500 hover:text-slate-700"
+            )}
+          >
+            <Brain className="w-3.5 h-3.5" />
+            <span>FSRS ÔN TẬP</span>
+          </button>
+          
+          <button
+            onClick={() => {
+              setMainTab('practice');
+              localStorage.setItem('vocab_main_tab', 'practice');
+              setPracticeAnswers({});
+              setSelectedOption(null);
+              setShowFeedback(false);
+              fetchSession('practice', practiceSubMode);
+            }}
+            className={cn(
+              "px-4 py-1.5 rounded-lg text-[10px] font-black transition-all duration-300 flex items-center gap-1.5 uppercase tracking-wider",
+              mainTab === 'practice' 
+                ? "bg-gradient-to-r from-indigo-500 to-purple-600 text-white shadow-sm" 
+                : "text-slate-500 hover:text-slate-700"
+            )}
+          >
+            <Trophy className="w-3.5 h-3.5" />
+            <span>KHU LUYỆN TẬP</span>
+          </button>
+        </div>
+
+        {/* Right Side: Sub-mode Selector for Practice Tab */}
+        {mainTab === 'practice' && !practiceNeedsSetup && !practiceDisabled && (
+          <div className="flex items-center gap-2">
+            <div className="flex bg-slate-100/60 p-0.5 rounded-xl border border-slate-200/30">
+              <button
+                onClick={() => {
+                  setPracticeSubMode('mcq');
+                  localStorage.setItem('vocab_practice_submode', 'mcq');
+                  setPracticeAnswers({});
+                  setSelectedOption(null);
+                  setShowFeedback(false);
+                  fetchSession('practice', 'mcq');
+                }}
+                className={cn(
+                  "px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-wider transition-all duration-200",
+                  practiceSubMode === 'mcq'
+                    ? "bg-white text-indigo-600 shadow-sm"
+                    : "text-slate-500 hover:text-slate-700"
+                )}
+              >
+                Trắc nghiệm
+              </button>
+              
+              <button
+                onClick={() => {
+                  setPracticeSubMode('typing');
+                  localStorage.setItem('vocab_practice_submode', 'typing');
+                  setPracticeAnswers({});
+                  setSelectedOption(null);
+                  setShowFeedback(false);
+                  fetchSession('practice', 'typing');
+                }}
+                className={cn(
+                  "px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-wider transition-all duration-200",
+                  practiceSubMode === 'typing'
+                    ? "bg-white text-indigo-600 shadow-sm"
+                    : "text-slate-500 hover:text-slate-700"
+                )}
+              >
+                Gõ từ vựng
+              </button>
+
+              <button
+                onClick={() => {
+                  setPracticeSubMode('listening');
+                  localStorage.setItem('vocab_practice_submode', 'listening');
+                  setPracticeAnswers({});
+                  setSelectedOption(null);
+                  setShowFeedback(false);
+                  fetchSession('practice', 'listening');
+                }}
+                className={cn(
+                  "px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-wider transition-all duration-200",
+                  practiceSubMode === 'listening'
+                    ? "bg-white text-indigo-600 shadow-sm"
+                    : "text-slate-500 hover:text-slate-700"
+                )}
+              >
+                Nghe
+              </button>
+            </div>
+            
+            <button 
+              onClick={() => setPracticeNeedsSetup(true)}
+              className="w-7 h-7 flex items-center justify-center rounded-lg bg-slate-50 border border-slate-200 text-slate-500 hover:bg-indigo-50 hover:text-indigo-600 hover:border-indigo-200 active:scale-95 transition-all shadow-sm"
+              title="Cấu hình cặp cột Hỏi-Đáp"
+            >
+              <Sliders className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        )}
+      </div>
+
       <main className="flex-1 flex w-full max-w-none justify-center gap-4 lg:gap-8 px-2 lg:px-6 xl:px-10 md:py-6 py-2 overflow-hidden">
         <aside className="hidden xl:flex w-[340px] 2xl:w-[440px] flex-shrink-0 flex-col overflow-hidden bg-white border border-slate-100 rounded-[2.5rem] shadow-sm">
           {showFeedback ? renderFeedbackArea(false) : (
             <div className="flex flex-col h-full">
               {/* Header */}
               <div className="p-6 border-b border-slate-50 flex items-center justify-center bg-white sticky top-0 z-10">
-                <span className="text-[11px] font-black text-slate-400 uppercase tracking-[0.3em]">Rate card to view analysis</span>
+                <span className="text-[11px] font-black text-slate-400 uppercase tracking-[0.3em]">
+                  {mainTab === 'practice' ? "Answer question to view analysis" : "Rate card to view analysis"}
+                </span>
               </div>
               
               <div className="flex-1 flex flex-col items-center justify-center p-8 gap-6 text-center">
@@ -2455,8 +3593,12 @@ export default function FlashcardPlay() {
                 </div>
 
                 <div>
-                  <h3 className="text-sm font-black text-slate-700 mb-1">Rate your recall</h3>
-                  <p className="text-xs text-slate-400 leading-relaxed max-w-[200px]">After rating, you will see detailed analysis and AI explanation here.</p>
+                  <h3 className="text-sm font-black text-slate-700 mb-1">
+                    {mainTab === 'practice' ? "Submit your answer" : "Rate your recall"}
+                  </h3>
+                  <p className="text-xs text-slate-400 leading-relaxed max-w-[200px]">
+                    {mainTab === 'practice' ? "After answering, you will see detailed analysis and AI explanation here." : "After rating, you will see detailed analysis and AI explanation here."}
+                  </p>
                 </div>
 
                 {/* Divider */}
@@ -2464,39 +3606,63 @@ export default function FlashcardPlay() {
 
                 {/* Session Quick Stats */}
                 <div className="w-full space-y-2">
-                  <span className="text-[9px] font-black text-slate-300 uppercase tracking-[0.2em]">Study Session Progress</span>
+                  <span className="text-[9px] font-black text-slate-300 uppercase tracking-[0.2em]">
+                    {mainTab === 'practice' ? "Practice Progress" : "Study Session Progress"}
+                  </span>
                   <div className="grid grid-cols-3 gap-2">
                     <div className="flex flex-col items-center p-3 bg-slate-50 rounded-2xl border border-slate-100">
-                      <span className="text-lg font-black text-slate-700">{Object.keys(sessionAnswers).length}</span>
-                      <span className="text-[8px] font-bold text-slate-400 uppercase">Rated</span>
+                      <span className="text-lg font-black text-slate-700">
+                        {mainTab === 'practice' ? Object.keys(practiceAnswers).length : Object.keys(sessionAnswers).length}
+                      </span>
+                      <span className="text-[8px] font-bold text-slate-400 uppercase">
+                        {mainTab === 'practice' ? "Solved" : "Rated"}
+                      </span>
                     </div>
                     <div className="flex flex-col items-center p-3 bg-emerald-50 rounded-2xl border border-emerald-100">
                       <span className="text-lg font-black text-emerald-600">
-                        {Object.entries(sessionAnswers).filter(([idx, optIdx]) => {
-                          const q = session.questions[Number(idx)];
-                          if (!q) return false;
-                          const ratingVal = Array.isArray(optIdx) 
-                            ? optIdx[optIdx.length - 1] 
-                            : (typeof optIdx === 'number' ? optIdx : 0);
-                          return q.options && q.options.length > 0
-                            ? q.options[ratingVal]?.is_correct
-                            : ratingVal > 0;
-                        }).length}
+                        {mainTab === 'practice' ? (
+                          Object.entries(practiceAnswers).filter(([idx, ansIdx]) => {
+                            const q = session?.questions?.[Number(idx)];
+                            if (!q || !q.practice) return false;
+                            if (practiceSubMode === 'typing') return ansIdx === 3;
+                            return ansIdx === q.practice.correct_index;
+                          }).length
+                        ) : (
+                          Object.entries(sessionAnswers).filter(([idx, optIdx]) => {
+                            const q = session.questions[Number(idx)];
+                            if (!q) return false;
+                            const ratingVal = Array.isArray(optIdx) 
+                              ? optIdx[optIdx.length - 1] 
+                              : (typeof optIdx === 'number' ? optIdx : 0);
+                            return q.options && q.options.length > 0
+                              ? q.options[ratingVal]?.is_correct
+                              : ratingVal > 0;
+                          }).length
+                        )}
                       </span>
                       <span className="text-[8px] font-bold text-emerald-400 uppercase">Correct</span>
                     </div>
                     <div className="flex flex-col items-center p-3 bg-rose-50 rounded-2xl border border-rose-100">
                       <span className="text-lg font-black text-rose-600">
-                        {Object.keys(sessionAnswers).length - Object.entries(sessionAnswers).filter(([idx, optIdx]) => {
-                          const q = session.questions[Number(idx)];
-                          if (!q) return false;
-                          const ratingVal = Array.isArray(optIdx) 
-                            ? optIdx[optIdx.length - 1] 
-                            : (typeof optIdx === 'number' ? optIdx : 0);
-                          return q.options && q.options.length > 0
-                            ? q.options[ratingVal]?.is_correct
-                            : ratingVal > 0;
-                        }).length}
+                        {mainTab === 'practice' ? (
+                          Object.keys(practiceAnswers).length - Object.entries(practiceAnswers).filter(([idx, ansIdx]) => {
+                            const q = session?.questions?.[Number(idx)];
+                            if (!q || !q.practice) return false;
+                            if (practiceSubMode === 'typing') return ansIdx === 3;
+                            return ansIdx === q.practice.correct_index;
+                          }).length
+                        ) : (
+                          Object.keys(sessionAnswers).length - Object.entries(sessionAnswers).filter(([idx, optIdx]) => {
+                            const q = session.questions[Number(idx)];
+                            if (!q) return false;
+                            const ratingVal = Array.isArray(optIdx) 
+                              ? optIdx[optIdx.length - 1] 
+                              : (typeof optIdx === 'number' ? optIdx : 0);
+                            return q.options && q.options.length > 0
+                              ? q.options[ratingVal]?.is_correct
+                              : ratingVal > 0;
+                          }).length
+                        )}
                       </span>
                       <span className="text-[8px] font-bold text-rose-400 uppercase">Wrong</span>
                     </div>
@@ -2506,12 +3672,14 @@ export default function FlashcardPlay() {
                   <div className="mt-1">
                     <div className="flex justify-between text-[9px] font-bold text-slate-400 mb-1.5">
                       <span>Card {currentIndex + 1} / {session.questions?.length}</span>
-                      <span>{Math.round((Object.keys(sessionAnswers).length / (session.questions?.length || 1)) * 100)}%</span>
+                      <span>
+                        {Math.round(((mainTab === 'practice' ? Object.keys(practiceAnswers).length : Object.keys(sessionAnswers).length) / (session.questions?.length || 1)) * 100)}%
+                      </span>
                     </div>
                     <div className="w-full h-2.5 bg-slate-100 rounded-full overflow-hidden relative">
                       <div 
                         className="h-full bg-gradient-to-r from-indigo-500 to-purple-500 rounded-full transition-all duration-500"
-                        style={{ width: `${Math.round((Object.keys(sessionAnswers).length / (session.questions?.length || 1)) * 100)}%` }}
+                        style={{ width: `${Math.round(((mainTab === 'practice' ? Object.keys(practiceAnswers).length : Object.keys(sessionAnswers).length) / (session.questions?.length || 1)) * 100)}%` }}
                       />
                     </div>
                     {/* Milestone markers */}
@@ -2561,8 +3729,14 @@ export default function FlashcardPlay() {
               exit={{ opacity: 0, x: -20 }}
               className="flex-1 flex flex-col h-full w-full min-h-0"
             >
-              {/* 3D perspective flippable Flashcard Container */}
-              <div className="perspective-1000 w-full h-full flex-1 relative min-h-0">
+              {mainTab === 'practice' && practiceDisabled ? (
+                renderPracticeLockScreen()
+              ) : mainTab === 'practice' && practiceNeedsSetup ? (
+                renderPracticeSetupScreen()
+              ) : mainTab === 'practice' ? (
+                renderPracticeScreen()
+              ) : (
+                <div className="perspective-1000 w-full h-full flex-1 relative min-h-0">
                 <div
                   className="preserve-3d w-full h-full relative transition-transform duration-700 ease-out-quint"
                   style={{
@@ -2967,6 +4141,7 @@ export default function FlashcardPlay() {
                   </div>
                 </div>
               </div>
+              )}
             </motion.div>
           </AnimatePresence>
           </div>
@@ -2984,32 +4159,39 @@ export default function FlashcardPlay() {
         </aside>
       </main>
 
-      {/* Bottom Controls - Fixed to bottom (same pattern as Layout bottom nav) */}
+      {(mainTab !== 'practice' || (mainTab === 'practice' && !practiceNeedsSetup)) && (
       <footer className="flex-shrink-0 bg-white/95 backdrop-blur-2xl border-t border-slate-100/80 px-4 py-3 z-[120] shadow-[0_-4px_24px_rgba(99,102,241,0.06)]">
         <div className="max-w-2xl mx-auto w-full flex items-center gap-3 h-13">
+          {/* LayoutGrid Map button (visible for both FSRS and practice modes on mobile) */}
           <button onClick={() => setIsMapOpen(true)} className="lg:hidden w-12 h-12 flex-shrink-0 flex items-center justify-center bg-slate-50 border border-slate-200 rounded-2xl text-slate-500 hover:bg-indigo-50 hover:text-indigo-600 hover:border-indigo-200 shadow-sm active:scale-95 transition-all">
             <LayoutGrid className="w-5 h-5" />
           </button>
 
-          <button 
-            onClick={() => setIsModeMenuOpen(true)} 
-            className="w-12 h-12 flex-shrink-0 flex items-center justify-center bg-slate-50 border border-slate-200 rounded-2xl text-slate-500 hover:bg-indigo-50 hover:text-indigo-600 hover:border-indigo-200 shadow-sm active:scale-95 transition-all"
-            title="Change Smart Learning Mode"
-          >
-            {activeMode === 'fsrs' && <Brain className="w-5 h-5 text-indigo-600 animate-pulse" />}
-            {activeMode === 'sequential' && <ListOrdered className="w-5 h-5" />}
-            {activeMode === 'random' && <Shuffle className="w-5 h-5" />}
-            {activeMode === 'unseen' && <EyeOff className="w-5 h-5" />}
-            {activeMode === 'review' && <AlertCircle className="w-5 h-5" />}
-            {activeMode === 'hardest' && <TrendingUp className="w-5 h-5" />}
-          </button>
+          {/* Smart Learning Mode Selector (only for FSRS mode) */}
+          {mainTab !== 'practice' && (
+            <button 
+              onClick={() => setIsModeMenuOpen(true)} 
+              className="w-12 h-12 flex-shrink-0 flex items-center justify-center bg-slate-50 border border-slate-200 rounded-2xl text-slate-500 hover:bg-indigo-50 hover:text-indigo-600 hover:border-indigo-200 shadow-sm active:scale-95 transition-all"
+              title="Change Smart Learning Mode"
+            >
+              {activeMode === 'fsrs' && <Brain className="w-5 h-5 text-indigo-600 animate-pulse" />}
+              {activeMode === 'sequential' && <ListOrdered className="w-5 h-5" />}
+              {activeMode === 'random' && <Shuffle className="w-5 h-5" />}
+              {activeMode === 'unseen' && <EyeOff className="w-5 h-5" />}
+              {activeMode === 'review' && <AlertCircle className="w-5 h-5" />}
+              {activeMode === 'hardest' && <TrendingUp className="w-5 h-5" />}
+            </button>
+          )}
           
+          {/* Audio play button */}
           {(() => {
             if (!currentQuestion) return null;
             
-            const hasAudioOrScript = !isFlipped 
+            const hasAudioOrScript = mainTab === 'practice'
               ? (!!currentQuestion.audio || !!currentQuestion.others?.front_audio_url || !!currentQuestion.others?.front_audio_content?.trim())
-              : (!!currentQuestion.others?.back_audio_url || !!currentQuestion.others?.back_audio_content?.trim());
+              : (!isFlipped 
+                ? (!!currentQuestion.audio || !!currentQuestion.others?.front_audio_url || !!currentQuestion.others?.front_audio_content?.trim())
+                : (!!currentQuestion.others?.back_audio_url || !!currentQuestion.others?.back_audio_content?.trim()));
               
             if (!hasAudioOrScript) return null;
             
@@ -3017,19 +4199,37 @@ export default function FlashcardPlay() {
               <button
                 onClick={async (e) => {
                   e.stopPropagation();
-                  await playCardAudio(isFlipped ? 'back' : 'front');
+                  if (mainTab === 'practice') {
+                    const practiceData = currentPracticeData;
+                    if (practiceData) {
+                      const { question: qText, question_key: qKey } = practiceData;
+                      if (qKey === 'front') {
+                        await playCardAudio('front');
+                      } else {
+                        speakMultiLanguage(qText);
+                      }
+                    }
+                  } else {
+                    await playCardAudio(isFlipped ? 'back' : 'front');
+                  }
                 }}
                 className="w-12 h-12 flex-shrink-0 flex items-center justify-center bg-indigo-50 border border-indigo-200 rounded-2xl text-indigo-600 shadow-sm active:scale-95 transition-all hover:bg-indigo-100 hover:border-indigo-300"
-                title={isFlipped ? "Pronounce explanation" : "Pronounce word"}
+                title="Phát âm"
               >
                 <Play className="w-5 h-5 fill-indigo-600 animate-pulse" />
               </button>
             );
           })()}
           
-          {showFeedback && (
+          {/* BookOpen Explanation Button (visible in FSRS, and also in practice mode if a question is loaded) */}
+          {(mainTab === 'practice' || showFeedback) && (
             <button 
-              onClick={() => setIsFeedbackOpen(true)} 
+              onClick={() => {
+                if (mainTab === 'practice') {
+                  setShowFeedback(true);
+                }
+                setIsFeedbackOpen(true);
+              }} 
               className={`xl:hidden w-12 h-12 flex-shrink-0 flex items-center justify-center rounded-2xl shadow-sm active:scale-95 transition-all relative ${
                 justAnswered 
                   ? 'bg-indigo-600 border border-indigo-600 text-white animate-[pulse_1.5s_infinite] ring-4 ring-indigo-300 ring-offset-1 drop-shadow-[0_0_12px_rgba(99,102,241,0.6)]' 
@@ -3038,46 +4238,71 @@ export default function FlashcardPlay() {
               title="Xem giải thích và hướng dẫn"
             >
               <BookOpen className="w-5 h-5" />
-              <span className="absolute -top-1 -right-1 w-3 h-3 bg-rose-500 rounded-full border-2 border-white animate-pulse"></span>
+              {justAnswered && <span className="absolute -top-1 -right-1 w-3 h-3 bg-rose-500 rounded-full border-2 border-white animate-pulse"></span>}
             </button>
           )}
 
-          {!hasRated ? (
-            <button 
-              onClick={() => {
-                const nextFlipped = !isFlipped;
-                setIsFlipped(nextFlipped);
-                if (nextFlipped) {
-                  setShowFeedback(true);
-                  setJustAnswered(true);
-                }
-              }}
-              className="flex-1 h-12 bg-gradient-to-r from-indigo-500 via-indigo-600 to-purple-600 text-white font-black text-xs rounded-2xl shadow-lg shadow-indigo-300/50 flex items-center justify-center gap-2.5 uppercase tracking-widest active:scale-[0.98] transition-all hover:shadow-indigo-400/60 hover:shadow-xl"
-            >
-              {isFlipped ? (
-                <><ChevronRight className="w-4 h-4 rotate-180" /> FLIP BACK</>
-              ) : (
-                <>FLIP CARD <ChevronRight className="w-4 h-4 rotate-90" /></>
-              )}
-            </button>
-          ) : (
-            <div className="flex-1 flex gap-3 h-12">
-              <button 
-                onClick={() => setIsFlipped(prev => !prev)}
-                className="flex-1 h-12 bg-gradient-to-r from-indigo-50 to-indigo-100/80 hover:from-indigo-100 hover:to-indigo-200 text-indigo-600 border border-indigo-200/50 font-black text-xs rounded-2xl flex items-center justify-center gap-2 uppercase tracking-widest active:scale-[0.98] transition-all"
-              >
-                {isFlipped ? "FLIP FRONT" : "FLIP BACK"}
-              </button>
+          {/* Main Action Buttons */}
+          {mainTab === 'practice' ? (
+            practiceAnswers[currentIndex] !== undefined ? (
               <button 
                 onClick={handleNext}
-                className="flex-[2] h-12 bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-600 text-white font-black text-xs rounded-2xl shadow-lg shadow-emerald-300/50 flex items-center justify-center gap-2.5 uppercase tracking-widest active:scale-[0.98] transition-all hover:shadow-emerald-400/60 hover:shadow-xl"
+                className="flex-1 h-12 bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-600 text-white font-black text-xs rounded-2xl shadow-lg shadow-emerald-300/50 flex items-center justify-center gap-2.5 uppercase tracking-widest active:scale-[0.98] transition-all hover:shadow-emerald-400/60 hover:shadow-xl"
               >
-                NEXT CARD <ChevronRight className="w-4 h-4" />
+                Tiếp tục (Enter) <ChevronRight className="w-4 h-4" />
               </button>
-            </div>
+            ) : (
+              <div className="flex-1 flex gap-2 h-12">
+                <button
+                  onClick={handleNext}
+                  className="flex-1 h-12 bg-slate-50 border border-slate-200 text-slate-500 hover:bg-slate-100 font-black text-xs rounded-2xl flex items-center justify-center gap-1.5 uppercase tracking-widest active:scale-[0.98] transition-all"
+                >
+                  Bỏ qua <ChevronRight className="w-4 h-4" />
+                </button>
+                <div className="flex-[2] h-12 bg-slate-100 text-slate-400 font-black text-xs rounded-2xl flex items-center justify-center uppercase tracking-widest pointer-events-none select-none">
+                  Chờ đáp án...
+                </div>
+              </div>
+            )
+          ) : (
+            !hasRated ? (
+              <button 
+                onClick={() => {
+                  const nextFlipped = !isFlipped;
+                  setIsFlipped(nextFlipped);
+                  if (nextFlipped) {
+                    setShowFeedback(true);
+                    setJustAnswered(true);
+                  }
+                }}
+                className="flex-1 h-12 bg-gradient-to-r from-indigo-500 via-indigo-600 to-purple-600 text-white font-black text-xs rounded-2xl shadow-lg shadow-indigo-300/50 flex items-center justify-center gap-2.5 uppercase tracking-widest active:scale-[0.98] transition-all hover:shadow-indigo-400/60 hover:shadow-xl"
+              >
+                {isFlipped ? (
+                  <><ChevronRight className="w-4 h-4 rotate-180" /> FLIP BACK</>
+                ) : (
+                  <>FLIP CARD <ChevronRight className="w-4 h-4 rotate-90" /></>
+                )}
+              </button>
+            ) : (
+              <div className="flex-1 flex gap-3 h-12">
+                <button 
+                  onClick={() => setIsFlipped(prev => !prev)}
+                  className="flex-1 h-12 bg-gradient-to-r from-indigo-50 to-indigo-100/80 hover:from-indigo-100 hover:to-indigo-200 text-indigo-600 border border-indigo-200/50 font-black text-xs rounded-2xl flex items-center justify-center gap-2 uppercase tracking-widest active:scale-[0.98] transition-all"
+                >
+                  {isFlipped ? "FLIP FRONT" : "FLIP BACK"}
+                </button>
+                <button 
+                  onClick={handleNext}
+                  className="flex-[2] h-12 bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-600 text-white font-black text-xs rounded-2xl shadow-lg shadow-emerald-300/50 flex items-center justify-center gap-2.5 uppercase tracking-widest active:scale-[0.98] transition-all hover:shadow-emerald-400/60 hover:shadow-xl"
+                >
+                  NEXT CARD <ChevronRight className="w-4 h-4" />
+                </button>
+              </div>
+            )
           )}
         </div>
       </footer>
+      )}
 
       {/* 💡 CHỒI LÊN BÊN DƯỚI - QUICK SWIPE-UP/CLICK HANDLE */}
       {justAnswered && !isFeedbackOpen && (

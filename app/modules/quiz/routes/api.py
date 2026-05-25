@@ -9,6 +9,9 @@ from app.modules.quiz.services.excel_service import ExcelQuizService
 from app.modules.quiz.services.quiz_service import QuizService
 from app.modules.quiz.services.ai_service import ai_service
 from app.modules.quiz.schemas import QuizSchema, QuestionSchema
+from app.modules.quiz.models import UserDeckSettings
+from app.modules.quiz.services.mcq_engine import MCQEngine
+from app.modules.quiz.services.typing_engine import TypingEngine
 import json
 import re
 import os
@@ -84,6 +87,11 @@ async def upload_quiz(request: Request, file: UploadFile = File(...), metadata_o
             is_active=True
         )
         db_quiz = await QuizService.create_quiz(db, quiz_data)
+        
+        # Save practice settings if defined in metadata
+        if "practice_settings" in metadata:
+            db_quiz.practice_settings = metadata["practice_settings"]
+            await db.flush()
         
         print(f"DEBUG: Quiz created ID={db_quiz.id}. Adding {len(questions)} questions...")
         
@@ -213,102 +221,107 @@ async def record_answer(request: Request, data: dict, db: AsyncSession = Depends
         await db.flush()
 
         # --- FSRS v6 Spaced Repetition Mastery Levels ---
-        from fsrs import Card, Scheduler, Rating, State
+        is_practice = data.get("is_practice", False)
         
-        mastery_res = await db.execute(
-            select(UserQuestionMastery).where(
-                UserQuestionMastery.user_id == user_id,
-                UserQuestionMastery.question_id == question_id
+        if not is_practice:
+            from fsrs import Card, Scheduler, Rating, State
+            
+            mastery_res = await db.execute(
+                select(UserQuestionMastery).where(
+                    UserQuestionMastery.user_id == user_id,
+                    UserQuestionMastery.question_id == question_id
+                )
             )
-        )
-        mastery = mastery_res.scalar_one_or_none()
-        if not mastery:
-            mastery = UserQuestionMastery(
-                user_id=user_id,
-                question_id=question_id,
-                box_level=1,
-                consecutive_correct=0,
-                state=0,
-                stability=None,
-                difficulty=None,
-                step=0,
-                due=datetime.utcnow()
-            )
-            db.add(mastery)
-            await db.flush()
-
-        old_box_level = mastery.box_level
+            mastery = mastery_res.scalar_one_or_none()
+            if not mastery:
+                mastery = UserQuestionMastery(
+                    user_id=user_id,
+                    question_id=question_id,
+                    box_level=1,
+                    consecutive_correct=0,
+                    state=0,
+                    stability=None,
+                    difficulty=None,
+                    step=0,
+                    due=datetime.utcnow()
+                )
+                db.add(mastery)
+                await db.flush()
+    
+            old_box_level = mastery.box_level
+                
+            rating_map = {
+                1: Rating.Again,
+                2: Rating.Hard,
+                3: Rating.Good,
+                4: Rating.Easy
+            }
+            rating_enum = rating_map.get(rating_val, Rating.Good)
             
-        rating_map = {
-            1: Rating.Again,
-            2: Rating.Hard,
-            3: Rating.Good,
-            4: Rating.Easy
-        }
-        rating_enum = rating_map.get(rating_val, Rating.Good)
-        
-        # Build fsrs.Card
-        now_utc = datetime.utcnow().replace(tzinfo=timezone.utc)
-        state_map = {
-            0: State.Learning,
-            1: State.Learning,
-            2: State.Review,
-            3: State.Relearning
-        }
-        
-        fsrs_card = Card()
-        fsrs_card.state = state_map.get(mastery.state, State.Learning)
-        fsrs_card.step = mastery.step
-        fsrs_card.stability = mastery.stability
-        fsrs_card.difficulty = mastery.difficulty
-        fsrs_card.due = mastery.due.replace(tzinfo=timezone.utc) if mastery.due else now_utc
-        fsrs_card.last_review = mastery.last_review.replace(tzinfo=timezone.utc) if mastery.last_review else None
-        
-        # Run FSRS v6 scheduler
-        scheduler = Scheduler()
-        updated_card, review_log = scheduler.review_card(fsrs_card, rating_enum, now_utc)
-        
-        # Save back FSRS properties
-        mastery.stability = updated_card.stability
-        mastery.difficulty = updated_card.difficulty
-        mastery.step = updated_card.step
-        
-        state_reverse_map = {
-            State.Learning: 1,
-            State.Review: 2,
-            State.Relearning: 3
-        }
-        mastery.state = state_reverse_map.get(updated_card.state, 1)
-        mastery.due = updated_card.due.replace(tzinfo=None)
-        if updated_card.last_review:
-            mastery.last_review = updated_card.last_review.replace(tzinfo=None)
+            # Build fsrs.Card
+            now_utc = datetime.utcnow().replace(tzinfo=timezone.utc)
+            state_map = {
+                0: State.Learning,
+                1: State.Learning,
+                2: State.Review,
+                3: State.Relearning
+            }
             
-        # Map box_level for gamification metrics & badges compatibility
-        if mastery.state == 2: # Review
-            mastery.box_level = 5 if (mastery.stability and mastery.stability >= 10.0) else 4
-        elif mastery.state in (1, 3): # Learning / Relearning
-            mastery.box_level = 2
+            fsrs_card = Card()
+            fsrs_card.state = state_map.get(mastery.state, State.Learning)
+            fsrs_card.step = mastery.step
+            fsrs_card.stability = mastery.stability
+            fsrs_card.difficulty = mastery.difficulty
+            fsrs_card.due = mastery.due.replace(tzinfo=timezone.utc) if mastery.due else now_utc
+            fsrs_card.last_review = mastery.last_review.replace(tzinfo=timezone.utc) if mastery.last_review else None
+            
+            # Run FSRS v6 scheduler
+            scheduler = Scheduler()
+            updated_card, review_log = scheduler.review_card(fsrs_card, rating_enum, now_utc)
+            
+            # Save back FSRS properties
+            mastery.stability = updated_card.stability
+            mastery.difficulty = updated_card.difficulty
+            mastery.step = updated_card.step
+            
+            state_reverse_map = {
+                State.Learning: 1,
+                State.Review: 2,
+                State.Relearning: 3
+            }
+            mastery.state = state_reverse_map.get(updated_card.state, 1)
+            mastery.due = updated_card.due.replace(tzinfo=None)
+            if updated_card.last_review:
+                mastery.last_review = updated_card.last_review.replace(tzinfo=None)
+                
+            # Map box_level for gamification metrics & badges compatibility
+            if mastery.state == 2: # Review
+                mastery.box_level = 5 if (mastery.stability and mastery.stability >= 10.0) else 4
+            elif mastery.state in (1, 3): # Learning / Relearning
+                mastery.box_level = 2
+            else:
+                mastery.box_level = 1
+                
+            new_box_level = mastery.box_level
+                
+            # Update consecutive correct for compatibility
+            if rating_val > 1:
+                mastery.consecutive_correct += 1
+            else:
+                mastery.consecutive_correct = 0
+                
+            mastery_update_info = {
+                "old_level": old_box_level,
+                "new_level": new_box_level,
+                "consecutive_correct": mastery.consecutive_correct,
+                "level_up": new_box_level > old_box_level,
+                "state": mastery.state,
+                "stability": mastery.stability,
+                "difficulty": mastery.difficulty,
+                "due": mastery.due.isoformat() if mastery.due else None
+            }
         else:
-            mastery.box_level = 1
-            
-        new_box_level = mastery.box_level
-            
-        # Update consecutive correct for compatibility
-        if rating_val > 1:
-            mastery.consecutive_correct += 1
-        else:
-            mastery.consecutive_correct = 0
-            
-        mastery_update_info = {
-            "old_level": old_box_level,
-            "new_level": new_box_level,
-            "consecutive_correct": mastery.consecutive_correct,
-            "level_up": new_box_level > old_box_level,
-            "state": mastery.state,
-            "stability": mastery.stability,
-            "difficulty": mastery.difficulty,
-            "due": mastery.due.isoformat() if mastery.due else None
-        }
+            mastery_update_info = None
         
         # --- Goal Progress Tracking Logic ---
         from app.modules.quiz.models import UserQuizGoal, UserDailyProgress
@@ -621,8 +634,83 @@ async def get_quiz_data(request: Request, quiz_id: int, db: AsyncSession = Depen
         "tags": [t.name for t in quiz.tags]
     }
 
+@router.get("/{quiz_id}/practice-settings")
+async def get_practice_settings(request: Request, quiz_id: int, db: AsyncSession = Depends(get_db)):
+    user_id = int(request.cookies.get("user_id", 1))
+    
+    quiz = await QuizService.get_quiz_by_id(db, quiz_id)
+    if not quiz:
+        return JSONResponse(status_code=404, content={"error": "Deck not found"})
+        
+    # Query user settings
+    user_sett_res = await db.execute(
+        select(UserDeckSettings).where(
+            UserDeckSettings.user_id == user_id,
+            UserDeckSettings.deck_id == quiz_id
+        )
+    )
+    user_sett = user_sett_res.scalar_one_or_none()
+    
+    # Dynamically extract all available data columns in this deck
+    from app.modules.quiz.models import Question
+    available_cols = {"front", "back"}
+    questions_stmt = select(Question.others).where(Question.quiz_id == quiz_id)
+    res = await db.execute(questions_stmt)
+    for others_json in res.scalars():
+        if others_json and isinstance(others_json, dict):
+            # Exclude technical/internal columns like front_audio_url if we want,
+            # but letting them show is also fine. Let's filter out obviously technical ones:
+            for k in others_json.keys():
+                if k not in ("id", "item_id", "order_in_container") and not k.endswith("_audio_url") and not k.endswith("_audio_content") and not k.endswith("_img") and k != "image" and k != "audio" and k != "other_content":
+                    available_cols.add(k)
+                    
+    return {
+        "creator_settings": quiz.practice_settings,
+        "user_settings": user_sett.settings if user_sett else None,
+        "available_columns": sorted(list(available_cols))
+    }
+
+@router.post("/{quiz_id}/practice-settings")
+async def save_practice_settings(request: Request, quiz_id: int, payload: dict, db: AsyncSession = Depends(get_db)):
+    user_id = int(request.cookies.get("user_id", 1))
+    is_creator = payload.get("is_creator", False)
+    settings = payload.get("settings")
+    
+    quiz = await QuizService.get_quiz_by_id(db, quiz_id)
+    if not quiz:
+        return JSONResponse(status_code=404, content={"error": "Deck not found"})
+        
+    if is_creator:
+        # Check if user has permission to edit deck settings
+        from app.modules.quiz.models import QuizCollaborator
+        is_owner = quiz.creator_id == user_id
+        collab_res = await db.execute(select(QuizCollaborator).where(QuizCollaborator.quiz_id == quiz_id, QuizCollaborator.user_id == user_id))
+        is_collaborator = collab_res.scalar() is not None
+        
+        if not (is_owner or is_collaborator or user_id == 1):
+            return JSONResponse(status_code=403, content={"error": "No permission to save deck default settings"})
+            
+        quiz.practice_settings = settings
+    else:
+        # Save user settings
+        user_sett_res = await db.execute(
+            select(UserDeckSettings).where(
+                UserDeckSettings.user_id == user_id,
+                UserDeckSettings.deck_id == quiz_id
+            )
+        )
+        user_sett = user_sett_res.scalar_one_or_none()
+        if not user_sett:
+            user_sett = UserDeckSettings(user_id=user_id, deck_id=quiz_id, settings=settings)
+            db.add(user_sett)
+        else:
+            user_sett.settings = settings
+            
+    await db.commit()
+    return {"status": "ok"}
+
 @router.get("/{quiz_id}/play-data")
-async def get_quiz_play_data(request: Request, quiz_id: int, db: AsyncSession = Depends(get_db)):
+async def get_quiz_play_data(request: Request, quiz_id: int, mode: Optional[str] = None, db: AsyncSession = Depends(get_db)):
     user_id = int(request.cookies.get("user_id", 1))
     quiz = await QuizService.get_quiz_with_stats(db, quiz_id, user_id=user_id)
     if not quiz: return JSONResponse(status_code=404, content={"error": "Quiz not found"})
@@ -642,6 +730,44 @@ async def get_quiz_play_data(request: Request, quiz_id: int, db: AsyncSession = 
     mastery_res = await db.execute(mastery_stmt)
     mastery_records = {m.question_id: m for m in mastery_res.scalars().all()}
     
+    # Check settings if practice mode
+    practice_needs_setup = False
+    practice_disabled = False
+    active_pairs = []
+    num_choices = 4
+    
+    if mode in ("mcq", "typing", "listening"):
+        # Load user settings or creator settings
+        user_sett_res = await db.execute(
+            select(UserDeckSettings).where(
+                UserDeckSettings.user_id == user_id,
+                UserDeckSettings.deck_id == quiz_id
+            )
+        )
+        user_sett = user_sett_res.scalar_one_or_none()
+        
+        settings = None
+        if user_sett and user_sett.settings:
+            settings = user_sett.settings
+        elif quiz.practice_settings:
+            settings = quiz.practice_settings
+            
+        if not settings or not settings.get("active_pairs"):
+            creator_has_settings = quiz.practice_settings and quiz.practice_settings.get("active_pairs")
+            if not creator_has_settings:
+                is_owner = quiz.creator_id == user_id
+                if not (is_owner or is_collaborator or user_id == 1):
+                    practice_disabled = True
+                else:
+                    practice_needs_setup = True
+            else:
+                active_pairs = quiz.practice_settings.get("active_pairs", [])
+                num_choices = quiz.practice_settings.get("num_choices", 4)
+        else:
+            active_pairs = settings.get("active_pairs", [])
+            num_choices = settings.get("num_choices", 4)
+            
+    # Distractors and practice questions are now generated client-side to make deck loading instant.
     from fsrs import Card, Scheduler, Rating, State
     scheduler = Scheduler()
     now_utc = datetime.utcnow().replace(tzinfo=timezone.utc)
@@ -691,7 +817,7 @@ async def get_quiz_play_data(request: Request, quiz_id: int, db: AsyncSession = 
             except Exception:
                 intervals[r_val] = "soon"
                 
-        questions_list.append({
+        q_payload = {
             "id": q.id,
             "content": q.content,
             "explanation": q.explanation,
@@ -710,7 +836,10 @@ async def get_quiz_play_data(request: Request, quiz_id: int, db: AsyncSession = 
             "image": q.image,
             "audio": q.audio,
             "others": q.others
-        })
+        }
+        
+        # Practice questions are generated on-demand client-side
+        questions_list.append(q_payload)
         
     return {
         "id": quiz.id,
@@ -722,6 +851,8 @@ async def get_quiz_play_data(request: Request, quiz_id: int, db: AsyncSession = 
         "creator_id": quiz.creator_id,
         "is_collaborator": is_collaborator,
         "user_total_xp": user_stats.get("xp", 0),
+        "practice_needs_setup": practice_needs_setup,
+        "practice_disabled": practice_disabled,
         "questions": questions_list
     }
 
@@ -934,6 +1065,120 @@ async def get_quiz_notes(request: Request, quiz_id: int, db: AsyncSession = Depe
     )
     notes = result.scalars().all()
     return {n.question_id: n.content for n in notes}
+
+@router.get("/{quiz_id}/export")
+async def export_quiz(quiz_id: int, request: Request, db: AsyncSession = Depends(get_db)):
+    quiz = await QuizService.get_quiz_by_id(db, quiz_id)
+    if not quiz:
+        return JSONResponse(status_code=404, content={"error": "Deck not found"})
+        
+    from app.modules.quiz.models import Question
+    q_stmt = select(Question).where(Question.quiz_id == quiz_id)
+    res = await db.execute(q_stmt)
+    questions = res.scalars().all()
+    
+    category_name = quiz.category.name if quiz.category else "General"
+    tags = [t.name for t in quiz.tags]
+    
+    excel_bytes = ExcelQuizService.export_quiz_to_excel(
+        quiz_title=quiz.title,
+        quiz_description=quiz.description,
+        category_name=category_name,
+        tags=tags,
+        practice_settings=quiz.practice_settings,
+        questions=questions
+    )
+    
+    from fastapi.responses import Response
+    import urllib.parse
+    encoded_filename = urllib.parse.quote(f"{quiz.title}.xlsx")
+    
+    return Response(
+        content=excel_bytes,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={
+            "Content-Disposition": f"attachment; filename*=UTF-8''{encoded_filename}"
+        }
+    )
+
+@router.post("/{quiz_id}/import-update")
+async def import_update_quiz(request: Request, quiz_id: int, file: UploadFile = File(...), db: AsyncSession = Depends(get_db)):
+    try:
+        user_id = int(request.cookies.get("user_id", 1))
+        quiz = await QuizService.get_quiz_by_id(db, quiz_id)
+        if not quiz:
+            return JSONResponse(status_code=404, content={"error": "Deck not found"})
+            
+        from app.modules.quiz.models import QuizCollaborator
+        is_owner = quiz.creator_id == user_id
+        collab_res = await db.execute(select(QuizCollaborator).where(QuizCollaborator.quiz_id == quiz_id, QuizCollaborator.user_id == user_id))
+        is_collaborator = collab_res.scalar() is not None
+        
+        if not (is_owner or is_collaborator or user_id == 1):
+            return JSONResponse(status_code=403, content={"error": "No permission to update this deck"})
+            
+        content = await file.read()
+        import asyncio
+        metadata, questions = await asyncio.to_thread(ExcelQuizService.parse_quiz_excel, content)
+        
+        if not questions:
+            return JSONResponse(status_code=400, content={"error": "No valid questions found in Excel file."})
+            
+        quiz.title = metadata.get("title", quiz.title)
+        quiz.description = metadata.get("description", quiz.description)
+        
+        category_name = metadata.get("category")
+        if category_name:
+            from app.modules.quiz.models import Category
+            cat_res = await db.execute(select(Category).filter(Category.name == category_name))
+            db_cat = cat_res.scalar_one_or_none()
+            if not db_cat:
+                db_cat = Category(name=category_name, description=f"Imported from {file.filename}")
+                db.add(db_cat)
+                await db.flush()
+            quiz.category_id = db_cat.id
+            
+        if "practice_settings" in metadata:
+            quiz.practice_settings = metadata["practice_settings"]
+            
+        if metadata.get("tags"):
+            await QuizService.set_quiz_tags(db, quiz_id, metadata["tags"])
+            
+        from app.modules.quiz.models import Question
+        existing_q_res = await db.execute(select(Question).filter(Question.quiz_id == quiz_id))
+        existing_q_map = {q.id: q for q in existing_q_res.scalars().all()}
+        
+        for q_data in questions:
+            q_id = q_data.get("id")
+            
+            if q_id and q_id in existing_q_map:
+                db_q = existing_q_map[q_id]
+                db_q.content = q_data["content"]
+                db_q.explanation = q_data["explanation"]
+                db_q.ai_explanation = q_data.get("ai_explanation")
+                db_q.image = q_data.get("image")
+                db_q.audio = q_data.get("audio")
+                db_q.others = q_data.get("others")
+            else:
+                db_q = Question(
+                    quiz_id=quiz_id,
+                    content=q_data["content"],
+                    explanation=q_data["explanation"],
+                    ai_explanation=q_data.get("ai_explanation"),
+                    image=q_data.get("image"),
+                    audio=q_data.get("audio"),
+                    question_type=q_data.get("question_type", "flashcard"),
+                    others=q_data.get("others")
+                )
+                db.add(db_q)
+                
+        await db.commit()
+        return {"status": "ok", "message": "Deck updated successfully."}
+        
+    except Exception as e:
+        import traceback
+        print(f"CRITICAL: Excel update error: {traceback.format_exc()}")
+        return JSONResponse(status_code=500, content={"error": str(e)})
 
 @router.get("/{quiz_id}/questions")
 async def get_quiz_questions(quiz_id: int, page: int = 1, size: int = 50, search: str = "", db: AsyncSession = Depends(get_db)):

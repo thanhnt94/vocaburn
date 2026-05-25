@@ -24,6 +24,7 @@ class Quiz(Base):
     cover_image = Column(String(512), nullable=True) # URL to the cover image
     time_limit = Column(Integer, default=0) # in minutes, 0 means no limit
     is_active = Column(Boolean, default=True)
+    practice_settings = Column(JSON, nullable=True) # Default creator configurations for practice modes
     created_at = Column(DateTime, default=datetime.utcnow)
     
     category = relationship("Category", back_populates="quizzes")
@@ -196,4 +197,14 @@ class UserQuestionMastery(Base):
     last_review = Column(DateTime, nullable=True)
     
     question = relationship("Question")
+
+class UserDeckSettings(Base):
+    __tablename__ = "user_deck_settings"
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, index=True) # ID of the user (e.g. from cookie/auth)
+    deck_id = Column(Integer, ForeignKey("flashcard_decks.id"), index=True)
+    settings = Column(JSON, nullable=True) # Custom mappings/configurations chosen by the learner
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    deck = relationship("Quiz")
 

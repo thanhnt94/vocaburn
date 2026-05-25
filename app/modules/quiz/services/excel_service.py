@@ -2,6 +2,7 @@ import pandas as pd
 from typing import List, Dict, Any, Tuple
 from io import BytesIO
 import json
+import re
 
 # MindStack COLUMN_ALIASES
 COLUMN_ALIASES = {
@@ -115,6 +116,32 @@ class ExcelQuizService:
                     elif key == "time_limit": 
                         try: metadata["time_limit"] = int(float(value))
                         except: pass
+                    elif key in ("active_pairs", "practice_pairs", "cấu hình luyện tập", "cặp câu hỏi luyện tập", "luyện tập"):
+                        pairs = []
+                        parts = re.split(r'[,;]+', value)
+                        for part in parts:
+                            part = part.strip()
+                            if not part: continue
+                            subparts = re.split(r'->|-|:', part)
+                            if len(subparts) >= 2:
+                                q_col = subparts[0].strip().lower()
+                                a_col = subparts[1].strip().lower()
+                                if q_col and a_col:
+                                    pairs.append({"q": q_col, "a": a_col})
+                        if pairs:
+                            if "practice_settings" not in metadata:
+                                metadata["practice_settings"] = {}
+                            metadata["practice_settings"]["active_pairs"] = pairs
+                            
+                    elif key in ("num_choices", "practice_num_choices", "số lựa chọn"):
+                        try:
+                            num = int(float(value))
+                            if 3 <= num <= 8:
+                                if "practice_settings" not in metadata:
+                                    metadata["practice_settings"] = {}
+                                metadata["practice_settings"]["num_choices"] = num
+                        except:
+                            pass
         
         print(f"DEBUG: Metadata extracted: {metadata['title']}")
 
@@ -190,10 +217,20 @@ class ExcelQuizService:
             others_dict["front_audio_content"] = get_val("front_audio_content")
             others_dict["back_audio_content"] = get_val("back_audio_content")
 
+            # Get ID if present
+            id_val = get_val("item_id")
+            q_id = None
+            if id_val and id_val.lower() != "nan":
+                try:
+                    q_id = int(float(id_val))
+                except:
+                    pass
+
             options_list = []
             q_type = "flashcard"
 
             question_data = {
+                "id": q_id,
                 "content": front_text,
                 "explanation": back_text,
                 "ai_explanation": get_val("ai_explanation"),
@@ -206,4 +243,70 @@ class ExcelQuizService:
             questions.append(question_data)
                 
         return metadata, questions
+
+    @staticmethod
+    def export_quiz_to_excel(quiz_title: str, quiz_description: str, category_name: str, tags: List[str], practice_settings: Dict[str, Any], questions: List[Any]) -> bytes:
+        """
+        Generates an Excel workbook (bytes) containing Info and Data sheets
+        for exporting a quiz/deck.
+        """
+        output = BytesIO()
+        
+        # 1. Prepare Info sheet key-value data
+        info_data = [
+            {"key": "title", "value": quiz_title},
+            {"key": "description", "value": quiz_description or ""},
+            {"key": "category", "value": category_name or "General"},
+            {"key": "tags", "value": ", ".join(tags) if tags else ""}
+        ]
+        
+        if practice_settings:
+            active_pairs = practice_settings.get("active_pairs", [])
+            num_choices = practice_settings.get("num_choices", 4)
+            if active_pairs:
+                pairs_str = ", ".join([f"{p['q']}-{p['a']}" for p in active_pairs if "q" in p and "a" in p])
+                info_data.append({"key": "practice_pairs", "value": pairs_str})
+                info_data.append({"key": "practice_num_choices", "value": str(num_choices)})
+                
+        df_info = pd.DataFrame(info_data)
+        
+        # 2. Prepare Data sheet rows
+        # Discover all custom keys present in any question's others dict
+        custom_cols = set()
+        for q in questions:
+            if q.others and isinstance(q.others, dict):
+                for k in q.others.keys():
+                    if k not in ("id", "item_id", "order_in_container", "front", "back", "explanation", "ai_explanation", "front_img", "front_audio_url", "image", "audio"):
+                        custom_cols.add(k)
+                        
+        custom_cols = sorted(list(custom_cols))
+        
+        # Columns to output: id, front, back, explanation, ai_explanation, front_img, front_audio_url, then custom_cols
+        rows = []
+        for q in questions:
+            row = {
+                "id": q.id,
+                "front": q.content,
+                "back": q.explanation or "",
+                "explanation": q.explanation or "",
+                "ai_explanation": q.ai_explanation or "",
+                "front_img": q.image or "",
+                "front_audio_url": q.audio or ""
+            }
+            if q.others and isinstance(q.others, dict):
+                for col in custom_cols:
+                    row[col] = q.others.get(col, "")
+            else:
+                for col in custom_cols:
+                    row[col] = ""
+            rows.append(row)
+            
+        df_data = pd.DataFrame(rows)
+        
+        # Write to Excel
+        with pd.ExcelWriter(output, engine='openpyxl') as writer:
+            df_info.to_excel(writer, sheet_name="Info", index=False)
+            df_data.to_excel(writer, sheet_name="Data", index=False)
+            
+        return output.getvalue()
 
