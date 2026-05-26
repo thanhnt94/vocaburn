@@ -1,7 +1,7 @@
 {
-  "name": "QuizMind",
-  "short_name": "QuizMind",
-  "description": "Mastery Through Practice",
+  "name": "Vocaburn",
+  "short_name": "Vocaburn",
+  "description": "Learn New Word",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#ffffff",
