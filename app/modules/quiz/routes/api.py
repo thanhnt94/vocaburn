@@ -2034,9 +2034,14 @@ async def generate_question_audio(question_id: int, request: Request, face: str 
         return {"url": url}
         
     # Generate if not exists
-    success = await AudioGenerator.generate_tts(text, physical_path)
-    if not success:
-        return JSONResponse(status_code=500, content={"error": "Failed to generate audio"})
+    try:
+        success = await AudioGenerator.generate_tts(text, physical_path)
+        if not success:
+            return JSONResponse(status_code=500, content={"error": "Failed to generate audio"})
+    except Exception as e:
+        import traceback
+        logger.error(f"Failed to generate audio: {e}\n{traceback.format_exc()}")
+        return JSONResponse(status_code=500, content={"error": f"Failed to generate audio: {str(e)}"})
         
     # Save back to database
     if face == "front":

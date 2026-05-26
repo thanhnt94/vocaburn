@@ -101,12 +101,14 @@ class AudioGenerator:
                 success_edge = False
                 voice_edge = cls.EDGE_VOICES.get(lang)
                 
+                edge_err = None
                 if voice_edge:
                     try:
                         communicate = edge_tts.Communicate(seg_text, voice_edge)
                         await communicate.save(temp_path)
                         success_edge = True
                     except Exception as ee:
+                        edge_err = str(ee)
                         logger.error(f"Edge TTS failed for segment '{seg_text[:20]}', falling back to gTTS: {ee}")
                 
                 # Fallback to gTTS if Edge TTS failed or lang not supported
@@ -122,7 +124,7 @@ class AudioGenerator:
                         # Clean up and exit if both failed
                         if os.path.exists(temp_path):
                             os.remove(temp_path)
-                        return False
+                        raise ValueError(f"Both Edge TTS and gTTS failed. Edge: {edge_err or 'No voice mapped'}. gTTS: {ge}")
                         
                 temp_files.append(temp_path)
                 
@@ -171,7 +173,7 @@ class AudioGenerator:
             return success
         except Exception as e:
             logger.error(f"AudioGenerator error: {e}")
-            return False
+            raise e
 
     @classmethod
     def get_voice_hash(cls, text: str) -> str:
