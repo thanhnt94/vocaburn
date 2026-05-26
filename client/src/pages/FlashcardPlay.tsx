@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import confetti from 'canvas-confetti'
 import { useParams, useNavigate } from 'react-router-dom'
-import { ChevronLeft, ChevronRight, LayoutGrid, Timer, Flame, Trophy, Check, X, Sparkles, Lightbulb, StickyNote, Play, Target, CheckCircle2, XCircle, Clock, BookOpen, Hash, Copy, Edit3, Brain, FileText, HelpCircle, Sliders, ListOrdered, Shuffle, EyeOff, AlertCircle, TrendingUp, Award, Lock } from 'lucide-react'
+import { ChevronLeft, ChevronRight, LayoutGrid, Timer, Flame, Trophy, Check, X, Sparkles, Lightbulb, StickyNote, Play, Target, CheckCircle2, XCircle, Clock, BookOpen, Hash, Copy, Edit3, Brain, FileText, HelpCircle, Sliders, ListOrdered, Shuffle, EyeOff, AlertCircle, TrendingUp, Award, Lock, Keyboard, Volume2, RefreshCw } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import axios from 'axios'
 import ReactMarkdown from 'react-markdown'
@@ -242,7 +242,7 @@ const speakMultiLanguage = (text: string) => {
 }
 
 export default function FlashcardPlay() {
-  const { id } = useParams()
+  const { id, mode, subMode } = useParams()
   const navigate = useNavigate()
   const { user, setUser, setGamify } = useAppStore()
   
@@ -357,6 +357,7 @@ export default function FlashcardPlay() {
   // ── Multi-Modal Practice State Hooks ──
   const [mainTab, setMainTab] = useState<'fsrs' | 'practice'>(() => (localStorage.getItem('vocab_main_tab') as 'fsrs' | 'practice') || 'fsrs')
   const [practiceSubMode, setPracticeSubMode] = useState<'mcq' | 'typing' | 'listening'>(() => (localStorage.getItem('vocab_practice_submode') as 'mcq' | 'typing' | 'listening') || 'mcq')
+  const [practiceRange, setPracticeRange] = useState<'all' | 'learned'>(() => (localStorage.getItem('vocab_practice_range') as 'all' | 'learned') || 'all')
   const [practiceNeedsSetup, setPracticeNeedsSetup] = useState(false)
   const [practiceDisabled, setPracticeDisabled] = useState(false)
   const [availableColumns, setAvailableColumns] = useState<string[]>([])
@@ -365,6 +366,53 @@ export default function FlashcardPlay() {
   const [typingInput, setTypingInput] = useState('')
   const [typingFeedback, setTypingFeedback] = useState<{ checked: boolean; isCorrect: boolean } | null>(null)
   const [currentPracticeData, setCurrentPracticeData] = useState<any>(null)
+
+  // Per-mode settings state
+  const [modeSettings, setModeSettings] = useState<Record<'mcq' | 'typing' | 'listening', { active_pairs: {q: string, a: string}[], num_choices?: number }>>({
+    mcq: { active_pairs: [{ q: 'front', a: 'back' }], num_choices: 4 },
+    typing: { active_pairs: [{ q: 'front', a: 'back' }] },
+    listening: { active_pairs: [{ q: 'front', a: 'back' }], num_choices: 4 }
+  })
+
+  // Practice stats tracking
+  const [practiceTotalAnswered, setPracticeTotalAnswered] = useState(0)
+  const [practiceCorrectCount, setPracticeCorrectCount] = useState(0)
+
+  // Sync mode & subMode from URL params
+  useEffect(() => {
+    if (mode === 'practice') {
+      setMainTab('practice')
+      localStorage.setItem('vocab_main_tab', 'practice')
+      if (subMode === 'mcq' || subMode === 'typing' || subMode === 'listening') {
+        setPracticeSubMode(subMode)
+        localStorage.setItem('vocab_practice_submode', subMode)
+      }
+    } else if (mode === 'fsrs') {
+      setMainTab('fsrs')
+      localStorage.setItem('vocab_main_tab', 'fsrs')
+    }
+  }, [mode, subMode])
+
+  // Redirect to default mode/subMode if not provided in URL
+  useEffect(() => {
+    if (!mode) {
+      const savedTab = localStorage.getItem('vocab_main_tab') || 'fsrs'
+      if (savedTab === 'practice') {
+        const savedSubMode = localStorage.getItem('vocab_practice_submode') || 'mcq'
+        navigate(`/flashcard/${id}/play/practice/${savedSubMode}`, { replace: true })
+      } else {
+        navigate(`/flashcard/${id}/play/fsrs`, { replace: true })
+      }
+    }
+  }, [id, mode, navigate])
+
+  // Sync setup screen fields when practiceSubMode or modeSettings change
+  useEffect(() => {
+    if (modeSettings && modeSettings[practiceSubMode]) {
+      setSetupPairs(modeSettings[practiceSubMode].active_pairs || [{ q: 'front', a: 'back' }])
+      setSetupNumChoices(modeSettings[practiceSubMode].num_choices || 4)
+    }
+  }, [practiceSubMode, modeSettings])
 
   // ── Client-side Dynamic Practice Generator ──
   const stripBBCode = (text: string): string => {
@@ -570,6 +618,19 @@ export default function FlashcardPlay() {
 
     const getVal = (item: any, key: string): string => {
       if (!item) return "";
+      if (key === 'front' || key === 'content') {
+        const val = item.content || (item.others && item.others.front);
+        if (val) return String(val).trim();
+      }
+      if (key === 'back' || key === 'explanation') {
+        let val = "";
+        if (item.options && item.options.length > 0) {
+          const correctOpt = item.options.find((o: any) => o.is_correct);
+          if (correctOpt) val = correctOpt.content;
+        }
+        if (!val) val = item.explanation || (item.others && item.others.back);
+        if (val) return String(val).trim();
+      }
       const val = item[key] !== undefined && item[key] !== null
         ? item[key]
         : (item.others && typeof item.others === 'object' ? item.others[key] : "");
@@ -1003,6 +1064,12 @@ export default function FlashcardPlay() {
 
       const questions = quizRes.data.questions || []
       setSession({ ...quizRes.data, questions })
+      
+      const hasLearned = questions.some((q: any) => (q.stats?.total || 0) > 0);
+      if (activeTab === 'practice' && practiceRange === 'learned' && !hasLearned) {
+        setPracticeRange('all');
+        localStorage.setItem('vocab_practice_range', 'all');
+      }
       setPromptInput(quizRes.data.ai_prompt || '')
       setInitialTotalXP(quizRes.data.user_total_xp || 0)
       setPracticeNeedsSetup(!!quizRes.data.practice_needs_setup)
@@ -1023,7 +1090,21 @@ export default function FlashcardPlay() {
         const restoredPractice = sessionRes.data.state?.practiceAnswers || {}
         setPracticeAnswers(restoredPractice)
         
+        if (sessionRes.data.state?.practiceTotalAnswered !== undefined) {
+          setPracticeTotalAnswered(sessionRes.data.state.practiceTotalAnswered)
+        }
+        if (sessionRes.data.state?.practiceCorrectCount !== undefined) {
+          setPracticeCorrectCount(sessionRes.data.state.practiceCorrectCount)
+        }
+        
         let curIdx = sessionRes.data.current_index || 0
+        
+        if (activeTab === 'practice' && practiceRange === 'learned') {
+          const learnedIndices = questions.map((q: any, i: number) => (q.stats?.total || 0) > 0 ? i : -1).filter((i: number) => i !== -1);
+          if (learnedIndices.length > 0 && !learnedIndices.includes(curIdx)) {
+            curIdx = learnedIndices[0];
+          }
+        }
         
         // Adjust initial index based on smart learning mode if we are starting a fresh/unanswered question
         if (restoredAnswers[curIdx] === undefined) {
@@ -1151,13 +1232,19 @@ export default function FlashcardPlay() {
       const userSettings = res.data.user_settings
       const creatorSettings = res.data.creator_settings
       
-      if (userSettings && userSettings.active_pairs) {
-        setSetupPairs(userSettings.active_pairs)
-        setSetupNumChoices(userSettings.num_choices || 4)
-      } else if (creatorSettings && creatorSettings.active_pairs) {
-        setSetupPairs(creatorSettings.active_pairs)
-        setSetupNumChoices(creatorSettings.num_choices || 4)
+      const parsed = userSettings || creatorSettings
+      if (parsed) {
+        setModeSettings(parsed)
+        const currentModeSettings = parsed[practiceSubMode] || parsed.mcq || { active_pairs: [{ q: 'front', a: 'back' }], num_choices: 4 }
+        setSetupPairs(currentModeSettings.active_pairs || [{ q: 'front', a: 'back' }])
+        setSetupNumChoices(currentModeSettings.num_choices || 4)
       } else {
+        const fallback = {
+          mcq: { active_pairs: [{ q: 'front', a: 'back' }], num_choices: 4 },
+          typing: { active_pairs: [{ q: 'front', a: 'back' }] },
+          listening: { active_pairs: [{ q: 'front', a: 'back' }], num_choices: 4 }
+        }
+        setModeSettings(fallback)
         setSetupPairs([{ q: 'front', a: 'back' }])
         setSetupNumChoices(4)
       }
@@ -1168,13 +1255,19 @@ export default function FlashcardPlay() {
 
   const savePracticeSettings = async (customPairs = setupPairs, numChoices = setupNumChoices, isCreator = false) => {
     try {
-      await axios.post(`/api/v1/quiz/${id}/practice-settings`, {
-        settings: {
+      const updatedModeSettings = {
+        ...modeSettings,
+        [practiceSubMode]: {
           active_pairs: customPairs,
-          num_choices: numChoices
-        },
+          ...(practiceSubMode !== 'typing' ? { num_choices: numChoices } : {})
+        }
+      }
+      await axios.post(`/api/v1/quiz/${id}/practice-settings`, {
+        settings: updatedModeSettings,
         is_creator: isCreator
       })
+      setModeSettings(updatedModeSettings)
+      setPracticeNeedsSetup(false)
       await fetchSession()
     } catch (e) {
       alert("Lỗi khi lưu cấu hình luyện tập.")
@@ -1200,7 +1293,14 @@ export default function FlashcardPlay() {
     }
   }
 
-  const saveSession = async (newAnswers: Record<number, any>, newIndex: number, currentXP: number = sessionXP, currentStreak: number = streak) => {
+  const saveSession = async (
+    newAnswers: Record<number, any>,
+    newIndex: number,
+    currentXP: number = sessionXP,
+    currentStreak: number = streak,
+    newTotalAnswered: number = practiceTotalAnswered,
+    newCorrectCount: number = practiceCorrectCount
+  ) => {
     try {
       const isPractice = mainTab === 'practice';
       await axios.post(`/api/v1/quiz/${id}/session`, {
@@ -1209,6 +1309,8 @@ export default function FlashcardPlay() {
         state: { 
           sessionAnswers: isPractice ? sessionAnswers : newAnswers,
           practiceAnswers: isPractice ? newAnswers : practiceAnswers,
+          practiceTotalAnswered: newTotalAnswered,
+          practiceCorrectCount: newCorrectCount,
           sessionXP: currentXP,
           streak: currentStreak
         }
@@ -1566,6 +1668,14 @@ export default function FlashcardPlay() {
     
     const isCorrect = choiceIdx === currentPracticeData.correct_index;
     
+    const updatedTotalAnswered = practiceTotalAnswered + 1;
+    const updatedCorrectCount = isCorrect ? practiceCorrectCount + 1 : practiceCorrectCount;
+
+    setPracticeTotalAnswered(updatedTotalAnswered);
+    if (isCorrect) {
+      setPracticeCorrectCount(updatedCorrectCount);
+    }
+
     const newAnswers = { ...practiceAnswers, [currentIndex]: choiceIdx };
     setPracticeAnswers(newAnswers);
     
@@ -1575,7 +1685,7 @@ export default function FlashcardPlay() {
     if (isCorrect) {
       updatedStreak = streak + 1;
       setStreak(updatedStreak);
-      const xpGained = 10;
+      const xpGained = 5;
       updatedXP = sessionXP + xpGained;
       setSessionXP(updatedXP);
       setInitialTotalXP(prev => prev + xpGained);
@@ -1584,17 +1694,25 @@ export default function FlashcardPlay() {
       setTimeout(() => setXpFloat({ visible: false, amount: 0 }), 1500);
       
       confetti({ particleCount: 80, spread: 50, origin: { y: 0.6 } });
-      setBadgeMessage("Chính xác! 🎯 +10 XP");
+      setBadgeMessage("Chính xác! 🎯 +5 XP");
     } else {
       updatedStreak = 0;
       setStreak(0);
-      setBadgeMessage("Chưa chính xác! 😅");
+      const xpGained = 1;
+      updatedXP = sessionXP + xpGained;
+      setSessionXP(updatedXP);
+      setInitialTotalXP(prev => prev + xpGained);
+      
+      setXpFloat({ visible: true, amount: xpGained });
+      setTimeout(() => setXpFloat({ visible: false, amount: 0 }), 1500);
+      
+      setBadgeMessage("Chưa chính xác! 😅 +1 XP");
     }
     
     setBadgeVisible(true);
     setTimeout(() => setBadgeVisible(false), 2000);
     
-    saveSession(newAnswers, currentIndex, updatedXP, updatedStreak);
+    saveSession(newAnswers, currentIndex, updatedXP, updatedStreak, updatedTotalAnswered, updatedCorrectCount);
     
     try {
       await axios.post('/api/v1/quiz/record_answer', {
@@ -1619,6 +1737,14 @@ export default function FlashcardPlay() {
     
     const isCorrect = cleanInput === cleanCorrect;
     
+    const updatedTotalAnswered = practiceTotalAnswered + 1;
+    const updatedCorrectCount = isCorrect ? practiceCorrectCount + 1 : practiceCorrectCount;
+
+    setPracticeTotalAnswered(updatedTotalAnswered);
+    if (isCorrect) {
+      setPracticeCorrectCount(updatedCorrectCount);
+    }
+
     setShowFeedback(true);
     setJustAnswered(true);
     setTypingFeedback({ checked: true, isCorrect });
@@ -1632,7 +1758,7 @@ export default function FlashcardPlay() {
     if (isCorrect) {
       updatedStreak = streak + 1;
       setStreak(updatedStreak);
-      const xpGained = 15;
+      const xpGained = 5;
       updatedXP = sessionXP + xpGained;
       setSessionXP(updatedXP);
       setInitialTotalXP(prev => prev + xpGained);
@@ -1641,17 +1767,25 @@ export default function FlashcardPlay() {
       setTimeout(() => setXpFloat({ visible: false, amount: 0 }), 1500);
       
       confetti({ particleCount: 100, spread: 60, origin: { y: 0.6 } });
-      setBadgeMessage("Xuất sắc! ⌨️ +15 XP");
+      setBadgeMessage("Xuất sắc! ⌨️ +5 XP");
     } else {
       updatedStreak = 0;
       setStreak(0);
-      setBadgeMessage("Nhầm một chút rồi! 💪");
+      const xpGained = 1;
+      updatedXP = sessionXP + xpGained;
+      setSessionXP(updatedXP);
+      setInitialTotalXP(prev => prev + xpGained);
+      
+      setXpFloat({ visible: true, amount: xpGained });
+      setTimeout(() => setXpFloat({ visible: false, amount: 0 }), 1500);
+      
+      setBadgeMessage("Nhầm một chút rồi! 💪 +1 XP");
     }
     
     setBadgeVisible(true);
     setTimeout(() => setBadgeVisible(false), 2000);
     
-    saveSession(newAnswers, currentIndex, updatedXP, updatedStreak);
+    saveSession(newAnswers, currentIndex, updatedXP, updatedStreak, updatedTotalAnswered, updatedCorrectCount);
     
     try {
       await axios.post('/api/v1/quiz/record_answer', {
@@ -1667,7 +1801,7 @@ export default function FlashcardPlay() {
     }
   };
 
-  const navigateToQuestion = (idx: number) => {
+  const navigateToQuestion = (idx: number, customPracticeAnswers = practiceAnswers) => {
     setCurrentIndex(idx)
     setIsFlipped(false)
     setActivelyRatedCurrentCard(false)
@@ -1685,9 +1819,8 @@ export default function FlashcardPlay() {
     setLearningModeAlert(null)
     
     const isPractice = mainTab === 'practice';
-
     if (isPractice) {
-      const prevAns = practiceAnswers[idx]
+      const prevAns = customPracticeAnswers[idx]
       if (prevAns !== undefined) {
         setSelectedOption(prevAns)
         setShowFeedback(true)
@@ -1725,7 +1858,7 @@ export default function FlashcardPlay() {
     
     setIsEditingNote(false)
     setIsEditingAI(false)
-    saveSession(isPractice ? practiceAnswers : sessionAnswers, idx)
+    saveSession(isPractice ? customPracticeAnswers : sessionAnswers, idx)
   }
 
   const handleNext = () => {
@@ -1734,23 +1867,29 @@ export default function FlashcardPlay() {
     const questions = session.questions
     const total = questions.length
 
-    if (mainTab === 'practice') {
-      let nextIdx = -1;
-      const currentMode = activeMode === 'random' ? 'random' : 'sequential';
-      if (currentMode === 'random') {
-        // Pick any random card from the entire deck
-        nextIdx = Math.floor(Math.random() * total);
-      } else {
-        // Wrap around to 0 when reaching the end of the deck sequentially
-        nextIdx = (currentIndex + 1) % total;
-      }
+    const getNextPracticeIndex = (currentIdx: number, range: 'all' | 'learned', totalQuestions: any[]): number => {
+      const allIndices = totalQuestions.map((_, i) => i);
+      const learnedIndices = totalQuestions.map((q, i) => (q.stats?.total || 0) > 0 ? i : -1).filter(i => i !== -1);
       
-      // Clear the answer for the next card so the user can practice it again
+      const activeIndices = (range === 'learned' && learnedIndices.length > 0) ? learnedIndices : allIndices;
+      
+      if (activeIndices.length <= 1) return activeIndices[0] || 0;
+      
+      const otherIndices = activeIndices.filter(i => i !== currentIdx);
+      const pool = otherIndices.length > 0 ? otherIndices : activeIndices;
+      return pool[Math.floor(Math.random() * pool.length)];
+    };
+
+    if (mainTab === 'practice') {
+      const nextIdx = getNextPracticeIndex(currentIndex, practiceRange, questions);
+      
+      // Clear the answer for both the current and next card so they are always clickable and reusable
       const newAnswers = { ...practiceAnswers };
+      delete newAnswers[currentIndex];
       delete newAnswers[nextIdx];
       setPracticeAnswers(newAnswers);
       
-      navigateToQuestion(nextIdx);
+      navigateToQuestion(nextIdx, newAnswers);
       return;
     }
 
@@ -2697,7 +2836,9 @@ export default function FlashcardPlay() {
             <div className="w-14 h-14 bg-indigo-50 rounded-2xl flex items-center justify-center text-indigo-600 mx-auto mb-3 border border-indigo-100">
               <Sliders className="w-7 h-7" />
             </div>
-            <h2 className="text-xl font-black text-slate-800">Cấu hình Luyện tập</h2>
+            <h2 className="text-xl font-black text-slate-800">
+              Cấu hình Luyện tập: {practiceSubMode === 'mcq' ? 'Trắc nghiệm' : practiceSubMode === 'typing' ? 'Gõ từ vựng' : 'Nghe'}
+            </h2>
             <p className="text-xs text-slate-400 mt-1">Chọn các cặp cột dữ liệu bạn muốn ghép cặp làm câu hỏi và câu trả lời.</p>
           </div>
 
@@ -2763,7 +2904,7 @@ export default function FlashcardPlay() {
             </button>
           </div>
 
-          {practiceSubMode === 'mcq' && (
+          {(practiceSubMode === 'mcq' || practiceSubMode === 'listening') && (
             <div className="mb-6 bg-slate-50 p-4 rounded-2xl border border-slate-100">
               <label className="text-[10px] font-black text-slate-400 tracking-wider uppercase block mb-2">Số lượng Lựa chọn MCQ</label>
               <div className="grid grid-cols-4 gap-2">
@@ -2822,6 +2963,27 @@ export default function FlashcardPlay() {
     const { question, choices, correct_index, correct_answer, question_key, answer_key } = practiceData;
     const answered = practiceAnswers[currentIndex] !== undefined;
 
+    if (!question || !correct_answer) {
+      return (
+        <div className="flex-1 bg-white md:rounded-[3rem] rounded-[2rem] border border-slate-100 p-8 flex flex-col items-center justify-center text-center gap-4 shadow-2xl shadow-indigo-100/40">
+          <div className="w-16 h-16 bg-amber-50 rounded-2xl border border-amber-100 flex items-center justify-center text-amber-500 mb-2">
+            <Sliders className="w-8 h-8 animate-pulse" />
+          </div>
+          <h3 className="text-lg font-black text-slate-800">Chưa thiết lập Cặp cột Hỏi-Đáp</h3>
+          <p className="text-xs text-slate-400 max-w-sm leading-relaxed">
+            Hệ thống chưa tìm thấy dữ liệu Hỏi-Đáp phù hợp. Vui lòng thiết lập Cặp cột câu hỏi để bắt đầu luyện tập nhé!
+          </p>
+          <button
+            onClick={() => setPracticeNeedsSetup(true)}
+            className="mt-2 px-6 py-3 rounded-2xl bg-gradient-to-r from-indigo-500 to-purple-600 text-white font-black text-xs uppercase hover:shadow-lg active:scale-95 transition-all flex items-center gap-1.5"
+          >
+            <Sliders className="w-3.5 h-3.5" />
+            <span>Thiết lập Cấu hình ⚙️</span>
+          </button>
+        </div>
+      );
+    }
+
     return (
       <div className="flex-1 bg-white md:rounded-[3rem] rounded-[2rem] border border-slate-100 md:p-8 p-6 flex flex-col justify-between shadow-2xl shadow-indigo-100/40 min-h-0 overflow-y-auto">
         <div className="flex items-center justify-between mb-4">
@@ -2833,7 +2995,7 @@ export default function FlashcardPlay() {
             </span>
           </div>
           <span className="text-[10px] font-black tracking-wider text-slate-500 bg-slate-50 px-2.5 py-1.5 rounded-lg border border-slate-100 shadow-sm">
-            {currentIndex + 1} / {session.questions?.length || 0}
+            Câu luyện tập: #{practiceTotalAnswered + 1}
           </span>
         </div>
 
@@ -3084,6 +3246,83 @@ export default function FlashcardPlay() {
         </div>
       </div>
     )
+  }
+
+  const renderPracticeStats = () => {
+    const accuracy = practiceTotalAnswered > 0 
+      ? Math.round((practiceCorrectCount / practiceTotalAnswered) * 100) 
+      : 0;
+
+    return (
+      <div className="bg-slate-50/80 rounded-[1.5rem] p-5 border border-slate-100/50">
+        <div className="flex items-center justify-between mb-4">
+          <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">THỐNG KÊ LUYỆN TẬP</span>
+          <div className="flex items-center gap-1.5 px-2 py-0.5 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-full text-white">
+            <Target className="w-2.5 h-2.5" />
+            <span className="text-[9px] font-black">CHÍNH XÁC: {accuracy}%</span>
+          </div>
+        </div>
+
+        {/* Stats Grid */}
+        <div className="space-y-3">
+          {/* Questions answered */}
+          <div className="flex items-center justify-between p-3.5 bg-white rounded-2xl shadow-sm border border-slate-100/50">
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 rounded-xl bg-indigo-50 flex items-center justify-center text-indigo-600">
+                <HelpCircle className="w-4 h-4" />
+              </div>
+              <div className="flex flex-col">
+                <span className="text-[10px] font-bold text-slate-700">ĐÃ TRẢ LỜI</span>
+                <span className="text-[8px] font-medium text-slate-400">Số câu hỏi đã luyện tập</span>
+              </div>
+            </div>
+            <span className="text-xl font-black text-slate-700">{practiceTotalAnswered}</span>
+          </div>
+
+          {/* Correct count */}
+          <div className="flex items-center justify-between p-3.5 bg-white rounded-2xl shadow-sm border border-slate-100/50">
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 rounded-xl bg-emerald-50 flex items-center justify-center text-emerald-600">
+                <Check className="w-4 h-4" />
+              </div>
+              <div className="flex flex-col">
+                <span className="text-[10px] font-bold text-slate-700">ĐÚNG</span>
+                <span className="text-[8px] font-medium text-slate-400">Trả lời chính xác</span>
+              </div>
+            </div>
+            <span className="text-xl font-black text-emerald-600">{practiceCorrectCount}</span>
+          </div>
+
+          {/* Current streak */}
+          <div className="flex items-center justify-between p-3.5 bg-white rounded-2xl shadow-sm border border-slate-100/50">
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 rounded-xl bg-amber-50 flex items-center justify-center text-amber-600">
+                <Flame className="w-4 h-4" />
+              </div>
+              <div className="flex flex-col">
+                <span className="text-[10px] font-bold text-slate-700">STREAK HIỆN TẠI</span>
+                <span className="text-[8px] font-medium text-slate-400">Chuỗi trả lời đúng liên tiếp</span>
+              </div>
+            </div>
+            <span className="text-xl font-black text-amber-600">{streak}</span>
+          </div>
+
+          {/* XP Gained */}
+          <div className="flex items-center justify-between p-3.5 bg-white rounded-2xl shadow-sm border border-slate-100/50">
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 rounded-xl bg-purple-50 flex items-center justify-center text-purple-600">
+                <Trophy className="w-4 h-4" />
+              </div>
+              <div className="flex flex-col">
+                <span className="text-[10px] font-bold text-slate-700">XP TÍCH LŨY</span>
+                <span className="text-[8px] font-medium text-slate-400">XP nhận được trong phiên</span>
+              </div>
+            </div>
+            <span className="text-xl font-black text-purple-600">+{sessionXP} XP</span>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   const renderQuestionMapGrid = () => {
@@ -3455,17 +3694,16 @@ export default function FlashcardPlay() {
       </header>
 
       {/* Dynamic Mode Switcher Bar */}
-      <div className="flex-shrink-0 bg-white/80 backdrop-blur-md border-b border-slate-100/50 px-4 py-2 flex flex-col sm:flex-row items-center justify-center sm:justify-between gap-3 z-50 max-w-4xl mx-auto w-full rounded-b-2xl shadow-sm">
+      <div className="flex-shrink-0 bg-white/80 backdrop-blur-md border-b border-slate-100/50 px-4 lg:px-8 py-1.5 md:py-2 flex flex-col md:flex-row items-center justify-between gap-2 md:gap-3 z-50 w-full shadow-sm">
         {/* Left Side: Main Mode Tabs */}
         <div className="flex bg-slate-100/60 p-0.5 rounded-xl border border-slate-200/30 shadow-inner">
           <button
             onClick={() => {
-              setMainTab('fsrs');
-              localStorage.setItem('vocab_main_tab', 'fsrs');
               setSessionAnswers({});
               setPracticeAnswers({});
               setSelectedOption(null);
               setShowFeedback(false);
+              navigate(`/flashcard/${id}/play/fsrs`, { replace: true });
               fetchSession('fsrs');
             }}
             className={cn(
@@ -3476,16 +3714,15 @@ export default function FlashcardPlay() {
             )}
           >
             <Brain className="w-3.5 h-3.5" />
-            <span>FSRS ÔN TẬP</span>
+            <span>FLASHCARD</span>
           </button>
           
           <button
             onClick={() => {
-              setMainTab('practice');
-              localStorage.setItem('vocab_main_tab', 'practice');
               setPracticeAnswers({});
               setSelectedOption(null);
               setShowFeedback(false);
+              navigate(`/flashcard/${id}/play/practice/${practiceSubMode}`, { replace: true });
               fetchSession('practice', practiceSubMode);
             }}
             className={cn(
@@ -3496,75 +3733,137 @@ export default function FlashcardPlay() {
             )}
           >
             <Trophy className="w-3.5 h-3.5" />
-            <span>KHU LUYỆN TẬP</span>
+            <span>PRACTICE</span>
           </button>
         </div>
 
         {/* Right Side: Sub-mode Selector for Practice Tab */}
         {mainTab === 'practice' && !practiceNeedsSetup && !practiceDisabled && (
-          <div className="flex items-center gap-2">
-            <div className="flex bg-slate-100/60 p-0.5 rounded-xl border border-slate-200/30">
+          <div 
+            className="flex items-center gap-2.5 overflow-x-auto w-full md:w-auto scrollbar-none [&::-webkit-scrollbar]:hidden py-0.5 justify-center flex-nowrap"
+            style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+          >
+            {/* Mode Range Selector (Tất cả vs Đã học) */}
+            <div className="flex bg-slate-100/60 p-0.5 rounded-xl border border-slate-200/30 shadow-inner flex-shrink-0">
               <button
                 onClick={() => {
-                  setPracticeSubMode('mcq');
-                  localStorage.setItem('vocab_practice_submode', 'mcq');
-                  setPracticeAnswers({});
-                  setSelectedOption(null);
-                  setShowFeedback(false);
-                  fetchSession('practice', 'mcq');
+                  setPracticeRange('all');
+                  localStorage.setItem('vocab_practice_range', 'all');
                 }}
                 className={cn(
-                  "px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-wider transition-all duration-200",
-                  practiceSubMode === 'mcq'
-                    ? "bg-white text-indigo-600 shadow-sm"
+                  "px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-wider transition-all duration-200 flex items-center gap-1.5",
+                  practiceRange === 'all'
+                    ? "bg-white text-indigo-600 shadow-sm border border-slate-200/10"
                     : "text-slate-500 hover:text-slate-700"
                 )}
+                title="Random (All)"
               >
-                Trắc nghiệm
+                <Shuffle className="w-3.5 h-3.5" />
+                <span className="hidden md:inline">Random (All)</span>
               </button>
               
               <button
                 onClick={() => {
-                  setPracticeSubMode('typing');
-                  localStorage.setItem('vocab_practice_submode', 'typing');
+                  const learnedIndices = session?.questions?.map((q: any, i: number) => (q.stats?.total || 0) > 0 ? i : -1).filter((i: number) => i !== -1) || [];
+                  if (learnedIndices.length === 0) {
+                    setLearningModeAlert({
+                      visible: true,
+                      message: "You haven't learned any cards in this deck yet! Automatically switching to 'Random (All)' mode.",
+                      type: 'warning'
+                    });
+                    setTimeout(() => {
+                      setLearningModeAlert(prev => prev ? { ...prev, visible: false } : null);
+                    }, 4500);
+                    return;
+                  }
+                  setPracticeRange('learned');
+                  localStorage.setItem('vocab_practice_range', 'learned');
+                  
+                  // If current card is not in learned pool, jump to first learned card
+                  if (!learnedIndices.includes(currentIndex)) {
+                    navigateToQuestion(learnedIndices[0]);
+                  }
+                }}
+                className={cn(
+                  "px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-wider transition-all duration-200 flex items-center gap-1.5",
+                  practiceRange === 'learned'
+                    ? "bg-gradient-to-r from-indigo-500 to-purple-600 text-white shadow-sm"
+                    : "text-slate-500 hover:text-slate-700"
+                )}
+                title="Practice (Learned)"
+              >
+                <ListOrdered className="w-3.5 h-3.5" />
+                <span className="hidden md:inline">Practice (Learned)</span>
+              </button>
+            </div>
+
+            <div className="w-px h-6 bg-slate-200 flex-shrink-0" />
+
+            <div className="flex bg-slate-100/60 p-0.5 rounded-xl border border-slate-200/30 flex-shrink-0">
+              <button
+                onClick={() => {
                   setPracticeAnswers({});
                   setSelectedOption(null);
                   setShowFeedback(false);
+                  navigate(`/flashcard/${id}/play/practice/mcq`, { replace: true });
+                  fetchSession('practice', 'mcq');
+                }}
+                className={cn(
+                  "px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-wider transition-all duration-200 flex items-center gap-1.5",
+                  practiceSubMode === 'mcq'
+                    ? "bg-white text-indigo-600 shadow-sm border border-slate-200/10"
+                    : "text-slate-500 hover:text-slate-700"
+                )}
+                title="MCQ"
+              >
+                <HelpCircle className="w-3.5 h-3.5" />
+                <span className="hidden md:inline">MCQ</span>
+              </button>
+              
+              <button
+                onClick={() => {
+                  setPracticeAnswers({});
+                  setSelectedOption(null);
+                  setShowFeedback(false);
+                  navigate(`/flashcard/${id}/play/practice/typing`, { replace: true });
                   fetchSession('practice', 'typing');
                 }}
                 className={cn(
-                  "px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-wider transition-all duration-200",
+                  "px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-wider transition-all duration-200 flex items-center gap-1.5",
                   practiceSubMode === 'typing'
-                    ? "bg-white text-indigo-600 shadow-sm"
+                    ? "bg-white text-indigo-600 shadow-sm border border-slate-200/10"
                     : "text-slate-500 hover:text-slate-700"
                 )}
+                title="Typing"
               >
-                Gõ từ vựng
+                <Keyboard className="w-3.5 h-3.5" />
+                <span className="hidden md:inline">Typing</span>
               </button>
 
               <button
                 onClick={() => {
-                  setPracticeSubMode('listening');
-                  localStorage.setItem('vocab_practice_submode', 'listening');
                   setPracticeAnswers({});
                   setSelectedOption(null);
                   setShowFeedback(false);
+                  navigate(`/flashcard/${id}/play/practice/listening`, { replace: true });
                   fetchSession('practice', 'listening');
                 }}
                 className={cn(
-                  "px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-wider transition-all duration-200",
+                  "px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-wider transition-all duration-200 flex items-center gap-1.5",
                   practiceSubMode === 'listening'
-                    ? "bg-white text-indigo-600 shadow-sm"
+                    ? "bg-white text-indigo-600 shadow-sm border border-slate-200/10"
                     : "text-slate-500 hover:text-slate-700"
                 )}
+                title="Listening"
               >
-                Nghe
+                <Volume2 className="w-3.5 h-3.5" />
+                <span className="hidden md:inline">Listening</span>
               </button>
             </div>
             
             <button 
               onClick={() => setPracticeNeedsSetup(true)}
-              className="w-7 h-7 flex items-center justify-center rounded-lg bg-slate-50 border border-slate-200 text-slate-500 hover:bg-indigo-50 hover:text-indigo-600 hover:border-indigo-200 active:scale-95 transition-all shadow-sm"
+              className="w-7 h-7 flex-shrink-0 flex items-center justify-center rounded-lg bg-slate-50 border border-slate-200 text-slate-500 hover:bg-indigo-50 hover:text-indigo-600 hover:border-indigo-200 active:scale-95 transition-all shadow-sm"
               title="Cấu hình cặp cột Hỏi-Đáp"
             >
               <Sliders className="w-3.5 h-3.5" />
@@ -4150,10 +4449,18 @@ export default function FlashcardPlay() {
         {/* Sidebar */}
         <aside className="hidden lg:flex w-[340px] 2xl:w-[420px] flex-shrink-0 flex-col overflow-hidden">
           <div className="flex-1 bg-white border border-slate-100 rounded-[2.5rem] p-6 shadow-sm flex flex-col overflow-hidden">
-            <h4 className="text-[8px] font-black text-slate-300 uppercase tracking-[0.3em] mb-4 flex-shrink-0">CARD MAP</h4>
+            <h4 className="text-[8px] font-black text-slate-300 uppercase tracking-[0.3em] mb-4 flex-shrink-0">
+              {mainTab === 'practice' ? 'PRACTICE STATS' : 'CARD MAP'}
+            </h4>
             <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar pb-4">
-               {renderSessionStats()}
-               {renderQuestionMapGrid()}
+              {mainTab === 'practice' ? (
+                renderPracticeStats()
+              ) : (
+                <>
+                  {renderSessionStats()}
+                  {renderQuestionMapGrid()}
+                </>
+              )}
             </div>
           </div>
         </aside>
@@ -4162,9 +4469,13 @@ export default function FlashcardPlay() {
       {(mainTab !== 'practice' || (mainTab === 'practice' && !practiceNeedsSetup)) && (
       <footer className="flex-shrink-0 bg-white/95 backdrop-blur-2xl border-t border-slate-100/80 px-4 py-3 z-[120] shadow-[0_-4px_24px_rgba(99,102,241,0.06)]">
         <div className="max-w-2xl mx-auto w-full flex items-center gap-3 h-13">
-          {/* LayoutGrid Map button (visible for both FSRS and practice modes on mobile) */}
-          <button onClick={() => setIsMapOpen(true)} className="lg:hidden w-12 h-12 flex-shrink-0 flex items-center justify-center bg-slate-50 border border-slate-200 rounded-2xl text-slate-500 hover:bg-indigo-50 hover:text-indigo-600 hover:border-indigo-200 shadow-sm active:scale-95 transition-all">
-            <LayoutGrid className="w-5 h-5" />
+          {/* Mobile Stats / Map Button */}
+          <button 
+            onClick={() => setIsMapOpen(true)} 
+            className="lg:hidden w-12 h-12 flex-shrink-0 flex items-center justify-center bg-slate-50 border border-slate-200 rounded-2xl text-slate-500 hover:bg-indigo-50 hover:text-indigo-600 hover:border-indigo-200 shadow-sm active:scale-95 transition-all"
+            title={mainTab === 'practice' ? "Xem thống kê luyện tập" : "Xem sơ đồ câu hỏi"}
+          >
+            {mainTab === 'practice' ? <TrendingUp className="w-5 h-5 text-indigo-600 animate-pulse" /> : <LayoutGrid className="w-5 h-5" />}
           </button>
 
           {/* Smart Learning Mode Selector (only for FSRS mode) */}
@@ -4249,7 +4560,7 @@ export default function FlashcardPlay() {
                 onClick={handleNext}
                 className="flex-1 h-12 bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-600 text-white font-black text-xs rounded-2xl shadow-lg shadow-emerald-300/50 flex items-center justify-center gap-2.5 uppercase tracking-widest active:scale-[0.98] transition-all hover:shadow-emerald-400/60 hover:shadow-xl"
               >
-                Tiếp tục (Enter) <ChevronRight className="w-4 h-4" />
+                Continue <ChevronRight className="w-4 h-4" />
               </button>
             ) : (
               <div className="flex-1 flex gap-2 h-12">
@@ -4257,10 +4568,10 @@ export default function FlashcardPlay() {
                   onClick={handleNext}
                   className="flex-1 h-12 bg-slate-50 border border-slate-200 text-slate-500 hover:bg-slate-100 font-black text-xs rounded-2xl flex items-center justify-center gap-1.5 uppercase tracking-widest active:scale-[0.98] transition-all"
                 >
-                  Bỏ qua <ChevronRight className="w-4 h-4" />
+                  Skip <ChevronRight className="w-4 h-4" />
                 </button>
                 <div className="flex-[2] h-12 bg-slate-100 text-slate-400 font-black text-xs rounded-2xl flex items-center justify-center uppercase tracking-widest pointer-events-none select-none">
-                  Chờ đáp án...
+                  Waiting...
                 </div>
               </div>
             )
@@ -4287,13 +4598,14 @@ export default function FlashcardPlay() {
               <div className="flex-1 flex gap-3 h-12">
                 <button 
                   onClick={() => setIsFlipped(prev => !prev)}
-                  className="flex-1 h-12 bg-gradient-to-r from-indigo-50 to-indigo-100/80 hover:from-indigo-100 hover:to-indigo-200 text-indigo-600 border border-indigo-200/50 font-black text-xs rounded-2xl flex items-center justify-center gap-2 uppercase tracking-widest active:scale-[0.98] transition-all"
+                  className="w-12 h-12 flex-shrink-0 bg-gradient-to-r from-indigo-50 to-indigo-100/80 hover:from-indigo-100 hover:to-indigo-200 text-indigo-600 border border-indigo-200/50 rounded-2xl flex items-center justify-center gap-2 active:scale-[0.98] transition-all"
+                  title={isFlipped ? "Flip to Front" : "Flip to Back"}
                 >
-                  {isFlipped ? "FLIP FRONT" : "FLIP BACK"}
+                  <RefreshCw className="w-5 h-5 text-indigo-600 animate-[spin_4s_linear_infinite]" />
                 </button>
                 <button 
                   onClick={handleNext}
-                  className="flex-[2] h-12 bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-600 text-white font-black text-xs rounded-2xl shadow-lg shadow-emerald-300/50 flex items-center justify-center gap-2.5 uppercase tracking-widest active:scale-[0.98] transition-all hover:shadow-emerald-400/60 hover:shadow-xl"
+                  className="flex-1 h-12 bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-600 text-white font-black text-xs rounded-2xl shadow-lg shadow-emerald-300/50 flex items-center justify-center gap-2.5 uppercase tracking-widest active:scale-[0.98] transition-all hover:shadow-emerald-400/60 hover:shadow-xl"
                 >
                   NEXT CARD <ChevronRight className="w-4 h-4" />
                 </button>
@@ -4305,7 +4617,7 @@ export default function FlashcardPlay() {
       )}
 
       {/* 💡 CHỒI LÊN BÊN DƯỚI - QUICK SWIPE-UP/CLICK HANDLE */}
-      {justAnswered && !isFeedbackOpen && (
+      {justAnswered && !isFeedbackOpen && (mainTab === 'practice' || hasRated) && (
         <div 
           onClick={() => setIsFeedbackOpen(true)}
           className="fixed bottom-[76px] left-1/2 -translate-x-1/2 z-40 w-[92%] max-w-lg bg-gradient-to-r from-indigo-600/95 to-purple-600/95 text-white py-2.5 px-5 rounded-2xl shadow-[0_-8px_20px_rgba(99,102,241,0.25)] flex items-center justify-between cursor-pointer border border-indigo-400/20 backdrop-blur-md active:scale-98 transition-all hover:from-indigo-600 hover:to-purple-600 group select-none animate-[bounce_2s_infinite] xl:hidden"
@@ -4315,7 +4627,7 @@ export default function FlashcardPlay() {
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
               <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
             </span>
-            <span className="text-xs font-black tracking-wide uppercase">💡 Xem hướng dẫn & Giải thích chi tiết</span>
+            <span className="text-xs font-black tracking-wide uppercase">💡 VIEW INSIGHTS & DETAILED EXPLANATION</span>
           </div>
           <ChevronRight className="w-4 h-4 animate-[translate-x_1s_infinite] group-hover:translate-x-0.5 transition-transform opacity-85" />
         </div>
@@ -4406,7 +4718,7 @@ export default function FlashcardPlay() {
         })()}
       </AnimatePresence>
 
-      {/* Mobile Question Map Modal */}
+      {/* Mobile Question Map Modal / Practice Stats Drawer */}
       <AnimatePresence>
         {isMapOpen && (
           <motion.div 
@@ -4416,14 +4728,20 @@ export default function FlashcardPlay() {
             className="fixed inset-0 z-[200] bg-[#F8FAFC] lg:hidden flex flex-col h-screen"
           >
             <div className="flex items-center justify-between p-4 border-b border-slate-200 bg-white shadow-sm flex-shrink-0">
-              <h4 className="text-[12px] font-black text-indigo-600 uppercase tracking-[0.3em]">CARD MAP</h4>
+              <h4 className="text-[12px] font-black text-indigo-600 uppercase tracking-[0.3em]">
+                {mainTab === 'practice' ? 'PRACTICE STATS' : 'CARD MAP'}
+              </h4>
               <button onClick={() => setIsMapOpen(false)} className="w-8 h-8 flex items-center justify-center bg-slate-50 border border-slate-200 rounded-lg text-slate-500 active:scale-95 transition-all">
                 <X className="w-5 h-5" />
               </button>
             </div>
             <div className="flex-1 overflow-y-auto p-4 custom-scrollbar">
-               {renderSessionStats()}
-               {renderQuestionMapGrid()}
+               {mainTab === 'practice' ? renderPracticeStats() : (
+                 <>
+                   {renderSessionStats()}
+                   {renderQuestionMapGrid()}
+                 </>
+               )}
             </div>
           </motion.div>
         )}

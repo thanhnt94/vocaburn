@@ -634,6 +634,19 @@ async def get_quiz_data(request: Request, quiz_id: int, db: AsyncSession = Depen
         "tags": [t.name for t in quiz.tags]
     }
 
+def migrate_practice_settings(settings: Optional[dict]) -> dict:
+    if not settings:
+        return {}
+    if any(k in settings for k in ("mcq", "typing", "listening")):
+        return settings
+    active_pairs = settings.get("active_pairs", [])
+    num_choices = settings.get("num_choices", 4)
+    return {
+        "mcq": {"active_pairs": active_pairs, "num_choices": num_choices},
+        "typing": {"active_pairs": active_pairs},
+        "listening": {"active_pairs": active_pairs, "num_choices": num_choices}
+    }
+
 @router.get("/{quiz_id}/practice-settings")
 async def get_practice_settings(request: Request, quiz_id: int, db: AsyncSession = Depends(get_db)):
     user_id = int(request.cookies.get("user_id", 1))
@@ -665,8 +678,8 @@ async def get_practice_settings(request: Request, quiz_id: int, db: AsyncSession
                     available_cols.add(k)
                     
     return {
-        "creator_settings": quiz.practice_settings,
-        "user_settings": user_sett.settings if user_sett else None,
+        "creator_settings": migrate_practice_settings(quiz.practice_settings),
+        "user_settings": migrate_practice_settings(user_sett.settings) if user_sett else None,
         "available_columns": sorted(list(available_cols))
     }
 
@@ -746,14 +759,20 @@ async def get_quiz_play_data(request: Request, quiz_id: int, mode: Optional[str]
         )
         user_sett = user_sett_res.scalar_one_or_none()
         
-        settings = None
+        raw_settings = None
         if user_sett and user_sett.settings:
-            settings = user_sett.settings
+            raw_settings = user_sett.settings
         elif quiz.practice_settings:
-            settings = quiz.practice_settings
+            raw_settings = quiz.practice_settings
             
-        if not settings or not settings.get("active_pairs"):
-            creator_has_settings = quiz.practice_settings and quiz.practice_settings.get("active_pairs")
+        settings = migrate_practice_settings(raw_settings)
+        mode_settings = settings.get(mode, {})
+        
+        if not mode_settings or not mode_settings.get("active_pairs"):
+            creator_settings = migrate_practice_settings(quiz.practice_settings)
+            creator_mode_settings = creator_settings.get(mode, {})
+            
+            creator_has_settings = creator_mode_settings and creator_mode_settings.get("active_pairs")
             if not creator_has_settings:
                 is_owner = quiz.creator_id == user_id
                 if not (is_owner or is_collaborator or user_id == 1):
@@ -761,11 +780,11 @@ async def get_quiz_play_data(request: Request, quiz_id: int, mode: Optional[str]
                 else:
                     practice_needs_setup = True
             else:
-                active_pairs = quiz.practice_settings.get("active_pairs", [])
-                num_choices = quiz.practice_settings.get("num_choices", 4)
+                active_pairs = creator_mode_settings.get("active_pairs", [])
+                num_choices = creator_mode_settings.get("num_choices", 4)
         else:
-            active_pairs = settings.get("active_pairs", [])
-            num_choices = settings.get("num_choices", 4)
+            active_pairs = mode_settings.get("active_pairs", [])
+            num_choices = mode_settings.get("num_choices", 4)
             
     # Distractors and practice questions are now generated client-side to make deck loading instant.
     from fsrs import Card, Scheduler, Rating, State
@@ -799,23 +818,24 @@ async def get_quiz_play_data(request: Request, quiz_id: int, mode: Optional[str]
         fsrs_card.due = m_due.replace(tzinfo=timezone.utc) if m_due else now_utc
         fsrs_card.last_review = m_last_review.replace(tzinfo=timezone.utc) if m_last_review else None
         
-        # Compute predicted intervals
+        # Compute predicted intervals (only when not in practice mode to make it instant)
         intervals = {}
-        for r_val, r_enum in [(1, Rating.Again), (2, Rating.Hard), (3, Rating.Good), (4, Rating.Easy)]:
-            try:
-                card_copy, _ = scheduler.review_card(fsrs_card, r_enum, now_utc)
-                delta = card_copy.due - now_utc
-                if delta.total_seconds() < 60:
-                    int_str = "<1m"
-                elif delta.total_seconds() < 3600:
-                    int_str = f"{int(delta.total_seconds() / 60)}m"
-                elif delta.total_seconds() < 86400:
-                    int_str = f"{int(delta.total_seconds() / 3600)}h"
-                else:
-                    int_str = f"{int(delta.total_seconds() / 86400)}d"
-                intervals[r_val] = int_str
-            except Exception:
-                intervals[r_val] = "soon"
+        if mode not in ("mcq", "typing", "listening"):
+            for r_val, r_enum in [(1, Rating.Again), (2, Rating.Hard), (3, Rating.Good), (4, Rating.Easy)]:
+                try:
+                    card_copy, _ = scheduler.review_card(fsrs_card, r_enum, now_utc)
+                    delta = card_copy.due - now_utc
+                    if delta.total_seconds() < 60:
+                        int_str = "<1m"
+                    elif delta.total_seconds() < 3600:
+                        int_str = f"{int(delta.total_seconds() / 60)}m"
+                    elif delta.total_seconds() < 86400:
+                        int_str = f"{int(delta.total_seconds() / 3600)}h"
+                    else:
+                        int_str = f"{int(delta.total_seconds() / 86400)}d"
+                    intervals[r_val] = int_str
+                except Exception:
+                    intervals[r_val] = "soon"
                 
         q_payload = {
             "id": q.id,
