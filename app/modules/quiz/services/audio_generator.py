@@ -156,6 +156,16 @@ class AudioGenerator:
                 try:
                     from pydub import AudioSegment
                     
+                    # Programmatically search and set standard ffmpeg/ffprobe paths if PATH is restricted on VPS
+                    for fpath in ["/usr/bin/ffmpeg", "/usr/local/bin/ffmpeg", "/usr/bin/ffmpeg.exe"]:
+                        if os.path.exists(fpath):
+                            AudioSegment.converter = fpath
+                            break
+                    for fpath in ["/usr/bin/ffprobe", "/usr/local/bin/ffprobe", "/usr/bin/ffprobe.exe"]:
+                        if os.path.exists(fpath):
+                            AudioSegment.ffprobe = fpath
+                            break
+                    
                     def concat_task():
                         combined = AudioSegment.empty()
                         pause = AudioSegment.silent(duration=300) # 300ms pause
