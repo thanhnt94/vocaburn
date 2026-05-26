@@ -42,6 +42,7 @@ const EditQuestions = () => {
   const [isUpdatingExcel, setIsUpdatingExcel] = useState(false)
   const [excelUpdateError, setExcelUpdateError] = useState<string | null>(null)
   const [excelUpdateSuccess, setExcelUpdateSuccess] = useState(false)
+  const [showExportMenu, setShowExportMenu] = useState(false)
 
   const handleExcelUpdateUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -163,13 +164,39 @@ const EditQuestions = () => {
                 </div>
              </div>
              
-             <a 
-                href={`/api/v1/quiz/${id}/export`}
-                className="w-8 h-8 bg-indigo-600 text-white rounded-lg flex items-center justify-center shadow-lg hover:bg-indigo-700 active:scale-90 transition-all"
-                title="Xuất Excel"
-             >
-                <Download className="w-3.5 h-3.5" />
-             </a>
+             <div className="relative">
+               <button 
+                  onClick={() => setShowExportMenu(!showExportMenu)}
+                  className="w-8 h-8 bg-indigo-600 text-white rounded-lg flex items-center justify-center shadow-lg hover:bg-indigo-700 active:scale-90 transition-all"
+                  title="Xuất Excel"
+               >
+                  <Download className="w-3.5 h-3.5" />
+               </button>
+               {showExportMenu && (
+                 <>
+                   <div 
+                     className="fixed inset-0 z-[140]" 
+                     onClick={() => setShowExportMenu(false)}
+                   />
+                   <div className="absolute right-0 mt-2 w-56 bg-white border border-slate-100 rounded-xl shadow-xl py-1.5 z-[150] animate-in fade-in slide-in-from-top-2 duration-150">
+                     <a 
+                       href={`/api/v1/quiz/${id}/export`} 
+                       onClick={() => setShowExportMenu(false)}
+                       className="block px-4 py-2.5 text-[9px] font-black text-slate-700 hover:bg-indigo-50 hover:text-indigo-600 transition-colors uppercase tracking-wider text-right"
+                     >
+                       Xuất có ID (để sửa rồi update)
+                     </a>
+                     <a 
+                       href={`/api/v1/quiz/${id}/export?exclude_ids=true`} 
+                       onClick={() => setShowExportMenu(false)}
+                       className="block px-4 py-2.5 text-[9px] font-black text-slate-700 hover:bg-indigo-50 hover:text-indigo-600 transition-colors border-t border-slate-50 uppercase tracking-wider text-right"
+                     >
+                       Xuất không ID (để import mới)
+                     </a>
+                   </div>
+                 </>
+               )}
+             </div>
              
              <button 
                 onClick={() => document.getElementById('excel-update-upload')?.click()}

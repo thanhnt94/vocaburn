@@ -674,7 +674,7 @@ async def get_practice_settings(request: Request, quiz_id: int, db: AsyncSession
             # Exclude technical/internal columns like front_audio_url if we want,
             # but letting them show is also fine. Let's filter out obviously technical ones:
             for k in others_json.keys():
-                if k not in ("id", "item_id", "order_in_container") and not k.endswith("_audio_url") and not k.endswith("_audio_content") and not k.endswith("_img") and k != "image" and k != "audio" and k != "other_content":
+                if k not in ("id", "item_id", "order_in_container") and not k.endswith("_audio_url") and not k.endswith("_img") and k != "image" and k != "audio" and k != "other_content":
                     available_cols.add(k)
                     
     return {
@@ -1087,8 +1087,13 @@ async def get_quiz_notes(request: Request, quiz_id: int, db: AsyncSession = Depe
     return {n.question_id: n.content for n in notes}
 
 @router.get("/{quiz_id}/export")
-async def export_quiz(quiz_id: int, request: Request, db: AsyncSession = Depends(get_db)):
-    quiz = await QuizService.get_quiz_by_id(db, quiz_id)
+async def export_quiz(quiz_id: int, request: Request, exclude_ids: bool = False, db: AsyncSession = Depends(get_db)):
+    from sqlalchemy.orm import joinedload
+    from app.modules.quiz.models import Quiz
+    
+    stmt = select(Quiz).options(joinedload(Quiz.category), joinedload(Quiz.tags)).where(Quiz.id == quiz_id)
+    res = await db.execute(stmt)
+    quiz = res.scalars().first()
     if not quiz:
         return JSONResponse(status_code=404, content={"error": "Deck not found"})
         
@@ -1106,7 +1111,8 @@ async def export_quiz(quiz_id: int, request: Request, db: AsyncSession = Depends
         category_name=category_name,
         tags=tags,
         practice_settings=quiz.practice_settings,
-        questions=questions
+        questions=questions,
+        exclude_ids=exclude_ids
     )
     
     from fastapi.responses import Response

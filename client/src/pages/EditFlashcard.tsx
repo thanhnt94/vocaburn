@@ -35,7 +35,7 @@ const EditFlashcard = () => {
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
-  const [activeTab, setActiveTab] = useState<'basic' | 'ai' | 'collaboration'>('basic')
+  const [activeTab, setActiveTab] = useState<'basic' | 'ai' | 'collaboration' | 'practice'>('basic')
   
   const [formData, setFormData] = useState({
     title: '',
@@ -51,6 +51,14 @@ const EditFlashcard = () => {
   const [questions, setQuestions] = useState<any[]>([])
   const [showHelpModal, setShowHelpModal] = useState(false)
 
+  // Practice Defaults State
+  const [availableColumns, setAvailableColumns] = useState<string[]>([])
+  const [practiceSettings, setPracticeSettings] = useState<any>({
+    mcq: { active_pairs: [{ q: 'front', a: 'back' }], num_choices: 4 },
+    typing: { active_pairs: [{ q: 'front', a: 'back' }] },
+    listening: { active_pairs: [{ q: 'front', a: 'back' }], num_choices: 4 }
+  })
+  
   // Collaboration State
   const [collaborators, setCollaborators] = useState<any[]>([])
   const [userSearch, setUserSearch] = useState('')
@@ -76,6 +84,13 @@ const EditFlashcard = () => {
         // Fetch collaborators
         const collabRes = await axios.get(`/api/v1/quiz/${id}/collaborators`)
         setCollaborators(collabRes.data)
+
+        // Fetch practice settings
+        const settingsRes = await axios.get(`/api/v1/quiz/${id}/practice-settings`)
+        setAvailableColumns(settingsRes.data.available_columns || ['front', 'back'])
+        if (settingsRes.data.creator_settings && Object.keys(settingsRes.data.creator_settings).length > 0) {
+          setPracticeSettings(settingsRes.data.creator_settings)
+        }
       } catch (err) {
         setError('Failed to load quiz data')
       } finally {
@@ -117,6 +132,13 @@ const EditFlashcard = () => {
         cover_image: formData.cover_image,
         tags: formData.tags.split(',').map(t => t.trim()).filter(Boolean)
       })
+      
+      // Save default practice settings for this deck
+      await axios.post(`/api/v1/quiz/${id}/practice-settings`, {
+        settings: practiceSettings,
+        is_creator: true
+      })
+      
       setSuccess(true)
       setTimeout(() => setSuccess(false), 3000)
     } catch (err: any) {
@@ -202,17 +224,17 @@ const EditFlashcard = () => {
 
       <div className="max-w-5xl mx-auto px-4 mt-6 md:mt-10">
         {/* Mobile Tab Switcher */}
-        <div className="flex items-center bg-white border border-slate-100 p-1.5 rounded-2xl mb-8 md:hidden shadow-sm">
-           {['basic', 'ai', 'collaboration'].map(tab => (
+        <div className="flex items-center bg-white border border-slate-100 p-1.5 rounded-2xl mb-8 md:hidden shadow-sm overflow-x-auto">
+           {['basic', 'practice', 'ai', 'collaboration'].map(tab => (
              <button 
                key={tab}
                onClick={() => setActiveTab(tab as any)}
                className={cn(
-                 "flex-1 py-3 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all",
+                 "flex-1 py-3 px-2 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all whitespace-nowrap",
                  activeTab === tab ? "bg-slate-900 text-white shadow-md" : "text-slate-400"
                )}
              >
-               {tab === 'basic' ? 'Identity' : tab === 'ai' ? 'AI Engine' : 'Rights'}
+               {tab === 'basic' ? 'Identity' : tab === 'practice' ? 'Practice' : tab === 'ai' ? 'AI Engine' : 'Rights'}
              </button>
            ))}
         </div>
@@ -221,6 +243,7 @@ const EditFlashcard = () => {
            {/* Navigation Aside (Desktop) */}
            <aside className="hidden md:flex flex-col gap-3">
               <NavButton active={activeTab === 'basic'} onClick={() => setActiveTab('basic')} icon={SettingsIcon} title="Basic Info" sub="Title, Cover, Tags" />
+              <NavButton active={activeTab === 'practice'} onClick={() => setActiveTab('practice')} icon={Zap} title="Practice Defaults" sub="MCQ, Typing, Listening" />
               <NavButton active={activeTab === 'ai'} onClick={() => setActiveTab('ai')} icon={Brain} title="AI Intelligence" sub="System Prompts & Rules" />
               <NavButton active={activeTab === 'collaboration'} onClick={() => setActiveTab('collaboration')} icon={Users} title="Collaboration" sub="Editors & Ownership" />
 
@@ -287,6 +310,311 @@ const EditFlashcard = () => {
                        </div>
                     </motion.div>
                  )}
+
+                 {activeTab === 'practice' && (
+                    <motion.div key="practice" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="space-y-6">
+                       <div className="bg-white rounded-[2rem] p-6 md:p-8 border border-slate-100 shadow-sm space-y-6">
+                         <div className="flex items-center gap-4 mb-2">
+                            <div className="w-10 h-10 bg-indigo-50 rounded-xl flex items-center justify-center text-indigo-600">
+                               <Zap className="w-5 h-5" />
+                            </div>
+                            <div>
+                               <h2 className="text-lg font-black text-slate-800 uppercase italic">Default Practice Settings</h2>
+                               <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-0.5">Configure default layouts for students</p>
+                            </div>
+                         </div>
+
+                         {/* MCQ Settings */}
+                         <div className="p-6 bg-slate-50 border border-slate-100/80 rounded-2xl space-y-5">
+                            <h3 className="text-xs font-black text-slate-800 uppercase tracking-wider flex items-center gap-2">
+                               <span className="w-2 h-2 rounded-full bg-indigo-500" />
+                               MCQ Mode (Trắc nghiệm)
+                            </h3>
+                            
+                            <div className="space-y-3">
+                               <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Question - Answer Pairs (Các cặp câu hỏi - đáp án)</label>
+                               {(practiceSettings.mcq?.active_pairs || []).map((pair: any, index: number) => (
+                                  <div key={index} className="flex items-center gap-3 bg-white p-3 rounded-xl border border-slate-100 shadow-sm animate-fade-in">
+                                     <div className="flex-grow grid grid-cols-2 gap-3">
+                                        <div className="flex items-center gap-2">
+                                           <span className="text-[9px] font-bold text-slate-400">Q:</span>
+                                           <select
+                                              value={pair.q || 'front'}
+                                              onChange={(e) => {
+                                                 const newPairs = [...(practiceSettings.mcq?.active_pairs || [])];
+                                                 newPairs[index] = { ...newPairs[index], q: e.target.value };
+                                                 setPracticeSettings({
+                                                    ...practiceSettings,
+                                                    mcq: { ...practiceSettings.mcq, active_pairs: newPairs }
+                                                 });
+                                              }}
+                                              className="w-full bg-slate-50 border border-slate-200 rounded-lg px-2 h-9 text-xs font-bold text-slate-700 outline-none"
+                                           >
+                                              {availableColumns.map(col => (
+                                                 <option key={col} value={col}>{col.toUpperCase()}</option>
+                                              ))}
+                                           </select>
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                           <span className="text-[9px] font-bold text-slate-400">A:</span>
+                                           <select
+                                              value={pair.a || 'back'}
+                                              onChange={(e) => {
+                                                 const newPairs = [...(practiceSettings.mcq?.active_pairs || [])];
+                                                 newPairs[index] = { ...newPairs[index], a: e.target.value };
+                                                 setPracticeSettings({
+                                                    ...practiceSettings,
+                                                    mcq: { ...practiceSettings.mcq, active_pairs: newPairs }
+                                                 });
+                                              }}
+                                              className="w-full bg-slate-50 border border-slate-200 rounded-lg px-2 h-9 text-xs font-bold text-slate-700 outline-none"
+                                           >
+                                              {availableColumns.map(col => (
+                                                 <option key={col} value={col}>{col.toUpperCase()}</option>
+                                              ))}
+                                           </select>
+                                        </div>
+                                     </div>
+                                     <button
+                                        type="button"
+                                        onClick={() => {
+                                           const newPairs = (practiceSettings.mcq?.active_pairs || []).filter((_: any, idx: number) => idx !== index);
+                                           setPracticeSettings({
+                                              ...practiceSettings,
+                                              mcq: { ...practiceSettings.mcq, active_pairs: newPairs }
+                                           });
+                                        }}
+                                        className="w-8 h-8 rounded-lg bg-slate-50 hover:bg-rose-50 text-slate-400 hover:text-rose-500 border border-slate-100 flex items-center justify-center transition-all"
+                                     >
+                                        <Trash2 className="w-3.5 h-3.5" />
+                                     </button>
+                                  </div>
+                               ))}
+                               <button
+                                  type="button"
+                                  onClick={() => {
+                                     const newPairs = [...(practiceSettings.mcq?.active_pairs || []), { q: 'front', a: 'back' }];
+                                     setPracticeSettings({
+                                        ...practiceSettings,
+                                        mcq: { ...practiceSettings.mcq, active_pairs: newPairs }
+                                     });
+                                  }}
+                                  className="py-2 px-3 border border-dashed border-indigo-200 hover:border-indigo-400 rounded-xl text-indigo-600 text-[10px] font-black uppercase tracking-wider flex items-center gap-1.5 transition-all w-fit bg-indigo-50/20 active:scale-95"
+                               >
+                                  <Plus className="w-3.5 h-3.5" /> Add QA Pair
+                               </button>
+                            </div>
+
+                            <div className="space-y-1.5 pt-2">
+                               <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Number of Choices (Số lượng đáp án)</label>
+                               <select
+                                  value={practiceSettings.mcq?.num_choices || 4}
+                                  onChange={(e) => {
+                                     setPracticeSettings({
+                                        ...practiceSettings,
+                                        mcq: {
+                                           ...practiceSettings.mcq,
+                                           num_choices: parseInt(e.target.value)
+                                        }
+                                     })
+                                  }}
+                                  className="w-full bg-white border border-slate-200 rounded-xl px-4 h-12 text-xs font-bold text-slate-700 focus:outline-none focus:border-indigo-500 transition-all cursor-pointer"
+                               >
+                                  {[2, 3, 4, 5, 6].map(num => (
+                                     <option key={num} value={num}>{num} Choices</option>
+                                  ))}
+                               </select>
+                            </div>
+                         </div>
+
+                         {/* Typing Settings */}
+                         <div className="p-6 bg-slate-50 border border-slate-100/80 rounded-2xl space-y-5">
+                            <h3 className="text-xs font-black text-slate-800 uppercase tracking-wider flex items-center gap-2">
+                               <span className="w-2 h-2 rounded-full bg-pink-500" />
+                               Typing Mode (Gõ câu trả lời)
+                            </h3>
+                            
+                            <div className="space-y-3">
+                               <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Question - Answer Pairs (Các cặp câu hỏi - đáp án)</label>
+                               {(practiceSettings.typing?.active_pairs || []).map((pair: any, index: number) => (
+                                  <div key={index} className="flex items-center gap-3 bg-white p-3 rounded-xl border border-slate-100 shadow-sm animate-fade-in">
+                                     <div className="flex-grow grid grid-cols-2 gap-3">
+                                        <div className="flex items-center gap-2">
+                                           <span className="text-[9px] font-bold text-slate-400">Q:</span>
+                                           <select
+                                              value={pair.q || 'front'}
+                                              onChange={(e) => {
+                                                 const newPairs = [...(practiceSettings.typing?.active_pairs || [])];
+                                                 newPairs[index] = { ...newPairs[index], q: e.target.value };
+                                                 setPracticeSettings({
+                                                    ...practiceSettings,
+                                                    typing: { ...practiceSettings.typing, active_pairs: newPairs }
+                                                 });
+                                              }}
+                                              className="w-full bg-slate-50 border border-slate-200 rounded-lg px-2 h-9 text-xs font-bold text-slate-700 outline-none"
+                                           >
+                                              {availableColumns.map(col => (
+                                                 <option key={col} value={col}>{col.toUpperCase()}</option>
+                                              ))}
+                                           </select>
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                           <span className="text-[9px] font-bold text-slate-400">A:</span>
+                                           <select
+                                              value={pair.a || 'back'}
+                                              onChange={(e) => {
+                                                 const newPairs = [...(practiceSettings.typing?.active_pairs || [])];
+                                                 newPairs[index] = { ...newPairs[index], a: e.target.value };
+                                                 setPracticeSettings({
+                                                    ...practiceSettings,
+                                                    typing: { ...practiceSettings.typing, active_pairs: newPairs }
+                                                 });
+                                              }}
+                                              className="w-full bg-slate-50 border border-slate-200 rounded-lg px-2 h-9 text-xs font-bold text-slate-700 outline-none"
+                                           >
+                                              {availableColumns.map(col => (
+                                                 <option key={col} value={col}>{col.toUpperCase()}</option>
+                                              ))}
+                                           </select>
+                                        </div>
+                                     </div>
+                                     <button
+                                        type="button"
+                                        onClick={() => {
+                                           const newPairs = (practiceSettings.typing?.active_pairs || []).filter((_: any, idx: number) => idx !== index);
+                                           setPracticeSettings({
+                                              ...practiceSettings,
+                                              typing: { ...practiceSettings.typing, active_pairs: newPairs }
+                                           });
+                                        }}
+                                        className="w-8 h-8 rounded-lg bg-slate-50 hover:bg-rose-50 text-slate-400 hover:text-rose-500 border border-slate-100 flex items-center justify-center transition-all"
+                                     >
+                                        <Trash2 className="w-3.5 h-3.5" />
+                                     </button>
+                                  </div>
+                               ))}
+                               <button
+                                  type="button"
+                                  onClick={() => {
+                                     const newPairs = [...(practiceSettings.typing?.active_pairs || []), { q: 'front', a: 'back' }];
+                                     setPracticeSettings({
+                                        ...practiceSettings,
+                                        typing: { ...practiceSettings.typing, active_pairs: newPairs }
+                                     });
+                                  }}
+                                  className="py-2 px-3 border border-dashed border-indigo-200 hover:border-indigo-400 rounded-xl text-indigo-600 text-[10px] font-black uppercase tracking-wider flex items-center gap-1.5 transition-all w-fit bg-indigo-50/20 active:scale-95"
+                               >
+                                  <Plus className="w-3.5 h-3.5" /> Add QA Pair
+                               </button>
+                            </div>
+                         </div>
+
+                         {/* Listening Settings */}
+                         <div className="p-6 bg-slate-50 border border-slate-100/80 rounded-2xl space-y-5">
+                            <h3 className="text-xs font-black text-slate-800 uppercase tracking-wider flex items-center gap-2">
+                               <span className="w-2 h-2 rounded-full bg-emerald-500" />
+                               Listening Mode (Luyện nghe)
+                            </h3>
+                            
+                            <div className="space-y-3">
+                               <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Question - Answer Pairs (Các cặp câu hỏi - đáp án)</label>
+                               {(practiceSettings.listening?.active_pairs || []).map((pair: any, index: number) => (
+                                  <div key={index} className="flex items-center gap-3 bg-white p-3 rounded-xl border border-slate-100 shadow-sm animate-fade-in">
+                                     <div className="flex-grow grid grid-cols-2 gap-3">
+                                        <div className="flex items-center gap-2">
+                                           <span className="text-[9px] font-bold text-slate-400">Q:</span>
+                                           <select
+                                              value={pair.q || 'front'}
+                                              onChange={(e) => {
+                                                 const newPairs = [...(practiceSettings.listening?.active_pairs || [])];
+                                                 newPairs[index] = { ...newPairs[index], q: e.target.value };
+                                                 setPracticeSettings({
+                                                    ...practiceSettings,
+                                                    listening: { ...practiceSettings.listening, active_pairs: newPairs }
+                                                 });
+                                              }}
+                                              className="w-full bg-slate-50 border border-slate-200 rounded-lg px-2 h-9 text-xs font-bold text-slate-700 outline-none"
+                                           >
+                                              {availableColumns.map(col => (
+                                                 <option key={col} value={col}>{col.toUpperCase()}</option>
+                                              ))}
+                                           </select>
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                           <span className="text-[9px] font-bold text-slate-400">A:</span>
+                                           <select
+                                              value={pair.a || 'back'}
+                                              onChange={(e) => {
+                                                 const newPairs = [...(practiceSettings.listening?.active_pairs || [])];
+                                                 newPairs[index] = { ...newPairs[index], a: e.target.value };
+                                                 setPracticeSettings({
+                                                    ...practiceSettings,
+                                                    listening: { ...practiceSettings.listening, active_pairs: newPairs }
+                                                 });
+                                              }}
+                                              className="w-full bg-slate-50 border border-slate-200 rounded-lg px-2 h-9 text-xs font-bold text-slate-700 outline-none"
+                                           >
+                                              {availableColumns.map(col => (
+                                                 <option key={col} value={col}>{col.toUpperCase()}</option>
+                                              ))}
+                                           </select>
+                                        </div>
+                                     </div>
+                                     <button
+                                        type="button"
+                                        onClick={() => {
+                                           const newPairs = (practiceSettings.listening?.active_pairs || []).filter((_: any, idx: number) => idx !== index);
+                                           setPracticeSettings({
+                                              ...practiceSettings,
+                                              listening: { ...practiceSettings.listening, active_pairs: newPairs }
+                                           });
+                                        }}
+                                        className="w-8 h-8 rounded-lg bg-slate-50 hover:bg-rose-50 text-slate-400 hover:text-rose-500 border border-slate-100 flex items-center justify-center transition-all"
+                                     >
+                                        <Trash2 className="w-3.5 h-3.5" />
+                                     </button>
+                                  </div>
+                               ))}
+                               <button
+                                  type="button"
+                                  onClick={() => {
+                                     const newPairs = [...(practiceSettings.listening?.active_pairs || []), { q: 'front', a: 'back' }];
+                                     setPracticeSettings({
+                                        ...practiceSettings,
+                                        listening: { ...practiceSettings.listening, active_pairs: newPairs }
+                                     });
+                                  }}
+                                  className="py-2 px-3 border border-dashed border-indigo-200 hover:border-indigo-400 rounded-xl text-indigo-600 text-[10px] font-black uppercase tracking-wider flex items-center gap-1.5 transition-all w-fit bg-indigo-50/20 active:scale-95"
+                               >
+                                  <Plus className="w-3.5 h-3.5" /> Add QA Pair
+                               </button>
+                            </div>
+
+                            <div className="space-y-1.5 pt-2">
+                               <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Number of Choices (Số lượng đáp án)</label>
+                               <select
+                                  value={practiceSettings.listening?.num_choices || 4}
+                                  onChange={(e) => {
+                                     setPracticeSettings({
+                                        ...practiceSettings,
+                                        listening: {
+                                           ...practiceSettings.listening,
+                                           num_choices: parseInt(e.target.value)
+                                        }
+                                     })
+                                  }}
+                                  className="w-full bg-white border border-slate-200 rounded-xl px-4 h-12 text-xs font-bold text-slate-700 focus:outline-none focus:border-indigo-500 transition-all cursor-pointer"
+                               >
+                                  {[2, 3, 4, 5, 6].map(num => (
+                                     <option key={num} value={num}>{num} Choices</option>
+                                  ))}
+                               </select>
+                            </div>
+                         </div>
+                       </div>
+                    </motion.div>
+                 )}
+
 
                  {activeTab === 'ai' && (
                     <motion.div key="ai" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="space-y-6">

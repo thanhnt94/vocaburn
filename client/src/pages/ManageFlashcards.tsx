@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { Plus, Edit3, Trash2, Search, Filter, LayoutGrid, ChevronRight, Archive, CheckCircle2, AlertCircle, BookOpen, MoreVertical, Image as ImageIcon, X, Settings as SettingsIcon, Layers } from 'lucide-react'
+import { Plus, Edit3, Trash2, Search, Filter, LayoutGrid, ChevronRight, Archive, CheckCircle2, AlertCircle, BookOpen, MoreVertical, Image as ImageIcon, X, Settings as SettingsIcon, Layers, Download } from 'lucide-react'
 import axios from 'axios'
 import { cn } from '@/lib/utils'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -12,6 +12,7 @@ export default function ManageFlashcards() {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [newQuiz, setNewQuiz] = useState({ title: '', description: '', cover_image: '' })
+  const [activeExportDeckId, setActiveExportDeckId] = useState<number | null>(null)
 
   const { data: quizzes, isLoading } = useQuery<any[]>({
     queryKey: ['manage-quizzes'],
@@ -162,9 +163,60 @@ export default function ManageFlashcards() {
                               <span className="text-[10px] font-black text-indigo-600 uppercase">{quiz.questions_count} Cards</span>
                            </div>
                         </div>
-                        <div className="absolute top-4 right-4 flex gap-1">
+                        <div className="absolute top-4 right-4 flex gap-1.5 z-10">
+                           <div className="relative">
+                              <button 
+                                 onClick={(e) => {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    setActiveExportDeckId(activeExportDeckId === quiz.id ? null : quiz.id);
+                                 }}
+                                 className="w-9 h-9 bg-white/90 backdrop-blur-md rounded-xl flex items-center justify-center text-slate-500 hover:text-indigo-600 shadow-sm border border-white/20 transition-all active:scale-90"
+                                 title="Xuất Excel"
+                              >
+                                 <Download className="w-4 h-4" />
+                              </button>
+                              {activeExportDeckId === quiz.id && (
+                                 <>
+                                    <div 
+                                       className="fixed inset-0 z-[140]" 
+                                       onClick={(e) => {
+                                          e.preventDefault();
+                                          e.stopPropagation();
+                                          setActiveExportDeckId(null);
+                                       }}
+                                    />
+                                    <div className="absolute right-0 mt-2 w-56 bg-white border border-slate-100 rounded-xl shadow-xl py-1.5 z-[150] animate-in fade-in slide-in-from-top-2 duration-150 text-left">
+                                       <a 
+                                          href={`/api/v1/quiz/${quiz.id}/export`} 
+                                          onClick={(e) => {
+                                             e.stopPropagation();
+                                             setActiveExportDeckId(null);
+                                          }}
+                                          className="block px-4 py-2.5 text-[9px] font-black text-slate-700 hover:bg-indigo-50 hover:text-indigo-600 transition-colors uppercase tracking-wider text-right"
+                                       >
+                                          Xuất có ID (để sửa rồi update)
+                                       </a>
+                                       <a 
+                                          href={`/api/v1/quiz/${quiz.id}/export?exclude_ids=true`} 
+                                          onClick={(e) => {
+                                             e.stopPropagation();
+                                             setActiveExportDeckId(null);
+                                          }}
+                                          className="block px-4 py-2.5 text-[9px] font-black text-slate-700 hover:bg-indigo-50 hover:text-indigo-600 transition-colors border-t border-slate-50 uppercase tracking-wider text-right"
+                                       >
+                                          Xuất không ID (để import mới)
+                                       </a>
+                                    </div>
+                                 </>
+                              )}
+                           </div>
                            <button 
-                              onClick={() => handleDelete(quiz.id)}
+                              onClick={(e) => {
+                                 e.preventDefault();
+                                 e.stopPropagation();
+                                 handleDelete(quiz.id);
+                              }}
                               className="w-9 h-9 bg-white/90 backdrop-blur-md rounded-xl flex items-center justify-center text-slate-400 hover:text-rose-500 shadow-sm border border-white/20 transition-all active:scale-90"
                            >
                               <Trash2 className="w-4 h-4" />

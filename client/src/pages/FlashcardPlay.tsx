@@ -186,7 +186,16 @@ const speakMultiLanguage = (text: string) => {
     // Fallback to line-by-line format
     const lines = text.split('\n');
     const lineRegex = /^\s*([a-z]{2,3}(?:-[a-zA-Z0-9]+)?)\s*:\s*(.+)$/;
+    const containsJapanese = (str: string) => /[\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FAF]/.test(str);
+    const containsVietnamese = (str: string) => /[àáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđ]/i.test(str);
+    
     let lastLang = 'en-US';
+    if (containsJapanese(text)) {
+      lastLang = 'ja-JP';
+    } else if (containsVietnamese(text)) {
+      lastLang = 'vi-VN';
+    }
+
 
     for (const line of lines) {
       if (!line.trim()) continue;
@@ -697,8 +706,13 @@ export default function FlashcardPlay() {
 
       // Assemble choices
       const choices_data = ([correct_item_data] as any[]).concat(selectedDistractors);
-      // Shuffle choices_data
-      choices_data.sort(() => Math.random() - 0.5);
+      // Shuffle choices_data using Fisher-Yates algorithm
+      for (let i = choices_data.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        const temp = choices_data[i];
+        choices_data[i] = choices_data[j];
+        choices_data[j] = temp;
+      }
 
       const choices = choices_data.map(c => c.text);
       const choice_item_ids = choices_data.map(c => c.id);
@@ -1026,6 +1040,8 @@ export default function FlashcardPlay() {
       const { question, question_key } = currentPracticeData;
       if (question_key === 'front') {
         playCardAudio('front');
+      } else if (question_key === 'back') {
+        playCardAudio('back');
       } else {
         speakMultiLanguage(question);
       }
@@ -1694,7 +1710,7 @@ export default function FlashcardPlay() {
       setTimeout(() => setXpFloat({ visible: false, amount: 0 }), 1500);
       
       confetti({ particleCount: 80, spread: 50, origin: { y: 0.6 } });
-      setBadgeMessage("Chính xác! 🎯 +5 XP");
+      setBadgeMessage("Chính xác! 🎯");
     } else {
       updatedStreak = 0;
       setStreak(0);
@@ -1706,7 +1722,7 @@ export default function FlashcardPlay() {
       setXpFloat({ visible: true, amount: xpGained });
       setTimeout(() => setXpFloat({ visible: false, amount: 0 }), 1500);
       
-      setBadgeMessage("Chưa chính xác! 😅 +1 XP");
+      setBadgeMessage("Chưa chính xác! 😅");
     }
     
     setBadgeVisible(true);
@@ -1767,7 +1783,7 @@ export default function FlashcardPlay() {
       setTimeout(() => setXpFloat({ visible: false, amount: 0 }), 1500);
       
       confetti({ particleCount: 100, spread: 60, origin: { y: 0.6 } });
-      setBadgeMessage("Xuất sắc! ⌨️ +5 XP");
+      setBadgeMessage("Xuất sắc! ⌨️");
     } else {
       updatedStreak = 0;
       setStreak(0);
@@ -1779,7 +1795,7 @@ export default function FlashcardPlay() {
       setXpFloat({ visible: true, amount: xpGained });
       setTimeout(() => setXpFloat({ visible: false, amount: 0 }), 1500);
       
-      setBadgeMessage("Nhầm một chút rồi! 💪 +1 XP");
+      setBadgeMessage("Nhầm một chút rồi! 💪");
     }
     
     setBadgeVisible(true);
@@ -4516,6 +4532,8 @@ export default function FlashcardPlay() {
                       const { question: qText, question_key: qKey } = practiceData;
                       if (qKey === 'front') {
                         await playCardAudio('front');
+                      } else if (qKey === 'back') {
+                        await playCardAudio('back');
                       } else {
                         speakMultiLanguage(qText);
                       }

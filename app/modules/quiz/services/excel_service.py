@@ -113,6 +113,11 @@ class ExcelQuizService:
                     elif key == "description": metadata["description"] = value
                     elif key == "category": metadata["category"] = value
                     elif key == "tags": metadata["tags"] = [t.strip() for t in value.split(",") if t.strip()]
+                    elif key == "practice_settings":
+                        try:
+                            metadata["practice_settings"] = json.loads(value)
+                        except:
+                            pass
                     elif key == "time_limit": 
                         try: metadata["time_limit"] = int(float(value))
                         except: pass
@@ -245,7 +250,7 @@ class ExcelQuizService:
         return metadata, questions
 
     @staticmethod
-    def export_quiz_to_excel(quiz_title: str, quiz_description: str, category_name: str, tags: List[str], practice_settings: Dict[str, Any], questions: List[Any]) -> bytes:
+    def export_quiz_to_excel(quiz_title: str, quiz_description: str, category_name: str, tags: List[str], practice_settings: Dict[str, Any], questions: List[Any], exclude_ids: bool = False) -> bytes:
         """
         Generates an Excel workbook (bytes) containing Info and Data sheets
         for exporting a quiz/deck.
@@ -261,6 +266,8 @@ class ExcelQuizService:
         ]
         
         if practice_settings:
+            info_data.append({"key": "practice_settings", "value": json.dumps(practice_settings, ensure_ascii=False)})
+            
             active_pairs = practice_settings.get("active_pairs", [])
             num_choices = practice_settings.get("num_choices", 4)
             if active_pairs:
@@ -284,15 +291,17 @@ class ExcelQuizService:
         # Columns to output: id, front, back, explanation, ai_explanation, front_img, front_audio_url, then custom_cols
         rows = []
         for q in questions:
-            row = {
-                "id": q.id,
+            row = {}
+            if not exclude_ids:
+                row["id"] = q.id
+            row.update({
                 "front": q.content,
                 "back": q.explanation or "",
                 "explanation": q.explanation or "",
                 "ai_explanation": q.ai_explanation or "",
                 "front_img": q.image or "",
                 "front_audio_url": q.audio or ""
-            }
+            })
             if q.others and isinstance(q.others, dict):
                 for col in custom_cols:
                     row[col] = q.others.get(col, "")
