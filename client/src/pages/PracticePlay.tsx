@@ -272,8 +272,8 @@ const speakMultiLanguage = (text: string) => {
   });
 }
 
-export default function FlashcardPlay() {
-  const { id, mode, subMode } = useParams()
+export default function PracticePlay() {
+  const { id, subMode } = useParams()
   const navigate = useNavigate()
   const { user, setUser, setGamify } = useAppStore()
   
@@ -396,7 +396,7 @@ export default function FlashcardPlay() {
   const [justAnswered, setJustAnswered] = useState(false)
   
   // ── Multi-Modal Practice State Hooks ──
-  const mainTab = 'fsrs' as 'fsrs' | 'practice'
+  const mainTab = 'practice' as 'fsrs' | 'practice'
   const setMainTab = (tab: 'fsrs' | 'practice') => {}
   const [practiceSubMode, setPracticeSubMode] = useState<'mcq' | 'typing' | 'listening'>(() => (localStorage.getItem('vocab_practice_submode') as 'mcq' | 'typing' | 'listening') || 'mcq')
   const [practiceRange, setPracticeRange] = useState<'all' | 'learned'>(() => (localStorage.getItem('vocab_practice_range') as 'all' | 'learned') || 'all')
@@ -420,7 +420,21 @@ export default function FlashcardPlay() {
   const [practiceTotalAnswered, setPracticeTotalAnswered] = useState(0)
   const [practiceCorrectCount, setPracticeCorrectCount] = useState(0)
 
+  // Sync practiceSubMode from URL params
+  useEffect(() => {
+    if (subMode === 'mcq' || subMode === 'typing' || subMode === 'listening') {
+      setPracticeSubMode(subMode)
+      localStorage.setItem('vocab_practice_submode', subMode)
+    }
+  }, [subMode])
 
+  // Redirect to default subMode if not provided in URL
+  useEffect(() => {
+    if (!subMode) {
+      const savedSub = localStorage.getItem('vocab_practice_submode') || 'mcq'
+      navigate(`/practice/${id}/${savedSub}`, { replace: true })
+    }
+  }, [id, subMode, navigate])
 
   // Sync setup screen fields when practiceSubMode or modeSettings change
   useEffect(() => {
@@ -1073,17 +1087,29 @@ export default function FlashcardPlay() {
       const modeParam = activeTab === 'practice' ? `?mode=${subMode}` : ''
       const isPractice = activeTab === 'practice'
       
+      // Practice: only fetch play-data + practice-settings in parallel. No goals. No session restore.
+      // FSRS: fetch play-data + goals + session in parallel.
       const fetchPromises: Promise<any>[] = [
-        axios.get(`/api/v1/quiz/${id}/play-data${modeParam}`),
-        axios.get('/api/v1/quiz/goals/active', {
-          params: { local_date: new Date().toLocaleDateString('en-CA') }
-        }).catch(e => {
-          console.error("Failed to load active goals", e)
-          return { data: [] }
-        })
+        axios.get(`/api/v1/quiz/${id}/play-data${modeParam}`)
       ]
 
-      if (!isPractice) {
+      if (isPractice) {
+        // Merge practice-settings into the parallel batch instead of waterfall
+        fetchPromises.push(
+          axios.get(`/api/v1/quiz/${id}/practice-settings`).catch(e => {
+            console.error("Failed to load practice settings", e)
+            return { data: null }
+          })
+        )
+      } else {
+        fetchPromises.push(
+          axios.get('/api/v1/quiz/goals/active', {
+            params: { local_date: new Date().toLocaleDateString('en-CA') }
+          }).catch(e => {
+            console.error("Failed to load active goals", e)
+            return { data: [] }
+          })
+        )
         fetchPromises.push(
           axios.get(`/api/v1/quiz/${id}/session`).catch(e => {
             console.error("Failed to load session", e)
@@ -1094,8 +1120,6 @@ export default function FlashcardPlay() {
 
       const results = await Promise.all(fetchPromises)
       const quizRes = results[0]
-      const goalsRes = results[1]
-      const sessionRes = !isPractice ? results[2] : { data: null }
 
       const questions = quizRes.data.questions || []
       setSession({ ...quizRes.data, questions })
@@ -1110,147 +1134,138 @@ export default function FlashcardPlay() {
       setPracticeNeedsSetup(!!quizRes.data.practice_needs_setup)
       setPracticeDisabled(!!quizRes.data.practice_disabled)
       
-      if (activeTab === 'practice') {
-        fetchPracticeSettings()
-      }
-
-      const activeGoalData = goalsRes.data.find((g: any) => g.quiz_id === Number(id))
-      if (activeGoalData) {
-        setActiveGoal(activeGoalData)
-      }
-      
-      if (sessionRes.data) {
-        const restoredAnswers = sessionRes.data.state?.sessionAnswers || {}
-        setSessionAnswers(restoredAnswers)
-        const restoredPractice = sessionRes.data.state?.practiceAnswers || {}
-        setPracticeAnswers(restoredPractice)
-        
-        if (sessionRes.data.state?.practiceTotalAnswered !== undefined) {
-          setPracticeTotalAnswered(sessionRes.data.state.practiceTotalAnswered)
-        }
-        if (sessionRes.data.state?.practiceCorrectCount !== undefined) {
-          setPracticeCorrectCount(sessionRes.data.state.practiceCorrectCount)
-        }
-        
-        let curIdx = sessionRes.data.current_index || 0
-        
-        if (activeTab === 'practice' && practiceRange === 'learned') {
-          const learnedIndices = questions.map((q: any, i: number) => (q.stats?.total || 0) > 0 ? i : -1).filter((i: number) => i !== -1);
-          if (learnedIndices.length > 0 && !learnedIndices.includes(curIdx)) {
-            curIdx = learnedIndices[0];
+      if (isPractice) {
+        // Apply practice settings from parallel fetch (results[1])
+        const settingsRes = results[1]
+        if (settingsRes?.data) {
+          setAvailableColumns(settingsRes.data.available_columns || [])
+          const userSettings = settingsRes.data.user_settings
+          const creatorSettings = settingsRes.data.creator_settings
+          const parsed = userSettings || creatorSettings
+          if (parsed) {
+            setModeSettings(parsed)
+            const currentModeSettings = parsed[subMode] || parsed.mcq || { active_pairs: [{ q: 'front', a: 'back' }], num_choices: 4 }
+            setSetupPairs(currentModeSettings.active_pairs || [{ q: 'front', a: 'back' }])
+            setSetupNumChoices(currentModeSettings.num_choices || 4)
           }
         }
-        
-        // Adjust initial index based on smart learning mode if we are starting a fresh/unanswered question
-        if (restoredAnswers[curIdx] === undefined) {
-          const savedMode = localStorage.getItem('quiz_learning_mode') || 'fsrs'
-          if (savedMode !== 'sequential') {
-            let modeIdx = -1
-            if (savedMode === 'fsrs') {
-              const now = new Date()
-              const scoredQuestions = questions.map((q: any, idx: number) => {
-                const isCurrentlyUnlocked = (() => {
-                  if (!q.fsrs || !q.fsrs.due) return true;
-                  return parseUTCDate(q.fsrs.due).getTime() - 30000 <= now.getTime();
-                })()
-                const hasAnswered = restoredAnswers[idx] !== undefined && !isCurrentlyUnlocked
-                if (hasAnswered) return { idx, score: -1000 }
+      } else {
+        // FSRS mode: apply goals + session
+        const goalsRes = results[1]
+        const sessionRes = results[2]
+
+        const activeGoalData = goalsRes?.data?.find((g: any) => g.quiz_id === Number(id))
+        if (activeGoalData) {
+          setActiveGoal(activeGoalData)
+        }
+      
+        if (sessionRes?.data) {
+          const restoredAnswers = sessionRes.data.state?.sessionAnswers || {}
+          setSessionAnswers(restoredAnswers)
+          const restoredPractice = sessionRes.data.state?.practiceAnswers || {}
+          setPracticeAnswers(restoredPractice)
+          
+          if (sessionRes.data.state?.practiceTotalAnswered !== undefined) {
+            setPracticeTotalAnswered(sessionRes.data.state.practiceTotalAnswered)
+          }
+          if (sessionRes.data.state?.practiceCorrectCount !== undefined) {
+            setPracticeCorrectCount(sessionRes.data.state.practiceCorrectCount)
+          }
+          
+          let curIdx = sessionRes.data.current_index || 0
+          
+          // Adjust initial index based on smart learning mode if we are starting a fresh/unanswered question
+          if (restoredAnswers[curIdx] === undefined) {
+            const savedMode = localStorage.getItem('quiz_learning_mode') || 'fsrs'
+            if (savedMode !== 'sequential') {
+              let modeIdx = -1
+              if (savedMode === 'fsrs') {
+                const now = new Date()
+                const scoredQuestions = questions.map((q: any, idx: number) => {
+                  const isCurrentlyUnlocked = (() => {
+                    if (!q.fsrs || !q.fsrs.due) return true;
+                    return parseUTCDate(q.fsrs.due).getTime() - 30000 <= now.getTime();
+                  })()
+                  const hasAnswered = restoredAnswers[idx] !== undefined && !isCurrentlyUnlocked
+                  if (hasAnswered) return { idx, score: -1000 }
+                  
+                  const fsrs = q.fsrs
+                  if (!fsrs || !fsrs.due) {
+                    return { idx, score: 2 } // Priority 2: New Card
+                  }
+                  
+                  const dueDate = parseUTCDate(fsrs.due)
+                  const isDue = dueDate <= now
+                  const isLearning = fsrs.state === 1 || fsrs.state === 3
+                  
+                  if (isDue || isLearning) {
+                    const stability = fsrs.stability || 0
+                    return { idx, score: 3 - (stability / 10000) } // Priority 3: Due reviews (shortest stability first)
+                  } else {
+                    const timeToDue = dueDate.getTime() - now.getTime()
+                    return { idx, score: 1 - (timeToDue / 1e12) } // Priority 1: Undue reviews (closest first)
+                  }
+                })
                 
-                const fsrs = q.fsrs
-                if (!fsrs || !fsrs.due) {
-                  return { idx, score: 2 } // Priority 2: New Card
+                scoredQuestions.sort((a: any, b: any) => b.score - a.score)
+                const best = scoredQuestions[0]
+                if (best && best.score > -1000) {
+                  modeIdx = best.idx
                 }
-                
-                const dueDate = parseUTCDate(fsrs.due)
-                const isDue = dueDate <= now
-                const isLearning = fsrs.state === 1 || fsrs.state === 3
-                
-                if (isDue || isLearning) {
-                  const stability = fsrs.stability || 0
-                  return { idx, score: 3 - (stability / 10000) } // Priority 3: Due reviews (shortest stability first)
-                } else {
-                  const timeToDue = dueDate.getTime() - now.getTime()
-                  return { idx, score: 1 - (timeToDue / 1e12) } // Priority 1: Undue reviews (closest first)
-                }
-              })
-              
-              scoredQuestions.sort((a: any, b: any) => b.score - a.score)
-              const best = scoredQuestions[0]
-              if (best && best.score > -1000) {
-                modeIdx = best.idx
-              }
-            } else if (savedMode === 'unseen') {
-              modeIdx = questions.findIndex((q: any, i: number) => (q.stats?.total || 0) === 0 && restoredAnswers[i] === undefined)
-            } else if (savedMode === 'review') {
-              modeIdx = questions.findIndex((q: any, i: number) => ((q.stats?.total || 0) - (q.stats?.correct || 0)) > 0 && restoredAnswers[i] === undefined)
-            } else if (savedMode === 'hardest') {
-              let minRatio = Infinity
-              let maxWrongs = -1
-              for (let i = 0; i < questions.length; i++) {
-                if (restoredAnswers[i] !== undefined) continue
-                const q = questions[i]
-                const t = q.stats?.total || 0
-                const c = q.stats?.correct || 0
-                const wrongs = t - c
-                if (t > 0) {
-                  const ratio = c / t
-                  if (ratio < minRatio) {
-                    minRatio = ratio
-                    maxWrongs = wrongs
-                    modeIdx = i
-                  } else if (ratio === minRatio && wrongs > maxWrongs) {
-                    maxWrongs = wrongs
-                    modeIdx = i
+              } else if (savedMode === 'unseen') {
+                modeIdx = questions.findIndex((q: any, i: number) => (q.stats?.total || 0) === 0 && restoredAnswers[i] === undefined)
+              } else if (savedMode === 'review') {
+                modeIdx = questions.findIndex((q: any, i: number) => ((q.stats?.total || 0) - (q.stats?.correct || 0)) > 0 && restoredAnswers[i] === undefined)
+              } else if (savedMode === 'hardest') {
+                let minRatio = Infinity
+                let maxWrongs = -1
+                for (let i = 0; i < questions.length; i++) {
+                  if (restoredAnswers[i] !== undefined) continue
+                  const q = questions[i]
+                  const t = q.stats?.total || 0
+                  const c = q.stats?.correct || 0
+                  const wrongs = t - c
+                  if (t > 0) {
+                    const ratio = c / t
+                    if (ratio < minRatio) {
+                      minRatio = ratio
+                      maxWrongs = wrongs
+                      modeIdx = i
+                    } else if (ratio === minRatio && wrongs > maxWrongs) {
+                      maxWrongs = wrongs
+                      modeIdx = i
+                    }
                   }
                 }
+              } else if (savedMode === 'random') {
+                const pool = questions.map((_: any, i: number) => i).filter((i: number) => restoredAnswers[i] === undefined)
+                if (pool.length > 0) {
+                  modeIdx = pool[Math.floor(Math.random() * pool.length)]
+                }
               }
-            } else if (savedMode === 'random') {
-              const pool = questions.map((_: any, i: number) => i).filter((i: number) => restoredAnswers[i] === undefined)
-              if (pool.length > 0) {
-                modeIdx = pool[Math.floor(Math.random() * pool.length)]
-              }
-            }
 
-            if (modeIdx !== -1) {
-              curIdx = modeIdx
+              if (modeIdx !== -1) {
+                curIdx = modeIdx
+              }
             }
           }
-        }
-        
-        setCurrentIndex(curIdx)
-        
-        // Update local state to reflect which questions are answered in this session
-        // but DO NOT manually increment stats, as the backend quiz play-data already includes them.
-        const isPractice = activeTab === 'practice';
-        const activeRestored = isPractice ? restoredPractice : restoredAnswers;
-        
-        if (isPractice) {
-          if (activeRestored[curIdx] !== undefined) {
-            setSelectedOption(activeRestored[curIdx]);
-            setShowFeedback(true);
-            if (subMode === 'typing') {
-              setTypingFeedback({ checked: true, isCorrect: activeRestored[curIdx] === 3 });
-            }
-          } else {
-            setSelectedOption(null);
-            setShowFeedback(false);
-            setTypingFeedback(null);
-          }
-        } else {
-          if (typeof activeRestored[curIdx] === 'number') {
-            setSelectedOption(activeRestored[curIdx]);
+          
+          setCurrentIndex(curIdx)
+          
+          if (typeof restoredAnswers[curIdx] === 'number') {
+            setSelectedOption(restoredAnswers[curIdx] as number);
             setShowFeedback(true);
           } else {
             setSelectedOption(null);
             setShowFeedback(false);
           }
-        }
 
-        if (sessionRes.data.state?.sessionXP) {
-          setSessionXP(sessionRes.data.state.sessionXP)
-        }
-        if (sessionRes.data.state?.streak) {
-          setStreak(sessionRes.data.state.streak)
+          if (sessionRes.data.state?.sessionXP) {
+            setSessionXP(sessionRes.data.state.sessionXP)
+          }
+          if (sessionRes.data.state?.streak) {
+            setStreak(sessionRes.data.state.streak)
+          }
         }
       }
     } catch (e) {
@@ -3027,72 +3042,71 @@ export default function FlashcardPlay() {
     }
 
     return (
-      <div className="flex-1 bg-white md:rounded-[3rem] rounded-[2rem] border border-slate-100 md:p-8 p-6 flex flex-col justify-between shadow-2xl shadow-indigo-100/40 min-h-0 overflow-y-auto">
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-2">
-            <span className="text-[9px] font-black tracking-wider text-indigo-600 bg-indigo-50/80 px-2.5 py-1.5 rounded-lg border border-indigo-100/50 uppercase shadow-sm flex items-center gap-1">
-              <span>{question_key.toUpperCase()}</span>
-              <span className="opacity-60">➔</span>
-              <span className="font-extrabold">{answer_key.toUpperCase()}</span>
-            </span>
-          </div>
-          <span className="text-[10px] font-black tracking-wider text-slate-500 bg-slate-50 px-2.5 py-1.5 rounded-lg border border-slate-100 shadow-sm">
-            Câu luyện tập: #{practiceTotalAnswered + 1}
-          </span>
-        </div>
-
-        <div className="flex-1 flex flex-col items-center justify-center py-6 text-center">
-          {currentQuestion.image && practiceSubMode !== 'listening' && (
-            <img 
-              src={currentQuestion.image} 
-              alt="Question" 
-              className="max-h-36 object-contain rounded-2xl mb-4 border border-slate-100 shadow-sm" 
-            />
-          )}
-          
-          {practiceSubMode === 'listening' ? (
-            <div className="flex flex-col items-center gap-4">
-              <div 
-                onClick={() => {
-                  const { question: qText, question_key: qKey } = practiceData!;
-                  if (qKey === 'front') {
-                    playCardAudio('front');
-                  } else {
-                    speakMultiLanguage(qText);
-                  }
-                }}
-                className="relative w-24 h-24 rounded-full bg-indigo-50 border border-indigo-100 flex items-center justify-center shadow-lg shadow-indigo-100/50 hover:bg-indigo-100/30 active:scale-95 transition-all cursor-pointer group"
-                title="Nhấn để nghe lại"
-              >
-                <div className="absolute inset-0 rounded-full bg-indigo-400/10 animate-ping" />
-                <div className="absolute inset-2 rounded-full bg-indigo-300/20 animate-pulse" />
-                <Play className="w-8 h-8 text-indigo-600 fill-indigo-600 group-hover:scale-110 transition-transform" />
+      <div className="flex-1 bg-white md:rounded-[3rem] rounded-[2rem] border border-slate-100 md:p-6 md:pt-4 p-4 pt-3 flex flex-col justify-between shadow-2xl shadow-indigo-100/40 min-h-0 overflow-y-auto">
+        
+        {/* Premium Question Card container for better space usage and rich aesthetics */}
+        <div className="w-full max-w-3xl mx-auto py-1 text-center animate-in fade-in slide-in-from-top-3 duration-500">
+          <div className="w-full bg-gradient-to-br from-indigo-50/40 via-slate-50/60 to-pink-50/20 border border-slate-100 rounded-[2rem] p-5 md:p-6 shadow-sm flex flex-col items-center justify-center text-center gap-4 relative overflow-hidden mb-1">
+            <div className="absolute top-[-10%] left-[-10%] w-[30%] h-[30%] rounded-full bg-indigo-100/20 blur-2xl pointer-events-none" />
+            <div className="absolute bottom-[-10%] right-[-10%] w-[30%] h-[30%] rounded-full bg-pink-100/20 blur-2xl pointer-events-none" />
+            
+            {currentQuestion.image && practiceSubMode !== 'listening' && (
+              <img 
+                src={currentQuestion.image} 
+                alt="Question" 
+                className="max-h-32 object-contain rounded-xl mb-2 border border-slate-100 shadow-sm bg-white p-1" 
+              />
+            )}
+            
+            {practiceSubMode === 'listening' ? (
+              <div className="flex flex-col items-center gap-3">
+                <div 
+                  onClick={() => {
+                    const { question: qText, question_key: qKey } = practiceData!;
+                    if (qKey === 'front') {
+                      playCardAudio('front');
+                    } else {
+                      speakMultiLanguage(qText);
+                    }
+                  }}
+                  className="relative w-20 h-20 rounded-full bg-white border border-indigo-100 flex items-center justify-center shadow-lg shadow-indigo-100/50 hover:bg-indigo-50 active:scale-95 transition-all cursor-pointer group"
+                  title="Nhấn để nghe lại"
+                >
+                  <div className="absolute inset-0 rounded-full bg-indigo-400/10 animate-ping" />
+                  <div className="absolute inset-2 rounded-full bg-indigo-300/20 animate-pulse" />
+                  <Play className="w-7 h-7 text-indigo-600 fill-indigo-600 group-hover:scale-110 transition-transform" />
+                </div>
+                <span className="text-[9px] font-black text-indigo-500 tracking-widest uppercase mt-1">#{practiceTotalAnswered + 1} — NHẤN ĐỂ NGHE PHÁT ÂM</span>
               </div>
-              <span className="text-[10px] font-black text-slate-400 tracking-wider uppercase mt-2">Nhấn để nghe lại</span>
-            </div>
-          ) : (
-            <h2 className="text-2xl md:text-3xl font-black text-slate-800 leading-normal max-w-2xl px-4">
-              <TypewriterText text={question} />
-            </h2>
-          )}
+            ) : (
+              <div className="space-y-3 w-full flex flex-col items-center">
+                <span className="text-[10px] font-black tracking-widest text-indigo-600 bg-indigo-50/80 px-3 py-1 rounded-full border border-indigo-100/50 shadow-sm">
+                  #{practiceTotalAnswered + 1}
+                </span>
+                <h2 className="text-xl md:text-2xl lg:text-3xl font-black text-slate-800 leading-snug max-w-2xl px-2">
+                  <TypewriterText text={question} />
+                </h2>
+              </div>
+            )}
+          </div>
         </div>
 
-        <div className="w-full max-w-2xl mx-auto pt-4 border-t border-slate-50">
+        <div className="w-full max-w-3xl mx-auto pt-6 border-t border-slate-100">
           {['mcq', 'listening'].includes(practiceSubMode) && choices && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
+            <div className="grid grid-cols-1 gap-3.5 mb-4">
               {choices.map((choice: string, idx: number) => {
                 const isSelected = selectedOption === idx;
                 const isCorrectChoice = idx === correct_index;
                 
-                let btnStyle = "border-slate-200 hover:bg-slate-50 text-slate-700 active:scale-[0.98] ";
+                let btnStyle = "border-slate-200 hover:bg-slate-50/50 hover:border-indigo-200 text-slate-700 active:scale-[0.99] ";
                 
                 if (answered) {
                   if (isCorrectChoice) {
-                    btnStyle = "bg-emerald-500 border-emerald-600 text-white shadow-lg shadow-emerald-100 scale-[1.02] ";
+                    btnStyle = "bg-gradient-to-r from-emerald-500 to-teal-500 border-emerald-600 text-white shadow-lg shadow-emerald-100 scale-[1.015] ";
                   } else if (isSelected) {
-                    btnStyle = "bg-rose-500 border-rose-600 text-white shadow-lg shadow-rose-100 ";
+                    btnStyle = "bg-gradient-to-r from-rose-500 to-pink-500 border-rose-600 text-white shadow-lg shadow-rose-100 ";
                   } else {
-                    btnStyle = "border-slate-100 bg-slate-50 opacity-40 text-slate-400 pointer-events-none ";
+                    btnStyle = "border-slate-100 bg-slate-50/50 opacity-30 text-slate-400 pointer-events-none ";
                   }
                 }
 
@@ -3102,27 +3116,27 @@ export default function FlashcardPlay() {
                     onClick={() => handleMCQAnswer(idx)}
                     disabled={answered}
                     className={cn(
-                      "group p-4 rounded-2xl border text-left font-bold text-sm transition-all duration-200 flex items-center justify-between gap-3 min-h-[56px] shadow-sm",
+                      "group p-5 md:p-6 rounded-[2rem] border text-left font-extrabold text-base md:text-xl transition-all duration-300 flex items-center justify-between gap-4 min-h-[72px] shadow-sm",
                       btnStyle
                     )}
                   >
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-4">
                       <span className={cn(
-                        "w-5 h-5 rounded-lg flex items-center justify-center text-[10px] font-black border",
-                        answered && isCorrectChoice ? "bg-white text-emerald-600 border-emerald-400" :
-                        answered && isSelected ? "bg-white text-rose-600 border-rose-400" :
-                        "bg-white border-slate-200 text-slate-400"
+                        "w-7 h-7 rounded-xl flex items-center justify-center text-xs font-black border flex-shrink-0 transition-colors duration-300",
+                        answered && isCorrectChoice ? "bg-white text-emerald-600 border-emerald-400 shadow-sm" :
+                        answered && isSelected ? "bg-white text-rose-600 border-rose-400 shadow-sm" :
+                        "bg-white border-slate-200 text-slate-400 shadow-sm group-hover:border-indigo-300 group-hover:text-indigo-600"
                       )}>
                         {idx + 1}
                       </span>
-                      <span dangerouslySetInnerHTML={{ __html: parseBBCodeToHtml(choice) }} />
+                      <span className="leading-snug" dangerouslySetInnerHTML={{ __html: parseBBCodeToHtml(choice) }} />
                     </div>
 
                     {answered && isCorrectChoice && (
-                      <Check className="w-4 h-4 stroke-[3] text-white flex-shrink-0" />
+                      <Check className="w-5 h-5 stroke-[3] text-white flex-shrink-0" />
                     )}
                     {answered && isSelected && !isCorrectChoice && (
-                      <X className="w-4 h-4 stroke-[3] text-white flex-shrink-0" />
+                      <X className="w-5 h-5 stroke-[3] text-white flex-shrink-0" />
                     )}
                   </button>
                 );
@@ -3752,7 +3766,148 @@ export default function FlashcardPlay() {
         </div>
       </header>
 
-      {/* Decoupled - Practice mode moved to standalone /practice/:id page */}
+      {/* Dynamic Mode Switcher Bar */}
+      <div className="flex-shrink-0 bg-white/80 backdrop-blur-md border-b border-slate-100/50 px-4 lg:px-8 py-1.5 md:py-2 flex flex-col md:flex-row items-center justify-between gap-2 md:gap-3 z-50 w-full shadow-sm">
+        {/* Left Side: Branding */}
+        <div className="flex items-center gap-2">
+          <Trophy className="w-4 h-4 text-amber-500 animate-bounce" />
+          <span className="text-xs font-black text-slate-700 tracking-wider uppercase">Luyện tập (Practice Mode)</span>
+        </div>
+
+        {/* Right Side: Sub-mode Selector for Practice Tab */}
+        {!practiceNeedsSetup && !practiceDisabled && (
+          <div 
+            className="flex items-center gap-2.5 overflow-x-auto w-full md:w-auto scrollbar-none [&::-webkit-scrollbar]:hidden py-0.5 justify-center flex-nowrap"
+            style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+          >
+            {/* Mode Range Selector (Tất cả vs Đã học) */}
+            <div className="flex bg-slate-100/60 p-0.5 rounded-xl border border-slate-200/30 shadow-inner flex-shrink-0">
+              <button
+                onClick={() => {
+                  setPracticeRange('all');
+                  localStorage.setItem('vocab_practice_range', 'all');
+                }}
+                className={cn(
+                  "px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-wider transition-all duration-200 flex items-center gap-1.5",
+                  practiceRange === 'all'
+                    ? "bg-white text-indigo-600 shadow-sm border border-slate-200/10"
+                    : "text-slate-500 hover:text-slate-700"
+                )}
+                title="Random (All)"
+              >
+                <Shuffle className="w-3.5 h-3.5" />
+                <span className="hidden md:inline">Random (All)</span>
+              </button>
+              
+              <button
+                onClick={() => {
+                  const learnedIndices = session?.questions?.map((q: any, i: number) => (q.stats?.total || 0) > 0 ? i : -1).filter((i: number) => i !== -1) || [];
+                  if (learnedIndices.length === 0) {
+                    setLearningModeAlert({
+                      visible: true,
+                      message: "You haven't learned any cards in this deck yet! Automatically switching to 'Random (All)' mode.",
+                      type: 'warning'
+                    });
+                    setTimeout(() => {
+                      setLearningModeAlert(prev => prev ? { ...prev, visible: false } : null);
+                    }, 4500);
+                    return;
+                  }
+                  setPracticeRange('learned');
+                  localStorage.setItem('vocab_practice_range', 'learned');
+                  
+                  // If current card is not in learned pool, jump to first learned card
+                  if (!learnedIndices.includes(currentIndex)) {
+                    navigateToQuestion(learnedIndices[0]);
+                  }
+                }}
+                className={cn(
+                  "px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-wider transition-all duration-200 flex items-center gap-1.5",
+                  practiceRange === 'learned'
+                    ? "bg-gradient-to-r from-indigo-500 to-purple-600 text-white shadow-sm"
+                    : "text-slate-500 hover:text-slate-700"
+                )}
+                title="Practice (Learned)"
+              >
+                <ListOrdered className="w-3.5 h-3.5" />
+                <span className="hidden md:inline">Practice (Learned)</span>
+              </button>
+            </div>
+
+            <div className="w-px h-6 bg-slate-200 flex-shrink-0" />
+
+            <div className="flex bg-slate-100/60 p-0.5 rounded-xl border border-slate-200/30 flex-shrink-0">
+              <button
+                onClick={() => {
+                  setPracticeAnswers({});
+                  setSelectedOption(null);
+                  setShowFeedback(false);
+                  navigate(`/practice/${id}/mcq`, { replace: true });
+                  fetchSession('practice', 'mcq');
+                }}
+                className={cn(
+                  "px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-wider transition-all duration-200 flex items-center gap-1.5",
+                  practiceSubMode === 'mcq'
+                    ? "bg-white text-indigo-600 shadow-sm border border-slate-200/10"
+                    : "text-slate-500 hover:text-slate-700"
+                )}
+                title="MCQ"
+              >
+                <HelpCircle className="w-3.5 h-3.5" />
+                <span className="hidden md:inline">MCQ</span>
+              </button>
+              
+              <button
+                onClick={() => {
+                  setPracticeAnswers({});
+                  setSelectedOption(null);
+                  setShowFeedback(false);
+                  navigate(`/practice/${id}/typing`, { replace: true });
+                  fetchSession('practice', 'typing');
+                }}
+                className={cn(
+                  "px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-wider transition-all duration-200 flex items-center gap-1.5",
+                  practiceSubMode === 'typing'
+                    ? "bg-white text-indigo-600 shadow-sm border border-slate-200/10"
+                    : "text-slate-500 hover:text-slate-700"
+                )}
+                title="Typing"
+              >
+                <Keyboard className="w-3.5 h-3.5" />
+                <span className="hidden md:inline">Typing</span>
+              </button>
+
+              <button
+                onClick={() => {
+                  setPracticeAnswers({});
+                  setSelectedOption(null);
+                  setShowFeedback(false);
+                  navigate(`/practice/${id}/listening`, { replace: true });
+                  fetchSession('practice', 'listening');
+                }}
+                className={cn(
+                  "px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-wider transition-all duration-200 flex items-center gap-1.5",
+                  practiceSubMode === 'listening'
+                    ? "bg-white text-indigo-600 shadow-sm border border-slate-200/10"
+                    : "text-slate-500 hover:text-slate-700"
+                )}
+                title="Listening"
+              >
+                <Volume2 className="w-3.5 h-3.5" />
+                <span className="hidden md:inline">Listening</span>
+              </button>
+            </div>
+            
+            <button 
+              onClick={() => setPracticeNeedsSetup(true)}
+              className="w-7 h-7 flex-shrink-0 flex items-center justify-center rounded-lg bg-slate-50 border border-slate-200 text-slate-500 hover:bg-indigo-50 hover:text-indigo-600 hover:border-indigo-200 active:scale-95 transition-all shadow-sm"
+              title="Cấu hình cặp cột Hỏi-Đáp"
+            >
+              <Sliders className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        )}
+      </div>
 
       <main className="flex-1 flex w-full max-w-none justify-center gap-4 lg:gap-8 px-2 lg:px-6 xl:px-10 md:py-6 py-2 overflow-hidden">
         <aside className="hidden xl:flex w-[340px] 2xl:w-[440px] flex-shrink-0 flex-col overflow-hidden bg-white border border-slate-100 rounded-[2.5rem] shadow-sm">

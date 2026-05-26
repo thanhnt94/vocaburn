@@ -7,6 +7,7 @@ import Landing from './pages/Landing'
 import Login from './pages/Login'
 import Admin from './pages/Admin'
 import FlashcardPlay from './pages/FlashcardPlay'
+import PracticePlay from './pages/PracticePlay'
 import FlashcardDetail from './pages/FlashcardDetail'
 import Profile from './pages/Profile'
 import Stats from './pages/Stats'
@@ -75,7 +76,8 @@ function AppContent() {
 
         {/* Fullscreen Protected Views */}
         <Route path="/flashcard/:id" element={isLoggedIn ? <FlashcardDetail /> : <Navigate to="/login" replace />} />
-        <Route path="/flashcard/:id/play/:mode?/:subMode?" element={isLoggedIn ? <FlashcardPlay /> : <Navigate to="/login" replace />} />
+        <Route path="/flashcard/:id/play" element={isLoggedIn ? <FlashcardPlay /> : <Navigate to="/login" replace />} />
+        <Route path="/practice/:id/:subMode?" element={isLoggedIn ? <PracticePlay /> : <Navigate to="/login" replace />} />
         <Route path="/room/:code" element={isLoggedIn ? <FlashcardRoom /> : <Navigate to="/login" replace />} />
 
         {/* Catch-all Redirect */}

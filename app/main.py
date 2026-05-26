@@ -150,6 +150,7 @@ async def get_me(request: Request, db: AsyncSession = Depends(get_db)):
 @app.get("/dashboard")
 @app.get("/quiz/{path:path}")
 @app.get("/flashcard/{path:path}")
+@app.get("/practice/{path:path}")
 @app.get("/profile")
 @app.get("/stats")
 @app.get("/settings")
@@ -183,6 +184,16 @@ async def get_detailed_stats(request: Request, db: AsyncSession = Depends(get_db
         raise HTTPException(status_code=401, detail="Unauthorized")
     try:
         return await AnalyticsService.get_user_detailed_stats(db, user.id)
+    except Exception as e:
+        return {"error": str(e)}
+
+@app.get("/api/v1/stats/leaderboard")
+async def get_leaderboard(request: Request, db: AsyncSession = Depends(get_db)):
+    user = await AuthService.get_current_user(request, db)
+    if not user:
+        raise HTTPException(status_code=401, detail="Unauthorized")
+    try:
+        return await AnalyticsService.get_leaderboard(db, user.id)
     except Exception as e:
         return {"error": str(e)}
 

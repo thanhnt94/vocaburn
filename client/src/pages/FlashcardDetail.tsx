@@ -372,25 +372,32 @@ export default function QuizDetail() {
                   queryClient.invalidateQueries({ queryKey: ['quiz-session', id] })
                   navigate(`/flashcard/${id}/play`)
                 }}
-                className="flex-1 py-5 bg-white border-2 border-indigo-100 text-indigo-600 font-black text-sm md:text-base rounded-2xl active:scale-95 transition-all tracking-widest uppercase"
+                className="flex-1 py-5 bg-white border-2 border-rose-100 text-rose-600 font-black text-xs md:text-sm rounded-2xl active:scale-95 transition-all tracking-widest uppercase"
               >
-                START FRESH (RESET)
+                LÀM MỚI FSRS (RESET)
               </button>
               <button 
                 onClick={() => navigate(`/flashcard/${id}/play`)}
-                className="flex-[2] py-5 bg-indigo-600 text-white font-black text-sm md:text-base rounded-2xl shadow-xl shadow-indigo-500/30 active:scale-95 transition-all tracking-widest uppercase"
+                className="flex-[1.5] py-5 bg-indigo-600 text-white font-black text-xs md:text-sm rounded-2xl shadow-xl shadow-indigo-500/20 active:scale-95 transition-all tracking-widest uppercase"
               >
-                CONTINUE LEARNING
+                TIẾP TỤC HỌC (FSRS)
               </button>
             </>
           ) : (
             <button 
               onClick={() => navigate(`/flashcard/${id}/play`)}
-              className="w-full py-5 bg-indigo-600 text-white font-black text-sm md:text-base rounded-2xl shadow-xl shadow-indigo-500/30 active:scale-95 transition-all tracking-widest uppercase"
+              className="flex-1 py-5 bg-indigo-600 text-white font-black text-xs md:text-sm rounded-2xl shadow-xl shadow-indigo-500/20 active:scale-95 transition-all tracking-widest uppercase"
             >
-              START LEARNING
+              HỌC FLASHCARD (FSRS)
             </button>
           )}
+
+          <button 
+            onClick={() => navigate(`/practice/${id}`)}
+            className="flex-1 py-5 bg-emerald-600 text-white font-black text-xs md:text-sm rounded-2xl shadow-xl shadow-emerald-500/20 active:scale-95 transition-all tracking-widest uppercase"
+          >
+            LUYỆN TẬP (PRACTICE)
+          </button>
         </div>
       </div>
       

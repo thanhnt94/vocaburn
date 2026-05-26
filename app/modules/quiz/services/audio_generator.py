@@ -103,24 +103,34 @@ class AudioGenerator:
                 
                 edge_err = None
                 if voice_edge:
+                    print(f"\n[TTS GENERATOR] Attempting Microsoft Edge TTS for lang '{lang}' using voice '{voice_edge}'...")
                     try:
                         communicate = edge_tts.Communicate(seg_text, voice_edge)
                         await communicate.save(temp_path)
                         success_edge = True
+                        print(f"[TTS GENERATOR] Microsoft Edge TTS generated successfully for segment: '{seg_text[:30]}...'")
                     except Exception as ee:
                         edge_err = str(ee)
-                        logger.error(f"Edge TTS failed for segment '{seg_text[:20]}', falling back to gTTS: {ee}")
+                        msg = f"\n==================================================\n[TTS WARNING] Microsoft Edge TTS failed for voice '{voice_edge}'!\nSegment text: '{seg_text}'\nError details: {ee}\n=================================================="
+                        print(msg)
+                        logger.error(msg)
+                else:
+                    print(f"\n[TTS GENERATOR] No specific Edge TTS voice mapped for lang '{lang}' (supported keys: {list(cls.EDGE_VOICES.keys())})")
                 
                 # Fallback to gTTS if Edge TTS failed or lang not supported
                 if not success_edge:
+                    print(f"[TTS GENERATOR] Falling back to Google TTS (gTTS) for lang '{lang}'...")
                     try:
                         # run gtts in thread since it's synchronous/blocking
                         def run_gtts():
                             tts = gTTS(text=seg_text, lang=lang)
                             tts.save(temp_path)
                         await asyncio.to_thread(run_gtts)
+                        print(f"[TTS GENERATOR] Google TTS generated successfully for segment: '{seg_text[:30]}...'")
                     except Exception as ge:
-                        logger.error(f"gTTS fallback failed for segment: {ge}")
+                        msg = f"\n==================================================\n[TTS CRITICAL ERROR] Google TTS fallback also failed!\nSegment text: '{seg_text}'\nError details: {ge}\n=================================================="
+                        print(msg)
+                        logger.error(msg)
                         # Clean up and exit if both failed
                         if os.path.exists(temp_path):
                             os.remove(temp_path)

@@ -725,23 +725,37 @@ async def save_practice_settings(request: Request, quiz_id: int, payload: dict, 
 @router.get("/{quiz_id}/play-data")
 async def get_quiz_play_data(request: Request, quiz_id: int, mode: Optional[str] = None, db: AsyncSession = Depends(get_db)):
     user_id = int(request.cookies.get("user_id", 1))
-    quiz = await QuizService.get_quiz_with_stats(db, quiz_id, user_id=user_id)
+    is_practice = mode in ("mcq", "typing", "listening")
+    
+    if is_practice:
+        # Instant load: We do not need heavy question-level stats aggregation for practice modes!
+        quiz = await QuizService.get_quiz_by_id(db, quiz_id)
+    else:
+        quiz = await QuizService.get_quiz_with_stats(db, quiz_id, user_id=user_id)
     if not quiz: return JSONResponse(status_code=404, content={"error": "Quiz not found"})
     
-    from app.modules.gamification.interface import GamificationInterface
-    user_stats = await GamificationInterface.get_user_stats(db, user_id)
+    # Skip heavy gamification stats & collaborator check for practice — not needed
+    user_total_xp = 0
+    is_collaborator = False
+    if not is_practice:
+        from app.modules.gamification.interface import GamificationInterface
+        user_stats = await GamificationInterface.get_user_stats(db, user_id)
+        user_total_xp = user_stats.get("xp", 0)
+        
+        from app.modules.quiz.models import QuizCollaborator
+        collab_res = await db.execute(select(QuizCollaborator).where(QuizCollaborator.quiz_id == quiz_id, QuizCollaborator.user_id == user_id))
+        is_collaborator = collab_res.scalar() is not None
     
-    from app.modules.quiz.models import QuizCollaborator
-    collab_res = await db.execute(select(QuizCollaborator).where(QuizCollaborator.quiz_id == quiz_id, QuizCollaborator.user_id == user_id))
-    is_collaborator = collab_res.scalar() is not None
-    
-    from app.modules.quiz.models import UserQuestionMastery
-    mastery_stmt = select(UserQuestionMastery).where(
-        UserQuestionMastery.user_id == user_id,
-        UserQuestionMastery.question_id.in_([q.id for q in quiz.questions])
-    )
-    mastery_res = await db.execute(mastery_stmt)
-    mastery_records = {m.question_id: m for m in mastery_res.scalars().all()}
+    # Skip mastery loading for practice mode — practice doesn't use FSRS state
+    mastery_records = {}
+    if not is_practice:
+        from app.modules.quiz.models import UserQuestionMastery
+        mastery_stmt = select(UserQuestionMastery).where(
+            UserQuestionMastery.user_id == user_id,
+            UserQuestionMastery.question_id.in_([q.id for q in quiz.questions])
+        )
+        mastery_res = await db.execute(mastery_stmt)
+        mastery_records = {m.question_id: m for m in mastery_res.scalars().all()}
     
     # Check settings if practice mode
     practice_needs_setup = False
@@ -749,7 +763,7 @@ async def get_quiz_play_data(request: Request, quiz_id: int, mode: Optional[str]
     active_pairs = []
     num_choices = 4
     
-    if mode in ("mcq", "typing", "listening"):
+    if is_practice:
         # Load user settings or creator settings
         user_sett_res = await db.execute(
             select(UserDeckSettings).where(
@@ -787,40 +801,57 @@ async def get_quiz_play_data(request: Request, quiz_id: int, mode: Optional[str]
             num_choices = mode_settings.get("num_choices", 4)
             
     # Distractors and practice questions are now generated client-side to make deck loading instant.
-    from fsrs import Card, Scheduler, Rating, State
-    scheduler = Scheduler()
-    now_utc = datetime.utcnow().replace(tzinfo=timezone.utc)
-    
     questions_list = []
-    for q in quiz.questions:
-        m = mastery_records.get(q.id)
+    
+    if is_practice:
+        # Ultra-fast path for practice: just card data, no FSRS computation
+        for q in quiz.questions:
+            questions_list.append({
+                "id": q.id,
+                "content": q.content,
+                "explanation": q.explanation,
+                "ai_explanation": q.ai_explanation,
+                "stats": None,
+                "box_level": 1,
+                "fsrs": None,
+                "options": [],
+                "image": q.image,
+                "audio": q.audio,
+                "others": q.others
+            })
+    else:
+        from fsrs import Card, Scheduler, Rating, State
+        scheduler = Scheduler()
+        now_utc = datetime.utcnow().replace(tzinfo=timezone.utc)
         
-        m_state = m.state if m else 0
-        m_step = m.step if m else 0
-        m_stability = m.stability if m else None
-        m_difficulty = m.difficulty if m else None
-        m_due = m.due if m else datetime.utcnow()
-        m_last_review = m.last_review if m else None
-        m_box_level = m.box_level if m else 1
-        
-        # Build Card for FSRS interval estimation
-        fsrs_card = Card()
-        state_map = {
-            0: State.Learning,
-            1: State.Learning,
-            2: State.Review,
-            3: State.Relearning
-        }
-        fsrs_card.state = state_map.get(m_state, State.Learning)
-        fsrs_card.step = m_step
-        fsrs_card.stability = m_stability
-        fsrs_card.difficulty = m_difficulty
-        fsrs_card.due = m_due.replace(tzinfo=timezone.utc) if m_due else now_utc
-        fsrs_card.last_review = m_last_review.replace(tzinfo=timezone.utc) if m_last_review else None
-        
-        # Compute predicted intervals (only when not in practice mode to make it instant)
-        intervals = {}
-        if mode not in ("mcq", "typing", "listening"):
+        for q in quiz.questions:
+            m = mastery_records.get(q.id)
+            
+            m_state = m.state if m else 0
+            m_step = m.step if m else 0
+            m_stability = m.stability if m else None
+            m_difficulty = m.difficulty if m else None
+            m_due = m.due if m else datetime.utcnow()
+            m_last_review = m.last_review if m else None
+            m_box_level = m.box_level if m else 1
+            
+            # Build Card for FSRS interval estimation
+            fsrs_card = Card()
+            state_map = {
+                0: State.Learning,
+                1: State.Learning,
+                2: State.Review,
+                3: State.Relearning
+            }
+            fsrs_card.state = state_map.get(m_state, State.Learning)
+            fsrs_card.step = m_step
+            fsrs_card.stability = m_stability
+            fsrs_card.difficulty = m_difficulty
+            fsrs_card.due = m_due.replace(tzinfo=timezone.utc) if m_due else now_utc
+            fsrs_card.last_review = m_last_review.replace(tzinfo=timezone.utc) if m_last_review else None
+            
+            # Compute predicted intervals
+            intervals = {}
             for r_val, r_enum in [(1, Rating.Again), (2, Rating.Hard), (3, Rating.Good), (4, Rating.Easy)]:
                 try:
                     card_copy, _ = scheduler.review_card(fsrs_card, r_enum, now_utc)
@@ -836,30 +867,27 @@ async def get_quiz_play_data(request: Request, quiz_id: int, mode: Optional[str]
                     intervals[r_val] = int_str
                 except Exception:
                     intervals[r_val] = "soon"
-                
-        q_payload = {
-            "id": q.id,
-            "content": q.content,
-            "explanation": q.explanation,
-            "ai_explanation": q.ai_explanation,
-            "stats": q.stats,
-            "box_level": m_box_level,
-            "fsrs": {
-                "state": m_state,
-                "stability": m_stability,
-                "difficulty": m_difficulty,
-                "due": m_due.isoformat() if m_due else None,
-                "last_review": m_last_review.isoformat() if m_last_review else None,
-                "intervals": intervals
-            },
-            "options": [],
-            "image": q.image,
-            "audio": q.audio,
-            "others": q.others
-        }
-        
-        # Practice questions are generated on-demand client-side
-        questions_list.append(q_payload)
+                    
+            questions_list.append({
+                "id": q.id,
+                "content": q.content,
+                "explanation": q.explanation,
+                "ai_explanation": q.ai_explanation,
+                "stats": getattr(q, 'stats', None),
+                "box_level": m_box_level,
+                "fsrs": {
+                    "state": m_state,
+                    "stability": m_stability,
+                    "difficulty": m_difficulty,
+                    "due": m_due.isoformat() if m_due else None,
+                    "last_review": m_last_review.isoformat() if m_last_review else None,
+                    "intervals": intervals
+                },
+                "options": [],
+                "image": q.image,
+                "audio": q.audio,
+                "others": q.others
+            })
         
     return {
         "id": quiz.id,
@@ -870,7 +898,7 @@ async def get_quiz_play_data(request: Request, quiz_id: int, mode: Optional[str]
         "category_id": quiz.category_id,
         "creator_id": quiz.creator_id,
         "is_collaborator": is_collaborator,
-        "user_total_xp": user_stats.get("xp", 0),
+        "user_total_xp": user_total_xp,
         "practice_needs_setup": practice_needs_setup,
         "practice_disabled": practice_disabled,
         "questions": questions_list
@@ -1476,48 +1504,63 @@ async def create_or_update_goal(request: Request, data: dict, db: AsyncSession =
 @router.get("/goals/active")
 async def get_active_goals(request: Request, local_date: Optional[str] = None, db: AsyncSession = Depends(get_db)):
     from app.modules.quiz.models import UserQuizGoal, UserDailyProgress, Quiz, Question, UserAnswer, QuizAttempt
+    from sqlalchemy.orm import joinedload
     import math
 
-    
     user_id = int(request.cookies.get("user_id", 1))
     if not local_date:
         local_date = datetime.utcnow().strftime("%Y-%m-%d")
 
+    # Fetch active goals with joinedload of Quiz to avoid N+1
     res = await db.execute(
-        select(UserQuizGoal).filter(UserQuizGoal.user_id == user_id, UserQuizGoal.status == "active")
+        select(UserQuizGoal)
+        .options(joinedload(UserQuizGoal.quiz))
+        .filter(UserQuizGoal.user_id == user_id, UserQuizGoal.status == "active")
     )
     goals = res.scalars().all()
 
+    if not goals:
+        return []
+
+    goal_ids = [goal.id for goal in goals]
+    quiz_ids = [goal.quiz_id for goal in goals]
+
+    # Bulk query daily progress
+    prog_res = await db.execute(
+        select(UserDailyProgress).filter(
+            UserDailyProgress.goal_id.in_(goal_ids),
+            UserDailyProgress.date == local_date
+        )
+    )
+    progress_map = {p.goal_id: p for p in prog_res.scalars().all()}
+
+    # Bulk query total questions count grouped by quiz_id
+    q_count_res = await db.execute(
+        select(Question.quiz_id, func.count(Question.id))
+        .filter(Question.quiz_id.in_(quiz_ids))
+        .group_by(Question.quiz_id)
+    )
+    q_count_map = {r[0]: r[1] for r in q_count_res.all()}
+
+    # Bulk query learned count grouped by quiz_id via user_card_mastery (instant index lookups)
+    learned_res = await db.execute(
+        select(Question.quiz_id, func.count(UserQuestionMastery.id))
+        .join(UserQuestionMastery, UserQuestionMastery.question_id == Question.id)
+        .filter(Question.quiz_id.in_(quiz_ids), UserQuestionMastery.user_id == user_id)
+        .group_by(Question.quiz_id)
+    )
+    learned_map = {r[0]: r[1] for r in learned_res.all()}
+
     goals_data = []
     for goal in goals:
-        # Fetch quiz info
-        quiz_res = await db.execute(select(Quiz).filter(Quiz.id == goal.quiz_id))
-        quiz = quiz_res.scalar_one_or_none()
+        quiz = goal.quiz
         if not quiz:
             continue
             
-        # Count total questions in quiz
-        q_count_res = await db.execute(select(func.count(Question.id)).filter(Question.quiz_id == goal.quiz_id))
-        total_questions = q_count_res.scalar() or 0
+        total_questions = q_count_map.get(goal.quiz_id, 0)
+        total_learned = learned_map.get(goal.quiz_id, 0)
         
-        # Count total learned/answered questions by user
-        learned_res = await db.execute(
-            select(func.count(func.distinct(Question.id)))
-            .join(UserAnswer, UserAnswer.question_id == Question.id)
-            .join(QuizAttempt, QuizAttempt.id == UserAnswer.attempt_id)
-            .filter(Question.quiz_id == goal.quiz_id, QuizAttempt.user_id == user_id)
-        )
-        total_learned = learned_res.scalar() or 0
-        
-        # Get today's progress
-        prog_res = await db.execute(
-            select(UserDailyProgress).filter(
-                UserDailyProgress.goal_id == goal.id,
-                UserDailyProgress.date == local_date
-            )
-        )
-        progress = prog_res.scalar_one_or_none()
-        
+        progress = progress_map.get(goal.id)
         done_today = progress.count_done if progress else 0
         is_target_met = progress.is_target_met if progress else False
         

@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Search, Plus, Bell, Flame, Target, Clock, Award, LayoutGrid, Compass, BarChart3, User, ChevronRight, Hash, Zap, BrainCircuit, Filter, Layers, TrendingUp, X, Archive, PlusCircle, CheckCircle2, RotateCcw, Users, Play, ChevronLeft, Info } from 'lucide-react'
+import { Search, Plus, Bell, Flame, Target, Clock, Award, LayoutGrid, Compass, BarChart3, User, ChevronRight, Hash, Zap, BrainCircuit, Filter, Layers, TrendingUp, X, Archive, PlusCircle, CheckCircle2, RotateCcw, Users, Play, ChevronLeft, Info, Brain, Trophy } from 'lucide-react'
 import { useAppStore } from '@/store/useAppStore'
 import { cn } from '@/lib/utils'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -53,6 +53,10 @@ export default function Dashboard() {
   const [selectedGoalQuiz, setSelectedGoalQuiz] = useState<Quiz | null>(null)
   const [dailyTargetInput, setDailyTargetInput] = useState(5)
   const [isGoalModalOpen, setIsGoalModalOpen] = useState(false)
+
+  // Practice Popup State
+  const [selectedPracticeQuiz, setSelectedPracticeQuiz] = useState<Quiz | null>(null)
+  const [isPracticeModalOpen, setIsPracticeModalOpen] = useState(false)
   
   // Pagination State
   const [currentPage, setCurrentPage] = useState(1)
@@ -662,13 +666,25 @@ export default function Dashboard() {
                                      </div>
                                    )}
                                 </div>
-                                <Link 
-                                   to={`/flashcard/${quiz.id}/play`}
-                                   className="w-11 h-11 rounded-2xl bg-indigo-600 text-white flex items-center justify-center shadow-lg shadow-indigo-200 hover:scale-110 active:scale-95 transition-all"
-                                   title="Start Studying Now"
-                                >
-                                   <Play className="w-4 h-4 fill-white ml-0.5" />
-                                </Link>
+                                <div className="flex items-center gap-2">
+                                  <Link 
+                                     to={`/flashcard/${quiz.id}/play`}
+                                     className="w-9 h-9 rounded-xl bg-indigo-600 text-white flex items-center justify-center shadow-md shadow-indigo-200 hover:scale-110 active:scale-95 transition-all"
+                                     title="Học Spaced Repetition (FSRS)"
+                                  >
+                                     <Brain className="w-4 h-4" />
+                                  </Link>
+                                  <button 
+                                     onClick={() => {
+                                        setSelectedPracticeQuiz(quiz)
+                                        setIsPracticeModalOpen(true)
+                                     }}
+                                     className="w-9 h-9 rounded-xl bg-emerald-600 text-white flex items-center justify-center shadow-md shadow-emerald-200 hover:scale-110 active:scale-95 transition-all"
+                                     title="Luyện tập tự do (MCQ/Typing/Listening)"
+                                  >
+                                     <Trophy className="w-4 h-4" />
+                                  </button>
+                                </div>
                              </div>
 
                              <div className="flex-1">
@@ -786,9 +802,25 @@ export default function Dashboard() {
                                {quiz.tags?.[0] && <span className="text-[8px] font-black text-indigo-500 uppercase tracking-widest">#{quiz.tags[0]}</span>}
                             </div>
                          </div>
-                         <Link to={`/flashcard/${quiz.id}/play`} className="w-10 h-10 rounded-xl bg-indigo-600 text-white flex items-center justify-center shadow-md shadow-indigo-200 active:scale-90 transition-all">
-                            <Play className="w-4 h-4 fill-white ml-0.5" />
-                         </Link>
+                         <div className="flex items-center gap-2">
+                           <Link 
+                             to={`/flashcard/${quiz.id}/play`} 
+                             className="w-9 h-9 rounded-xl bg-indigo-600 text-white flex items-center justify-center shadow-md shadow-indigo-200 active:scale-90 transition-all"
+                             title="Học Spaced Repetition (FSRS)"
+                           >
+                              <Brain className="w-4 h-4" />
+                           </Link>
+                           <button 
+                             onClick={() => {
+                                setSelectedPracticeQuiz(quiz)
+                                setIsPracticeModalOpen(true)
+                             }}
+                             className="w-9 h-9 rounded-xl bg-emerald-600 text-white flex items-center justify-center shadow-md shadow-emerald-200 active:scale-90 transition-all"
+                             title="Luyện tập tự do (MCQ/Typing/Listening)"
+                           >
+                              <Trophy className="w-4 h-4" />
+                           </button>
+                         </div>
                       </div>
                       
                       <div className="pt-2 border-t border-slate-100 flex items-center justify-between gap-2">
@@ -960,6 +992,109 @@ export default function Dashboard() {
                     className="w-full h-12 bg-indigo-600 text-white rounded-2xl font-black shadow-lg shadow-indigo-200 hover:bg-indigo-700 active:scale-95 transition-all disabled:opacity-50 disabled:bg-slate-200 disabled:shadow-none uppercase tracking-widest text-xs"
                   >
                     Save Study Goal
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        )}
+
+        {/* PRACTICE MODE SELECTOR POPUP MODAL (Highly Aesthetic, Sweet & Premium) */}
+        {isPracticeModalOpen && selectedPracticeQuiz && (
+          <div className="fixed inset-0 z-[1000] flex items-center justify-center p-6">
+            <motion.div 
+              initial={{ opacity: 0 }} 
+              animate={{ opacity: 1 }} 
+              exit={{ opacity: 0 }}
+              onClick={() => setIsPracticeModalOpen(false)}
+              className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm"
+            />
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              className="w-full max-w-md bg-white rounded-[2.5rem] shadow-2xl relative z-10 p-8 border border-slate-100 text-left overflow-hidden"
+            >
+              {/* Decorative pastel glowing blob inside modal for visual pop */}
+              <div className="absolute -top-12 -right-12 w-32 h-32 rounded-full bg-emerald-100/40 blur-2xl pointer-events-none" />
+              
+              <div className="flex items-center justify-between mb-5 relative z-10">
+                <div className="flex items-center gap-2">
+                  <div className="w-10 h-10 rounded-2xl bg-emerald-50 border border-emerald-100 flex items-center justify-center text-emerald-600">
+                    <Trophy className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="text-xs font-black text-slate-800 uppercase tracking-widest leading-none mb-1">Practice Mode</h3>
+                    <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Chọn chế độ luyện tập</p>
+                  </div>
+                </div>
+                <button onClick={() => setIsPracticeModalOpen(false)} className="w-8 h-8 rounded-full bg-slate-50 border border-slate-200/50 flex items-center justify-center text-slate-400 hover:text-rose-500 transition-all">
+                   <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              <div className="space-y-4 relative z-10">
+                <div className="bg-slate-50/60 rounded-2xl p-4 border border-slate-100 mb-2">
+                  <h4 className="text-xs font-black text-indigo-600 leading-snug line-clamp-1">{selectedPracticeQuiz.title}</h4>
+                  <p className="text-[9px] text-slate-400 uppercase tracking-wider font-black mt-0.5 flex items-center gap-1">
+                    <BrainCircuit className="w-3 h-3 text-slate-400" />
+                    {selectedPracticeQuiz.questions_count} câu hỏi có sẵn
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-1 gap-3">
+                  {/* MCQ option */}
+                  <button
+                    onClick={() => {
+                      setIsPracticeModalOpen(false)
+                      navigate(`/practice/${selectedPracticeQuiz.id}/mcq`)
+                    }}
+                    className="group w-full flex items-center gap-4 p-4 rounded-[1.75rem] border border-slate-200/60 bg-white hover:border-emerald-500 hover:bg-emerald-50/10 active:scale-[0.98] transition-all text-left shadow-sm"
+                  >
+                    <div className="w-12 h-12 rounded-2xl bg-indigo-50 border border-indigo-100/50 flex items-center justify-center text-indigo-600 group-hover:bg-indigo-600 group-hover:text-white transition-all flex-shrink-0">
+                      <LayoutGrid className="w-5 h-5" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <span className="text-[11px] font-black text-slate-800 uppercase tracking-wider block mb-0.5 group-hover:text-indigo-600 transition-colors">Trắc nghiệm (MCQ)</span>
+                      <span className="text-[9px] font-medium text-slate-400 block line-clamp-1">Luyện tập phản xạ nhanh với 4 lựa chọn có sẵn</span>
+                    </div>
+                    <ChevronRight className="w-4 h-4 text-slate-300 group-hover:text-emerald-500 group-hover:translate-x-1 transition-all flex-shrink-0" />
+                  </button>
+
+                  {/* Typing option */}
+                  <button
+                    onClick={() => {
+                      setIsPracticeModalOpen(false)
+                      navigate(`/practice/${selectedPracticeQuiz.id}/typing`)
+                    }}
+                    className="group w-full flex items-center gap-4 p-4 rounded-[1.75rem] border border-slate-200/60 bg-white hover:border-emerald-500 hover:bg-emerald-50/10 active:scale-[0.98] transition-all text-left shadow-sm"
+                  >
+                    <div className="w-12 h-12 rounded-2xl bg-rose-50 border border-rose-100/50 flex items-center justify-center text-rose-600 group-hover:bg-rose-600 group-hover:text-white transition-all flex-shrink-0">
+                      <Zap className="w-5 h-5" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <span className="text-[11px] font-black text-slate-800 uppercase tracking-wider block mb-0.5 group-hover:text-rose-600 transition-colors">Gõ từ vựng (Typing)</span>
+                      <span className="text-[9px] font-medium text-slate-400 block line-clamp-1">Gõ trực tiếp ký tự Kanji, Hiragana hoặc Romaji để ghi nhớ sâu</span>
+                    </div>
+                    <ChevronRight className="w-4 h-4 text-slate-300 group-hover:text-emerald-500 group-hover:translate-x-1 transition-all flex-shrink-0" />
+                  </button>
+
+                  {/* Listening option */}
+                  <button
+                    onClick={() => {
+                      setIsPracticeModalOpen(false)
+                      navigate(`/practice/${selectedPracticeQuiz.id}/listening`)
+                    }}
+                    className="group w-full flex items-center gap-4 p-4 rounded-[1.75rem] border border-slate-200/60 bg-white hover:border-emerald-500 hover:bg-emerald-50/10 active:scale-[0.98] transition-all text-left shadow-sm"
+                  >
+                    <div className="w-12 h-12 rounded-2xl bg-amber-50 border border-amber-100/50 flex items-center justify-center text-amber-600 group-hover:bg-amber-600 group-hover:text-white transition-all flex-shrink-0">
+                      <Play className="w-5 h-5 fill-amber-600 group-hover:fill-white" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <span className="text-[11px] font-black text-slate-800 uppercase tracking-wider block mb-0.5 group-hover:text-amber-600 transition-colors">Luyện nghe (Listening)</span>
+                      <span className="text-[9px] font-medium text-slate-400 block line-clamp-1">Nghe phát âm chuẩn và chọn đáp án đúng cực nhạy</span>
+                    </div>
+                    <ChevronRight className="w-4 h-4 text-slate-300 group-hover:text-emerald-500 group-hover:translate-x-1 transition-all flex-shrink-0" />
                   </button>
                 </div>
               </div>
