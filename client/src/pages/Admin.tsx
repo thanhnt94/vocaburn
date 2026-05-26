@@ -476,10 +476,36 @@ export default function Admin() {
                             <td className="py-4 px-3 font-semibold">{u.username}</td>
                             <td className="py-4 px-3 text-gray-400">{u.email || 'None'}</td>
                             <td className="py-4 px-3">
-                              <span className={`px-2.5 py-1 rounded-full text-xs font-bold ${u.role === 'admin' ? 'bg-pink-500/10 text-pink-400 border border-pink-500/20' : 'bg-indigo-500/10 text-indigo-400 border border-indigo-500/20'}`}>
-                                {u.role.toUpperCase()}
-                              </span>
+                              <select
+                                value={u.role}
+                                onChange={async (e) => {
+                                  const newRole = e.target.value;
+                                  if (u.id === user?.id) {
+                                    setErrorMsg("You cannot change your own role!");
+                                    return;
+                                  }
+                                  try {
+                                    setGlobalLoading(true);
+                                    await axios.post(`/api/v1/admin/users/${u.id}/role`, { role: newRole });
+                                    setSuccessMsg(`Updated role for ${u.username} to ${newRole.toUpperCase()}!`);
+                                    setErrorMsg('');
+                                    loadUsersList();
+                                  } catch (err: any) {
+                                    setErrorMsg(err.response?.data?.error || "Failed to update user role.");
+                                  } finally {
+                                    setGlobalLoading(false);
+                                  }
+                                }}
+                                disabled={u.id === user?.id}
+                                className={`bg-[#0d1321] border border-white/10 rounded-xl px-3 py-1.5 text-xs font-bold focus:outline-none focus:ring-1 focus:ring-indigo-500 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed ${
+                                  u.role === 'admin' ? 'text-pink-400' : 'text-indigo-400'
+                                }`}
+                              >
+                                <option value="user" className="bg-[#0d1321] text-indigo-400 font-bold">USER</option>
+                                <option value="admin" className="bg-[#0d1321] text-pink-400 font-bold">ADMIN</option>
+                              </select>
                             </td>
+
                           </tr>
                         ))
                       )}

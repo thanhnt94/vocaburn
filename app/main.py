@@ -486,6 +486,31 @@ async def api_admin_users(request: Request, db: AsyncSession = Depends(get_db)):
         } for u in users
     ]
 
+@app.post("/api/v1/admin/users/{user_id}/role")
+async def api_admin_update_user_role(user_id: int, payload: dict, request: Request, db: AsyncSession = Depends(get_db)):
+    from app.modules.auth.services.auth_service import AuthService
+    current_user = await AuthService.get_current_user(request, db)
+    if not current_user or current_user.role != "admin":
+        return JSONResponse(status_code=401, content={"error": "Unauthorized"})
+        
+    role = payload.get("role")
+    if role not in ["admin", "user"]:
+        return JSONResponse(status_code=400, content={"error": "Invalid role"})
+        
+    from app.modules.auth.models import User as UserDB
+    user_result = await db.execute(select(UserDB).where(UserDB.id == user_id))
+    user_to_update = user_result.scalar_one_or_none()
+    if not user_to_update:
+        return JSONResponse(status_code=404, content={"error": "User not found"})
+        
+    if user_to_update.id == current_user.id and role != "admin":
+        return JSONResponse(status_code=400, content={"error": "You cannot demote yourself from Admin"})
+        
+    user_to_update.role = role
+    await db.commit()
+    return {"status": "success", "user_id": user_id, "new_role": role}
+
+
 @app.get("/api/v1/admin/maintenance")
 async def api_admin_maintenance(request: Request, db: AsyncSession = Depends(get_db)):
     from app.modules.auth.services.auth_service import AuthService
