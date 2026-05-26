@@ -31,3 +31,8 @@ google-genai
 
 # Memory Scheduling
 fsrs
+
+# Audio / TTS
+edge-tts
+gTTS
+pydub
