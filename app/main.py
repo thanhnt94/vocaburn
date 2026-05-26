@@ -36,7 +36,7 @@ app = FastAPI(
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 # Ensure audio storage folder exists
 os.makedirs(settings.VOCABURN_STORAGE_DIR, exist_ok=True)
-app.mount("/static/uploads", StaticFiles(directory=settings.VOCABURN_STORAGE_DIR), name="vocaburn_storage")
+app.mount("/uploads", StaticFiles(directory=settings.VOCABURN_STORAGE_DIR), name="vocaburn_storage")
 app.mount("/static", StaticFiles(directory=os.path.join(BASE_DIR, "static")), name="static")
 # Mount Vite dist specifically if it exists
 DIST_DIR = os.path.join(BASE_DIR, "static", "dist")

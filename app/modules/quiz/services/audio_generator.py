@@ -103,12 +103,14 @@ class AudioGenerator:
                 
                 edge_err = None
                 if voice_edge:
-                    print(f"\n[TTS GENERATOR] Attempting Microsoft Edge TTS for lang '{lang}' using voice '{voice_edge}'...")
+                    print(f"\n[TTS GENERATOR] [TRY EDGE] Attempting Microsoft Edge TTS for lang '{lang}' using voice '{voice_edge}'...")
                     try:
                         communicate = edge_tts.Communicate(seg_text, voice_edge)
                         await communicate.save(temp_path)
                         success_edge = True
-                        print(f"[TTS GENERATOR] Microsoft Edge TTS generated successfully for segment: '{seg_text[:30]}...'")
+                        log_msg = f"[TTS GENERATOR] [SUCCESS EDGE] Microsoft Edge TTS generated successfully. Voice: '{voice_edge}' | Lang: '{lang}' | Segment: '{seg_text[:40]}...'"
+                        print(log_msg)
+                        logger.info(log_msg)
                     except Exception as ee:
                         edge_err = str(ee)
                         msg = f"\n==================================================\n[TTS WARNING] Microsoft Edge TTS failed for voice '{voice_edge}'!\nSegment text: '{seg_text}'\nError details: {ee}\n=================================================="
@@ -119,14 +121,16 @@ class AudioGenerator:
                 
                 # Fallback to gTTS if Edge TTS failed or lang not supported
                 if not success_edge:
-                    print(f"[TTS GENERATOR] Falling back to Google TTS (gTTS) for lang '{lang}'...")
+                    print(f"[TTS GENERATOR] [TRY GTTS] Falling back to Google TTS (gTTS) for lang '{lang}'...")
                     try:
                         # run gtts in thread since it's synchronous/blocking
                         def run_gtts():
                             tts = gTTS(text=seg_text, lang=lang)
                             tts.save(temp_path)
                         await asyncio.to_thread(run_gtts)
-                        print(f"[TTS GENERATOR] Google TTS generated successfully for segment: '{seg_text[:30]}...'")
+                        log_msg = f"[TTS GENERATOR] [SUCCESS GTTS] Google TTS generated successfully. Lang: '{lang}' | Segment: '{seg_text[:40]}...'"
+                        print(log_msg)
+                        logger.info(log_msg)
                     except Exception as ge:
                         msg = f"\n==================================================\n[TTS CRITICAL ERROR] Google TTS fallback also failed!\nSegment text: '{seg_text}'\nError details: {ge}\n=================================================="
                         print(msg)

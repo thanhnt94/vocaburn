@@ -722,6 +722,17 @@ async def save_practice_settings(request: Request, quiz_id: int, payload: dict, 
     await db.commit()
     return {"status": "ok"}
 
+def fix_static_urls(val):
+    if not val:
+        return val
+    if isinstance(val, str):
+        return val.replace("/static/uploads/", "/uploads/")
+    if isinstance(val, dict):
+        return {k: fix_static_urls(v) for k, v in val.items()}
+    if isinstance(val, list):
+        return [fix_static_urls(v) for v in val]
+    return val
+
 @router.get("/{quiz_id}/play-data")
 async def get_quiz_play_data(request: Request, quiz_id: int, mode: Optional[str] = None, db: AsyncSession = Depends(get_db)):
     user_id = int(request.cookies.get("user_id", 1))
@@ -815,9 +826,9 @@ async def get_quiz_play_data(request: Request, quiz_id: int, mode: Optional[str]
                 "box_level": 1,
                 "fsrs": None,
                 "options": [],
-                "image": q.image,
-                "audio": q.audio,
-                "others": q.others
+                "image": fix_static_urls(q.image),
+                "audio": fix_static_urls(q.audio),
+                "others": fix_static_urls(q.others)
             })
     else:
         from fsrs import Card, Scheduler, Rating, State
@@ -884,9 +895,9 @@ async def get_quiz_play_data(request: Request, quiz_id: int, mode: Optional[str]
                     "intervals": intervals
                 },
                 "options": [],
-                "image": q.image,
-                "audio": q.audio,
-                "others": q.others
+                "image": fix_static_urls(q.image),
+                "audio": fix_static_urls(q.audio),
+                "others": fix_static_urls(q.others)
             })
         
     return {
@@ -1503,7 +1514,7 @@ async def create_or_update_goal(request: Request, data: dict, db: AsyncSession =
 
 @router.get("/goals/active")
 async def get_active_goals(request: Request, local_date: Optional[str] = None, db: AsyncSession = Depends(get_db)):
-    from app.modules.quiz.models import UserQuizGoal, UserDailyProgress, Quiz, Question, UserAnswer, QuizAttempt
+    from app.modules.quiz.models import UserQuizGoal, UserDailyProgress, Quiz, Question, UserAnswer, QuizAttempt, UserQuestionMastery
     from sqlalchemy.orm import joinedload
     import math
 
@@ -2060,7 +2071,7 @@ async def generate_question_audio(question_id: int, request: Request, face: str 
     physical_path = os.path.join(folder_path, filename)
     
     # Construct relative URL
-    url = f"/static/uploads/{q.quiz_id}/audio/{filename}"
+    url = f"/uploads/{q.quiz_id}/audio/{filename}"
     
     # Check if we already have it generated on disk
     if os.path.exists(physical_path):

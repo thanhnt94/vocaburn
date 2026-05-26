@@ -268,6 +268,7 @@ const speakMultiLanguage = (text: string) => {
       }
     }
 
+    console.log(`[CLIENT TTS - WEB SPEECH] Speaking: "${seg.text}" | Lang: "${seg.langCode}" | Selected Voice: "${u.voice ? u.voice.name : 'Default/System voice'}"`);
     window.speechSynthesis.speak(u);
   });
 }
@@ -290,6 +291,7 @@ export default function FlashcardPlay() {
     // Lazily generate audio if it is not yet created on backend, but ONLY if script is present
     if (!audioUrl && currentQuestion.id && script && script.trim()) {
       try {
+        console.log(`[CLIENT TTS] Audio file missing. Requesting generation for question ${currentQuestion.id} (${face})...`);
         const res = await axios.get(`/api/v1/quiz/generate-audio/${currentQuestion.id}?face=${face}`);
         audioUrl = res.data.url;
         if (audioUrl) {
@@ -306,10 +308,11 @@ export default function FlashcardPlay() {
     }
 
     if (audioUrl) {
-      console.log(`[TTS PLAYBACK] Playing generated audio file: ${audioUrl}`);
-      const audio = new Audio(audioUrl);
+      const cacheBustedUrl = `${audioUrl}${audioUrl.includes('?') ? '&' : '?'}t=${Date.now()}`;
+      console.log(`[TTS PLAYBACK] Playing generated server audio: ${cacheBustedUrl}`);
+      const audio = new Audio(cacheBustedUrl);
       audio.play().catch(err => {
-        console.warn(`[TTS FALLBACK WARNING] Playback of generated audio file ${audioUrl} failed (possibly block by browser autoplay policy or corrupted file). Error:`, err.message);
+        console.warn(`[TTS FALLBACK WARNING] Playback of generated audio file ${cacheBustedUrl} failed (possibly blocked by browser autoplay policy or corrupted file). Error:`, err.message);
         if (script && script.trim()) {
           console.warn(`[TTS FALLBACK] Resorting to browser's client-side speech synthesis (Web Speech API) for: "${script}"`);
           speakMultiLanguage(script);
