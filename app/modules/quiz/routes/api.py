@@ -2010,9 +2010,8 @@ async def generate_question_audio(question_id: int, request: Request, face: str 
     filename = f"{q.id}_front.mp3" if face == "front" else f"{q.id}_back.mp3"
     physical_path = os.path.join(folder_path, filename)
     
-    # Construct fully-qualified absolute URL
-    base_url = str(request.base_url).rstrip('/')
-    url = f"{base_url}/static/uploads/{q.quiz_id}/audio/{filename}"
+    # Construct relative URL
+    url = f"/static/uploads/{q.quiz_id}/audio/{filename}"
     
     # Check if we already have it generated on disk
     if os.path.exists(physical_path):
