@@ -219,7 +219,7 @@ async def get_dashboard_data(request: Request, db: AsyncSession = Depends(get_db
             "is_creator": q.creator_id == user_id_int
         }
         
-        if q.creator_id == user_id_int:
+        if q.creator_id == user_id_int or user.role == "admin":
             created_quizzes_data.append(quiz_dict)
             
         is_archived = interaction_map.get(q.id)
