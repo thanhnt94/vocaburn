@@ -76,6 +76,15 @@ class AudioGenerator:
         Supports multi-language segments and merges them if pydub is available.
         """
         try:
+            # Ensure /usr/bin and /usr/local/bin are in PATH so pydub/ffmpeg can be found
+            import os
+            extra_paths = ["/usr/bin", "/usr/local/bin"]
+            current_path = os.environ.get("PATH", "")
+            for p in extra_paths:
+                if p not in current_path:
+                    current_path += os.pathsep + p
+            os.environ["PATH"] = current_path
+
             segments = cls.parse_segments(text)
             if not segments:
                 return False
