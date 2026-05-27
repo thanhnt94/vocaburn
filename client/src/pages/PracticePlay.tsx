@@ -4127,7 +4127,7 @@ export default function PracticePlay() {
                               FRONT CARD
                             </span>
                             <span className="text-[10px] font-black tracking-wider text-slate-500 bg-slate-50 px-3 py-1.5 rounded-xl border border-slate-100 shadow-sm">
-                              {currentIndex + 1} / {session.questions?.length || 0}
+                              {currentIndex + 1}
                             </span>
                           </div>
 
@@ -4193,7 +4193,7 @@ export default function PracticePlay() {
                               BACK CARD
                             </span>
                             <span className="text-[10px] font-black tracking-wider text-slate-500 bg-slate-50 px-3 py-1.5 rounded-xl border border-slate-100 shadow-sm">
-                              {currentIndex + 1} / {session.questions?.length || 0}
+                              {currentIndex + 1}
                             </span>
                           </div>
 

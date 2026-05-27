@@ -314,6 +314,23 @@ async def record_answer(request: Request, data: dict, db: AsyncSession = Depends
             else:
                 mastery.consecutive_correct = 0
                 
+            next_intervals = {}
+            for r_val, r_enum in [(1, Rating.Again), (2, Rating.Hard), (3, Rating.Good), (4, Rating.Easy)]:
+                try:
+                    card_copy, _ = scheduler.review_card(updated_card, r_enum, now_utc)
+                    delta = card_copy.due - now_utc
+                    if delta.total_seconds() < 60:
+                        int_str = "<1m"
+                    elif delta.total_seconds() < 3600:
+                        int_str = f"{int(delta.total_seconds() / 60)}m"
+                    elif delta.total_seconds() < 86400:
+                        int_str = f"{int(delta.total_seconds() / 3600)}h"
+                    else:
+                        int_str = f"{int(delta.total_seconds() / 86400)}d"
+                    next_intervals[r_val] = int_str
+                except Exception:
+                    next_intervals[r_val] = "soon"
+
             mastery_update_info = {
                 "old_level": old_box_level,
                 "new_level": new_box_level,
@@ -322,7 +339,8 @@ async def record_answer(request: Request, data: dict, db: AsyncSession = Depends
                 "state": mastery.state,
                 "stability": mastery.stability,
                 "difficulty": mastery.difficulty,
-                "due": mastery.due.isoformat() if mastery.due else None
+                "due": mastery.due.isoformat() if mastery.due else None,
+                "intervals": next_intervals
             }
         else:
             mastery_update_info = None
@@ -852,28 +870,22 @@ async def get_quiz_play_data(request: Request, quiz_id: int, mode: Optional[str]
             fsrs_card.due = m_due.replace(tzinfo=timezone.utc) if m_due else now_utc
             fsrs_card.last_review = m_last_review.replace(tzinfo=timezone.utc) if m_last_review else None
             
-            # Compute predicted intervals (Only for new, due, or active learning cards to make deck loading instant)
             intervals = {}
-            is_due_or_new = not m or m_due <= datetime.utcnow() or m_state in (1, 3)
-            
-            if is_due_or_new:
-                for r_val, r_enum in [(1, Rating.Again), (2, Rating.Hard), (3, Rating.Good), (4, Rating.Easy)]:
-                    try:
-                        card_copy, _ = scheduler.review_card(fsrs_card, r_enum, now_utc)
-                        delta = card_copy.due - now_utc
-                        if delta.total_seconds() < 60:
-                            int_str = "<1m"
-                        elif delta.total_seconds() < 3600:
-                            int_str = f"{int(delta.total_seconds() / 60)}m"
-                        elif delta.total_seconds() < 86400:
-                            int_str = f"{int(delta.total_seconds() / 3600)}h"
-                        else:
-                            int_str = f"{int(delta.total_seconds() / 86400)}d"
-                        intervals[r_val] = int_str
-                    except Exception:
-                        intervals[r_val] = "soon"
-            else:
-                intervals = {1: "soon", 2: "soon", 3: "soon", 4: "soon"}
+            for r_val, r_enum in [(1, Rating.Again), (2, Rating.Hard), (3, Rating.Good), (4, Rating.Easy)]:
+                try:
+                    card_copy, _ = scheduler.review_card(fsrs_card, r_enum, now_utc)
+                    delta = card_copy.due - now_utc
+                    if delta.total_seconds() < 60:
+                        int_str = "<1m"
+                    elif delta.total_seconds() < 3600:
+                        int_str = f"{int(delta.total_seconds() / 60)}m"
+                    elif delta.total_seconds() < 86400:
+                        int_str = f"{int(delta.total_seconds() / 3600)}h"
+                    else:
+                        int_str = f"{int(delta.total_seconds() / 86400)}d"
+                    intervals[r_val] = int_str
+                except Exception:
+                    intervals[r_val] = "soon"
                     
             questions_list.append({
                 "id": q.id,
