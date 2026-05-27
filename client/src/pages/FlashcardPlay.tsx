@@ -4056,12 +4056,17 @@ export default function FlashcardPlay() {
                         <span className="text-[10px] font-black tracking-widest text-indigo-600 bg-indigo-50 px-3 py-1.5 rounded-xl border border-indigo-100 uppercase shadow-sm">
                           FRONT CARD
                         </span>
-                        <span className="text-[10px] font-black tracking-wider text-slate-500 bg-slate-50 px-3 py-1.5 rounded-xl border border-slate-100 shadow-sm">
+                        <span className="text-[10px] font-black tracking-wider text-white bg-indigo-500 px-3 py-1.5 rounded-xl border border-indigo-600 shadow-sm">
                           {currentIndex + 1}
                         </span>
                       </div>
                       
                       <div className="flex items-center gap-2">
+                        {currentQuestion && (
+                          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-[10px] font-black uppercase tracking-wider bg-slate-100 text-slate-600 border border-slate-200/60 shadow-sm">
+                            {currentQuestion.stats?.total || 0} reviews
+                          </span>
+                        )}
                         {currentQuestion && getMasteryPill(currentQuestion.box_level || 1)}
                       </div>
                     </div>
@@ -4110,12 +4115,17 @@ export default function FlashcardPlay() {
                         <span className="text-[10px] font-black tracking-widest text-emerald-600 bg-emerald-50 px-3 py-1.5 rounded-xl border border-emerald-100 uppercase shadow-sm">
                           BACK CARD
                         </span>
-                        <span className="text-[10px] font-black tracking-wider text-slate-500 bg-slate-50 px-3 py-1.5 rounded-xl border border-slate-100 shadow-sm">
+                        <span className="text-[10px] font-black tracking-wider text-white bg-indigo-500 px-3 py-1.5 rounded-xl border border-indigo-600 shadow-sm">
                           {currentIndex + 1}
                         </span>
                       </div>
                       
                       <div className="flex items-center gap-2">
+                        {currentQuestion && (
+                          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-[10px] font-black uppercase tracking-wider bg-slate-100 text-slate-600 border border-slate-200/60 shadow-sm">
+                            {currentQuestion.stats?.total || 0} reviews
+                          </span>
+                        )}
                         {currentQuestion && getMasteryPill(currentQuestion.box_level || 1)}
                       </div>
                     </div>
