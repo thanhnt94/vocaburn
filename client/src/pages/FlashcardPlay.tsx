@@ -4062,11 +4062,6 @@ export default function FlashcardPlay() {
                       </div>
                       
                       <div className="flex items-center gap-2">
-                        {currentQuestion && (
-                          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-[10px] font-black uppercase tracking-wider bg-slate-100 text-slate-600 border border-slate-200/60 shadow-sm">
-                            {currentQuestion.stats?.total || 0} reviews
-                          </span>
-                        )}
                         {currentQuestion && getMasteryPill(currentQuestion.box_level || 1)}
                       </div>
                     </div>
@@ -4121,11 +4116,6 @@ export default function FlashcardPlay() {
                       </div>
                       
                       <div className="flex items-center gap-2">
-                        {currentQuestion && (
-                          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-[10px] font-black uppercase tracking-wider bg-slate-100 text-slate-600 border border-slate-200/60 shadow-sm">
-                            {currentQuestion.stats?.total || 0} reviews
-                          </span>
-                        )}
                         {currentQuestion && getMasteryPill(currentQuestion.box_level || 1)}
                       </div>
                     </div>
@@ -4205,47 +4195,28 @@ export default function FlashcardPlay() {
                       const allTimeAccuracy = allTimeTotal > 0 ? Math.round((allTimeCorrect / allTimeTotal) * 100) : 0;
 
                       return (
-                        <div className="md:mt-3 mt-1.5 p-2.5 bg-slate-50/50 rounded-2xl border border-slate-100 flex flex-col gap-2 w-full">
+                        <div className="md:mt-3 mt-1.5 p-2.5 bg-slate-50/50 rounded-2xl border border-slate-100 flex flex-col gap-1.5 w-full">
                           <div className="flex items-center justify-between text-[8px] font-black text-slate-400 uppercase tracking-widest px-1">
                             <span>Card Performance Stats</span>
-                            {allTimeTotal > 0 && <span>Accuracy: {allTimeAccuracy}%</span>}
+                            <span>{allTimeTotal} reviews {allTimeTotal > 0 && `(Accuracy: ${allTimeAccuracy}%)`}</span>
                           </div>
 
-                          <div className="grid grid-cols-2 gap-3">
-                            {/* Session Reviews History */}
-                            <div className="flex flex-col gap-1 justify-center">
-                              <span className="text-[7px] font-black text-slate-400 uppercase tracking-wider pl-1">Session Practice</span>
-                              {sessionRatings.length > 0 ? (
-                                <div className="h-2 w-full rounded-full bg-slate-200/60 overflow-hidden flex shadow-inner">
-                                  {sessionRatings.map((rating, idx) => {
-                                    const colorMap = ['bg-rose-500', 'bg-amber-500', 'bg-indigo-500', 'bg-emerald-500'];
-                                    return (
-                                      <div 
-                                        key={idx} 
-                                        className={cn("h-full flex-1 border-r last:border-0 border-white/20", colorMap[rating] || 'bg-slate-400')}
-                                        title={`Review ${idx + 1}: ${['Again', 'Hard', 'Good', 'Easy'][rating]}`}
-                                      />
-                                    );
-                                  })}
-                                </div>
-                              ) : (
-                                <span className="text-[8px] font-bold text-slate-300 italic uppercase pl-1">No reviews yet</span>
-                              )}
+                          <div className="grid grid-cols-4 gap-2">
+                            <div className="flex flex-col items-center justify-center p-1.5 rounded-xl bg-rose-50/80 border border-rose-100/50 text-rose-600 shadow-sm">
+                              <span className="text-[8px] font-black tracking-wider uppercase">Again</span>
+                              <span className="text-xs font-black">{stats.again_count || 0}</span>
                             </div>
-
-                            {/* All-time stats */}
-                            <div className="flex flex-col gap-1 justify-center">
-                              <span className="text-[7px] font-black text-slate-400 uppercase tracking-wider pl-1">All-Time ({allTimeTotal} reviews)</span>
-                              {allTimeTotal > 0 ? (
-                                <div className="h-2 w-full rounded-full bg-slate-100 overflow-hidden flex shadow-inner">
-                                  {(stats.again_count || 0) > 0 && <div className="h-full bg-rose-500" style={{ width: `${((stats.again_count || 0) / allTimeTotal) * 100}%` }} title={`Again: ${stats.again_count}`} />}
-                                  {(stats.hard_count || 0) > 0 && <div className="h-full bg-amber-500" style={{ width: `${((stats.hard_count || 0) / allTimeTotal) * 100}%` }} title={`Hard: ${stats.hard_count}`} />}
-                                  {(stats.good_count || 0) > 0 && <div className="h-full bg-indigo-500" style={{ width: `${((stats.good_count || 0) / allTimeTotal) * 100}%` }} title={`Good: ${stats.good_count}`} />}
-                                  {(stats.easy_count || 0) > 0 && <div className="h-full bg-emerald-500" style={{ width: `${((stats.easy_count || 0) / allTimeTotal) * 100}%` }} title={`Easy: ${stats.easy_count}`} />}
-                                </div>
-                              ) : (
-                                <span className="text-[8px] font-bold text-slate-300 italic uppercase pl-1">New card</span>
-                              )}
+                            <div className="flex flex-col items-center justify-center p-1.5 rounded-xl bg-amber-50/80 border border-amber-100/50 text-amber-600 shadow-sm">
+                              <span className="text-[8px] font-black tracking-wider uppercase">Hard</span>
+                              <span className="text-xs font-black">{stats.hard_count || 0}</span>
+                            </div>
+                            <div className="flex flex-col items-center justify-center p-1.5 rounded-xl bg-indigo-50/80 border border-indigo-100/50 text-indigo-600 shadow-sm">
+                              <span className="text-[8px] font-black tracking-wider uppercase">Good</span>
+                              <span className="text-xs font-black">{stats.good_count || 0}</span>
+                            </div>
+                            <div className="flex flex-col items-center justify-center p-1.5 rounded-xl bg-emerald-50/80 border border-emerald-100/50 text-emerald-600 shadow-sm">
+                              <span className="text-[8px] font-black tracking-wider uppercase">Easy</span>
+                              <span className="text-xs font-black">{stats.easy_count || 0}</span>
                             </div>
                           </div>
                         </div>
