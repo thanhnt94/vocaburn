@@ -201,6 +201,7 @@ async def record_answer(request: Request, data: dict, db: AsyncSession = Depends
     goal_update_info = None
     mastery_update_info = None
     unlocked_badge_info = None
+    is_originally_new = False
 
     if question:
         attempt_res = await db.execute(select(QuizAttempt).filter(QuizAttempt.user_id == user_id, QuizAttempt.quiz_id == question.quiz_id).order_by(QuizAttempt.id.desc()))
@@ -234,6 +235,7 @@ async def record_answer(request: Request, data: dict, db: AsyncSession = Depends
             )
             mastery = mastery_res.scalar_one_or_none()
             if not mastery:
+                is_originally_new = True
                 mastery = UserQuestionMastery(
                     user_id=user_id,
                     question_id=question_id,
@@ -247,6 +249,8 @@ async def record_answer(request: Request, data: dict, db: AsyncSession = Depends
                 )
                 db.add(mastery)
                 await db.flush()
+            else:
+                is_originally_new = (mastery.last_review is None)
     
             old_box_level = mastery.box_level
                 
@@ -355,21 +359,8 @@ async def record_answer(request: Request, data: dict, db: AsyncSession = Depends
                 )
                 db.add(progress)
                 await db.flush()
-            # Only count toward goal if this is a BRAND NEW question (never answered before by this user)
-            prior_answer_res = await db.execute(
-                select(func.count(UserAnswer.id)).where(
-                    UserAnswer.question_id == question_id,
-                    UserAnswer.attempt_id.in_(
-                        select(QuizAttempt.id).where(
-                            QuizAttempt.user_id == user_id,
-                            QuizAttempt.quiz_id == question.quiz_id
-                        )
-                    ),
-                    UserAnswer.id != db_answer.id  # Exclude the answer we just inserted
-                )
-            )
-            prior_count = prior_answer_res.scalar() or 0
-            is_new_question = (prior_count == 0)
+            # Only count toward goal if this is a BRAND NEW question in FSRS (never reviewed before by this user under FSRS)
+            is_new_question = is_originally_new
             
             if is_new_question:
                 progress.count_done += 1

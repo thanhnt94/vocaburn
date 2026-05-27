@@ -28,7 +28,7 @@ export default function Layout() {
     { label: 'Stats', path: '/stats', icon: BarChart3 },
     { label: 'Manage', path: '/manage', icon: Library },
     { label: 'Room', path: '/room/join', icon: Users },
-    { label: 'Settings', path: '/profile', icon: Settings },
+    { label: 'Settings', path: '/profile', icon: User },
   ]
 
   if (user?.role === 'admin') {
@@ -147,7 +147,7 @@ export default function Layout() {
       {isLoggedIn && (
         <div className="fixed bottom-0 left-0 right-0 z-[120] md:hidden bg-white/80 backdrop-blur-2xl border-t border-slate-100 px-6 py-3">
           <nav className="flex items-center justify-between max-w-md mx-auto h-16">
-            {navItems.map((item, idx) => {
+            {navItems.filter(item => item.label !== 'Admin').map((item, idx) => {
               const Icon = item.icon
               const isActive = location.pathname === item.path
               

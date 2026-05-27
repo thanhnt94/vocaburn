@@ -352,7 +352,7 @@ export default function FlashcardPlay() {
     }
     return true;
   });
-  const [currentIndex, setCurrentIndex] = useState(0)
+  const [currentIndex, setCurrentIndex] = useState(-1)
   const [selectedOption, setSelectedOption] = useState<number | null>(null)
   const [showFeedback, setShowFeedback] = useState(false)
   const [isFlipped, setIsFlipped] = useState(false)
@@ -1186,6 +1186,7 @@ export default function FlashcardPlay() {
       
       if (activeTab === 'practice') {
         fetchPracticeSettings()
+        if (currentIndex < 0) setCurrentIndex(0)
       }
 
       // 2. Non-blocking secondary assets: staggered via timeouts to eliminate server resource contention
@@ -1338,8 +1339,13 @@ export default function FlashcardPlay() {
         if (sessionRes.data.state?.streak) {
           setStreak(sessionRes.data.state.streak)
         }
+      } else {
+        if (currentIndex < 0) setCurrentIndex(0)
       }
-    }).catch(e => console.error("Failed to load session", e))
+    }).catch(e => {
+      console.error("Failed to load session", e)
+      if (currentIndex < 0) setCurrentIndex(0)
+    })
         }, 1000)
       }
     } catch (e) {
@@ -1585,8 +1591,16 @@ export default function FlashcardPlay() {
         else if (rating === 3) localDue.setMinutes(localDue.getMinutes() + 10)
         else localDue.setDate(localDue.getDate() + 4)
 
+        let nextState = 1 // default to learning state
+        if (rating === 4) {
+          nextState = 2 // Review
+        } else if (q.fsrs?.state === 2 || q.fsrs?.state === 3) {
+          nextState = 3 // Relearning
+        }
+
         q.fsrs = {
-          ...(q.fsrs || { state: 0, stability: null, difficulty: null, intervals: {} }),
+          ...(q.fsrs || { stability: null, difficulty: null, intervals: {} }),
+          state: nextState,
           due: localDue.toISOString()
         }
 
@@ -3595,7 +3609,7 @@ export default function FlashcardPlay() {
     );
   }
 
-  if (!session) return <div className="min-h-screen flex items-center justify-center font-black animate-pulse">LOADING SESSION...</div>
+  if (!session || currentIndex < 0) return <div className="min-h-screen flex items-center justify-center font-black animate-pulse">LOADING SESSION...</div>
 
   return (
     <div className="h-screen flex flex-col bg-gradient-to-br from-slate-50 via-indigo-50/20 to-slate-50 text-slate-900 font-sans overflow-hidden relative">
@@ -4305,7 +4319,7 @@ export default function FlashcardPlay() {
                         >
                           <span className={cn("text-[10px] font-black tracking-wider transition-colors duration-200", hasRated && selectedOption === 0 ? "text-white" : "text-rose-500")}>AGAIN</span>
                           <span className={cn("text-xs font-black transition-colors duration-200", hasRated && selectedOption === 0 ? "text-rose-100" : "text-rose-600")}>
-                            {currentQuestion?.fsrs?.intervals?.[1] || "<10m"}
+                            {currentQuestion?.fsrs?.intervals?.[1] || "1m"}
                           </span>
                         </button>
 
@@ -4320,7 +4334,7 @@ export default function FlashcardPlay() {
                         >
                           <span className={cn("text-[10px] font-black tracking-wider transition-colors duration-200", hasRated && selectedOption === 1 ? "text-white" : "text-amber-500")}>HARD</span>
                           <span className={cn("text-xs font-black transition-colors duration-200", hasRated && selectedOption === 1 ? "text-amber-100" : "text-amber-600")}>
-                            {currentQuestion?.fsrs?.intervals?.[2] || "12h"}
+                            {currentQuestion?.fsrs?.intervals?.[2] || "5m"}
                           </span>
                         </button>
 
@@ -4335,7 +4349,7 @@ export default function FlashcardPlay() {
                         >
                           <span className={cn("text-[10px] font-black tracking-wider transition-colors duration-200", hasRated && selectedOption === 2 ? "text-white" : "text-indigo-500")}>GOOD</span>
                           <span className={cn("text-xs font-black transition-colors duration-200", hasRated && selectedOption === 2 ? "text-indigo-100" : "text-indigo-600")}>
-                            {currentQuestion?.fsrs?.intervals?.[3] || "2d"}
+                            {currentQuestion?.fsrs?.intervals?.[3] || "10m"}
                           </span>
                         </button>
 
@@ -4350,7 +4364,7 @@ export default function FlashcardPlay() {
                         >
                           <span className={cn("text-[10px] font-black tracking-wider transition-colors duration-200", hasRated && selectedOption === 3 ? "text-white" : "text-emerald-500")}>EASY</span>
                           <span className={cn("text-xs font-black transition-colors duration-200", hasRated && selectedOption === 3 ? "text-emerald-100" : "text-emerald-600")}>
-                            {currentQuestion?.fsrs?.intervals?.[4] || "5d"}
+                            {currentQuestion?.fsrs?.intervals?.[4] || "4d"}
                           </span>
                         </button>
                       </div>
@@ -4379,10 +4393,10 @@ export default function FlashcardPlay() {
                       
                       // Fallback interval label if the API response hasn't arrived/updated the due time yet
                       if (!countdownStr) {
-                        if (selectedOption === 0) countdownStr = currentQuestion?.fsrs?.intervals?.[1] || "<10m";
-                        else if (selectedOption === 1) countdownStr = currentQuestion?.fsrs?.intervals?.[2] || "12h";
-                        else if (selectedOption === 2) countdownStr = currentQuestion?.fsrs?.intervals?.[3] || "2d";
-                        else countdownStr = currentQuestion?.fsrs?.intervals?.[4] || "5d";
+                        if (selectedOption === 0) countdownStr = currentQuestion?.fsrs?.intervals?.[1] || "1m";
+                        else if (selectedOption === 1) countdownStr = currentQuestion?.fsrs?.intervals?.[2] || "5m";
+                        else if (selectedOption === 2) countdownStr = currentQuestion?.fsrs?.intervals?.[3] || "10m";
+                        else countdownStr = currentQuestion?.fsrs?.intervals?.[4] || "4d";
                       }
                       return (
                         <div

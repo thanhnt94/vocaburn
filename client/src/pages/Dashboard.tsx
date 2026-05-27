@@ -66,10 +66,13 @@ export default function Dashboard() {
   const queryClient = useQueryClient()
   const navigate = useNavigate()
 
+  const todayStr = new Date().toLocaleDateString('en-CA')
   const { data: activeGoals } = useQuery<ActiveGoal[]>({
-    queryKey: ['activeGoals'],
+    queryKey: ['activeGoals', todayStr],
     queryFn: async () => {
-      const res = await axios.get('/api/v1/quiz/goals/active')
+      const res = await axios.get('/api/v1/quiz/goals/active', {
+        params: { local_date: todayStr }
+      })
       return res.data
     }
   })

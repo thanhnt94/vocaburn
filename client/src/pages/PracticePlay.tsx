@@ -22,7 +22,7 @@ interface Question {
   explanation: string
   ai_explanation?: string
   options: Option[]
-  stats?: { 
+  stats?: {
     total: number
     correct: number
     wrong?: number
@@ -85,10 +85,10 @@ const TypewriterText = ({ text }: { text: string }) => {
     setIsTyping(true)
     let i = 0
     const startTime = Date.now()
-    
+
     const timer = setInterval(() => {
       const elapsed = Date.now() - startTime
-      
+
       // If 2 seconds have passed, just dump the remaining text instantly
       if (elapsed > 2000) {
         setDisplayedText(text)
@@ -195,7 +195,7 @@ const speakMultiLanguage = (text: string) => {
   const bracketRegex = /\[([a-z]{2,3}(?:-[a-zA-Z0-9]+)?):\s*([^\]]+)\]/g;
   let bracketMatch;
   let hasBrackets = false;
-  
+
   while ((bracketMatch = bracketRegex.exec(text)) !== null) {
     hasBrackets = true;
     const rawLang = bracketMatch[1].toLowerCase();
@@ -210,7 +210,7 @@ const speakMultiLanguage = (text: string) => {
     const lineRegex = /^\s*([a-z]{2,3}(?:-[a-zA-Z0-9]+)?)\s*:\s*(.+)$/;
     const containsJapanese = (str: string) => /[\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FAF]/.test(str);
     const containsVietnamese = (str: string) => /[àáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđ]/i.test(str);
-    
+
     let lastLang = 'en-US';
     if (containsJapanese(text)) {
       lastLang = 'ja-JP';
@@ -250,14 +250,14 @@ const speakMultiLanguage = (text: string) => {
         const lang = v.lang.toLowerCase();
         const isVi = lang === 'vi-vn' || lang.startsWith('vi');
         if (!isVi) return false;
-        
+
         // Ưu tiên các giọng nữ nổi tiếng như HoaiMy (Edge), Linh/An (Windows), giọng Google tiếng Việt online, hoặc chứa từ khóa 'female'/'nữ'
-        return name.includes('hoaimy') || 
-               name.includes('linh') || 
-               name.includes('an') || 
-               name.includes('female') || 
-               name.includes('nữ') || 
-               name.includes('google');
+        return name.includes('hoaimy') ||
+          name.includes('linh') ||
+          name.includes('an') ||
+          name.includes('female') ||
+          name.includes('nữ') ||
+          name.includes('google');
       });
       if (viVoice) {
         u.voice = viVoice;
@@ -277,10 +277,20 @@ export default function PracticePlay() {
   const { id, subMode } = useParams()
   const navigate = useNavigate()
   const { user, setUser, setGamify } = useAppStore()
-  
+
+  const activeAudioRef = useRef<HTMLAudioElement | null>(null)
+
   const playCardAudio = async (face: 'front' | 'back') => {
     if (!currentQuestion) return;
-    let audioUrl = face === 'front' 
+    
+    // Stop any existing audio or speech synthesis
+    if (activeAudioRef.current) {
+      activeAudioRef.current.pause();
+      activeAudioRef.current = null;
+    }
+    window.speechSynthesis.cancel();
+
+    let audioUrl = face === 'front'
       ? (currentQuestion.audio || currentQuestion.others?.front_audio_url)
       : currentQuestion.others?.back_audio_url;
 
@@ -311,6 +321,7 @@ export default function PracticePlay() {
       const cacheBustedUrl = `${audioUrl}${audioUrl.includes('?') ? '&' : '?'}t=${Date.now()}`;
       console.log(`[TTS PLAYBACK] Playing generated server audio: ${cacheBustedUrl}`);
       const audio = new Audio(cacheBustedUrl);
+      activeAudioRef.current = audio;
       audio.play().catch(err => {
         console.warn(`[TTS FALLBACK WARNING] Playback of generated audio file ${cacheBustedUrl} failed (possibly blocked by browser autoplay policy or corrupted file). Error:`, err.message);
         if (script && script.trim()) {
@@ -331,7 +342,7 @@ export default function PracticePlay() {
     }
     return true;
   });
-  const [currentIndex, setCurrentIndex] = useState(0)
+  const [currentIndex, setCurrentIndex] = useState(-1)
   const [selectedOption, setSelectedOption] = useState<number | null>(null)
   const [showFeedback, setShowFeedback] = useState(false)
   const [isFlipped, setIsFlipped] = useState(false)
@@ -397,23 +408,23 @@ export default function PracticePlay() {
     type?: 'info' | 'warning';
   } | null>(null)
   const [justAnswered, setJustAnswered] = useState(false)
-  
+
   // ── Multi-Modal Practice State Hooks ──
   const mainTab = 'practice' as 'fsrs' | 'practice'
-  const setMainTab = (tab: 'fsrs' | 'practice') => {}
+  const setMainTab = (tab: 'fsrs' | 'practice') => { }
   const [practiceSubMode, setPracticeSubMode] = useState<'mcq' | 'typing' | 'listening'>(() => (localStorage.getItem('vocab_practice_submode') as 'mcq' | 'typing' | 'listening') || 'mcq')
   const [practiceRange, setPracticeRange] = useState<'all' | 'learned'>(() => (localStorage.getItem('vocab_practice_range') as 'all' | 'learned') || 'all')
   const [practiceNeedsSetup, setPracticeNeedsSetup] = useState(false)
   const [practiceDisabled, setPracticeDisabled] = useState(false)
   const [availableColumns, setAvailableColumns] = useState<string[]>([])
-  const [setupPairs, setSetupPairs] = useState<{q: string, a: string}[]>([{ q: 'front', a: 'back' }])
+  const [setupPairs, setSetupPairs] = useState<{ q: string, a: string }[]>([{ q: 'front', a: 'back' }])
   const [setupNumChoices, setSetupNumChoices] = useState<number>(4)
   const [typingInput, setTypingInput] = useState('')
   const [typingFeedback, setTypingFeedback] = useState<{ checked: boolean; isCorrect: boolean } | null>(null)
   const [currentPracticeData, setCurrentPracticeData] = useState<any>(null)
 
   // Per-mode settings state
-  const [modeSettings, setModeSettings] = useState<Record<'mcq' | 'typing' | 'listening', { active_pairs: {q: string, a: string}[], num_choices?: number }>>({
+  const [modeSettings, setModeSettings] = useState<Record<'mcq' | 'typing' | 'listening', { active_pairs: { q: string, a: string }[], num_choices?: number }>>({
     mcq: { active_pairs: [{ q: 'front', a: 'back' }], num_choices: 4 },
     typing: { active_pairs: [{ q: 'front', a: 'back' }] },
     listening: { active_pairs: [{ q: 'front', a: 'back' }], num_choices: 4 }
@@ -458,9 +469,9 @@ export default function PracticePlay() {
     for (let i = 0; i < text.length; i++) {
       const c = text[i];
       if (
-        (c >= '\u4e00' && c <= '\u9fff') || 
+        (c >= '\u4e00' && c <= '\u9fff') ||
         (c >= '\u3400' && c <= '\u4dbf') ||
-        (c >= '\u3040' && c <= '\u309f') || 
+        (c >= '\u3040' && c <= '\u309f') ||
         (c >= '\u30a0' && c <= '\u30ff')
       ) {
         return true;
@@ -502,7 +513,7 @@ export default function PracticePlay() {
       }
     }
     if (kanji.size > 0) return kanji;
-    
+
     const words = text.split(/[\s,.;:/|()]+/).map(w => w.trim().toLowerCase()).filter(w => w.length > 1);
     return new Set(words);
   };
@@ -562,7 +573,7 @@ export default function PracticePlay() {
       if (c_q_tokens.size > 0) {
         const d_back_tokens_q = !isJapanese(d_back) ? extractTokens(d_back) : new Set<string>();
         if (d_back_tokens_q.size > 0 && tokensOverlapHigh(d_back_tokens_q, c_q_tokens)) continue;
-        
+
         if (!answer_is_jp) {
           const d_disp_tokens_q = extractTokens(d_disp);
           if (tokensOverlapHigh(d_disp_tokens_q, c_q_tokens)) continue;
@@ -591,7 +602,7 @@ export default function PracticePlay() {
       const d_disp = stripBBCode(cand.text).trim();
       const d_pattern = getJpPattern(d_disp);
       const d_tokens = extractTokens(d_disp);
-      
+
       if (d_pattern === target_pattern) score += 100;
 
       const c_tokens = extractTokens(c_disp);
@@ -805,13 +816,13 @@ export default function PracticePlay() {
         subPart = subPart.substring(0, 3);
         formatted = `${timePart}.${subPart}${suffix}`;
       }
-      
+
       // 3. Ensure 'Z' is appended if no timezone is specified
       // Check timezone specifier safely after the 'T' separator to prevent matching hyphens in the date part
       const tIndex = formatted.indexOf('T');
       const timePartAfterT = tIndex !== -1 ? formatted.slice(tIndex) : '';
       const hasTimezone = formatted.includes('Z') || formatted.includes('+') || timePartAfterT.includes('-');
-      
+
       if (!hasTimezone) {
         formatted = formatted + 'Z';
       }
@@ -889,10 +900,10 @@ export default function PracticePlay() {
   const getButtonClass = (btnIdx: number) => {
     const isSelected = hasRated && selectedOption === btnIdx;
     const isAnySelected = hasRated && selectedOption !== null && selectedOption !== undefined;
-    
+
     // Base classes for all buttons
     let classes = "group p-4 rounded-3xl border shadow-sm active:scale-[0.97] transition-all flex flex-col items-center justify-center gap-1 flex-1 ";
-    
+
     if (isSelected) {
       // Active style
       switch (btnIdx) {
@@ -964,7 +975,7 @@ export default function PracticePlay() {
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.repeat) return;
-      
+
       const activeElement = document.activeElement;
       if (activeElement) {
         const tagName = activeElement.tagName.toLowerCase();
@@ -1079,7 +1090,7 @@ export default function PracticePlay() {
           const res = await axios.get('/api/v1/dashboard/data')
           setUser(res.data.user)
           setGamify(res.data.gamify)
-        } catch (e) {}
+        } catch (e) { }
       }
     }
     fetchUser()
@@ -1089,7 +1100,7 @@ export default function PracticePlay() {
     try {
       const modeParam = activeTab === 'practice' ? `?mode=${subMode}` : ''
       const isPractice = activeTab === 'practice'
-      
+
       // Practice: only fetch play-data + practice-settings in parallel. No goals. No session restore.
       // FSRS: fetch play-data + goals + session in parallel.
       const fetchPromises: Promise<any>[] = [
@@ -1126,7 +1137,7 @@ export default function PracticePlay() {
 
       const questions = quizRes.data.questions || []
       setSession({ ...quizRes.data, questions })
-      
+
       const hasLearned = questions.some((q: any) => (q.stats?.total || 0) > 0);
       if (activeTab === 'practice' && practiceRange === 'learned' && !hasLearned) {
         setPracticeRange('all');
@@ -1136,8 +1147,9 @@ export default function PracticePlay() {
       setInitialTotalXP(quizRes.data.user_total_xp || 0)
       setPracticeNeedsSetup(!!quizRes.data.practice_needs_setup)
       setPracticeDisabled(!!quizRes.data.practice_disabled)
-      
+
       if (isPractice) {
+        if (currentIndex < 0) setCurrentIndex(0)
         // Apply practice settings from parallel fetch (results[1])
         const settingsRes = results[1]
         if (settingsRes?.data) {
@@ -1161,22 +1173,22 @@ export default function PracticePlay() {
         if (activeGoalData) {
           setActiveGoal(activeGoalData)
         }
-      
+
         if (sessionRes?.data) {
           const restoredAnswers = sessionRes.data.state?.sessionAnswers || {}
           setSessionAnswers(restoredAnswers)
           const restoredPractice = sessionRes.data.state?.practiceAnswers || {}
           setPracticeAnswers(restoredPractice)
-          
+
           if (sessionRes.data.state?.practiceTotalAnswered !== undefined) {
             setPracticeTotalAnswered(sessionRes.data.state.practiceTotalAnswered)
           }
           if (sessionRes.data.state?.practiceCorrectCount !== undefined) {
             setPracticeCorrectCount(sessionRes.data.state.practiceCorrectCount)
           }
-          
+
           let curIdx = sessionRes.data.current_index || 0
-          
+
           // Adjust initial index based on smart learning mode if we are starting a fresh/unanswered question
           if (restoredAnswers[curIdx] === undefined) {
             const savedMode = localStorage.getItem('quiz_learning_mode') || 'fsrs'
@@ -1191,25 +1203,24 @@ export default function PracticePlay() {
                   })()
                   const hasAnswered = restoredAnswers[idx] !== undefined && !isCurrentlyUnlocked
                   if (hasAnswered) return { idx, score: -1000 }
-                  
+
                   const fsrs = q.fsrs
-                  if (!fsrs || !fsrs.due) {
+                  if (!fsrs || fsrs.state === 0 || fsrs.state === undefined || 
+                      fsrs.stability === null || fsrs.stability === undefined || !fsrs.due) {
                     return { idx, score: 2 } // Priority 2: New Card
                   }
-                  
+
                   const dueDate = parseUTCDate(fsrs.due)
                   const isDue = dueDate <= now
                   const isLearning = fsrs.state === 1 || fsrs.state === 3
-                  
+
                   if (isDue || isLearning) {
-                    const stability = fsrs.stability || 0
-                    return { idx, score: 3 - (stability / 10000) } // Priority 3: Due reviews (shortest stability first)
+                    return { idx, score: 3 + 1 / (1 + (fsrs.stability || 0)) } // Priority 3: Due/Learning reviews (lowest stability first)
                   } else {
-                    const timeToDue = dueDate.getTime() - now.getTime()
-                    return { idx, score: 1 - (timeToDue / 1e12) } // Priority 1: Undue reviews (closest first)
+                    return { idx, score: -1000 } // Not due yet = exclude completely
                   }
                 })
-                
+
                 scoredQuestions.sort((a: any, b: any) => b.score - a.score)
                 const best = scoredQuestions[0]
                 if (best && best.score > -1000) {
@@ -1252,9 +1263,9 @@ export default function PracticePlay() {
               }
             }
           }
-          
+
           setCurrentIndex(curIdx)
-          
+
           if (typeof restoredAnswers[curIdx] === 'number') {
             setSelectedOption(restoredAnswers[curIdx] as number);
             setShowFeedback(true);
@@ -1281,10 +1292,10 @@ export default function PracticePlay() {
     try {
       const res = await axios.get(`/api/v1/quiz/${id}/practice-settings`)
       setAvailableColumns(res.data.available_columns || [])
-      
+
       const userSettings = res.data.user_settings
       const creatorSettings = res.data.creator_settings
-      
+
       const parsed = userSettings || creatorSettings
       if (parsed) {
         setModeSettings(parsed)
@@ -1332,14 +1343,14 @@ export default function PracticePlay() {
     try {
       const res = await axios.get(`/api/v1/quiz/question/${currentQuestion.id}/note`)
       setPersonalNote(res.data.content || '')
-    } catch (e) {}
+    } catch (e) { }
   }
 
   const saveNote = async () => {
     if (!currentQuestion) return
     try {
-      await axios.post(`/api/v1/quiz/question/${currentQuestion.id}/note`, { 
-        content: personalNote 
+      await axios.post(`/api/v1/quiz/question/${currentQuestion.id}/note`, {
+        content: personalNote
       })
     } catch (e) {
       alert("Failed to save note.")
@@ -1360,7 +1371,7 @@ export default function PracticePlay() {
       await axios.post(`/api/v1/quiz/${id}/session`, {
         mode: "sequential",
         current_index: newIndex,
-        state: { 
+        state: {
           sessionAnswers: isPractice ? sessionAnswers : newAnswers,
           practiceAnswers: isPractice ? newAnswers : practiceAnswers,
           practiceTotalAnswered: newTotalAnswered,
@@ -1369,7 +1380,7 @@ export default function PracticePlay() {
           streak: currentStreak
         }
       })
-    } catch (e) {}
+    } catch (e) { }
   }
 
   const handleReviewRating = async (rating: number) => {
@@ -1378,7 +1389,7 @@ export default function PracticePlay() {
       console.log("DEBUG: currentQuestion is null, returning!");
       return
     }
-    
+
     // Blur any focused element (like FSRS rating buttons) to prevent Space/Enter keys from triggering repeat clicks
     if (document.activeElement && typeof (document.activeElement as any).blur === 'function') {
       (document.activeElement as HTMLElement).blur();
@@ -1396,14 +1407,14 @@ export default function PracticePlay() {
     const prevCorrect = currentQuestion.stats?.correct || 0
     const avgTime = currentQuestion.stats?.avg_time || 0
     const timeTaken = timeLeft
-    
-    const prevRatings = Array.isArray(sessionAnswers[currentIndex]) 
-      ? (sessionAnswers[currentIndex] as number[]) 
+
+    const prevRatings = Array.isArray(sessionAnswers[currentIndex])
+      ? (sessionAnswers[currentIndex] as number[])
       : (typeof sessionAnswers[currentIndex] === 'number' ? [sessionAnswers[currentIndex] as number] : [])
     const newRatings = [...prevRatings, rating - 1]
     const newAnswers = { ...sessionAnswers, [currentIndex]: newRatings }
     setSessionAnswers(newAnswers)
-    
+
     let updatedXP = sessionXP
     let updatedStreak = streak
 
@@ -1480,10 +1491,10 @@ export default function PracticePlay() {
         const newSession = { ...prev }
         const newQs = [...newSession.questions]
         const q = { ...newQs[currentIndex] }
-        
-        const currentStats = q.stats || { 
-          total: 0, 
-          correct: 0, 
+
+        const currentStats = q.stats || {
+          total: 0,
+          correct: 0,
           avg_time: 0,
           again_count: 0,
           hard_count: 0,
@@ -1492,10 +1503,10 @@ export default function PracticePlay() {
         }
         const newTotal = currentStats.total + 1
         const newCorrect = currentStats.correct + (correct ? 1 : 0)
-        
+
         const oldTotalTime = (currentStats.avg_time || 0) * currentStats.total
         const newAvgTime = Math.round((oldTotalTime + timeTaken) / newTotal)
-        
+
         q.stats = {
           total: newTotal,
           correct: newCorrect,
@@ -1509,13 +1520,21 @@ export default function PracticePlay() {
 
         // Estimate future due date locally to prevent immediate queue re-selection before API response
         const localDue = new Date()
-        if (rating === 1) localDue.setMinutes(localDue.getMinutes() + 10)
-        else if (rating === 2) localDue.setHours(localDue.getHours() + 12)
-        else if (rating === 3) localDue.setDate(localDue.getDate() + 2)
-        else localDue.setDate(localDue.getDate() + 5)
+        if (rating === 1) localDue.setMinutes(localDue.getMinutes() + 1)   // Again: ~1m
+        else if (rating === 2) localDue.setMinutes(localDue.getMinutes() + 5) // Hard: ~5m
+        else if (rating === 3) localDue.setMinutes(localDue.getMinutes() + 10) // Good: ~10m
+        else localDue.setDate(localDue.getDate() + 4) // Easy: ~4d
+
+        let nextState = 1 // default to learning state
+        if (rating === 4) {
+          nextState = 2 // Review
+        } else if (q.fsrs?.state === 2 || q.fsrs?.state === 3) {
+          nextState = 3 // Relearning
+        }
 
         q.fsrs = {
-          ...(q.fsrs || { state: 0, stability: null, difficulty: null, intervals: {} }),
+          ...(q.fsrs || { stability: null, difficulty: null, intervals: {} }),
+          state: nextState,
           due: localDue.toISOString()
         }
 
@@ -1606,7 +1625,7 @@ export default function PracticePlay() {
           dailyTarget: goalUpdate.daily_target,
           bonusXP: goalUpdate.bonus_xp
         })
-        
+
         setActiveGoal((prev: any) => {
           if (!prev) return {
             goal_id: goalUpdate.goal_id,
@@ -1643,7 +1662,7 @@ export default function PracticePlay() {
           // Epic continuous confetti shower from bottom corners
           const end = Date.now() + 4.5 * 1000;
           const colors = ['#F59E0B', '#10B981', '#3B82F6', '#8B5CF6', '#EC4899'];
-          
+
           (function frame() {
             confetti({
               particleCount: 4,
@@ -1659,7 +1678,7 @@ export default function PracticePlay() {
               origin: { x: 1, y: 0.8 },
               colors: colors
             });
-            
+
             if (Date.now() < end) {
               requestAnimationFrame(frame);
             }
@@ -1717,13 +1736,13 @@ export default function PracticePlay() {
 
   const handleMCQAnswer = async (choiceIdx: number) => {
     if (showFeedback || !currentQuestion || !currentPracticeData) return;
-    
+
     setSelectedOption(choiceIdx);
     setShowFeedback(true);
     setJustAnswered(true);
-    
+
     const isCorrect = choiceIdx === currentPracticeData.correct_index;
-    
+
     const updatedTotalAnswered = practiceTotalAnswered + 1;
     const updatedCorrectCount = isCorrect ? practiceCorrectCount + 1 : practiceCorrectCount;
 
@@ -1734,10 +1753,10 @@ export default function PracticePlay() {
 
     const newAnswers = { ...practiceAnswers, [currentIndex]: choiceIdx };
     setPracticeAnswers(newAnswers);
-    
+
     let updatedXP = sessionXP;
     let updatedStreak = streak;
-    
+
     if (isCorrect) {
       if (sfxEnabled) playCorrectSound();
       updatedStreak = streak + 1;
@@ -1746,10 +1765,10 @@ export default function PracticePlay() {
       updatedXP = sessionXP + xpGained;
       setSessionXP(updatedXP);
       setInitialTotalXP(prev => prev + xpGained);
-      
+
       setXpFloat({ visible: true, amount: xpGained });
       setTimeout(() => setXpFloat({ visible: false, amount: 0 }), 1500);
-      
+
       confetti({ particleCount: 80, spread: 50, origin: { y: 0.6 } });
       setBadgeMessage("Chính xác! 🎯");
     } else {
@@ -1760,18 +1779,18 @@ export default function PracticePlay() {
       updatedXP = sessionXP + xpGained;
       setSessionXP(updatedXP);
       setInitialTotalXP(prev => prev + xpGained);
-      
+
       setXpFloat({ visible: true, amount: xpGained });
       setTimeout(() => setXpFloat({ visible: false, amount: 0 }), 1500);
-      
+
       setBadgeMessage("Chưa chính xác! 😅");
     }
-    
+
     setBadgeVisible(true);
     setTimeout(() => setBadgeVisible(false), 2000);
-    
+
     saveSession(newAnswers, currentIndex, updatedXP, updatedStreak, updatedTotalAnswered, updatedCorrectCount);
-    
+
     try {
       await axios.post('/api/v1/quiz/record_answer', {
         question_id: currentQuestion.id,
@@ -1788,13 +1807,13 @@ export default function PracticePlay() {
 
   const handleTypingAnswer = async () => {
     if (showFeedback || !currentQuestion || !currentPracticeData) return;
-    
+
     const correctAns = currentPracticeData.correct_answer || '';
     const cleanCorrect = correctAns.replace(/<[^<]+?>/g, '').trim().toLowerCase();
     const cleanInput = typingInput.trim().toLowerCase();
-    
+
     const isCorrect = cleanInput === cleanCorrect;
-    
+
     const updatedTotalAnswered = practiceTotalAnswered + 1;
     const updatedCorrectCount = isCorrect ? practiceCorrectCount + 1 : practiceCorrectCount;
 
@@ -1806,13 +1825,13 @@ export default function PracticePlay() {
     setShowFeedback(true);
     setJustAnswered(true);
     setTypingFeedback({ checked: true, isCorrect });
-    
+
     const newAnswers = { ...practiceAnswers, [currentIndex]: isCorrect ? 3 : 0 };
     setPracticeAnswers(newAnswers);
-    
+
     let updatedXP = sessionXP;
     let updatedStreak = streak;
-    
+
     if (isCorrect) {
       if (sfxEnabled) playCorrectSound();
       updatedStreak = streak + 1;
@@ -1821,10 +1840,10 @@ export default function PracticePlay() {
       updatedXP = sessionXP + xpGained;
       setSessionXP(updatedXP);
       setInitialTotalXP(prev => prev + xpGained);
-      
+
       setXpFloat({ visible: true, amount: xpGained });
       setTimeout(() => setXpFloat({ visible: false, amount: 0 }), 1500);
-      
+
       confetti({ particleCount: 100, spread: 60, origin: { y: 0.6 } });
       setBadgeMessage("Xuất sắc! ⌨️");
     } else {
@@ -1835,18 +1854,18 @@ export default function PracticePlay() {
       updatedXP = sessionXP + xpGained;
       setSessionXP(updatedXP);
       setInitialTotalXP(prev => prev + xpGained);
-      
+
       setXpFloat({ visible: true, amount: xpGained });
       setTimeout(() => setXpFloat({ visible: false, amount: 0 }), 1500);
-      
+
       setBadgeMessage("Nhầm một chút rồi! 💪");
     }
-    
+
     setBadgeVisible(true);
     setTimeout(() => setBadgeVisible(false), 2000);
-    
+
     saveSession(newAnswers, currentIndex, updatedXP, updatedStreak, updatedTotalAnswered, updatedCorrectCount);
-    
+
     try {
       await axios.post('/api/v1/quiz/record_answer', {
         question_id: currentQuestion.id,
@@ -1862,6 +1881,12 @@ export default function PracticePlay() {
   };
 
   const navigateToQuestion = (idx: number, customPracticeAnswers = practiceAnswers) => {
+    if (activeAudioRef.current) {
+      activeAudioRef.current.pause();
+      activeAudioRef.current = null;
+    }
+    window.speechSynthesis.cancel();
+
     setCurrentIndex(idx)
     setIsFlipped(false)
     setActivelyRatedCurrentCard(false)
@@ -1877,7 +1902,7 @@ export default function PracticePlay() {
     setActiveUnlockedBadge(null)
     setActiveMasteryUpgrade(null)
     setLearningModeAlert(null)
-    
+
     const isPractice = mainTab === 'practice';
     if (isPractice) {
       const prevAns = customPracticeAnswers[idx]
@@ -1902,8 +1927,8 @@ export default function PracticePlay() {
 
       const prevOpt = sessionAnswers[idx]
       const hasRatedThisSession = prevOpt !== undefined
-      const lastRating = Array.isArray(prevOpt) 
-        ? prevOpt[prevOpt.length - 1] 
+      const lastRating = Array.isArray(prevOpt)
+        ? prevOpt[prevOpt.length - 1]
         : (typeof prevOpt === 'number' ? prevOpt : null)
 
       if (hasRatedThisSession && lastRating !== null && !isUnlocked) {
@@ -1915,7 +1940,7 @@ export default function PracticePlay() {
         setTimeLeft(0)
       }
     }
-    
+
     setIsEditingNote(false)
     setIsEditingAI(false)
     saveSession(isPractice ? customPracticeAnswers : sessionAnswers, idx)
@@ -1930,11 +1955,11 @@ export default function PracticePlay() {
     const getNextPracticeIndex = (currentIdx: number, range: 'all' | 'learned', totalQuestions: any[]): number => {
       const allIndices = totalQuestions.map((_, i) => i);
       const learnedIndices = totalQuestions.map((q, i) => (q.stats?.total || 0) > 0 ? i : -1).filter(i => i !== -1);
-      
+
       const activeIndices = (range === 'learned' && learnedIndices.length > 0) ? learnedIndices : allIndices;
-      
+
       if (activeIndices.length <= 1) return activeIndices[0] || 0;
-      
+
       const otherIndices = activeIndices.filter(i => i !== currentIdx);
       const pool = otherIndices.length > 0 ? otherIndices : activeIndices;
       return pool[Math.floor(Math.random() * pool.length)];
@@ -1942,13 +1967,13 @@ export default function PracticePlay() {
 
     if (mainTab === 'practice') {
       const nextIdx = getNextPracticeIndex(currentIndex, practiceRange, questions);
-      
+
       // Clear the answer for both the current and next card so they are always clickable and reusable
       const newAnswers = { ...practiceAnswers };
       delete newAnswers[currentIndex];
       delete newAnswers[nextIdx];
       setPracticeAnswers(newAnswers);
-      
+
       navigateToQuestion(nextIdx, newAnswers);
       return;
     }
@@ -1976,25 +2001,24 @@ export default function PracticePlay() {
         })()
         const hasAnswered = updatedAnswers[idx] !== undefined && !isCurrentlyUnlocked
         if (hasAnswered) return { idx, score: -1000 }
-        
+
         const fsrs = q.fsrs
-        if (!fsrs || !fsrs.due) {
+        if (!fsrs || fsrs.state === 0 || fsrs.state === undefined || 
+            fsrs.stability === null || fsrs.stability === undefined || !fsrs.due) {
           return { idx, score: 2 } // Priority 2: New Card
         }
-        
+
         const dueDate = parseUTCDate(fsrs.due)
         const isDue = dueDate <= now
         const isLearning = fsrs.state === 1 || fsrs.state === 3
-        
+
         if (isDue || isLearning) {
-          const stability = fsrs.stability || 0
-          return { idx, score: 3 - (stability / 10000) } // Priority 3: Due reviews
+          return { idx, score: 3 + 1 / (1 + (fsrs.stability || 0)) } // Priority 3: Due reviews
         } else {
-          const timeToDue = dueDate.getTime() - now.getTime()
-          return { idx, score: 1 - (timeToDue / 1e12) } // Priority 1: Undue reviews
+          return { idx, score: -1000 } // Not due yet = exclude completely
         }
       })
-      
+
       scoredQuestions.sort((a: any, b: any) => b.score - a.score)
       const best = scoredQuestions[0]
       if (best && best.score > -1000) {
@@ -2027,29 +2051,29 @@ export default function PracticePlay() {
       }
     } else if (activeMode === 'unseen') {
       // Find next card with 0 historical attempts and not answered in THIS session
-      nextIdx = questions.findIndex((q: any, i: number) => 
-        i > currentIndex && 
-        (q.stats?.total || 0) === 0 && 
+      nextIdx = questions.findIndex((q: any, i: number) =>
+        i > currentIndex &&
+        (q.stats?.total || 0) === 0 &&
         updatedAnswers[i] === undefined
       )
       if (nextIdx === -1) {
         // Loop back to find any unseen
-        nextIdx = questions.findIndex((q: any, i: number) => 
-          (q.stats?.total || 0) === 0 && 
+        nextIdx = questions.findIndex((q: any, i: number) =>
+          (q.stats?.total || 0) === 0 &&
           updatedAnswers[i] === undefined
         )
       }
     } else if (activeMode === 'review') {
       // Find next card with historical mistakes (total - correct > 0) and not answered in THIS session
-      nextIdx = questions.findIndex((q: any, i: number) => 
-        i > currentIndex && 
-        ((q.stats?.total || 0) - (q.stats?.correct || 0)) > 0 && 
+      nextIdx = questions.findIndex((q: any, i: number) =>
+        i > currentIndex &&
+        ((q.stats?.total || 0) - (q.stats?.correct || 0)) > 0 &&
         updatedAnswers[i] === undefined
       )
       if (nextIdx === -1) {
         // Loop back to find any mistake card not answered in THIS session
-        nextIdx = questions.findIndex((q: any, i: number) => 
-          ((q.stats?.total || 0) - (q.stats?.correct || 0)) > 0 && 
+        nextIdx = questions.findIndex((q: any, i: number) =>
+          ((q.stats?.total || 0) - (q.stats?.correct || 0)) > 0 &&
           updatedAnswers[i] === undefined
         )
       }
@@ -2122,41 +2146,40 @@ export default function PracticePlay() {
         })()
         const hasAnswered = updatedAnswers[idx] !== undefined && !isCurrentlyUnlocked
         if (hasAnswered) return { idx, score: -1000 }
-        
+
         const fsrs = q.fsrs
-        if (!fsrs || !fsrs.due) {
+        if (!fsrs || fsrs.state === 0 || fsrs.state === undefined || 
+            fsrs.stability === null || fsrs.stability === undefined || !fsrs.due) {
           return { idx, score: 2 } // Priority 2: New Card
         }
-        
+
         const dueDate = parseUTCDate(fsrs.due)
         const isDue = dueDate <= now
         const isLearning = fsrs.state === 1 || fsrs.state === 3
-        
+
         if (isDue || isLearning) {
-          const stability = fsrs.stability || 0
-          return { idx, score: 3 - (stability / 10000) } // Priority 3: Due reviews (shortest stability first)
+          return { idx, score: 3 + 1 / (1 + (fsrs.stability || 0)) } // Priority 3: Due reviews
         } else {
-          const timeToDue = dueDate.getTime() - now.getTime()
-          return { idx, score: 1 - (timeToDue / 1e12) } // Priority 1: Undue reviews (closest first)
+          return { idx, score: -1000 } // Not due yet = exclude completely
         }
       })
-      
+
       scoredQuestions.sort((a: any, b: any) => b.score - a.score)
       const best = scoredQuestions[0]
       if (best && best.score > -1000) {
         targetIdx = best.idx
       }
     } else if (mode === 'unseen') {
-      targetIdx = questions.findIndex((q: any, i: number) => 
-        (q.stats?.total || 0) === 0 && 
+      targetIdx = questions.findIndex((q: any, i: number) =>
+        (q.stats?.total || 0) === 0 &&
         updatedAnswers[i] === undefined
       )
       if (targetIdx === -1) {
         alertMsg = 'All cards have been attempted! Serving remaining cards sequentially.'
       }
     } else if (mode === 'review') {
-      targetIdx = questions.findIndex((q: any, i: number) => 
-        ((q.stats?.total || 0) - (q.stats?.correct || 0)) > 0 && 
+      targetIdx = questions.findIndex((q: any, i: number) =>
+        ((q.stats?.total || 0) - (q.stats?.correct || 0)) > 0 &&
         updatedAnswers[i] === undefined
       )
       if (targetIdx === -1) {
@@ -2244,9 +2267,9 @@ export default function PracticePlay() {
     try {
       const payload: any = { question_id: currentQuestion.id }
       if (typeof manualText === 'string') payload.ai_explanation = manualText
-      
+
       const res = await axios.post(`/api/v1/quiz/${id}/ask-ai`, payload)
-      
+
       if (res.data.status === 'processing') {
         // Polling loop
         let attempts = 0
@@ -2269,8 +2292,8 @@ export default function PracticePlay() {
               setIsAskingAI(false)
               clearInterval(poll)
             }
-          } catch (e) {}
-          
+          } catch (e) { }
+
           if (attempts >= maxAttempts) {
             clearInterval(poll)
             setIsAskingAI(false)
@@ -2346,11 +2369,11 @@ export default function PracticePlay() {
         ...(currentQuestion.others || {}),
         [targetKey]: insightInput
       };
-      
-      await axios.patch(`/api/v1/quiz/question/${currentQuestion.id}`, { 
-        others: { [targetKey]: insightInput } 
+
+      await axios.patch(`/api/v1/quiz/question/${currentQuestion.id}`, {
+        others: { [targetKey]: insightInput }
       })
-      
+
       setSession((prev: any) => {
         if (!prev) return prev
         const newQs = [...prev.questions]
@@ -2368,7 +2391,7 @@ export default function PracticePlay() {
 
   const openEditModal = () => {
     if (!currentQuestion) return
-    
+
     // Ensure nested 'others' is properly initialized with empty strings if not present
     const others = currentQuestion.others ? { ...currentQuestion.others } : {};
     const defaultOthers = {
@@ -2378,8 +2401,8 @@ export default function PracticePlay() {
       back_audio_url: others.back_audio_url || '',
       front_audio_content: others.front_audio_content || '',
       back_audio_content: others.back_audio_content || '',
-      other_content: typeof others.other_content === 'object' 
-        ? JSON.stringify(others.other_content, null, 2) 
+      other_content: typeof others.other_content === 'object'
+        ? JSON.stringify(others.other_content, null, 2)
         : (others.other_content || '')
     };
 
@@ -2401,7 +2424,7 @@ export default function PracticePlay() {
   const handleSaveEdit = async () => {
     if (!currentQuestion || !editFormData) return
     setIsSavingEdit(true)
-    
+
     try {
       // Safely parse other_content JSON if provided
       let finalOthers = { ...editFormData.others };
@@ -2425,18 +2448,18 @@ export default function PracticePlay() {
       };
 
       await axios.patch(`/api/v1/quiz/question/${currentQuestion.id}`, payload)
-      
+
       // Update local state
       setSession((prev: any) => {
         const newQs = [...prev.questions]
-        newQs[currentIndex] = { 
-          ...newQs[currentIndex], 
+        newQs[currentIndex] = {
+          ...newQs[currentIndex],
           ...payload,
-          options: editFormData.options 
+          options: editFormData.options
         }
         return { ...prev, questions: newQs }
       })
-      
+
       setIsEditModalOpen(false)
     } catch (e) {
       alert("Failed to save changes.")
@@ -2455,7 +2478,7 @@ export default function PracticePlay() {
         const optionsText = currentQuestion?.options.map((opt, i) => `${String.fromCharCode(65 + i)}. ${opt.content}`).join('\n')
         const correctOpt = currentQuestion?.options.find(o => o.is_correct)
         const correctAnswerText = correctOpt ? `${String.fromCharCode(65 + (currentQuestion?.options?.indexOf(correctOpt) ?? 0))}. ${correctOpt.content}` : 'Unknown'
-        
+
         content = session.ai_prompt
           .replace(/{{question}}/g, currentQuestion?.content || '')
           .replace(/{{options}}/g, optionsText)
@@ -2472,7 +2495,7 @@ export default function PracticePlay() {
       }
     }
     else if (activeFeedbackTab === 'note') content = personalNote || ''
-    
+
     if (content) {
       navigator.clipboard.writeText(content)
       setIsCopied(true)
@@ -2502,15 +2525,15 @@ export default function PracticePlay() {
 
   const copyQuestionToClipboard = () => {
     if (!currentQuestion) return
-    const text = `Question: ${currentQuestion.content}\n` + 
-                 currentQuestion.options.map((opt, i) => `${String.fromCharCode(65 + i)}: ${opt.content}`).join('\n')
+    const text = `Question: ${currentQuestion.content}\n` +
+      currentQuestion.options.map((opt, i) => `${String.fromCharCode(65 + i)}: ${opt.content}`).join('\n')
     navigator.clipboard.writeText(text)
     alert("Copied to clipboard!")
   }
 
   const renderFeedbackArea = (isMobile = false) => {
     if (!showFeedback) return null
-    
+
     const tabs = [
       { id: 'insight', label: 'INSIGHT', icon: Lightbulb, color: 'text-amber-500', bg: 'bg-amber-100', hasContent: !!getInsightText() && getInsightText() !== 'No detail.' },
       { id: 'ai', label: 'AI ANALYSIS', icon: Sparkles, color: 'text-indigo-600', bg: 'bg-indigo-100', hasContent: !!currentQuestion?.ai_explanation },
@@ -2522,195 +2545,195 @@ export default function PracticePlay() {
         case 'insight':
           return (
             <div className="p-6 rounded-[2rem] bg-indigo-50/30 border border-indigo-100 shadow-sm animate-in fade-in slide-in-from-bottom-2">
-                 <div className="flex items-center gap-2 mb-3">
-                   <div className="w-6 h-6 rounded-full bg-amber-100 flex items-center justify-center">
-                      <Lightbulb className="w-3.5 h-3.5 fill-amber-500" />
-                   </div>
-                   <span className="text-[9px] font-black text-indigo-400 uppercase tracking-widest">INSIGHT</span>
-                 </div>
-                 <div className="text-slate-600 font-medium text-sm leading-relaxed markdown-content whitespace-pre-wrap break-words pr-2">
-                    {isEditingInsight ? (
-                      <textarea
-                        value={insightInput}
-                        onChange={(e) => setInsightInput(e.target.value)}
-                        className="w-full h-80 p-3 bg-white border border-indigo-100 rounded-xl text-sm font-medium text-slate-700 focus:ring-2 focus:ring-indigo-500 outline-none transition-all resize-none"
-                        placeholder="Enter explanation for this question..."
-                      />
-                    ) : (
-                      <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeRaw]} components={MarkdownComponents}>
-                        {parseBBCodeToHtml(getInsightText())}
-                      </ReactMarkdown>
-                    )}
-                 </div>
+              <div className="flex items-center gap-2 mb-3">
+                <div className="w-6 h-6 rounded-full bg-amber-100 flex items-center justify-center">
+                  <Lightbulb className="w-3.5 h-3.5 fill-amber-500" />
+                </div>
+                <span className="text-[9px] font-black text-indigo-400 uppercase tracking-widest">INSIGHT</span>
+              </div>
+              <div className="text-slate-600 font-medium text-sm leading-relaxed markdown-content whitespace-pre-wrap break-words pr-2">
+                {isEditingInsight ? (
+                  <textarea
+                    value={insightInput}
+                    onChange={(e) => setInsightInput(e.target.value)}
+                    className="w-full h-80 p-3 bg-white border border-indigo-100 rounded-xl text-sm font-medium text-slate-700 focus:ring-2 focus:ring-indigo-500 outline-none transition-all resize-none"
+                    placeholder="Enter explanation for this question..."
+                  />
+                ) : (
+                  <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeRaw]} components={MarkdownComponents}>
+                    {parseBBCodeToHtml(getInsightText())}
+                  </ReactMarkdown>
+                )}
+              </div>
             </div>
           )
         case 'ai':
           return (
             <div className="p-6 rounded-[2rem] ai-glow animate-in fade-in slide-in-from-bottom-2">
-               <div className="flex items-center justify-between mb-3">
-                 <div className="flex items-center gap-2">
-                    <Sparkles className="w-4 h-4 text-indigo-500 animate-pulse" />
-                    <span className="text-[9px] font-black text-indigo-600 uppercase tracking-widest">AI ANALYSIS</span>
-                    {canEdit && currentQuestion?.ai_explanation && !isEditingAI && !isEditingPrompt && (
-                      <button 
-                        onClick={clearAIExplanation}
-                        className="text-[9px] font-black text-rose-500 hover:text-rose-700 bg-rose-50 hover:bg-rose-100 px-2.5 py-1 rounded-md border border-rose-200 shadow-sm transition-all ml-2"
-                      >
-                        CLEAR AI
-                      </button>
-                    )}
-                 </div>
-                 <div className="flex gap-2">
-                   {canEdit && (
-                     <button 
-                       onClick={() => setIsEditingPrompt(!isEditingPrompt)}
-                       className={cn(
-                         "text-[9px] font-black uppercase tracking-widest transition-all px-2.5 py-1.5 rounded-md",
-                         isEditingPrompt ? "bg-amber-600 text-white shadow-sm" : "text-amber-500 hover:text-amber-600 hover:bg-white"
-                       )}
-                     >
-                       {isEditingPrompt ? 'CLOSE PROMPT' : 'PROMPT'}
-                     </button>
-                   )}
-                   {!currentQuestion?.ai_explanation && !isEditingAI && !isEditingPrompt && (
-                     <button 
-                       onClick={() => askAI()}
-                       disabled={isAskingAI}
-                       className="text-[9px] font-black text-indigo-600 bg-white px-3 py-1.5 rounded-lg border border-indigo-100 shadow-sm hover:bg-indigo-50 transition-all disabled:opacity-50"
-                     >
-                       {isAskingAI ? 'ANALYZING...' : 'ASK AI INSIGHT'}
-                     </button>
-                   )}
-                   {canEdit && !isEditingPrompt && (
-                     <button 
-                       onClick={() => {
-                         if (isEditingAI) {
-                           askAI(aiInput)
-                         } else {
-                           setAiInput(currentQuestion?.ai_explanation || '')
-                           setIsEditingAI(true)
-                         }
-                       }}
-                       disabled={isAskingAI}
-                       className={cn(
-                         "text-[9px] font-black uppercase tracking-widest transition-all px-2.5 py-1.5 rounded-md",
-                         isEditingAI ? "bg-indigo-600 text-white shadow-sm" : "text-indigo-400 hover:text-indigo-600 hover:bg-white"
-                       )}
-                     >
-                       {isAskingAI ? 'SAVING...' : (isEditingAI ? 'SAVE AI' : 'EDIT')}
-                     </button>
-                   )}
-                 </div>
-               </div>
-               
-               {isEditingPrompt ? (
-                 <div className="space-y-3 mt-2 bg-amber-50/50 border border-amber-100 rounded-2xl p-4">
-                   <div className="flex items-center justify-between">
-                     <span className="text-[10px] font-black text-amber-700 uppercase tracking-wider">EDIT SYSTEM PROMPT FOR AI</span>
-                     <button 
-                       onClick={savePrompt}
-                       className="text-[9px] font-black bg-amber-600 hover:bg-amber-700 text-white px-3 py-1.5 rounded-lg shadow-sm transition-all"
-                     >
-                       SAVE PROMPT
-                     </button>
-                   </div>
-                   <textarea 
-                     value={promptInput}
-                     onChange={(e) => setPromptInput(e.target.value)}
-                     placeholder="Enter System Prompt to guide the AI..."
-                     className="w-full h-80 bg-white rounded-xl p-4 text-xs font-semibold text-slate-700 focus:ring-2 focus:ring-amber-500 outline-none border border-amber-200 resize-none transition-all"
-                   />
-                   <p className="text-[9px] font-medium text-amber-600/80 italic leading-relaxed">
-                     * Guide: Use variables <code>{"{{question}}"}</code>, <code>{"{{options}}"}</code>, <code>{"{{correct_answer}}"}</code> to insert dynamic data. The new prompt will be applied to all subsequently regenerated questions.
-                   </p>
-                 </div>
-               ) : isEditingAI ? (
-                 <div className="space-y-2 mt-2">
-                   <textarea 
-                     value={aiInput}
-                     onChange={(e) => setAiInput(e.target.value)}
-                     placeholder="Enter AI Analysis content manually..."
-                     className="w-full h-80 bg-white/50 rounded-xl p-4 text-sm font-medium text-slate-700 focus:ring-2 focus:ring-indigo-500 outline-none border-none resize-none transition-all"
-                     autoFocus
-                   />
-                   <p className="text-[8px] font-medium text-slate-400 italic">Click 'SAVE AI' to save changes for everyone.</p>
-                 </div>
-               ) : (
-                  isAskingAI ? (
-                    <div className="flex flex-col items-center justify-center py-16 space-y-4 animate-pulse">
-                      <div className="relative w-12 h-12 flex items-center justify-center">
-                        <div className="absolute inset-0 rounded-full border-4 border-indigo-100 animate-ping" />
-                        <div className="w-10 h-10 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin" />
-                        <Sparkles className="w-4 h-4 text-indigo-500 absolute animate-pulse" />
-                      </div>
-                      <p className="text-xs font-black text-indigo-500 uppercase tracking-[0.2em] text-center animate-bounce">
-                        AI DEEP ANALYSIS IN PROGRESS...
-                      </p>
-                      <p className="text-[10px] font-semibold text-slate-400 max-w-xs text-center leading-relaxed">
-                        Please wait a moment, the AI is deeply analyzing the grammar and vocabulary of this question.
-                      </p>
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2">
+                  <Sparkles className="w-4 h-4 text-indigo-500 animate-pulse" />
+                  <span className="text-[9px] font-black text-indigo-600 uppercase tracking-widest">AI ANALYSIS</span>
+                  {canEdit && currentQuestion?.ai_explanation && !isEditingAI && !isEditingPrompt && (
+                    <button
+                      onClick={clearAIExplanation}
+                      className="text-[9px] font-black text-rose-500 hover:text-rose-700 bg-rose-50 hover:bg-rose-100 px-2.5 py-1 rounded-md border border-rose-200 shadow-sm transition-all ml-2"
+                    >
+                      CLEAR AI
+                    </button>
+                  )}
+                </div>
+                <div className="flex gap-2">
+                  {canEdit && (
+                    <button
+                      onClick={() => setIsEditingPrompt(!isEditingPrompt)}
+                      className={cn(
+                        "text-[9px] font-black uppercase tracking-widest transition-all px-2.5 py-1.5 rounded-md",
+                        isEditingPrompt ? "bg-amber-600 text-white shadow-sm" : "text-amber-500 hover:text-amber-600 hover:bg-white"
+                      )}
+                    >
+                      {isEditingPrompt ? 'CLOSE PROMPT' : 'PROMPT'}
+                    </button>
+                  )}
+                  {!currentQuestion?.ai_explanation && !isEditingAI && !isEditingPrompt && (
+                    <button
+                      onClick={() => askAI()}
+                      disabled={isAskingAI}
+                      className="text-[9px] font-black text-indigo-600 bg-white px-3 py-1.5 rounded-lg border border-indigo-100 shadow-sm hover:bg-indigo-50 transition-all disabled:opacity-50"
+                    >
+                      {isAskingAI ? 'ANALYZING...' : 'ASK AI INSIGHT'}
+                    </button>
+                  )}
+                  {canEdit && !isEditingPrompt && (
+                    <button
+                      onClick={() => {
+                        if (isEditingAI) {
+                          askAI(aiInput)
+                        } else {
+                          setAiInput(currentQuestion?.ai_explanation || '')
+                          setIsEditingAI(true)
+                        }
+                      }}
+                      disabled={isAskingAI}
+                      className={cn(
+                        "text-[9px] font-black uppercase tracking-widest transition-all px-2.5 py-1.5 rounded-md",
+                        isEditingAI ? "bg-indigo-600 text-white shadow-sm" : "text-indigo-400 hover:text-indigo-600 hover:bg-white"
+                      )}
+                    >
+                      {isAskingAI ? 'SAVING...' : (isEditingAI ? 'SAVE AI' : 'EDIT')}
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {isEditingPrompt ? (
+                <div className="space-y-3 mt-2 bg-amber-50/50 border border-amber-100 rounded-2xl p-4">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] font-black text-amber-700 uppercase tracking-wider">EDIT SYSTEM PROMPT FOR AI</span>
+                    <button
+                      onClick={savePrompt}
+                      className="text-[9px] font-black bg-amber-600 hover:bg-amber-700 text-white px-3 py-1.5 rounded-lg shadow-sm transition-all"
+                    >
+                      SAVE PROMPT
+                    </button>
+                  </div>
+                  <textarea
+                    value={promptInput}
+                    onChange={(e) => setPromptInput(e.target.value)}
+                    placeholder="Enter System Prompt to guide the AI..."
+                    className="w-full h-80 bg-white rounded-xl p-4 text-xs font-semibold text-slate-700 focus:ring-2 focus:ring-amber-500 outline-none border border-amber-200 resize-none transition-all"
+                  />
+                  <p className="text-[9px] font-medium text-amber-600/80 italic leading-relaxed">
+                    * Guide: Use variables <code>{"{{question}}"}</code>, <code>{"{{options}}"}</code>, <code>{"{{correct_answer}}"}</code> to insert dynamic data. The new prompt will be applied to all subsequently regenerated questions.
+                  </p>
+                </div>
+              ) : isEditingAI ? (
+                <div className="space-y-2 mt-2">
+                  <textarea
+                    value={aiInput}
+                    onChange={(e) => setAiInput(e.target.value)}
+                    placeholder="Enter AI Analysis content manually..."
+                    className="w-full h-80 bg-white/50 rounded-xl p-4 text-sm font-medium text-slate-700 focus:ring-2 focus:ring-indigo-500 outline-none border-none resize-none transition-all"
+                    autoFocus
+                  />
+                  <p className="text-[8px] font-medium text-slate-400 italic">Click 'SAVE AI' to save changes for everyone.</p>
+                </div>
+              ) : (
+                isAskingAI ? (
+                  <div className="flex flex-col items-center justify-center py-16 space-y-4 animate-pulse">
+                    <div className="relative w-12 h-12 flex items-center justify-center">
+                      <div className="absolute inset-0 rounded-full border-4 border-indigo-100 animate-ping" />
+                      <div className="w-10 h-10 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin" />
+                      <Sparkles className="w-4 h-4 text-indigo-500 absolute animate-pulse" />
                     </div>
-                  ) : (
-                    currentQuestion?.ai_explanation && (
-                      <div className="text-slate-700 font-medium text-sm leading-relaxed markdown-content break-words pr-2 mt-2">
-                        <ReactMarkdown 
-                          remarkPlugins={[remarkGfm]} 
-                          rehypePlugins={[rehypeRaw]} 
-                          components={{
-                            ...MarkdownComponents,
-                            p: ({ children }) => <span className="inline-block">{children}</span>
-                          }}
-                        >
-                          {parseBBCodeToHtml(currentQuestion.ai_explanation)}
-                        </ReactMarkdown>
-                      </div>
-                    )
+                    <p className="text-xs font-black text-indigo-500 uppercase tracking-[0.2em] text-center animate-bounce">
+                      AI DEEP ANALYSIS IN PROGRESS...
+                    </p>
+                    <p className="text-[10px] font-semibold text-slate-400 max-w-xs text-center leading-relaxed">
+                      Please wait a moment, the AI is deeply analyzing the grammar and vocabulary of this question.
+                    </p>
+                  </div>
+                ) : (
+                  currentQuestion?.ai_explanation && (
+                    <div className="text-slate-700 font-medium text-sm leading-relaxed markdown-content break-words pr-2 mt-2">
+                      <ReactMarkdown
+                        remarkPlugins={[remarkGfm]}
+                        rehypePlugins={[rehypeRaw]}
+                        components={{
+                          ...MarkdownComponents,
+                          p: ({ children }) => <span className="inline-block">{children}</span>
+                        }}
+                      >
+                        {parseBBCodeToHtml(currentQuestion.ai_explanation)}
+                      </ReactMarkdown>
+                    </div>
                   )
-               )}
+                )
+              )}
             </div>
           )
         case 'note':
           return (
             <div className="p-6 rounded-[2rem] bg-white border border-slate-100 shadow-sm animate-in fade-in slide-in-from-bottom-2">
-               <div className="flex items-center justify-between mb-4">
-                 <div className="flex items-center gap-2">
-                    <StickyNote className="w-4 h-4 text-slate-400" />
-                    <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">PERSONAL NOTE</span>
-                 </div>
-                 <button 
-                   onClick={() => {
-                     if (isEditingNote) {
-                       saveNote()
-                     }
-                     setIsEditingNote(!isEditingNote)
-                   }}
-                   className={cn(
-                     "text-[9px] font-black uppercase tracking-widest transition-all px-2.5 py-1 rounded-md",
-                     isEditingNote ? "bg-indigo-600 text-white shadow-sm" : "text-slate-400 hover:text-indigo-600 hover:bg-slate-50"
-                   )}
-                 >
-                   {isEditingNote ? 'SAVE & CLOSE' : 'EDIT'}
-                 </button>
-               </div>
-               
-               {!isEditingNote ? (
-                 <div className="text-slate-600 font-medium text-sm leading-relaxed markdown-content min-h-[100px] break-words pr-2">
-                   <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeRaw]} components={MarkdownComponents}>
-                     {personalNote || '*Empty note.*'}
-                   </ReactMarkdown>
-                 </div>
-               ) : (
-                 <div className="space-y-2">
-                   <textarea 
-                     value={personalNote}
-                     onChange={(e) => setPersonalNote(e.target.value)}
-                     placeholder="Write your study notes here... (Supports Markdown)"
-                     className="w-full h-80 bg-slate-50 rounded-xl p-4 text-sm font-medium text-slate-700 focus:ring-2 focus:ring-indigo-500 outline-none border-none resize-none transition-all"
-                     autoFocus
-                   />
-                   <p className="text-[8px] font-medium text-slate-300 italic">Supports Markdown syntax. Click 'SAVE & CLOSE' to complete.</p>
-                 </div>
-               )}
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-2">
+                  <StickyNote className="w-4 h-4 text-slate-400" />
+                  <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">PERSONAL NOTE</span>
+                </div>
+                <button
+                  onClick={() => {
+                    if (isEditingNote) {
+                      saveNote()
+                    }
+                    setIsEditingNote(!isEditingNote)
+                  }}
+                  className={cn(
+                    "text-[9px] font-black uppercase tracking-widest transition-all px-2.5 py-1 rounded-md",
+                    isEditingNote ? "bg-indigo-600 text-white shadow-sm" : "text-slate-400 hover:text-indigo-600 hover:bg-slate-50"
+                  )}
+                >
+                  {isEditingNote ? 'SAVE & CLOSE' : 'EDIT'}
+                </button>
+              </div>
+
+              {!isEditingNote ? (
+                <div className="text-slate-600 font-medium text-sm leading-relaxed markdown-content min-h-[100px] break-words pr-2">
+                  <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeRaw]} components={MarkdownComponents}>
+                    {personalNote || '*Empty note.*'}
+                  </ReactMarkdown>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  <textarea
+                    value={personalNote}
+                    onChange={(e) => setPersonalNote(e.target.value)}
+                    placeholder="Write your study notes here... (Supports Markdown)"
+                    className="w-full h-80 bg-slate-50 rounded-xl p-4 text-sm font-medium text-slate-700 focus:ring-2 focus:ring-indigo-500 outline-none border-none resize-none transition-all"
+                    autoFocus
+                  />
+                  <p className="text-[8px] font-medium text-slate-300 italic">Supports Markdown syntax. Click 'SAVE & CLOSE' to complete.</p>
+                </div>
+              )}
             </div>
           )
       }
@@ -2718,140 +2741,140 @@ export default function PracticePlay() {
 
     return (
       <div className="flex flex-col h-full bg-[#F8FAFC]">
-         {!isMobile && (
-           <div className="p-6 border-b border-slate-50 flex items-center justify-center bg-white sticky top-0 z-10">
-              <span className="text-[11px] font-black text-indigo-600 uppercase tracking-[0.3em]">Learning Insights</span>
-           </div>
-         )}
-         
-         <div className="flex-1 overflow-y-auto p-4 lg:p-8 custom-scrollbar">
-            {renderTabContent()}
-         </div>
-         
-         <div className={cn(
-             "flex items-center justify-between gap-3 py-4 border-t border-slate-100 bg-white/95 backdrop-blur-xl sticky bottom-0 z-50 px-6"
-          )}>
-             {isMobile && (
-               <button 
-                 onClick={() => setIsFeedbackOpen(false)}
-                 className="w-10 h-10 flex-shrink-0 flex items-center justify-center bg-slate-50 border border-slate-200 text-slate-500 rounded-xl hover:bg-rose-50 hover:border-rose-100 hover:text-rose-500 active:scale-90 transition-all shadow-sm"
-               >
-                 <X className="w-4 h-4" />
-               </button>
-             )}
-
-             <button 
-               onClick={handleEditCurrentTab}
-               className={cn(
-                 "w-12 h-12 flex-shrink-0 flex items-center justify-center rounded-2xl border transition-all duration-300 active:scale-90",
-                 ((activeFeedbackTab === 'ai' && isEditingAI) || (activeFeedbackTab === 'note' && isEditingNote) || (activeFeedbackTab === 'insight' && isEditingInsight))
-                   ? "bg-gradient-to-r from-emerald-500 to-teal-600 border-transparent text-white shadow-lg shadow-emerald-100 scale-105"
-                   : "bg-slate-50 border-slate-200/80 text-slate-500 hover:bg-indigo-50 hover:border-indigo-200 hover:text-indigo-600 shadow-sm"
-               )}
-             >
-               {((activeFeedbackTab === 'ai' && isEditingAI) || (activeFeedbackTab === 'note' && isEditingNote) || (activeFeedbackTab === 'insight' && isEditingInsight)) ? (
-                 <Check className="w-5 h-5 stroke-[3] animate-pulse" />
-               ) : (
-                 <Edit3 className="w-5 h-5" />
-               )}
-             </button>
-
-             <div className="flex items-center bg-slate-50 p-1 rounded-2xl h-14 border border-slate-200/60 shadow-inner gap-1">
-               {tabs.map((tab: any) => {
-                 const isActive = activeFeedbackTab === tab.id
-                 return (
-                   <button
-                     key={tab.id}
-                     onClick={() => setActiveFeedbackTab(tab.id)}
-                     className={cn(
-                       "w-12 h-11 flex items-center justify-center rounded-xl transition-all duration-300 relative",
-                       isActive 
-                         ? (
-                             tab.id === 'insight' ? "text-amber-500 bg-white shadow-md border border-amber-100/60 scale-105" :
-                             tab.id === 'ai' ? "text-indigo-600 bg-white shadow-md border border-indigo-100/60 scale-105" :
-                             "text-emerald-600 bg-white shadow-md border border-emerald-100/60 scale-105"
-                           )
-                         : "text-slate-400 hover:text-slate-600 hover:bg-white/40"
-                     )}
-                   >
-                     <div className="relative">
-                       <tab.icon className={cn("w-5 h-5 transition-transform duration-300", isActive && "scale-110")} />
-                       {tab.hasContent && (
-                         <span className={cn(
-                           "absolute -top-1 -right-1 w-2 h-2 rounded-full border border-white animate-pulse",
-                           tab.id === 'insight' ? "bg-amber-500" :
-                           tab.id === 'ai' ? "bg-indigo-600" :
-                           "bg-emerald-500"
-                         )} />
-                       )}
-                     </div>
-                   </button>
-                 )
-               })}
-             </div>
-
-             <div className="relative">
-               <AnimatePresence>
-                 {isCopyMenuOpen && activeFeedbackTab === 'ai' && (
-                   <motion.div 
-                     initial={{ opacity: 0, y: 10, scale: 0.9 }}
-                     animate={{ opacity: 1, y: 0, scale: 1 }}
-                     exit={{ opacity: 0, y: 10, scale: 0.9 }}
-                     className="absolute bottom-16 right-0 w-56 bg-white/95 backdrop-blur-md rounded-2xl shadow-[0_10px_30px_rgba(99,102,241,0.12)] border border-slate-100/80 p-2 flex flex-col gap-1 z-[100] animate-in fade-in slide-in-from-bottom-2 duration-200"
-                   >
-                     <button 
-                       onClick={() => copyCurrentTabContent('default')}
-                       className="flex items-center gap-3 px-4 py-3 hover:bg-slate-50 hover:text-slate-800 rounded-xl transition-all text-left"
-                     >
-                       <FileText className="w-4 h-4 text-slate-400" />
-                       <span className="text-[11px] font-black text-slate-500 uppercase tracking-wider">Copy Result</span>
-                     </button>
-                     <button 
-                       onClick={() => copyCurrentTabContent('question')}
-                       className="flex items-center gap-3 px-4 py-3 hover:bg-slate-50 hover:text-slate-800 rounded-xl transition-all text-left"
-                     >
-                       <HelpCircle className="w-4 h-4 text-slate-400" />
-                       <span className="text-[11px] font-black text-slate-500 uppercase tracking-wider">Copy Question</span>
-                     </button>
-                     <button 
-                       onClick={() => copyCurrentTabContent('prompt')}
-                       className="flex items-center gap-3 px-4 py-3 hover:bg-indigo-50/60 hover:text-indigo-600 rounded-xl transition-all text-left"
-                     >
-                       <Brain className="w-4 h-4 text-indigo-400" />
-                       <span className="text-[11px] font-black text-indigo-500 uppercase tracking-wider">Copy Prompt</span>
-                     </button>
-                   </motion.div>
-                 )}
-               </AnimatePresence>
-
-               <button 
-                 onClick={() => {
-                   if (activeFeedbackTab === 'ai') setIsCopyMenuOpen(!isCopyMenuOpen)
-                   else copyCurrentTabContent()
-                 }}
-                 className={cn(
-                   "w-12 h-12 flex-shrink-0 flex items-center justify-center rounded-2xl border transition-all duration-300 active:scale-90 shadow-sm",
-                   isCopied 
-                     ? "bg-gradient-to-r from-emerald-500 to-teal-600 border-transparent text-white shadow-lg shadow-emerald-100 scale-105" 
-                     : "bg-slate-50 border-slate-200/80 text-slate-500 hover:bg-indigo-50 hover:border-indigo-200 hover:text-indigo-600"
-                 )}
-               >
-                 {isCopied ? <Check className="w-5 h-5 stroke-[3]" /> : <Copy className="w-5 h-5" />}
-               </button>
-             </div>
-
-             {isMobile && (
-               <button 
-                 onClick={() => {
-                   handleNext()
-                   setIsFeedbackOpen(false)
-                 }}
-                 className="w-10 h-10 flex-shrink-0 flex items-center justify-center rounded-xl bg-gradient-to-r from-indigo-500 to-purple-600 text-white shadow-lg shadow-indigo-200/60 active:scale-90 hover:scale-105 hover:rotate-3 transition-all"
-               >
-                 <ChevronRight className="w-5 h-5" />
-               </button>
-             )}
+        {!isMobile && (
+          <div className="p-6 border-b border-slate-50 flex items-center justify-center bg-white sticky top-0 z-10">
+            <span className="text-[11px] font-black text-indigo-600 uppercase tracking-[0.3em]">Learning Insights</span>
           </div>
+        )}
+
+        <div className="flex-1 overflow-y-auto p-4 lg:p-8 custom-scrollbar">
+          {renderTabContent()}
+        </div>
+
+        <div className={cn(
+          "flex items-center justify-between gap-3 py-4 border-t border-slate-100 bg-white/95 backdrop-blur-xl sticky bottom-0 z-50 px-6"
+        )}>
+          {isMobile && (
+            <button
+              onClick={() => setIsFeedbackOpen(false)}
+              className="w-10 h-10 flex-shrink-0 flex items-center justify-center bg-slate-50 border border-slate-200 text-slate-500 rounded-xl hover:bg-rose-50 hover:border-rose-100 hover:text-rose-500 active:scale-90 transition-all shadow-sm"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          )}
+
+          <button
+            onClick={handleEditCurrentTab}
+            className={cn(
+              "w-12 h-12 flex-shrink-0 flex items-center justify-center rounded-2xl border transition-all duration-300 active:scale-90",
+              ((activeFeedbackTab === 'ai' && isEditingAI) || (activeFeedbackTab === 'note' && isEditingNote) || (activeFeedbackTab === 'insight' && isEditingInsight))
+                ? "bg-gradient-to-r from-emerald-500 to-teal-600 border-transparent text-white shadow-lg shadow-emerald-100 scale-105"
+                : "bg-slate-50 border-slate-200/80 text-slate-500 hover:bg-indigo-50 hover:border-indigo-200 hover:text-indigo-600 shadow-sm"
+            )}
+          >
+            {((activeFeedbackTab === 'ai' && isEditingAI) || (activeFeedbackTab === 'note' && isEditingNote) || (activeFeedbackTab === 'insight' && isEditingInsight)) ? (
+              <Check className="w-5 h-5 stroke-[3] animate-pulse" />
+            ) : (
+              <Edit3 className="w-5 h-5" />
+            )}
+          </button>
+
+          <div className="flex items-center bg-slate-50 p-1 rounded-2xl h-14 border border-slate-200/60 shadow-inner gap-1">
+            {tabs.map((tab: any) => {
+              const isActive = activeFeedbackTab === tab.id
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveFeedbackTab(tab.id)}
+                  className={cn(
+                    "w-12 h-11 flex items-center justify-center rounded-xl transition-all duration-300 relative",
+                    isActive
+                      ? (
+                        tab.id === 'insight' ? "text-amber-500 bg-white shadow-md border border-amber-100/60 scale-105" :
+                          tab.id === 'ai' ? "text-indigo-600 bg-white shadow-md border border-indigo-100/60 scale-105" :
+                            "text-emerald-600 bg-white shadow-md border border-emerald-100/60 scale-105"
+                      )
+                      : "text-slate-400 hover:text-slate-600 hover:bg-white/40"
+                  )}
+                >
+                  <div className="relative">
+                    <tab.icon className={cn("w-5 h-5 transition-transform duration-300", isActive && "scale-110")} />
+                    {tab.hasContent && (
+                      <span className={cn(
+                        "absolute -top-1 -right-1 w-2 h-2 rounded-full border border-white animate-pulse",
+                        tab.id === 'insight' ? "bg-amber-500" :
+                          tab.id === 'ai' ? "bg-indigo-600" :
+                            "bg-emerald-500"
+                      )} />
+                    )}
+                  </div>
+                </button>
+              )
+            })}
+          </div>
+
+          <div className="relative">
+            <AnimatePresence>
+              {isCopyMenuOpen && activeFeedbackTab === 'ai' && (
+                <motion.div
+                  initial={{ opacity: 0, y: 10, scale: 0.9 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: 10, scale: 0.9 }}
+                  className="absolute bottom-16 right-0 w-56 bg-white/95 backdrop-blur-md rounded-2xl shadow-[0_10px_30px_rgba(99,102,241,0.12)] border border-slate-100/80 p-2 flex flex-col gap-1 z-[100] animate-in fade-in slide-in-from-bottom-2 duration-200"
+                >
+                  <button
+                    onClick={() => copyCurrentTabContent('default')}
+                    className="flex items-center gap-3 px-4 py-3 hover:bg-slate-50 hover:text-slate-800 rounded-xl transition-all text-left"
+                  >
+                    <FileText className="w-4 h-4 text-slate-400" />
+                    <span className="text-[11px] font-black text-slate-500 uppercase tracking-wider">Copy Result</span>
+                  </button>
+                  <button
+                    onClick={() => copyCurrentTabContent('question')}
+                    className="flex items-center gap-3 px-4 py-3 hover:bg-slate-50 hover:text-slate-800 rounded-xl transition-all text-left"
+                  >
+                    <HelpCircle className="w-4 h-4 text-slate-400" />
+                    <span className="text-[11px] font-black text-slate-500 uppercase tracking-wider">Copy Question</span>
+                  </button>
+                  <button
+                    onClick={() => copyCurrentTabContent('prompt')}
+                    className="flex items-center gap-3 px-4 py-3 hover:bg-indigo-50/60 hover:text-indigo-600 rounded-xl transition-all text-left"
+                  >
+                    <Brain className="w-4 h-4 text-indigo-400" />
+                    <span className="text-[11px] font-black text-indigo-500 uppercase tracking-wider">Copy Prompt</span>
+                  </button>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            <button
+              onClick={() => {
+                if (activeFeedbackTab === 'ai') setIsCopyMenuOpen(!isCopyMenuOpen)
+                else copyCurrentTabContent()
+              }}
+              className={cn(
+                "w-12 h-12 flex-shrink-0 flex items-center justify-center rounded-2xl border transition-all duration-300 active:scale-90 shadow-sm",
+                isCopied
+                  ? "bg-gradient-to-r from-emerald-500 to-teal-600 border-transparent text-white shadow-lg shadow-emerald-100 scale-105"
+                  : "bg-slate-50 border-slate-200/80 text-slate-500 hover:bg-indigo-50 hover:border-indigo-200 hover:text-indigo-600"
+              )}
+            >
+              {isCopied ? <Check className="w-5 h-5 stroke-[3]" /> : <Copy className="w-5 h-5" />}
+            </button>
+          </div>
+
+          {isMobile && (
+            <button
+              onClick={() => {
+                handleNext()
+                setIsFeedbackOpen(false)
+              }}
+              className="w-10 h-10 flex-shrink-0 flex items-center justify-center rounded-xl bg-gradient-to-r from-indigo-500 to-purple-600 text-white shadow-lg shadow-indigo-200/60 active:scale-90 hover:scale-105 hover:rotate-3 transition-all"
+            >
+              <ChevronRight className="w-5 h-5" />
+            </button>
+          )}
+        </div>
       </div>
     )
   }
@@ -2860,7 +2883,7 @@ export default function PracticePlay() {
     return (
       <div className="flex-1 bg-white/60 backdrop-blur-xl md:rounded-[3rem] rounded-[2rem] border border-slate-100 md:p-12 p-6 flex flex-col items-center justify-center text-center shadow-2xl shadow-indigo-100/40 min-h-[400px]">
         <div className="max-w-md mx-auto space-y-6">
-          <motion.div 
+          <motion.div
             initial={{ scale: 0.8, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             transition={{ type: "spring", damping: 15 }}
@@ -2868,7 +2891,7 @@ export default function PracticePlay() {
           >
             <Lock className="w-10 h-10" />
           </motion.div>
-          
+
           <div className="space-y-2">
             <h2 className="text-xl font-black text-slate-800 uppercase tracking-tight italic">
               Chế độ luyện tập chưa mở
@@ -2877,7 +2900,7 @@ export default function PracticePlay() {
               Chủ sở hữu bộ thẻ chưa cấu hình thiết lập luyện tập (MCQ, Gõ từ, Nghe) cho bộ thẻ này. Chỉ chủ sở hữu mới có quyền kích hoạt chế độ luyện tập.
             </p>
           </div>
-          
+
           <div className="pt-2">
             <div className="inline-flex items-center gap-2 px-4 py-2 bg-slate-50 border border-slate-100 rounded-2xl text-[10px] font-black text-slate-400 uppercase tracking-wider">
               <span>Hỏi-Đáp chưa được thiết lập</span>
@@ -3046,24 +3069,24 @@ export default function PracticePlay() {
 
     return (
       <div className="flex-1 bg-white md:rounded-[3rem] rounded-[2rem] border border-slate-100 md:p-6 md:pt-4 p-4 pt-3 flex flex-col justify-between shadow-2xl shadow-indigo-100/40 min-h-0 overflow-y-auto">
-        
+
         {/* Premium Question Card container for better space usage and rich aesthetics */}
         <div className="w-full max-w-3xl mx-auto py-1 text-center animate-in fade-in slide-in-from-top-3 duration-500">
           <div className="w-full bg-gradient-to-br from-indigo-50/40 via-slate-50/60 to-pink-50/20 border border-slate-100 rounded-[2rem] p-5 md:p-6 shadow-sm flex flex-col items-center justify-center text-center gap-4 relative overflow-hidden mb-1">
             <div className="absolute top-[-10%] left-[-10%] w-[30%] h-[30%] rounded-full bg-indigo-100/20 blur-2xl pointer-events-none" />
             <div className="absolute bottom-[-10%] right-[-10%] w-[30%] h-[30%] rounded-full bg-pink-100/20 blur-2xl pointer-events-none" />
-            
+
             {currentQuestion.image && practiceSubMode !== 'listening' && (
-              <img 
-                src={currentQuestion.image} 
-                alt="Question" 
-                className="max-h-32 object-contain rounded-xl mb-2 border border-slate-100 shadow-sm bg-white p-1" 
+              <img
+                src={currentQuestion.image}
+                alt="Question"
+                className="max-h-32 object-contain rounded-xl mb-2 border border-slate-100 shadow-sm bg-white p-1"
               />
             )}
-            
+
             {practiceSubMode === 'listening' ? (
               <div className="flex flex-col items-center gap-3">
-                <div 
+                <div
                   onClick={() => {
                     const { question: qText, question_key: qKey } = practiceData!;
                     if (qKey === 'front') {
@@ -3100,9 +3123,9 @@ export default function PracticePlay() {
               {choices.map((choice: string, idx: number) => {
                 const isSelected = selectedOption === idx;
                 const isCorrectChoice = idx === correct_index;
-                
+
                 let btnStyle = "border-slate-200 hover:bg-slate-50/50 hover:border-indigo-200 text-slate-700 active:scale-[0.99] ";
-                
+
                 if (answered) {
                   if (isCorrectChoice) {
                     btnStyle = "bg-gradient-to-r from-emerald-500 to-teal-500 border-emerald-600 text-white shadow-lg shadow-emerald-100 scale-[1.015] ";
@@ -3127,8 +3150,8 @@ export default function PracticePlay() {
                       <span className={cn(
                         "w-7 h-7 rounded-xl flex items-center justify-center text-xs font-black border flex-shrink-0 transition-colors duration-300",
                         answered && isCorrectChoice ? "bg-white text-emerald-600 border-emerald-400 shadow-sm" :
-                        answered && isSelected ? "bg-white text-rose-600 border-rose-400 shadow-sm" :
-                        "bg-white border-slate-200 text-slate-400 shadow-sm group-hover:border-indigo-300 group-hover:text-indigo-600"
+                          answered && isSelected ? "bg-white text-rose-600 border-rose-400 shadow-sm" :
+                            "bg-white border-slate-200 text-slate-400 shadow-sm group-hover:border-indigo-300 group-hover:text-indigo-600"
                       )}>
                         {idx + 1}
                       </span>
@@ -3170,8 +3193,8 @@ export default function PracticePlay() {
                 <div className="space-y-3">
                   <div className={cn(
                     "flex items-center gap-3 p-4 rounded-2xl border",
-                    typingFeedback.isCorrect 
-                      ? "bg-emerald-50/50 border-emerald-200 text-emerald-800" 
+                    typingFeedback.isCorrect
+                      ? "bg-emerald-50/50 border-emerald-200 text-emerald-800"
                       : "bg-rose-50/50 border-rose-200 text-rose-800"
                   )}>
                     <div className={cn(
@@ -3205,7 +3228,7 @@ export default function PracticePlay() {
 
   const renderSessionStats = () => {
     const isPractice = mainTab === 'practice';
-    
+
     if (isPractice) {
       const answeredCount = Object.keys(practiceAnswers).length;
       const correctCount = Object.entries(practiceAnswers).filter(([idx, ansIdx]) => {
@@ -3259,7 +3282,7 @@ export default function PracticePlay() {
     const hardCount = finalRatings.filter(val => val === 1).length
     const goodCount = finalRatings.filter(val => val === 2).length
     const easyCount = finalRatings.filter(val => val === 3).length
-    
+
     const correctCount = hardCount + goodCount + easyCount
     const accuracy = answeredCount > 0 ? Math.round((correctCount / answeredCount) * 100) : 0
 
@@ -3308,8 +3331,8 @@ export default function PracticePlay() {
   }
 
   const renderPracticeStats = () => {
-    const accuracy = practiceTotalAnswered > 0 
-      ? Math.round((practiceCorrectCount / practiceTotalAnswered) * 100) 
+    const accuracy = practiceTotalAnswered > 0
+      ? Math.round((practiceCorrectCount / practiceTotalAnswered) * 100)
       : 0;
 
     return (
@@ -3389,18 +3412,18 @@ export default function PracticePlay() {
     return (
       <div className="grid grid-cols-8 md:grid-cols-10 lg:grid-cols-5 gap-3 p-1 pb-4">
         {session.questions?.map((q: any, i: number) => {
-          const hasAttemptedThisSession = isPractice 
-            ? practiceAnswers[i] !== undefined 
+          const hasAttemptedThisSession = isPractice
+            ? practiceAnswers[i] !== undefined
             : sessionAnswers[i] !== undefined;
-            
-          const selectedOptIdx = isPractice 
-            ? practiceAnswers[i] 
+
+          const selectedOptIdx = isPractice
+            ? practiceAnswers[i]
             : (() => {
-                const attemptedRatings = Array.isArray(sessionAnswers[i]) 
-                  ? (sessionAnswers[i] as number[]) 
-                  : (typeof sessionAnswers[i] === 'number' ? [sessionAnswers[i] as number] : []);
-                return attemptedRatings.length > 0 ? attemptedRatings[attemptedRatings.length - 1] : null;
-              })();
+              const attemptedRatings = Array.isArray(sessionAnswers[i])
+                ? (sessionAnswers[i] as number[])
+                : (typeof sessionAnswers[i] === 'number' ? [sessionAnswers[i] as number] : []);
+              return attemptedRatings.length > 0 ? attemptedRatings[attemptedRatings.length - 1] : null;
+            })();
 
           const isActive = currentIndex === i
 
@@ -3462,16 +3485,16 @@ export default function PracticePlay() {
           }
 
           return (
-            <button 
-              key={i} 
+            <button
+              key={i}
               onClick={() => {
                 navigateToQuestion(i)
                 setIsMapOpen(false)
               }}
               className={cn(
                 "relative aspect-square rounded-xl border flex flex-col items-center justify-center font-black text-[11px] transition-all duration-200",
-                isActive 
-                  ? "border-indigo-600 ring-4 ring-indigo-500/30 z-10 scale-105 shadow-md" 
+                isActive
+                  ? "border-indigo-600 ring-4 ring-indigo-500/30 z-10 scale-105 shadow-md"
                   : "",
                 fsrsClass
               )}
@@ -3484,9 +3507,9 @@ export default function PracticePlay() {
                   isPractice
                     ? (selectedOptIdx === q.practice?.correct_index ? "text-emerald-600" : "text-rose-600")
                     : (selectedOptIdx === 0 ? "text-rose-600" :
-                       selectedOptIdx === 1 ? "text-amber-600" :
-                       selectedOptIdx === 2 ? "text-indigo-600" :
-                       "text-emerald-600")
+                      selectedOptIdx === 1 ? "text-amber-600" :
+                        selectedOptIdx === 2 ? "text-indigo-600" :
+                          "text-emerald-600")
                 )}>
                   {isPractice
                     ? (selectedOptIdx === q.practice?.correct_index ? "CORRECT" : "WRONG")
@@ -3500,7 +3523,7 @@ export default function PracticePlay() {
     );
   }
 
-  if (!session) return <div className="min-h-screen flex items-center justify-center font-black animate-pulse">LOADING SESSION...</div>
+  if (!session || currentIndex < 0) return <div className="min-h-screen flex items-center justify-center font-black animate-pulse">LOADING SESSION...</div>
 
   return (
     <div className="h-screen flex flex-col bg-gradient-to-br from-slate-50 via-indigo-50/20 to-slate-50 text-slate-900 font-sans overflow-hidden relative">
@@ -3511,14 +3534,14 @@ export default function PracticePlay() {
             ? currentQuestion.options[selectedOption]?.is_correct
             : selectedOption > 0;
           return (
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0, scale: 0.9, y: 50 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.9, y: 20 }}
               className={cn(
                 "fixed bottom-[136px] left-1/2 -translate-x-1/2 z-[1000] px-6 py-3 rounded-2xl font-black text-[12px] uppercase tracking-[0.1em] shadow-xl flex items-center gap-3 backdrop-blur-md border whitespace-nowrap",
-                isCorrect 
-                  ? "bg-emerald-500/90 text-white border-emerald-400/30 shadow-emerald-200/20" 
+                isCorrect
+                  ? "bg-emerald-500/90 text-white border-emerald-400/30 shadow-emerald-200/20"
                   : "bg-amber-400/90 text-slate-800 border-amber-300/30 shadow-amber-200/20"
               )}
             >
@@ -3547,8 +3570,8 @@ export default function PracticePlay() {
               exit={{ opacity: 0, y: -180, scale: 0.8 }}
               className={cn(
                 "fixed bottom-32 left-1/2 -translate-x-1/2 z-[1001] px-6 py-3 rounded-2xl font-black text-base shadow-2xl pointer-events-none transition-all duration-300",
-                isLimitless 
-                  ? "bg-gradient-to-r from-amber-500 via-orange-500 to-red-500 text-white shadow-amber-500/50 border border-amber-400 drop-shadow-[0_0_12px_rgba(245,158,11,0.6)] animate-bounce" 
+                isLimitless
+                  ? "bg-gradient-to-r from-amber-500 via-orange-500 to-red-500 text-white shadow-amber-500/50 border border-amber-400 drop-shadow-[0_0_12px_rgba(245,158,11,0.6)] animate-bounce"
                   : "bg-gradient-to-r from-indigo-500 to-purple-600 text-white shadow-indigo-300/50"
               )}
             >
@@ -3570,8 +3593,8 @@ export default function PracticePlay() {
               exit={{ opacity: 0, x: 200, scale: 0.9 }}
               className={cn(
                 "fixed top-24 right-6 z-[1002] max-w-sm w-82 backdrop-blur-xl rounded-[2rem] p-5 flex items-center gap-4 border transition-all duration-300",
-                isLimitless 
-                  ? "bg-slate-950/95 border-amber-500/60 shadow-[0_0_40px_rgba(245,158,11,0.35),inset_0_1px_1px_rgba(255,255,255,0.15)] text-white" 
+                isLimitless
+                  ? "bg-slate-950/95 border-amber-500/60 shadow-[0_0_40px_rgba(245,158,11,0.35),inset_0_1px_1px_rgba(255,255,255,0.15)] text-white"
                   : "bg-white/95 border-slate-100 shadow-[0_20px_50px_rgba(99,102,241,0.15)] text-slate-900"
               )}
             >
@@ -3621,9 +3644,9 @@ export default function PracticePlay() {
                 <div className="flex items-center gap-1.5 mb-1">
                   <span className={cn(
                     "text-[8px] font-black tracking-widest uppercase px-2 py-0.5 rounded-md",
-                    goalToast.justCompleted ? "bg-amber-100 text-amber-700" : 
-                    isLimitless ? "bg-gradient-to-r from-amber-500 via-orange-500 to-red-500 text-white animate-pulse border border-amber-400/35 shadow-lg shadow-amber-500/25 tracking-wider" :
-                    "bg-indigo-50 text-indigo-600"
+                    goalToast.justCompleted ? "bg-amber-100 text-amber-700" :
+                      isLimitless ? "bg-gradient-to-r from-amber-500 via-orange-500 to-red-500 text-white animate-pulse border border-amber-400/35 shadow-lg shadow-amber-500/25 tracking-wider" :
+                        "bg-indigo-50 text-indigo-600"
                   )}>
                     {goalToast.justCompleted ? "GOAL REACHED" : isLimitless ? "LIMITLESS MODE ⚡" : "DAILY GOAL"}
                   </span>
@@ -3702,7 +3725,7 @@ export default function PracticePlay() {
             <div className="flex items-center gap-1.5 mt-0.5">
               <span className="text-[11px] font-black text-indigo-600">{initialTotalXP} XP</span>
               <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-gradient-to-r from-indigo-500 to-purple-500 text-white text-[8px] font-black shadow-sm shadow-indigo-200">
-                 <span>+{sessionXP}</span>
+                <span>+{sessionXP}</span>
               </div>
               {streak >= 2 && (
                 <div className="flex items-center gap-0.5 px-2 py-0.5 rounded-full bg-gradient-to-r from-orange-500 to-red-500 text-white text-[8px] font-black shadow-sm shadow-orange-200">
@@ -3714,21 +3737,21 @@ export default function PracticePlay() {
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <button 
-             onClick={() => {
-                const nextSfx = !sfxEnabled;
-                setSfxEnabled(nextSfx);
-                localStorage.setItem('vocaburn_sfx_enabled', nextSfx ? 'true' : 'false');
-             }}
-             className={cn(
-                "w-9 h-9 flex items-center justify-center rounded-xl border transition-all active:scale-90 shadow-sm",
-                sfxEnabled 
-                   ? "bg-emerald-50 border-emerald-100 text-emerald-500 hover:bg-emerald-100" 
-                   : "bg-slate-50 border-slate-200 text-slate-400 hover:bg-slate-100"
-             )}
-             title={sfxEnabled ? "Tắt âm thanh hiệu ứng" : "Bật âm thanh hiệu ứng"}
+          <button
+            onClick={() => {
+              const nextSfx = !sfxEnabled;
+              setSfxEnabled(nextSfx);
+              localStorage.setItem('vocaburn_sfx_enabled', nextSfx ? 'true' : 'false');
+            }}
+            className={cn(
+              "w-9 h-9 flex items-center justify-center rounded-xl border transition-all active:scale-90 shadow-sm",
+              sfxEnabled
+                ? "bg-emerald-50 border-emerald-100 text-emerald-500 hover:bg-emerald-100"
+                : "bg-slate-50 border-slate-200 text-slate-400 hover:bg-slate-100"
+            )}
+            title={sfxEnabled ? "Tắt âm thanh hiệu ứng" : "Bật âm thanh hiệu ứng"}
           >
-             {sfxEnabled ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
+            {sfxEnabled ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
           </button>
 
           <div className={cn(
@@ -3738,10 +3761,10 @@ export default function PracticePlay() {
             <Timer className={cn("w-3.5 h-3.5", !showFeedback && "animate-pulse")} />
             <span>{timeLeft}s</span>
           </div>
-          
+
           <AnimatePresence>
             {showFeedback && (
-              <motion.button 
+              <motion.button
                 initial={{ opacity: 0, scale: 0.8 }}
                 animate={{ opacity: 1, scale: 1 }}
                 onClick={copyQuestionToClipboard}
@@ -3753,14 +3776,14 @@ export default function PracticePlay() {
             )}
           </AnimatePresence>
 
-          <button 
+          <button
             onClick={openEditModal}
             className="w-9 h-9 flex items-center justify-center bg-slate-50 border border-slate-200 rounded-xl text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 hover:border-indigo-200 shadow-sm active:scale-90 transition-all"
             title="Edit card"
           >
             <Edit3 className="w-4 h-4" />
           </button>
-          <button 
+          <button
             onClick={() => setIsQuitModalOpen(true)}
             className="w-9 h-9 flex items-center justify-center bg-rose-50 border border-rose-200 rounded-xl text-rose-500 hover:bg-rose-100 shadow-sm active:scale-90 transition-all"
           >
@@ -3779,7 +3802,7 @@ export default function PracticePlay() {
 
         {/* Right Side: Sub-mode Selector for Practice Tab */}
         {!practiceNeedsSetup && !practiceDisabled && (
-          <div 
+          <div
             className="flex items-center gap-2.5 overflow-x-auto w-full md:w-auto scrollbar-none [&::-webkit-scrollbar]:hidden py-0.5 justify-center flex-nowrap"
             style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
           >
@@ -3801,7 +3824,7 @@ export default function PracticePlay() {
                 <Shuffle className="w-3.5 h-3.5" />
                 <span className="hidden md:inline">Random (All)</span>
               </button>
-              
+
               <button
                 onClick={() => {
                   const learnedIndices = session?.questions?.map((q: any, i: number) => (q.stats?.total || 0) > 0 ? i : -1).filter((i: number) => i !== -1) || [];
@@ -3818,7 +3841,7 @@ export default function PracticePlay() {
                   }
                   setPracticeRange('learned');
                   localStorage.setItem('vocab_practice_range', 'learned');
-                  
+
                   // If current card is not in learned pool, jump to first learned card
                   if (!learnedIndices.includes(currentIndex)) {
                     navigateToQuestion(learnedIndices[0]);
@@ -3859,7 +3882,7 @@ export default function PracticePlay() {
                 <HelpCircle className="w-3.5 h-3.5" />
                 <span className="hidden md:inline">MCQ</span>
               </button>
-              
+
               <button
                 onClick={() => {
                   setPracticeAnswers({});
@@ -3900,8 +3923,8 @@ export default function PracticePlay() {
                 <span className="hidden md:inline">Listening</span>
               </button>
             </div>
-            
-            <button 
+
+            <button
               onClick={() => setPracticeNeedsSetup(true)}
               className="w-7 h-7 flex-shrink-0 flex items-center justify-center rounded-lg bg-slate-50 border border-slate-200 text-slate-500 hover:bg-indigo-50 hover:text-indigo-600 hover:border-indigo-200 active:scale-95 transition-all shadow-sm"
               title="Cấu hình cặp cột Hỏi-Đáp"
@@ -3922,7 +3945,7 @@ export default function PracticePlay() {
                   {mainTab === 'practice' ? "Answer question to view analysis" : "Rate card to view analysis"}
                 </span>
               </div>
-              
+
               <div className="flex-1 flex flex-col items-center justify-center p-8 gap-6 text-center">
                 {/* Animated waiting indicator */}
                 <div className="relative w-20 h-20 flex items-center justify-center mb-2">
@@ -3970,8 +3993,8 @@ export default function PracticePlay() {
                           Object.entries(sessionAnswers).filter(([idx, optIdx]) => {
                             const q = session.questions[Number(idx)];
                             if (!q) return false;
-                            const ratingVal = Array.isArray(optIdx) 
-                              ? optIdx[optIdx.length - 1] 
+                            const ratingVal = Array.isArray(optIdx)
+                              ? optIdx[optIdx.length - 1]
                               : (typeof optIdx === 'number' ? optIdx : 0);
                             return q.options && q.options.length > 0
                               ? q.options[ratingVal]?.is_correct
@@ -3994,8 +4017,8 @@ export default function PracticePlay() {
                           Object.keys(sessionAnswers).length - Object.entries(sessionAnswers).filter(([idx, optIdx]) => {
                             const q = session.questions[Number(idx)];
                             if (!q) return false;
-                            const ratingVal = Array.isArray(optIdx) 
-                              ? optIdx[optIdx.length - 1] 
+                            const ratingVal = Array.isArray(optIdx)
+                              ? optIdx[optIdx.length - 1]
                               : (typeof optIdx === 'number' ? optIdx : 0);
                             return q.options && q.options.length > 0
                               ? q.options[ratingVal]?.is_correct
@@ -4016,7 +4039,7 @@ export default function PracticePlay() {
                       </span>
                     </div>
                     <div className="w-full h-2.5 bg-slate-100 rounded-full overflow-hidden relative">
-                      <div 
+                      <div
                         className="h-full bg-gradient-to-r from-indigo-500 to-purple-500 rounded-full transition-all duration-500"
                         style={{ width: `${Math.round(((mainTab === 'practice' ? Object.keys(practiceAnswers).length : Object.keys(sessionAnswers).length) / (session.questions?.length || 1)) * 100)}%` }}
                       />
@@ -4043,11 +4066,11 @@ export default function PracticePlay() {
                     <span className="text-[9px] font-black text-indigo-600 uppercase tracking-widest">Learning Tip</span>
                   </div>
                   <p className="text-[11px] text-slate-500 leading-relaxed font-medium">
-                    {currentIndex % 3 === 0 
+                    {currentIndex % 3 === 0
                       ? "Read the card face carefully before flipping it. Try to actively recall the definition! 🎯"
                       : currentIndex % 3 === 1
-                      ? "Be honest with your FSRS ratings to optimize learning efficiency! 💡"
-                      : "Consecutive daily streaks help with long-term retention. Try to review cards daily to build memory stability! 🔥"
+                        ? "Be honest with your FSRS ratings to optimize learning efficiency! 💡"
+                        : "Consecutive daily streaks help with long-term retention. Try to review cards daily to build memory stability! 🔥"
                     }
                   </p>
                 </div>
@@ -4058,431 +4081,431 @@ export default function PracticePlay() {
 
         <div className="w-full max-w-4xl min-w-0 flex flex-col overflow-hidden h-full">
           <div className="flex-1 flex flex-col overflow-hidden md:pr-2 md:pb-2 pr-0 pb-0">
-            
 
-          <AnimatePresence mode="wait">
-            <motion.div 
-              key={currentIndex}
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -20 }}
-              className="flex-1 flex flex-col h-full w-full min-h-0"
-            >
-              {mainTab === 'practice' && practiceDisabled ? (
-                renderPracticeLockScreen()
-              ) : mainTab === 'practice' && practiceNeedsSetup ? (
-                renderPracticeSetupScreen()
-              ) : mainTab === 'practice' ? (
-                renderPracticeScreen()
-              ) : (
-                <div className="perspective-1000 w-full h-full flex-1 relative min-h-0">
-                <div
-                  className="preserve-3d w-full h-full relative transition-transform duration-700 ease-out-quint"
-                  style={{
-                    transform: isFlipped ? 'rotateY(180deg)' : 'rotateY(0deg)',
-                    transformStyle: 'preserve-3d',
-                  }}
-                >
-                   {/* FRONT SIDE */}
-                  <div
-                    className="absolute inset-0 backface-hidden bg-white md:rounded-[3rem] rounded-[2rem] border border-slate-100 md:p-8 p-4 py-6 md:py-8 flex flex-col justify-between shadow-2xl shadow-indigo-100/40"
-                    style={{
-                      backfaceVisibility: 'hidden',
-                      transform: 'none',
-                      WebkitFontSmoothing: 'antialiased',
-                      MozOsxFontSmoothing: 'grayscale',
-                      pointerEvents: 'auto',
-                      zIndex: isFlipped ? 1 : 2,
-                      visibility: isFlipped ? 'hidden' : 'visible',
-                      transition: 'visibility 0s ' + (isFlipped ? '0.7s' : '0s'),
-                    }}
-                  >
-                    {/* Top Stats Banner */}
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <span className="text-[10px] font-black tracking-widest text-indigo-600 bg-indigo-50 px-3 py-1.5 rounded-xl border border-indigo-100 uppercase shadow-sm">
-                          FRONT CARD
-                        </span>
-                        <span className="text-[10px] font-black tracking-wider text-slate-500 bg-slate-50 px-3 py-1.5 rounded-xl border border-slate-100 shadow-sm">
-                          {currentIndex + 1} / {session.questions?.length || 0}
-                        </span>
-                      </div>
-                      
-                      <div className="flex items-center gap-2">
-                        {currentQuestion && getMasteryPill(currentQuestion.box_level || 1)}
-                      </div>
-                    </div>
 
-                    {/* Word / Question Content */}
-                    <div className="flex-1 flex flex-col items-center justify-center text-center gap-6 overflow-y-auto custom-scrollbar my-2 py-2">
-                      {(currentQuestion?.image || currentQuestion?.others?.front_img) && (
-                        <img 
-                          src={currentQuestion.image || currentQuestion.others?.front_img || undefined} 
-                          alt="Front Visual" 
-                          className="max-h-40 md:max-h-48 object-contain rounded-3xl border border-slate-100/80 shadow-md bg-slate-50/50 p-1.5 animate-in zoom-in-95 duration-500"
-                        />
-                      )}
-                      <div className="text-3xl md:text-4xl font-black text-slate-800 tracking-tight leading-normal max-w-2xl markdown-content text-center flex flex-col items-center justify-center whitespace-pre-wrap">
-                        <ReactMarkdown 
-                          remarkPlugins={[remarkGfm]} 
-                          rehypePlugins={[rehypeRaw]} 
-                          components={{
-                            ...MarkdownComponents,
-                            p: ({ children }) => <p className="mb-2 last:mb-0 whitespace-pre-wrap">{children}</p>
-                          }}
-                        >
-                          {parseBBCodeToHtml(currentQuestion?.content || '')}
-                        </ReactMarkdown>
-                      </div>
-                    </div>
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={currentIndex}
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -20 }}
+                className="flex-1 flex flex-col h-full w-full min-h-0"
+              >
+                {mainTab === 'practice' && practiceDisabled ? (
+                  renderPracticeLockScreen()
+                ) : mainTab === 'practice' && practiceNeedsSetup ? (
+                  renderPracticeSetupScreen()
+                ) : mainTab === 'practice' ? (
+                  renderPracticeScreen()
+                ) : (
+                  <div className="perspective-1000 w-full h-full flex-1 relative min-h-0">
+                    <div
+                      className="preserve-3d w-full h-full relative transition-transform duration-700 ease-out-quint"
+                      style={{
+                        transform: isFlipped ? 'rotateY(180deg)' : 'rotateY(0deg)',
+                        transformStyle: 'preserve-3d',
+                      }}
+                    >
+                      {/* FRONT SIDE */}
+                      <div
+                        className="absolute inset-0 backface-hidden bg-white md:rounded-[3rem] rounded-[2rem] border border-slate-100 md:p-8 p-4 py-6 md:py-8 flex flex-col justify-between shadow-2xl shadow-indigo-100/40"
+                        style={{
+                          backfaceVisibility: 'hidden',
+                          transform: 'none',
+                          WebkitFontSmoothing: 'antialiased',
+                          MozOsxFontSmoothing: 'grayscale',
+                          pointerEvents: 'auto',
+                          zIndex: isFlipped ? 1 : 2,
+                          visibility: isFlipped ? 'hidden' : 'visible',
+                          transition: 'visibility 0s ' + (isFlipped ? '0.7s' : '0s'),
+                        }}
+                      >
+                        {/* Top Stats Banner */}
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <span className="text-[10px] font-black tracking-widest text-indigo-600 bg-indigo-50 px-3 py-1.5 rounded-xl border border-indigo-100 uppercase shadow-sm">
+                              FRONT CARD
+                            </span>
+                            <span className="text-[10px] font-black tracking-wider text-slate-500 bg-slate-50 px-3 py-1.5 rounded-xl border border-slate-100 shadow-sm">
+                              {currentIndex + 1} / {session.questions?.length || 0}
+                            </span>
+                          </div>
 
-                    {/* Bottom Hint */}
-                    <div className="flex flex-col items-center justify-center gap-2">
-                      <span className="text-[10px] font-black text-indigo-500 tracking-[0.2em] uppercase animate-pulse">
-                        Click card or press Space to reveal answer
-                      </span>
-                      {currentQuestion?.fsrs?.due && (
-                        <span className="text-[8px] font-bold text-slate-400">
-                          Next due: {parseUTCDate(currentQuestion.fsrs.due).toLocaleDateString()}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* BACK SIDE */}
-                  <div
-                    className="absolute inset-0 backface-hidden bg-white md:rounded-[3rem] rounded-[2rem] border border-slate-200 md:p-8 p-4 py-6 md:py-8 flex flex-col justify-between shadow-2xl shadow-indigo-100/40"
-                    style={{
-                      backfaceVisibility: 'hidden',
-                      transform: 'rotateY(180deg)',
-                      WebkitFontSmoothing: 'antialiased',
-                      MozOsxFontSmoothing: 'grayscale',
-                      pointerEvents: 'auto',
-                      zIndex: isFlipped ? 2 : 1,
-                      visibility: isFlipped ? 'visible' : 'hidden',
-                      transition: 'visibility 0s ' + (isFlipped ? '0s' : '0.7s'),
-                    }}
-                  >
-                    {/* Top Banner */}
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <span className="text-[10px] font-black tracking-widest text-emerald-600 bg-emerald-50 px-3 py-1.5 rounded-xl border border-emerald-100 uppercase shadow-sm">
-                          BACK CARD
-                        </span>
-                        <span className="text-[10px] font-black tracking-wider text-slate-500 bg-slate-50 px-3 py-1.5 rounded-xl border border-slate-100 shadow-sm">
-                          {currentIndex + 1} / {session.questions?.length || 0}
-                        </span>
-                      </div>
-                      
-                      <div className="flex items-center gap-2">
-                        {currentQuestion && getMasteryPill(currentQuestion.box_level || 1)}
-                      </div>
-                    </div>
-
-                    {/* Definition & explanation */}
-                    <div className="flex-1 overflow-y-auto custom-scrollbar my-3 md:my-4 flex flex-col gap-3 md:gap-4 text-left pr-1 md:pr-2">
-                       {/* Show the correct options or direct explanation */}
-                       {currentQuestion?.options && currentQuestion.options.length > 0 && (
-                        <div className="space-y-2">
-                          <div className="md:p-6 p-4 rounded-3xl bg-emerald-50/50 border border-emerald-100/80 flex items-start gap-4">
-                            <div className="w-8 h-8 rounded-xl bg-emerald-500 flex items-center justify-center text-white font-black text-lg shadow-md shrink-0 mt-0.5">
-                              ✓
-                            </div>
-                            <div className="text-slate-800 font-extrabold text-2xl md:text-3xl lg:text-4xl leading-snug markdown-content flex-1 whitespace-pre-wrap">
-                              <ReactMarkdown 
-                                remarkPlugins={[remarkGfm]} 
-                                rehypePlugins={[rehypeRaw]} 
-                                components={{
-                                  ...MarkdownComponents,
-                                  p: ({ children }) => <p className="mb-2 last:mb-0 whitespace-pre-wrap">{children}</p>
-                                }}
-                              >
-                                {parseBBCodeToHtml(currentQuestion.options.find(o => o.is_correct)?.content || "Definition revealed.")}
-                              </ReactMarkdown>
-                            </div>
+                          <div className="flex items-center gap-2">
+                            {currentQuestion && getMasteryPill(currentQuestion.box_level || 1)}
                           </div>
                         </div>
-                      )}
 
-                      {currentQuestion?.others?.back_img && (
-                        <div className="space-y-2">
-                          <img 
-                            src={currentQuestion.others.back_img} 
-                            alt="Back Visual" 
-                            className="max-h-40 md:max-h-48 object-contain rounded-3xl border border-slate-100/80 shadow-md bg-slate-50/50 p-1.5 animate-in zoom-in-95 duration-500"
-                          />
-                        </div>
-                      )}
-
-                      {currentQuestion?.explanation && (
-                        <div className="flex-1 w-full bg-white text-left flex flex-col min-h-0">
-                          <div className="text-slate-700 font-bold text-xl md:text-2xl leading-relaxed markdown-content flex-1 overflow-y-auto custom-scrollbar whitespace-pre-wrap">
-                            <ReactMarkdown 
-                              remarkPlugins={[remarkGfm]} 
-                              rehypePlugins={[rehypeRaw]} 
+                        {/* Word / Question Content */}
+                        <div className="flex-1 flex flex-col items-center justify-center text-center gap-6 overflow-y-auto custom-scrollbar my-2 py-2">
+                          {(currentQuestion?.image || currentQuestion?.others?.front_img) && (
+                            <img
+                              src={currentQuestion.image || currentQuestion.others?.front_img || undefined}
+                              alt="Front Visual"
+                              className="max-h-40 md:max-h-48 object-contain rounded-3xl border border-slate-100/80 shadow-md bg-slate-50/50 p-1.5 animate-in zoom-in-95 duration-500"
+                            />
+                          )}
+                          <div className="text-3xl md:text-4xl font-black text-slate-800 tracking-tight leading-normal max-w-2xl markdown-content text-center flex flex-col items-center justify-center whitespace-pre-wrap">
+                            <ReactMarkdown
+                              remarkPlugins={[remarkGfm]}
+                              rehypePlugins={[rehypeRaw]}
                               components={{
                                 ...MarkdownComponents,
                                 p: ({ children }) => <p className="mb-2 last:mb-0 whitespace-pre-wrap">{children}</p>
                               }}
                             >
-                              {parseBBCodeToHtml(currentQuestion.explanation)}
+                              {parseBBCodeToHtml(currentQuestion?.content || '')}
                             </ReactMarkdown>
                           </div>
                         </div>
-                      )}
-                    </div>
 
-                    {/* Card Answer Frequency & Statistics Bar */}
-                    {(() => {
-                      const sessionRatings = Array.isArray(sessionAnswers[currentIndex]) 
-                        ? (sessionAnswers[currentIndex] as number[]) 
-                        : (typeof sessionAnswers[currentIndex] === 'number' ? [sessionAnswers[currentIndex] as number] : []);
-                      
-                      const stats = currentQuestion?.stats || { 
-                        total: 0, 
-                        correct: 0, 
-                        wrong: 0, 
-                        avg_time: 0,
-                        again_count: 0,
-                        hard_count: 0,
-                        good_count: 0,
-                        easy_count: 0
-                      };
-                      const allTimeTotal = stats.total || 0;
-                      const allTimeCorrect = stats.correct || 0;
-                      const allTimeWrong = stats.wrong || 0;
-                      const allTimeAccuracy = allTimeTotal > 0 ? Math.round((allTimeCorrect / allTimeTotal) * 100) : 0;
-
-                      return (
-                        <div className="md:mt-3 mt-1.5 p-2.5 bg-slate-50/50 rounded-2xl border border-slate-100 flex flex-col gap-2 w-full">
-                          <div className="flex items-center justify-between text-[8px] font-black text-slate-400 uppercase tracking-widest px-1">
-                            <span>Card Performance Stats</span>
-                            {allTimeTotal > 0 && <span>Accuracy: {allTimeAccuracy}%</span>}
-                          </div>
-
-                          <div className="grid grid-cols-2 gap-3">
-                            {/* Session Reviews History */}
-                            <div className="flex flex-col gap-1 justify-center">
-                              <span className="text-[7px] font-black text-slate-400 uppercase tracking-wider pl-1">Session Practice</span>
-                              {sessionRatings.length > 0 ? (
-                                <div className="h-2 w-full rounded-full bg-slate-200/60 overflow-hidden flex shadow-inner">
-                                  {sessionRatings.map((rating, idx) => {
-                                    const colorMap = ['bg-rose-500', 'bg-amber-500', 'bg-indigo-500', 'bg-emerald-500'];
-                                    return (
-                                      <div 
-                                        key={idx} 
-                                        className={cn("h-full flex-1 border-r last:border-0 border-white/20", colorMap[rating] || 'bg-slate-400')}
-                                        title={`Review ${idx + 1}: ${['Again', 'Hard', 'Good', 'Easy'][rating]}`}
-                                      />
-                                    );
-                                  })}
-                                </div>
-                              ) : (
-                                <span className="text-[8px] font-bold text-slate-300 italic uppercase pl-1">No reviews yet</span>
-                              )}
-                            </div>
-
-                            {/* All-time stats */}
-                            <div className="flex flex-col gap-1 justify-center">
-                              <span className="text-[7px] font-black text-slate-400 uppercase tracking-wider pl-1">All-Time ({allTimeTotal} reviews)</span>
-                              {allTimeTotal > 0 ? (
-                                <div className="h-2 w-full rounded-full bg-slate-100 overflow-hidden flex shadow-inner">
-                                  {(stats.again_count || 0) > 0 && <div className="h-full bg-rose-500" style={{ width: `${((stats.again_count || 0) / allTimeTotal) * 100}%` }} title={`Again: ${stats.again_count}`} />}
-                                  {(stats.hard_count || 0) > 0 && <div className="h-full bg-amber-500" style={{ width: `${((stats.hard_count || 0) / allTimeTotal) * 100}%` }} title={`Hard: ${stats.hard_count}`} />}
-                                  {(stats.good_count || 0) > 0 && <div className="h-full bg-indigo-500" style={{ width: `${((stats.good_count || 0) / allTimeTotal) * 100}%` }} title={`Good: ${stats.good_count}`} />}
-                                  {(stats.easy_count || 0) > 0 && <div className="h-full bg-emerald-500" style={{ width: `${((stats.easy_count || 0) / allTimeTotal) * 100}%` }} title={`Easy: ${stats.easy_count}`} />}
-                                </div>
-                              ) : (
-                                <span className="text-[8px] font-bold text-slate-300 italic uppercase pl-1">New card</span>
-                              )}
-                            </div>
-                          </div>
+                        {/* Bottom Hint */}
+                        <div className="flex flex-col items-center justify-center gap-2">
+                          <span className="text-[10px] font-black text-indigo-500 tracking-[0.2em] uppercase animate-pulse">
+                            Click card or press Space to reveal answer
+                          </span>
+                          {currentQuestion?.fsrs?.due && (
+                            <span className="text-[8px] font-bold text-slate-400">
+                              Next due: {parseUTCDate(currentQuestion.fsrs.due).toLocaleDateString()}
+                            </span>
+                          )}
                         </div>
-                      );
-                    })()}
+                      </div>
 
-                    {/* FSRS Stats Row */}
-                    {currentQuestion?.fsrs && (() => {
-                      const stateLabels = ['New', 'Learning', 'Review', 'Relearning'];
-                      const stateColors = [
-                        'bg-blue-500/10 text-blue-600 border-blue-500/20 shadow-sm shadow-blue-500/5',
-                        'bg-amber-500/10 text-amber-600 border-amber-500/20 shadow-sm shadow-amber-500/5',
-                        'bg-emerald-500/10 text-emerald-600 border-emerald-500/20 shadow-sm shadow-emerald-500/5',
-                        'bg-rose-500/10 text-rose-600 border-rose-500/20 shadow-sm shadow-rose-500/5'
-                      ];
-                      const stateDots = [
-                        'bg-blue-500 shadow-blue-500/50',
-                        'bg-amber-500 shadow-amber-500/50',
-                        'bg-emerald-50 shadow-emerald-500/50',
-                        'bg-rose-500 shadow-rose-500/50'
-                      ];
-                      const stateIdx = currentQuestion.fsrs.state || 0;
-                      return (
-                        <div className="flex items-center justify-between bg-gradient-to-r from-slate-50/80 via-white to-slate-50/80 rounded-2xl md:p-3 p-2 md:py-2.5 py-1.5 border border-slate-100/90 text-[10px] font-bold shadow-[0_4px_20px_rgba(0,0,0,0.01),inset_0_1px_2px_rgba(255,255,255,0.6)] backdrop-blur-md gap-2 w-full md:mt-3 mt-1.5">
-                          <div className="flex flex-col items-center gap-0.5 flex-1 justify-center">
-                            <span className="text-[8px] font-black text-slate-400 uppercase tracking-[0.15em]">State</span>
-                            <span className={cn("px-2.5 py-0.5 rounded-lg border text-[9px] font-black uppercase tracking-wider flex items-center gap-1 transition-all duration-300", stateColors[stateIdx])}>
-                              <span className={cn("w-1.5 h-1.5 rounded-full animate-pulse shadow-[0_0_8px_var(--tw-shadow-color)]", stateDots[stateIdx])} />
-                              {stateLabels[stateIdx]}
-                            </span>
-                          </div>
-                          <div className="w-px h-7 bg-gradient-to-b from-slate-100 via-slate-200/60 to-slate-100" />
-                          <div className="flex flex-col items-center gap-0.5 flex-1 justify-center">
-                            <span className="text-[8px] font-black text-slate-400 uppercase tracking-[0.15em] flex items-center gap-1">
-                              <Clock className="w-3 h-3 text-indigo-400" /> Stability
-                            </span>
-                            <span className="bg-indigo-50/40 text-indigo-600 border border-indigo-100/30 px-2.5 py-0.5 rounded-lg font-black text-[11px] shadow-sm flex items-center gap-1">
-                              {currentQuestion.fsrs.stability ? (
-                                <>
-                                  <span className="text-[11px] tracking-tight">{currentQuestion.fsrs.stability.toFixed(2)}</span>
-                                  <span className="text-[8px] font-bold opacity-75">d</span>
-                                </>
-                              ) : (
-                                'none'
-                              )}
-                            </span>
-                          </div>
-                          <div className="w-px h-7 bg-gradient-to-b from-slate-100 via-slate-200/60 to-slate-100" />
-                          <div className="flex flex-col items-center gap-0.5 flex-1 justify-center">
-                            <span className="text-[8px] font-black text-slate-400 uppercase tracking-[0.15em] flex items-center gap-1">
-                              <Sliders className="w-3 h-3 text-purple-400" /> Difficulty
-                            </span>
-                            <span className="bg-purple-50/40 text-purple-600 border border-purple-100/30 px-2.5 py-0.5 rounded-lg font-black text-[11px] shadow-sm flex items-center gap-1">
-                              {currentQuestion.fsrs.difficulty ? (
-                                <span className="text-[11px] tracking-tight">{currentQuestion.fsrs.difficulty.toFixed(2)}</span>
-                              ) : (
-                                'none'
-                              )}
-                            </span>
-                          </div>
-                        </div>
-                      );
-                    })()}
-
-
-                    {/* FSRS Buttons Grid (Visible inside card back, hidden after rating until it unlocks) */}
-                    {isFlipped && !hasRated && (
+                      {/* BACK SIDE */}
                       <div
-                        className="grid grid-cols-4 gap-3 mt-4 relative z-[10]"
-                        onClick={(e) => {
-                          console.log("DEBUG CLICK: FSRS Buttons Grid clicked! target:", e.target);
+                        className="absolute inset-0 backface-hidden bg-white md:rounded-[3rem] rounded-[2rem] border border-slate-200 md:p-8 p-4 py-6 md:py-8 flex flex-col justify-between shadow-2xl shadow-indigo-100/40"
+                        style={{
+                          backfaceVisibility: 'hidden',
+                          transform: 'rotateY(180deg)',
+                          WebkitFontSmoothing: 'antialiased',
+                          MozOsxFontSmoothing: 'grayscale',
+                          pointerEvents: 'auto',
+                          zIndex: isFlipped ? 2 : 1,
+                          visibility: isFlipped ? 'visible' : 'hidden',
+                          transition: 'visibility 0s ' + (isFlipped ? '0s' : '0.7s'),
                         }}
                       >
-                        {/* AGAIN BUTTON */}
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            console.log("DEBUG CLICK: AGAIN button clicked!");
-                            handleReviewRating(1);
-                          }}
-                          className={getButtonClass(0)}
-                        >
-                          <span className={cn("text-[10px] font-black tracking-wider transition-colors duration-200", hasRated && selectedOption === 0 ? "text-white" : "text-rose-500")}>AGAIN</span>
-                          <span className={cn("text-xs font-black transition-colors duration-200", hasRated && selectedOption === 0 ? "text-rose-100" : "text-rose-600")}>
-                            {currentQuestion?.fsrs?.intervals?.[1] || "<10m"}
-                          </span>
-                        </button>
+                        {/* Top Banner */}
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <span className="text-[10px] font-black tracking-widest text-emerald-600 bg-emerald-50 px-3 py-1.5 rounded-xl border border-emerald-100 uppercase shadow-sm">
+                              BACK CARD
+                            </span>
+                            <span className="text-[10px] font-black tracking-wider text-slate-500 bg-slate-50 px-3 py-1.5 rounded-xl border border-slate-100 shadow-sm">
+                              {currentIndex + 1} / {session.questions?.length || 0}
+                            </span>
+                          </div>
 
-                        {/* HARD BUTTON */}
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            console.log("DEBUG CLICK: HARD button clicked!");
-                            handleReviewRating(2);
-                          }}
-                          className={getButtonClass(1)}
-                        >
-                          <span className={cn("text-[10px] font-black tracking-wider transition-colors duration-200", hasRated && selectedOption === 1 ? "text-white" : "text-amber-500")}>HARD</span>
-                          <span className={cn("text-xs font-black transition-colors duration-200", hasRated && selectedOption === 1 ? "text-amber-100" : "text-amber-600")}>
-                            {currentQuestion?.fsrs?.intervals?.[2] || "12h"}
-                          </span>
-                        </button>
-
-                        {/* GOOD BUTTON */}
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            console.log("DEBUG CLICK: GOOD button clicked!");
-                            handleReviewRating(3);
-                          }}
-                          className={getButtonClass(2)}
-                        >
-                          <span className={cn("text-[10px] font-black tracking-wider transition-colors duration-200", hasRated && selectedOption === 2 ? "text-white" : "text-indigo-500")}>GOOD</span>
-                          <span className={cn("text-xs font-black transition-colors duration-200", hasRated && selectedOption === 2 ? "text-indigo-100" : "text-indigo-600")}>
-                            {currentQuestion?.fsrs?.intervals?.[3] || "2d"}
-                          </span>
-                        </button>
-
-                        {/* EASY BUTTON */}
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            console.log("DEBUG CLICK: EASY button clicked!");
-                            handleReviewRating(4);
-                          }}
-                          className={getButtonClass(3)}
-                        >
-                          <span className={cn("text-[10px] font-black tracking-wider transition-colors duration-200", hasRated && selectedOption === 3 ? "text-white" : "text-emerald-500")}>EASY</span>
-                          <span className={cn("text-xs font-black transition-colors duration-200", hasRated && selectedOption === 3 ? "text-emerald-100" : "text-emerald-600")}>
-                            {currentQuestion?.fsrs?.intervals?.[4] || "5d"}
-                          </span>
-                        </button>
-                      </div>
-                    )}
-
-                    {/* After rating: show colorful dynamic rated badge with real-time unlocking countdown */}
-                    {isFlipped && hasRated && selectedOption !== null && selectedOption !== undefined && (() => {
-                      const dueTimeStr = currentQuestion?.fsrs?.due;
-                      let countdownStr = "";
-                      if (dueTimeStr) {
-                        const diff = parseUTCDate(dueTimeStr).getTime() - currentTime.getTime();
-                        if (diff > 0) {
-                          const secs = Math.floor(diff / 1000) % 60;
-                          const mins = Math.floor(diff / (1000 * 60)) % 60;
-                          const hours = Math.floor(diff / (1000 * 60 * 60)) % 24;
-                          const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-                          
-                          const parts = [];
-                          if (days > 0) parts.push(`${days}d`);
-                          if (hours > 0 || days > 0) parts.push(`${hours}h`);
-                          if (mins > 0 || hours > 0 || days > 0) parts.push(`${mins}m`);
-                          parts.push(`${secs}s`);
-                          countdownStr = parts.join(' ');
-                        }
-                      }
-                      
-                      // Fallback interval label if the API response hasn't arrived/updated the due time yet
-                      if (!countdownStr) {
-                        if (selectedOption === 0) countdownStr = currentQuestion?.fsrs?.intervals?.[1] || "<10m";
-                        else if (selectedOption === 1) countdownStr = currentQuestion?.fsrs?.intervals?.[2] || "12h";
-                        else if (selectedOption === 2) countdownStr = currentQuestion?.fsrs?.intervals?.[3] || "2d";
-                        else countdownStr = currentQuestion?.fsrs?.intervals?.[4] || "5d";
-                      }
-                      return (
-                        <div
-                          className={cn(
-                            "mt-4 flex items-center justify-center gap-2 py-3 rounded-2xl border transition-all duration-300 font-bold",
-                            selectedOption === 0 ? "bg-rose-50 border-rose-100 text-rose-600 animate-pulse" :
-                            selectedOption === 1 ? "bg-amber-50 border-amber-100 text-amber-600" :
-                            selectedOption === 2 ? "bg-indigo-50 border-indigo-100 text-indigo-600" :
-                            "bg-emerald-50 border-emerald-100 text-emerald-600"
-                          )}
-                        >
-                          <span className="text-sm font-black tracking-wide">
-                            ✓ RATED {selectedOption === 0 ? "AGAIN" : selectedOption === 1 ? "HARD" : selectedOption === 2 ? "GOOD" : "EASY"}
-                          </span>
-                          <span className="opacity-80 text-xs">
-                            — Unlocks in {countdownStr} ⏳
-                          </span>
+                          <div className="flex items-center gap-2">
+                            {currentQuestion && getMasteryPill(currentQuestion.box_level || 1)}
+                          </div>
                         </div>
-                      );
-                    })()}
+
+                        {/* Definition & explanation */}
+                        <div className="flex-1 overflow-y-auto custom-scrollbar my-3 md:my-4 flex flex-col gap-3 md:gap-4 text-left pr-1 md:pr-2">
+                          {/* Show the correct options or direct explanation */}
+                          {currentQuestion?.options && currentQuestion.options.length > 0 && (
+                            <div className="space-y-2">
+                              <div className="md:p-6 p-4 rounded-3xl bg-emerald-50/50 border border-emerald-100/80 flex items-start gap-4">
+                                <div className="w-8 h-8 rounded-xl bg-emerald-500 flex items-center justify-center text-white font-black text-lg shadow-md shrink-0 mt-0.5">
+                                  ✓
+                                </div>
+                                <div className="text-slate-800 font-extrabold text-2xl md:text-3xl lg:text-4xl leading-snug markdown-content flex-1 whitespace-pre-wrap">
+                                  <ReactMarkdown
+                                    remarkPlugins={[remarkGfm]}
+                                    rehypePlugins={[rehypeRaw]}
+                                    components={{
+                                      ...MarkdownComponents,
+                                      p: ({ children }) => <p className="mb-2 last:mb-0 whitespace-pre-wrap">{children}</p>
+                                    }}
+                                  >
+                                    {parseBBCodeToHtml(currentQuestion.options.find(o => o.is_correct)?.content || "Definition revealed.")}
+                                  </ReactMarkdown>
+                                </div>
+                              </div>
+                            </div>
+                          )}
+
+                          {currentQuestion?.others?.back_img && (
+                            <div className="space-y-2">
+                              <img
+                                src={currentQuestion.others.back_img}
+                                alt="Back Visual"
+                                className="max-h-40 md:max-h-48 object-contain rounded-3xl border border-slate-100/80 shadow-md bg-slate-50/50 p-1.5 animate-in zoom-in-95 duration-500"
+                              />
+                            </div>
+                          )}
+
+                          {currentQuestion?.explanation && (
+                            <div className="flex-1 w-full bg-white text-left flex flex-col min-h-0">
+                              <div className="text-slate-700 font-bold text-xl md:text-2xl leading-relaxed markdown-content flex-1 overflow-y-auto custom-scrollbar whitespace-pre-wrap">
+                                <ReactMarkdown
+                                  remarkPlugins={[remarkGfm]}
+                                  rehypePlugins={[rehypeRaw]}
+                                  components={{
+                                    ...MarkdownComponents,
+                                    p: ({ children }) => <p className="mb-2 last:mb-0 whitespace-pre-wrap">{children}</p>
+                                  }}
+                                >
+                                  {parseBBCodeToHtml(currentQuestion.explanation)}
+                                </ReactMarkdown>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Card Answer Frequency & Statistics Bar */}
+                        {(() => {
+                          const sessionRatings = Array.isArray(sessionAnswers[currentIndex])
+                            ? (sessionAnswers[currentIndex] as number[])
+                            : (typeof sessionAnswers[currentIndex] === 'number' ? [sessionAnswers[currentIndex] as number] : []);
+
+                          const stats = currentQuestion?.stats || {
+                            total: 0,
+                            correct: 0,
+                            wrong: 0,
+                            avg_time: 0,
+                            again_count: 0,
+                            hard_count: 0,
+                            good_count: 0,
+                            easy_count: 0
+                          };
+                          const allTimeTotal = stats.total || 0;
+                          const allTimeCorrect = stats.correct || 0;
+                          const allTimeWrong = stats.wrong || 0;
+                          const allTimeAccuracy = allTimeTotal > 0 ? Math.round((allTimeCorrect / allTimeTotal) * 100) : 0;
+
+                          return (
+                            <div className="md:mt-3 mt-1.5 p-2.5 bg-slate-50/50 rounded-2xl border border-slate-100 flex flex-col gap-2 w-full">
+                              <div className="flex items-center justify-between text-[8px] font-black text-slate-400 uppercase tracking-widest px-1">
+                                <span>Card Performance Stats</span>
+                                {allTimeTotal > 0 && <span>Accuracy: {allTimeAccuracy}%</span>}
+                              </div>
+
+                              <div className="grid grid-cols-2 gap-3">
+                                {/* Session Reviews History */}
+                                <div className="flex flex-col gap-1 justify-center">
+                                  <span className="text-[7px] font-black text-slate-400 uppercase tracking-wider pl-1">Session Practice</span>
+                                  {sessionRatings.length > 0 ? (
+                                    <div className="h-2 w-full rounded-full bg-slate-200/60 overflow-hidden flex shadow-inner">
+                                      {sessionRatings.map((rating, idx) => {
+                                        const colorMap = ['bg-rose-500', 'bg-amber-500', 'bg-indigo-500', 'bg-emerald-500'];
+                                        return (
+                                          <div
+                                            key={idx}
+                                            className={cn("h-full flex-1 border-r last:border-0 border-white/20", colorMap[rating] || 'bg-slate-400')}
+                                            title={`Review ${idx + 1}: ${['Again', 'Hard', 'Good', 'Easy'][rating]}`}
+                                          />
+                                        );
+                                      })}
+                                    </div>
+                                  ) : (
+                                    <span className="text-[8px] font-bold text-slate-300 italic uppercase pl-1">No reviews yet</span>
+                                  )}
+                                </div>
+
+                                {/* All-time stats */}
+                                <div className="flex flex-col gap-1 justify-center">
+                                  <span className="text-[7px] font-black text-slate-400 uppercase tracking-wider pl-1">All-Time ({allTimeTotal} reviews)</span>
+                                  {allTimeTotal > 0 ? (
+                                    <div className="h-2 w-full rounded-full bg-slate-100 overflow-hidden flex shadow-inner">
+                                      {(stats.again_count || 0) > 0 && <div className="h-full bg-rose-500" style={{ width: `${((stats.again_count || 0) / allTimeTotal) * 100}%` }} title={`Again: ${stats.again_count}`} />}
+                                      {(stats.hard_count || 0) > 0 && <div className="h-full bg-amber-500" style={{ width: `${((stats.hard_count || 0) / allTimeTotal) * 100}%` }} title={`Hard: ${stats.hard_count}`} />}
+                                      {(stats.good_count || 0) > 0 && <div className="h-full bg-indigo-500" style={{ width: `${((stats.good_count || 0) / allTimeTotal) * 100}%` }} title={`Good: ${stats.good_count}`} />}
+                                      {(stats.easy_count || 0) > 0 && <div className="h-full bg-emerald-500" style={{ width: `${((stats.easy_count || 0) / allTimeTotal) * 100}%` }} title={`Easy: ${stats.easy_count}`} />}
+                                    </div>
+                                  ) : (
+                                    <span className="text-[8px] font-bold text-slate-300 italic uppercase pl-1">New card</span>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })()}
+
+                        {/* FSRS Stats Row */}
+                        {currentQuestion?.fsrs && (() => {
+                          const stateLabels = ['New', 'Learning', 'Review', 'Relearning'];
+                          const stateColors = [
+                            'bg-blue-500/10 text-blue-600 border-blue-500/20 shadow-sm shadow-blue-500/5',
+                            'bg-amber-500/10 text-amber-600 border-amber-500/20 shadow-sm shadow-amber-500/5',
+                            'bg-emerald-500/10 text-emerald-600 border-emerald-500/20 shadow-sm shadow-emerald-500/5',
+                            'bg-rose-500/10 text-rose-600 border-rose-500/20 shadow-sm shadow-rose-500/5'
+                          ];
+                          const stateDots = [
+                            'bg-blue-500 shadow-blue-500/50',
+                            'bg-amber-500 shadow-amber-500/50',
+                            'bg-emerald-50 shadow-emerald-500/50',
+                            'bg-rose-500 shadow-rose-500/50'
+                          ];
+                          const stateIdx = currentQuestion.fsrs.state || 0;
+                          return (
+                            <div className="flex items-center justify-between bg-gradient-to-r from-slate-50/80 via-white to-slate-50/80 rounded-2xl md:p-3 p-2 md:py-2.5 py-1.5 border border-slate-100/90 text-[10px] font-bold shadow-[0_4px_20px_rgba(0,0,0,0.01),inset_0_1px_2px_rgba(255,255,255,0.6)] backdrop-blur-md gap-2 w-full md:mt-3 mt-1.5">
+                              <div className="flex flex-col items-center gap-0.5 flex-1 justify-center">
+                                <span className="text-[8px] font-black text-slate-400 uppercase tracking-[0.15em]">State</span>
+                                <span className={cn("px-2.5 py-0.5 rounded-lg border text-[9px] font-black uppercase tracking-wider flex items-center gap-1 transition-all duration-300", stateColors[stateIdx])}>
+                                  <span className={cn("w-1.5 h-1.5 rounded-full animate-pulse shadow-[0_0_8px_var(--tw-shadow-color)]", stateDots[stateIdx])} />
+                                  {stateLabels[stateIdx]}
+                                </span>
+                              </div>
+                              <div className="w-px h-7 bg-gradient-to-b from-slate-100 via-slate-200/60 to-slate-100" />
+                              <div className="flex flex-col items-center gap-0.5 flex-1 justify-center">
+                                <span className="text-[8px] font-black text-slate-400 uppercase tracking-[0.15em] flex items-center gap-1">
+                                  <Clock className="w-3 h-3 text-indigo-400" /> Stability
+                                </span>
+                                <span className="bg-indigo-50/40 text-indigo-600 border border-indigo-100/30 px-2.5 py-0.5 rounded-lg font-black text-[11px] shadow-sm flex items-center gap-1">
+                                  {currentQuestion.fsrs.stability ? (
+                                    <>
+                                      <span className="text-[11px] tracking-tight">{currentQuestion.fsrs.stability.toFixed(2)}</span>
+                                      <span className="text-[8px] font-bold opacity-75">d</span>
+                                    </>
+                                  ) : (
+                                    'none'
+                                  )}
+                                </span>
+                              </div>
+                              <div className="w-px h-7 bg-gradient-to-b from-slate-100 via-slate-200/60 to-slate-100" />
+                              <div className="flex flex-col items-center gap-0.5 flex-1 justify-center">
+                                <span className="text-[8px] font-black text-slate-400 uppercase tracking-[0.15em] flex items-center gap-1">
+                                  <Sliders className="w-3 h-3 text-purple-400" /> Difficulty
+                                </span>
+                                <span className="bg-purple-50/40 text-purple-600 border border-purple-100/30 px-2.5 py-0.5 rounded-lg font-black text-[11px] shadow-sm flex items-center gap-1">
+                                  {currentQuestion.fsrs.difficulty ? (
+                                    <span className="text-[11px] tracking-tight">{currentQuestion.fsrs.difficulty.toFixed(2)}</span>
+                                  ) : (
+                                    'none'
+                                  )}
+                                </span>
+                              </div>
+                            </div>
+                          );
+                        })()}
+
+
+                        {/* FSRS Buttons Grid (Visible inside card back, hidden after rating until it unlocks) */}
+                        {isFlipped && !hasRated && (
+                          <div
+                            className="grid grid-cols-4 gap-3 mt-4 relative z-[10]"
+                            onClick={(e) => {
+                              console.log("DEBUG CLICK: FSRS Buttons Grid clicked! target:", e.target);
+                            }}
+                          >
+                            {/* AGAIN BUTTON */}
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                console.log("DEBUG CLICK: AGAIN button clicked!");
+                                handleReviewRating(1);
+                              }}
+                              className={getButtonClass(0)}
+                            >
+                              <span className={cn("text-[10px] font-black tracking-wider transition-colors duration-200", hasRated && selectedOption === 0 ? "text-white" : "text-rose-500")}>AGAIN</span>
+                              <span className={cn("text-xs font-black transition-colors duration-200", hasRated && selectedOption === 0 ? "text-rose-100" : "text-rose-600")}>
+                                {currentQuestion?.fsrs?.intervals?.[1] || "1m"}
+                              </span>
+                            </button>
+
+                            {/* HARD BUTTON */}
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                console.log("DEBUG CLICK: HARD button clicked!");
+                                handleReviewRating(2);
+                              }}
+                              className={getButtonClass(1)}
+                            >
+                              <span className={cn("text-[10px] font-black tracking-wider transition-colors duration-200", hasRated && selectedOption === 1 ? "text-white" : "text-amber-500")}>HARD</span>
+                              <span className={cn("text-xs font-black transition-colors duration-200", hasRated && selectedOption === 1 ? "text-amber-100" : "text-amber-600")}>
+                                {currentQuestion?.fsrs?.intervals?.[2] || "5m"}
+                              </span>
+                            </button>
+
+                            {/* GOOD BUTTON */}
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                console.log("DEBUG CLICK: GOOD button clicked!");
+                                handleReviewRating(3);
+                              }}
+                              className={getButtonClass(2)}
+                            >
+                              <span className={cn("text-[10px] font-black tracking-wider transition-colors duration-200", hasRated && selectedOption === 2 ? "text-white" : "text-indigo-500")}>GOOD</span>
+                              <span className={cn("text-xs font-black transition-colors duration-200", hasRated && selectedOption === 2 ? "text-indigo-100" : "text-indigo-600")}>
+                                {currentQuestion?.fsrs?.intervals?.[3] || "10m"}
+                              </span>
+                            </button>
+
+                            {/* EASY BUTTON */}
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                console.log("DEBUG CLICK: EASY button clicked!");
+                                handleReviewRating(4);
+                              }}
+                              className={getButtonClass(3)}
+                            >
+                              <span className={cn("text-[10px] font-black tracking-wider transition-colors duration-200", hasRated && selectedOption === 3 ? "text-white" : "text-emerald-500")}>EASY</span>
+                              <span className={cn("text-xs font-black transition-colors duration-200", hasRated && selectedOption === 3 ? "text-emerald-100" : "text-emerald-600")}>
+                                {currentQuestion?.fsrs?.intervals?.[4] || "4d"}
+                              </span>
+                            </button>
+                          </div>
+                        )}
+
+                        {/* After rating: show colorful dynamic rated badge with real-time unlocking countdown */}
+                        {isFlipped && hasRated && selectedOption !== null && selectedOption !== undefined && (() => {
+                          const dueTimeStr = currentQuestion?.fsrs?.due;
+                          let countdownStr = "";
+                          if (dueTimeStr) {
+                            const diff = parseUTCDate(dueTimeStr).getTime() - currentTime.getTime();
+                            if (diff > 0) {
+                              const secs = Math.floor(diff / 1000) % 60;
+                              const mins = Math.floor(diff / (1000 * 60)) % 60;
+                              const hours = Math.floor(diff / (1000 * 60 * 60)) % 24;
+                              const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+
+                              const parts = [];
+                              if (days > 0) parts.push(`${days}d`);
+                              if (hours > 0 || days > 0) parts.push(`${hours}h`);
+                              if (mins > 0 || hours > 0 || days > 0) parts.push(`${mins}m`);
+                              parts.push(`${secs}s`);
+                              countdownStr = parts.join(' ');
+                            }
+                          }
+
+                          // Fallback interval label if the API response hasn't arrived/updated the due time yet
+                          if (!countdownStr) {
+                            if (selectedOption === 0) countdownStr = currentQuestion?.fsrs?.intervals?.[1] || "1m";
+                            else if (selectedOption === 1) countdownStr = currentQuestion?.fsrs?.intervals?.[2] || "5m";
+                            else if (selectedOption === 2) countdownStr = currentQuestion?.fsrs?.intervals?.[3] || "10m";
+                            else countdownStr = currentQuestion?.fsrs?.intervals?.[4] || "4d";
+                          }
+                          return (
+                            <div
+                              className={cn(
+                                "mt-4 flex items-center justify-center gap-2 py-3 rounded-2xl border transition-all duration-300 font-bold",
+                                selectedOption === 0 ? "bg-rose-50 border-rose-100 text-rose-600 animate-pulse" :
+                                  selectedOption === 1 ? "bg-amber-50 border-amber-100 text-amber-600" :
+                                    selectedOption === 2 ? "bg-indigo-50 border-indigo-100 text-indigo-600" :
+                                      "bg-emerald-50 border-emerald-100 text-emerald-600"
+                              )}
+                            >
+                              <span className="text-sm font-black tracking-wide">
+                                ✓ RATED {selectedOption === 0 ? "AGAIN" : selectedOption === 1 ? "HARD" : selectedOption === 2 ? "GOOD" : "EASY"}
+                              </span>
+                              <span className="opacity-80 text-xs">
+                                — Unlocks in {countdownStr} ⏳
+                              </span>
+                            </div>
+                          );
+                        })()}
+                      </div>
+                    </div>
                   </div>
-                </div>
-              </div>
-              )}
-            </motion.div>
-          </AnimatePresence>
+                )}
+              </motion.div>
+            </AnimatePresence>
           </div>
         </div>
 
@@ -4507,160 +4530,159 @@ export default function PracticePlay() {
       </main>
 
       {(mainTab !== 'practice' || (mainTab === 'practice' && !practiceNeedsSetup)) && (
-      <footer className="flex-shrink-0 bg-white/95 backdrop-blur-2xl border-t border-slate-100/80 px-4 py-3 z-[120] shadow-[0_-4px_24px_rgba(99,102,241,0.06)]">
-        <div className="max-w-2xl mx-auto w-full flex items-center gap-3 h-13">
-          {/* Mobile Stats / Map Button */}
-          <button 
-            onClick={() => setIsMapOpen(true)} 
-            className="lg:hidden w-12 h-12 flex-shrink-0 flex items-center justify-center bg-slate-50 border border-slate-200 rounded-2xl text-slate-500 hover:bg-indigo-50 hover:text-indigo-600 hover:border-indigo-200 shadow-sm active:scale-95 transition-all"
-            title={mainTab === 'practice' ? "Xem thống kê luyện tập" : "Xem sơ đồ câu hỏi"}
-          >
-            {mainTab === 'practice' ? <TrendingUp className="w-5 h-5 text-indigo-600 animate-pulse" /> : <LayoutGrid className="w-5 h-5" />}
-          </button>
-
-          {/* Smart Learning Mode Selector (only for FSRS mode) */}
-          {mainTab !== 'practice' && (
-            <button 
-              onClick={() => setIsModeMenuOpen(true)} 
-              className="w-12 h-12 flex-shrink-0 flex items-center justify-center bg-slate-50 border border-slate-200 rounded-2xl text-slate-500 hover:bg-indigo-50 hover:text-indigo-600 hover:border-indigo-200 shadow-sm active:scale-95 transition-all"
-              title="Change Smart Learning Mode"
+        <footer className="flex-shrink-0 bg-white/95 backdrop-blur-2xl border-t border-slate-100/80 px-4 py-3 z-[120] shadow-[0_-4px_24px_rgba(99,102,241,0.06)]">
+          <div className="max-w-2xl mx-auto w-full flex items-center gap-3 h-13">
+            {/* Mobile Stats / Map Button */}
+            <button
+              onClick={() => setIsMapOpen(true)}
+              className="lg:hidden w-12 h-12 flex-shrink-0 flex items-center justify-center bg-slate-50 border border-slate-200 rounded-2xl text-slate-500 hover:bg-indigo-50 hover:text-indigo-600 hover:border-indigo-200 shadow-sm active:scale-95 transition-all"
+              title={mainTab === 'practice' ? "Xem thống kê luyện tập" : "Xem sơ đồ câu hỏi"}
             >
-              {activeMode === 'fsrs' && <Brain className="w-5 h-5 text-indigo-600 animate-pulse" />}
-              {activeMode === 'sequential' && <ListOrdered className="w-5 h-5" />}
-              {activeMode === 'random' && <Shuffle className="w-5 h-5" />}
-              {activeMode === 'unseen' && <EyeOff className="w-5 h-5" />}
-              {activeMode === 'review' && <AlertCircle className="w-5 h-5" />}
-              {activeMode === 'hardest' && <TrendingUp className="w-5 h-5" />}
+              {mainTab === 'practice' ? <TrendingUp className="w-5 h-5 text-indigo-600 animate-pulse" /> : <LayoutGrid className="w-5 h-5" />}
             </button>
-          )}
-          
-          {/* Audio play button */}
-          {(() => {
-            if (!currentQuestion) return null;
-            
-            const hasAudioOrScript = mainTab === 'practice'
-              ? (!!currentQuestion.audio || !!currentQuestion.others?.front_audio_url || !!currentQuestion.others?.front_audio_content?.trim())
-              : (!isFlipped 
-                ? (!!currentQuestion.audio || !!currentQuestion.others?.front_audio_url || !!currentQuestion.others?.front_audio_content?.trim())
-                : (!!currentQuestion.others?.back_audio_url || !!currentQuestion.others?.back_audio_content?.trim()));
-              
-            if (!hasAudioOrScript) return null;
-            
-            return (
+
+            {/* Smart Learning Mode Selector (only for FSRS mode) */}
+            {mainTab !== 'practice' && (
               <button
-                onClick={async (e) => {
-                  e.stopPropagation();
-                  if (mainTab === 'practice') {
-                    const practiceData = currentPracticeData;
-                    if (practiceData) {
-                      const { question: qText, question_key: qKey } = practiceData;
-                      if (qKey === 'front') {
-                        await playCardAudio('front');
-                      } else if (qKey === 'back') {
-                        await playCardAudio('back');
-                      } else {
-                        speakMultiLanguage(qText);
-                      }
-                    }
-                  } else {
-                    await playCardAudio(isFlipped ? 'back' : 'front');
-                  }
-                }}
-                className="w-12 h-12 flex-shrink-0 flex items-center justify-center bg-indigo-50 border border-indigo-200 rounded-2xl text-indigo-600 shadow-sm active:scale-95 transition-all hover:bg-indigo-100 hover:border-indigo-300"
-                title="Phát âm"
+                onClick={() => setIsModeMenuOpen(true)}
+                className="w-12 h-12 flex-shrink-0 flex items-center justify-center bg-slate-50 border border-slate-200 rounded-2xl text-slate-500 hover:bg-indigo-50 hover:text-indigo-600 hover:border-indigo-200 shadow-sm active:scale-95 transition-all"
+                title="Change Smart Learning Mode"
               >
-                <Play className="w-5 h-5 fill-indigo-600 animate-pulse" />
+                {activeMode === 'fsrs' && <Brain className="w-5 h-5 text-indigo-600 animate-pulse" />}
+                {activeMode === 'sequential' && <ListOrdered className="w-5 h-5" />}
+                {activeMode === 'random' && <Shuffle className="w-5 h-5" />}
+                {activeMode === 'unseen' && <EyeOff className="w-5 h-5" />}
+                {activeMode === 'review' && <AlertCircle className="w-5 h-5" />}
+                {activeMode === 'hardest' && <TrendingUp className="w-5 h-5" />}
               </button>
-            );
-          })()}
-          
-          {/* BookOpen Explanation Button (visible in FSRS, and also in practice mode if a question is loaded) */}
-          {(mainTab === 'practice' || showFeedback) && (
-            <button 
-              onClick={() => {
-                if (mainTab === 'practice') {
-                  setShowFeedback(true);
-                }
-                setIsFeedbackOpen(true);
-              }} 
-              className={`xl:hidden w-12 h-12 flex-shrink-0 flex items-center justify-center rounded-2xl shadow-sm active:scale-95 transition-all relative ${
-                justAnswered 
-                  ? 'bg-indigo-600 border border-indigo-600 text-white animate-[pulse_1.5s_infinite] ring-4 ring-indigo-300 ring-offset-1 drop-shadow-[0_0_12px_rgba(99,102,241,0.6)]' 
-                  : 'bg-indigo-50 border border-indigo-200 text-indigo-600 hover:bg-indigo-100'
-              }`}
-              title="Xem giải thích và hướng dẫn"
-            >
-              <BookOpen className="w-5 h-5" />
-              {justAnswered && <span className="absolute -top-1 -right-1 w-3 h-3 bg-rose-500 rounded-full border-2 border-white animate-pulse"></span>}
-            </button>
-          )}
+            )}
 
-          {/* Main Action Buttons */}
-          {mainTab === 'practice' ? (
-            practiceAnswers[currentIndex] !== undefined ? (
-              <button 
-                onClick={handleNext}
-                className="flex-1 h-12 bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-600 text-white font-black text-xs rounded-2xl shadow-lg shadow-emerald-300/50 flex items-center justify-center gap-2.5 uppercase tracking-widest active:scale-[0.98] transition-all hover:shadow-emerald-400/60 hover:shadow-xl"
-              >
-                Continue <ChevronRight className="w-4 h-4" />
-              </button>
-            ) : (
-              <div className="flex-1 flex gap-2 h-12">
+            {/* Audio play button */}
+            {(() => {
+              if (!currentQuestion) return null;
+
+              const hasAudioOrScript = mainTab === 'practice'
+                ? (!!currentQuestion.audio || !!currentQuestion.others?.front_audio_url || !!currentQuestion.others?.front_audio_content?.trim())
+                : (!isFlipped
+                  ? (!!currentQuestion.audio || !!currentQuestion.others?.front_audio_url || !!currentQuestion.others?.front_audio_content?.trim())
+                  : (!!currentQuestion.others?.back_audio_url || !!currentQuestion.others?.back_audio_content?.trim()));
+
+              if (!hasAudioOrScript) return null;
+
+              return (
                 <button
-                  onClick={handleNext}
-                  className="flex-1 h-12 bg-slate-50 border border-slate-200 text-slate-500 hover:bg-slate-100 font-black text-xs rounded-2xl flex items-center justify-center gap-1.5 uppercase tracking-widest active:scale-[0.98] transition-all"
+                  onClick={async (e) => {
+                    e.stopPropagation();
+                    if (mainTab === 'practice') {
+                      const practiceData = currentPracticeData;
+                      if (practiceData) {
+                        const { question: qText, question_key: qKey } = practiceData;
+                        if (qKey === 'front') {
+                          await playCardAudio('front');
+                        } else if (qKey === 'back') {
+                          await playCardAudio('back');
+                        } else {
+                          speakMultiLanguage(qText);
+                        }
+                      }
+                    } else {
+                      await playCardAudio(isFlipped ? 'back' : 'front');
+                    }
+                  }}
+                  className="w-12 h-12 flex-shrink-0 flex items-center justify-center bg-indigo-50 border border-indigo-200 rounded-2xl text-indigo-600 shadow-sm active:scale-95 transition-all hover:bg-indigo-100 hover:border-indigo-300"
+                  title="Phát âm"
                 >
-                  Skip <ChevronRight className="w-4 h-4" />
+                  <Play className="w-5 h-5 fill-indigo-600 animate-pulse" />
                 </button>
-                <div className="flex-[2] h-12 bg-slate-100 text-slate-400 font-black text-xs rounded-2xl flex items-center justify-center uppercase tracking-widest pointer-events-none select-none">
-                  Waiting...
-                </div>
-              </div>
-            )
-          ) : (
-            !hasRated ? (
-              <button 
+              );
+            })()}
+
+            {/* BookOpen Explanation Button (visible in FSRS, and also in practice mode if a question is loaded) */}
+            {(mainTab === 'practice' || showFeedback) && (
+              <button
                 onClick={() => {
-                  const nextFlipped = !isFlipped;
-                  setIsFlipped(nextFlipped);
-                  if (nextFlipped) {
+                  if (mainTab === 'practice') {
                     setShowFeedback(true);
-                    setJustAnswered(true);
                   }
+                  setIsFeedbackOpen(true);
                 }}
-                className="flex-1 h-12 bg-gradient-to-r from-indigo-500 via-indigo-600 to-purple-600 text-white font-black text-xs rounded-2xl shadow-lg shadow-indigo-300/50 flex items-center justify-center gap-2.5 uppercase tracking-widest active:scale-[0.98] transition-all hover:shadow-indigo-400/60 hover:shadow-xl"
+                className={`xl:hidden w-12 h-12 flex-shrink-0 flex items-center justify-center rounded-2xl shadow-sm active:scale-95 transition-all relative ${justAnswered
+                  ? 'bg-indigo-600 border border-indigo-600 text-white animate-[pulse_1.5s_infinite] ring-4 ring-indigo-300 ring-offset-1 drop-shadow-[0_0_12px_rgba(99,102,241,0.6)]'
+                  : 'bg-indigo-50 border border-indigo-200 text-indigo-600 hover:bg-indigo-100'
+                  }`}
+                title="Xem giải thích và hướng dẫn"
               >
-                {isFlipped ? (
-                  <><ChevronRight className="w-4 h-4 rotate-180" /> FLIP BACK</>
-                ) : (
-                  <>FLIP CARD <ChevronRight className="w-4 h-4 rotate-90" /></>
-                )}
+                <BookOpen className="w-5 h-5" />
+                {justAnswered && <span className="absolute -top-1 -right-1 w-3 h-3 bg-rose-500 rounded-full border-2 border-white animate-pulse"></span>}
               </button>
-            ) : (
-              <div className="flex-1 flex gap-3 h-12">
-                <button 
-                  onClick={() => setIsFlipped(prev => !prev)}
-                  className="w-12 h-12 flex-shrink-0 bg-gradient-to-r from-indigo-50 to-indigo-100/80 hover:from-indigo-100 hover:to-indigo-200 text-indigo-600 border border-indigo-200/50 rounded-2xl flex items-center justify-center gap-2 active:scale-[0.98] transition-all"
-                  title={isFlipped ? "Flip to Front" : "Flip to Back"}
-                >
-                  <RefreshCw className="w-5 h-5 text-indigo-600 animate-[spin_4s_linear_infinite]" />
-                </button>
-                <button 
+            )}
+
+            {/* Main Action Buttons */}
+            {mainTab === 'practice' ? (
+              practiceAnswers[currentIndex] !== undefined ? (
+                <button
                   onClick={handleNext}
                   className="flex-1 h-12 bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-600 text-white font-black text-xs rounded-2xl shadow-lg shadow-emerald-300/50 flex items-center justify-center gap-2.5 uppercase tracking-widest active:scale-[0.98] transition-all hover:shadow-emerald-400/60 hover:shadow-xl"
                 >
-                  NEXT CARD <ChevronRight className="w-4 h-4" />
+                  Continue <ChevronRight className="w-4 h-4" />
                 </button>
-              </div>
-            )
-          )}
-        </div>
-      </footer>
+              ) : (
+                <div className="flex-1 flex gap-2 h-12">
+                  <button
+                    onClick={handleNext}
+                    className="flex-1 h-12 bg-slate-50 border border-slate-200 text-slate-500 hover:bg-slate-100 font-black text-xs rounded-2xl flex items-center justify-center gap-1.5 uppercase tracking-widest active:scale-[0.98] transition-all"
+                  >
+                    Skip <ChevronRight className="w-4 h-4" />
+                  </button>
+                  <div className="flex-[2] h-12 bg-slate-100 text-slate-400 font-black text-xs rounded-2xl flex items-center justify-center uppercase tracking-widest pointer-events-none select-none">
+                    Waiting...
+                  </div>
+                </div>
+              )
+            ) : (
+              !hasRated ? (
+                <button
+                  onClick={() => {
+                    const nextFlipped = !isFlipped;
+                    setIsFlipped(nextFlipped);
+                    if (nextFlipped) {
+                      setShowFeedback(true);
+                      setJustAnswered(true);
+                    }
+                  }}
+                  className="flex-1 h-12 bg-gradient-to-r from-indigo-500 via-indigo-600 to-purple-600 text-white font-black text-xs rounded-2xl shadow-lg shadow-indigo-300/50 flex items-center justify-center gap-2.5 uppercase tracking-widest active:scale-[0.98] transition-all hover:shadow-indigo-400/60 hover:shadow-xl"
+                >
+                  {isFlipped ? (
+                    <><ChevronRight className="w-4 h-4 rotate-180" /> FLIP BACK</>
+                  ) : (
+                    <>FLIP CARD <ChevronRight className="w-4 h-4 rotate-90" /></>
+                  )}
+                </button>
+              ) : (
+                <div className="flex-1 flex gap-3 h-12">
+                  <button
+                    onClick={() => setIsFlipped(prev => !prev)}
+                    className="w-12 h-12 flex-shrink-0 bg-gradient-to-r from-indigo-50 to-indigo-100/80 hover:from-indigo-100 hover:to-indigo-200 text-indigo-600 border border-indigo-200/50 rounded-2xl flex items-center justify-center gap-2 active:scale-[0.98] transition-all"
+                    title={isFlipped ? "Flip to Front" : "Flip to Back"}
+                  >
+                    <RefreshCw className="w-5 h-5 text-indigo-600 animate-[spin_4s_linear_infinite]" />
+                  </button>
+                  <button
+                    onClick={handleNext}
+                    className="flex-1 h-12 bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-600 text-white font-black text-xs rounded-2xl shadow-lg shadow-emerald-300/50 flex items-center justify-center gap-2.5 uppercase tracking-widest active:scale-[0.98] transition-all hover:shadow-emerald-400/60 hover:shadow-xl"
+                  >
+                    NEXT CARD <ChevronRight className="w-4 h-4" />
+                  </button>
+                </div>
+              )
+            )}
+          </div>
+        </footer>
       )}
 
       {/* 💡 CHỒI LÊN BÊN DƯỚI - QUICK SWIPE-UP/CLICK HANDLE */}
       {justAnswered && !isFeedbackOpen && (mainTab === 'practice' || hasRated) && (
-        <div 
+        <div
           onClick={() => setIsFeedbackOpen(true)}
           className="fixed bottom-[76px] left-1/2 -translate-x-1/2 z-40 w-[92%] max-w-lg bg-gradient-to-r from-indigo-600/95 to-purple-600/95 text-white py-2.5 px-5 rounded-2xl shadow-[0_-8px_20px_rgba(99,102,241,0.25)] flex items-center justify-between cursor-pointer border border-indigo-400/20 backdrop-blur-md active:scale-98 transition-all hover:from-indigo-600 hover:to-purple-600 group select-none animate-[bounce_2s_infinite] xl:hidden"
         >
@@ -4681,8 +4703,8 @@ export default function PracticePlay() {
           const correctCount = Object.entries(sessionAnswers).filter(([idx, optIdx]) => {
             const q = session.questions[Number(idx)]
             if (!q) return false
-            const ratingVal = Array.isArray(optIdx) 
-              ? optIdx[optIdx.length - 1] 
+            const ratingVal = Array.isArray(optIdx)
+              ? optIdx[optIdx.length - 1]
               : (typeof optIdx === 'number' ? optIdx : 0);
             return q.options && q.options.length > 0
               ? q.options[ratingVal]?.is_correct
@@ -4690,10 +4712,10 @@ export default function PracticePlay() {
           }).length
           const accuracy = answeredCount > 0 ? Math.round((correctCount / answeredCount) * 100) : 0
           const grade = accuracy >= 90 ? { label: 'S', color: 'from-yellow-400 to-amber-500', text: 'OUTSTANDING!' } :
-                        accuracy >= 75 ? { label: 'A', color: 'from-emerald-400 to-teal-500', text: 'EXCELLENT!' } :
-                        accuracy >= 60 ? { label: 'B', color: 'from-indigo-400 to-blue-500', text: 'WELL DONE!' } :
-                        accuracy >= 45 ? { label: 'C', color: 'from-amber-400 to-orange-500', text: 'KEEP IT UP!' } :
-                                         { label: 'D', color: 'from-rose-400 to-pink-500', text: 'KEEP PRACTICING!' }
+            accuracy >= 75 ? { label: 'A', color: 'from-emerald-400 to-teal-500', text: 'EXCELLENT!' } :
+              accuracy >= 60 ? { label: 'B', color: 'from-indigo-400 to-blue-500', text: 'WELL DONE!' } :
+                accuracy >= 45 ? { label: 'C', color: 'from-amber-400 to-orange-500', text: 'KEEP IT UP!' } :
+                  { label: 'D', color: 'from-rose-400 to-pink-500', text: 'KEEP PRACTICING!' }
           return (
             <div className="fixed inset-0 z-[500] flex items-center justify-center p-4">
               <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
@@ -4763,10 +4785,10 @@ export default function PracticePlay() {
       {/* Mobile Question Map Modal / Practice Stats Drawer */}
       <AnimatePresence>
         {isMapOpen && (
-          <motion.div 
-            initial={{ opacity: 0, y: 50 }} 
-            animate={{ opacity: 1, y: 0 }} 
-            exit={{ opacity: 0, y: 50 }} 
+          <motion.div
+            initial={{ opacity: 0, y: 50 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 50 }}
             className="fixed inset-0 z-[200] bg-[#F8FAFC] lg:hidden flex flex-col h-screen"
           >
             <div className="flex items-center justify-between p-4 border-b border-slate-200 bg-white shadow-sm flex-shrink-0">
@@ -4778,12 +4800,12 @@ export default function PracticePlay() {
               </button>
             </div>
             <div className="flex-1 overflow-y-auto p-4 custom-scrollbar">
-               {mainTab === 'practice' ? renderPracticeStats() : (
-                 <>
-                   {renderSessionStats()}
-                   {renderQuestionMapGrid()}
-                 </>
-               )}
+              {mainTab === 'practice' ? renderPracticeStats() : (
+                <>
+                  {renderSessionStats()}
+                  {renderQuestionMapGrid()}
+                </>
+              )}
             </div>
           </motion.div>
         )}
@@ -4792,10 +4814,10 @@ export default function PracticePlay() {
       {/* Mobile Feedback Modal */}
       <AnimatePresence>
         {isFeedbackOpen && (
-          <motion.div 
-            initial={{ opacity: 0, y: 50 }} 
-            animate={{ opacity: 1, y: 0 }} 
-            exit={{ opacity: 0, y: 50 }} 
+          <motion.div
+            initial={{ opacity: 0, y: 50 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 50 }}
             className="fixed inset-0 z-[200] bg-[#F8FAFC] xl:hidden flex flex-col h-screen"
           >
             <div className="flex items-center justify-center p-3 border-b border-slate-100 bg-white shadow-sm flex-shrink-0">
@@ -4804,7 +4826,7 @@ export default function PracticePlay() {
               </h4>
             </div>
             <div className="flex-1 overflow-y-auto custom-scrollbar">
-               {renderFeedbackArea(true)}
+              {renderFeedbackArea(true)}
             </div>
           </motion.div>
         )}
@@ -4814,7 +4836,7 @@ export default function PracticePlay() {
       <AnimatePresence>
         {isLimitlessStrike && (
           <div className="pointer-events-none fixed inset-0 z-[1999] border-[8px] border-amber-400/50 shadow-[inset_0_0_100px_rgba(245,158,11,0.4)] animate-pulse flex items-center justify-center">
-            <motion.div 
+            <motion.div
               initial={{ scale: 0.7, opacity: 0 }}
               animate={{ scale: [1, 1.15, 1], opacity: 1 }}
               exit={{ opacity: 0 }}
@@ -4831,9 +4853,9 @@ export default function PracticePlay() {
       <AnimatePresence>
         {showGoalCelebration && goalToast && (
           <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4">
-            <motion.div 
-              initial={{ opacity: 0 }} 
-              animate={{ opacity: 1 }} 
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => {
                 setShowGoalCelebration(false)
@@ -4841,8 +4863,8 @@ export default function PracticePlay() {
               }}
               className="absolute inset-0 bg-slate-950/80 backdrop-blur-xl pointer-events-auto"
             />
-            
-            <motion.div 
+
+            <motion.div
               initial={{ opacity: 0, scale: 0.8, y: 50 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.8, y: 50 }}
@@ -4851,10 +4873,10 @@ export default function PracticePlay() {
             >
               {/* Top premium border indicator */}
               <div className="absolute top-0 left-0 w-full h-2.5 bg-gradient-to-r from-amber-400 via-orange-500 to-rose-500"></div>
-              
+
               {/* Spinning/glowing light background aura */}
               <div className="absolute top-12 left-1/2 -translate-x-1/2 w-56 h-56 bg-gradient-to-tr from-amber-200/20 to-orange-200/20 rounded-full blur-3xl animate-pulse pointer-events-none" />
-              
+
               {/* Giant Bouncing Trophy Icon */}
               <div className="relative w-28 h-28 mx-auto mb-6 flex items-center justify-center">
                 <div className="absolute inset-0 bg-gradient-to-tr from-amber-400 to-orange-500 rounded-[2.5rem] rotate-12 scale-95 opacity-20 animate-pulse" />
@@ -4862,19 +4884,19 @@ export default function PracticePlay() {
                   <Trophy className="w-12 h-12 text-white fill-white animate-bounce" />
                 </div>
               </div>
-              
+
               <span className="text-[10px] font-black text-amber-600 bg-amber-50 border border-amber-100 px-4 py-1.5 rounded-full uppercase tracking-[0.2em] mb-4 inline-block shadow-sm">
                 Daily Goal Achieved! 🏆
               </span>
-              
+
               <h3 className="text-3xl font-black text-slate-800 tracking-tight leading-tight mb-3">
                 SUPER STUDY DISCIPLINE!
               </h3>
-              
+
               <p className="text-slate-500 font-bold text-xs leading-relaxed mb-8 px-4">
                 {goalToast.message}
               </p>
-              
+
               {/* Rewards Summary Grid */}
               <div className="grid grid-cols-2 gap-4 mb-8">
                 <div className="bg-gradient-to-br from-indigo-50/50 via-purple-50/30 to-white border border-indigo-100/50 rounded-3xl p-5 flex flex-col items-center justify-center shadow-sm">
@@ -4886,9 +4908,9 @@ export default function PracticePlay() {
                   <span className="text-xl font-black text-orange-600">🔥 {goalToast.streakCount}d</span>
                 </div>
               </div>
-              
+
               {/* High Motivation Action Button */}
-              <button 
+              <button
                 onClick={() => {
                   setShowGoalCelebration(false)
                   confetti({ particleCount: 80, spread: 60, origin: { y: 0.6 } })
@@ -4906,41 +4928,41 @@ export default function PracticePlay() {
       <AnimatePresence>
         {isQuitModalOpen && (
           <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4">
-            <motion.div 
-              initial={{ opacity: 0 }} 
-              animate={{ opacity: 1 }} 
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setIsQuitModalOpen(false)}
               className="absolute inset-0 bg-slate-900/60 backdrop-blur-md"
             />
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0, scale: 0.9, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.9, y: 20 }}
               className="relative w-full max-w-sm bg-white rounded-[2.5rem] p-8 shadow-2xl border border-white/20 overflow-hidden"
             >
               <div className="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-rose-400 via-rose-500 to-rose-400"></div>
-              
+
               <div className="flex flex-col items-center text-center">
                 <div className="w-16 h-16 bg-rose-50 rounded-2xl flex items-center justify-center mb-6 border border-rose-100">
                   <X className="w-8 h-8 text-rose-500" />
                 </div>
-                
+
                 <h3 className="text-xl font-black text-slate-800 mb-2 uppercase tracking-tight">End Study Session?</h3>
                 <p className="text-slate-500 font-medium text-sm leading-relaxed mb-8">Exiting now will clear the current state of this study session. Are you sure you want to exit?</p>
-                
+
                 <div className="grid grid-cols-2 gap-3 w-full">
-                  <button 
+                  <button
                     onClick={() => setIsQuitModalOpen(false)}
                     className="py-4 bg-slate-50 text-slate-600 font-black text-[10px] uppercase tracking-widest rounded-2xl hover:bg-slate-100 transition-all"
                   >
                     KEEP STUDYING
                   </button>
-                  <button 
+                  <button
                     onClick={async () => {
                       try {
                         await axios.delete(`/api/v1/quiz/${id}/session`)
-                      } catch (e) {}
+                      } catch (e) { }
                       navigate(`/flashcard/${id}`)
                     }}
                     className="py-4 bg-rose-500 text-white font-black text-[10px] uppercase tracking-widest rounded-2xl shadow-lg shadow-rose-200 active:scale-95 transition-all"
@@ -4957,202 +4979,202 @@ export default function PracticePlay() {
       <AnimatePresence>
         {isEditModalOpen && editFormData && (
           <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
-             <motion.div 
-               initial={{ opacity: 0 }}
-               animate={{ opacity: 1 }}
-               exit={{ opacity: 0 }}
-               onClick={() => setIsEditModalOpen(false)}
-               className="absolute inset-0 bg-slate-900/40 backdrop-blur-md"
-             />
-             <motion.div 
-               initial={{ opacity: 0, scale: 0.95, y: 20 }}
-               animate={{ opacity: 1, scale: 1, y: 0 }}
-               exit={{ opacity: 0, scale: 0.95, y: 20 }}
-               className="relative w-full max-w-2xl bg-white rounded-[2.5rem] shadow-2xl overflow-hidden flex flex-col max-h-[90vh]"
-             >
-                <div className="px-8 py-6 border-b border-slate-100 flex items-center justify-between bg-white sticky top-0 z-10">
-                   <h2 className="text-xl font-black text-slate-800 uppercase tracking-tight flex items-center gap-2">
-                     <Edit3 className="w-5 h-5 text-indigo-600" />
-                     EDIT FLASHCARD #{currentIndex + 1}
-                   </h2>
-                   <button onClick={() => setIsEditModalOpen(false)} className="p-2 hover:bg-slate-100 rounded-xl transition-all">
-                      <X className="w-5 h-5 text-slate-400" />
-                   </button>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setIsEditModalOpen(false)}
+              className="absolute inset-0 bg-slate-900/40 backdrop-blur-md"
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="relative w-full max-w-2xl bg-white rounded-[2.5rem] shadow-2xl overflow-hidden flex flex-col max-h-[90vh]"
+            >
+              <div className="px-8 py-6 border-b border-slate-100 flex items-center justify-between bg-white sticky top-0 z-10">
+                <h2 className="text-xl font-black text-slate-800 uppercase tracking-tight flex items-center gap-2">
+                  <Edit3 className="w-5 h-5 text-indigo-600" />
+                  EDIT FLASHCARD #{currentIndex + 1}
+                </h2>
+                <button onClick={() => setIsEditModalOpen(false)} className="p-2 hover:bg-slate-100 rounded-xl transition-all">
+                  <X className="w-5 h-5 text-slate-400" />
+                </button>
+              </div>
+
+              <div className="flex-1 overflow-y-auto p-8 space-y-6 custom-scrollbar">
+                {/* SECTION 1: TEXT CONTENT */}
+                <div className="space-y-4 bg-slate-50/50 p-6 rounded-3xl border border-slate-100">
+                  <span className="text-[10px] font-black text-indigo-600 uppercase tracking-[0.2em] block mb-2">1. TEXT CONTENT</span>
+
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">FRONT SIDE (WORD / QUESTION)</label>
+                    <textarea
+                      value={editFormData.content}
+                      onChange={(e) => setEditFormData({ ...editFormData, content: e.target.value })}
+                      className="w-full h-20 p-4 bg-white rounded-2xl border border-slate-100 focus:ring-2 focus:ring-indigo-500 font-medium text-slate-700 transition-all resize-none"
+                      placeholder="Enter the front side word or phrase..."
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">BACK SIDE (DEFINITION / EXPLANATION)</label>
+                      <textarea
+                        value={editFormData.explanation}
+                        onChange={(e) => setEditFormData({ ...editFormData, explanation: e.target.value })}
+                        className="w-full h-32 p-4 bg-white rounded-2xl border border-slate-100 focus:ring-2 focus:ring-indigo-500 font-medium text-slate-700 transition-all resize-none text-xs"
+                        placeholder="Enter the definition, synonyms, examples..."
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black text-indigo-500 uppercase tracking-widest flex items-center gap-1.5">
+                        <Sparkles className="w-3 h-3 animate-pulse" />
+                        AI DEEP ANALYSIS
+                      </label>
+                      <textarea
+                        value={editFormData.ai_explanation}
+                        onChange={(e) => setEditFormData({ ...editFormData, ai_explanation: e.target.value })}
+                        className="w-full h-32 p-4 bg-indigo-50/30 rounded-2xl border border-indigo-100 focus:ring-2 focus:ring-indigo-500 font-medium text-slate-700 transition-all resize-none text-xs"
+                        placeholder="AI explanation, breakdown of grammar, etymology..."
+                      />
+                    </div>
+                  </div>
                 </div>
-                
-                <div className="flex-1 overflow-y-auto p-8 space-y-6 custom-scrollbar">
-                   {/* SECTION 1: TEXT CONTENT */}
-                   <div className="space-y-4 bg-slate-50/50 p-6 rounded-3xl border border-slate-100">
-                      <span className="text-[10px] font-black text-indigo-600 uppercase tracking-[0.2em] block mb-2">1. TEXT CONTENT</span>
-                      
+
+                {/* SECTION 2: MULTIMEDIA URLS */}
+                <div className="space-y-4 bg-slate-50/50 p-6 rounded-3xl border border-slate-100">
+                  <span className="text-[10px] font-black text-indigo-600 uppercase tracking-[0.2em] block mb-2">2. MULTIMEDIA ASSETS</span>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {/* Front multimedia */}
+                    <div className="space-y-4">
                       <div className="space-y-2">
-                         <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">FRONT SIDE (WORD / QUESTION)</label>
-                         <textarea 
-                           value={editFormData.content}
-                           onChange={(e) => setEditFormData({...editFormData, content: e.target.value})}
-                           className="w-full h-20 p-4 bg-white rounded-2xl border border-slate-100 focus:ring-2 focus:ring-indigo-500 font-medium text-slate-700 transition-all resize-none"
-                           placeholder="Enter the front side word or phrase..."
-                         />
+                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">FRONT IMAGE URL</label>
+                        <input
+                          type="text"
+                          value={editFormData.image || ''}
+                          onChange={(e) => setEditFormData({ ...editFormData, image: e.target.value })}
+                          className="w-full p-3 bg-white rounded-xl border border-slate-100 focus:ring-2 focus:ring-indigo-500 text-xs font-semibold text-slate-600"
+                          placeholder="e.g. /static/uploads/1/images/word.jpg"
+                        />
                       </div>
-
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                         <div className="space-y-2">
-                           <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">BACK SIDE (DEFINITION / EXPLANATION)</label>
-                           <textarea 
-                             value={editFormData.explanation}
-                             onChange={(e) => setEditFormData({...editFormData, explanation: e.target.value})}
-                             className="w-full h-32 p-4 bg-white rounded-2xl border border-slate-100 focus:ring-2 focus:ring-indigo-500 font-medium text-slate-700 transition-all resize-none text-xs"
-                             placeholder="Enter the definition, synonyms, examples..."
-                           />
-                         </div>
-                         <div className="space-y-2">
-                           <label className="text-[10px] font-black text-indigo-500 uppercase tracking-widest flex items-center gap-1.5">
-                             <Sparkles className="w-3 h-3 animate-pulse" />
-                             AI DEEP ANALYSIS
-                           </label>
-                           <textarea 
-                             value={editFormData.ai_explanation}
-                             onChange={(e) => setEditFormData({...editFormData, ai_explanation: e.target.value})}
-                             className="w-full h-32 p-4 bg-indigo-50/30 rounded-2xl border border-indigo-100 focus:ring-2 focus:ring-indigo-500 font-medium text-slate-700 transition-all resize-none text-xs"
-                             placeholder="AI explanation, breakdown of grammar, etymology..."
-                           />
-                         </div>
-                      </div>
-                   </div>
-
-                   {/* SECTION 2: MULTIMEDIA URLS */}
-                   <div className="space-y-4 bg-slate-50/50 p-6 rounded-3xl border border-slate-100">
-                      <span className="text-[10px] font-black text-indigo-600 uppercase tracking-[0.2em] block mb-2">2. MULTIMEDIA ASSETS</span>
-                      
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                         {/* Front multimedia */}
-                         <div className="space-y-4">
-                            <div className="space-y-2">
-                               <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">FRONT IMAGE URL</label>
-                               <input 
-                                 type="text"
-                                 value={editFormData.image || ''}
-                                 onChange={(e) => setEditFormData({...editFormData, image: e.target.value})}
-                                 className="w-full p-3 bg-white rounded-xl border border-slate-100 focus:ring-2 focus:ring-indigo-500 text-xs font-semibold text-slate-600"
-                                 placeholder="e.g. /static/uploads/1/images/word.jpg"
-                               />
-                            </div>
-                            <div className="space-y-2">
-                               <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">FRONT AUDIO URL</label>
-                               <input 
-                                 type="text"
-                                 value={editFormData.audio || ''}
-                                 onChange={(e) => setEditFormData({...editFormData, audio: e.target.value})}
-                                 className="w-full p-3 bg-white rounded-xl border border-slate-100 focus:ring-2 focus:ring-indigo-500 text-xs font-semibold text-slate-600"
-                                 placeholder="e.g. /static/uploads/1/audio/1_front.mp3"
-                               />
-                            </div>
-                         </div>
-
-                         {/* Back multimedia */}
-                         <div className="space-y-4">
-                            <div className="space-y-2">
-                               <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">BACK IMAGE URL</label>
-                               <input 
-                                 type="text"
-                                 value={editFormData.others.back_img || ''}
-                                 onChange={(e) => setEditFormData({
-                                   ...editFormData,
-                                   others: { ...editFormData.others, back_img: e.target.value }
-                                 })}
-                                 className="w-full p-3 bg-white rounded-xl border border-slate-100 focus:ring-2 focus:ring-indigo-500 text-xs font-semibold text-slate-600"
-                                 placeholder="e.g. /static/uploads/1/images/def.jpg"
-                               />
-                            </div>
-                            <div className="space-y-2">
-                               <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">BACK AUDIO URL</label>
-                               <input 
-                                 type="text"
-                                 value={editFormData.others.back_audio_url || ''}
-                                 onChange={(e) => setEditFormData({
-                                   ...editFormData,
-                                   others: { ...editFormData.others, back_audio_url: e.target.value }
-                                 })}
-                                 className="w-full p-3 bg-white rounded-xl border border-slate-100 focus:ring-2 focus:ring-indigo-500 text-xs font-semibold text-slate-600"
-                                 placeholder="e.g. /static/uploads/1/audio/1_back.mp3"
-                               />
-                            </div>
-                         </div>
-                      </div>
-                   </div>
-
-                   {/* SECTION 3: AUDIO READING SCRIPTS */}
-                   <div className="space-y-4 bg-slate-50/50 p-6 rounded-3xl border border-slate-100">
-                      <span className="text-[10px] font-black text-indigo-600 uppercase tracking-[0.2em] block mb-2">3. AUDIO READING SCRIPTS</span>
-                      <p className="text-[9px] font-semibold text-slate-400 italic">
-                        Format: `lang_code:text` (one per line). Example: `ja:人生` followed by `vi:cuộc đời`.
-                      </p>
-                      
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                         <div className="space-y-2">
-                           <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">FRONT AUDIO READING SCRIPT</label>
-                           <textarea 
-                             value={editFormData.others.front_audio_content || ''}
-                             onChange={(e) => setEditFormData({
-                               ...editFormData,
-                               others: { ...editFormData.others, front_audio_content: e.target.value }
-                             })}
-                             className="w-full h-24 p-3 bg-white rounded-xl border border-slate-100 focus:ring-2 focus:ring-indigo-500 font-mono text-[11px] text-slate-600 transition-all resize-none"
-                             placeholder="e.g. ja:人生"
-                           />
-                         </div>
-                         <div className="space-y-2">
-                           <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">BACK AUDIO READING SCRIPT</label>
-                           <textarea 
-                             value={editFormData.others.back_audio_content || ''}
-                             onChange={(e) => setEditFormData({
-                               ...editFormData,
-                               others: { ...editFormData.others, back_audio_content: e.target.value }
-                             })}
-                             className="w-full h-24 p-3 bg-white rounded-xl border border-slate-100 focus:ring-2 focus:ring-indigo-500 font-mono text-[11px] text-slate-600 transition-all resize-none"
-                             placeholder="e.g. ja:人生&#10;vi:cuộc đời"
-                           />
-                         </div>
-                      </div>
-                   </div>
-
-                   {/* SECTION 4: CUSTOM METADATA */}
-                   <div className="space-y-4 bg-slate-50/50 p-6 rounded-3xl border border-slate-100">
-                      <span className="text-[10px] font-black text-indigo-600 uppercase tracking-[0.2em] block mb-2">4. CUSTOM METADATA (JSON)</span>
                       <div className="space-y-2">
-                         <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">OTHER CONTENT / SETTINGS</label>
-                         <textarea 
-                           value={editFormData.others.other_content || ''}
-                           onChange={(e) => setEditFormData({
-                             ...editFormData,
-                             others: { ...editFormData.others, other_content: e.target.value }
-                           })}
-                           className="w-full h-24 p-4 bg-white rounded-2xl border border-slate-100 focus:ring-2 focus:ring-indigo-500 font-mono text-xs text-slate-600 transition-all"
-                           placeholder='e.g. { "custom_mode": "vocab", "tags": ["n3", "nouns"] }'
-                         />
-                         <p className="text-[9px] font-medium text-slate-400">
-                           Valid JSON object that can store custom properties or game-mode attributes.
-                         </p>
+                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">FRONT AUDIO URL</label>
+                        <input
+                          type="text"
+                          value={editFormData.audio || ''}
+                          onChange={(e) => setEditFormData({ ...editFormData, audio: e.target.value })}
+                          className="w-full p-3 bg-white rounded-xl border border-slate-100 focus:ring-2 focus:ring-indigo-500 text-xs font-semibold text-slate-600"
+                          placeholder="e.g. /static/uploads/1/audio/1_front.mp3"
+                        />
                       </div>
-                   </div>
+                    </div>
+
+                    {/* Back multimedia */}
+                    <div className="space-y-4">
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">BACK IMAGE URL</label>
+                        <input
+                          type="text"
+                          value={editFormData.others.back_img || ''}
+                          onChange={(e) => setEditFormData({
+                            ...editFormData,
+                            others: { ...editFormData.others, back_img: e.target.value }
+                          })}
+                          className="w-full p-3 bg-white rounded-xl border border-slate-100 focus:ring-2 focus:ring-indigo-500 text-xs font-semibold text-slate-600"
+                          placeholder="e.g. /static/uploads/1/images/def.jpg"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">BACK AUDIO URL</label>
+                        <input
+                          type="text"
+                          value={editFormData.others.back_audio_url || ''}
+                          onChange={(e) => setEditFormData({
+                            ...editFormData,
+                            others: { ...editFormData.others, back_audio_url: e.target.value }
+                          })}
+                          className="w-full p-3 bg-white rounded-xl border border-slate-100 focus:ring-2 focus:ring-indigo-500 text-xs font-semibold text-slate-600"
+                          placeholder="e.g. /static/uploads/1/audio/1_back.mp3"
+                        />
+                      </div>
+                    </div>
+                  </div>
                 </div>
-                
-                <div className="p-8 border-t border-slate-100 flex items-center justify-end gap-4 bg-slate-50/50">
-                   <button 
-                     onClick={() => setIsEditModalOpen(false)}
-                     className="px-6 py-3 text-sm font-black text-slate-400 uppercase tracking-widest hover:text-slate-600 transition-all"
-                   >
-                     CANCEL
-                   </button>
-                   <button 
-                     onClick={handleSaveEdit}
-                     disabled={isSavingEdit}
-                     className="px-8 py-3 bg-indigo-600 text-white rounded-2xl text-sm font-black uppercase tracking-widest shadow-xl shadow-indigo-100 hover:bg-indigo-700 active:scale-95 transition-all disabled:opacity-50"
-                   >
-                     {isSavingEdit ? 'SAVING...' : 'SAVE CHANGES'}
-                   </button>
+
+                {/* SECTION 3: AUDIO READING SCRIPTS */}
+                <div className="space-y-4 bg-slate-50/50 p-6 rounded-3xl border border-slate-100">
+                  <span className="text-[10px] font-black text-indigo-600 uppercase tracking-[0.2em] block mb-2">3. AUDIO READING SCRIPTS</span>
+                  <p className="text-[9px] font-semibold text-slate-400 italic">
+                    Format: `lang_code:text` (one per line). Example: `ja:人生` followed by `vi:cuộc đời`.
+                  </p>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">FRONT AUDIO READING SCRIPT</label>
+                      <textarea
+                        value={editFormData.others.front_audio_content || ''}
+                        onChange={(e) => setEditFormData({
+                          ...editFormData,
+                          others: { ...editFormData.others, front_audio_content: e.target.value }
+                        })}
+                        className="w-full h-24 p-3 bg-white rounded-xl border border-slate-100 focus:ring-2 focus:ring-indigo-500 font-mono text-[11px] text-slate-600 transition-all resize-none"
+                        placeholder="e.g. ja:人生"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">BACK AUDIO READING SCRIPT</label>
+                      <textarea
+                        value={editFormData.others.back_audio_content || ''}
+                        onChange={(e) => setEditFormData({
+                          ...editFormData,
+                          others: { ...editFormData.others, back_audio_content: e.target.value }
+                        })}
+                        className="w-full h-24 p-3 bg-white rounded-xl border border-slate-100 focus:ring-2 focus:ring-indigo-500 font-mono text-[11px] text-slate-600 transition-all resize-none"
+                        placeholder="e.g. ja:人生&#10;vi:cuộc đời"
+                      />
+                    </div>
+                  </div>
                 </div>
-             </motion.div>
+
+                {/* SECTION 4: CUSTOM METADATA */}
+                <div className="space-y-4 bg-slate-50/50 p-6 rounded-3xl border border-slate-100">
+                  <span className="text-[10px] font-black text-indigo-600 uppercase tracking-[0.2em] block mb-2">4. CUSTOM METADATA (JSON)</span>
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">OTHER CONTENT / SETTINGS</label>
+                    <textarea
+                      value={editFormData.others.other_content || ''}
+                      onChange={(e) => setEditFormData({
+                        ...editFormData,
+                        others: { ...editFormData.others, other_content: e.target.value }
+                      })}
+                      className="w-full h-24 p-4 bg-white rounded-2xl border border-slate-100 focus:ring-2 focus:ring-indigo-500 font-mono text-xs text-slate-600 transition-all"
+                      placeholder='e.g. { "custom_mode": "vocab", "tags": ["n3", "nouns"] }'
+                    />
+                    <p className="text-[9px] font-medium text-slate-400">
+                      Valid JSON object that can store custom properties or game-mode attributes.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="p-8 border-t border-slate-100 flex items-center justify-end gap-4 bg-slate-50/50">
+                <button
+                  onClick={() => setIsEditModalOpen(false)}
+                  className="px-6 py-3 text-sm font-black text-slate-400 uppercase tracking-widest hover:text-slate-600 transition-all"
+                >
+                  CANCEL
+                </button>
+                <button
+                  onClick={handleSaveEdit}
+                  disabled={isSavingEdit}
+                  className="px-8 py-3 bg-indigo-600 text-white rounded-2xl text-sm font-black uppercase tracking-widest shadow-xl shadow-indigo-100 hover:bg-indigo-700 active:scale-95 transition-all disabled:opacity-50"
+                >
+                  {isSavingEdit ? 'SAVING...' : 'SAVE CHANGES'}
+                </button>
+              </div>
+            </motion.div>
           </div>
         )}
       </AnimatePresence>
@@ -5161,15 +5183,15 @@ export default function PracticePlay() {
       <AnimatePresence>
         {isModeMenuOpen && (
           <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4">
-            <motion.div 
-              initial={{ opacity: 0 }} 
-              animate={{ opacity: 1 }} 
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setIsModeMenuOpen(false)}
               className="absolute inset-0 bg-slate-950/60 backdrop-blur-md pointer-events-auto"
             />
-            
-            <motion.div 
+
+            <motion.div
               initial={{ opacity: 0, scale: 0.9, y: 30 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.9, y: 30 }}
@@ -5178,7 +5200,7 @@ export default function PracticePlay() {
             >
               {/* Top premium border indicator */}
               <div className="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500"></div>
-              
+
               <div className="flex items-center justify-between mb-6">
                 <div className="flex items-center gap-2">
                   <div className="w-9 h-9 bg-indigo-50 rounded-xl flex items-center justify-center border border-indigo-100">
@@ -5186,19 +5208,19 @@ export default function PracticePlay() {
                   </div>
                   <h3 className="text-lg font-black text-slate-800 tracking-tight uppercase">Smart Learning Modes</h3>
                 </div>
-                <button 
-                  onClick={() => setIsModeMenuOpen(false)} 
+                <button
+                  onClick={() => setIsModeMenuOpen(false)}
                   className="w-8 h-8 flex items-center justify-center bg-slate-50 border border-slate-200 rounded-lg text-slate-500 active:scale-95 transition-all"
                 >
                   <X className="w-4 h-4" />
                 </button>
               </div>
-              
+
               {/* Description */}
               <p className="text-slate-500 font-bold text-xs leading-relaxed mb-5">
                 Customize how Vocaburn serves the next card. Choose a pathway that matches your active study goals.
               </p>
-              
+
               {/* Mode Options List */}
               <div className="space-y-2.5 mb-6 overflow-y-auto max-h-[360px] pr-1 custom-scrollbar">
                 {[
@@ -5261,8 +5283,8 @@ export default function PracticePlay() {
                       }}
                       className={cn(
                         "w-full p-4 rounded-2xl border-2 text-left flex items-start gap-4 transition-all duration-200 active:scale-[0.99]",
-                        isSelected 
-                          ? "border-indigo-500 bg-indigo-50/20 shadow-md shadow-indigo-100/50" 
+                        isSelected
+                          ? "border-indigo-500 bg-indigo-50/20 shadow-md shadow-indigo-100/50"
                           : "border-slate-100 bg-white hover:border-slate-300 hover:bg-slate-50/30"
                       )}
                     >
@@ -5272,7 +5294,7 @@ export default function PracticePlay() {
                       )}>
                         <Icon className="w-4 h-4" />
                       </div>
-                      
+
                       <div className="flex-1">
                         <div className="flex items-center justify-between mb-0.5">
                           <span className="font-bold text-sm text-slate-800">{m.name}</span>
@@ -5288,8 +5310,8 @@ export default function PracticePlay() {
                   )
                 })}
               </div>
-              
-              <button 
+
+              <button
                 onClick={() => setIsModeMenuOpen(false)}
                 className="w-full py-3.5 bg-slate-900 text-white font-black text-[10px] uppercase tracking-widest rounded-2xl shadow-lg shadow-slate-300 active:scale-95 transition-all hover:bg-slate-800"
               >
@@ -5366,7 +5388,7 @@ export default function PracticePlay() {
                   {/* Hexagon Neon Ring */}
                   <div className="absolute inset-0 bg-gradient-to-tr from-violet-500 via-fuchsia-500 to-pink-500 rounded-[2.5rem] rotate-45 opacity-20 blur-md animate-pulse" />
                   <div className="absolute inset-2 bg-gradient-to-tr from-violet-600 via-fuchsia-600 to-pink-600 rounded-[2rem] rotate-12 animate-spin-slow" />
-                  
+
                   {/* Frosted Icon Shield */}
                   <div className="relative w-20 h-20 rounded-2xl bg-slate-950/60 border border-white/15 flex items-center justify-center shadow-2xl backdrop-blur-md">
                     <BadgeIcon className="w-10 h-10 text-transparent bg-clip-text bg-gradient-to-tr from-violet-400 via-fuchsia-400 to-pink-400" />
@@ -5412,3 +5434,4 @@ export default function PracticePlay() {
     </div>
   )
 }
+
