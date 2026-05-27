@@ -278,8 +278,20 @@ export default function FlashcardPlay() {
   const navigate = useNavigate()
   const { user, setUser, setGamify } = useAppStore()
   
+  const activeAudioRef = useRef<HTMLAudioElement | null>(null)
+  
   const playCardAudio = async (face: 'front' | 'back') => {
     if (!currentQuestion) return;
+
+    // 1. Immediately pause any actively playing server audio and cancel all Web Speech browser utterances
+    if (activeAudioRef.current) {
+      activeAudioRef.current.pause();
+      activeAudioRef.current = null;
+    }
+    if (typeof window !== 'undefined' && window.speechSynthesis) {
+      window.speechSynthesis.cancel();
+    }
+
     let audioUrl = face === 'front' 
       ? (currentQuestion.audio || currentQuestion.others?.front_audio_url)
       : currentQuestion.others?.back_audio_url;
@@ -311,8 +323,17 @@ export default function FlashcardPlay() {
       const cacheBustedUrl = `${audioUrl}${audioUrl.includes('?') ? '&' : '?'}t=${Date.now()}`;
       console.log(`[TTS PLAYBACK] Playing generated server audio: ${cacheBustedUrl}`);
       const audio = new Audio(cacheBustedUrl);
+      activeAudioRef.current = audio;
       audio.play().catch(err => {
-        console.warn(`[TTS FALLBACK WARNING] Playback of generated audio file ${cacheBustedUrl} failed (possibly blocked by browser autoplay policy or corrupted file). Error:`, err.message);
+        console.warn(`[TTS FALLBACK WARNING] Playback of generated audio file ${cacheBustedUrl} failed. Error:`, err.message);
+        
+        // Block Web Speech fallback queue buildup if blocked by browser autoplay/interaction policy
+        const isAutoplayBlock = err.name === 'NotAllowedError' || err.message?.includes('interact') || err.message?.includes('autoplay');
+        if (isAutoplayBlock) {
+          console.warn(`[TTS AUTOPLAY BLOCK] Playback blocked by browser autoplay policy. Skipping Web Speech fallback to prevent late voice overlapping.`);
+          return;
+        }
+
         if (script && script.trim()) {
           console.warn(`[TTS FALLBACK] Resorting to browser's client-side speech synthesis (Web Speech API) for: "${script}"`);
           speakMultiLanguage(script);
@@ -390,7 +411,31 @@ export default function FlashcardPlay() {
   const [showGoalCelebration, setShowGoalCelebration] = useState(false)
   const [isLimitlessStrike, setIsLimitlessStrike] = useState(false)
   const [activeMode, setActiveMode] = useState<string>(() => localStorage.getItem('quiz_learning_mode') || 'fsrs')
-  const [isModeMenuOpen, setIsModeMenuOpen] = useState(false)
+  const [autoPlayAudio, setAutoPlayAudio] = useState<'always' | 'front' | 'none'>(() => {
+    if (typeof window !== 'undefined') {
+      return (localStorage.getItem('vocaburn_autoplay_audio') as 'always' | 'front' | 'none') || 'none';
+    }
+    return 'none';
+  });
+  const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
+
+  const saveGeneralSettings = async (updates: { sfx_enabled?: boolean; autoplay_audio?: 'always' | 'front' | 'none'; learning_mode?: string }) => {
+    try {
+      const updatedSettings = {
+        ...modeSettings,
+        sfx_enabled: updates.sfx_enabled !== undefined ? updates.sfx_enabled : sfxEnabled,
+        autoplay_audio: updates.autoplay_audio !== undefined ? updates.autoplay_audio : autoPlayAudio,
+        learning_mode: updates.learning_mode !== undefined ? updates.learning_mode : activeMode
+      }
+      await axios.post(`/api/v1/quiz/${id}/practice-settings`, {
+        settings: updatedSettings,
+        is_creator: false
+      })
+      setModeSettings(updatedSettings)
+    } catch (e) {
+      console.error("Failed to save settings to DB", e)
+    }
+  }
   const [learningModeAlert, setLearningModeAlert] = useState<{
     visible: boolean;
     message: string;
@@ -757,8 +802,39 @@ export default function FlashcardPlay() {
 
   const timerRef = useRef<any>(null)
   const currentQuestion: Question | null = session?.questions?.[currentIndex] || null
-
   const [activelyRatedCurrentCard, setActivelyRatedCurrentCard] = useState<boolean>(false)
+
+  // Keyboard hotkeys for settings and edit card
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement;
+      if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable)) {
+        return;
+      }
+      const key = e.key.toLowerCase();
+      if (key === 'e') {
+        e.preventDefault();
+        openEditModal();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [currentQuestion]);
+
+  // Autoplay Audio Effect
+  useEffect(() => {
+    if (!currentQuestion) return;
+    
+    if (isFlipped) {
+      if (autoPlayAudio === 'always') {
+        playCardAudio('back');
+      }
+    } else {
+      if (autoPlayAudio === 'always' || autoPlayAudio === 'front') {
+        playCardAudio('front');
+      }
+    }
+  }, [currentIndex, isFlipped, currentQuestion?.id, autoPlayAudio]);
 
   const [currentTime, setCurrentTime] = useState(new Date())
   useEffect(() => {
@@ -939,8 +1015,9 @@ export default function FlashcardPlay() {
   useEffect(() => {
     timerRef.current = setInterval(() => {
       setTimeLeft(prev => {
-        // Only increment if feedback is NOT shown
+        // Only increment if feedback is NOT shown AND window/tab is active/focused
         if (showFeedback) return prev
+        if (document.hidden || !document.hasFocus()) return prev
         return prev + 1
       })
     }, 1000)
@@ -1071,37 +1148,31 @@ export default function FlashcardPlay() {
     fetchUser()
   }, [user, setUser, setGamify])
 
-  const fetchSession = async (activeTab = mainTab, subMode = practiceSubMode) => {
+  const fetchSession = async (activeTab: 'fsrs' | 'practice' = mainTab, subMode = practiceSubMode) => {
     try {
       const modeParam = activeTab === 'practice' ? `?mode=${subMode}` : ''
       const isPractice = activeTab === 'practice'
       
-      const fetchPromises: Promise<any>[] = [
-        axios.get(`/api/v1/quiz/${id}/play-data${modeParam}`),
-        axios.get('/api/v1/quiz/goals/active', {
-          params: { local_date: new Date().toLocaleDateString('en-CA') }
-        }).catch(e => {
-          console.error("Failed to load active goals", e)
-          return { data: [] }
-        })
-      ]
-
-      if (!isPractice) {
-        fetchPromises.push(
-          axios.get(`/api/v1/quiz/${id}/session`).catch(e => {
-            console.error("Failed to load session", e)
-            return { data: null }
-          })
-        )
-      }
-
-      const results = await Promise.all(fetchPromises)
-      const quizRes = results[0]
-      const goalsRes = results[1]
-      const sessionRes = !isPractice ? results[2] : { data: null }
-
+      // 1. Core quiz data load: fetched immediately to show flashcards instantly
+      const quizRes = await axios.get(`/api/v1/quiz/${id}/play-data${modeParam}`)
       const questions = quizRes.data.questions || []
       setSession({ ...quizRes.data, questions })
+
+      if (quizRes.data.user_settings) {
+        const uSet = quizRes.data.user_settings;
+        if (uSet.sfx_enabled !== undefined) {
+          setSfxEnabled(uSet.sfx_enabled);
+          localStorage.setItem('vocaburn_sfx_enabled', uSet.sfx_enabled ? 'true' : 'false');
+        }
+        if (uSet.autoplay_audio !== undefined) {
+          setAutoPlayAudio(uSet.autoplay_audio);
+          localStorage.setItem('vocaburn_autoplay_audio', uSet.autoplay_audio);
+        }
+        if (uSet.learning_mode !== undefined) {
+          setActiveMode(uSet.learning_mode);
+          localStorage.setItem('quiz_learning_mode', uSet.learning_mode);
+        }
+      }
       
       const hasLearned = questions.some((q: any) => (q.stats?.total || 0) > 0);
       if (activeTab === 'practice' && practiceRange === 'learned' && !hasLearned) {
@@ -1117,12 +1188,22 @@ export default function FlashcardPlay() {
         fetchPracticeSettings()
       }
 
-      const activeGoalData = goalsRes.data.find((g: any) => g.quiz_id === Number(id))
-      if (activeGoalData) {
-        setActiveGoal(activeGoalData)
-      }
-      
-      if (sessionRes.data) {
+      // 2. Non-blocking secondary assets: staggered via timeouts to eliminate server resource contention
+      setTimeout(() => {
+        axios.get('/api/v1/quiz/goals/active', {
+          params: { local_date: new Date().toLocaleDateString('en-CA') }
+        }).then(goalsRes => {
+          const activeGoalData = goalsRes.data.find((g: any) => g.quiz_id === Number(id))
+          if (activeGoalData) {
+            setActiveGoal(activeGoalData)
+          }
+        }).catch(e => console.error("Failed to load active goals", e))
+      }, 1500)
+
+      if (!isPractice) {
+        setTimeout(() => {
+          axios.get(`/api/v1/quiz/${id}/session`).then(sessionRes => {
+            if (sessionRes.data) {
         const restoredAnswers = sessionRes.data.state?.sessionAnswers || {}
         setSessionAnswers(restoredAnswers)
         const restoredPractice = sessionRes.data.state?.practiceAnswers || {}
@@ -1137,7 +1218,7 @@ export default function FlashcardPlay() {
         
         let curIdx = sessionRes.data.current_index || 0
         
-        if (activeTab === 'practice' && practiceRange === 'learned') {
+        if ((activeTab as string) === 'practice' && practiceRange === 'learned') {
           const learnedIndices = questions.map((q: any, i: number) => (q.stats?.total || 0) > 0 ? i : -1).filter((i: number) => i !== -1);
           if (learnedIndices.length > 0 && !learnedIndices.includes(curIdx)) {
             curIdx = learnedIndices[0];
@@ -1160,7 +1241,9 @@ export default function FlashcardPlay() {
                 if (hasAnswered) return { idx, score: -1000 }
                 
                 const fsrs = q.fsrs
-                if (!fsrs || !fsrs.due) {
+                const isNewCard = !fsrs || fsrs.state === 0 || fsrs.state === undefined || fsrs.stability === null || fsrs.stability === undefined
+                
+                if (isNewCard) {
                   return { idx, score: 2 } // Priority 2: New Card
                 }
                 
@@ -1170,10 +1253,10 @@ export default function FlashcardPlay() {
                 
                 if (isDue || isLearning) {
                   const stability = fsrs.stability || 0
-                  return { idx, score: 3 - (stability / 10000) } // Priority 3: Due reviews (shortest stability first)
+                  return { idx, score: 3 + (1 / (1 + stability)) } // Priority 3: Due reviews (Score > 3)
                 } else {
-                  const timeToDue = dueDate.getTime() - now.getTime()
-                  return { idx, score: 1 - (timeToDue / 1e12) } // Priority 1: Undue reviews (closest first)
+                  // Strict FSRS check: do not review if it is not due yet
+                  return { idx, score: -1000 }
                 }
               })
               
@@ -1224,7 +1307,7 @@ export default function FlashcardPlay() {
         
         // Update local state to reflect which questions are answered in this session
         // but DO NOT manually increment stats, as the backend quiz play-data already includes them.
-        const isPractice = activeTab === 'practice';
+        const isPractice = (activeTab as string) === 'practice';
         const activeRestored = isPractice ? restoredPractice : restoredAnswers;
         
         if (isPractice) {
@@ -1255,6 +1338,9 @@ export default function FlashcardPlay() {
         if (sessionRes.data.state?.streak) {
           setStreak(sessionRes.data.state.streak)
         }
+      }
+    }).catch(e => console.error("Failed to load session", e))
+        }, 1000)
       }
     } catch (e) {
       navigate('/')
@@ -1494,10 +1580,10 @@ export default function FlashcardPlay() {
 
         // Estimate future due date locally to prevent immediate queue re-selection before API response
         const localDue = new Date()
-        if (rating === 1) localDue.setMinutes(localDue.getMinutes() + 10)
-        else if (rating === 2) localDue.setHours(localDue.getHours() + 12)
-        else if (rating === 3) localDue.setDate(localDue.getDate() + 2)
-        else localDue.setDate(localDue.getDate() + 5)
+        if (rating === 1) localDue.setMinutes(localDue.getMinutes() + 1)
+        else if (rating === 2) localDue.setMinutes(localDue.getMinutes() + 5)
+        else if (rating === 3) localDue.setMinutes(localDue.getMinutes() + 10)
+        else localDue.setDate(localDue.getDate() + 4)
 
         q.fsrs = {
           ...(q.fsrs || { state: 0, stability: null, difficulty: null, intervals: {} }),
@@ -1907,6 +1993,15 @@ export default function FlashcardPlay() {
   }
 
   const handleNext = () => {
+    // Immediately stop any actively playing server audio and clear speech synthesis queues when transitioning
+    if (activeAudioRef.current) {
+      activeAudioRef.current.pause();
+      activeAudioRef.current = null;
+    }
+    if (typeof window !== 'undefined' && window.speechSynthesis) {
+      window.speechSynthesis.cancel();
+    }
+
     if (!session || !session.questions) return
 
     const questions = session.questions
@@ -1954,16 +2049,25 @@ export default function FlashcardPlay() {
 
     if (currentMode === 'fsrs') {
       const now = new Date()
+      console.log("DEBUG FSRS: now =", now.toISOString(), "currentIndex =", currentIndex);
       const scoredQuestions = questions.map((q: any, idx: number) => {
         const isCurrentlyUnlocked = (() => {
           if (!q.fsrs || !q.fsrs.due) return true;
-          return parseUTCDate(q.fsrs.due).getTime() - 30000 <= now.getTime();
+          const delta = parseUTCDate(q.fsrs.due).getTime() - 30000 - now.getTime();
+          return delta <= 0;
         })()
         const hasAnswered = updatedAnswers[idx] !== undefined && !isCurrentlyUnlocked
+        
+        if (updatedAnswers[idx] !== undefined) {
+          console.log(`DEBUG CARD ${idx}: content = ${q.content?.slice(0, 10)}, due =`, q.fsrs?.due, "isUnlocked =", isCurrentlyUnlocked, "hasAnswered =", hasAnswered);
+        }
+        
         if (hasAnswered) return { idx, score: -1000 }
         
         const fsrs = q.fsrs
-        if (!fsrs || !fsrs.due) {
+        const isNewCard = !fsrs || fsrs.state === 0 || fsrs.state === undefined || fsrs.stability === null || fsrs.stability === undefined
+        
+        if (isNewCard) {
           return { idx, score: 2 } // Priority 2: New Card
         }
         
@@ -1973,15 +2077,20 @@ export default function FlashcardPlay() {
         
         if (isDue || isLearning) {
           const stability = fsrs.stability || 0
-          return { idx, score: 3 - (stability / 10000) } // Priority 3: Due reviews
+          const score = 3 + (1 / (1 + stability))
+          if (updatedAnswers[idx] !== undefined) {
+            console.log(`DEBUG CARD ${idx} SCORED: score =`, score, "isDue =", isDue, "isLearning =", isLearning);
+          }
+          return { idx, score } // Priority 3: Due reviews (Score > 3)
         } else {
-          const timeToDue = dueDate.getTime() - now.getTime()
-          return { idx, score: 1 - (timeToDue / 1e12) } // Priority 1: Undue reviews
+          // Strict FSRS check: if it is not due and not learning, do not review it today
+          return { idx, score: -1000 }
         }
       })
       
       scoredQuestions.sort((a: any, b: any) => b.score - a.score)
       const best = scoredQuestions[0]
+      console.log("DEBUG FSRS BEST CARD:", best);
       if (best && best.score > -1000) {
         nextIdx = best.idx
       }
@@ -2083,7 +2192,7 @@ export default function FlashcardPlay() {
   const applyLearningMode = (mode: string) => {
     setActiveMode(mode)
     localStorage.setItem('quiz_learning_mode', mode)
-    setIsModeMenuOpen(false)
+    saveGeneralSettings({ learning_mode: mode })
 
     if (!session || !session.questions) return
 
@@ -3701,20 +3810,11 @@ export default function FlashcardPlay() {
         </div>
         <div className="flex items-center gap-2">
           <button 
-             onClick={() => {
-                const nextSfx = !sfxEnabled;
-                setSfxEnabled(nextSfx);
-                localStorage.setItem('vocaburn_sfx_enabled', nextSfx ? 'true' : 'false');
-             }}
-             className={cn(
-                "w-9 h-9 flex items-center justify-center rounded-xl border transition-all active:scale-90 shadow-sm",
-                sfxEnabled 
-                   ? "bg-emerald-50 border-emerald-100 text-emerald-500 hover:bg-emerald-100" 
-                   : "bg-slate-50 border-slate-200 text-slate-400 hover:bg-slate-100"
-             )}
-             title={sfxEnabled ? "Tắt âm thanh hiệu ứng" : "Bật âm thanh hiệu ứng"}
+             onClick={() => setIsSettingsModalOpen(true)}
+             className="w-9 h-9 flex items-center justify-center bg-slate-50 border border-slate-200 rounded-xl text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 hover:border-indigo-200 shadow-sm active:scale-90 transition-all"
+             title="Cấu hình học tập"
           >
-             {sfxEnabled ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
+             <Sliders className="w-4 h-4" />
           </button>
 
           <div className={cn(
@@ -3739,13 +3839,6 @@ export default function FlashcardPlay() {
             )}
           </AnimatePresence>
 
-          <button 
-            onClick={openEditModal}
-            className="w-9 h-9 flex items-center justify-center bg-slate-50 border border-slate-200 rounded-xl text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 hover:border-indigo-200 shadow-sm active:scale-90 transition-all"
-            title="Edit card"
-          >
-            <Edit3 className="w-4 h-4" />
-          </button>
           <button 
             onClick={() => setIsQuitModalOpen(true)}
             className="w-9 h-9 flex items-center justify-center bg-rose-50 border border-rose-200 rounded-xl text-rose-500 hover:bg-rose-100 shadow-sm active:scale-90 transition-all"
@@ -3980,19 +4073,7 @@ export default function FlashcardPlay() {
                         </ReactMarkdown>
                       </div>
                     </div>
-
-                    {/* Bottom Hint */}
-                    <div className="flex flex-col items-center justify-center gap-2">
-                      <span className="text-[10px] font-black text-indigo-500 tracking-[0.2em] uppercase animate-pulse">
-                        Click card or press Space to reveal answer
-                      </span>
-                      {currentQuestion?.fsrs?.due && (
-                        <span className="text-[8px] font-bold text-slate-400">
-                          Next due: {parseUTCDate(currentQuestion.fsrs.due).toLocaleDateString()}
-                        </span>
-                      )}
                     </div>
-                  </div>
 
                   {/* BACK SIDE */}
                   <div
@@ -4363,21 +4444,7 @@ export default function FlashcardPlay() {
             {mainTab === 'practice' ? <TrendingUp className="w-5 h-5 text-indigo-600 animate-pulse" /> : <LayoutGrid className="w-5 h-5" />}
           </button>
 
-          {/* Smart Learning Mode Selector (only for FSRS mode) */}
-          {mainTab !== 'practice' && (
-            <button 
-              onClick={() => setIsModeMenuOpen(true)} 
-              className="w-12 h-12 flex-shrink-0 flex items-center justify-center bg-slate-50 border border-slate-200 rounded-2xl text-slate-500 hover:bg-indigo-50 hover:text-indigo-600 hover:border-indigo-200 shadow-sm active:scale-95 transition-all"
-              title="Change Smart Learning Mode"
-            >
-              {activeMode === 'fsrs' && <Brain className="w-5 h-5 text-indigo-600 animate-pulse" />}
-              {activeMode === 'sequential' && <ListOrdered className="w-5 h-5" />}
-              {activeMode === 'random' && <Shuffle className="w-5 h-5" />}
-              {activeMode === 'unseen' && <EyeOff className="w-5 h-5" />}
-              {activeMode === 'review' && <AlertCircle className="w-5 h-5" />}
-              {activeMode === 'hardest' && <TrendingUp className="w-5 h-5" />}
-            </button>
-          )}
+
           
           {/* Audio play button */}
           {(() => {
@@ -4747,6 +4814,149 @@ export default function FlashcardPlay() {
         )}
       </AnimatePresence>
 
+      {/* Smart Settings Modal */}
+      <AnimatePresence>
+        {isSettingsModalOpen && (
+          <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4">
+            <motion.div 
+              initial={{ opacity: 0 }} 
+              animate={{ opacity: 1 }} 
+              exit={{ opacity: 0 }}
+              onClick={() => setIsSettingsModalOpen(false)}
+              className="absolute inset-0 bg-slate-900/60 backdrop-blur-md"
+            />
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              className="relative w-full max-w-md bg-white rounded-[2.5rem] p-6 shadow-2xl border border-white/20 overflow-hidden text-slate-800"
+            >
+              <div className="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-indigo-500 via-purple-500 to-indigo-500"></div>
+              
+              <div className="flex items-center justify-between mb-6">
+                <h3 className="text-lg font-black uppercase tracking-tight flex items-center gap-2 text-indigo-600">
+                  <Sliders className="w-5 h-5" />
+                  Cấu hình học tập
+                </h3>
+                <button 
+                  onClick={() => setIsSettingsModalOpen(false)} 
+                  className="w-8 h-8 rounded-full hover:bg-slate-50 flex items-center justify-center text-slate-400 hover:text-slate-600 transition-all"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              <div className="space-y-6">
+                {/* 1. Learning Mode Selector */}
+                <div>
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-2">Chế độ học thông minh</label>
+                  <div className="grid grid-cols-3 gap-1.5 bg-slate-50 p-1 rounded-2xl border border-slate-100">
+                    {[
+                      { id: 'fsrs', label: 'FSRS v6', icon: Brain },
+                      { id: 'sequential', label: 'Mặc định', icon: ListOrdered },
+                      { id: 'random', label: 'Ngẫu nhiên', icon: Shuffle },
+                      { id: 'unseen', label: 'Chưa học', icon: EyeOff },
+                      { id: 'review', label: 'Ôn tập', icon: AlertCircle },
+                      { id: 'hardest', label: 'Khó nhất', icon: TrendingUp }
+                    ].map(m => {
+                      const IconComp = m.icon;
+                      const active = activeMode === m.id;
+                      return (
+                        <button
+                          key={m.id}
+                          onClick={() => applyLearningMode(m.id)}
+                          className={cn(
+                            "flex flex-col items-center justify-center gap-1 py-2 px-1 rounded-xl text-[10px] font-bold transition-all",
+                            active 
+                              ? "bg-white text-indigo-600 shadow-sm border border-slate-100" 
+                              : "text-slate-500 hover:bg-white/50"
+                          )}
+                        >
+                          <IconComp className={cn("w-4 h-4", active ? "text-indigo-600" : "text-slate-400")} />
+                          <span className="truncate w-full text-center">{m.label}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* 2. Autoplay Audio */}
+                <div>
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-2">Tự động phát âm thanh</label>
+                  <div className="grid grid-cols-3 gap-2">
+                    {[
+                      { id: 'always', label: 'Luôn phát (Hai mặt)' },
+                      { id: 'front', label: 'Chỉ mặt trước' },
+                      { id: 'none', label: 'Tắt tự động phát' }
+                    ].map(opt => {
+                      const active = autoPlayAudio === opt.id;
+                      return (
+                        <button
+                          key={opt.id}
+                          onClick={() => {
+                            setAutoPlayAudio(opt.id as any);
+                            localStorage.setItem('vocaburn_autoplay_audio', opt.id);
+                            saveGeneralSettings({ autoplay_audio: opt.id as any });
+                          }}
+                          className={cn(
+                            "py-2.5 px-2 rounded-2xl border text-[10px] font-bold transition-all text-center flex items-center justify-center min-h-[48px]",
+                            active
+                              ? "bg-indigo-50 border-indigo-200 text-indigo-600 shadow-sm"
+                              : "bg-white border-slate-200 text-slate-500 hover:bg-slate-50"
+                          )}
+                        >
+                          {opt.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* 3. Sound Effects Toggle */}
+                <div className="flex items-center justify-between py-2 border-t border-b border-slate-100">
+                  <div className="flex flex-col">
+                    <span className="text-[11px] font-black text-slate-700">Âm thanh hiệu ứng</span>
+                    <span className="text-[9px] text-slate-400">Phát nhạc chuông khi trả lời Đúng/Sai</span>
+                  </div>
+                  <button 
+                    onClick={() => {
+                      const nextSfx = !sfxEnabled;
+                      setSfxEnabled(nextSfx);
+                      localStorage.setItem('vocaburn_sfx_enabled', nextSfx ? 'true' : 'false');
+                      saveGeneralSettings({ sfx_enabled: nextSfx });
+                    }}
+                    className={cn(
+                      "w-12 h-6 rounded-full p-0.5 transition-colors duration-200 ease-in-out relative flex items-center",
+                      sfxEnabled ? "bg-emerald-500" : "bg-slate-200"
+                    )}
+                  >
+                    <div className={cn(
+                      "w-5 h-5 rounded-full bg-white shadow-sm transform transition-transform duration-200 ease-in-out",
+                      sfxEnabled ? "translate-x-6" : "translate-x-0"
+                    )} />
+                  </button>
+                </div>
+
+                {/* 4. Edit Card Action with hotkey instruction */}
+                <div className="pt-2">
+                  <button 
+                    onClick={() => {
+                      setIsSettingsModalOpen(false);
+                      openEditModal();
+                    }}
+                    className="w-full py-3.5 bg-slate-50 border border-slate-200/60 rounded-2xl text-slate-700 font-bold text-xs hover:bg-indigo-50 hover:text-indigo-600 hover:border-indigo-200 shadow-sm active:scale-95 transition-all flex items-center justify-center gap-2"
+                  >
+                    <Edit3 className="w-4 h-4" />
+                    Sửa thẻ này
+                    <span className="text-[9px] px-1.5 py-0.5 rounded bg-slate-200/80 text-slate-500 font-mono font-bold uppercase tracking-wider ml-1">Phím E</span>
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
       {/* Exit Confirmation Modal */}
       <AnimatePresence>
         {isQuitModalOpen && (
@@ -5002,148 +5212,7 @@ export default function FlashcardPlay() {
         )}
       </AnimatePresence>
 
-      {/* ⚙️ SMART LEARNING MODE MODAL */}
-      <AnimatePresence>
-        {isModeMenuOpen && (
-          <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4">
-            <motion.div 
-              initial={{ opacity: 0 }} 
-              animate={{ opacity: 1 }} 
-              exit={{ opacity: 0 }}
-              onClick={() => setIsModeMenuOpen(false)}
-              className="absolute inset-0 bg-slate-950/60 backdrop-blur-md pointer-events-auto"
-            />
-            
-            <motion.div 
-              initial={{ opacity: 0, scale: 0.9, y: 30 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.9, y: 30 }}
-              transition={{ type: 'spring', bounce: 0.3, duration: 0.5 }}
-              className="relative w-full max-w-md bg-white rounded-[2.5rem] p-6 shadow-[0_25px_60px_rgba(99,102,241,0.25)] border border-slate-100 overflow-hidden z-[1010] pointer-events-auto"
-            >
-              {/* Top premium border indicator */}
-              <div className="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500"></div>
-              
-              <div className="flex items-center justify-between mb-6">
-                <div className="flex items-center gap-2">
-                  <div className="w-9 h-9 bg-indigo-50 rounded-xl flex items-center justify-center border border-indigo-100">
-                    <Sliders className="w-4 h-4 text-indigo-600" />
-                  </div>
-                  <h3 className="text-lg font-black text-slate-800 tracking-tight uppercase">Smart Learning Modes</h3>
-                </div>
-                <button 
-                  onClick={() => setIsModeMenuOpen(false)} 
-                  className="w-8 h-8 flex items-center justify-center bg-slate-50 border border-slate-200 rounded-lg text-slate-500 active:scale-95 transition-all"
-                >
-                  <X className="w-4 h-4" />
-                </button>
-              </div>
-              
-              {/* Description */}
-              <p className="text-slate-500 font-bold text-xs leading-relaxed mb-5">
-                Customize how Vocaburn serves the next card. Choose a pathway that matches your active study goals.
-              </p>
-              
-              {/* Mode Options List */}
-              <div className="space-y-2.5 mb-6 overflow-y-auto max-h-[360px] pr-1 custom-scrollbar">
-                {[
-                  {
-                    id: 'fsrs',
-                    name: 'FSRS Spaced Repetition (Standard)',
-                    desc: 'FSRS v6 scheduler. Prioritizes due review cards, then introduces new cards.',
-                    icon: Brain,
-                    color: 'from-indigo-600 to-purple-600',
-                    bg: 'bg-indigo-50/50 border-indigo-100'
-                  },
-                  {
-                    id: 'sequential',
-                    name: 'Sequential Order',
-                    desc: 'Follow deck natural sequence from first to last card.',
-                    icon: ListOrdered,
-                    color: 'from-blue-500 to-indigo-500',
-                    bg: 'bg-blue-50/50 border-blue-100'
-                  },
-                  {
-                    id: 'random',
-                    name: 'Shuffle Mode',
-                    desc: 'Serve cards in a completely randomized, unexpected order.',
-                    icon: Shuffle,
-                    color: 'from-purple-500 to-indigo-500',
-                    bg: 'bg-purple-50/50 border-purple-100'
-                  },
-                  {
-                    id: 'unseen',
-                    name: 'New Cards First',
-                    desc: 'Prioritize cards you have never attempted in this deck.',
-                    icon: EyeOff,
-                    color: 'from-teal-500 to-emerald-500',
-                    bg: 'bg-teal-50/50 border-teal-100'
-                  },
-                  {
-                    id: 'review',
-                    name: 'Mistakes First',
-                    desc: 'Focus on review cards you answered incorrectly in prior attempts.',
-                    icon: AlertCircle,
-                    color: 'from-amber-500 to-red-500',
-                    bg: 'bg-amber-50/50 border-amber-100'
-                  },
-                  {
-                    id: 'hardest',
-                    name: 'Hardest First (SRS)',
-                    desc: 'Prioritize cards with the lowest accuracy ratio first.',
-                    icon: TrendingUp,
-                    color: 'from-rose-500 to-pink-500',
-                    bg: 'bg-rose-50/50 border-rose-100'
-                  }
-                ].map((m) => {
-                  const Icon = m.icon
-                  const isSelected = activeMode === m.id
-                  return (
-                    <button
-                      key={m.id}
-                      onClick={() => {
-                        applyLearningMode(m.id)
-                      }}
-                      className={cn(
-                        "w-full p-4 rounded-2xl border-2 text-left flex items-start gap-4 transition-all duration-200 active:scale-[0.99]",
-                        isSelected 
-                          ? "border-indigo-500 bg-indigo-50/20 shadow-md shadow-indigo-100/50" 
-                          : "border-slate-100 bg-white hover:border-slate-300 hover:bg-slate-50/30"
-                      )}
-                    >
-                      <div className={cn(
-                        "w-10 h-10 rounded-xl flex items-center justify-center text-white bg-gradient-to-br shadow-md flex-shrink-0",
-                        m.color
-                      )}>
-                        <Icon className="w-4 h-4" />
-                      </div>
-                      
-                      <div className="flex-1">
-                        <div className="flex items-center justify-between mb-0.5">
-                          <span className="font-bold text-sm text-slate-800">{m.name}</span>
-                          {isSelected && (
-                            <div className="w-5 h-5 rounded-full bg-indigo-500 flex items-center justify-center shadow-md shadow-indigo-200">
-                              <Check className="w-3 h-3 text-white stroke-[3]" />
-                            </div>
-                          )}
-                        </div>
-                        <span className="text-[11px] font-semibold text-slate-500 leading-relaxed block">{m.desc}</span>
-                      </div>
-                    </button>
-                  )
-                })}
-              </div>
-              
-              <button 
-                onClick={() => setIsModeMenuOpen(false)}
-                className="w-full py-3.5 bg-slate-900 text-white font-black text-[10px] uppercase tracking-widest rounded-2xl shadow-lg shadow-slate-300 active:scale-95 transition-all hover:bg-slate-800"
-              >
-                APPLY & CLOSE
-              </button>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
+
 
       {/* Card Mastery Level Up Toast */}
       <AnimatePresence>

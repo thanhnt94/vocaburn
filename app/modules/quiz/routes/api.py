@@ -738,6 +738,15 @@ async def get_quiz_play_data(request: Request, quiz_id: int, mode: Optional[str]
     user_id = int(request.cookies.get("user_id", 1))
     is_practice = mode in ("mcq", "typing", "listening")
     
+    # Load user deck settings globally for FSRS & Practice
+    user_sett_res = await db.execute(
+        select(UserDeckSettings).where(
+            UserDeckSettings.user_id == user_id,
+            UserDeckSettings.deck_id == quiz_id
+        )
+    )
+    user_sett = user_sett_res.scalar_one_or_none()
+
     if is_practice:
         # Instant load: We do not need heavy question-level stats aggregation for practice modes!
         quiz = await QuizService.get_quiz_by_id(db, quiz_id)
@@ -775,15 +784,6 @@ async def get_quiz_play_data(request: Request, quiz_id: int, mode: Optional[str]
     num_choices = 4
     
     if is_practice:
-        # Load user settings or creator settings
-        user_sett_res = await db.execute(
-            select(UserDeckSettings).where(
-                UserDeckSettings.user_id == user_id,
-                UserDeckSettings.deck_id == quiz_id
-            )
-        )
-        user_sett = user_sett_res.scalar_one_or_none()
-        
         raw_settings = None
         if user_sett and user_sett.settings:
             raw_settings = user_sett.settings
@@ -861,23 +861,28 @@ async def get_quiz_play_data(request: Request, quiz_id: int, mode: Optional[str]
             fsrs_card.due = m_due.replace(tzinfo=timezone.utc) if m_due else now_utc
             fsrs_card.last_review = m_last_review.replace(tzinfo=timezone.utc) if m_last_review else None
             
-            # Compute predicted intervals
+            # Compute predicted intervals (Only for new, due, or active learning cards to make deck loading instant)
             intervals = {}
-            for r_val, r_enum in [(1, Rating.Again), (2, Rating.Hard), (3, Rating.Good), (4, Rating.Easy)]:
-                try:
-                    card_copy, _ = scheduler.review_card(fsrs_card, r_enum, now_utc)
-                    delta = card_copy.due - now_utc
-                    if delta.total_seconds() < 60:
-                        int_str = "<1m"
-                    elif delta.total_seconds() < 3600:
-                        int_str = f"{int(delta.total_seconds() / 60)}m"
-                    elif delta.total_seconds() < 86400:
-                        int_str = f"{int(delta.total_seconds() / 3600)}h"
-                    else:
-                        int_str = f"{int(delta.total_seconds() / 86400)}d"
-                    intervals[r_val] = int_str
-                except Exception:
-                    intervals[r_val] = "soon"
+            is_due_or_new = not m or m_due <= datetime.utcnow() or m_state in (1, 3)
+            
+            if is_due_or_new:
+                for r_val, r_enum in [(1, Rating.Again), (2, Rating.Hard), (3, Rating.Good), (4, Rating.Easy)]:
+                    try:
+                        card_copy, _ = scheduler.review_card(fsrs_card, r_enum, now_utc)
+                        delta = card_copy.due - now_utc
+                        if delta.total_seconds() < 60:
+                            int_str = "<1m"
+                        elif delta.total_seconds() < 3600:
+                            int_str = f"{int(delta.total_seconds() / 60)}m"
+                        elif delta.total_seconds() < 86400:
+                            int_str = f"{int(delta.total_seconds() / 3600)}h"
+                        else:
+                            int_str = f"{int(delta.total_seconds() / 86400)}d"
+                        intervals[r_val] = int_str
+                    except Exception:
+                        intervals[r_val] = "soon"
+            else:
+                intervals = {1: "soon", 2: "soon", 3: "soon", 4: "soon"}
                     
             questions_list.append({
                 "id": q.id,
@@ -912,7 +917,8 @@ async def get_quiz_play_data(request: Request, quiz_id: int, mode: Optional[str]
         "user_total_xp": user_total_xp,
         "practice_needs_setup": practice_needs_setup,
         "practice_disabled": practice_disabled,
-        "questions": questions_list
+        "questions": questions_list,
+        "user_settings": user_sett.settings if user_sett else None
     }
 
 @router.get("/{quiz_id}/session")

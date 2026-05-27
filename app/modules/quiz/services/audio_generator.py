@@ -96,6 +96,9 @@ class AudioGenerator:
             import tempfile
             
             for i, seg in enumerate(segments):
+                if i > 0:
+                    await asyncio.sleep(0.25) # Pace requests to avoid rate-limiting from Edge TTS servers
+                
                 seg_text = seg['text']
                 if not seg_text.strip():
                     continue
