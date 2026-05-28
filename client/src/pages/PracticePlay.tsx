@@ -4084,25 +4084,83 @@ export default function PracticePlay() {
                 </div>
 
                 {/* 3. Leaderboard Recommendation Card */}
-                <div className="bg-white p-5 rounded-[2rem] border border-slate-100 shadow-sm space-y-4">
+                <div className="bg-white p-5 rounded-[2rem] border border-slate-100 shadow-sm space-y-3">
                   <div className="flex items-center gap-2.5">
                     <div className="w-8 h-8 rounded-xl bg-amber-50 flex items-center justify-center text-amber-500">
                       <Trophy className="w-4.5 h-4.5" />
                     </div>
                     <div>
-                      <h4 className="text-xs font-black text-slate-700">Xếp hạng tuần</h4>
-                      <p className="text-[10px] text-slate-400 font-medium">Thành tích thi đua</p>
+                      <h4 className="text-xs font-black text-slate-700">Bảng xếp hạng tuần</h4>
+                      <p className="text-[10px] text-slate-400 font-medium">Đua top XP tuần này</p>
                     </div>
                   </div>
 
-                  <div className="p-3.5 bg-amber-50/50 rounded-2xl border border-amber-100/50 space-y-2">
-                    <div className="flex justify-between items-center">
-                      <span className="text-xs font-black text-slate-600">Hạng của bạn:</span>
-                      <span className="text-sm font-black text-amber-600">
-                        {userRank > 0 ? `#${userRank}` : "Chưa xếp hạng"}
-                      </span>
+                  {/* Mini Leaderboard List */}
+                  {xpLeaderboard.list && xpLeaderboard.list.length > 0 ? (
+                    <div className="space-y-1.5 py-1">
+                      {xpLeaderboard.list.slice(0, 3).map((u: any, idx: number) => (
+                        <div 
+                          key={u.user_id} 
+                          className={cn(
+                            "flex items-center justify-between p-2 rounded-2xl border transition-all text-xs",
+                            u.user_id === user?.id 
+                              ? "bg-indigo-50/50 border-indigo-100 font-black text-indigo-950" 
+                              : "bg-slate-50/30 border-transparent text-slate-700"
+                          )}
+                        >
+                          <div className="flex items-center gap-2 min-w-0">
+                            <span className="text-base">
+                              {idx === 0 ? "🥇" : idx === 1 ? "🥈" : "🥉"}
+                            </span>
+                            <span className="font-bold truncate text-[11px] uppercase">
+                              {u.full_name || u.username}
+                            </span>
+                            <span className="text-[9px] text-slate-400 font-medium">
+                              Lv.{u.level}
+                            </span>
+                          </div>
+                          <span className="font-black text-[11px] text-slate-900 shrink-0">
+                            {u.value.toLocaleString()} XP
+                          </span>
+                        </div>
+                      ))}
+                      
+                      {/* Show user if they are not in Top 3 */}
+                      {userRank > 3 && (() => {
+                        const currentUserObj = xpLeaderboard.list.find((u: any) => u.user_id === user?.id) || {
+                          full_name: user?.username || "",
+                          level: gamify.level,
+                          value: userValue
+                        };
+                        return (
+                          <>
+                            <div className="text-center text-[10px] font-black text-slate-300 tracking-widest leading-none my-1">•••</div>
+                            <div className="flex items-center justify-between p-2 rounded-2xl border bg-indigo-50 border-indigo-100 font-black text-indigo-950 text-xs">
+                              <div className="flex items-center gap-2 min-w-0">
+                                <span className="font-black text-indigo-600 w-5 text-center text-[10px]">
+                                  #{userRank}
+                                </span>
+                                <span className="font-bold truncate text-[11px] uppercase">
+                                  {currentUserObj.full_name || currentUserObj.username}
+                                </span>
+                                <span className="text-[9px] text-indigo-400 font-medium">
+                                  Lv.{currentUserObj.level}
+                                </span>
+                              </div>
+                              <span className="font-black text-[11px] text-indigo-600 shrink-0">
+                                {currentUserObj.value.toLocaleString()} XP
+                              </span>
+                            </div>
+                          </>
+                        );
+                      })()}
                     </div>
-                    <p className="text-[11px] text-slate-500 leading-relaxed font-semibold">
+                  ) : (
+                    <p className="text-[10px] text-slate-400 text-center py-2">Đang tải bảng xếp hạng...</p>
+                  )}
+
+                  <div className="p-3 bg-amber-50/50 rounded-2xl border border-amber-100/50">
+                    <p className="text-[11px] text-slate-600 leading-relaxed font-semibold">
                       {leaderboardMsg}
                     </p>
                   </div>
