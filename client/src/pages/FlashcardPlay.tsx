@@ -1492,65 +1492,65 @@ export default function FlashcardPlay() {
           if (m === 100) setTimeout(() => setIsSessionSummaryOpen(true), 800)
         }
       })
-
-      // Immediately update local stats for real-time UI reflection
-      setSession((prev: any) => {
-        if (!prev) return prev
-        const newSession = { ...prev }
-        const newQs = [...newSession.questions]
-        const q = { ...newQs[currentIndex] }
-        
-        const currentStats = q.stats || { 
-          total: 0, 
-          correct: 0, 
-          avg_time: 0,
-          again_count: 0,
-          hard_count: 0,
-          good_count: 0,
-          easy_count: 0
-        }
-        const newTotal = currentStats.total + 1
-        const newCorrect = currentStats.correct + (correct ? 1 : 0)
-        
-        const oldTotalTime = (currentStats.avg_time || 0) * currentStats.total
-        const newAvgTime = Math.round((oldTotalTime + timeTaken) / newTotal)
-        
-        q.stats = {
-          total: newTotal,
-          correct: newCorrect,
-          wrong: newTotal - newCorrect,
-          avg_time: newAvgTime,
-          again_count: (currentStats.again_count || 0) + (rating === 1 ? 1 : 0),
-          hard_count: (currentStats.hard_count || 0) + (rating === 2 ? 1 : 0),
-          good_count: (currentStats.good_count || 0) + (rating === 3 ? 1 : 0),
-          easy_count: (currentStats.easy_count || 0) + (rating === 4 ? 1 : 0)
-        }
-
-        // Estimate future due date locally to prevent immediate queue re-selection before API response
-        const localDue = new Date()
-        if (rating === 1) localDue.setMinutes(localDue.getMinutes() + 1)
-        else if (rating === 2) localDue.setMinutes(localDue.getMinutes() + 5)
-        else if (rating === 3) localDue.setMinutes(localDue.getMinutes() + 10)
-        else localDue.setDate(localDue.getDate() + 4)
-
-        let nextState = 1 // default to learning state
-        if (rating === 4) {
-          nextState = 2 // Review
-        } else if (q.fsrs?.state === 2 || q.fsrs?.state === 3) {
-          nextState = 3 // Relearning
-        }
-
-        q.fsrs = {
-          ...(q.fsrs || { stability: null, difficulty: null, intervals: {} }),
-          state: nextState,
-          due: localDue.toISOString()
-        }
-
-        newQs[currentIndex] = q
-        newSession.questions = newQs
-        return newSession
-      })
     }
+
+    // Immediately update local stats for real-time UI reflection (always run this, even if already rated this session)
+    setSession((prev: any) => {
+      if (!prev) return prev
+      const newSession = { ...prev }
+      const newQs = [...newSession.questions]
+      const q = { ...newQs[currentIndex] }
+      
+      const currentStats = q.stats || { 
+        total: 0, 
+        correct: 0, 
+        avg_time: 0,
+        again_count: 0,
+        hard_count: 0,
+        good_count: 0,
+        easy_count: 0
+      }
+      const newTotal = currentStats.total + 1
+      const newCorrect = currentStats.correct + (correct ? 1 : 0)
+      
+      const oldTotalTime = (currentStats.avg_time || 0) * currentStats.total
+      const newAvgTime = Math.round((oldTotalTime + timeTaken) / newTotal)
+      
+      q.stats = {
+        total: newTotal,
+        correct: newCorrect,
+        wrong: newTotal - newCorrect,
+        avg_time: newAvgTime,
+        again_count: (currentStats.again_count || 0) + (rating === 1 ? 1 : 0),
+        hard_count: (currentStats.hard_count || 0) + (rating === 2 ? 1 : 0),
+        good_count: (currentStats.good_count || 0) + (rating === 3 ? 1 : 0),
+        easy_count: (currentStats.easy_count || 0) + (rating === 4 ? 1 : 0)
+      }
+
+      // Estimate future due date locally to prevent immediate queue re-selection before API response
+      const localDue = new Date()
+      if (rating === 1) localDue.setMinutes(localDue.getMinutes() + 1)
+      else if (rating === 2) localDue.setMinutes(localDue.getMinutes() + 5)
+      else if (rating === 3) localDue.setMinutes(localDue.getMinutes() + 10)
+      else localDue.setDate(localDue.getDate() + 4)
+
+      let nextState = 1 // default to learning state
+      if (rating === 4) {
+        nextState = 2 // Review
+      } else if (q.fsrs?.state === 2 || q.fsrs?.state === 3) {
+        nextState = 3 // Relearning
+      }
+
+      q.fsrs = {
+        ...(q.fsrs || { stability: null, difficulty: null, intervals: {} }),
+        state: nextState,
+        due: localDue.toISOString()
+      }
+
+      newQs[currentIndex] = q
+      newSession.questions = newQs
+      return newSession
+    })
 
     saveSession(newAnswers, currentIndex, updatedXP, updatedStreak)
 
