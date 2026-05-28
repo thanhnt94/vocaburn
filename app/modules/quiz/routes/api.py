@@ -961,6 +961,157 @@ async def reset_quiz_session(request: Request, quiz_id: int, db: AsyncSession = 
     await db.commit()
     return {"status": "ok"}
 
+@router.post("/{quiz_id}/next-card")
+async def get_next_card(request: Request, quiz_id: int, data: dict, db: AsyncSession = Depends(get_db)):
+    user_id = int(request.cookies.get("user_id", 1))
+    mode = data.get("mode", "fsrs")
+    answered_indexes = data.get("answered_indexes", [])
+    current_index = data.get("current_index", 0)
+    
+    quiz = await QuizService.get_quiz_by_id(db, quiz_id)
+    if not quiz:
+        return JSONResponse(status_code=404, content={"error": "Quiz not found"})
+        
+    total = len(quiz.questions)
+    if total == 0:
+        return {"next_index": 0}
+        
+    if mode == "fsrs":
+        from app.modules.quiz.models import UserQuestionMastery
+        q_ids = [q.id for q in quiz.questions]
+        mastery_res = await db.execute(
+            select(UserQuestionMastery).where(
+                UserQuestionMastery.user_id == user_id,
+                UserQuestionMastery.question_id.in_(q_ids)
+            )
+        )
+        mastery_map = {m.question_id: m for m in mastery_res.scalars().all()}
+        
+        now_utc = datetime.utcnow()
+        
+        due_cards = []
+        for idx, q in enumerate(quiz.questions):
+            m = mastery_map.get(q.id)
+            if not m or m.state == 0 or m.stability is None:
+                continue
+                
+            is_due = (m.due - timedelta(seconds=30)) <= now_utc
+            
+            has_answered = idx in answered_indexes
+            if has_answered and not is_due:
+                continue
+                
+            if is_due:
+                due_cards.append({"idx": idx, "stability": m.stability or 0.0})
+                
+        if due_cards:
+            due_cards.sort(key=lambda x: x["stability"])
+            next_index = due_cards[0]["idx"]
+            return {"next_index": next_index}
+        else:
+            for idx, q in enumerate(quiz.questions):
+                m = mastery_map.get(q.id)
+                is_new = not m or m.state == 0 or m.stability is None
+                has_not_answered = idx not in answered_indexes
+                if is_new and has_not_answered:
+                    return {"next_index": idx}
+                    
+            for idx in range(total):
+                if idx not in answered_indexes:
+                    return {"next_index": idx}
+                    
+            return {"next_index": min(current_index + 1, total - 1)}
+            
+    elif mode == "sequential":
+        found = -1
+        for i in range(current_index + 1, total):
+            if i not in answered_indexes:
+                found = i
+                break
+        if found == -1:
+            for i in range(0, current_index + 1):
+                if i not in answered_indexes:
+                    found = i
+                    break
+        next_index = found if found != -1 else min(current_index + 1, total - 1)
+        return {"next_index": next_index}
+        
+    elif mode == "random":
+        import random
+        pool = [i for i in range(total) if i not in answered_indexes]
+        if pool:
+            return {"next_index": random.choice(pool)}
+        return {"next_index": min(current_index + 1, total - 1)}
+        
+    elif mode == "unseen":
+        quiz_with_stats = await QuizService.get_quiz_with_stats(db, quiz_id, user_id=user_id)
+        for idx in range(current_index + 1, total):
+            q = quiz_with_stats.questions[idx]
+            q_stats = getattr(q, "stats", None) or {}
+            if (q_stats.get("total") or 0) == 0 and idx not in answered_indexes:
+                return {"next_index": idx}
+        for idx in range(0, current_index + 1):
+            q = quiz_with_stats.questions[idx]
+            q_stats = getattr(q, "stats", None) or {}
+            if (q_stats.get("total") or 0) == 0 and idx not in answered_indexes:
+                return {"next_index": idx}
+        for idx in range(total):
+            if idx not in answered_indexes:
+                return {"next_index": idx}
+        return {"next_index": min(current_index + 1, total - 1)}
+        
+    elif mode == "review":
+        quiz_with_stats = await QuizService.get_quiz_with_stats(db, quiz_id, user_id=user_id)
+        for idx in range(current_index + 1, total):
+            q = quiz_with_stats.questions[idx]
+            q_stats = getattr(q, "stats", None) or {}
+            total_attempts = q_stats.get("total") or 0
+            correct_attempts = q_stats.get("correct") or 0
+            if total_attempts - correct_attempts > 0 and idx not in answered_indexes:
+                return {"next_index": idx}
+        for idx in range(0, current_index + 1):
+            q = quiz_with_stats.questions[idx]
+            q_stats = getattr(q, "stats", None) or {}
+            total_attempts = q_stats.get("total") or 0
+            correct_attempts = q_stats.get("correct") or 0
+            if total_attempts - correct_attempts > 0 and idx not in answered_indexes:
+                return {"next_index": idx}
+        for idx in range(total):
+            if idx not in answered_indexes:
+                return {"next_index": idx}
+        return {"next_index": min(current_index + 1, total - 1)}
+        
+    elif mode == "hardest":
+        quiz_with_stats = await QuizService.get_quiz_with_stats(db, quiz_id, user_id=user_id)
+        best_idx = -1
+        min_ratio = float('inf')
+        max_wrongs = -1
+        for idx in range(total):
+            if idx in answered_indexes:
+                continue
+            q = quiz_with_stats.questions[idx]
+            q_stats = getattr(q, "stats", None) or {}
+            t = q_stats.get("total") or 0
+            c = q_stats.get("correct") or 0
+            wrongs = t - c
+            if t > 0:
+                ratio = c / t
+                if ratio < min_ratio:
+                    min_ratio = ratio
+                    max_wrongs = wrongs
+                    best_idx = idx
+                elif ratio == min_ratio and wrongs > max_wrongs:
+                    max_wrongs = wrongs
+                    best_idx = idx
+        if best_idx != -1:
+            return {"next_index": best_idx}
+        for idx in range(total):
+            if idx not in answered_indexes:
+                return {"next_index": idx}
+        return {"next_index": min(current_index + 1, total - 1)}
+        
+    return {"next_index": min(current_index + 1, total - 1)}
+
 async def _generate_ai_task(quiz_id: int, question_id: int, prompt_template: Optional[str] = None):
     from app.core.db import AsyncSession, engine
     from app.modules.quiz.models import Question, Quiz

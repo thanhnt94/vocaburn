@@ -1994,35 +1994,50 @@ export default function PracticePlay() {
 
     if (currentMode === 'fsrs') {
       const now = new Date()
-      const scoredQuestions = questions.map((q: any, idx: number) => {
-        const isCurrentlyUnlocked = (() => {
-          if (!q.fsrs || !q.fsrs.due) return true;
-          return parseUTCDate(q.fsrs.due).getTime() - 30000 <= now.getTime();
-        })()
-        const hasAnswered = updatedAnswers[idx] !== undefined && !isCurrentlyUnlocked
-        if (hasAnswered) return { idx, score: -1000 }
-
+      
+      // 1. Identify studied cards that are due (or learning cards that are due)
+      const dueCards = questions.map((q: any, idx: number) => {
         const fsrs = q.fsrs
-        if (!fsrs || fsrs.state === 0 || fsrs.state === undefined || 
-            fsrs.stability === null || fsrs.stability === undefined || !fsrs.due) {
-          return { idx, score: 2 } // Priority 2: New Card
+        if (!fsrs || fsrs.state === 0 || fsrs.state === undefined || fsrs.stability === null || fsrs.stability === undefined) {
+          return null // New card
         }
-
+        // It is a studied card. Check if it is due.
+        // Include clock drift safety buffer of 30 seconds
         const dueDate = parseUTCDate(fsrs.due)
-        const isDue = dueDate <= now
-        const isLearning = fsrs.state === 1 || fsrs.state === 3
-
-        if (isDue || isLearning) {
-          return { idx, score: 3 + 1 / (1 + (fsrs.stability || 0)) } // Priority 3: Due reviews
-        } else {
-          return { idx, score: -1000 } // Not due yet = exclude completely
+        const isDue = dueDate.getTime() - 30000 <= now.getTime()
+        
+        // If it has been answered in this session, check if it is still due (unlocked)
+        const hasAnswered = updatedAnswers[idx] !== undefined
+        if (hasAnswered && !isDue) {
+          return null // Answered and not due yet
         }
-      })
+        
+        if (isDue) {
+          return { idx, stability: fsrs.stability || 0 }
+        }
+        return null
+      }).filter(Boolean) as { idx: number; stability: number }[]
 
-      scoredQuestions.sort((a: any, b: any) => b.score - a.score)
-      const best = scoredQuestions[0]
-      if (best && best.score > -1000) {
-        nextIdx = best.idx
+      if (dueCards.length > 0) {
+        // Sort by stability ascending (lowest stability = hardest card first)
+        dueCards.sort((a, b) => a.stability - b.stability)
+        nextIdx = dueCards[0].idx
+        console.log("DEBUG FSRS: Found due card, choosing index:", nextIdx, "stability:", dueCards[0].stability)
+      } else {
+        // 2. If no due cards, get the first new card sequentially
+        const newCardIdx = questions.findIndex((q: any, idx: number) => {
+          const fsrs = q.fsrs
+          const isNew = !fsrs || fsrs.state === 0 || fsrs.state === undefined || fsrs.stability === null || fsrs.stability === undefined
+          const hasNotAnswered = updatedAnswers[idx] === undefined
+          return isNew && hasNotAnswered
+        })
+        
+        if (newCardIdx !== -1) {
+          nextIdx = newCardIdx
+          console.log("DEBUG FSRS: No due cards, choosing first new card sequentially at index:", nextIdx)
+        } else {
+          console.log("DEBUG FSRS: No due cards and no new cards left.")
+        }
       }
     } else if (currentMode === 'sequential') {
       // Find the first unanswered card starting from the next index sequentially

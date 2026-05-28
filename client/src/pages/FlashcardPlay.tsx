@@ -1227,111 +1227,53 @@ export default function FlashcardPlay() {
         }
         
         // Adjust initial index based on smart learning mode if we are starting a fresh/unanswered question
-        if (restoredAnswers[curIdx] === undefined) {
-          const savedMode = localStorage.getItem('quiz_learning_mode') || 'fsrs'
-          if (savedMode !== 'sequential') {
-            let modeIdx = -1
-            if (savedMode === 'fsrs') {
-              const now = new Date()
-              const scoredQuestions = questions.map((q: any, idx: number) => {
-                const isCurrentlyUnlocked = (() => {
-                  if (!q.fsrs || !q.fsrs.due) return true;
-                  return parseUTCDate(q.fsrs.due).getTime() - 30000 <= now.getTime();
-                })()
-                const hasAnswered = restoredAnswers[idx] !== undefined && !isCurrentlyUnlocked
-                if (hasAnswered) return { idx, score: -1000 }
-                
-                const fsrs = q.fsrs
-                const isNewCard = !fsrs || fsrs.state === 0 || fsrs.state === undefined || fsrs.stability === null || fsrs.stability === undefined
-                
-                if (isNewCard) {
-                  return { idx, score: 2 } // Priority 2: New Card
-                }
-                
-                const dueDate = parseUTCDate(fsrs.due)
-                const isDue = dueDate <= now
-                const isLearning = fsrs.state === 1 || fsrs.state === 3
-                
-                if (isDue || isLearning) {
-                  const stability = fsrs.stability || 0
-                  return { idx, score: 3 + (1 / (1 + stability)) } // Priority 3: Due reviews (Score > 3)
-                } else {
-                  // Strict FSRS check: do not review if it is not due yet
-                  return { idx, score: -1000 }
-                }
+        const initIndex = async () => {
+          if (restoredAnswers[curIdx] === undefined) {
+            const savedMode = localStorage.getItem('quiz_learning_mode') || 'fsrs'
+            const answeredIndexes = Object.keys(restoredAnswers).map(Number)
+            try {
+              const res = await axios.post(`/api/v1/quiz/${id}/next-card`, {
+                mode: savedMode,
+                answered_indexes: answeredIndexes,
+                current_index: curIdx
               })
-              
-              scoredQuestions.sort((a: any, b: any) => b.score - a.score)
-              const best = scoredQuestions[0]
-              if (best && best.score > -1000) {
-                modeIdx = best.idx
-              }
-            } else if (savedMode === 'unseen') {
-              modeIdx = questions.findIndex((q: any, i: number) => (q.stats?.total || 0) === 0 && restoredAnswers[i] === undefined)
-            } else if (savedMode === 'review') {
-              modeIdx = questions.findIndex((q: any, i: number) => ((q.stats?.total || 0) - (q.stats?.correct || 0)) > 0 && restoredAnswers[i] === undefined)
-            } else if (savedMode === 'hardest') {
-              let minRatio = Infinity
-              let maxWrongs = -1
-              for (let i = 0; i < questions.length; i++) {
-                if (restoredAnswers[i] !== undefined) continue
-                const q = questions[i]
-                const t = q.stats?.total || 0
-                const c = q.stats?.correct || 0
-                const wrongs = t - c
-                if (t > 0) {
-                  const ratio = c / t
-                  if (ratio < minRatio) {
-                    minRatio = ratio
-                    maxWrongs = wrongs
-                    modeIdx = i
-                  } else if (ratio === minRatio && wrongs > maxWrongs) {
-                    maxWrongs = wrongs
-                    modeIdx = i
-                  }
-                }
-              }
-            } else if (savedMode === 'random') {
-              const pool = questions.map((_: any, i: number) => i).filter((i: number) => restoredAnswers[i] === undefined)
-              if (pool.length > 0) {
-                modeIdx = pool[Math.floor(Math.random() * pool.length)]
-              }
+              curIdx = res.data.next_index
+            } catch (err) {
+              console.error("Failed to fetch initial next card from backend", err)
             }
-
-            if (modeIdx !== -1) {
-              curIdx = modeIdx
+          }
+          
+          setCurrentIndex(curIdx)
+          
+          // Update local state to reflect which questions are answered in this session
+          // but DO NOT manually increment stats, as the backend quiz play-data already includes them.
+          const isPractice = (activeTab as string) === 'practice';
+          const activeRestored = isPractice ? restoredPractice : restoredAnswers;
+          
+          if (isPractice) {
+            if (activeRestored[curIdx] !== undefined) {
+              setSelectedOption(activeRestored[curIdx]);
+              setShowFeedback(true);
+              if (subMode === 'typing') {
+                setTypingFeedback({ checked: true, isCorrect: activeRestored[curIdx] === 3 });
+              }
+            } else {
+              setSelectedOption(null);
+              setShowFeedback(false);
+              setTypingFeedback(null);
+            }
+          } else {
+            if (typeof activeRestored[curIdx] === 'number') {
+              setSelectedOption(activeRestored[curIdx]);
+              setShowFeedback(true);
+            } else {
+              setSelectedOption(null);
+              setShowFeedback(false);
             }
           }
         }
         
-        setCurrentIndex(curIdx)
-        
-        // Update local state to reflect which questions are answered in this session
-        // but DO NOT manually increment stats, as the backend quiz play-data already includes them.
-        const isPractice = (activeTab as string) === 'practice';
-        const activeRestored = isPractice ? restoredPractice : restoredAnswers;
-        
-        if (isPractice) {
-          if (activeRestored[curIdx] !== undefined) {
-            setSelectedOption(activeRestored[curIdx]);
-            setShowFeedback(true);
-            if (subMode === 'typing') {
-              setTypingFeedback({ checked: true, isCorrect: activeRestored[curIdx] === 3 });
-            }
-          } else {
-            setSelectedOption(null);
-            setShowFeedback(false);
-            setTypingFeedback(null);
-          }
-        } else {
-          if (typeof activeRestored[curIdx] === 'number') {
-            setSelectedOption(activeRestored[curIdx]);
-            setShowFeedback(true);
-          } else {
-            setSelectedOption(null);
-            setShowFeedback(false);
-          }
-        }
+        initIndex()
 
         if (sessionRes.data.state?.sessionXP) {
           setSessionXP(sessionRes.data.state.sessionXP)
@@ -2007,7 +1949,7 @@ export default function FlashcardPlay() {
     saveSession(isPractice ? customPracticeAnswers : sessionAnswers, idx)
   }
 
-  const handleNext = () => {
+  const handleNext = async () => {
     // Immediately stop any actively playing server audio and clear speech synthesis queues when transitioning
     if (activeAudioRef.current) {
       activeAudioRef.current.pause();
@@ -2048,298 +1990,50 @@ export default function FlashcardPlay() {
       return;
     }
 
-    let updatedAnswers = { ...sessionAnswers }
-
-    // Fallback function to find the first unanswered card index in this session
-    const getFirstUnanswered = (answers = updatedAnswers) => {
-      for (let i = 0; i < total; i++) {
-        if (answers[i] === undefined) return i
-      }
-      return -1
-    }
-
-    const currentMode = activeMode;
-
     let nextIdx = -1
-
-    if (currentMode === 'fsrs') {
-      const now = new Date()
-      console.log("DEBUG FSRS: now =", now.toISOString(), "currentIndex =", currentIndex);
-      const scoredQuestions = questions.map((q: any, idx: number) => {
-        const isCurrentlyUnlocked = (() => {
-          if (!q.fsrs || !q.fsrs.due) return true;
-          const delta = parseUTCDate(q.fsrs.due).getTime() - 30000 - now.getTime();
-          return delta <= 0;
-        })()
-        const hasAnswered = updatedAnswers[idx] !== undefined && !isCurrentlyUnlocked
-        
-        if (updatedAnswers[idx] !== undefined) {
-          console.log(`DEBUG CARD ${idx}: content = ${q.content?.slice(0, 10)}, due =`, q.fsrs?.due, "isUnlocked =", isCurrentlyUnlocked, "hasAnswered =", hasAnswered);
-        }
-        
-        if (hasAnswered) return { idx, score: -1000 }
-        
-        const fsrs = q.fsrs
-        const isNewCard = !fsrs || fsrs.state === 0 || fsrs.state === undefined || fsrs.stability === null || fsrs.stability === undefined
-        
-        if (isNewCard) {
-          return { idx, score: 2 } // Priority 2: New Card
-        }
-        
-        const dueDate = parseUTCDate(fsrs.due)
-        const isDue = dueDate <= now
-        const isLearning = fsrs.state === 1 || fsrs.state === 3
-        
-        if (isDue || isLearning) {
-          const stability = fsrs.stability || 0
-          const score = 3 + (1 / (1 + stability))
-          if (updatedAnswers[idx] !== undefined) {
-            console.log(`DEBUG CARD ${idx} SCORED: score =`, score, "isDue =", isDue, "isLearning =", isLearning);
-          }
-          return { idx, score } // Priority 3: Due reviews (Score > 3)
-        } else {
-          // Strict FSRS check: if it is not due and not learning, do not review it today
-          return { idx, score: -1000 }
-        }
+    const updatedAnswers = { ...sessionAnswers }
+    const answeredIndexes = Object.keys(updatedAnswers).map(Number)
+    
+    try {
+      const res = await axios.post(`/api/v1/quiz/${id}/next-card`, {
+        mode: activeMode,
+        answered_indexes: answeredIndexes,
+        current_index: currentIndex
       })
-      
-      scoredQuestions.sort((a: any, b: any) => b.score - a.score)
-      const best = scoredQuestions[0]
-      console.log("DEBUG FSRS BEST CARD:", best);
-      if (best && best.score > -1000) {
-        nextIdx = best.idx
-      }
-    } else if (currentMode === 'sequential') {
-      // Find the first unanswered card starting from the next index sequentially
-      let found = -1;
-      for (let i = currentIndex + 1; i < total; i++) {
-        if (updatedAnswers[i] === undefined) {
-          found = i;
-          break;
-        }
-      }
-      // If not found, wrap around to search from the beginning
-      if (found === -1) {
-        for (let i = 0; i <= currentIndex; i++) {
-          if (updatedAnswers[i] === undefined) {
-            found = i;
-            break;
-          }
-        }
-      }
-      nextIdx = found !== -1 ? found : Math.min(currentIndex + 1, total - 1);
-    } else if (currentMode === 'random') {
-      // Find a random index not answered in THIS session
-      const pool = questions.map((_: any, i: number) => i).filter((i: number) => updatedAnswers[i] === undefined)
-      if (pool.length > 0) {
-        nextIdx = pool[Math.floor(Math.random() * pool.length)]
-      }
-    } else if (activeMode === 'unseen') {
-      // Find next card with 0 historical attempts and not answered in THIS session
-      nextIdx = questions.findIndex((q: any, i: number) => 
-        i > currentIndex && 
-        (q.stats?.total || 0) === 0 && 
-        updatedAnswers[i] === undefined
-      )
-      if (nextIdx === -1) {
-        // Loop back to find any unseen
-        nextIdx = questions.findIndex((q: any, i: number) => 
-          (q.stats?.total || 0) === 0 && 
-          updatedAnswers[i] === undefined
-        )
-      }
-    } else if (activeMode === 'review') {
-      // Find next card with historical mistakes (total - correct > 0) and not answered in THIS session
-      nextIdx = questions.findIndex((q: any, i: number) => 
-        i > currentIndex && 
-        ((q.stats?.total || 0) - (q.stats?.correct || 0)) > 0 && 
-        updatedAnswers[i] === undefined
-      )
-      if (nextIdx === -1) {
-        // Loop back to find any mistake card not answered in THIS session
-        nextIdx = questions.findIndex((q: any, i: number) => 
-          ((q.stats?.total || 0) - (q.stats?.correct || 0)) > 0 && 
-          updatedAnswers[i] === undefined
-        )
-      }
-    } else if (activeMode === 'hardest') {
-      // Find the unanswered card in this session with the lowest correctness ratio.
-      let bestIdx = -1
-      let minRatio = Infinity
-      let maxWrongs = -1
-
-      for (let i = 0; i < total; i++) {
-        if (updatedAnswers[i] !== undefined) continue
-
-        const q = questions[i]
-        const t = q.stats?.total || 0
-        const c = q.stats?.correct || 0
-        const wrongs = t - c
-
-        if (t > 0) {
-          const ratio = c / t
-          if (ratio < minRatio) {
-            minRatio = ratio
-            maxWrongs = wrongs
-            bestIdx = i
-          } else if (ratio === minRatio && wrongs > maxWrongs) {
-            maxWrongs = wrongs
-            bestIdx = i
-          }
-        }
-      }
-
-      nextIdx = bestIdx
-    }
-
-    // Fallback: If no candidate was found for the active mode, fall back to next unanswered card in this session,
-    // or simply currentIndex + 1 if everything is answered
-    if (nextIdx === -1) {
-      nextIdx = getFirstUnanswered()
-    }
-    if (nextIdx === -1) {
+      nextIdx = res.data.next_index
+    } catch (err) {
+      console.error("Failed to fetch next card from backend", err)
       nextIdx = Math.min(currentIndex + 1, total - 1)
     }
 
     navigateToQuestion(nextIdx)
   }
 
-  const applyLearningMode = (mode: string) => {
+  const applyLearningMode = async (mode: string) => {
     setActiveMode(mode)
     localStorage.setItem('quiz_learning_mode', mode)
     saveGeneralSettings({ learning_mode: mode })
 
     if (!session || !session.questions) return
 
-    const questions = session.questions
-    const total = questions.length
-
     // If the current question is already answered (feedback is shown), 
     // we don't jump immediately. The next question will automatically follow the new mode.
     if (showFeedback) return
 
+    const updatedAnswers = { ...sessionAnswers }
+    const answeredIndexes = Object.keys(updatedAnswers).map(Number)
+
     let targetIdx = -1
-    let alertMsg = ''
-    let updatedAnswers = mainTab === 'practice' ? { ...practiceAnswers } : { ...sessionAnswers }
-
-    if (mode === 'fsrs') {
-      const now = new Date()
-      const scoredQuestions = questions.map((q: any, idx: number) => {
-        const isCurrentlyUnlocked = (() => {
-          if (!q.fsrs || !q.fsrs.due) return true;
-          return parseUTCDate(q.fsrs.due).getTime() - 30000 <= now.getTime();
-        })()
-        const hasAnswered = updatedAnswers[idx] !== undefined && !isCurrentlyUnlocked
-        if (hasAnswered) return { idx, score: -1000 }
-        
-        const fsrs = q.fsrs
-        if (!fsrs || !fsrs.due) {
-          return { idx, score: 2 } // Priority 2: New Card
-        }
-        
-        const dueDate = parseUTCDate(fsrs.due)
-        const isDue = dueDate <= now
-        const isLearning = fsrs.state === 1 || fsrs.state === 3
-        
-        if (isDue || isLearning) {
-          const stability = fsrs.stability || 0
-          return { idx, score: 3 - (stability / 10000) } // Priority 3: Due reviews (shortest stability first)
-        } else {
-          const timeToDue = dueDate.getTime() - now.getTime()
-          return { idx, score: 1 - (timeToDue / 1e12) } // Priority 1: Undue reviews (closest first)
-        }
+    try {
+      const res = await axios.post(`/api/v1/quiz/${id}/next-card`, {
+        mode: mode,
+        answered_indexes: answeredIndexes,
+        current_index: currentIndex
       })
-      
-      scoredQuestions.sort((a: any, b: any) => b.score - a.score)
-      const best = scoredQuestions[0]
-      if (best && best.score > -1000) {
-        targetIdx = best.idx
-      }
-    } else if (mode === 'unseen') {
-      targetIdx = questions.findIndex((q: any, i: number) => 
-        (q.stats?.total || 0) === 0 && 
-        updatedAnswers[i] === undefined
-      )
-      if (targetIdx === -1) {
-        alertMsg = 'All cards have been attempted! Serving remaining cards sequentially.'
-      }
-    } else if (mode === 'review') {
-      targetIdx = questions.findIndex((q: any, i: number) => 
-        ((q.stats?.total || 0) - (q.stats?.correct || 0)) > 0 && 
-        updatedAnswers[i] === undefined
-      )
-      if (targetIdx === -1) {
-        alertMsg = "No incorrect cards found yet! We'll serve questions sequentially until mistakes are recorded."
-      }
-    } else if (mode === 'hardest') {
-      let bestIdx = -1
-      let minRatio = Infinity
-      let maxWrongs = -1
-
-      for (let i = 0; i < total; i++) {
-        if (updatedAnswers[i] !== undefined) continue
-
-        const q = questions[i]
-        const t = q.stats?.total || 0
-        const c = q.stats?.correct || 0
-        const wrongs = t - c
-
-        if (t > 0) {
-          const ratio = c / t
-          if (ratio < minRatio) {
-            minRatio = ratio
-            maxWrongs = wrongs
-            bestIdx = i
-          } else if (ratio === minRatio && wrongs > maxWrongs) {
-            maxWrongs = wrongs
-            bestIdx = i
-          }
-        }
-      }
-
-      if (bestIdx !== -1) {
-        targetIdx = bestIdx
-      } else {
-        alertMsg = 'No attempted cards found yet! Serving sequentially until difficulty stats are gathered.'
-      }
-    } else if (mode === 'random') {
-      if (updatedAnswers[currentIndex] === undefined) {
-        targetIdx = currentIndex
-      } else {
-        const pool = questions.map((_: any, i: number) => i).filter((i: number) => updatedAnswers[i] === undefined)
-        if (pool.length > 0) {
-          targetIdx = pool[Math.floor(Math.random() * pool.length)]
-        }
-      }
-    } else if (mode === 'sequential') {
-      // Find the first unanswered card starting from the next index sequentially
-      let found = -1;
-      for (let i = currentIndex + 1; i < total; i++) {
-        if (updatedAnswers[i] === undefined) {
-          found = i;
-          break;
-        }
-      }
-      if (found === -1) {
-        for (let i = 0; i <= currentIndex; i++) {
-          if (updatedAnswers[i] === undefined) {
-            found = i;
-            break;
-          }
-        }
-      }
-      targetIdx = found !== -1 ? found : Math.min(currentIndex + 1, total - 1);
-    }
-
-    if (alertMsg) {
-      setLearningModeAlert({
-        visible: true,
-        message: alertMsg,
-        type: 'info'
-      })
-      setTimeout(() => {
-        setLearningModeAlert(prev => prev ? { ...prev, visible: false } : null)
-      }, 4500)
+      targetIdx = res.data.next_index
+    } catch (err) {
+      console.error("Failed to fetch next card from backend for mode update", err)
+      targetIdx = currentIndex
     }
 
     if (targetIdx !== -1 && targetIdx !== currentIndex) {
