@@ -276,7 +276,7 @@ const speakMultiLanguage = (text: string) => {
 export default function PracticePlay() {
   const { id, subMode } = useParams()
   const navigate = useNavigate()
-  const { user, setUser, setGamify } = useAppStore()
+  const { user, gamify, setUser, setGamify } = useAppStore()
 
   const activeAudioRef = useRef<HTMLAudioElement | null>(null)
   const currentQuestionIdRef = useRef<number | null>(null)
@@ -789,8 +789,30 @@ export default function PracticePlay() {
   const timerRef = useRef<any>(null)
   const currentQuestion: Question | null = session?.questions?.[currentIndex] || null
   currentQuestionIdRef.current = currentQuestion?.id || null
-
   const [activelyRatedCurrentCard, setActivelyRatedCurrentCard] = useState<boolean>(false)
+  const [leaderboardData, setLeaderboardData] = useState<any>(null)
+
+  const xpLeaderboard = leaderboardData?.xp || { list: [], user_rank: -1, user_value: 0 }
+  const userRank = xpLeaderboard.user_rank
+  const userValue = xpLeaderboard.user_value
+  
+  let leaderboardMsg = ""
+  if (userRank === 1) {
+    leaderboardMsg = "Bạn đang dẫn đầu Bảng xếp hạng! Hãy giữ vững ngôi vương nhé! 👑"
+  } else if (userRank > 1) {
+    const topUser = xpLeaderboard.list[0]
+    const prevUser = xpLeaderboard.list[userRank - 2]
+    if (topUser) {
+      const xpToTop = topUser.value - userValue
+      leaderboardMsg = `Cần thêm ${xpToTop.toLocaleString()} XP nữa để đạt Top 1! 🚀`
+    }
+    if (prevUser) {
+      const xpToPrev = prevUser.value - userValue
+      leaderboardMsg += ` Cách Hạng #${userRank - 1} (${prevUser.username}) ${xpToPrev.toLocaleString()} XP! 💪`
+    }
+  } else {
+    leaderboardMsg = "Hãy tích lũy thêm XP để ghi danh lên Bảng xếp hạng tuần này! 🏆"
+  }
 
   const [currentTime, setCurrentTime] = useState(new Date())
   useEffect(() => {
@@ -1141,6 +1163,10 @@ export default function PracticePlay() {
 
       const results = await Promise.all(fetchPromises)
       const quizRes = results[0]
+      
+      axios.get('/api/v1/stats/leaderboard').then(res => {
+        setLeaderboardData(res.data)
+      }).catch(e => console.error("Failed to load leaderboard", e))
 
       const questions = quizRes.data.questions || []
       setSession({ ...quizRes.data, questions })
@@ -3960,50 +3986,143 @@ export default function PracticePlay() {
       <main className="flex-1 flex w-full max-w-none justify-center gap-4 lg:gap-8 px-2 lg:px-6 xl:px-10 md:py-6 py-2 overflow-hidden">
         <aside className="hidden xl:flex w-[340px] 2xl:w-[440px] flex-shrink-0 flex-col overflow-hidden bg-white border border-slate-100 rounded-[2.5rem] shadow-sm">
           {showFeedback ? renderFeedbackArea(false) : (
-            <div className="flex flex-col h-full">
+            <div className="flex flex-col h-full bg-slate-50/40">
               {/* Header */}
-              <div className="p-6 border-b border-slate-50 flex items-center justify-center bg-white sticky top-0 z-10">
-                <span className="text-[11px] font-black text-slate-400 uppercase tracking-[0.3em]">
-                  {mainTab === 'practice' ? "Answer question to view analysis" : "Rate card to view analysis"}
+              <div className="p-6 border-b border-slate-100 flex items-center justify-between bg-white sticky top-0 z-10">
+                <span className="text-[11px] font-black text-slate-500 uppercase tracking-[0.3em]">
+                  {mainTab === 'practice' ? "Chi tiết Luyện tập" : "Ôn tập & Mục tiêu"}
                 </span>
-              </div>
-
-              <div className="flex-1 flex flex-col items-center justify-center p-8 gap-6 text-center">
-                {/* Animated waiting indicator */}
-                <div className="relative w-20 h-20 flex items-center justify-center mb-2">
-                  <div className="absolute inset-0 rounded-full bg-gradient-to-br from-indigo-100 to-purple-100 animate-pulse" />
-                  <div className="absolute inset-2 rounded-full bg-white" />
-                  <Lightbulb className="w-8 h-8 text-indigo-400 relative z-10" />
-                </div>
-
-                <div>
-                  <h3 className="text-sm font-black text-slate-700 mb-1">
-                    {mainTab === 'practice' ? "Submit your answer" : "Rate your recall"}
-                  </h3>
-                  <p className="text-xs text-slate-400 leading-relaxed max-w-[200px]">
-                    {mainTab === 'practice' ? "After answering, you will see detailed analysis and AI explanation here." : "After rating, you will see detailed analysis and AI explanation here."}
-                  </p>
-                </div>
-
-                {/* Divider */}
-                <div className="w-full h-px bg-slate-100" />
-
-                {/* Session Quick Stats */}
-                <div className="w-full space-y-2">
-                  <span className="text-[9px] font-black text-slate-300 uppercase tracking-[0.2em]">
-                    {mainTab === 'practice' ? "Practice Progress" : "Study Session Progress"}
+                {activeGoal && (
+                  <span className={cn(
+                    "text-[10px] font-black px-2.5 py-0.5 rounded-full uppercase tracking-wider shadow-sm",
+                    activeGoal.is_target_met 
+                      ? "bg-emerald-100 text-emerald-700 border border-emerald-200" 
+                      : "bg-amber-100 text-amber-700 border border-amber-200"
+                  )}>
+                    {activeGoal.is_target_met ? "Đạt mục tiêu" : "Đang thực hiện"}
                   </span>
-                  <div className="grid grid-cols-3 gap-2">
-                    <div className="flex flex-col items-center p-3 bg-slate-50 rounded-2xl border border-slate-100">
-                      <span className="text-lg font-black text-slate-700">
-                        {mainTab === 'practice' ? Object.keys(practiceAnswers).length : Object.keys(sessionAnswers).length}
-                      </span>
-                      <span className="text-[8px] font-bold text-slate-400 uppercase">
-                        {mainTab === 'practice' ? "Solved" : "Rated"}
+                )}
+              </div>
+              
+              <div className="flex-1 flex flex-col p-5 gap-4 overflow-y-auto">
+                {/* 1. Daily Goal Card */}
+                <div className="bg-white p-5 rounded-[2rem] border border-slate-100 shadow-sm space-y-4">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-8 h-8 rounded-xl bg-indigo-50 flex items-center justify-center text-indigo-500">
+                      <Target className="w-4.5 h-4.5" />
+                    </div>
+                    <div>
+                      <h4 className="text-xs font-black text-slate-700">Mục tiêu bộ thẻ</h4>
+                      <p className="text-[10px] text-slate-400 font-medium">Luyện tập hàng ngày</p>
+                    </div>
+                  </div>
+
+                  {activeGoal ? (
+                    <div className="space-y-3">
+                      <div className="flex justify-between items-end">
+                        <span className="text-2xl font-black text-slate-800">
+                          {activeGoal.done_today} <span className="text-xs text-slate-400 font-bold">/ {activeGoal.daily_target} thẻ</span>
+                        </span>
+                        <span className="text-xs font-black text-indigo-600">
+                          {Math.round((activeGoal.done_today / activeGoal.daily_target) * 100)}%
+                        </span>
+                      </div>
+                      <div className="w-full h-2.5 bg-slate-100 rounded-full overflow-hidden">
+                        <div 
+                          className="h-full bg-gradient-to-r from-indigo-500 to-purple-500 rounded-full transition-all duration-500"
+                          style={{ width: `${Math.min(100, Math.round((activeGoal.done_today / activeGoal.daily_target) * 100))}%` }}
+                        />
+                      </div>
+                      <p className="text-[11px] text-slate-500 leading-relaxed font-semibold">
+                        {activeGoal.is_target_met 
+                          ? "🎉 Tuyệt vời! Bạn đã hoàn thành mục tiêu ngày hôm nay. Hãy tiếp tục để bứt phá giới hạn nhé!"
+                          : `🎯 Bạn cần học thêm ${activeGoal.daily_target - activeGoal.done_today} thẻ mới/cần ôn để hoàn thành mục tiêu ngày!`
+                        }
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="py-1">
+                      <p className="text-[11px] text-slate-400 leading-relaxed font-medium">
+                        Bạn chưa đặt mục tiêu hàng ngày cho bộ thẻ này. Hãy đặt mục tiêu học tập ở trang chủ để duy trì thói quen mỗi ngày! 💡
+                      </p>
+                    </div>
+                  )}
+                </div>
+
+                {/* 2. Personal Achievement & Streak Card */}
+                <div className="bg-white p-5 rounded-[2rem] border border-slate-100 shadow-sm space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-8 h-8 rounded-xl bg-orange-50 flex items-center justify-center text-orange-500">
+                        <Flame className="w-4.5 h-4.5" />
+                      </div>
+                      <div>
+                        <h4 className="text-xs font-black text-slate-700">Phong độ học tập</h4>
+                        <p className="text-[10px] text-slate-400 font-medium">Chuỗi học liên tục</p>
+                      </div>
+                    </div>
+                    <span className="text-xs font-black text-orange-600 bg-orange-50 px-2.5 py-1 rounded-xl border border-orange-100 shadow-sm">
+                      {gamify.streak} ngày 🔥
+                    </span>
+                  </div>
+
+                  <div className="pt-3 border-t border-slate-50 space-y-3">
+                    <div className="flex justify-between items-center text-xs">
+                      <span className="font-bold text-slate-600">Cấp độ {gamify.level}</span>
+                      <span className="font-bold text-slate-400">{gamify.xp % 1000} / 1000 XP</span>
+                    </div>
+                    <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
+                      <div 
+                        className="h-full bg-orange-400 rounded-full"
+                        style={{ width: `${(gamify.xp % 1000) / 10}%` }}
+                      />
+                    </div>
+                    <p className="text-[10px] text-slate-400 font-medium">
+                      Còn {1000 - (gamify.xp % 1000)} XP nữa để lên cấp {gamify.level + 1}!
+                    </p>
+                  </div>
+                </div>
+
+                {/* 3. Leaderboard Recommendation Card */}
+                <div className="bg-white p-5 rounded-[2rem] border border-slate-100 shadow-sm space-y-4">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-8 h-8 rounded-xl bg-amber-50 flex items-center justify-center text-amber-500">
+                      <Trophy className="w-4.5 h-4.5" />
+                    </div>
+                    <div>
+                      <h4 className="text-xs font-black text-slate-700">Xếp hạng tuần</h4>
+                      <p className="text-[10px] text-slate-400 font-medium">Thành tích thi đua</p>
+                    </div>
+                  </div>
+
+                  <div className="p-3.5 bg-amber-50/50 rounded-2xl border border-amber-100/50 space-y-2">
+                    <div className="flex justify-between items-center">
+                      <span className="text-xs font-black text-slate-600">Hạng của bạn:</span>
+                      <span className="text-sm font-black text-amber-600">
+                        {userRank > 0 ? `#${userRank}` : "Chưa xếp hạng"}
                       </span>
                     </div>
-                    <div className="flex flex-col items-center p-3 bg-emerald-50 rounded-2xl border border-emerald-100">
-                      <span className="text-lg font-black text-emerald-600">
+                    <p className="text-[11px] text-slate-500 leading-relaxed font-semibold">
+                      {leaderboardMsg}
+                    </p>
+                  </div>
+                </div>
+
+                {/* 4. Session Quick Stats */}
+                <div className="bg-slate-100/50 p-4 rounded-[1.75rem] border border-slate-100 space-y-3">
+                  <div className="flex justify-between text-[9px] font-black text-slate-400 uppercase tracking-wider">
+                    <span>Phiên học hiện tại</span>
+                    <span>Card {currentIndex + 1} / {session?.questions?.length || 0}</span>
+                  </div>
+                  <div className="grid grid-cols-3 gap-2 text-center text-xs">
+                    <div className="bg-white p-2.5 rounded-xl border border-slate-100 shadow-sm">
+                      <span className="block font-black text-slate-700">
+                        {mainTab === 'practice' ? Object.keys(practiceAnswers).length : Object.keys(sessionAnswers).length}
+                      </span>
+                      <span className="text-[8px] font-bold text-slate-400 uppercase">Đã làm</span>
+                    </div>
+                    <div className="bg-white p-2.5 rounded-xl border border-slate-100 shadow-sm text-emerald-600">
+                      <span className="block font-black">
                         {mainTab === 'practice' ? (
                           Object.entries(practiceAnswers).filter(([idx, ansIdx]) => {
                             const q = session?.questions?.[Number(idx)];
@@ -4015,8 +4134,8 @@ export default function PracticePlay() {
                           Object.entries(sessionAnswers).filter(([idx, optIdx]) => {
                             const q = session.questions[Number(idx)];
                             if (!q) return false;
-                            const ratingVal = Array.isArray(optIdx)
-                              ? optIdx[optIdx.length - 1]
+                            const ratingVal = Array.isArray(optIdx) 
+                              ? optIdx[optIdx.length - 1] 
                               : (typeof optIdx === 'number' ? optIdx : 0);
                             return q.options && q.options.length > 0
                               ? q.options[ratingVal]?.is_correct
@@ -4024,10 +4143,10 @@ export default function PracticePlay() {
                           }).length
                         )}
                       </span>
-                      <span className="text-[8px] font-bold text-emerald-400 uppercase">Correct</span>
+                      <span className="text-[8px] font-bold text-emerald-400 uppercase">Đúng</span>
                     </div>
-                    <div className="flex flex-col items-center p-3 bg-rose-50 rounded-2xl border border-rose-100">
-                      <span className="text-lg font-black text-rose-600">
+                    <div className="bg-white p-2.5 rounded-xl border border-slate-100 shadow-sm text-rose-600">
+                      <span className="block font-black">
                         {mainTab === 'practice' ? (
                           Object.keys(practiceAnswers).length - Object.entries(practiceAnswers).filter(([idx, ansIdx]) => {
                             const q = session?.questions?.[Number(idx)];
@@ -4039,8 +4158,8 @@ export default function PracticePlay() {
                           Object.keys(sessionAnswers).length - Object.entries(sessionAnswers).filter(([idx, optIdx]) => {
                             const q = session.questions[Number(idx)];
                             if (!q) return false;
-                            const ratingVal = Array.isArray(optIdx)
-                              ? optIdx[optIdx.length - 1]
+                            const ratingVal = Array.isArray(optIdx) 
+                              ? optIdx[optIdx.length - 1] 
                               : (typeof optIdx === 'number' ? optIdx : 0);
                             return q.options && q.options.length > 0
                               ? q.options[ratingVal]?.is_correct
@@ -4048,53 +4167,9 @@ export default function PracticePlay() {
                           }).length
                         )}
                       </span>
-                      <span className="text-[8px] font-bold text-rose-400 uppercase">Wrong</span>
+                      <span className="text-[8px] font-bold text-rose-400 uppercase">Sai</span>
                     </div>
                   </div>
-
-                  {/* Progress bar with milestone markers */}
-                  <div className="mt-1">
-                    <div className="flex justify-between text-[9px] font-bold text-slate-400 mb-1.5">
-                      <span>Card {currentIndex + 1} / {session.questions?.length}</span>
-                      <span>
-                        {Math.round(((mainTab === 'practice' ? Object.keys(practiceAnswers).length : Object.keys(sessionAnswers).length) / (session.questions?.length || 1)) * 100)}%
-                      </span>
-                    </div>
-                    <div className="w-full h-2.5 bg-slate-100 rounded-full overflow-hidden relative">
-                      <div
-                        className="h-full bg-gradient-to-r from-indigo-500 to-purple-500 rounded-full transition-all duration-500"
-                        style={{ width: `${Math.round(((mainTab === 'practice' ? Object.keys(practiceAnswers).length : Object.keys(sessionAnswers).length) / (session.questions?.length || 1)) * 100)}%` }}
-                      />
-                    </div>
-                    {/* Milestone markers */}
-                    <div className="flex justify-between mt-1">
-                      {[25, 50, 75, 100].map(m => (
-                        <span key={m} className={cn(
-                          "text-[8px] font-black transition-all",
-                          milestonesHit.has(m) ? "text-indigo-500" : "text-slate-300"
-                        )}>{milestonesHit.has(m) ? (m === 25 ? '🎖' : m === 50 ? '🏆' : m === 75 ? '🌟' : '🎊') : `${m}%`}</span>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-
-                {/* Divider */}
-                <div className="w-full h-px bg-slate-100" />
-
-                {/* Tip */}
-                <div className="w-full p-4 bg-indigo-50/60 rounded-2xl border border-indigo-100/60 text-left">
-                  <div className="flex items-center gap-2 mb-2">
-                    <Sparkles className="w-3.5 h-3.5 text-indigo-500" />
-                    <span className="text-[9px] font-black text-indigo-600 uppercase tracking-widest">Learning Tip</span>
-                  </div>
-                  <p className="text-[11px] text-slate-500 leading-relaxed font-medium">
-                    {currentIndex % 3 === 0
-                      ? "Read the card face carefully before flipping it. Try to actively recall the definition! 🎯"
-                      : currentIndex % 3 === 1
-                        ? "Be honest with your FSRS ratings to optimize learning efficiency! 💡"
-                        : "Consecutive daily streaks help with long-term retention. Try to review cards daily to build memory stability! 🔥"
-                    }
-                  </p>
                 </div>
               </div>
             </div>
