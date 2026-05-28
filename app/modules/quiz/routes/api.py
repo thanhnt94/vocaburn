@@ -860,6 +860,12 @@ async def get_quiz_play_data(request: Request, quiz_id: int, mode: Optional[str]
             m_box_level = m.box_level if m else 1
             
             # Build Card for FSRS interval estimation
+            state_map = {
+                0: State.Learning,
+                1: State.Learning,
+                2: State.Review,
+                3: State.Relearning
+            }
             card_state = state_map.get(m_state, State.Learning)
             if card_state in (State.Review, State.Relearning) and (m_stability is None or m_difficulty is None):
                 card_state = State.Learning
