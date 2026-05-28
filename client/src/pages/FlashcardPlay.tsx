@@ -279,9 +279,11 @@ export default function FlashcardPlay() {
   const { user, setUser, setGamify } = useAppStore()
   
   const activeAudioRef = useRef<HTMLAudioElement | null>(null)
+  const currentQuestionIdRef = useRef<number | null>(null)
   
   const playCardAudio = async (face: 'front' | 'back') => {
     if (!currentQuestion) return;
+    const targetQuestionId = currentQuestion.id;
 
     // 1. Immediately pause any actively playing server audio and cancel all Web Speech browser utterances
     if (activeAudioRef.current) {
@@ -305,6 +307,10 @@ export default function FlashcardPlay() {
       try {
         console.log(`[CLIENT TTS] Audio file missing. Requesting generation for question ${currentQuestion.id} (${face})...`);
         const res = await axios.get(`/api/v1/quiz/generate-audio/${currentQuestion.id}?face=${face}`);
+        if (currentQuestionIdRef.current !== targetQuestionId) {
+          console.log(`[CLIENT TTS] Question changed during audio generation. Aborting playback.`);
+          return;
+        }
         audioUrl = res.data.url;
         if (audioUrl) {
           if (face === 'front') {
@@ -802,6 +808,7 @@ export default function FlashcardPlay() {
 
   const timerRef = useRef<any>(null)
   const currentQuestion: Question | null = session?.questions?.[currentIndex] || null
+  currentQuestionIdRef.current = currentQuestion?.id || null
   const [activelyRatedCurrentCard, setActivelyRatedCurrentCard] = useState<boolean>(false)
 
   // Keyboard hotkeys for settings and edit card

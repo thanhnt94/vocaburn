@@ -279,9 +279,11 @@ export default function PracticePlay() {
   const { user, setUser, setGamify } = useAppStore()
 
   const activeAudioRef = useRef<HTMLAudioElement | null>(null)
+  const currentQuestionIdRef = useRef<number | null>(null)
 
   const playCardAudio = async (face: 'front' | 'back') => {
     if (!currentQuestion) return;
+    const targetQuestionId = currentQuestion.id;
     
     // Stop any existing audio or speech synthesis
     if (activeAudioRef.current) {
@@ -303,6 +305,10 @@ export default function PracticePlay() {
       try {
         console.log(`[CLIENT TTS] Audio file missing. Requesting generation for question ${currentQuestion.id} (${face})...`);
         const res = await axios.get(`/api/v1/quiz/generate-audio/${currentQuestion.id}?face=${face}`);
+        if (currentQuestionIdRef.current !== targetQuestionId) {
+          console.log(`[CLIENT TTS] Question changed during audio generation. Aborting playback.`);
+          return;
+        }
         audioUrl = res.data.url;
         if (audioUrl) {
           if (face === 'front') {
@@ -782,6 +788,7 @@ export default function PracticePlay() {
 
   const timerRef = useRef<any>(null)
   const currentQuestion: Question | null = session?.questions?.[currentIndex] || null
+  currentQuestionIdRef.current = currentQuestion?.id || null
 
   const [activelyRatedCurrentCard, setActivelyRatedCurrentCard] = useState<boolean>(false)
 
