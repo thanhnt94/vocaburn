@@ -210,3 +210,14 @@ class UserDeckSettings(Base):
     
     deck = relationship("Quiz")
 
+class UserGlobalGoal(Base):
+    __tablename__ = "user_global_goals"
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), unique=True, index=True)
+    daily_time_target = Column(Integer, default=20) # in minutes
+    daily_card_target = Column(Integer, default=20) # number of cards
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    user = relationship("User")
+
+

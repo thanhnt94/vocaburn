@@ -132,10 +132,11 @@ async def get_daily_challenges(
     # Challenge 2: Answer >= 30 cards today
     # Use UserDailyStats for today
     # ─────────────────────────────────────────────────────────────────────────
+    today_start = datetime.combine(activity_date, datetime.min.time())
     daily_stats_res = await db.execute(
         select(UserDailyStats).where(
             UserDailyStats.user_id == user_id,
-            UserDailyStats.date == activity_date,
+            UserDailyStats.date >= today_start,
         )
     )
     daily_stats = daily_stats_res.scalar_one_or_none()
@@ -167,7 +168,7 @@ async def get_daily_challenges(
             "target_value": 1,
             "current_value": 1 if challenge1_completed else 0,
             "is_completed": challenge1_completed,
-            "detail": f"{due_count} thẻ còn lại" if not challenge1_completed else "Đã hoàn thành!",
+            "detail": f"{due_count} thẻ ôn tập còn lại" if not challenge1_completed else "Đã hoàn thành!",
         },
         {
             "id": "thirty_cards",
@@ -205,3 +206,91 @@ async def get_daily_challenges(
         "xp_earned": xp_earned,
         "all_completed": total_completed == len(challenges),
     }
+
+@router.get("/badges/progress")
+async def get_badges_progress(request: Request, db: AsyncSession = Depends(get_db)):
+    from app.modules.gamification.models import Badge, UserGamification
+    from app.modules.auth.services.auth_service import AuthService
+    from app.modules.quiz.models import UserQuestionMastery
+    from app.modules.stats.models import UserDailyStats
+    from fastapi import HTTPException
+    
+    current_user = await AuthService.get_current_user(request, db)
+    if not current_user:
+        raise HTTPException(status_code=401, detail="Unauthorized")
+    user_id = current_user.id
+    
+    # 1. Fetch user gamification stats
+    res = await db.execute(select(UserGamification).where(UserGamification.user_id == user_id))
+    user_stats = res.scalar_one_or_none()
+    if not user_stats:
+        user_stats = UserGamification(user_id=user_id, xp=0, level=1, streak_count=0, badges=[])
+        
+    earned_badge_ids = set(user_stats.badges or [])
+    
+    # 2. Fetch all badges
+    res_badges = await db.execute(select(Badge))
+    all_badges = res_badges.scalars().all()
+    
+    # 3. Calculate actual metrics for comparison
+    current_xp = user_stats.xp
+    current_streak = user_stats.streak_count
+    
+    # mastery: count how many cards are box_level == 5 (mastered)
+    mastered_res = await db.execute(
+        select(func.count(UserQuestionMastery.id)).where(
+            UserQuestionMastery.user_id == user_id,
+            UserQuestionMastery.box_level == 5
+        )
+    )
+    current_mastery = mastered_res.scalar() or 0
+    
+    # goals crusher: count times is_target_met was True in UserDailyProgress
+    from app.modules.quiz.models import UserDailyProgress
+    goals_res = await db.execute(
+        select(func.count(UserDailyProgress.id)).where(
+            UserDailyProgress.goal.has(user_id=user_id),
+            UserDailyProgress.is_target_met == True
+        )
+    )
+    current_goals = goals_res.scalar() or 0
+    
+    # Compute progress for unearned badges
+    unearned_progress = []
+    for badge in all_badges:
+        if badge.id in earned_badge_ids:
+            continue
+            
+        target = badge.criteria_value or 1
+        current = 0
+        
+        if badge.criteria_type == 'xp':
+            current = current_xp
+        elif badge.criteria_type == 'streak':
+            current = current_streak
+        elif badge.criteria_type == 'mastery':
+            current = current_mastery
+        elif badge.criteria_type == 'goals':
+            current = current_goals
+        else:
+            current = 0
+            
+        percentage = min(100.0, (current / target) * 100.0) if target > 0 else 0.0
+        
+        unearned_progress.append({
+            "id": badge.id,
+            "name": badge.name,
+            "description": badge.description,
+            "icon": badge.icon,
+            "criteria_type": badge.criteria_type,
+            "target_value": target,
+            "current_value": current,
+            "percentage": round(percentage, 1)
+        })
+        
+    # Sort by percentage descending to get closest to unlock
+    unearned_progress.sort(key=lambda x: x["percentage"], reverse=True)
+    
+    # Return top 3 closest badges
+    return unearned_progress[:3]
+

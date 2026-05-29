@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { Brain, Trophy, ChevronRight, LayoutGrid, Users, Zap, Flame, BrainCircuit, X, Play, Crown, Medal, Star, CheckCircle2, Circle, Swords } from 'lucide-react'
+import { Brain, Trophy, ChevronRight, LayoutGrid, Users, Zap, Flame, BrainCircuit, X, Play, Crown, Medal, Star, CheckCircle2, Circle, Swords, Settings } from 'lucide-react'
 import { useAppStore } from '@/store/useAppStore'
 import { cn } from '@/lib/utils'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -111,15 +111,15 @@ function MiniHeatmap({ data }: { data: HeatmapDay[] }) {
           {totalThisMonth} thẻ tháng này
         </span>
       </div>
-      <div className="flex gap-0.5 overflow-hidden">
+      <div className="flex justify-center gap-[3px] py-2 overflow-x-auto scrollbar-none">
         {cells.map((week, wi) => (
-          <div key={wi} className="flex flex-col gap-0.5">
+          <div key={wi} className="flex flex-col gap-[3px]">
             {week.map((cell, di) => (
               <div
                 key={di}
                 title={`${cell.date}: ${cell.count} thẻ`}
                 className={cn(
-                  'w-[10px] h-[10px] rounded-[2px] transition-all hover:scale-125 cursor-default',
+                  'w-3 h-3 rounded-[3px] transition-all hover:scale-125 cursor-default',
                   getColor(cell.count)
                 )}
               />
@@ -127,7 +127,7 @@ function MiniHeatmap({ data }: { data: HeatmapDay[] }) {
           </div>
         ))}
       </div>
-      <div className="flex items-center gap-1.5 mt-0.5">
+      <div className="flex items-center justify-center gap-1.5 mt-0.5 border-t border-slate-50 pt-2.5">
         <span className="text-[8px] font-bold text-slate-400">Ít</span>
         {['bg-slate-100', 'bg-indigo-200', 'bg-indigo-400', 'bg-indigo-600', 'bg-indigo-800'].map((c, i) => (
           <div key={i} className={cn('w-2.5 h-2.5 rounded-[2px]', c)} />
@@ -225,91 +225,397 @@ function LeaderboardWidget({ data }: { data: { leaderboard: LeaderboardEntry[], 
 }
 
 // ─── Daily Challenges Widget ───────────────────────────────────────────────────
-function DailyChallengesWidget({ data }: { data: { challenges: Challenge[], total_completed: number, total_count: number, xp_earned: number, total_xp_available: number, all_completed: boolean } }) {
-  const { challenges, total_completed, total_count, xp_earned, total_xp_available, all_completed } = data
+interface BadgeProgress {
+  id: string
+  name: string
+  description: string
+  icon: string
+  criteria_type: string
+  target_value: number
+  current_value: number
+  percentage: number
+}
+
+function BadgeProgressWidget({ data }: { data: BadgeProgress[] }) {
+  const iconsMap: Record<string, React.ComponentType<any>> = {
+    Zap: Zap,
+    Flame: Flame,
+    Award: Trophy,
+    CheckCircle2: CheckCircle2,
+    Activity: Zap,
+    Target: Trophy,
+    Trophy: Trophy
+  }
 
   return (
-    <div className={cn(
-      'rounded-2xl p-4 border text-left transition-all duration-300 flex-shrink-0',
-      all_completed
-        ? 'bg-gradient-to-r from-emerald-50 to-teal-50 border-emerald-200/60 shadow-emerald-100/40 shadow-sm'
-        : 'bg-white border-slate-200/60 shadow-sm'
-    )}>
-      <div className="flex items-center justify-between mb-3">
+    <div className="bg-white border border-slate-200/60 rounded-[2rem] p-5 shadow-sm flex flex-col gap-3.5 text-left flex-shrink-0">
+      <div className="flex items-center justify-between pb-2 border-b border-slate-100">
         <div>
-          <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 block">Nhiệm vụ hôm nay</span>
-          {all_completed && (
-            <span className="text-[8px] font-black text-emerald-600 uppercase tracking-wider">
-              ✅ Tất cả hoàn thành!
-            </span>
-          )}
-        </div>
-        <div className="text-right">
-          <span className="text-[10px] font-black text-indigo-600">{xp_earned}/{total_xp_available}</span>
-          <span className="text-[8px] font-black text-slate-400 block">XP</span>
+          <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 block">Hành trình danh hiệu</span>
+          <span className="text-[8px] font-black text-indigo-600 uppercase tracking-wider block mt-0.5">
+            🏆 Sắp đạt được
+          </span>
         </div>
       </div>
 
-      {/* Progress bar */}
-      <div className="h-1.5 bg-slate-100 rounded-full mb-3 overflow-hidden">
-        <div
-          className={cn(
-            'h-full rounded-full transition-all duration-700',
-            all_completed ? 'bg-emerald-500' : 'bg-indigo-500'
-          )}
-          style={{ width: `${(total_completed / total_count) * 100}%` }}
-        />
-      </div>
-
-      <div className="flex flex-col gap-2">
-        {challenges.map(challenge => (
-          <div
-            key={challenge.id}
-            className={cn(
-              'flex items-center gap-3 p-2.5 rounded-xl border transition-all',
-              challenge.is_completed
-                ? 'bg-emerald-50/60 border-emerald-200/60'
-                : 'bg-slate-50/60 border-slate-100'
-            )}
-          >
-            <div className="text-lg flex-shrink-0 leading-none">{challenge.emoji}</div>
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-1.5">
-                <span className={cn(
-                  'text-[10px] font-black truncate',
-                  challenge.is_completed ? 'text-emerald-700' : 'text-slate-700'
-                )}>
-                  {challenge.title}
-                </span>
+      <div className="flex flex-col gap-3">
+        {data.map(badge => {
+          const IconComponent = iconsMap[badge.icon] || Trophy
+          return (
+            <div key={badge.id} className="flex items-center gap-3 p-3.5 rounded-2xl border border-slate-100 bg-slate-50/30">
+              <div className="w-9 h-9 rounded-xl bg-indigo-50 border border-indigo-100/50 flex items-center justify-center text-indigo-600 flex-shrink-0">
+                <IconComponent className="w-5 h-5" />
               </div>
-              <span className="text-[8px] font-bold text-slate-400">{challenge.detail}</span>
-              {!challenge.is_completed && challenge.target_value > 1 && (
-                <div className="h-1 bg-slate-200 rounded-full mt-1 overflow-hidden w-full">
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-[10px] font-black text-slate-800 truncate">{badge.name}</span>
+                  <span className="text-[9px] font-black text-indigo-600">{badge.percentage}%</span>
+                </div>
+                <p className="text-[8px] font-medium text-slate-400 truncate mt-0.5">{badge.description}</p>
+                <div className="h-1 bg-slate-100 rounded-full mt-2 overflow-hidden w-full relative">
                   <div
-                    className="h-full bg-indigo-400 rounded-full transition-all"
-                    style={{ width: `${Math.min(100, (challenge.current_value / challenge.target_value) * 100)}%` }}
+                    className="h-full bg-gradient-to-r from-indigo-500 to-purple-500 rounded-full transition-all"
+                    style={{ width: `${badge.percentage}%` }}
                   />
                 </div>
-              )}
+              </div>
             </div>
-            <div className="flex items-center gap-1.5 flex-shrink-0">
-              <span className={cn(
-                'text-[8px] font-black px-1.5 py-0.5 rounded-lg',
-                challenge.is_completed
-                  ? 'text-emerald-600 bg-emerald-100'
-                  : 'text-slate-400 bg-slate-100'
-              )}>
-                +{challenge.reward_xp}xp
-              </span>
-              {challenge.is_completed
-                ? <CheckCircle2 className="w-4 h-4 text-emerald-500 flex-shrink-0" />
-                : <Circle className="w-4 h-4 text-slate-300 flex-shrink-0" />
-              }
-            </div>
-          </div>
-        ))}
+          )
+        })}
       </div>
     </div>
+  )
+}
+
+interface GlobalGoals {
+  daily_time_target: number
+  daily_card_target: number
+  actual_time_minutes: number
+  actual_cards_completed: number
+}
+
+function TodayFocusWidget({
+  data,
+  activeGoals,
+  todayReview,
+  onOpenSettings,
+  onStartPractice,
+  navigate
+}: {
+  data: GlobalGoals;
+  activeGoals: ActiveGoal[] | undefined;
+  todayReview: any | undefined;
+  onOpenSettings: () => void;
+  onStartPractice: (quiz: any) => void;
+  navigate: any;
+}) {
+  const timePercentage = Math.min(100, Math.round((data.actual_time_minutes / data.daily_time_target) * 100))
+  const cardPercentage = Math.min(100, Math.round((data.actual_cards_completed / data.daily_card_target) * 100))
+
+  return (
+    <div className="bg-white border border-slate-200/60 rounded-[2.5rem] p-6 shadow-sm relative overflow-hidden text-left mb-5">
+      <div className="absolute -right-8 -top-8 w-24 h-24 rounded-full bg-indigo-50/30 blur-md pointer-events-none" />
+      
+      <div className="flex items-center justify-between mb-5 relative z-10">
+        <div>
+          <span className="text-[10px] font-black uppercase tracking-widest text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-lg">🎯 TODAY'S FOCUS</span>
+          <h3 className="text-sm font-black text-slate-800 uppercase tracking-tight mt-1">Mục tiêu ngày của bạn</h3>
+        </div>
+        <button
+          onClick={onOpenSettings}
+          className="w-8.5 h-8.5 rounded-xl bg-slate-50 border border-slate-200/60 flex items-center justify-center text-slate-600 shadow-sm active:scale-90 hover:bg-slate-100 transition-all"
+          title="Cài đặt mục tiêu"
+        >
+          <Settings className="w-4 h-4" />
+        </button>
+      </div>
+
+      <div className="grid grid-cols-2 gap-4 relative z-10 mb-6">
+        {/* Time Target */}
+        <div className="flex items-center gap-3 bg-slate-50/60 p-3.5 rounded-[1.5rem] border border-slate-100">
+          <div className="relative w-14 h-14 flex-shrink-0 flex items-center justify-center rounded-full bg-white shadow-sm">
+            <svg className="w-14 h-14 transform -rotate-90">
+              <circle cx="28" cy="28" r="23" className="stroke-slate-100 fill-none" strokeWidth="4" />
+              <circle
+                cx="28" cy="28" r="23"
+                className="stroke-indigo-600 fill-none transition-all duration-500 ease-out"
+                strokeWidth="4"
+                strokeDasharray={2 * Math.PI * 23}
+                strokeDashoffset={2 * Math.PI * 23 - (timePercentage / 100) * 2 * Math.PI * 23}
+                strokeLinecap="round"
+              />
+            </svg>
+            <span className="absolute text-[10px] font-black text-indigo-600">
+              {timePercentage}%
+            </span>
+          </div>
+          <div>
+            <span className="text-[9px] font-black text-slate-400 uppercase tracking-wider block">Thời gian học</span>
+            <span className="text-xs font-black text-slate-850 block mt-0.5">
+              {data.actual_time_minutes} / {data.daily_time_target}m
+            </span>
+          </div>
+        </div>
+
+        {/* Card Target */}
+        <div className="flex items-center gap-3 bg-slate-50/60 p-3.5 rounded-[1.5rem] border border-slate-100">
+          <div className="relative w-14 h-14 flex-shrink-0 flex items-center justify-center rounded-full bg-white shadow-sm">
+            <svg className="w-14 h-14 transform -rotate-90">
+              <circle cx="28" cy="28" r="23" className="stroke-slate-100 fill-none" strokeWidth="4" />
+              <circle
+                cx="28" cy="28" r="23"
+                className="stroke-emerald-500 fill-none transition-all duration-500 ease-out"
+                strokeWidth="4"
+                strokeDasharray={2 * Math.PI * 23}
+                strokeDashoffset={2 * Math.PI * 23 - (cardPercentage / 100) * 2 * Math.PI * 23}
+                strokeLinecap="round"
+              />
+            </svg>
+            <span className="absolute text-[10px] font-black text-emerald-600">
+              {cardPercentage}%
+            </span>
+          </div>
+          <div>
+            <span className="text-[9px] font-black text-slate-400 uppercase tracking-wider block">Thẻ đã học</span>
+            <span className="text-xs font-black text-slate-850 block mt-0.5">
+              {data.actual_cards_completed} / {data.daily_card_target}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      {/* Deck-specific targets section */}
+      <div className="border-t border-slate-100 pt-5 relative z-10">
+        <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 block mb-3.5">Mục tiêu theo từng bộ thẻ:</span>
+        
+        {!activeGoals || activeGoals.length === 0 ? (
+          <div className="text-center py-4 bg-slate-50/50 rounded-2xl border border-dashed border-slate-200/80">
+            <span className="text-[10px] font-bold text-slate-400">Chưa thiết lập mục tiêu cho bộ thẻ nào.</span>
+            <Link to="/library" className="text-[10px] font-black text-indigo-600 uppercase tracking-wider block mt-1 hover:underline">📚 Đi đến thư viện</Link>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {activeGoals.map(goal => {
+              const deckReview = todayReview?.decks_summary?.find((d: any) => d.quiz_id === goal.quiz_id)
+              const dueReviews = deckReview ? deckReview.due_count : 0
+              const isGoalMet = goal.done_today >= goal.daily_target
+              const goalPercentage = goal.daily_target > 0 ? Math.min(100, Math.round((goal.done_today / goal.daily_target) * 100)) : 0
+
+              return (
+                <div key={goal.goal_id} className="p-3.5 rounded-2xl border border-slate-100 bg-slate-50/30 hover:bg-slate-50/60 transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div className="flex items-center gap-3 min-w-0">
+                    {/* Ring for specific deck new cards target */}
+                    <div className="relative w-11 h-11 flex-shrink-0 flex items-center justify-center rounded-full bg-white shadow-sm border border-slate-100">
+                      <svg className="w-11 h-11 transform -rotate-90">
+                        <circle cx="22" cy="22" r="17" className="stroke-slate-50 fill-none" strokeWidth="2.5" />
+                        <circle
+                          cx="22" cy="22" r="17"
+                          className={cn("fill-none transition-all duration-500 ease-out", isGoalMet ? "stroke-amber-400" : "stroke-indigo-600")}
+                          strokeWidth="2.5"
+                          strokeDasharray={2 * Math.PI * 17}
+                          strokeDashoffset={2 * Math.PI * 17 - (goalPercentage / 100) * 2 * Math.PI * 17}
+                          strokeLinecap="round"
+                        />
+                      </svg>
+                      <span className={cn("absolute text-[8px] font-black", isGoalMet ? "text-amber-500" : "text-indigo-600")}>
+                        {goal.done_today}/{goal.daily_target}
+                      </span>
+                    </div>
+
+                    <div className="min-w-0 text-left">
+                      <h4 className="text-xs font-black text-slate-800 truncate leading-snug">{goal.quiz_title}</h4>
+                      <div className="flex flex-wrap items-center gap-2 mt-1">
+                        <span className="text-[8px] font-black px-1.5 py-0.5 rounded bg-orange-50 text-orange-600 border border-orange-100/60">
+                          🔥 {goal.streak_count}D
+                        </span>
+                        {dueReviews > 0 ? (
+                          <span className="text-[8px] font-black px-1.5 py-0.5 rounded bg-rose-50 text-rose-600 border border-rose-100/60 animate-pulse">
+                            ⚠️ {dueReviews} thẻ cần ôn
+                          </span>
+                        ) : (
+                          <span className="text-[8px] font-black px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-600 border border-emerald-100/60">
+                            ✅ Đã sạch thẻ ôn
+                          </span>
+                        )}
+                        <span className="text-[8px] font-bold text-slate-450">
+                          {isGoalMet ? "Đạt mục tiêu học mới ⚡" : `Còn lại ${goal.daily_target - goal.done_today} thẻ mới`}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Actions */}
+                  <div className="flex items-center gap-2 self-end sm:self-center">
+                    <button
+                      onClick={() => navigate(`/flashcard/${goal.quiz_id}/play`)}
+                      className={cn(
+                        "h-8.5 px-3 rounded-xl text-[9px] font-black uppercase tracking-wider flex items-center gap-1.5 shadow-sm active:scale-95 transition-all",
+                        dueReviews > 0 || !isGoalMet
+                          ? "bg-indigo-600 hover:bg-indigo-700 text-white shadow-indigo-100"
+                          : "bg-slate-100 hover:bg-slate-200 text-slate-600"
+                      )}
+                      title="Spaced Repetition"
+                    >
+                      <Brain className="w-3.5 h-3.5" />
+                      Ôn tập {dueReviews > 0 && `(${dueReviews})`}
+                    </button>
+                    <button
+                      onClick={() => onStartPractice({ id: goal.quiz_id, title: goal.quiz_title, questions_count: goal.total_questions })}
+                      className="h-8.5 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-[9px] font-black uppercase tracking-wider flex items-center gap-1.5 shadow-sm shadow-emerald-100 active:scale-95 transition-all"
+                      title="Luyện tập tự do"
+                    >
+                      <Trophy className="w-3.5 h-3.5" />
+                      Luyện tập
+                    </button>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
+function GoalSettingsModal({
+  isOpen,
+  onClose,
+  initialTime,
+  initialCard,
+  onSave
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+  initialTime: number;
+  initialCard: number;
+  onSave: (time: number, card: number) => Promise<void>;
+}) {
+  const [timeTarget, setTimeTarget] = useState(initialTime)
+  const [cardTarget, setCardTarget] = useState(initialCard)
+  const [isSaving, setIsSaving] = useState(false)
+
+  const timePresets = [10, 20, 30, 60]
+  const cardPresets = [10, 20, 30, 50]
+
+  useEffect(() => {
+    if (isOpen) {
+      setTimeTarget(initialTime)
+      setCardTarget(initialCard)
+    }
+  }, [isOpen, initialTime, initialCard])
+
+  const handleSave = async () => {
+    setIsSaving(true)
+    try {
+      await onSave(timeTarget, cardTarget)
+      onClose()
+    } catch (e) {
+      alert("Lỗi khi lưu mục tiêu")
+    } finally {
+      setIsSaving(false)
+    }
+  }
+
+  return (
+    <AnimatePresence>
+      {isOpen && (
+        <div className="fixed inset-0 z-[1000] flex items-center justify-center p-6">
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={onClose}
+            className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm"
+          />
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9, y: 20 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.9, y: 20 }}
+            className="w-full max-w-sm bg-white rounded-[2.5rem] shadow-2xl relative z-10 p-8 border border-slate-100 text-left"
+          >
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-sm font-black text-slate-800 uppercase tracking-widest">Cài đặt mục tiêu học</h3>
+              <button onClick={onClose} className="w-8 h-8 rounded-full bg-slate-50 flex items-center justify-center text-slate-400 hover:text-rose-500 transition-all">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="space-y-6">
+              {/* Time Goal */}
+              <div>
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 block ml-1">Mục tiêu thời gian học (phút/ngày)</label>
+                <div className="grid grid-cols-4 gap-2 mb-3">
+                  {timePresets.map(preset => (
+                    <button
+                      key={preset}
+                      type="button"
+                      onClick={() => setTimeTarget(preset)}
+                      className={cn(
+                        "py-2.5 rounded-xl text-[10px] font-black tracking-wider transition-all border",
+                        timeTarget === preset
+                          ? "bg-indigo-600 border-indigo-600 text-white shadow-md shadow-indigo-100"
+                          : "bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100"
+                      )}
+                    >
+                      {preset}m
+                    </button>
+                  ))}
+                </div>
+                <input
+                  type="number"
+                  min="1"
+                  max="480"
+                  value={timeTarget}
+                  onChange={(e) => setTimeTarget(Math.max(1, parseInt(e.target.value) || 0))}
+                  className="w-full h-11 bg-slate-50 border border-slate-200 rounded-xl px-4 text-xs font-bold text-slate-750 focus:border-indigo-500 focus:bg-white outline-none transition-all"
+                  placeholder="Nhập số phút tùy chọn..."
+                />
+              </div>
+
+              {/* Card Goal */}
+              <div>
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 block ml-1">Mục tiêu số thẻ học (thẻ/ngày)</label>
+                <div className="grid grid-cols-4 gap-2 mb-3">
+                  {cardPresets.map(preset => (
+                    <button
+                      key={preset}
+                      type="button"
+                      onClick={() => setCardTarget(preset)}
+                      className={cn(
+                        "py-2.5 rounded-xl text-[10px] font-black tracking-wider transition-all border",
+                        cardTarget === preset
+                          ? "bg-emerald-600 border-emerald-600 text-white shadow-md shadow-emerald-100"
+                          : "bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100"
+                      )}
+                    >
+                      {preset} Thẻ
+                    </button>
+                  ))}
+                </div>
+                <input
+                  type="number"
+                  min="1"
+                  max="1000"
+                  value={cardTarget}
+                  onChange={(e) => setCardTarget(Math.max(1, parseInt(e.target.value) || 0))}
+                  className="w-full h-11 bg-slate-50 border border-slate-200 rounded-xl px-4 text-xs font-bold text-slate-750 focus:border-indigo-500 focus:bg-white outline-none transition-all"
+                  placeholder="Nhập số thẻ tùy chọn..."
+                />
+              </div>
+
+              <button
+                onClick={handleSave}
+                disabled={isSaving}
+                className="w-full h-12 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-lg shadow-indigo-150 transition-all flex items-center justify-center"
+              >
+                {isSaving ? "ĐANG LƯU..." : "LƯU MỤC TIÊU"}
+              </button>
+            </div>
+          </motion.div>
+        </div>
+      )}
+    </AnimatePresence>
   )
 }
 
@@ -324,6 +630,23 @@ export default function Dashboard() {
   const [isJoinModalOpen, setIsJoinModalOpen] = useState(false)
   const [roomCode, setRoomCode] = useState('')
   const [isJoining, setIsJoining] = useState(false)
+  const [isGoalModalOpen, setIsGoalModalOpen] = useState(false)
+
+  const { data: globalGoals, refetch: refetchGlobalGoals } = useQuery<GlobalGoals>({
+    queryKey: ['globalGoals'],
+    queryFn: async () => {
+      const res = await axios.get('/api/v1/quiz/goals/global')
+      return res.data
+    }
+  })
+
+  const handleSaveGlobalGoals = async (timeTarget: number, cardTarget: number) => {
+    await axios.post('/api/v1/quiz/goals/global', {
+      daily_time_target: timeTarget,
+      daily_card_target: cardTarget
+    })
+    refetchGlobalGoals()
+  }
 
   const todayStr = new Date().toLocaleDateString('en-CA')
 
@@ -368,10 +691,10 @@ export default function Dashboard() {
     staleTime: 5 * 60 * 1000, // 5 minutes
   })
 
-  const { data: challengesData } = useQuery({
-    queryKey: ['dailyChallenges', todayStr],
+  const { data: badgesProgress } = useQuery<BadgeProgress[]>({
+    queryKey: ['badgesProgress'],
     queryFn: async () => {
-      const res = await axios.get('/api/v1/gamification/challenges', { params: { local_date: todayStr } })
+      const res = await axios.get('/api/v1/gamification/badges/progress')
       return res.data
     }
   })
@@ -440,7 +763,7 @@ export default function Dashboard() {
                 ✅ ALL CAUGHT UP
               </span>
               <h3 className="text-sm font-bold text-slate-800 tracking-tight mt-1.5">
-                Bạn đã hoàn thành tất cả thẻ ôn tập hôm nay! Tuyệt vời! 🎉
+                Bạn đã hoàn thành tất cả thẻ học & ôn tập hôm nay! Tuyệt vời! 🎉
               </h3>
             </div>
             <Link
@@ -477,7 +800,7 @@ export default function Dashboard() {
             </div>
 
             <h3 className="text-sm font-bold text-white tracking-tight truncate leading-tight">
-              Bạn có <span className="text-indigo-400 font-extrabold">{due_cards_count} thẻ</span> cần ôn tập hôm nay
+              Bạn có <span className="text-indigo-400 font-extrabold">{due_cards_count} thẻ</span> cần học & ôn tập hôm nay
             </h3>
           </div>
 
@@ -750,17 +1073,23 @@ export default function Dashboard() {
             </Link>
           </div>
 
-          {/* Today Review Widget */}
-          {renderTodayReviewWidget()}
+          {/* Global Study Goals Widget (Includes individual deck targets & actions) */}
+          {globalGoals && (
+            <TodayFocusWidget
+              data={globalGoals}
+              activeGoals={activeGoals}
+              todayReview={todayReview}
+              onOpenSettings={() => setIsGoalModalOpen(true)}
+              onStartPractice={(quiz) => {
+                setSelectedPracticeQuiz(quiz)
+                setIsPracticeModalOpen(true)
+              }}
+              navigate={navigate}
+            />
+          )}
 
-          {/* Daily Challenges */}
-          {challengesData && <DailyChallengesWidget data={challengesData} />}
-
-          {/* Active Goals */}
-          <div>
-            <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 block mb-3">Mục tiêu học tập hàng ngày:</span>
-            {renderActiveGoals(false)}
-          </div>
+          {/* Badge Progress Roadmap */}
+          {badgesProgress && <BadgeProgressWidget data={badgesProgress} />}
 
           {/* Leaderboard */}
           {leaderboardData && leaderboardData.leaderboard?.length > 0 && (
@@ -771,23 +1100,31 @@ export default function Dashboard() {
 
       {/* MOBILE FEED */}
       <div className="md:hidden px-4 w-full mt-4 flex-grow space-y-4 overflow-y-auto pb-24">
-        {renderTodayReviewWidget()}
+        {/* Global Study Goals Widget (Includes individual deck targets & actions) */}
+        {globalGoals && (
+          <TodayFocusWidget
+            data={globalGoals}
+            activeGoals={activeGoals}
+            todayReview={todayReview}
+            onOpenSettings={() => setIsGoalModalOpen(true)}
+            onStartPractice={(quiz) => {
+              setSelectedPracticeQuiz(quiz)
+              setIsPracticeModalOpen(true)
+            }}
+            navigate={navigate}
+          />
+        )}
 
-        {/* Daily Challenges */}
-        {challengesData && <DailyChallengesWidget data={challengesData} />}
-
-        <div className="bg-white border border-slate-200/50 rounded-3xl p-5 shadow-sm">
-          <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 block mb-3.5 text-left">Mục tiêu của tôi hôm nay:</span>
-          {renderActiveGoals(true)}
-        </div>
-
-        {/* Heatmap */}
-        {heatmapData && heatmapData.length > 0 && <MiniHeatmap data={heatmapData} />}
+        {/* Badge Progress Roadmap */}
+        {badgesProgress && <BadgeProgressWidget data={badgesProgress} />}
 
         {/* Leaderboard */}
         {leaderboardData && leaderboardData.leaderboard?.length > 0 && (
           <LeaderboardWidget data={leaderboardData} />
         )}
+
+        {/* Heatmap */}
+        {heatmapData && heatmapData.length > 0 && <MiniHeatmap data={heatmapData} />}
 
         <div className="flex gap-2">
           <Link
@@ -950,6 +1287,17 @@ export default function Dashboard() {
               </div>
             </motion.div>
           </div>
+        )}
+
+        {/* Global Goals Settings Modal */}
+        {globalGoals && (
+          <GoalSettingsModal
+            isOpen={isGoalModalOpen}
+            onClose={() => setIsGoalModalOpen(false)}
+            initialTime={globalGoals.daily_time_target}
+            initialCard={globalGoals.daily_card_target}
+            onSave={handleSaveGlobalGoals}
+          />
         )}
       </AnimatePresence>
     </div>
