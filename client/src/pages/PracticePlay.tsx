@@ -9,6 +9,13 @@ import remarkGfm from 'remark-gfm'
 import rehypeRaw from 'rehype-raw'
 import { cn } from '@/lib/utils'
 import { useAppStore } from '@/store/useAppStore'
+import { playCorrectSound, playIncorrectSound, speakMultiLanguage } from '@/lib/audio'
+import { parseBBCodeToHtml, stripBBCode, isJapanese, getJpPattern, extractTokens, tokensOverlapHigh } from '@/lib/text'
+import { selectDistractors } from '@/lib/distractor'
+import { TypewriterText } from '@/components/TypewriterText'
+import { FeedbackArea } from '@/components/FeedbackArea'
+import { PracticeSetupScreen } from '@/components/PracticeSetupScreen'
+import { QuestionMapGrid } from '@/components/QuestionMapGrid'
 
 interface Option {
   id: number
@@ -54,112 +61,6 @@ interface Question {
   }
 }
 
-const playCorrectSound = () => {
-  try {
-    const audio = new Audio(`${import.meta.env.BASE_URL}sounds/correct.mp3`);
-    audio.volume = 0.4;
-    audio.play().catch(e => console.log("SFX autoplay blocked:", e));
-  } catch (e) {
-    console.error("Audio SFX failed:", e);
-  }
-};
-
-const playIncorrectSound = () => {
-  try {
-    const audio = new Audio(`${import.meta.env.BASE_URL}sounds/incorrect.mp3`);
-    audio.volume = 0.4;
-    audio.play().catch(e => console.log("SFX autoplay blocked:", e));
-  } catch (e) {
-    console.error("Audio SFX failed:", e);
-  }
-};
-
-
-const TypewriterText = ({ text }: { text: string }) => {
-  const [displayedText, setDisplayedText] = useState('')
-  const [isTyping, setIsTyping] = useState(true)
-  const bottomRef = useRef<HTMLDivElement>(null)
-
-  useEffect(() => {
-    setDisplayedText('')
-    setIsTyping(true)
-    let i = 0
-    const startTime = Date.now()
-
-    const timer = setInterval(() => {
-      const elapsed = Date.now() - startTime
-
-      // If 2 seconds have passed, just dump the remaining text instantly
-      if (elapsed > 2000) {
-        setDisplayedText(text)
-        setIsTyping(false)
-        clearInterval(timer)
-      } else {
-        if (i < text.length) {
-          i += 3 // Realistic LLM typing speed
-          setDisplayedText(text.substring(0, i))
-        } else {
-          setIsTyping(false)
-          clearInterval(timer)
-        }
-      }
-    }, 15)
-    return () => clearInterval(timer)
-  }, [text])
-
-  useEffect(() => {
-    if (isTyping && bottomRef.current) {
-      bottomRef.current.scrollIntoView({ block: 'nearest' })
-    }
-  }, [displayedText, isTyping])
-
-  const formatLatex = (t: string) => {
-    return t
-      .replace(/`\s*(<ruby>[\s\S]*?<\/ruby>)\s*`/g, '$1') // Strip backticks around ruby tags
-      .replace(/\$\\rightarrow\$/g, '→')
-      .replace(/\$\\Rightarrow\$/g, '⇒')
-      .replace(/\$\\leftarrow\$/g, '←')
-      .replace(/\$\\Leftarrow\$/g, '⇐')
-      .replace(/\$\\leftrightarrow\$/g, '↔')
-      .replace(/\$\\Leftrightarrow\$/g, '⇔')
-      .replace(/\$\\times\$/g, '×')
-      .replace(/\$\\div\$/g, '÷')
-      .replace(/\$\\le\$/g, '≤')
-      .replace(/\$\\ge\$/g, '≥')
-      .replace(/\$\\neq\$/g, '≠')
-      .replace(/\$\\approx\$/g, '≈')
-      .replace(/\$\\pm\$/g, '±')
-  }
-
-  return (
-    <>
-      <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeRaw]} components={MarkdownComponents}>
-        {parseBBCodeToHtml(formatLatex(displayedText))}
-      </ReactMarkdown>
-      {isTyping && <span className="inline-block w-1.5 h-3.5 ml-1 bg-indigo-500 animate-pulse align-middle" />}
-      <div ref={bottomRef} />
-    </>
-  )
-}
-
-const parseBBCodeToHtml = (text: string): string => {
-  if (!text) return '';
-  let html = text;
-  html = html.replace(/\[b\]/gi, '<strong>');
-  html = html.replace(/\[\/b\]/gi, '</strong>');
-  html = html.replace(/\[i\]/gi, '<em>');
-  html = html.replace(/\[\/i\]/gi, '</em>');
-  html = html.replace(/\[u\]/gi, '<u>');
-  html = html.replace(/\[\/u\]/gi, '</u>');
-  html = html.replace(/\[s\]/gi, '<del>');
-  html = html.replace(/\[\/s\]/gi, '</del>');
-  html = html.replace(/\[color=([^\]]+)\]/gi, (_, color) => `<span style="color: ${color}">`);
-  html = html.replace(/\[\/color\]/gi, '</span>');
-  html = html.replace(/\[size=([^\]]+)\]/gi, (_, size) => `<span style="font-size: ${size}">`);
-  html = html.replace(/\[\/size\]/gi, '</span>');
-  return html;
-};
-
 const MarkdownComponents = {
   code({ node, className, children, ...props }: any) {
     const value = String(children || '').replace(/\n$/, '')
@@ -171,106 +72,6 @@ const MarkdownComponents = {
     }
     return <code className={className} {...props}>{children}</code>
   }
-}
-
-const speakMultiLanguage = (text: string) => {
-  if (!('speechSynthesis' in window)) return;
-  window.speechSynthesis.cancel();
-
-  const segments: { text: string; langCode: string }[] = [];
-  const langMap: Record<string, string> = {
-    'ja': 'ja-JP',
-    'vi': 'vi-VN',
-    'en': 'en-US',
-    'zh': 'zh-CN',
-    'ko': 'ko-KR',
-    'fr': 'fr-FR',
-    'de': 'de-DE',
-    'es': 'es-ES',
-    'ru': 'ru-RU',
-    'it': 'it-IT',
-  };
-
-  // Try bracket format first: e.g. [ja:人生][vi:cuộc đời]
-  const bracketRegex = /\[([a-z]{2,3}(?:-[a-zA-Z0-9]+)?):\s*([^\]]+)\]/g;
-  let bracketMatch;
-  let hasBrackets = false;
-
-  while ((bracketMatch = bracketRegex.exec(text)) !== null) {
-    hasBrackets = true;
-    const rawLang = bracketMatch[1].toLowerCase();
-    const content = bracketMatch[2].trim();
-    const langCode = langMap[rawLang] || rawLang;
-    segments.push({ text: content, langCode });
-  }
-
-  if (!hasBrackets) {
-    // Fallback to line-by-line format
-    const lines = text.split('\n');
-    const lineRegex = /^\s*([a-z]{2,3}(?:-[a-zA-Z0-9]+)?)\s*:\s*(.+)$/;
-    const containsJapanese = (str: string) => /[\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FAF]/.test(str);
-    const containsVietnamese = (str: string) => /[àáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđ]/i.test(str);
-
-    let lastLang = 'en-US';
-    if (containsJapanese(text)) {
-      lastLang = 'ja-JP';
-    } else if (containsVietnamese(text)) {
-      lastLang = 'vi-VN';
-    }
-
-
-    for (const line of lines) {
-      if (!line.trim()) continue;
-
-      const match = line.match(lineRegex);
-      if (match) {
-        const rawLang = match[1].toLowerCase();
-        const content = match[2].trim();
-        const langCode = langMap[rawLang] || rawLang;
-        lastLang = langCode;
-        segments.push({ text: content, langCode });
-      } else {
-        segments.push({ text: line.trim(), langCode: lastLang });
-      }
-    }
-  }
-
-  const voices = typeof window !== 'undefined' ? window.speechSynthesis.getVoices() : [];
-
-  segments.forEach((seg) => {
-    if (!seg.text) return;
-    const u = new SpeechSynthesisUtterance(seg.text);
-    u.lang = seg.langCode;
-    u.rate = 0.85;
-
-    // Tự động tìm giọng Nữ chất lượng cao cho tiếng Việt (vi-VN)
-    if (seg.langCode.toLowerCase().startsWith('vi')) {
-      const viVoice = voices.find(v => {
-        const name = v.name.toLowerCase();
-        const lang = v.lang.toLowerCase();
-        const isVi = lang === 'vi-vn' || lang.startsWith('vi');
-        if (!isVi) return false;
-
-        // Ưu tiên các giọng nữ nổi tiếng như HoaiMy (Edge), Linh/An (Windows), giọng Google tiếng Việt online, hoặc chứa từ khóa 'female'/'nữ'
-        return name.includes('hoaimy') ||
-          name.includes('linh') ||
-          name.includes('an') ||
-          name.includes('female') ||
-          name.includes('nữ') ||
-          name.includes('google');
-      });
-      if (viVoice) {
-        u.voice = viVoice;
-      } else {
-        // Dự phòng giọng tiếng Việt bất kỳ nếu không tìm thấy giọng nữ đặc trưng
-        const anyVi = voices.find(v => v.lang.toLowerCase() === 'vi-vn' || v.lang.toLowerCase().startsWith('vi'));
-        if (anyVi) u.voice = anyVi;
-      }
-    }
-
-    console.log(`[CLIENT TTS - WEB SPEECH] Speaking: "${seg.text}" | Lang: "${seg.langCode}" | Selected Voice: "${u.voice ? u.voice.name : 'Default/System voice'}"`);
-    window.speechSynthesis.speak(u);
-  });
 }
 
 export default function PracticePlay() {
@@ -465,190 +266,6 @@ export default function PracticePlay() {
   }, [practiceSubMode, modeSettings])
 
   // ── Client-side Dynamic Practice Generator ──
-  const stripBBCode = (text: string): string => {
-    if (!text) return "";
-    return text.replace(/\[\/?[a-zA-Z0-9=#_\-]+\]/g, '');
-  };
-
-  const isJapanese = (text: string): boolean => {
-    if (!text) return false;
-    for (let i = 0; i < text.length; i++) {
-      const c = text[i];
-      if (
-        (c >= '\u4e00' && c <= '\u9fff') ||
-        (c >= '\u3400' && c <= '\u4dbf') ||
-        (c >= '\u3040' && c <= '\u309f') ||
-        (c >= '\u30a0' && c <= '\u30ff')
-      ) {
-        return true;
-      }
-    }
-    return false;
-  };
-
-  const getJpPattern = (text: string): string => {
-    if (!text) return "";
-    if (isJapanese(text)) {
-      const pattern: string[] = [];
-      for (let i = 0; i < text.length; i++) {
-        const char = text[i];
-        if ((char >= '\u4e00' && char <= '\u9fff') || (char >= '\u3400' && char <= '\u4dbf')) {
-          pattern.push('K');
-        } else if (char >= '\u3040' && char <= '\u309f') {
-          pattern.push('H');
-        } else if (char >= '\u30a0' && char <= '\u30ff') {
-          pattern.push('C');
-        } else {
-          pattern.push('O');
-        }
-      }
-      return pattern.join('');
-    } else {
-      const words = text.trim().split(/\s+/).filter(Boolean);
-      return `W${words.length}`;
-    }
-  };
-
-  const extractTokens = (text: string): Set<string> => {
-    if (!text) return new Set();
-    const kanji = new Set<string>();
-    for (let i = 0; i < text.length; i++) {
-      const char = text[i];
-      if ((char >= '\u4e00' && char <= '\u9fff') || (char >= '\u3400' && char <= '\u4dbf')) {
-        kanji.add(char);
-      }
-    }
-    if (kanji.size > 0) return kanji;
-
-    const words = text.split(/[\s,.;:/|()]+/).map(w => w.trim().toLowerCase()).filter(w => w.length > 1);
-    return new Set(words);
-  };
-
-  const tokensOverlapHigh = (tokensA: Set<string>, tokensB: Set<string>): boolean => {
-    if (tokensA.size === 0 || tokensB.size === 0) return false;
-    let sharedCount = 0;
-    tokensA.forEach(t => {
-      if (tokensB.has(t)) sharedCount++;
-    });
-    if (sharedCount === 0) return false;
-    const smallerSize = Math.min(tokensA.size, tokensB.size);
-    return (sharedCount / smallerSize) >= 0.6;
-  };
-
-  const selectDistractors = (
-    correctItem: { text: string; q_text: string; front: string; back: string; id: number; type: string },
-    candidatePool: Array<{ text: string; front: string; back: string; id: number; type: string }>,
-    amount: number
-  ): Array<{ text: string; front: string; back: string; id: number; type: string }> => {
-    if (!candidatePool || candidatePool.length === 0 || amount <= 0) return [];
-
-    const c_disp = stripBBCode(correctItem.text).trim();
-    const c_back = stripBBCode(correctItem.back).trim();
-    const c_q_text = stripBBCode(correctItem.q_text).trim();
-    const target_pattern = getJpPattern(c_disp);
-    const answer_is_jp = isJapanese(c_disp);
-
-    const c_back_tokens = !isJapanese(c_back) ? extractTokens(c_back) : new Set<string>();
-    const c_q_tokens = (c_q_text && !isJapanese(c_q_text)) ? extractTokens(c_q_text) : new Set<string>();
-    const c_disp_tokens_vn = !answer_is_jp ? extractTokens(c_disp) : new Set<string>();
-
-    const same_pattern_pool: typeof candidatePool = [];
-    const other_pool: typeof candidatePool = [];
-    const seen_texts = new Set<string>();
-    seen_texts.add(c_disp.toLowerCase());
-
-    for (const cand of candidatePool) {
-      const d_disp = stripBBCode(cand.text).trim();
-      const d_disp_lower = d_disp.toLowerCase();
-
-      // Dedup
-      if (seen_texts.has(d_disp_lower)) continue;
-
-      // Hard filters
-      const d_back = stripBBCode(cand.back).trim();
-      if (!isJapanese(d_back) && c_back_tokens.size > 0) {
-        const d_back_tokens = extractTokens(d_back);
-        if (tokensOverlapHigh(d_back_tokens, c_back_tokens)) continue;
-      }
-
-      if (!answer_is_jp && c_disp_tokens_vn.size > 0) {
-        const d_disp_tokens = extractTokens(d_disp);
-        if (tokensOverlapHigh(d_disp_tokens, c_disp_tokens_vn)) continue;
-      }
-
-      if (c_q_tokens.size > 0) {
-        const d_back_tokens_q = !isJapanese(d_back) ? extractTokens(d_back) : new Set<string>();
-        if (d_back_tokens_q.size > 0 && tokensOverlapHigh(d_back_tokens_q, c_q_tokens)) continue;
-
-        if (!answer_is_jp) {
-          const d_disp_tokens_q = extractTokens(d_disp);
-          if (tokensOverlapHigh(d_disp_tokens_q, c_q_tokens)) continue;
-        }
-      }
-
-      seen_texts.add(d_disp_lower);
-
-      if (getJpPattern(d_disp) === target_pattern) {
-        same_pattern_pool.push(cand);
-      } else {
-        other_pool.push(cand);
-      }
-    }
-
-    let final_pool = same_pattern_pool;
-    if (same_pattern_pool.length < amount) {
-      final_pool = same_pattern_pool.concat(other_pool);
-    }
-
-    if (final_pool.length === 0) return [];
-
-    // Score candidates
-    const scored = final_pool.map(cand => {
-      let score = 0;
-      const d_disp = stripBBCode(cand.text).trim();
-      const d_pattern = getJpPattern(d_disp);
-      const d_tokens = extractTokens(d_disp);
-
-      if (d_pattern === target_pattern) score += 100;
-
-      const c_tokens = extractTokens(c_disp);
-      const shared_tokens = new Set([...c_tokens].filter(x => d_tokens.has(x)));
-      if (answer_is_jp) {
-        score += shared_tokens.size * 150;
-      } else {
-        score -= shared_tokens.size * 200;
-      }
-
-      const c_front_tokens = extractTokens(stripBBCode(correctItem.front).trim());
-      const d_front_tokens = extractTokens(stripBBCode(cand.front).trim());
-      const shared_front = new Set([...c_front_tokens].filter(x => d_front_tokens.has(x)));
-      score += shared_front.size * 80;
-
-      if (d_disp.length === c_disp.length) score += 20;
-      if (cand.type && correctItem.type && cand.type === correctItem.type) score += 30;
-
-      return { score, cand };
-    });
-
-    // Shuffle first, then sort by score descending
-    scored.sort(() => Math.random() - 0.5);
-    scored.sort((a, b) => b.score - a.score);
-
-    const selected: typeof candidatePool = [];
-    const selected_texts = new Set<string>();
-    selected_texts.add(c_disp.toLowerCase());
-
-    for (const item of scored) {
-      if (selected.length >= amount) break;
-      const cand_text = stripBBCode(item.cand.text).trim().toLowerCase();
-      if (!selected_texts.has(cand_text)) {
-        selected.push(item.cand);
-        selected_texts.add(cand_text);
-      }
-    }
-
-    return selected;
-  };
 
   const generatePracticeQuestion = (idx: number, customSubMode?: string) => {
     if (!session || !session.questions || session.questions.length === 0) return;
@@ -2579,353 +2196,6 @@ export default function PracticePlay() {
     alert("Copied to clipboard!")
   }
 
-  const renderFeedbackArea = (isMobile = false) => {
-    if (!showFeedback) return null
-
-    const tabs = [
-      { id: 'insight', label: 'INSIGHT', icon: Lightbulb, color: 'text-amber-500', bg: 'bg-amber-100', hasContent: !!getInsightText() && getInsightText() !== 'No detail.' },
-      { id: 'ai', label: 'AI ANALYSIS', icon: Sparkles, color: 'text-indigo-600', bg: 'bg-indigo-100', hasContent: !!currentQuestion?.ai_explanation },
-      { id: 'note', label: 'PERSONAL NOTE', icon: StickyNote, color: 'text-slate-400', bg: 'bg-slate-100', hasContent: !!personalNote }
-    ]
-
-    const renderTabContent = () => {
-      switch (activeFeedbackTab) {
-        case 'insight':
-          return (
-            <div className="p-6 rounded-[2rem] bg-indigo-50/30 border border-indigo-100 shadow-sm animate-in fade-in slide-in-from-bottom-2">
-              <div className="flex items-center gap-2 mb-3">
-                <div className="w-6 h-6 rounded-full bg-amber-100 flex items-center justify-center">
-                  <Lightbulb className="w-3.5 h-3.5 fill-amber-500" />
-                </div>
-                <span className="text-[9px] font-black text-indigo-400 uppercase tracking-widest">INSIGHT</span>
-              </div>
-              <div className="text-slate-600 font-medium text-sm leading-relaxed markdown-content whitespace-pre-wrap break-words pr-2">
-                {isEditingInsight ? (
-                  <textarea
-                    value={insightInput}
-                    onChange={(e) => setInsightInput(e.target.value)}
-                    className="w-full h-80 p-3 bg-white border border-indigo-100 rounded-xl text-sm font-medium text-slate-700 focus:ring-2 focus:ring-indigo-500 outline-none transition-all resize-none"
-                    placeholder="Enter explanation for this question..."
-                  />
-                ) : (
-                  <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeRaw]} components={MarkdownComponents}>
-                    {parseBBCodeToHtml(getInsightText())}
-                  </ReactMarkdown>
-                )}
-              </div>
-            </div>
-          )
-        case 'ai':
-          return (
-            <div className="p-6 rounded-[2rem] ai-glow animate-in fade-in slide-in-from-bottom-2">
-              <div className="flex items-center justify-between mb-3">
-                <div className="flex items-center gap-2">
-                  <Sparkles className="w-4 h-4 text-indigo-500 animate-pulse" />
-                  <span className="text-[9px] font-black text-indigo-600 uppercase tracking-widest">AI ANALYSIS</span>
-                  {canEdit && currentQuestion?.ai_explanation && !isEditingAI && !isEditingPrompt && (
-                    <button
-                      onClick={clearAIExplanation}
-                      className="text-[9px] font-black text-rose-500 hover:text-rose-700 bg-rose-50 hover:bg-rose-100 px-2.5 py-1 rounded-md border border-rose-200 shadow-sm transition-all ml-2"
-                    >
-                      CLEAR AI
-                    </button>
-                  )}
-                </div>
-                <div className="flex gap-2">
-                  {canEdit && (
-                    <button
-                      onClick={() => setIsEditingPrompt(!isEditingPrompt)}
-                      className={cn(
-                        "text-[9px] font-black uppercase tracking-widest transition-all px-2.5 py-1.5 rounded-md",
-                        isEditingPrompt ? "bg-amber-600 text-white shadow-sm" : "text-amber-500 hover:text-amber-600 hover:bg-white"
-                      )}
-                    >
-                      {isEditingPrompt ? 'CLOSE PROMPT' : 'PROMPT'}
-                    </button>
-                  )}
-                  {!currentQuestion?.ai_explanation && !isEditingAI && !isEditingPrompt && (
-                    <button
-                      onClick={() => askAI()}
-                      disabled={isAskingAI}
-                      className="text-[9px] font-black text-indigo-600 bg-white px-3 py-1.5 rounded-lg border border-indigo-100 shadow-sm hover:bg-indigo-50 transition-all disabled:opacity-50"
-                    >
-                      {isAskingAI ? 'ANALYZING...' : 'ASK AI INSIGHT'}
-                    </button>
-                  )}
-                  {canEdit && !isEditingPrompt && (
-                    <button
-                      onClick={() => {
-                        if (isEditingAI) {
-                          askAI(aiInput)
-                        } else {
-                          setAiInput(currentQuestion?.ai_explanation || '')
-                          setIsEditingAI(true)
-                        }
-                      }}
-                      disabled={isAskingAI}
-                      className={cn(
-                        "text-[9px] font-black uppercase tracking-widest transition-all px-2.5 py-1.5 rounded-md",
-                        isEditingAI ? "bg-indigo-600 text-white shadow-sm" : "text-indigo-400 hover:text-indigo-600 hover:bg-white"
-                      )}
-                    >
-                      {isAskingAI ? 'SAVING...' : (isEditingAI ? 'SAVE AI' : 'EDIT')}
-                    </button>
-                  )}
-                </div>
-              </div>
-
-              {isEditingPrompt ? (
-                <div className="space-y-3 mt-2 bg-amber-50/50 border border-amber-100 rounded-2xl p-4">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[10px] font-black text-amber-700 uppercase tracking-wider">EDIT SYSTEM PROMPT FOR AI</span>
-                    <button
-                      onClick={savePrompt}
-                      className="text-[9px] font-black bg-amber-600 hover:bg-amber-700 text-white px-3 py-1.5 rounded-lg shadow-sm transition-all"
-                    >
-                      SAVE PROMPT
-                    </button>
-                  </div>
-                  <textarea
-                    value={promptInput}
-                    onChange={(e) => setPromptInput(e.target.value)}
-                    placeholder="Enter System Prompt to guide the AI..."
-                    className="w-full h-80 bg-white rounded-xl p-4 text-xs font-semibold text-slate-700 focus:ring-2 focus:ring-amber-500 outline-none border border-amber-200 resize-none transition-all"
-                  />
-                  <p className="text-[9px] font-medium text-amber-600/80 italic leading-relaxed">
-                    * Guide: Use variables <code>{"{{question}}"}</code>, <code>{"{{options}}"}</code>, <code>{"{{correct_answer}}"}</code> to insert dynamic data. The new prompt will be applied to all subsequently regenerated questions.
-                  </p>
-                </div>
-              ) : isEditingAI ? (
-                <div className="space-y-2 mt-2">
-                  <textarea
-                    value={aiInput}
-                    onChange={(e) => setAiInput(e.target.value)}
-                    placeholder="Enter AI Analysis content manually..."
-                    className="w-full h-80 bg-white/50 rounded-xl p-4 text-sm font-medium text-slate-700 focus:ring-2 focus:ring-indigo-500 outline-none border-none resize-none transition-all"
-                    autoFocus
-                  />
-                  <p className="text-[8px] font-medium text-slate-400 italic">Click 'SAVE AI' to save changes for everyone.</p>
-                </div>
-              ) : (
-                isAskingAI ? (
-                  <div className="flex flex-col items-center justify-center py-16 space-y-4 animate-pulse">
-                    <div className="relative w-12 h-12 flex items-center justify-center">
-                      <div className="absolute inset-0 rounded-full border-4 border-indigo-100 animate-ping" />
-                      <div className="w-10 h-10 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin" />
-                      <Sparkles className="w-4 h-4 text-indigo-500 absolute animate-pulse" />
-                    </div>
-                    <p className="text-xs font-black text-indigo-500 uppercase tracking-[0.2em] text-center animate-bounce">
-                      AI DEEP ANALYSIS IN PROGRESS...
-                    </p>
-                    <p className="text-[10px] font-semibold text-slate-400 max-w-xs text-center leading-relaxed">
-                      Please wait a moment, the AI is deeply analyzing the grammar and vocabulary of this question.
-                    </p>
-                  </div>
-                ) : (
-                  currentQuestion?.ai_explanation && (
-                    <div className="text-slate-700 font-medium text-sm leading-relaxed markdown-content break-words pr-2 mt-2">
-                      <ReactMarkdown
-                        remarkPlugins={[remarkGfm]}
-                        rehypePlugins={[rehypeRaw]}
-                        components={{
-                          ...MarkdownComponents,
-                          p: ({ children }) => <span className="inline-block">{children}</span>
-                        }}
-                      >
-                        {parseBBCodeToHtml(currentQuestion.ai_explanation)}
-                      </ReactMarkdown>
-                    </div>
-                  )
-                )
-              )}
-            </div>
-          )
-        case 'note':
-          return (
-            <div className="p-6 rounded-[2rem] bg-white border border-slate-100 shadow-sm animate-in fade-in slide-in-from-bottom-2">
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center gap-2">
-                  <StickyNote className="w-4 h-4 text-slate-400" />
-                  <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">PERSONAL NOTE</span>
-                </div>
-                <button
-                  onClick={() => {
-                    if (isEditingNote) {
-                      saveNote()
-                    }
-                    setIsEditingNote(!isEditingNote)
-                  }}
-                  className={cn(
-                    "text-[9px] font-black uppercase tracking-widest transition-all px-2.5 py-1 rounded-md",
-                    isEditingNote ? "bg-indigo-600 text-white shadow-sm" : "text-slate-400 hover:text-indigo-600 hover:bg-slate-50"
-                  )}
-                >
-                  {isEditingNote ? 'SAVE & CLOSE' : 'EDIT'}
-                </button>
-              </div>
-
-              {!isEditingNote ? (
-                <div className="text-slate-600 font-medium text-sm leading-relaxed markdown-content min-h-[100px] break-words pr-2">
-                  <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeRaw]} components={MarkdownComponents}>
-                    {personalNote || '*Empty note.*'}
-                  </ReactMarkdown>
-                </div>
-              ) : (
-                <div className="space-y-2">
-                  <textarea
-                    value={personalNote}
-                    onChange={(e) => setPersonalNote(e.target.value)}
-                    placeholder="Write your study notes here... (Supports Markdown)"
-                    className="w-full h-80 bg-slate-50 rounded-xl p-4 text-sm font-medium text-slate-700 focus:ring-2 focus:ring-indigo-500 outline-none border-none resize-none transition-all"
-                    autoFocus
-                  />
-                  <p className="text-[8px] font-medium text-slate-300 italic">Supports Markdown syntax. Click 'SAVE & CLOSE' to complete.</p>
-                </div>
-              )}
-            </div>
-          )
-      }
-    }
-
-    return (
-      <div className="flex flex-col h-full bg-[#F8FAFC]">
-        {!isMobile && (
-          <div className="p-6 border-b border-slate-50 flex items-center justify-center bg-white sticky top-0 z-10">
-            <span className="text-[11px] font-black text-indigo-600 uppercase tracking-[0.3em]">Learning Insights</span>
-          </div>
-        )}
-
-        <div className="flex-1 overflow-y-auto p-4 lg:p-8 custom-scrollbar">
-          {renderTabContent()}
-        </div>
-
-        <div className={cn(
-          "flex items-center justify-between gap-3 py-4 border-t border-slate-100 bg-white/95 backdrop-blur-xl sticky bottom-0 z-50 px-6"
-        )}>
-          {isMobile && (
-            <button
-              onClick={() => setIsFeedbackOpen(false)}
-              className="w-10 h-10 flex-shrink-0 flex items-center justify-center bg-slate-50 border border-slate-200 text-slate-500 rounded-xl hover:bg-rose-50 hover:border-rose-100 hover:text-rose-500 active:scale-90 transition-all shadow-sm"
-            >
-              <X className="w-4 h-4" />
-            </button>
-          )}
-
-          <button
-            onClick={handleEditCurrentTab}
-            className={cn(
-              "w-12 h-12 flex-shrink-0 flex items-center justify-center rounded-2xl border transition-all duration-300 active:scale-90",
-              ((activeFeedbackTab === 'ai' && isEditingAI) || (activeFeedbackTab === 'note' && isEditingNote) || (activeFeedbackTab === 'insight' && isEditingInsight))
-                ? "bg-gradient-to-r from-emerald-500 to-teal-600 border-transparent text-white shadow-lg shadow-emerald-100 scale-105"
-                : "bg-slate-50 border-slate-200/80 text-slate-500 hover:bg-indigo-50 hover:border-indigo-200 hover:text-indigo-600 shadow-sm"
-            )}
-          >
-            {((activeFeedbackTab === 'ai' && isEditingAI) || (activeFeedbackTab === 'note' && isEditingNote) || (activeFeedbackTab === 'insight' && isEditingInsight)) ? (
-              <Check className="w-5 h-5 stroke-[3] animate-pulse" />
-            ) : (
-              <Edit3 className="w-5 h-5" />
-            )}
-          </button>
-
-          <div className="flex items-center bg-slate-50 p-1 rounded-2xl h-14 border border-slate-200/60 shadow-inner gap-1">
-            {tabs.map((tab: any) => {
-              const isActive = activeFeedbackTab === tab.id
-              return (
-                <button
-                  key={tab.id}
-                  onClick={() => setActiveFeedbackTab(tab.id)}
-                  className={cn(
-                    "w-12 h-11 flex items-center justify-center rounded-xl transition-all duration-300 relative",
-                    isActive
-                      ? (
-                        tab.id === 'insight' ? "text-amber-500 bg-white shadow-md border border-amber-100/60 scale-105" :
-                          tab.id === 'ai' ? "text-indigo-600 bg-white shadow-md border border-indigo-100/60 scale-105" :
-                            "text-emerald-600 bg-white shadow-md border border-emerald-100/60 scale-105"
-                      )
-                      : "text-slate-400 hover:text-slate-600 hover:bg-white/40"
-                  )}
-                >
-                  <div className="relative">
-                    <tab.icon className={cn("w-5 h-5 transition-transform duration-300", isActive && "scale-110")} />
-                    {tab.hasContent && (
-                      <span className={cn(
-                        "absolute -top-1 -right-1 w-2 h-2 rounded-full border border-white animate-pulse",
-                        tab.id === 'insight' ? "bg-amber-500" :
-                          tab.id === 'ai' ? "bg-indigo-600" :
-                            "bg-emerald-500"
-                      )} />
-                    )}
-                  </div>
-                </button>
-              )
-            })}
-          </div>
-
-          <div className="relative">
-            <AnimatePresence>
-              {isCopyMenuOpen && activeFeedbackTab === 'ai' && (
-                <motion.div
-                  initial={{ opacity: 0, y: 10, scale: 0.9 }}
-                  animate={{ opacity: 1, y: 0, scale: 1 }}
-                  exit={{ opacity: 0, y: 10, scale: 0.9 }}
-                  className="absolute bottom-16 right-0 w-56 bg-white/95 backdrop-blur-md rounded-2xl shadow-[0_10px_30px_rgba(99,102,241,0.12)] border border-slate-100/80 p-2 flex flex-col gap-1 z-[100] animate-in fade-in slide-in-from-bottom-2 duration-200"
-                >
-                  <button
-                    onClick={() => copyCurrentTabContent('default')}
-                    className="flex items-center gap-3 px-4 py-3 hover:bg-slate-50 hover:text-slate-800 rounded-xl transition-all text-left"
-                  >
-                    <FileText className="w-4 h-4 text-slate-400" />
-                    <span className="text-[11px] font-black text-slate-500 uppercase tracking-wider">Copy Result</span>
-                  </button>
-                  <button
-                    onClick={() => copyCurrentTabContent('question')}
-                    className="flex items-center gap-3 px-4 py-3 hover:bg-slate-50 hover:text-slate-800 rounded-xl transition-all text-left"
-                  >
-                    <HelpCircle className="w-4 h-4 text-slate-400" />
-                    <span className="text-[11px] font-black text-slate-500 uppercase tracking-wider">Copy Question</span>
-                  </button>
-                  <button
-                    onClick={() => copyCurrentTabContent('prompt')}
-                    className="flex items-center gap-3 px-4 py-3 hover:bg-indigo-50/60 hover:text-indigo-600 rounded-xl transition-all text-left"
-                  >
-                    <Brain className="w-4 h-4 text-indigo-400" />
-                    <span className="text-[11px] font-black text-indigo-500 uppercase tracking-wider">Copy Prompt</span>
-                  </button>
-                </motion.div>
-              )}
-            </AnimatePresence>
-
-            <button
-              onClick={() => {
-                if (activeFeedbackTab === 'ai') setIsCopyMenuOpen(!isCopyMenuOpen)
-                else copyCurrentTabContent()
-              }}
-              className={cn(
-                "w-12 h-12 flex-shrink-0 flex items-center justify-center rounded-2xl border transition-all duration-300 active:scale-90 shadow-sm",
-                isCopied
-                  ? "bg-gradient-to-r from-emerald-500 to-teal-600 border-transparent text-white shadow-lg shadow-emerald-100 scale-105"
-                  : "bg-slate-50 border-slate-200/80 text-slate-500 hover:bg-indigo-50 hover:border-indigo-200 hover:text-indigo-600"
-              )}
-            >
-              {isCopied ? <Check className="w-5 h-5 stroke-[3]" /> : <Copy className="w-5 h-5" />}
-            </button>
-          </div>
-
-          {isMobile && (
-            <button
-              onClick={() => {
-                handleNext()
-                setIsFeedbackOpen(false)
-              }}
-              className="w-10 h-10 flex-shrink-0 flex items-center justify-center rounded-xl bg-gradient-to-r from-indigo-500 to-purple-600 text-white shadow-lg shadow-indigo-200/60 active:scale-90 hover:scale-105 hover:rotate-3 transition-all"
-            >
-              <ChevronRight className="w-5 h-5" />
-            </button>
-          )}
-        </div>
-      </div>
-    )
-  }
 
   const renderPracticeLockScreen = () => {
     return (
@@ -2959,127 +2229,7 @@ export default function PracticePlay() {
     );
   };
 
-  const renderPracticeSetupScreen = () => {
-    return (
-      <div className="flex-1 bg-white md:rounded-[3rem] rounded-[2rem] border border-slate-100 md:p-8 p-6 flex flex-col justify-between shadow-2xl shadow-indigo-100/40 min-h-0 overflow-y-auto">
-        <div className="max-w-2xl mx-auto w-full py-4">
-          <div className="text-center mb-6">
-            <div className="w-14 h-14 bg-indigo-50 rounded-2xl flex items-center justify-center text-indigo-600 mx-auto mb-3 border border-indigo-100">
-              <Sliders className="w-7 h-7" />
-            </div>
-            <h2 className="text-xl font-black text-slate-800">
-              Cấu hình Luyện tập: {practiceSubMode === 'mcq' ? 'Trắc nghiệm' : practiceSubMode === 'typing' ? 'Gõ từ vựng' : 'Nghe'}
-            </h2>
-            <p className="text-xs text-slate-400 mt-1">Chọn các cặp cột dữ liệu bạn muốn ghép cặp làm câu hỏi và câu trả lời.</p>
-          </div>
 
-          <div className="space-y-4 mb-6">
-            <span className="text-[10px] font-black text-slate-400 tracking-wider uppercase block">Các cặp cột hỏi-đáp đang học</span>
-            {setupPairs.map((pair, idx) => (
-              <div key={idx} className="flex items-center gap-3 bg-slate-50 p-4 rounded-2xl border border-slate-100">
-                <div className="flex-1">
-                  <label className="text-[9px] font-black text-slate-400 uppercase tracking-wider block mb-1">Cột Câu hỏi</label>
-                  <select
-                    value={pair.q}
-                    onChange={(e) => {
-                      const newPairs = [...setupPairs];
-                      newPairs[idx].q = e.target.value;
-                      setSetupPairs(newPairs);
-                    }}
-                    className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-700 outline-none focus:border-indigo-500 transition-all"
-                  >
-                    {availableColumns.map(col => (
-                      <option key={col} value={col}>{col.toUpperCase()}</option>
-                    ))}
-                  </select>
-                </div>
-
-                <div className="text-slate-300 font-bold text-xs mt-4">➔</div>
-
-                <div className="flex-1">
-                  <label className="text-[9px] font-black text-slate-400 uppercase tracking-wider block mb-1">Cột Đáp án</label>
-                  <select
-                    value={pair.a}
-                    onChange={(e) => {
-                      const newPairs = [...setupPairs];
-                      newPairs[idx].a = e.target.value;
-                      setSetupPairs(newPairs);
-                    }}
-                    className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-700 outline-none focus:border-indigo-500 transition-all"
-                  >
-                    {availableColumns.map(col => (
-                      <option key={col} value={col}>{col.toUpperCase()}</option>
-                    ))}
-                  </select>
-                </div>
-
-                {setupPairs.length > 1 && (
-                  <button
-                    onClick={() => {
-                      const newPairs = setupPairs.filter((_, i) => i !== idx);
-                      setSetupPairs(newPairs);
-                    }}
-                    className="mt-4 p-2 rounded-xl bg-rose-50 text-rose-500 hover:bg-rose-100 transition-all border border-rose-100"
-                  >
-                    <X className="w-4 h-4" />
-                  </button>
-                )}
-              </div>
-            ))}
-
-            <button
-              onClick={() => setSetupPairs([...setupPairs, { q: 'front', a: 'back' }])}
-              className="w-full py-3 rounded-2xl border border-dashed border-slate-200 text-slate-500 hover:text-indigo-600 hover:border-indigo-300 hover:bg-indigo-50/20 text-xs font-bold transition-all flex items-center justify-center gap-1.5"
-            >
-              <span>+ Thêm cặp hỏi-đáp</span>
-            </button>
-          </div>
-
-          {(practiceSubMode === 'mcq' || practiceSubMode === 'listening') && (
-            <div className="mb-6 bg-slate-50 p-4 rounded-2xl border border-slate-100">
-              <label className="text-[10px] font-black text-slate-400 tracking-wider uppercase block mb-2">Số lượng Lựa chọn MCQ</label>
-              <div className="grid grid-cols-4 gap-2">
-                {[3, 4, 5, 6].map(num => (
-                  <button
-                    key={num}
-                    onClick={() => setSetupNumChoices(num)}
-                    className={cn(
-                      "py-2 rounded-xl text-xs font-black transition-all border",
-                      setupNumChoices === num
-                        ? "bg-white border-indigo-500 text-indigo-600 shadow-sm shadow-indigo-100"
-                        : "bg-white border-slate-200 text-slate-500 hover:text-slate-700 hover:border-slate-300"
-                    )}
-                  >
-                    {num} Lựa chọn {num === 4 && "(Gợi ý)"}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
-
-        <div className="max-w-2xl mx-auto w-full flex flex-col md:flex-row gap-3 pt-4 border-t border-slate-50">
-          {canEdit && (
-            <button
-              onClick={() => savePracticeSettings(setupPairs, setupNumChoices, true)}
-              className="flex-1 py-4 rounded-2xl bg-slate-50 border border-slate-200 text-slate-600 font-black text-xs uppercase hover:bg-slate-100 active:scale-95 transition-all shadow-sm flex items-center justify-center gap-1.5"
-            >
-              <Sliders className="w-4 h-4" />
-              <span>Đặt làm mặc định Deck</span>
-            </button>
-          )}
-
-          <button
-            onClick={() => savePracticeSettings(setupPairs, setupNumChoices, false)}
-            className="flex-[2] py-4 rounded-2xl bg-gradient-to-r from-indigo-500 to-purple-600 text-white font-black text-xs uppercase hover:shadow-lg hover:shadow-indigo-100 active:scale-95 transition-all flex items-center justify-center gap-1.5"
-          >
-            <Sparkles className="w-4 h-4" />
-            <span>Lưu & Bắt đầu học 🚀</span>
-          </button>
-        </div>
-      </div>
-    );
-  };
 
   const renderPracticeScreen = () => {
     const practiceData = currentPracticeData;
@@ -3455,121 +2605,7 @@ export default function PracticePlay() {
     );
   }
 
-  const renderQuestionMapGrid = () => {
-    const isPractice = mainTab === 'practice';
-    return (
-      <div className="grid grid-cols-8 md:grid-cols-10 lg:grid-cols-5 gap-3 p-1 pb-4">
-        {session.questions?.map((q: any, i: number) => {
-          const hasAttemptedThisSession = isPractice
-            ? practiceAnswers[i] !== undefined
-            : sessionAnswers[i] !== undefined;
 
-          const selectedOptIdx = isPractice
-            ? practiceAnswers[i]
-            : (() => {
-              const attemptedRatings = Array.isArray(sessionAnswers[i])
-                ? (sessionAnswers[i] as number[])
-                : (typeof sessionAnswers[i] === 'number' ? [sessionAnswers[i] as number] : []);
-              return attemptedRatings.length > 0 ? attemptedRatings[attemptedRatings.length - 1] : null;
-            })();
-
-          const isActive = currentIndex === i
-
-          let fsrsClass = "border-slate-100 hover:border-indigo-200 bg-white text-slate-500 hover:bg-slate-50/50 font-bold"
-          let fsrsStyle: any = {}
-
-          const stats = q.stats || { total: 0, again_count: 0, hard_count: 0, good_count: 0, easy_count: 0 }
-          const totalReviews = stats.total || 0
-
-          if (totalReviews > 0) {
-            const again = stats.again_count || 0
-            const hard = stats.hard_count || 0
-            const good = stats.good_count || 0
-            const easy = stats.easy_count || 0
-            const total = again + hard + good + easy
-
-            if (total > 0) {
-              const segments: string[] = []
-              let currentPct = 0
-              if (again > 0) {
-                const nextPct = currentPct + (again / total) * 100
-                segments.push(`#ffe4e6 ${currentPct.toFixed(1)}%, #ffe4e6 ${nextPct.toFixed(1)}%`)
-                currentPct = nextPct
-              }
-              if (hard > 0) {
-                const nextPct = currentPct + (hard / total) * 100
-                segments.push(`#fef3c7 ${currentPct.toFixed(1)}%, #fef3c7 ${nextPct.toFixed(1)}%`)
-                currentPct = nextPct
-              }
-              if (good > 0) {
-                const nextPct = currentPct + (good / total) * 100
-                segments.push(`#e0e7ff ${currentPct.toFixed(1)}%, #e0e7ff ${nextPct.toFixed(1)}%`)
-                currentPct = nextPct
-              }
-              if (easy > 0) {
-                const nextPct = currentPct + (easy / total) * 100
-                segments.push(`#d1fae5 ${currentPct.toFixed(1)}%, #d1fae5 ${nextPct.toFixed(1)}%`)
-                currentPct = nextPct
-              }
-
-              fsrsStyle = {
-                background: `linear-gradient(to top, ${segments.join(', ')})`,
-                color: '#1e293b',
-                borderColor: '#cbd5e1'
-              }
-              fsrsClass = "shadow-sm animate-in zoom-in-95 duration-200 font-bold text-slate-800 border-slate-300"
-            } else {
-              const box = q.box_level || 1
-              if (box === 5) {
-                fsrsClass = "border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100/60"
-              } else if (box === 4) {
-                fsrsClass = "border-indigo-200 bg-indigo-50 text-indigo-700 hover:bg-indigo-100/60"
-              } else if (box === 3 || box === 2) {
-                fsrsClass = "border-amber-200 bg-amber-50/70 text-amber-700 hover:bg-amber-100/60"
-              } else {
-                fsrsClass = "border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-100/60"
-              }
-            }
-          }
-
-          return (
-            <button
-              key={i}
-              onClick={() => {
-                navigateToQuestion(i)
-                setIsMapOpen(false)
-              }}
-              className={cn(
-                "relative aspect-square rounded-xl border flex flex-col items-center justify-center font-black text-[11px] transition-all duration-200",
-                isActive
-                  ? "border-indigo-600 ring-4 ring-indigo-500/30 z-10 scale-105 shadow-md"
-                  : "",
-                fsrsClass
-              )}
-              style={fsrsStyle}
-            >
-              <span className={cn("relative z-10 text-[12px] text-slate-800")}>{i + 1}</span>
-              {hasAttemptedThisSession && (
-                <span className={cn(
-                  "text-[6px] font-black tracking-tighter opacity-90 mt-0.5 uppercase z-10 relative",
-                  isPractice
-                    ? (selectedOptIdx === q.practice?.correct_index ? "text-emerald-600" : "text-rose-600")
-                    : (selectedOptIdx === 0 ? "text-rose-600" :
-                      selectedOptIdx === 1 ? "text-amber-600" :
-                        selectedOptIdx === 2 ? "text-indigo-600" :
-                          "text-emerald-600")
-                )}>
-                  {isPractice
-                    ? (selectedOptIdx === q.practice?.correct_index ? "CORRECT" : "WRONG")
-                    : (selectedOptIdx === 0 ? "AGAIN" : selectedOptIdx === 1 ? "HARD" : selectedOptIdx === 2 ? "GOOD" : "EASY")}
-                </span>
-              )}
-            </button>
-          )
-        })}
-      </div>
-    );
-  }
 
   if (!session || currentIndex < 0) return <div className="min-h-screen flex items-center justify-center font-black animate-pulse">LOADING SESSION...</div>
 
@@ -3985,7 +3021,43 @@ export default function PracticePlay() {
 
       <main className="flex-1 flex w-full max-w-none justify-center gap-4 lg:gap-8 px-2 lg:px-6 xl:px-10 md:py-6 py-2 overflow-hidden">
         <aside className="hidden xl:flex w-[340px] 2xl:w-[440px] flex-shrink-0 flex-col overflow-hidden bg-white border border-slate-100 rounded-[2.5rem] shadow-sm">
-          {showFeedback ? renderFeedbackArea(false) : (
+          {showFeedback ? (
+            <FeedbackArea
+              showFeedback={showFeedback}
+              activeFeedbackTab={activeFeedbackTab}
+              setActiveFeedbackTab={setActiveFeedbackTab}
+              getInsightText={getInsightText}
+              isEditingInsight={isEditingInsight}
+              insightInput={insightInput}
+              setInsightInput={setInsightInput}
+              currentQuestion={currentQuestion}
+              canEdit={canEdit}
+              clearAIExplanation={clearAIExplanation}
+              isEditingAI={isEditingAI}
+              setIsEditingAI={setIsEditingAI}
+              isEditingPrompt={isEditingPrompt}
+              setIsEditingPrompt={setIsEditingPrompt}
+              askAI={askAI}
+              isAskingAI={isAskingAI}
+              aiInput={aiInput}
+              setAiInput={setAiInput}
+              promptInput={promptInput}
+              setPromptInput={setPromptInput}
+              savePrompt={savePrompt}
+              saveNote={saveNote}
+              personalNote={personalNote}
+              setPersonalNote={setPersonalNote}
+              isEditingNote={isEditingNote}
+              setIsEditingNote={setIsEditingNote}
+              isMobile={false}
+              handleEditCurrentTab={handleEditCurrentTab}
+              isCopyMenuOpen={isCopyMenuOpen}
+              setIsCopyMenuOpen={setIsCopyMenuOpen}
+              copyCurrentTabContent={copyCurrentTabContent}
+              isCopied={isCopied}
+              handleNext={handleNext}
+            />
+          ) : (
             <div className="flex flex-col h-full bg-slate-50/40">
               {/* Header */}
               <div className="p-6 border-b border-slate-100 flex items-center justify-between bg-white sticky top-0 z-10">
@@ -4249,7 +3321,16 @@ export default function PracticePlay() {
                 {mainTab === 'practice' && practiceDisabled ? (
                   renderPracticeLockScreen()
                 ) : mainTab === 'practice' && practiceNeedsSetup ? (
-                  renderPracticeSetupScreen()
+                  <PracticeSetupScreen
+                    practiceSubMode={practiceSubMode}
+                    setupPairs={setupPairs}
+                    setSetupPairs={setSetupPairs}
+                    availableColumns={availableColumns}
+                    setupNumChoices={setupNumChoices}
+                    setSetupNumChoices={setSetupNumChoices}
+                    canEdit={canEdit}
+                    savePracticeSettings={savePracticeSettings}
+                  />
                 ) : mainTab === 'practice' ? (
                   renderPracticeScreen()
                 ) : (
@@ -4657,7 +3738,15 @@ export default function PracticePlay() {
               ) : (
                 <>
                   {renderSessionStats()}
-                  {renderQuestionMapGrid()}
+                  <QuestionMapGrid
+                    questions={session.questions}
+                    mainTab={mainTab}
+                    practiceAnswers={practiceAnswers}
+                    sessionAnswers={sessionAnswers}
+                    currentIndex={currentIndex}
+                    navigateToQuestion={navigateToQuestion}
+                    setIsMapOpen={setIsMapOpen}
+                  />
                 </>
               )}
             </div>
@@ -4939,7 +4028,15 @@ export default function PracticePlay() {
               {mainTab === 'practice' ? renderPracticeStats() : (
                 <>
                   {renderSessionStats()}
-                  {renderQuestionMapGrid()}
+                  <QuestionMapGrid
+                    questions={session.questions}
+                    mainTab={mainTab}
+                    practiceAnswers={practiceAnswers}
+                    sessionAnswers={sessionAnswers}
+                    currentIndex={currentIndex}
+                    navigateToQuestion={navigateToQuestion}
+                    setIsMapOpen={setIsMapOpen}
+                  />
                 </>
               )}
             </div>
@@ -4962,7 +4059,42 @@ export default function PracticePlay() {
               </h4>
             </div>
             <div className="flex-1 overflow-y-auto custom-scrollbar">
-              {renderFeedbackArea(true)}
+              <FeedbackArea
+                showFeedback={showFeedback}
+                activeFeedbackTab={activeFeedbackTab}
+                setActiveFeedbackTab={setActiveFeedbackTab}
+                getInsightText={getInsightText}
+                isEditingInsight={isEditingInsight}
+                insightInput={insightInput}
+                setInsightInput={setInsightInput}
+                currentQuestion={currentQuestion}
+                canEdit={canEdit}
+                clearAIExplanation={clearAIExplanation}
+                isEditingAI={isEditingAI}
+                setIsEditingAI={setIsEditingAI}
+                isEditingPrompt={isEditingPrompt}
+                setIsEditingPrompt={setIsEditingPrompt}
+                askAI={askAI}
+                isAskingAI={isAskingAI}
+                aiInput={aiInput}
+                setAiInput={setAiInput}
+                promptInput={promptInput}
+                setPromptInput={setPromptInput}
+                savePrompt={savePrompt}
+                saveNote={saveNote}
+                personalNote={personalNote}
+                setPersonalNote={setPersonalNote}
+                isEditingNote={isEditingNote}
+                setIsEditingNote={setIsEditingNote}
+                isMobile={true}
+                setIsFeedbackOpen={setIsFeedbackOpen}
+                handleEditCurrentTab={handleEditCurrentTab}
+                isCopyMenuOpen={isCopyMenuOpen}
+                setIsCopyMenuOpen={setIsCopyMenuOpen}
+                copyCurrentTabContent={copyCurrentTabContent}
+                isCopied={isCopied}
+                handleNext={handleNext}
+              />
             </div>
           </motion.div>
         )}

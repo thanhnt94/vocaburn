@@ -9,6 +9,13 @@ import remarkGfm from 'remark-gfm'
 import rehypeRaw from 'rehype-raw'
 import { cn } from '@/lib/utils'
 import { useAppStore } from '@/store/useAppStore'
+import { playCorrectSound, playIncorrectSound, speakMultiLanguage } from '@/lib/audio'
+import { parseBBCodeToHtml, stripBBCode, isJapanese, getJpPattern, extractTokens, tokensOverlapHigh } from '@/lib/text'
+import { selectDistractors } from '@/lib/distractor'
+import { TypewriterText } from '@/components/TypewriterText'
+import { FeedbackArea } from '@/components/FeedbackArea'
+import { PracticeSetupScreen } from '@/components/PracticeSetupScreen'
+import { QuestionMapGrid } from '@/components/QuestionMapGrid'
 
 interface Option {
   id: number
@@ -53,113 +60,6 @@ interface Question {
     answer_key: string
   }
 }
-
-const playCorrectSound = () => {
-  try {
-    const audio = new Audio(`${import.meta.env.BASE_URL}sounds/correct.mp3`);
-    audio.volume = 0.4;
-    audio.play().catch(e => console.log("SFX autoplay blocked:", e));
-  } catch (e) {
-    console.error("Audio SFX failed:", e);
-  }
-};
-
-const playIncorrectSound = () => {
-  try {
-    const audio = new Audio(`${import.meta.env.BASE_URL}sounds/incorrect.mp3`);
-    audio.volume = 0.4;
-    audio.play().catch(e => console.log("SFX autoplay blocked:", e));
-  } catch (e) {
-    console.error("Audio SFX failed:", e);
-  }
-};
-
-
-const TypewriterText = ({ text }: { text: string }) => {
-  const [displayedText, setDisplayedText] = useState('')
-  const [isTyping, setIsTyping] = useState(true)
-  const bottomRef = useRef<HTMLDivElement>(null)
-
-  useEffect(() => {
-    setDisplayedText('')
-    setIsTyping(true)
-    let i = 0
-    const startTime = Date.now()
-    
-    const timer = setInterval(() => {
-      const elapsed = Date.now() - startTime
-      
-      // If 2 seconds have passed, just dump the remaining text instantly
-      if (elapsed > 2000) {
-        setDisplayedText(text)
-        setIsTyping(false)
-        clearInterval(timer)
-      } else {
-        if (i < text.length) {
-          i += 3 // Realistic LLM typing speed
-          setDisplayedText(text.substring(0, i))
-        } else {
-          setIsTyping(false)
-          clearInterval(timer)
-        }
-      }
-    }, 15)
-    return () => clearInterval(timer)
-  }, [text])
-
-  useEffect(() => {
-    if (isTyping && bottomRef.current) {
-      bottomRef.current.scrollIntoView({ block: 'nearest' })
-    }
-  }, [displayedText, isTyping])
-
-  const formatLatex = (t: string) => {
-    return t
-      .replace(/`\s*(<ruby>[\s\S]*?<\/ruby>)\s*`/g, '$1') // Strip backticks around ruby tags
-      .replace(/\$\\rightarrow\$/g, '→')
-      .replace(/\$\\Rightarrow\$/g, '⇒')
-      .replace(/\$\\leftarrow\$/g, '←')
-      .replace(/\$\\Leftarrow\$/g, '⇐')
-      .replace(/\$\\leftrightarrow\$/g, '↔')
-      .replace(/\$\\Leftrightarrow\$/g, '⇔')
-      .replace(/\$\\times\$/g, '×')
-      .replace(/\$\\div\$/g, '÷')
-      .replace(/\$\\le\$/g, '≤')
-      .replace(/\$\\ge\$/g, '≥')
-      .replace(/\$\\neq\$/g, '≠')
-      .replace(/\$\\approx\$/g, '≈')
-      .replace(/\$\\pm\$/g, '±')
-  }
-
-  return (
-    <>
-      <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeRaw]} components={MarkdownComponents}>
-        {parseBBCodeToHtml(formatLatex(displayedText))}
-      </ReactMarkdown>
-      {isTyping && <span className="inline-block w-1.5 h-3.5 ml-1 bg-indigo-500 animate-pulse align-middle" />}
-      <div ref={bottomRef} />
-    </>
-  )
-}
-
-const parseBBCodeToHtml = (text: string): string => {
-  if (!text) return '';
-  let html = text;
-  html = html.replace(/\[b\]/gi, '<strong>');
-  html = html.replace(/\[\/b\]/gi, '</strong>');
-  html = html.replace(/\[i\]/gi, '<em>');
-  html = html.replace(/\[\/i\]/gi, '</em>');
-  html = html.replace(/\[u\]/gi, '<u>');
-  html = html.replace(/\[\/u\]/gi, '</u>');
-  html = html.replace(/\[s\]/gi, '<del>');
-  html = html.replace(/\[\/s\]/gi, '</del>');
-  html = html.replace(/\[color=([^\]]+)\]/gi, (_, color) => `<span style="color: ${color}">`);
-  html = html.replace(/\[\/color\]/gi, '</span>');
-  html = html.replace(/\[size=([^\]]+)\]/gi, (_, size) => `<span style="font-size: ${size}">`);
-  html = html.replace(/\[\/size\]/gi, '</span>');
-  return html;
-};
-
 const MarkdownComponents = {
   code({ node, className, children, ...props }: any) {
     const value = String(children || '').replace(/\n$/, '')
@@ -171,106 +71,6 @@ const MarkdownComponents = {
     }
     return <code className={className} {...props}>{children}</code>
   }
-}
-
-const speakMultiLanguage = (text: string) => {
-  if (!('speechSynthesis' in window)) return;
-  window.speechSynthesis.cancel();
-
-  const segments: { text: string; langCode: string }[] = [];
-  const langMap: Record<string, string> = {
-    'ja': 'ja-JP',
-    'vi': 'vi-VN',
-    'en': 'en-US',
-    'zh': 'zh-CN',
-    'ko': 'ko-KR',
-    'fr': 'fr-FR',
-    'de': 'de-DE',
-    'es': 'es-ES',
-    'ru': 'ru-RU',
-    'it': 'it-IT',
-  };
-
-  // Try bracket format first: e.g. [ja:人生][vi:cuộc đời]
-  const bracketRegex = /\[([a-z]{2,3}(?:-[a-zA-Z0-9]+)?):\s*([^\]]+)\]/g;
-  let bracketMatch;
-  let hasBrackets = false;
-  
-  while ((bracketMatch = bracketRegex.exec(text)) !== null) {
-    hasBrackets = true;
-    const rawLang = bracketMatch[1].toLowerCase();
-    const content = bracketMatch[2].trim();
-    const langCode = langMap[rawLang] || rawLang;
-    segments.push({ text: content, langCode });
-  }
-
-  if (!hasBrackets) {
-    // Fallback to line-by-line format
-    const lines = text.split('\n');
-    const lineRegex = /^\s*([a-z]{2,3}(?:-[a-zA-Z0-9]+)?)\s*:\s*(.+)$/;
-    const containsJapanese = (str: string) => /[\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FAF]/.test(str);
-    const containsVietnamese = (str: string) => /[àáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđ]/i.test(str);
-    
-    let lastLang = 'en-US';
-    if (containsJapanese(text)) {
-      lastLang = 'ja-JP';
-    } else if (containsVietnamese(text)) {
-      lastLang = 'vi-VN';
-    }
-
-
-    for (const line of lines) {
-      if (!line.trim()) continue;
-
-      const match = line.match(lineRegex);
-      if (match) {
-        const rawLang = match[1].toLowerCase();
-        const content = match[2].trim();
-        const langCode = langMap[rawLang] || rawLang;
-        lastLang = langCode;
-        segments.push({ text: content, langCode });
-      } else {
-        segments.push({ text: line.trim(), langCode: lastLang });
-      }
-    }
-  }
-
-  const voices = typeof window !== 'undefined' ? window.speechSynthesis.getVoices() : [];
-
-  segments.forEach((seg) => {
-    if (!seg.text) return;
-    const u = new SpeechSynthesisUtterance(seg.text);
-    u.lang = seg.langCode;
-    u.rate = 0.85;
-
-    // Tự động tìm giọng Nữ chất lượng cao cho tiếng Việt (vi-VN)
-    if (seg.langCode.toLowerCase().startsWith('vi')) {
-      const viVoice = voices.find(v => {
-        const name = v.name.toLowerCase();
-        const lang = v.lang.toLowerCase();
-        const isVi = lang === 'vi-vn' || lang.startsWith('vi');
-        if (!isVi) return false;
-        
-        // Ưu tiên các giọng nữ nổi tiếng như HoaiMy (Edge), Linh/An (Windows), giọng Google tiếng Việt online, hoặc chứa từ khóa 'female'/'nữ'
-        return name.includes('hoaimy') || 
-               name.includes('linh') || 
-               name.includes('an') || 
-               name.includes('female') || 
-               name.includes('nữ') || 
-               name.includes('google');
-      });
-      if (viVoice) {
-        u.voice = viVoice;
-      } else {
-        // Dự phòng giọng tiếng Việt bất kỳ nếu không tìm thấy giọng nữ đặc trưng
-        const anyVi = voices.find(v => v.lang.toLowerCase() === 'vi-vn' || v.lang.toLowerCase().startsWith('vi'));
-        if (anyVi) u.voice = anyVi;
-      }
-    }
-
-    console.log(`[CLIENT TTS - WEB SPEECH] Speaking: "${seg.text}" | Lang: "${seg.langCode}" | Selected Voice: "${u.voice ? u.voice.name : 'Default/System voice'}"`);
-    window.speechSynthesis.speak(u);
-  });
 }
 
 export default function FlashcardPlay() {
@@ -488,186 +288,6 @@ export default function FlashcardPlay() {
   const stripBBCode = (text: string): string => {
     if (!text) return "";
     return text.replace(/\[\/?[a-zA-Z0-9=#_\-]+\]/g, '');
-  };
-
-  const isJapanese = (text: string): boolean => {
-    if (!text) return false;
-    for (let i = 0; i < text.length; i++) {
-      const c = text[i];
-      if (
-        (c >= '\u4e00' && c <= '\u9fff') || 
-        (c >= '\u3400' && c <= '\u4dbf') ||
-        (c >= '\u3040' && c <= '\u309f') || 
-        (c >= '\u30a0' && c <= '\u30ff')
-      ) {
-        return true;
-      }
-    }
-    return false;
-  };
-
-  const getJpPattern = (text: string): string => {
-    if (!text) return "";
-    if (isJapanese(text)) {
-      const pattern: string[] = [];
-      for (let i = 0; i < text.length; i++) {
-        const char = text[i];
-        if ((char >= '\u4e00' && char <= '\u9fff') || (char >= '\u3400' && char <= '\u4dbf')) {
-          pattern.push('K');
-        } else if (char >= '\u3040' && char <= '\u309f') {
-          pattern.push('H');
-        } else if (char >= '\u30a0' && char <= '\u30ff') {
-          pattern.push('C');
-        } else {
-          pattern.push('O');
-        }
-      }
-      return pattern.join('');
-    } else {
-      const words = text.trim().split(/\s+/).filter(Boolean);
-      return `W${words.length}`;
-    }
-  };
-
-  const extractTokens = (text: string): Set<string> => {
-    if (!text) return new Set();
-    const kanji = new Set<string>();
-    for (let i = 0; i < text.length; i++) {
-      const char = text[i];
-      if ((char >= '\u4e00' && char <= '\u9fff') || (char >= '\u3400' && char <= '\u4dbf')) {
-        kanji.add(char);
-      }
-    }
-    if (kanji.size > 0) return kanji;
-    
-    const words = text.split(/[\s,.;:/|()]+/).map(w => w.trim().toLowerCase()).filter(w => w.length > 1);
-    return new Set(words);
-  };
-
-  const tokensOverlapHigh = (tokensA: Set<string>, tokensB: Set<string>): boolean => {
-    if (tokensA.size === 0 || tokensB.size === 0) return false;
-    let sharedCount = 0;
-    tokensA.forEach(t => {
-      if (tokensB.has(t)) sharedCount++;
-    });
-    if (sharedCount === 0) return false;
-    const smallerSize = Math.min(tokensA.size, tokensB.size);
-    return (sharedCount / smallerSize) >= 0.6;
-  };
-
-  const selectDistractors = (
-    correctItem: { text: string; q_text: string; front: string; back: string; id: number; type: string },
-    candidatePool: Array<{ text: string; front: string; back: string; id: number; type: string }>,
-    amount: number
-  ): Array<{ text: string; front: string; back: string; id: number; type: string }> => {
-    if (!candidatePool || candidatePool.length === 0 || amount <= 0) return [];
-
-    const c_disp = stripBBCode(correctItem.text).trim();
-    const c_back = stripBBCode(correctItem.back).trim();
-    const c_q_text = stripBBCode(correctItem.q_text).trim();
-    const target_pattern = getJpPattern(c_disp);
-    const answer_is_jp = isJapanese(c_disp);
-
-    const c_back_tokens = !isJapanese(c_back) ? extractTokens(c_back) : new Set<string>();
-    const c_q_tokens = (c_q_text && !isJapanese(c_q_text)) ? extractTokens(c_q_text) : new Set<string>();
-    const c_disp_tokens_vn = !answer_is_jp ? extractTokens(c_disp) : new Set<string>();
-
-    const same_pattern_pool: typeof candidatePool = [];
-    const other_pool: typeof candidatePool = [];
-    const seen_texts = new Set<string>();
-    seen_texts.add(c_disp.toLowerCase());
-
-    for (const cand of candidatePool) {
-      const d_disp = stripBBCode(cand.text).trim();
-      const d_disp_lower = d_disp.toLowerCase();
-
-      // Dedup
-      if (seen_texts.has(d_disp_lower)) continue;
-
-      // Hard filters
-      const d_back = stripBBCode(cand.back).trim();
-      if (!isJapanese(d_back) && c_back_tokens.size > 0) {
-        const d_back_tokens = extractTokens(d_back);
-        if (tokensOverlapHigh(d_back_tokens, c_back_tokens)) continue;
-      }
-
-      if (!answer_is_jp && c_disp_tokens_vn.size > 0) {
-        const d_disp_tokens = extractTokens(d_disp);
-        if (tokensOverlapHigh(d_disp_tokens, c_disp_tokens_vn)) continue;
-      }
-
-      if (c_q_tokens.size > 0) {
-        const d_back_tokens_q = !isJapanese(d_back) ? extractTokens(d_back) : new Set<string>();
-        if (d_back_tokens_q.size > 0 && tokensOverlapHigh(d_back_tokens_q, c_q_tokens)) continue;
-        
-        if (!answer_is_jp) {
-          const d_disp_tokens_q = extractTokens(d_disp);
-          if (tokensOverlapHigh(d_disp_tokens_q, c_q_tokens)) continue;
-        }
-      }
-
-      seen_texts.add(d_disp_lower);
-
-      if (getJpPattern(d_disp) === target_pattern) {
-        same_pattern_pool.push(cand);
-      } else {
-        other_pool.push(cand);
-      }
-    }
-
-    let final_pool = same_pattern_pool;
-    if (same_pattern_pool.length < amount) {
-      final_pool = same_pattern_pool.concat(other_pool);
-    }
-
-    if (final_pool.length === 0) return [];
-
-    // Score candidates
-    const scored = final_pool.map(cand => {
-      let score = 0;
-      const d_disp = stripBBCode(cand.text).trim();
-      const d_pattern = getJpPattern(d_disp);
-      const d_tokens = extractTokens(d_disp);
-      
-      if (d_pattern === target_pattern) score += 100;
-
-      const c_tokens = extractTokens(c_disp);
-      const shared_tokens = new Set([...c_tokens].filter(x => d_tokens.has(x)));
-      if (answer_is_jp) {
-        score += shared_tokens.size * 150;
-      } else {
-        score -= shared_tokens.size * 200;
-      }
-
-      const c_front_tokens = extractTokens(stripBBCode(correctItem.front).trim());
-      const d_front_tokens = extractTokens(stripBBCode(cand.front).trim());
-      const shared_front = new Set([...c_front_tokens].filter(x => d_front_tokens.has(x)));
-      score += shared_front.size * 80;
-
-      if (d_disp.length === c_disp.length) score += 20;
-      if (cand.type && correctItem.type && cand.type === correctItem.type) score += 30;
-
-      return { score, cand };
-    });
-
-    // Shuffle first, then sort by score descending
-    scored.sort(() => Math.random() - 0.5);
-    scored.sort((a, b) => b.score - a.score);
-
-    const selected: typeof candidatePool = [];
-    const selected_texts = new Set<string>();
-    selected_texts.add(c_disp.toLowerCase());
-
-    for (const item of scored) {
-      if (selected.length >= amount) break;
-      const cand_text = stripBBCode(item.cand.text).trim().toLowerCase();
-      if (!selected_texts.has(cand_text)) {
-        selected.push(item.cand);
-        selected_texts.add(cand_text);
-      }
-    }
-
-    return selected;
   };
 
   const generatePracticeQuestion = (idx: number, customSubMode?: string) => {
@@ -3597,7 +3217,43 @@ export default function FlashcardPlay() {
 
       <main className="flex-1 flex w-full max-w-none justify-center gap-4 lg:gap-8 px-2 lg:px-6 xl:px-10 md:py-6 py-2 overflow-hidden">
         <aside className="hidden xl:flex w-[340px] 2xl:w-[440px] flex-shrink-0 flex-col overflow-hidden bg-white border border-slate-100 rounded-[2.5rem] shadow-sm">
-          {showFeedback ? renderFeedbackArea(false) : (
+          {showFeedback ? (
+            <FeedbackArea
+              showFeedback={showFeedback}
+              activeFeedbackTab={activeFeedbackTab}
+              setActiveFeedbackTab={setActiveFeedbackTab}
+              getInsightText={getInsightText}
+              isEditingInsight={isEditingInsight}
+              insightInput={insightInput}
+              setInsightInput={setInsightInput}
+              currentQuestion={currentQuestion}
+              canEdit={canEdit}
+              clearAIExplanation={clearAIExplanation}
+              isEditingAI={isEditingAI}
+              setIsEditingAI={setIsEditingAI}
+              isEditingPrompt={isEditingPrompt}
+              setIsEditingPrompt={setIsEditingPrompt}
+              askAI={askAI}
+              isAskingAI={isAskingAI}
+              aiInput={aiInput}
+              setAiInput={setAiInput}
+              promptInput={promptInput}
+              setPromptInput={setPromptInput}
+              savePrompt={savePrompt}
+              saveNote={saveNote}
+              personalNote={personalNote}
+              setPersonalNote={setPersonalNote}
+              isEditingNote={isEditingNote}
+              setIsEditingNote={setIsEditingNote}
+              isMobile={false}
+              handleEditCurrentTab={handleEditCurrentTab}
+              isCopyMenuOpen={isCopyMenuOpen}
+              setIsCopyMenuOpen={setIsCopyMenuOpen}
+              copyCurrentTabContent={copyCurrentTabContent}
+              isCopied={isCopied}
+              handleNext={handleNext}
+            />
+          ) : (
             <div className="flex flex-col h-full bg-slate-50/40">
               {/* Header */}
               <div className="p-6 border-b border-slate-100 flex items-center justify-between bg-white sticky top-0 z-10">
@@ -3861,7 +3517,16 @@ export default function FlashcardPlay() {
               {mainTab === 'practice' && practiceDisabled ? (
                 renderPracticeLockScreen()
               ) : mainTab === 'practice' && practiceNeedsSetup ? (
-                renderPracticeSetupScreen()
+                <PracticeSetupScreen
+                  practiceSubMode={practiceSubMode}
+                  setupPairs={setupPairs}
+                  setSetupPairs={setSetupPairs}
+                  availableColumns={availableColumns}
+                  setupNumChoices={setupNumChoices}
+                  setSetupNumChoices={setSetupNumChoices}
+                  canEdit={canEdit}
+                  savePracticeSettings={savePracticeSettings}
+                />
               ) : mainTab === 'practice' ? (
                 renderPracticeScreen()
               ) : (
@@ -4257,7 +3922,15 @@ export default function FlashcardPlay() {
               ) : (
                 <>
                   {renderSessionStats()}
-                  {renderQuestionMapGrid()}
+                  <QuestionMapGrid
+                    questions={session.questions}
+                    mainTab={mainTab}
+                    practiceAnswers={practiceAnswers}
+                    sessionAnswers={sessionAnswers}
+                    currentIndex={currentIndex}
+                    navigateToQuestion={navigateToQuestion}
+                    setIsMapOpen={setIsMapOpen}
+                  />
                 </>
               )}
             </div>
@@ -4526,7 +4199,15 @@ export default function FlashcardPlay() {
                {mainTab === 'practice' ? renderPracticeStats() : (
                  <>
                    {renderSessionStats()}
-                   {renderQuestionMapGrid()}
+                   <QuestionMapGrid
+                     questions={session.questions}
+                     mainTab={mainTab}
+                     practiceAnswers={practiceAnswers}
+                     sessionAnswers={sessionAnswers}
+                     currentIndex={currentIndex}
+                     navigateToQuestion={navigateToQuestion}
+                     setIsMapOpen={setIsMapOpen}
+                   />
                  </>
                )}
             </div>
@@ -4549,7 +4230,42 @@ export default function FlashcardPlay() {
               </h4>
             </div>
             <div className="flex-1 overflow-y-auto custom-scrollbar">
-               {renderFeedbackArea(true)}
+              <FeedbackArea
+                showFeedback={showFeedback}
+                activeFeedbackTab={activeFeedbackTab}
+                setActiveFeedbackTab={setActiveFeedbackTab}
+                getInsightText={getInsightText}
+                isEditingInsight={isEditingInsight}
+                insightInput={insightInput}
+                setInsightInput={setInsightInput}
+                currentQuestion={currentQuestion}
+                canEdit={canEdit}
+                clearAIExplanation={clearAIExplanation}
+                isEditingAI={isEditingAI}
+                setIsEditingAI={setIsEditingAI}
+                isEditingPrompt={isEditingPrompt}
+                setIsEditingPrompt={setIsEditingPrompt}
+                askAI={askAI}
+                isAskingAI={isAskingAI}
+                aiInput={aiInput}
+                setAiInput={setAiInput}
+                promptInput={promptInput}
+                setPromptInput={setPromptInput}
+                savePrompt={savePrompt}
+                saveNote={saveNote}
+                personalNote={personalNote}
+                setPersonalNote={setPersonalNote}
+                isEditingNote={isEditingNote}
+                setIsEditingNote={setIsEditingNote}
+                isMobile={true}
+                setIsFeedbackOpen={setIsFeedbackOpen}
+                handleEditCurrentTab={handleEditCurrentTab}
+                isCopyMenuOpen={isCopyMenuOpen}
+                setIsCopyMenuOpen={setIsCopyMenuOpen}
+                copyCurrentTabContent={copyCurrentTabContent}
+                isCopied={isCopied}
+                handleNext={handleNext}
+              />
             </div>
           </motion.div>
         )}
