@@ -7,17 +7,17 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../../C
 from app import create_app, db
 from app.models.client import Client
 
-def register_quizmind():
+def register_vocaburn():
     app = create_app()
     with app.app_context():
-        client = Client.query.filter_by(client_id='quizmind-v1').first()
+        client = Client.query.filter_by(client_id='vocaburn-v1').first()
         if not client:
-            print("Registering QuizMind Client...")
+            print("Registering Vocaburn Client...")
             client = Client(
-                name="QuizMind",
-                client_id="quizmind-v1",
-                client_secret="quizmind_secret_123",
-                redirect_uri="http://localhost:5173/auth-center/callback", # Vite default port
+                name="Vocaburn",
+                client_id="vocaburn-v1",
+                client_secret="vocaburn_secret_123",
+                redirect_uri="http://localhost:5090/auth-center/callback", # Vocaburn standalone port
                 app_icon="brain",
                 app_color_theme="purple",
                 is_active=True,
@@ -25,9 +25,9 @@ def register_quizmind():
             )
             db.session.add(client)
             db.session.commit()
-            print("QuizMind registered successfully.")
+            print("Vocaburn registered successfully.")
         else:
-            print("QuizMind already registered.")
+            print("Vocaburn already registered.")
 
 if __name__ == "__main__":
-    register_quizmind()
+    register_vocaburn()

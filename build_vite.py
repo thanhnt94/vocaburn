@@ -10,7 +10,7 @@ def build_frontend():
         print(" [!] Client directory not found.")
         return False
         
-    print(f" [VITE] Building QuizMind Frontend at {frontend_dir}...")
+    print(f" [VITE] Building Vocaburn Frontend at {frontend_dir}...")
     
     try:
         # Install dependencies if node_modules doesn't exist

@@ -1,4 +1,4 @@
-# QuizMind Backend Requirements
+# Vocaburn Backend Requirements
 # Core
 fastapi
 uvicorn[standard]

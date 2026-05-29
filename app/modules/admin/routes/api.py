@@ -1,0 +1,303 @@
+from fastapi import APIRouter, Request, Depends, Response, HTTPException
+from fastapi.responses import JSONResponse
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select, func
+import httpx
+import time
+from app.core.db import get_db
+from app.modules.auth.services.auth_service import AuthService
+from app.modules.admin.interface import AdminInterface
+from app.modules.admin.models import SystemConfig
+from app.modules.sso_module.service import SSOService
+
+router = APIRouter(prefix="/admin", tags=["Admin"])
+
+@router.post("/ecosystem-sync")
+async def ecosystem_sync(
+    request: Request,
+    data: dict,
+    db: AsyncSession = Depends(get_db)
+):
+    sso_config = await AdminInterface.get_sso_config(db)
+    
+    # CentralAuth sends client_secret as hub_secret for verification
+    hub_secret = data.get("hub_secret") or data.get("client_secret")
+    if not hub_secret or hub_secret != sso_config.get("client_secret"):
+        return Response(content="Unauthorized: Invalid Secret", status_code=401)
+
+    # Sync users
+    from app.modules.auth.models import User
+    users = data.get("users", [])
+    synced_count = 0
+    for u_data in users:
+        email = u_data.get("email")
+        username = u_data.get("username")
+        if not email or not username: continue
+        
+        # 1. Try to find by email first
+        user = await AuthService.get_user_by_email(db, email)
+        
+        # 2. If not found by email, try to find by username (to avoid UNIQUE constraint failure)
+        if not user:
+            user = await AuthService.get_user_by_username(db, username)
+        
+        if not user:
+            # 3. Create new user if not found by either email or username
+            user = User(
+                email=email,
+                username=username,
+                full_name=u_data.get("full_name") or username,
+                role="admin" if u_data.get("role") == "admin" else "user",
+                hashed_password=u_data.get("password_hash")
+            )
+            db.add(user)
+        else:
+            # 4. Update existing user (found by either email or username)
+            # hub is source of truth
+            user.email = email 
+            user.username = username
+            user.full_name = u_data.get("full_name", user.full_name)
+            if u_data.get("role"):
+                user.role = "admin" if u_data.get("role") == "admin" else "user"
+            
+            if u_data.get("password_hash"):
+                user.hashed_password = u_data.get("password_hash")
+                
+        synced_count += 1
+    
+    # Update CentralAuth URL if provided and changed
+    server_address = data.get("server_address")
+    if server_address:
+        server_address = server_address.rstrip('/')
+        if server_address != sso_config.get("central_auth_url"):
+            sso_config["central_auth_url"] = server_address
+            # Update config without requiring a real admin session (id=0)
+            await AdminInterface.update_sso_config(db, sso_config, 0)
+
+    await db.commit()
+    return {"status": "success", "message": f"Synced {synced_count} users successfully."}
+
+@router.get("/stats")
+async def api_admin_stats(request: Request, db: AsyncSession = Depends(get_db)):
+    user = await AuthService.get_current_user(request, db)
+    if not user or user.role != "admin":
+        return JSONResponse(status_code=401, content={"error": "Unauthorized"})
+        
+    from app.modules.quiz.models import Quiz, UserAnswer
+    from app.modules.auth.models import User as UserDB
+    
+    user_count_result = await db.execute(select(func.count(UserDB.id)))
+    quiz_count_result = await db.execute(select(func.count(Quiz.id)))
+    total_answers_result = await db.execute(select(func.count(UserAnswer.id)))
+    
+    sso_config = await AdminInterface.get_sso_config(db)
+    
+    return {
+        "user_count": user_count_result.scalar(),
+        "quiz_count": quiz_count_result.scalar(),
+        "total_answers": total_answers_result.scalar(),
+        "sso_config": {
+            "central_auth_url": sso_config.get("central_auth_url") if isinstance(sso_config, dict) else getattr(sso_config, "central_auth_url", ""),
+            "client_id": sso_config.get("client_id") if isinstance(sso_config, dict) else getattr(sso_config, "client_id", ""),
+            "enabled": sso_config.get("enabled", False) if isinstance(sso_config, dict) else getattr(sso_config, "enabled", False)
+        }
+    }
+
+@router.get("/sso")
+async def api_admin_sso(request: Request, db: AsyncSession = Depends(get_db)):
+    user = await AuthService.get_current_user(request, db)
+    if not user or user.role != "admin":
+        return JSONResponse(status_code=401, content={"error": "Unauthorized"})
+        
+    sso_config = await AdminInterface.get_sso_config(db)
+    return {
+        "central_auth_url": sso_config.get("central_auth_url") if isinstance(sso_config, dict) else getattr(sso_config, "central_auth_url", ""),
+        "client_id": sso_config.get("client_id") if isinstance(sso_config, dict) else getattr(sso_config, "client_id", ""),
+        "client_secret": sso_config.get("client_secret") if isinstance(sso_config, dict) else getattr(sso_config, "client_secret", ""),
+        "enabled": sso_config.get("enabled", False) if isinstance(sso_config, dict) else getattr(sso_config, "enabled", False)
+    }
+
+@router.post("/sso")
+async def api_admin_sso_update(
+    request: Request,
+    data: dict,
+    db: AsyncSession = Depends(get_db)
+):
+    user = await AuthService.get_current_user(request, db)
+    if not user or user.role != "admin":
+        return JSONResponse(status_code=401, content={"error": "Unauthorized"})
+        
+    config_data = {
+        "central_auth_url": data.get("central_auth_url"),
+        "client_id": data.get("client_id"),
+        "client_secret": data.get("client_secret"),
+        "enabled": data.get("enabled", False)
+    }
+    await AdminInterface.update_sso_config(db, config_data, user.id)
+    return {"status": "success", "message": "SSO configuration updated successfully!"}
+
+@router.post("/sso/test")
+async def test_sso_connection(
+    request: Request,
+    data: dict,
+    db: AsyncSession = Depends(get_db)
+):
+    user = await AuthService.get_current_user(request, db)
+    if not user or user.role != "admin":
+        raise HTTPException(status_code=401, detail="Unauthorized")
+    
+    ca_url = data.get("central_auth_url", "").rstrip('/')
+    if not ca_url:
+        return {"status": "error", "message": "Invalid URL"}
+    
+    try:
+        async with httpx.AsyncClient() as client:
+            resp = await client.get(f"{ca_url}/api/auth/health", timeout=5.0)
+            if resp.status_code == 200:
+                return {"status": "success", "message": "Connection Successful!"}
+            else:
+                return {"status": "error", "message": f"CentralAuth returned {resp.status_code}"}
+    except Exception as e:
+        return {"status": "error", "message": f"Connection Failed: {str(e)}"}
+
+@router.get("/ai")
+async def api_admin_ai(request: Request, db: AsyncSession = Depends(get_db)):
+    user = await AuthService.get_current_user(request, db)
+    if not user or user.role != "admin":
+        return JSONResponse(status_code=401, content={"error": "Unauthorized"})
+        
+    ai_config = await AdminInterface.get_ai_config(db)
+    return {
+        "api_key": ai_config.get("api_key", "") if isinstance(ai_config, dict) else getattr(ai_config, "api_key", ""),
+        "model_id": ai_config.get("model_id", "gemini-2.5-flash") if isinstance(ai_config, dict) else getattr(ai_config, "model_id", "gemini-2.5-flash"),
+        "enabled": ai_config.get("enabled", False) if isinstance(ai_config, dict) else getattr(ai_config, "enabled", False)
+    }
+
+@router.post("/ai")
+async def api_admin_ai_update(
+    request: Request,
+    data: dict,
+    db: AsyncSession = Depends(get_db)
+):
+    user = await AuthService.get_current_user(request, db)
+    if not user or user.role != "admin":
+        return JSONResponse(status_code=401, content={"error": "Unauthorized"})
+        
+    config_data = {
+        "api_key": data.get("api_key"),
+        "model_id": data.get("model_id", "gemini-2.5-flash"),
+        "enabled": data.get("enabled", False)
+    }
+    await AdminInterface.update_ai_config(db, config_data, user.id)
+    return {"status": "success", "message": "AI configuration updated successfully!"}
+
+@router.post("/ai/list-models")
+async def list_ai_models(request: Request, db: AsyncSession = Depends(get_db)):
+    user = await AuthService.get_current_user(request, db)
+    if not user or user.role != "admin":
+        return JSONResponse(status_code=403, content={"error": "Unauthorized"})
+    
+    data = await request.json()
+    api_key = data.get("api_key")
+    if not api_key:
+        return JSONResponse(status_code=400, content={"error": "API Key required"})
+    
+    try:
+        from google import genai
+        client = genai.Client(api_key=api_key)
+        models = []
+        model_list = list(client.models.list())
+        
+        for m in model_list:
+            methods = getattr(m, 'supported_generation_methods', [])
+            is_generative = any('generateContent' in str(method) or 'generate_content' in str(method) for method in methods)
+            
+            if is_generative or not methods:
+                model_id = m.name.split('/')[-1] if '/' in m.name else m.name
+                models.append({
+                    "id": model_id, 
+                    "display_name": m.display_name or model_id,
+                    "is_generative": is_generative
+                })
+        
+        if not models and model_list:
+            models = [{"id": m.name.split('/')[-1], "display_name": m.display_name or m.name} for m in model_list]
+            
+        return {"models": models}
+    except Exception as e:
+        error_msg = str(e)
+        if "API_KEY_INVALID" in error_msg:
+            error_msg = "Invalid API Key. Please check your Google AI Studio settings."
+        return JSONResponse(status_code=500, content={"error": error_msg})
+
+@router.get("/users")
+async def api_admin_users(request: Request, db: AsyncSession = Depends(get_db)):
+    user = await AuthService.get_current_user(request, db)
+    if not user or user.role != "admin":
+        return JSONResponse(status_code=401, content={"error": "Unauthorized"})
+        
+    from app.modules.auth.models import User as UserDB
+    users_result = await db.execute(select(UserDB))
+    users = users_result.scalars().all()
+    
+    return [
+        {
+            "id": u.id,
+            "username": u.username,
+            "email": u.email,
+            "role": u.role
+        } for u in users
+    ]
+
+@router.post("/users/{user_id}/role")
+async def api_admin_update_user_role(user_id: int, payload: dict, request: Request, db: AsyncSession = Depends(get_db)):
+    current_user = await AuthService.get_current_user(request, db)
+    if not current_user or current_user.role != "admin":
+        return JSONResponse(status_code=401, content={"error": "Unauthorized"})
+        
+    role = payload.get("role")
+    if role not in ["admin", "user"]:
+        return JSONResponse(status_code=400, content={"error": "Invalid role"})
+        
+    from app.modules.auth.models import User as UserDB
+    user_result = await db.execute(select(UserDB).where(UserDB.id == user_id))
+    user_to_update = user_result.scalar_one_or_none()
+    if not user_to_update:
+        return JSONResponse(status_code=404, content={"error": "User not found"})
+        
+    if user_to_update.id == current_user.id and role != "admin":
+        return JSONResponse(status_code=400, content={"error": "You cannot demote yourself from Admin"})
+        
+    user_to_update.role = role
+    await db.commit()
+    return {"status": "success", "user_id": user_id, "new_role": role}
+
+@router.get("/maintenance")
+async def api_admin_maintenance(request: Request, db: AsyncSession = Depends(get_db)):
+    user = await AuthService.get_current_user(request, db)
+    if not user or user.role != "admin":
+        return JSONResponse(status_code=401, content={"error": "Unauthorized"})
+        
+    maintenance_config_result = await db.execute(select(SystemConfig).where(SystemConfig.id == "maintenance_mode"))
+    maintenance_config = maintenance_config_result.scalar_one_or_none()
+    is_enabled = maintenance_config.value.get("enabled", False) if maintenance_config else False
+    return {"maintenance_enabled": is_enabled}
+
+@router.post("/maintenance/toggle")
+async def api_toggle_maintenance(request: Request, db: AsyncSession = Depends(get_db)):
+    user = await AuthService.get_current_user(request, db)
+    if not user or user.role != "admin":
+        return JSONResponse(status_code=401, content={"error": "Unauthorized"})
+        
+    config_result = await db.execute(select(SystemConfig).where(SystemConfig.id == "maintenance_mode"))
+    config = config_result.scalar_one_or_none()
+    if not config:
+        config = SystemConfig(id="maintenance_mode", value={"enabled": True})
+        db.add(config)
+        is_enabled = True
+    else:
+        is_enabled = not config.value.get("enabled", False)
+        config.value = {"enabled": is_enabled}
+    
+    await db.commit()
+    return {"status": "success", "maintenance_enabled": is_enabled}

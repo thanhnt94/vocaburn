@@ -6,12 +6,12 @@ from datetime import datetime
 # Paths
 ECOSYSTEM_ROOT = r"c:\Code\Ecosystem"
 CENTRAL_AUTH_DB = os.path.join(ECOSYSTEM_ROOT, "Storage", "database", "CentralAuth.db")
-QUIZMIND_DB = os.path.join(ECOSYSTEM_ROOT, "Storage", "database", "quizmind.db")
+VOCABURN_DB = os.path.join(ECOSYSTEM_ROOT, "Storage", "database", "Vocaburn.db")
 
 # Configs
-CLIENT_ID = "quizmind-v1"
-CLIENT_SECRET = "quizmind_secret_123"
-QUIZMIND_PORT = 5080
+CLIENT_ID = "vocaburn-v1"
+CLIENT_SECRET = "vocaburn_secret_123"
+VOCABURN_PORT = 5090
 CENTRAL_AUTH_PORT = 5000
 
 def setup_central_auth():
@@ -24,8 +24,8 @@ def setup_central_auth():
         conn = sqlite3.connect(CENTRAL_AUTH_DB)
         cursor = conn.cursor()
 
-        redirect_uri = f"http://localhost:{QUIZMIND_PORT}/auth-center/callback"
-        app_url = f"http://localhost:{QUIZMIND_PORT}"
+        redirect_uri = f"http://localhost:{VOCABURN_PORT}/auth-center/callback"
+        app_url = f"http://localhost:{VOCABURN_PORT}"
 
         # Check if client exists
         cursor.execute("SELECT id FROM clients WHERE client_id = ?", (CLIENT_ID,))
@@ -37,13 +37,13 @@ def setup_central_auth():
                 UPDATE clients 
                 SET client_secret = ?, redirect_uri = ?, app_url = ?, name = ?, app_icon = ?, app_color_theme = ?
                 WHERE client_id = ?
-            """, (CLIENT_SECRET, redirect_uri, app_url, "QuizMind", "brain", "purple", CLIENT_ID))
+            """, (CLIENT_SECRET, redirect_uri, app_url, "Vocaburn", "brain", "purple", CLIENT_ID))
         else:
             print(f"Creating new client: {CLIENT_ID}")
             cursor.execute("""
                 INSERT INTO clients (client_id, client_secret, name, redirect_uri, app_url, app_icon, app_color_theme, is_active, is_visible_on_portal, created_at)
                 VALUES (?, ?, ?, ?, ?, ?, ?, 1, 1, ?)
-            """, (CLIENT_ID, CLIENT_SECRET, "QuizMind", redirect_uri, app_url, "brain", "purple", datetime.utcnow().isoformat()))
+            """, (CLIENT_ID, CLIENT_SECRET, "Vocaburn", redirect_uri, app_url, "brain", "purple", datetime.utcnow().isoformat()))
 
         conn.commit()
         conn.close()
@@ -51,14 +51,14 @@ def setup_central_auth():
     except Exception as e:
         print(f"Error setting up CentralAuth: {e}")
 
-def setup_quizmind():
-    print(f"--- Setting up QuizMind at {QUIZMIND_DB} ---")
-    if not os.path.exists(QUIZMIND_DB):
-        print(f"Error: QuizMind DB not found at {QUIZMIND_DB}")
+def setup_vocaburn():
+    print(f"--- Setting up Vocaburn at {VOCABURN_DB} ---")
+    if not os.path.exists(VOCABURN_DB):
+        print(f"Error: Vocaburn DB not found at {VOCABURN_DB}")
         return
 
     try:
-        conn = sqlite3.connect(QUIZMIND_DB)
+        conn = sqlite3.connect(VOCABURN_DB)
         cursor = conn.cursor()
 
         sso_config = {
@@ -89,13 +89,13 @@ def setup_quizmind():
 
         conn.commit()
         conn.close()
-        print("Done QuizMind setup.")
+        print("Done Vocaburn setup.")
     except Exception as e:
-        print(f"Error setting up QuizMind: {e}")
+        print(f"Error setting up Vocaburn: {e}")
 
 if __name__ == "__main__":
     setup_central_auth()
-    setup_quizmind()
+    setup_vocaburn()
     print("\n[SUCCESS] Ecosystem SSO setup completed!")
-    print(f"QuizMind: http://localhost:{QUIZMIND_PORT}")
+    print(f"Vocaburn: http://localhost:{VOCABURN_PORT}")
     print(f"CentralAuth: http://localhost:{CENTRAL_AUTH_PORT}")

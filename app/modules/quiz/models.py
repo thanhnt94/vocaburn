@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Boolean, ForeignKey, Text, JSON, DateTime, Float
+from sqlalchemy import Column, Integer, String, Boolean, ForeignKey, Text, JSON, DateTime, Float, UniqueConstraint
 from sqlalchemy.orm import relationship
 from datetime import datetime
 from app.core.db import Base
@@ -170,6 +170,7 @@ class UserQuizGoal(Base):
 
 class UserDailyProgress(Base):
     __tablename__ = "user_daily_progress"
+    __table_args__ = (UniqueConstraint("goal_id", "date", name="uq_goal_date"),)
     id = Column(Integer, primary_key=True, index=True)
     goal_id = Column(Integer, ForeignKey("user_deck_goals.id"), index=True)
     date = Column(String(50), index=True) # YYYY-MM-DD
@@ -181,6 +182,7 @@ class UserDailyProgress(Base):
 
 class UserQuestionMastery(Base):
     __tablename__ = "user_card_mastery"
+    __table_args__ = (UniqueConstraint("user_id", "question_id", name="uq_user_question"),)
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id"), index=True)
     question_id = Column(Integer, ForeignKey("flashcards.id"), index=True)

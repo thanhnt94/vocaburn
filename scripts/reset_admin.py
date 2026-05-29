@@ -10,9 +10,9 @@ from app.modules.auth.models import User
 from app.modules.auth.services.auth_service import AuthService
 from sqlalchemy import select
 
-async def reset_quizmind_admin():
+async def reset_vocaburn_admin():
     async with SessionLocal() as db:
-        print("Checking for QuizMind admin user...")
+        print("Checking for Vocaburn admin user...")
         result = await db.execute(select(User).where(User.username == "admin"))
         admin = result.scalar_one_or_none()
         
@@ -20,19 +20,19 @@ async def reset_quizmind_admin():
             print(f"Found admin: {admin.username}. Resetting password to 'admin'...")
             admin.hashed_password = AuthService.get_password_hash("admin")
             await db.commit()
-            print("QuizMind Admin Password reset successfully.")
+            print("Vocaburn Admin Password reset successfully.")
         else:
             print("Admin user not found. Creating...")
             admin = User(
                 username="admin",
-                email="admin@quizmind.com",
-                full_name="QuizMind Admin",
+                email="admin@vocaburn.com",
+                full_name="Vocaburn Admin",
                 hashed_password=AuthService.get_password_hash("admin"),
                 role="admin"
             )
             db.add(admin)
             await db.commit()
-            print("QuizMind Admin user created successfully.")
+            print("Vocaburn Admin user created successfully.")
 
 if __name__ == "__main__":
-    asyncio.run(reset_quizmind_admin())
+    asyncio.run(reset_vocaburn_admin())
