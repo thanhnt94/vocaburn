@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
+import axios from 'axios'
 import { 
   Settings as SettingsIcon, 
   Brain, 
@@ -17,17 +18,107 @@ import {
 
 type LearningMode = 'sequential' | 'random' | 'unseen' | 'review'
 
+function urlBase64ToUint8Array(base64String: string) {
+  const padding = '='.repeat((4 - base64String.length % 4) % 4);
+  const base64 = (base64String + padding)
+    .replace(/\-/g, '+')
+    .replace(/_/g, '/');
+
+  const rawData = window.atob(base64);
+  const outputArray = new Uint8Array(rawData.length);
+
+  for (let i = 0; i < rawData.length; ++i) {
+    outputArray[i] = rawData.charCodeAt(i);
+  }
+  return outputArray;
+}
+
 const Settings = () => {
   const [learningMode, setLearningMode] = useState<LearningMode>('sequential')
+  const [pushActive, setPushActive] = useState(false)
+  const [checkingPush, setCheckingPush] = useState(true)
 
   useEffect(() => {
     const savedMode = localStorage.getItem('quiz_learning_mode') as LearningMode
     if (savedMode) setLearningMode(savedMode)
+    
+    // Check if browser has push subscription active
+    const checkSubscription = async () => {
+      if ('serviceWorker' in navigator && 'PushManager' in window) {
+        try {
+          const registration = await navigator.serviceWorker.ready
+          const sub = await registration.pushManager.getSubscription()
+          setPushActive(!!sub && Notification.permission === 'granted')
+        } catch (e) {
+          console.error("Error checking push subscription status:", e)
+        }
+      }
+      setCheckingPush(false)
+    }
+    checkSubscription()
   }, [])
 
   const updateLearningMode = (mode: LearningMode) => {
     setLearningMode(mode)
     localStorage.setItem('quiz_learning_mode', mode)
+  }
+
+  const togglePushNotifications = async () => {
+    if (pushActive) {
+      // Unsubscribe
+      setPushActive(false)
+      if ('serviceWorker' in navigator) {
+        try {
+          const registration = await navigator.serviceWorker.ready
+          const subscription = await registration.pushManager.getSubscription()
+          if (subscription) {
+            await subscription.unsubscribe()
+            await axios.post('/api/v1/notifications/push/unsubscribe', {
+              endpoint: subscription.endpoint
+            })
+          }
+        } catch (e) {
+          console.error("Failed to unsubscribe", e)
+        }
+      }
+    } else {
+      // Subscribe
+      if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+        alert("Push notifications are not supported in this browser.")
+        return
+      }
+      
+      const permission = await Notification.requestPermission()
+      if (permission !== 'granted') {
+        alert("Notification permission denied. Please allow notifications in browser settings.")
+        return
+      }
+
+      try {
+        const registration = await navigator.serviceWorker.ready
+        const keyRes = await axios.get('/api/v1/notifications/vapid-public-key')
+        const vapidPublicKey = keyRes.data.public_key
+        const convertedVapidKey = urlBase64ToUint8Array(vapidPublicKey)
+
+        const subscription = await registration.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: convertedVapidKey
+        })
+
+        const subJson = subscription.toJSON()
+        await axios.post('/api/v1/notifications/push/subscribe', {
+          endpoint: subJson.endpoint,
+          keys: {
+            p256dh: subJson.keys?.p256dh,
+            auth: subJson.keys?.auth
+          }
+        })
+        setPushActive(true)
+      } catch (error) {
+        console.error("Push subscription failed", error)
+        alert("Failed to subscribe. Please try again.")
+      }
+    }
   }
 
   const modes = [
@@ -131,7 +222,14 @@ const Settings = () => {
           </div>
 
           <div className="space-y-2">
-            <SettingItem icon={Bell} label="Neural Notifications" desc="Get alerted when daily patterns refresh" active />
+            <div onClick={togglePushNotifications}>
+              <SettingItem 
+                icon={Bell} 
+                label="Daily Reminder Push" 
+                desc="Get push notifications when daily reviews are due" 
+                active={pushActive} 
+              />
+            </div>
             <SettingItem icon={Moon} label="Dark Matrix Mode" desc="Switch interface to high-contrast dark mode" />
             <SettingItem icon={Clock} label="Focus Timer" desc="Display time spent per neural node during sessions" active />
           </div>

@@ -167,3 +167,141 @@ class QuizService:
             }
         
         return quiz
+
+    @staticmethod
+    async def get_today_review(db: AsyncSession, user_id: int):
+        import math
+        from datetime import datetime
+        from sqlalchemy import select, func
+        from app.modules.quiz.models import QuizAttempt, UserQuizGoal, UserDailyProgress, UserQuestionMastery, Question, Quiz
+        from app.modules.gamification.models import UserDailyActivity
+        
+        # 1. Get interacted quiz ids (not archived)
+        interaction_res = await db.execute(
+            select(QuizAttempt.quiz_id).where(
+                QuizAttempt.user_id == user_id,
+                QuizAttempt.is_archived == False
+            ).distinct()
+        )
+        my_quiz_ids = {r[0] for r in interaction_res.all()}
+        
+        # 2. Get active goal quiz ids
+        goal_res = await db.execute(
+            select(UserQuizGoal).options(selectinload(UserQuizGoal.quiz)).where(
+                UserQuizGoal.user_id == user_id,
+                UserQuizGoal.status == "active"
+            )
+        )
+        active_goals = goal_res.scalars().all()
+        goal_quiz_ids = {goal.quiz_id for goal in active_goals}
+        
+        # All active quizzes the user is learning/reviewing
+        active_quiz_ids = my_quiz_ids | goal_quiz_ids
+        
+        if not active_quiz_ids:
+            return {
+                "due_cards_count": 0,
+                "decks_summary": [],
+                "streak_at_risk": False,
+                "estimated_minutes": 0
+            }
+            
+        now = datetime.utcnow()
+        today_str = now.strftime("%Y-%m-%d")
+        
+        # Fetch active goal configurations (map quiz_id -> goal)
+        goals_map = {goal.quiz_id: goal for goal in active_goals}
+        
+        # Bulk query daily progress for active goals
+        goal_ids = [goal.id for goal in active_goals]
+        progress_map = {}
+        if goal_ids:
+            prog_res = await db.execute(
+                select(UserDailyProgress).where(
+                    UserDailyProgress.goal_id.in_(goal_ids),
+                    UserDailyProgress.date == today_str
+                )
+            )
+            progress_map = {p.goal_id: p for p in prog_res.scalars().all()}
+            
+        decks_summary = []
+        total_due_review = 0
+        total_due_new = 0
+        
+        for quiz_id in active_quiz_ids:
+            # Get quiz title
+            quiz_stmt = select(Quiz.title).where(Quiz.id == quiz_id)
+            quiz_title_res = await db.execute(quiz_stmt)
+            quiz_title = quiz_title_res.scalar() or f"Quiz {quiz_id}"
+            
+            # Count total questions in quiz
+            total_questions_stmt = select(func.count(Question.id)).where(Question.quiz_id == quiz_id)
+            total_questions_res = await db.execute(total_questions_stmt)
+            total_questions = total_questions_res.scalar() or 0
+            
+            # Count FSRS due reviews
+            due_reviews_stmt = select(func.count(UserQuestionMastery.id)).join(
+                Question, UserQuestionMastery.question_id == Question.id
+            ).where(
+                Question.quiz_id == quiz_id,
+                UserQuestionMastery.user_id == user_id,
+                UserQuestionMastery.due <= now
+            )
+            due_reviews_res = await db.execute(due_reviews_stmt)
+            due_reviews_count = due_reviews_res.scalar() or 0
+            
+            # Count total attempted/learned questions to determine unattempted (new) questions
+            learned_stmt = select(func.count(UserQuestionMastery.id)).join(
+                Question, UserQuestionMastery.question_id == Question.id
+            ).where(
+                Question.quiz_id == quiz_id,
+                UserQuestionMastery.user_id == user_id
+            )
+            learned_res = await db.execute(learned_stmt)
+            learned_count = learned_res.scalar() or 0
+            unattempted_count = max(0, total_questions - learned_count)
+            
+            # Determine due new count under active goal
+            due_new_count = 0
+            goal = goals_map.get(quiz_id)
+            if goal:
+                progress = progress_map.get(goal.id)
+                done_today = progress.count_done if progress else 0
+                due_new_count = max(0, goal.daily_target - done_today)
+                # Cap at the actual number of unattempted questions in the deck
+                due_new_count = min(due_new_count, unattempted_count)
+                
+            if due_reviews_count > 0 or due_new_count > 0:
+                decks_summary.append({
+                    "quiz_id": quiz_id,
+                    "title": quiz_title,
+                    "due_count": due_reviews_count,
+                    "new_count": due_new_count
+                })
+                total_due_review += due_reviews_count
+                total_due_new += due_new_count
+                
+        # Check if daily activity exists for today in gamification
+        act_res = await db.execute(
+            select(UserDailyActivity).where(
+                UserDailyActivity.user_id == user_id,
+                UserDailyActivity.activity_date == now.date()
+            )
+        )
+        has_activity_today = act_res.scalar_one_or_none() is not None
+        
+        # Calculate estimated minutes
+        estimated_minutes = math.ceil((total_due_review * 15 + total_due_new * 30) / 60)
+        if (total_due_review + total_due_new) > 0 and estimated_minutes == 0:
+            estimated_minutes = 1
+            
+        due_cards_count = total_due_review + total_due_new
+        streak_at_risk = not has_activity_today and (due_cards_count > 0 or len(active_goals) > 0)
+        
+        return {
+            "due_cards_count": due_cards_count,
+            "decks_summary": decks_summary,
+            "streak_at_risk": streak_at_risk,
+            "estimated_minutes": estimated_minutes
+        }
+

@@ -1,7 +1,7 @@
 from app.modules.quiz.models import Category, Quiz, Question
 from app.modules.auth.models import User
 from app.modules.gamification.models import UserGamification, Badge
-from app.modules.notification.models import Notification
+from app.modules.notification.models import Notification, PushSubscription
 from app.modules.stats.models import UserDailyStats
 from app.modules.admin.models import SystemConfig, AdminLog
 from app.modules.sso_module.models import SSOConfig

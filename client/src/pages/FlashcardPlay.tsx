@@ -16,6 +16,7 @@ import { TypewriterText } from '@/components/TypewriterText'
 import { FeedbackArea } from '@/components/FeedbackArea'
 import { PracticeSetupScreen } from '@/components/PracticeSetupScreen'
 import { QuestionMapGrid } from '@/components/QuestionMapGrid'
+import { MilestoneCelebration } from '@/components/MilestoneCelebration'
 
 interface Option {
   id: number
@@ -190,6 +191,11 @@ export default function FlashcardPlay() {
   const [practiceAnswers, setPracticeAnswers] = useState<Record<number, number>>({})
   const [isEditingPrompt, setIsEditingPrompt] = useState(false)
   const [promptInput, setPromptInput] = useState('')
+  const [activeMilestone, setActiveMilestone] = useState<{
+    type: 'streak_10' | 'halfway' | 'mastery' | 'goal_met'
+    title: string
+    message: string
+  } | null>(null)
   // ── Engagement State ──
   const [answerContext, setAnswerContext] = useState<{
     wasCorrect: boolean
@@ -1218,6 +1224,35 @@ export default function FlashcardPlay() {
         time_spent: timeTaken,
         local_date: new Date().toLocaleDateString('en-CA')
       })
+
+      // Trigger 10-Streak Milestone Celebration
+      if (updatedStreak === 10) {
+        setActiveMilestone({
+          type: 'streak_10',
+          title: '🔥 Perfect Streak!',
+          message: 'Amazing focus! You have answered 10 cards correct in a row!'
+        })
+      }
+
+      // Trigger Halfway Completion Milestone Celebration
+      const answeredCount = Object.keys(newAnswers).length
+      const totalCount = session?.questions?.length || 1
+      if (answeredCount === Math.floor(totalCount / 2) && totalCount > 4) {
+        setActiveMilestone({
+          type: 'halfway',
+          title: '🎯 Halfway There!',
+          message: `Great progress! You have studied ${answeredCount}/${totalCount} cards in this deck.`
+        })
+      }
+
+      // Trigger Deck Mastery Milestone Celebration
+      if (res.data.deck_mastered) {
+        setActiveMilestone({
+          type: 'mastery',
+          title: '🏆 Deck Mastered!',
+          message: 'Outstanding achievement! You have mastered every card in this deck!'
+        })
+      }
 
       // Spaced Repetition Mastery Level Up
       const masteryUpdate = res.data.mastery_update
@@ -4871,6 +4906,17 @@ export default function FlashcardPlay() {
             </motion.div>
           )
         })()}
+      </AnimatePresence>
+      {/* Milestone Celebrations Overlay */}
+      <AnimatePresence>
+        {activeMilestone && (
+          <MilestoneCelebration
+            type={activeMilestone.type}
+            title={activeMilestone.title}
+            message={activeMilestone.message}
+            onClose={() => setActiveMilestone(null)}
+          />
+        )}
       </AnimatePresence>
     </div>
   )

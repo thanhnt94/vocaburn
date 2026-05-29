@@ -1,17 +1,16 @@
 {
-  "name": "QuizMind",
-  "short_name": "QuizMind",
-  "description": "Mastery Through Practice",
-  "start_url": "/",
-  "display": "standalone",
-  "background_color": "#ffffff",
-  "theme_color": "#4F46E5",
+  "short_name": "Vocaburn",
+  "name": "Vocaburn - Spaced Repetition Flashcards",
   "icons": [
     {
-      "src": "/static/dist/favicon.png",
-      "sizes": "192x192 512x512",
+      "src": "favicon.png",
       "type": "image/png",
-      "purpose": "any maskable"
+      "sizes": "512x512"
     }
-  ]
+  ],
+  "start_url": "/dashboard",
+  "background_color": "#ffffff",
+  "theme_color": "#6366f1",
+  "display": "standalone",
+  "orientation": "portrait"
 }

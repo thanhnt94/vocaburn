@@ -36,3 +36,8 @@ fsrs
 edge-tts
 gTTS
 pydub
+
+# Web Push Notifications
+pywebpush
+cryptography
+

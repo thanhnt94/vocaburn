@@ -471,6 +471,30 @@ async def record_answer(request: Request, data: dict, db: AsyncSession = Depends
 
     # --- Stats Logic ---
     await StatsInterface.record_activity(db, user_id, is_correct, time_spent)
+    
+    # Check if deck is 100% mastered
+    deck_mastered = False
+    question_res = await db.execute(
+        select(Question.quiz_id).where(Question.id == question_id)
+    )
+    quiz_id_val = question_res.scalar()
+    if quiz_id_val:
+        total_q_res = await db.execute(
+            select(func.count(Question.id)).where(Question.quiz_id == quiz_id_val)
+        )
+        total_q = total_q_res.scalar() or 0
+        
+        mastered_q_res = await db.execute(
+            select(func.count(UserQuestionMastery.id)).join(Question).where(
+                Question.quiz_id == quiz_id_val,
+                UserQuestionMastery.user_id == user_id,
+                UserQuestionMastery.box_level == 5
+            )
+        )
+        mastered_q = mastered_q_res.scalar() or 0
+        if total_q > 0 and mastered_q == total_q:
+            deck_mastered = True
+            
     await db.commit()
 
     return {
@@ -479,8 +503,10 @@ async def record_answer(request: Request, data: dict, db: AsyncSession = Depends
         "level_up": has_leveled_up,
         "goal_update": goal_update_info,
         "mastery_update": mastery_update_info,
-        "unlocked_badge": unlocked_badge_info
+        "unlocked_badge": unlocked_badge_info,
+        "deck_mastered": deck_mastered
     }
+
 
 @router.get("/{quiz_id}/data")
 async def get_quiz_data(request: Request, quiz_id: int, db: AsyncSession = Depends(get_db)):

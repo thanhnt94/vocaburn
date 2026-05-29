@@ -23,7 +23,20 @@ import asyncio
 async def lifespan(app: FastAPI):
     # Initialize DB on startup
     await init_db()
+    
+    # Start background reminder scheduler
+    from app.modules.notification.services.reminder_scheduler import start_scheduler
+    scheduler_task = start_scheduler()
+    
     yield
+    
+    # Cancel task on shutdown
+    scheduler_task.cancel()
+    try:
+        await scheduler_task
+    except asyncio.CancelledError:
+        pass
+
 
 app = FastAPI(
     title="Vocaburn API",
@@ -67,6 +80,7 @@ from app.modules.admin import router as admin_router
 from app.modules.auth import router as auth_router
 from app.modules.stats import router as stats_router
 from app.modules.notification import router as notification_router
+from app.modules.gamification.routes import router as gamification_router
 
 app.include_router(quiz_api_router, prefix=settings.API_V1_STR)
 app.include_router(room_router, prefix=settings.API_V1_STR)
@@ -77,6 +91,7 @@ app.include_router(auth_router, prefix=settings.API_V1_STR)
 app.include_router(auth_router)
 app.include_router(stats_router, prefix=settings.API_V1_STR)
 app.include_router(notification_router, prefix=settings.API_V1_STR)
+app.include_router(gamification_router, prefix=settings.API_V1_STR)
 
 # --- Health Checks for Ecosystem ---
 @app.get("/api/health")
@@ -91,6 +106,8 @@ async def health_check():
 @app.get("/")
 @app.get("/login")
 @app.get("/dashboard")
+@app.get("/library")
+@app.get("/library/{path:path}")
 @app.get("/quiz/{path:path}")
 @app.get("/flashcard/{path:path}")
 @app.get("/practice/{path:path}")

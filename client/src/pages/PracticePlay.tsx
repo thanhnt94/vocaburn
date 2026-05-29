@@ -16,6 +16,7 @@ import { TypewriterText } from '@/components/TypewriterText'
 import { FeedbackArea } from '@/components/FeedbackArea'
 import { PracticeSetupScreen } from '@/components/PracticeSetupScreen'
 import { QuestionMapGrid } from '@/components/QuestionMapGrid'
+import { MilestoneCelebration } from '@/components/MilestoneCelebration'
 
 interface Option {
   id: number
@@ -181,6 +182,11 @@ export default function PracticePlay() {
   const [practiceAnswers, setPracticeAnswers] = useState<Record<number, number>>({})
   const [isEditingPrompt, setIsEditingPrompt] = useState(false)
   const [promptInput, setPromptInput] = useState('')
+  const [activeMilestone, setActiveMilestone] = useState<{
+    type: 'streak_10' | 'halfway' | 'mastery' | 'goal_met'
+    title: string
+    message: string
+  } | null>(null)
   // ── Engagement State ──
   const [answerContext, setAnswerContext] = useState<{
     wasCorrect: boolean
@@ -1421,6 +1427,26 @@ export default function PracticePlay() {
 
       confetti({ particleCount: 80, spread: 50, origin: { y: 0.6 } });
       setBadgeMessage("Chính xác! 🎯");
+
+      // Trigger 10-streak milestone celebration in practice mode
+      if (updatedStreak === 10) {
+        setActiveMilestone({
+          type: 'streak_10',
+          title: '🔥 Perfect Streak!',
+          message: 'Excellent concentration! You answered 10 practice cards correct in a row.'
+        });
+      }
+
+      // Trigger Halfway completion milestone in practice mode
+      const answeredCount = Object.keys(newAnswers).length;
+      const totalCount = session?.questions?.length || 1;
+      if (answeredCount === Math.floor(totalCount / 2) && totalCount > 4) {
+        setActiveMilestone({
+          type: 'halfway',
+          title: '🎯 Halfway There!',
+          message: `Great progress! You completed ${answeredCount}/${totalCount} cards in this practice session.`
+        });
+      }
     } else {
       if (sfxEnabled) playIncorrectSound();
       updatedStreak = 0;
@@ -4698,6 +4724,17 @@ export default function PracticePlay() {
             </motion.div>
           )
         })()}
+      </AnimatePresence>
+      {/* Milestone Celebrations Overlay */}
+      <AnimatePresence>
+        {activeMilestone && (
+          <MilestoneCelebration
+            type={activeMilestone.type}
+            title={activeMilestone.title}
+            message={activeMilestone.message}
+            onClose={() => setActiveMilestone(null)}
+          />
+        )}
       </AnimatePresence>
     </div>
   )
