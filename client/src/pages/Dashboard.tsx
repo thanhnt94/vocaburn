@@ -1125,21 +1125,6 @@ export default function Dashboard() {
 
         {/* Heatmap */}
         {heatmapData && heatmapData.length > 0 && <MiniHeatmap data={heatmapData} />}
-
-        <div className="flex gap-2">
-          <Link
-            to="/library"
-            className="flex-1 h-12 bg-indigo-600 text-white rounded-2xl text-xs font-black uppercase tracking-widest flex items-center justify-center gap-2 shadow-md shadow-indigo-100 active:scale-95 transition-all"
-          >
-            Thư viện 📚
-          </Link>
-          <button
-            onClick={() => setIsJoinModalOpen(true)}
-            className="flex-1 h-12 bg-slate-900 text-white rounded-2xl text-xs font-black uppercase tracking-widest flex items-center justify-center gap-2 shadow-sm active:scale-95 transition-all"
-          >
-            Phòng Arena 👥
-          </button>
-        </div>
       </div>
 
       {/* JOIN ROOM MODAL */}
