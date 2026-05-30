@@ -77,3 +77,64 @@ async def unsubscribe_push(request: Request, data: dict, db: AsyncSession = Depe
     await db.commit()
     return {"status": "success", "message": "Unsubscribed from push notifications"}
 
+import secrets
+
+@router.get("/telegram/config")
+async def get_telegram_config(request: Request, db: AsyncSession = Depends(get_db)):
+    from app.modules.notification.models import UserTelegramConfig
+    from app.modules.notification.services.telegram_service import TelegramService
+    user_id = int(request.cookies.get("user_id", 1))
+    
+    bot_config = await TelegramService.get_bot_config(db)
+    
+    res = await db.execute(select(UserTelegramConfig).where(UserTelegramConfig.user_id == user_id))
+    config = res.scalar_one_or_none()
+    
+    if not config:
+        config = UserTelegramConfig(
+            user_id=user_id,
+            connect_token=secrets.token_hex(6).upper()
+        )
+        db.add(config)
+        await db.commit()
+        await db.refresh(config)
+        
+    return {
+        "is_linked": bool(config.telegram_chat_id),
+        "connect_token": config.connect_token,
+        "reminder_time": config.reminder_time,
+        "is_active": config.is_active,
+        "streak_guard_enabled": config.streak_guard_enabled,
+        "weekly_summary_enabled": config.weekly_summary_enabled,
+        "inactivity_alert_enabled": config.inactivity_alert_enabled,
+        "bot_username": bot_config.get("bot_username", "VocaburnBot")
+    }
+
+@router.post("/telegram/config")
+async def update_telegram_config(request: Request, data: dict, db: AsyncSession = Depends(get_db)):
+    from app.modules.notification.models import UserTelegramConfig
+    user_id = int(request.cookies.get("user_id", 1))
+    
+    res = await db.execute(select(UserTelegramConfig).where(UserTelegramConfig.user_id == user_id))
+    config = res.scalar_one_or_none()
+    
+    if not config:
+        raise HTTPException(status_code=404, detail="Config not found")
+        
+    if "reminder_time" in data:
+        config.reminder_time = data["reminder_time"]
+    if "is_active" in data:
+        config.is_active = data["is_active"]
+    if "streak_guard_enabled" in data:
+        config.streak_guard_enabled = data["streak_guard_enabled"]
+    if "weekly_summary_enabled" in data:
+        config.weekly_summary_enabled = data["weekly_summary_enabled"]
+    if "inactivity_alert_enabled" in data:
+        config.inactivity_alert_enabled = data["inactivity_alert_enabled"]
+    if data.get("unlink") is True:
+        config.telegram_chat_id = None
+        config.connect_token = secrets.token_hex(6).upper() # reset token
+        
+    await db.commit()
+    return {"status": "success"}
+

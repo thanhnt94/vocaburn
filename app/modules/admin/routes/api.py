@@ -301,3 +301,104 @@ async def api_toggle_maintenance(request: Request, db: AsyncSession = Depends(ge
     
     await db.commit()
     return {"status": "success", "maintenance_enabled": is_enabled}
+
+@router.get("/telegram")
+async def api_admin_telegram(request: Request, db: AsyncSession = Depends(get_db)):
+    user = await AuthService.get_current_user(request, db)
+    if not user or user.role != "admin":
+        return JSONResponse(status_code=401, content={"error": "Unauthorized"})
+        
+    res = await db.execute(select(SystemConfig).where(SystemConfig.id == "telegram_config"))
+    config = res.scalar_one_or_none()
+    config_value = config.value if config and config.value else {}
+    return {
+        "bot_token": config_value.get("bot_token", ""),
+        "bot_username": config_value.get("bot_username", ""),
+        "enabled": config_value.get("enabled", False)
+    }
+
+@router.post("/telegram")
+async def api_admin_telegram_update(
+    request: Request,
+    data: dict,
+    db: AsyncSession = Depends(get_db)
+):
+    user = await AuthService.get_current_user(request, db)
+    if not user or user.role != "admin":
+        return JSONResponse(status_code=401, content={"error": "Unauthorized"})
+        
+    config_data = {
+        "bot_token": data.get("bot_token"),
+        "bot_username": data.get("bot_username"),
+        "enabled": data.get("enabled", False)
+    }
+    
+    res = await db.execute(select(SystemConfig).where(SystemConfig.id == "telegram_config"))
+    config = res.scalar_one_or_none()
+    if not config:
+        config = SystemConfig(id="telegram_config", value=config_data)
+        db.add(config)
+    else:
+        config.value = config_data
+        
+    await db.commit()
+    
+    # Restart bot with new config
+    import asyncio
+    from app.modules.notification.services.bot_service import init_bot_app
+    asyncio.create_task(init_bot_app())
+    
+    return {"status": "success", "message": "Telegram configuration updated successfully!"}
+
+@router.post("/telegram/test")
+async def test_telegram_bot(request: Request, db: AsyncSession = Depends(get_db)):
+    user = await AuthService.get_current_user(request, db)
+    if not user or user.role != "admin":
+        return JSONResponse(status_code=401, content={"error": "Unauthorized"})
+        
+    res = await db.execute(select(SystemConfig).where(SystemConfig.id == "telegram_config"))
+    config = res.scalar_one_or_none()
+    if not config or not config.value or not config.value.get("bot_token"):
+        return {"status": "error", "message": "Bot token not configured"}
+        
+    token = config.value.get("bot_token")
+    try:
+        async with httpx.AsyncClient() as client:
+            resp = await client.get(f"https://api.telegram.org/bot{token}/getMe", timeout=10)
+            data = resp.json()
+            if data.get("ok"):
+                bot_info = data["result"]
+                return {
+                    "status": "success",
+                    "message": f"Connected to bot: {bot_info.get('first_name')} (@{bot_info.get('username')})"
+                }
+            else:
+                return {"status": "error", "message": data.get("description", "Unknown error")}
+    except Exception as e:
+        return {"status": "error", "message": f"Connection error: {e}"}
+
+@router.post("/telegram/broadcast")
+async def broadcast_telegram_message(request: Request, data: dict, db: AsyncSession = Depends(get_db)):
+    user = await AuthService.get_current_user(request, db)
+    if not user or user.role != "admin":
+        return JSONResponse(status_code=401, content={"error": "Unauthorized"})
+        
+    message = data.get("message")
+    if not message or not message.strip():
+        return {"status": "error", "message": "Message cannot be empty"}
+        
+    from app.modules.notification.models import UserTelegramConfig
+    from app.modules.notification.services.telegram_service import TelegramService
+    
+    res = await db.execute(select(UserTelegramConfig).where(
+        UserTelegramConfig.telegram_chat_id.isnot(None),
+        UserTelegramConfig.is_active == True
+    ))
+    configs = res.scalars().all()
+    
+    success_count = 0
+    for config in configs:
+        if await TelegramService.send_message(db, config.telegram_chat_id, message):
+            success_count += 1
+            
+    return {"status": "success", "message": f"Broadcast sent successfully to {success_count} user(s)."}

@@ -28,10 +28,15 @@ async def lifespan(app: FastAPI):
     from app.modules.notification.services.reminder_scheduler import start_scheduler
     scheduler_task = start_scheduler()
     
+    # Start Telegram Bot
+    from app.modules.notification.services.bot_service import init_bot_app, stop_bot_app
+    asyncio.create_task(init_bot_app())
+    
     yield
     
     # Cancel task on shutdown
     scheduler_task.cancel()
+    await stop_bot_app()
     try:
         await scheduler_task
     except asyncio.CancelledError:
@@ -102,6 +107,17 @@ async def health_check():
 
 
 
+
+@app.get("/sw.js")
+async def serve_sw():
+    sw_path = os.path.join(DIST_DIR, "sw.js")
+    if not os.path.exists(sw_path):
+        # Fallback to client/public/sw.js if it's there
+        sw_path = os.path.join(BASE_DIR, "..", "client", "public", "sw.js")
+    if os.path.exists(sw_path):
+        from fastapi.responses import FileResponse
+        return FileResponse(sw_path, media_type="application/javascript")
+    raise HTTPException(status_code=404, detail="Service worker file not found")
 
 @app.get("/")
 @app.get("/login")

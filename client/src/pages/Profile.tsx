@@ -188,8 +188,8 @@ export default function Profile() {
         <div className="space-y-4">
           <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] mb-4 ml-4">ACCOUNT SETTINGS</h3>
           
-          <MenuLink icon={Settings} label="Account Preferences" />
-          <MenuLink icon={Shield} label="Security & Privacy" />
+          <MenuLink icon={Settings} label="Account Preferences" href="/settings#preferences" />
+          <MenuLink icon={Shield} label="Security & Privacy" href="/settings#security" />
           <MenuLink icon={LogOut} label="Sign Out" variant="danger" href="/logout" />
         </div>
       </div>
@@ -298,9 +298,11 @@ export default function Profile() {
   )
 }
 
+import { Link } from 'react-router-dom'
+
 function MenuLink({ icon: Icon, label, variant = 'default', href = '#' }: any) {
   return (
-    <a href={href} className={cn(
+    <Link to={href} className={cn(
       "bg-white rounded-[2.5rem] p-6 border border-slate-100 flex items-center justify-between group transition-all",
       variant === 'danger' && "border-rose-50 hover:bg-rose-50/30"
     )}>
@@ -320,6 +322,6 @@ function MenuLink({ icon: Icon, label, variant = 'default', href = '#' }: any) {
         "w-4 h-4 transition-all",
         variant === 'danger' ? "text-rose-200" : "text-slate-300"
       )} />
-    </a>
+    </Link>
   )
 }

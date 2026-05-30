@@ -41,3 +41,4 @@ pydub
 pywebpush
 cryptography
 
+python-telegram-bot

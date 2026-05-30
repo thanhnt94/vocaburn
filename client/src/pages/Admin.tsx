@@ -7,10 +7,18 @@ export default function Admin() {
   const navigate = useNavigate();
   const { user, isLoggedIn, isLoading } = useAppStore();
 
-  const [activeTab, setActiveTab] = useState<'sso' | 'ai' | 'users' | 'maintenance'>('sso');
+  const [activeTab, setActiveTab] = useState<'sso' | 'ai' | 'telegram' | 'users' | 'maintenance'>('sso');
   const [globalLoading, setGlobalLoading] = useState(false);
   const [successMsg, setSuccessMsg] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
+
+  // Tab: Telegram Config state
+  const [tgBotToken, setTgBotToken] = useState('');
+  const [tgBotUsername, setTgBotUsername] = useState('');
+  const [tgEnabled, setTgEnabled] = useState(false);
+  const [tgTestStatus, setTgTestStatus] = useState<{ status: 'idle' | 'loading' | 'success' | 'error'; message?: string }>({ status: 'idle' });
+  const [broadcastMsg, setBroadcastMsg] = useState('');
+  const [broadcastStatus, setBroadcastStatus] = useState<{ status: 'idle' | 'loading' | 'success' | 'error'; message?: string }>({ status: 'idle' });
 
   // Tab 1: SSO Config state
   const [ssoUrl, setSsoUrl] = useState('');
@@ -48,6 +56,7 @@ export default function Admin() {
     if (isLoggedIn && user?.role === 'admin') {
       loadSSOConfig();
       loadAIConfig();
+      loadTelegramConfig();
       loadUsersList();
       loadMaintenanceMode();
     }
@@ -73,6 +82,17 @@ export default function Admin() {
       setAiEnabled(res.data.enabled || false);
     } catch (e) {
       console.error("Failed to load AI configuration", e);
+    }
+  };
+
+  const loadTelegramConfig = async () => {
+    try {
+      const res = await axios.get('/api/v1/admin/telegram');
+      setTgBotToken(res.data.bot_token || '');
+      setTgBotUsername(res.data.bot_username || '');
+      setTgEnabled(res.data.enabled || false);
+    } catch (e) {
+      console.error("Failed to load Telegram configuration", e);
     }
   };
 
@@ -153,6 +173,59 @@ export default function Admin() {
       setErrorMsg("Failed to save AI configuration.");
     } finally {
       setGlobalLoading(false);
+    }
+  };
+
+  // Action: Save Telegram Config
+  const handleSaveTelegram = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSuccessMsg('');
+    setErrorMsg('');
+    setGlobalLoading(true);
+
+    try {
+      await axios.post('/api/v1/admin/telegram', {
+        bot_token: tgBotToken.trim(),
+        bot_username: tgBotUsername.trim(),
+        enabled: tgEnabled
+      });
+      setSuccessMsg("Telegram configuration updated successfully! Bot is now polling for messages.");
+    } catch (e) {
+      setErrorMsg("Failed to save Telegram configuration.");
+    } finally {
+      setGlobalLoading(false);
+    }
+  };
+
+  // Action: Test Telegram Bot
+  const handleTestTelegram = async () => {
+    setTgTestStatus({ status: 'loading' });
+    try {
+      const res = await axios.post('/api/v1/admin/telegram/test');
+      if (res.data.status === 'success') {
+        setTgTestStatus({ status: 'success', message: res.data.message });
+      } else {
+        setTgTestStatus({ status: 'error', message: res.data.message });
+      }
+    } catch (e: any) {
+      setTgTestStatus({ status: 'error', message: e.message || 'Connection test failed' });
+    }
+  };
+
+  // Action: Broadcast Telegram Message
+  const handleBroadcastTelegram = async () => {
+    if (!broadcastMsg.trim()) return;
+    setBroadcastStatus({ status: 'loading' });
+    try {
+      const res = await axios.post('/api/v1/admin/telegram/broadcast', { message: broadcastMsg });
+      if (res.data.status === 'success') {
+        setBroadcastStatus({ status: 'success', message: res.data.message });
+        setBroadcastMsg('');
+      } else {
+        setBroadcastStatus({ status: 'error', message: res.data.message });
+      }
+    } catch (e: any) {
+      setBroadcastStatus({ status: 'error', message: e.response?.data?.message || e.message || 'Broadcast failed' });
     }
   };
 
@@ -268,6 +341,12 @@ export default function Admin() {
               className={`p-4 rounded-xl font-bold flex items-center gap-3 transition-all text-left ${activeTab === 'ai' ? 'bg-[#6366f1] text-white shadow-lg shadow-indigo-500/20' : 'bg-white/[0.02] hover:bg-white/[0.05] border border-white/5 text-gray-400'}`}
             >
               🧠 Google Gemini AI
+            </button>
+            <button
+              onClick={() => setActiveTab('telegram')}
+              className={`p-4 rounded-xl font-bold flex items-center gap-3 transition-all text-left ${activeTab === 'telegram' ? 'bg-[#6366f1] text-white shadow-lg shadow-indigo-500/20' : 'bg-white/[0.02] hover:bg-white/[0.05] border border-white/5 text-gray-400'}`}
+            >
+              🤖 Telegram Bot
             </button>
             <button
               onClick={() => setActiveTab('users')}
@@ -440,6 +519,111 @@ export default function Admin() {
                   >
                     Save Changes
                   </button>
+                </div>
+              </form>
+            )}
+
+            {/* Tab: Telegram Config */}
+            {activeTab === 'telegram' && (
+              <form onSubmit={handleSaveTelegram} className="flex flex-col gap-6">
+                <div>
+                  <h3 className="text-2xl font-bold mb-2">Telegram Bot Integration</h3>
+                  <p className="text-gray-400 text-sm">Configure the bot token to enable Telegram notifications and daily reminders.</p>
+                </div>
+
+                <div className="flex flex-col gap-5">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                    <div>
+                      <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Bot Token</label>
+                      <input
+                        type="password"
+                        value={tgBotToken}
+                        onChange={(e) => setTgBotToken(e.target.value)}
+                        placeholder="123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11"
+                        className="w-full bg-[#0d1321] border border-white/10 rounded-xl px-4 py-3.5 text-white placeholder-gray-700 focus:outline-none focus:border-indigo-500 transition-all text-sm"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Bot Username</label>
+                      <input
+                        type="text"
+                        value={tgBotUsername}
+                        onChange={(e) => setTgBotUsername(e.target.value)}
+                        placeholder="VocaburnBot"
+                        className="w-full bg-[#0d1321] border border-white/10 rounded-xl px-4 py-3.5 text-white placeholder-gray-700 focus:outline-none focus:border-indigo-500 transition-all text-sm"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-3 bg-[#0d1321]/50 border border-white/5 p-4 rounded-xl mt-2">
+                  <input
+                    type="checkbox"
+                    id="tgEnabled"
+                    checked={tgEnabled}
+                    onChange={(e) => setTgEnabled(e.target.checked)}
+                    className="w-5 h-5 text-indigo-500 bg-[#0d1321] border-white/10 rounded focus:ring-indigo-500 focus:ring-offset-0 focus:ring-0"
+                  />
+                  <label htmlFor="tgEnabled" className="text-sm font-semibold select-none cursor-pointer">
+                    Enable Telegram Reminders
+                  </label>
+                </div>
+
+                <div className="flex flex-col sm:flex-row gap-4 border-t border-white/5 pt-6 mt-4">
+                  <button
+                    type="submit"
+                    className="px-6 py-3 rounded-xl font-bold bg-indigo-500 hover:bg-indigo-600 shadow-lg shadow-indigo-500/20 transition-all text-sm flex items-center justify-center gap-2 active:scale-95"
+                  >
+                    Save Changes
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={handleTestTelegram}
+                    disabled={tgTestStatus.status === 'loading'}
+                    className="px-6 py-3 rounded-xl font-bold bg-[#1e293b] hover:bg-[#334155] border border-white/10 transition-all text-sm flex items-center justify-center gap-2 active:scale-95 disabled:opacity-50"
+                  >
+                    Test Token
+                  </button>
+                </div>
+
+                {tgTestStatus.status !== 'idle' && (
+                  <div className={`p-4 rounded-xl text-sm font-medium ${tgTestStatus.status === 'success' ? 'bg-emerald-500/10 border border-emerald-500/20 text-emerald-300' : tgTestStatus.status === 'error' ? 'bg-red-500/10 border border-red-500/20 text-red-300' : 'bg-white/[0.03] text-gray-400'}`}>
+                    {tgTestStatus.status === 'loading' && 'Processing request...'}
+                    {tgTestStatus.status === 'success' && `✅ ${tgTestStatus.message}`}
+                    {tgTestStatus.status === 'error' && `❌ ${tgTestStatus.message}`}
+                  </div>
+                )}
+                
+                <div className="border-t border-white/10 my-4"></div>
+                
+                <div>
+                  <h3 className="text-xl font-bold mb-2 text-indigo-400">Broadcast Message</h3>
+                  <p className="text-gray-400 text-sm mb-4">Send a message to all active users via the Telegram Bot. Supports HTML formatting.</p>
+                  <textarea
+                    value={broadcastMsg}
+                    onChange={(e) => setBroadcastMsg(e.target.value)}
+                    placeholder={`Hello! Welcome to Vocaburn.\n<b>Bold</b>, <i>Italic</i>, <a href="https://example.com">Link</a>`}
+                    rows={4}
+                    className="w-full bg-[#0d1321] border border-white/10 rounded-xl px-4 py-3 text-white placeholder-gray-700 focus:outline-none focus:border-indigo-500 transition-all text-sm mb-4"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleBroadcastTelegram}
+                    disabled={broadcastStatus.status === 'loading' || !broadcastMsg.trim()}
+                    className="px-6 py-3 rounded-xl font-bold bg-pink-600 hover:bg-pink-700 shadow-lg shadow-pink-500/20 transition-all text-sm flex items-center justify-center gap-2 active:scale-95 disabled:opacity-50"
+                  >
+                    {broadcastStatus.status === 'loading' ? 'Sending...' : 'Send Broadcast'}
+                  </button>
+                  
+                  {broadcastStatus.status !== 'idle' && (
+                    <div className={`mt-4 p-4 rounded-xl text-sm font-medium ${broadcastStatus.status === 'success' ? 'bg-emerald-500/10 border border-emerald-500/20 text-emerald-300' : broadcastStatus.status === 'error' ? 'bg-red-500/10 border border-red-500/20 text-red-300' : 'bg-white/[0.03] text-gray-400'}`}>
+                      {broadcastStatus.status === 'loading' && 'Sending broadcast...'}
+                      {broadcastStatus.status === 'success' && `✅ ${broadcastStatus.message}`}
+                      {broadcastStatus.status === 'error' && `❌ ${broadcastStatus.message}`}
+                    </div>
+                  )}
                 </div>
               </form>
             )}

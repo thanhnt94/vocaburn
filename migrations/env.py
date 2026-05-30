@@ -13,7 +13,7 @@ from app.core.config import settings
 from app.modules.auth.models import User
 from app.modules.quiz.models import Category, Quiz, Question, QuizSession, QuizAttempt, UserAnswer, UserQuestionNote, QuizRoom, QuizRoomParticipant, UserQuizGoal, UserDailyProgress, UserGlobalGoal
 from app.modules.gamification.models import UserGamification, Badge, UserDailyActivity
-from app.modules.notification.models import Notification
+from app.modules.notification.models import Notification, PushSubscription, UserTelegramConfig
 from app.modules.stats.models import UserDailyStats
 from app.modules.admin.models import SystemConfig, AdminLog
 from app.modules.sso_module.models import SSOConfig
