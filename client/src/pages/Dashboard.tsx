@@ -290,8 +290,10 @@ function BadgeProgressWidget({ data }: { data: BadgeProgress[] }) {
 interface GlobalGoals {
   daily_time_target: number
   daily_card_target: number
+  daily_new_card_target: number
   actual_time_minutes: number
   actual_cards_completed: number
+  actual_new_cards_completed: number
 }
 
 function TodayFocusWidget({
@@ -309,8 +311,9 @@ function TodayFocusWidget({
   onStartPractice: (quiz: any) => void;
   navigate: any;
 }) {
-  const timePercentage = Math.min(100, Math.round((data.actual_time_minutes / data.daily_time_target) * 100))
-  const cardPercentage = Math.min(100, Math.round((data.actual_cards_completed / data.daily_card_target) * 100))
+  const timePercentage = data.daily_time_target > 0 ? Math.min(100, Math.round((data.actual_time_minutes / data.daily_time_target) * 100)) : 0
+  const cardPercentage = data.daily_card_target > 0 ? Math.min(100, Math.round((data.actual_cards_completed / data.daily_card_target) * 100)) : 0
+  const newCardPercentage = data.daily_new_card_target > 0 ? Math.min(100, Math.round((data.actual_new_cards_completed / data.daily_new_card_target) * 100)) : 0
 
   return (
     <div className="bg-white border border-slate-200/60 rounded-[2.5rem] p-6 shadow-sm relative overflow-hidden text-left mb-5">
@@ -330,55 +333,81 @@ function TodayFocusWidget({
         </button>
       </div>
 
-      <div className="grid grid-cols-2 gap-4 relative z-10 mb-6">
+      <div className="grid grid-cols-3 gap-2 sm:gap-4 relative z-10 mb-6">
         {/* Time Target */}
-        <div className="flex items-center gap-3 bg-slate-50/60 p-3.5 rounded-[1.5rem] border border-slate-100">
-          <div className="relative w-14 h-14 flex-shrink-0 flex items-center justify-center rounded-full bg-white shadow-sm">
-            <svg className="w-14 h-14 transform -rotate-90">
-              <circle cx="28" cy="28" r="23" className="stroke-slate-100 fill-none" strokeWidth="4" />
+        <div className="flex flex-col sm:flex-row items-center justify-center sm:justify-start gap-1 sm:gap-3 bg-slate-50/60 p-2 sm:p-3.5 rounded-2xl sm:rounded-[1.5rem] border border-slate-100">
+          <div className="relative w-10 h-10 sm:w-14 sm:h-14 flex-shrink-0 flex items-center justify-center rounded-full bg-white shadow-sm">
+            <svg className="w-10 h-10 sm:w-14 sm:h-14 transform -rotate-90">
+              <circle cx="50%" cy="50%" r="40%" className="stroke-slate-100 fill-none" strokeWidth="3" />
               <circle
-                cx="28" cy="28" r="23"
+                cx="50%" cy="50%" r="40%"
                 className="stroke-indigo-600 fill-none transition-all duration-500 ease-out"
-                strokeWidth="4"
-                strokeDasharray={2 * Math.PI * 23}
-                strokeDashoffset={2 * Math.PI * 23 - (timePercentage / 100) * 2 * Math.PI * 23}
+                strokeWidth="3"
+                strokeDasharray="250%"
+                strokeDashoffset={`${250 - (timePercentage / 100) * 250}%`}
                 strokeLinecap="round"
               />
             </svg>
-            <span className="absolute text-[10px] font-black text-indigo-600">
+            <span className="absolute text-[8px] sm:text-[10px] font-black text-indigo-600">
               {timePercentage}%
             </span>
           </div>
-          <div>
-            <span className="text-[9px] font-black text-slate-400 uppercase tracking-wider block">Thời gian học</span>
-            <span className="text-xs font-black text-slate-850 block mt-0.5">
-              {data.actual_time_minutes} / {data.daily_time_target}m
+          <div className="text-center sm:text-left mt-1 sm:mt-0">
+            <span className="text-[7px] sm:text-[9px] font-black text-slate-400 uppercase tracking-wider block leading-none sm:leading-normal">TG Học</span>
+            <span className="text-[9px] sm:text-xs font-black text-slate-850 block mt-0.5 whitespace-nowrap">
+              {data.actual_time_minutes}/{data.daily_time_target}m
             </span>
           </div>
         </div>
 
-        {/* Card Target */}
-        <div className="flex items-center gap-3 bg-slate-50/60 p-3.5 rounded-[1.5rem] border border-slate-100">
-          <div className="relative w-14 h-14 flex-shrink-0 flex items-center justify-center rounded-full bg-white shadow-sm">
-            <svg className="w-14 h-14 transform -rotate-90">
-              <circle cx="28" cy="28" r="23" className="stroke-slate-100 fill-none" strokeWidth="4" />
+        {/* Reviewed Card Target */}
+        <div className="flex flex-col sm:flex-row items-center justify-center sm:justify-start gap-1 sm:gap-3 bg-slate-50/60 p-2 sm:p-3.5 rounded-2xl sm:rounded-[1.5rem] border border-slate-100">
+          <div className="relative w-10 h-10 sm:w-14 sm:h-14 flex-shrink-0 flex items-center justify-center rounded-full bg-white shadow-sm">
+            <svg className="w-10 h-10 sm:w-14 sm:h-14 transform -rotate-90">
+              <circle cx="50%" cy="50%" r="40%" className="stroke-slate-100 fill-none" strokeWidth="3" />
               <circle
-                cx="28" cy="28" r="23"
+                cx="50%" cy="50%" r="40%"
                 className="stroke-emerald-500 fill-none transition-all duration-500 ease-out"
-                strokeWidth="4"
-                strokeDasharray={2 * Math.PI * 23}
-                strokeDashoffset={2 * Math.PI * 23 - (cardPercentage / 100) * 2 * Math.PI * 23}
+                strokeWidth="3"
+                strokeDasharray="250%"
+                strokeDashoffset={`${250 - (cardPercentage / 100) * 250}%`}
                 strokeLinecap="round"
               />
             </svg>
-            <span className="absolute text-[10px] font-black text-emerald-600">
+            <span className="absolute text-[8px] sm:text-[10px] font-black text-emerald-600">
               {cardPercentage}%
             </span>
           </div>
-          <div>
-            <span className="text-[9px] font-black text-slate-400 uppercase tracking-wider block">Thẻ đã học</span>
-            <span className="text-xs font-black text-slate-850 block mt-0.5">
-              {data.actual_cards_completed} / {data.daily_card_target}
+          <div className="text-center sm:text-left mt-1 sm:mt-0">
+            <span className="text-[7px] sm:text-[9px] font-black text-slate-400 uppercase tracking-wider block leading-none sm:leading-normal">Đã học</span>
+            <span className="text-[9px] sm:text-xs font-black text-slate-850 block mt-0.5 whitespace-nowrap">
+              {data.actual_cards_completed}/{data.daily_card_target}
+            </span>
+          </div>
+        </div>
+
+        {/* New Card Target */}
+        <div className="flex flex-col sm:flex-row items-center justify-center sm:justify-start gap-1 sm:gap-3 bg-slate-50/60 p-2 sm:p-3.5 rounded-2xl sm:rounded-[1.5rem] border border-slate-100">
+          <div className="relative w-10 h-10 sm:w-14 sm:h-14 flex-shrink-0 flex items-center justify-center rounded-full bg-white shadow-sm">
+            <svg className="w-10 h-10 sm:w-14 sm:h-14 transform -rotate-90">
+              <circle cx="50%" cy="50%" r="40%" className="stroke-slate-100 fill-none" strokeWidth="3" />
+              <circle
+                cx="50%" cy="50%" r="40%"
+                className="stroke-amber-500 fill-none transition-all duration-500 ease-out"
+                strokeWidth="3"
+                strokeDasharray="250%"
+                strokeDashoffset={`${250 - (newCardPercentage / 100) * 250}%`}
+                strokeLinecap="round"
+              />
+            </svg>
+            <span className="absolute text-[8px] sm:text-[10px] font-black text-amber-600">
+              {newCardPercentage}%
+            </span>
+          </div>
+          <div className="text-center sm:text-left mt-1 sm:mt-0">
+            <span className="text-[7px] sm:text-[9px] font-black text-slate-400 uppercase tracking-wider block leading-none sm:leading-normal">Học mới</span>
+            <span className="text-[9px] sm:text-xs font-black text-slate-850 block mt-0.5 whitespace-nowrap">
+              {data.actual_new_cards_completed}/{data.daily_new_card_target}
             </span>
           </div>
         </div>
@@ -483,16 +512,19 @@ function GoalSettingsModal({
   onClose,
   initialTime,
   initialCard,
+  initialNewCard,
   onSave
 }: {
   isOpen: boolean;
   onClose: () => void;
   initialTime: number;
   initialCard: number;
-  onSave: (time: number, card: number) => Promise<void>;
+  initialNewCard: number;
+  onSave: (time: number, card: number, newCard: number) => Promise<void>;
 }) {
   const [timeTarget, setTimeTarget] = useState(initialTime)
   const [cardTarget, setCardTarget] = useState(initialCard)
+  const [newCardTarget, setNewCardTarget] = useState(initialNewCard)
   const [isSaving, setIsSaving] = useState(false)
 
   const timePresets = [10, 20, 30, 60]
@@ -502,13 +534,14 @@ function GoalSettingsModal({
     if (isOpen) {
       setTimeTarget(initialTime)
       setCardTarget(initialCard)
+      setNewCardTarget(initialNewCard)
     }
-  }, [isOpen, initialTime, initialCard])
+  }, [isOpen, initialTime, initialCard, initialNewCard])
 
   const handleSave = async () => {
     setIsSaving(true)
     try {
-      await onSave(timeTarget, cardTarget)
+      await onSave(timeTarget, cardTarget, newCardTarget)
       onClose()
     } catch (e) {
       alert("Lỗi khi lưu mục tiêu")
@@ -604,6 +637,37 @@ function GoalSettingsModal({
                 />
               </div>
 
+              {/* New Card Goal */}
+              <div>
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 block ml-1">Mục tiêu số thẻ mới (thẻ/ngày)</label>
+                <div className="grid grid-cols-4 gap-2 mb-3">
+                  {cardPresets.map(preset => (
+                    <button
+                      key={`new-${preset}`}
+                      type="button"
+                      onClick={() => setNewCardTarget(preset)}
+                      className={cn(
+                        "py-2.5 rounded-xl text-[10px] font-black tracking-wider transition-all border",
+                        newCardTarget === preset
+                          ? "bg-amber-500 border-amber-500 text-white shadow-md shadow-amber-100"
+                          : "bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100"
+                      )}
+                    >
+                      {preset} Thẻ
+                    </button>
+                  ))}
+                </div>
+                <input
+                  type="number"
+                  min="1"
+                  max="1000"
+                  value={newCardTarget}
+                  onChange={(e) => setNewCardTarget(Math.max(1, parseInt(e.target.value) || 0))}
+                  className="w-full h-11 bg-slate-50 border border-slate-200 rounded-xl px-4 text-xs font-bold text-slate-750 focus:border-amber-500 focus:bg-white outline-none transition-all"
+                  placeholder="Nhập số thẻ mới tùy chọn..."
+                />
+              </div>
+
               <button
                 onClick={handleSave}
                 disabled={isSaving}
@@ -640,10 +704,11 @@ export default function Dashboard() {
     }
   })
 
-  const handleSaveGlobalGoals = async (timeTarget: number, cardTarget: number) => {
+  const handleSaveGlobalGoals = async (timeTarget: number, cardTarget: number, newCardTarget: number) => {
     await axios.post('/api/v1/quiz/goals/global', {
       daily_time_target: timeTarget,
-      daily_card_target: cardTarget
+      daily_card_target: cardTarget,
+      daily_new_card_target: newCardTarget
     })
     refetchGlobalGoals()
   }
@@ -953,7 +1018,7 @@ export default function Dashboard() {
   )
 
   return (
-    <div className="flex flex-col bg-gradient-to-br from-[#f8fafc] via-[#f1f6fa] to-[#f8fafc] min-h-[calc(100vh-6rem)] md:min-h-0 md:h-full md:overflow-hidden">
+    <div className="flex flex-col bg-gradient-to-br from-[#f8fafc] via-[#f1f6fa] to-[#f8fafc] min-h-[calc(100vh-6rem)] relative overflow-x-hidden md:overflow-hidden md:min-h-0 md:h-full">
 
       {/* Soft blobs */}
       <div className="absolute top-[20%] left-[-10%] w-[40vw] h-[40vw] rounded-full bg-indigo-200/10 blur-[130px] pointer-events-none" />
@@ -1281,6 +1346,7 @@ export default function Dashboard() {
             onClose={() => setIsGoalModalOpen(false)}
             initialTime={globalGoals.daily_time_target}
             initialCard={globalGoals.daily_card_target}
+            initialNewCard={globalGoals.daily_new_card_target}
             onSave={handleSaveGlobalGoals}
           />
         )}

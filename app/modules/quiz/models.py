@@ -216,6 +216,7 @@ class UserGlobalGoal(Base):
     user_id = Column(Integer, ForeignKey("users.id"), unique=True, index=True)
     daily_time_target = Column(Integer, default=20) # in minutes
     daily_card_target = Column(Integer, default=20) # number of cards
+    daily_new_card_target = Column(Integer, default=10) # number of new cards
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     user = relationship("User")

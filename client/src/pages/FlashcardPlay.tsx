@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import confetti from 'canvas-confetti'
 import { useParams, useNavigate } from 'react-router-dom'
-import { ChevronLeft, ChevronRight, LayoutGrid, Timer, Flame, Trophy, Check, X, Sparkles, Lightbulb, StickyNote, Play, Target, CheckCircle2, XCircle, Clock, BookOpen, Hash, Copy, Edit3, Brain, FileText, HelpCircle, Sliders, ListOrdered, Shuffle, EyeOff, AlertCircle, TrendingUp, Award, Lock, Keyboard, Volume2, VolumeX, RefreshCw } from 'lucide-react'
+import { ChevronLeft, ChevronRight, LayoutGrid, Timer, Flame, Trophy, Check, X, Sparkles, Lightbulb, StickyNote, Play, Target, CheckCircle2, XCircle, Clock, BookOpen, Hash, Copy, Edit3, Brain, FileText, HelpCircle, Sliders, ListOrdered, Shuffle, EyeOff, AlertCircle, TrendingUp, Award, Lock, Keyboard, Volume2, VolumeX, RefreshCw, Settings } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import axios from 'axios'
 import ReactMarkdown from 'react-markdown'
@@ -3209,14 +3209,6 @@ export default function FlashcardPlay() {
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <button 
-             onClick={() => setIsSettingsModalOpen(true)}
-             className="w-9 h-9 flex items-center justify-center bg-slate-50 border border-slate-200 rounded-xl text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 hover:border-indigo-200 shadow-sm active:scale-90 transition-all"
-             title="Cấu hình học tập"
-          >
-             <Sliders className="w-4 h-4" />
-          </button>
-
           <div className={cn(
             "flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-white shadow-md text-[11px] font-black transition-all",
             !showFeedback ? "bg-gradient-to-r from-slate-800 to-slate-900 shadow-slate-300" : "bg-gradient-to-r from-emerald-500 to-teal-500 shadow-emerald-200"
@@ -3224,26 +3216,13 @@ export default function FlashcardPlay() {
             <Timer className={cn("w-3.5 h-3.5", !showFeedback && "animate-pulse")} />
             <span>{timeLeft}s</span>
           </div>
-          
-          <AnimatePresence>
-            {showFeedback && (
-              <motion.button 
-                initial={{ opacity: 0, scale: 0.8 }}
-                animate={{ opacity: 1, scale: 1 }}
-                onClick={copyQuestionToClipboard}
-                className="w-9 h-9 flex items-center justify-center bg-amber-50 border border-amber-100 rounded-xl text-amber-500 shadow-sm active:scale-90 transition-all hover:bg-amber-100"
-                title="Copy card"
-              >
-                <Copy className="w-4 h-4" />
-              </motion.button>
-            )}
-          </AnimatePresence>
 
           <button 
-            onClick={() => setIsQuitModalOpen(true)}
-            className="w-9 h-9 flex items-center justify-center bg-rose-50 border border-rose-200 rounded-xl text-rose-500 hover:bg-rose-100 shadow-sm active:scale-90 transition-all"
+             onClick={() => setIsSettingsModalOpen(true)}
+             className="w-9 h-9 flex items-center justify-center bg-slate-50 border border-slate-200 rounded-xl text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 hover:border-indigo-200 shadow-sm active:scale-90 transition-all"
+             title="Cài đặt & Tùy chọn"
           >
-            <X className="w-4 h-4" />
+             <Settings className="w-4 h-4" />
           </button>
         </div>
       </header>
@@ -4027,8 +4006,8 @@ export default function FlashcardPlay() {
             );
           })()}
           
-          {/* BookOpen Explanation Button (visible in FSRS, and also in practice mode if a question is loaded) */}
-          {(mainTab === 'practice' || showFeedback) && (
+          {/* BookOpen Explanation Button (visible in FSRS after rating, and also in practice mode if a question is loaded) */}
+          {(mainTab === 'practice' || (showFeedback && activelyRatedCurrentCard)) && (
             <button 
               onClick={() => {
                 if (mainTab === 'practice') {
@@ -4111,22 +4090,7 @@ export default function FlashcardPlay() {
       </footer>
       )}
 
-      {/* 💡 CHỒI LÊN BÊN DƯỚI - QUICK SWIPE-UP/CLICK HANDLE */}
-      {justAnswered && !isFeedbackOpen && (mainTab === 'practice' || hasRated) && (
-        <div 
-          onClick={() => setIsFeedbackOpen(true)}
-          className="fixed bottom-[76px] left-1/2 -translate-x-1/2 z-40 w-[92%] max-w-lg bg-gradient-to-r from-indigo-600/95 to-purple-600/95 text-white py-2.5 px-5 rounded-2xl shadow-[0_-8px_20px_rgba(99,102,241,0.25)] flex items-center justify-between cursor-pointer border border-indigo-400/20 backdrop-blur-md active:scale-98 transition-all hover:from-indigo-600 hover:to-purple-600 group select-none animate-[bounce_2s_infinite] xl:hidden"
-        >
-          <div className="flex items-center gap-2.5">
-            <span className="flex h-2.5 w-2.5 relative">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
-            </span>
-            <span className="text-xs font-black tracking-wide uppercase">💡 VIEW INSIGHTS & DETAILED EXPLANATION</span>
-          </div>
-          <ChevronRight className="w-4 h-4 animate-[translate-x_1s_infinite] group-hover:translate-x-0.5 transition-transform opacity-85" />
-        </div>
-      )}
+
       {/* ✅ SESSION COMPLETE SUMMARY MODAL */}
       <AnimatePresence>
         {isSessionSummaryOpen && (() => {
@@ -4521,18 +4485,44 @@ export default function FlashcardPlay() {
                   </button>
                 </div>
 
-                {/* 4. Edit Card Action with hotkey instruction */}
-                <div className="pt-2">
+                {/* 4. Actions: Copy, Edit, Quit */}
+                <div className="pt-2 grid grid-cols-2 gap-2">
+                  {showFeedback && (
+                    <button 
+                      onClick={() => {
+                        copyQuestionToClipboard();
+                        setIsSettingsModalOpen(false);
+                      }}
+                      className="w-full py-3 bg-amber-50 border border-amber-200/60 rounded-2xl text-amber-600 font-bold text-xs hover:bg-amber-100 shadow-sm active:scale-95 transition-all flex items-center justify-center gap-2"
+                    >
+                      <Copy className="w-4 h-4" />
+                      Copy nội dung
+                    </button>
+                  )}
+
                   <button 
                     onClick={() => {
                       setIsSettingsModalOpen(false);
                       openEditModal();
                     }}
-                    className="w-full py-3.5 bg-slate-50 border border-slate-200/60 rounded-2xl text-slate-700 font-bold text-xs hover:bg-indigo-50 hover:text-indigo-600 hover:border-indigo-200 shadow-sm active:scale-95 transition-all flex items-center justify-center gap-2"
+                    className={cn(
+                      "w-full py-3 bg-slate-50 border border-slate-200/60 rounded-2xl text-slate-700 font-bold text-xs hover:bg-indigo-50 hover:text-indigo-600 hover:border-indigo-200 shadow-sm active:scale-95 transition-all flex items-center justify-center gap-2",
+                      !showFeedback && "col-span-2"
+                    )}
                   >
                     <Edit3 className="w-4 h-4" />
                     Sửa thẻ này
-                    <span className="text-[9px] px-1.5 py-0.5 rounded bg-slate-200/80 text-slate-500 font-mono font-bold uppercase tracking-wider ml-1">Phím E</span>
+                  </button>
+
+                  <button 
+                    onClick={() => {
+                      setIsSettingsModalOpen(false);
+                      setIsQuitModalOpen(true);
+                    }}
+                    className="col-span-2 w-full py-3 bg-rose-50 border border-rose-200/60 rounded-2xl text-rose-600 font-bold text-xs hover:bg-rose-100 shadow-sm active:scale-95 transition-all flex items-center justify-center gap-2"
+                  >
+                    <X className="w-4 h-4" />
+                    Thoát phiên học
                   </button>
                 </div>
               </div>
