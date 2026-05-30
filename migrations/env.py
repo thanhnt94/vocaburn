@@ -9,6 +9,10 @@ from alembic import context
 
 # Import your models here for autogenerate
 from app.core.db import Base
+import app.modules.auth.models
+import app.modules.gamification.models
+import app.modules.stats.models
+import app.modules.notification.models
 from app.core.config import settings
 from app.modules.auth.models import User
 from app.modules.quiz.models import Category, Quiz, Question, QuizSession, QuizAttempt, UserAnswer, UserQuestionNote, QuizRoom, QuizRoomParticipant, UserQuizGoal, UserDailyProgress, UserGlobalGoal
