@@ -381,19 +381,19 @@ function TodayFocusWidget({
     <div className={cn(
       "border rounded-[2.5rem] p-6 shadow-sm relative overflow-hidden text-left mb-5 flex-shrink-0 transition-all duration-700",
       isAllGoalsMet 
-        ? "bg-gradient-to-br from-indigo-50/50 via-teal-50/30 to-emerald-50/50 border-emerald-200/80 shadow-emerald-100/50 ring-1 ring-emerald-100" 
+        ? "bg-white border-emerald-400 ring-2 ring-emerald-400/20 shadow-emerald-100/50" 
         : "bg-white border-slate-200/60"
     )}>
       <div className={cn(
         "absolute -right-8 -top-8 w-24 h-24 rounded-full blur-md pointer-events-none transition-all duration-700",
-        isAllGoalsMet ? "bg-emerald-400/20" : "bg-indigo-50/30"
+        isAllGoalsMet ? "bg-emerald-400/10" : "bg-indigo-50/30"
       )} />
       
       <div className="flex items-center justify-between mb-5 relative z-10">
         <div>
           <span className={cn(
             "text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded-lg transition-colors",
-            isAllGoalsMet ? "text-emerald-700 bg-emerald-100" : "text-indigo-600 bg-indigo-50"
+            isAllGoalsMet ? "text-emerald-700 bg-emerald-50 border border-emerald-200/50" : "text-indigo-600 bg-indigo-50"
           )}>
             {isAllGoalsMet ? "🎉 MỤC TIÊU HOÀN THÀNH" : "🎯 TODAY'S FOCUS"}
           </span>
@@ -488,33 +488,6 @@ function TodayFocusWidget({
         </div>
       </div>
 
-      {/* Extra stats row */}
-      <div className="relative z-10 flex flex-wrap items-center gap-3 bg-indigo-50/50 p-3 rounded-2xl border border-indigo-100/50 mb-6">
-        <div className="flex-1 min-w-[30%]">
-          <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block mb-0.5">Tỷ lệ đúng</span>
-          <div className="flex items-center gap-1.5">
-            <Target className="w-3.5 h-3.5 text-indigo-500" />
-            <span className="text-sm font-black text-slate-700">{accuracy}%</span>
-          </div>
-        </div>
-        <div className="w-[1px] h-6 bg-slate-200/60 hidden sm:block"></div>
-        <div className="flex-1 min-w-[30%]">
-          <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block mb-0.5">Thẻ đã ôn tập</span>
-          <div className="flex items-center gap-1.5">
-            <RefreshCw className="w-3.5 h-3.5 text-emerald-500" />
-            <span className="text-sm font-black text-slate-700">{reviewCards}</span>
-          </div>
-        </div>
-        <div className="w-[1px] h-6 bg-slate-200/60 hidden sm:block"></div>
-        <div className="flex-1 min-w-[30%]">
-          <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block mb-0.5">XP HÔM NAY</span>
-          <div className="flex items-center gap-1.5">
-            <Zap className="w-3.5 h-3.5 text-amber-500" />
-            <span className="text-sm font-black text-slate-700">+{exactXp}</span>
-          </div>
-        </div>
-      </div>
-
       {/* Deck-specific targets section */}
       <div className="border-t border-slate-100 pt-5 relative z-10">
         <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 block mb-3.5">Mục tiêu theo từng bộ thẻ:</span>
@@ -604,6 +577,51 @@ function TodayFocusWidget({
             })}
           </div>
         )}
+      </div>
+    </div>
+  )
+}
+
+function TodayStatsWidget({ data }: { data: GlobalGoals }) {
+  const reviewCards = Math.max(0, data.actual_cards_completed - data.actual_new_cards_completed);
+  const accuracy = data.actual_cards_completed > 0 ? Math.round(((data.actual_correct_answers || 0) / data.actual_cards_completed) * 100) : 0;
+  const exactXp = data.actual_xp_gained_today || 0;
+
+  return (
+    <div className="bg-white border border-slate-200/60 rounded-[2.5rem] p-6 shadow-sm relative overflow-hidden text-left mb-5 flex-shrink-0">
+      <div className="absolute -right-8 -top-8 w-24 h-24 rounded-full bg-indigo-50/30 blur-md pointer-events-none" />
+      
+      <div className="flex items-center justify-between mb-5 relative z-10">
+        <div>
+          <span className="text-[10px] font-black uppercase tracking-widest text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-lg">📊 TODAY'S STATS</span>
+          <h3 className="text-sm font-black text-slate-800 uppercase tracking-tight mt-1">Thông số hôm nay</h3>
+        </div>
+      </div>
+      
+      <div className="grid grid-cols-3 gap-3 sm:gap-4 relative z-10">
+        <div className="bg-indigo-50/60 p-3 sm:p-4 rounded-[1.5rem] border border-indigo-100/50 flex flex-col items-center sm:items-start text-center sm:text-left transition-all hover:bg-indigo-50 hover:shadow-sm">
+          <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block mb-1">Tỷ lệ đúng</span>
+          <div className="flex items-center gap-1.5 mt-auto">
+            <Target className="w-4 h-4 text-indigo-500 hidden sm:block" />
+            <span className="text-lg font-black text-slate-700">{accuracy}%</span>
+          </div>
+        </div>
+        
+        <div className="bg-emerald-50/60 p-3 sm:p-4 rounded-[1.5rem] border border-emerald-100/50 flex flex-col items-center sm:items-start text-center sm:text-left transition-all hover:bg-emerald-50 hover:shadow-sm">
+          <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block mb-1">Đã ôn tập</span>
+          <div className="flex items-center gap-1.5 mt-auto">
+            <RefreshCw className="w-4 h-4 text-emerald-500 hidden sm:block" />
+            <span className="text-lg font-black text-slate-700">{reviewCards}</span>
+          </div>
+        </div>
+        
+        <div className="bg-amber-50/60 p-3 sm:p-4 rounded-[1.5rem] border border-amber-100/50 flex flex-col items-center sm:items-start text-center sm:text-left transition-all hover:bg-amber-50 hover:shadow-sm">
+          <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block mb-1">XP Hôm nay</span>
+          <div className="flex items-center gap-1.5 mt-auto">
+            <Zap className="w-4 h-4 text-amber-500 hidden sm:block" />
+            <span className="text-lg font-black text-slate-700">+{exactXp}</span>
+          </div>
+        </div>
       </div>
     </div>
   )
@@ -1262,6 +1280,11 @@ export default function Dashboard() {
           {leaderboardData && leaderboardData.leaderboard?.length > 0 && (
             <LeaderboardWidget data={leaderboardData} />
           )}
+
+          {/* Today's Stats Ranking/Board */}
+          {globalGoals && (
+            <TodayStatsWidget data={globalGoals} />
+          )}
         </section>
       </div>
 
@@ -1288,6 +1311,11 @@ export default function Dashboard() {
         {/* Leaderboard */}
         {leaderboardData && leaderboardData.leaderboard?.length > 0 && (
           <LeaderboardWidget data={leaderboardData} />
+        )}
+
+        {/* Today's Stats */}
+        {globalGoals && (
+          <TodayStatsWidget data={globalGoals} />
         )}
 
         {/* Heatmap */}
