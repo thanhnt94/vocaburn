@@ -77,9 +77,54 @@ async def get_leaderboard(request: Request, db: AsyncSession = Depends(get_db)):
                 "out_of_top_10": True,
             })
 
+    from app.modules.stats.models import UserDailyStats
+    # Fetch top 10 by time
+    time_stmt = (
+        select(UserDailyStats.user_id, User.username, func.sum(UserDailyStats.total_time_seconds).label("total_time"))
+        .join(User, User.id == UserDailyStats.user_id)
+        .group_by(UserDailyStats.user_id, User.username)
+        .order_by(func.sum(UserDailyStats.total_time_seconds).desc())
+        .limit(10)
+    )
+    time_results = await db.execute(time_stmt)
+    time_rows = time_results.all()
+
+    time_leaderboard = []
+    current_user_time_rank = None
+    for rank, row in enumerate(time_rows, start=1):
+        uid = row.user_id
+        time_leaderboard.append({
+            "rank": rank,
+            "user_id": uid,
+            "username": row.username,
+            "total_time": int(row.total_time or 0),
+            "is_current_user": uid == current_user_id,
+        })
+        if uid == current_user_id:
+            current_user_time_rank = rank
+
+    if current_user_id and current_user_time_rank is None:
+        user_time_res = await db.execute(
+            select(func.sum(UserDailyStats.total_time_seconds))
+            .where(UserDailyStats.user_id == current_user_id)
+        )
+        user_time = int(user_time_res.scalar() or 0)
+        
+        # We can't easily count users ahead in a simple query without CTE, so just append unranked for simplicity or use a subquery
+        time_leaderboard.append({
+            "rank": ">10",
+            "user_id": current_user_id,
+            "username": current_user.username,
+            "total_time": user_time,
+            "is_current_user": True,
+            "out_of_top_10": True,
+        })
+
     return {
         "leaderboard": leaderboard,
         "current_user_rank": current_user_rank,
+        "time_leaderboard": time_leaderboard,
+        "current_user_time_rank": current_user_time_rank,
     }
 
 

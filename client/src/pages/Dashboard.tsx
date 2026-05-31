@@ -139,7 +139,14 @@ function MiniHeatmap({ data }: { data: HeatmapDay[] }) {
 }
 
 // ─── Leaderboard Widget ────────────────────────────────────────────────────────
-function LeaderboardWidget({ data }: { data: { leaderboard: LeaderboardEntry[], current_user_rank: number | null } }) {
+function LeaderboardWidget({ data }: { data: { 
+  leaderboard: any[], 
+  current_user_rank: number | null,
+  time_leaderboard?: any[],
+  current_user_time_rank?: number | null
+} }) {
+  const [activeTab, setActiveTab] = useState<'xp' | 'time'>('xp')
+
   const rankIcons: Record<number, React.ReactNode> = {
     1: <Crown className="w-4 h-4 text-amber-500" />,
     2: <Medal className="w-4 h-4 text-slate-400" />,
@@ -151,27 +158,60 @@ function LeaderboardWidget({ data }: { data: { leaderboard: LeaderboardEntry[], 
     3: 'from-amber-50/50 to-orange-50/30 border-amber-100/60',
   }
 
+  const formatTime = (seconds: number) => {
+    if (seconds < 60) return `${seconds}s`
+    const mins = Math.floor(seconds / 60)
+    const hours = Math.floor(mins / 60)
+    if (hours > 0) {
+      return `${hours}h ${mins % 60}m`
+    }
+    return `${mins}m`
+  }
+
+  const currentList = activeTab === 'xp' ? data.leaderboard : (data.time_leaderboard || [])
+  const currentRank = activeTab === 'xp' ? data.current_user_rank : data.current_user_time_rank
+
   return (
     <div className="bg-white border border-slate-200/60 rounded-[2rem] p-5 shadow-sm flex flex-col gap-3 text-left flex-shrink-0">
       <div className="flex items-center justify-between pb-2 border-b border-slate-100">
-        <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Bảng xếp hạng XP</span>
-        <Swords className="w-4 h-4 text-indigo-500" />
+        <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Bảng xếp hạng</span>
+        
+        <div className="flex items-center bg-slate-100 rounded-lg p-0.5">
+          <button
+            onClick={() => setActiveTab('xp')}
+            className={cn(
+              "px-2.5 py-1 rounded-md text-[9px] font-black uppercase tracking-wider transition-all",
+              activeTab === 'xp' ? "bg-white text-indigo-600 shadow-sm" : "text-slate-400 hover:text-slate-600"
+            )}
+          >
+            XP
+          </button>
+          <button
+            onClick={() => setActiveTab('time')}
+            className={cn(
+              "px-2.5 py-1 rounded-md text-[9px] font-black uppercase tracking-wider transition-all",
+              activeTab === 'time' ? "bg-white text-indigo-600 shadow-sm" : "text-slate-400 hover:text-slate-600"
+            )}
+          >
+            Thời gian
+          </button>
+        </div>
       </div>
 
       <div className="flex flex-col gap-1.5">
-        {data.leaderboard.map((entry) => (
+        {currentList.map((entry) => (
           <div
             key={entry.user_id}
             className={cn(
               'flex items-center gap-2.5 px-3 py-2 rounded-xl border bg-gradient-to-r transition-all',
               entry.is_current_user
                 ? 'bg-indigo-50 border-indigo-200 ring-1 ring-indigo-300/50'
-                : rankColors[entry.rank] || 'border-slate-100 bg-slate-50/50',
+                : rankColors[entry.rank as number] || 'border-slate-100 bg-slate-50/50',
               (entry as any).out_of_top_10 && 'border-dashed'
             )}
           >
             <div className="w-6 flex items-center justify-center flex-shrink-0">
-              {rankIcons[entry.rank] || (
+              {rankIcons[entry.rank as number] || (
                 <span className="text-[9px] font-black text-slate-400">#{entry.rank}</span>
               )}
             </div>
@@ -195,9 +235,15 @@ function LeaderboardWidget({ data }: { data: { leaderboard: LeaderboardEntry[], 
               )}>
                 {entry.username} {entry.is_current_user && '(Bạn)'}
               </span>
-              <span className="text-[8px] font-bold text-slate-400 flex items-center gap-1">
-                Lvl {entry.level} · 🔥 {entry.streak}d
-              </span>
+              {activeTab === 'xp' ? (
+                <span className="text-[8px] font-bold text-slate-400 flex items-center gap-1">
+                  Lvl {entry.level} · 🔥 {entry.streak}d
+                </span>
+              ) : (
+                <span className="text-[8px] font-bold text-slate-400 flex items-center gap-1">
+                  Tổng thời gian học
+                </span>
+              )}
             </div>
 
             <div className="flex-shrink-0 text-right">
@@ -205,18 +251,25 @@ function LeaderboardWidget({ data }: { data: { leaderboard: LeaderboardEntry[], 
                 'text-[10px] font-black',
                 entry.rank === 1 ? 'text-amber-600' : entry.is_current_user ? 'text-indigo-600' : 'text-slate-600'
               )}>
-                {entry.xp.toLocaleString()}
+                {activeTab === 'xp' ? entry.xp.toLocaleString() : formatTime(entry.total_time || 0)}
               </span>
-              <span className="text-[7px] font-black text-slate-400 block">XP</span>
+              <span className="text-[7px] font-black text-slate-400 block">
+                {activeTab === 'xp' ? 'XP' : 'Đã học'}
+              </span>
             </div>
           </div>
         ))}
+        {currentList.length === 0 && (
+          <div className="py-4 text-center text-[10px] font-black text-slate-400 uppercase tracking-widest">
+            Chưa có dữ liệu
+          </div>
+        )}
       </div>
 
-      {data.current_user_rank && (
+      {currentRank && (
         <div className="pt-1 border-t border-slate-100 text-center">
           <span className="text-[9px] font-black text-slate-400">
-            Hạng của bạn: <span className="text-indigo-600 font-extrabold">#{data.current_user_rank}</span> toàn hệ thống
+            Hạng của bạn: <span className="text-indigo-600 font-extrabold">#{currentRank}</span> toàn hệ thống
           </span>
         </div>
       )}
