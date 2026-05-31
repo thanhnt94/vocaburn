@@ -587,6 +587,16 @@ function TodayFocusWidget({
                         <span className="text-[8px] font-bold text-slate-450">
                           {isGoalMet ? "Đạt mục tiêu học mới ⚡" : `Còn lại ${goal.daily_target - goal.done_today} thẻ mới`}
                         </span>
+                        {(() => {
+                          const d = new Date()
+                          d.setDate(d.getDate() + goal.days_remaining_est)
+                          return (
+                            <span className="text-[8px] font-black px-1.5 py-0.5 rounded bg-indigo-50 text-indigo-600 border border-indigo-100/60 flex items-center gap-1">
+                              <Target className="w-2.5 h-2.5" />
+                              Dự kiến xong: {d.toLocaleDateString('vi-VN')}
+                            </span>
+                          )
+                        })()}
                       </div>
                     </div>
                   </div>

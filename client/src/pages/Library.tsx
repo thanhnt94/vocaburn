@@ -505,10 +505,24 @@ export default function Library() {
                                 <div className="flex flex-wrap gap-1.5 mb-3.5">
                                    {quiz.tags?.map(t => <span key={t} className="px-2 py-0.5 bg-slate-50 border border-slate-200/50 rounded-lg text-[9px] font-black text-slate-400 uppercase tracking-wider">#{t}</span>)}
                                 </div>
-                                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
-                                  <BrainCircuit className="w-3.5 h-3.5 text-slate-400" />
-                                  {quiz.questions_count} Flashcards
-                                </p>
+                                <div className="flex flex-col gap-1.5">
+                                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
+                                    <BrainCircuit className="w-3.5 h-3.5 text-slate-400" />
+                                    {quiz.questions_count} Flashcards
+                                  </p>
+                                  {(() => {
+                                    const goal = activeGoals?.find(g => g.quiz_id === quiz.id)
+                                    if (!goal) return null
+                                    const d = new Date()
+                                    d.setDate(d.getDate() + goal.days_remaining_est)
+                                    return (
+                                      <p className="text-[9px] font-bold text-indigo-500 uppercase tracking-widest flex items-center gap-1.5">
+                                        <Target className="w-3 h-3 text-indigo-400" />
+                                        Mục tiêu xong: {d.toLocaleDateString('vi-VN')}
+                                      </p>
+                                    )
+                                  })()}
+                                </div>
                              </div>
                            </div>
 
@@ -616,13 +630,27 @@ export default function Library() {
                             <Link to={`/flashcard/${quiz.id}`}>
                                <h3 className="text-[13px] font-black text-slate-800 leading-tight mb-1 truncate">{quiz.title}</h3>
                             </Link>
-                            <div className="flex items-center gap-2">
-                               <div className="flex items-center gap-1 bg-slate-50 px-1.5 py-0.5 rounded border border-slate-100">
-                                  <BrainCircuit className="w-2.5 h-2.5 text-slate-400" />
-                                  <span className="text-[8px] font-black text-slate-500 uppercase">{quiz.questions_count} Flashcards</span>
-                               </div>
-                               {quiz.tags?.[0] && <span className="text-[8px] font-black text-indigo-500 uppercase tracking-widest">#{quiz.tags[0]}</span>}
-                            </div>
+                            <div className="flex flex-col gap-1.5 mt-0.5">
+                                <div className="flex items-center gap-2">
+                                   <div className="flex items-center gap-1 bg-slate-50 px-1.5 py-0.5 rounded border border-slate-100">
+                                      <BrainCircuit className="w-2.5 h-2.5 text-slate-400" />
+                                      <span className="text-[8px] font-black text-slate-500 uppercase">{quiz.questions_count} Flashcards</span>
+                                   </div>
+                                   {quiz.tags?.[0] && <span className="text-[8px] font-black text-indigo-500 uppercase tracking-widest">#{quiz.tags[0]}</span>}
+                                </div>
+                                {(() => {
+                                  const goal = activeGoals?.find(g => g.quiz_id === quiz.id)
+                                  if (!goal) return null
+                                  const d = new Date()
+                                  d.setDate(d.getDate() + goal.days_remaining_est)
+                                  return (
+                                    <div className="flex items-center gap-1 text-indigo-500">
+                                      <Target className="w-2.5 h-2.5" />
+                                      <span className="text-[8px] font-black uppercase">Xong: {d.toLocaleDateString('vi-VN')}</span>
+                                    </div>
+                                  )
+                                })()}
+                             </div>
                          </div>
                          <div className="flex items-center gap-2">
                            <Link 
