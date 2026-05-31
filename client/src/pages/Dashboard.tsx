@@ -348,6 +348,7 @@ interface GlobalGoals {
   actual_cards_completed: number
   actual_new_cards_completed: number
   actual_correct_answers?: number
+  actual_xp_gained_today?: number
 }
 
 function TodayFocusWidget({
@@ -372,7 +373,9 @@ function TodayFocusWidget({
   const isAllGoalsMet = timePercentage >= 100 && cardPercentage >= 100 && newCardPercentage >= 100;
   const reviewCards = Math.max(0, data.actual_cards_completed - data.actual_new_cards_completed);
   const accuracy = data.actual_cards_completed > 0 ? Math.round(((data.actual_correct_answers || 0) / data.actual_cards_completed) * 100) : 0;
-  const xpEstimate = data.actual_correct_answers || 0;
+  
+  // Use exact XP tracking from DB
+  const exactXp = data.actual_xp_gained_today || 0;
 
   return (
     <div className={cn(
@@ -504,10 +507,10 @@ function TodayFocusWidget({
         </div>
         <div className="w-[1px] h-6 bg-slate-200/60 hidden sm:block"></div>
         <div className="flex-1 min-w-[30%]">
-          <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block mb-0.5">Ước tính XP</span>
+          <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block mb-0.5">XP HÔM NAY</span>
           <div className="flex items-center gap-1.5">
             <Zap className="w-3.5 h-3.5 text-amber-500" />
-            <span className="text-sm font-black text-slate-700">+{xpEstimate}</span>
+            <span className="text-sm font-black text-slate-700">+{exactXp}</span>
           </div>
         </div>
       </div>

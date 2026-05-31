@@ -350,12 +350,13 @@ async def record_answer(request: Request, data: dict, db: AsyncSession = Depends
         bonus_xp_gained += 1
         
     xp_gain = base_xp + bonus_xp_gained
-    gamify_res = await GamificationInterface.add_xp(db, user_id, xp_gain)
+    gamify_res = await GamificationInterface.add_xp(db, user_id, xp_gain, source="quiz_answer")
     has_leveled_up = gamify_res["level_up"]
     current_level = gamify_res["current_level"]
 
+    # Process daily goal bonus XP
     if goal_update_info and goal_update_info["bonus_xp"] > 0:
-        bonus_res = await GamificationInterface.add_xp(db, user_id, goal_update_info["bonus_xp"])
+        bonus_res = await GamificationInterface.add_xp(db, user_id, goal_update_info["bonus_xp"], source="daily_goal_bonus")
         if bonus_res["level_up"]:
             has_leveled_up = True
         current_level = bonus_res["current_level"]
@@ -467,7 +468,7 @@ async def record_answer(request: Request, data: dict, db: AsyncSession = Depends
             elif badge.id == "goal_crusher": xp_reward = 400
             elif badge.id == "card_master": xp_reward = 500
             
-            gamify_res2 = await GamificationInterface.add_xp(db, user_id, xp_reward)
+            gamify_res2 = await GamificationInterface.add_xp(db, user_id, xp_reward, source="badge_unlock")
             if gamify_res2["level_up"]:
                 has_leveled_up = True
                 current_level = gamify_res2["current_level"]

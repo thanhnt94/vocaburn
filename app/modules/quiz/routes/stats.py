@@ -697,6 +697,15 @@ async def get_global_goals(request: Request, db: AsyncSession = Depends(get_db))
     new_cards_res = await db.execute(stmt_new_cards)
     actual_new_cards_completed = new_cards_res.scalar() or 0
     
+    # 4. Calculate actual exact XP gained today
+    from app.modules.gamification.models import XPTransaction
+    stmt_xp = select(func.sum(XPTransaction.amount)).where(
+        XPTransaction.user_id == user_id,
+        XPTransaction.created_at >= today
+    )
+    xp_res = await db.execute(stmt_xp)
+    actual_xp_gained_today = xp_res.scalar() or 0
+    
     return {
         "daily_time_target": goal.daily_time_target,
         "daily_card_target": goal.daily_card_target,
@@ -704,7 +713,8 @@ async def get_global_goals(request: Request, db: AsyncSession = Depends(get_db))
         "actual_time_minutes": actual_minutes,
         "actual_cards_completed": actual_cards,
         "actual_new_cards_completed": actual_new_cards_completed,
-        "actual_correct_answers": actual_correct
+        "actual_correct_answers": actual_correct,
+        "actual_xp_gained_today": actual_xp_gained_today
     }
 
 @router.post("/goals/global")
