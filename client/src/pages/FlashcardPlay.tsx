@@ -77,7 +77,7 @@ const MarkdownComponents = {
 export default function FlashcardPlay() {
   const { id, mode, subMode } = useParams()
   const navigate = useNavigate()
-  const { user, gamify, setUser, setGamify } = useAppStore()
+  const { user, gamify, setUser, setGamify, addXp } = useAppStore()
   
   const activeAudioRef = useRef<HTMLAudioElement | null>(null)
   const currentQuestionIdRef = useRef<number | null>(null)
@@ -1100,7 +1100,7 @@ export default function FlashcardPlay() {
         const xpGained = isFirstEver ? 15 : (updatedStreak >= 5 ? 20 : 10)
         updatedXP = sessionXP + xpGained
         setSessionXP(updatedXP)
-        setInitialTotalXP(prev => prev + xpGained)
+        addXp(xpGained)
 
         // Context-aware success messages
         let msg = ''
@@ -1464,7 +1464,7 @@ export default function FlashcardPlay() {
       const xpGained = 5;
       updatedXP = sessionXP + xpGained;
       setSessionXP(updatedXP);
-      setInitialTotalXP(prev => prev + xpGained);
+      addXp(xpGained);
       
       setXpFloat({ visible: true, amount: xpGained });
       setTimeout(() => setXpFloat({ visible: false, amount: 0 }), 1500);
@@ -1478,7 +1478,7 @@ export default function FlashcardPlay() {
       const xpGained = 1;
       updatedXP = sessionXP + xpGained;
       setSessionXP(updatedXP);
-      setInitialTotalXP(prev => prev + xpGained);
+      addXp(xpGained);
       
       setXpFloat({ visible: true, amount: xpGained });
       setTimeout(() => setXpFloat({ visible: false, amount: 0 }), 1500);
@@ -1539,7 +1539,7 @@ export default function FlashcardPlay() {
       const xpGained = 5;
       updatedXP = sessionXP + xpGained;
       setSessionXP(updatedXP);
-      setInitialTotalXP(prev => prev + xpGained);
+      addXp(xpGained);
       
       setXpFloat({ visible: true, amount: xpGained });
       setTimeout(() => setXpFloat({ visible: false, amount: 0 }), 1500);
@@ -1553,7 +1553,7 @@ export default function FlashcardPlay() {
       const xpGained = 1;
       updatedXP = sessionXP + xpGained;
       setSessionXP(updatedXP);
-      setInitialTotalXP(prev => prev + xpGained);
+      addXp(xpGained);
       
       setXpFloat({ visible: true, amount: xpGained });
       setTimeout(() => setXpFloat({ visible: false, amount: 0 }), 1500);
@@ -3041,7 +3041,7 @@ export default function FlashcardPlay() {
               animate={{ opacity: 1, y: -120, scale: isLimitless ? 1.4 : 1.2 }}
               exit={{ opacity: 0, y: -180, scale: 0.8 }}
               className={cn(
-                "fixed bottom-32 left-1/2 -translate-x-1/2 z-[1001] px-6 py-3 rounded-2xl font-black text-base shadow-2xl pointer-events-none transition-all duration-300",
+                "fixed bottom-32 md:bottom-auto md:top-28 left-1/2 -translate-x-1/2 z-[1001] px-6 py-3 rounded-2xl font-black text-base shadow-2xl pointer-events-none transition-all duration-300",
                 isLimitless 
                   ? "bg-gradient-to-r from-amber-500 via-orange-500 to-red-500 text-white shadow-amber-500/50 border border-amber-400 drop-shadow-[0_0_12px_rgba(245,158,11,0.6)] animate-bounce" 
                   : "bg-gradient-to-r from-indigo-500 to-purple-600 text-white shadow-indigo-300/50"

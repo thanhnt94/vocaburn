@@ -39,6 +39,7 @@ interface AppState {
   fetchMe: () => Promise<void>;
   login: (credentials: any) => Promise<{ success: boolean; error?: string }>;
   logout: () => Promise<void>;
+  addXp: (amount: number) => void;
 }
 
 export const useAppStore = create<AppState>((set, get) => ({
@@ -52,6 +53,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   setUser: (user) => set({ user, isLoggedIn: !!user }),
   setGamify: (gamify) => set({ gamify }),
   toggleSidebar: () => set((state) => ({ isSidebarOpen: !state.isSidebarOpen })),
+  addXp: (amount) => set((state) => ({ gamify: { ...state.gamify, xp: state.gamify.xp + amount } })),
 
   fetchAuthConfig: async () => {
     try {
