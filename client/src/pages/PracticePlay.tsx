@@ -3451,6 +3451,7 @@ export default function PracticePlay() {
                     setSetupNumChoices={setSetupNumChoices}
                     canEdit={canEdit}
                     savePracticeSettings={savePracticeSettings}
+                    resetPracticeSettings={resetPracticeSettings}
                   />
                 ) : mainTab === 'practice' ? (
                   renderPracticeScreen()
