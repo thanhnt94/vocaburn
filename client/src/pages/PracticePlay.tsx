@@ -737,13 +737,11 @@ export default function PracticePlay() {
 
   useEffect(() => {
     const fetchUser = async () => {
-      if (!user) {
-        try {
-          const res = await axios.get('/api/v1/dashboard/data')
-          setUser(res.data.user)
-          setGamify(res.data.gamify)
-        } catch (e) { }
-      }
+      try {
+        const res = await axios.get('/api/v1/dashboard/data')
+        if (!user) setUser(res.data.user)
+        setGamify(res.data.gamify)
+      } catch (e) { }
     }
     fetchUser()
   }, [user, setUser, setGamify])
