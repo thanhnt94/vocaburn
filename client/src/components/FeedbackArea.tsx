@@ -330,7 +330,7 @@ export const FeedbackArea: React.FC<FeedbackAreaProps> = ({
             <div className="space-y-6">
               <div className="p-5 bg-white rounded-2xl border border-slate-100 shadow-sm">
                 <h5 className="text-[10px] font-black text-slate-400 uppercase tracking-wider mb-2">FRONT (QUESTION)</h5>
-                <div className="text-slate-800 font-bold text-lg leading-relaxed markdown-content break-words">
+                <div className="text-slate-800 font-bold text-lg leading-relaxed markdown-content whitespace-pre-wrap break-words">
                   <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeRaw]} components={MarkdownComponents}>
                     {parseBBCodeToHtml(selectedChoiceData.content || '')}
                   </ReactMarkdown>
@@ -339,7 +339,7 @@ export const FeedbackArea: React.FC<FeedbackAreaProps> = ({
               
               <div className="p-5 bg-white rounded-2xl border border-slate-100 shadow-sm">
                 <h5 className="text-[10px] font-black text-slate-400 uppercase tracking-wider mb-2">BACK (EXPLANATION)</h5>
-                <div className="text-slate-600 font-medium text-sm leading-relaxed markdown-content break-words">
+                <div className="text-slate-600 font-medium text-sm leading-relaxed markdown-content whitespace-pre-wrap break-words">
                   <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeRaw]} components={MarkdownComponents}>
                     {parseBBCodeToHtml(selectedChoiceData.explanation || '*No explanation available.*')}
                   </ReactMarkdown>
