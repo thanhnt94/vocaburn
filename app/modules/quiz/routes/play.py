@@ -660,6 +660,7 @@ async def get_quiz_play_data(request: Request, quiz_id: int, mode: Optional[str]
                 "ai_explanation": q.ai_explanation,
                 "stats": None,
                 "box_level": 1,
+                "is_ignored": False,
                 "fsrs": None,
                 "options": [],
                 "image": fix_static_urls(q.image),
@@ -709,6 +710,7 @@ async def get_quiz_play_data(request: Request, quiz_id: int, mode: Optional[str]
                 "ai_explanation": q.ai_explanation,
                 "stats": getattr(q, 'stats', None),
                 "box_level": m_box_level,
+                "is_ignored": m.is_ignored if m else False,
                 "fsrs": {
                     "state": m_state,
                     "stability": m_stability,

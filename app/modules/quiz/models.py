@@ -186,6 +186,7 @@ class UserQuestionMastery(Base):
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id"), index=True)
     question_id = Column(Integer, ForeignKey("flashcards.id"), index=True)
+    is_ignored = Column(Boolean, default=False)
     box_level = Column(Integer, default=1)  # Leitner system box 1-5 (Mastery level)
     consecutive_correct = Column(Integer, default=0)
     last_answered = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)

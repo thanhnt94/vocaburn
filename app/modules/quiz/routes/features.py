@@ -181,6 +181,26 @@ async def save_question_note(request: Request, question_id: int, data: dict, db:
     await db.commit()
     return {"status": "ok"}
 
+@router.post("/question/{question_id}/ignore")
+async def toggle_question_ignore(request: Request, question_id: int, data: dict, db: AsyncSession = Depends(get_db)):
+    from app.modules.quiz.models import UserQuestionMastery
+    user_id = int(request.cookies.get("user_id", 1))
+    is_ignored = data.get("is_ignored", True)
+    
+    result = await db.execute(
+        select(UserQuestionMastery).where(UserQuestionMastery.user_id == user_id, UserQuestionMastery.question_id == question_id)
+    )
+    mastery = result.scalar_one_or_none()
+    
+    if mastery:
+        mastery.is_ignored = is_ignored
+    else:
+        mastery = UserQuestionMastery(user_id=user_id, question_id=question_id, is_ignored=is_ignored)
+        db.add(mastery)
+        
+    await db.commit()
+    return {"status": "ok", "is_ignored": is_ignored}
+
 @router.get("/{quiz_id}/notes")
 async def get_quiz_notes(request: Request, quiz_id: int, db: AsyncSession = Depends(get_db)):
     from app.modules.quiz.models import UserQuestionNote, Question

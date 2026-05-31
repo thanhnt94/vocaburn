@@ -13,6 +13,7 @@ interface Question {
   practice?: {
     correct_index?: number
   }
+  is_ignored?: boolean
 }
 
 interface QuestionMapGridProps {
@@ -60,7 +61,10 @@ export const QuestionMapGrid: React.FC<QuestionMapGridProps> = ({
         const stats = q.stats || { total: 0, again_count: 0, hard_count: 0, good_count: 0, easy_count: 0 }
         const totalReviews = stats.total || 0
 
-        if (totalReviews > 0) {
+        if (q.is_ignored) {
+          fsrsClass = "border-slate-300 bg-slate-200 text-slate-400 opacity-60 hover:opacity-100 font-bold cursor-not-allowed"
+          fsrsStyle = {}
+        } else if (totalReviews > 0) {
           const again = stats.again_count || 0
           const hard = stats.hard_count || 0
           const good = stats.good_count || 0

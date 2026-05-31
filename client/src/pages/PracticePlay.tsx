@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import confetti from 'canvas-confetti'
 import { useParams, useNavigate } from 'react-router-dom'
-import { ChevronLeft, ChevronRight, LayoutGrid, Timer, Flame, Trophy, Check, X, Sparkles, Lightbulb, StickyNote, Play, Target, CheckCircle2, XCircle, Clock, BookOpen, Hash, Copy, Edit3, Brain, FileText, HelpCircle, Sliders, ListOrdered, Shuffle, EyeOff, AlertCircle, TrendingUp, Award, Lock, Keyboard, Volume2, VolumeX, RefreshCw } from 'lucide-react'
+import { ChevronLeft, ChevronRight, LayoutGrid, Timer, Flame, Trophy, Check, X, Sparkles, Lightbulb, StickyNote, Play, Target, CheckCircle2, XCircle, Clock, BookOpen, Hash, Copy, Edit3, Brain, FileText, HelpCircle, Sliders, ListOrdered, Shuffle, Eye, EyeOff, AlertCircle, TrendingUp, Award, Lock, Keyboard, Volume2, VolumeX, RefreshCw } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import axios from 'axios'
 import ReactMarkdown from 'react-markdown'
@@ -26,6 +26,7 @@ interface Option {
 
 interface Question {
   id: number
+  is_ignored?: boolean
   content: string
   explanation: string
   ai_explanation?: string
@@ -1500,6 +1501,39 @@ export default function PracticePlay() {
     }
   };
 
+  const handleIgnoreQuestion = async () => {
+    if (!currentQuestion) return;
+    try {
+      const newIgnoreState = !currentQuestion.is_ignored;
+      
+      // Optimitically update local state
+      const updatedQuestions = [...session.questions];
+      updatedQuestions[currentIndex] = {
+        ...currentQuestion,
+        is_ignored: newIgnoreState
+      };
+      setSession({ ...session, questions: updatedQuestions });
+      
+      await axios.post(`/api/v1/quiz/question/${currentQuestion.id}/ignore`, {
+        is_ignored: newIgnoreState
+      });
+      
+      // Auto-skip to next card if ignored during practice/learning
+      if (newIgnoreState) {
+        handleNext();
+      }
+    } catch (e) {
+      console.error("Failed to ignore question", e);
+      // Revert on failure
+      const revertedQuestions = [...session.questions];
+      revertedQuestions[currentIndex] = {
+        ...currentQuestion,
+        is_ignored: !currentQuestion.is_ignored
+      };
+      setSession({ ...session, questions: revertedQuestions });
+    }
+  };
+
   const handleTypingAnswer = async () => {
     if (showFeedback || !currentQuestion || !currentPracticeData) return;
 
@@ -1651,8 +1685,8 @@ export default function PracticePlay() {
     const total = questions.length
 
     const getNextPracticeIndex = (currentIdx: number, range: 'all' | 'learned', totalQuestions: any[]): number => {
-      const allIndices = totalQuestions.map((_, i) => i);
-      const learnedIndices = totalQuestions.map((q, i) => (q.stats?.total || 0) > 0 ? i : -1).filter(i => i !== -1);
+      const allIndices = totalQuestions.map((q, i) => q.is_ignored ? -1 : i).filter(i => i !== -1);
+      const learnedIndices = totalQuestions.map((q, i) => (!q.is_ignored && (q.stats?.total || 0) > 0) ? i : -1).filter(i => i !== -1);
 
       const activeIndices = (range === 'learned' && learnedIndices.length > 0) ? learnedIndices : allIndices;
 
@@ -1695,6 +1729,7 @@ export default function PracticePlay() {
       
       // 1. Identify studied cards that are due (or learning cards that are due)
       const dueCards = questions.map((q: any, idx: number) => {
+        if (q.is_ignored) return null // Ignored card
         const fsrs = q.fsrs
         if (!fsrs || fsrs.state === 0 || fsrs.state === undefined || fsrs.stability === null || fsrs.stability === undefined) {
           return null // New card
@@ -1724,6 +1759,7 @@ export default function PracticePlay() {
       } else {
         // 2. If no due cards, get the first new card sequentially
         const newCardIdx = questions.findIndex((q: any, idx: number) => {
+          if (q.is_ignored) return false
           const fsrs = q.fsrs
           const isNew = !fsrs || fsrs.state === 0 || fsrs.state === undefined || fsrs.stability === null || fsrs.stability === undefined
           const hasNotAnswered = updatedAnswers[idx] === undefined
@@ -1741,7 +1777,7 @@ export default function PracticePlay() {
       // Find the first unanswered card starting from the next index sequentially
       let found = -1;
       for (let i = currentIndex + 1; i < total; i++) {
-        if (updatedAnswers[i] === undefined) {
+        if (updatedAnswers[i] === undefined && !questions[i].is_ignored) {
           found = i;
           break;
         }
@@ -1749,7 +1785,7 @@ export default function PracticePlay() {
       // If not found, wrap around to search from the beginning
       if (found === -1) {
         for (let i = 0; i <= currentIndex; i++) {
-          if (updatedAnswers[i] === undefined) {
+          if (updatedAnswers[i] === undefined && !questions[i].is_ignored) {
             found = i;
             break;
           }
@@ -1758,35 +1794,35 @@ export default function PracticePlay() {
       nextIdx = found !== -1 ? found : Math.min(currentIndex + 1, total - 1);
     } else if (currentMode === 'random') {
       // Find a random index not answered in THIS session
-      const pool = questions.map((_: any, i: number) => i).filter((i: number) => updatedAnswers[i] === undefined)
+      const pool = questions.map((_: any, i: number) => i).filter((i: number) => updatedAnswers[i] === undefined && !questions[i].is_ignored)
       if (pool.length > 0) {
         nextIdx = pool[Math.floor(Math.random() * pool.length)]
       }
     } else if (activeMode === 'unseen') {
       // Find next card with 0 historical attempts and not answered in THIS session
       nextIdx = questions.findIndex((q: any, i: number) =>
-        i > currentIndex &&
+        i > currentIndex && !q.is_ignored &&
         (q.stats?.total || 0) === 0 &&
         updatedAnswers[i] === undefined
       )
       if (nextIdx === -1) {
         // Loop back to find any unseen
         nextIdx = questions.findIndex((q: any, i: number) =>
-          (q.stats?.total || 0) === 0 &&
+          !q.is_ignored && (q.stats?.total || 0) === 0 &&
           updatedAnswers[i] === undefined
         )
       }
     } else if (activeMode === 'review') {
       // Find next card with historical mistakes (total - correct > 0) and not answered in THIS session
       nextIdx = questions.findIndex((q: any, i: number) =>
-        i > currentIndex &&
+        i > currentIndex && !q.is_ignored &&
         ((q.stats?.total || 0) - (q.stats?.correct || 0)) > 0 &&
         updatedAnswers[i] === undefined
       )
       if (nextIdx === -1) {
         // Loop back to find any mistake card not answered in THIS session
         nextIdx = questions.findIndex((q: any, i: number) =>
-          ((q.stats?.total || 0) - (q.stats?.correct || 0)) > 0 &&
+          !q.is_ignored && ((q.stats?.total || 0) - (q.stats?.correct || 0)) > 0 &&
           updatedAnswers[i] === undefined
         )
       }
@@ -1797,7 +1833,7 @@ export default function PracticePlay() {
       let maxWrongs = -1
 
       for (let i = 0; i < total; i++) {
-        if (updatedAnswers[i] !== undefined) continue
+        if (updatedAnswers[i] !== undefined || questions[i].is_ignored) continue
 
         const q = questions[i]
         const t = q.stats?.total || 0
@@ -2908,6 +2944,19 @@ export default function PracticePlay() {
             )}
           </AnimatePresence>
 
+          <button
+            onClick={handleIgnoreQuestion}
+            className={cn(
+              "w-9 h-9 flex items-center justify-center rounded-xl border transition-all active:scale-90 shadow-sm",
+              currentQuestion?.is_ignored 
+                ? "bg-slate-700 border-slate-600 text-slate-300 hover:bg-slate-600"
+                : "bg-slate-50 border-slate-200 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 hover:border-indigo-200"
+            )}
+            title={currentQuestion?.is_ignored ? "Restore card" : "Ignore card"}
+          >
+            {currentQuestion?.is_ignored ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
+          </button>
+          
           <button
             onClick={openEditModal}
             className="w-9 h-9 flex items-center justify-center bg-slate-50 border border-slate-200 rounded-xl text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 hover:border-indigo-200 shadow-sm active:scale-90 transition-all"

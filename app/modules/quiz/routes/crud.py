@@ -204,8 +204,9 @@ async def get_quiz_questions(quiz_id: int, page: int = 1, size: int = 50, search
     result = await db.execute(query)
     qs = result.scalars().all()
     
-    # Fetch stats for these questions
-    from app.modules.quiz.models import UserAnswer
+    # Fetch stats and mastery for these questions
+    from app.modules.quiz.models import UserAnswer, UserQuestionMastery
+    user_id = int(request.cookies.get("user_id", 1))
     q_ids = [q.id for q in qs]
     stats_query = select(
         UserAnswer.question_id,
@@ -214,6 +215,13 @@ async def get_quiz_questions(quiz_id: int, page: int = 1, size: int = 50, search
     ).where(UserAnswer.question_id.in_(q_ids)).group_by(UserAnswer.question_id)
     stats_res = await db.execute(stats_query)
     stats_map = {r.question_id: {"total": r.total, "correct": r.correct, "wrong": r.total - r.correct} for r in stats_res}
+    
+    mastery_query = select(UserQuestionMastery).where(
+        UserQuestionMastery.user_id == user_id, 
+        UserQuestionMastery.question_id.in_(q_ids)
+    )
+    mastery_res = await db.execute(mastery_query)
+    mastery_map = {m.question_id: m.is_ignored for m in mastery_res.scalars().all()}
     
     return {
         "questions": [
@@ -227,6 +235,7 @@ async def get_quiz_questions(quiz_id: int, page: int = 1, size: int = 50, search
                 "image": q.image,
                 "audio": q.audio,
                 "stats": stats_map.get(q.id, {"total": 0, "correct": 0, "wrong": 0}),
+                "is_ignored": mastery_map.get(q.id, False),
                 "options": []
             } for i, q in enumerate(qs)
         ],
