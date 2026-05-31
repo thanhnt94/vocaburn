@@ -1095,24 +1095,10 @@ export default function FlashcardPlay() {
         if (sfxEnabled) playCorrectSound()
         updatedStreak = streak + 1
         setStreak(updatedStreak)
-        let baseXP = 0;
-        if (rating === 4) baseXP = 7;
-        else if (rating === 3) baseXP = 6;
-        else if (rating === 2) baseXP = 5;
-        
-        let bonusXP = 0;
-        if (isFirstEver) bonusXP += 10;
-        if (updatedStreak >= 5) bonusXP += 1;
-        
-        const xpGained = baseXP + bonusXP;
-        
-        updatedXP = sessionXP + xpGained
-        setSessionXP(updatedXP)
-        addXp(xpGained)
 
         // Context-aware success messages
         let msg = ''
-        if (isFirstEver) msg = `First Blood! 🎯 +${xpGained} XP`
+        if (isFirstEver) msg = `First Blood! 🎯`
         else if (updatedStreak >= 10) msg = `UNSTOPPABLE! 🔥 ${updatedStreak}-streak!`
         else if (updatedStreak >= 5) msg = `On Fire! 🔥 ${updatedStreak}-streak bonus!`
         else if (prevRatio < 0.5 && prevTotal >= 2) msg = `Redemption! 📈 You improved!`
@@ -1120,29 +1106,18 @@ export default function FlashcardPlay() {
         else msg = [`Brilliant! 🚀`, `Perfect! 🎯`, `Nailed it! ✨`, `Excellent! 🌈`][Math.floor(Math.random() * 4)]
         setBadgeMessage(msg)
 
-        // XP float animation
-        setXpFloat({ visible: true, amount: xpGained })
-        setTimeout(() => setXpFloat({ visible: false, amount: 0 }), 1500)
-
         // Streak milestone confetti
         const confettiColors = updatedStreak >= 5
           ? ['#f59e0b', '#ef4444', '#f97316']
           : ['#6366f1', '#a855f7', '#ec4899']
         confetti({ particleCount: updatedStreak >= 5 ? 250 : 150, spread: updatedStreak >= 5 ? 100 : 70, origin: { y: 0.6 }, colors: confettiColors })
 
-        setAnswerContext({ wasCorrect: true, prevTotal, prevCorrect, timeTaken, avgTime, newStreak: updatedStreak, xpGained })
+        setAnswerContext({ wasCorrect: true, prevTotal, prevCorrect, timeTaken, avgTime, newStreak: updatedStreak, xpGained: 0 })
       } else {
         if (sfxEnabled) playIncorrectSound()
         updatedStreak = 0
         setStreak(0)
-        const xpGained = 1
-        updatedXP = sessionXP + xpGained
-        setSessionXP(updatedXP)
-        addXp(xpGained)
         
-        setXpFloat({ visible: true, amount: xpGained })
-        setTimeout(() => setXpFloat({ visible: false, amount: 0 }), 1500)
-
         // Context-aware failure messages
         let msg = ''
         if (isFirstEver) msg = `First try! No worries 💪`
@@ -1151,7 +1126,7 @@ export default function FlashcardPlay() {
         else msg = [`Nice try! 💪`, `Learning mode! 📚`, `Almost! 🍀`, `Keep going! 🌻`][Math.floor(Math.random() * 4)]
         setBadgeMessage(msg)
 
-        setAnswerContext({ wasCorrect: false, prevTotal, prevCorrect, timeTaken, avgTime, newStreak: 0, xpGained })
+        setAnswerContext({ wasCorrect: false, prevTotal, prevCorrect, timeTaken, avgTime, newStreak: 0, xpGained: 0 })
       }
 
       setBadgeVisible(true)
@@ -1238,6 +1213,23 @@ export default function FlashcardPlay() {
         time_spent: timeTaken,
         local_date: new Date().toLocaleDateString('en-CA')
       })
+      
+      if (!alreadyRated) {
+        const xpGained = res.data.xp_gained || 0;
+        if (xpGained > 0) {
+          setSessionXP(prev => prev + xpGained);
+          addXp(xpGained);
+          setXpFloat({ visible: true, amount: xpGained });
+          setTimeout(() => setXpFloat({ visible: false, amount: 0 }), 1500);
+          
+          setAnswerContext(prev => prev ? { ...prev, xpGained } : null);
+        }
+        
+        if (res.data.goal_update) {
+          setGoalToast(res.data.goal_update);
+          setTimeout(() => setGoalToast(null), 4000);
+        }
+      }
 
       // Trigger 10-Streak Milestone Celebration
       if (updatedStreak === 10) {

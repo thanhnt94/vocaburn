@@ -1434,17 +1434,6 @@ export default function PracticePlay() {
       if (sfxEnabled) playCorrectSound();
       updatedStreak = streak + 1;
       setStreak(updatedStreak);
-      
-      let bonusXP = 0;
-      if (isFirstEver) bonusXP += 10;
-      if (updatedStreak >= 5) bonusXP += 1;
-      const xpGained = 6 + bonusXP;
-      updatedXP = sessionXP + xpGained;
-      setSessionXP(updatedXP);
-      addXp(xpGained);
-
-      setXpFloat({ visible: true, amount: xpGained });
-      setTimeout(() => setXpFloat({ visible: false, amount: 0 }), 1500);
 
       confetti({ particleCount: 80, spread: 50, origin: { y: 0.6 } });
       setBadgeMessage("Chính xác! 🎯");
@@ -1472,14 +1461,6 @@ export default function PracticePlay() {
       if (sfxEnabled) playIncorrectSound();
       updatedStreak = 0;
       setStreak(0);
-      const xpGained = 1;
-      updatedXP = sessionXP + xpGained;
-      setSessionXP(updatedXP);
-      addXp(xpGained);
-
-      setXpFloat({ visible: true, amount: xpGained });
-      setTimeout(() => setXpFloat({ visible: false, amount: 0 }), 1500);
-
       setBadgeMessage("Chưa chính xác! 😅");
     }
 
@@ -1489,7 +1470,7 @@ export default function PracticePlay() {
     saveSession(newAnswers, currentIndex, updatedXP, updatedStreak, updatedTotalAnswered, updatedCorrectCount);
 
     try {
-      await axios.post('/api/v1/quiz/record_answer', {
+      const res = await axios.post('/api/v1/quiz/record_answer', {
         question_id: currentQuestion.id,
         is_correct: isCorrect,
         is_practice: true,
@@ -1497,8 +1478,23 @@ export default function PracticePlay() {
         time_spent: timeLeft,
         local_date: new Date().toLocaleDateString('en-CA')
       });
+      
+      const xpGained = res.data.xp_gained || 0;
+      if (xpGained > 0) {
+        setSessionXP(prev => prev + xpGained);
+        addXp(xpGained);
+        setXpFloat({ visible: true, amount: xpGained });
+        setTimeout(() => setXpFloat({ visible: false, amount: 0 }), 1500);
+      }
+      
+      // Update Goal Toast if returned from backend
+      if (res.data.goal_update) {
+        setGoalToast(res.data.goal_update);
+        setTimeout(() => setGoalToast(null), 4000);
+      }
+      
     } catch (e) {
-      console.error(e);
+      console.error("Failed to record answer", e);
     }
   };
 
@@ -1536,17 +1532,6 @@ export default function PracticePlay() {
       if (sfxEnabled) playCorrectSound();
       updatedStreak = streak + 1;
       setStreak(updatedStreak);
-      
-      let bonusXP = 0;
-      if (isFirstEver) bonusXP += 10;
-      if (updatedStreak >= 5) bonusXP += 1;
-      const xpGained = 6 + bonusXP;
-      updatedXP = sessionXP + xpGained;
-      setSessionXP(updatedXP);
-      addXp(xpGained);
-
-      setXpFloat({ visible: true, amount: xpGained });
-      setTimeout(() => setXpFloat({ visible: false, amount: 0 }), 1500);
 
       confetti({ particleCount: 100, spread: 60, origin: { y: 0.6 } });
       setBadgeMessage("Xuất sắc! ⌨️");
@@ -1554,14 +1539,6 @@ export default function PracticePlay() {
       if (sfxEnabled) playIncorrectSound();
       updatedStreak = 0;
       setStreak(0);
-      const xpGained = 1;
-      updatedXP = sessionXP + xpGained;
-      setSessionXP(updatedXP);
-      addXp(xpGained);
-
-      setXpFloat({ visible: true, amount: xpGained });
-      setTimeout(() => setXpFloat({ visible: false, amount: 0 }), 1500);
-
       setBadgeMessage("Nhầm một chút rồi! 💪");
     }
 
@@ -1571,7 +1548,7 @@ export default function PracticePlay() {
     saveSession(newAnswers, currentIndex, updatedXP, updatedStreak, updatedTotalAnswered, updatedCorrectCount);
 
     try {
-      await axios.post('/api/v1/quiz/record_answer', {
+      const res = await axios.post('/api/v1/quiz/record_answer', {
         question_id: currentQuestion.id,
         is_correct: isCorrect,
         is_practice: true,
@@ -1579,6 +1556,19 @@ export default function PracticePlay() {
         time_spent: timeLeft,
         local_date: new Date().toLocaleDateString('en-CA')
       });
+      
+      const xpGained = res.data.xp_gained || 0;
+      if (xpGained > 0) {
+        setSessionXP(prev => prev + xpGained);
+        addXp(xpGained);
+        setXpFloat({ visible: true, amount: xpGained });
+        setTimeout(() => setXpFloat({ visible: false, amount: 0 }), 1500);
+      }
+      
+      if (res.data.goal_update) {
+        setGoalToast(res.data.goal_update);
+        setTimeout(() => setGoalToast(null), 4000);
+      }
     } catch (e) {
       console.error(e);
     }
