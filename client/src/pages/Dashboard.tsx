@@ -316,7 +316,7 @@ function TodayFocusWidget({
   const newCardPercentage = data.daily_new_card_target > 0 ? Math.min(100, Math.round((data.actual_new_cards_completed / data.daily_new_card_target) * 100)) : 0
 
   return (
-    <div className="bg-white border border-slate-200/60 rounded-[2.5rem] p-6 shadow-sm relative overflow-hidden text-left mb-5">
+    <div className="bg-white border border-slate-200/60 rounded-[2.5rem] p-6 shadow-sm relative overflow-hidden text-left mb-5 flex-shrink-0">
       <div className="absolute -right-8 -top-8 w-24 h-24 rounded-full bg-indigo-50/30 blur-md pointer-events-none" />
       
       <div className="flex items-center justify-between mb-5 relative z-10">
