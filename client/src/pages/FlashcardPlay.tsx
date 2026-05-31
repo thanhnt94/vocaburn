@@ -3195,7 +3195,7 @@ export default function FlashcardPlay() {
           <div className="flex flex-col">
             <h1 className="text-[11px] font-black text-slate-700 truncate max-w-[200px] md:max-w-md leading-tight">{session.title}</h1>
             <div className="flex items-center gap-1.5 mt-0.5">
-              <span className="text-[11px] font-black text-indigo-600">{initialTotalXP} XP</span>
+              <span className="text-[11px] font-black text-indigo-600">{gamify.xp} XP</span>
               <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-gradient-to-r from-indigo-500 to-purple-500 text-white text-[8px] font-black shadow-sm shadow-indigo-200">
                  <span>+{sessionXP}</span>
               </div>
@@ -3299,7 +3299,7 @@ export default function FlashcardPlay() {
                     </div>
                   </div>
 
-                  {activeGoal ? (
+                    {activeGoal ? (
                     <div className="space-y-3">
                       <div className="flex justify-between items-end">
                         <span className="text-2xl font-black text-slate-800">
@@ -3318,7 +3318,7 @@ export default function FlashcardPlay() {
                       <p className="text-[11px] text-slate-500 leading-relaxed font-semibold">
                         {activeGoal.is_target_met 
                           ? "🎉 Tuyệt vời! Bạn đã hoàn thành mục tiêu ngày hôm nay. Hãy tiếp tục để bứt phá giới hạn nhé!"
-                          : `🎯 Bạn cần học thêm ${activeGoal.daily_target - activeGoal.done_today} thẻ mới/cần ôn để hoàn thành mục tiêu ngày!`
+                          : `🎯 Bạn cần học thêm ${activeGoal.daily_target - activeGoal.done_today} thẻ mới để hoàn thành mục tiêu ngày!`
                         }
                       </p>
                     </div>
@@ -3380,7 +3380,9 @@ export default function FlashcardPlay() {
                   {/* Mini Leaderboard List */}
                   {xpLeaderboard.list && xpLeaderboard.list.length > 0 ? (
                     <div className="space-y-1.5 py-1">
-                      {xpLeaderboard.list.slice(0, 3).map((u: any, idx: number) => (
+                      {xpLeaderboard.list.slice(0, 3).map((u: any, idx: number) => {
+                        const displayValue = u.user_id === user?.id ? gamify.xp : u.value;
+                        return (
                         <div 
                           key={u.user_id} 
                           className={cn(
@@ -3398,21 +3400,21 @@ export default function FlashcardPlay() {
                               {u.full_name || u.username}
                             </span>
                             <span className="text-[9px] text-slate-400 font-medium">
-                              Lv.{u.level}
+                              Lv.{u.user_id === user?.id ? gamify.level : u.level}
                             </span>
                           </div>
                           <span className="font-black text-[11px] text-slate-900 shrink-0">
-                            {u.value.toLocaleString()} XP
+                            {displayValue.toLocaleString()} XP
                           </span>
                         </div>
-                      ))}
+                      )})}
                       
                       {/* Show user if they are not in Top 3 */}
                       {userRank > 3 && (() => {
                         const currentUserObj = xpLeaderboard.list.find((u: any) => u.user_id === user?.id) || {
                           full_name: user?.username || "",
                           level: gamify.level,
-                          value: userValue
+                          value: gamify.xp
                         };
                         return (
                           <>
@@ -3426,11 +3428,11 @@ export default function FlashcardPlay() {
                                   {currentUserObj.full_name || currentUserObj.username}
                                 </span>
                                 <span className="text-[9px] text-indigo-400 font-medium">
-                                  Lv.{currentUserObj.level}
+                                  Lv.{gamify.level}
                                 </span>
                               </div>
                               <span className="font-black text-[11px] text-indigo-600 shrink-0">
-                                {currentUserObj.value.toLocaleString()} XP
+                                {gamify.xp.toLocaleString()} XP
                               </span>
                             </div>
                           </>
@@ -3452,7 +3454,6 @@ export default function FlashcardPlay() {
                 <div className="bg-slate-100/50 p-4 rounded-[1.75rem] border border-slate-100 space-y-3">
                   <div className="flex justify-between text-[9px] font-black text-slate-400 uppercase tracking-wider">
                     <span>Phiên học hiện tại</span>
-                    <span>Card {currentIndex + 1} / {session?.questions?.length || 0}</span>
                   </div>
                   <div className="grid grid-cols-3 gap-2 text-center text-xs">
                     <div className="bg-white p-2.5 rounded-xl border border-slate-100 shadow-sm">
@@ -3479,7 +3480,7 @@ export default function FlashcardPlay() {
                               : (typeof optIdx === 'number' ? optIdx : 0);
                             return q.options && q.options.length > 0
                               ? q.options[ratingVal]?.is_correct
-                              : ratingVal > 0;
+                              : ratingVal > 1; // 1 (Again) is Wrong, 2/3/4 are Correct
                           }).length
                         )}
                       </span>
@@ -3503,7 +3504,7 @@ export default function FlashcardPlay() {
                               : (typeof optIdx === 'number' ? optIdx : 0);
                             return q.options && q.options.length > 0
                               ? q.options[ratingVal]?.is_correct
-                              : ratingVal > 0;
+                              : ratingVal > 1;
                           }).length
                         )}
                       </span>
