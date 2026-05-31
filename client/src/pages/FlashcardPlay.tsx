@@ -837,6 +837,19 @@ export default function FlashcardPlay() {
         setPracticeRange('all');
         localStorage.setItem('vocab_practice_range', 'all');
       }
+      
+      if (isPractice && quizRes.data.practice_settings) {
+        const parsed = quizRes.data.practice_settings;
+        setModeSettings(parsed);
+        if (!parsed.mcq?.active_pairs || parsed.mcq.active_pairs.length === 0) {
+          setPracticeNeedsSetup(true)
+          if ((subMode as string) !== 'setting') {
+            navigate(`/practice/${id}/setting`, { replace: true })
+          }
+          return
+        }
+      }
+      
       setPromptInput(quizRes.data.ai_prompt || '')
       setInitialTotalXP(quizRes.data.user_total_xp || 0)
       setPracticeNeedsSetup(!!quizRes.data.practice_needs_setup)
@@ -1006,8 +1019,11 @@ export default function FlashcardPlay() {
       setModeSettings(updatedModeSettings)
       setPracticeNeedsSetup(false)
       await fetchSession()
+      if (subMode === 'setting') {
+        navigate(`/practice/${id}/${practiceSubMode}`)
+      }
     } catch (e) {
-      alert("Lỗi khi lưu cấu hình luyện tập.")
+      alert("Failed to save practice settings.")
     }
   }
 
@@ -1020,8 +1036,11 @@ export default function FlashcardPlay() {
       setPracticeNeedsSetup(false)
       await fetchPracticeSettings()
       await fetchSession()
+      if (subMode === 'setting') {
+        navigate(`/practice/${id}/${practiceSubMode}`)
+      }
     } catch (e) {
-      alert("Lỗi khi khôi phục cấu hình luyện tập.")
+      alert("Failed to restore practice settings.")
     }
   }
 
@@ -2599,7 +2618,7 @@ export default function FlashcardPlay() {
             Hệ thống chưa tìm thấy dữ liệu Hỏi-Đáp phù hợp. Vui lòng thiết lập Cặp cột câu hỏi để bắt đầu luyện tập nhé!
           </p>
           <button
-            onClick={() => setPracticeNeedsSetup(true)}
+            onClick={() => navigate(`/practice/${id}/setting`)}
             className="mt-2 px-6 py-3 rounded-2xl bg-gradient-to-r from-indigo-500 to-purple-600 text-white font-black text-xs uppercase hover:shadow-lg active:scale-95 transition-all flex items-center gap-1.5"
           >
             <Sliders className="w-3.5 h-3.5" />
@@ -3343,7 +3362,7 @@ export default function FlashcardPlay() {
               {/* Header */}
               <div className="p-6 border-b border-slate-100 flex items-center justify-between bg-white sticky top-0 z-10">
                 <span className="text-[11px] font-black text-slate-500 uppercase tracking-[0.3em]">
-                  {mainTab === 'practice' ? "Chi tiết Luyện tập" : "Ôn tập & Mục tiêu"}
+                  {mainTab === 'practice' ? "Practice Details" : "Review & Goals"}
                 </span>
                 {activeGoal && activeMode !== 'review' && (
                   <span className={cn(
@@ -3352,7 +3371,7 @@ export default function FlashcardPlay() {
                       ? "bg-emerald-100 text-emerald-700 border border-emerald-200" 
                       : "bg-amber-100 text-amber-700 border border-amber-200"
                   )}>
-                    {activeGoal.is_target_met ? "Đạt mục tiêu" : "Đang thực hiện"}
+                    {activeGoal.is_target_met ? "Goal Reached" : "In Progress"}
                   </span>
                 )}
               </div>
@@ -3366,8 +3385,8 @@ export default function FlashcardPlay() {
                         <Target className="w-4.5 h-4.5" />
                       </div>
                       <div>
-                        <h4 className="text-xs font-black text-slate-700">Mục tiêu bộ thẻ</h4>
-                        <p className="text-[10px] text-slate-400 font-medium">Luyện tập hàng ngày</p>
+                        <h4 className="text-xs font-black text-slate-700">Deck Goal</h4>
+                        <p className="text-[10px] text-slate-400 font-medium">Daily Practice</p>
                       </div>
                     </div>
 
@@ -3375,7 +3394,7 @@ export default function FlashcardPlay() {
                       <div className="space-y-3">
                         <div className="flex justify-between items-end">
                           <span className="text-2xl font-black text-slate-800">
-                            {activeGoal.done_today} <span className="text-xs text-slate-400 font-bold">/ {activeGoal.daily_target} thẻ</span>
+                            {activeGoal.done_today} <span className="text-xs text-slate-400 font-bold">/ {activeGoal.daily_target} cards</span>
                           </span>
                           <span className="text-xs font-black text-indigo-600">
                             {Math.round((activeGoal.done_today / activeGoal.daily_target) * 100)}%
@@ -3389,15 +3408,15 @@ export default function FlashcardPlay() {
                         </div>
                         <p className="text-[11px] text-slate-500 leading-relaxed font-semibold">
                           {activeGoal.is_target_met 
-                            ? "🎉 Tuyệt vời! Bạn đã hoàn thành mục tiêu ngày hôm nay. Hãy tiếp tục để bứt phá giới hạn nhé!"
-                            : `🎯 Bạn cần học thêm ${activeGoal.daily_target - activeGoal.done_today} thẻ mới để hoàn thành mục tiêu ngày!`
+                            ? "🎉 Awesome! You've met your daily goal. Keep pushing your limits!"
+                            : `🎯 You need to study ${activeGoal.daily_target - activeGoal.done_today} more new cards to complete your daily goal!`
                           }
                         </p>
                       </div>
                     ) : (
                       <div className="py-1">
                         <p className="text-[11px] text-slate-400 leading-relaxed font-medium">
-                          Bạn chưa đặt mục tiêu hàng ngày cho bộ thẻ này. Hãy đặt mục tiêu học tập ở trang chủ để duy trì thói quen mỗi ngày! 💡
+                          You haven't set a daily goal for this deck yet. Set a goal on the home page to maintain your daily habit! 💡
                         </p>
                       </div>
                     )}
@@ -3412,18 +3431,18 @@ export default function FlashcardPlay() {
                         <Flame className="w-4.5 h-4.5" />
                       </div>
                       <div>
-                        <h4 className="text-xs font-black text-slate-700">Phong độ học tập</h4>
-                        <p className="text-[10px] text-slate-400 font-medium">Chuỗi học liên tục</p>
+                        <h4 className="text-xs font-black text-slate-700">Learning Streak</h4>
+                        <p className="text-[10px] text-slate-400 font-medium">Consecutive days</p>
                       </div>
                     </div>
                     <span className="text-xs font-black text-orange-600 bg-orange-50 px-2.5 py-1 rounded-xl border border-orange-100 shadow-sm">
-                      {gamify.streak} ngày 🔥
+                      {gamify.streak} days 🔥
                     </span>
                   </div>
 
                   <div className="pt-3 border-t border-slate-50 space-y-3">
                     <div className="flex justify-between items-center text-xs">
-                      <span className="font-bold text-slate-600">Cấp độ {gamify.level}</span>
+                      <span className="font-bold text-slate-600">Level {gamify.level}</span>
                       <span className="font-bold text-slate-400">{gamify.xp % 1000} / 1000 XP</span>
                     </div>
                     <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
@@ -3433,7 +3452,7 @@ export default function FlashcardPlay() {
                       />
                     </div>
                     <p className="text-[10px] text-slate-400 font-medium">
-                      Còn {1000 - (gamify.xp % 1000)} XP nữa để lên cấp {gamify.level + 1}!
+                      {1000 - (gamify.xp % 1000)} XP more to reach level {gamify.level + 1}!
                     </p>
                   </div>
                 </div>
@@ -3604,7 +3623,7 @@ export default function FlashcardPlay() {
             >
               {mainTab === 'practice' && practiceDisabled ? (
                 renderPracticeLockScreen()
-              ) : mainTab === 'practice' && practiceNeedsSetup ? (
+              ) : mainTab === 'practice' && (practiceNeedsSetup || subMode === 'setting') ? (
                 <PracticeSetupScreen
                   practiceSubMode={practiceSubMode}
                   setupPairs={setupPairs}
@@ -3825,7 +3844,7 @@ export default function FlashcardPlay() {
                       ];
                       const stateDots = [
                         'bg-blue-500 shadow-blue-500/50',
-                        'bg-amber-500 shadow-amber-500/50',
+                        'bg-amber-50 shadow-amber-500/50',
                         'bg-emerald-50 shadow-emerald-500/50',
                         'bg-rose-500 shadow-rose-500/50'
                       ];

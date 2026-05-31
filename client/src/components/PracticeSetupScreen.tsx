@@ -38,17 +38,17 @@ export const PracticeSetupScreen: React.FC<PracticeSetupScreenProps> = ({
             <Sliders className="w-7 h-7" />
           </div>
           <h2 className="text-xl font-black text-slate-800">
-            Cấu hình Luyện tập: {practiceSubMode === 'mcq' ? 'Trắc nghiệm' : practiceSubMode === 'typing' ? 'Gõ từ vựng' : 'Nghe'}
+            Practice Settings: {practiceSubMode === 'mcq' ? 'Multiple Choice' : practiceSubMode === 'typing' ? 'Typing' : 'Listening'}
           </h2>
-          <p className="text-xs text-slate-400 mt-1">Chọn các cặp cột dữ liệu bạn muốn ghép cặp làm câu hỏi và câu trả lời.</p>
+          <p className="text-xs text-slate-400 mt-1">Select the column pairs you want to use as questions and answers.</p>
         </div>
 
         <div className="space-y-4 mb-6">
-          <span className="text-[10px] font-black text-slate-400 tracking-wider uppercase block">Các cặp cột hỏi-đáp đang học</span>
+          <span className="text-[10px] font-black text-slate-400 tracking-wider uppercase block">Active Question-Answer Pairs</span>
           {setupPairs.map((pair, idx) => (
             <div key={idx} className="flex items-center gap-3 bg-slate-50 p-4 rounded-2xl border border-slate-100">
               <div className="flex-1">
-                <label className="text-[9px] font-black text-slate-400 uppercase tracking-wider block mb-1">Cột Câu hỏi</label>
+                <label className="text-[9px] font-black text-slate-400 uppercase tracking-wider block mb-1">Question Column</label>
                 <select
                   value={pair.q}
                   onChange={(e) => {
@@ -67,7 +67,7 @@ export const PracticeSetupScreen: React.FC<PracticeSetupScreenProps> = ({
               <div className="text-slate-300 font-bold text-xs mt-4">➔</div>
 
               <div className="flex-1">
-                <label className="text-[9px] font-black text-slate-400 uppercase tracking-wider block mb-1">Cột Đáp án</label>
+                <label className="text-[9px] font-black text-slate-400 uppercase tracking-wider block mb-1">Answer Column</label>
                 <select
                   value={pair.a}
                   onChange={(e) => {
@@ -101,13 +101,13 @@ export const PracticeSetupScreen: React.FC<PracticeSetupScreenProps> = ({
             onClick={() => setSetupPairs([...setupPairs, { q: 'front', a: 'back' }])}
             className="w-full py-3 rounded-2xl border border-dashed border-slate-200 text-slate-500 hover:text-indigo-600 hover:border-indigo-300 hover:bg-indigo-50/20 text-xs font-bold transition-all flex items-center justify-center gap-1.5"
           >
-            <span>+ Thêm cặp hỏi-đáp</span>
+            <span>+ Add Q&A Pair</span>
           </button>
         </div>
 
         {(practiceSubMode === 'mcq' || practiceSubMode === 'listening') && (
           <div className="mb-6 bg-slate-50 p-4 rounded-2xl border border-slate-100">
-            <label className="text-[10px] font-black text-slate-400 tracking-wider uppercase block mb-2">Số lượng Lựa chọn MCQ</label>
+            <label className="text-[10px] font-black text-slate-400 tracking-wider uppercase block mb-2">Number of MCQ Choices</label>
             <div className="grid grid-cols-4 gap-2">
               {[3, 4, 5, 6].map(num => (
                 <button
@@ -120,7 +120,7 @@ export const PracticeSetupScreen: React.FC<PracticeSetupScreenProps> = ({
                       : "bg-white border-slate-200 text-slate-500 hover:text-slate-700 hover:border-slate-300"
                   )}
                 >
-                  {num} Lựa chọn {num === 4 && "(Gợi ý)"}
+                  {num} Choices {num === 4 && "(Recommended)"}
                 </button>
               ))}
             </div>
@@ -134,7 +134,7 @@ export const PracticeSetupScreen: React.FC<PracticeSetupScreenProps> = ({
             onClick={resetPracticeSettings}
             className="flex-1 py-4 rounded-2xl bg-slate-50 border border-slate-200 text-slate-600 font-black text-xs uppercase hover:bg-slate-100 active:scale-95 transition-all shadow-sm flex items-center justify-center gap-1.5"
           >
-            <span>Khôi phục mặc định</span>
+            <span>Restore Default</span>
           </button>
         )}
 
@@ -144,7 +144,7 @@ export const PracticeSetupScreen: React.FC<PracticeSetupScreenProps> = ({
             className="flex-1 py-4 rounded-2xl bg-slate-50 border border-slate-200 text-slate-600 font-black text-xs uppercase hover:bg-slate-100 active:scale-95 transition-all shadow-sm flex items-center justify-center gap-1.5"
           >
             <Sliders className="w-4 h-4" />
-            <span>Đặt làm mặc định Deck</span>
+            <span>Set as Deck Default</span>
           </button>
         )}
 
@@ -153,7 +153,7 @@ export const PracticeSetupScreen: React.FC<PracticeSetupScreenProps> = ({
           className="flex-[2] py-4 rounded-2xl bg-gradient-to-r from-indigo-500 to-purple-600 text-white font-black text-xs uppercase hover:shadow-lg hover:shadow-indigo-100 active:scale-95 transition-all flex items-center justify-center gap-1.5"
         >
           <Sparkles className="w-4 h-4" />
-          <span>Lưu & Bắt đầu học 🚀</span>
+          <span>Save & Start 🚀</span>
         </button>
       </div>
     </div>

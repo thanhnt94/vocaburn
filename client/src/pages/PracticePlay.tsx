@@ -803,6 +803,31 @@ export default function PracticePlay() {
         setPracticeRange('all');
         localStorage.setItem('vocab_practice_range', 'all');
       }
+
+      if (isPractice) {
+        const settingsRes = results[1]
+        if (settingsRes?.data) {
+          setAvailableColumns(settingsRes.data.available_columns || [])
+          const userSettings = settingsRes.data.user_settings
+          const creatorSettings = settingsRes.data.creator_settings
+          const isObjEmpty = (obj: any) => !obj || Object.keys(obj).length === 0;
+          const parsed = !isObjEmpty(userSettings) ? userSettings : (!isObjEmpty(creatorSettings) ? creatorSettings : null)
+          if (parsed) {
+            setModeSettings(parsed)
+            if (!parsed.mcq?.active_pairs || parsed.mcq.active_pairs.length === 0) {
+              setPracticeNeedsSetup(true)
+              if ((subMode as string) !== 'setting') {
+                navigate(`/practice/${id}/setting`, { replace: true })
+              }
+              return
+            }
+            const currentModeSettings = parsed[subMode] || parsed.mcq || { active_pairs: [{ q: 'front', a: 'back' }], num_choices: 4 }
+            setSetupPairs(currentModeSettings.active_pairs || [{ q: 'front', a: 'back' }])
+            setSetupNumChoices(currentModeSettings.num_choices || 4)
+          }
+        }
+      }
+
       setPromptInput(quizRes.data.ai_prompt || '')
       setInitialTotalXP(quizRes.data.user_total_xp || 0)
       setPracticeNeedsSetup(!!quizRes.data.practice_needs_setup)
@@ -810,21 +835,6 @@ export default function PracticePlay() {
 
       if (isPractice) {
         if (currentIndex < 0) setCurrentIndex(0)
-        // Apply practice settings from parallel fetch (results[1])
-        const settingsRes = results[1]
-          if (settingsRes?.data) {
-            setAvailableColumns(settingsRes.data.available_columns || [])
-            const userSettings = settingsRes.data.user_settings
-            const creatorSettings = settingsRes.data.creator_settings
-            const isObjEmpty = (obj: any) => !obj || Object.keys(obj).length === 0;
-            const parsed = !isObjEmpty(userSettings) ? userSettings : (!isObjEmpty(creatorSettings) ? creatorSettings : null)
-            if (parsed) {
-              setModeSettings(parsed)
-              const currentModeSettings = parsed[subMode] || parsed.mcq || { active_pairs: [{ q: 'front', a: 'back' }], num_choices: 4 }
-              setSetupPairs(currentModeSettings.active_pairs || [{ q: 'front', a: 'back' }])
-              setSetupNumChoices(currentModeSettings.num_choices || 4)
-            }
-          }
       } else {
         // FSRS mode: apply goals + session
         const goalsRes = results[1]
@@ -995,8 +1005,11 @@ export default function PracticePlay() {
       setModeSettings(updatedModeSettings)
       setPracticeNeedsSetup(false)
       await fetchSession()
+      if (subMode === 'setting') {
+        navigate(`/practice/${id}/${practiceSubMode}`)
+      }
     } catch (e) {
-      alert("Lỗi khi lưu cấu hình luyện tập.")
+      alert("Failed to save practice settings.")
     }
   }
 
@@ -1009,8 +1022,11 @@ export default function PracticePlay() {
       setPracticeNeedsSetup(false)
       await fetchPracticeSettings()
       await fetchSession()
+      if (subMode === 'setting') {
+        navigate(`/practice/${id}/${practiceSubMode}`)
+      }
     } catch (e) {
-      alert("Lỗi khi khôi phục cấu hình luyện tập.")
+      alert("Failed to restore practice settings.")
     }
   }
 
@@ -2359,11 +2375,10 @@ export default function PracticePlay() {
           <p className="text-xs text-slate-400 max-w-sm leading-relaxed">
             Hệ thống chưa tìm thấy dữ liệu Hỏi-Đáp phù hợp. Vui lòng thiết lập Cặp cột câu hỏi để bắt đầu luyện tập nhé!
           </p>
-          <button
-            onClick={() => setPracticeNeedsSetup(true)}
-            className="mt-2 px-6 py-3 rounded-2xl bg-gradient-to-r from-indigo-500 to-purple-600 text-white font-black text-xs uppercase hover:shadow-lg active:scale-95 transition-all flex items-center gap-1.5"
+          <button 
+            onClick={() => navigate(`/practice/${id}/setting`)}
+            className="flex-1 py-4 px-6 bg-slate-50 hover:bg-slate-100 text-slate-700 font-black text-[13px] rounded-2xl transition-all shadow-sm border border-slate-200 flex items-center justify-center gap-2"
           >
-            <Sliders className="w-3.5 h-3.5" />
             <span>Thiết lập Cấu hình ⚙️</span>
           </button>
         </div>
@@ -3127,7 +3142,7 @@ export default function PracticePlay() {
             </div>
 
             <button
-              onClick={() => setPracticeNeedsSetup(true)}
+              onClick={() => navigate(`/practice/${id}/setting`)}
               className="w-7 h-7 flex-shrink-0 flex items-center justify-center rounded-lg bg-slate-50 border border-slate-200 text-slate-500 hover:bg-indigo-50 hover:text-indigo-600 hover:border-indigo-200 active:scale-95 transition-all shadow-sm"
               title="Cấu hình cặp cột Hỏi-Đáp"
             >
@@ -3180,7 +3195,7 @@ export default function PracticePlay() {
               {/* Header */}
               <div className="p-6 border-b border-slate-100 flex items-center justify-between bg-white sticky top-0 z-10">
                 <span className="text-[11px] font-black text-slate-500 uppercase tracking-[0.3em]">
-                  {mainTab === 'practice' ? "Chi tiết Luyện tập" : "Ôn tập & Mục tiêu"}
+                  {mainTab === 'practice' ? "Practice Details" : "Review & Goals"}
                 </span>
                 {activeGoal && activeMode !== 'review' && (
                   <span className={cn(
@@ -3189,7 +3204,7 @@ export default function PracticePlay() {
                       ? "bg-emerald-100 text-emerald-700 border border-emerald-200" 
                       : "bg-amber-100 text-amber-700 border border-amber-200"
                   )}>
-                    {activeGoal.is_target_met ? "Đạt mục tiêu" : "Đang thực hiện"}
+                    {activeGoal.is_target_met ? "Goal Reached" : "In Progress"}
                   </span>
                 )}
               </div>
@@ -3203,8 +3218,8 @@ export default function PracticePlay() {
                         <Target className="w-4.5 h-4.5" />
                       </div>
                       <div>
-                        <h4 className="text-xs font-black text-slate-700">Mục tiêu bộ thẻ</h4>
-                        <p className="text-[10px] text-slate-400 font-medium">Luyện tập hàng ngày</p>
+                        <h4 className="text-xs font-black text-slate-700">Deck Goal</h4>
+                        <p className="text-[10px] text-slate-400 font-medium">Daily Practice</p>
                       </div>
                     </div>
 
@@ -3212,7 +3227,7 @@ export default function PracticePlay() {
                       <div className="space-y-3">
                         <div className="flex justify-between items-end">
                           <span className="text-2xl font-black text-slate-800">
-                            {activeGoal.done_today} <span className="text-xs text-slate-400 font-bold">/ {activeGoal.daily_target} thẻ</span>
+                            {activeGoal.done_today} <span className="text-xs text-slate-400 font-bold">/ {activeGoal.daily_target} cards</span>
                           </span>
                           <span className="text-xs font-black text-indigo-600">
                             {Math.round((activeGoal.done_today / activeGoal.daily_target) * 100)}%
@@ -3226,15 +3241,15 @@ export default function PracticePlay() {
                         </div>
                         <p className="text-[11px] text-slate-500 leading-relaxed font-semibold">
                           {activeGoal.is_target_met 
-                            ? "🎉 Tuyệt vời! Bạn đã hoàn thành mục tiêu ngày hôm nay. Hãy tiếp tục để bứt phá giới hạn nhé!"
-                            : `🎯 Bạn cần học thêm ${activeGoal.daily_target - activeGoal.done_today} thẻ mới để hoàn thành mục tiêu ngày!`
+                            ? "🎉 Awesome! You've met your daily goal. Keep pushing your limits!"
+                            : `🎯 You need to study ${activeGoal.daily_target - activeGoal.done_today} more new cards to complete your daily goal!`
                           }
                         </p>
                       </div>
                     ) : (
                       <div className="py-1">
                         <p className="text-[11px] text-slate-400 leading-relaxed font-medium">
-                          Bạn chưa đặt mục tiêu hàng ngày cho bộ thẻ này. Hãy đặt mục tiêu học tập ở trang chủ để duy trì thói quen mỗi ngày! 💡
+                          You haven't set a daily goal for this deck yet. Set a goal on the home page to maintain your daily habit! 💡
                         </p>
                       </div>
                     )}
@@ -3249,18 +3264,18 @@ export default function PracticePlay() {
                         <Flame className="w-4.5 h-4.5" />
                       </div>
                       <div>
-                        <h4 className="text-xs font-black text-slate-700">Phong độ học tập</h4>
-                        <p className="text-[10px] text-slate-400 font-medium">Chuỗi học liên tục</p>
+                        <h4 className="text-xs font-black text-slate-700">Learning Streak</h4>
+                        <p className="text-[10px] text-slate-400 font-medium">Consecutive days</p>
                       </div>
                     </div>
                     <span className="text-xs font-black text-orange-600 bg-orange-50 px-2.5 py-1 rounded-xl border border-orange-100 shadow-sm">
-                      {gamify.streak} ngày 🔥
+                      {gamify.streak} days 🔥
                     </span>
                   </div>
 
                   <div className="pt-3 border-t border-slate-50 space-y-3">
                     <div className="flex justify-between items-center text-xs">
-                      <span className="font-bold text-slate-600">Cấp độ {gamify.level}</span>
+                      <span className="font-bold text-slate-600">Level {gamify.level}</span>
                       <span className="font-bold text-slate-400">{gamify.xp % 1000} / 1000 XP</span>
                     </div>
                     <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
@@ -3270,7 +3285,7 @@ export default function PracticePlay() {
                       />
                     </div>
                     <p className="text-[10px] text-slate-400 font-medium">
-                      Còn {1000 - (gamify.xp % 1000)} XP nữa để lên cấp {gamify.level + 1}!
+                      {1000 - (gamify.xp % 1000)} XP more to reach level {gamify.level + 1}!
                     </p>
                   </div>
                 </div>
@@ -3441,7 +3456,7 @@ export default function PracticePlay() {
               >
                 {mainTab === 'practice' && practiceDisabled ? (
                   renderPracticeLockScreen()
-                ) : mainTab === 'practice' && practiceNeedsSetup ? (
+                ) : mainTab === 'practice' && (practiceNeedsSetup || subMode === 'setting') ? (
                   <PracticeSetupScreen
                     practiceSubMode={practiceSubMode}
                     setupPairs={setupPairs}
