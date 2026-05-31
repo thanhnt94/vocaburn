@@ -312,8 +312,8 @@ async def record_answer(request: Request, data: dict, db: AsyncSession = Depends
             else:
                 msg = f"Excellent! You've done {progress.count_done}/{goal.daily_target} new questions today. Just {remaining} more to hit your goal, keep going! ⚡"
             
-            # Only send goal toast update if this was a new question or target is already met (limitless mode)
-            if is_new_question or progress.is_target_met:
+            # Only send goal toast update if this was a new question
+            if is_new_question:
                 goal_update_info = {
                     "goal_id": goal.id,
                     "daily_target": goal.daily_target,
