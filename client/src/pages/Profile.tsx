@@ -300,12 +300,16 @@ export default function Profile() {
 
 import { Link } from 'react-router-dom'
 
-function MenuLink({ icon: Icon, label, variant = 'default', href = '#' }: any) {
-  return (
-    <Link to={href} className={cn(
-      "bg-white rounded-[2.5rem] p-6 border border-slate-100 flex items-center justify-between group transition-all",
-      variant === 'danger' && "border-rose-50 hover:bg-rose-50/30"
-    )}>
+function MenuLink({ icon: Icon, label, variant = 'default', href = '#', native = false }: any) {
+  const isNative = native || href.startsWith('http') || href === '/logout';
+  
+  const className = cn(
+    "bg-white rounded-[2.5rem] p-6 border border-slate-100 flex items-center justify-between group transition-all cursor-pointer",
+    variant === 'danger' && "border-rose-50 hover:bg-rose-50/30"
+  );
+
+  const content = (
+    <>
       <div className="flex items-center gap-4">
         <div className={cn(
           "w-10 h-10 rounded-xl flex items-center justify-center transition-all",
@@ -322,6 +326,20 @@ function MenuLink({ icon: Icon, label, variant = 'default', href = '#' }: any) {
         "w-4 h-4 transition-all",
         variant === 'danger' ? "text-rose-200" : "text-slate-300"
       )} />
+    </>
+  );
+
+  if (isNative) {
+    return (
+      <a href={href} className={className}>
+        {content}
+      </a>
+    );
+  }
+
+  return (
+    <Link to={href} className={className}>
+      {content}
     </Link>
-  )
+  );
 }
