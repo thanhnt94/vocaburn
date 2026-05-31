@@ -617,13 +617,18 @@ export default function PracticePlay() {
   useEffect(() => {
     timerRef.current = setInterval(() => {
       setTimeLeft(prev => {
-        // Only increment if feedback is NOT shown
-        if (showFeedback) return prev
+        // In practice mode, stop when feedback is shown. 
+        // In FSRS mode, stop only when user has actually rated the card.
+        if (mainTab === 'practice') {
+          if (showFeedback) return prev
+        } else {
+          if (hasRated) return prev
+        }
         return prev + 1
       })
     }, 1000)
     return () => clearInterval(timerRef.current)
-  }, [showFeedback])
+  }, [showFeedback, hasRated, mainTab])
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -807,18 +812,19 @@ export default function PracticePlay() {
         if (currentIndex < 0) setCurrentIndex(0)
         // Apply practice settings from parallel fetch (results[1])
         const settingsRes = results[1]
-        if (settingsRes?.data) {
-          setAvailableColumns(settingsRes.data.available_columns || [])
-          const userSettings = settingsRes.data.user_settings
-          const creatorSettings = settingsRes.data.creator_settings
-          const parsed = userSettings || creatorSettings
-          if (parsed) {
-            setModeSettings(parsed)
-            const currentModeSettings = parsed[subMode] || parsed.mcq || { active_pairs: [{ q: 'front', a: 'back' }], num_choices: 4 }
-            setSetupPairs(currentModeSettings.active_pairs || [{ q: 'front', a: 'back' }])
-            setSetupNumChoices(currentModeSettings.num_choices || 4)
+          if (settingsRes?.data) {
+            setAvailableColumns(settingsRes.data.available_columns || [])
+            const userSettings = settingsRes.data.user_settings
+            const creatorSettings = settingsRes.data.creator_settings
+            const isObjEmpty = (obj: any) => !obj || Object.keys(obj).length === 0;
+            const parsed = !isObjEmpty(userSettings) ? userSettings : (!isObjEmpty(creatorSettings) ? creatorSettings : null)
+            if (parsed) {
+              setModeSettings(parsed)
+              const currentModeSettings = parsed[subMode] || parsed.mcq || { active_pairs: [{ q: 'front', a: 'back' }], num_choices: 4 }
+              setSetupPairs(currentModeSettings.active_pairs || [{ q: 'front', a: 'back' }])
+              setSetupNumChoices(currentModeSettings.num_choices || 4)
+            }
           }
-        }
       } else {
         // FSRS mode: apply goals + session
         const goalsRes = results[1]
@@ -951,7 +957,8 @@ export default function PracticePlay() {
       const userSettings = res.data.user_settings
       const creatorSettings = res.data.creator_settings
 
-      const parsed = userSettings || creatorSettings
+      const isObjEmpty = (obj: any) => !obj || Object.keys(obj).length === 0;
+      const parsed = !isObjEmpty(userSettings) ? userSettings : (!isObjEmpty(creatorSettings) ? creatorSettings : null)
       if (parsed) {
         setModeSettings(parsed)
         const currentModeSettings = parsed[practiceSubMode] || parsed.mcq || { active_pairs: [{ q: 'front', a: 'back' }], num_choices: 4 }
@@ -990,6 +997,20 @@ export default function PracticePlay() {
       await fetchSession()
     } catch (e) {
       alert("Lỗi khi lưu cấu hình luyện tập.")
+    }
+  }
+
+  const resetPracticeSettings = async () => {
+    try {
+      await axios.post(`/api/v1/quiz/${id}/practice-settings`, {
+        settings: {},
+        is_creator: false
+      })
+      setPracticeNeedsSetup(false)
+      await fetchPracticeSettings()
+      await fetchSession()
+    } catch (e) {
+      alert("Lỗi khi khôi phục cấu hình luyện tập.")
     }
   }
 
@@ -3161,7 +3182,7 @@ export default function PracticePlay() {
                 <span className="text-[11px] font-black text-slate-500 uppercase tracking-[0.3em]">
                   {mainTab === 'practice' ? "Chi tiết Luyện tập" : "Ôn tập & Mục tiêu"}
                 </span>
-                {activeGoal && (
+                {activeGoal && activeMode !== 'review' && (
                   <span className={cn(
                     "text-[10px] font-black px-2.5 py-0.5 rounded-full uppercase tracking-wider shadow-sm",
                     activeGoal.is_target_met 
@@ -3175,48 +3196,50 @@ export default function PracticePlay() {
               
               <div className="flex-1 flex flex-col p-5 gap-4 overflow-y-auto">
                 {/* 1. Daily Goal Card */}
-                <div className="bg-white p-5 rounded-[2rem] border border-slate-100 shadow-sm space-y-4">
-                  <div className="flex items-center gap-2.5">
-                    <div className="w-8 h-8 rounded-xl bg-indigo-50 flex items-center justify-center text-indigo-500">
-                      <Target className="w-4.5 h-4.5" />
+                {activeMode !== 'review' && (
+                  <div className="bg-white p-5 rounded-[2rem] border border-slate-100 shadow-sm space-y-4">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-8 h-8 rounded-xl bg-indigo-50 flex items-center justify-center text-indigo-500">
+                        <Target className="w-4.5 h-4.5" />
+                      </div>
+                      <div>
+                        <h4 className="text-xs font-black text-slate-700">Mục tiêu bộ thẻ</h4>
+                        <p className="text-[10px] text-slate-400 font-medium">Luyện tập hàng ngày</p>
+                      </div>
                     </div>
-                    <div>
-                      <h4 className="text-xs font-black text-slate-700">Mục tiêu bộ thẻ</h4>
-                      <p className="text-[10px] text-slate-400 font-medium">Luyện tập hàng ngày</p>
-                    </div>
-                  </div>
 
-                  {activeGoal ? (
-                    <div className="space-y-3">
-                      <div className="flex justify-between items-end">
-                        <span className="text-2xl font-black text-slate-800">
-                          {activeGoal.done_today} <span className="text-xs text-slate-400 font-bold">/ {activeGoal.daily_target} thẻ</span>
-                        </span>
-                        <span className="text-xs font-black text-indigo-600">
-                          {Math.round((activeGoal.done_today / activeGoal.daily_target) * 100)}%
-                        </span>
+                    {activeGoal ? (
+                      <div className="space-y-3">
+                        <div className="flex justify-between items-end">
+                          <span className="text-2xl font-black text-slate-800">
+                            {activeGoal.done_today} <span className="text-xs text-slate-400 font-bold">/ {activeGoal.daily_target} thẻ</span>
+                          </span>
+                          <span className="text-xs font-black text-indigo-600">
+                            {Math.round((activeGoal.done_today / activeGoal.daily_target) * 100)}%
+                          </span>
+                        </div>
+                        <div className="w-full h-2.5 bg-slate-100 rounded-full overflow-hidden">
+                          <div 
+                            className="h-full bg-gradient-to-r from-indigo-500 to-purple-500 rounded-full transition-all duration-500"
+                            style={{ width: `${Math.min(100, Math.round((activeGoal.done_today / activeGoal.daily_target) * 100))}%` }}
+                          />
+                        </div>
+                        <p className="text-[11px] text-slate-500 leading-relaxed font-semibold">
+                          {activeGoal.is_target_met 
+                            ? "🎉 Tuyệt vời! Bạn đã hoàn thành mục tiêu ngày hôm nay. Hãy tiếp tục để bứt phá giới hạn nhé!"
+                            : `🎯 Bạn cần học thêm ${activeGoal.daily_target - activeGoal.done_today} thẻ mới để hoàn thành mục tiêu ngày!`
+                          }
+                        </p>
                       </div>
-                      <div className="w-full h-2.5 bg-slate-100 rounded-full overflow-hidden">
-                        <div 
-                          className="h-full bg-gradient-to-r from-indigo-500 to-purple-500 rounded-full transition-all duration-500"
-                          style={{ width: `${Math.min(100, Math.round((activeGoal.done_today / activeGoal.daily_target) * 100))}%` }}
-                        />
+                    ) : (
+                      <div className="py-1">
+                        <p className="text-[11px] text-slate-400 leading-relaxed font-medium">
+                          Bạn chưa đặt mục tiêu hàng ngày cho bộ thẻ này. Hãy đặt mục tiêu học tập ở trang chủ để duy trì thói quen mỗi ngày! 💡
+                        </p>
                       </div>
-                      <p className="text-[11px] text-slate-500 leading-relaxed font-semibold">
-                        {activeGoal.is_target_met 
-                          ? "🎉 Tuyệt vời! Bạn đã hoàn thành mục tiêu ngày hôm nay. Hãy tiếp tục để bứt phá giới hạn nhé!"
-                          : `🎯 Bạn cần học thêm ${activeGoal.daily_target - activeGoal.done_today} thẻ mới để hoàn thành mục tiêu ngày!`
-                        }
-                      </p>
-                    </div>
-                  ) : (
-                    <div className="py-1">
-                      <p className="text-[11px] text-slate-400 leading-relaxed font-medium">
-                        Bạn chưa đặt mục tiêu hàng ngày cho bộ thẻ này. Hãy đặt mục tiêu học tập ở trang chủ để duy trì thói quen mỗi ngày! 💡
-                      </p>
-                    </div>
-                  )}
-                </div>
+                    )}
+                  </div>
+                )}
 
                 {/* 2. Personal Achievement & Streak Card */}
                 <div className="bg-white p-5 rounded-[2rem] border border-slate-100 shadow-sm space-y-4">

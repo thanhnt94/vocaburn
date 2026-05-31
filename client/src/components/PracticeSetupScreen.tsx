@@ -16,6 +16,7 @@ interface PracticeSetupScreenProps {
   setSetupNumChoices: (num: number) => void
   canEdit: boolean
   savePracticeSettings: (pairs: Pair[], numChoices: number, makeDefault: boolean) => void
+  resetPracticeSettings?: () => void
 }
 
 export const PracticeSetupScreen: React.FC<PracticeSetupScreenProps> = ({
@@ -27,6 +28,7 @@ export const PracticeSetupScreen: React.FC<PracticeSetupScreenProps> = ({
   setSetupNumChoices,
   canEdit,
   savePracticeSettings,
+  resetPracticeSettings,
 }) => {
   return (
     <div className="flex-1 bg-white md:rounded-[3rem] rounded-[2rem] border border-slate-100 md:p-8 p-6 flex flex-col justify-between shadow-2xl shadow-indigo-100/40 min-h-0 overflow-y-auto">
@@ -127,6 +129,15 @@ export const PracticeSetupScreen: React.FC<PracticeSetupScreenProps> = ({
       </div>
 
       <div className="max-w-2xl mx-auto w-full flex flex-col md:flex-row gap-3 pt-4 border-t border-slate-50">
+        {resetPracticeSettings && (
+          <button
+            onClick={resetPracticeSettings}
+            className="flex-1 py-4 rounded-2xl bg-slate-50 border border-slate-200 text-slate-600 font-black text-xs uppercase hover:bg-slate-100 active:scale-95 transition-all shadow-sm flex items-center justify-center gap-1.5"
+          >
+            <span>Khôi phục mặc định</span>
+          </button>
+        )}
+
         {canEdit && (
           <button
             onClick={() => savePracticeSettings(setupPairs, setupNumChoices, true)}
