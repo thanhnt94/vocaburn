@@ -139,12 +139,16 @@ function MiniHeatmap({ data }: { data: HeatmapDay[] }) {
 }
 
 // ─── Leaderboard Widget ────────────────────────────────────────────────────────
-function LeaderboardWidget({ data }: { data: { 
-  leaderboard: any[], 
-  current_user_rank: number | null,
-  time_leaderboard?: any[],
-  current_user_time_rank?: number | null
-} }) {
+function LeaderboardWidget({ data, activeFilter, onFilterChange }: { 
+  data: { 
+    leaderboard: any[], 
+    current_user_rank: number | null,
+    time_leaderboard?: any[],
+    current_user_time_rank?: number | null
+  },
+  activeFilter: string,
+  onFilterChange: (f: string) => void
+}) {
   const [activeTab, setActiveTab] = useState<'xp' | 'time'>('xp')
 
   const rankIcons: Record<number, React.ReactNode> = {
@@ -172,93 +176,132 @@ function LeaderboardWidget({ data }: { data: {
   const currentRank = activeTab === 'xp' ? data.current_user_rank : data.current_user_time_rank
 
   return (
-    <div className="bg-white border border-slate-200/60 rounded-[2rem] p-5 shadow-sm flex flex-col gap-3 text-left flex-shrink-0">
-      <div className="flex items-center justify-between pb-2 border-b border-slate-100">
-        <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Bảng xếp hạng</span>
-        
-        <div className="flex items-center bg-slate-100 rounded-lg p-0.5">
-          <button
-            onClick={() => setActiveTab('xp')}
-            className={cn(
-              "px-2.5 py-1 rounded-md text-[9px] font-black uppercase tracking-wider transition-all",
-              activeTab === 'xp' ? "bg-white text-indigo-600 shadow-sm" : "text-slate-400 hover:text-slate-600"
-            )}
-          >
-            XP
-          </button>
-          <button
-            onClick={() => setActiveTab('time')}
-            className={cn(
-              "px-2.5 py-1 rounded-md text-[9px] font-black uppercase tracking-wider transition-all",
-              activeTab === 'time' ? "bg-white text-indigo-600 shadow-sm" : "text-slate-400 hover:text-slate-600"
-            )}
-          >
-            Thời gian
-          </button>
+    <div className="bg-white border border-slate-200/60 rounded-[2rem] p-5 shadow-sm flex flex-col gap-4 text-left flex-shrink-0">
+      <div className="flex flex-col gap-3 pb-3 border-b border-slate-100">
+        <div className="flex items-center justify-between">
+          <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">🏆 Bảng xếp hạng</span>
+          
+          <div className="flex items-center bg-slate-100 rounded-lg p-0.5">
+            <button
+              onClick={() => setActiveTab('xp')}
+              className={cn(
+                "px-2.5 py-1 rounded-md text-[9px] font-black uppercase tracking-wider transition-all",
+                activeTab === 'xp' ? "bg-white text-indigo-600 shadow-sm" : "text-slate-400 hover:text-slate-600"
+              )}
+            >
+              XP
+            </button>
+            <button
+              onClick={() => setActiveTab('time')}
+              className={cn(
+                "px-2.5 py-1 rounded-md text-[9px] font-black uppercase tracking-wider transition-all",
+                activeTab === 'time' ? "bg-white text-indigo-600 shadow-sm" : "text-slate-400 hover:text-slate-600"
+              )}
+            >
+              Thời gian
+            </button>
+          </div>
+        </div>
+
+        {/* Time Filters */}
+        <div className="flex items-center gap-1.5 self-start">
+          {[
+            { id: 'today', label: 'Hôm nay' },
+            { id: 'week', label: 'Tuần này' },
+            { id: 'all_time', label: 'Toàn bộ' }
+          ].map(filter => (
+            <button
+              key={filter.id}
+              onClick={() => onFilterChange(filter.id)}
+              className={cn(
+                "px-2.5 py-1 rounded-md text-[9px] font-black uppercase tracking-wider transition-all",
+                activeFilter === filter.id
+                  ? "bg-indigo-600 text-white shadow-sm shadow-indigo-200"
+                  : "bg-slate-50 text-slate-500 hover:bg-slate-100 hover:text-slate-700"
+              )}
+            >
+              {filter.label}
+            </button>
+          ))}
         </div>
       </div>
 
       <div className="flex flex-col gap-1.5">
-        {currentList.map((entry) => (
-          <div
-            key={entry.user_id}
-            className={cn(
-              'flex items-center gap-2.5 px-3 py-2 rounded-xl border bg-gradient-to-r transition-all',
-              entry.is_current_user
-                ? 'bg-indigo-50 border-indigo-200 ring-1 ring-indigo-300/50'
-                : rankColors[entry.rank as number] || 'border-slate-100 bg-slate-50/50',
-              (entry as any).out_of_top_10 && 'border-dashed'
-            )}
-          >
-            <div className="w-6 flex items-center justify-center flex-shrink-0">
-              {rankIcons[entry.rank as number] || (
-                <span className="text-[9px] font-black text-slate-400">#{entry.rank}</span>
+        {currentList.map((entry, index) => {
+          const isOutOfTop5 = (entry as any).out_of_top_5 || (entry as any).out_of_top_10
+          
+          return (
+            <React.Fragment key={entry.user_id}>
+              {isOutOfTop5 && index > 0 && (
+                <div className="flex justify-center py-1">
+                  <div className="flex gap-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-slate-200"></span>
+                    <span className="w-1.5 h-1.5 rounded-full bg-slate-200"></span>
+                    <span className="w-1.5 h-1.5 rounded-full bg-slate-200"></span>
+                  </div>
+                </div>
               )}
-            </div>
+              
+              <div
+                className={cn(
+                  'flex items-center gap-2.5 px-3 py-2 rounded-xl border bg-gradient-to-r transition-all',
+                  entry.is_current_user
+                    ? 'bg-indigo-50 border-indigo-200 ring-1 ring-indigo-300/50'
+                    : rankColors[entry.rank as number] || 'border-slate-100 bg-slate-50/50',
+                  isOutOfTop5 && 'border-dashed'
+                )}
+              >
+                <div className="w-6 flex items-center justify-center flex-shrink-0">
+                  {rankIcons[entry.rank as number] || (
+                    <span className="text-[9px] font-black text-slate-400">#{entry.rank}</span>
+                  )}
+                </div>
 
-            {/* Avatar */}
-            <div className={cn(
-              'w-7 h-7 rounded-xl flex items-center justify-center text-[10px] font-black flex-shrink-0',
-              entry.is_current_user
-                ? 'bg-indigo-600 text-white'
-                : entry.rank === 1
-                  ? 'bg-amber-500 text-white'
-                  : 'bg-slate-200 text-slate-600'
-            )}>
-              {entry.username.slice(0, 2).toUpperCase()}
-            </div>
+                {/* Avatar */}
+                <div className={cn(
+                  'w-7 h-7 rounded-xl flex items-center justify-center text-[10px] font-black flex-shrink-0',
+                  entry.is_current_user
+                    ? 'bg-indigo-600 text-white'
+                    : entry.rank === 1
+                      ? 'bg-amber-500 text-white'
+                      : 'bg-slate-200 text-slate-600'
+                )}>
+                  {entry.username.slice(0, 2).toUpperCase()}
+                </div>
 
-            <div className="flex-1 min-w-0">
-              <span className={cn(
-                'text-[10px] font-black truncate block',
-                entry.is_current_user ? 'text-indigo-700' : 'text-slate-700'
-              )}>
-                {entry.username} {entry.is_current_user && '(Bạn)'}
-              </span>
-              {activeTab === 'xp' ? (
-                <span className="text-[8px] font-bold text-slate-400 flex items-center gap-1">
-                  Lvl {entry.level} · 🔥 {entry.streak}d
-                </span>
-              ) : (
-                <span className="text-[8px] font-bold text-slate-400 flex items-center gap-1">
-                  Tổng thời gian học
-                </span>
-              )}
-            </div>
+                <div className="flex-1 min-w-0">
+                  <span className={cn(
+                    'text-[10px] font-black truncate block',
+                    entry.is_current_user ? 'text-indigo-700' : 'text-slate-700'
+                  )}>
+                    {entry.username} {entry.is_current_user && '(Bạn)'}
+                  </span>
+                  {activeTab === 'xp' ? (
+                    <span className="text-[8px] font-bold text-slate-400 flex items-center gap-1">
+                      Lvl {entry.level} · 🔥 {entry.streak}d
+                    </span>
+                  ) : (
+                    <span className="text-[8px] font-bold text-slate-400 flex items-center gap-1">
+                      Tổng thời gian học
+                    </span>
+                  )}
+                </div>
 
-            <div className="flex-shrink-0 text-right">
-              <span className={cn(
-                'text-[10px] font-black',
-                entry.rank === 1 ? 'text-amber-600' : entry.is_current_user ? 'text-indigo-600' : 'text-slate-600'
-              )}>
-                {activeTab === 'xp' ? entry.xp.toLocaleString() : formatTime(entry.total_time || 0)}
-              </span>
-              <span className="text-[7px] font-black text-slate-400 block">
-                {activeTab === 'xp' ? 'XP' : 'Đã học'}
-              </span>
-            </div>
-          </div>
-        ))}
+                <div className="flex-shrink-0 text-right">
+                  <span className={cn(
+                    'text-[10px] font-black',
+                    entry.rank === 1 ? 'text-amber-600' : entry.is_current_user ? 'text-indigo-600' : 'text-slate-600'
+                  )}>
+                    {activeTab === 'xp' ? entry.xp.toLocaleString() : formatTime(entry.total_time || 0)}
+                  </span>
+                  <span className="text-[7px] font-black text-slate-400 block">
+                    {activeTab === 'xp' ? 'XP' : 'Đã học'}
+                  </span>
+                </div>
+              </div>
+            </React.Fragment>
+          )
+        })}
         {currentList.length === 0 && (
           <div className="py-4 text-center text-[10px] font-black text-slate-400 uppercase tracking-widest">
             Chưa có dữ liệu
@@ -267,7 +310,7 @@ function LeaderboardWidget({ data }: { data: {
       </div>
 
       {currentRank && (
-        <div className="pt-1 border-t border-slate-100 text-center">
+        <div className="pt-1 border-t border-slate-100 text-center mt-2">
           <span className="text-[9px] font-black text-slate-400">
             Hạng của bạn: <span className="text-indigo-600 font-extrabold">#{currentRank}</span> toàn hệ thống
           </span>
@@ -582,51 +625,6 @@ function TodayFocusWidget({
   )
 }
 
-function TodayStatsWidget({ data }: { data: GlobalGoals }) {
-  const reviewCards = Math.max(0, data.actual_cards_completed - data.actual_new_cards_completed);
-  const accuracy = data.actual_cards_completed > 0 ? Math.round(((data.actual_correct_answers || 0) / data.actual_cards_completed) * 100) : 0;
-  const exactXp = data.actual_xp_gained_today || 0;
-
-  return (
-    <div className="bg-white border border-slate-200/60 rounded-[2.5rem] p-6 shadow-sm relative overflow-hidden text-left mb-5 flex-shrink-0">
-      <div className="absolute -right-8 -top-8 w-24 h-24 rounded-full bg-indigo-50/30 blur-md pointer-events-none" />
-      
-      <div className="flex items-center justify-between mb-5 relative z-10">
-        <div>
-          <span className="text-[10px] font-black uppercase tracking-widest text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-lg">📊 TODAY'S STATS</span>
-          <h3 className="text-sm font-black text-slate-800 uppercase tracking-tight mt-1">Thông số hôm nay</h3>
-        </div>
-      </div>
-      
-      <div className="grid grid-cols-3 gap-3 sm:gap-4 relative z-10">
-        <div className="bg-indigo-50/60 p-3 sm:p-4 rounded-[1.5rem] border border-indigo-100/50 flex flex-col items-center sm:items-start text-center sm:text-left transition-all hover:bg-indigo-50 hover:shadow-sm">
-          <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block mb-1">Tỷ lệ đúng</span>
-          <div className="flex items-center gap-1.5 mt-auto">
-            <Target className="w-4 h-4 text-indigo-500 hidden sm:block" />
-            <span className="text-lg font-black text-slate-700">{accuracy}%</span>
-          </div>
-        </div>
-        
-        <div className="bg-emerald-50/60 p-3 sm:p-4 rounded-[1.5rem] border border-emerald-100/50 flex flex-col items-center sm:items-start text-center sm:text-left transition-all hover:bg-emerald-50 hover:shadow-sm">
-          <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block mb-1">Đã ôn tập</span>
-          <div className="flex items-center gap-1.5 mt-auto">
-            <RefreshCw className="w-4 h-4 text-emerald-500 hidden sm:block" />
-            <span className="text-lg font-black text-slate-700">{reviewCards}</span>
-          </div>
-        </div>
-        
-        <div className="bg-amber-50/60 p-3 sm:p-4 rounded-[1.5rem] border border-amber-100/50 flex flex-col items-center sm:items-start text-center sm:text-left transition-all hover:bg-amber-50 hover:shadow-sm">
-          <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block mb-1">XP Hôm nay</span>
-          <div className="flex items-center gap-1.5 mt-auto">
-            <Zap className="w-4 h-4 text-amber-500 hidden sm:block" />
-            <span className="text-lg font-black text-slate-700">+{exactXp}</span>
-          </div>
-        </div>
-      </div>
-    </div>
-  )
-}
-
 function GoalSettingsModal({
   isOpen,
   onClose,
@@ -815,6 +813,8 @@ export default function Dashboard() {
   const [roomCode, setRoomCode] = useState('')
   const [isJoining, setIsJoining] = useState(false)
   const [isGoalModalOpen, setIsGoalModalOpen] = useState(false)
+  
+  const [timeFilter, setTimeFilter] = useState('all_time')
 
   const { data: globalGoals, refetch: refetchGlobalGoals } = useQuery<GlobalGoals>({
     queryKey: ['globalGoals'],
@@ -868,9 +868,9 @@ export default function Dashboard() {
   })
 
   const { data: leaderboardData } = useQuery({
-    queryKey: ['leaderboard'],
+    queryKey: ['leaderboard', timeFilter],
     queryFn: async () => {
-      const res = await axios.get('/api/v1/gamification/leaderboard')
+      const res = await axios.get('/api/v1/gamification/leaderboard', { params: { time_filter: timeFilter } })
       return res.data
     },
     staleTime: 5 * 60 * 1000, // 5 minutes
@@ -1278,12 +1278,7 @@ export default function Dashboard() {
 
           {/* Leaderboard */}
           {leaderboardData && leaderboardData.leaderboard?.length > 0 && (
-            <LeaderboardWidget data={leaderboardData} />
-          )}
-
-          {/* Today's Stats Ranking/Board */}
-          {globalGoals && (
-            <TodayStatsWidget data={globalGoals} />
+            <LeaderboardWidget data={leaderboardData} activeFilter={timeFilter} onFilterChange={setTimeFilter} />
           )}
         </section>
       </div>
@@ -1310,12 +1305,7 @@ export default function Dashboard() {
 
         {/* Leaderboard */}
         {leaderboardData && leaderboardData.leaderboard?.length > 0 && (
-          <LeaderboardWidget data={leaderboardData} />
-        )}
-
-        {/* Today's Stats */}
-        {globalGoals && (
-          <TodayStatsWidget data={globalGoals} />
+          <LeaderboardWidget data={leaderboardData} activeFilter={timeFilter} onFilterChange={setTimeFilter} />
         )}
 
         {/* Heatmap */}

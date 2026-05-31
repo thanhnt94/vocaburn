@@ -9,84 +9,116 @@ router = APIRouter(prefix="/gamification", tags=["Gamification"])
 
 
 @router.get("/leaderboard")
-async def get_leaderboard(request: Request, db: AsyncSession = Depends(get_db)):
+async def get_leaderboard(request: Request, time_filter: str = "all_time", db: AsyncSession = Depends(get_db)):
     """
-    Returns Top 10 users sorted by total XP, plus the current user's rank.
+    Returns Top 5 users sorted by total XP or Time, based on time_filter ('all_time', 'week', 'today').
     """
-    from app.modules.gamification.models import UserGamification
+    from app.modules.gamification.models import UserGamification, XPTransaction
     from app.modules.auth.models import User
     from app.modules.auth.services.auth_service import AuthService
+    from app.modules.stats.models import UserDailyStats
 
     current_user = await AuthService.get_current_user(request, db)
     current_user_id = current_user.id if current_user else None
+    
+    # Determine date range based on time_filter
+    start_date = None
+    today = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
+    if time_filter == "today":
+        start_date = today
+    elif time_filter == "week":
+        start_date = today - timedelta(days=today.weekday()) # Monday of this week
 
-    # Fetch top 10 by XP with username join
-    stmt = (
-        select(UserGamification, User.username)
-        .join(User, User.id == UserGamification.user_id)
-        .order_by(UserGamification.xp.desc())
-        .limit(10)
-    )
-    results = await db.execute(stmt)
-    rows = results.all()
+    # 1. Fetch XP Leaderboard
+    if time_filter == "all_time":
+        stmt_xp = (
+            select(UserGamification.user_id, User.username, UserGamification.xp.label("xp"), UserGamification.level, UserGamification.streak_count)
+            .join(User, User.id == UserGamification.user_id)
+            .order_by(UserGamification.xp.desc())
+            .limit(5)
+        )
+    else:
+        stmt_xp = (
+            select(
+                XPTransaction.user_id, 
+                User.username, 
+                func.sum(XPTransaction.amount).label("xp"),
+                UserGamification.level,
+                UserGamification.streak_count
+            )
+            .join(User, User.id == XPTransaction.user_id)
+            .outerjoin(UserGamification, UserGamification.user_id == XPTransaction.user_id)
+            .where(XPTransaction.created_at >= start_date)
+            .group_by(XPTransaction.user_id, User.username, UserGamification.level, UserGamification.streak_count)
+            .order_by(func.sum(XPTransaction.amount).desc())
+            .limit(5)
+        )
+        
+    results_xp = await db.execute(stmt_xp)
+    rows_xp = results_xp.all()
 
     leaderboard = []
     current_user_rank = None
-    for rank, (gam, username) in enumerate(rows, start=1):
+    for rank, row in enumerate(rows_xp, start=1):
         entry = {
             "rank": rank,
-            "user_id": gam.user_id,
-            "username": username,
-            "xp": gam.xp,
-            "level": gam.level,
-            "streak": gam.streak_count,
-            "is_current_user": gam.user_id == current_user_id,
+            "user_id": row.user_id,
+            "username": row.username,
+            "xp": row.xp,
+            "level": row.level or 1,
+            "streak": row.streak_count or 0,
+            "is_current_user": row.user_id == current_user_id,
         }
         leaderboard.append(entry)
-        if gam.user_id == current_user_id:
+        if row.user_id == current_user_id:
             current_user_rank = rank
 
-    # If current user isn't in top 10, find their rank separately
+    # If current user isn't in top 5, find their rank
     if current_user_id and current_user_rank is None:
-        # Count how many users have more XP
-        user_xp_res = await db.execute(
-            select(UserGamification.xp).where(UserGamification.user_id == current_user_id)
-        )
-        user_xp = user_xp_res.scalar() or 0
+        user_xp = 0
+        ahead_count = 0
+        if time_filter == "all_time":
+            uxp_res = await db.execute(select(UserGamification.xp).where(UserGamification.user_id == current_user_id))
+            user_xp = uxp_res.scalar() or 0
+            cnt_res = await db.execute(select(func.count(UserGamification.user_id)).where(UserGamification.xp > user_xp))
+            ahead_count = cnt_res.scalar() or 0
+        else:
+            uxp_res = await db.execute(select(func.sum(XPTransaction.amount)).where(XPTransaction.user_id == current_user_id, XPTransaction.created_at >= start_date))
+            user_xp = uxp_res.scalar() or 0
+            cnt_res = await db.execute(
+                select(func.count(func.distinct(XPTransaction.user_id)))
+                .where(XPTransaction.created_at >= start_date)
+                .group_by(XPTransaction.user_id)
+                .having(func.sum(XPTransaction.amount) > user_xp)
+            )
+            ahead_count = len(cnt_res.all())
 
-        count_res = await db.execute(
-            select(func.count(UserGamification.user_id)).where(UserGamification.xp > user_xp)
-        )
-        ahead_count = count_res.scalar() or 0
         current_user_rank = ahead_count + 1
-
-        # Get their stats for display
-        cur_gam_res = await db.execute(
-            select(UserGamification).where(UserGamification.user_id == current_user_id)
-        )
+        
+        cur_gam_res = await db.execute(select(UserGamification).where(UserGamification.user_id == current_user_id))
         cur_gam = cur_gam_res.scalar_one_or_none()
-        if cur_gam:
-            leaderboard.append({
-                "rank": current_user_rank,
-                "user_id": current_user_id,
-                "username": current_user.username,
-                "xp": cur_gam.xp,
-                "level": cur_gam.level,
-                "streak": cur_gam.streak_count,
-                "is_current_user": True,
-                "out_of_top_10": True,
-            })
+        leaderboard.append({
+            "rank": current_user_rank,
+            "user_id": current_user_id,
+            "username": current_user.username,
+            "xp": user_xp,
+            "level": cur_gam.level if cur_gam else 1,
+            "streak": cur_gam.streak_count if cur_gam else 0,
+            "is_current_user": True,
+            "out_of_top_5": True,
+        })
 
-    from app.modules.stats.models import UserDailyStats
-    # Fetch top 10 by time
-    time_stmt = (
+    # 2. Fetch Time Leaderboard
+    stmt_time = (
         select(UserDailyStats.user_id, User.username, func.sum(UserDailyStats.total_time_seconds).label("total_time"))
         .join(User, User.id == UserDailyStats.user_id)
-        .group_by(UserDailyStats.user_id, User.username)
-        .order_by(func.sum(UserDailyStats.total_time_seconds).desc())
-        .limit(10)
     )
-    time_results = await db.execute(time_stmt)
+    if start_date:
+        stmt_time = stmt_time.where(UserDailyStats.date >= start_date)
+        
+    stmt_time = stmt_time.group_by(UserDailyStats.user_id, User.username).order_by(func.sum(UserDailyStats.total_time_seconds).desc()).limit(5)
+    
+    time_results = await db.execute(stmt_time)
     time_rows = time_results.all()
 
     time_leaderboard = []
@@ -104,20 +136,26 @@ async def get_leaderboard(request: Request, db: AsyncSession = Depends(get_db)):
             current_user_time_rank = rank
 
     if current_user_id and current_user_time_rank is None:
-        user_time_res = await db.execute(
-            select(func.sum(UserDailyStats.total_time_seconds))
-            .where(UserDailyStats.user_id == current_user_id)
-        )
+        stmt_my_time = select(func.sum(UserDailyStats.total_time_seconds)).where(UserDailyStats.user_id == current_user_id)
+        if start_date:
+            stmt_my_time = stmt_my_time.where(UserDailyStats.date >= start_date)
+        user_time_res = await db.execute(stmt_my_time)
         user_time = int(user_time_res.scalar() or 0)
         
-        # We can't easily count users ahead in a simple query without CTE, so just append unranked for simplicity or use a subquery
+        stmt_ahead_time = select(func.count(func.distinct(UserDailyStats.user_id))).group_by(UserDailyStats.user_id).having(func.sum(UserDailyStats.total_time_seconds) > user_time)
+        if start_date:
+            stmt_ahead_time = select(func.count(func.distinct(UserDailyStats.user_id))).where(UserDailyStats.date >= start_date).group_by(UserDailyStats.user_id).having(func.sum(UserDailyStats.total_time_seconds) > user_time)
+        
+        ahead_time_res = await db.execute(stmt_ahead_time)
+        current_user_time_rank = len(ahead_time_res.all()) + 1
+        
         time_leaderboard.append({
-            "rank": ">10",
+            "rank": current_user_time_rank,
             "user_id": current_user_id,
             "username": current_user.username,
             "total_time": user_time,
             "is_current_user": True,
-            "out_of_top_10": True,
+            "out_of_top_5": True,
         })
 
     return {
