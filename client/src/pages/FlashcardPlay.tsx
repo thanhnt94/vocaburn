@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import confetti from 'canvas-confetti'
 import { useParams, useNavigate } from 'react-router-dom'
-import { ChevronLeft, ChevronRight, LayoutGrid, Timer, Flame, Trophy, Check, X, Sparkles, Lightbulb, StickyNote, Play, Target, CheckCircle2, XCircle, Clock, BookOpen, Hash, Copy, Edit3, Brain, FileText, HelpCircle, Sliders, ListOrdered, Shuffle, EyeOff, AlertCircle, TrendingUp, Award, Lock, Keyboard, Volume2, VolumeX, RefreshCw, Settings } from 'lucide-react'
+import { ChevronLeft, ChevronRight, LayoutGrid, Timer, Flame, Trophy, Check, X, Sparkles, Lightbulb, StickyNote, Play, Target, CheckCircle2, XCircle, Clock, BookOpen, Hash, Copy, Edit3, Brain, FileText, HelpCircle, Sliders, ListOrdered, Shuffle, Eye, EyeOff, AlertCircle, TrendingUp, Award, Lock, Keyboard, Volume2, VolumeX, RefreshCw, Settings } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import axios from 'axios'
 import ReactMarkdown from 'react-markdown'
@@ -26,6 +26,7 @@ interface Option {
 
 interface Question {
   id: number
+  is_ignored?: boolean
   content: string
   explanation: string
   ai_explanation?: string
@@ -1752,6 +1753,36 @@ export default function FlashcardPlay() {
       navigateToQuestion(targetIdx)
     }
   }
+
+  const handleIgnoreQuestion = async () => {
+    if (!currentQuestion) return;
+    try {
+      const newIgnoreState = !currentQuestion.is_ignored;
+      
+      const updatedQuestions = [...session.questions];
+      updatedQuestions[currentIndex] = {
+        ...currentQuestion,
+        is_ignored: newIgnoreState
+      };
+      setSession({ ...session, questions: updatedQuestions });
+      
+      await axios.post(`/api/v1/quiz/question/${currentQuestion.id}/ignore`, {
+        is_ignored: newIgnoreState
+      });
+      
+      if (newIgnoreState) {
+        handleNext();
+      }
+    } catch (e) {
+      console.error("Failed to ignore question", e);
+      const revertedQuestions = [...session.questions];
+      revertedQuestions[currentIndex] = {
+        ...currentQuestion,
+        is_ignored: !currentQuestion.is_ignored
+      };
+      setSession({ ...session, questions: revertedQuestions });
+    }
+  };
 
   const askAI = async (manualText?: string) => {
     if (!currentQuestion) return
@@ -4534,41 +4565,56 @@ export default function FlashcardPlay() {
                   </button>
                 </div>
 
-                {/* 4. Actions: Copy, Edit, Quit */}
-                <div className="pt-2 grid grid-cols-2 gap-2">
-                  {showFeedback && (
+                {/* 4. Actions: Copy, Ignore, Edit, Quit */}
+                <div className="pt-2 flex flex-col gap-2">
+                  <div className="grid grid-cols-2 gap-2">
+                    {showFeedback && (
+                      <button 
+                        onClick={() => {
+                          copyQuestionToClipboard();
+                          setIsSettingsModalOpen(false);
+                        }}
+                        className="col-span-2 w-full py-3 bg-amber-50 border border-amber-200/60 rounded-2xl text-amber-600 font-bold text-xs hover:bg-amber-100 shadow-sm active:scale-95 transition-all flex items-center justify-center gap-2"
+                      >
+                        <Copy className="w-4 h-4" />
+                        Copy nội dung
+                      </button>
+                    )}
+
+                    <button
+                      onClick={() => {
+                        setIsSettingsModalOpen(false);
+                        handleIgnoreQuestion();
+                      }}
+                      className={cn(
+                        "w-full py-3 border rounded-2xl font-bold text-xs shadow-sm active:scale-95 transition-all flex items-center justify-center gap-2",
+                        currentQuestion?.is_ignored 
+                          ? "bg-slate-700 border-slate-600 text-slate-300 hover:bg-slate-600"
+                          : "bg-slate-50 border-slate-200/60 text-slate-700 hover:bg-indigo-50 hover:text-indigo-600 hover:border-indigo-200"
+                      )}
+                    >
+                      {currentQuestion?.is_ignored ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
+                      Bỏ qua thẻ
+                    </button>
+
                     <button 
                       onClick={() => {
-                        copyQuestionToClipboard();
                         setIsSettingsModalOpen(false);
+                        openEditModal();
                       }}
-                      className="w-full py-3 bg-amber-50 border border-amber-200/60 rounded-2xl text-amber-600 font-bold text-xs hover:bg-amber-100 shadow-sm active:scale-95 transition-all flex items-center justify-center gap-2"
+                      className="w-full py-3 bg-slate-50 border border-slate-200/60 rounded-2xl text-slate-700 font-bold text-xs hover:bg-indigo-50 hover:text-indigo-600 hover:border-indigo-200 shadow-sm active:scale-95 transition-all flex items-center justify-center gap-2"
                     >
-                      <Copy className="w-4 h-4" />
-                      Copy nội dung
+                      <Edit3 className="w-4 h-4" />
+                      Sửa thẻ này
                     </button>
-                  )}
-
-                  <button 
-                    onClick={() => {
-                      setIsSettingsModalOpen(false);
-                      openEditModal();
-                    }}
-                    className={cn(
-                      "w-full py-3 bg-slate-50 border border-slate-200/60 rounded-2xl text-slate-700 font-bold text-xs hover:bg-indigo-50 hover:text-indigo-600 hover:border-indigo-200 shadow-sm active:scale-95 transition-all flex items-center justify-center gap-2",
-                      !showFeedback && "col-span-2"
-                    )}
-                  >
-                    <Edit3 className="w-4 h-4" />
-                    Sửa thẻ này
-                  </button>
+                  </div>
 
                   <button 
                     onClick={() => {
                       setIsSettingsModalOpen(false);
                       setIsQuitModalOpen(true);
                     }}
-                    className="col-span-2 w-full py-3 bg-rose-50 border border-rose-200/60 rounded-2xl text-rose-600 font-bold text-xs hover:bg-rose-100 shadow-sm active:scale-95 transition-all flex items-center justify-center gap-2"
+                    className="w-full py-3 bg-rose-50 border border-rose-200/60 rounded-2xl text-rose-600 font-bold text-xs hover:bg-rose-100 shadow-sm active:scale-95 transition-all flex items-center justify-center gap-2"
                   >
                     <X className="w-4 h-4" />
                     Thoát phiên học

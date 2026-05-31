@@ -793,6 +793,24 @@ async def get_next_card(request: Request, quiz_id: int, data: dict, db: AsyncSes
     if total == 0:
         return {"next_index": 0}
         
+    from app.modules.quiz.models import UserQuestionMastery
+    q_ids = [q.id for q in quiz.questions]
+    mastery_res = await db.execute(
+        select(UserQuestionMastery).where(
+            UserQuestionMastery.user_id == user_id,
+            UserQuestionMastery.question_id.in_(q_ids)
+        )
+    )
+    mastery_map = {m.question_id: m for m in mastery_res.scalars().all()}
+    
+    ignored_indexes = set()
+    for idx, q in enumerate(quiz.questions):
+        m = mastery_map.get(q.id)
+        if m and getattr(m, 'is_ignored', False):
+            ignored_indexes.add(idx)
+            
+    effective_answered = set(answered_indexes) | ignored_indexes
+        
     if mode == "fsrs":
         from app.modules.quiz.models import UserQuestionMastery
         q_ids = [q.id for q in quiz.questions]
@@ -808,6 +826,9 @@ async def get_next_card(request: Request, quiz_id: int, data: dict, db: AsyncSes
         
         due_cards = []
         for idx, q in enumerate(quiz.questions):
+            if idx in ignored_indexes:
+                continue
+                
             m = mastery_map.get(q.id)
             if not m or m.state == 0 or m.stability is None:
                 continue
@@ -827,14 +848,16 @@ async def get_next_card(request: Request, quiz_id: int, data: dict, db: AsyncSes
             return {"next_index": next_index}
         else:
             for idx, q in enumerate(quiz.questions):
+                if idx in ignored_indexes:
+                    continue
                 m = mastery_map.get(q.id)
                 is_new = not m or m.state == 0 or m.stability is None
-                has_not_answered = idx not in answered_indexes
+                has_not_answered = idx not in effective_answered
                 if is_new and has_not_answered:
                     return {"next_index": idx}
                     
             for idx in range(total):
-                if idx not in answered_indexes:
+                if idx not in effective_answered:
                     return {"next_index": idx}
                     
             return {"next_index": min(current_index + 1, total - 1)}
@@ -842,12 +865,12 @@ async def get_next_card(request: Request, quiz_id: int, data: dict, db: AsyncSes
     elif mode == "sequential":
         found = -1
         for i in range(current_index + 1, total):
-            if i not in answered_indexes:
+            if i not in effective_answered:
                 found = i
                 break
         if found == -1:
             for i in range(0, current_index + 1):
-                if i not in answered_indexes:
+                if i not in effective_answered:
                     found = i
                     break
         next_index = found if found != -1 else min(current_index + 1, total - 1)
@@ -855,7 +878,7 @@ async def get_next_card(request: Request, quiz_id: int, data: dict, db: AsyncSes
         
     elif mode == "random":
         import random
-        pool = [i for i in range(total) if i not in answered_indexes]
+        pool = [i for i in range(total) if i not in effective_answered]
         if pool:
             return {"next_index": random.choice(pool)}
         return {"next_index": min(current_index + 1, total - 1)}
@@ -865,15 +888,15 @@ async def get_next_card(request: Request, quiz_id: int, data: dict, db: AsyncSes
         for idx in range(current_index + 1, total):
             q = quiz_with_stats.questions[idx]
             q_stats = getattr(q, "stats", None) or {}
-            if (q_stats.get("total") or 0) == 0 and idx not in answered_indexes:
+            if (q_stats.get("total") or 0) == 0 and idx not in effective_answered:
                 return {"next_index": idx}
         for idx in range(0, current_index + 1):
             q = quiz_with_stats.questions[idx]
             q_stats = getattr(q, "stats", None) or {}
-            if (q_stats.get("total") or 0) == 0 and idx not in answered_indexes:
+            if (q_stats.get("total") or 0) == 0 and idx not in effective_answered:
                 return {"next_index": idx}
         for idx in range(total):
-            if idx not in answered_indexes:
+            if idx not in effective_answered:
                 return {"next_index": idx}
         return {"next_index": min(current_index + 1, total - 1)}
         
@@ -884,17 +907,17 @@ async def get_next_card(request: Request, quiz_id: int, data: dict, db: AsyncSes
             q_stats = getattr(q, "stats", None) or {}
             total_attempts = q_stats.get("total") or 0
             correct_attempts = q_stats.get("correct") or 0
-            if total_attempts - correct_attempts > 0 and idx not in answered_indexes:
+            if total_attempts - correct_attempts > 0 and idx not in effective_answered:
                 return {"next_index": idx}
         for idx in range(0, current_index + 1):
             q = quiz_with_stats.questions[idx]
             q_stats = getattr(q, "stats", None) or {}
             total_attempts = q_stats.get("total") or 0
             correct_attempts = q_stats.get("correct") or 0
-            if total_attempts - correct_attempts > 0 and idx not in answered_indexes:
+            if total_attempts - correct_attempts > 0 and idx not in effective_answered:
                 return {"next_index": idx}
         for idx in range(total):
-            if idx not in answered_indexes:
+            if idx not in effective_answered:
                 return {"next_index": idx}
         return {"next_index": min(current_index + 1, total - 1)}
         
@@ -904,7 +927,7 @@ async def get_next_card(request: Request, quiz_id: int, data: dict, db: AsyncSes
         min_ratio = float('inf')
         max_wrongs = -1
         for idx in range(total):
-            if idx in answered_indexes:
+            if idx in effective_answered:
                 continue
             q = quiz_with_stats.questions[idx]
             q_stats = getattr(q, "stats", None) or {}
@@ -923,7 +946,7 @@ async def get_next_card(request: Request, quiz_id: int, data: dict, db: AsyncSes
         if best_idx != -1:
             return {"next_index": best_idx}
         for idx in range(total):
-            if idx not in answered_indexes:
+            if idx not in effective_answered:
                 return {"next_index": idx}
         return {"next_index": min(current_index + 1, total - 1)}
         
