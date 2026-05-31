@@ -31,8 +31,8 @@ interface Question {
 
 interface FeedbackAreaProps {
   showFeedback: boolean
-  activeFeedbackTab: 'insight' | 'ai' | 'note'
-  setActiveFeedbackTab: (tab: 'insight' | 'ai' | 'note') => void
+  activeFeedbackTab: 'insight' | 'ai' | 'note' | 'card'
+  setActiveFeedbackTab: (tab: 'insight' | 'ai' | 'note' | 'card') => void
   getInsightText: () => string
   isEditingInsight: boolean
   insightInput: string
@@ -64,6 +64,7 @@ interface FeedbackAreaProps {
   copyCurrentTabContent: (type?: 'default' | 'question' | 'prompt') => void
   isCopied: boolean
   handleNext: () => void
+  selectedChoiceData?: any
 }
 
 export const FeedbackArea: React.FC<FeedbackAreaProps> = ({
@@ -101,13 +102,15 @@ export const FeedbackArea: React.FC<FeedbackAreaProps> = ({
   copyCurrentTabContent,
   isCopied,
   handleNext,
+  selectedChoiceData,
 }) => {
   if (!showFeedback) return null
 
   const tabs = [
     { id: 'insight' as const, label: 'INSIGHT', icon: Lightbulb, color: 'text-amber-500', bg: 'bg-amber-100', hasContent: !!getInsightText() && getInsightText() !== 'No detail.' },
     { id: 'ai' as const, label: 'AI ANALYSIS', icon: Sparkles, color: 'text-indigo-600', bg: 'bg-indigo-100', hasContent: !!currentQuestion?.ai_explanation },
-    { id: 'note' as const, label: 'PERSONAL NOTE', icon: StickyNote, color: 'text-slate-400', bg: 'bg-slate-100', hasContent: !!personalNote }
+    { id: 'note' as const, label: 'PERSONAL NOTE', icon: StickyNote, color: 'text-slate-400', bg: 'bg-slate-100', hasContent: !!personalNote },
+    { id: 'card' as const, label: 'CARD INFO', icon: FileText, color: 'text-blue-500', bg: 'bg-blue-100', hasContent: !!selectedChoiceData }
   ]
 
   const renderTabContent = () => {
@@ -304,6 +307,45 @@ export const FeedbackArea: React.FC<FeedbackAreaProps> = ({
                 <p className="text-[8px] font-medium text-slate-300 italic">Supports Markdown syntax. Click 'SAVE & CLOSE' to complete.</p>
               </div>
             )}
+          </div>
+        )
+      case 'card':
+        if (!selectedChoiceData) {
+          return (
+            <div className="flex flex-col items-center justify-center py-16 text-slate-400">
+              <FileText className="w-12 h-12 mb-4 opacity-50" />
+              <p className="text-sm font-medium">Click on an option to view its full card info.</p>
+            </div>
+          )
+        }
+        return (
+          <div className="p-6 rounded-[2rem] bg-blue-50/30 border border-blue-100 shadow-sm animate-in fade-in slide-in-from-bottom-2">
+            <div className="flex items-center gap-2 mb-6">
+              <div className="w-6 h-6 rounded-full bg-blue-100 flex items-center justify-center">
+                <FileText className="w-3.5 h-3.5 fill-blue-500 text-blue-500" />
+              </div>
+              <span className="text-[9px] font-black text-blue-400 uppercase tracking-widest">CARD INFO</span>
+            </div>
+            
+            <div className="space-y-6">
+              <div className="p-5 bg-white rounded-2xl border border-slate-100 shadow-sm">
+                <h5 className="text-[10px] font-black text-slate-400 uppercase tracking-wider mb-2">FRONT (QUESTION)</h5>
+                <div className="text-slate-800 font-bold text-lg leading-relaxed markdown-content break-words">
+                  <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeRaw]} components={MarkdownComponents}>
+                    {parseBBCodeToHtml(selectedChoiceData.content || '')}
+                  </ReactMarkdown>
+                </div>
+              </div>
+              
+              <div className="p-5 bg-white rounded-2xl border border-slate-100 shadow-sm">
+                <h5 className="text-[10px] font-black text-slate-400 uppercase tracking-wider mb-2">BACK (EXPLANATION)</h5>
+                <div className="text-slate-600 font-medium text-sm leading-relaxed markdown-content break-words">
+                  <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeRaw]} components={MarkdownComponents}>
+                    {parseBBCodeToHtml(selectedChoiceData.explanation || '*No explanation available.*')}
+                  </ReactMarkdown>
+                </div>
+              </div>
+            </div>
           </div>
         )
     }

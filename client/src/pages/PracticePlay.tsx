@@ -173,7 +173,8 @@ export default function PracticePlay() {
   const [isMapOpen, setIsMapOpen] = useState(false)
   const [isFeedbackOpen, setIsFeedbackOpen] = useState(false)
   const [isQuitModalOpen, setIsQuitModalOpen] = useState(false)
-  const [activeFeedbackTab, setActiveFeedbackTab] = useState<'insight' | 'ai' | 'note'>('insight')
+  const [activeFeedbackTab, setActiveFeedbackTab] = useState<'insight' | 'ai' | 'note' | 'card'>('insight')
+  const [selectedChoiceData, setSelectedChoiceData] = useState<any | null>(null)
   const [isEditModalOpen, setIsEditModalOpen] = useState(false)
   const [isSavingEdit, setIsSavingEdit] = useState(false)
   const [activeUnlockedBadge, setActiveUnlockedBadge] = useState<any | null>(null)
@@ -2362,7 +2363,7 @@ export default function PracticePlay() {
       );
     }
 
-    const { question, choices, correct_index, correct_answer, question_key, answer_key } = practiceData;
+    const { question, choices, choice_item_ids, correct_index, correct_answer, question_key, answer_key } = practiceData;
     const answered = practiceAnswers[currentIndex] !== undefined;
 
     if (!question || !correct_answer) {
@@ -2450,15 +2451,28 @@ export default function PracticePlay() {
                   } else if (isSelected) {
                     btnStyle = "bg-gradient-to-r from-rose-500 to-pink-500 border-rose-600 text-white shadow-lg shadow-rose-100 ";
                   } else {
-                    btnStyle = "border-slate-100 bg-slate-50/50 opacity-30 text-slate-400 pointer-events-none ";
+                    btnStyle = "border-slate-100 bg-slate-50/50 opacity-60 text-slate-500 hover:opacity-100 hover:bg-slate-50 hover:shadow-sm cursor-pointer ";
                   }
                 }
 
                 return (
                   <button
                     key={idx}
-                    onClick={() => handleMCQAnswer(idx)}
-                    disabled={answered}
+                    onClick={() => {
+                      if (!answered) {
+                        handleMCQAnswer(idx);
+                      } else {
+                        if (choice_item_ids && session?.questions) {
+                          const selectedId = choice_item_ids[idx];
+                          const qData = session.questions.find((q: any) => q.id === selectedId);
+                          if (qData) {
+                            setSelectedChoiceData(qData);
+                            setActiveFeedbackTab('card');
+                            setIsFeedbackOpen(true);
+                          }
+                        }
+                      }
+                    }}
                     className={cn(
                       "group p-5 md:p-6 rounded-[2rem] border text-left font-extrabold text-base md:text-xl transition-all duration-300 flex items-center justify-between gap-4 min-h-[72px] shadow-sm",
                       btnStyle
@@ -3159,6 +3173,7 @@ export default function PracticePlay() {
               showFeedback={showFeedback}
               activeFeedbackTab={activeFeedbackTab}
               setActiveFeedbackTab={setActiveFeedbackTab}
+              selectedChoiceData={selectedChoiceData}
               getInsightText={getInsightText}
               isEditingInsight={isEditingInsight}
               insightInput={insightInput}
@@ -4192,7 +4207,7 @@ export default function PracticePlay() {
           >
             <div className="flex items-center justify-center p-3 border-b border-slate-100 bg-white shadow-sm flex-shrink-0">
               <h4 className="text-[9px] font-black text-indigo-600 uppercase tracking-[0.4em]">
-                {activeFeedbackTab === 'insight' ? 'LEARNING INSIGHTS' : activeFeedbackTab === 'ai' ? 'AI DEEP ANALYSIS' : 'PERSONAL NOTES'}
+                {activeFeedbackTab === 'insight' ? 'LEARNING INSIGHTS' : activeFeedbackTab === 'ai' ? 'AI DEEP ANALYSIS' : activeFeedbackTab === 'card' ? 'CARD INFO' : 'PERSONAL NOTES'}
               </h4>
             </div>
             <div className="flex-1 overflow-y-auto custom-scrollbar">
@@ -4200,6 +4215,7 @@ export default function PracticePlay() {
                 showFeedback={showFeedback}
                 activeFeedbackTab={activeFeedbackTab}
                 setActiveFeedbackTab={setActiveFeedbackTab}
+                selectedChoiceData={selectedChoiceData}
                 getInsightText={getInsightText}
                 isEditingInsight={isEditingInsight}
                 insightInput={insightInput}
