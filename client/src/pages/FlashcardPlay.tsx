@@ -672,13 +672,13 @@ export default function FlashcardPlay() {
   useEffect(() => {
     timerRef.current = setInterval(() => {
       setTimeLeft(prev => {
-        // Only increment if window/tab is active/focused
-        if (document.hidden || !document.hasFocus()) return prev
+        // Only increment if window/tab is active/focused and user hasn't rated yet
+        if (document.hidden || !document.hasFocus() || hasRated) return prev
         return prev + 1
       })
     }, 1000)
     return () => clearInterval(timerRef.current)
-  }, [])
+  }, [hasRated])
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
