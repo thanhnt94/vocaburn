@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Search, Plus, Target, LayoutGrid, BarChart3, User, ChevronRight, Filter, Archive, RotateCcw, Users, Play, ChevronLeft, Info, Brain, Trophy, X, BrainCircuit, Zap } from 'lucide-react'
+import { Search, Plus, Target, LayoutGrid, BarChart3, User, ChevronRight, Filter, Archive, RotateCcw, Users, Play, ChevronLeft, Info, Brain, Trophy, X, BrainCircuit, Zap, Settings } from 'lucide-react'
 import { useAppStore } from '@/store/useAppStore'
 import { cn } from '@/lib/utils'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -14,10 +14,11 @@ interface Quiz {
   cover_image: string | null
   questions_count: number
   tags: string[]
+  is_creator?: boolean
 }
 
 interface DashboardData {
-  user: { id: number, username: string, email: string }
+  user: { id: number, username: string, email: string, role?: string }
   my_quizzes: Quiz[]
   archived_quizzes: Quiz[]
   discover_quizzes: Quiz[]
@@ -548,6 +549,15 @@ export default function Library() {
                                       </button>
                                     </>
                                   )}
+                                  {(quiz.is_creator || data?.user?.role === 'admin') && (
+                                    <Link 
+                                      to={`/manage/edit/${quiz.id}`} 
+                                      className="w-9 h-9 bg-slate-50 hover:bg-slate-100 text-indigo-600 border border-indigo-200/50 rounded-full flex items-center justify-center transition-all shadow-sm active:scale-95 hover:scale-105"
+                                      title="Sửa bộ thẻ"
+                                    >
+                                      <Settings className="w-4 h-4" />
+                                    </Link>
+                                  )}
                                   <Link 
                                     to={`/flashcard/${quiz.id}`} 
                                     className="w-9 h-9 bg-white hover:bg-slate-50 text-slate-600 border border-slate-200 rounded-full flex items-center justify-center transition-all shadow-sm active:scale-95 hover:scale-105"
@@ -673,13 +683,24 @@ export default function Library() {
                               </>
                             )}
                          </div>
-                         <Link 
-                            to={`/flashcard/${quiz.id}`} 
-                            className="w-8 h-8 rounded-full bg-white text-slate-600 border border-slate-200/50 flex items-center justify-center active:scale-95"
-                            title="Chi tiết"
-                         >
-                            <Info className="w-3.5 h-3.5" />
-                         </Link>
+                         <div className="flex gap-1.5">
+                           {(quiz.is_creator || data?.user?.role === 'admin') && (
+                             <Link 
+                               to={`/manage/edit/${quiz.id}`} 
+                               className="w-8 h-8 rounded-full bg-slate-50 text-indigo-600 border border-indigo-200/50 flex items-center justify-center active:scale-95"
+                               title="Sửa bộ thẻ"
+                             >
+                               <Settings className="w-3.5 h-3.5" />
+                             </Link>
+                           )}
+                           <Link 
+                              to={`/flashcard/${quiz.id}`} 
+                              className="w-8 h-8 rounded-full bg-white text-slate-600 border border-slate-200/50 flex items-center justify-center active:scale-95"
+                              title="Chi tiết"
+                           >
+                              <Info className="w-3.5 h-3.5" />
+                           </Link>
+                         </div>
                       </div>
                    </div>
                  </motion.div>
