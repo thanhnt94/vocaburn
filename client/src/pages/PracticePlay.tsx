@@ -1081,7 +1081,17 @@ export default function PracticePlay() {
         if (sfxEnabled) playCorrectSound()
         updatedStreak = streak + 1
         setStreak(updatedStreak)
-        const xpGained = isFirstEver ? 15 : (updatedStreak >= 5 ? 20 : 10)
+        let baseXP = 0;
+        if (rating === 4) baseXP = 7;
+        else if (rating === 3) baseXP = 6;
+        else if (rating === 2) baseXP = 5;
+        
+        let bonusXP = 0;
+        if (isFirstEver) bonusXP += 10;
+        if (updatedStreak >= 5) bonusXP += 1;
+        
+        const xpGained = baseXP + bonusXP;
+        
         updatedXP = sessionXP + xpGained
         setSessionXP(updatedXP)
         addXp(xpGained)
@@ -1111,7 +1121,13 @@ export default function PracticePlay() {
         if (sfxEnabled) playIncorrectSound()
         updatedStreak = 0
         setStreak(0)
-        const xpGained = 0
+        const xpGained = 1
+        updatedXP = sessionXP + xpGained
+        setSessionXP(updatedXP)
+        addXp(xpGained)
+        
+        setXpFloat({ visible: true, amount: xpGained })
+        setTimeout(() => setXpFloat({ visible: false, amount: 0 }), 1500)
 
         // Context-aware failure messages
         let msg = ''
@@ -1410,12 +1426,19 @@ export default function PracticePlay() {
 
     let updatedXP = sessionXP;
     let updatedStreak = streak;
-
+    
+    const prevTotal = currentQuestion.stats?.total || 0;
+    const isFirstEver = prevTotal === 0;
+    
     if (isCorrect) {
       if (sfxEnabled) playCorrectSound();
       updatedStreak = streak + 1;
       setStreak(updatedStreak);
-      const xpGained = 5;
+      
+      let bonusXP = 0;
+      if (isFirstEver) bonusXP += 10;
+      if (updatedStreak >= 5) bonusXP += 1;
+      const xpGained = 6 + bonusXP;
       updatedXP = sessionXP + xpGained;
       setSessionXP(updatedXP);
       addXp(xpGained);
@@ -1505,12 +1528,19 @@ export default function PracticePlay() {
 
     let updatedXP = sessionXP;
     let updatedStreak = streak;
-
+    
+    const prevTotal = currentQuestion.stats?.total || 0;
+    const isFirstEver = prevTotal === 0;
+    
     if (isCorrect) {
       if (sfxEnabled) playCorrectSound();
       updatedStreak = streak + 1;
       setStreak(updatedStreak);
-      const xpGained = 5;
+      
+      let bonusXP = 0;
+      if (isFirstEver) bonusXP += 10;
+      if (updatedStreak >= 5) bonusXP += 1;
+      const xpGained = 6 + bonusXP;
       updatedXP = sessionXP + xpGained;
       setSessionXP(updatedXP);
       addXp(xpGained);

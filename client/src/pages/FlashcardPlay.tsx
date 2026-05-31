@@ -223,7 +223,7 @@ export default function FlashcardPlay() {
   const [showGoalCelebration, setShowGoalCelebration] = useState(false)
   const [isLimitlessStrike, setIsLimitlessStrike] = useState(false)
   const [activeMode, setActiveMode] = useState<string>(() => localStorage.getItem('quiz_learning_mode') || 'fsrs')
-  const [autoPlayAudio, setAutoPlayAudio] = useState<'always' | 'front' | 'none'>(() => {
+  const [autoPlayAudio, setAutoPlayAudio] = useState<'always' | 'front' | 'back' | 'none'>(() => {
     if (typeof window !== 'undefined') {
       return (localStorage.getItem('vocaburn_autoplay_audio') as 'always' | 'front' | 'none') || 'none';
     }
@@ -231,7 +231,7 @@ export default function FlashcardPlay() {
   });
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
 
-  const saveGeneralSettings = async (updates: { sfx_enabled?: boolean; autoplay_audio?: 'always' | 'front' | 'none'; learning_mode?: string }) => {
+  const saveGeneralSettings = async (updates: { sfx_enabled?: boolean; autoplay_audio?: 'always' | 'front' | 'back' | 'none'; learning_mode?: string }) => {
     try {
       const updatedSettings = {
         ...modeSettings,
@@ -482,7 +482,7 @@ export default function FlashcardPlay() {
     if (!currentQuestion) return;
     
     if (isFlipped) {
-      if (autoPlayAudio === 'always') {
+      if (autoPlayAudio === 'always' || autoPlayAudio === 'back') {
         playCardAudio('back');
       }
     } else {
@@ -1095,7 +1095,17 @@ export default function FlashcardPlay() {
         if (sfxEnabled) playCorrectSound()
         updatedStreak = streak + 1
         setStreak(updatedStreak)
-        const xpGained = isFirstEver ? 15 : (updatedStreak >= 5 ? 20 : 10)
+        let baseXP = 0;
+        if (rating === 4) baseXP = 7;
+        else if (rating === 3) baseXP = 6;
+        else if (rating === 2) baseXP = 5;
+        
+        let bonusXP = 0;
+        if (isFirstEver) bonusXP += 10;
+        if (updatedStreak >= 5) bonusXP += 1;
+        
+        const xpGained = baseXP + bonusXP;
+        
         updatedXP = sessionXP + xpGained
         setSessionXP(updatedXP)
         addXp(xpGained)
@@ -1125,7 +1135,13 @@ export default function FlashcardPlay() {
         if (sfxEnabled) playIncorrectSound()
         updatedStreak = 0
         setStreak(0)
-        const xpGained = 0
+        const xpGained = 1
+        updatedXP = sessionXP + xpGained
+        setSessionXP(updatedXP)
+        addXp(xpGained)
+        
+        setXpFloat({ visible: true, amount: xpGained })
+        setTimeout(() => setXpFloat({ visible: false, amount: 0 }), 1500)
 
         // Context-aware failure messages
         let msg = ''
@@ -1455,11 +1471,18 @@ export default function FlashcardPlay() {
     let updatedXP = sessionXP;
     let updatedStreak = streak;
     
+    const prevTotal = currentQuestion.stats?.total || 0;
+    const isFirstEver = prevTotal === 0;
+    
     if (isCorrect) {
       if (sfxEnabled) playCorrectSound();
       updatedStreak = streak + 1;
       setStreak(updatedStreak);
-      const xpGained = 5;
+      
+      let bonusXP = 0;
+      if (isFirstEver) bonusXP += 10;
+      if (updatedStreak >= 5) bonusXP += 1;
+      const xpGained = 6 + bonusXP;
       updatedXP = sessionXP + xpGained;
       setSessionXP(updatedXP);
       addXp(xpGained);
@@ -1530,11 +1553,18 @@ export default function FlashcardPlay() {
     let updatedXP = sessionXP;
     let updatedStreak = streak;
     
+    const prevTotal = currentQuestion.stats?.total || 0;
+    const isFirstEver = prevTotal === 0;
+    
     if (isCorrect) {
       if (sfxEnabled) playCorrectSound();
       updatedStreak = streak + 1;
       setStreak(updatedStreak);
-      const xpGained = 5;
+      
+      let bonusXP = 0;
+      if (isFirstEver) bonusXP += 10;
+      if (updatedStreak >= 5) bonusXP += 1;
+      const xpGained = 6 + bonusXP;
       updatedXP = sessionXP + xpGained;
       setSessionXP(updatedXP);
       addXp(xpGained);
@@ -4427,35 +4457,62 @@ export default function FlashcardPlay() {
                   </div>
                 </div>
 
-                {/* 2. Autoplay Audio */}
-                <div>
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-2">Tự động phát âm thanh</label>
-                  <div className="grid grid-cols-3 gap-2">
-                    {[
-                      { id: 'always', label: 'Luôn phát (Hai mặt)' },
-                      { id: 'front', label: 'Chỉ mặt trước' },
-                      { id: 'none', label: 'Tắt tự động phát' }
-                    ].map(opt => {
-                      const active = autoPlayAudio === opt.id;
-                      return (
-                        <button
-                          key={opt.id}
-                          onClick={() => {
-                            setAutoPlayAudio(opt.id as any);
-                            localStorage.setItem('vocaburn_autoplay_audio', opt.id);
-                            saveGeneralSettings({ autoplay_audio: opt.id as any });
-                          }}
-                          className={cn(
-                            "py-2.5 px-2 rounded-2xl border text-[10px] font-bold transition-all text-center flex items-center justify-center min-h-[48px]",
-                            active
-                              ? "bg-indigo-50 border-indigo-200 text-indigo-600 shadow-sm"
-                              : "bg-white border-slate-200 text-slate-500 hover:bg-slate-50"
-                          )}
-                        >
-                          {opt.label}
-                        </button>
-                      );
-                    })}
+                {/* 2. Autoplay Audio Toggles */}
+                <div className="flex flex-col gap-3 py-2 border-t border-slate-100">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">Tự động phát âm thanh</label>
+                  
+                  {/* Front Audio Toggle */}
+                  <div className="flex items-center justify-between">
+                    <div className="flex flex-col">
+                      <span className="text-[11px] font-black text-slate-700">Mặt trước</span>
+                      <span className="text-[9px] text-slate-400">Phát âm thanh từ vựng khi hiện thẻ</span>
+                    </div>
+                    <button 
+                      onClick={() => {
+                        const isFrontOn = autoPlayAudio === 'always' || autoPlayAudio === 'front';
+                        const isBackOn = autoPlayAudio === 'always' || autoPlayAudio === 'back';
+                        const nextState = isFrontOn ? (isBackOn ? 'back' : 'none') : (isBackOn ? 'always' : 'front');
+                        setAutoPlayAudio(nextState);
+                        localStorage.setItem('vocaburn_autoplay_audio', nextState);
+                        saveGeneralSettings({ autoplay_audio: nextState });
+                      }}
+                      className={cn(
+                        "w-12 h-6 rounded-full p-0.5 transition-colors duration-200 ease-in-out relative flex items-center",
+                        (autoPlayAudio === 'always' || autoPlayAudio === 'front') ? "bg-indigo-500" : "bg-slate-200"
+                      )}
+                    >
+                      <div className={cn(
+                        "w-5 h-5 bg-white rounded-full shadow-sm transition-transform duration-200 ease-in-out",
+                        (autoPlayAudio === 'always' || autoPlayAudio === 'front') ? "translate-x-6" : "translate-x-0"
+                      )} />
+                    </button>
+                  </div>
+
+                  {/* Back Audio Toggle */}
+                  <div className="flex items-center justify-between">
+                    <div className="flex flex-col">
+                      <span className="text-[11px] font-black text-slate-700">Mặt sau</span>
+                      <span className="text-[9px] text-slate-400">Phát âm thanh giải nghĩa khi lật thẻ</span>
+                    </div>
+                    <button 
+                      onClick={() => {
+                        const isFrontOn = autoPlayAudio === 'always' || autoPlayAudio === 'front';
+                        const isBackOn = autoPlayAudio === 'always' || autoPlayAudio === 'back';
+                        const nextState = isBackOn ? (isFrontOn ? 'front' : 'none') : (isFrontOn ? 'always' : 'back');
+                        setAutoPlayAudio(nextState);
+                        localStorage.setItem('vocaburn_autoplay_audio', nextState);
+                        saveGeneralSettings({ autoplay_audio: nextState });
+                      }}
+                      className={cn(
+                        "w-12 h-6 rounded-full p-0.5 transition-colors duration-200 ease-in-out relative flex items-center",
+                        (autoPlayAudio === 'always' || autoPlayAudio === 'back') ? "bg-indigo-500" : "bg-slate-200"
+                      )}
+                    >
+                      <div className={cn(
+                        "w-5 h-5 bg-white rounded-full shadow-sm transition-transform duration-200 ease-in-out",
+                        (autoPlayAudio === 'always' || autoPlayAudio === 'back') ? "translate-x-6" : "translate-x-0"
+                      )} />
+                    </button>
                   </div>
                 </div>
 
