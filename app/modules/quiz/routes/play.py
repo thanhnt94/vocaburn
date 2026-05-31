@@ -330,6 +330,9 @@ async def record_answer(request: Request, data: dict, db: AsyncSession = Depends
         await db.commit()
 
     # --- Gamification Logic & Achievements Check ---
+    session_streak = int(data.get("session_streak", 0))
+    is_first_ever = data.get("is_first_ever", False)
+
     base_xp = 0
     if rating_val == 4:
         base_xp = 7
@@ -340,7 +343,13 @@ async def record_answer(request: Request, data: dict, db: AsyncSession = Depends
     else:
         base_xp = 1
         
-    xp_gain = base_xp
+    bonus_xp_gained = 0
+    if is_first_ever:
+        bonus_xp_gained += 10
+    if session_streak >= 5:
+        bonus_xp_gained += 1
+        
+    xp_gain = base_xp + bonus_xp_gained
     gamify_res = await GamificationInterface.add_xp(db, user_id, xp_gain)
     has_leveled_up = gamify_res["level_up"]
     current_level = gamify_res["current_level"]

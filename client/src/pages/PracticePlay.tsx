@@ -1476,7 +1476,9 @@ export default function PracticePlay() {
         is_practice: true,
         rating: isCorrect ? 3 : 1,
         time_spent: timeLeft,
-        local_date: new Date().toLocaleDateString('en-CA')
+        local_date: new Date().toLocaleDateString('en-CA'),
+        session_streak: updatedStreak,
+        is_first_ever: isFirstEver
       });
       
       const xpGained = res.data.xp_gained || 0;
@@ -1554,7 +1556,9 @@ export default function PracticePlay() {
         is_practice: true,
         rating: isCorrect ? 3 : 1,
         time_spent: timeLeft,
-        local_date: new Date().toLocaleDateString('en-CA')
+        local_date: new Date().toLocaleDateString('en-CA'),
+        session_streak: updatedStreak,
+        is_first_ever: isFirstEver
       });
       
       const xpGained = res.data.xp_gained || 0;

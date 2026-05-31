@@ -1085,9 +1085,9 @@ export default function FlashcardPlay() {
     
     let updatedXP = sessionXP
     let updatedStreak = streak
+    const isFirstEver = prevTotal === 0 && !alreadyRated
 
     if (!alreadyRated) {
-      const isFirstEver = prevTotal === 0
       const prevRatio = prevTotal > 0 ? prevCorrect / prevTotal : 0
       const usuallyCorrect = prevRatio >= 0.7 && prevTotal >= 2
 
@@ -1211,20 +1211,22 @@ export default function FlashcardPlay() {
         is_correct: correct,
         rating: rating,
         time_spent: timeTaken,
-        local_date: new Date().toLocaleDateString('en-CA')
+        local_date: new Date().toLocaleDateString('en-CA'),
+        session_streak: updatedStreak,
+        is_first_ever: isFirstEver
       })
       
-      if (!alreadyRated) {
-        const xpGained = res.data.xp_gained || 0;
-        if (xpGained > 0) {
-          setSessionXP(prev => prev + xpGained);
-          addXp(xpGained);
-          setXpFloat({ visible: true, amount: xpGained });
-          setTimeout(() => setXpFloat({ visible: false, amount: 0 }), 1500);
-          
-          setAnswerContext(prev => prev ? { ...prev, xpGained } : null);
-        }
+      const xpGained = res.data.xp_gained || 0;
+      if (xpGained > 0) {
+        setSessionXP(prev => prev + xpGained);
+        addXp(xpGained);
+        setXpFloat({ visible: true, amount: xpGained });
+        setTimeout(() => setXpFloat({ visible: false, amount: 0 }), 1500);
         
+        setAnswerContext(prev => prev ? { ...prev, xpGained } : null);
+      }
+      
+      if (!alreadyRated) {
         if (res.data.goal_update) {
           setGoalToast(res.data.goal_update);
           setTimeout(() => setGoalToast(null), 4000);
