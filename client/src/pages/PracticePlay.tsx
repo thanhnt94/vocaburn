@@ -2677,7 +2677,7 @@ export default function PracticePlay() {
               animate={{ opacity: 1, y: -120, scale: isLimitless ? 1.4 : 1.2 }}
               exit={{ opacity: 0, y: -180, scale: 0.8 }}
               className={cn(
-                "fixed bottom-32 md:bottom-auto md:top-28 left-1/2 -translate-x-1/2 z-[1001] px-6 py-3 rounded-2xl font-black text-base shadow-2xl pointer-events-none transition-all duration-300",
+                "fixed bottom-32 md:bottom-auto md:top-[40%] left-1/2 -translate-x-1/2 z-[1001] px-6 py-3 rounded-2xl font-black text-base shadow-2xl pointer-events-none transition-all duration-300",
                 isLimitless
                   ? "bg-gradient-to-r from-amber-500 via-orange-500 to-red-500 text-white shadow-amber-500/50 border border-amber-400 drop-shadow-[0_0_12px_rgba(245,158,11,0.6)] animate-bounce"
                   : "bg-gradient-to-r from-indigo-500 to-purple-600 text-white shadow-indigo-300/50"
