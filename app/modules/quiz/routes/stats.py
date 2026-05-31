@@ -677,6 +677,7 @@ async def get_global_goals(request: Request, db: AsyncSession = Depends(get_db))
     actual_minutes = round(actual_seconds / 60, 1)
     
     actual_cards = stats.questions_attempted if stats else 0
+    actual_correct = stats.correct_answers if stats else 0
     
     # 3. Calculate actual_new_cards_completed
     stmt_new_cards = select(func.count(func.distinct(UserAnswer.question_id))).join(
@@ -702,7 +703,8 @@ async def get_global_goals(request: Request, db: AsyncSession = Depends(get_db))
         "daily_new_card_target": goal.daily_new_card_target,
         "actual_time_minutes": actual_minutes,
         "actual_cards_completed": actual_cards,
-        "actual_new_cards_completed": actual_new_cards_completed
+        "actual_new_cards_completed": actual_new_cards_completed,
+        "actual_correct_answers": actual_correct
     }
 
 @router.post("/goals/global")

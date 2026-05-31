@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { Brain, Trophy, ChevronRight, LayoutGrid, Users, Zap, Flame, BrainCircuit, X, Play, Crown, Medal, Star, CheckCircle2, Circle, Swords, Settings } from 'lucide-react'
+import { Brain, Trophy, ChevronRight, LayoutGrid, Users, Zap, Flame, BrainCircuit, X, Play, Crown, Medal, Star, CheckCircle2, Circle, Swords, Settings, Target, RefreshCw } from 'lucide-react'
 import { useAppStore } from '@/store/useAppStore'
 import { cn } from '@/lib/utils'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -347,6 +347,7 @@ interface GlobalGoals {
   actual_time_minutes: number
   actual_cards_completed: number
   actual_new_cards_completed: number
+  actual_correct_answers?: number
 }
 
 function TodayFocusWidget({
@@ -368,27 +369,45 @@ function TodayFocusWidget({
   const cardPercentage = data.daily_card_target > 0 ? Math.min(100, Math.round((data.actual_cards_completed / data.daily_card_target) * 100)) : 0
   const newCardPercentage = data.daily_new_card_target > 0 ? Math.min(100, Math.round((data.actual_new_cards_completed / data.daily_new_card_target) * 100)) : 0
 
+  const isAllGoalsMet = timePercentage >= 100 && cardPercentage >= 100 && newCardPercentage >= 100;
+  const reviewCards = Math.max(0, data.actual_cards_completed - data.actual_new_cards_completed);
+  const accuracy = data.actual_cards_completed > 0 ? Math.round(((data.actual_correct_answers || 0) / data.actual_cards_completed) * 100) : 0;
+  const xpEstimate = data.actual_correct_answers || 0;
+
   return (
-    <div className="bg-white border border-slate-200/60 rounded-[2.5rem] p-6 shadow-sm relative overflow-hidden text-left mb-5 flex-shrink-0">
-      <div className="absolute -right-8 -top-8 w-24 h-24 rounded-full bg-indigo-50/30 blur-md pointer-events-none" />
+    <div className={cn(
+      "border rounded-[2.5rem] p-6 shadow-sm relative overflow-hidden text-left mb-5 flex-shrink-0 transition-all duration-700",
+      isAllGoalsMet 
+        ? "bg-gradient-to-br from-indigo-50/50 via-teal-50/30 to-emerald-50/50 border-emerald-200/80 shadow-emerald-100/50 ring-1 ring-emerald-100" 
+        : "bg-white border-slate-200/60"
+    )}>
+      <div className={cn(
+        "absolute -right-8 -top-8 w-24 h-24 rounded-full blur-md pointer-events-none transition-all duration-700",
+        isAllGoalsMet ? "bg-emerald-400/20" : "bg-indigo-50/30"
+      )} />
       
       <div className="flex items-center justify-between mb-5 relative z-10">
         <div>
-          <span className="text-[10px] font-black uppercase tracking-widest text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-lg">🎯 TODAY'S FOCUS</span>
+          <span className={cn(
+            "text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded-lg transition-colors",
+            isAllGoalsMet ? "text-emerald-700 bg-emerald-100" : "text-indigo-600 bg-indigo-50"
+          )}>
+            {isAllGoalsMet ? "🎉 MỤC TIÊU HOÀN THÀNH" : "🎯 TODAY'S FOCUS"}
+          </span>
           <h3 className="text-sm font-black text-slate-800 uppercase tracking-tight mt-1">Mục tiêu ngày của bạn</h3>
         </div>
         <button
           onClick={onOpenSettings}
-          className="w-8.5 h-8.5 rounded-xl bg-slate-50 border border-slate-200/60 flex items-center justify-center text-slate-600 shadow-sm active:scale-90 hover:bg-slate-100 transition-all"
+          className="w-8.5 h-8.5 rounded-xl bg-white/60 border border-slate-200/60 flex items-center justify-center text-slate-600 shadow-sm active:scale-90 hover:bg-slate-100 transition-all backdrop-blur-sm"
           title="Cài đặt mục tiêu"
         >
           <Settings className="w-4 h-4" />
         </button>
       </div>
 
-      <div className="grid grid-cols-3 gap-2 sm:gap-4 relative z-10 mb-6">
+      <div className="grid grid-cols-3 gap-2 sm:gap-4 relative z-10 mb-5">
         {/* Time Target */}
-        <div className="flex flex-col sm:flex-row items-center justify-center sm:justify-start gap-1 sm:gap-3 bg-slate-50/60 p-2 sm:p-3.5 rounded-2xl sm:rounded-[1.5rem] border border-slate-100">
+        <div className="flex flex-col sm:flex-row items-center justify-center sm:justify-start gap-1 sm:gap-3 bg-white/60 backdrop-blur-sm p-2 sm:p-3.5 rounded-2xl sm:rounded-[1.5rem] border border-slate-100">
           <div className="relative w-10 h-10 sm:w-14 sm:h-14 flex-shrink-0 flex items-center justify-center rounded-full bg-white shadow-sm">
             <svg className="w-10 h-10 sm:w-14 sm:h-14 transform -rotate-90">
               <circle cx="50%" cy="50%" r="40%" className="stroke-slate-100 fill-none" strokeWidth="3" />
@@ -414,7 +433,7 @@ function TodayFocusWidget({
         </div>
 
         {/* Reviewed Card Target */}
-        <div className="flex flex-col sm:flex-row items-center justify-center sm:justify-start gap-1 sm:gap-3 bg-slate-50/60 p-2 sm:p-3.5 rounded-2xl sm:rounded-[1.5rem] border border-slate-100">
+        <div className="flex flex-col sm:flex-row items-center justify-center sm:justify-start gap-1 sm:gap-3 bg-white/60 backdrop-blur-sm p-2 sm:p-3.5 rounded-2xl sm:rounded-[1.5rem] border border-slate-100">
           <div className="relative w-10 h-10 sm:w-14 sm:h-14 flex-shrink-0 flex items-center justify-center rounded-full bg-white shadow-sm">
             <svg className="w-10 h-10 sm:w-14 sm:h-14 transform -rotate-90">
               <circle cx="50%" cy="50%" r="40%" className="stroke-slate-100 fill-none" strokeWidth="3" />
@@ -440,7 +459,7 @@ function TodayFocusWidget({
         </div>
 
         {/* New Card Target */}
-        <div className="flex flex-col sm:flex-row items-center justify-center sm:justify-start gap-1 sm:gap-3 bg-slate-50/60 p-2 sm:p-3.5 rounded-2xl sm:rounded-[1.5rem] border border-slate-100">
+        <div className="flex flex-col sm:flex-row items-center justify-center sm:justify-start gap-1 sm:gap-3 bg-white/60 backdrop-blur-sm p-2 sm:p-3.5 rounded-2xl sm:rounded-[1.5rem] border border-slate-100">
           <div className="relative w-10 h-10 sm:w-14 sm:h-14 flex-shrink-0 flex items-center justify-center rounded-full bg-white shadow-sm">
             <svg className="w-10 h-10 sm:w-14 sm:h-14 transform -rotate-90">
               <circle cx="50%" cy="50%" r="40%" className="stroke-slate-100 fill-none" strokeWidth="3" />
@@ -462,6 +481,33 @@ function TodayFocusWidget({
             <span className="text-[9px] sm:text-xs font-black text-slate-850 block mt-0.5 whitespace-nowrap">
               {data.actual_new_cards_completed}/{data.daily_new_card_target}
             </span>
+          </div>
+        </div>
+      </div>
+
+      {/* Extra stats row */}
+      <div className="relative z-10 flex flex-wrap items-center gap-3 bg-indigo-50/50 p-3 rounded-2xl border border-indigo-100/50 mb-6">
+        <div className="flex-1 min-w-[30%]">
+          <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block mb-0.5">Tỷ lệ đúng</span>
+          <div className="flex items-center gap-1.5">
+            <Target className="w-3.5 h-3.5 text-indigo-500" />
+            <span className="text-sm font-black text-slate-700">{accuracy}%</span>
+          </div>
+        </div>
+        <div className="w-[1px] h-6 bg-slate-200/60 hidden sm:block"></div>
+        <div className="flex-1 min-w-[30%]">
+          <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block mb-0.5">Thẻ đã ôn tập</span>
+          <div className="flex items-center gap-1.5">
+            <RefreshCw className="w-3.5 h-3.5 text-emerald-500" />
+            <span className="text-sm font-black text-slate-700">{reviewCards}</span>
+          </div>
+        </div>
+        <div className="w-[1px] h-6 bg-slate-200/60 hidden sm:block"></div>
+        <div className="flex-1 min-w-[30%]">
+          <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block mb-0.5">Ước tính XP</span>
+          <div className="flex items-center gap-1.5">
+            <Zap className="w-3.5 h-3.5 text-amber-500" />
+            <span className="text-sm font-black text-slate-700">+{xpEstimate}</span>
           </div>
         </div>
       </div>
