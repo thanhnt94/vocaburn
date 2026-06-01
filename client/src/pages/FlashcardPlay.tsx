@@ -1148,7 +1148,7 @@ export default function FlashcardPlay() {
         const confettiColors = updatedStreak >= 5
           ? ['#f59e0b', '#ef4444', '#f97316']
           : ['#6366f1', '#a855f7', '#ec4899']
-        confetti({ particleCount: updatedStreak >= 5 ? 250 : 150, spread: updatedStreak >= 5 ? 100 : 70, origin: { y: 0.6 }, colors: confettiColors })
+        confetti({ zIndex: 9999, particleCount: updatedStreak >= 5 ? 250 : 150, spread: updatedStreak >= 5 ? 100 : 70, origin: { y: 0.6 }, colors: confettiColors })
 
         setAnswerContext({ wasCorrect: true, prevTotal, prevCorrect, timeTaken, avgTime, newStreak: updatedStreak, xpGained: 0 })
       } else {
@@ -1327,7 +1327,7 @@ export default function FlashcardPlay() {
         })
 
         if (masteryUpdate.level_up) {
-          confetti({
+          confetti({ zIndex: 9999,
             particleCount: 50,
             angle: 90,
             spread: 45,
@@ -1351,7 +1351,7 @@ export default function FlashcardPlay() {
       const unlockedBadge = res.data.unlocked_badge
       if (unlockedBadge) {
         setActiveUnlockedBadge(unlockedBadge)
-        confetti({
+        confetti({ zIndex: 9999,
           particleCount: 150,
           spread: 80,
           origin: { y: 0.6 },
@@ -1410,14 +1410,14 @@ export default function FlashcardPlay() {
           const colors = ['#F59E0B', '#10B981', '#3B82F6', '#8B5CF6', '#EC4899'];
           
           (function frame() {
-            confetti({
+            confetti({ zIndex: 9999,
               particleCount: 4,
               angle: 60,
               spread: 55,
               origin: { x: 0, y: 0.8 },
               colors: colors
             });
-            confetti({
+            confetti({ zIndex: 9999,
               particleCount: 4,
               angle: 120,
               spread: 55,
@@ -1436,21 +1436,21 @@ export default function FlashcardPlay() {
             setTimeout(() => setIsLimitlessStrike(false), 800);
 
             // Epic multi-angle golden/purple fireworks cascade!
-            confetti({
+            confetti({ zIndex: 9999,
               particleCount: 50,
               angle: 60,
               spread: 75,
               origin: { x: 0.15, y: 0.85 },
               colors: ['#F59E0B', '#F97316', '#EF4444', '#8B5CF6', '#FFF']
             });
-            confetti({
+            confetti({ zIndex: 9999,
               particleCount: 50,
               angle: 120,
               spread: 75,
               origin: { x: 0.85, y: 0.85 },
               colors: ['#F59E0B', '#F97316', '#EF4444', '#8B5CF6', '#FFF']
             });
-            confetti({
+            confetti({ zIndex: 9999,
               particleCount: 40,
               spread: 100,
               origin: { x: 0.5, y: 0.5 },
@@ -1458,7 +1458,7 @@ export default function FlashcardPlay() {
             });
           } else {
             // Epic gold/rose sparkle burst from the top right corner near the toast
-            confetti({
+            confetti({ zIndex: 9999,
               particleCount: 20,
               angle: 220,
               spread: 45,
@@ -1522,7 +1522,7 @@ export default function FlashcardPlay() {
       setXpFloat({ visible: true, amount: xpGained });
       setTimeout(() => setXpFloat({ visible: false, amount: 0 }), 1500);
       
-      confetti({ particleCount: 80, spread: 50, origin: { y: 0.6 } });
+      confetti({ zIndex: 9999, particleCount: 80, spread: 50, origin: { y: 0.6 } });
       setBadgeMessage("Chính xác! 🎯");
     } else {
       if (sfxEnabled) playIncorrectSound();
@@ -1604,7 +1604,7 @@ export default function FlashcardPlay() {
       setXpFloat({ visible: true, amount: xpGained });
       setTimeout(() => setXpFloat({ visible: false, amount: 0 }), 1500);
       
-      confetti({ particleCount: 100, spread: 60, origin: { y: 0.6 } });
+      confetti({ zIndex: 9999, particleCount: 100, spread: 60, origin: { y: 0.6 } });
       setBadgeMessage("Xuất sắc! ⌨️");
     } else {
       if (sfxEnabled) playIncorrectSound();
@@ -4391,7 +4391,7 @@ export default function FlashcardPlay() {
               exit={{ opacity: 0 }}
               onClick={() => {
                 setShowGoalCelebration(false)
-                confetti({ particleCount: 80, spread: 60, origin: { y: 0.6 } })
+                confetti({ zIndex: 9999, particleCount: 80, spread: 60, origin: { y: 0.6 } })
               }}
               className="absolute inset-0 bg-slate-950/80 backdrop-blur-xl pointer-events-auto"
             />
@@ -4445,7 +4445,7 @@ export default function FlashcardPlay() {
               <button 
                 onClick={() => {
                   setShowGoalCelebration(false)
-                  confetti({ particleCount: 80, spread: 60, origin: { y: 0.6 } })
+                  confetti({ zIndex: 9999, particleCount: 80, spread: 60, origin: { y: 0.6 } })
                 }}
                 className="w-full py-4 bg-gradient-to-r from-amber-500 via-orange-500 to-red-500 text-white font-black text-xs uppercase tracking-widest rounded-2xl shadow-xl shadow-orange-200 hover:shadow-orange-300 hover:scale-[1.02] active:scale-[0.98] transition-all"
               >
