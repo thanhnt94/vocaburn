@@ -584,8 +584,8 @@ function TodayFocusWidget({
                             ✅ Đã sạch thẻ ôn
                           </span>
                         )}
-                        <span className="text-[8px] font-bold text-slate-450">
-                          {isGoalMet ? "Đạt mục tiêu học mới ⚡" : `Còn lại ${goal.daily_target - goal.done_today} thẻ mới`}
+                        <span className="text-[8px] font-black px-1.5 py-0.5 rounded bg-sky-50 text-sky-600 border border-sky-100/60">
+                          📚 Đã học: {goal.total_learned}/{goal.total_questions}
                         </span>
                         {(() => {
                           const d = new Date()
