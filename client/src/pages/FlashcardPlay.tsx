@@ -1125,12 +1125,26 @@ export default function FlashcardPlay() {
     let updatedStreak = streak
     const isFirstEver = prevTotal === 0 && !alreadyRated
 
+    if (correct) {
+      if (sfxEnabled) playCorrectSound()
+      const confettiColors = streak >= 5 ? ['#f59e0b', '#ef4444', '#f97316'] : ['#6366f1', '#a855f7', '#ec4899']
+      confetti({ zIndex: 9999, particleCount: streak >= 5 ? 250 : 150, spread: streak >= 5 ? 100 : 70, origin: { y: 0.6 }, colors: confettiColors })
+      if (alreadyRated) setBadgeMessage("Chính xác! 🎯")
+    } else {
+      if (sfxEnabled) playIncorrectSound()
+      if (alreadyRated) setBadgeMessage("Cố lên nhé! 💪")
+    }
+    
+    if (alreadyRated) {
+      setBadgeVisible(true)
+      setTimeout(() => setBadgeVisible(false), 2000)
+    }
+
     if (!alreadyRated) {
       const prevRatio = prevTotal > 0 ? prevCorrect / prevTotal : 0
       const usuallyCorrect = prevRatio >= 0.7 && prevTotal >= 2
 
       if (correct) {
-        if (sfxEnabled) playCorrectSound()
         updatedStreak = streak + 1
         setStreak(updatedStreak)
 
@@ -1144,15 +1158,8 @@ export default function FlashcardPlay() {
         else msg = [`Brilliant! 🚀`, `Perfect! 🎯`, `Nailed it! ✨`, `Excellent! 🌈`][Math.floor(Math.random() * 4)]
         setBadgeMessage(msg)
 
-        // Streak milestone confetti
-        const confettiColors = updatedStreak >= 5
-          ? ['#f59e0b', '#ef4444', '#f97316']
-          : ['#6366f1', '#a855f7', '#ec4899']
-        confetti({ zIndex: 9999, particleCount: updatedStreak >= 5 ? 250 : 150, spread: updatedStreak >= 5 ? 100 : 70, origin: { y: 0.6 }, colors: confettiColors })
-
         setAnswerContext({ wasCorrect: true, prevTotal, prevCorrect, timeTaken, avgTime, newStreak: updatedStreak, xpGained: 0 })
       } else {
-        if (sfxEnabled) playIncorrectSound()
         updatedStreak = 0
         setStreak(0)
         
