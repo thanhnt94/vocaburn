@@ -158,7 +158,7 @@ async def get_leaderboard(request: Request, time_filter: str = "all_time", db: A
             "out_of_top_5": True,
         })
 
-    # 3. Fetch Cards Leaderboard
+    # 3. Fetch Cards Leaderboard (Total Reviews/Attempts)
     stmt_cards = (
         select(UserDailyStats.user_id, User.username, func.sum(UserDailyStats.questions_attempted).label("total_cards"))
         .join(User, User.id == UserDailyStats.user_id)
@@ -208,6 +208,83 @@ async def get_leaderboard(request: Request, time_filter: str = "all_time", db: A
             "out_of_top_5": True,
         })
 
+    # 4. Fetch New Cards Leaderboard (First-time Reviews)
+    from app.modules.quiz.models import QuizAttempt, UserAnswer
+    
+    subq = (
+        select(
+            QuizAttempt.user_id,
+            UserAnswer.question_id,
+            func.min(UserAnswer.created_at).label("first_answer_time")
+        )
+        .join(QuizAttempt, UserAnswer.attempt_id == QuizAttempt.id)
+        .group_by(QuizAttempt.user_id, UserAnswer.question_id)
+    ).subquery()
+
+    stmt_new_cards = (
+        select(
+            subq.c.user_id,
+            User.username,
+            func.count(subq.c.question_id).label("new_cards")
+        )
+        .join(User, User.id == subq.c.user_id)
+    )
+    if start_date:
+        stmt_new_cards = stmt_new_cards.where(subq.c.first_answer_time >= start_date)
+        
+    stmt_new_cards = (
+        stmt_new_cards.group_by(subq.c.user_id, User.username)
+        .order_by(func.count(subq.c.question_id).desc())
+        .limit(5)
+    )
+    
+    new_cards_results = await db.execute(stmt_new_cards)
+    new_cards_rows = new_cards_results.all()
+
+    new_cards_leaderboard = []
+    current_user_new_cards_rank = None
+    for rank, row in enumerate(new_cards_rows, start=1):
+        uid = row.user_id
+        new_cards_leaderboard.append({
+            "rank": rank,
+            "user_id": uid,
+            "username": row.username,
+            "new_cards": int(row.new_cards or 0),
+            "is_current_user": uid == current_user_id,
+        })
+        if uid == current_user_id:
+            current_user_new_cards_rank = rank
+
+    if current_user_id and current_user_new_cards_rank is None:
+        stmt_my_new_cards = select(func.count(subq.c.question_id)).where(subq.c.user_id == current_user_id)
+        if start_date:
+            stmt_my_new_cards = stmt_my_new_cards.where(subq.c.first_answer_time >= start_date)
+        user_new_cards_res = await db.execute(stmt_my_new_cards)
+        user_new_cards = int(user_new_cards_res.scalar() or 0)
+        
+        stmt_ahead_new_cards = (
+            select(func.count(func.distinct(subq.c.user_id)))
+        )
+        if start_date:
+            stmt_ahead_new_cards = stmt_ahead_new_cards.where(subq.c.first_answer_time >= start_date)
+            
+        stmt_ahead_new_cards = (
+            stmt_ahead_new_cards.group_by(subq.c.user_id)
+            .having(func.count(subq.c.question_id) > user_new_cards)
+        )
+        
+        ahead_new_cards_res = await db.execute(stmt_ahead_new_cards)
+        current_user_new_cards_rank = len(ahead_new_cards_res.all()) + 1
+        
+        new_cards_leaderboard.append({
+            "rank": current_user_new_cards_rank,
+            "user_id": current_user_id,
+            "username": current_user.username,
+            "new_cards": user_new_cards,
+            "is_current_user": True,
+            "out_of_top_5": True,
+        })
+
     return {
         "leaderboard": leaderboard,
         "current_user_rank": current_user_rank,
@@ -215,6 +292,8 @@ async def get_leaderboard(request: Request, time_filter: str = "all_time", db: A
         "current_user_time_rank": current_user_time_rank,
         "cards_leaderboard": cards_leaderboard,
         "current_user_cards_rank": current_user_cards_rank,
+        "new_cards_leaderboard": new_cards_leaderboard,
+        "current_user_new_cards_rank": current_user_new_cards_rank,
     }
 
 
