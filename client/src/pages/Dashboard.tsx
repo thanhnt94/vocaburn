@@ -144,12 +144,14 @@ function LeaderboardWidget({ data, activeFilter, onFilterChange }: {
     leaderboard: any[], 
     current_user_rank: number | null,
     time_leaderboard?: any[],
-    current_user_time_rank?: number | null
+    current_user_time_rank?: number | null,
+    cards_leaderboard?: any[],
+    current_user_cards_rank?: number | null
   },
   activeFilter: string,
   onFilterChange: (f: string) => void
 }) {
-  const [activeTab, setActiveTab] = useState<'xp' | 'time'>('xp')
+  const [activeTab, setActiveTab] = useState<'xp' | 'time' | 'cards'>('xp')
 
   const rankIcons: Record<number, React.ReactNode> = {
     1: <Crown className="w-4 h-4 text-amber-500" />,
@@ -172,8 +174,12 @@ function LeaderboardWidget({ data, activeFilter, onFilterChange }: {
     return `${mins}m`
   }
 
-  const currentList = activeTab === 'xp' ? data.leaderboard : (data.time_leaderboard || [])
-  const currentRank = activeTab === 'xp' ? data.current_user_rank : data.current_user_time_rank
+  const currentList = activeTab === 'xp' 
+    ? data.leaderboard 
+    : (activeTab === 'time' ? (data.time_leaderboard || []) : (data.cards_leaderboard || []))
+  const currentRank = activeTab === 'xp' 
+    ? data.current_user_rank 
+    : (activeTab === 'time' ? data.current_user_time_rank : data.current_user_cards_rank)
 
   return (
     <div className="bg-white border border-slate-200/60 rounded-[2rem] p-5 shadow-sm flex flex-col gap-4 text-left flex-shrink-0">
@@ -199,6 +205,15 @@ function LeaderboardWidget({ data, activeFilter, onFilterChange }: {
               )}
             >
               Thời gian
+            </button>
+            <button
+              onClick={() => setActiveTab('cards')}
+              className={cn(
+                "px-2.5 py-1 rounded-md text-[9px] font-black uppercase tracking-wider transition-all",
+                activeTab === 'cards' ? "bg-white text-indigo-600 shadow-sm" : "text-slate-400 hover:text-slate-600"
+              )}
+            >
+              Số thẻ
             </button>
           </div>
         </div>
@@ -280,9 +295,13 @@ function LeaderboardWidget({ data, activeFilter, onFilterChange }: {
                     <span className="text-[8px] font-bold text-slate-400 flex items-center gap-1">
                       Lvl {entry.level} · 🔥 {entry.streak}d
                     </span>
-                  ) : (
+                  ) : activeTab === 'time' ? (
                     <span className="text-[8px] font-bold text-slate-400 flex items-center gap-1">
                       Tổng thời gian học
+                    </span>
+                  ) : (
+                    <span className="text-[8px] font-bold text-slate-400 flex items-center gap-1">
+                      Tổng số thẻ đã học
                     </span>
                   )}
                 </div>
@@ -292,10 +311,12 @@ function LeaderboardWidget({ data, activeFilter, onFilterChange }: {
                     'text-[10px] font-black',
                     entry.rank === 1 ? 'text-amber-600' : entry.is_current_user ? 'text-indigo-600' : 'text-slate-600'
                   )}>
-                    {activeTab === 'xp' ? entry.xp.toLocaleString() : formatTime(entry.total_time || 0)}
+                    {activeTab === 'xp' 
+                      ? entry.xp.toLocaleString() 
+                      : (activeTab === 'time' ? formatTime(entry.total_time || 0) : `${entry.total_cards || 0} thẻ`)}
                   </span>
                   <span className="text-[7px] font-black text-slate-400 block">
-                    {activeTab === 'xp' ? 'XP' : 'Đã học'}
+                    {activeTab === 'xp' ? 'XP' : (activeTab === 'time' ? 'Đã học' : 'Số thẻ')}
                   </span>
                 </div>
               </div>

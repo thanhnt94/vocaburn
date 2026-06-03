@@ -158,11 +158,63 @@ async def get_leaderboard(request: Request, time_filter: str = "all_time", db: A
             "out_of_top_5": True,
         })
 
+    # 3. Fetch Cards Leaderboard
+    stmt_cards = (
+        select(UserDailyStats.user_id, User.username, func.sum(UserDailyStats.questions_attempted).label("total_cards"))
+        .join(User, User.id == UserDailyStats.user_id)
+    )
+    if start_date:
+        stmt_cards = stmt_cards.where(UserDailyStats.date >= start_date)
+        
+    stmt_cards = stmt_cards.group_by(UserDailyStats.user_id, User.username).order_by(func.sum(UserDailyStats.questions_attempted).desc()).limit(5)
+    
+    cards_results = await db.execute(stmt_cards)
+    cards_rows = cards_results.all()
+
+    cards_leaderboard = []
+    current_user_cards_rank = None
+    for rank, row in enumerate(cards_rows, start=1):
+        uid = row.user_id
+        cards_leaderboard.append({
+            "rank": rank,
+            "user_id": uid,
+            "username": row.username,
+            "total_cards": int(row.total_cards or 0),
+            "is_current_user": uid == current_user_id,
+        })
+        if uid == current_user_id:
+            current_user_cards_rank = rank
+
+    if current_user_id and current_user_cards_rank is None:
+        stmt_my_cards = select(func.sum(UserDailyStats.questions_attempted)).where(UserDailyStats.user_id == current_user_id)
+        if start_date:
+            stmt_my_cards = stmt_my_cards.where(UserDailyStats.date >= start_date)
+        user_cards_res = await db.execute(stmt_my_cards)
+        user_cards = int(user_cards_res.scalar() or 0)
+        
+        stmt_ahead_cards = select(func.count(func.distinct(UserDailyStats.user_id))).group_by(UserDailyStats.user_id).having(func.sum(UserDailyStats.questions_attempted) > user_cards)
+        if start_date:
+            stmt_ahead_cards = select(func.count(func.distinct(UserDailyStats.user_id))).where(UserDailyStats.date >= start_date).group_by(UserDailyStats.user_id).having(func.sum(UserDailyStats.questions_attempted) > user_cards)
+        
+        ahead_cards_res = await db.execute(stmt_ahead_cards)
+        current_user_cards_rank = len(ahead_cards_res.all()) + 1
+        
+        cards_leaderboard.append({
+            "rank": current_user_cards_rank,
+            "user_id": current_user_id,
+            "username": current_user.username,
+            "total_cards": user_cards,
+            "is_current_user": True,
+            "out_of_top_5": True,
+        })
+
     return {
         "leaderboard": leaderboard,
         "current_user_rank": current_user_rank,
         "time_leaderboard": time_leaderboard,
         "current_user_time_rank": current_user_time_rank,
+        "cards_leaderboard": cards_leaderboard,
+        "current_user_cards_rank": current_user_cards_rank,
     }
 
 

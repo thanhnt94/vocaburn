@@ -2751,7 +2751,7 @@ export default function PracticePlay() {
   if (!session || currentIndex < 0) return <div className="min-h-screen flex items-center justify-center font-black animate-pulse">LOADING SESSION...</div>
 
   return (
-    <div className="h-screen flex flex-col bg-gradient-to-br from-slate-50 via-indigo-50/20 to-slate-50 text-slate-900 font-sans overflow-hidden relative">
+    <div className="h-screen h-[100dvh] flex flex-col bg-gradient-to-br from-slate-50 via-indigo-50/20 to-slate-50 text-slate-900 font-sans overflow-hidden relative">
       {/* Animated Feedback Badge (Floating Toast at bottom) */}
       <AnimatePresence>
         {badgeVisible && selectedOption !== null && currentQuestion && (() => {
@@ -3465,7 +3465,7 @@ export default function PracticePlay() {
         </aside>
 
         <div className="w-full max-w-4xl min-w-0 flex flex-col overflow-hidden h-full">
-          <div className="flex-1 flex flex-col overflow-hidden md:pr-2 md:pb-2 pr-0 pb-0">
+          <div className="flex-1 flex flex-col overflow-hidden md:pr-2 md:pb-2 pr-0 pb-24 xl:pb-0">
 
 
             <AnimatePresence mode="wait">
@@ -3914,7 +3914,7 @@ export default function PracticePlay() {
       </main>
 
       {(mainTab !== 'practice' || (mainTab === 'practice' && !practiceNeedsSetup)) && (
-        <footer className="flex-shrink-0 bg-white/95 backdrop-blur-2xl border-t border-slate-100/80 px-4 py-3 z-[120] shadow-[0_-4px_24px_rgba(99,102,241,0.06)]">
+        <footer className="fixed bottom-0 left-0 right-0 xl:relative flex-shrink-0 bg-white/95 backdrop-blur-2xl border-t border-slate-100/80 px-4 py-3 z-[120] shadow-[0_-4px_24px_rgba(99,102,241,0.06)]">
           <div className="max-w-2xl mx-auto w-full flex items-center gap-3 h-13">
             {/* Mobile Stats / Map Button */}
             <button
@@ -4158,7 +4158,7 @@ export default function PracticePlay() {
             initial={{ opacity: 0, y: 50 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 50 }}
-            className="fixed inset-0 z-[200] bg-[#F8FAFC] lg:hidden flex flex-col h-screen"
+            className="fixed inset-0 z-[200] bg-[#F8FAFC] lg:hidden flex flex-col h-screen h-[100dvh]"
           >
             <div className="flex items-center justify-between p-4 border-b border-slate-200 bg-white shadow-sm flex-shrink-0">
               <h4 className="text-[12px] font-black text-indigo-600 uppercase tracking-[0.3em]">
@@ -4195,7 +4195,7 @@ export default function PracticePlay() {
             initial={{ opacity: 0, y: 50 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 50 }}
-            className="fixed inset-0 z-[200] bg-[#F8FAFC] xl:hidden flex flex-col h-screen"
+            className="fixed inset-0 z-[200] bg-[#F8FAFC] xl:hidden flex flex-col h-screen h-[100dvh]"
           >
             <div className="flex items-center justify-center p-3 border-b border-slate-100 bg-white shadow-sm flex-shrink-0">
               <h4 className="text-[9px] font-black text-indigo-600 uppercase tracking-[0.4em]">
