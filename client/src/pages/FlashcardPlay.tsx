@@ -3322,13 +3322,6 @@ export default function FlashcardPlay() {
           </div>
         </div>
         <div className="flex items-center gap-2">
-          {activeMode === 'fsrs' && dueCardsCount > 0 && (
-            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-500 text-white shadow-md shadow-amber-200 text-[11px] font-black" title="Số thẻ ôn tập còn lại">
-              <Brain className="w-3.5 h-3.5 animate-pulse" />
-              <span>{dueCardsCount} thẻ ôn</span>
-            </div>
-          )}
-
           <div className={cn(
             "flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-white shadow-md text-[11px] font-black transition-all",
             !showFeedback ? "bg-gradient-to-r from-slate-800 to-slate-900 shadow-slate-300" : "bg-gradient-to-r from-emerald-500 to-teal-500 shadow-emerald-200"
@@ -3336,6 +3329,13 @@ export default function FlashcardPlay() {
             <Timer className={cn("w-3.5 h-3.5", !showFeedback && "animate-pulse")} />
             <span>{timeLeft}s</span>
           </div>
+
+          {activeMode === 'fsrs' && dueCardsCount > 0 && (
+            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-500 text-white shadow-md shadow-amber-200 text-[11px] font-black" title="Số thẻ ôn tập còn lại">
+              <Brain className="w-3.5 h-3.5 animate-pulse" />
+              <span>{dueCardsCount}</span>
+            </div>
+          )}
 
           <button 
              onClick={() => setIsSettingsModalOpen(true)}
