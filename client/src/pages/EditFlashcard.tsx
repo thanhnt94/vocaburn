@@ -252,7 +252,7 @@ const EditFlashcard = () => {
                  <h4 className="text-sm font-black uppercase italic tracking-tighter">Quick Access</h4>
                  <p className="text-[10px] opacity-80 mt-2 font-medium leading-relaxed">Manage individual cards and options in the question studio.</p>
                  <button 
-                    onClick={() => navigate(`/manage/edit/${id}/questions`)}
+                    onClick={() => navigate(`/manage/edit/${id}/flashcards`)}
                     className="w-full mt-6 py-3 bg-white text-indigo-600 text-[9px] font-black uppercase tracking-widest rounded-xl hover:bg-slate-50 transition-all active:scale-95"
                  >
                     Manage Cards
@@ -743,7 +743,7 @@ const EditFlashcard = () => {
               {/* Card Manager Shortcut (Mobile) */}
               <div className="md:hidden mt-8">
                  <button 
-                    onClick={() => navigate(`/manage/edit/${id}/questions`)}
+                    onClick={() => navigate(`/manage/edit/${id}/flashcards`)}
                     className="w-full p-6 bg-white border border-slate-100 rounded-[2rem] flex items-center justify-between shadow-sm active:scale-95 transition-all"
                  >
                     <div className="flex items-center gap-4">

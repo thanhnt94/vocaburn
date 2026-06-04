@@ -188,7 +188,7 @@ async def validate_quiz(file: UploadFile = File(...)):
         )
 
 @router.get("/{quiz_id}/questions")
-async def get_quiz_questions(quiz_id: int, page: int = 1, size: int = 50, search: str = "", db: AsyncSession = Depends(get_db)):
+async def get_quiz_questions(quiz_id: int, request: Request, page: int = 1, size: int = 50, search: str = "", db: AsyncSession = Depends(get_db)):
     from app.modules.quiz.models import Question
     
     query = select(Question).where(Question.quiz_id == quiz_id)

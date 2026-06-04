@@ -241,7 +241,7 @@ export default function ManageFlashcards() {
                                Settings
                             </Link>
                             <Link 
-                               to={`/manage/edit/${quiz.id}/questions`}
+                               to={`/manage/edit/${quiz.id}/flashcards`}
                                className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-indigo-600 text-white text-[9px] font-black rounded-xl hover:bg-indigo-700 transition-all uppercase tracking-widest shadow-lg shadow-indigo-100"
                             >
                                <Layers className="w-3.5 h-3.5" />
