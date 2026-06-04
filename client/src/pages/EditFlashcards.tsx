@@ -79,7 +79,7 @@ const EditFlashcards = () => {
       const res = await axios.get(`/api/v1/quiz/${id}/flashcards`, {
         params: { page, size: 50, search }
       })
-      setFlashcards(res.data.flashcards)
+      setFlashcards(res.data.flashcards || res.data.questions || [])
       setTotal(res.data.total)
     } catch (err) {
       setError('Failed to fetch flashcards')
