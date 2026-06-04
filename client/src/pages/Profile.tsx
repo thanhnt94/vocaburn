@@ -1,7 +1,8 @@
 import { useAppStore } from '@/store/useAppStore'
-import { Settings, Shield, LogOut, ChevronRight, Zap, Flame, Award, CheckCircle2, Activity, Target, Trophy, X, Lock } from 'lucide-react'
+import { Settings, Shield, LogOut, ChevronRight, Zap, Flame, Award, CheckCircle2, Activity, Target, Trophy, X, Lock, BrainCircuit } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useQuery } from '@tanstack/react-query'
+import { Link } from 'react-router-dom'
 import axios from 'axios'
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -60,11 +61,29 @@ export default function Profile() {
   return (
     <div className="min-h-screen bg-[#F8FAFC] pb-40">
       {/* Mobile Header */}
-      <div className="md:hidden px-6 pt-10 pb-6 bg-white border-b border-slate-100">
-        <h1 className="text-xl font-black text-slate-900 tracking-tighter text-center">My Profile</h1>
+      <div className="sticky top-0 z-[150] md:hidden px-6 pt-10 pb-6 bg-white border-b border-slate-100 flex items-center justify-between">
+        <h1 className="text-xl font-black text-slate-900 tracking-tighter">My Profile</h1>
+        <Link 
+          to="/manage"
+          className="px-4 py-2 rounded-xl bg-indigo-50 border border-indigo-100/50 flex items-center gap-1.5 text-indigo-600 shadow-sm active:scale-95 transition-all text-xs font-black uppercase tracking-wider"
+        >
+          <BrainCircuit className="w-4 h-4" />
+          <span>Studio</span>
+        </Link>
       </div>
 
       <div className="px-6 max-w-2xl mx-auto mt-10 md:mt-12">
+        {/* Desktop Header */}
+        <div className="hidden md:flex items-center justify-between mb-6">
+          <h1 className="text-2xl font-black text-slate-900 tracking-tighter">My Profile</h1>
+          <Link 
+            to="/manage"
+            className="px-5 py-2.5 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white flex items-center gap-2 shadow-md shadow-indigo-100 active:scale-95 transition-all text-xs font-black uppercase tracking-widest"
+          >
+            <BrainCircuit className="w-4 h-4" />
+            <span>Creator Studio</span>
+          </Link>
+        </div>
         {/* User Info Card */}
         <div className="bg-white rounded-[2.5rem] p-10 shadow-sm text-center relative overflow-hidden mb-8 border border-slate-100">
           <div className="absolute top-0 left-0 right-0 h-32 bg-indigo-50/50 -z-10" />
@@ -298,7 +317,7 @@ export default function Profile() {
   )
 }
 
-import { Link } from 'react-router-dom'
+
 
 function MenuLink({ icon: Icon, label, variant = 'default', href = '#', native = false }: any) {
   const isNative = native || href.startsWith('http') || href === '/logout';
