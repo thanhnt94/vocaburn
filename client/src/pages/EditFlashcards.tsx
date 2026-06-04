@@ -26,17 +26,17 @@ import {
 import axios from 'axios'
 import { cn } from '@/lib/utils'
 
-const EditQuestions = () => {
+const EditFlashcards = () => {
   const { id } = useParams()
   const navigate = useNavigate()
   const [isLoading, setIsLoading] = useState(true)
-  const [questions, setQuestions] = useState<any[]>([])
+  const [flashcards, setFlashcards] = useState<any[]>([])
   const [total, setTotal] = useState(0)
   const [page, setPage] = useState(1)
   const [search, setSearch] = useState('')
   const [error, setError] = useState<string | null>(null)
   
-  const [editingQuestion, setEditingQuestion] = useState<any>(null)
+  const [editingFlashcard, setEditingFlashcard] = useState<any>(null)
   const [isSaving, setIsSaving] = useState(false)
 
   const [isUpdatingExcel, setIsUpdatingExcel] = useState(false)
@@ -59,7 +59,7 @@ const EditQuestions = () => {
       const res = await axios.post(`/api/v1/quiz/${id}/import-update`, formData)
       if (res.data.status === 'ok') {
         setExcelUpdateSuccess(true)
-        fetchQuestions()
+        fetchFlashcards()
         setTimeout(() => setExcelUpdateSuccess(false), 3000)
       } else {
         throw new Error(res.data.error || "Cập nhật thất bại.")
@@ -73,50 +73,89 @@ const EditQuestions = () => {
     }
   }
 
-  const fetchQuestions = async () => {
+  const fetchFlashcards = async () => {
     setIsLoading(true)
     try {
-      const res = await axios.get(`/api/v1/quiz/${id}/questions`, {
+      const res = await axios.get(`/api/v1/quiz/${id}/flashcards`, {
         params: { page, size: 50, search }
       })
-      setQuestions(res.data.questions)
+      setFlashcards(res.data.flashcards)
       setTotal(res.data.total)
     } catch (err) {
-      setError('Failed to fetch questions')
+      setError('Failed to fetch flashcards')
     } finally {
       setIsLoading(false)
     }
   }
 
   useEffect(() => {
-    fetchQuestions()
+    fetchFlashcards()
   }, [id, page, search])
 
+  const openEditModal = (q: any) => {
+    let parsedOthers: any = {}
+    if (q.others) {
+      try {
+        parsedOthers = typeof q.others === 'string' ? JSON.parse(q.others) : q.others
+      } catch (e) {
+        console.error("Failed to parse others field", e)
+      }
+    }
+    setEditingFlashcard({
+      ...q,
+      others: {
+        back_img: '',
+        back_audio_url: '',
+        front_audio_content: '',
+        back_audio_content: '',
+        ...parsedOthers
+      }
+    })
+  }
+
   const handleUpdate = async () => {
-    if (!editingQuestion) return
+    if (!editingFlashcard) return
     setIsSaving(true)
     try {
-      await axios.patch(`/api/v1/quiz/question/${editingQuestion.id}`, {
-        content: editingQuestion.content,
-        explanation: editingQuestion.explanation,
-        options: editingQuestion.options,
-        image: editingQuestion.image,
-        audio: editingQuestion.audio
+      const updatedOptions = (editingFlashcard.options || []).map((opt: any) => {
+        if (opt.is_correct) {
+          return { ...opt, content: editingFlashcard.explanation }
+        }
+        return opt
       })
-      setQuestions(questions.map(q => q.id === editingQuestion.id ? editingQuestion : q))
-      setEditingQuestion(null)
+
+      const finalOthers = { ...editingFlashcard.others }
+
+      await axios.patch(`/api/v1/quiz/flashcard/${editingFlashcard.id}`, {
+        content: editingFlashcard.content,
+        explanation: editingFlashcard.explanation,
+        ai_explanation: editingFlashcard.ai_explanation,
+        image: editingFlashcard.image || null,
+        audio: editingFlashcard.audio || null,
+        others: finalOthers,
+        options: updatedOptions
+      })
+      
+      const updatedFlashcard = {
+        ...editingFlashcard,
+        options: updatedOptions,
+        others: finalOthers
+      }
+
+      setFlashcards(flashcards.map(q => q.id === editingFlashcard.id ? updatedFlashcard : q))
+      setEditingFlashcard(null)
     } catch (err) {
-      alert('Failed to update question')
+      alert('Failed to update flashcard')
     } finally {
       setIsSaving(false)
     }
   }
 
-  const handleDelete = async (questionId: number) => {
+  const handleDelete = async (flashcardId: number) => {
     if (!confirm('Are you sure? This card will be erased.')) return
     try {
-      await axios.delete(`/api/v1/quiz/question/${questionId}`)
-      setQuestions(questions.filter(q => q.id !== questionId))
+      await axios.delete(`/api/v1/quiz/flashcard/${flashcardId}`)
+      setFlashcards(flashcards.filter(q => q.id !== flashcardId))
       setTotal(prev => prev - 1)
     } catch (err) {
       alert('Deletion failed')
@@ -221,13 +260,13 @@ const EditQuestions = () => {
       </div>
 
       <div className="max-w-6xl mx-auto px-4 mt-4">
-         {/* Question Row List */}
+         {/* Flashcard Row List */}
          <div className="space-y-2">
             {isLoading ? (
                <div className="py-20 text-center">
                   <Zap className="w-8 h-8 text-indigo-600 animate-pulse mx-auto" />
                </div>
-            ) : questions.map((q, idx) => (
+            ) : flashcards.map((q, idx) => (
                <motion.div 
                  key={q.id}
                  initial={{ opacity: 0 }}
@@ -278,7 +317,7 @@ const EditQuestions = () => {
                   {/* Right: Vertical Actions (Always Visible but compact) */}
                   <div className="flex flex-col gap-1.5 shrink-0 border-l border-slate-50 pl-4 py-1">
                      <button 
-                        onClick={() => setEditingQuestion(q)}
+                        onClick={() => openEditModal(q)}
                         className="w-10 md:w-11 h-8 md:h-10 bg-indigo-600 text-white rounded-xl flex items-center justify-center hover:bg-indigo-700 active:scale-95 transition-all shadow-lg shadow-indigo-100"
                      >
                         <Edit2 className="w-3.5 h-3.5 md:w-4 md:h-4" />
@@ -347,9 +386,9 @@ const EditQuestions = () => {
 
       {/* Edit Modal */}
       <AnimatePresence>
-         {editingQuestion && (
+         {editingFlashcard && (
             <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4">
-               <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setEditingQuestion(null)} className="absolute inset-0 bg-slate-900/60 backdrop-blur-md" />
+               <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setEditingFlashcard(null)} className="absolute inset-0 bg-slate-900/60 backdrop-blur-md" />
                <motion.div initial={{ opacity: 0, scale: 0.95, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 20 }} className="relative w-full max-w-4xl bg-white rounded-[2.5rem] shadow-2xl overflow-hidden">
                   <div className="p-6 md:p-10 space-y-8 max-h-[90vh] overflow-y-auto custom-scrollbar">
                      <div className="flex items-center justify-between sticky top-0 bg-white pb-6 z-10 border-b border-slate-50 mb-6">
@@ -363,32 +402,148 @@ const EditQuestions = () => {
                            </div>
                         </div>
                         <div className="flex items-center gap-3">
-                           <button onClick={() => setEditingQuestion(null)} className="w-10 h-10 bg-slate-50 rounded-xl flex items-center justify-center text-slate-400"><X className="w-5 h-5" /></button>
+                           <button onClick={() => setEditingFlashcard(null)} className="w-10 h-10 bg-slate-50 rounded-xl flex items-center justify-center text-slate-400"><X className="w-5 h-5" /></button>
                            <button onClick={handleUpdate} disabled={isSaving} className="flex items-center gap-2 px-6 h-10 bg-indigo-600 text-white text-[10px] font-black rounded-xl uppercase tracking-widest shadow-xl shadow-indigo-100">
                               {isSaving ? <Zap className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />} Commit
                            </button>
                         </div>
                      </div>
                      <div className="space-y-6">
-                        <div className="space-y-2">
-                           <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2">Question Content</label>
-                           <textarea rows={3} value={editingQuestion.content} onChange={(e) => setEditingQuestion({ ...editingQuestion, content: e.target.value })} className="w-full bg-slate-50 border border-slate-100 rounded-2xl p-6 text-sm font-bold text-slate-900 outline-none focus:ring-4 focus:ring-indigo-500/10 transition-all resize-none leading-relaxed" />
-                        </div>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                           {editingQuestion.options.map((opt: any, idx: number) => (
-                              <div key={idx} className={cn("flex items-center gap-3 p-3 rounded-2xl border transition-all", opt.is_correct ? "bg-emerald-50 border-emerald-200" : "bg-white border-slate-100")}>
-                                 <button onClick={() => { const newOpts = editingQuestion.options.map((o: any, i: number) => ({ ...o, is_correct: i === idx })); setEditingQuestion({ ...editingQuestion, options: newOpts }) }} className={cn("w-9 h-9 rounded-xl flex items-center justify-center text-[10px] font-black transition-all shadow-sm shrink-0", opt.is_correct ? "bg-emerald-500 text-white" : "bg-slate-50 text-slate-400")}>
-                                    {opt.is_correct ? <Check className="w-4 h-4" /> : String.fromCharCode(65 + idx)}
-                                 </button>
-                                 <input type="text" value={opt.content} onChange={(e) => { const newOpts = [...editingQuestion.options]; newOpts[idx].content = e.target.value; setEditingQuestion({ ...editingQuestion, options: newOpts }) }} className="flex-1 bg-transparent border-none outline-none text-xs font-bold text-slate-900" />
-                              </div>
-                           ))}
-                        </div>
-                        <div className="space-y-2">
-                           <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2">Explanation</label>
-                           <textarea rows={3} value={editingQuestion.explanation} onChange={(e) => setEditingQuestion({ ...editingQuestion, explanation: e.target.value })} className="w-full bg-slate-900 border border-slate-800 rounded-2xl p-6 text-xs font-medium text-indigo-100 outline-none focus:ring-4 focus:ring-indigo-500/20 transition-all resize-none shadow-2xl leading-relaxed" />
-                        </div>
-                     </div>
+                         {/* SECTION 1: TEXT CONTENT */}
+                         <div className="space-y-4 bg-slate-50/50 p-6 rounded-3xl border border-slate-100 text-left">
+                            <span className="text-[10px] font-black text-indigo-600 uppercase tracking-[0.2em] block mb-2">1. TEXT CONTENT</span>
+                            
+                            <div className="space-y-2">
+                               <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">FRONT SIDE (WORD / QUESTION)</label>
+                               <textarea 
+                                 value={editingFlashcard.content}
+                                 onChange={(e) => setEditingFlashcard({...editingFlashcard, content: e.target.value})}
+                                 className="w-full h-20 p-4 bg-white rounded-2xl border border-slate-100 focus:ring-2 focus:ring-indigo-500 font-medium text-slate-700 transition-all resize-none text-xs outline-none"
+                                 placeholder="Enter the front side word or phrase..."
+                               />
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                               <div className="space-y-2">
+                                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">BACK SIDE (DEFINITION / EXPLANATION)</label>
+                                 <textarea 
+                                   value={editingFlashcard.explanation}
+                                   onChange={(e) => setEditingFlashcard({...editingFlashcard, explanation: e.target.value})}
+                                   className="w-full h-32 p-4 bg-white rounded-2xl border border-slate-100 focus:ring-2 focus:ring-indigo-500 font-medium text-slate-700 transition-all resize-none text-xs outline-none"
+                                   placeholder="Enter the definition, synonyms, examples..."
+                                 />
+                               </div>
+                               <div className="space-y-2">
+                                 <label className="text-[10px] font-black text-indigo-500 uppercase tracking-widest flex items-center gap-1.5">
+                                   <Sparkles className="w-3 h-3 animate-pulse" />
+                                   AI DEEP ANALYSIS
+                                 </label>
+                                 <textarea 
+                                   value={editingFlashcard.ai_explanation || ''}
+                                   onChange={(e) => setEditingFlashcard({...editingFlashcard, ai_explanation: e.target.value})}
+                                   className="w-full h-32 p-4 bg-indigo-50/30 rounded-2xl border border-indigo-100 focus:ring-2 focus:ring-indigo-500 font-medium text-slate-700 transition-all resize-none text-xs outline-none"
+                                   placeholder="AI explanation, breakdown of grammar, etymology..."
+                                 />
+                               </div>
+                            </div>
+                         </div>
+
+                         {/* SECTION 2: MULTIMEDIA URLS */}
+                         <div className="space-y-4 bg-slate-50/50 p-6 rounded-3xl border border-slate-100 text-left">
+                            <span className="text-[10px] font-black text-indigo-600 uppercase tracking-[0.2em] block mb-2">2. MULTIMEDIA ASSETS</span>
+                            
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                               {/* Front multimedia */}
+                               <div className="space-y-4">
+                                  <div className="space-y-2">
+                                     <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">FRONT IMAGE URL</label>
+                                     <input 
+                                       type="text"
+                                       value={editingFlashcard.image || ''}
+                                       onChange={(e) => setEditingFlashcard({...editingFlashcard, image: e.target.value})}
+                                       className="w-full p-3 bg-white rounded-xl border border-slate-100 focus:ring-2 focus:ring-indigo-500 text-xs font-semibold text-slate-600 outline-none"
+                                       placeholder="e.g. /static/uploads/1/images/word.jpg"
+                                     />
+                                  </div>
+                                  <div className="space-y-2">
+                                     <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">FRONT AUDIO URL</label>
+                                     <input 
+                                       type="text"
+                                       value={editingFlashcard.audio || ''}
+                                       onChange={(e) => setEditingFlashcard({...editingFlashcard, audio: e.target.value})}
+                                       className="w-full p-3 bg-white rounded-xl border border-slate-100 focus:ring-2 focus:ring-indigo-500 text-xs font-semibold text-slate-600 outline-none"
+                                       placeholder="e.g. /static/uploads/1/audio/1_front.mp3"
+                                     />
+                                  </div>
+                               </div>
+
+                               {/* Back multimedia */}
+                               <div className="space-y-4">
+                                  <div className="space-y-2">
+                                     <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">BACK IMAGE URL</label>
+                                     <input 
+                                       type="text"
+                                       value={editingFlashcard.others?.back_img || ''}
+                                       onChange={(e) => setEditingFlashcard({
+                                         ...editingFlashcard,
+                                         others: { ...editingFlashcard.others, back_img: e.target.value }
+                                       })}
+                                       className="w-full p-3 bg-white rounded-xl border border-slate-100 focus:ring-2 focus:ring-indigo-500 text-xs font-semibold text-slate-600 outline-none"
+                                       placeholder="e.g. /static/uploads/1/images/def.jpg"
+                                     />
+                                  </div>
+                                  <div className="space-y-2">
+                                     <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">BACK AUDIO URL</label>
+                                     <input 
+                                       type="text"
+                                       value={editingFlashcard.others?.back_audio_url || ''}
+                                       onChange={(e) => setEditingFlashcard({
+                                         ...editingFlashcard,
+                                         others: { ...editingFlashcard.others, back_audio_url: e.target.value }
+                                       })}
+                                       className="w-full p-3 bg-white rounded-xl border border-slate-100 focus:ring-2 focus:ring-indigo-500 text-xs font-semibold text-slate-600 outline-none"
+                                       placeholder="e.g. /static/uploads/1/audio/1_back.mp3"
+                                     />
+                                  </div>
+                               </div>
+                            </div>
+                         </div>
+
+                         {/* SECTION 3: AUDIO READING SCRIPTS */}
+                         <div className="space-y-4 bg-slate-50/50 p-6 rounded-3xl border border-slate-100 text-left">
+                            <span className="text-[10px] font-black text-indigo-600 uppercase tracking-[0.2em] block mb-2">3. AUDIO READING SCRIPTS</span>
+                            <p className="text-[9px] font-semibold text-slate-400 italic">
+                              Format: `lang_code:text` (one per line). Example: `ja:人生` followed by `vi:cuộc đời`.
+                            </p>
+                            
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                               <div className="space-y-2">
+                                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">FRONT AUDIO READING SCRIPT</label>
+                                 <textarea 
+                                   value={editingFlashcard.others?.front_audio_content || ''}
+                                   onChange={(e) => setEditingFlashcard({
+                                     ...editingFlashcard,
+                                     others: { ...editingFlashcard.others, front_audio_content: e.target.value }
+                                   })}
+                                   className="w-full h-24 p-4 bg-white rounded-2xl border border-slate-100 focus:ring-2 focus:ring-indigo-500 font-medium text-slate-700 transition-all resize-none text-xs outline-none"
+                                   placeholder="ja:こんにちは"
+                                 />
+                               </div>
+                               <div className="space-y-2">
+                                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">BACK AUDIO READING SCRIPT</label>
+                                 <textarea 
+                                   value={editingFlashcard.others?.back_audio_content || ''}
+                                   onChange={(e) => setEditingFlashcard({
+                                     ...editingFlashcard,
+                                     others: { ...editingFlashcard.others, back_audio_content: e.target.value }
+                                   })}
+                                   className="w-full h-24 p-4 bg-white rounded-2xl border border-slate-100 focus:ring-2 focus:ring-indigo-500 font-medium text-slate-700 transition-all resize-none text-xs outline-none"
+                                   placeholder="vi:xin chào"
+                                 />
+                               </div>
+                            </div>
+                         </div>
+                      </div>
                   </div>
                </motion.div>
             </div>
@@ -442,4 +597,4 @@ const EditQuestions = () => {
   )
 }
 
-export default EditQuestions
+export default EditFlashcards

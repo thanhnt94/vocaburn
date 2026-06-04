@@ -188,6 +188,7 @@ async def validate_quiz(file: UploadFile = File(...)):
         )
 
 @router.get("/{quiz_id}/questions")
+@router.get("/{quiz_id}/flashcards")
 async def get_quiz_questions(quiz_id: int, request: Request, page: int = 1, size: int = 50, search: str = "", db: AsyncSession = Depends(get_db)):
     from app.modules.quiz.models import Question
     
@@ -395,6 +396,7 @@ async def transfer_ownership(request: Request, quiz_id: int, data: dict, db: Asy
     return {"status": "ok"}
 
 @router.patch("/question/{question_id}")
+@router.patch("/flashcard/{question_id}")
 async def update_question(question_id: int, data: dict, db: AsyncSession = Depends(get_db)):
     from app.modules.quiz.models import Question
     result = await db.execute(select(Question).where(Question.id == question_id))
@@ -419,6 +421,7 @@ async def update_question(question_id: int, data: dict, db: AsyncSession = Depen
     return {"status": "ok"}
 
 @router.delete("/question/{question_id}")
+@router.delete("/flashcard/{question_id}")
 async def delete_question(question_id: int, db: AsyncSession = Depends(get_db)):
     from app.modules.quiz.models import Question
     await db.execute(delete(Question).where(Question.id == question_id))

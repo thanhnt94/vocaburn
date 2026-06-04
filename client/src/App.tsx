@@ -16,7 +16,7 @@ import Settings from './pages/Settings'
 import ManageFlashcards from './pages/ManageFlashcards'
 import ImportFlashcard from './pages/ImportFlashcard'
 import EditFlashcard from './pages/EditFlashcard'
-import EditQuestions from './pages/EditQuestions'
+import EditFlashcards from './pages/EditFlashcards'
 import FlashcardRoom from './pages/FlashcardRoom'
 import RoomJoin from './pages/RoomJoin'
 import Layout from './components/Layout'
@@ -69,7 +69,7 @@ function AppContent() {
           <Route path="/manage" element={isLoggedIn ? <ManageFlashcards /> : <Navigate to="/login" replace />} />
           <Route path="/manage/import" element={isLoggedIn ? <ImportFlashcard /> : <Navigate to="/login" replace />} />
           <Route path="/manage/edit/:id" element={isLoggedIn ? <EditFlashcard /> : <Navigate to="/login" replace />} />
-          <Route path="/manage/edit/:id/flashcards" element={isLoggedIn ? <EditQuestions /> : <Navigate to="/login" replace />} />
+          <Route path="/manage/edit/:id/flashcards" element={isLoggedIn ? <EditFlashcards /> : <Navigate to="/login" replace />} />
           <Route path="/room/join" element={isLoggedIn ? <RoomJoin /> : <Navigate to="/login" replace />} />
           
           {/* Admin Control Panel */}
