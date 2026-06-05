@@ -1,6 +1,6 @@
 from sqlalchemy import select, func, desc, extract, case, and_
 from sqlalchemy.ext.asyncio import AsyncSession
-from app.modules.quiz.models import UserAnswer, Quiz, Question, Category, QuizAttempt
+from app.modules.deck.models import UserAnswer, FlashcardDeck, Flashcard, Category, DeckAttempt
 from app.modules.auth.models import User
 from app.modules.stats.models import UserDailyStats
 from app.modules.gamification.models import UserGamification
@@ -11,8 +11,8 @@ class AnalyticsService:
     async def get_global_stats(db: AsyncSession):
         # 1. Platform Totals in a single consolidated subquery statement
         totals_stmt = select(
-            select(func.count(Question.id)).scalar_subquery().label("total_questions"),
-            select(func.count(Quiz.id)).scalar_subquery().label("total_quizzes"),
+            select(func.count(Flashcard.id)).scalar_subquery().label("total_cards"),
+            select(func.count(FlashcardDeck.id)).scalar_subquery().label("total_decks"),
             select(func.count(User.id)).scalar_subquery().label("total_users")
         )
         
@@ -27,8 +27,8 @@ class AnalyticsService:
         totals_res = (await db.execute(totals_stmt)).one_or_none()
         perf_res = (await db.execute(perf_stmt)).one_or_none()
         
-        total_questions = totals_res.total_questions if totals_res else 0
-        total_quizzes = totals_res.total_quizzes if totals_res else 0
+        total_cards = totals_res.total_cards if totals_res else 0
+        total_decks = totals_res.total_decks if totals_res else 0
         total_users = totals_res.total_users if totals_res else 0
         
         platform_accuracy = 0
@@ -38,16 +38,18 @@ class AnalyticsService:
             avg_time = round(perf_res.avg_time or 0, 1)
             
         return {
-            "total_questions": total_questions,
-            "total_quizzes": total_quizzes,
+            "total_questions": total_cards,
+            "total_cards": total_cards, # compatibility
+            "total_quizzes": total_decks,
+            "total_decks": total_decks, # compatibility
             "total_users": total_users,
             "platform_accuracy": platform_accuracy,
-            "avg_time_per_question": avg_time
+            "avg_time_per_question": avg_time,
+            "avg_time_per_card": avg_time # compatibility
         }
 
     @staticmethod
     async def get_user_detailed_stats(db: AsyncSession, user_id: int):
-        # ... existing logic ...
         user_stats = await AnalyticsService._get_user_stats_internal(db, user_id)
         global_stats = await AnalyticsService.get_global_stats(db)
         
@@ -58,7 +60,6 @@ class AnalyticsService:
 
     @staticmethod
     async def _get_user_stats_internal(db: AsyncSession, user_id: int):
-        # Move previous logic here
         today = datetime.utcnow().date()
         start_date = today - timedelta(days=29)
         
@@ -99,11 +100,11 @@ class AnalyticsService:
             func.sum(case((UserAnswer.is_correct == True, 1), else_=0)).label("correct"),
             func.avg(UserAnswer.active_time).label("avg_time")
         ).select_from(UserAnswer)\
-         .join(QuizAttempt, UserAnswer.attempt_id == QuizAttempt.id)\
-         .join(Question, UserAnswer.question_id == Question.id)\
-         .join(Quiz, Question.quiz_id == Quiz.id)\
-         .join(Category, Quiz.category_id == Category.id)\
-         .where(QuizAttempt.user_id == user_id)\
+         .join(DeckAttempt, UserAnswer.attempt_id == DeckAttempt.id)\
+         .join(Flashcard, UserAnswer.card_id == Flashcard.id)\
+         .join(FlashcardDeck, Flashcard.deck_id == FlashcardDeck.id)\
+         .join(Category, FlashcardDeck.category_id == Category.id)\
+         .where(DeckAttempt.user_id == user_id)\
          .group_by(Category.name)
 
         cat_results = await db.execute(cat_stmt)
@@ -137,6 +138,7 @@ class AnalyticsService:
         
         summary = {
             "total_questions": total_q,
+            "total_cards": total_q, # compatibility
             "total_correct": total_correct,
             "total_time_hours": round(total_time / 3600, 1),
             "global_accuracy": round((total_correct / total_q * 100), 1) if total_q > 0 else 0
@@ -147,10 +149,10 @@ class AnalyticsService:
             extract('hour', UserAnswer.created_at).label("hour"),
             func.count(UserAnswer.id).label("count")
         ).select_from(UserAnswer)\
-         .join(QuizAttempt, UserAnswer.attempt_id == QuizAttempt.id)\
-         .where(QuizAttempt.user_id == user_id)\
+         .join(DeckAttempt, UserAnswer.attempt_id == DeckAttempt.id)\
+         .where(DeckAttempt.user_id == user_id)\
          .group_by("hour")
-        
+         
         hour_results = await db.execute(hour_stmt)
         hourly_data = {i: 0 for i in range(24)}
         for row in hour_results.all():
@@ -161,13 +163,13 @@ class AnalyticsService:
 
         # 5. Recent Sessions
         recent_stmt = select(
-            Quiz.title,
-            QuizAttempt.score,
-            QuizAttempt.total_questions,
-            QuizAttempt.completed_at
-        ).join(Quiz, QuizAttempt.quiz_id == Quiz.id)\
-         .where(QuizAttempt.user_id == user_id, QuizAttempt.completed_at != None)\
-         .order_by(desc(QuizAttempt.completed_at))\
+            FlashcardDeck.title,
+            DeckAttempt.score,
+            DeckAttempt.total_cards,
+            DeckAttempt.completed_at
+        ).join(FlashcardDeck, DeckAttempt.deck_id == FlashcardDeck.id)\
+         .where(DeckAttempt.user_id == user_id, DeckAttempt.completed_at != None)\
+         .order_by(desc(DeckAttempt.completed_at))\
          .limit(5)
         
         recent_results = await db.execute(recent_stmt)
@@ -337,4 +339,3 @@ class AnalyticsService:
                 "user_value": round(curr_acc, 1)
             }
         }
-

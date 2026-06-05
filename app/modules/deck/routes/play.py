@@ -8,20 +8,20 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, delete, func, Integer, or_
 from sqlalchemy.orm import selectinload
 from app.core.db import get_db
-from app.modules.quiz.services.excel_service import ExcelQuizService
-from app.modules.quiz.services.quiz_service import QuizService
-from app.modules.quiz.services.ai_service import ai_service
-from app.modules.quiz.schemas import QuizSchema, QuestionSchema
-from app.modules.quiz.models import UserDeckSettings
-from app.modules.quiz.services.mcq_engine import MCQEngine
-from app.modules.quiz.services.typing_engine import TypingEngine
+from app.modules.deck.services.excel_service import ExcelDeckService
+from app.modules.deck.services.deck_service import DeckService
+from app.modules.deck.services.ai_service import ai_service
+from app.modules.deck.schemas import DeckSchema, CardSchema
+from app.modules.deck.models import UserDeckSettings
+from app.modules.deck.services.mcq_engine import MCQEngine
+from app.modules.deck.services.typing_engine import TypingEngine
 import json
 import re
 import os
 import asyncio
 from datetime import datetime, timezone, date, timedelta
 
-router = APIRouter(tags=["Quiz"])
+router = APIRouter(tags=["Deck"])
 
 def fix_static_urls(val):
     if not val:
@@ -65,26 +65,26 @@ def build_fsrs_card(mastery, now_utc):
 
 
 @router.post("/explain")
-async def explain_question(data: dict):
-    question_text = data.get("question")
+async def explain_card(data: dict):
+    card_text = data.get("card") or data.get("question")
     options = data.get("options", [])
     correct_answer = data.get("correct_answer")
     
-    explanation = await ai_service.explain_question(question_text, options, correct_answer)
+    explanation = await ai_service.explain_card(card_text, options, correct_answer)
     return {"explanation": explanation}
 
-@router.get("/{quiz_id}/mistakes")
-async def get_quiz_mistakes(quiz_id: int, db: AsyncSession = Depends(get_db)):
-    from app.modules.quiz.models import UserAnswer, Question
+@router.get("/{deck_id}/mistakes")
+async def get_deck_mistakes(deck_id: int, db: AsyncSession = Depends(get_db)):
+    from app.modules.deck.models import UserAnswer, Flashcard
     result = await db.execute(
-        select(Question).join(UserAnswer).filter(UserAnswer.is_correct == False, Question.quiz_id == quiz_id).distinct()
+        select(Flashcard).join(UserAnswer).filter(UserAnswer.is_correct == False, Flashcard.deck_id == deck_id).distinct()
     )
     mistakes = result.scalars().all()
     return mistakes
 
 @router.post("/record_answer")
 async def record_answer(request: Request, data: dict, db: AsyncSession = Depends(get_db)):
-    from app.modules.quiz.models import UserAnswer, Question, QuizAttempt, UserQuestionMastery
+    from app.modules.deck.models import UserAnswer, Flashcard, DeckAttempt, UserCardMastery
     from app.modules.gamification.models import UserGamification, Badge
     from app.modules.gamification.interface import GamificationInterface
     from app.modules.stats.interface import StatsInterface
@@ -94,7 +94,7 @@ async def record_answer(request: Request, data: dict, db: AsyncSession = Depends
     user_id = int(request.cookies.get("user_id", 1)) # Default to 1 for demo
     is_correct = data.get("is_correct", False)
     time_spent = int(data.get("time_spent", 0))
-    question_id = int(data.get("question_id"))
+    card_id = int(data.get("card_id", data.get("question_id", 0)))
     local_date = data.get("local_date")
 
     # Map incoming rating or fall back to is_correct early
@@ -104,25 +104,25 @@ async def record_answer(request: Request, data: dict, db: AsyncSession = Depends
     else:
         rating_val = 3 if is_correct else 1
 
-    q_res = await db.execute(select(Question).filter(Question.id == question_id))
-    question = q_res.scalar_one_or_none()
+    c_res = await db.execute(select(Flashcard).filter(Flashcard.id == card_id))
+    card = c_res.scalar_one_or_none()
     
     goal_update_info = None
     mastery_update_info = None
     unlocked_badge_info = None
     is_originally_new = False
 
-    if question:
-        attempt_res = await db.execute(select(QuizAttempt).filter(QuizAttempt.user_id == user_id, QuizAttempt.quiz_id == question.quiz_id).order_by(QuizAttempt.id.desc()))
+    if card:
+        attempt_res = await db.execute(select(DeckAttempt).filter(DeckAttempt.user_id == user_id, DeckAttempt.deck_id == card.deck_id).order_by(DeckAttempt.id.desc()))
         attempt = attempt_res.scalar()
         if not attempt:
-            attempt = QuizAttempt(user_id=user_id, quiz_id=question.quiz_id, mode="play")
+            attempt = DeckAttempt(user_id=user_id, deck_id=card.deck_id, mode="play")
             db.add(attempt)
             await db.flush()
 
         db_answer = UserAnswer(
             attempt_id=attempt.id,
-            question_id=question_id,
+            card_id=card_id,
             is_correct=is_correct,
             active_time=float(time_spent),
             rating=rating_val
@@ -137,17 +137,17 @@ async def record_answer(request: Request, data: dict, db: AsyncSession = Depends
             from fsrs import Card, Scheduler, Rating, State
             
             mastery_res = await db.execute(
-                select(UserQuestionMastery).where(
-                    UserQuestionMastery.user_id == user_id,
-                    UserQuestionMastery.question_id == question_id
+                select(UserCardMastery).where(
+                    UserCardMastery.user_id == user_id,
+                    UserCardMastery.card_id == card_id
                 )
             )
             mastery = mastery_res.scalar_one_or_none()
             if not mastery:
                 is_originally_new = True
-                mastery = UserQuestionMastery(
+                mastery = UserCardMastery(
                     user_id=user_id,
-                    question_id=question_id,
+                    card_id=card_id,
                     box_level=1,
                     consecutive_correct=0,
                     state=0,
@@ -247,12 +247,12 @@ async def record_answer(request: Request, data: dict, db: AsyncSession = Depends
             mastery_update_info = None
         
         # --- Goal Progress Tracking Logic ---
-        from app.modules.quiz.models import UserQuizGoal, UserDailyProgress
+        from app.modules.deck.models import UserDeckGoal, UserDailyProgress
         goal_res = await db.execute(
-            select(UserQuizGoal).filter(
-                UserQuizGoal.user_id == user_id, 
-                UserQuizGoal.quiz_id == question.quiz_id, 
-                UserQuizGoal.status == "active"
+            select(UserDeckGoal).filter(
+                UserDeckGoal.user_id == user_id, 
+                UserDeckGoal.deck_id == card.deck_id, 
+                UserDeckGoal.status == "active"
             )
         )
         goal = goal_res.scalar_one_or_none()
@@ -278,10 +278,10 @@ async def record_answer(request: Request, data: dict, db: AsyncSession = Depends
                 )
                 db.add(progress)
                 await db.flush()
-            # Only count toward goal if this is a BRAND NEW question in FSRS (never reviewed before by this user under FSRS)
-            is_new_question = is_originally_new
+            # Only count toward goal if this is a BRAND NEW card in FSRS
+            is_new_card = is_originally_new
             
-            if is_new_question:
+            if is_new_card:
                 progress.count_done += 1
             just_completed = False
             bonus_xp = 0
@@ -311,14 +311,14 @@ async def record_answer(request: Request, data: dict, db: AsyncSession = Depends
             if just_completed:
                 msg = f"DAILY GOAL REACHED! 🎉 You're on a {goal.streak_count}-day streak & earned +50 Discipline XP! 💪"
             elif progress.is_target_met:
-                msg = f"Limitless Learning! You are pushing limits today with {progress.count_done} questions! 🔥"
+                msg = f"Limitless Learning! You are pushing limits today with {progress.count_done} cards! 🔥"
             elif remaining == 1:
-                msg = "Outstanding! Just 1 question left to complete your daily goal! 🚀"
+                msg = "Outstanding! Just 1 card left to complete your daily goal! 🚀"
             else:
-                msg = f"Excellent! You've done {progress.count_done}/{goal.daily_target} new questions today. Just {remaining} more to hit your goal, keep going! ⚡"
+                msg = f"Excellent! You've done {progress.count_done}/{goal.daily_target} new cards today. Just {remaining} more to hit your goal, keep going! ⚡"
             
-            # Only send goal toast update if this was a new question
-            if is_new_question:
+            # Only send goal toast update if this was a new card
+            if is_new_card:
                 goal_update_info = {
                     "goal_id": goal.id,
                     "daily_target": goal.daily_target,
@@ -329,7 +329,8 @@ async def record_answer(request: Request, data: dict, db: AsyncSession = Depends
                     "remaining_today": remaining,
                     "bonus_xp": bonus_xp,
                     "motivational_message": msg,
-                    "is_new_question": is_new_question
+                    "is_new_card": is_new_card,
+                    "is_new_question": is_new_card
                 }
 
         await db.commit()
@@ -355,7 +356,7 @@ async def record_answer(request: Request, data: dict, db: AsyncSession = Depends
         bonus_xp_gained += 1
         
     xp_gain = base_xp + bonus_xp_gained
-    gamify_res = await GamificationInterface.add_xp(db, user_id, xp_gain, source="quiz_answer")
+    gamify_res = await GamificationInterface.add_xp(db, user_id, xp_gain, source="deck_answer")
     has_leveled_up = gamify_res["level_up"]
     current_level = gamify_res["current_level"]
 
@@ -393,7 +394,7 @@ async def record_answer(request: Request, data: dict, db: AsyncSession = Depends
         should_unlock = False
         if badge.id == "first_steps":
             ans_count_res = await db.execute(
-                select(func.count(UserAnswer.id)).join(QuizAttempt).where(QuizAttempt.user_id == user_id)
+                select(func.count(UserAnswer.id)).join(DeckAttempt).where(DeckAttempt.user_id == user_id)
             )
             if (ans_count_res.scalar() or 0) >= 1:
                 should_unlock = True
@@ -408,10 +409,10 @@ async def record_answer(request: Request, data: dict, db: AsyncSession = Depends
                 
         elif badge.id == "perfect_score":
             perf_attempt_res = await db.execute(
-                select(QuizAttempt.id)
+                select(DeckAttempt.id)
                 .join(UserAnswer)
-                .where(QuizAttempt.user_id == user_id)
-                .group_by(QuizAttempt.id)
+                .where(DeckAttempt.user_id == user_id)
+                .group_by(DeckAttempt.id)
                 .having(
                     and_(
                         func.count(UserAnswer.id) >= 5,
@@ -426,9 +427,9 @@ async def record_answer(request: Request, data: dict, db: AsyncSession = Depends
             if time_spent > 0 and time_spent <= 5 and is_correct:
                 fast_correct_res = await db.execute(
                     select(func.count(UserAnswer.id))
-                    .join(QuizAttempt)
+                    .join(DeckAttempt)
                     .where(
-                        QuizAttempt.user_id == user_id,
+                        DeckAttempt.user_id == user_id,
                         UserAnswer.is_correct == True,
                         UserAnswer.active_time <= 5.0,
                         UserAnswer.active_time > 0.0
@@ -441,7 +442,7 @@ async def record_answer(request: Request, data: dict, db: AsyncSession = Depends
             goal_completed_res = await db.execute(
                 select(func.count(UserDailyProgress.id)).where(
                     UserDailyProgress.goal_id.in_(
-                        select(UserQuizGoal.id).where(UserQuizGoal.user_id == user_id)
+                        select(UserDeckGoal.id).where(UserDeckGoal.user_id == user_id)
                     ),
                     UserDailyProgress.is_target_met == True
                 )
@@ -451,9 +452,9 @@ async def record_answer(request: Request, data: dict, db: AsyncSession = Depends
                 
         elif badge.id == "card_master":
             mastered_cards_res = await db.execute(
-                select(func.count(UserQuestionMastery.id)).where(
-                    UserQuestionMastery.user_id == user_id,
-                    UserQuestionMastery.box_level == 5
+                select(func.count(UserCardMastery.id)).where(
+                    UserCardMastery.user_id == user_id,
+                    UserCardMastery.box_level == 5
                 )
             )
             if (mastered_cards_res.scalar() or 0) >= 10:
@@ -499,25 +500,25 @@ async def record_answer(request: Request, data: dict, db: AsyncSession = Depends
     
     # Check if deck is 100% mastered
     deck_mastered = False
-    question_res = await db.execute(
-        select(Question.quiz_id).where(Question.id == question_id)
+    card_res = await db.execute(
+        select(Flashcard.deck_id).where(Flashcard.id == card_id)
     )
-    quiz_id_val = question_res.scalar()
-    if quiz_id_val:
-        total_q_res = await db.execute(
-            select(func.count(Question.id)).where(Question.quiz_id == quiz_id_val)
+    deck_id_val = card_res.scalar()
+    if deck_id_val:
+        total_c_res = await db.execute(
+            select(func.count(Flashcard.id)).where(Flashcard.deck_id == deck_id_val)
         )
-        total_q = total_q_res.scalar() or 0
+        total_c = total_c_res.scalar() or 0
         
-        mastered_q_res = await db.execute(
-            select(func.count(UserQuestionMastery.id)).join(Question).where(
-                Question.quiz_id == quiz_id_val,
-                UserQuestionMastery.user_id == user_id,
-                UserQuestionMastery.box_level == 5
+        mastered_c_res = await db.execute(
+            select(func.count(UserCardMastery.id)).join(Flashcard).where(
+                Flashcard.deck_id == deck_id_val,
+                UserCardMastery.user_id == user_id,
+                UserCardMastery.box_level == 5
             )
         )
-        mastered_q = mastered_q_res.scalar() or 0
-        if total_q > 0 and mastered_q == total_q:
+        mastered_c = mastered_c_res.scalar() or 0
+        if total_c > 0 and mastered_c == total_c:
             deck_mastered = True
             
     await db.commit()
@@ -533,32 +534,33 @@ async def record_answer(request: Request, data: dict, db: AsyncSession = Depends
     }
 
 
-@router.get("/{quiz_id}/data")
-async def get_quiz_data(request: Request, quiz_id: int, db: AsyncSession = Depends(get_db)):
+@router.get("/{deck_id}/data")
+async def get_deck_data(request: Request, deck_id: int, db: AsyncSession = Depends(get_db)):
     user_id = int(request.cookies.get("user_id", 1))
-    from app.modules.quiz.models import QuizCollaborator
+    from app.modules.deck.models import DeckCollaborator
     
-    quiz = await QuizService.get_quiz_by_id(db, quiz_id)
-    if not quiz: return JSONResponse(status_code=404, content={"error": "Quiz not found"})
+    deck = await DeckService.get_deck_by_id(db, deck_id)
+    if not deck: return JSONResponse(status_code=404, content={"error": "Deck not found"})
     
-    from app.modules.quiz.models import Question
-    q_count_res = await db.execute(select(func.count(Question.id)).where(Question.quiz_id == quiz_id))
-    q_count = q_count_res.scalar()
+    from app.modules.deck.models import Flashcard
+    c_count_res = await db.execute(select(func.count(Flashcard.id)).where(Flashcard.deck_id == deck_id))
+    c_count = c_count_res.scalar()
     
     # Check if user is collaborator
-    collab_res = await db.execute(select(QuizCollaborator).where(QuizCollaborator.quiz_id == quiz_id, QuizCollaborator.user_id == user_id))
+    collab_res = await db.execute(select(DeckCollaborator).where(DeckCollaborator.deck_id == deck_id, DeckCollaborator.user_id == user_id))
     is_collaborator = collab_res.scalar() is not None
     
     return {
-        "id": quiz.id,
-        "title": quiz.title,
-        "description": quiz.description,
-        "instruction": quiz.instruction,
-        "ai_prompt": quiz.ai_prompt,
-        "creator_id": quiz.creator_id,
+        "id": deck.id,
+        "title": deck.title,
+        "description": deck.description,
+        "instruction": deck.instruction,
+        "ai_prompt": deck.ai_prompt,
+        "creator_id": deck.creator_id,
         "is_collaborator": is_collaborator,
-        "questions_count": q_count,
-        "tags": [t.name for t in quiz.tags]
+        "cards_count": c_count,
+        "questions_count": c_count, # compatibility
+        "tags": [t.name for t in deck.tags]
     }
 
 def migrate_practice_settings(settings: Optional[dict]) -> dict:
@@ -574,8 +576,8 @@ def migrate_practice_settings(settings: Optional[dict]) -> dict:
         "listening": {"active_pairs": active_pairs, "num_choices": num_choices}
     }
 
-@router.get("/{quiz_id}/play-data")
-async def get_quiz_play_data(request: Request, quiz_id: int, mode: Optional[str] = None, db: AsyncSession = Depends(get_db)):
+@router.get("/{deck_id}/play-data")
+async def get_deck_play_data(request: Request, deck_id: int, mode: Optional[str] = None, db: AsyncSession = Depends(get_db)):
     user_id = int(request.cookies.get("user_id", 1))
     is_practice = mode in ("mcq", "typing", "listening")
     
@@ -583,17 +585,17 @@ async def get_quiz_play_data(request: Request, quiz_id: int, mode: Optional[str]
     user_sett_res = await db.execute(
         select(UserDeckSettings).where(
             UserDeckSettings.user_id == user_id,
-            UserDeckSettings.deck_id == quiz_id
+            UserDeckSettings.deck_id == deck_id
         )
     )
     user_sett = user_sett_res.scalar_one_or_none()
 
     if is_practice:
-        # Instant load: We do not need heavy question-level stats aggregation for practice modes!
-        quiz = await QuizService.get_quiz_by_id(db, quiz_id)
+        # Instant load: We do not need heavy card-level stats aggregation for practice modes!
+        deck = await DeckService.get_deck_by_id(db, deck_id)
     else:
-        quiz = await QuizService.get_quiz_with_stats(db, quiz_id, user_id=user_id)
-    if not quiz: return JSONResponse(status_code=404, content={"error": "Quiz not found"})
+        deck = await DeckService.get_deck_with_stats(db, deck_id, user_id=user_id)
+    if not deck: return JSONResponse(status_code=404, content={"error": "Deck not found"})
     
     # Skip heavy gamification stats & collaborator check for practice — not needed
     user_total_xp = 0
@@ -603,20 +605,20 @@ async def get_quiz_play_data(request: Request, quiz_id: int, mode: Optional[str]
         user_stats = await GamificationInterface.get_user_stats(db, user_id)
         user_total_xp = user_stats.get("xp", 0)
         
-        from app.modules.quiz.models import QuizCollaborator
-        collab_res = await db.execute(select(QuizCollaborator).where(QuizCollaborator.quiz_id == quiz_id, QuizCollaborator.user_id == user_id))
+        from app.modules.deck.models import DeckCollaborator
+        collab_res = await db.execute(select(DeckCollaborator).where(DeckCollaborator.deck_id == deck_id, DeckCollaborator.user_id == user_id))
         is_collaborator = collab_res.scalar() is not None
     
     # Skip mastery loading for practice mode — practice doesn't use FSRS state
     mastery_records = {}
     if not is_practice:
-        from app.modules.quiz.models import UserQuestionMastery
-        mastery_stmt = select(UserQuestionMastery).where(
-            UserQuestionMastery.user_id == user_id,
-            UserQuestionMastery.question_id.in_([q.id for q in quiz.questions])
+        from app.modules.deck.models import UserCardMastery
+        mastery_stmt = select(UserCardMastery).where(
+            UserCardMastery.user_id == user_id,
+            UserCardMastery.card_id.in_([c.id for c in deck.cards])
         )
         mastery_res = await db.execute(mastery_stmt)
-        mastery_records = {m.question_id: m for m in mastery_res.scalars().all()}
+        mastery_records = {m.card_id: m for m in mastery_res.scalars().all()}
     
     # Check settings if practice mode
     practice_needs_setup = False
@@ -628,19 +630,19 @@ async def get_quiz_play_data(request: Request, quiz_id: int, mode: Optional[str]
         raw_settings = None
         if user_sett and user_sett.settings:
             raw_settings = user_sett.settings
-        elif quiz.practice_settings:
-            raw_settings = quiz.practice_settings
+        elif deck.practice_settings:
+            raw_settings = deck.practice_settings
             
         settings = migrate_practice_settings(raw_settings)
         mode_settings = settings.get(mode, {})
         
         if not mode_settings or not mode_settings.get("active_pairs"):
-            creator_settings = migrate_practice_settings(quiz.practice_settings)
+            creator_settings = migrate_practice_settings(deck.practice_settings)
             creator_mode_settings = creator_settings.get(mode, {})
             
             creator_has_settings = creator_mode_settings and creator_mode_settings.get("active_pairs")
             if not creator_has_settings:
-                is_owner = quiz.creator_id == user_id
+                is_owner = deck.creator_id == user_id
                 if not (is_owner or is_collaborator or user_id == 1):
                     practice_disabled = True
                 else:
@@ -652,33 +654,51 @@ async def get_quiz_play_data(request: Request, quiz_id: int, mode: Optional[str]
             active_pairs = mode_settings.get("active_pairs", [])
             num_choices = mode_settings.get("num_choices", 4)
             
-    # Distractors and practice questions are now generated client-side to make deck loading instant.
-    questions_list = []
+    cards_list = []
     
     if is_practice:
         # Ultra-fast path for practice: just card data, no FSRS computation
-        for q in quiz.questions:
-            questions_list.append({
-                "id": q.id,
-                "content": q.content,
-                "explanation": q.explanation,
-                "ai_explanation": q.ai_explanation,
+        for c in deck.cards:
+            cards_list.append({
+                "id": c.id,
+                "content": c.content,
+                "explanation": c.explanation,
+                "ai_explanation": c.ai_explanation,
                 "stats": None,
                 "box_level": 1,
                 "is_ignored": False,
                 "fsrs": None,
                 "options": [],
-                "image": fix_static_urls(q.image),
-                "audio": fix_static_urls(q.audio),
-                "others": fix_static_urls(q.others)
+                "image": fix_static_urls(c.image),
+                "audio": fix_static_urls(c.audio),
+                "others": fix_static_urls(c.others)
             })
     else:
         from fsrs import Card, Scheduler, Rating, State
         scheduler = Scheduler()
         now_utc = datetime.utcnow().replace(tzinfo=timezone.utc)
         
-        for q in quiz.questions:
-            m = mastery_records.get(q.id)
+        # Pre-calculate brand new card intervals
+        default_new_intervals = {}
+        new_card = build_fsrs_card(None, now_utc)
+        for r_val, r_enum in [(1, Rating.Again), (2, Rating.Hard), (3, Rating.Good), (4, Rating.Easy)]:
+            try:
+                card_copy, _ = scheduler.review_card(new_card, r_enum, now_utc)
+                delta = card_copy.due - now_utc
+                if delta.total_seconds() < 60:
+                    int_str = "<1m"
+                elif delta.total_seconds() < 3600:
+                    int_str = f"{int(delta.total_seconds() / 60)}m"
+                elif delta.total_seconds() < 86400:
+                    int_str = f"{int(delta.total_seconds() / 3600)}h"
+                else:
+                    int_str = f"{int(delta.total_seconds() / 86400)}d"
+                default_new_intervals[r_val] = int_str
+            except Exception:
+                default_new_intervals[r_val] = "soon"
+                
+        for c in deck.cards:
+            m = mastery_records.get(c.id)
             
             m_state = m.state if m else 0
             m_step = m.step if m else 0
@@ -688,32 +708,39 @@ async def get_quiz_play_data(request: Request, quiz_id: int, mode: Optional[str]
             m_last_review = m.last_review if m else None
             m_box_level = m.box_level if m else 1
             
-            # Build Card for FSRS interval estimation
-            fsrs_card = build_fsrs_card(m, now_utc)
+            is_new = (m is None) or (m_state == 0) or (m_stability is None)
             
-            intervals = {}
-            for r_val, r_enum in [(1, Rating.Again), (2, Rating.Hard), (3, Rating.Good), (4, Rating.Easy)]:
-                try:
-                    card_copy, _ = scheduler.review_card(fsrs_card, r_enum, now_utc)
-                    delta = card_copy.due - now_utc
-                    if delta.total_seconds() < 60:
-                        int_str = "<1m"
-                    elif delta.total_seconds() < 3600:
-                        int_str = f"{int(delta.total_seconds() / 60)}m"
-                    elif delta.total_seconds() < 86400:
-                        int_str = f"{int(delta.total_seconds() / 3600)}h"
-                    else:
-                        int_str = f"{int(delta.total_seconds() / 86400)}d"
-                    intervals[r_val] = int_str
-                except Exception:
-                    intervals[r_val] = "soon"
-                    
-            questions_list.append({
-                "id": q.id,
-                "content": q.content,
-                "explanation": q.explanation,
-                "ai_explanation": q.ai_explanation,
-                "stats": getattr(q, 'stats', None),
+            if is_new:
+                intervals = default_new_intervals
+            elif m_state == 2 and m_due > datetime.utcnow():
+                # Card is reviewing but not due: skip calculations
+                intervals = {1: "-", 2: "-", 3: "-", 4: "-"}
+            else:
+                # Build Card for FSRS interval estimation (only for due review cards)
+                fsrs_card = build_fsrs_card(m, now_utc)
+                intervals = {}
+                for r_val, r_enum in [(1, Rating.Again), (2, Rating.Hard), (3, Rating.Good), (4, Rating.Easy)]:
+                    try:
+                        card_copy, _ = scheduler.review_card(fsrs_card, r_enum, now_utc)
+                        delta = card_copy.due - now_utc
+                        if delta.total_seconds() < 60:
+                            int_str = "<1m"
+                        elif delta.total_seconds() < 3600:
+                            int_str = f"{int(delta.total_seconds() / 60)}m"
+                        elif delta.total_seconds() < 86400:
+                            int_str = f"{int(delta.total_seconds() / 3600)}h"
+                        else:
+                            int_str = f"{int(delta.total_seconds() / 86400)}d"
+                        intervals[r_val] = int_str
+                    except Exception:
+                        intervals[r_val] = "soon"
+                        
+            cards_list.append({
+                "id": c.id,
+                "content": c.content,
+                "explanation": c.explanation,
+                "ai_explanation": c.ai_explanation,
+                "stats": getattr(c, 'stats', None),
                 "box_level": m_box_level,
                 "is_ignored": m.is_ignored if m else False,
                 "fsrs": {
@@ -725,32 +752,33 @@ async def get_quiz_play_data(request: Request, quiz_id: int, mode: Optional[str]
                     "intervals": intervals
                 },
                 "options": [],
-                "image": fix_static_urls(q.image),
-                "audio": fix_static_urls(q.audio),
-                "others": fix_static_urls(q.others)
+                "image": fix_static_urls(c.image),
+                "audio": fix_static_urls(c.audio),
+                "others": fix_static_urls(c.others)
             })
         
     return {
-        "id": quiz.id,
-        "title": quiz.title,
-        "description": quiz.description,
-        "ai_prompt": quiz.ai_prompt,
-        "instruction": quiz.instruction,
-        "category_id": quiz.category_id,
-        "creator_id": quiz.creator_id,
+        "id": deck.id,
+        "title": deck.title,
+        "description": deck.description,
+        "ai_prompt": deck.ai_prompt,
+        "instruction": deck.instruction,
+        "category_id": deck.category_id,
+        "creator_id": deck.creator_id,
         "is_collaborator": is_collaborator,
         "user_total_xp": user_total_xp,
         "practice_needs_setup": practice_needs_setup,
         "practice_disabled": practice_disabled,
-        "questions": questions_list,
+        "cards": cards_list,
+        "questions": cards_list, # compatibility
         "user_settings": user_sett.settings if user_sett else None
     }
 
-@router.get("/{quiz_id}/session")
-async def get_quiz_session(request: Request, quiz_id: int, db: AsyncSession = Depends(get_db)):
-    from app.modules.quiz.models import QuizSession
+@router.get("/{deck_id}/session")
+async def get_deck_session(request: Request, deck_id: int, db: AsyncSession = Depends(get_db)):
+    from app.modules.deck.models import DeckSession
     user_id = int(request.cookies.get("user_id", 1))
-    result = await db.execute(select(QuizSession).filter(QuizSession.quiz_id == quiz_id, QuizSession.user_id == user_id))
+    result = await db.execute(select(DeckSession).filter(DeckSession.deck_id == deck_id, DeckSession.user_id == user_id))
     session = result.scalar_one_or_none()
     if not session: return None
     return {
@@ -759,14 +787,14 @@ async def get_quiz_session(request: Request, quiz_id: int, db: AsyncSession = De
         "state": json.loads(session.state_json) if session.state_json else {}
     }
 
-@router.post("/{quiz_id}/session")
-async def save_quiz_session(request: Request, quiz_id: int, data: dict, db: AsyncSession = Depends(get_db)):
-    from app.modules.quiz.models import QuizSession
+@router.post("/{deck_id}/session")
+async def save_deck_session(request: Request, deck_id: int, data: dict, db: AsyncSession = Depends(get_db)):
+    from app.modules.deck.models import DeckSession
     user_id = int(request.cookies.get("user_id", 1))
-    result = await db.execute(select(QuizSession).filter(QuizSession.quiz_id == quiz_id, QuizSession.user_id == user_id))
+    result = await db.execute(select(DeckSession).filter(DeckSession.deck_id == deck_id, DeckSession.user_id == user_id))
     session = result.scalar_one_or_none()
     if not session:
-        session = QuizSession(quiz_id=quiz_id, user_id=user_id)
+        session = DeckSession(deck_id=deck_id, user_id=user_id)
         db.add(session)
     
     session.mode = data.get("mode")
@@ -775,66 +803,56 @@ async def save_quiz_session(request: Request, quiz_id: int, data: dict, db: Asyn
     await db.commit()
     return {"status": "ok"}
 
-@router.delete("/{quiz_id}/session")
-async def reset_quiz_session(request: Request, quiz_id: int, db: AsyncSession = Depends(get_db)):
-    from app.modules.quiz.models import QuizSession
+@router.delete("/{deck_id}/session")
+async def reset_deck_session(request: Request, deck_id: int, db: AsyncSession = Depends(get_db)):
+    from app.modules.deck.models import DeckSession
     user_id = int(request.cookies.get("user_id", 1))
-    await db.execute(delete(QuizSession).where(QuizSession.quiz_id == quiz_id, QuizSession.user_id == user_id))
+    await db.execute(delete(DeckSession).where(DeckSession.deck_id == deck_id, DeckSession.user_id == user_id))
     await db.commit()
     return {"status": "ok"}
 
-@router.post("/{quiz_id}/next-card")
-async def get_next_card(request: Request, quiz_id: int, data: dict, db: AsyncSession = Depends(get_db)):
+@router.post("/{deck_id}/next-card")
+async def get_next_card(request: Request, deck_id: int, data: dict, db: AsyncSession = Depends(get_db)):
     user_id = int(request.cookies.get("user_id", 1))
     mode = data.get("mode", "fsrs")
     answered_indexes = data.get("answered_indexes", [])
     current_index = data.get("current_index", 0)
     
-    quiz = await QuizService.get_quiz_by_id(db, quiz_id)
-    if not quiz:
-        return JSONResponse(status_code=404, content={"error": "Quiz not found"})
+    deck = await DeckService.get_deck_by_id(db, deck_id)
+    if not deck:
+        return JSONResponse(status_code=404, content={"error": "Deck not found"})
         
-    total = len(quiz.questions)
+    total = len(deck.cards)
     if total == 0:
         return {"next_index": 0}
         
-    from app.modules.quiz.models import UserQuestionMastery
-    q_ids = [q.id for q in quiz.questions]
+    from app.modules.deck.models import UserCardMastery
+    c_ids = [c.id for c in deck.cards]
     mastery_res = await db.execute(
-        select(UserQuestionMastery).where(
-            UserQuestionMastery.user_id == user_id,
-            UserQuestionMastery.question_id.in_(q_ids)
+        select(UserCardMastery).where(
+            UserCardMastery.user_id == user_id,
+            UserCardMastery.card_id.in_(c_ids)
         )
     )
-    mastery_map = {m.question_id: m for m in mastery_res.scalars().all()}
+    mastery_map = {m.card_id: m for m in mastery_res.scalars().all()}
     
     ignored_indexes = set()
-    for idx, q in enumerate(quiz.questions):
-        m = mastery_map.get(q.id)
+    for idx, c in enumerate(deck.cards):
+        m = mastery_map.get(c.id)
         if m and getattr(m, 'is_ignored', False):
             ignored_indexes.add(idx)
             
     effective_answered = set(answered_indexes) | ignored_indexes
         
     if mode == "fsrs":
-        from app.modules.quiz.models import UserQuestionMastery
-        q_ids = [q.id for q in quiz.questions]
-        mastery_res = await db.execute(
-            select(UserQuestionMastery).where(
-                UserQuestionMastery.user_id == user_id,
-                UserQuestionMastery.question_id.in_(q_ids)
-            )
-        )
-        mastery_map = {m.question_id: m for m in mastery_res.scalars().all()}
-        
         now_utc = datetime.utcnow()
         
         due_cards = []
-        for idx, q in enumerate(quiz.questions):
+        for idx, c in enumerate(deck.cards):
             if idx in ignored_indexes:
                 continue
                 
-            m = mastery_map.get(q.id)
+            m = mastery_map.get(c.id)
             if not m or m.state == 0 or m.stability is None:
                 continue
                 
@@ -852,10 +870,10 @@ async def get_next_card(request: Request, quiz_id: int, data: dict, db: AsyncSes
             next_index = due_cards[0]["idx"]
             return {"next_index": next_index}
         else:
-            for idx, q in enumerate(quiz.questions):
+            for idx, c in enumerate(deck.cards):
                 if idx in ignored_indexes:
                     continue
-                m = mastery_map.get(q.id)
+                m = mastery_map.get(c.id)
                 is_new = not m or m.state == 0 or m.stability is None
                 has_not_answered = idx not in effective_answered
                 if is_new and has_not_answered:
@@ -889,16 +907,16 @@ async def get_next_card(request: Request, quiz_id: int, data: dict, db: AsyncSes
         return {"next_index": min(current_index + 1, total - 1)}
         
     elif mode == "unseen":
-        quiz_with_stats = await QuizService.get_quiz_with_stats(db, quiz_id, user_id=user_id)
+        deck_with_stats = await DeckService.get_deck_with_stats(db, deck_id, user_id=user_id)
         for idx in range(current_index + 1, total):
-            q = quiz_with_stats.questions[idx]
-            q_stats = getattr(q, "stats", None) or {}
-            if (q_stats.get("total") or 0) == 0 and idx not in effective_answered:
+            c = deck_with_stats.cards[idx]
+            c_stats = getattr(c, "stats", None) or {}
+            if (c_stats.get("total") or 0) == 0 and idx not in effective_answered:
                 return {"next_index": idx}
         for idx in range(0, current_index + 1):
-            q = quiz_with_stats.questions[idx]
-            q_stats = getattr(q, "stats", None) or {}
-            if (q_stats.get("total") or 0) == 0 and idx not in effective_answered:
+            c = deck_with_stats.cards[idx]
+            c_stats = getattr(c, "stats", None) or {}
+            if (c_stats.get("total") or 0) == 0 and idx not in effective_answered:
                 return {"next_index": idx}
         for idx in range(total):
             if idx not in effective_answered:
@@ -906,19 +924,19 @@ async def get_next_card(request: Request, quiz_id: int, data: dict, db: AsyncSes
         return {"next_index": min(current_index + 1, total - 1)}
         
     elif mode == "review":
-        quiz_with_stats = await QuizService.get_quiz_with_stats(db, quiz_id, user_id=user_id)
+        deck_with_stats = await DeckService.get_deck_with_stats(db, deck_id, user_id=user_id)
         for idx in range(current_index + 1, total):
-            q = quiz_with_stats.questions[idx]
-            q_stats = getattr(q, "stats", None) or {}
-            total_attempts = q_stats.get("total") or 0
-            correct_attempts = q_stats.get("correct") or 0
+            c = deck_with_stats.cards[idx]
+            c_stats = getattr(c, "stats", None) or {}
+            total_attempts = c_stats.get("total") or 0
+            correct_attempts = c_stats.get("correct") or 0
             if total_attempts - correct_attempts > 0 and idx not in effective_answered:
                 return {"next_index": idx}
         for idx in range(0, current_index + 1):
-            q = quiz_with_stats.questions[idx]
-            q_stats = getattr(q, "stats", None) or {}
-            total_attempts = q_stats.get("total") or 0
-            correct_attempts = q_stats.get("correct") or 0
+            c = deck_with_stats.cards[idx]
+            c_stats = getattr(c, "stats", None) or {}
+            total_attempts = c_stats.get("total") or 0
+            correct_attempts = c_stats.get("correct") or 0
             if total_attempts - correct_attempts > 0 and idx not in effective_answered:
                 return {"next_index": idx}
         for idx in range(total):
@@ -927,20 +945,20 @@ async def get_next_card(request: Request, quiz_id: int, data: dict, db: AsyncSes
         return {"next_index": min(current_index + 1, total - 1)}
         
     elif mode == "hardest":
-        quiz_with_stats = await QuizService.get_quiz_with_stats(db, quiz_id, user_id=user_id)
+        deck_with_stats = await DeckService.get_deck_with_stats(db, deck_id, user_id=user_id)
         best_idx = -1
         min_ratio = float('inf')
         max_wrongs = -1
         for idx in range(total):
             if idx in effective_answered:
                 continue
-            q = quiz_with_stats.questions[idx]
-            q_stats = getattr(q, "stats", None) or {}
-            t = q_stats.get("total") or 0
-            c = q_stats.get("correct") or 0
-            wrongs = t - c
+            c = deck_with_stats.cards[idx]
+            c_stats = getattr(c, "stats", None) or {}
+            t = c_stats.get("total") or 0
+            c_val = c_stats.get("correct") or 0
+            wrongs = t - c_val
             if t > 0:
-                ratio = c / t
+                ratio = c_val / t
                 if ratio < min_ratio:
                     min_ratio = ratio
                     max_wrongs = wrongs
@@ -957,42 +975,44 @@ async def get_next_card(request: Request, quiz_id: int, data: dict, db: AsyncSes
         
     return {"next_index": min(current_index + 1, total - 1)}
 
-async def _generate_ai_task(quiz_id: int, question_id: int, prompt_template: Optional[str] = None):
+async def _generate_ai_task(deck_id: int, card_id: int, prompt_template: Optional[str] = None):
     from app.core.db import AsyncSession, engine
-    from app.modules.quiz.models import Question, Quiz
+    from app.modules.deck.models import Flashcard, FlashcardDeck
     from app.modules.ai.services.gemini_service import GeminiService
-    from sqlalchemy.orm import selectinload
     
     async with AsyncSession(engine) as db:
         result = await db.execute(
-            select(Question)
-            .filter(Question.id == question_id)
+            select(Flashcard)
+            .filter(Flashcard.id == card_id)
         )
-        q = result.scalar_one_or_none()
-        if not q: return
+        c = result.scalar_one_or_none()
+        if not c: return
         
         gemini = await GeminiService.from_db(db)
         if not gemini.client:
-            q.ai_explanation = "AI Service not configured."
+            c.ai_explanation = "AI Service not configured."
             await db.commit()
             return
 
         try:
             if prompt_template:
                 options_text = ""
-                correct_answer_text = q.explanation or ""
+                correct_answer_text = c.explanation or ""
                 
-                # Fetch quiz info for template
-                quiz_res = await db.execute(select(Quiz).filter(Quiz.id == quiz_id))
-                quiz = quiz_res.scalar_one_or_none()
+                # Fetch deck info for template
+                deck_res = await db.execute(select(FlashcardDeck).filter(FlashcardDeck.id == deck_id))
+                deck = deck_res.scalar_one_or_none()
                 
                 prompt = prompt_template \
-                    .replace("{{question}}", q.content or "") \
+                    .replace("{{question}}", c.content or "") \
+                    .replace("{{card}}", c.content or "") \
                     .replace("{{options}}", options_text) \
                     .replace("{{correct_answer}}", correct_answer_text) \
-                    .replace("{{global_instruction}}", quiz.instruction if quiz else "") \
-                    .replace("{{quiz_title}}", quiz.title if quiz else "") \
-                    .replace("{{quiz_description}}", quiz.description if quiz else "")
+                    .replace("{{global_instruction}}", deck.instruction if deck else "") \
+                    .replace("{{quiz_title}}", deck.title if deck else "") \
+                    .replace("{{deck_title}}", deck.title if deck else "") \
+                    .replace("{{quiz_description}}", deck.description if deck else "") \
+                    .replace("{{deck_description}}", deck.description if deck else "")
                 
                 for i in range(4):
                     prompt = prompt.replace(f"{{{{option_{chr(97+i)}}}}}", "")
@@ -1017,10 +1037,9 @@ async def _generate_ai_task(quiz_id: int, question_id: int, prompt_template: Opt
                 ai_response = re.sub(r'`\s*(<ruby>[\s\S]*?<\/ruby>)\s*`', r'\1', ai_response)
                     
             else:
-                options_list = [o.content for o in q.options]
-                correct_opt = next((o.content for o in q.options if o.is_correct), None)
-                correct_text = correct_opt.content if correct_opt else "Unknown"
-                ai_response = await gemini.generate_explanation(q.content, options_list, correct_text)
+                options_list = []
+                correct_text = c.explanation or "Unknown"
+                ai_response = await gemini.generate_explanation(c.content, options_list, correct_text)
                 
                 # Also strip wrappers for default generation
                 ai_response = ai_response.strip()
@@ -1034,16 +1053,16 @@ async def _generate_ai_task(quiz_id: int, question_id: int, prompt_template: Opt
                 # Strip backticks around ruby tags
                 ai_response = re.sub(r'`\s*(<ruby>[\s\S]*?<\/ruby>)\s*`', r'\1', ai_response)
             
-            q.ai_explanation = ai_response
+            c.ai_explanation = ai_response
             await db.commit()
         except Exception as e:
-            q.ai_explanation = f"AI Error: {str(e)}"
+            c.ai_explanation = f"AI Error: {str(e)}"
             await db.commit()
 
-@router.post("/{quiz_id}/ask-ai")
-async def ask_ai(quiz_id: int, payload: dict, background_tasks: BackgroundTasks, db: AsyncSession = Depends(get_db)):
-    question_id = payload.get("question_id")
-    from app.modules.quiz.models import Question, Quiz
+@router.post("/{deck_id}/ask-ai")
+async def ask_ai(deck_id: int, payload: dict, background_tasks: BackgroundTasks, db: AsyncSession = Depends(get_db)):
+    card_id = payload.get("card_id", payload.get("question_id"))
+    from app.modules.deck.models import Flashcard, FlashcardDeck
     from app.modules.admin.interface import AdminInterface
     
     # Check if AI is enabled
@@ -1051,28 +1070,27 @@ async def ask_ai(quiz_id: int, payload: dict, background_tasks: BackgroundTasks,
     if not ai_config.get("enabled"):
         return {"error": "AI Analysis is disabled."}
 
-    result = await db.execute(select(Question).filter(Question.id == question_id))
-    q = result.scalar_one_or_none()
-    if not q: return {"error": "Not found"}
+    result = await db.execute(select(Flashcard).filter(Flashcard.id == card_id))
+    c = result.scalar_one_or_none()
+    if not c: return {"error": "Not found"}
     
     # If explanation already exists and no manual override, just return it
-    if q.ai_explanation and "ai_explanation" not in payload:
-        return {"ai_explanation": q.ai_explanation}
+    if c.ai_explanation and "ai_explanation" not in payload:
+        return {"ai_explanation": c.ai_explanation}
 
     # Manual explanation override (saving)
     if "ai_explanation" in payload:
         val = payload["ai_explanation"]
         if isinstance(val, str):
             val = val.strip()
-        q.ai_explanation = val if val else None
+        c.ai_explanation = val if val else None
         await db.commit()
-        return {"ai_explanation": q.ai_explanation}
+        return {"ai_explanation": c.ai_explanation}
     
     # Background generation
-    quiz_res = await db.execute(select(Quiz).filter(Quiz.id == quiz_id))
-    quiz = quiz_res.scalar_one_or_none()
+    deck_res = await db.execute(select(FlashcardDeck).filter(FlashcardDeck.id == deck_id))
+    deck = deck_res.scalar_one_or_none()
     
-    background_tasks.add_task(_generate_ai_task, quiz_id, question_id, quiz.ai_prompt if quiz else None)
+    background_tasks.add_task(_generate_ai_task, deck_id, card_id, deck.ai_prompt if deck else None)
     
     return {"status": "processing", "message": "AI analysis started in background."}
-

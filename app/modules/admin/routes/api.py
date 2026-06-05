@@ -83,11 +83,11 @@ async def api_admin_stats(request: Request, db: AsyncSession = Depends(get_db)):
     if not user or user.role != "admin":
         return JSONResponse(status_code=401, content={"error": "Unauthorized"})
         
-    from app.modules.quiz.models import Quiz, UserAnswer
+    from app.modules.deck.models import FlashcardDeck, UserAnswer
     from app.modules.auth.models import User as UserDB
     
     user_count_result = await db.execute(select(func.count(UserDB.id)))
-    quiz_count_result = await db.execute(select(func.count(Quiz.id)))
+    quiz_count_result = await db.execute(select(func.count(FlashcardDeck.id)))
     total_answers_result = await db.execute(select(func.count(UserAnswer.id)))
     
     sso_config = await AdminInterface.get_sso_config(db)
@@ -95,6 +95,7 @@ async def api_admin_stats(request: Request, db: AsyncSession = Depends(get_db)):
     return {
         "user_count": user_count_result.scalar(),
         "quiz_count": quiz_count_result.scalar(),
+        "deck_count": quiz_count_result.scalar(),
         "total_answers": total_answers_result.scalar(),
         "sso_config": {
             "central_auth_url": sso_config.get("central_auth_url") if isinstance(sso_config, dict) else getattr(sso_config, "central_auth_url", ""),

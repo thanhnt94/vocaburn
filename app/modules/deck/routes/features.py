@@ -8,20 +8,20 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, delete, func, Integer, or_
 from sqlalchemy.orm import selectinload
 from app.core.db import get_db
-from app.modules.quiz.services.excel_service import ExcelQuizService
-from app.modules.quiz.services.quiz_service import QuizService
-from app.modules.quiz.services.ai_service import ai_service
-from app.modules.quiz.schemas import QuizSchema, QuestionSchema
-from app.modules.quiz.models import UserDeckSettings
-from app.modules.quiz.services.mcq_engine import MCQEngine
-from app.modules.quiz.services.typing_engine import TypingEngine
+from app.modules.deck.services.excel_service import ExcelDeckService
+from app.modules.deck.services.deck_service import DeckService
+from app.modules.deck.services.ai_service import ai_service
+from app.modules.deck.schemas import DeckSchema, CardSchema
+from app.modules.deck.models import UserDeckSettings
+from app.modules.deck.services.mcq_engine import MCQEngine
+from app.modules.deck.services.typing_engine import TypingEngine
 import json
 import re
 import os
 import asyncio
 from datetime import datetime, timezone, date, timedelta
 
-router = APIRouter(tags=["Quiz"])
+router = APIRouter(tags=["Deck"])
 
 def build_fsrs_card(mastery, now_utc):
     from fsrs import Card, State
@@ -65,74 +65,72 @@ def migrate_practice_settings(settings: Optional[dict]) -> dict:
         "listening": {"active_pairs": active_pairs, "num_choices": num_choices}
     }
 
-@router.get("/{quiz_id}/practice-settings")
-async def get_practice_settings(request: Request, quiz_id: int, db: AsyncSession = Depends(get_db)):
+@router.get("/{deck_id}/practice-settings")
+async def get_practice_settings(request: Request, deck_id: int, db: AsyncSession = Depends(get_db)):
     user_id = int(request.cookies.get("user_id", 1))
     
-    quiz = await QuizService.get_quiz_by_id(db, quiz_id)
-    if not quiz:
+    deck = await DeckService.get_deck_by_id(db, deck_id)
+    if not deck:
         return JSONResponse(status_code=404, content={"error": "Deck not found"})
         
     # Query user settings
     user_sett_res = await db.execute(
         select(UserDeckSettings).where(
             UserDeckSettings.user_id == user_id,
-            UserDeckSettings.deck_id == quiz_id
+            UserDeckSettings.deck_id == deck_id
         )
     )
     user_sett = user_sett_res.scalar_one_or_none()
     
     # Dynamically extract all available data columns in this deck
-    from app.modules.quiz.models import Question
+    from app.modules.deck.models import Flashcard
     available_cols = {"front", "back"}
-    questions_stmt = select(Question.others).where(Question.quiz_id == quiz_id)
-    res = await db.execute(questions_stmt)
+    cards_stmt = select(Flashcard.others).where(Flashcard.deck_id == deck_id)
+    res = await db.execute(cards_stmt)
     for others_json in res.scalars():
         if others_json and isinstance(others_json, dict):
-            # Exclude technical/internal columns like front_audio_url if we want,
-            # but letting them show is also fine. Let's filter out obviously technical ones:
             for k in others_json.keys():
                 if k not in ("id", "item_id", "order_in_container") and not k.endswith("_audio_url") and not k.endswith("_img") and k != "image" and k != "audio" and k != "other_content":
                     available_cols.add(k)
                     
     return {
-        "creator_settings": migrate_practice_settings(quiz.practice_settings),
+        "creator_settings": migrate_practice_settings(deck.practice_settings),
         "user_settings": migrate_practice_settings(user_sett.settings) if user_sett else None,
         "available_columns": sorted(list(available_cols))
     }
 
-@router.post("/{quiz_id}/practice-settings")
-async def save_practice_settings(request: Request, quiz_id: int, payload: dict, db: AsyncSession = Depends(get_db)):
+@router.post("/{deck_id}/practice-settings")
+async def save_practice_settings(request: Request, deck_id: int, payload: dict, db: AsyncSession = Depends(get_db)):
     user_id = int(request.cookies.get("user_id", 1))
     is_creator = payload.get("is_creator", False)
     settings = payload.get("settings")
     
-    quiz = await QuizService.get_quiz_by_id(db, quiz_id)
-    if not quiz:
+    deck = await DeckService.get_deck_by_id(db, deck_id)
+    if not deck:
         return JSONResponse(status_code=404, content={"error": "Deck not found"})
         
     if is_creator:
         # Check if user has permission to edit deck settings
-        from app.modules.quiz.models import QuizCollaborator
-        is_owner = quiz.creator_id == user_id
-        collab_res = await db.execute(select(QuizCollaborator).where(QuizCollaborator.quiz_id == quiz_id, QuizCollaborator.user_id == user_id))
+        from app.modules.deck.models import DeckCollaborator
+        is_owner = deck.creator_id == user_id
+        collab_res = await db.execute(select(DeckCollaborator).where(DeckCollaborator.deck_id == deck_id, DeckCollaborator.user_id == user_id))
         is_collaborator = collab_res.scalar() is not None
         
         if not (is_owner or is_collaborator or user_id == 1):
             return JSONResponse(status_code=403, content={"error": "No permission to save deck default settings"})
             
-        quiz.practice_settings = settings
+        deck.practice_settings = settings
     else:
         # Save user settings
         user_sett_res = await db.execute(
             select(UserDeckSettings).where(
                 UserDeckSettings.user_id == user_id,
-                UserDeckSettings.deck_id == quiz_id
+                UserDeckSettings.deck_id == deck_id
             )
         )
         user_sett = user_sett_res.scalar_one_or_none()
         if not user_sett:
-            user_sett = UserDeckSettings(user_id=user_id, deck_id=quiz_id, settings=settings)
+            user_sett = UserDeckSettings(user_id=user_id, deck_id=deck_id, settings=settings)
             db.add(user_sett)
         else:
             user_sett.settings = settings
@@ -151,98 +149,104 @@ def fix_static_urls(val):
         return [fix_static_urls(v) for v in val]
     return val
 
-@router.get("/question/{question_id}/note")
-async def get_question_note(request: Request, question_id: int, db: AsyncSession = Depends(get_db)):
-    from app.modules.quiz.models import UserQuestionNote
+@router.get("/question/{card_id}/note")
+@router.get("/flashcard/{card_id}/note")
+@router.get("/card/{card_id}/note")
+async def get_card_note(request: Request, card_id: int, db: AsyncSession = Depends(get_db)):
+    from app.modules.deck.models import UserCardNote
     user_id = int(request.cookies.get("user_id", 1))
     result = await db.execute(
-        select(UserQuestionNote).where(UserQuestionNote.user_id == user_id, UserQuestionNote.question_id == question_id)
+        select(UserCardNote).where(UserCardNote.user_id == user_id, UserCardNote.card_id == card_id)
     )
     note = result.scalar_one_or_none()
     return {"content": note.content if note else ""}
 
-@router.post("/question/{question_id}/note")
-async def save_question_note(request: Request, question_id: int, data: dict, db: AsyncSession = Depends(get_db)):
-    from app.modules.quiz.models import UserQuestionNote
+@router.post("/question/{card_id}/note")
+@router.post("/flashcard/{card_id}/note")
+@router.post("/card/{card_id}/note")
+async def save_card_note(request: Request, card_id: int, data: dict, db: AsyncSession = Depends(get_db)):
+    from app.modules.deck.models import UserCardNote
     user_id = int(request.cookies.get("user_id", 1))
     content = data.get("content", "")
     
     result = await db.execute(
-        select(UserQuestionNote).where(UserQuestionNote.user_id == user_id, UserQuestionNote.question_id == question_id)
+        select(UserCardNote).where(UserCardNote.user_id == user_id, UserCardNote.card_id == card_id)
     )
     note = result.scalar_one_or_none()
     
     if note:
         note.content = content
     else:
-        note = UserQuestionNote(user_id=user_id, question_id=question_id, content=content)
+        note = UserCardNote(user_id=user_id, card_id=card_id, content=content)
         db.add(note)
     
     await db.commit()
     return {"status": "ok"}
 
-@router.post("/question/{question_id}/ignore")
-async def toggle_question_ignore(request: Request, question_id: int, data: dict, db: AsyncSession = Depends(get_db)):
-    from app.modules.quiz.models import UserQuestionMastery
+@router.post("/question/{card_id}/ignore")
+@router.post("/flashcard/{card_id}/ignore")
+@router.post("/card/{card_id}/ignore")
+async def toggle_card_ignore(request: Request, card_id: int, data: dict, db: AsyncSession = Depends(get_db)):
+    from app.modules.deck.models import UserCardMastery
     user_id = int(request.cookies.get("user_id", 1))
     is_ignored = data.get("is_ignored", True)
     
     result = await db.execute(
-        select(UserQuestionMastery).where(UserQuestionMastery.user_id == user_id, UserQuestionMastery.question_id == question_id)
+        select(UserCardMastery).where(UserCardMastery.user_id == user_id, UserCardMastery.card_id == card_id)
     )
     mastery = result.scalar_one_or_none()
     
     if mastery:
         mastery.is_ignored = is_ignored
     else:
-        mastery = UserQuestionMastery(user_id=user_id, question_id=question_id, is_ignored=is_ignored)
+        mastery = UserCardMastery(user_id=user_id, card_id=card_id, is_ignored=is_ignored)
         db.add(mastery)
         
     await db.commit()
     return {"status": "ok", "is_ignored": is_ignored}
 
-@router.get("/{quiz_id}/notes")
-async def get_quiz_notes(request: Request, quiz_id: int, db: AsyncSession = Depends(get_db)):
-    from app.modules.quiz.models import UserQuestionNote, Question
+@router.get("/{deck_id}/notes")
+async def get_deck_notes(request: Request, deck_id: int, db: AsyncSession = Depends(get_db)):
+    from app.modules.deck.models import UserCardNote, Flashcard
     user_id = int(request.cookies.get("user_id", 1))
     result = await db.execute(
-        select(UserQuestionNote).join(Question).where(UserQuestionNote.user_id == user_id, Question.quiz_id == quiz_id)
+        select(UserCardNote).join(Flashcard).where(UserCardNote.user_id == user_id, Flashcard.deck_id == deck_id)
     )
     notes = result.scalars().all()
-    return {n.question_id: n.content for n in notes}
+    return {n.card_id: n.content for n in notes}
 
-@router.get("/{quiz_id}/export")
-async def export_quiz(quiz_id: int, request: Request, exclude_ids: bool = False, db: AsyncSession = Depends(get_db)):
+@router.get("/{deck_id}/export")
+async def export_deck(deck_id: int, request: Request, exclude_ids: bool = False, db: AsyncSession = Depends(get_db)):
     from sqlalchemy.orm import joinedload
-    from app.modules.quiz.models import Quiz
+    from app.modules.deck.models import FlashcardDeck
     
-    stmt = select(Quiz).options(joinedload(Quiz.category), joinedload(Quiz.tags)).where(Quiz.id == quiz_id)
+    stmt = select(FlashcardDeck).options(joinedload(FlashcardDeck.category), joinedload(FlashcardDeck.tags)).where(FlashcardDeck.id == deck_id)
     res = await db.execute(stmt)
-    quiz = res.scalars().first()
-    if not quiz:
+    deck = res.scalars().first()
+    if not deck:
         return JSONResponse(status_code=404, content={"error": "Deck not found"})
         
-    from app.modules.quiz.models import Question
-    q_stmt = select(Question).where(Question.quiz_id == quiz_id)
-    res = await db.execute(q_stmt)
-    questions = res.scalars().all()
+    from app.modules.deck.models import Flashcard
+    c_stmt = select(Flashcard).where(Flashcard.deck_id == deck_id)
+    res = await db.execute(c_stmt)
+    cards = res.scalars().all()
     
-    category_name = quiz.category.name if quiz.category else "General"
-    tags = [t.name for t in quiz.tags]
+    category_name = deck.category.name if deck.category else "General"
+    tags = [t.name for t in deck.tags]
     
-    excel_bytes = ExcelQuizService.export_quiz_to_excel(
-        quiz_title=quiz.title,
-        quiz_description=quiz.description,
+    excel_bytes = ExcelDeckService.export_deck_to_excel(
+        deck_title=deck.title,
+        deck_description=deck.description,
         category_name=category_name,
         tags=tags,
-        practice_settings=quiz.practice_settings,
-        questions=questions,
+        practice_settings=deck.practice_settings,
+        cards=cards,
         exclude_ids=exclude_ids
     )
     
     from fastapi.responses import Response
     import urllib.parse
-    encoded_filename = urllib.parse.quote(f"{quiz.title}.xlsx")
+    encoded_filename = urllib.parse.quote(f"{deck.title}.xlsx")
     
     return Response(
         content=excel_bytes,
@@ -252,17 +256,17 @@ async def export_quiz(quiz_id: int, request: Request, exclude_ids: bool = False,
         }
     )
 
-@router.post("/{quiz_id}/import-update")
-async def import_update_quiz(request: Request, quiz_id: int, file: UploadFile = File(...), db: AsyncSession = Depends(get_db)):
+@router.post("/{deck_id}/import-update")
+async def import_update_deck(request: Request, deck_id: int, file: UploadFile = File(...), db: AsyncSession = Depends(get_db)):
     try:
         user_id = int(request.cookies.get("user_id", 1))
-        quiz = await QuizService.get_quiz_by_id(db, quiz_id)
-        if not quiz:
+        deck = await DeckService.get_deck_by_id(db, deck_id)
+        if not deck:
             return JSONResponse(status_code=404, content={"error": "Deck not found"})
             
-        from app.modules.quiz.models import QuizCollaborator
-        is_owner = quiz.creator_id == user_id
-        collab_res = await db.execute(select(QuizCollaborator).where(QuizCollaborator.quiz_id == quiz_id, QuizCollaborator.user_id == user_id))
+        from app.modules.deck.models import DeckCollaborator
+        is_owner = deck.creator_id == user_id
+        collab_res = await db.execute(select(DeckCollaborator).where(DeckCollaborator.deck_id == deck_id, DeckCollaborator.user_id == user_id))
         is_collaborator = collab_res.scalar() is not None
         
         if not (is_owner or is_collaborator or user_id == 1):
@@ -270,58 +274,58 @@ async def import_update_quiz(request: Request, quiz_id: int, file: UploadFile = 
             
         content = await file.read()
         import asyncio
-        metadata, questions = await asyncio.to_thread(ExcelQuizService.parse_quiz_excel, content)
+        metadata, cards = await asyncio.to_thread(ExcelDeckService.parse_deck_excel, content)
         
-        if not questions:
-            return JSONResponse(status_code=400, content={"error": "No valid questions found in Excel file."})
+        if not cards:
+            return JSONResponse(status_code=400, content={"error": "No valid cards found in Excel file."})
             
-        quiz.title = metadata.get("title", quiz.title)
-        quiz.description = metadata.get("description", quiz.description)
+        deck.title = metadata.get("title", deck.title)
+        deck.description = metadata.get("description", deck.description)
         
         category_name = metadata.get("category")
         if category_name:
-            from app.modules.quiz.models import Category
+            from app.modules.deck.models import Category
             cat_res = await db.execute(select(Category).filter(Category.name == category_name))
             db_cat = cat_res.scalar_one_or_none()
             if not db_cat:
                 db_cat = Category(name=category_name, description=f"Imported from {file.filename}")
                 db.add(db_cat)
                 await db.flush()
-            quiz.category_id = db_cat.id
+            deck.category_id = db_cat.id
             
         if "practice_settings" in metadata:
-            quiz.practice_settings = metadata["practice_settings"]
+            deck.practice_settings = metadata["practice_settings"]
             
         if metadata.get("tags"):
-            await QuizService.set_quiz_tags(db, quiz_id, metadata["tags"])
+            await DeckService.set_deck_tags(db, deck_id, metadata["tags"])
             
-        from app.modules.quiz.models import Question
-        existing_q_res = await db.execute(select(Question).filter(Question.quiz_id == quiz_id))
-        existing_q_map = {q.id: q for q in existing_q_res.scalars().all()}
+        from app.modules.deck.models import Flashcard
+        existing_c_res = await db.execute(select(Flashcard).filter(Flashcard.deck_id == deck_id))
+        existing_c_map = {c.id: c for c in existing_c_res.scalars().all()}
         
-        for q_data in questions:
-            q_id = q_data.get("id")
+        for c_data in cards:
+            c_id = c_data.get("id")
             
-            if q_id and q_id in existing_q_map:
-                db_q = existing_q_map[q_id]
-                db_q.content = q_data["content"]
-                db_q.explanation = q_data["explanation"]
-                db_q.ai_explanation = q_data.get("ai_explanation")
-                db_q.image = q_data.get("image")
-                db_q.audio = q_data.get("audio")
-                db_q.others = q_data.get("others")
+            if c_id and c_id in existing_c_map:
+                db_c = existing_c_map[c_id]
+                db_c.content = c_data["content"]
+                db_c.explanation = c_data["explanation"]
+                db_c.ai_explanation = c_data.get("ai_explanation")
+                db_c.image = c_data.get("image")
+                db_c.audio = c_data.get("audio")
+                db_c.others = c_data.get("others")
             else:
-                db_q = Question(
-                    quiz_id=quiz_id,
-                    content=q_data["content"],
-                    explanation=q_data["explanation"],
-                    ai_explanation=q_data.get("ai_explanation"),
-                    image=q_data.get("image"),
-                    audio=q_data.get("audio"),
-                    question_type=q_data.get("question_type", "flashcard"),
-                    others=q_data.get("others")
+                db_c = Flashcard(
+                    deck_id=deck_id,
+                    content=c_data["content"],
+                    explanation=c_data["explanation"],
+                    ai_explanation=c_data.get("ai_explanation"),
+                    image=c_data.get("image"),
+                    audio=c_data.get("audio"),
+                    question_type=c_data.get("question_type", "flashcard"),
+                    others=c_data.get("others")
                 )
-                db.add(db_q)
+                db.add(db_c)
                 
         await db.commit()
         return {"status": "ok", "message": "Deck updated successfully."}
@@ -331,50 +335,50 @@ async def import_update_quiz(request: Request, quiz_id: int, file: UploadFile = 
         print(f"CRITICAL: Excel update error: {traceback.format_exc()}")
         return JSONResponse(status_code=500, content={"error": str(e)})
 
-@router.get("/generate-audio/{question_id}")
-async def generate_question_audio(question_id: int, request: Request, face: str = "front", db: AsyncSession = Depends(get_db)):
-    from app.modules.quiz.models import Question
-    res = await db.execute(select(Question).filter(Question.id == question_id))
-    q = res.scalar_one_or_none()
-    if not q:
-        return JSONResponse(status_code=404, content={"error": "Question not found"})
+@router.get("/generate-audio/{card_id}")
+async def generate_card_audio(card_id: int, request: Request, face: str = "front", db: AsyncSession = Depends(get_db)):
+    from app.modules.deck.models import Flashcard
+    res = await db.execute(select(Flashcard).filter(Flashcard.id == card_id))
+    c = res.scalar_one_or_none()
+    if not c:
+        return JSONResponse(status_code=404, content={"error": "Card not found"})
         
-    from app.modules.quiz.services.audio_generator import AudioGenerator
+    from app.modules.deck.services.audio_generator import AudioGenerator
     
     # Select text based on face - strictly require front_audio_content / back_audio_content
     text = ""
     if face == "front":
-        text = q.others.get("front_audio_content") if q.others else None
+        text = c.others.get("front_audio_content") if c.others else None
     else:
-        text = q.others.get("back_audio_content") if q.others else None
+        text = c.others.get("back_audio_content") if c.others else None
             
     if not text or not text.strip():
         return JSONResponse(status_code=400, content={"error": "Audio reading script is empty. Cannot generate audio."})
         
-    # Determine physical path and absolute URL based on requested quiz_id and question_id
+    # Determine physical path and absolute URL based on requested deck_id and card_id
     from app.core.config import settings
-    folder_path = os.path.join(settings.VOCABURN_STORAGE_DIR, str(q.quiz_id), "audio")
-    filename = f"{q.id}_front.mp3" if face == "front" else f"{q.id}_back.mp3"
+    folder_path = os.path.join(settings.VOCABURN_STORAGE_DIR, str(c.deck_id), "audio")
+    filename = f"{c.id}_front.mp3" if face == "front" else f"{c.id}_back.mp3"
     physical_path = os.path.join(folder_path, filename)
     
     # Construct relative URL
-    url = f"/uploads/{q.quiz_id}/audio/{filename}"
+    url = f"/uploads/{c.deck_id}/audio/{filename}"
     
     # Check if we already have it generated on disk
     if os.path.exists(physical_path):
         # File is on disk, just make sure database is synchronized
         db_updated = False
         if face == "front":
-            if q.audio != url:
-                q.audio = url
+            if c.audio != url:
+                c.audio = url
                 db_updated = True
         else:
-            if not q.others:
-                q.others = {}
-            if q.others.get("back_audio_url") != url:
-                q.others["back_audio_url"] = url
+            if not c.others:
+                c.others = {}
+            if c.others.get("back_audio_url") != url:
+                c.others["back_audio_url"] = url
                 from sqlalchemy.orm.attributes import flag_modified
-                flag_modified(q, "others")
+                flag_modified(c, "others")
                 db_updated = True
         if db_updated:
             await db.commit()
@@ -392,15 +396,14 @@ async def generate_question_audio(question_id: int, request: Request, face: str 
         
     # Save back to database
     if face == "front":
-        q.audio = url
+        c.audio = url
     else:
-        if not q.others:
-            q.others = {}
-        q.others["back_audio_url"] = url
+        if not c.others:
+            c.others = {}
+        c.others["back_audio_url"] = url
         # Mark others dirty for SQLAlchemy JSON tracking
         from sqlalchemy.orm.attributes import flag_modified
-        flag_modified(q, "others")
+        flag_modified(c, "others")
         
     await db.commit()
     return {"url": url}
-

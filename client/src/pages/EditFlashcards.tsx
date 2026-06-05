@@ -56,7 +56,7 @@ const EditFlashcards = () => {
     formData.append('file', file)
     
     try {
-      const res = await axios.post(`/api/v1/quiz/${id}/import-update`, formData)
+      const res = await axios.post(`/api/v1/deck/${id}/import-update`, formData)
       if (res.data.status === 'ok') {
         setExcelUpdateSuccess(true)
         fetchFlashcards()
@@ -76,7 +76,7 @@ const EditFlashcards = () => {
   const fetchFlashcards = async () => {
     setIsLoading(true)
     try {
-      const res = await axios.get(`/api/v1/quiz/${id}/flashcards`, {
+      const res = await axios.get(`/api/v1/deck/${id}/flashcards`, {
         params: { page, size: 50, search }
       })
       setFlashcards(res.data.flashcards || res.data.questions || [])
@@ -126,7 +126,7 @@ const EditFlashcards = () => {
 
       const finalOthers = { ...editingFlashcard.others }
 
-      await axios.patch(`/api/v1/quiz/flashcard/${editingFlashcard.id}`, {
+      await axios.patch(`/api/v1/deck/flashcard/${editingFlashcard.id}`, {
         content: editingFlashcard.content,
         explanation: editingFlashcard.explanation,
         ai_explanation: editingFlashcard.ai_explanation,
@@ -154,7 +154,7 @@ const EditFlashcards = () => {
   const handleDelete = async (flashcardId: number) => {
     if (!confirm('Are you sure? This card will be erased.')) return
     try {
-      await axios.delete(`/api/v1/quiz/flashcard/${flashcardId}`)
+      await axios.delete(`/api/v1/deck/flashcard/${flashcardId}`)
       setFlashcards(flashcards.filter(q => q.id !== flashcardId))
       setTotal(prev => prev - 1)
     } catch (err) {
@@ -219,14 +219,14 @@ const EditFlashcards = () => {
                    />
                    <div className="absolute right-0 mt-2 w-56 bg-white border border-slate-100 rounded-xl shadow-xl py-1.5 z-[150] animate-in fade-in slide-in-from-top-2 duration-150">
                      <a 
-                       href={`/api/v1/quiz/${id}/export`} 
+                       href={`/api/v1/deck/${id}/export`} 
                        onClick={() => setShowExportMenu(false)}
                        className="block px-4 py-2.5 text-[9px] font-black text-slate-700 hover:bg-indigo-50 hover:text-indigo-600 transition-colors uppercase tracking-wider text-right"
                      >
                        Xuất có ID (để sửa rồi update)
                      </a>
                      <a 
-                       href={`/api/v1/quiz/${id}/export?exclude_ids=true`} 
+                       href={`/api/v1/deck/${id}/export?exclude_ids=true`} 
                        onClick={() => setShowExportMenu(false)}
                        className="block px-4 py-2.5 text-[9px] font-black text-slate-700 hover:bg-indigo-50 hover:text-indigo-600 transition-colors border-t border-slate-50 uppercase tracking-wider text-right"
                      >

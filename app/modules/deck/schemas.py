@@ -1,8 +1,7 @@
 from pydantic import BaseModel
 from typing import List, Optional, Dict, Any
-from datetime import datetime
 
-class QuestionSchema(BaseModel):
+class CardSchema(BaseModel):
     id: Optional[int] = None
     content: str
     image: Optional[str] = None
@@ -15,7 +14,7 @@ class QuestionSchema(BaseModel):
     class Config:
         from_attributes = True
 
-class QuizSchema(BaseModel):
+class DeckSchema(BaseModel):
     id: Optional[int] = None
     title: str
     description: Optional[str] = None
@@ -25,7 +24,7 @@ class QuizSchema(BaseModel):
     instruction: Optional[str] = None
     time_limit: int = 0
     is_active: bool = True
-    questions: Optional[List[QuestionSchema]] = []
+    cards: Optional[List[CardSchema]] = []
 
     class Config:
         from_attributes = True

@@ -69,7 +69,7 @@ export default function Library() {
   const { data: activeGoals } = useQuery<ActiveGoal[]>({
     queryKey: ['activeGoals', todayStr],
     queryFn: async () => {
-      const res = await axios.get('/api/v1/quiz/goals/active', {
+      const res = await axios.get('/api/v1/deck/goals/active', {
         params: { local_date: todayStr }
       })
       return res.data
@@ -77,7 +77,7 @@ export default function Library() {
   })
 
   const setGoalMutation = useMutation({
-    mutationFn: (args: { quiz_id: number, daily_target: number }) => axios.post('/api/v1/quiz/goals', args),
+    mutationFn: (args: { quiz_id: number, daily_target: number }) => axios.post('/api/v1/deck/goals', { deck_id: args.quiz_id, quiz_id: args.quiz_id, daily_target: args.daily_target }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['activeGoals'] })
       queryClient.invalidateQueries({ queryKey: ['dashboard'] })
@@ -85,7 +85,7 @@ export default function Library() {
   })
 
   const removeGoalMutation = useMutation({
-    mutationFn: (quizId: number) => axios.post('/api/v1/quiz/goals/remove', { quiz_id: quizId }),
+    mutationFn: (quizId: number) => axios.post('/api/v1/deck/goals/remove', { deck_id: quizId, quiz_id: quizId }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['activeGoals'] })
       queryClient.invalidateQueries({ queryKey: ['dashboard'] })
@@ -155,17 +155,17 @@ export default function Library() {
   }, [activeTab, searchQuery, activeTag])
 
   const archiveMutation = useMutation({
-    mutationFn: (quizId: number) => axios.post(`/api/v1/quiz/${quizId}/archive`),
+    mutationFn: (quizId: number) => axios.post(`/api/v1/deck/${quizId}/archive`),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['dashboard'] })
   })
 
   const enrollMutation = useMutation({
-    mutationFn: (quizId: number) => axios.post(`/api/v1/quiz/${quizId}/enroll`),
+    mutationFn: (quizId: number) => axios.post(`/api/v1/deck/${quizId}/enroll`),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['dashboard'] })
   })
 
   const createRoomMutation = useMutation({
-    mutationFn: (quizId: number) => axios.post('/api/v1/quiz/room/create', { quiz_id: quizId }),
+    mutationFn: (quizId: number) => axios.post('/api/v1/deck/room/create', { deck_id: quizId, quiz_id: quizId }),
     onSuccess: (res) => navigate(`/room/${res.data.room_code}`)
   })
 
@@ -173,7 +173,7 @@ export default function Library() {
     if (!roomCode) return
     setIsJoining(true)
     try {
-      await axios.post('/api/v1/quiz/room/join', { room_code: roomCode })
+      await axios.post('/api/v1/deck/room/join', { room_code: roomCode })
       navigate(`/room/${roomCode.toUpperCase()}`)
     } catch (e) {
       alert("Room not found or expired")

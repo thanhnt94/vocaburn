@@ -82,7 +82,7 @@ export default function Stats() {
   const { data: heatmapData } = useQuery<HeatmapDay[]>({
     queryKey: ['stats-heatmap'],
     queryFn: async () => {
-      const res = await axios.get('/api/v1/quiz/stats/heatmap')
+      const res = await axios.get('/api/v1/deck/stats/heatmap')
       return res.data
     }
   })
@@ -90,7 +90,7 @@ export default function Stats() {
   const { data: weeklyReport } = useQuery<WeeklyReport>({
     queryKey: ['stats-weekly-report'],
     queryFn: async () => {
-      const res = await axios.get('/api/v1/quiz/stats/weekly-report')
+      const res = await axios.get('/api/v1/deck/stats/weekly-report')
       return res.data
     }
   })
@@ -98,7 +98,7 @@ export default function Stats() {
   const { data: leitnerStats } = useQuery({
     queryKey: ['stats-leitner'],
     queryFn: async () => {
-      const res = await axios.get('/api/v1/quiz/stats/leitner')
+      const res = await axios.get('/api/v1/deck/stats/leitner')
       return res.data
     }
   })
@@ -106,7 +106,7 @@ export default function Stats() {
   const { data: speedAccuracyStats } = useQuery({
     queryKey: ['stats-speed-accuracy'],
     queryFn: async () => {
-      const res = await axios.get('/api/v1/quiz/stats/speed-accuracy')
+      const res = await axios.get('/api/v1/deck/stats/speed-accuracy')
       return res.data
     }
   })

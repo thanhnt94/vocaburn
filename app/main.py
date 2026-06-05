@@ -8,7 +8,7 @@ from app.modules.auth.services.central_auth_client import CentralAuthClient
 from app.core.db import get_db, engine, Base
 from app.core.init_db import init_db
 from app.modules.stats.services.analytics_service import AnalyticsService
-from app.modules.quiz.services.quiz_service import QuizService
+from app.modules.deck.services.deck_service import DeckService
 from app.modules.auth.services.auth_service import AuthService
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func, Integer
@@ -78,8 +78,8 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-from app.modules.quiz.routes.api import router as quiz_api_router
-from app.modules.quiz.routes.room import router as room_router
+from app.modules.deck.routes.api import router as deck_api_router
+from app.modules.deck.routes.room import router as deck_room_router
 from app.modules.sso_module.routes import router as sso_api_router
 from app.modules.admin import router as admin_router
 from app.modules.auth import router as auth_router
@@ -87,8 +87,8 @@ from app.modules.stats import router as stats_router
 from app.modules.notification import router as notification_router
 from app.modules.gamification.routes import router as gamification_router
 
-app.include_router(quiz_api_router, prefix=settings.API_V1_STR)
-app.include_router(room_router, prefix=settings.API_V1_STR)
+app.include_router(deck_api_router, prefix=settings.API_V1_STR)
+app.include_router(deck_room_router, prefix=settings.API_V1_STR)
 app.include_router(sso_api_router)
 app.include_router(admin_router, prefix=settings.API_V1_STR)
 app.include_router(admin_router, prefix="/api")

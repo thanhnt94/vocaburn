@@ -74,9 +74,9 @@ def normalize_column_headers(columns: List[str]) -> Dict[str, str]:
             
     return mapping
 
-class ExcelQuizService:
+class ExcelDeckService:
     @staticmethod
-    def parse_quiz_excel(file_content: bytes) -> Tuple[Dict[str, Any], List[Dict[str, Any]]]:
+    def parse_deck_excel(file_content: bytes) -> Tuple[Dict[str, Any], List[Dict[str, Any]]]:
         """
         Parses an Excel file matching MindStack's structure with 'Info' and 'Data' sheets.
         Handles both Quiz Format (MCQ) and Flashcard/Vocab Format (front/back).
@@ -250,7 +250,7 @@ class ExcelQuizService:
         return metadata, questions
 
     @staticmethod
-    def export_quiz_to_excel(quiz_title: str, quiz_description: str, category_name: str, tags: List[str], practice_settings: Dict[str, Any], questions: List[Any], exclude_ids: bool = False) -> bytes:
+    def export_deck_to_excel(deck_title: str, deck_description: str, category_name: str, tags: List[str], practice_settings: Dict[str, Any], cards: List[Any], exclude_ids: bool = False) -> bytes:
         """
         Generates an Excel workbook (bytes) containing Info and Data sheets
         for exporting a quiz/deck.
@@ -259,8 +259,8 @@ class ExcelQuizService:
         
         # 1. Prepare Info sheet key-value data
         info_data = [
-            {"key": "title", "value": quiz_title},
-            {"key": "description", "value": quiz_description or ""},
+            {"key": "title", "value": deck_title},
+            {"key": "description", "value": deck_description or ""},
             {"key": "category", "value": category_name or "General"},
             {"key": "tags", "value": ", ".join(tags) if tags else ""}
         ]
@@ -280,7 +280,7 @@ class ExcelQuizService:
         # 2. Prepare Data sheet rows
         # Discover all custom keys present in any question's others dict
         custom_cols = set()
-        for q in questions:
+        for q in cards:
             if q.others and isinstance(q.others, dict):
                 for k in q.others.keys():
                     if k not in ("id", "item_id", "order_in_container", "front", "back", "explanation", "ai_explanation", "front_img", "front_audio_url", "image", "audio"):
@@ -290,7 +290,7 @@ class ExcelQuizService:
         
         # Columns to output: id, front, back, explanation, ai_explanation, front_img, front_audio_url, then custom_cols
         rows = []
-        for q in questions:
+        for q in cards:
             row = {}
             if not exclude_ids:
                 row["id"] = q.id

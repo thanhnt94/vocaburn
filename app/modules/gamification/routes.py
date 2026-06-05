@@ -209,23 +209,23 @@ async def get_leaderboard(request: Request, time_filter: str = "all_time", db: A
         })
 
     # 4. Fetch New Cards Leaderboard (First-time Reviews)
-    from app.modules.quiz.models import QuizAttempt, UserAnswer
+    from app.modules.deck.models import DeckAttempt, UserAnswer
     
     subq = (
         select(
-            QuizAttempt.user_id,
-            UserAnswer.question_id,
+            DeckAttempt.user_id,
+            UserAnswer.card_id,
             func.min(UserAnswer.created_at).label("first_answer_time")
         )
-        .join(QuizAttempt, UserAnswer.attempt_id == QuizAttempt.id)
-        .group_by(QuizAttempt.user_id, UserAnswer.question_id)
+        .join(DeckAttempt, UserAnswer.attempt_id == DeckAttempt.id)
+        .group_by(DeckAttempt.user_id, UserAnswer.card_id)
     ).subquery()
 
     stmt_new_cards = (
         select(
             subq.c.user_id,
             User.username,
-            func.count(subq.c.question_id).label("new_cards")
+            func.count(subq.c.card_id).label("new_cards")
         )
         .join(User, User.id == subq.c.user_id)
     )
@@ -234,7 +234,7 @@ async def get_leaderboard(request: Request, time_filter: str = "all_time", db: A
         
     stmt_new_cards = (
         stmt_new_cards.group_by(subq.c.user_id, User.username)
-        .order_by(func.count(subq.c.question_id).desc())
+        .order_by(func.count(subq.c.card_id).desc())
         .limit(5)
     )
     
@@ -256,7 +256,7 @@ async def get_leaderboard(request: Request, time_filter: str = "all_time", db: A
             current_user_new_cards_rank = rank
 
     if current_user_id and current_user_new_cards_rank is None:
-        stmt_my_new_cards = select(func.count(subq.c.question_id)).where(subq.c.user_id == current_user_id)
+        stmt_my_new_cards = select(func.count(subq.c.card_id)).where(subq.c.user_id == current_user_id)
         if start_date:
             stmt_my_new_cards = stmt_my_new_cards.where(subq.c.first_answer_time >= start_date)
         user_new_cards_res = await db.execute(stmt_my_new_cards)
@@ -270,7 +270,7 @@ async def get_leaderboard(request: Request, time_filter: str = "all_time", db: A
             
         stmt_ahead_new_cards = (
             stmt_ahead_new_cards.group_by(subq.c.user_id)
-            .having(func.count(subq.c.question_id) > user_new_cards)
+            .having(func.count(subq.c.card_id) > user_new_cards)
         )
         
         ahead_new_cards_res = await db.execute(stmt_ahead_new_cards)
@@ -310,7 +310,7 @@ async def get_daily_challenges(
     Challenge 3: Keep the streak alive (logged activity today)
     """
     from app.modules.auth.services.auth_service import AuthService
-    from app.modules.quiz.models import UserQuestionMastery, Question, UserAnswer, QuizAttempt
+    from app.modules.deck.models import UserCardMastery, Flashcard, UserAnswer, DeckAttempt
     from app.modules.stats.models import UserDailyStats
     from app.modules.gamification.models import UserDailyActivity
     from sqlalchemy import and_, cast, String
@@ -332,9 +332,9 @@ async def get_daily_challenges(
     # ─────────────────────────────────────────────────────────────────────────
     now_utc = datetime.utcnow()
     due_res = await db.execute(
-        select(func.count(UserQuestionMastery.id)).where(
-            UserQuestionMastery.user_id == user_id,
-            UserQuestionMastery.due <= now_utc,
+        select(func.count(UserCardMastery.id)).where(
+            UserCardMastery.user_id == user_id,
+            UserCardMastery.due <= now_utc,
         )
     )
     due_count = due_res.scalar() or 0
@@ -425,7 +425,7 @@ async def get_daily_challenges(
 async def get_badges_progress(request: Request, db: AsyncSession = Depends(get_db)):
     from app.modules.gamification.models import Badge, UserGamification
     from app.modules.auth.services.auth_service import AuthService
-    from app.modules.quiz.models import UserQuestionMastery
+    from app.modules.deck.models import UserCardMastery
     from app.modules.stats.models import UserDailyStats
     from fastapi import HTTPException
     
@@ -452,15 +452,15 @@ async def get_badges_progress(request: Request, db: AsyncSession = Depends(get_d
     
     # mastery: count how many cards are box_level == 5 (mastered)
     mastered_res = await db.execute(
-        select(func.count(UserQuestionMastery.id)).where(
-            UserQuestionMastery.user_id == user_id,
-            UserQuestionMastery.box_level == 5
+        select(func.count(UserCardMastery.id)).where(
+            UserCardMastery.user_id == user_id,
+            UserCardMastery.box_level == 5
         )
     )
     current_mastery = mastered_res.scalar() or 0
     
     # goals crusher: count times is_target_met was True in UserDailyProgress
-    from app.modules.quiz.models import UserDailyProgress
+    from app.modules.deck.models import UserDailyProgress
     goals_res = await db.execute(
         select(func.count(UserDailyProgress.id)).where(
             UserDailyProgress.goal.has(user_id=user_id),

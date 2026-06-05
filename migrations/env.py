@@ -15,7 +15,7 @@ import app.modules.stats.models
 import app.modules.notification.models
 from app.core.config import settings
 from app.modules.auth.models import User
-from app.modules.quiz.models import Category, Quiz, Question, QuizSession, QuizAttempt, UserAnswer, UserQuestionNote, QuizRoom, QuizRoomParticipant, UserQuizGoal, UserDailyProgress, UserGlobalGoal
+from app.modules.deck.models import Category, FlashcardDeck, Flashcard, DeckSession, DeckAttempt, UserAnswer, UserCardNote, DeckRoom, DeckRoomParticipant, UserDeckGoal, UserDailyProgress, UserGlobalGoal
 from app.modules.gamification.models import UserGamification, Badge, UserDailyActivity
 from app.modules.notification.models import Notification, PushSubscription, UserTelegramConfig
 from app.modules.stats.models import UserDailyStats

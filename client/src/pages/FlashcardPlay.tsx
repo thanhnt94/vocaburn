@@ -17,6 +17,10 @@ import { FeedbackArea } from '@/components/FeedbackArea'
 import { PracticeSetupScreen } from '@/components/PracticeSetupScreen'
 import { QuestionMapGrid } from '@/components/QuestionMapGrid'
 import { MilestoneCelebration } from '@/components/MilestoneCelebration'
+import { useFlashcardAudio } from '@/hooks/useFlashcardAudio'
+import { useSessionStats } from '@/hooks/useSessionStats'
+import { usePracticeMode } from '@/hooks/usePracticeMode'
+import { FSRSActionButtons } from '@/components/FSRSActionButtons'
 
 interface Option {
   id: number
@@ -80,78 +84,6 @@ export default function FlashcardPlay() {
   const navigate = useNavigate()
   const { user, gamify, setUser, setGamify, addXp } = useAppStore()
   
-  const activeAudioRef = useRef<HTMLAudioElement | null>(null)
-  const currentQuestionIdRef = useRef<number | null>(null)
-  
-  const playCardAudio = async (face: 'front' | 'back') => {
-    if (!currentQuestion) return;
-    const targetQuestionId = currentQuestion.id;
-
-    // 1. Immediately pause any actively playing server audio and cancel all Web Speech browser utterances
-    if (activeAudioRef.current) {
-      activeAudioRef.current.pause();
-      activeAudioRef.current = null;
-    }
-    if (typeof window !== 'undefined' && window.speechSynthesis) {
-      window.speechSynthesis.cancel();
-    }
-
-    let audioUrl = face === 'front' 
-      ? (currentQuestion.audio || currentQuestion.others?.front_audio_url)
-      : currentQuestion.others?.back_audio_url;
-
-    const script = face === 'front'
-      ? currentQuestion.others?.front_audio_content
-      : currentQuestion.others?.back_audio_content;
-
-    // Lazily generate audio if it is not yet created on backend, but ONLY if script is present
-    if (!audioUrl && currentQuestion.id && script && script.trim()) {
-      try {
-        console.log(`[CLIENT TTS] Audio file missing. Requesting generation for question ${currentQuestion.id} (${face})...`);
-        const res = await axios.get(`/api/v1/quiz/generate-audio/${currentQuestion.id}?face=${face}`);
-        if (currentQuestionIdRef.current !== targetQuestionId) {
-          console.log(`[CLIENT TTS] Question changed during audio generation. Aborting playback.`);
-          return;
-        }
-        audioUrl = res.data.url;
-        if (audioUrl) {
-          if (face === 'front') {
-            currentQuestion.audio = audioUrl;
-          } else {
-            if (!currentQuestion.others) currentQuestion.others = {};
-            currentQuestion.others.back_audio_url = audioUrl;
-          }
-        }
-      } catch (err: any) {
-        console.error(`[TTS SERVER ERROR] Backend failed to synthesize ${face} audio file for question ${currentQuestion.id}. Status:`, err.response?.status, 'Message:', err.response?.data || err.message);
-      }
-    }
-
-    if (audioUrl) {
-      const cacheBustedUrl = `${audioUrl}${audioUrl.includes('?') ? '&' : '?'}t=${Date.now()}`;
-      console.log(`[TTS PLAYBACK] Playing generated server audio: ${cacheBustedUrl}`);
-      const audio = new Audio(cacheBustedUrl);
-      activeAudioRef.current = audio;
-      audio.play().catch(err => {
-        console.warn(`[TTS FALLBACK WARNING] Playback of generated audio file ${cacheBustedUrl} failed. Error:`, err.message);
-        
-        // Block Web Speech fallback queue buildup if blocked by browser autoplay/interaction policy
-        const isAutoplayBlock = err.name === 'NotAllowedError' || err.message?.includes('interact') || err.message?.includes('autoplay');
-        if (isAutoplayBlock) {
-          console.warn(`[TTS AUTOPLAY BLOCK] Playback blocked by browser autoplay policy. Skipping Web Speech fallback to prevent late voice overlapping.`);
-          return;
-        }
-
-        if (script && script.trim()) {
-          console.warn(`[TTS FALLBACK] Resorting to browser's client-side speech synthesis (Web Speech API) for: "${script}"`);
-          speakMultiLanguage(script);
-        }
-      });
-    } else if (script && script.trim()) {
-      console.warn(`[TTS FALLBACK] No server-generated audio URL available. Resorting directly to browser client-side Web Speech API for: "${script}"`);
-      speakMultiLanguage(script);
-    }
-  };
   const [session, setSession] = useState<any>(null)
   const [sfxEnabled, setSfxEnabled] = useState<boolean>(() => {
     if (typeof window !== 'undefined') {
@@ -161,13 +93,92 @@ export default function FlashcardPlay() {
     return true;
   });
   const [currentIndex, setCurrentIndex] = useState(-1)
+  const currentQuestion: Question | null = session?.questions?.[currentIndex] || null
   const [selectedOption, setSelectedOption] = useState<number | null>(null)
   const [showFeedback, setShowFeedback] = useState(false)
   const [isFlipped, setIsFlipped] = useState(false)
   const [badgeVisible, setBadgeVisible] = useState(false)
   const [badgeMessage, setBadgeMessage] = useState("")
-  const [streak, setStreak] = useState(0)
-  const [sessionXP, setSessionXP] = useState(0)
+  
+  // Toast Notification System
+  const [localToast, setLocalToast] = useState<{
+    visible: boolean;
+    message: string;
+    type: 'success' | 'warning' | 'error';
+  }>({ visible: false, message: '', type: 'success' })
+
+  const showLocalToast = (message: string, type: 'success' | 'warning' | 'error' = 'success') => {
+    setLocalToast({ visible: true, message, type })
+    setTimeout(() => {
+      setLocalToast(prev => ({ ...prev, visible: false }))
+    }, 4500)
+  }
+  
+  const mainTab = 'fsrs' as 'fsrs' | 'practice'
+  const setMainTab = (tab: 'fsrs' | 'practice') => {}
+
+  // --- Custom Hooks ---
+  const {
+    autoPlayAudio,
+    setAutoPlayAudio,
+    playCardAudio,
+    stopAudio,
+    activeAudioRef
+  } = useFlashcardAudio(currentQuestion)
+
+  const {
+    streak,
+    setStreak,
+    sessionXP,
+    setSessionXP,
+    xpFloat,
+    setXpFloat,
+    milestonesHit,
+    setMilestonesHit,
+    goalToast,
+    setGoalToast,
+    activeMilestone,
+    setActiveMilestone,
+    answerContext,
+    setAnswerContext,
+    resetStats,
+    updateXPFlow,
+    triggerStreakConfetti,
+    checkSessionMilestones,
+    showGoalToastUpdate
+  } = useSessionStats()
+
+  const {
+    practiceSubMode,
+    setPracticeSubMode,
+    practiceRange,
+    setPracticeRange,
+    practiceNeedsSetup,
+    setPracticeNeedsSetup,
+    practiceDisabled,
+    setPracticeDisabled,
+    setupPairs,
+    setSetupPairs,
+    setupNumChoices,
+    setSetupNumChoices,
+    typingInput,
+    setTypingInput,
+    typingFeedback,
+    setTypingFeedback,
+    currentPracticeData,
+    setCurrentPracticeData,
+    modeSettings,
+    setModeSettings,
+    practiceTotalAnswered,
+    setPracticeTotalAnswered,
+    practiceCorrectCount,
+    setPracticeCorrectCount,
+    practiceAnswers,
+    setPracticeAnswers,
+    generatePracticeQuestion,
+    resetPractice
+  } = usePracticeMode(session, currentIndex, mainTab)
+
   const [initialTotalXP, setInitialTotalXP] = useState(0)
   const [timeLeft, setTimeLeft] = useState(0)
   const [isAskingAI, setIsAskingAI] = useState(false)
@@ -189,47 +200,15 @@ export default function FlashcardPlay() {
   const [activeMasteryUpgrade, setActiveMasteryUpgrade] = useState<any | null>(null)
   const [editFormData, setEditFormData] = useState<any>(null)
   const [sessionAnswers, setSessionAnswers] = useState<Record<number, number | number[]>>({})
-  const [practiceAnswers, setPracticeAnswers] = useState<Record<number, number>>({})
   const [isEditingPrompt, setIsEditingPrompt] = useState(false)
   const [promptInput, setPromptInput] = useState('')
-  const [activeMilestone, setActiveMilestone] = useState<{
-    type: 'streak_10' | 'halfway' | 'mastery' | 'goal_met'
-    title: string
-    message: string
-  } | null>(null)
+  
   // ── Engagement State ──
-  const [answerContext, setAnswerContext] = useState<{
-    wasCorrect: boolean
-    prevTotal: number
-    prevCorrect: number
-    timeTaken: number
-    avgTime: number
-    newStreak: number
-    xpGained: number
-  } | null>(null)
   const [isSessionSummaryOpen, setIsSessionSummaryOpen] = useState(false)
-  const [xpFloat, setXpFloat] = useState<{ visible: boolean; amount: number }>({ visible: false, amount: 0 })
-  const [milestonesHit, setMilestonesHit] = useState<Set<number>>(new Set())
-  const [goalToast, setGoalToast] = useState<{
-    visible: boolean;
-    message: string;
-    isTargetMet: boolean;
-    justCompleted: boolean;
-    streakCount: number;
-    doneToday: number;
-    dailyTarget: number;
-    bonusXP?: number;
-  } | null>(null)
   const [activeGoal, setActiveGoal] = useState<any>(null)
   const [showGoalCelebration, setShowGoalCelebration] = useState(false)
   const [isLimitlessStrike, setIsLimitlessStrike] = useState(false)
   const [activeMode, setActiveMode] = useState<string>(() => localStorage.getItem('quiz_learning_mode') || 'fsrs')
-  const [autoPlayAudio, setAutoPlayAudio] = useState<'always' | 'front' | 'back' | 'none'>(() => {
-    if (typeof window !== 'undefined') {
-      return (localStorage.getItem('vocaburn_autoplay_audio') as 'always' | 'front' | 'none') || 'none';
-    }
-    return 'none';
-  });
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
 
   const saveGeneralSettings = async (updates: { sfx_enabled?: boolean; autoplay_audio?: 'always' | 'front' | 'back' | 'none'; learning_mode?: string }) => {
@@ -240,7 +219,7 @@ export default function FlashcardPlay() {
         autoplay_audio: updates.autoplay_audio !== undefined ? updates.autoplay_audio : autoPlayAudio,
         learning_mode: updates.learning_mode !== undefined ? updates.learning_mode : activeMode
       }
-      await axios.post(`/api/v1/quiz/${id}/practice-settings`, {
+      await axios.post(`/api/v1/deck/${id}/practice-settings`, {
         settings: updatedSettings,
         is_creator: false
       })
@@ -255,187 +234,11 @@ export default function FlashcardPlay() {
     type?: 'info' | 'warning';
   } | null>(null)
   const [justAnswered, setJustAnswered] = useState(false)
-  
-  // ── Multi-Modal Practice State Hooks ──
-  const mainTab = 'fsrs' as 'fsrs' | 'practice'
-  const setMainTab = (tab: 'fsrs' | 'practice') => {}
-  const [practiceSubMode, setPracticeSubMode] = useState<'mcq' | 'typing' | 'listening'>(() => (localStorage.getItem('vocab_practice_submode') as 'mcq' | 'typing' | 'listening') || 'mcq')
-  const [practiceRange, setPracticeRange] = useState<'all' | 'learned'>(() => (localStorage.getItem('vocab_practice_range') as 'all' | 'learned') || 'all')
-  const [practiceNeedsSetup, setPracticeNeedsSetup] = useState(false)
-  const [practiceDisabled, setPracticeDisabled] = useState(false)
   const [availableColumns, setAvailableColumns] = useState<string[]>([])
-  const [setupPairs, setSetupPairs] = useState<{q: string, a: string}[]>([{ q: 'front', a: 'back' }])
-  const [setupNumChoices, setSetupNumChoices] = useState<number>(4)
-  const [typingInput, setTypingInput] = useState('')
-  const [typingFeedback, setTypingFeedback] = useState<{ checked: boolean; isCorrect: boolean } | null>(null)
-  const [currentPracticeData, setCurrentPracticeData] = useState<any>(null)
-
-  // Per-mode settings state
-  const [modeSettings, setModeSettings] = useState<Record<'mcq' | 'typing' | 'listening', { active_pairs: {q: string, a: string}[], num_choices?: number }>>({
-    mcq: { active_pairs: [{ q: 'front', a: 'back' }], num_choices: 4 },
-    typing: { active_pairs: [{ q: 'front', a: 'back' }] },
-    listening: { active_pairs: [{ q: 'front', a: 'back' }], num_choices: 4 }
-  })
-
-  // Practice stats tracking
-  const [practiceTotalAnswered, setPracticeTotalAnswered] = useState(0)
-  const [practiceCorrectCount, setPracticeCorrectCount] = useState(0)
 
 
-
-  // Sync setup screen fields when practiceSubMode or modeSettings change
-  useEffect(() => {
-    if (modeSettings && modeSettings[practiceSubMode]) {
-      setSetupPairs(modeSettings[practiceSubMode].active_pairs || [{ q: 'front', a: 'back' }])
-      setSetupNumChoices(modeSettings[practiceSubMode].num_choices || 4)
-    }
-  }, [practiceSubMode, modeSettings])
-
-  // ── Client-side Dynamic Practice Generator ──
-  const stripBBCode = (text: string): string => {
-    if (!text) return "";
-    return text.replace(/\[\/?[a-zA-Z0-9=#_\-]+\]/g, '');
-  };
-
-  const generatePracticeQuestion = (idx: number, customSubMode?: string) => {
-    if (!session || !session.questions || session.questions.length === 0) return;
-    const qObj = session.questions[idx];
-    if (!qObj) return;
-
-    const subMode = customSubMode || practiceSubMode;
-
-    // Pick a random pair from setupPairs
-    const activePair = setupPairs && setupPairs.length > 0
-      ? setupPairs[Math.floor(Math.random() * setupPairs.length)]
-      : { q: 'front', a: 'back' };
-
-    const question_key = activePair.q;
-    const answer_key = activePair.a;
-    const num_choices = setupNumChoices || 4;
-
-    const getVal = (item: any, key: string): string => {
-      if (!item) return "";
-      if (key === 'front' || key === 'content') {
-        const val = item.content || (item.others && item.others.front);
-        if (val) return String(val).trim();
-      }
-      if (key === 'back' || key === 'explanation') {
-        let val = "";
-        if (item.options && item.options.length > 0) {
-          const correctOpt = item.options.find((o: any) => o.is_correct);
-          if (correctOpt) val = correctOpt.content;
-        }
-        if (!val) val = item.explanation || (item.others && item.others.back);
-        if (val) return String(val).trim();
-      }
-      const val = item[key] !== undefined && item[key] !== null
-        ? item[key]
-        : (item.others && typeof item.others === 'object' ? item.others[key] : "");
-      return String(val ?? "").trim();
-    };
-
-    const questionText = getVal(qObj, question_key);
-    const correctAns = getVal(qObj, answer_key);
-
-    const item_front = getVal(qObj, 'front');
-    const item_back = getVal(qObj, 'back');
-
-    if (subMode === 'mcq' || subMode === 'listening') {
-      // Build candidate pool
-      const all_items_data = session.questions.map((q: any) => ({
-        id: q.id,
-        front: getVal(q, 'front'),
-        back: getVal(q, 'back'),
-        others: q.others
-      }));
-
-      // Random sample from all items to speed up
-      const sampleSize = Math.min(all_items_data.length, 50);
-      const shuffled_items: any[] = [];
-      const usedIndices = new Set<number>();
-      while (shuffled_items.length < sampleSize && usedIndices.size < all_items_data.length) {
-        const randIdx = Math.floor(Math.random() * all_items_data.length);
-        if (!usedIndices.has(randIdx)) {
-          usedIndices.add(randIdx);
-          shuffled_items.push(all_items_data[randIdx]);
-        }
-      }
-
-      const distractor_pool: any[] = [];
-      for (const other of shuffled_items) {
-        if (distractor_pool.length >= 20) break;
-        if (other.id !== qObj.id) {
-          const d_val = getVal(other, answer_key);
-          const d_front = getVal(other, 'front');
-          const d_back = getVal(other, 'back');
-          if (d_val && d_val.toLowerCase() !== 'nan') {
-            distractor_pool.push({
-              text: d_val,
-              front: d_front,
-              back: d_back,
-              id: other.id,
-              type: (other.others && typeof other.others === 'object' ? (other.others.type || other.others.pos || '') : '')
-            });
-          }
-        }
-      }
-
-      const correct_item_data = {
-        text: correctAns,
-        q_text: questionText,
-        front: item_front,
-        back: item_back,
-        id: qObj.id,
-        type: (qObj.others && typeof qObj.others === 'object' ? (qObj.others.type || qObj.others.pos || '') : '')
-      };
-
-      const needed = num_choices - 1;
-      const selectedDistractors = selectDistractors(correct_item_data, distractor_pool, needed);
-
-      // Assemble choices
-      const choices_data = ([correct_item_data] as any[]).concat(selectedDistractors);
-      // Shuffle choices_data using Fisher-Yates algorithm
-      for (let i = choices_data.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        const temp = choices_data[i];
-        choices_data[i] = choices_data[j];
-        choices_data[j] = temp;
-      }
-
-      const choices = choices_data.map(c => c.text);
-      const choice_item_ids = choices_data.map(c => c.id);
-      const correct_index = choices.indexOf(correctAns);
-
-      setCurrentPracticeData({
-        question: questionText,
-        choices,
-        choice_item_ids,
-        correct_index: correct_index !== -1 ? correct_index : 0,
-        correct_answer: correctAns,
-        question_key,
-        answer_key
-      });
-    } else if (subMode === 'typing') {
-      setCurrentPracticeData({
-        question: questionText,
-        correct_answer: correctAns,
-        question_key,
-        answer_key
-      });
-    }
-  };
-
-  useEffect(() => {
-    if (mainTab === 'practice' && session?.questions && session.questions.length > 0) {
-      generatePracticeQuestion(currentIndex);
-    } else {
-      setCurrentPracticeData(null);
-    }
-  }, [currentIndex, mainTab, practiceSubMode, session, setupPairs, setupNumChoices]);
 
   const timerRef = useRef<any>(null)
-  const currentQuestion: Question | null = session?.questions?.[currentIndex] || null
-  currentQuestionIdRef.current = currentQuestion?.id || null
   const [activelyRatedCurrentCard, setActivelyRatedCurrentCard] = useState<boolean>(false)
   const [leaderboardData, setLeaderboardData] = useState<any>(null)
 
@@ -621,51 +424,7 @@ export default function FlashcardPlay() {
         return Award
     }
   }
-  const getButtonClass = (btnIdx: number) => {
-    const isSelected = hasRated && selectedOption === btnIdx;
-    const isAnySelected = hasRated && selectedOption !== null && selectedOption !== undefined;
-    
-    // Base classes for all buttons
-    let classes = "group p-4 rounded-3xl border shadow-sm active:scale-[0.97] transition-all flex flex-col items-center justify-center gap-1 flex-1 ";
-    
-    if (isSelected) {
-      // Active style
-      switch (btnIdx) {
-        case 0:
-          classes += "bg-rose-500 text-white border-rose-600 shadow-lg shadow-rose-200 scale-[1.03] z-10";
-          break;
-        case 1:
-          classes += "bg-amber-500 text-white border-amber-600 shadow-lg shadow-amber-200 scale-[1.03] z-10";
-          break;
-        case 2:
-          classes += "bg-indigo-500 text-white border-indigo-600 shadow-lg shadow-indigo-200 scale-[1.03] z-10 ring-2 ring-indigo-500/20";
-          break;
-        case 3:
-          classes += "bg-emerald-500 text-white border-emerald-600 shadow-lg shadow-emerald-200 scale-[1.03] z-10";
-          break;
-      }
-    } else {
-      // Inactive or default styles
-      if (isAnySelected) {
-        classes += "opacity-60 ";
-      }
-      switch (btnIdx) {
-        case 0:
-          classes += "border-rose-100 bg-rose-50/50 hover:bg-rose-50 hover:border-rose-400 text-rose-500";
-          break;
-        case 1:
-          classes += "border-amber-100 bg-amber-50/50 hover:bg-amber-50 hover:border-amber-400 text-amber-500";
-          break;
-        case 2:
-          classes += "border-indigo-100 bg-indigo-50/50 hover:bg-indigo-50 hover:border-indigo-400 text-indigo-500 ring-2 ring-indigo-500/20";
-          break;
-        case 3:
-          classes += "border-emerald-100 bg-emerald-50/50 hover:bg-emerald-50 hover:border-emerald-400 text-emerald-500";
-          break;
-      }
-    }
-    return classes;
-  }
+
   const canEdit = user?.role === 'admin' || user?.id === 1 || session?.creator_id === user?.id || session?.is_collaborator
 
 
@@ -817,7 +576,9 @@ export default function FlashcardPlay() {
         const res = await axios.get('/api/v1/dashboard/data')
         if (!user) setUser(res.data.user)
         setGamify(res.data.gamify)
-      } catch (e) {}
+      } catch (e) {
+        console.error("Failed to fetch user dashboard data:", e)
+      }
     }
     fetchUser()
   }, [user, setUser, setGamify])
@@ -828,7 +589,7 @@ export default function FlashcardPlay() {
       const isPractice = activeTab === 'practice'
       
       // 1. Core quiz data load: fetched immediately to show flashcards instantly
-      const quizRes = await axios.get(`/api/v1/quiz/${id}/play-data${modeParam}`)
+      const quizRes = await axios.get(`/api/v1/deck/${id}/play-data${modeParam}`)
       const questions = quizRes.data.questions || []
       setSession({ ...quizRes.data, questions })
 
@@ -878,7 +639,7 @@ export default function FlashcardPlay() {
 
       // 2. Non-blocking secondary assets: staggered via timeouts to eliminate server resource contention
       setTimeout(() => {
-        axios.get('/api/v1/quiz/goals/active', {
+        axios.get('/api/v1/deck/goals/active', {
           params: { local_date: new Date().toLocaleDateString('en-CA') }
         }).then(goalsRes => {
           const activeGoalData = goalsRes.data.find((g: any) => g.quiz_id === Number(id))
@@ -896,7 +657,7 @@ export default function FlashcardPlay() {
 
       if (!isPractice) {
         setTimeout(() => {
-          axios.get(`/api/v1/quiz/${id}/session`).then(sessionRes => {
+          axios.get(`/api/v1/deck/${id}/session`).then(sessionRes => {
             if (sessionRes.data) {
         const restoredAnswers = sessionRes.data.state?.sessionAnswers || {}
         setSessionAnswers(restoredAnswers)
@@ -925,7 +686,7 @@ export default function FlashcardPlay() {
             const savedMode = localStorage.getItem('quiz_learning_mode') || 'fsrs'
             const answeredIndexes = Object.keys(restoredAnswers).map(Number)
             try {
-              const res = await axios.post(`/api/v1/quiz/${id}/next-card`, {
+              const res = await axios.post(`/api/v1/deck/${id}/next-card`, {
                 mode: savedMode,
                 answered_indexes: answeredIndexes,
                 current_index: curIdx
@@ -984,14 +745,18 @@ export default function FlashcardPlay() {
         }, 1000)
       }
     } catch (e) {
-      navigate('/')
+      console.error("Failed to load deck data:", e)
+      showLocalToast("Failed to load deck data. Please check your connection.", "error")
+      setTimeout(() => {
+        navigate('/library')
+      }, 2500)
     }
   }
 
 
   const fetchPracticeSettings = async () => {
     try {
-      const res = await axios.get(`/api/v1/quiz/${id}/practice-settings`)
+      const res = await axios.get(`/api/v1/deck/${id}/practice-settings`)
       setAvailableColumns(res.data.available_columns || [])
       
       const userSettings = res.data.user_settings
@@ -1028,7 +793,7 @@ export default function FlashcardPlay() {
           ...(practiceSubMode !== 'typing' ? { num_choices: numChoices } : {})
         }
       }
-      await axios.post(`/api/v1/quiz/${id}/practice-settings`, {
+      await axios.post(`/api/v1/deck/${id}/practice-settings`, {
         settings: updatedModeSettings,
         is_creator: isCreator
       })
@@ -1045,7 +810,7 @@ export default function FlashcardPlay() {
 
   const resetPracticeSettings = async () => {
     try {
-      await axios.post(`/api/v1/quiz/${id}/practice-settings`, {
+      await axios.post(`/api/v1/deck/${id}/practice-settings`, {
         settings: {},
         is_creator: false
       })
@@ -1063,15 +828,17 @@ export default function FlashcardPlay() {
   const fetchNote = async () => {
     if (!currentQuestion) return
     try {
-      const res = await axios.get(`/api/v1/quiz/question/${currentQuestion.id}/note`)
+      const res = await axios.get(`/api/v1/deck/question/${currentQuestion.id}/note`)
       setPersonalNote(res.data.content || '')
-    } catch (e) {}
+    } catch (e) {
+      console.error("Failed to fetch card note:", e)
+    }
   }
 
   const saveNote = async () => {
     if (!currentQuestion) return
     try {
-      await axios.post(`/api/v1/quiz/question/${currentQuestion.id}/note`, { 
+      await axios.post(`/api/v1/deck/question/${currentQuestion.id}/note`, { 
         content: personalNote 
       })
     } catch (e) {
@@ -1090,7 +857,7 @@ export default function FlashcardPlay() {
     try {
       const isPractice = mainTab === 'practice';
       if (isPractice) return; // Completely skip saving to the FSRS session on the server in Practice mode
-      await axios.post(`/api/v1/quiz/${id}/session`, {
+      await axios.post(`/api/v1/deck/${id}/session`, {
         mode: "sequential",
         current_index: newIndex,
         state: { 
@@ -1102,7 +869,9 @@ export default function FlashcardPlay() {
           streak: currentStreak
         }
       })
-    } catch (e) {}
+    } catch (e) {
+      console.error("Failed to save local session state to server:", e)
+    }
   }
 
   const handleReviewRating = async (rating: number) => {
@@ -1267,7 +1036,7 @@ export default function FlashcardPlay() {
     saveSession(newAnswers, currentIndex, updatedXP, updatedStreak)
 
     try {
-      const res = await axios.post('/api/v1/quiz/record_answer', {
+      const res = await axios.post('/api/v1/deck/record_answer', {
         question_id: currentQuestion.id,
         is_correct: correct,
         rating: rating,
@@ -1492,7 +1261,8 @@ export default function FlashcardPlay() {
         }
       }
     } catch (e) {
-      console.error("Failed to record answer")
+      console.error("Failed to record answer to server:", e)
+      showLocalToast("Warning: Your answer was not saved to the server.", "warning")
     }
   }
 
@@ -1568,7 +1338,7 @@ export default function FlashcardPlay() {
     saveSession(newAnswers, currentIndex, updatedXP, updatedStreak, updatedTotalAnswered, updatedCorrectCount);
     
     try {
-      await axios.post('/api/v1/quiz/record_answer', {
+      await axios.post('/api/v1/deck/record_answer', {
         question_id: currentQuestion.id,
         is_correct: isCorrect,
         is_practice: true,
@@ -1650,7 +1420,7 @@ export default function FlashcardPlay() {
     saveSession(newAnswers, currentIndex, updatedXP, updatedStreak, updatedTotalAnswered, updatedCorrectCount);
     
     try {
-      await axios.post('/api/v1/quiz/record_answer', {
+      await axios.post('/api/v1/deck/record_answer', {
         question_id: currentQuestion.id,
         is_correct: isCorrect,
         is_practice: true,
@@ -1769,7 +1539,7 @@ export default function FlashcardPlay() {
     const answeredIndexes = Object.keys(updatedAnswers).map(Number)
     
     try {
-      const res = await axios.post(`/api/v1/quiz/${id}/next-card`, {
+      const res = await axios.post(`/api/v1/deck/${id}/next-card`, {
         mode: activeMode,
         answered_indexes: answeredIndexes,
         current_index: currentIndex
@@ -1799,7 +1569,7 @@ export default function FlashcardPlay() {
 
     let targetIdx = -1
     try {
-      const res = await axios.post(`/api/v1/quiz/${id}/next-card`, {
+      const res = await axios.post(`/api/v1/deck/${id}/next-card`, {
         mode: mode,
         answered_indexes: answeredIndexes,
         current_index: currentIndex
@@ -1827,7 +1597,7 @@ export default function FlashcardPlay() {
       };
       setSession({ ...session, questions: updatedQuestions });
       
-      await axios.post(`/api/v1/quiz/question/${currentQuestion.id}/ignore`, {
+      await axios.post(`/api/v1/deck/question/${currentQuestion.id}/ignore`, {
         is_ignored: newIgnoreState
       });
       
@@ -1852,7 +1622,7 @@ export default function FlashcardPlay() {
       const payload: any = { question_id: currentQuestion.id }
       if (typeof manualText === 'string') payload.ai_explanation = manualText
       
-      const res = await axios.post(`/api/v1/quiz/${id}/ask-ai`, payload)
+      const res = await axios.post(`/api/v1/deck/${id}/ask-ai`, payload)
       
       if (res.data.status === 'processing') {
         // Polling loop
@@ -1862,7 +1632,7 @@ export default function FlashcardPlay() {
           attempts++
           try {
             // Append cache buster to completely bypass browser and proxy caching
-            const quizRes = await axios.get(`/api/v1/quiz/${id}/play-data?t=${Date.now()}`)
+            const quizRes = await axios.get(`/api/v1/deck/${id}/play-data?t=${Date.now()}`)
             const updatedQ = quizRes.data.questions?.find((q: any) => q.id === currentQuestion.id)
             if (updatedQ && updatedQ.ai_explanation) {
               setSession((prev: any) => {
@@ -1876,7 +1646,9 @@ export default function FlashcardPlay() {
               setIsAskingAI(false)
               clearInterval(poll)
             }
-          } catch (e) {}
+          } catch (e) {
+            console.error("Error polling play-data for AI explanation:", e)
+          }
           
           if (attempts >= maxAttempts) {
             clearInterval(poll)
@@ -1893,14 +1665,15 @@ export default function FlashcardPlay() {
         setIsAskingAI(false)
       }
     } catch (e) {
-      alert("AI service unavailable.")
+      console.error("AI explanation generation failed:", e)
+      alert("AI service is currently unavailable.")
       setIsAskingAI(false)
     }
   }
 
   const savePrompt = async () => {
     try {
-      await axios.patch(`/api/v1/quiz/${id}`, { ai_prompt: promptInput })
+      await axios.patch(`/api/v1/deck/${id}`, { ai_prompt: promptInput })
       setSession((prev: any) => ({ ...prev, ai_prompt: promptInput }))
       setIsEditingPrompt(false)
       alert("Prompt saved successfully!")
@@ -1913,7 +1686,7 @@ export default function FlashcardPlay() {
     if (!currentQuestion) return
     if (!window.confirm("Are you sure you want to delete this AI explanation?")) return
     try {
-      await axios.patch(`/api/v1/quiz/question/${currentQuestion.id}`, { ai_explanation: null })
+      await axios.patch(`/api/v1/deck/question/${currentQuestion.id}`, { ai_explanation: null })
       setSession((prev: any) => {
         const newQs = [...prev.questions]
         const targetIdx = newQs.findIndex(q => q.id === currentQuestion.id)
@@ -1954,7 +1727,7 @@ export default function FlashcardPlay() {
         [targetKey]: insightInput
       };
       
-      await axios.patch(`/api/v1/quiz/question/${currentQuestion.id}`, { 
+      await axios.patch(`/api/v1/deck/question/${currentQuestion.id}`, { 
         others: { [targetKey]: insightInput } 
       })
       
@@ -2017,7 +1790,7 @@ export default function FlashcardPlay() {
           // If valid JSON, parse it for database storage
           finalOthers.other_content = JSON.parse(finalOthers.other_content);
         } catch (je) {
-          // If not valid JSON, save as string
+          console.warn("other_content is not JSON, saving as raw string:", je)
         }
       }
 
@@ -2031,7 +1804,7 @@ export default function FlashcardPlay() {
         options: editFormData.options
       };
 
-      await axios.patch(`/api/v1/quiz/question/${currentQuestion.id}`, payload)
+      await axios.patch(`/api/v1/deck/question/${currentQuestion.id}`, payload)
       
       // Update local state
       setSession((prev: any) => {
@@ -2046,6 +1819,7 @@ export default function FlashcardPlay() {
       
       setIsEditModalOpen(false)
     } catch (e) {
+      console.error("Failed to save edited question:", e)
       alert("Failed to save changes.")
     } finally {
       setIsSavingEdit(false)
@@ -3923,74 +3697,13 @@ export default function FlashcardPlay() {
 
 
                     {/* FSRS Buttons Grid (Visible inside card back, hidden after rating until it unlocks) */}
-                    {isFlipped && !hasRated && (
-                      <div
-                        className="grid grid-cols-4 gap-3 mt-4 relative z-[10]"
-                        onClick={(e) => {
-                          console.log("DEBUG CLICK: FSRS Buttons Grid clicked! target:", e.target);
-                        }}
-                      >
-                        {/* AGAIN BUTTON */}
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            console.log("DEBUG CLICK: AGAIN button clicked!");
-                            handleReviewRating(1);
-                          }}
-                          className={getButtonClass(0)}
-                        >
-                          <span className={cn("text-[10px] font-black tracking-wider transition-colors duration-200", hasRated && selectedOption === 0 ? "text-white" : "text-rose-500")}>AGAIN</span>
-                          <span className={cn("text-xs font-black transition-colors duration-200", hasRated && selectedOption === 0 ? "text-rose-100" : "text-rose-600")}>
-                            {currentQuestion?.fsrs?.intervals?.[1] || "1m"}
-                          </span>
-                        </button>
-
-                        {/* HARD BUTTON */}
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            console.log("DEBUG CLICK: HARD button clicked!");
-                            handleReviewRating(2);
-                          }}
-                          className={getButtonClass(1)}
-                        >
-                          <span className={cn("text-[10px] font-black tracking-wider transition-colors duration-200", hasRated && selectedOption === 1 ? "text-white" : "text-amber-500")}>HARD</span>
-                          <span className={cn("text-xs font-black transition-colors duration-200", hasRated && selectedOption === 1 ? "text-amber-100" : "text-amber-600")}>
-                            {currentQuestion?.fsrs?.intervals?.[2] || "5m"}
-                          </span>
-                        </button>
-
-                        {/* GOOD BUTTON */}
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            console.log("DEBUG CLICK: GOOD button clicked!");
-                            handleReviewRating(3);
-                          }}
-                          className={getButtonClass(2)}
-                        >
-                          <span className={cn("text-[10px] font-black tracking-wider transition-colors duration-200", hasRated && selectedOption === 2 ? "text-white" : "text-indigo-500")}>GOOD</span>
-                          <span className={cn("text-xs font-black transition-colors duration-200", hasRated && selectedOption === 2 ? "text-indigo-100" : "text-indigo-600")}>
-                            {currentQuestion?.fsrs?.intervals?.[3] || "10m"}
-                          </span>
-                        </button>
-
-                        {/* EASY BUTTON */}
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            console.log("DEBUG CLICK: EASY button clicked!");
-                            handleReviewRating(4);
-                          }}
-                          className={getButtonClass(3)}
-                        >
-                          <span className={cn("text-[10px] font-black tracking-wider transition-colors duration-200", hasRated && selectedOption === 3 ? "text-white" : "text-emerald-500")}>EASY</span>
-                          <span className={cn("text-xs font-black transition-colors duration-200", hasRated && selectedOption === 3 ? "text-emerald-100" : "text-emerald-600")}>
-                            {currentQuestion?.fsrs?.intervals?.[4] || "4d"}
-                          </span>
-                        </button>
-                      </div>
-                    )}
+                    <FSRSActionButtons
+                      isFlipped={isFlipped}
+                      hasRated={hasRated}
+                      selectedOption={selectedOption}
+                      intervals={currentQuestion?.fsrs?.intervals}
+                      onRate={handleReviewRating}
+                    />
 
                     {/* After rating: show colorful dynamic rated badge with real-time unlocking countdown */}
                     {isFlipped && hasRated && selectedOption !== null && selectedOption !== undefined && (() => {
@@ -4734,8 +4447,10 @@ export default function FlashcardPlay() {
                   <button 
                     onClick={async () => {
                       try {
-                        await axios.delete(`/api/v1/quiz/${id}/session`)
-                      } catch (e) {}
+                        await axios.delete(`/api/v1/deck/${id}/session`)
+                      } catch (e) {
+                        console.error("Failed to delete session on exit:", e)
+                      }
                       navigate(`/flashcard/${id}`)
                     }}
                     className="py-4 bg-rose-500 text-white font-black text-[10px] uppercase tracking-widest rounded-2xl shadow-lg shadow-rose-200 active:scale-95 transition-all"
@@ -5049,6 +4764,34 @@ export default function FlashcardPlay() {
             message={activeMilestone.message}
             onClose={() => setActiveMilestone(null)}
           />
+        )}
+      </AnimatePresence>
+      {/* Local Toast Overlay */}
+      <AnimatePresence>
+        {localToast.visible && (
+          <motion.div
+            initial={{ opacity: 0, y: 50, scale: 0.9 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 20, scale: 0.95 }}
+            className="fixed bottom-6 right-6 z-[3000] flex items-center gap-3 px-4 py-3 rounded-2xl border backdrop-blur-md shadow-2xl transition-all duration-300 text-white"
+            style={{
+              backgroundColor: localToast.type === 'error' 
+                ? 'rgba(239, 68, 68, 0.95)' 
+                : localToast.type === 'warning'
+                ? 'rgba(245, 158, 11, 0.95)'
+                : 'rgba(16, 185, 129, 0.95)',
+              borderColor: localToast.type === 'error'
+                ? 'rgba(248, 113, 113, 0.4)'
+                : localToast.type === 'warning'
+                ? 'rgba(251, 191, 36, 0.4)'
+                : 'rgba(52, 211, 153, 0.4)'
+            }}
+          >
+            {localToast.type === 'error' && <XCircle className="w-5 h-5 text-red-100" />}
+            {localToast.type === 'warning' && <AlertCircle className="w-5 h-5 text-amber-100" />}
+            {localToast.type === 'success' && <CheckCircle2 className="w-5 h-5 text-emerald-100" />}
+            <span className="font-bold text-sm tracking-wide">{localToast.message}</span>
+          </motion.div>
         )}
       </AnimatePresence>
     </div>

@@ -53,7 +53,7 @@ export default function Profile() {
   const { data: badgesData, isLoading } = useQuery<BadgesResponse>({
     queryKey: ['user-badges'],
     queryFn: async () => {
-      const res = await axios.get('/api/v1/quiz/gamification/badges')
+      const res = await axios.get('/api/v1/deck/gamification/badges')
       return res.data
     }
   })

@@ -73,7 +73,7 @@ const ImportFlashcard = () => {
     formData.append('file', file)
     
     try {
-      const response = await axios.post('/api/v1/quiz/preview', formData)
+      const response = await axios.post('/api/v1/deck/preview', formData)
       setPreviewData(response.data)
       setSelectedFile(file)
     } catch (err: any) {
@@ -93,7 +93,7 @@ const ImportFlashcard = () => {
     formData.append('metadata_override', JSON.stringify(previewData.metadata))
     
     try {
-      const response = await axios.post('/api/v1/quiz/upload', formData)
+      const response = await axios.post('/api/v1/deck/upload', formData)
       if (response.data.status === 'ok') {
         setSuccess(true)
         setTimeout(() => navigate('/manage'), 2000)
@@ -145,7 +145,7 @@ const ImportFlashcard = () => {
             </div>
           </div>
           <a 
-            href="/api/v1/quiz/template/download"
+            href="/api/v1/deck/template/download"
             className="flex items-center gap-2 px-6 py-3 bg-slate-900 text-white text-[10px] font-black rounded-2xl hover:bg-slate-800 transition-all shadow-lg shadow-slate-200 uppercase tracking-widest"
           >
             <Download className="w-4 h-4" />
@@ -508,7 +508,7 @@ const ImportFlashcard = () => {
                 </div>
               </div>
               <a 
-                href="/api/v1/quiz/template/download"
+                href="/api/v1/deck/template/download"
                 className="md:hidden flex items-center justify-center gap-2 py-4 bg-slate-900 text-white text-[10px] font-black rounded-xl uppercase tracking-widest active:scale-95 transition-all shadow-lg shadow-slate-100"
               >
                  <Download className="w-4 h-4" />
@@ -571,7 +571,7 @@ const ImportFlashcard = () => {
                   </div>
                   
                   <a 
-                    href="/api/v1/quiz/template/download"
+                    href="/api/v1/deck/template/download"
                     className="flex items-center justify-center gap-3 w-full py-5 bg-slate-900 text-white text-[11px] font-black rounded-2xl uppercase tracking-[0.2em] shadow-xl shadow-slate-200"
                   >
                      <Download className="w-5 h-5" />

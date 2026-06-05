@@ -7,11 +7,11 @@ sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
 
 # Import all models to populate SQLAlchemy mapper registry
 from app.modules.auth.models import User
-from app.modules.quiz.models import (
-    Category, Quiz, Question, QuizAttempt, UserAnswer, QuizSession,
-    UserQuestionNote, Tag, QuizTag, QuizRoom, QuizRoomParticipant,
-    QuizRoomChat, QuizCollaborator, UserQuizGoal, UserDailyProgress,
-    UserQuestionMastery, UserDeckSettings
+from app.modules.deck.models import (
+    Category, FlashcardDeck, Flashcard, DeckAttempt, UserAnswer, DeckSession,
+    UserCardNote, Tag, DeckTag, DeckRoom, DeckRoomParticipant,
+    DeckRoomChat, DeckCollaborator, UserDeckGoal, UserDailyProgress,
+    UserCardMastery, UserDeckSettings
 )
 
 from app.core.db import SessionLocal
@@ -19,32 +19,32 @@ from sqlalchemy.future import select
 
 async def main():
     async with SessionLocal() as db:
-        result = await db.execute(select(Question))
-        questions = result.scalars().all()
+        result = await db.execute(select(Flashcard))
+        cards = result.scalars().all()
         updated_count = 0
         
-        for q in questions:
+        for c in cards:
             changed = False
-            # Clean up q.audio (front audio URL)
-            if q.audio and ("/static/uploads/" in q.audio) and q.audio.startswith("http"):
-                match = re.search(r"(/static/uploads/.*)$", q.audio)
+            # Clean up c.audio (front audio URL)
+            if c.audio and ("/static/uploads/" in c.audio) and c.audio.startswith("http"):
+                match = re.search(r"(/static/uploads/.*)$", c.audio)
                 if match:
-                    old = q.audio
-                    q.audio = match.group(1)
-                    print(f"Question #{q.id} front audio: {old} -> {q.audio}")
+                    old = c.audio
+                    c.audio = match.group(1)
+                    print(f"Card #{c.id} front audio: {old} -> {c.audio}")
                     changed = True
             
-            # Clean up q.others for back_audio_url
-            if q.others and isinstance(q.others, dict):
-                back_audio = q.others.get("back_audio_url")
+            # Clean up c.others for back_audio_url
+            if c.others and isinstance(c.others, dict):
+                back_audio = c.others.get("back_audio_url")
                 if back_audio and ("/static/uploads/" in back_audio) and back_audio.startswith("http"):
                     match = re.search(r"(/static/uploads/.*)$", back_audio)
                     if match:
                         old = back_audio
-                        q.others["back_audio_url"] = match.group(1)
-                        print(f"Question #{q.id} back audio: {old} -> {q.others['back_audio_url']}")
+                        c.others["back_audio_url"] = match.group(1)
+                        print(f"Card #{c.id} back audio: {old} -> {c.others['back_audio_url']}")
                         from sqlalchemy.orm.attributes import flag_modified
-                        flag_modified(q, "others")
+                        flag_modified(c, "others")
                         changed = True
             
             if changed:
@@ -52,7 +52,7 @@ async def main():
                 
         if updated_count > 0:
             await db.commit()
-            print(f"Successfully converted {updated_count} questions' audio URLs to relative paths.")
+            print(f"Successfully converted {updated_count} cards' audio URLs to relative paths.")
         else:
             print("No absolute audio URLs found to convert.")
 

@@ -877,13 +877,13 @@ export default function Dashboard() {
   const { data: globalGoals, refetch: refetchGlobalGoals } = useQuery<GlobalGoals>({
     queryKey: ['globalGoals'],
     queryFn: async () => {
-      const res = await axios.get('/api/v1/quiz/goals/global')
+      const res = await axios.get('/api/v1/deck/goals/global')
       return res.data
     }
   })
 
   const handleSaveGlobalGoals = async (timeTarget: number, cardTarget: number, newCardTarget: number) => {
-    await axios.post('/api/v1/quiz/goals/global', {
+    await axios.post('/api/v1/deck/goals/global', {
       daily_time_target: timeTarget,
       daily_card_target: cardTarget,
       daily_new_card_target: newCardTarget
@@ -896,7 +896,7 @@ export default function Dashboard() {
   const { data: activeGoals, isLoading: isGoalsLoading } = useQuery<ActiveGoal[]>({
     queryKey: ['activeGoals', todayStr],
     queryFn: async () => {
-      const res = await axios.get('/api/v1/quiz/goals/active', { params: { local_date: todayStr } })
+      const res = await axios.get('/api/v1/deck/goals/active', { params: { local_date: todayStr } })
       return res.data
     }
   })
@@ -904,7 +904,7 @@ export default function Dashboard() {
   const { data: todayReview, isLoading: isTodayReviewLoading } = useQuery({
     queryKey: ['todayReview'],
     queryFn: async () => {
-      const res = await axios.get('/api/v1/quiz/today-review')
+      const res = await axios.get('/api/v1/deck/today-review')
       return res.data
     }
   })
@@ -912,7 +912,7 @@ export default function Dashboard() {
   const { data: weeklyReport } = useQuery({
     queryKey: ['weeklyReport'],
     queryFn: async () => {
-      const res = await axios.get('/api/v1/quiz/stats/weekly-report')
+      const res = await axios.get('/api/v1/deck/stats/weekly-report')
       return res.data
     }
   })
@@ -920,7 +920,7 @@ export default function Dashboard() {
   const { data: heatmapData } = useQuery<HeatmapDay[]>({
     queryKey: ['stats-heatmap'],
     queryFn: async () => {
-      const res = await axios.get('/api/v1/quiz/stats/heatmap')
+      const res = await axios.get('/api/v1/deck/stats/heatmap')
       return res.data
     }
   })
@@ -984,7 +984,7 @@ export default function Dashboard() {
     if (!roomCode) return
     setIsJoining(true)
     try {
-      await axios.post('/api/v1/quiz/room/join', { room_code: roomCode })
+      await axios.post('/api/v1/deck/room/join', { room_code: roomCode })
       navigate(`/room/${roomCode.toUpperCase()}`)
     } catch (e) {
       alert("Room not found or expired")

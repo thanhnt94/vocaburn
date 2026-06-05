@@ -25,7 +25,7 @@ export default function ManageFlashcards() {
   const handleDelete = async (id: number) => {
     if (!confirm('Are you sure you want to delete this deck?')) return
     try {
-      await axios.delete(`/api/v1/quiz/${id}`)
+      await axios.delete(`/api/v1/deck/${id}`)
       queryClient.invalidateQueries({ queryKey: ['manage-quizzes'] })
     } catch (err) {
       alert('Failed to delete deck')
@@ -36,7 +36,7 @@ export default function ManageFlashcards() {
     e.preventDefault()
     setIsSubmitting(true)
     try {
-      await axios.post('/api/v1/quiz/create', newQuiz)
+      await axios.post('/api/v1/deck/create', newQuiz)
       setIsCreateModalOpen(false)
       setNewQuiz({ title: '', description: '', cover_image: '' })
       queryClient.invalidateQueries({ queryKey: ['manage-quizzes'] })
@@ -188,7 +188,7 @@ export default function ManageFlashcards() {
                                     />
                                     <div className="absolute right-0 mt-2 w-56 bg-white border border-slate-100 rounded-xl shadow-xl py-1.5 z-[150] animate-in fade-in slide-in-from-top-2 duration-150 text-left">
                                        <a 
-                                          href={`/api/v1/quiz/${quiz.id}/export`} 
+                                          href={`/api/v1/deck/${quiz.id}/export`} 
                                           onClick={(e) => {
                                              e.stopPropagation();
                                              setActiveExportDeckId(null);
@@ -198,7 +198,7 @@ export default function ManageFlashcards() {
                                           Xuất có ID (để sửa rồi update)
                                        </a>
                                        <a 
-                                          href={`/api/v1/quiz/${quiz.id}/export?exclude_ids=true`} 
+                                          href={`/api/v1/deck/${quiz.id}/export?exclude_ids=true`} 
                                           onClick={(e) => {
                                              e.stopPropagation();
                                              setActiveExportDeckId(null);

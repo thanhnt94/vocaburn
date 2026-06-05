@@ -68,7 +68,7 @@ const EditFlashcard = () => {
   useEffect(() => {
     const fetchQuiz = async () => {
       try {
-        const res = await axios.get(`/api/v1/quiz/${id}/play-data`)
+        const res = await axios.get(`/api/v1/deck/${id}/play-data`)
         setFormData({
           title: res.data.title,
           description: res.data.description || '',
@@ -82,11 +82,11 @@ const EditFlashcard = () => {
         setQuestions(res.data.questions || [])
         
         // Fetch collaborators
-        const collabRes = await axios.get(`/api/v1/quiz/${id}/collaborators`)
+        const collabRes = await axios.get(`/api/v1/deck/${id}/collaborators`)
         setCollaborators(collabRes.data)
 
         // Fetch practice settings
-        const settingsRes = await axios.get(`/api/v1/quiz/${id}/practice-settings`)
+        const settingsRes = await axios.get(`/api/v1/deck/${id}/practice-settings`)
         setAvailableColumns(settingsRes.data.available_columns || ['front', 'back'])
         if (settingsRes.data.creator_settings && Object.keys(settingsRes.data.creator_settings).length > 0) {
           setPracticeSettings(settingsRes.data.creator_settings)
@@ -108,7 +108,7 @@ const EditFlashcard = () => {
       }
       setIsSearching(true)
       try {
-        const res = await axios.get(`/api/v1/quiz/users/search?q=${userSearch}`)
+        const res = await axios.get(`/api/v1/deck/users/search?q=${userSearch}`)
         setSearchResults(res.data)
       } catch (err) {
         console.error(err)
@@ -124,7 +124,7 @@ const EditFlashcard = () => {
     setIsSaving(true)
     setError(null)
     try {
-      await axios.patch(`/api/v1/quiz/${id}`, {
+      await axios.patch(`/api/v1/deck/${id}`, {
         title: formData.title,
         description: formData.description,
         ai_prompt: formData.ai_prompt,
@@ -134,7 +134,7 @@ const EditFlashcard = () => {
       })
       
       // Save default practice settings for this deck
-      await axios.post(`/api/v1/quiz/${id}/practice-settings`, {
+      await axios.post(`/api/v1/deck/${id}/practice-settings`, {
         settings: practiceSettings,
         is_creator: true
       })
@@ -150,8 +150,8 @@ const EditFlashcard = () => {
 
   const addCollaborator = async (userId: number) => {
     try {
-      await axios.post(`/api/v1/quiz/${id}/collaborators`, { user_id: userId })
-      const res = await axios.get(`/api/v1/quiz/${id}/collaborators`)
+      await axios.post(`/api/v1/deck/${id}/collaborators`, { user_id: userId })
+      const res = await axios.get(`/api/v1/deck/${id}/collaborators`)
       setCollaborators(res.data)
       setUserSearch('')
       setSearchResults([])
@@ -163,7 +163,7 @@ const EditFlashcard = () => {
   const removeCollaborator = async (userId: number) => {
     if (!confirm("Remove this collaborator?")) return
     try {
-      await axios.delete(`/api/v1/quiz/${id}/collaborators/${userId}`)
+      await axios.delete(`/api/v1/deck/${id}/collaborators/${userId}`)
       setCollaborators(collaborators.filter(c => c.id !== userId))
     } catch (err) {
       alert("Failed to remove collaborator")
@@ -173,7 +173,7 @@ const EditFlashcard = () => {
   const transferOwnership = async (userId: number) => {
     if (!confirm("Are you sure you want to transfer ownership? You will lose primary control over this collection.")) return
     try {
-      await axios.post(`/api/v1/quiz/${id}/transfer-ownership`, { user_id: userId })
+      await axios.post(`/api/v1/deck/${id}/transfer-ownership`, { user_id: userId })
       alert("Ownership transferred successfully")
       navigate('/manage')
     } catch (err) {

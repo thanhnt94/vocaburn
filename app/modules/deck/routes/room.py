@@ -3,13 +3,13 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func, update, desc
 from sqlalchemy.orm import selectinload
 from app.core.db import get_db
-from app.modules.quiz.models import Quiz, Question, QuizRoom, QuizRoomParticipant, QuizAttempt, UserAnswer, QuizRoomChat
+from app.modules.deck.models import FlashcardDeck, Flashcard, DeckRoom, DeckRoomParticipant, DeckAttempt, UserAnswer, DeckRoomChat
 from app.modules.auth.services.auth_service import AuthService
 import random
 import string
 from datetime import datetime, date
 
-router = APIRouter(prefix="/quiz/room", tags=["Quiz Room"])
+router = APIRouter(prefix="/deck/room", tags=["Deck Room"])
 
 def generate_room_code(length=6):
     return ''.join(random.choices(string.ascii_uppercase + string.digits, k=length))
@@ -21,10 +21,10 @@ async def get_active_rooms(request: Request, db: AsyncSession = Depends(get_db))
         raise HTTPException(status_code=401, detail="Unauthorized")
         
     # Discover Arena: active or waiting rooms hosted by others
-    discover_stmt = select(QuizRoom)\
-        .where(QuizRoom.status != "finished", QuizRoom.host_id != user.id)\
-        .options(selectinload(QuizRoom.quiz), selectinload(QuizRoom.participants))\
-        .order_by(QuizRoom.created_at.desc())
+    discover_stmt = select(DeckRoom)\
+        .where(DeckRoom.status != "finished", DeckRoom.host_id != user.id)\
+        .options(selectinload(DeckRoom.deck), selectinload(DeckRoom.participants))\
+        .order_by(DeckRoom.created_at.desc())
     
     discover_res = await db.execute(discover_stmt)
     discover_rooms = []
@@ -33,8 +33,10 @@ async def get_active_rooms(request: Request, db: AsyncSession = Depends(get_db))
         discover_rooms.append({
             "id": r.id,
             "room_code": r.room_code,
-            "quiz_title": r.quiz.title if r.quiz else "Untitled",
-            "quiz_id": r.quiz_id,
+            "deck_title": r.deck.title if r.deck else "Untitled",
+            "quiz_title": r.deck.title if r.deck else "Untitled", # compatibility
+            "deck_id": r.deck_id,
+            "quiz_id": r.deck_id, # compatibility
             "status": r.status,
             "participant_count": len(r.participants),
             "requires_password": bool(room_settings.get("password")),
@@ -42,11 +44,11 @@ async def get_active_rooms(request: Request, db: AsyncSession = Depends(get_db))
         })
         
     # My Rooms: active or waiting rooms where user is host or participant
-    my_stmt = select(QuizRoom)\
-        .join(QuizRoomParticipant)\
-        .where(QuizRoom.status != "finished", QuizRoomParticipant.user_id == user.id)\
-        .options(selectinload(QuizRoom.quiz), selectinload(QuizRoom.participants))\
-        .order_by(QuizRoom.created_at.desc())
+    my_stmt = select(DeckRoom)\
+        .join(DeckRoomParticipant)\
+        .where(DeckRoom.status != "finished", DeckRoomParticipant.user_id == user.id)\
+        .options(selectinload(DeckRoom.deck), selectinload(DeckRoom.participants))\
+        .order_by(DeckRoom.created_at.desc())
         
     my_res = await db.execute(my_stmt)
     my_rooms = []
@@ -55,8 +57,10 @@ async def get_active_rooms(request: Request, db: AsyncSession = Depends(get_db))
         my_rooms.append({
             "id": r.id,
             "room_code": r.room_code,
-            "quiz_title": r.quiz.title if r.quiz else "Untitled",
-            "quiz_id": r.quiz_id,
+            "deck_title": r.deck.title if r.deck else "Untitled",
+            "quiz_title": r.deck.title if r.deck else "Untitled", # compatibility
+            "deck_id": r.deck_id,
+            "quiz_id": r.deck_id, # compatibility
             "status": r.status,
             "participant_count": len(r.participants),
             "requires_password": bool(room_settings.get("password")),
@@ -75,18 +79,18 @@ async def create_room(request: Request, data: dict, db: AsyncSession = Depends(g
     if not user:
         raise HTTPException(status_code=401, detail="Unauthorized")
     
-    quiz_id = data.get("quiz_id")
-    if not quiz_id:
-        raise HTTPException(status_code=400, detail="Quiz ID required")
+    deck_id = data.get("deck_id", data.get("quiz_id"))
+    if not deck_id:
+        raise HTTPException(status_code=400, detail="Deck ID required")
     
-    # Check if quiz exists
-    quiz_res = await db.execute(select(Quiz).where(Quiz.id == quiz_id))
-    if not quiz_res.scalar_one_or_none():
-        raise HTTPException(status_code=404, detail="Quiz not found")
+    # Check if deck exists
+    deck_res = await db.execute(select(FlashcardDeck).where(FlashcardDeck.id == deck_id))
+    if not deck_res.scalar_one_or_none():
+        raise HTTPException(status_code=404, detail="Deck not found")
     
     # Generate unique code
     room_code = generate_room_code()
-    while (await db.execute(select(QuizRoom).where(QuizRoom.room_code == room_code))).scalar_one_or_none():
+    while (await db.execute(select(DeckRoom).where(DeckRoom.room_code == room_code))).scalar_one_or_none():
         room_code = generate_room_code()
         
     game_mode = data.get("game_mode", "chill")
@@ -98,11 +102,12 @@ async def create_room(request: Request, data: dict, db: AsyncSession = Depends(g
         "game_mode": game_mode,
         "time_limit": time_limit,
         "password": password,
-        "current_question_index": 0
+        "current_card_index": 0,
+        "current_question_index": 0 # compatibility
     })
         
-    room = QuizRoom(
-        quiz_id=quiz_id,
+    room = DeckRoom(
+        deck_id=deck_id,
         room_code=room_code,
         host_id=user.id,
         status="waiting",
@@ -112,8 +117,8 @@ async def create_room(request: Request, data: dict, db: AsyncSession = Depends(g
     await db.flush()
     
     # Host automatically joins
-    participant = QuizRoomParticipant(
-        room_id=room.id,
+    participant = DeckRoomParticipant(
+        deck_room_id=room.id,
         user_id=user.id,
         is_ready=True
     )
@@ -135,7 +140,7 @@ async def join_room(request: Request, data: dict, db: AsyncSession = Depends(get
     password = data.get("password")
         
     result = await db.execute(
-        select(QuizRoom).where(QuizRoom.room_code == room_code.upper()).options(selectinload(QuizRoom.participants))
+        select(DeckRoom).where(DeckRoom.room_code == room_code.upper()).options(selectinload(DeckRoom.participants))
     )
     room = result.scalar_one_or_none()
     if not room:
@@ -152,23 +157,23 @@ async def join_room(request: Request, data: dict, db: AsyncSession = Depends(get
     # Check if already joined
     participant = next((p for p in room.participants if p.user_id == user.id), None)
     if not participant:
-        participant = QuizRoomParticipant(
-            room_id=room.id,
+        participant = DeckRoomParticipant(
+            deck_room_id=room.id,
             user_id=user.id
         )
         db.add(participant)
         await db.commit()
         
-    return {"status": "ok", "room_id": room.id, "quiz_id": room.quiz_id}
+    return {"status": "ok", "room_id": room.id, "deck_id": room.deck_id, "quiz_id": room.deck_id}
 
 @router.get("/{room_code}")
 async def get_room_details(room_code: str, db: AsyncSession = Depends(get_db)):
     result = await db.execute(
-        select(QuizRoom)
-        .where(QuizRoom.room_code == room_code.upper())
+        select(DeckRoom)
+        .where(DeckRoom.room_code == room_code.upper())
         .options(
-            selectinload(QuizRoom.participants).selectinload(QuizRoomParticipant.user),
-            selectinload(QuizRoom.quiz)
+            selectinload(DeckRoom.participants).selectinload(DeckRoomParticipant.user),
+            selectinload(DeckRoom.deck)
         )
     )
     room = result.scalar_one_or_none()
@@ -179,8 +184,10 @@ async def get_room_details(room_code: str, db: AsyncSession = Depends(get_db)):
         "id": room.id,
         "room_code": room.room_code,
         "status": room.status,
-        "quiz_title": room.quiz.title,
-        "quiz_id": room.quiz_id,
+        "deck_title": room.deck.title,
+        "quiz_title": room.deck.title, # compatibility
+        "deck_id": room.deck_id,
+        "quiz_id": room.deck_id, # compatibility
         "host_id": room.host_id,
         "settings": room.settings,
         "participants": [
@@ -197,7 +204,7 @@ async def get_room_details(room_code: str, db: AsyncSession = Depends(get_db)):
 @router.post("/{room_code}/start")
 async def start_room(request: Request, room_code: str, db: AsyncSession = Depends(get_db)):
     user = await AuthService.get_current_user(request, db)
-    result = await db.execute(select(QuizRoom).where(QuizRoom.room_code == room_code.upper()))
+    result = await db.execute(select(DeckRoom).where(DeckRoom.room_code == room_code.upper()))
     room = result.scalar_one_or_none()
     
     if not room or room.host_id != user.id:
@@ -215,7 +222,7 @@ async def submit_room_answer(request: Request, room_code: str, data: dict, db: A
         raise HTTPException(status_code=401, detail="Unauthorized")
         
     result = await db.execute(
-        select(QuizRoom).where(QuizRoom.room_code == room_code.upper()).options(selectinload(QuizRoom.participants))
+        select(DeckRoom).where(DeckRoom.room_code == room_code.upper()).options(selectinload(DeckRoom.participants))
     )
     room = result.scalar_one_or_none()
     if not room or room.status != "active":
@@ -225,7 +232,7 @@ async def submit_room_answer(request: Request, room_code: str, data: dict, db: A
     if not participant:
         raise HTTPException(status_code=403, detail="You are not in this room")
         
-    question_id = data.get("question_id")
+    card_id = data.get("card_id", data.get("question_id"))
     is_correct = data.get("is_correct", False)
     time_spent = data.get("time_spent", 0)
     rating_val = data.get("rating")
@@ -234,15 +241,15 @@ async def submit_room_answer(request: Request, room_code: str, data: dict, db: A
     else:
         rating_val = 3 if is_correct else 1
     
-    # Record in personal log (QuizAttempt)
+    # Record in personal log (DeckAttempt)
     attempt_res = await db.execute(
-        select(QuizAttempt)
-        .where(QuizAttempt.user_id == user.id, QuizAttempt.quiz_id == room.quiz_id)
-        .order_by(QuizAttempt.id.desc())
+        select(DeckAttempt)
+        .where(DeckAttempt.user_id == user.id, DeckAttempt.deck_id == room.deck_id)
+        .order_by(DeckAttempt.id.desc())
     )
     attempt = attempt_res.scalar()
     if not attempt:
-        attempt = QuizAttempt(user_id=user.id, quiz_id=room.quiz_id, mode="room")
+        attempt = DeckAttempt(user_id=user.id, deck_id=room.deck_id, mode="room")
         db.add(attempt)
         await db.flush()
         
@@ -284,15 +291,15 @@ async def submit_room_answer(request: Request, room_code: str, data: dict, db: A
         
     db_answer = UserAnswer(
         attempt_id=attempt.id,
-        question_id=question_id,
+        card_id=card_id,
         is_correct=is_correct,
         active_time=float(time_spent),
         rating=rating_val
     )
     db.add(db_answer)
     
-    # Update total questions in attempt
-    attempt.total_questions += 1
+    # Update total cards in attempt
+    attempt.total_cards += 1
     if is_correct:
         attempt.score += 1
         
@@ -302,11 +309,11 @@ async def submit_room_answer(request: Request, room_code: str, data: dict, db: A
 @router.get("/{room_code}/leaderboard")
 async def get_leaderboard(room_code: str, db: AsyncSession = Depends(get_db)):
     result = await db.execute(
-        select(QuizRoomParticipant)
-        .join(QuizRoom)
-        .where(QuizRoom.room_code == room_code.upper())
-        .options(selectinload(QuizRoomParticipant.user))
-        .order_by(QuizRoomParticipant.score.desc(), QuizRoomParticipant.total_answered.asc())
+        select(DeckRoomParticipant)
+        .join(DeckRoom)
+        .where(DeckRoom.room_code == room_code.upper())
+        .options(selectinload(DeckRoomParticipant.user))
+        .order_by(DeckRoomParticipant.score.desc(), DeckRoomParticipant.total_answered.asc())
     )
     participants = result.scalars().all()
     
@@ -328,13 +335,13 @@ async def post_room_chat(request: Request, room_code: str, data: dict, db: Async
     if not msg:
         raise HTTPException(status_code=400, detail="Empty message")
         
-    room_res = await db.execute(select(QuizRoom).where(QuizRoom.room_code == room_code.upper()))
+    room_res = await db.execute(select(DeckRoom).where(DeckRoom.room_code == room_code.upper()))
     room = room_res.scalar_one_or_none()
     if not room:
         raise HTTPException(status_code=404, detail="Room not found")
         
-    chat = QuizRoomChat(
-        room_id=room.id,
+    chat = DeckRoomChat(
+        deck_room_id=room.id,
         user_id=user.id,
         message=msg
     )
@@ -344,15 +351,15 @@ async def post_room_chat(request: Request, room_code: str, data: dict, db: Async
 
 @router.get("/{room_code}/chat")
 async def get_room_chats(room_code: str, db: AsyncSession = Depends(get_db)):
-    room_res = await db.execute(select(QuizRoom).where(QuizRoom.room_code == room_code.upper()))
+    room_res = await db.execute(select(DeckRoom).where(DeckRoom.room_code == room_code.upper()))
     room = room_res.scalar_one_or_none()
     if not room:
         raise HTTPException(status_code=404, detail="Room not found")
         
-    chat_stmt = select(QuizRoomChat)\
-        .where(QuizRoomChat.room_id == room.id)\
-        .options(selectinload(QuizRoomChat.user))\
-        .order_by(QuizRoomChat.created_at.asc())\
+    chat_stmt = select(DeckRoomChat)\
+        .where(DeckRoomChat.deck_room_id == room.id)\
+        .options(selectinload(DeckRoomChat.user))\
+        .order_by(DeckRoomChat.created_at.asc())\
         .limit(50)
         
     results = await db.execute(chat_stmt)
@@ -369,7 +376,7 @@ async def get_room_chats(room_code: str, db: AsyncSession = Depends(get_db)):
 @router.post("/{room_code}/next-question")
 async def next_room_question(request: Request, room_code: str, db: AsyncSession = Depends(get_db)):
     user = await AuthService.get_current_user(request, db)
-    room_res = await db.execute(select(QuizRoom).where(QuizRoom.room_code == room_code.upper()))
+    room_res = await db.execute(select(DeckRoom).where(DeckRoom.room_code == room_code.upper()))
     room = room_res.scalar_one_or_none()
     if not room:
         raise HTTPException(status_code=404, detail="Room not found")
@@ -378,20 +385,21 @@ async def next_room_question(request: Request, room_code: str, db: AsyncSession 
         raise HTTPException(status_code=403, detail="Only the host can advance the question")
         
     room_settings = room.settings or {}
-    current_idx = room_settings.get("current_question_index", 0)
+    current_idx = room_settings.get("current_card_index", room_settings.get("current_question_index", 0))
     
     # Update in settings JSON
     new_settings = dict(room_settings)
-    new_settings["current_question_index"] = current_idx + 1
+    new_settings["current_card_index"] = current_idx + 1
+    new_settings["current_question_index"] = current_idx + 1 # compatibility
     room.settings = new_settings
     
     await db.commit()
-    return {"status": "ok", "current_question_index": current_idx + 1}
+    return {"status": "ok", "current_card_index": current_idx + 1, "current_question_index": current_idx + 1}
 
 @router.post("/{room_code}/end")
 async def end_room(request: Request, room_code: str, db: AsyncSession = Depends(get_db)):
     user = await AuthService.get_current_user(request, db)
-    result = await db.execute(select(QuizRoom).where(QuizRoom.room_code == room_code.upper()))
+    result = await db.execute(select(DeckRoom).where(DeckRoom.room_code == room_code.upper()))
     room = result.scalar_one_or_none()
     if not room:
         raise HTTPException(status_code=404, detail="Room not found")

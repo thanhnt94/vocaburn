@@ -123,7 +123,7 @@ export default function QuizRoom() {
 
   const fetchRoom = async () => {
     try {
-      const res = await axios.get(`/api/v1/quiz/room/${code}`)
+      const res = await axios.get(`/api/v1/deck/room/${code}`)
       setRoom(res.data)
       
       if (res.data.status === 'active' && !quizData) {
@@ -141,21 +141,21 @@ export default function QuizRoom() {
 
   const fetchQuizData = async (quizId: number) => {
     try {
-      const res = await axios.get(`/api/v1/quiz/${quizId}/play-data`)
+      const res = await axios.get(`/api/v1/deck/${quizId}/play-data`)
       setQuizData(res.data)
     } catch (e) {}
   }
 
   const fetchLeaderboard = async () => {
     try {
-      const res = await axios.get(`/api/v1/quiz/room/${code}/leaderboard`)
+      const res = await axios.get(`/api/v1/deck/room/${code}/leaderboard`)
       setLeaderboard(res.data)
     } catch (e) {}
   }
 
   const fetchChats = async () => {
     try {
-      const res = await axios.get(`/api/v1/quiz/room/${code}/chat`)
+      const res = await axios.get(`/api/v1/deck/room/${code}/chat`)
       setChats(res.data)
     } catch (e) {}
   }
@@ -169,7 +169,7 @@ export default function QuizRoom() {
 
   const handleStart = async () => {
     try {
-      await axios.post(`/api/v1/quiz/room/${code}/start`)
+      await axios.post(`/api/v1/deck/room/${code}/start`)
       fetchRoom()
     } catch (e) {
       alert("Failed to start room")
@@ -180,7 +180,7 @@ export default function QuizRoom() {
     e.preventDefault()
     if (!newMessage.trim()) return
     try {
-      await axios.post(`/api/v1/quiz/room/${code}/chat`, { message: newMessage })
+      await axios.post(`/api/v1/deck/room/${code}/chat`, { message: newMessage })
       setNewMessage('')
       fetchChats()
     } catch (e) {}
@@ -204,7 +204,7 @@ export default function QuizRoom() {
     }
 
     try {
-      await axios.post(`/api/v1/quiz/room/${code}/submit`, {
+      await axios.post(`/api/v1/deck/room/${code}/submit`, {
         question_id: currentQuestion.id,
         option_id: currentQuestion.options[optIdx].id,
         is_correct: correct,
@@ -230,7 +230,7 @@ export default function QuizRoom() {
 
     try {
       // Submit incorrect timeout selection (option_id null)
-      await axios.post(`/api/v1/quiz/room/${code}/submit`, {
+      await axios.post(`/api/v1/deck/room/${code}/submit`, {
         question_id: quizData.questions[currentIndex].id,
         option_id: null,
         is_correct: false,
@@ -244,7 +244,7 @@ export default function QuizRoom() {
       // Give players 3 extra seconds to see feedback before auto next
       setTimeout(async () => {
         try {
-          await axios.post(`/api/v1/quiz/room/${code}/next-question`)
+          await axios.post(`/api/v1/deck/room/${code}/next-question`)
         } catch (e) {}
       }, 3500)
     }
@@ -256,7 +256,7 @@ export default function QuizRoom() {
     if (currentIndex < quizData.questions.length - 1) {
       // Advance room question index
       try {
-        await axios.post(`/api/v1/quiz/room/${code}/next-question`)
+        await axios.post(`/api/v1/deck/room/${code}/next-question`)
         fetchRoom()
       } catch (e) {
         console.error("Failed to advance question")
@@ -264,7 +264,7 @@ export default function QuizRoom() {
     } else {
       // Host closes the room and triggers victory podium for everyone
       try {
-        await axios.post(`/api/v1/quiz/room/${code}/end`)
+        await axios.post(`/api/v1/deck/room/${code}/end`)
         fetchRoom()
       } catch (e) {
         console.error("Failed to end exam")

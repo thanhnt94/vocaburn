@@ -44,7 +44,7 @@ export default function QuizDetail() {
 
   const fetchCollaborators = async () => {
     try {
-      const res = await axios.get(`/api/v1/quiz/${id}/collaborators`)
+      const res = await axios.get(`/api/v1/deck/${id}/collaborators`)
       setCollaborators(res.data)
     } catch (e) {}
   }
@@ -56,14 +56,14 @@ export default function QuizDetail() {
       return
     }
     try {
-      const res = await axios.get(`/api/v1/quiz/users/search`, { params: { q } })
+      const res = await axios.get(`/api/v1/deck/users/search`, { params: { q } })
       setSearchResults(res.data)
     } catch (e) {}
   }
 
   const addCollaborator = async (userId: number) => {
     try {
-      await axios.post(`/api/v1/quiz/${id}/collaborators`, { user_id: userId })
+      await axios.post(`/api/v1/deck/${id}/collaborators`, { user_id: userId })
       fetchCollaborators()
       setUserSearch('')
       setSearchResults([])
@@ -74,7 +74,7 @@ export default function QuizDetail() {
 
   const removeCollaborator = async (userId: number) => {
     try {
-      await axios.delete(`/api/v1/quiz/${id}/collaborators/${userId}`)
+      await axios.delete(`/api/v1/deck/${id}/collaborators/${userId}`)
       fetchCollaborators()
     } catch (e) {
       alert("Error removing collaborator!")
@@ -84,7 +84,7 @@ export default function QuizDetail() {
   const { data: quiz } = useQuery({
     queryKey: ['quiz', id],
     queryFn: async () => {
-      const res = await axios.get(`/api/v1/quiz/${id}/data`) // Need this endpoint
+      const res = await axios.get(`/api/v1/deck/${id}/data`) // Need this endpoint
       return res.data
     }
   })
@@ -92,7 +92,7 @@ export default function QuizDetail() {
   const { data: masteryData } = useQuery({
     queryKey: ['quiz-mastery', id],
     queryFn: async () => {
-      const res = await axios.get(`/api/v1/quiz/quizzes/${id}/mastery`)
+      const res = await axios.get(`/api/v1/deck/decks/${id}/mastery`)
       return res.data
     }
   })
@@ -100,7 +100,7 @@ export default function QuizDetail() {
   const { data: notes } = useQuery({
     queryKey: ['quiz-notes', id],
     queryFn: async () => {
-      const res = await axios.get(`/api/v1/quiz/${id}/notes`)
+      const res = await axios.get(`/api/v1/deck/${id}/notes`)
       return res.data
     }
   })
@@ -108,7 +108,7 @@ export default function QuizDetail() {
   const { data: sessionData } = useQuery({
     queryKey: ['quiz-session', id],
     queryFn: async () => {
-      const res = await axios.get(`/api/v1/quiz/${id}/session`)
+      const res = await axios.get(`/api/v1/deck/${id}/session`)
       return res.data
     }
   })
@@ -121,7 +121,7 @@ export default function QuizDetail() {
   } = useInfiniteQuery({
     queryKey: ['quiz-questions', id, searchQuery],
     queryFn: async ({ pageParam = 1 }) => {
-      const res = await axios.get(`/api/v1/quiz/${id}/questions`, {
+      const res = await axios.get(`/api/v1/deck/${id}/questions`, {
         params: { page: pageParam, size: 50, search: searchQuery }
       })
       return res.data
@@ -367,7 +367,7 @@ export default function QuizDetail() {
             <>
               <button 
                 onClick={async () => {
-                  await axios.delete(`/api/v1/quiz/${id}/session`)
+                  await axios.delete(`/api/v1/deck/${id}/session`)
                   // Refresh the query to update UI
                   queryClient.invalidateQueries({ queryKey: ['quiz-session', id] })
                   navigate(`/flashcard/${id}/play`)
@@ -593,7 +593,7 @@ export default function QuizDetail() {
                     onClick={async () => {
                        setIsSavingEdit(true)
                        try {
-                         await axios.patch(`/api/v1/quiz/${id}`, {
+                         await axios.patch(`/api/v1/deck/${id}`, {
                            ...editFormData,
                            tags: editFormData.tags.split(',').map((t: string) => t.trim()).filter(Boolean)
                          })

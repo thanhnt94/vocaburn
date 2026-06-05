@@ -9,13 +9,13 @@ class AIService:
         else:
             self.client = None
 
-    async def explain_question(self, question_text: str, options: list, correct_answer: str) -> str:
+    async def explain_card(self, card_text: str, options: list, correct_answer: str) -> str:
         if not self.client:
             return "AI service is not configured (API key missing)."
 
         prompt = f"""
-        As an expert educator, explain why the correct answer is "{correct_answer}" for the following question:
-        Question: {question_text}
+        As an expert educator, explain why the correct answer is "{correct_answer}" for the following card:
+        Card: {card_text}
         Options: {", ".join(options)}
         
         Provide a concise, clear explanation and a memory tip. Use professional and encouraging tone.
@@ -29,5 +29,8 @@ class AIService:
             return response.text
         except Exception as e:
             return f"AI explanation failed: {str(e)}"
+
+    async def explain_question(self, question_text: str, options: list, correct_answer: str) -> str:
+        return await self.explain_card(question_text, options, correct_answer)
 
 ai_service = AIService()

@@ -1,4 +1,4 @@
-from app.modules.quiz.models import Category, Quiz, Question
+from app.modules.deck.models import Category, FlashcardDeck, Flashcard
 from app.modules.auth.models import User
 from app.modules.gamification.models import UserGamification, Badge
 from app.modules.notification.models import Notification, PushSubscription

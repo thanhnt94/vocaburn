@@ -5,7 +5,7 @@ from sqlalchemy import select
 from app.core.db import SessionLocal
 from app.modules.notification.models import PushSubscription
 from app.modules.notification.services.push_service import PushService
-from app.modules.quiz.services.quiz_service import QuizService
+from app.modules.deck.services.deck_service import DeckService
 
 logger = logging.getLogger(__name__)
 
@@ -29,7 +29,7 @@ async def check_and_send_reminders_for_minute(current_time_str: str):
                 user_id = config.user_id
                 
                 # Query if they have due cards today
-                review_data = await QuizService.get_today_review(db, user_id)
+                review_data = await DeckService.get_today_review(db, user_id)
                 due_count = review_data.get("due_cards_count", 0)
                 streak_at_risk = review_data.get("streak_at_risk", False)
                 
@@ -69,7 +69,7 @@ async def check_advanced_reminders_for_minute(current_time_str: str, now: dateti
             for config in configs:
                 if not config.telegram_chat_id: continue
                 try:
-                    review_data = await QuizService.get_today_review(db, config.user_id)
+                    review_data = await DeckService.get_today_review(db, config.user_id)
                     if review_data.get("streak_at_risk", False) or review_data.get("due_cards_count", 0) > 0:
                         title = "🚨 BÁO ĐỘNG ĐỎ: NGUY CƠ MẤT STREAK! 🚨"
                         body = "Chỉ còn 2 tiếng nữa là hết ngày! Bạn chưa hoàn thành mục tiêu học. Vào cứu lấy chuỗi học ngay nào!"

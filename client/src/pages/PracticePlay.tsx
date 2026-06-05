@@ -107,7 +107,7 @@ export default function PracticePlay() {
     if (!audioUrl && currentQuestion.id && script && script.trim()) {
       try {
         console.log(`[CLIENT TTS] Audio file missing. Requesting generation for question ${currentQuestion.id} (${face})...`);
-        const res = await axios.get(`/api/v1/quiz/generate-audio/${currentQuestion.id}?face=${face}`);
+        const res = await axios.get(`/api/v1/deck/generate-audio/${currentQuestion.id}?face=${face}`);
         if (currentQuestionIdRef.current !== targetQuestionId) {
           console.log(`[CLIENT TTS] Question changed during audio generation. Aborting playback.`);
           return;
@@ -761,20 +761,20 @@ export default function PracticePlay() {
       // Practice: only fetch play-data + practice-settings in parallel. No goals. No session restore.
       // FSRS: fetch play-data + goals + session in parallel.
       const fetchPromises: Promise<any>[] = [
-        axios.get(`/api/v1/quiz/${id}/play-data${modeParam}`)
+        axios.get(`/api/v1/deck/${id}/play-data${modeParam}`)
       ]
 
       if (isPractice) {
         // Merge practice-settings into the parallel batch instead of waterfall
         fetchPromises.push(
-          axios.get(`/api/v1/quiz/${id}/practice-settings`).catch(e => {
+          axios.get(`/api/v1/deck/${id}/practice-settings`).catch(e => {
             console.error("Failed to load practice settings", e)
             return { data: null }
           })
         )
       } else {
         fetchPromises.push(
-          axios.get('/api/v1/quiz/goals/active', {
+          axios.get('/api/v1/deck/goals/active', {
             params: { local_date: new Date().toLocaleDateString('en-CA') }
           }).catch(e => {
             console.error("Failed to load active goals", e)
@@ -782,7 +782,7 @@ export default function PracticePlay() {
           })
         )
         fetchPromises.push(
-          axios.get(`/api/v1/quiz/${id}/session`).catch(e => {
+          axios.get(`/api/v1/deck/${id}/session`).catch(e => {
             console.error("Failed to load session", e)
             return { data: null }
           })
@@ -962,7 +962,7 @@ export default function PracticePlay() {
 
   const fetchPracticeSettings = async () => {
     try {
-      const res = await axios.get(`/api/v1/quiz/${id}/practice-settings`)
+      const res = await axios.get(`/api/v1/deck/${id}/practice-settings`)
       setAvailableColumns(res.data.available_columns || [])
 
       const userSettings = res.data.user_settings
@@ -999,7 +999,7 @@ export default function PracticePlay() {
           ...(practiceSubMode !== 'typing' ? { num_choices: numChoices } : {})
         }
       }
-      await axios.post(`/api/v1/quiz/${id}/practice-settings`, {
+      await axios.post(`/api/v1/deck/${id}/practice-settings`, {
         settings: updatedModeSettings,
         is_creator: isCreator
       })
@@ -1016,7 +1016,7 @@ export default function PracticePlay() {
 
   const resetPracticeSettings = async () => {
     try {
-      await axios.post(`/api/v1/quiz/${id}/practice-settings`, {
+      await axios.post(`/api/v1/deck/${id}/practice-settings`, {
         settings: {},
         is_creator: false
       })
@@ -1034,7 +1034,7 @@ export default function PracticePlay() {
   const fetchNote = async () => {
     if (!currentQuestion) return
     try {
-      const res = await axios.get(`/api/v1/quiz/question/${currentQuestion.id}/note`)
+      const res = await axios.get(`/api/v1/deck/question/${currentQuestion.id}/note`)
       setPersonalNote(res.data.content || '')
     } catch (e) { }
   }
@@ -1042,7 +1042,7 @@ export default function PracticePlay() {
   const saveNote = async () => {
     if (!currentQuestion) return
     try {
-      await axios.post(`/api/v1/quiz/question/${currentQuestion.id}/note`, {
+      await axios.post(`/api/v1/deck/question/${currentQuestion.id}/note`, {
         content: personalNote
       })
     } catch (e) {
@@ -1061,7 +1061,7 @@ export default function PracticePlay() {
     try {
       const isPractice = mainTab === 'practice';
       if (isPractice) return; // Completely skip saving to the FSRS session on the server in Practice mode
-      await axios.post(`/api/v1/quiz/${id}/session`, {
+      await axios.post(`/api/v1/deck/${id}/session`, {
         mode: "sequential",
         current_index: newIndex,
         state: {
@@ -1263,7 +1263,7 @@ export default function PracticePlay() {
     saveSession(newAnswers, currentIndex, updatedXP, updatedStreak)
 
     try {
-      const res = await axios.post('/api/v1/quiz/record_answer', {
+      const res = await axios.post('/api/v1/deck/record_answer', {
         question_id: currentQuestion.id,
         is_correct: correct,
         rating: rating,
@@ -1516,7 +1516,7 @@ export default function PracticePlay() {
     saveSession(newAnswers, currentIndex, updatedXP, updatedStreak, updatedTotalAnswered, updatedCorrectCount);
 
     try {
-      const res = await axios.post('/api/v1/quiz/record_answer', {
+      const res = await axios.post('/api/v1/deck/record_answer', {
         question_id: currentQuestion.id,
         is_correct: isCorrect,
         is_practice: true,
@@ -1559,7 +1559,7 @@ export default function PracticePlay() {
       };
       setSession({ ...session, questions: updatedQuestions });
       
-      await axios.post(`/api/v1/quiz/question/${currentQuestion.id}/ignore`, {
+      await axios.post(`/api/v1/deck/question/${currentQuestion.id}/ignore`, {
         is_ignored: newIgnoreState
       });
       
@@ -1629,7 +1629,7 @@ export default function PracticePlay() {
     saveSession(newAnswers, currentIndex, updatedXP, updatedStreak, updatedTotalAnswered, updatedCorrectCount);
 
     try {
-      const res = await axios.post('/api/v1/quiz/record_answer', {
+      const res = await axios.post('/api/v1/deck/record_answer', {
         question_id: currentQuestion.id,
         is_correct: isCorrect,
         is_practice: true,
@@ -2062,7 +2062,7 @@ export default function PracticePlay() {
       const payload: any = { question_id: currentQuestion.id }
       if (typeof manualText === 'string') payload.ai_explanation = manualText
 
-      const res = await axios.post(`/api/v1/quiz/${id}/ask-ai`, payload)
+      const res = await axios.post(`/api/v1/deck/${id}/ask-ai`, payload)
 
       if (res.data.status === 'processing') {
         // Polling loop
@@ -2072,7 +2072,7 @@ export default function PracticePlay() {
           attempts++
           try {
             // Append cache buster to completely bypass browser and proxy caching
-            const quizRes = await axios.get(`/api/v1/quiz/${id}/play-data?t=${Date.now()}`)
+            const quizRes = await axios.get(`/api/v1/deck/${id}/play-data?t=${Date.now()}`)
             const updatedQ = quizRes.data.questions?.find((q: any) => q.id === currentQuestion.id)
             if (updatedQ && updatedQ.ai_explanation) {
               setSession((prev: any) => {
@@ -2110,7 +2110,7 @@ export default function PracticePlay() {
 
   const savePrompt = async () => {
     try {
-      await axios.patch(`/api/v1/quiz/${id}`, { ai_prompt: promptInput })
+      await axios.patch(`/api/v1/deck/${id}`, { ai_prompt: promptInput })
       setSession((prev: any) => ({ ...prev, ai_prompt: promptInput }))
       setIsEditingPrompt(false)
       alert("Prompt saved successfully!")
@@ -2123,7 +2123,7 @@ export default function PracticePlay() {
     if (!currentQuestion) return
     if (!window.confirm("Are you sure you want to delete this AI explanation?")) return
     try {
-      await axios.patch(`/api/v1/quiz/question/${currentQuestion.id}`, { ai_explanation: null })
+      await axios.patch(`/api/v1/deck/question/${currentQuestion.id}`, { ai_explanation: null })
       setSession((prev: any) => {
         const newQs = [...prev.questions]
         const targetIdx = newQs.findIndex(q => q.id === currentQuestion.id)
@@ -2164,7 +2164,7 @@ export default function PracticePlay() {
         [targetKey]: insightInput
       };
 
-      await axios.patch(`/api/v1/quiz/question/${currentQuestion.id}`, {
+      await axios.patch(`/api/v1/deck/question/${currentQuestion.id}`, {
         others: { [targetKey]: insightInput }
       })
 
@@ -2241,7 +2241,7 @@ export default function PracticePlay() {
         options: editFormData.options
       };
 
-      await axios.patch(`/api/v1/quiz/question/${currentQuestion.id}`, payload)
+      await axios.patch(`/api/v1/deck/question/${currentQuestion.id}`, payload)
 
       // Update local state
       setSession((prev: any) => {
@@ -4374,7 +4374,7 @@ export default function PracticePlay() {
                   <button
                     onClick={async () => {
                       try {
-                        await axios.delete(`/api/v1/quiz/${id}/session`)
+                        await axios.delete(`/api/v1/deck/${id}/session`)
                       } catch (e) { }
                       navigate(`/flashcard/${id}`)
                     }}

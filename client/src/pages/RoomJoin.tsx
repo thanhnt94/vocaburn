@@ -60,7 +60,7 @@ export default function RoomJoin() {
 
   const fetchActiveRooms = async () => {
     try {
-      const res = await axios.get('/api/v1/quiz/room/active')
+      const res = await axios.get('/api/v1/deck/room/active')
       setDiscoverRooms(res.data.discover_rooms)
       setMyRooms(res.data.my_rooms)
     } catch (e) {}
@@ -72,7 +72,7 @@ export default function RoomJoin() {
     
     setIsJoining(true)
     try {
-      await axios.post('/api/v1/quiz/room/join', { 
+      await axios.post('/api/v1/deck/room/join', { 
         room_code: codeToJoin,
         password: overridePass || verifyPassword
       })
@@ -94,7 +94,8 @@ export default function RoomJoin() {
   const handleHost = async () => {
     if (!selectedQuizId) return
     try {
-      const res = await axios.post('/api/v1/quiz/room/create', { 
+      const res = await axios.post('/api/v1/deck/room/create', { 
+        deck_id: selectedQuizId,
         quiz_id: selectedQuizId,
         game_mode: gameMode,
         time_limit: timeLimit,

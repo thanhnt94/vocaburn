@@ -1,62 +1,22 @@
-from fastapi import APIRouter, UploadFile, File, Depends, Request, BackgroundTasks
+from fastapi import APIRouter, Depends, Request, HTTPException
 from typing import Optional
 import logging
 
 logger = logging.getLogger(__name__)
-from fastapi.responses import RedirectResponse, JSONResponse, FileResponse
+from fastapi.responses import JSONResponse
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, delete, func, Integer, or_
-from sqlalchemy.orm import selectinload
+from sqlalchemy import select, delete, func, Integer, or_, and_, case
+from sqlalchemy.orm import joinedload, selectinload
 from app.core.db import get_db
-from app.modules.quiz.services.excel_service import ExcelQuizService
-from app.modules.quiz.services.quiz_service import QuizService
-from app.modules.quiz.services.ai_service import ai_service
-from app.modules.quiz.schemas import QuizSchema, QuestionSchema
-from app.modules.quiz.models import UserDeckSettings
-from app.modules.quiz.services.mcq_engine import MCQEngine
-from app.modules.quiz.services.typing_engine import TypingEngine
-import json
-import re
-import os
-import asyncio
+from app.modules.deck.models import UserDeckSettings, FlashcardDeck, Flashcard, UserAnswer, DeckAttempt, UserCardMastery, UserDeckGoal, UserDailyProgress, UserGlobalGoal
+from app.modules.auth.services.auth_service import AuthService
 from datetime import datetime, timezone, date, timedelta
+import math
 
-router = APIRouter(tags=["Quiz"])
-
-def build_fsrs_card(mastery, now_utc):
-    from fsrs import Card, State
-    state_map = {
-        0: State.Learning,
-        1: State.Learning,
-        2: State.Review,
-        3: State.Relearning
-    }
-    card_state = state_map.get(mastery.state if mastery else 0, State.Learning)
-    if card_state in (State.Review, State.Relearning) and (not mastery or mastery.stability is None or mastery.difficulty is None):
-        card_state = State.Learning
-        
-    fsrs_card = Card()
-    if mastery:
-        fsrs_card.state = card_state
-        fsrs_card.step = mastery.step
-        fsrs_card.stability = mastery.stability
-        fsrs_card.difficulty = mastery.difficulty
-        fsrs_card.due = mastery.due.replace(tzinfo=timezone.utc) if mastery.due else now_utc
-        fsrs_card.last_review = mastery.last_review.replace(tzinfo=timezone.utc) if mastery.last_review else None
-    else:
-        fsrs_card.state = State.Learning
-        fsrs_card.step = 0
-        fsrs_card.stability = None
-        fsrs_card.difficulty = None
-        fsrs_card.due = now_utc
-        fsrs_card.last_review = None
-    return fsrs_card
-
+router = APIRouter(tags=["Deck Stats"])
 
 @router.get("/stats")
-async def get_quiz_stats(db: AsyncSession = Depends(get_db)):
-    from app.modules.quiz.models import UserAnswer
-    
+async def get_deck_stats(db: AsyncSession = Depends(get_db)):
     # 1. Overall accuracy
     total_res = await db.execute(select(func.count(UserAnswer.id)))
     total = total_res.scalar()
@@ -84,23 +44,22 @@ async def get_quiz_stats(db: AsyncSession = Depends(get_db)):
 
 @router.post("/goals")
 async def create_or_update_goal(request: Request, data: dict, db: AsyncSession = Depends(get_db)):
-    from app.modules.quiz.models import UserQuizGoal
     user_id = int(request.cookies.get("user_id", 1))
-    quiz_id = int(data.get("quiz_id"))
+    deck_id = int(data.get("deck_id", data.get("quiz_id")))
     daily_target = int(data.get("daily_target", 5))
 
     # Check if goal exists
     res = await db.execute(
-        select(UserQuizGoal).filter(UserQuizGoal.user_id == user_id, UserQuizGoal.quiz_id == quiz_id)
+        select(UserDeckGoal).filter(UserDeckGoal.user_id == user_id, UserDeckGoal.deck_id == deck_id)
     )
     goal = res.scalar_one_or_none()
     if goal:
         goal.daily_target = daily_target
         goal.status = "active"
     else:
-        goal = UserQuizGoal(
+        goal = UserDeckGoal(
             user_id=user_id,
-            quiz_id=quiz_id,
+            deck_id=deck_id,
             daily_target=daily_target,
             status="active"
         )
@@ -111,19 +70,15 @@ async def create_or_update_goal(request: Request, data: dict, db: AsyncSession =
 
 @router.get("/goals/active")
 async def get_active_goals(request: Request, local_date: Optional[str] = None, db: AsyncSession = Depends(get_db)):
-    from app.modules.quiz.models import UserQuizGoal, UserDailyProgress, Quiz, Question, UserAnswer, QuizAttempt, UserQuestionMastery
-    from sqlalchemy.orm import joinedload
-    import math
-
     user_id = int(request.cookies.get("user_id", 1))
     if not local_date:
         local_date = datetime.utcnow().strftime("%Y-%m-%d")
 
-    # Fetch active goals with joinedload of Quiz to avoid N+1
+    # Fetch active goals with joinedload of Deck to avoid N+1
     res = await db.execute(
-        select(UserQuizGoal)
-        .options(joinedload(UserQuizGoal.quiz))
-        .filter(UserQuizGoal.user_id == user_id, UserQuizGoal.status == "active")
+        select(UserDeckGoal)
+        .options(joinedload(UserDeckGoal.deck))
+        .filter(UserDeckGoal.user_id == user_id, UserDeckGoal.status == "active")
     )
     goals = res.scalars().all()
 
@@ -131,7 +86,7 @@ async def get_active_goals(request: Request, local_date: Optional[str] = None, d
         return []
 
     goal_ids = [goal.id for goal in goals]
-    quiz_ids = [goal.quiz_id for goal in goals]
+    deck_ids = [goal.deck_id for goal in goals]
 
     # Bulk query daily progress
     prog_res = await db.execute(
@@ -142,45 +97,48 @@ async def get_active_goals(request: Request, local_date: Optional[str] = None, d
     )
     progress_map = {p.goal_id: p for p in prog_res.scalars().all()}
 
-    # Bulk query total questions count grouped by quiz_id
-    q_count_res = await db.execute(
-        select(Question.quiz_id, func.count(Question.id))
-        .filter(Question.quiz_id.in_(quiz_ids))
-        .group_by(Question.quiz_id)
+    # Bulk query total cards count grouped by deck_id
+    c_count_res = await db.execute(
+        select(Flashcard.deck_id, func.count(Flashcard.id))
+        .filter(Flashcard.deck_id.in_(deck_ids))
+        .group_by(Flashcard.deck_id)
     )
-    q_count_map = {r[0]: r[1] for r in q_count_res.all()}
+    c_count_map = {r[0]: r[1] for r in c_count_res.all()}
 
-    # Bulk query learned count grouped by quiz_id via user_card_mastery (instant index lookups)
+    # Bulk query learned count grouped by deck_id via user_card_mastery
     learned_res = await db.execute(
-        select(Question.quiz_id, func.count(UserQuestionMastery.id))
-        .join(UserQuestionMastery, UserQuestionMastery.question_id == Question.id)
-        .filter(Question.quiz_id.in_(quiz_ids), UserQuestionMastery.user_id == user_id)
-        .group_by(Question.quiz_id)
+        select(Flashcard.deck_id, func.count(UserCardMastery.id))
+        .join(UserCardMastery, UserCardMastery.card_id == Flashcard.id)
+        .filter(Flashcard.deck_id.in_(deck_ids), UserCardMastery.user_id == user_id)
+        .group_by(Flashcard.deck_id)
     )
     learned_map = {r[0]: r[1] for r in learned_res.all()}
 
     goals_data = []
     for goal in goals:
-        quiz = goal.quiz
-        if not quiz:
+        deck = goal.deck
+        if not deck:
             continue
             
-        total_questions = q_count_map.get(goal.quiz_id, 0)
-        total_learned = learned_map.get(goal.quiz_id, 0)
+        total_cards = c_count_map.get(goal.deck_id, 0)
+        total_learned = learned_map.get(goal.deck_id, 0)
         
         progress = progress_map.get(goal.id)
         done_today = progress.count_done if progress else 0
         is_target_met = progress.is_target_met if progress else False
         
-        remaining_qs = max(0, total_questions - total_learned)
-        days_remaining_est = math.ceil(remaining_qs / goal.daily_target) if goal.daily_target > 0 else 0
+        remaining_cs = max(0, total_cards - total_learned)
+        days_remaining_est = math.ceil(remaining_cs / goal.daily_target) if goal.daily_target > 0 else 0
         
         goals_data.append({
             "goal_id": goal.id,
-            "quiz_id": goal.quiz_id,
-            "quiz_title": quiz.title,
-            "cover_image": quiz.cover_image,
-            "total_questions": total_questions,
+            "deck_id": goal.deck_id,
+            "quiz_id": goal.deck_id, # compatibility
+            "deck_title": deck.title,
+            "quiz_title": deck.title, # compatibility
+            "cover_image": deck.cover_image,
+            "total_cards": total_cards,
+            "total_questions": total_cards, # compatibility
             "total_learned": total_learned,
             "daily_target": goal.daily_target,
             "done_today": done_today,
@@ -193,12 +151,11 @@ async def get_active_goals(request: Request, local_date: Optional[str] = None, d
 
 @router.post("/goals/remove")
 async def remove_goal(request: Request, data: dict, db: AsyncSession = Depends(get_db)):
-    from app.modules.quiz.models import UserQuizGoal
     user_id = int(request.cookies.get("user_id", 1))
-    quiz_id = int(data.get("quiz_id"))
+    deck_id = int(data.get("deck_id", data.get("quiz_id")))
     
     await db.execute(
-        delete(UserQuizGoal).where(UserQuizGoal.user_id == user_id, UserQuizGoal.quiz_id == quiz_id)
+        delete(UserDeckGoal).where(UserDeckGoal.user_id == user_id, UserDeckGoal.deck_id == deck_id)
     )
     await db.commit()
     return {"status": "ok"}
@@ -206,8 +163,6 @@ async def remove_goal(request: Request, data: dict, db: AsyncSession = Depends(g
 @router.get("/gamification/badges")
 async def get_user_badges(request: Request, db: AsyncSession = Depends(get_db)):
     from app.modules.gamification.models import UserGamification, Badge
-    from app.modules.quiz.models import UserAnswer, QuizAttempt, UserQuizGoal, UserDailyProgress, UserQuestionMastery
-    from app.modules.auth.services.auth_service import AuthService
     
     user = await AuthService.get_current_user(request, db)
     user_id = user.id if user else 1
@@ -230,7 +185,7 @@ async def get_user_badges(request: Request, db: AsyncSession = Depends(get_db)):
         else:
             if badge.id == "first_steps":
                 ans_res = await db.execute(
-                    select(func.count(UserAnswer.id)).join(QuizAttempt).where(QuizAttempt.user_id == user_id)
+                    select(func.count(UserAnswer.id)).join(DeckAttempt).where(DeckAttempt.user_id == user_id)
                 )
                 cnt = ans_res.scalar() or 0
                 progress = min(100, int((cnt / 1) * 100))
@@ -245,9 +200,9 @@ async def get_user_badges(request: Request, db: AsyncSession = Depends(get_db)):
             elif badge.id == "speed_demon":
                 fast_res = await db.execute(
                     select(func.count(UserAnswer.id))
-                    .join(QuizAttempt)
+                    .join(DeckAttempt)
                     .where(
-                        QuizAttempt.user_id == user_id,
+                        DeckAttempt.user_id == user_id,
                         UserAnswer.is_correct == True,
                         UserAnswer.active_time <= 5.0,
                         UserAnswer.active_time > 0.0
@@ -259,7 +214,7 @@ async def get_user_badges(request: Request, db: AsyncSession = Depends(get_db)):
                 goals_res = await db.execute(
                     select(func.count(UserDailyProgress.id)).where(
                         UserDailyProgress.goal_id.in_(
-                            select(UserQuizGoal.id).where(UserQuizGoal.user_id == user_id)
+                            select(UserDeckGoal.id).where(UserDeckGoal.user_id == user_id)
                         ),
                         UserDailyProgress.is_target_met == True
                     )
@@ -268,9 +223,9 @@ async def get_user_badges(request: Request, db: AsyncSession = Depends(get_db)):
                 progress = min(100, int((cnt / 3) * 100))
             elif badge.id == "card_master":
                 mastered_res = await db.execute(
-                    select(func.count(UserQuestionMastery.id)).where(
-                        UserQuestionMastery.user_id == user_id,
-                        UserQuestionMastery.box_level == 5
+                    select(func.count(UserCardMastery.id)).where(
+                        UserCardMastery.user_id == user_id,
+                        UserCardMastery.box_level == 5
                     )
                 )
                 cnt = mastered_res.scalar() or 0
@@ -295,9 +250,7 @@ async def get_user_badges(request: Request, db: AsyncSession = Depends(get_db)):
 
 @router.get("/stats/heatmap")
 async def get_heatmap_stats(request: Request, db: AsyncSession = Depends(get_db)):
-    from app.modules.auth.services.auth_service import AuthService
     from app.modules.stats.models import UserDailyStats
-
     
     user = await AuthService.get_current_user(request, db)
     user_id = user.id if user else 1
@@ -333,9 +286,7 @@ async def get_heatmap_stats(request: Request, db: AsyncSession = Depends(get_db)
 
 @router.get("/stats/weekly-report")
 async def get_weekly_report(request: Request, db: AsyncSession = Depends(get_db)):
-    from app.modules.auth.services.auth_service import AuthService
     from app.modules.stats.models import UserDailyStats
-
     from sqlalchemy import desc
     
     user = await AuthService.get_current_user(request, db)
@@ -411,7 +362,7 @@ async def get_weekly_report(request: Request, db: AsyncSession = Depends(get_db)
             "Try studying at the same time each day to build a powerful long-term learning habit."
         ]
     else:
-        insights.append(f"Awesome velocity! You attempted {cur_q} questions this week. Keep up this incredible momentum! 🔥")
+        insights.append(f"Awesome velocity! You attempted {cur_q} cards this week. Keep up this incredible momentum! 🔥")
         if accuracy_delta > 0:
             insights.append(f"Precision Boost! Your accuracy increased by {accuracy_delta}% compared to last week. Your retrieval speed is solid. 🎯")
         elif accuracy_delta < 0:
@@ -443,25 +394,23 @@ async def get_weekly_report(request: Request, db: AsyncSession = Depends(get_db)
         "ai_insights": insights
     }
 
-@router.get("/quizzes/{quiz_id}/mastery")
-async def get_quiz_mastery(quiz_id: int, request: Request, db: AsyncSession = Depends(get_db)):
-    from app.modules.auth.services.auth_service import AuthService
-    from app.modules.quiz.models import UserQuestionMastery, Question
-    
+@router.get("/decks/{deck_id}/mastery")
+@router.get("/quizzes/{deck_id}/mastery")
+async def get_deck_mastery(deck_id: int, request: Request, db: AsyncSession = Depends(get_db)):
     user = await AuthService.get_current_user(request, db)
     user_id = user.id if user else 1
     
-    # Count total questions in the quiz
-    q_count_res = await db.execute(select(func.count(Question.id)).where(Question.quiz_id == quiz_id))
-    total_questions = q_count_res.scalar() or 0
+    # Count total cards in the deck
+    c_count_res = await db.execute(select(func.count(Flashcard.id)).where(Flashcard.deck_id == deck_id))
+    total_cards = c_count_res.scalar() or 0
     
-    # Get all mastered cards for this quiz
+    # Get all mastered cards for this deck
     mastery_stmt = select(
-        UserQuestionMastery.box_level,
-        func.count(UserQuestionMastery.id)
-    ).join(Question, UserQuestionMastery.question_id == Question.id)\
-     .where(Question.quiz_id == quiz_id, UserQuestionMastery.user_id == user_id)\
-     .group_by(UserQuestionMastery.box_level)
+        UserCardMastery.box_level,
+        func.count(UserCardMastery.id)
+    ).join(Flashcard, UserCardMastery.card_id == Flashcard.id)\
+     .where(Flashcard.deck_id == deck_id, UserCardMastery.user_id == user_id)\
+     .group_by(UserCardMastery.box_level)
      
     results = await db.execute(mastery_stmt)
     
@@ -471,30 +420,27 @@ async def get_quiz_mastery(quiz_id: int, request: Request, db: AsyncSession = De
         if lvl in mastery_counts:
             mastery_counts[lvl] = row[1]
             
-    unattempted = max(0, total_questions - sum(mastery_counts.values()))
-    mastery_counts[1] += unattempted # Treat unattempted questions as Level 1 (New)
+    unattempted = max(0, total_cards - sum(mastery_counts.values()))
+    mastery_counts[1] += unattempted # Treat unattempted cards as Level 1 (New)
     
     return {
         "new": mastery_counts[1],
         "learning": mastery_counts[2],
         "familiar": mastery_counts[3] + mastery_counts[4],
         "mastered": mastery_counts[5],
-        "total": total_questions
+        "total": total_cards
     }
 
 @router.get("/stats/leitner")
 async def get_global_leitner_stats(request: Request, db: AsyncSession = Depends(get_db)):
-    from app.modules.auth.services.auth_service import AuthService
-    from app.modules.quiz.models import UserQuestionMastery, Question
-    
     user = await AuthService.get_current_user(request, db)
     user_id = user.id if user else 1
     
-    # Query count of questions grouped by box_level
+    # Query count of cards grouped by box_level
     stmt = select(
-        UserQuestionMastery.box_level,
-        func.count(UserQuestionMastery.id)
-    ).where(UserQuestionMastery.user_id == user_id).group_by(UserQuestionMastery.box_level)
+        UserCardMastery.box_level,
+        func.count(UserCardMastery.id)
+    ).where(UserCardMastery.user_id == user_id).group_by(UserCardMastery.box_level)
     
     results = await db.execute(stmt)
     
@@ -507,19 +453,20 @@ async def get_global_leitner_stats(request: Request, db: AsyncSession = Depends(
     total_tracked = sum(box_counts.values())
     mastery_percentage = round((box_counts[5] / total_tracked * 100), 1) if total_tracked > 0 else 0
     
-    # We can also get a list of the user's hardest cards (e.g. up to 5 cards in Box 1)
-    hardest_cards_stmt = select(Question)\
-        .join(UserQuestionMastery, Question.id == UserQuestionMastery.question_id)\
-        .where(UserQuestionMastery.user_id == user_id, UserQuestionMastery.box_level == 1)\
+    # Get a list of the user's hardest cards (e.g. up to 5 cards in Box 1)
+    hardest_cards_stmt = select(Flashcard)\
+        .join(UserCardMastery, Flashcard.id == UserCardMastery.card_id)\
+        .where(UserCardMastery.user_id == user_id, UserCardMastery.box_level == 1)\
         .limit(5)
         
     hardest_cards_res = await db.execute(hardest_cards_stmt)
     hardest_cards = [{
-        "id": q.id,
-        "content": q.content,
-        "explanation": q.explanation,
-        "quiz_id": q.quiz_id
-    } for q in hardest_cards_res.scalars().all()]
+        "id": c.id,
+        "content": c.content,
+        "explanation": c.explanation,
+        "deck_id": c.deck_id,
+        "quiz_id": c.deck_id # compatibility
+    } for c in hardest_cards_res.scalars().all()]
     
     return {
         "box_distribution": [
@@ -536,10 +483,6 @@ async def get_global_leitner_stats(request: Request, db: AsyncSession = Depends(
 
 @router.get("/stats/speed-accuracy")
 async def get_speed_accuracy_stats(request: Request, db: AsyncSession = Depends(get_db)):
-    from app.modules.auth.services.auth_service import AuthService
-    from app.modules.quiz.models import UserAnswer, QuizAttempt
-    from sqlalchemy import func, case
-    
     user = await AuthService.get_current_user(request, db)
     user_id = user.id if user else 1
     
@@ -564,8 +507,8 @@ async def get_speed_accuracy_stats(request: Request, db: AsyncSession = Depends(
         func.sum(case((~UserAnswer.is_correct, 1), else_=0)).label("count_wrong"),
         
         func.count().label("total_answers_analyzed")
-    ).join(QuizAttempt, UserAnswer.attempt_id == QuizAttempt.id)\
-     .where(QuizAttempt.user_id == user_id, UserAnswer.active_time > 0)
+    ).join(DeckAttempt, UserAnswer.attempt_id == DeckAttempt.id)\
+     .where(DeckAttempt.user_id == user_id, UserAnswer.active_time > 0)
      
     results = await db.execute(stmt)
     row = results.first()
@@ -643,11 +586,6 @@ async def get_speed_accuracy_stats(request: Request, db: AsyncSession = Depends(
 
 @router.get("/goals/global")
 async def get_global_goals(request: Request, db: AsyncSession = Depends(get_db)):
-    from app.modules.quiz.models import UserGlobalGoal, UserAnswer, QuizAttempt
-    from app.modules.stats.models import UserDailyStats
-    from app.modules.auth.services.auth_service import AuthService
-    from fastapi import HTTPException
-    
     user = await AuthService.get_current_user(request, db)
     if not user:
         raise HTTPException(status_code=401, detail="Unauthorized")
@@ -663,6 +601,7 @@ async def get_global_goals(request: Request, db: AsyncSession = Depends(get_db))
         await db.refresh(goal)
         
     # 2. Get today's stats (time and cards studied)
+    from app.modules.stats.models import UserDailyStats
     today = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
     stats_res = await db.execute(
         select(UserDailyStats).where(
@@ -680,16 +619,16 @@ async def get_global_goals(request: Request, db: AsyncSession = Depends(get_db))
     actual_correct = stats.correct_answers if stats else 0
     
     # 3. Calculate actual_new_cards_completed
-    stmt_new_cards = select(func.count(func.distinct(UserAnswer.question_id))).join(
-        QuizAttempt, UserAnswer.attempt_id == QuizAttempt.id
+    stmt_new_cards = select(func.count(func.distinct(UserAnswer.card_id))).join(
+        DeckAttempt, UserAnswer.attempt_id == DeckAttempt.id
     ).where(
-        QuizAttempt.user_id == user_id,
+        DeckAttempt.user_id == user_id,
         UserAnswer.created_at >= today,
-        ~UserAnswer.question_id.in_(
-            select(UserAnswer.question_id).join(
-                QuizAttempt, UserAnswer.attempt_id == QuizAttempt.id
+        ~UserAnswer.card_id.in_(
+            select(UserAnswer.card_id).join(
+                DeckAttempt, UserAnswer.attempt_id == DeckAttempt.id
             ).where(
-                QuizAttempt.user_id == user_id,
+                DeckAttempt.user_id == user_id,
                 UserAnswer.created_at < today
             )
         )
@@ -719,10 +658,6 @@ async def get_global_goals(request: Request, db: AsyncSession = Depends(get_db))
 
 @router.post("/goals/global")
 async def update_global_goals(request: Request, data: dict, db: AsyncSession = Depends(get_db)):
-    from app.modules.quiz.models import UserGlobalGoal
-    from app.modules.auth.services.auth_service import AuthService
-    from fastapi import HTTPException
-    
     user = await AuthService.get_current_user(request, db)
     if not user:
         raise HTTPException(status_code=401, detail="Unauthorized")
@@ -754,6 +689,3 @@ async def update_global_goals(request: Request, data: dict, db: AsyncSession = D
         "daily_card_target": goal.daily_card_target,
         "daily_new_card_target": goal.daily_new_card_target
     }
-
-
-

@@ -5,7 +5,7 @@ import asyncio
 from app.core.db import get_db
 from app.modules.auth.services.auth_service import AuthService
 from app.modules.stats.services.analytics_service import AnalyticsService
-from app.modules.quiz.services.quiz_service import QuizService
+from app.modules.deck.services.deck_service import DeckService
 from app.modules.stats.interface import StatsInterface
 
 router = APIRouter(tags=["Stats"])
@@ -37,54 +37,114 @@ async def get_dashboard_data(request: Request, db: AsyncSession = Depends(get_db
         raise HTTPException(status_code=401, detail="Unauthorized")
     user_id_int = user.id
     
-    # Use selectinload for quizzes and questions to avoid N+1
-    all_quizzes = await QuizService.get_quizzes(db)
-    
-    # Get status from QuizAttempt (interacted and archived)
-    from app.modules.quiz.models import QuizAttempt
-    interaction_result = await db.execute(
-        select(QuizAttempt.quiz_id, QuizAttempt.is_archived).where(QuizAttempt.user_id == user_id_int)
-    )
-    interaction_map = {r[0]: r[1] for r in interaction_result.all()}
-
-    my_quizzes_data = []
-    archived_quizzes_data = []
-    discover_quizzes_data = []
-    created_quizzes_data = []
-    
-    for q, count in all_quizzes:
-        quiz_dict = {
-            "id": q.id,
-            "title": q.title,
-            "description": q.description,
-            "cover_image": q.cover_image,
-            "questions_count": count,
-            "tags": [t.name for t in q.tags],
-            "is_creator": q.creator_id == user_id_int
-        }
-        
-        if q.creator_id == user_id_int or user.role == "admin":
-            created_quizzes_data.append(quiz_dict)
-            
-        is_archived = interaction_map.get(q.id)
-        if q.id in interaction_map:
-            if is_archived:
-                archived_quizzes_data.append(quiz_dict)
-            else:
-                my_quizzes_data.append(quiz_dict)
-        else:
-            discover_quizzes_data.append(quiz_dict)
-            
+    from sqlalchemy import func
+    from sqlalchemy.orm import selectinload
+    from app.modules.deck.models import FlashcardDeck, DeckAttempt, Flashcard
     from app.modules.gamification.interface import GamificationInterface
     from app.modules.notification.interface import NotificationInterface
 
-    # Fetch data concurrently for performance
-    gamify_data, stats_summary, notifications, unread_count = await asyncio.gather(
+    # Query A: My & Archived Decks (Join with DeckAttempt for user)
+    query_a = select(
+        FlashcardDeck,
+        select(func.count(Flashcard.id)).where(Flashcard.deck_id == FlashcardDeck.id).scalar_subquery().label("c_count"),
+        DeckAttempt.is_archived
+    ).join(
+        DeckAttempt, DeckAttempt.deck_id == FlashcardDeck.id
+    ).options(
+        selectinload(FlashcardDeck.tags)
+    ).where(
+        DeckAttempt.user_id == user_id_int
+    )
+
+    # Query B: Created Decks (creator_id == user_id_int)
+    query_b = select(
+        FlashcardDeck,
+        select(func.count(Flashcard.id)).where(Flashcard.deck_id == FlashcardDeck.id).scalar_subquery().label("c_count")
+    ).options(
+        selectinload(FlashcardDeck.tags)
+    )
+    if user.role != "admin":
+        query_b = query_b.where(FlashcardDeck.creator_id == user_id_int)
+
+    # Query C: Discover Decks (exclude attempted/created, limit 12, order by created_at desc)
+    attempted_sub = select(DeckAttempt.deck_id).where(DeckAttempt.user_id == user_id_int)
+    created_sub = select(FlashcardDeck.id).where(FlashcardDeck.creator_id == user_id_int)
+    
+    query_c = select(
+        FlashcardDeck,
+        select(func.count(Flashcard.id)).where(Flashcard.deck_id == FlashcardDeck.id).scalar_subquery().label("c_count")
+    ).options(
+        selectinload(FlashcardDeck.tags)
+    ).where(
+        FlashcardDeck.id.not_in(attempted_sub),
+        FlashcardDeck.id.not_in(created_sub)
+    ).order_by(
+        FlashcardDeck.created_at.desc()
+    ).limit(12)
+
+    # Fetch all database queries concurrently using asyncio.gather
+    res_a, res_b, res_c, gamify_data, stats_summary, notifications, unread_count = await asyncio.gather(
+        db.execute(query_a),
+        db.execute(query_b),
+        db.execute(query_c),
         GamificationInterface.get_user_stats(db, user_id_int),
         StatsInterface.get_user_summary(db, user_id_int),
         NotificationInterface.get_latest(db, user_id_int),
         NotificationInterface.get_unread_count(db, user_id_int)
     )
+
+    my_decks_data = []
+    archived_decks_data = []
+    created_decks_data = []
+    discover_decks_data = []
+
+    # Map Query A results
+    for row in res_a.all():
+        q, count, is_archived = row
+        deck_dict = {
+            "id": q.id,
+            "title": q.title,
+            "description": q.description,
+            "cover_image": q.cover_image,
+            "questions_count": count or 0,
+            "cards_count": count or 0,  # compatibility
+            "tags": [t.name for t in q.tags],
+            "is_creator": q.creator_id == user_id_int
+        }
+        if is_archived:
+            archived_decks_data.append(deck_dict)
+        else:
+            my_decks_data.append(deck_dict)
+
+    # Map Query B results
+    for row in res_b.all():
+        q, count = row
+        deck_dict = {
+            "id": q.id,
+            "title": q.title,
+            "description": q.description,
+            "cover_image": q.cover_image,
+            "questions_count": count or 0,
+            "cards_count": count or 0,  # compatibility
+            "tags": [t.name for t in q.tags],
+            "is_creator": q.creator_id == user_id_int
+        }
+        created_decks_data.append(deck_dict)
+
+    # Map Query C results
+    for row in res_c.all():
+        q, count = row
+        deck_dict = {
+            "id": q.id,
+            "title": q.title,
+            "description": q.description,
+            "cover_image": q.cover_image,
+            "questions_count": count or 0,
+            "cards_count": count or 0,  # compatibility
+            "tags": [t.name for t in q.tags],
+            "is_creator": q.creator_id == user_id_int
+        }
+        discover_decks_data.append(deck_dict)
 
     return {
         "user": {
@@ -93,10 +153,14 @@ async def get_dashboard_data(request: Request, db: AsyncSession = Depends(get_db
             "email": user.email,
             "role": user.role
         },
-        "my_quizzes": my_quizzes_data,
-        "archived_quizzes": archived_quizzes_data,
-        "discover_quizzes": discover_quizzes_data,
-        "created_quizzes": created_quizzes_data,
+        "my_decks": my_decks_data,
+        "my_quizzes": my_decks_data, # compatibility
+        "archived_decks": archived_decks_data,
+        "archived_quizzes": archived_decks_data, # compatibility
+        "discover_decks": discover_decks_data,
+        "discover_quizzes": discover_decks_data, # compatibility
+        "created_decks": created_decks_data,
+        "created_quizzes": created_decks_data, # compatibility
         "gamify": gamify_data,
         "stats_summary": stats_summary,
         "notifications": notifications,
