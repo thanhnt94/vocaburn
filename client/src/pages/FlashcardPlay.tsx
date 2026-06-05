@@ -10,6 +10,7 @@ import rehypeRaw from 'rehype-raw'
 import { cn } from '@/lib/utils'
 import { useAppStore } from '@/store/useAppStore'
 import { playCorrectSound, playIncorrectSound, speakMultiLanguage } from '@/lib/audio'
+import { triggerHaptic } from '@/lib/haptic'
 import { parseBBCodeToHtml, stripBBCode, isJapanese, getJpPattern, extractTokens, tokensOverlapHigh } from '@/lib/text'
 import { selectDistractors } from '@/lib/distractor'
 import { TypewriterText } from '@/components/TypewriterText'
@@ -912,11 +913,13 @@ export default function FlashcardPlay() {
 
     if (correct) {
       if (sfxEnabled) playCorrectSound()
+      triggerHaptic('success')
       const confettiColors = streak >= 5 ? ['#f59e0b', '#ef4444', '#f97316'] : ['#6366f1', '#a855f7', '#ec4899']
       confetti({ zIndex: 9999, particleCount: streak >= 5 ? 250 : 150, spread: streak >= 5 ? 100 : 70, origin: { y: 0.6 }, colors: confettiColors })
       if (alreadyRated) setBadgeMessage("Chính xác! 🎯")
     } else {
       if (sfxEnabled) playIncorrectSound()
+      triggerHaptic('error')
       if (alreadyRated) setBadgeMessage("Cố lên nhé! 💪")
     }
     
@@ -1301,6 +1304,7 @@ export default function FlashcardPlay() {
     
     if (isCorrect) {
       if (sfxEnabled) playCorrectSound();
+      triggerHaptic('success');
       updatedStreak = streak + 1;
       setStreak(updatedStreak);
       
@@ -1319,6 +1323,7 @@ export default function FlashcardPlay() {
       setBadgeMessage("Chính xác! 🎯");
     } else {
       if (sfxEnabled) playIncorrectSound();
+      triggerHaptic('error');
       updatedStreak = 0;
       setStreak(0);
       const xpGained = 1;
@@ -1383,6 +1388,7 @@ export default function FlashcardPlay() {
     
     if (isCorrect) {
       if (sfxEnabled) playCorrectSound();
+      triggerHaptic('success');
       updatedStreak = streak + 1;
       setStreak(updatedStreak);
       
@@ -1401,6 +1407,7 @@ export default function FlashcardPlay() {
       setBadgeMessage("Xuất sắc! ⌨️");
     } else {
       if (sfxEnabled) playIncorrectSound();
+      triggerHaptic('error');
       updatedStreak = 0;
       setStreak(0);
       const xpGained = 1;
