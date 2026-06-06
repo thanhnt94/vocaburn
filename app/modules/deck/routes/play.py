@@ -64,6 +64,41 @@ def build_fsrs_card(mastery, now_utc):
     return fsrs_card
 
 
+def estimate_intervals(scheduler, card, now_utc) -> dict:
+    from fsrs import Rating, State
+    intervals = {}
+    for r_val, r_enum in [(1, Rating.Again), (2, Rating.Hard), (3, Rating.Good), (4, Rating.Easy)]:
+        try:
+            card_copy, _ = scheduler.review_card(card, r_enum, now_utc)
+            if card_copy.state == State.Review:
+                float_interval_days = (card_copy.stability / scheduler._FACTOR) * (
+                    (scheduler.desired_retention ** (1 / scheduler._DECAY)) - 1
+                )
+                float_interval_days = max(float_interval_days, 1.0)
+                float_interval_days = min(float_interval_days, float(scheduler.maximum_interval))
+                
+                days = int(float_interval_days)
+                hours = int((float_interval_days - days) * 24)
+                if hours > 0:
+                    intervals[r_val] = f"{days}d {hours}h"
+                else:
+                    intervals[r_val] = f"{days}d"
+            else:
+                delta = card_copy.due - now_utc
+                if delta.total_seconds() < 60:
+                    intervals[r_val] = "<1m"
+                elif delta.total_seconds() < 3600:
+                    intervals[r_val] = f"{int(delta.total_seconds() / 60)}m"
+                elif delta.total_seconds() < 86400:
+                    intervals[r_val] = f"{int(delta.total_seconds() / 3600)}h"
+                else:
+                    intervals[r_val] = f"{int(delta.total_seconds() / 86400)}d"
+        except Exception:
+            intervals[r_val] = "soon"
+    return intervals
+
+
+
 @router.post("/explain")
 async def explain_card(data: dict):
     card_text = data.get("card") or data.get("question")
@@ -175,8 +210,8 @@ async def record_answer(request: Request, data: dict, db: AsyncSession = Depends
             now_utc = datetime.utcnow().replace(tzinfo=timezone.utc)
             fsrs_card = build_fsrs_card(mastery, now_utc)
             
-            # Run FSRS v6 scheduler
-            scheduler = Scheduler()
+            # Run FSRS v6 scheduler with enable_fuzzing=False
+            scheduler = Scheduler(enable_fuzzing=False)
             updated_card, review_log = scheduler.review_card(fsrs_card, rating_enum, now_utc)
             
             # Save back FSRS properties
@@ -190,7 +225,19 @@ async def record_answer(request: Request, data: dict, db: AsyncSession = Depends
                 State.Relearning: 3
             }
             mastery.state = state_reverse_map.get(updated_card.state, 1)
-            mastery.due = updated_card.due.replace(tzinfo=None)
+            
+            # Calculate fractional due date for Review cards
+            if updated_card.state == State.Review:
+                float_interval_days = (updated_card.stability / scheduler._FACTOR) * (
+                    (scheduler.desired_retention ** (1 / scheduler._DECAY)) - 1
+                )
+                float_interval_days = max(float_interval_days, 1.0)
+                float_interval_days = min(float_interval_days, float(scheduler.maximum_interval))
+                due_datetime = now_utc + timedelta(days=float_interval_days)
+                mastery.due = due_datetime.replace(tzinfo=None)
+            else:
+                mastery.due = updated_card.due.replace(tzinfo=None)
+                
             if updated_card.last_review:
                 mastery.last_review = updated_card.last_review.replace(tzinfo=None)
                 
@@ -215,22 +262,7 @@ async def record_answer(request: Request, data: dict, db: AsyncSession = Depends
             else:
                 mastery.consecutive_correct = 0
                 
-            next_intervals = {}
-            for r_val, r_enum in [(1, Rating.Again), (2, Rating.Hard), (3, Rating.Good), (4, Rating.Easy)]:
-                try:
-                    card_copy, _ = scheduler.review_card(updated_card, r_enum, now_utc)
-                    delta = card_copy.due - now_utc
-                    if delta.total_seconds() < 60:
-                        int_str = "<1m"
-                    elif delta.total_seconds() < 3600:
-                        int_str = f"{int(delta.total_seconds() / 60)}m"
-                    elif delta.total_seconds() < 86400:
-                        int_str = f"{int(delta.total_seconds() / 3600)}h"
-                    else:
-                        int_str = f"{int(delta.total_seconds() / 86400)}d"
-                    next_intervals[r_val] = int_str
-                except Exception:
-                    next_intervals[r_val] = "soon"
+            next_intervals = estimate_intervals(scheduler, updated_card, now_utc)
 
             mastery_update_info = {
                 "old_level": old_box_level,
@@ -258,9 +290,8 @@ async def record_answer(request: Request, data: dict, db: AsyncSession = Depends
         goal = goal_res.scalar_one_or_none()
         if goal:
 
-            today_str = local_date
-            if not today_str:
-                today_str = datetime.utcnow().strftime("%Y-%m-%d")
+            # Always synchronize to UTC date
+            today_str = datetime.utcnow().strftime("%Y-%m-%d")
             
             prog_res = await db.execute(
                 select(UserDailyProgress).filter(
@@ -675,27 +706,12 @@ async def get_deck_play_data(request: Request, deck_id: int, mode: Optional[str]
             })
     else:
         from fsrs import Card, Scheduler, Rating, State
-        scheduler = Scheduler()
+        scheduler = Scheduler(enable_fuzzing=False)
         now_utc = datetime.utcnow().replace(tzinfo=timezone.utc)
         
         # Pre-calculate brand new card intervals
-        default_new_intervals = {}
         new_card = build_fsrs_card(None, now_utc)
-        for r_val, r_enum in [(1, Rating.Again), (2, Rating.Hard), (3, Rating.Good), (4, Rating.Easy)]:
-            try:
-                card_copy, _ = scheduler.review_card(new_card, r_enum, now_utc)
-                delta = card_copy.due - now_utc
-                if delta.total_seconds() < 60:
-                    int_str = "<1m"
-                elif delta.total_seconds() < 3600:
-                    int_str = f"{int(delta.total_seconds() / 60)}m"
-                elif delta.total_seconds() < 86400:
-                    int_str = f"{int(delta.total_seconds() / 3600)}h"
-                else:
-                    int_str = f"{int(delta.total_seconds() / 86400)}d"
-                default_new_intervals[r_val] = int_str
-            except Exception:
-                default_new_intervals[r_val] = "soon"
+        default_new_intervals = estimate_intervals(scheduler, new_card, now_utc)
                 
         for c in deck.cards:
             m = mastery_records.get(c.id)
@@ -712,28 +728,10 @@ async def get_deck_play_data(request: Request, deck_id: int, mode: Optional[str]
             
             if is_new:
                 intervals = default_new_intervals
-            elif m_state == 2 and m_due > datetime.utcnow():
-                # Card is reviewing but not due: skip calculations
-                intervals = {1: "-", 2: "-", 3: "-", 4: "-"}
             else:
-                # Build Card for FSRS interval estimation (only for due review cards)
+                # Build Card for FSRS interval estimation
                 fsrs_card = build_fsrs_card(m, now_utc)
-                intervals = {}
-                for r_val, r_enum in [(1, Rating.Again), (2, Rating.Hard), (3, Rating.Good), (4, Rating.Easy)]:
-                    try:
-                        card_copy, _ = scheduler.review_card(fsrs_card, r_enum, now_utc)
-                        delta = card_copy.due - now_utc
-                        if delta.total_seconds() < 60:
-                            int_str = "<1m"
-                        elif delta.total_seconds() < 3600:
-                            int_str = f"{int(delta.total_seconds() / 60)}m"
-                        elif delta.total_seconds() < 86400:
-                            int_str = f"{int(delta.total_seconds() / 3600)}h"
-                        else:
-                            int_str = f"{int(delta.total_seconds() / 86400)}d"
-                        intervals[r_val] = int_str
-                    except Exception:
-                        intervals[r_val] = "soon"
+                intervals = estimate_intervals(scheduler, fsrs_card, now_utc)
                         
             cards_list.append({
                 "id": c.id,

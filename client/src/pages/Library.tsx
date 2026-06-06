@@ -65,7 +65,7 @@ export default function Library() {
   const queryClient = useQueryClient()
   const navigate = useNavigate()
 
-  const todayStr = new Date().toLocaleDateString('en-CA')
+  const todayStr = new Date().toISOString().slice(0, 10)
   const { data: activeGoals } = useQuery<ActiveGoal[]>({
     queryKey: ['activeGoals', todayStr],
     queryFn: async () => {

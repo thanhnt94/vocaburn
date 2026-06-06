@@ -641,7 +641,7 @@ export default function FlashcardPlay() {
       // 2. Non-blocking secondary assets: staggered via timeouts to eliminate server resource contention
       setTimeout(() => {
         axios.get('/api/v1/deck/goals/active', {
-          params: { local_date: new Date().toLocaleDateString('en-CA') }
+          params: { local_date: new Date().toISOString().slice(0, 10) }
         }).then(goalsRes => {
           const activeGoalData = goalsRes.data.find((g: any) => g.quiz_id === Number(id))
           if (activeGoalData) {
@@ -1044,7 +1044,7 @@ export default function FlashcardPlay() {
         is_correct: correct,
         rating: rating,
         time_spent: timeTaken,
-        local_date: new Date().toLocaleDateString('en-CA'),
+        local_date: new Date().toISOString().slice(0, 10),
         session_streak: updatedStreak,
         is_first_ever: isFirstEver
       })

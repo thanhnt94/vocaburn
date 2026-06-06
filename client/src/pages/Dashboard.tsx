@@ -891,7 +891,7 @@ export default function Dashboard() {
     refetchGlobalGoals()
   }
 
-  const todayStr = new Date().toLocaleDateString('en-CA')
+  const todayStr = new Date().toISOString().slice(0, 10)
 
   const { data: activeGoals, isLoading: isGoalsLoading } = useQuery<ActiveGoal[]>({
     queryKey: ['activeGoals', todayStr],

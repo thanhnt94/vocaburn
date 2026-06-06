@@ -71,8 +71,8 @@ async def create_or_update_goal(request: Request, data: dict, db: AsyncSession =
 @router.get("/goals/active")
 async def get_active_goals(request: Request, local_date: Optional[str] = None, db: AsyncSession = Depends(get_db)):
     user_id = int(request.cookies.get("user_id", 1))
-    if not local_date:
-        local_date = datetime.utcnow().strftime("%Y-%m-%d")
+    # Always synchronize to UTC date
+    local_date = datetime.utcnow().strftime("%Y-%m-%d")
 
     # Fetch active goals with joinedload of Deck to avoid N+1
     res = await db.execute(

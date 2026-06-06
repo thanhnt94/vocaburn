@@ -318,11 +318,8 @@ async def get_daily_challenges(
     current_user = await AuthService.get_current_user(request, db)
     user_id = current_user.id if current_user else 1
 
-    # Parse local_date
-    try:
-        activity_date = date.fromisoformat(local_date) if local_date else datetime.utcnow().date()
-    except ValueError:
-        activity_date = datetime.utcnow().date()
+    # Always synchronize to UTC date
+    activity_date = datetime.utcnow().date()
 
     today_str = activity_date.isoformat()
 
