@@ -74,15 +74,29 @@ def estimate_intervals(scheduler, card, now_utc) -> dict:
                 float_interval_days = (card_copy.stability / scheduler._FACTOR) * (
                     (scheduler.desired_retention ** (1 / scheduler._DECAY)) - 1
                 )
-                float_interval_days = max(float_interval_days, 1.0)
                 float_interval_days = min(float_interval_days, float(scheduler.maximum_interval))
+                float_interval_days = max(float_interval_days, 0.0)
                 
-                days = int(float_interval_days)
-                hours = int((float_interval_days - days) * 24)
-                if hours > 0:
-                    intervals[r_val] = f"{days}d {hours}h"
+                if float_interval_days < 1.0:
+                    total_seconds = float_interval_days * 86400
+                    if total_seconds < 60:
+                        intervals[r_val] = "<1m"
+                    elif total_seconds < 3600:
+                        intervals[r_val] = f"{int(total_seconds / 60)}m"
+                    else:
+                        hours = int(total_seconds / 3600)
+                        mins = int((total_seconds % 3600) / 60)
+                        if mins > 0:
+                            intervals[r_val] = f"{hours}h {mins}m"
+                        else:
+                            intervals[r_val] = f"{hours}h"
                 else:
-                    intervals[r_val] = f"{days}d"
+                    days = int(float_interval_days)
+                    hours = int((float_interval_days - days) * 24)
+                    if hours > 0:
+                        intervals[r_val] = f"{days}d {hours}h"
+                    else:
+                        intervals[r_val] = f"{days}d"
             else:
                 delta = card_copy.due - now_utc
                 if delta.total_seconds() < 60:
@@ -231,8 +245,8 @@ async def record_answer(request: Request, data: dict, db: AsyncSession = Depends
                 float_interval_days = (updated_card.stability / scheduler._FACTOR) * (
                     (scheduler.desired_retention ** (1 / scheduler._DECAY)) - 1
                 )
-                float_interval_days = max(float_interval_days, 1.0)
                 float_interval_days = min(float_interval_days, float(scheduler.maximum_interval))
+                float_interval_days = max(float_interval_days, 0.0)
                 due_datetime = now_utc + timedelta(days=float_interval_days)
                 mastery.due = due_datetime.replace(tzinfo=None)
             else:
