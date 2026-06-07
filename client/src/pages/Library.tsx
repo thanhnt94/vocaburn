@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Search, Plus, Target, LayoutGrid, BarChart3, User, ChevronRight, Filter, Archive, RotateCcw, Users, Play, ChevronLeft, Info, Brain, Trophy, X, BrainCircuit, Zap, Settings, BookOpen } from 'lucide-react'
+import { Search, Plus, Target, LayoutGrid, BarChart3, User, ChevronRight, Filter, Archive, RotateCcw, Users, Play, ChevronLeft, Info, Brain, Trophy, X, BrainCircuit, Zap, Settings, BookOpen, Sparkles } from 'lucide-react'
 import { useAppStore } from '@/store/useAppStore'
 import { cn } from '@/lib/utils'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -484,9 +484,16 @@ export default function Library() {
                                 </div>
                                 <div className="flex items-center gap-2">
                                   <Link 
-                                     to={`/flashcard/${quiz.id}/play`}
+                                     to={`/flashcard/${quiz.id}/play?mode=new`}
+                                     className="w-9 h-9 rounded-xl bg-gradient-to-br from-orange-400 to-rose-500 hover:from-orange-500 hover:to-rose-600 text-white flex items-center justify-center shadow-md shadow-orange-100 hover:scale-110 active:scale-95 transition-all"
+                                     title="Học từ mới (Learn New)"
+                                  >
+                                     <Sparkles className="w-4 h-4" />
+                                  </Link>
+                                  <Link 
+                                     to={`/flashcard/${quiz.id}/play?mode=fsrs`}
                                      className="w-9 h-9 rounded-xl bg-indigo-600 text-white flex items-center justify-center shadow-md shadow-indigo-200 hover:scale-110 active:scale-95 transition-all"
-                                     title="Học Spaced Repetition (FSRS)"
+                                     title="Ôn tập Spaced Repetition (FSRS)"
                                   >
                                      <Brain className="w-4 h-4" />
                                   </Link>
@@ -657,12 +664,19 @@ export default function Library() {
                          </div>
                          <div className="flex items-center gap-2">
                            <Link 
-                             to={`/flashcard/${quiz.id}/play`} 
-                             className="w-9 h-9 rounded-xl bg-indigo-600 text-white flex items-center justify-center shadow-md shadow-indigo-200 active:scale-90 transition-all"
-                             title="Học Spaced Repetition"
-                           >
-                              <Brain className="w-4 h-4" />
-                           </Link>
+                              to={`/flashcard/${quiz.id}/play?mode=new`} 
+                              className="w-9 h-9 rounded-xl bg-gradient-to-br from-orange-400 to-rose-500 hover:from-orange-500 hover:to-rose-600 text-white flex items-center justify-center shadow-md shadow-orange-100 active:scale-90 transition-all"
+                              title="Học từ mới (Learn New)"
+                            >
+                               <Sparkles className="w-4 h-4" />
+                            </Link>
+                            <Link 
+                              to={`/flashcard/${quiz.id}/play?mode=fsrs`} 
+                              className="w-9 h-9 rounded-xl bg-indigo-600 text-white flex items-center justify-center shadow-md shadow-indigo-200 active:scale-90 transition-all"
+                              title="Ôn tập Spaced Repetition"
+                            >
+                               <Brain className="w-4 h-4" />
+                            </Link>
                            <button 
                              onClick={() => {
                                 setSelectedPracticeQuiz(quiz)

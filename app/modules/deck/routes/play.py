@@ -1150,6 +1150,39 @@ async def get_next_card(request: Request, deck_id: int, data: dict, db: AsyncSes
                     
             return {"next_index": min(current_index + 1, total - 1)}
             
+    elif mode == "new":
+        # First, find cards that are new (state == 0 or no mastery) and have not been answered in this session
+        for idx, c in enumerate(deck.cards):
+            if idx in ignored_indexes:
+                continue
+            m = mastery_map.get(c.id)
+            is_new = not m or m.state == 0 or m.stability is None
+            if is_new and idx not in effective_answered:
+                return {"next_index": idx}
+                
+        # Fallback 1: if no new cards are left, check if any FSRS cards are due
+        now_utc = datetime.utcnow()
+        due_cards = []
+        for idx, c in enumerate(deck.cards):
+            if idx in ignored_indexes:
+                continue
+            m = mastery_map.get(c.id)
+            if not m or m.state == 0 or m.stability is None:
+                continue
+            is_due = (m.due - timedelta(seconds=30)) <= now_utc
+            if is_due and idx not in answered_indexes:
+                due_cards.append({"idx": idx, "stability": m.stability or 0.0})
+        if due_cards:
+            due_cards.sort(key=lambda x: x["stability"])
+            return {"next_index": due_cards[0]["idx"]}
+            
+        # Fallback 2: any unanswered cards
+        for idx in range(total):
+            if idx not in effective_answered:
+                return {"next_index": idx}
+                
+        return {"next_index": min(current_index + 1, total - 1)}
+            
     elif mode == "sequential":
         found = -1
         for i in range(current_index + 1, total):

@@ -210,7 +210,15 @@ export default function FlashcardPlay() {
   const [activeGoal, setActiveGoal] = useState<any>(null)
   const [showGoalCelebration, setShowGoalCelebration] = useState(false)
   const [isLimitlessStrike, setIsLimitlessStrike] = useState(false)
-  const [activeMode, setActiveMode] = useState<string>(() => localStorage.getItem('quiz_learning_mode') || 'fsrs')
+  const [activeMode, setActiveMode] = useState<string>(() => {
+    const searchParams = new URLSearchParams(window.location.search);
+    const urlMode = searchParams.get('mode');
+    if (urlMode === 'new' || urlMode === 'fsrs') {
+      localStorage.setItem('quiz_learning_mode', urlMode);
+      return urlMode;
+    }
+    return localStorage.getItem('quiz_learning_mode') || 'fsrs';
+  })
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
 
   const saveGeneralSettings = async (updates: { sfx_enabled?: boolean; autoplay_audio?: 'always' | 'front' | 'back' | 'none'; learning_mode?: string }) => {
@@ -432,6 +440,11 @@ export default function FlashcardPlay() {
 
 
   useEffect(() => {
+    const searchParams = new URLSearchParams(window.location.search);
+    const urlMode = searchParams.get('mode');
+    if (urlMode === 'new' || urlMode === 'fsrs') {
+      saveGeneralSettings({ learning_mode: urlMode });
+    }
     fetchSession()
   }, [id])
 
@@ -607,8 +620,11 @@ export default function FlashcardPlay() {
           localStorage.setItem('vocaburn_autoplay_audio', uSet.autoplay_audio);
         }
         if (uSet.learning_mode !== undefined) {
-          setActiveMode(uSet.learning_mode);
-          localStorage.setItem('quiz_learning_mode', uSet.learning_mode);
+          const searchParams = new URLSearchParams(window.location.search);
+          const urlMode = searchParams.get('mode');
+          const finalMode = (urlMode === 'new' || urlMode === 'fsrs') ? urlMode : uSet.learning_mode;
+          setActiveMode(finalMode);
+          localStorage.setItem('quiz_learning_mode', finalMode);
         }
       }
       
@@ -4380,9 +4396,10 @@ export default function FlashcardPlay() {
                 {/* 1. Learning Mode Selector */}
                 <div>
                   <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-2">Chế độ học thông minh</label>
-                  <div className="grid grid-cols-3 gap-1.5 bg-slate-50 p-1 rounded-2xl border border-slate-100">
+                  <div className="grid grid-cols-4 gap-1.5 bg-slate-50 p-1 rounded-2xl border border-slate-100">
                     {[
                       { id: 'fsrs', label: 'FSRS v6', icon: Brain },
+                      { id: 'new', label: 'Học mới', icon: Sparkles },
                       { id: 'sequential', label: 'Mặc định', icon: ListOrdered },
                       { id: 'random', label: 'Ngẫu nhiên', icon: Shuffle },
                       { id: 'unseen', label: 'Chưa học', icon: EyeOff },

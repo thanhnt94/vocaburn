@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { Brain, Trophy, ChevronRight, LayoutGrid, Users, Zap, Flame, BrainCircuit, X, Play, Crown, Medal, Star, CheckCircle2, Circle, Swords, Settings, Target, RefreshCw, User, BookOpen } from 'lucide-react'
+import { Brain, Trophy, ChevronRight, LayoutGrid, Users, Zap, Flame, BrainCircuit, X, Play, Crown, Medal, Star, CheckCircle2, Circle, Swords, Settings, Target, RefreshCw, User, BookOpen, Sparkles } from 'lucide-react'
 import { useAppStore } from '@/store/useAppStore'
 import { cn } from '@/lib/utils'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -598,6 +598,10 @@ function TodayFocusWidget({
               const dueReviews = deckReview ? deckReview.due_count : 0
               const isGoalMet = goal.done_today >= goal.daily_target
               const goalPercentage = goal.daily_target > 0 ? Math.min(100, Math.round((goal.done_today / goal.daily_target) * 100)) : 0
+              const remainingNewToday = Math.max(0, goal.daily_target - goal.done_today)
+              const totalRemainingNew = goal.total_questions - goal.total_learned
+              const newCountLabel = remainingNewToday > 0 ? remainingNewToday : (totalRemainingNew > 0 ? totalRemainingNew : 0)
+              const hasNewCards = totalRemainingNew > 0
 
               return (
                 <div key={goal.goal_id} className="p-3.5 rounded-2xl border border-slate-100 bg-slate-50/30 hover:bg-slate-50/60 transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -655,10 +659,28 @@ function TodayFocusWidget({
                   {/* Actions */}
                   <div className="flex items-center gap-2 self-end sm:self-center">
                     <button
-                      onClick={() => navigate(`/flashcard/${goal.deck_id}/play`)}
+                      onClick={() => {
+                        if (hasNewCards) {
+                          navigate(`/flashcard/${goal.deck_id}/play?mode=new`)
+                        }
+                      }}
                       className={cn(
                         "h-8.5 px-3 rounded-xl text-[9px] font-black uppercase tracking-wider flex items-center gap-1.5 shadow-sm active:scale-95 transition-all",
-                        dueReviews > 0 || !isGoalMet
+                        hasNewCards
+                          ? "bg-gradient-to-r from-orange-500 to-rose-500 hover:from-orange-600 hover:to-rose-600 text-white shadow-orange-100"
+                          : "bg-slate-100 text-slate-400 cursor-not-allowed border border-slate-200/50"
+                      )}
+                      disabled={!hasNewCards}
+                      title="Học từ mới"
+                    >
+                      <Sparkles className="w-3.5 h-3.5" />
+                      Học mới {newCountLabel > 0 && `(${newCountLabel})`}
+                    </button>
+                    <button
+                      onClick={() => navigate(`/flashcard/${goal.deck_id}/play?mode=fsrs`)}
+                      className={cn(
+                        "h-8.5 px-3 rounded-xl text-[9px] font-black uppercase tracking-wider flex items-center gap-1.5 shadow-sm active:scale-95 transition-all",
+                        dueReviews > 0
                           ? "bg-indigo-600 hover:bg-indigo-700 text-white shadow-indigo-100"
                           : "bg-slate-100 hover:bg-slate-200 text-slate-600"
                       )}

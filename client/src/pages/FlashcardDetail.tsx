@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
 import { useQuery, useInfiniteQuery, useQueryClient } from '@tanstack/react-query'
-import { ChevronLeft, Award, BookOpen, Search, StickyNote, BarChart2, Settings, Edit2, X, Save, Brain, HelpCircle, Plus } from 'lucide-react'
+import { ChevronLeft, Award, BookOpen, Search, StickyNote, BarChart2, Settings, Edit2, X, Save, Brain, HelpCircle, Plus, Sparkles, Trophy } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import axios from 'axios'
 import { cn } from '@/lib/utils'
@@ -370,33 +370,47 @@ export default function QuizDetail() {
                   await axios.delete(`/api/v1/deck/${id}/session`)
                   // Refresh the query to update UI
                   queryClient.invalidateQueries({ queryKey: ['quiz-session', id] })
-                  navigate(`/flashcard/${id}/play`)
+                  navigate(`/flashcard/${id}/play?mode=fsrs`)
                 }}
-                className="flex-1 py-5 bg-white border-2 border-rose-100 text-rose-600 font-black text-xs md:text-sm rounded-2xl active:scale-95 transition-all tracking-widest uppercase"
+                className="flex-1 py-5 bg-white border-2 border-rose-100 text-rose-600 font-black text-xs md:text-sm rounded-2xl active:scale-95 transition-all tracking-widest uppercase flex items-center justify-center gap-2"
               >
                 LÀM MỚI FSRS (RESET)
               </button>
               <button 
-                onClick={() => navigate(`/flashcard/${id}/play`)}
-                className="flex-[1.5] py-5 bg-indigo-600 text-white font-black text-xs md:text-sm rounded-2xl shadow-xl shadow-indigo-500/20 active:scale-95 transition-all tracking-widest uppercase"
+                onClick={() => navigate(`/flashcard/${id}/play?mode=new`)}
+                className="flex-1 py-5 bg-gradient-to-r from-orange-500 to-rose-500 hover:from-orange-600 hover:to-rose-600 text-white font-black text-xs md:text-sm rounded-2xl shadow-xl shadow-orange-500/20 active:scale-95 transition-all tracking-widest uppercase flex items-center justify-center gap-2"
               >
-                TIẾP TỤC HỌC (FSRS)
+                <Sparkles className="w-4.5 h-4.5" /> HỌC MỚI (NEW)
+              </button>
+              <button 
+                onClick={() => navigate(`/flashcard/${id}/play?mode=fsrs`)}
+                className="flex-[1.5] py-5 bg-indigo-600 text-white font-black text-xs md:text-sm rounded-2xl shadow-xl shadow-indigo-500/20 active:scale-95 transition-all tracking-widest uppercase flex items-center justify-center gap-2"
+              >
+                <Brain className="w-4.5 h-4.5" /> TIẾP TỤC HỌC (FSRS)
               </button>
             </>
           ) : (
-            <button 
-              onClick={() => navigate(`/flashcard/${id}/play`)}
-              className="flex-1 py-5 bg-indigo-600 text-white font-black text-xs md:text-sm rounded-2xl shadow-xl shadow-indigo-500/20 active:scale-95 transition-all tracking-widest uppercase"
-            >
-              HỌC FLASHCARD (FSRS)
-            </button>
+            <>
+              <button 
+                onClick={() => navigate(`/flashcard/${id}/play?mode=new`)}
+                className="flex-1 py-5 bg-gradient-to-r from-orange-500 to-rose-500 hover:from-orange-600 hover:to-rose-600 text-white font-black text-xs md:text-sm rounded-2xl shadow-xl shadow-orange-500/20 active:scale-95 transition-all tracking-widest uppercase flex items-center justify-center gap-2"
+              >
+                <Sparkles className="w-4.5 h-4.5" /> HỌC MỚI (NEW)
+              </button>
+              <button 
+                onClick={() => navigate(`/flashcard/${id}/play?mode=fsrs`)}
+                className="flex-1 py-5 bg-indigo-600 text-white font-black text-xs md:text-sm rounded-2xl shadow-xl shadow-indigo-500/20 active:scale-95 transition-all tracking-widest uppercase flex items-center justify-center gap-2"
+              >
+                <Brain className="w-4.5 h-4.5" /> ÔN TẬP (FSRS)
+              </button>
+            </>
           )}
 
           <button 
             onClick={() => navigate(`/practice/${id}`)}
-            className="flex-1 py-5 bg-emerald-600 text-white font-black text-xs md:text-sm rounded-2xl shadow-xl shadow-emerald-500/20 active:scale-95 transition-all tracking-widest uppercase"
+            className="flex-1 py-5 bg-emerald-600 text-white font-black text-xs md:text-sm rounded-2xl shadow-xl shadow-emerald-500/20 active:scale-95 transition-all tracking-widest uppercase flex items-center justify-center gap-2"
           >
-            LUYỆN TẬP (PRACTICE)
+            <Trophy className="w-4.5 h-4.5" /> LUYỆN TẬP (PRACTICE)
           </button>
         </div>
       </div>
