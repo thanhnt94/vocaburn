@@ -251,7 +251,7 @@ export default function Library() {
       <div className="absolute bottom-[20%] right-[-10%] w-[40vw] h-[40vw] rounded-full bg-pink-200/10 blur-[130px] pointer-events-none" />
 
       {/* MOBILE HEADER */}
-      <div className="sticky top-0 z-[150] bg-white/80 backdrop-blur-xl border-b border-slate-100 md:hidden flex-shrink-0">
+      <div className="fixed top-0 left-0 right-0 z-[150] bg-white/80 backdrop-blur-xl border-b border-slate-100 md:hidden flex-shrink-0">
          <div className="px-4 py-4 flex items-center justify-between gap-4">
             <div className="flex items-center gap-3">
                <div className="w-11 h-11 rounded-2xl bg-gradient-to-tr from-indigo-500 via-purple-500 to-pink-500 flex items-center justify-center text-white shadow-lg shadow-indigo-100 flex-shrink-0">
@@ -599,7 +599,7 @@ export default function Library() {
       </div>
 
       {/* MOBILE FEED CONTENT */}
-      <div className="md:hidden px-4 w-full mt-4 flex-grow space-y-4 pb-20">
+      <div className="md:hidden px-4 w-full pt-[190px] flex-grow space-y-4 pb-20">
         {filteredData.length === 0 ? (
           <div className="w-full bg-white border border-slate-200 rounded-3xl p-12 text-center flex flex-col items-center justify-center shadow-sm">
             <span className="text-4xl mb-4">🔍</span>

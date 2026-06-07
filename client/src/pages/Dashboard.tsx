@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { Brain, Trophy, ChevronRight, LayoutGrid, Users, Zap, Flame, BrainCircuit, X, Play, Crown, Medal, Star, CheckCircle2, Circle, Swords, Settings, Target, RefreshCw } from 'lucide-react'
+import { Brain, Trophy, ChevronRight, LayoutGrid, Users, Zap, Flame, BrainCircuit, X, Play, Crown, Medal, Star, CheckCircle2, Circle, Swords, Settings, Target, RefreshCw, User } from 'lucide-react'
 import { useAppStore } from '@/store/useAppStore'
 import { cn } from '@/lib/utils'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -1206,29 +1206,35 @@ export default function Dashboard() {
       <div className="absolute bottom-[20%] right-[-10%] w-[40vw] h-[40vw] rounded-full bg-pink-200/10 blur-[130px] pointer-events-none" />
 
       {/* MOBILE HEADER */}
-      <div className="sticky top-0 z-[150] bg-white/80 backdrop-blur-xl border-b border-slate-100 md:hidden flex-shrink-0">
-        <div className="px-4 py-4 flex items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <div className="w-11 h-11 rounded-2xl bg-gradient-to-tr from-indigo-500 via-purple-500 to-pink-500 flex items-center justify-center text-white shadow-lg shadow-indigo-100 flex-shrink-0">
-              <BrainCircuit className="w-6 h-6 animate-pulse" />
+      <div className="fixed top-0 left-0 right-0 z-[150] bg-white/75 backdrop-blur-3xl border-b border-slate-200/40 md:hidden flex-shrink-0 shadow-[0_2px_15px_-3px_rgba(0,0,0,0.02)]">
+        <div className="px-5 py-3.5 flex items-center justify-between gap-4">
+          {/* Logo & Brand Vocaburn on the Left */}
+          <Link to="/" className="flex items-center gap-2 group flex-shrink-0">
+            <div className="w-9 h-9 rounded-xl bg-indigo-600 flex items-center justify-center text-white shadow-lg shadow-indigo-150 group-hover:rotate-12 transition-transform">
+              <BrainCircuit className="w-5 h-5 animate-pulse" />
             </div>
-            <div>
-              <h1 className="text-[13px] font-black text-slate-800 leading-none mb-1">Hello {data.user?.username}! 👋</h1>
-              <div className="flex items-center gap-1.5">
-                <span className="text-[9px] font-black text-indigo-600 bg-indigo-50 px-1.5 py-0.5 rounded-lg border border-indigo-100/50">LVL {data.gamify?.level}</span>
-                <span className="text-[9px] font-black text-orange-600 bg-orange-50 px-1.5 py-0.5 rounded-lg border border-orange-100/50 flex items-center gap-0.5">
-                  🔥 {data.gamify?.streak}D
+            <span className="text-[10px] font-black tracking-widest text-slate-400 uppercase">Vocaburn</span>
+          </Link>
+
+          {/* User Info & Avatar on the Right */}
+          <div className="flex items-center gap-3">
+            <div className="text-right">
+              <h1 className="text-[12px] font-black text-slate-900 leading-none mb-1.5">Hello {data.user?.username}! 👋</h1>
+              <div className="flex items-center gap-1.5 justify-end">
+                <span className="flex items-center gap-0.5 px-2 py-0.5 bg-indigo-50 border border-indigo-100/30 rounded-lg text-[8px] font-black text-indigo-600 uppercase tracking-wider shadow-sm">
+                  <BrainCircuit className="w-2.5 h-2.5" />
+                  LVL {data.gamify?.level}
+                </span>
+                <span className="flex items-center gap-0.5 px-2 py-0.5 bg-orange-50 border border-orange-100/30 rounded-lg text-[8px] font-black text-orange-650 uppercase tracking-wider shadow-sm">
+                  <Flame className="w-2.5 h-2.5 text-orange-500 fill-orange-500" />
+                  {data.gamify?.streak}D Streak
                 </span>
               </div>
             </div>
-          </div>
-          <div className="flex items-center gap-2">
-            <Link
-              to="/manage"
-              className="w-10 h-10 rounded-xl bg-slate-50 border border-slate-200/60 flex items-center justify-center text-slate-650 shadow-sm active:scale-90 transition-all hover:bg-slate-100"
-              title="Creator Studio"
-            >
-              <LayoutGrid className="w-5 h-5" />
+            
+            {/* User Avatar (Normal style: square box with User icon) */}
+            <Link to="/profile" className="w-11 h-11 rounded-2xl bg-slate-50 border border-slate-200/60 flex items-center justify-center text-slate-450 shadow-sm active:scale-95 transition-all hover:bg-slate-100">
+              <User className="w-5 h-5" />
             </Link>
           </div>
         </div>
@@ -1346,7 +1352,7 @@ export default function Dashboard() {
       </div>
 
       {/* MOBILE FEED */}
-      <div className="md:hidden px-4 w-full mt-4 flex-grow space-y-4 overflow-y-auto pb-24">
+      <div className="md:hidden px-4 w-full pt-[80px] flex-grow space-y-4 overflow-y-auto pb-24">
         {/* Global Study Goals Widget (Includes individual deck targets & actions) */}
         {globalGoals && (
           <TodayFocusWidget

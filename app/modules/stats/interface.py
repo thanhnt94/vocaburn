@@ -42,6 +42,32 @@ class StatsInterface:
         return stats
 
     @staticmethod
+    async def revert_activity(db: AsyncSession, user_id: int, is_correct: bool, time_spent: int):
+        today = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
+        result = await db.execute(
+            select(UserDailyStats).where(
+                UserDailyStats.user_id == user_id,
+                UserDailyStats.date >= today
+            )
+        )
+        stats = result.scalar_one_or_none()
+        if stats:
+            stats.questions_attempted = max(0, (stats.questions_attempted or 0) - 1)
+            if is_correct:
+                stats.correct_answers = max(0, (stats.correct_answers or 0) - 1)
+            stats.total_time_seconds = max(0, (stats.total_time_seconds or 0) - time_spent)
+            
+            correct_cnt = stats.correct_answers or 0
+            attempted_cnt = stats.questions_attempted or 0
+            if attempted_cnt > 0:
+                stats.accuracy = (correct_cnt / attempted_cnt) * 100
+            else:
+                stats.accuracy = 0.0
+            await db.commit()
+            return stats
+        return None
+
+    @staticmethod
     async def get_user_summary(db: AsyncSession, user_id: int):
         # Aggregate all-time stats
         result = await db.execute(

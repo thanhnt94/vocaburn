@@ -579,6 +579,259 @@ async def record_answer(request: Request, data: dict, db: AsyncSession = Depends
     }
 
 
+@router.post("/undo_answer")
+async def undo_answer(request: Request, data: dict, db: AsyncSession = Depends(get_db)):
+    from app.modules.deck.models import UserAnswer, Flashcard, UserCardMastery, UserDeckGoal, UserDailyProgress, DeckAttempt
+    from app.modules.gamification.interface import GamificationInterface
+    from app.modules.gamification.models import XPTransaction
+    from app.modules.stats.interface import StatsInterface
+    from app.modules.notification.interface import NotificationInterface
+
+    user_id = int(request.cookies.get("user_id", 1))
+    card_id = int(data.get("card_id", 0))
+    if not card_id:
+        return JSONResponse(status_code=400, content={"error": "card_id is required"})
+
+    # Find the most recent UserAnswer for this user and card
+    ans_stmt = (
+        select(UserAnswer)
+        .join(DeckAttempt, UserAnswer.attempt_id == DeckAttempt.id)
+        .where(DeckAttempt.user_id == user_id, UserAnswer.card_id == card_id)
+        .order_by(UserAnswer.id.desc())
+    )
+    ans_res = await db.execute(ans_stmt)
+    last_answer = ans_res.scalars().first()
+
+    if not last_answer:
+        return JSONResponse(status_code=400, content={"error": "No answers found for this card to undo"})
+
+    is_correct = last_answer.is_correct
+    time_spent = int(last_answer.active_time or 0)
+    rating_val = last_answer.rating or (3 if is_correct else 1)
+
+    # 1. Delete the answer
+    await db.delete(last_answer)
+    await db.flush()
+
+    # 2. Re-evaluate FSRS mastery for this card
+    rem_stmt = (
+        select(UserAnswer)
+        .join(DeckAttempt, UserAnswer.attempt_id == DeckAttempt.id)
+        .where(DeckAttempt.user_id == user_id, UserAnswer.card_id == card_id)
+        .order_by(UserAnswer.id.asc())
+    )
+    rem_res = await db.execute(rem_stmt)
+    remaining_answers = rem_res.scalars().all()
+
+    mastery_res = await db.execute(
+        select(UserCardMastery).where(
+            UserCardMastery.user_id == user_id,
+            UserCardMastery.card_id == card_id
+        )
+    )
+    mastery = mastery_res.scalar_one_or_none()
+
+    now_utc = datetime.utcnow().replace(tzinfo=timezone.utc)
+    from fsrs import Card, Scheduler, Rating, State
+    scheduler = Scheduler(enable_fuzzing=False)
+
+    was_originally_new = len(remaining_answers) == 0
+
+    if was_originally_new:
+        if mastery:
+            mastery.stability = None
+            mastery.difficulty = None
+            mastery.state = 0
+            mastery.step = 0
+            mastery.due = datetime.utcnow()
+            mastery.last_review = None
+            mastery.box_level = 1
+            mastery.consecutive_correct = 0
+    else:
+        temp_card = Card()
+        for idx, ans in enumerate(remaining_answers):
+            ans_rating_map = {
+                1: Rating.Again,
+                2: Rating.Hard,
+                3: Rating.Good,
+                4: Rating.Easy
+            }
+            ans_rating_enum = ans_rating_map.get(ans.rating, Rating.Good)
+            ans_time = ans.created_at.replace(tzinfo=timezone.utc) if ans.created_at else now_utc
+            temp_card, _ = scheduler.review_card(temp_card, ans_rating_enum, ans_time)
+
+        if mastery:
+            mastery.stability = temp_card.stability
+            mastery.difficulty = temp_card.difficulty
+            mastery.step = temp_card.step
+            
+            state_reverse_map = {
+                State.Learning: 1,
+                State.Review: 2,
+                State.Relearning: 3
+            }
+            mastery.state = state_reverse_map.get(temp_card.state, 1)
+            
+            if temp_card.state == State.Review:
+                float_interval_days = (temp_card.stability / scheduler._FACTOR) * (
+                    (scheduler.desired_retention ** (1 / scheduler._DECAY)) - 1
+                )
+                float_interval_days = min(float_interval_days, float(scheduler.maximum_interval))
+                float_interval_days = max(float_interval_days, 0.0)
+                due_datetime = now_utc + timedelta(days=float_interval_days)
+                mastery.due = due_datetime.replace(tzinfo=None)
+            else:
+                mastery.due = temp_card.due.replace(tzinfo=None)
+                
+            if temp_card.last_review:
+                mastery.last_review = temp_card.last_review.replace(tzinfo=None)
+            else:
+                mastery.last_review = None
+                
+            if mastery.state == 2:
+                if mastery.stability and mastery.stability >= 10.0:
+                    mastery.box_level = 5
+                elif mastery.stability and mastery.stability >= 3.0:
+                    mastery.box_level = 4
+                else:
+                    mastery.box_level = 3
+            elif mastery.state in (1, 3):
+                mastery.box_level = 2
+            else:
+                mastery.box_level = 1
+                
+            consec = 0
+            for ans in remaining_answers:
+                if ans.is_correct:
+                    consec += 1
+                else:
+                    consec = 0
+            mastery.consecutive_correct = consec
+
+    # 3. Deduct XP
+    base_xp = 0
+    if rating_val == 4:
+        base_xp = 7
+    elif rating_val == 3:
+        base_xp = 6
+    elif rating_val == 2:
+        base_xp = 5
+    else:
+        base_xp = 1
+
+    is_first_ever = len(remaining_answers) == 0
+    bonus_xp_gained = 0
+    if is_first_ever:
+        bonus_xp_gained += 10
+        
+    tx_stmt = (
+        select(XPTransaction)
+        .where(XPTransaction.user_id == user_id, XPTransaction.source == "deck_answer")
+        .order_by(XPTransaction.id.desc())
+    )
+    tx_res = await db.execute(tx_stmt)
+    last_tx = tx_res.scalars().first()
+    
+    xp_to_deduct = base_xp + bonus_xp_gained
+    if last_tx:
+        xp_to_deduct = last_tx.amount
+    
+    await GamificationInterface.revert_xp(db, user_id, xp_to_deduct, source="deck_answer")
+
+    # 4. Revert Daily Goal progress
+    card_res = await db.execute(select(Flashcard).filter(Flashcard.id == card_id))
+    card = card_res.scalar_one_or_none()
+    
+    goal_update_info = None
+    if card:
+        goal_res = await db.execute(
+            select(UserDeckGoal).filter(
+                UserDeckGoal.user_id == user_id,
+                UserDeckGoal.deck_id == card.deck_id,
+                UserDeckGoal.status == "active"
+            )
+        )
+        goal = goal_res.scalar_one_or_none()
+        if goal:
+            today_str = datetime.utcnow().strftime("%Y-%m-%d")
+            prog_res = await db.execute(
+                select(UserDailyProgress).filter(
+                    UserDailyProgress.goal_id == goal.id,
+                    UserDailyProgress.date == today_str
+                )
+            )
+            progress = prog_res.scalar_one_or_none()
+            if progress:
+                if is_first_ever:
+                    progress.count_done = max(0, progress.count_done - 1)
+                    
+                    if progress.is_target_met and progress.count_done < goal.daily_target:
+                        progress.is_target_met = False
+                        await GamificationInterface.revert_xp(db, user_id, 50, source="daily_goal_bonus")
+                        
+                        if goal.last_completed_date == today_str:
+                            try:
+                                today_date = date.fromisoformat(today_str)
+                            except Exception:
+                                today_date = datetime.utcnow().date()
+                            yesterday_str = (today_date - timedelta(days=1)).strftime("%Y-%m-%d")
+                            
+                            yesterday_prog_res = await db.execute(
+                                select(UserDailyProgress).filter(
+                                    UserDailyProgress.goal_id == goal.id,
+                                    UserDailyProgress.date == yesterday_str
+                                )
+                            )
+                            yesterday_prog = yesterday_prog_res.scalar_one_or_none()
+                            if yesterday_prog and yesterday_prog.is_target_met:
+                                goal.last_completed_date = yesterday_str
+                                goal.streak_count = max(0, goal.streak_count - 1)
+                            else:
+                                goal.last_completed_date = None
+                                goal.streak_count = 0
+                                
+                    remaining = max(0, goal.daily_target - progress.count_done)
+                    goal_update_info = {
+                        "goal_id": goal.id,
+                        "daily_target": goal.daily_target,
+                        "done_today": progress.count_done,
+                        "is_target_met": progress.is_target_met,
+                        "just_completed": False,
+                        "streak_count": goal.streak_count,
+                        "remaining_today": remaining,
+                        "is_new_card": is_first_ever
+                    }
+
+    # 5. Revert Stats
+    await StatsInterface.revert_activity(db, user_id, is_correct, time_spent)
+
+    await db.commit()
+
+    next_intervals = {}
+    if not was_originally_new:
+        next_intervals = estimate_intervals(scheduler, temp_card, now_utc)
+    else:
+        new_c = Card()
+        next_intervals = estimate_intervals(scheduler, new_c, now_utc)
+
+    reverted_fsrs = {
+        "state": mastery.state if mastery else 0,
+        "stability": mastery.stability if mastery else None,
+        "difficulty": mastery.difficulty if mastery else None,
+        "due": mastery.due.isoformat() if (mastery and mastery.due) else None,
+        "last_review": mastery.last_review.isoformat() if (mastery and mastery.last_review) else None,
+        "intervals": next_intervals
+    }
+
+    return {
+        "status": "ok",
+        "xp_deducted": xp_to_deduct,
+        "box_level": mastery.box_level if mastery else 1,
+        "fsrs": reverted_fsrs,
+        "goal_update": goal_update_info
+    }
+
+
 @router.get("/{deck_id}/data")
 async def get_deck_data(request: Request, deck_id: int, db: AsyncSession = Depends(get_db)):
     user_id = int(request.cookies.get("user_id", 1))

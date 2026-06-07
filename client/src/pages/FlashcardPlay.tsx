@@ -242,6 +242,7 @@ export default function FlashcardPlay() {
 
   const timerRef = useRef<any>(null)
   const [activelyRatedCurrentCard, setActivelyRatedCurrentCard] = useState<boolean>(false)
+  const [prevStreakBeforeRating, setPrevStreakBeforeRating] = useState<number>(0)
   const [leaderboardData, setLeaderboardData] = useState<any>(null)
 
   const xpLeaderboard = leaderboardData?.xp || { list: [], user_rank: -1, user_value: 0 }
@@ -894,6 +895,7 @@ export default function FlashcardPlay() {
     setShowFeedback(true)
     setIsFlipped(true)
     setActivelyRatedCurrentCard(true)
+    setPrevStreakBeforeRating(streak)
 
     // Snapshot BEFORE updating stats (for context display)
     const prevTotal = currentQuestion.stats?.total || 0
@@ -1269,6 +1271,122 @@ export default function FlashcardPlay() {
       showLocalToast("Warning: Your answer was not saved to the server.", "warning")
     }
   }
+
+  const handleUndoRating = async () => {
+    if (!currentQuestion) return;
+    try {
+      const res = await axios.post('/api/v1/deck/undo_answer', {
+        card_id: currentQuestion.id
+      });
+      
+      if (res.data.status === 'ok') {
+        const optionToRevert = selectedOption;
+        
+        // 1. Revert local state
+        setActivelyRatedCurrentCard(false);
+        setJustAnswered(false);
+        setSelectedOption(null);
+        setStreak(prevStreakBeforeRating);
+        
+        // Remove this rating from sessionAnswers
+        const prevRatings = sessionAnswers[currentIndex];
+        if (Array.isArray(prevRatings) && prevRatings.length > 0) {
+          const newRatings = prevRatings.slice(0, -1);
+          const newAnswers = { ...sessionAnswers };
+          if (newRatings.length > 0) {
+            newAnswers[currentIndex] = newRatings;
+          } else {
+            delete newAnswers[currentIndex];
+          }
+          setSessionAnswers(newAnswers);
+        }
+        
+        // 2. Revert XP locally
+        const xpDeducted = res.data.xp_deducted || 0;
+        if (xpDeducted > 0) {
+          setSessionXP(prev => Math.max(0, prev - xpDeducted));
+          addXp(-xpDeducted);
+        }
+        
+        // 3. Revert daily goals
+        const goalUpdate = res.data.goal_update;
+        if (goalUpdate) {
+          setGoalToast(prev => {
+            if (!prev) return null;
+            return {
+              ...prev,
+              visible: false,
+              doneToday: goalUpdate.done_today,
+              streakCount: goalUpdate.streak_count,
+              isTargetMet: goalUpdate.is_target_met
+            };
+          });
+          
+          setActiveGoal((prev: any) => {
+            if (!prev) return null;
+            const updatedLearned = goalUpdate.is_new_question ? Math.max(0, prev.total_learned - 1) : prev.total_learned;
+            const remainingQs = Math.max(0, prev.total_questions - updatedLearned);
+            return {
+              ...prev,
+              done_today: goalUpdate.done_today,
+              is_target_met: goalUpdate.is_target_met,
+              streak_count: goalUpdate.streak_count,
+              total_learned: updatedLearned,
+              days_remaining_est: Math.ceil(remainingQs / prev.daily_target)
+            };
+          });
+        }
+        
+        // 4. Update the card FSRS properties locally
+        setSession((prev: any) => {
+          if (!prev) return prev;
+          const newSession = { ...prev };
+          const newQs = [...newSession.questions];
+          const q = { ...newQs[currentIndex] };
+          
+          if (res.data.fsrs) {
+            q.fsrs = {
+              ...q.fsrs,
+              state: res.data.fsrs.state,
+              stability: res.data.fsrs.stability,
+              difficulty: res.data.fsrs.difficulty,
+              due: res.data.fsrs.due,
+              last_review: res.data.fsrs.last_review,
+              intervals: res.data.fsrs.intervals
+            };
+          }
+          
+          if (res.data.box_level !== undefined) {
+            q.box_level = res.data.box_level;
+          }
+          
+          const isCorrect = optionToRevert !== 0;
+          if (q.stats) {
+            const currentStats = q.stats;
+            const newTotal = Math.max(0, currentStats.total - 1);
+            const newCorrect = Math.max(0, currentStats.correct - (isCorrect ? 1 : 0));
+            q.stats = {
+              ...currentStats,
+              total: newTotal,
+              correct: newCorrect,
+              wrong: Math.max(0, newTotal - newCorrect),
+              again_count: Math.max(0, (currentStats.again_count || 0) - (optionToRevert === 0 ? 1 : 0)),
+              hard_count: Math.max(0, (currentStats.hard_count || 0) - (optionToRevert === 1 ? 1 : 0)),
+              good_count: Math.max(0, (currentStats.good_count || 0) - (optionToRevert === 2 ? 1 : 0)),
+              easy_count: Math.max(0, (currentStats.easy_count || 0) - (optionToRevert === 3 ? 1 : 0))
+            };
+          }
+          
+          newQs[currentIndex] = q;
+          newSession.questions = newQs;
+          return newSession;
+        });
+      }
+    } catch (e) {
+      console.error("Failed to undo rating:", e);
+      alert("Undo failed. Please try again.");
+    }
+  };
 
   const handleAnswer = async (optIdx: number) => {
     if (!currentQuestion) return
@@ -3745,19 +3863,37 @@ export default function FlashcardPlay() {
                       return (
                         <div
                           className={cn(
-                            "mt-4 flex items-center justify-center gap-2 py-3 rounded-2xl border transition-all duration-300 font-bold",
+                            "mt-4 flex items-center justify-center gap-2 py-3 rounded-2xl border transition-all duration-300 font-bold relative min-h-[48px]",
                             selectedOption === 0 ? "bg-rose-50 border-rose-100 text-rose-600 animate-pulse" :
                             selectedOption === 1 ? "bg-amber-50 border-amber-100 text-amber-600" :
                             selectedOption === 2 ? "bg-indigo-50 border-indigo-100 text-indigo-600" :
                             "bg-emerald-50 border-emerald-100 text-emerald-600"
                           )}
                         >
-                          <span className="text-sm font-black tracking-wide">
-                            ✓ RATED {selectedOption === 0 ? "AGAIN" : selectedOption === 1 ? "HARD" : selectedOption === 2 ? "GOOD" : "EASY"}
-                          </span>
-                          <span className="opacity-80 text-xs">
-                            — Unlocks in {countdownStr} ⏳
-                          </span>
+                          {activelyRatedCurrentCard && (
+                            <button
+                              onClick={handleUndoRating}
+                              className={cn(
+                                "absolute left-3 px-2 py-1 rounded-lg text-[9px] font-black uppercase tracking-wider flex items-center gap-1 transition-all active:scale-95 cursor-pointer shadow-sm border",
+                                selectedOption === 0 ? "bg-white border-rose-200 text-rose-600 hover:bg-rose-50" :
+                                selectedOption === 1 ? "bg-white border-amber-200 text-amber-600 hover:bg-amber-50" :
+                                selectedOption === 2 ? "bg-white border-indigo-200 text-indigo-600 hover:bg-indigo-50" :
+                                "bg-white border-emerald-200 text-emerald-600 hover:bg-emerald-50"
+                              )}
+                              title="Undo Rating"
+                            >
+                              <RefreshCw className="w-2.5 h-2.5" />
+                              <span>Undo</span>
+                            </button>
+                          )}
+                          <div className="flex items-center gap-1 justify-center px-12 text-center">
+                            <span className="text-sm font-black tracking-wide">
+                              ✓ RATED {selectedOption === 0 ? "AGAIN" : selectedOption === 1 ? "HARD" : selectedOption === 2 ? "GOOD" : "EASY"}
+                            </span>
+                            <span className="opacity-80 text-xs">
+                              — Unlocks in {countdownStr} ⏳
+                            </span>
+                          </div>
                         </div>
                       );
                     })()}

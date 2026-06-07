@@ -1,5 +1,5 @@
 import { useAppStore } from '@/store/useAppStore'
-import { Settings, Shield, LogOut, ChevronRight, Zap, Flame, Award, CheckCircle2, Activity, Target, Trophy, X, Lock, BrainCircuit } from 'lucide-react'
+import { Settings, Shield, LogOut, ChevronRight, Zap, Flame, Award, CheckCircle2, Activity, Target, Trophy, X, Lock, BrainCircuit, User } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useQuery } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
@@ -61,7 +61,7 @@ export default function Profile() {
   return (
     <div className="min-h-screen bg-[#F8FAFC] pb-40">
       {/* Mobile Header */}
-      <div className="sticky top-0 z-[150] md:hidden px-6 pt-10 pb-6 bg-white border-b border-slate-100 flex items-center justify-between">
+      <div className="fixed top-0 left-0 right-0 z-[150] md:hidden px-6 pt-10 pb-6 bg-white border-b border-slate-100 flex items-center justify-between">
         <h1 className="text-xl font-black text-slate-900 tracking-tighter">My Profile</h1>
         <Link 
           to="/manage"
@@ -72,7 +72,7 @@ export default function Profile() {
         </Link>
       </div>
 
-      <div className="px-6 max-w-2xl mx-auto mt-10 md:mt-12">
+      <div className="px-6 max-w-2xl mx-auto pt-[92px] md:pt-0 mt-10 md:mt-12">
         {/* Desktop Header */}
         <div className="hidden md:flex items-center justify-between mb-6">
           <h1 className="text-2xl font-black text-slate-900 tracking-tighter">My Profile</h1>
@@ -89,8 +89,8 @@ export default function Profile() {
           <div className="absolute top-0 left-0 right-0 h-32 bg-indigo-50/50 -z-10" />
           
           <div className="relative inline-block mb-6">
-            <div className="w-32 h-32 rounded-[2.5rem] bg-white border-4 border-white shadow-xl overflow-hidden mx-auto">
-              <img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=Felix`} alt="avatar" className="w-full h-full object-cover" />
+            <div className="w-32 h-32 rounded-[2.5rem] bg-slate-50 border-4 border-white shadow-xl flex items-center justify-center text-slate-400 mx-auto">
+              <User className="w-14 h-14" />
             </div>
             <div className="absolute -bottom-2 -right-2 bg-indigo-600 text-white text-[10px] font-black px-3 py-1.5 rounded-xl border-4 border-white shadow-lg">
               LV. {gamify.level}

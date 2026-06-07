@@ -30,6 +30,33 @@ class GamificationInterface:
         return {"level_up": level_up, "current_level": user_stats.level, "current_xp": user_stats.xp}
 
     @staticmethod
+    async def revert_xp(db: AsyncSession, user_id: int, amount: int, source: str = "unknown"):
+        if amount <= 0:
+            return {"level_down": False, "current_level": 1, "current_xp": 0}
+            
+        result = await db.execute(select(UserGamification).where(UserGamification.user_id == user_id))
+        user_stats = result.scalar_one_or_none()
+        if user_stats:
+            user_stats.xp = max(0, user_stats.xp - amount)
+            new_level = (user_stats.xp // 1000) + 1
+            level_down = new_level < user_stats.level
+            user_stats.level = new_level
+            
+            # Delete the transaction if we find one
+            tx_res = await db.execute(
+                select(XPTransaction)
+                .where(XPTransaction.user_id == user_id, XPTransaction.amount == amount, XPTransaction.source == source)
+                .order_by(XPTransaction.id.desc())
+            )
+            tx = tx_res.scalars().first()
+            if tx:
+                await db.delete(tx)
+                
+            await db.commit()
+            return {"level_down": level_down, "current_level": user_stats.level, "current_xp": user_stats.xp}
+        return {"level_down": False, "current_level": 1, "current_xp": 0}
+
+    @staticmethod
     async def update_streak(db: AsyncSession, user_id: int, local_date_str: Optional[str] = None):
         # 1. Parse local_date_str or fall back to UTC date
         activity_date = None
