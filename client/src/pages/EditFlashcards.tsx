@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
+import { FlashcardEditModal } from '@/components/FlashcardEditModal'
 import { 
   Save, 
   ChevronLeft, 
@@ -164,19 +165,19 @@ const EditFlashcards = () => {
 
   return (
     <div className="min-h-screen bg-[#F8FAFC] pb-40">
-      {/* Ultra-compact Header */}
-      <div className="bg-white/80 backdrop-blur-xl border-b border-slate-100 px-4 py-2 sticky top-0 z-[100] shadow-sm">
-        <div className="max-w-6xl mx-auto flex items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
+      {/* Fixed Header on Mobile, Sticky on Desktop */}
+      <div className="fixed top-0 left-0 right-0 z-[100] bg-white/80 backdrop-blur-xl border-b border-slate-100 px-4 py-3 shadow-sm w-full md:sticky md:top-0">
+        <div className="max-w-6xl mx-auto flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2.5 min-w-0">
             <button 
               onClick={() => navigate(`/manage/edit/${id}`)}
-              className="w-8 h-8 bg-slate-50 rounded-lg flex items-center justify-center text-slate-400 border border-slate-100"
+              className="w-8 h-8 bg-slate-50 rounded-lg flex items-center justify-center text-slate-400 border border-slate-100 active:scale-95 shrink-0"
             >
               <ChevronLeft className="w-4 h-4" />
             </button>
-            <div className="flex flex-col">
-              <h1 className="text-xs md:text-sm font-black text-slate-900 uppercase tracking-tight italic">Card Manager</h1>
-              <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">{total} Items</p>
+            <div className="flex flex-col min-w-0">
+              <h1 className="text-[11px] md:text-sm font-black text-slate-900 uppercase tracking-tight italic truncate leading-none mb-1">Card Manager</h1>
+              <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest leading-none">{total} Items</p>
             </div>
           </div>
 
@@ -259,7 +260,7 @@ const EditFlashcards = () => {
         </div>
       </div>
 
-      <div className="max-w-6xl mx-auto px-4 mt-4">
+      <div className="max-w-6xl mx-auto px-4 pt-[68px] md:pt-0 mt-4">
          {/* Flashcard Row List */}
          <div className="space-y-2">
             {isLoading ? (
@@ -384,171 +385,13 @@ const EditFlashcards = () => {
          </div>
       </div>
 
-      {/* Edit Modal */}
-      <AnimatePresence>
-         {editingFlashcard && (
-            <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4">
-               <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setEditingFlashcard(null)} className="absolute inset-0 bg-slate-900/60 backdrop-blur-md" />
-               <motion.div initial={{ opacity: 0, scale: 0.95, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 20 }} className="relative w-full max-w-4xl bg-white rounded-[2.5rem] shadow-2xl overflow-hidden">
-                  <div className="p-6 md:p-10 space-y-8 max-h-[90vh] overflow-y-auto custom-scrollbar">
-                     <div className="flex items-center justify-between sticky top-0 bg-white pb-6 z-10 border-b border-slate-50 mb-6">
-                        <div className="flex items-center gap-4">
-                           <div className="w-12 h-12 bg-indigo-600 rounded-2xl flex items-center justify-center text-white">
-                              <Brain className="w-6 h-6" />
-                           </div>
-                           <div>
-                              <h2 className="text-xl font-black text-slate-900 uppercase italic">Card Logic</h2>
-                              <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mt-0.5">Modification Module</p>
-                           </div>
-                        </div>
-                        <div className="flex items-center gap-3">
-                           <button onClick={() => setEditingFlashcard(null)} className="w-10 h-10 bg-slate-50 rounded-xl flex items-center justify-center text-slate-400"><X className="w-5 h-5" /></button>
-                           <button onClick={handleUpdate} disabled={isSaving} className="flex items-center gap-2 px-6 h-10 bg-indigo-600 text-white text-[10px] font-black rounded-xl uppercase tracking-widest shadow-xl shadow-indigo-100">
-                              {isSaving ? <Zap className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />} Commit
-                           </button>
-                        </div>
-                     </div>
-                     <div className="space-y-6">
-                         {/* SECTION 1: TEXT CONTENT */}
-                         <div className="space-y-4 bg-slate-50/50 p-6 rounded-3xl border border-slate-100 text-left">
-                            <span className="text-[10px] font-black text-indigo-600 uppercase tracking-[0.2em] block mb-2">1. TEXT CONTENT</span>
-                            
-                            <div className="space-y-2">
-                               <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">FRONT SIDE (WORD / QUESTION)</label>
-                               <textarea 
-                                 value={editingFlashcard.content}
-                                 onChange={(e) => setEditingFlashcard({...editingFlashcard, content: e.target.value})}
-                                 className="w-full h-20 p-4 bg-white rounded-2xl border border-slate-100 focus:ring-2 focus:ring-indigo-500 font-medium text-slate-700 transition-all resize-none text-xs outline-none"
-                                 placeholder="Enter the front side word or phrase..."
-                               />
-                            </div>
-
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                               <div className="space-y-2">
-                                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">BACK SIDE (DEFINITION / EXPLANATION)</label>
-                                 <textarea 
-                                   value={editingFlashcard.explanation}
-                                   onChange={(e) => setEditingFlashcard({...editingFlashcard, explanation: e.target.value})}
-                                   className="w-full h-32 p-4 bg-white rounded-2xl border border-slate-100 focus:ring-2 focus:ring-indigo-500 font-medium text-slate-700 transition-all resize-none text-xs outline-none"
-                                   placeholder="Enter the definition, synonyms, examples..."
-                                 />
-                               </div>
-                               <div className="space-y-2">
-                                 <label className="text-[10px] font-black text-indigo-500 uppercase tracking-widest flex items-center gap-1.5">
-                                   <Sparkles className="w-3 h-3 animate-pulse" />
-                                   AI DEEP ANALYSIS
-                                 </label>
-                                 <textarea 
-                                   value={editingFlashcard.ai_explanation || ''}
-                                   onChange={(e) => setEditingFlashcard({...editingFlashcard, ai_explanation: e.target.value})}
-                                   className="w-full h-32 p-4 bg-indigo-50/30 rounded-2xl border border-indigo-100 focus:ring-2 focus:ring-indigo-500 font-medium text-slate-700 transition-all resize-none text-xs outline-none"
-                                   placeholder="AI explanation, breakdown of grammar, etymology..."
-                                 />
-                               </div>
-                            </div>
-                         </div>
-
-                         {/* SECTION 2: MULTIMEDIA URLS */}
-                         <div className="space-y-4 bg-slate-50/50 p-6 rounded-3xl border border-slate-100 text-left">
-                            <span className="text-[10px] font-black text-indigo-600 uppercase tracking-[0.2em] block mb-2">2. MULTIMEDIA ASSETS</span>
-                            
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                               {/* Front multimedia */}
-                               <div className="space-y-4">
-                                  <div className="space-y-2">
-                                     <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">FRONT IMAGE URL</label>
-                                     <input 
-                                       type="text"
-                                       value={editingFlashcard.image || ''}
-                                       onChange={(e) => setEditingFlashcard({...editingFlashcard, image: e.target.value})}
-                                       className="w-full p-3 bg-white rounded-xl border border-slate-100 focus:ring-2 focus:ring-indigo-500 text-xs font-semibold text-slate-600 outline-none"
-                                       placeholder="e.g. /static/uploads/1/images/word.jpg"
-                                     />
-                                  </div>
-                                  <div className="space-y-2">
-                                     <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">FRONT AUDIO URL</label>
-                                     <input 
-                                       type="text"
-                                       value={editingFlashcard.audio || ''}
-                                       onChange={(e) => setEditingFlashcard({...editingFlashcard, audio: e.target.value})}
-                                       className="w-full p-3 bg-white rounded-xl border border-slate-100 focus:ring-2 focus:ring-indigo-500 text-xs font-semibold text-slate-600 outline-none"
-                                       placeholder="e.g. /static/uploads/1/audio/1_front.mp3"
-                                     />
-                                  </div>
-                               </div>
-
-                               {/* Back multimedia */}
-                               <div className="space-y-4">
-                                  <div className="space-y-2">
-                                     <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">BACK IMAGE URL</label>
-                                     <input 
-                                       type="text"
-                                       value={editingFlashcard.others?.back_img || ''}
-                                       onChange={(e) => setEditingFlashcard({
-                                         ...editingFlashcard,
-                                         others: { ...editingFlashcard.others, back_img: e.target.value }
-                                       })}
-                                       className="w-full p-3 bg-white rounded-xl border border-slate-100 focus:ring-2 focus:ring-indigo-500 text-xs font-semibold text-slate-600 outline-none"
-                                       placeholder="e.g. /static/uploads/1/images/def.jpg"
-                                     />
-                                  </div>
-                                  <div className="space-y-2">
-                                     <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">BACK AUDIO URL</label>
-                                     <input 
-                                       type="text"
-                                       value={editingFlashcard.others?.back_audio_url || ''}
-                                       onChange={(e) => setEditingFlashcard({
-                                         ...editingFlashcard,
-                                         others: { ...editingFlashcard.others, back_audio_url: e.target.value }
-                                       })}
-                                       className="w-full p-3 bg-white rounded-xl border border-slate-100 focus:ring-2 focus:ring-indigo-500 text-xs font-semibold text-slate-600 outline-none"
-                                       placeholder="e.g. /static/uploads/1/audio/1_back.mp3"
-                                     />
-                                  </div>
-                               </div>
-                            </div>
-                         </div>
-
-                         {/* SECTION 3: AUDIO READING SCRIPTS */}
-                         <div className="space-y-4 bg-slate-50/50 p-6 rounded-3xl border border-slate-100 text-left">
-                            <span className="text-[10px] font-black text-indigo-600 uppercase tracking-[0.2em] block mb-2">3. AUDIO READING SCRIPTS</span>
-                            <p className="text-[9px] font-semibold text-slate-400 italic">
-                              Format: `lang_code:text` (one per line). Example: `ja:人生` followed by `vi:cuộc đời`.
-                            </p>
-                            
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                               <div className="space-y-2">
-                                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">FRONT AUDIO READING SCRIPT</label>
-                                 <textarea 
-                                   value={editingFlashcard.others?.front_audio_content || ''}
-                                   onChange={(e) => setEditingFlashcard({
-                                     ...editingFlashcard,
-                                     others: { ...editingFlashcard.others, front_audio_content: e.target.value }
-                                   })}
-                                   className="w-full h-24 p-4 bg-white rounded-2xl border border-slate-100 focus:ring-2 focus:ring-indigo-500 font-medium text-slate-700 transition-all resize-none text-xs outline-none"
-                                   placeholder="ja:こんにちは"
-                                 />
-                               </div>
-                               <div className="space-y-2">
-                                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">BACK AUDIO READING SCRIPT</label>
-                                 <textarea 
-                                   value={editingFlashcard.others?.back_audio_content || ''}
-                                   onChange={(e) => setEditingFlashcard({
-                                     ...editingFlashcard,
-                                     others: { ...editingFlashcard.others, back_audio_content: e.target.value }
-                                   })}
-                                   className="w-full h-24 p-4 bg-white rounded-2xl border border-slate-100 focus:ring-2 focus:ring-indigo-500 font-medium text-slate-700 transition-all resize-none text-xs outline-none"
-                                   placeholder="vi:xin chào"
-                                 />
-                               </div>
-                            </div>
-                         </div>
-                      </div>
-                  </div>
-               </motion.div>
-            </div>
-         )}
-      </AnimatePresence>
+      <FlashcardEditModal
+        isOpen={!!editingFlashcard}
+        onClose={() => setEditingFlashcard(null)}
+        flashcard={editingFlashcard}
+        onSave={handleUpdate}
+        isSaving={isSaving}
+      />
       {/* Floating Status Notification for Excel Import/Update */}
       <AnimatePresence>
         {(isUpdatingExcel || excelUpdateError || excelUpdateSuccess) && (

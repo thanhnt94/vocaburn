@@ -1,5 +1,5 @@
 import { Outlet, Link, useLocation } from 'react-router-dom'
-import { LayoutGrid, Compass, BarChart3, User, BrainCircuit, Bell, Settings, Plus, Library, Users } from 'lucide-react'
+import { LayoutGrid, Compass, BarChart3, User, BrainCircuit, Bell, Settings, Plus, Library, Users, FolderKanban } from 'lucide-react'
 import { motion } from 'framer-motion'
 import { useAppStore } from '@/store/useAppStore'
 import { cn } from '@/lib/utils'
@@ -27,7 +27,7 @@ export default function Layout() {
     { label: 'Home', path: '/', icon: LayoutGrid },
     { label: 'Library', path: '/library', icon: Library },
     { label: 'Stats', path: '/stats', icon: BarChart3 },
-    { label: 'Room', path: '/room/join', icon: Users },
+    { label: 'Studio', path: '/manage', icon: FolderKanban },
     { label: 'Settings', path: '/profile', icon: User },
   ]
 
@@ -133,11 +133,10 @@ export default function Layout() {
       </header>
       )}
 
-      {/* Main Content */}
       <main className={cn(
         "flex-1 w-full",
         isLoggedIn 
-          ? (isDashboard ? "pt-0 md:pt-20 md:h-full md:overflow-hidden" : "pt-0 md:pt-20 min-h-[calc(100vh-80px)]")
+          ? (isDashboard ? "pt-0 md:pt-20 md:h-full md:overflow-hidden" : "pt-0 md:pt-20")
           : ""
       )}>
         <Outlet />

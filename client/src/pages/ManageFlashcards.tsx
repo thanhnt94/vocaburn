@@ -54,9 +54,9 @@ export default function ManageFlashcards() {
 
   return (
     <div className="min-h-screen bg-[#F8FAFC] pb-10">
-      {/* Sticky Compact Header for Creator Studio (Mobile Only) */}
-      <div className="sticky top-0 z-[120] bg-white/80 backdrop-blur-2xl border-b border-slate-100 px-4 py-3 shadow-sm md:hidden">
-        <div className="flex items-center gap-3">
+      {/* Fixed Compact Header for Creator Studio (Mobile Only) */}
+      <div className="fixed top-0 left-0 right-0 z-[120] bg-white/80 backdrop-blur-2xl border-b border-slate-100 px-4 py-2.5 shadow-sm md:hidden w-full">
+        <div className="flex items-center gap-2">
           <div className="relative flex-1">
              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
              <input 
@@ -64,22 +64,23 @@ export default function ManageFlashcards() {
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search collections..." 
-                className="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-100 rounded-xl text-[11px] font-bold outline-none focus:ring-4 focus:ring-indigo-500/5 transition-all" 
+                className="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-100 rounded-xl text-[10px] font-bold outline-none focus:ring-4 focus:ring-indigo-500/5 transition-all" 
              />
           </div>
           <button 
+            type="button"
             onClick={() => setIsCreateModalOpen(true)}
-            className="w-9 h-9 bg-indigo-600 text-white rounded-xl flex items-center justify-center shadow-lg shadow-indigo-100 active:scale-90 transition-all"
+            className="w-8 h-8 bg-indigo-600 text-white rounded-lg flex items-center justify-center shadow-lg shadow-indigo-100 active:scale-95 transition-all shrink-0"
             title="New Collection"
           >
-             <Plus className="w-5 h-5" />
+             <Plus className="w-4.5 h-4.5" />
           </button>
           <Link 
             to="/manage/import"
-            className="w-9 h-9 bg-slate-900 text-white rounded-xl flex items-center justify-center shadow-lg shadow-slate-100 active:scale-90 transition-all"
+            className="w-8 h-8 bg-slate-900 text-white rounded-lg flex items-center justify-center shadow-lg shadow-slate-100 active:scale-95 transition-all shrink-0"
             title="Import Excel"
           >
-             <Archive className="w-4 h-4" />
+             <Archive className="w-3.5 h-3.5" />
           </Link>
         </div>
       </div>
@@ -115,7 +116,7 @@ export default function ManageFlashcards() {
         </div>
       </div>
 
-      <div className="px-4 max-w-6xl mx-auto mt-6 md:mt-0">
+      <div className="px-4 max-w-6xl mx-auto pt-[60px] md:pt-0 mt-6 md:mt-0">
          <div className="hidden md:flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
             <div className="relative flex-1 max-w-md">
                <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />

@@ -217,12 +217,13 @@ export default function Stats() {
 
   return (
     <div className="min-h-screen bg-[#F8FAFC] pb-10">
-      <div className="px-4 max-w-7xl mx-auto space-y-6 pt-6">
-         <div className="flex bg-slate-100/50 p-1 rounded-xl border border-slate-100 w-fit mb-6">
+      {/* Sticky Tab Bar on Mobile */}
+      <div className="fixed top-0 left-0 right-0 z-[100] bg-[#F8FAFC]/90 backdrop-blur-xl border-b border-slate-100 px-4 py-3 md:relative md:top-auto md:left-auto md:right-auto md:border-b-0 md:py-0 md:bg-transparent md:backdrop-blur-none">
+         <div className="flex bg-slate-100/50 p-1 rounded-xl border border-slate-100 w-full sm:w-fit max-w-7xl mx-auto">
             <button 
                onClick={() => setActiveTab('overview')}
                className={cn(
-                 "px-4 py-1.5 rounded-lg text-[8px] md:text-[9px] font-black uppercase tracking-widest transition-all",
+                 "flex-1 sm:flex-none px-4 py-1.5 rounded-lg text-[8px] md:text-[9px] font-black uppercase tracking-widest transition-all text-center",
                  activeTab === 'overview' ? "bg-white text-indigo-600 shadow-sm border border-slate-100" : "text-slate-400"
                )}
             >
@@ -231,7 +232,7 @@ export default function Stats() {
             <button 
                onClick={() => setActiveTab('personal')}
                className={cn(
-                 "px-4 py-1.5 rounded-lg text-[8px] md:text-[9px] font-black uppercase tracking-widest transition-all",
+                 "flex-1 sm:flex-none px-4 py-1.5 rounded-lg text-[8px] md:text-[9px] font-black uppercase tracking-widest transition-all text-center",
                  activeTab === 'personal' ? "bg-white text-indigo-600 shadow-sm border border-slate-100" : "text-slate-400"
                )}
             >
@@ -240,13 +241,15 @@ export default function Stats() {
             <button 
                onClick={() => setActiveTab('global')}
                className={cn(
-                 "px-4 py-1.5 rounded-lg text-[8px] md:text-[9px] font-black uppercase tracking-widest transition-all",
+                 "flex-1 sm:flex-none px-4 py-1.5 rounded-lg text-[8px] md:text-[9px] font-black uppercase tracking-widest transition-all text-center",
                  activeTab === 'global' ? "bg-white text-indigo-600 shadow-sm border border-slate-100" : "text-slate-400"
                )}
             >
                Global
             </button>
          </div>
+      </div>
+      <div className="px-4 max-w-7xl mx-auto space-y-6 pt-[72px] md:pt-6">
          <AnimatePresence mode="wait">
             {activeTab === 'overview' && (
                <motion.div 

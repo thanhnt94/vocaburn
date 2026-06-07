@@ -22,6 +22,7 @@ import { useFlashcardAudio } from '@/hooks/useFlashcardAudio'
 import { useSessionStats } from '@/hooks/useSessionStats'
 import { usePracticeMode } from '@/hooks/usePracticeMode'
 import { FSRSActionButtons } from '@/components/FSRSActionButtons'
+import { FlashcardEditModal } from '@/components/FlashcardEditModal'
 
 interface Option {
   id: number
@@ -1771,6 +1772,7 @@ export default function FlashcardPlay() {
     };
 
     setEditFormData({
+      id: currentQuestion.id,
       content: currentQuestion.content,
       explanation: currentQuestion.explanation,
       ai_explanation: currentQuestion.ai_explanation,
@@ -4470,209 +4472,13 @@ export default function FlashcardPlay() {
           </div>
         )}
       </AnimatePresence>
-      {/* Edit Question Modal */}
-      <AnimatePresence>
-        {isEditModalOpen && editFormData && (
-          <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
-             <motion.div 
-               initial={{ opacity: 0 }}
-               animate={{ opacity: 1 }}
-               exit={{ opacity: 0 }}
-               onClick={() => setIsEditModalOpen(false)}
-               className="absolute inset-0 bg-slate-900/40 backdrop-blur-md"
-             />
-             <motion.div 
-               initial={{ opacity: 0, scale: 0.95, y: 20 }}
-               animate={{ opacity: 1, scale: 1, y: 0 }}
-               exit={{ opacity: 0, scale: 0.95, y: 20 }}
-               className="relative w-full max-w-2xl bg-white rounded-[2.5rem] shadow-2xl overflow-hidden flex flex-col max-h-[90vh]"
-             >
-                <div className="px-8 py-6 border-b border-slate-100 flex items-center justify-between bg-white sticky top-0 z-10">
-                   <h2 className="text-xl font-black text-slate-800 uppercase tracking-tight flex items-center gap-2">
-                     <Edit3 className="w-5 h-5 text-indigo-600" />
-                     EDIT FLASHCARD #{currentIndex + 1}
-                   </h2>
-                   <button onClick={() => setIsEditModalOpen(false)} className="p-2 hover:bg-slate-100 rounded-xl transition-all">
-                      <X className="w-5 h-5 text-slate-400" />
-                   </button>
-                </div>
-                
-                <div className="flex-1 overflow-y-auto p-8 space-y-6 custom-scrollbar">
-                   {/* SECTION 1: TEXT CONTENT */}
-                   <div className="space-y-4 bg-slate-50/50 p-6 rounded-3xl border border-slate-100">
-                      <span className="text-[10px] font-black text-indigo-600 uppercase tracking-[0.2em] block mb-2">1. TEXT CONTENT</span>
-                      
-                      <div className="space-y-2">
-                         <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">FRONT SIDE (WORD / QUESTION)</label>
-                         <textarea 
-                           value={editFormData.content}
-                           onChange={(e) => setEditFormData({...editFormData, content: e.target.value})}
-                           className="w-full h-20 p-4 bg-white rounded-2xl border border-slate-100 focus:ring-2 focus:ring-indigo-500 font-medium text-slate-700 transition-all resize-none"
-                           placeholder="Enter the front side word or phrase..."
-                         />
-                      </div>
-
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                         <div className="space-y-2">
-                           <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">BACK SIDE (DEFINITION / EXPLANATION)</label>
-                           <textarea 
-                             value={editFormData.explanation}
-                             onChange={(e) => setEditFormData({...editFormData, explanation: e.target.value})}
-                             className="w-full h-32 p-4 bg-white rounded-2xl border border-slate-100 focus:ring-2 focus:ring-indigo-500 font-medium text-slate-700 transition-all resize-none text-xs"
-                             placeholder="Enter the definition, synonyms, examples..."
-                           />
-                         </div>
-                         <div className="space-y-2">
-                           <label className="text-[10px] font-black text-indigo-500 uppercase tracking-widest flex items-center gap-1.5">
-                             <Sparkles className="w-3 h-3 animate-pulse" />
-                             AI DEEP ANALYSIS
-                           </label>
-                           <textarea 
-                             value={editFormData.ai_explanation}
-                             onChange={(e) => setEditFormData({...editFormData, ai_explanation: e.target.value})}
-                             className="w-full h-32 p-4 bg-indigo-50/30 rounded-2xl border border-indigo-100 focus:ring-2 focus:ring-indigo-500 font-medium text-slate-700 transition-all resize-none text-xs"
-                             placeholder="AI explanation, breakdown of grammar, etymology..."
-                           />
-                         </div>
-                      </div>
-                   </div>
-
-                   {/* SECTION 2: MULTIMEDIA URLS */}
-                   <div className="space-y-4 bg-slate-50/50 p-6 rounded-3xl border border-slate-100">
-                      <span className="text-[10px] font-black text-indigo-600 uppercase tracking-[0.2em] block mb-2">2. MULTIMEDIA ASSETS</span>
-                      
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                         {/* Front multimedia */}
-                         <div className="space-y-4">
-                            <div className="space-y-2">
-                               <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">FRONT IMAGE URL</label>
-                               <input 
-                                 type="text"
-                                 value={editFormData.image || ''}
-                                 onChange={(e) => setEditFormData({...editFormData, image: e.target.value})}
-                                 className="w-full p-3 bg-white rounded-xl border border-slate-100 focus:ring-2 focus:ring-indigo-500 text-xs font-semibold text-slate-600"
-                                 placeholder="e.g. /static/uploads/1/images/word.jpg"
-                               />
-                            </div>
-                            <div className="space-y-2">
-                               <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">FRONT AUDIO URL</label>
-                               <input 
-                                 type="text"
-                                 value={editFormData.audio || ''}
-                                 onChange={(e) => setEditFormData({...editFormData, audio: e.target.value})}
-                                 className="w-full p-3 bg-white rounded-xl border border-slate-100 focus:ring-2 focus:ring-indigo-500 text-xs font-semibold text-slate-600"
-                                 placeholder="e.g. /static/uploads/1/audio/1_front.mp3"
-                               />
-                            </div>
-                         </div>
-
-                         {/* Back multimedia */}
-                         <div className="space-y-4">
-                            <div className="space-y-2">
-                               <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">BACK IMAGE URL</label>
-                               <input 
-                                 type="text"
-                                 value={editFormData.others.back_img || ''}
-                                 onChange={(e) => setEditFormData({
-                                   ...editFormData,
-                                   others: { ...editFormData.others, back_img: e.target.value }
-                                 })}
-                                 className="w-full p-3 bg-white rounded-xl border border-slate-100 focus:ring-2 focus:ring-indigo-500 text-xs font-semibold text-slate-600"
-                                 placeholder="e.g. /static/uploads/1/images/def.jpg"
-                               />
-                            </div>
-                            <div className="space-y-2">
-                               <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">BACK AUDIO URL</label>
-                               <input 
-                                 type="text"
-                                 value={editFormData.others.back_audio_url || ''}
-                                 onChange={(e) => setEditFormData({
-                                   ...editFormData,
-                                   others: { ...editFormData.others, back_audio_url: e.target.value }
-                                 })}
-                                 className="w-full p-3 bg-white rounded-xl border border-slate-100 focus:ring-2 focus:ring-indigo-500 text-xs font-semibold text-slate-600"
-                                 placeholder="e.g. /static/uploads/1/audio/1_back.mp3"
-                               />
-                            </div>
-                         </div>
-                      </div>
-                   </div>
-
-                   {/* SECTION 3: AUDIO READING SCRIPTS */}
-                   <div className="space-y-4 bg-slate-50/50 p-6 rounded-3xl border border-slate-100">
-                      <span className="text-[10px] font-black text-indigo-600 uppercase tracking-[0.2em] block mb-2">3. AUDIO READING SCRIPTS</span>
-                      <p className="text-[9px] font-semibold text-slate-400 italic">
-                        Format: `lang_code:text` (one per line). Example: `ja:人生` followed by `vi:cuộc đời`.
-                      </p>
-                      
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                         <div className="space-y-2">
-                           <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">FRONT AUDIO READING SCRIPT</label>
-                           <textarea 
-                             value={editFormData.others.front_audio_content || ''}
-                             onChange={(e) => setEditFormData({
-                               ...editFormData,
-                               others: { ...editFormData.others, front_audio_content: e.target.value }
-                             })}
-                             className="w-full h-24 p-3 bg-white rounded-xl border border-slate-100 focus:ring-2 focus:ring-indigo-500 font-mono text-[11px] text-slate-600 transition-all resize-none"
-                             placeholder="e.g. ja:人生"
-                           />
-                         </div>
-                         <div className="space-y-2">
-                           <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">BACK AUDIO READING SCRIPT</label>
-                           <textarea 
-                             value={editFormData.others.back_audio_content || ''}
-                             onChange={(e) => setEditFormData({
-                               ...editFormData,
-                               others: { ...editFormData.others, back_audio_content: e.target.value }
-                             })}
-                             className="w-full h-24 p-3 bg-white rounded-xl border border-slate-100 focus:ring-2 focus:ring-indigo-500 font-mono text-[11px] text-slate-600 transition-all resize-none"
-                             placeholder="e.g. ja:人生&#10;vi:cuộc đời"
-                           />
-                         </div>
-                      </div>
-                   </div>
-
-                   {/* SECTION 4: CUSTOM METADATA */}
-                   <div className="space-y-4 bg-slate-50/50 p-6 rounded-3xl border border-slate-100">
-                      <span className="text-[10px] font-black text-indigo-600 uppercase tracking-[0.2em] block mb-2">4. CUSTOM METADATA (JSON)</span>
-                      <div className="space-y-2">
-                         <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">OTHER CONTENT / SETTINGS</label>
-                         <textarea 
-                           value={editFormData.others.other_content || ''}
-                           onChange={(e) => setEditFormData({
-                             ...editFormData,
-                             others: { ...editFormData.others, other_content: e.target.value }
-                           })}
-                           className="w-full h-24 p-4 bg-white rounded-2xl border border-slate-100 focus:ring-2 focus:ring-indigo-500 font-mono text-xs text-slate-600 transition-all"
-                           placeholder='e.g. { "custom_mode": "vocab", "tags": ["n3", "nouns"] }'
-                         />
-                         <p className="text-[9px] font-medium text-slate-400">
-                           Valid JSON object that can store custom properties or game-mode attributes.
-                         </p>
-                      </div>
-                   </div>
-                </div>
-                
-                <div className="p-8 border-t border-slate-100 flex items-center justify-end gap-4 bg-slate-50/50">
-                   <button 
-                     onClick={() => setIsEditModalOpen(false)}
-                     className="px-6 py-3 text-sm font-black text-slate-400 uppercase tracking-widest hover:text-slate-600 transition-all"
-                   >
-                     CANCEL
-                   </button>
-                   <button 
-                     onClick={handleSaveEdit}
-                     disabled={isSavingEdit}
-                     className="px-8 py-3 bg-indigo-600 text-white rounded-2xl text-sm font-black uppercase tracking-widest shadow-xl shadow-indigo-100 hover:bg-indigo-700 active:scale-95 transition-all disabled:opacity-50"
-                   >
-                     {isSavingEdit ? 'SAVING...' : 'SAVE CHANGES'}
-                   </button>
-                </div>
-             </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
+      <FlashcardEditModal
+        isOpen={isEditModalOpen}
+        onClose={() => setIsEditModalOpen(false)}
+        flashcard={editFormData}
+        onSave={handleSaveEdit}
+        isSaving={isSavingEdit}
+      />
 
 
 

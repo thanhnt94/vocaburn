@@ -9,9 +9,12 @@ import axios from 'axios'
 
 interface ActiveGoal {
   goal_id: number
+  deck_id: number
   quiz_id: number
+  deck_title: string
   quiz_title: string
   cover_image: string | null
+  total_cards: number
   total_questions: number
   total_learned: number
   daily_target: number
@@ -591,7 +594,7 @@ function TodayFocusWidget({
         ) : (
           <div className="space-y-3">
             {activeGoals.map(goal => {
-              const deckReview = todayReview?.decks_summary?.find((d: any) => d.quiz_id === goal.quiz_id)
+              const deckReview = todayReview?.decks_summary?.find((d: any) => d.deck_id === goal.deck_id)
               const dueReviews = deckReview ? deckReview.due_count : 0
               const isGoalMet = goal.done_today >= goal.daily_target
               const goalPercentage = goal.daily_target > 0 ? Math.min(100, Math.round((goal.done_today / goal.daily_target) * 100)) : 0
@@ -618,7 +621,7 @@ function TodayFocusWidget({
                     </div>
 
                     <div className="min-w-0 text-left">
-                      <h4 className="text-xs font-black text-slate-800 truncate leading-snug">{goal.quiz_title}</h4>
+                      <h4 className="text-xs font-black text-slate-850 truncate leading-snug">{goal.quiz_title}</h4>
                       <div className="flex flex-wrap items-center gap-2 mt-1">
                         <span className="text-[8px] font-black px-1.5 py-0.5 rounded bg-orange-50 text-orange-600 border border-orange-100/60">
                           🔥 {goal.streak_count}D
@@ -652,7 +655,7 @@ function TodayFocusWidget({
                   {/* Actions */}
                   <div className="flex items-center gap-2 self-end sm:self-center">
                     <button
-                      onClick={() => navigate(`/flashcard/${goal.quiz_id}/play`)}
+                      onClick={() => navigate(`/flashcard/${goal.deck_id}/play`)}
                       className={cn(
                         "h-8.5 px-3 rounded-xl text-[9px] font-black uppercase tracking-wider flex items-center gap-1.5 shadow-sm active:scale-95 transition-all",
                         dueReviews > 0 || !isGoalMet
@@ -665,7 +668,7 @@ function TodayFocusWidget({
                       Ôn tập {dueReviews > 0 && `(${dueReviews})`}
                     </button>
                     <button
-                      onClick={() => onStartPractice({ id: goal.quiz_id, title: goal.quiz_title, questions_count: goal.total_questions })}
+                      onClick={() => onStartPractice({ id: goal.deck_id, title: goal.quiz_title, questions_count: goal.total_questions })}
                       className="h-8.5 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-[9px] font-black uppercase tracking-wider flex items-center gap-1.5 shadow-sm shadow-emerald-100 active:scale-95 transition-all"
                       title="Luyện tập tự do"
                     >
@@ -1050,7 +1053,7 @@ export default function Dashboard() {
           <button
             onClick={() => {
               const first = decks_summary?.[0]
-              if (first) navigate(`/flashcard/${first.quiz_id}/play`)
+              if (first) navigate(`/flashcard/${first.deck_id}/play`)
             }}
             className="w-full sm:w-auto h-9 px-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-[10px] font-black uppercase tracking-wider shadow-md active:scale-95 transition-all flex items-center justify-center gap-1.5 self-start sm:self-center flex-shrink-0"
           >
@@ -1066,9 +1069,9 @@ export default function Dashboard() {
             <div className="flex flex-wrap gap-2">
               {decks_summary.map((deck: any) => (
                 <div
-                  key={deck.quiz_id}
+                  key={deck.deck_id}
                   className="px-2.5 py-1 rounded-lg bg-slate-950/65 border border-slate-800 hover:border-slate-700 transition-all cursor-pointer flex items-center gap-2 text-[9px] font-bold text-slate-300"
-                  onClick={() => navigate(`/flashcard/${deck.quiz_id}/play`)}
+                  onClick={() => navigate(`/flashcard/${deck.deck_id}/play`)}
                 >
                   <span className="truncate max-w-[120px]">{deck.title}</span>
                   <div className="flex items-center gap-1">
@@ -1165,7 +1168,7 @@ export default function Dashboard() {
 
               <div className="flex items-center gap-1.5 flex-shrink-0">
                 <Link
-                  to={`/flashcard/${goal.quiz_id}/play`}
+                  to={`/flashcard/${goal.deck_id}/play`}
                   className="w-8.5 h-8.5 rounded-xl bg-indigo-600 text-white flex items-center justify-center shadow-md shadow-indigo-100 hover:scale-105 active:scale-95 transition-all"
                   title="Spaced Repetition"
                 >
@@ -1173,7 +1176,7 @@ export default function Dashboard() {
                 </Link>
                 <button
                   onClick={() => {
-                    setSelectedPracticeQuiz({ id: goal.quiz_id, title: goal.quiz_title, questions_count: goal.total_questions })
+                    setSelectedPracticeQuiz({ id: goal.deck_id, title: goal.quiz_title, questions_count: goal.total_questions })
                     setIsPracticeModalOpen(true)
                   }}
                   className="w-8.5 h-8.5 rounded-xl bg-emerald-600 text-white flex items-center justify-center shadow-md shadow-emerald-100 hover:scale-105 active:scale-95 transition-all"
@@ -1220,12 +1223,13 @@ export default function Dashboard() {
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <button
-              onClick={() => setIsJoinModalOpen(true)}
-              className="w-10 h-10 rounded-xl bg-slate-50 border border-slate-200/60 flex items-center justify-center text-slate-600 shadow-sm active:scale-90 transition-all"
+            <Link
+              to="/manage"
+              className="w-10 h-10 rounded-xl bg-slate-50 border border-slate-200/60 flex items-center justify-center text-slate-650 shadow-sm active:scale-90 transition-all hover:bg-slate-100"
+              title="Creator Studio"
             >
-              <Users className="w-5 h-5" />
-            </button>
+              <LayoutGrid className="w-5 h-5" />
+            </Link>
           </div>
         </div>
       </div>
@@ -1288,16 +1292,16 @@ export default function Dashboard() {
           {/* Heatmap */}
           {heatmapData && heatmapData.length > 0 && <MiniHeatmap data={heatmapData} />}
 
-          {/* Arena shortcut */}
+          {/* Studio Manage shortcut */}
           <div className="bg-white border border-slate-200/60 rounded-[2rem] p-5 shadow-sm flex flex-col gap-3 text-left flex-shrink-0">
-            <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Đấu trường trí tuệ</span>
-            <button
-              onClick={() => setIsJoinModalOpen(true)}
-              className="w-full h-11 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl text-xs font-black uppercase tracking-widest transition-all shadow-md shadow-indigo-200 flex items-center justify-center gap-2 active:scale-95"
+            <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Quản lý bộ thẻ</span>
+            <Link
+              to="/manage"
+              className="w-full h-11 bg-slate-900 hover:bg-slate-800 text-white rounded-2xl text-xs font-black uppercase tracking-widest transition-all shadow-md shadow-slate-200 flex items-center justify-center gap-2 active:scale-95"
             >
-              <Users className="w-4 h-4" />
-              Vào phòng Arena
-            </button>
+              <LayoutGrid className="w-4 h-4" />
+              Creator Studio
+            </Link>
           </div>
         </aside>
 

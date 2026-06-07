@@ -283,7 +283,6 @@ class DeckService:
                 
             if due_reviews_count > 0 or due_new_count > 0:
                 decks_summary.append({
-                    "quiz_id": deck_id, # Keep quiz_id in API output for frontend compatibility during migration
                     "deck_id": deck_id,
                     "title": deck_title,
                     "due_count": due_reviews_count,

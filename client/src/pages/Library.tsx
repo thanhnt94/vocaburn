@@ -28,9 +28,12 @@ interface DashboardData {
 
 interface ActiveGoal {
   goal_id: number
+  deck_id: number
   quiz_id: number
+  deck_title: string
   quiz_title: string
   cover_image: string | null
+  total_cards: number
   total_questions: number
   total_learned: number
   daily_target: number

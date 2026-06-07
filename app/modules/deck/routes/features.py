@@ -336,7 +336,7 @@ async def import_update_deck(request: Request, deck_id: int, file: UploadFile = 
         return JSONResponse(status_code=500, content={"error": str(e)})
 
 @router.get("/generate-audio/{card_id}")
-async def generate_card_audio(card_id: int, request: Request, face: str = "front", db: AsyncSession = Depends(get_db)):
+async def generate_card_audio(card_id: int, request: Request, face: str = "front", force: bool = False, db: AsyncSession = Depends(get_db)):
     from app.modules.deck.models import Flashcard
     res = await db.execute(select(Flashcard).filter(Flashcard.id == card_id))
     c = res.scalar_one_or_none()
@@ -364,8 +364,8 @@ async def generate_card_audio(card_id: int, request: Request, face: str = "front
     # Construct relative URL
     url = f"/uploads/{c.deck_id}/audio/{filename}"
     
-    # Check if we already have it generated on disk
-    if os.path.exists(physical_path):
+    # Check if we already have it generated on disk (skip if force=True)
+    if os.path.exists(physical_path) and not force:
         # File is on disk, just make sure database is synchronized
         db_updated = False
         if face == "front":
@@ -383,6 +383,10 @@ async def generate_card_audio(card_id: int, request: Request, face: str = "front
         if db_updated:
             await db.commit()
         return {"url": url}
+    
+    # Delete existing file if force regeneration
+    if force and os.path.exists(physical_path):
+        os.remove(physical_path)
         
     # Generate if not exists
     try:
