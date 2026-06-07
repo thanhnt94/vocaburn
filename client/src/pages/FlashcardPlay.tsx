@@ -249,6 +249,7 @@ export default function FlashcardPlay() {
 
 
   const timerRef = useRef<any>(null)
+  const undoInProgressRef = useRef<boolean>(false)
   const [activelyRatedCurrentCard, setActivelyRatedCurrentCard] = useState<boolean>(false)
   const [prevStreakBeforeRating, setPrevStreakBeforeRating] = useState<number>(0)
   const [leaderboardData, setLeaderboardData] = useState<any>(null)
@@ -1068,6 +1069,10 @@ export default function FlashcardPlay() {
         is_first_ever: isFirstEver
       })
       
+      // If undo was triggered while waiting for this API response, skip all state updates
+      // to prevent overwriting the reverted state
+      if (undoInProgressRef.current) return;
+
       const xpGained = res.data.xp_gained || 0;
       if (xpGained > 0) {
         setSessionXP(prev => prev + xpGained);
@@ -1289,7 +1294,8 @@ export default function FlashcardPlay() {
   }
 
   const handleUndoRating = async () => {
-    if (!currentQuestion) return;
+    if (!currentQuestion || undoInProgressRef.current) return;
+    undoInProgressRef.current = true;
     try {
       const res = await axios.post('/api/v1/deck/undo_answer', {
         card_id: currentQuestion.id
@@ -1298,24 +1304,29 @@ export default function FlashcardPlay() {
       if (res.data.status === 'ok') {
         const optionToRevert = selectedOption;
         
-        // 1. Revert local state
+        // 1. Revert local state — keep isFlipped=true so FSRS buttons re-appear on the back face
         setActivelyRatedCurrentCard(false);
         setJustAnswered(false);
         setSelectedOption(null);
         setStreak(prevStreakBeforeRating);
+        // Reset showFeedback so the card is in "awaiting rating" state
+        setShowFeedback(true);
         
-        // Remove this rating from sessionAnswers
+        // Remove this rating from sessionAnswers (handle both array and legacy number formats)
         const prevRatings = sessionAnswers[currentIndex];
+        const newAnswers = { ...sessionAnswers };
         if (Array.isArray(prevRatings) && prevRatings.length > 0) {
           const newRatings = prevRatings.slice(0, -1);
-          const newAnswers = { ...sessionAnswers };
           if (newRatings.length > 0) {
             newAnswers[currentIndex] = newRatings;
           } else {
             delete newAnswers[currentIndex];
           }
-          setSessionAnswers(newAnswers);
+        } else if (prevRatings !== undefined) {
+          // Handle legacy single-number format
+          delete newAnswers[currentIndex];
         }
+        setSessionAnswers(newAnswers);
         
         // 2. Revert XP locally
         const xpDeducted = res.data.xp_deducted || 0;
@@ -1397,10 +1408,18 @@ export default function FlashcardPlay() {
           newSession.questions = newQs;
           return newSession;
         });
+
+        // Dismiss any remaining toasts/celebrations
+        setBadgeVisible(false);
+        setActiveUnlockedBadge(null);
+        setActiveMasteryUpgrade(null);
+        setShowGoalCelebration(false);
       }
     } catch (e) {
       console.error("Failed to undo rating:", e);
       alert("Undo failed. Please try again.");
+    } finally {
+      undoInProgressRef.current = false;
     }
   };
 

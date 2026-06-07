@@ -1,7 +1,7 @@
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, Cell, AreaChart, Area } from 'recharts'
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, Cell, AreaChart, Area, ComposedChart } from 'recharts'
 import { 
   TrendingUp, Clock, Target, Award, BrainCircuit, ChevronRight, Zap, 
   Flame, BarChart3, Layers, Calendar, Activity, ChevronLeft, 
@@ -37,6 +37,157 @@ interface HeatmapDay {
   date: string
   count: number
 }
+
+interface ForecastDay {
+  day_index: number
+  date: string
+  label: string
+  count: number
+  cumulative: number
+}
+
+// ─── FSRS Review Forecast ──────────────────────────────────────────────────────
+const CustomTooltip = ({ active, payload }: any) => {
+  if (active && payload && payload.length) {
+    const data = payload[0].payload
+    return (
+      <div className="bg-slate-900 text-white p-3 rounded-2xl border border-slate-800 text-[10px] font-black uppercase tracking-wider shadow-xl flex flex-col gap-1.5">
+        <p className="text-slate-400 font-bold border-b border-slate-800 pb-1">{data.date}</p>
+        <p className="text-orange-400">Đến hạn ngày này: <span className="text-white font-extrabold">{data.count} thẻ</span></p>
+        <p className="text-indigo-400">Tích lũy đến ngày này: <span className="text-white font-extrabold">{data.cumulative} thẻ</span></p>
+      </div>
+    )
+  }
+  return null
+}
+
+function ReviewForecastWidget({ data }: { data: ForecastDay[] | undefined }) {
+  const [daysRange, setDaysRange] = useState<7 | 14 | 30>(14)
+
+  const slicedData = useMemo(() => {
+    if (!data) return []
+    return data.slice(0, daysRange)
+  }, [data, daysRange])
+
+  if (!data || data.length === 0) {
+    return (
+      <div className="bg-white border border-slate-200/60 rounded-[2.5rem] p-6 shadow-sm flex flex-col items-center justify-center text-center h-48">
+        <TrendingUp className="w-8 h-8 text-slate-350 animate-pulse mb-3" />
+        <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Đang tính toán dữ liệu dự báo...</span>
+      </div>
+    )
+  }
+
+  const todayCount = data[0]?.count || 0
+  const maxCumulative = slicedData.length > 0 ? Math.max(...slicedData.map((d: ForecastDay) => d.cumulative)) : 0
+
+  return (
+    <div className="bg-white border border-slate-200/60 rounded-[2.5rem] p-6 shadow-sm flex flex-col gap-4 text-left relative overflow-hidden flex-shrink-0">
+      <div className="absolute -right-8 -top-8 w-24 h-24 rounded-full bg-orange-50/20 blur-md pointer-events-none" />
+
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100/80">
+        <div className="flex items-center gap-3">
+          <div className="w-9 h-9 rounded-xl bg-orange-50 flex items-center justify-center text-orange-500 shadow-sm shadow-orange-100">
+            <TrendingUp className="w-4.5 h-4.5" />
+          </div>
+          <div>
+            <h3 className="text-xs md:text-sm font-black text-slate-900 uppercase tracking-widest italic leading-none">Dự báo ôn tập FSRS</h3>
+            <p className="text-[9px] font-bold text-slate-400 mt-1">Lượng thẻ ôn tập dự kiến theo ngày</p>
+          </div>
+        </div>
+
+        {/* Range Selector */}
+        <div className="flex items-center bg-slate-50 p-1 rounded-xl border border-slate-100">
+          {([7, 14, 30] as const).map(range => (
+            <button
+              key={range}
+              onClick={() => setDaysRange(range)}
+              className={cn(
+                "px-3 py-1 rounded-lg text-[8px] font-black uppercase tracking-widest transition-all cursor-pointer",
+                daysRange === range 
+                  ? "bg-white text-orange-650 shadow-sm border border-slate-100/50" 
+                  : "text-slate-400 hover:text-slate-600"
+              )}
+            >
+              {range} ngày
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Stats summary banner */}
+      <div className="grid grid-cols-2 gap-3 bg-gradient-to-r from-orange-50/50 to-indigo-50/30 p-3 rounded-2xl border border-slate-100">
+        <div className="flex flex-col">
+          <span className="text-[8px] font-black text-slate-400 uppercase tracking-wider">Hôm nay cần ôn</span>
+          <span className="text-sm font-black text-orange-650 mt-0.5">{todayCount} thẻ</span>
+        </div>
+        <div className="flex flex-col border-l border-slate-100 pl-3">
+          <span className="text-[8px] font-black text-slate-400 uppercase tracking-wider">Tích lũy {daysRange} ngày</span>
+          <span className="text-sm font-black text-indigo-600 mt-0.5">{maxCumulative} thẻ</span>
+        </div>
+      </div>
+
+      {/* Chart container */}
+      <div className="h-[180px] w-full mt-2 -ml-6 pr-2">
+        <ResponsiveContainer width="100%" height="100%">
+          <ComposedChart data={slicedData}>
+            <defs>
+              <linearGradient id="forecastBarGrad" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="#f97316" stopOpacity={0.95} />
+                <stop offset="100%" stopColor="#ea580c" stopOpacity={0.3} />
+              </linearGradient>
+            </defs>
+            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+            <XAxis
+              dataKey="label"
+              axisLine={false}
+              tickLine={false}
+              tick={{ fontSize: 8, fontWeight: 900, fill: '#94a3b8' }}
+            />
+            {/* Dual Y-Axes */}
+            <YAxis
+              yAxisId="left"
+              axisLine={false}
+              tickLine={false}
+              tick={{ fontSize: 8, fontWeight: 900, fill: '#f97316' }}
+            />
+            <YAxis
+              yAxisId="right"
+              orientation="right"
+              axisLine={false}
+              tickLine={false}
+              tick={{ fontSize: 8, fontWeight: 900, fill: '#6366f1' }}
+            />
+            <Tooltip
+              content={<CustomTooltip />}
+              cursor={{ fill: '#f8fafc' }}
+            />
+            {/* Bar for Daily review count on Left axis */}
+            <Bar
+              yAxisId="left"
+              dataKey="count"
+              fill="url(#forecastBarGrad)"
+              radius={[4, 4, 0, 0]}
+              barSize={16}
+            />
+            {/* Line for Cumulative reviews on Right axis */}
+            <Line
+              yAxisId="right"
+              type="monotone"
+              dataKey="cumulative"
+              stroke="#6366f1"
+              strokeWidth={2}
+              dot={{ r: 2, stroke: '#6366f1', strokeWidth: 1, fill: '#fff' }}
+              activeDot={{ r: 4, stroke: '#6366f1', strokeWidth: 2, fill: '#fff' }}
+            />
+          </ComposedChart>
+        </ResponsiveContainer>
+      </div>
+    </div>
+  )
+}
+
 
 interface WeeklyReport {
   current_week: {
@@ -110,6 +261,15 @@ export default function Stats() {
       return res.data
     }
   })
+
+  const { data: forecastData } = useQuery<ForecastDay[]>({
+    queryKey: ['reviewForecast'],
+    queryFn: async () => {
+      const res = await axios.get('/api/v1/deck/stats/review-forecast')
+      return res.data
+    }
+  })
+
 
   const currentLeaderboard = leaderboardData?.[activeLeaderboardTab] || { list: [], user_rank: -1, user_value: 0 }
   const topThree = currentLeaderboard.list.slice(0, 3)
@@ -600,6 +760,8 @@ export default function Stats() {
                       </div>
                     </div>
                   )}
+
+                  <ReviewForecastWidget data={forecastData} />
 
                   {/* Streak Heatmap Calendar */}
                   <div className="bg-white rounded-[2.5rem] border border-slate-100 p-6 md:p-10 shadow-sm relative overflow-hidden">

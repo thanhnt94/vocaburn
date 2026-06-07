@@ -689,3 +689,63 @@ async def update_global_goals(request: Request, data: dict, db: AsyncSession = D
         "daily_card_target": goal.daily_card_target,
         "daily_new_card_target": goal.daily_new_card_target
     }
+
+@router.get("/stats/review-forecast")
+async def get_review_forecast(request: Request, db: AsyncSession = Depends(get_db)):
+    user = await AuthService.get_current_user(request, db)
+    user_id = user.id if user else 1
+    
+    # Today's date in UTC
+    now = datetime.utcnow()
+    today = now.date()
+    
+    # Fetch all UserCardMastery records for this user that are not ignored
+    stmt = select(UserCardMastery.due).where(
+        UserCardMastery.user_id == user_id,
+        UserCardMastery.is_ignored == False
+    )
+    result = await db.execute(stmt)
+    dues = result.scalars().all()
+    
+    # Initialize forecast list for 30 days
+    forecast_days = 30
+    daily_counts = [0] * forecast_days
+    
+    # Calculate for each due date
+    for due_dt in dues:
+        if not due_dt:
+            continue
+        due_date = due_dt.date()
+        days_diff = (due_date - today).days
+        
+        if days_diff <= 0:
+            # Overdue or due today falls into Day 0 (Today)
+            daily_counts[0] += 1
+        elif 0 < days_diff < forecast_days:
+            daily_counts[days_diff] += 1
+            
+    # Prepare the response list
+    cumulative_sum = 0
+    forecast_data = []
+    for i in range(forecast_days):
+        forecast_date = today + timedelta(days=i)
+        date_str = forecast_date.strftime("%Y-%m-%d")
+        
+        if i == 0:
+            label = "Hôm nay"
+        elif i == 1:
+            label = "Ngày mai"
+        else:
+            label = forecast_date.strftime("%d/%m")
+            
+        cumulative_sum += daily_counts[i]
+        forecast_data.append({
+            "day_index": i,
+            "date": date_str,
+            "label": label,
+            "count": daily_counts[i],
+            "cumulative": cumulative_sum
+        })
+        
+    return forecast_data
+
