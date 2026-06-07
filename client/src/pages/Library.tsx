@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Search, Plus, Target, LayoutGrid, BarChart3, User, ChevronRight, Filter, Archive, RotateCcw, Users, Play, ChevronLeft, Info, Brain, Trophy, X, BrainCircuit, Zap, Settings } from 'lucide-react'
+import { Search, Plus, Target, LayoutGrid, BarChart3, User, ChevronRight, Filter, Archive, RotateCcw, Users, Play, ChevronLeft, Info, Brain, Trophy, X, BrainCircuit, Zap, Settings, BookOpen } from 'lucide-react'
 import { useAppStore } from '@/store/useAppStore'
 import { cn } from '@/lib/utils'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -253,10 +253,10 @@ export default function Library() {
       {/* MOBILE HEADER */}
       <div className="fixed top-0 left-0 right-0 z-[150] bg-white/80 backdrop-blur-xl border-b border-slate-100 md:hidden flex-shrink-0">
          <div className="px-4 py-4 flex items-center justify-between gap-4">
-            <div className="flex items-center gap-3">
-               <div className="w-11 h-11 rounded-2xl bg-gradient-to-tr from-indigo-500 via-purple-500 to-pink-500 flex items-center justify-center text-white shadow-lg shadow-indigo-100 flex-shrink-0">
-                  <BrainCircuit className="w-6 h-6" />
-               </div>
+             <div className="flex items-center gap-3">
+                <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-orange-500 to-rose-500 flex items-center justify-center text-white shadow-lg shadow-orange-500/20 flex-shrink-0">
+                   <BookOpen className="w-6 h-6 animate-pulse" />
+                </div>
                <div>
                   <h1 className="text-[13px] font-black text-slate-800 leading-none mb-1">Thư viện bài học 📚</h1>
                   <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest leading-none">Tìm kiếm & Khám phá</span>

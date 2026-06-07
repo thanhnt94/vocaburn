@@ -1,5 +1,5 @@
 import { Outlet, Link, useLocation } from 'react-router-dom'
-import { LayoutGrid, Compass, BarChart3, User, BrainCircuit, Bell, Settings, Plus, Library, Users, FolderKanban } from 'lucide-react'
+import { LayoutGrid, Compass, BarChart3, User, BrainCircuit, Bell, Settings, Plus, Library, Users, FolderKanban, BookOpen } from 'lucide-react'
 import { motion } from 'framer-motion'
 import { useAppStore } from '@/store/useAppStore'
 import { cn } from '@/lib/utils'
@@ -56,13 +56,15 @@ export default function Layout() {
         )}>
           <div className="flex items-center gap-8">
           <Link to="/" className="flex items-center gap-2 group">
-            <div className="w-10 h-10 rounded-xl bg-indigo-600 flex items-center justify-center text-white shadow-lg shadow-indigo-200 group-hover:rotate-12 transition-transform">
-              <BrainCircuit className="w-6 h-6" />
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-orange-500 to-rose-500 flex items-center justify-center text-white shadow-lg shadow-orange-500/20 group-hover:rotate-12 transition-transform">
+              <BookOpen className="w-6 h-6" />
             </div>
             <span className={cn(
-              "text-xl font-black tracking-tighter",
-              isLoggedIn ? "text-slate-900" : "text-white"
-            )}>Vocaburn</span>
+              "text-xl font-black tracking-tighter uppercase",
+              isLoggedIn ? "text-slate-800" : "text-white"
+            )}>
+              Voca<span className="text-orange-500">burn</span>
+            </span>
           </Link>
           {isLoggedIn && (
             <nav className="flex items-center gap-6">

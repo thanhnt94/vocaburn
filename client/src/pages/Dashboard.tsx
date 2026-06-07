@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { Brain, Trophy, ChevronRight, LayoutGrid, Users, Zap, Flame, BrainCircuit, X, Play, Crown, Medal, Star, CheckCircle2, Circle, Swords, Settings, Target, RefreshCw, User } from 'lucide-react'
+import { Brain, Trophy, ChevronRight, LayoutGrid, Users, Zap, Flame, BrainCircuit, X, Play, Crown, Medal, Star, CheckCircle2, Circle, Swords, Settings, Target, RefreshCw, User, BookOpen } from 'lucide-react'
 import { useAppStore } from '@/store/useAppStore'
 import { cn } from '@/lib/utils'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -1210,10 +1210,12 @@ export default function Dashboard() {
         <div className="px-5 py-3.5 flex items-center justify-between gap-4">
           {/* Logo & Brand Vocaburn on the Left */}
           <Link to="/" className="flex items-center gap-2 group flex-shrink-0">
-            <div className="w-9 h-9 rounded-xl bg-indigo-600 flex items-center justify-center text-white shadow-lg shadow-indigo-150 group-hover:rotate-12 transition-transform">
-              <BrainCircuit className="w-5 h-5 animate-pulse" />
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-orange-500 to-rose-500 flex items-center justify-center text-white shadow-lg shadow-orange-500/20 group-hover:rotate-12 transition-transform">
+              <BookOpen className="w-5 h-5" />
             </div>
-            <span className="text-[10px] font-black tracking-widest text-slate-400 uppercase">Vocaburn</span>
+            <span className="text-xs font-black tracking-wider text-slate-800 uppercase">
+              Voca<span className="text-orange-500">burn</span>
+            </span>
           </Link>
 
           {/* User Info & Avatar on the Right */}
