@@ -105,11 +105,28 @@ async def get_active_goals(request: Request, local_date: Optional[str] = None, d
     )
     c_count_map = {r[0]: r[1] for r in c_count_res.all()}
 
+    # Bulk query ignored count grouped by deck_id via user_card_mastery
+    ignored_res = await db.execute(
+        select(Flashcard.deck_id, func.count(UserCardMastery.id))
+        .join(UserCardMastery, UserCardMastery.card_id == Flashcard.id)
+        .filter(
+            Flashcard.deck_id.in_(deck_ids),
+            UserCardMastery.user_id == user_id,
+            UserCardMastery.is_ignored == True
+        )
+        .group_by(Flashcard.deck_id)
+    )
+    ignored_map = {r[0]: r[1] for r in ignored_res.all()}
+
     # Bulk query learned count grouped by deck_id via user_card_mastery
     learned_res = await db.execute(
         select(Flashcard.deck_id, func.count(UserCardMastery.id))
         .join(UserCardMastery, UserCardMastery.card_id == Flashcard.id)
-        .filter(Flashcard.deck_id.in_(deck_ids), UserCardMastery.user_id == user_id)
+        .filter(
+            Flashcard.deck_id.in_(deck_ids),
+            UserCardMastery.user_id == user_id,
+            UserCardMastery.is_ignored == False
+        )
         .group_by(Flashcard.deck_id)
     )
     learned_map = {r[0]: r[1] for r in learned_res.all()}
@@ -120,7 +137,9 @@ async def get_active_goals(request: Request, local_date: Optional[str] = None, d
         if not deck:
             continue
             
-        total_cards = c_count_map.get(goal.deck_id, 0)
+        total_cards_raw = c_count_map.get(goal.deck_id, 0)
+        ignored_count = ignored_map.get(goal.deck_id, 0)
+        total_cards = max(0, total_cards_raw - ignored_count)
         total_learned = learned_map.get(goal.deck_id, 0)
         
         progress = progress_map.get(goal.id)
@@ -225,7 +244,8 @@ async def get_user_badges(request: Request, db: AsyncSession = Depends(get_db)):
                 mastered_res = await db.execute(
                     select(func.count(UserCardMastery.id)).where(
                         UserCardMastery.user_id == user_id,
-                        UserCardMastery.box_level == 5
+                        UserCardMastery.box_level == 5,
+                        UserCardMastery.is_ignored == False
                     )
                 )
                 cnt = mastered_res.scalar() or 0
@@ -402,14 +422,31 @@ async def get_deck_mastery(deck_id: int, request: Request, db: AsyncSession = De
     
     # Count total cards in the deck
     c_count_res = await db.execute(select(func.count(Flashcard.id)).where(Flashcard.deck_id == deck_id))
-    total_cards = c_count_res.scalar() or 0
+    total_cards_raw = c_count_res.scalar() or 0
+    
+    # Count ignored cards in the deck
+    ignored_res = await db.execute(
+        select(func.count(UserCardMastery.id))
+        .join(Flashcard, UserCardMastery.card_id == Flashcard.id)
+        .where(
+            Flashcard.deck_id == deck_id,
+            UserCardMastery.user_id == user_id,
+            UserCardMastery.is_ignored == True
+        )
+    )
+    ignored_count = ignored_res.scalar() or 0
+    total_cards = max(0, total_cards_raw - ignored_count)
     
     # Get all mastered cards for this deck
     mastery_stmt = select(
         UserCardMastery.box_level,
         func.count(UserCardMastery.id)
     ).join(Flashcard, UserCardMastery.card_id == Flashcard.id)\
-     .where(Flashcard.deck_id == deck_id, UserCardMastery.user_id == user_id)\
+     .where(
+         Flashcard.deck_id == deck_id,
+         UserCardMastery.user_id == user_id,
+         UserCardMastery.is_ignored == False
+     )\
      .group_by(UserCardMastery.box_level)
      
     results = await db.execute(mastery_stmt)
@@ -440,7 +477,10 @@ async def get_global_leitner_stats(request: Request, db: AsyncSession = Depends(
     stmt = select(
         UserCardMastery.box_level,
         func.count(UserCardMastery.id)
-    ).where(UserCardMastery.user_id == user_id).group_by(UserCardMastery.box_level)
+    ).where(
+        UserCardMastery.user_id == user_id,
+        UserCardMastery.is_ignored == False
+    ).group_by(UserCardMastery.box_level)
     
     results = await db.execute(stmt)
     
@@ -456,7 +496,11 @@ async def get_global_leitner_stats(request: Request, db: AsyncSession = Depends(
     # Get a list of the user's hardest cards (e.g. up to 5 cards in Box 1)
     hardest_cards_stmt = select(Flashcard)\
         .join(UserCardMastery, Flashcard.id == UserCardMastery.card_id)\
-        .where(UserCardMastery.user_id == user_id, UserCardMastery.box_level == 1)\
+        .where(
+            UserCardMastery.user_id == user_id,
+            UserCardMastery.box_level == 1,
+            UserCardMastery.is_ignored == False
+        )\
         .limit(5)
         
     hardest_cards_res = await db.execute(hardest_cards_stmt)
@@ -698,6 +742,8 @@ async def get_review_forecast(request: Request, db: AsyncSession = Depends(get_d
     # Today's date in UTC
     now = datetime.utcnow()
     today = now.date()
+    today_start = datetime(today.year, today.month, today.day)
+    today_end = today_start + timedelta(days=1)
     
     # Fetch all UserCardMastery records for this user that are not ignored
     stmt = select(UserCardMastery.due).where(
@@ -707,11 +753,30 @@ async def get_review_forecast(request: Request, db: AsyncSession = Depends(get_d
     result = await db.execute(stmt)
     dues = result.scalars().all()
     
-    # Initialize forecast list for 30 days
+    # 1. Hourly (today's timeline): Grouped by hour (0 to 23). Overdue reviews go to Hour 0.
+    hourly_counts = [0] * 24
+    for due_dt in dues:
+        if not due_dt:
+            continue
+        if due_dt < today_start:
+            hourly_counts[0] += 1
+        elif today_start <= due_dt < today_end:
+            hourly_counts[due_dt.hour] += 1
+            
+    hourly_data = []
+    hourly_cumulative = 0
+    for h in range(24):
+        hourly_cumulative += hourly_counts[h]
+        hourly_data.append({
+            "hour": h,
+            "label": f"{h:02d}:00",
+            "count": hourly_counts[h],
+            "cumulative": hourly_cumulative
+        })
+        
+    # 2. Daily (next 30 days): Grouped by day. Overdue goes to Day 0 (Today).
     forecast_days = 30
     daily_counts = [0] * forecast_days
-    
-    # Calculate for each due date
     for due_dt in dues:
         if not due_dt:
             continue
@@ -719,14 +784,12 @@ async def get_review_forecast(request: Request, db: AsyncSession = Depends(get_d
         days_diff = (due_date - today).days
         
         if days_diff <= 0:
-            # Overdue or due today falls into Day 0 (Today)
             daily_counts[0] += 1
         elif 0 < days_diff < forecast_days:
             daily_counts[days_diff] += 1
             
-    # Prepare the response list
-    cumulative_sum = 0
-    forecast_data = []
+    daily_data = []
+    daily_cumulative = 0
     for i in range(forecast_days):
         forecast_date = today + timedelta(days=i)
         date_str = forecast_date.strftime("%Y-%m-%d")
@@ -738,14 +801,41 @@ async def get_review_forecast(request: Request, db: AsyncSession = Depends(get_d
         else:
             label = forecast_date.strftime("%d/%m")
             
-        cumulative_sum += daily_counts[i]
-        forecast_data.append({
+        daily_cumulative += daily_counts[i]
+        daily_data.append({
             "day_index": i,
             "date": date_str,
             "label": label,
             "count": daily_counts[i],
-            "cumulative": cumulative_sum
+            "cumulative": daily_cumulative
         })
         
-    return forecast_data
+    # 3. Weekly (next 4 weeks): Grouped by week.
+    weekly_data = []
+    weekly_cumulative = 0
+    for w in range(4):
+        start_idx = w * 7
+        end_idx = start_idx + 7
+        w_count = sum(daily_counts[start_idx:end_idx])
+        weekly_cumulative += w_count
+        
+        start_date = today + timedelta(days=start_idx)
+        end_date = today + timedelta(days=end_idx - 1)
+        
+        label = f"Tuần {w+1}"
+        date_range_str = f"{start_date.strftime('%d/%m')}-{end_date.strftime('%d/%m')}"
+        
+        weekly_data.append({
+            "week_index": w,
+            "label": label,
+            "range": date_range_str,
+            "count": w_count,
+            "cumulative": weekly_cumulative
+        })
+        
+    return {
+        "hourly": hourly_data,
+        "daily": daily_data,
+        "weekly": weekly_data
+    }
 

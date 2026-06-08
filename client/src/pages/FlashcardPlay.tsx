@@ -57,6 +57,8 @@ interface Question {
     difficulty: number | null
     due: string | null
     last_review: string | null
+    first_learned?: string | null
+    last_reviewed?: string | null
     intervals: Record<number, string>
   }
   practice?: {
@@ -81,6 +83,47 @@ const MarkdownComponents = {
   }
 }
 
+function formatRelativeTime(dateStr: string | null | undefined): { relative: string; full: string } {
+  if (!dateStr) return { relative: 'never', full: 'Never learned this card' };
+  const d = new Date(dateStr);
+  if (isNaN(d.getTime())) return { relative: 'never', full: 'Never learned this card' };
+  
+  const now = new Date();
+  const diffMs = now.getTime() - d.getTime();
+  const diffSec = Math.floor(diffMs / 1000);
+  const diffMin = Math.floor(diffSec / 60);
+  const diffHour = Math.floor(diffMin / 60);
+  const diffDay = Math.floor(diffHour / 24);
+  const diffMonth = Math.floor(diffDay / 30);
+  const diffYear = Math.floor(diffDay / 365);
+  
+  let relative = '';
+  if (diffSec < 60) {
+    relative = 'just now';
+  } else if (diffMin < 60) {
+    relative = `${diffMin}m ago`;
+  } else if (diffHour < 24) {
+    relative = `${diffHour}h ago`;
+  } else if (diffDay < 30) {
+    relative = `${diffDay}d ago`;
+  } else if (diffMonth < 12) {
+    relative = `${diffMonth}mo ago`;
+  } else {
+    relative = `${diffYear}y ago`;
+  }
+  
+  const dayStr = String(d.getDate()).padStart(2, '0');
+  const monthStr = String(d.getMonth() + 1).padStart(2, '0');
+  const yearStr = d.getFullYear();
+  const hourStr = String(d.getHours()).padStart(2, '0');
+  const minStr = String(d.getMinutes()).padStart(2, '0');
+  const secStr = String(d.getSeconds()).padStart(2, '0');
+  
+  const full = `${dayStr}/${monthStr}/${yearStr} ${hourStr}:${minStr}:${secStr}`;
+  
+  return { relative, full };
+}
+
 export default function FlashcardPlay() {
   const { id, mode, subMode } = useParams()
   const navigate = useNavigate()
@@ -95,6 +138,13 @@ export default function FlashcardPlay() {
     return true;
   });
   const [currentIndex, setCurrentIndex] = useState(-1)
+  const [showAbsoluteFirst, setShowAbsoluteFirst] = useState(false)
+  const [showAbsoluteLast, setShowAbsoluteLast] = useState(false)
+
+  useEffect(() => {
+    setShowAbsoluteFirst(false)
+    setShowAbsoluteLast(false)
+  }, [currentIndex])
   const currentQuestion: Question | null = session?.questions?.[currentIndex] || null
   const [selectedOption, setSelectedOption] = useState<number | null>(null)
   const [showFeedback, setShowFeedback] = useState(false)
@@ -1045,10 +1095,13 @@ export default function FlashcardPlay() {
         nextState = 3 // Relearning
       }
 
+      const nowStr = new Date().toISOString()
       q.fsrs = {
         ...(q.fsrs || { stability: null, difficulty: null, intervals: {} }),
         state: nextState,
-        due: localDue.toISOString()
+        due: localDue.toISOString(),
+        first_learned: q.fsrs?.first_learned || nowStr,
+        last_reviewed: nowStr
       }
 
       newQs[currentIndex] = q
@@ -1135,6 +1188,8 @@ export default function FlashcardPlay() {
                 stability: masteryUpdate.stability !== undefined ? masteryUpdate.stability : updatedQuestions[currentIndex].fsrs?.stability,
                 difficulty: masteryUpdate.difficulty !== undefined ? masteryUpdate.difficulty : updatedQuestions[currentIndex].fsrs?.difficulty,
                 due: masteryUpdate.due !== undefined ? masteryUpdate.due : updatedQuestions[currentIndex].fsrs?.due,
+                first_learned: masteryUpdate.first_learned !== undefined ? masteryUpdate.first_learned : updatedQuestions[currentIndex].fsrs?.first_learned,
+                last_reviewed: masteryUpdate.last_reviewed !== undefined ? masteryUpdate.last_reviewed : updatedQuestions[currentIndex].fsrs?.last_reviewed,
                 intervals: masteryUpdate.intervals !== undefined ? masteryUpdate.intervals : updatedQuestions[currentIndex].fsrs?.intervals,
               }
             }
@@ -1379,6 +1434,8 @@ export default function FlashcardPlay() {
               difficulty: res.data.fsrs.difficulty,
               due: res.data.fsrs.due,
               last_review: res.data.fsrs.last_review,
+              first_learned: res.data.fsrs.first_learned !== undefined ? res.data.fsrs.first_learned : q.fsrs?.first_learned,
+              last_reviewed: res.data.fsrs.last_reviewed !== undefined ? res.data.fsrs.last_reviewed : q.fsrs?.last_reviewed,
               intervals: res.data.fsrs.intervals
             };
           }
@@ -3815,42 +3872,73 @@ export default function FlashcardPlay() {
                         'bg-rose-500 shadow-rose-500/50'
                       ];
                       const stateIdx = currentQuestion.fsrs.state || 0;
+                      
+                      const firstLearnedInfo = formatRelativeTime(currentQuestion.fsrs.first_learned);
+                      const lastReviewedInfo = formatRelativeTime(currentQuestion.fsrs.last_reviewed);
+                      
                       return (
-                        <div className="flex items-center justify-between bg-gradient-to-r from-slate-50/80 via-white to-slate-50/80 rounded-2xl md:p-3 p-2 md:py-2.5 py-1.5 border border-slate-100/90 text-[10px] font-bold shadow-[0_4px_20px_rgba(0,0,0,0.01),inset_0_1px_2px_rgba(255,255,255,0.6)] backdrop-blur-md gap-2 w-full md:mt-3 mt-1.5">
-                          <div className="flex flex-col items-center gap-0.5 flex-1 justify-center">
-                            <span className="text-[8px] font-black text-slate-400 uppercase tracking-[0.15em]">State</span>
-                            <span className={cn("px-2.5 py-0.5 rounded-lg border text-[9px] font-black uppercase tracking-wider flex items-center gap-1 transition-all duration-300", stateColors[stateIdx])}>
-                              <span className={cn("w-1.5 h-1.5 rounded-full animate-pulse shadow-[0_0_8px_var(--tw-shadow-color)]", stateDots[stateIdx])} />
+                        <div className="flex items-center justify-between bg-gradient-to-r from-slate-50/80 via-white to-slate-50/80 rounded-2xl px-1 py-1.5 sm:px-1.5 sm:py-2 border border-slate-100/90 text-[9px] font-bold shadow-[0_4px_20px_rgba(0,0,0,0.01),inset_0_1px_2px_rgba(255,255,255,0.6)] backdrop-blur-md w-full md:mt-3 mt-1.5 gap-0.5 sm:gap-1.5 animate-fadeIn">
+                          {/* State */}
+                          <div className="flex flex-col items-center gap-0.5 flex-1 justify-center min-w-0">
+                            <span className="text-[7.5px] sm:text-[8px] font-black text-slate-400 uppercase tracking-wider truncate">State</span>
+                            <span className={cn("px-1 py-0.5 rounded-lg border text-[7.5px] sm:text-[9px] font-black uppercase tracking-wider flex items-center gap-0.5 truncate transition-all duration-300", stateColors[stateIdx])}>
+                              <span className={cn("w-1 h-1 rounded-full animate-pulse", stateDots[stateIdx])} />
                               {stateLabels[stateIdx]}
                             </span>
                           </div>
-                          <div className="w-px h-7 bg-gradient-to-b from-slate-100 via-slate-200/60 to-slate-100" />
-                          <div className="flex flex-col items-center gap-0.5 flex-1 justify-center">
-                            <span className="text-[8px] font-black text-slate-400 uppercase tracking-[0.15em] flex items-center gap-1">
-                              <Clock className="w-3 h-3 text-indigo-400" /> Stability
-                            </span>
-                            <span className="bg-indigo-50/40 text-indigo-600 border border-indigo-100/30 px-2.5 py-0.5 rounded-lg font-black text-[11px] shadow-sm flex items-center gap-1">
+                          <div className="w-px h-6 bg-gradient-to-b from-slate-100 via-slate-200/60 to-slate-100 flex-shrink-0" />
+
+                          {/* Stability */}
+                          <div className="flex flex-col items-center gap-0.5 flex-1 justify-center min-w-0">
+                            <span className="text-[7.5px] sm:text-[8px] font-black text-slate-400 uppercase tracking-wider truncate">Stability</span>
+                            <span className="bg-indigo-50/40 text-indigo-600 border border-indigo-100/30 px-1 py-0.5 rounded-lg font-black text-[8.5px] sm:text-[10px] shadow-sm flex items-center gap-0.5 truncate">
                               {currentQuestion.fsrs.stability ? (
                                 <>
-                                  <span className="text-[11px] tracking-tight">{currentQuestion.fsrs.stability.toFixed(2)}</span>
-                                  <span className="text-[8px] font-bold opacity-75">d</span>
+                                  <span className="tracking-tight">{currentQuestion.fsrs.stability.toFixed(2)}</span>
+                                  <span className="text-[7.5px] font-bold opacity-75">d</span>
                                 </>
                               ) : (
                                 'none'
                               )}
                             </span>
                           </div>
-                          <div className="w-px h-7 bg-gradient-to-b from-slate-100 via-slate-200/60 to-slate-100" />
-                          <div className="flex flex-col items-center gap-0.5 flex-1 justify-center">
-                            <span className="text-[8px] font-black text-slate-400 uppercase tracking-[0.15em] flex items-center gap-1">
-                              <Sliders className="w-3 h-3 text-purple-400" /> Difficulty
-                            </span>
-                            <span className="bg-purple-50/40 text-purple-600 border border-purple-100/30 px-2.5 py-0.5 rounded-lg font-black text-[11px] shadow-sm flex items-center gap-1">
+                          <div className="w-px h-6 bg-gradient-to-b from-slate-100 via-slate-200/60 to-slate-100 flex-shrink-0" />
+
+                          {/* Difficulty */}
+                          <div className="flex flex-col items-center gap-0.5 flex-1 justify-center min-w-0">
+                            <span className="text-[7.5px] sm:text-[8px] font-black text-slate-400 uppercase tracking-wider truncate">Difficulty</span>
+                            <span className="bg-purple-50/40 text-purple-600 border border-purple-100/30 px-1 py-0.5 rounded-lg font-black text-[8.5px] sm:text-[10px] shadow-sm flex items-center gap-0.5 truncate">
                               {currentQuestion.fsrs.difficulty ? (
-                                <span className="text-[11px] tracking-tight">{currentQuestion.fsrs.difficulty.toFixed(2)}</span>
+                                <span className="tracking-tight">{currentQuestion.fsrs.difficulty.toFixed(2)}</span>
                               ) : (
                                 'none'
                               )}
+                            </span>
+                          </div>
+                          <div className="w-px h-6 bg-gradient-to-b from-slate-100 via-slate-200/60 to-slate-100 flex-shrink-0" />
+
+                          {/* First Learned */}
+                          <div 
+                            className="flex flex-col items-center gap-0.5 flex-1 justify-center min-w-0 cursor-pointer select-none hover:opacity-80 transition-opacity"
+                            onClick={() => setShowAbsoluteFirst(!showAbsoluteFirst)}
+                            title={firstLearnedInfo.full}
+                          >
+                            <span className="text-[7.5px] sm:text-[8px] font-black text-slate-400 uppercase tracking-wider truncate">First</span>
+                            <span className="bg-slate-100/60 text-slate-600 border border-slate-200/40 px-1 py-0.5 rounded-lg font-black text-[7.5px] sm:text-[9px] shadow-sm text-center truncate w-full">
+                              {showAbsoluteFirst ? firstLearnedInfo.full : firstLearnedInfo.relative}
+                            </span>
+                          </div>
+                          <div className="w-px h-6 bg-gradient-to-b from-slate-100 via-slate-200/60 to-slate-100 flex-shrink-0" />
+
+                          {/* Last Reviewed */}
+                          <div 
+                            className="flex flex-col items-center gap-0.5 flex-1 justify-center min-w-0 cursor-pointer select-none hover:opacity-80 transition-opacity"
+                            onClick={() => setShowAbsoluteLast(!showAbsoluteLast)}
+                            title={lastReviewedInfo.full}
+                          >
+                            <span className="text-[7.5px] sm:text-[8px] font-black text-slate-400 uppercase tracking-wider truncate">Last</span>
+                            <span className="bg-slate-100/60 text-slate-600 border border-slate-200/40 px-1 py-0.5 rounded-lg font-black text-[7.5px] sm:text-[9px] shadow-sm text-center truncate w-full">
+                              {showAbsoluteLast ? lastReviewedInfo.full : lastReviewedInfo.relative}
                             </span>
                           </div>
                         </div>

@@ -38,6 +38,13 @@ interface HeatmapDay {
   count: number
 }
 
+interface ForecastHour {
+  hour: number
+  label: string
+  count: number
+  cumulative: number
+}
+
 interface ForecastDay {
   day_index: number
   date: string
@@ -46,30 +53,33 @@ interface ForecastDay {
   cumulative: number
 }
 
-// ─── FSRS Review Forecast ──────────────────────────────────────────────────────
-const CustomTooltip = ({ active, payload }: any) => {
-  if (active && payload && payload.length) {
-    const data = payload[0].payload
-    return (
-      <div className="bg-slate-900 text-white p-3 rounded-2xl border border-slate-800 text-[10px] font-black uppercase tracking-wider shadow-xl flex flex-col gap-1.5">
-        <p className="text-slate-400 font-bold border-b border-slate-800 pb-1">{data.date}</p>
-        <p className="text-orange-400">Đến hạn ngày này: <span className="text-white font-extrabold">{data.count} thẻ</span></p>
-        <p className="text-indigo-400">Tích lũy đến ngày này: <span className="text-white font-extrabold">{data.cumulative} thẻ</span></p>
-      </div>
-    )
-  }
-  return null
+interface ForecastWeek {
+  week_index: number
+  label: string
+  range: string
+  count: number
+  cumulative: number
 }
 
-function ReviewForecastWidget({ data }: { data: ForecastDay[] | undefined }) {
+interface ForecastResponse {
+  hourly: ForecastHour[]
+  daily: ForecastDay[]
+  weekly: ForecastWeek[]
+}
+
+// ─── FSRS Review Forecast ──────────────────────────────────────────────────────
+function ReviewForecastWidget({ data }: { data: ForecastResponse | undefined }) {
+  const [viewMode, setViewMode] = useState<'hourly' | 'daily' | 'weekly'>('daily')
   const [daysRange, setDaysRange] = useState<7 | 14 | 30>(14)
 
-  const slicedData = useMemo(() => {
+  const chartData = useMemo<any[]>(() => {
     if (!data) return []
-    return data.slice(0, daysRange)
-  }, [data, daysRange])
+    if (viewMode === 'hourly') return data.hourly
+    if (viewMode === 'weekly') return data.weekly
+    return data.daily.slice(0, daysRange)
+  }, [data, viewMode, daysRange])
 
-  if (!data || data.length === 0) {
+  if (!data || !data.daily || data.daily.length === 0) {
     return (
       <div className="bg-white border border-slate-200/60 rounded-[2.5rem] p-6 shadow-sm flex flex-col items-center justify-center text-center h-48">
         <TrendingUp className="w-8 h-8 text-slate-350 animate-pulse mb-3" />
@@ -78,60 +88,96 @@ function ReviewForecastWidget({ data }: { data: ForecastDay[] | undefined }) {
     )
   }
 
-  const todayCount = data[0]?.count || 0
-  const maxCumulative = slicedData.length > 0 ? Math.max(...slicedData.map((d: ForecastDay) => d.cumulative)) : 0
+  const todayCount = viewMode === 'hourly' 
+    ? (data.daily[0]?.count || 0) 
+    : viewMode === 'daily' 
+      ? (data.daily[0]?.count || 0) 
+      : (data.weekly[0]?.count || 0)
+
+  const maxCumulative = chartData.length > 0 
+    ? chartData[chartData.length - 1]?.cumulative 
+    : 0
 
   return (
     <div className="bg-white border border-slate-200/60 rounded-[2.5rem] p-6 shadow-sm flex flex-col gap-4 text-left relative overflow-hidden flex-shrink-0">
       <div className="absolute -right-8 -top-8 w-24 h-24 rounded-full bg-orange-50/20 blur-md pointer-events-none" />
 
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100/80">
-        <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl bg-orange-50 flex items-center justify-center text-orange-500 shadow-sm shadow-orange-100">
-            <TrendingUp className="w-4.5 h-4.5" />
+      <div className="flex flex-col gap-3 pb-3 border-b border-slate-100/80">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-1">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-orange-50 flex items-center justify-center text-orange-500 shadow-sm shadow-orange-100">
+              <TrendingUp className="w-4.5 h-4.5" />
+            </div>
+            <div>
+              <h3 className="text-xs sm:text-sm font-black text-slate-900 uppercase tracking-widest italic leading-none">Dự báo ôn tập FSRS</h3>
+              <p className="text-[9px] font-bold text-slate-400 mt-1">Lượng thẻ ôn tập dự kiến</p>
+            </div>
           </div>
-          <div>
-            <h3 className="text-xs md:text-sm font-black text-slate-900 uppercase tracking-widest italic leading-none">Dự báo ôn tập FSRS</h3>
-            <p className="text-[9px] font-bold text-slate-400 mt-1">Lượng thẻ ôn tập dự kiến theo ngày</p>
+
+          {/* View Mode Tabs */}
+          <div className="flex items-center bg-slate-50 p-1 rounded-xl border border-slate-100 self-start sm:self-auto">
+            {(['hourly', 'daily', 'weekly'] as const).map(mode => (
+              <button
+                key={mode}
+                onClick={() => setViewMode(mode)}
+                className={cn(
+                  "px-2 sm:px-3 py-1 rounded-lg text-[8px] font-black uppercase tracking-widest transition-all cursor-pointer",
+                  viewMode === mode
+                    ? "bg-white text-orange-650 shadow-sm border border-slate-100/50"
+                    : "text-slate-400 hover:text-slate-600"
+                )}
+              >
+                {mode === 'hourly' ? 'Giờ' : mode === 'daily' ? 'Ngày' : 'Tuần'}
+              </button>
+            ))}
           </div>
         </div>
 
-        {/* Range Selector */}
-        <div className="flex items-center bg-slate-50 p-1 rounded-xl border border-slate-100">
-          {([7, 14, 30] as const).map(range => (
-            <button
-              key={range}
-              onClick={() => setDaysRange(range)}
-              className={cn(
-                "px-3 py-1 rounded-lg text-[8px] font-black uppercase tracking-widest transition-all cursor-pointer",
-                daysRange === range 
-                  ? "bg-white text-orange-650 shadow-sm border border-slate-100/50" 
-                  : "text-slate-400 hover:text-slate-600"
-              )}
-            >
-              {range} ngày
-            </button>
-          ))}
-        </div>
+        {/* Range Selector (Only shown in Daily view) */}
+        {viewMode === 'daily' && (
+          <div className="flex items-center justify-end gap-2 mt-1">
+            <span className="text-[9px] font-black text-slate-400 uppercase tracking-wider">Phạm vi:</span>
+            <div className="flex items-center bg-slate-50 p-1 rounded-xl border border-slate-100">
+              {([7, 14, 30] as const).map(range => (
+                <button
+                  key={range}
+                  onClick={() => setDaysRange(range)}
+                  className={cn(
+                    "px-2.5 py-0.5 rounded-lg text-[8px] font-black uppercase tracking-widest transition-all cursor-pointer",
+                    daysRange === range
+                      ? "bg-white text-orange-650 shadow-sm border border-slate-100/50"
+                      : "text-slate-400 hover:text-slate-600"
+                  )}
+                >
+                  {range} ngày
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Stats summary banner */}
       <div className="grid grid-cols-2 gap-3 bg-gradient-to-r from-orange-50/50 to-indigo-50/30 p-3 rounded-2xl border border-slate-100">
         <div className="flex flex-col">
-          <span className="text-[8px] font-black text-slate-400 uppercase tracking-wider">Hôm nay cần ôn</span>
+          <span className="text-[8px] font-black text-slate-400 uppercase tracking-wider">
+            {viewMode === 'hourly' ? "Hôm nay cần ôn" : viewMode === 'daily' ? "Hôm nay cần ôn" : "Tuần này cần ôn"}
+          </span>
           <span className="text-sm font-black text-orange-650 mt-0.5">{todayCount} thẻ</span>
         </div>
         <div className="flex flex-col border-l border-slate-100 pl-3">
-          <span className="text-[8px] font-black text-slate-400 uppercase tracking-wider">Tích lũy {daysRange} ngày</span>
+          <span className="text-[8px] font-black text-slate-400 uppercase tracking-wider">
+            {viewMode === 'hourly' ? "Tích lũy 24h" : viewMode === 'daily' ? `Tích lũy ${daysRange} ngày` : "Tích lũy 4 tuần"}
+          </span>
           <span className="text-sm font-black text-indigo-600 mt-0.5">{maxCumulative} thẻ</span>
         </div>
       </div>
 
       {/* Chart container */}
-      <div className="h-[180px] w-full mt-2 -ml-6 pr-2">
+      <div className="h-[220px] w-full mt-2 -ml-6 pr-2">
         <ResponsiveContainer width="100%" height="100%">
-          <ComposedChart data={slicedData}>
+          <ComposedChart data={chartData}>
             <defs>
               <linearGradient id="forecastBarGrad" x1="0" y1="0" x2="0" y2="1">
                 <stop offset="0%" stopColor="#f97316" stopOpacity={0.95} />
@@ -160,16 +206,34 @@ function ReviewForecastWidget({ data }: { data: ForecastDay[] | undefined }) {
               tick={{ fontSize: 8, fontWeight: 900, fill: '#6366f1' }}
             />
             <Tooltip
-              content={<CustomTooltip />}
+              content={({ active, payload }: any) => {
+                if (active && payload && payload.length) {
+                  const d = payload[0].payload
+                  let titleStr = d.date || ""
+                  if (viewMode === 'hourly') {
+                    titleStr = `Giờ ${d.label} (UTC Today)`
+                  } else if (viewMode === 'weekly') {
+                    titleStr = `${d.label} (${d.range})`
+                  }
+                  return (
+                    <div className="bg-slate-900 text-white p-3 rounded-2xl border border-slate-800 text-[10px] font-black uppercase tracking-wider shadow-xl flex flex-col gap-1.5">
+                      <p className="text-slate-400 font-bold border-b border-slate-800 pb-1">{titleStr}</p>
+                      <p className="text-orange-400">Đến hạn: <span className="text-white font-extrabold">{d.count} thẻ</span></p>
+                      <p className="text-indigo-400">Tích lũy: <span className="text-white font-extrabold">{d.cumulative} thẻ</span></p>
+                    </div>
+                  )
+                }
+                return null
+              }}
               cursor={{ fill: '#f8fafc' }}
             />
-            {/* Bar for Daily review count on Left axis */}
+            {/* Bar for review count on Left axis */}
             <Bar
               yAxisId="left"
               dataKey="count"
               fill="url(#forecastBarGrad)"
               radius={[4, 4, 0, 0]}
-              barSize={16}
+              barSize={viewMode === 'hourly' ? 6 : viewMode === 'weekly' ? 32 : 16}
             />
             {/* Line for Cumulative reviews on Right axis */}
             <Line
@@ -262,7 +326,7 @@ export default function Stats() {
     }
   })
 
-  const { data: forecastData } = useQuery<ForecastDay[]>({
+  const { data: forecastData } = useQuery<ForecastResponse>({
     queryKey: ['reviewForecast'],
     queryFn: async () => {
       const res = await axios.get('/api/v1/deck/stats/review-forecast')

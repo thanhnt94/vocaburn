@@ -23,7 +23,7 @@ export const FSRSActionButtons: React.FC<FSRSActionButtonsProps> = ({
     const isAnySelected = hasRated && selectedOption !== null && selectedOption !== undefined;
     
     // Base classes for all buttons
-    let classes = "group p-4 rounded-3xl border shadow-sm active:scale-[0.97] transition-all flex flex-col items-center justify-center gap-1 flex-1 ";
+    let classes = "group px-1.5 py-3 sm:px-2 md:px-4 md:py-4 rounded-2xl sm:rounded-3xl border shadow-sm active:scale-[0.97] transition-all flex flex-col items-center justify-center gap-1 flex-1 ";
     
     if (isSelected) {
       // Active style
@@ -66,7 +66,7 @@ export const FSRSActionButtons: React.FC<FSRSActionButtonsProps> = ({
 
   return (
     <div
-      className="grid grid-cols-4 gap-3 mt-4 relative z-[10]"
+      className="grid grid-cols-4 gap-1.5 sm:gap-3 mt-4 relative z-[10]"
       onClick={(e) => {
         console.log("DEBUG CLICK: FSRS Buttons Grid clicked! target:", e.target);
       }}
@@ -80,8 +80,8 @@ export const FSRSActionButtons: React.FC<FSRSActionButtonsProps> = ({
         }}
         className={getButtonClass(0)}
       >
-        <span className={cn("text-[10px] font-black tracking-wider transition-colors duration-200", hasRated && selectedOption === 0 ? "text-white" : "text-rose-500")}>AGAIN</span>
-        <span className={cn("text-xs font-black transition-colors duration-200", hasRated && selectedOption === 0 ? "text-rose-100" : "text-rose-600")}>
+        <span className={cn("text-[9px] sm:text-[10px] font-black tracking-wider transition-colors duration-200", hasRated && selectedOption === 0 ? "text-white" : "text-rose-500")}>AGAIN</span>
+        <span className={cn("text-[10.5px] sm:text-xs font-black transition-colors duration-200", hasRated && selectedOption === 0 ? "text-rose-100" : "text-rose-600")}>
           {intervals?.[1] || "1m"}
         </span>
       </button>
@@ -95,8 +95,8 @@ export const FSRSActionButtons: React.FC<FSRSActionButtonsProps> = ({
         }}
         className={getButtonClass(1)}
       >
-        <span className={cn("text-[10px] font-black tracking-wider transition-colors duration-200", hasRated && selectedOption === 1 ? "text-white" : "text-amber-500")}>HARD</span>
-        <span className={cn("text-xs font-black transition-colors duration-200", hasRated && selectedOption === 1 ? "text-amber-100" : "text-amber-600")}>
+        <span className={cn("text-[9px] sm:text-[10px] font-black tracking-wider transition-colors duration-200", hasRated && selectedOption === 1 ? "text-white" : "text-amber-500")}>HARD</span>
+        <span className={cn("text-[10.5px] sm:text-xs font-black transition-colors duration-200", hasRated && selectedOption === 1 ? "text-amber-100" : "text-amber-600")}>
           {intervals?.[2] || "5m"}
         </span>
       </button>
@@ -110,8 +110,8 @@ export const FSRSActionButtons: React.FC<FSRSActionButtonsProps> = ({
         }}
         className={getButtonClass(2)}
       >
-        <span className={cn("text-[10px] font-black tracking-wider transition-colors duration-200", hasRated && selectedOption === 2 ? "text-white" : "text-indigo-500")}>GOOD</span>
-        <span className={cn("text-xs font-black transition-colors duration-200", hasRated && selectedOption === 2 ? "text-indigo-100" : "text-indigo-600")}>
+        <span className={cn("text-[9px] sm:text-[10px] font-black tracking-wider transition-colors duration-200", hasRated && selectedOption === 2 ? "text-white" : "text-indigo-500")}>GOOD</span>
+        <span className={cn("text-[10.5px] sm:text-xs font-black transition-colors duration-200", hasRated && selectedOption === 2 ? "text-indigo-100" : "text-indigo-600")}>
           {intervals?.[3] || "10m"}
         </span>
       </button>
@@ -125,8 +125,8 @@ export const FSRSActionButtons: React.FC<FSRSActionButtonsProps> = ({
         }}
         className={getButtonClass(3)}
       >
-        <span className={cn("text-[10px] font-black tracking-wider transition-colors duration-200", hasRated && selectedOption === 3 ? "text-white" : "text-emerald-500")}>EASY</span>
-        <span className={cn("text-xs font-black transition-colors duration-200", hasRated && selectedOption === 3 ? "text-emerald-100" : "text-emerald-600")}>
+        <span className={cn("text-[9px] sm:text-[10px] font-black tracking-wider transition-colors duration-200", hasRated && selectedOption === 3 ? "text-white" : "text-emerald-500")}>EASY</span>
+        <span className={cn("text-[10.5px] sm:text-xs font-black transition-colors duration-200", hasRated && selectedOption === 3 ? "text-emerald-100" : "text-emerald-600")}>
           {intervals?.[4] || "4d"}
         </span>
       </button>

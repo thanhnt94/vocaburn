@@ -245,6 +245,7 @@ class DeckService:
         ).where(
             Flashcard.deck_id.in_(active_deck_ids),
             UserCardMastery.user_id == user_id,
+            UserCardMastery.is_ignored == False,
             UserCardMastery.due <= now
         ).group_by(Flashcard.deck_id)
         due_reviews_res = await db.execute(due_reviews_stmt)
@@ -255,7 +256,8 @@ class DeckService:
             UserCardMastery, UserCardMastery.card_id == Flashcard.id
         ).where(
             Flashcard.deck_id.in_(active_deck_ids),
-            UserCardMastery.user_id == user_id
+            UserCardMastery.user_id == user_id,
+            UserCardMastery.is_ignored == False
         ).group_by(Flashcard.deck_id)
         learned_res = await db.execute(learned_stmt)
         learned_map = {row[0]: row[1] for row in learned_res.all()}

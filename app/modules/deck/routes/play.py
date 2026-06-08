@@ -278,6 +278,20 @@ async def record_answer(request: Request, data: dict, db: AsyncSession = Depends
                 
             next_intervals = estimate_intervals(scheduler, updated_card, now_utc)
 
+            # Query first and last review timestamps for this user and card
+            r_times_stmt = select(
+                func.min(UserAnswer.created_at),
+                func.max(UserAnswer.created_at)
+            ).join(DeckAttempt, UserAnswer.attempt_id == DeckAttempt.id)\
+             .where(
+                 DeckAttempt.user_id == user_id,
+                 UserAnswer.card_id == card_id
+             )
+            r_times_res = await db.execute(r_times_stmt)
+            r_times = r_times_res.first()
+            first_learned = r_times[0] if r_times else None
+            last_reviewed = r_times[1] if r_times else None
+
             mastery_update_info = {
                 "old_level": old_box_level,
                 "new_level": new_box_level,
@@ -287,6 +301,8 @@ async def record_answer(request: Request, data: dict, db: AsyncSession = Depends
                 "stability": mastery.stability,
                 "difficulty": mastery.difficulty,
                 "due": mastery.due.isoformat() if mastery.due else None,
+                "first_learned": first_learned.isoformat() if first_learned else None,
+                "last_reviewed": last_reviewed.isoformat() if last_reviewed else None,
                 "intervals": next_intervals
             }
         else:
@@ -814,12 +830,28 @@ async def undo_answer(request: Request, data: dict, db: AsyncSession = Depends(g
         new_c = Card()
         next_intervals = estimate_intervals(scheduler, new_c, now_utc)
 
+    # Query first and last review timestamps after deleting this answer
+    r_times_stmt = select(
+        func.min(UserAnswer.created_at),
+        func.max(UserAnswer.created_at)
+    ).join(DeckAttempt, UserAnswer.attempt_id == DeckAttempt.id)\
+     .where(
+         DeckAttempt.user_id == user_id,
+         UserAnswer.card_id == card_id
+     )
+    r_times_res = await db.execute(r_times_stmt)
+    r_times = r_times_res.first()
+    first_learned = r_times[0] if r_times else None
+    last_reviewed = r_times[1] if r_times else None
+
     reverted_fsrs = {
         "state": mastery.state if mastery else 0,
         "stability": mastery.stability if mastery else None,
         "difficulty": mastery.difficulty if mastery else None,
         "due": mastery.due.isoformat() if (mastery and mastery.due) else None,
         "last_review": mastery.last_review.isoformat() if (mastery and mastery.last_review) else None,
+        "first_learned": first_learned.isoformat() if first_learned else None,
+        "last_reviewed": last_reviewed.isoformat() if last_reviewed else None,
         "intervals": next_intervals
     }
 
@@ -909,14 +941,29 @@ async def get_deck_play_data(request: Request, deck_id: int, mode: Optional[str]
     
     # Skip mastery loading for practice mode — practice doesn't use FSRS state
     mastery_records = {}
+    review_times_map = {}
     if not is_practice:
-        from app.modules.deck.models import UserCardMastery
+        from app.modules.deck.models import UserCardMastery, UserAnswer, DeckAttempt
         mastery_stmt = select(UserCardMastery).where(
             UserCardMastery.user_id == user_id,
             UserCardMastery.card_id.in_([c.id for c in deck.cards])
         )
         mastery_res = await db.execute(mastery_stmt)
         mastery_records = {m.card_id: m for m in mastery_res.scalars().all()}
+        
+        # Bulk query first and last review timestamps for this user and deck's cards
+        review_times_stmt = select(
+            UserAnswer.card_id,
+            func.min(UserAnswer.created_at),
+            func.max(UserAnswer.created_at)
+        ).join(DeckAttempt, UserAnswer.attempt_id == DeckAttempt.id)\
+         .where(
+             DeckAttempt.user_id == user_id,
+             UserAnswer.card_id.in_([c.id for c in deck.cards])
+         ).group_by(UserAnswer.card_id)
+        
+        review_times_res = await db.execute(review_times_stmt)
+        review_times_map = {row[0]: (row[1], row[2]) for row in review_times_res.all()}
     
     # Check settings if practice mode
     practice_needs_setup = False
@@ -1000,6 +1047,10 @@ async def get_deck_play_data(request: Request, deck_id: int, mode: Optional[str]
                 fsrs_card = build_fsrs_card(m, now_utc)
                 intervals = estimate_intervals(scheduler, fsrs_card, now_utc)
                         
+            r_times = review_times_map.get(c.id)
+            first_learned = r_times[0] if r_times else None
+            last_reviewed = r_times[1] if r_times else None
+
             cards_list.append({
                 "id": c.id,
                 "content": c.content,
@@ -1014,6 +1065,8 @@ async def get_deck_play_data(request: Request, deck_id: int, mode: Optional[str]
                     "difficulty": m_difficulty,
                     "due": m_due.isoformat() if m_due else None,
                     "last_review": m_last_review.isoformat() if m_last_review else None,
+                    "first_learned": first_learned.isoformat() if first_learned else None,
+                    "last_reviewed": last_reviewed.isoformat() if last_reviewed else None,
                     "intervals": intervals
                 },
                 "options": [],
