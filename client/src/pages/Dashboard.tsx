@@ -818,7 +818,7 @@ function TodayFocusWidget({
               const goalPercentage = goal.daily_target > 0 ? Math.min(100, Math.round((goal.done_today / goal.daily_target) * 100)) : 0
               const remainingNewToday = Math.max(0, goal.daily_target - goal.done_today)
               const totalRemainingNew = goal.total_questions - goal.total_learned
-              const newCountLabel = remainingNewToday > 0 ? remainingNewToday : (totalRemainingNew > 0 ? totalRemainingNew : 0)
+              const newCountLabel = totalRemainingNew > 0 ? totalRemainingNew : 0
               const hasNewCards = totalRemainingNew > 0
 
               return (

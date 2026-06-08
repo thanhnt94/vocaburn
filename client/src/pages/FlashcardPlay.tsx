@@ -275,6 +275,7 @@ export default function FlashcardPlay() {
   const [isCopyMenuOpen, setIsCopyMenuOpen] = useState(false)
   const [isCopied, setIsCopied] = useState(false)
   const [isMapOpen, setIsMapOpen] = useState(false)
+  const [isStatsOpen, setIsStatsOpen] = useState(false)
   const [isFeedbackOpen, setIsFeedbackOpen] = useState(false)
   const [isQuitModalOpen, setIsQuitModalOpen] = useState(false)
   const [activeFeedbackTab, setActiveFeedbackTab] = useState<'insight' | 'ai' | 'note' | 'card'>('insight')
@@ -493,7 +494,7 @@ export default function FlashcardPlay() {
 
   // Tự động đóng toàn bộ các popup/toast khi người dùng click mở bất kỳ khung thông tin hoặc modal phụ nào
   useEffect(() => {
-    if (isFeedbackOpen || isMapOpen || isEditModalOpen || isQuitModalOpen || isSessionSummaryOpen) {
+    if (isFeedbackOpen || isMapOpen || isStatsOpen || isEditModalOpen || isQuitModalOpen || isSessionSummaryOpen) {
       setGoalToast(prev => prev ? { ...prev, visible: false } : null)
       setShowGoalCelebration(false)
       setBadgeVisible(false)
@@ -501,7 +502,7 @@ export default function FlashcardPlay() {
       setActiveMasteryUpgrade(null)
       setLearningModeAlert(null)
     }
-  }, [isFeedbackOpen, isMapOpen, isEditModalOpen, isQuitModalOpen, isSessionSummaryOpen])
+  }, [isFeedbackOpen, isMapOpen, isStatsOpen, isEditModalOpen, isQuitModalOpen, isSessionSummaryOpen])
 
   useEffect(() => {
     timerRef.current = setInterval(() => {
@@ -1132,8 +1133,26 @@ export default function FlashcardPlay() {
         if (res.data.goal_update) {
           setGoalToast(res.data.goal_update);
           setTimeout(() => setGoalToast(null), 4000);
+
+          // Real-time update for goals
+          setActiveGoal((prev: any) => {
+            if (!prev) return prev;
+            return {
+              ...prev,
+              done_today: res.data.goal_update.done_today,
+              is_target_met: res.data.goal_update.is_target_met,
+              streak_count: res.data.goal_update.streak_count
+            };
+          });
         }
       }
+
+      // Also re-fetch leaderboard in background to keep stats Completely dynamic and live!
+      axios.get('/api/v1/stats/leaderboard')
+        .then(lbRes => {
+          setLeaderboardData(lbRes.data)
+        })
+        .catch(e => console.error("Failed to load leaderboard in background", e))
 
       // Trigger 10-Streak Milestone Celebration
       if (updatedStreak === 10) {
@@ -3306,25 +3325,34 @@ export default function FlashcardPlay() {
             </div>
           </div>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5">
           <div className={cn(
-            "flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-white shadow-md text-[11px] font-black transition-all",
+            "flex items-center gap-1 px-2 py-1 rounded-lg text-white shadow-md text-[10px] font-black transition-all",
             !showFeedback ? "bg-gradient-to-r from-slate-800 to-slate-900 shadow-slate-300" : "bg-gradient-to-r from-emerald-500 to-teal-500 shadow-emerald-200"
           )}>
-            <Timer className={cn("w-3.5 h-3.5", !showFeedback && "animate-pulse")} />
+            <Timer className={cn("w-3 h-3", !showFeedback && "animate-pulse")} />
             <span>{timeLeft}s</span>
           </div>
 
           {activeMode === 'fsrs' && dueCardsCount > 0 && (
-            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-500 text-white shadow-md shadow-amber-200 text-[11px] font-black" title="Số thẻ ôn tập còn lại">
-              <Brain className="w-3.5 h-3.5 animate-pulse" />
+            <div className="flex items-center gap-1 px-2 py-1 rounded-lg bg-amber-500 text-white shadow-md shadow-amber-200 text-[10px] font-black" title="Số thẻ ôn tập còn lại">
+              <Brain className="w-3 h-3 animate-pulse" />
               <span>{dueCardsCount}</span>
             </div>
           )}
 
+          {/* Card Map button moved to header */}
+          <button 
+             onClick={() => setIsMapOpen(true)}
+             className="w-8.5 h-8.5 flex items-center justify-center bg-slate-50 border border-slate-200 rounded-xl text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 hover:border-indigo-200 shadow-sm active:scale-90 transition-all"
+             title="Xem sơ đồ câu hỏi"
+          >
+             <LayoutGrid className="w-4 h-4" />
+          </button>
+
           <button 
              onClick={() => setIsSettingsModalOpen(true)}
-             className="w-9 h-9 flex items-center justify-center bg-slate-50 border border-slate-200 rounded-xl text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 hover:border-indigo-200 shadow-sm active:scale-90 transition-all"
+             className="w-8.5 h-8.5 flex items-center justify-center bg-slate-50 border border-slate-200 rounded-xl text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 hover:border-indigo-200 shadow-sm active:scale-90 transition-all"
              title="Cài đặt & Tùy chọn"
           >
              <Settings className="w-4 h-4" />
@@ -4053,12 +4081,13 @@ export default function FlashcardPlay() {
       <footer className="fixed bottom-0 left-0 right-0 xl:relative flex-shrink-0 bg-white/95 backdrop-blur-2xl border-t border-slate-100/80 px-4 py-3 z-[120] shadow-[0_-4px_24px_rgba(99,102,241,0.06)]">
         <div className="max-w-2xl mx-auto w-full flex items-center gap-3 h-13">
           {/* Mobile Stats / Map Button */}
+          {/* Mobile Stats Button */}
           <button 
-            onClick={() => setIsMapOpen(true)} 
+            onClick={() => setIsStatsOpen(true)} 
             className="lg:hidden w-12 h-12 flex-shrink-0 flex items-center justify-center bg-slate-50 border border-slate-200 rounded-2xl text-slate-500 hover:bg-indigo-50 hover:text-indigo-600 hover:border-indigo-200 shadow-sm active:scale-95 transition-all"
-            title={mainTab === 'practice' ? "Xem thống kê luyện tập" : "Xem sơ đồ câu hỏi"}
+            title="Xem thống kê"
           >
-            {mainTab === 'practice' ? <TrendingUp className="w-5 h-5 text-indigo-600 animate-pulse" /> : <LayoutGrid className="w-5 h-5" />}
+            <TrendingUp className="w-5 h-5 text-indigo-600 animate-pulse" />
           </button>
 
 
@@ -4275,6 +4304,7 @@ export default function FlashcardPlay() {
       </AnimatePresence>
 
       {/* Mobile Question Map Modal / Practice Stats Drawer */}
+      {/* Mobile Question Map Modal */}
       <AnimatePresence>
         {isMapOpen && (
           <motion.div 
@@ -4285,27 +4315,211 @@ export default function FlashcardPlay() {
           >
             <div className="flex items-center justify-between p-4 border-b border-slate-200 bg-white shadow-sm flex-shrink-0">
               <h4 className="text-[12px] font-black text-indigo-600 uppercase tracking-[0.3em]">
-                {mainTab === 'practice' ? 'PRACTICE STATS' : 'CARD MAP'}
+                CARD MAP
               </h4>
               <button onClick={() => setIsMapOpen(false)} className="w-8 h-8 flex items-center justify-center bg-slate-50 border border-slate-200 rounded-lg text-slate-500 active:scale-95 transition-all">
                 <X className="w-5 h-5" />
               </button>
             </div>
             <div className="flex-1 overflow-y-auto p-4 custom-scrollbar">
-               {mainTab === 'practice' ? renderPracticeStats() : (
-                 <>
-                   {renderSessionStats()}
-                   <QuestionMapGrid
-                     questions={session.questions}
-                     mainTab={mainTab}
-                     practiceAnswers={practiceAnswers}
-                     sessionAnswers={sessionAnswers}
-                     currentIndex={currentIndex}
-                     navigateToQuestion={navigateToQuestion}
-                     setIsMapOpen={setIsMapOpen}
-                   />
-                 </>
+              <QuestionMapGrid
+                questions={session.questions}
+                mainTab={mainTab}
+                practiceAnswers={practiceAnswers}
+                sessionAnswers={sessionAnswers}
+                currentIndex={currentIndex}
+                navigateToQuestion={navigateToQuestion}
+                setIsMapOpen={setIsMapOpen}
+              />
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Mobile Stats Drawer */}
+      <AnimatePresence>
+        {isStatsOpen && (
+          <motion.div 
+            initial={{ opacity: 0, y: 50 }} 
+            animate={{ opacity: 1, y: 0 }} 
+            exit={{ opacity: 0, y: 50 }} 
+            className="fixed inset-0 z-[200] bg-[#F8FAFC] lg:hidden flex flex-col h-screen h-[100dvh]"
+          >
+            <div className="flex items-center justify-between p-4 border-b border-slate-200 bg-white shadow-sm flex-shrink-0">
+              <h4 className="text-[12px] font-black text-indigo-600 uppercase tracking-[0.3em]">
+                REVIEW & GOALS
+              </h4>
+              <button onClick={() => setIsStatsOpen(false)} className="w-8 h-8 flex items-center justify-center bg-slate-50 border border-slate-200 rounded-lg text-slate-500 active:scale-95 transition-all">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="flex-1 overflow-y-auto p-4 custom-scrollbar space-y-4 text-left">
+               {/* Daily Goal Card */}
+               {activeMode !== 'review' && (
+                 <div className="bg-white p-5 rounded-[2rem] border border-slate-100 shadow-sm space-y-4">
+                   <div className="flex items-center gap-2.5">
+                     <div className="w-8 h-8 rounded-xl bg-indigo-50 flex items-center justify-center text-indigo-500">
+                       <Target className="w-4.5 h-4.5" />
+                     </div>
+                     <div>
+                       <h4 className="text-xs font-black text-slate-700">Deck Goal</h4>
+                       <p className="text-[10px] text-slate-400 font-medium">Daily Practice</p>
+                     </div>
+                   </div>
+                   {activeGoal ? (
+                     <div className="space-y-3">
+                       <div className="flex justify-between items-end">
+                         <span className="text-2xl font-black text-slate-800">
+                           {activeGoal.done_today} <span className="text-xs text-slate-400 font-bold">/ {activeGoal.daily_target} cards</span>
+                         </span>
+                         <span className="text-xs font-black text-indigo-600">
+                           {Math.round((activeGoal.done_today / activeGoal.daily_target) * 100)}%
+                         </span>
+                       </div>
+                       <div className="w-full h-2.5 bg-slate-100 rounded-full overflow-hidden">
+                         <div 
+                           className="h-full bg-gradient-to-r from-indigo-500 to-purple-500 rounded-full transition-all duration-500"
+                           style={{ width: `${Math.min(100, Math.round((activeGoal.done_today / activeGoal.daily_target) * 100))}%` }}
+                         />
+                       </div>
+                       <p className="text-[11px] text-slate-500 leading-relaxed font-semibold">
+                         {activeGoal.is_target_met 
+                           ? "🎉 Awesome! You've met your daily goal. Keep pushing your limits!"
+                           : `🎯 You need to study ${activeGoal.daily_target - activeGoal.done_today} more new cards to complete your daily goal!`
+                         }
+                       </p>
+                     </div>
+                   ) : (
+                     <div className="py-1">
+                       <p className="text-[11px] text-slate-400 leading-relaxed font-medium">
+                         You haven't set a daily goal for this deck yet. Set a goal on the home page to maintain your daily habit! 💡
+                       </p>
+                     </div>
+                   )}
+                 </div>
                )}
+
+               {/* Learning Streak & Level */}
+               <div className="bg-white p-5 rounded-[2rem] border border-slate-100 shadow-sm space-y-4">
+                 <div className="flex items-center justify-between">
+                   <div className="flex items-center gap-2.5">
+                     <div className="w-8 h-8 rounded-xl bg-orange-50 flex items-center justify-center text-orange-500">
+                       <Flame className="w-4.5 h-4.5" />
+                     </div>
+                     <div>
+                       <h4 className="text-xs font-black text-slate-700">Learning Streak</h4>
+                       <p className="text-[10px] text-slate-400 font-medium">Consecutive days</p>
+                     </div>
+                   </div>
+                   <span className="text-xs font-black text-orange-600 bg-orange-50 px-2.5 py-1 rounded-xl border border-orange-100 shadow-sm">
+                     {gamify.streak} days 🔥
+                   </span>
+                 </div>
+                 <div className="pt-3 border-t border-slate-50 space-y-3">
+                   <div className="flex justify-between items-center text-xs">
+                     <span className="font-bold text-slate-600">Level {gamify.level}</span>
+                     <span className="font-bold text-slate-400">{gamify.xp % 1000} / 1000 XP</span>
+                   </div>
+                   <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
+                     <div 
+                       className="h-full bg-orange-400 rounded-full"
+                       style={{ width: `${(gamify.xp % 1000) / 10}%` }}
+                     />
+                   </div>
+                   <p className="text-[10px] text-slate-400 font-medium">
+                     {1000 - (gamify.xp % 1000)} XP more to reach level {gamify.level + 1}!
+                   </p>
+                 </div>
+               </div>
+
+               {/* Leaderboard */}
+               <div className="bg-white p-5 rounded-[2rem] border border-slate-100 shadow-sm space-y-3">
+                 <div className="flex items-center gap-2.5">
+                   <div className="w-8 h-8 rounded-xl bg-amber-50 flex items-center justify-center text-amber-500">
+                     <Trophy className="w-4.5 h-4.5" />
+                   </div>
+                   <div>
+                     <h4 className="text-xs font-black text-slate-700">Bảng xếp hạng tuần</h4>
+                     <p className="text-[10px] text-slate-400 font-medium">Đua top XP tuần này</p>
+                   </div>
+                 </div>
+                 {xpLeaderboard.list && xpLeaderboard.list.length > 0 ? (
+                   <div className="space-y-1.5 py-1">
+                     {xpLeaderboard.list.slice(0, 3).map((u: any, idx: number) => {
+                       const displayValue = u.user_id === user?.id ? gamify.xp : u.value;
+                       return (
+                         <div 
+                           key={u.user_id} 
+                           className={cn(
+                             "flex items-center justify-between p-2 rounded-2xl border transition-all text-xs",
+                             u.user_id === user?.id 
+                               ? "bg-indigo-50/50 border-indigo-100 font-black text-indigo-950" 
+                               : "bg-slate-50/30 border-transparent text-slate-700"
+                           )}
+                         >
+                           <div className="flex items-center gap-2 min-w-0">
+                             <span className="text-base">
+                               {idx === 0 ? "🥇" : idx === 1 ? "🥈" : "🥉"}
+                             </span>
+                             <span className="font-bold truncate text-[11px] uppercase">
+                               {u.full_name || u.username}
+                             </span>
+                             <span className="text-[9px] text-slate-400 font-medium">
+                               Lv.{u.user_id === user?.id ? gamify.level : u.level}
+                             </span>
+                           </div>
+                           <span className="font-black text-[11px] text-slate-900 shrink-0">
+                             {displayValue.toLocaleString()} XP
+                           </span>
+                         </div>
+                       )
+                     })}
+                     {userRank > 3 && (() => {
+                       const currentUserObj = xpLeaderboard.list.find((u: any) => u.user_id === user?.id) || {
+                         full_name: user?.username || "",
+                         level: gamify.level,
+                         value: gamify.xp
+                       };
+                       return (
+                         <>
+                           <div className="text-center text-[10px] font-black text-slate-300 tracking-widest leading-none my-1">•••</div>
+                           <div className="flex items-center justify-between p-2 rounded-2xl border bg-indigo-50 border-indigo-100 font-black text-indigo-950 text-xs">
+                             <div className="flex items-center gap-2 min-w-0">
+                               <span className="font-black text-indigo-600 w-5 text-center text-[10px]">
+                                 #{userRank}
+                               </span>
+                               <span className="font-bold truncate text-[11px] uppercase">
+                                 {currentUserObj.full_name || currentUserObj.username}
+                               </span>
+                               <span className="text-[9px] text-indigo-400 font-medium">
+                                 Lv.{gamify.level}
+                               </span>
+                             </div>
+                             <span className="font-black text-[11px] text-indigo-600 shrink-0">
+                               {gamify.xp.toLocaleString()} XP
+                             </span>
+                           </div>
+                         </>
+                       );
+                     })()}
+                   </div>
+                 ) : (
+                   <p className="text-[10px] text-slate-400 text-center py-2">Đang tải bảng xếp hạng...</p>
+                 )}
+                 <div className="p-3 bg-amber-50/50 rounded-2xl border border-amber-100/50">
+                   <p className="text-[11px] text-slate-600 leading-relaxed font-semibold">
+                     {leaderboardMsg}
+                   </p>
+                 </div>
+               </div>
+
+               {/* Session Quick Stats */}
+               <div className="bg-slate-100/50 p-4 rounded-[1.75rem] border border-slate-100 space-y-3">
+                 <div className="flex justify-between text-[9px] font-black text-slate-400 uppercase tracking-wider">
+                   <span>Phiên học hiện tại</span>
+                 </div>
+                 {renderSessionStats()}
+               </div>
             </div>
           </motion.div>
         )}
