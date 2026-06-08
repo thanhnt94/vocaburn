@@ -23,6 +23,7 @@ import { useSessionStats } from '@/hooks/useSessionStats'
 import { usePracticeMode } from '@/hooks/usePracticeMode'
 import { FSRSActionButtons } from '@/components/FSRSActionButtons'
 import { FlashcardEditModal } from '@/components/FlashcardEditModal'
+import DailyComparisonChart from '@/components/DailyComparisonChart'
 
 interface Option {
   id: number
@@ -276,6 +277,8 @@ export default function FlashcardPlay() {
   const [isCopied, setIsCopied] = useState(false)
   const [isMapOpen, setIsMapOpen] = useState(false)
   const [isStatsOpen, setIsStatsOpen] = useState(false)
+  const [dailyComparisonData, setDailyComparisonData] = useState<any[] | null>(null)
+  const [isDailyComparisonLoading, setIsDailyComparisonLoading] = useState(true)
   const [isFeedbackOpen, setIsFeedbackOpen] = useState(false)
   const [isQuitModalOpen, setIsQuitModalOpen] = useState(false)
   const [activeFeedbackTab, setActiveFeedbackTab] = useState<'insight' | 'ai' | 'note' | 'card'>('insight')
@@ -718,6 +721,16 @@ export default function FlashcardPlay() {
         }).catch(e => console.error("Failed to load leaderboard", e))
       }, 2000)
 
+      setTimeout(() => {
+        axios.get('/api/v1/stats/daily-comparison').then(res => {
+          setDailyComparisonData(res.data)
+          setIsDailyComparisonLoading(false)
+        }).catch(e => {
+          console.error("Failed to load daily comparison", e)
+          setIsDailyComparisonLoading(false)
+        })
+      }, 2500)
+
       if (!isPractice) {
         setTimeout(() => {
           axios.get(`/api/v1/deck/${id}/session`).then(sessionRes => {
@@ -1153,6 +1166,12 @@ export default function FlashcardPlay() {
           setLeaderboardData(lbRes.data)
         })
         .catch(e => console.error("Failed to load leaderboard in background", e))
+
+      axios.get('/api/v1/stats/daily-comparison')
+        .then(dcRes => {
+          setDailyComparisonData(dcRes.data)
+        })
+        .catch(e => console.error("Failed to load daily comparison in background", e))
 
       // Trigger 10-Streak Milestone Celebration
       if (updatedStreak === 10) {
@@ -4354,6 +4373,9 @@ export default function FlashcardPlay() {
               </button>
             </div>
             <div className="flex-1 overflow-y-auto p-4 custom-scrollbar space-y-4 text-left">
+               {/* Daily Comparison Chart */}
+               <DailyComparisonChart data={dailyComparisonData || []} isLoading={isDailyComparisonLoading} />
+
                {/* Daily Goal Card */}
                {activeMode !== 'review' && (
                  <div className="bg-white p-5 rounded-[2rem] border border-slate-100 shadow-sm space-y-4">

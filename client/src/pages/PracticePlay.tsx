@@ -17,6 +17,7 @@ import { FeedbackArea } from '@/components/FeedbackArea'
 import { PracticeSetupScreen } from '@/components/PracticeSetupScreen'
 import { QuestionMapGrid } from '@/components/QuestionMapGrid'
 import { MilestoneCelebration } from '@/components/MilestoneCelebration'
+import DailyComparisonChart from '@/components/DailyComparisonChart'
 
 interface Option {
   id: number
@@ -254,6 +255,8 @@ export default function PracticePlay() {
   const [isCopied, setIsCopied] = useState(false)
   const [isMapOpen, setIsMapOpen] = useState(false)
   const [isStatsOpen, setIsStatsOpen] = useState(false)
+  const [dailyComparisonData, setDailyComparisonData] = useState<any[] | null>(null)
+  const [isDailyComparisonLoading, setIsDailyComparisonLoading] = useState(true)
   const [isFeedbackOpen, setIsFeedbackOpen] = useState(false)
   const [isQuitModalOpen, setIsQuitModalOpen] = useState(false)
   const [activeFeedbackTab, setActiveFeedbackTab] = useState<'insight' | 'ai' | 'note' | 'card'>('insight')
@@ -838,6 +841,14 @@ export default function PracticePlay() {
       axios.get('/api/v1/stats/leaderboard').then(res => {
         setLeaderboardData(res.data)
       }).catch(e => console.error("Failed to load leaderboard", e))
+
+      axios.get('/api/v1/stats/daily-comparison').then(res => {
+        setDailyComparisonData(res.data)
+        setIsDailyComparisonLoading(false)
+      }).catch(e => {
+        console.error("Failed to load daily comparison", e)
+        setIsDailyComparisonLoading(false)
+      })
 
       const questions = quizRes.data.questions || []
       setSession({ ...quizRes.data, questions })
@@ -1428,6 +1439,12 @@ export default function PracticePlay() {
           })
           .catch(e => console.error("Failed to load leaderboard in background", e))
 
+        axios.get('/api/v1/stats/daily-comparison')
+          .then(dcRes => {
+            setDailyComparisonData(dcRes.data)
+          })
+          .catch(e => console.error("Failed to load daily comparison in background", e))
+
         if (goalUpdate.just_completed) {
           setShowGoalCelebration(true)
           // Epic continuous confetti shower from bottom corners
@@ -1639,6 +1656,12 @@ export default function PracticePlay() {
           setLeaderboardData(lbRes.data)
         })
         .catch(e => console.error("Failed to load leaderboard in background", e))
+
+      axios.get('/api/v1/stats/daily-comparison')
+        .then(dcRes => {
+          setDailyComparisonData(dcRes.data)
+        })
+        .catch(e => console.error("Failed to load daily comparison in background", e))
       
     } catch (e) {
       console.error("Failed to record answer", e);
@@ -1795,6 +1818,12 @@ export default function PracticePlay() {
           setLeaderboardData(lbRes.data)
         })
         .catch(e => console.error("Failed to load leaderboard in background", e))
+
+      axios.get('/api/v1/stats/daily-comparison')
+        .then(dcRes => {
+          setDailyComparisonData(dcRes.data)
+        })
+        .catch(e => console.error("Failed to load daily comparison in background", e))
     } catch (e) {
       console.error(e);
     }
@@ -4385,6 +4414,9 @@ export default function PracticePlay() {
               </button>
             </div>
             <div className="flex-1 overflow-y-auto p-4 custom-scrollbar space-y-4 text-left">
+               {/* Daily Comparison Chart */}
+               <DailyComparisonChart data={dailyComparisonData || []} isLoading={isDailyComparisonLoading} />
+
                {/* Practice Stats (if in practice tab) */}
                {mainTab === 'practice' && renderPracticeStats()}
 
