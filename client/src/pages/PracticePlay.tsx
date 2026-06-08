@@ -81,35 +81,26 @@ const MarkdownComponents = {
 const parseUTCDate = (dateStr: string | null | undefined): Date => {
   if (!dateStr) return new Date();
   try {
-    // 1. Replace space with 'T' to meet standard ISO specification
     let formatted = dateStr.trim().replace(' ', 'T');
-    // 2. Truncate microseconds (6 digits) to milliseconds (3 digits)
-    const dotIndex = formatted.indexOf('.');
-    if (dotIndex !== -1) {
-      const parts = formatted.split('.');
-      const timePart = parts[0];
-      let subPart = parts[1];
-      let suffix = '';
-      if (subPart.endsWith('Z')) {
-        suffix = 'Z';
-        subPart = subPart.slice(0, -1);
-      } else if (subPart.includes('+')) {
-        const plusIdx = subPart.indexOf('+');
-        suffix = subPart.substring(plusIdx);
-        subPart = subPart.substring(0, plusIdx);
-      }
-      subPart = subPart.substring(0, 3);
-      formatted = `${timePart}.${subPart}${suffix}`;
-    }
-    
-    // 3. Ensure 'Z' is appended if no timezone is specified
-    // Check timezone specifier safely after the 'T' separator to prevent matching hyphens in the date part
     const tIndex = formatted.indexOf('T');
-    const timePartAfterT = tIndex !== -1 ? formatted.slice(tIndex) : '';
-    const hasTimezone = formatted.includes('Z') || formatted.includes('+') || timePartAfterT.includes('-');
-    
-    if (!hasTimezone) {
-      formatted = formatted + 'Z';
+    if (tIndex !== -1) {
+      const timePart = formatted.slice(tIndex);
+      if (!timePart.includes('Z') && !timePart.includes('+') && !timePart.includes('-')) {
+        const dotIndex = formatted.indexOf('.');
+        if (dotIndex !== -1) {
+          const parts = formatted.split('.');
+          const base = parts[0];
+          let ms = parts[1] || '';
+          ms = ms.substring(0, 3);
+          formatted = `${base}.${ms}Z`;
+        } else {
+          formatted = formatted + 'Z';
+        }
+      }
+    } else {
+      if (!formatted.includes('Z')) {
+        formatted = formatted + 'T00:00:00Z';
+      }
     }
     const d = new Date(formatted);
     if (!isNaN(d.getTime())) return d;
@@ -826,7 +817,7 @@ export default function PracticePlay() {
       } else {
         fetchPromises.push(
           axios.get('/api/v1/deck/goals/active', {
-            params: { local_date: new Date().toLocaleDateString('en-CA') }
+            params: { local_date: new Date().toISOString().slice(0, 10) }
           }).catch(e => {
             console.error("Failed to load active goals", e)
             return { data: [] }
@@ -1322,7 +1313,7 @@ export default function PracticePlay() {
         is_correct: correct,
         rating: rating,
         time_spent: timeTaken,
-        local_date: new Date().toLocaleDateString('en-CA')
+        local_date: new Date().toISOString().slice(0, 10)
       })
 
       // Spaced Repetition Mastery Level Up
@@ -1578,7 +1569,7 @@ export default function PracticePlay() {
         is_practice: true,
         rating: isCorrect ? 3 : 1,
         time_spent: timeLeft,
-        local_date: new Date().toLocaleDateString('en-CA'),
+        local_date: new Date().toISOString().slice(0, 10),
         session_streak: updatedStreak,
         is_first_ever: isFirstEver
       });
@@ -1691,7 +1682,7 @@ export default function PracticePlay() {
         is_practice: true,
         rating: isCorrect ? 3 : 1,
         time_spent: timeLeft,
-        local_date: new Date().toLocaleDateString('en-CA'),
+        local_date: new Date().toISOString().slice(0, 10),
         session_streak: updatedStreak,
         is_first_ever: isFirstEver
       });
