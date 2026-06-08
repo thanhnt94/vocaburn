@@ -7,6 +7,8 @@ import { cn } from '@/lib/utils'
 import { motion, AnimatePresence } from 'framer-motion'
 import axios from 'axios'
 import { ResponsiveContainer, ComposedChart, Bar, Line, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts'
+import DailyComparisonChart from '@/components/DailyComparisonChart'
+
 
 
 interface ActiveGoal {
@@ -1191,6 +1193,15 @@ export default function Dashboard() {
     }
   })
 
+  const { data: dailyComparisonData, isLoading: isDailyComparisonLoading } = useQuery<any[]>({
+    queryKey: ['dailyComparison'],
+    queryFn: async () => {
+      const res = await axios.get('/api/v1/stats/daily-comparison')
+      return res.data
+    }
+  })
+
+
 
   const { data, isLoading } = useQuery<DashboardData>({
     queryKey: ['dashboard'],
@@ -1592,6 +1603,8 @@ export default function Dashboard() {
 
           <ReviewForecastWidget data={forecastData} />
 
+          <DailyComparisonChart data={dailyComparisonData} isLoading={isDailyComparisonLoading} />
+
           {/* Badge Progress Roadmap */}
           {badgesProgress && <BadgeProgressWidget data={badgesProgress} />}
 
@@ -1620,6 +1633,9 @@ export default function Dashboard() {
         )}
 
         <ReviewForecastWidget data={forecastData} />
+
+        <DailyComparisonChart data={dailyComparisonData} isLoading={isDailyComparisonLoading} />
+
 
         {/* Badge Progress Roadmap */}
         {badgesProgress && <BadgeProgressWidget data={badgesProgress} />}

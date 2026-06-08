@@ -339,3 +339,82 @@ class AnalyticsService:
                 "user_value": round(curr_acc, 1)
             }
         }
+
+    @staticmethod
+    async def get_daily_comparison_stats(db: AsyncSession, user_id: int):
+        import asyncio
+        today = datetime.utcnow().date()
+        start_date = datetime.combine(today - timedelta(days=13), datetime.min.time())
+        
+        # 1. Total and unique reviews per day
+        reviews_stmt = select(
+            func.date(UserAnswer.created_at).label("date_str"),
+            func.count(UserAnswer.id).label("total_reviews"),
+            func.count(func.distinct(UserAnswer.card_id)).label("unique_cards")
+        ).join(
+            DeckAttempt, UserAnswer.attempt_id == DeckAttempt.id
+        ).where(
+            DeckAttempt.user_id == user_id,
+            UserAnswer.created_at >= start_date
+        ).group_by(
+            func.date(UserAnswer.created_at)
+        )
+        
+        # 2. Subquery for first ever answers of each card by user
+        first_answers = select(
+            UserAnswer.card_id,
+            func.min(UserAnswer.created_at).label("first_answered_at")
+        ).join(
+            DeckAttempt, UserAnswer.attempt_id == DeckAttempt.id
+        ).where(
+            DeckAttempt.user_id == user_id
+        ).group_by(
+            UserAnswer.card_id
+        ).subquery()
+        
+        # Query to count how many cards were first answered on each day
+        new_cards_stmt = select(
+            func.date(first_answers.c.first_answered_at).label("date_str"),
+            func.count(first_answers.c.card_id).label("new_cards")
+        ).where(
+            first_answers.c.first_answered_at >= start_date
+        ).group_by(
+            func.date(first_answers.c.first_answered_at)
+        )
+        
+        reviews_res, new_cards_res = await asyncio.gather(
+            db.execute(reviews_stmt),
+            db.execute(new_cards_stmt)
+        )
+        
+        daily_map = {}
+        for i in range(14):
+            d = today - timedelta(days=i)
+            d_str = d.strftime("%Y-%m-%d")
+            daily_map[d_str] = {
+                "date": d_str,
+                "new_cards": 0,
+                "unique_cards": 0,
+                "total_reviews": 0
+            }
+            
+        def parse_db_date(val) -> str:
+            if not val:
+                return ""
+            if isinstance(val, str):
+                return val[:10]
+            return val.strftime("%Y-%m-%d")
+            
+        for row in reviews_res.all():
+            d_str = parse_db_date(row.date_str)
+            if d_str in daily_map:
+                daily_map[d_str]["total_reviews"] = row.total_reviews or 0
+                daily_map[d_str]["unique_cards"] = row.unique_cards or 0
+                
+        for row in new_cards_res.all():
+            d_str = parse_db_date(row.date_str)
+            if d_str in daily_map:
+                daily_map[d_str]["new_cards"] = row.new_cards or 0
+                
+        return [daily_map[k] for k in sorted(daily_map.keys())]
+

@@ -78,9 +78,50 @@ const MarkdownComponents = {
   }
 }
 
+const parseUTCDate = (dateStr: string | null | undefined): Date => {
+  if (!dateStr) return new Date();
+  try {
+    // 1. Replace space with 'T' to meet standard ISO specification
+    let formatted = dateStr.trim().replace(' ', 'T');
+    // 2. Truncate microseconds (6 digits) to milliseconds (3 digits)
+    const dotIndex = formatted.indexOf('.');
+    if (dotIndex !== -1) {
+      const parts = formatted.split('.');
+      const timePart = parts[0];
+      let subPart = parts[1];
+      let suffix = '';
+      if (subPart.endsWith('Z')) {
+        suffix = 'Z';
+        subPart = subPart.slice(0, -1);
+      } else if (subPart.includes('+')) {
+        const plusIdx = subPart.indexOf('+');
+        suffix = subPart.substring(plusIdx);
+        subPart = subPart.substring(0, plusIdx);
+      }
+      subPart = subPart.substring(0, 3);
+      formatted = `${timePart}.${subPart}${suffix}`;
+    }
+    
+    // 3. Ensure 'Z' is appended if no timezone is specified
+    // Check timezone specifier safely after the 'T' separator to prevent matching hyphens in the date part
+    const tIndex = formatted.indexOf('T');
+    const timePartAfterT = tIndex !== -1 ? formatted.slice(tIndex) : '';
+    const hasTimezone = formatted.includes('Z') || formatted.includes('+') || timePartAfterT.includes('-');
+    
+    if (!hasTimezone) {
+      formatted = formatted + 'Z';
+    }
+    const d = new Date(formatted);
+    if (!isNaN(d.getTime())) return d;
+  } catch (e) {
+    console.error("parseUTCDate error:", e);
+  }
+  return new Date();
+}
+
 function formatRelativeTime(dateStr: string | null | undefined): { relative: string; full: string } {
   if (!dateStr) return { relative: 'never', full: 'Never learned this card' };
-  const d = new Date(dateStr);
+  const d = parseUTCDate(dateStr);
   if (isNaN(d.getTime())) return { relative: 'never', full: 'Never learned this card' };
   
   const now = new Date();
@@ -497,46 +538,6 @@ export default function PracticePlay() {
     return () => clearInterval(timer)
   }, [])
 
-  const parseUTCDate = (dateStr: string | null | undefined): Date => {
-    if (!dateStr) return new Date();
-    try {
-      // 1. Replace space with 'T' to meet standard ISO specification
-      let formatted = dateStr.trim().replace(' ', 'T');
-      // 2. Truncate microseconds (6 digits) to milliseconds (3 digits)
-      const dotIndex = formatted.indexOf('.');
-      if (dotIndex !== -1) {
-        const parts = formatted.split('.');
-        const timePart = parts[0];
-        let subPart = parts[1];
-        let suffix = '';
-        if (subPart.endsWith('Z')) {
-          suffix = 'Z';
-          subPart = subPart.slice(0, -1);
-        } else if (subPart.includes('+')) {
-          const plusIdx = subPart.indexOf('+');
-          suffix = subPart.substring(plusIdx);
-          subPart = subPart.substring(0, plusIdx);
-        }
-        subPart = subPart.substring(0, 3);
-        formatted = `${timePart}.${subPart}${suffix}`;
-      }
-
-      // 3. Ensure 'Z' is appended if no timezone is specified
-      // Check timezone specifier safely after the 'T' separator to prevent matching hyphens in the date part
-      const tIndex = formatted.indexOf('T');
-      const timePartAfterT = tIndex !== -1 ? formatted.slice(tIndex) : '';
-      const hasTimezone = formatted.includes('Z') || formatted.includes('+') || timePartAfterT.includes('-');
-
-      if (!hasTimezone) {
-        formatted = formatted + 'Z';
-      }
-      const d = new Date(formatted);
-      if (!isNaN(d.getTime())) return d;
-    } catch (e) {
-      console.error("parseUTCDate error:", e);
-    }
-    return new Date();
-  }
 
   const isCardUnlocked = (() => {
     if (!currentQuestion || !currentQuestion.fsrs || !currentQuestion.fsrs.due) return true;

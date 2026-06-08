@@ -11,6 +11,8 @@ import {
 import { motion, AnimatePresence } from 'framer-motion'
 import axios from 'axios'
 import { cn } from '@/lib/utils'
+import DailyComparisonChart from '@/components/DailyComparisonChart'
+
 
 interface PersonalStats {
   daily_activity: Array<{ date: string, attempted: number, correct: number, accuracy: number, time_minutes: number }>
@@ -285,6 +287,15 @@ export default function Stats() {
       return res.data
     }
   })
+
+  const { data: dailyComparisonData, isLoading: isDailyComparisonLoading } = useQuery<any[]>({
+    queryKey: ['dailyComparison'],
+    queryFn: async () => {
+      const res = await axios.get('/api/v1/stats/daily-comparison')
+      return res.data
+    }
+  })
+
 
   const { data: leaderboardData, isLoading: isLeaderboardLoading } = useQuery({
     queryKey: ['stats-leaderboard'],
@@ -826,6 +837,9 @@ export default function Stats() {
                   )}
 
                   <ReviewForecastWidget data={forecastData} />
+
+                  <DailyComparisonChart data={dailyComparisonData} isLoading={isDailyComparisonLoading} />
+
 
                   {/* Streak Heatmap Calendar */}
                   <div className="bg-white rounded-[2.5rem] border border-slate-100 p-6 md:p-10 shadow-sm relative overflow-hidden">
