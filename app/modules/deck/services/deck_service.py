@@ -1,4 +1,4 @@
-from sqlalchemy import func, Integer, select, case
+from sqlalchemy import func, Integer, select, case, or_
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 from app.modules.deck.models import FlashcardDeck, Flashcard, Category
@@ -245,7 +245,7 @@ class DeckService:
         ).where(
             Flashcard.deck_id.in_(active_deck_ids),
             UserCardMastery.user_id == user_id,
-            UserCardMastery.is_ignored == False,
+            or_(UserCardMastery.is_ignored == False, UserCardMastery.is_ignored.is_(None)),
             UserCardMastery.due <= now
         ).group_by(Flashcard.deck_id)
         due_reviews_res = await db.execute(due_reviews_stmt)
@@ -257,7 +257,7 @@ class DeckService:
         ).where(
             Flashcard.deck_id.in_(active_deck_ids),
             UserCardMastery.user_id == user_id,
-            UserCardMastery.is_ignored == False
+            or_(UserCardMastery.is_ignored == False, UserCardMastery.is_ignored.is_(None))
         ).group_by(Flashcard.deck_id)
         learned_res = await db.execute(learned_stmt)
         learned_map = {row[0]: row[1] for row in learned_res.all()}

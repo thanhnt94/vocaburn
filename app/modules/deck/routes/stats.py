@@ -125,7 +125,7 @@ async def get_active_goals(request: Request, local_date: Optional[str] = None, d
         .filter(
             Flashcard.deck_id.in_(deck_ids),
             UserCardMastery.user_id == user_id,
-            UserCardMastery.is_ignored == False
+            or_(UserCardMastery.is_ignored == False, UserCardMastery.is_ignored.is_(None))
         )
         .group_by(Flashcard.deck_id)
     )
@@ -245,7 +245,7 @@ async def get_user_badges(request: Request, db: AsyncSession = Depends(get_db)):
                     select(func.count(UserCardMastery.id)).where(
                         UserCardMastery.user_id == user_id,
                         UserCardMastery.box_level == 5,
-                        UserCardMastery.is_ignored == False
+                        or_(UserCardMastery.is_ignored == False, UserCardMastery.is_ignored.is_(None))
                     )
                 )
                 cnt = mastered_res.scalar() or 0
@@ -445,7 +445,7 @@ async def get_deck_mastery(deck_id: int, request: Request, db: AsyncSession = De
      .where(
          Flashcard.deck_id == deck_id,
          UserCardMastery.user_id == user_id,
-         UserCardMastery.is_ignored == False
+         or_(UserCardMastery.is_ignored == False, UserCardMastery.is_ignored.is_(None))
      )\
      .group_by(UserCardMastery.box_level)
      
@@ -479,7 +479,7 @@ async def get_global_leitner_stats(request: Request, db: AsyncSession = Depends(
         func.count(UserCardMastery.id)
     ).where(
         UserCardMastery.user_id == user_id,
-        UserCardMastery.is_ignored == False
+        or_(UserCardMastery.is_ignored == False, UserCardMastery.is_ignored.is_(None))
     ).group_by(UserCardMastery.box_level)
     
     results = await db.execute(stmt)
@@ -499,7 +499,7 @@ async def get_global_leitner_stats(request: Request, db: AsyncSession = Depends(
         .where(
             UserCardMastery.user_id == user_id,
             UserCardMastery.box_level == 1,
-            UserCardMastery.is_ignored == False
+            or_(UserCardMastery.is_ignored == False, UserCardMastery.is_ignored.is_(None))
         )\
         .limit(5)
         
@@ -748,7 +748,7 @@ async def get_review_forecast(request: Request, db: AsyncSession = Depends(get_d
     # Fetch all UserCardMastery records for this user that are not ignored
     stmt = select(UserCardMastery.due).where(
         UserCardMastery.user_id == user_id,
-        UserCardMastery.is_ignored == False
+        or_(UserCardMastery.is_ignored == False, UserCardMastery.is_ignored.is_(None))
     )
     result = await db.execute(stmt)
     dues = result.scalars().all()
