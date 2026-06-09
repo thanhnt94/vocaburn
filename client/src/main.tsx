@@ -1,5 +1,15 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
+
+// Debug wrapper to capture alert(1) stack trace
+if (typeof window !== 'undefined') {
+  const originalAlert = window.alert;
+  window.alert = function (message) {
+    console.error("DEBUG ALERT DETECTED:", message, new Error().stack);
+    originalAlert(message);
+  };
+}
+
 import './index.css'
 import App from './App.tsx'
 

@@ -158,28 +158,7 @@ function ReviewForecastWidget({ data }: { data: ForecastResponse | undefined }) 
           </div>
         </div>
 
-        {/* Range Selector (Only shown in Daily view) */}
-        {viewMode === 'daily' && (
-          <div className="flex items-center justify-end gap-2 mt-1">
-            <span className="text-[9px] font-black text-slate-400 uppercase tracking-wider">Phạm vi:</span>
-            <div className="flex items-center bg-slate-50 p-1 rounded-xl border border-slate-100">
-              {([7, 14, 30] as const).map(range => (
-                <button
-                  key={range}
-                  onClick={() => setDaysRange(range)}
-                  className={cn(
-                    "px-2.5 py-0.5 rounded-lg text-[8px] font-black uppercase tracking-widest transition-all cursor-pointer",
-                    daysRange === range
-                      ? "bg-white text-orange-650 shadow-sm border border-slate-100/50"
-                      : "text-slate-400 hover:text-slate-600"
-                  )}
-                >
-                  {range} ngày
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
+        {/* Range Selector removed per request */}
       </div>
 
       {/* Stats summary banner */}
@@ -1193,13 +1172,15 @@ export default function Dashboard() {
     }
   })
 
-  const { data: dailyComparisonData, isLoading: isDailyComparisonLoading } = useQuery<any[]>({
+  const { data: dailyComparisonRaw, isLoading: isDailyComparisonLoading } = useQuery<any>({
     queryKey: ['dailyComparison'],
     queryFn: async () => {
       const res = await axios.get('/api/v1/stats/daily-comparison')
       return res.data
     }
   })
+  const dailyComparisonData = dailyComparisonRaw?.days
+  const dailyComparisonAvg = dailyComparisonRaw?.all_time_avg
 
 
 
@@ -1603,7 +1584,7 @@ export default function Dashboard() {
 
           <ReviewForecastWidget data={forecastData} />
 
-          <DailyComparisonChart data={dailyComparisonData} isLoading={isDailyComparisonLoading} />
+          <DailyComparisonChart data={dailyComparisonData} allTimeAvg={dailyComparisonAvg} isLoading={isDailyComparisonLoading} />
 
           {/* Badge Progress Roadmap */}
           {badgesProgress && <BadgeProgressWidget data={badgesProgress} />}
@@ -1634,7 +1615,7 @@ export default function Dashboard() {
 
         <ReviewForecastWidget data={forecastData} />
 
-        <DailyComparisonChart data={dailyComparisonData} isLoading={isDailyComparisonLoading} />
+        <DailyComparisonChart data={dailyComparisonData} allTimeAvg={dailyComparisonAvg} isLoading={isDailyComparisonLoading} />
 
 
         {/* Badge Progress Roadmap */}

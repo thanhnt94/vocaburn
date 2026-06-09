@@ -948,11 +948,7 @@ async def get_deck_play_data(request: Request, deck_id: int, mode: Optional[str]
     )
     user_sett = user_sett_res.scalar_one_or_none()
 
-    if is_practice:
-        # Instant load: We do not need heavy card-level stats aggregation for practice modes!
-        deck = await DeckService.get_deck_by_id(db, deck_id)
-    else:
-        deck = await DeckService.get_deck_with_stats(db, deck_id, user_id=user_id)
+    deck = await DeckService.get_deck_with_stats(db, deck_id, user_id=user_id)
     if not deck: return JSONResponse(status_code=404, content={"error": "Deck not found"})
     
     # Skip heavy gamification stats & collaborator check for practice — not needed
@@ -1037,7 +1033,7 @@ async def get_deck_play_data(request: Request, deck_id: int, mode: Optional[str]
                 "content": c.content,
                 "explanation": c.explanation,
                 "ai_explanation": c.ai_explanation,
-                "stats": None,
+                "stats": getattr(c, "stats", None),
                 "box_level": 1,
                 "is_ignored": False,
                 "fsrs": None,

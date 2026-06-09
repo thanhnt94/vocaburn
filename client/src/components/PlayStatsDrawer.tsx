@@ -10,6 +10,7 @@ interface PlayStatsDrawerProps {
   activeStatsTab: 'performance' | 'goals' | 'leaderboard'
   setActiveStatsTab: (tab: 'performance' | 'goals' | 'leaderboard') => void
   dailyComparisonData: any[]
+  dailyComparisonAvg?: any
   isDailyComparisonLoading: boolean
   activeGoal: any
   activeMode?: string
@@ -34,6 +35,7 @@ export const PlayStatsDrawer: React.FC<PlayStatsDrawerProps> = ({
   activeStatsTab,
   setActiveStatsTab,
   dailyComparisonData,
+  dailyComparisonAvg,
   isDailyComparisonLoading,
   activeGoal,
   activeMode = 'fsrs',
@@ -59,7 +61,7 @@ export const PlayStatsDrawer: React.FC<PlayStatsDrawerProps> = ({
              {activeStatsTab === 'performance' && (
                <>
                  {/* Daily Comparison Chart */}
-                 <DailyComparisonChart data={dailyComparisonData || []} isLoading={isDailyComparisonLoading} />
+                 <DailyComparisonChart data={dailyComparisonData || []} allTimeAvg={dailyComparisonAvg} isLoading={isDailyComparisonLoading} />
 
                  {/* Optional Practice Stats */}
                  {practiceStatsNode}

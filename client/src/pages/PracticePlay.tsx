@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import confetti from 'canvas-confetti'
 import { useParams, useNavigate } from 'react-router-dom'
-import { ChevronLeft, ChevronRight, LayoutGrid, Timer, Flame, Trophy, Check, X, Sparkles, Lightbulb, StickyNote, Play, Target, CheckCircle2, XCircle, Clock, BookOpen, Hash, Copy, Edit3, Brain, FileText, HelpCircle, Sliders, ListOrdered, Shuffle, Eye, EyeOff, AlertCircle, TrendingUp, Award, Lock, Keyboard, Volume2, VolumeX, RefreshCw } from 'lucide-react'
+import { ChevronLeft, ChevronRight, MessageSquare, Play, Volume2, Maximize2, Hash, Minimize2, Check, X, RotateCcw, AlertCircle, LayoutGrid, Timer, Flame, Trophy, Sparkles, Lightbulb, StickyNote, Target, CheckCircle2, XCircle, Clock, BookOpen, Copy, Edit3, Brain, FileText, HelpCircle, Sliders, ListOrdered, Shuffle, Eye, EyeOff, TrendingUp, Award, Lock, Keyboard, VolumeX, Settings, RefreshCw, Undo2 } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import axios from 'axios'
 import ReactMarkdown from 'react-markdown'
@@ -9,7 +9,7 @@ import remarkGfm from 'remark-gfm'
 import rehypeRaw from 'rehype-raw'
 import { cn } from '@/lib/utils'
 import { useAppStore } from '@/store/useAppStore'
-import { playCorrectSound, playIncorrectSound, speakMultiLanguage } from '@/lib/audio'
+import { playCorrectSound, playIncorrectSound, speakMultiLanguage, stripTagsAndBBCode, speakSequentially } from '@/lib/audio'
 import { parseBBCodeToHtml, stripBBCode, isJapanese, getJpPattern, extractTokens, tokensOverlapHigh } from '@/lib/text'
 import { selectDistractors } from '@/lib/distractor'
 import { TypewriterText } from '@/components/TypewriterText'
@@ -20,7 +20,6 @@ import { MilestoneCelebration } from '@/components/MilestoneCelebration'
 import DailyComparisonChart from '@/components/DailyComparisonChart'
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts'
 import { usePlaySettings } from '@/hooks/usePlaySettings'
-import { PlaySettingsModal } from '@/components/PlaySettingsModal'
 import { PlaySessionSummary } from '@/components/PlaySessionSummary'
 import { PlayStatsDrawer } from '@/components/PlayStatsDrawer'
 
@@ -224,6 +223,31 @@ export default function PracticePlay() {
       speakMultiLanguage(script);
     }
   };
+
+  const speakPracticeQuestionAndAnswer = async () => {
+    if (!currentPracticeData) return;
+    const qText = currentPracticeData.question || '';
+    const aText = currentPracticeData.correct_answer || '';
+
+    const containsJp = (str: string) => /[\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FAF]/.test(str);
+    const containsVi = (str: string) => /[àáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđ]/i.test(str);
+
+    const detectLang = (str: string) => containsJp(str) ? 'ja-JP' : (containsVi(str) ? 'vi-VN' : 'en-US');
+
+    // Stop any ongoing audio
+    if (activeAudioRef.current) {
+      activeAudioRef.current.pause();
+      activeAudioRef.current = null;
+    }
+    window.speechSynthesis.cancel();
+
+    // Use Web Speech API directly for speed in practice mode
+    const segments: { text: string; langCode: string }[] = [];
+    if (qText) segments.push({ text: qText, langCode: detectLang(qText) });
+    if (aText) segments.push({ text: aText, langCode: detectLang(aText) });
+    speakSequentially(segments, 500);
+  };
+
   const [session, setSession] = useState<any>(null)
   const [autoPlayAudio, setAutoPlayAudio] = useState<'never' | 'always' | 'front' | 'back'>(() => {
     return (localStorage.getItem('vocaburn_autoplay_audio') as any) || 'never';
@@ -787,14 +811,8 @@ export default function PracticePlay() {
 
   useEffect(() => {
     if (mainTab === 'practice' && practiceSubMode === 'listening' && currentPracticeData) {
-      const { question, question_key } = currentPracticeData;
-      if (question_key === 'front') {
-        playCardAudio('front');
-      } else if (question_key === 'back') {
-        playCardAudio('back');
-      } else {
-        speakMultiLanguage(question);
-      }
+      const { question } = currentPracticeData;
+      speakMultiLanguage(question);
     }
   }, [currentIndex, mainTab, practiceSubMode, currentPracticeData])
 
@@ -899,7 +917,13 @@ export default function PracticePlay() {
       setPracticeDisabled(!!quizRes.data.practice_disabled)
 
       if (isPractice) {
-        if (currentIndex < 0) setCurrentIndex(0)
+        if (currentIndex < 0) {
+          const allIndices = questions.map((q: any, i: number) => q.is_ignored ? -1 : i).filter((i: number) => i !== -1);
+          const learnedIndices = questions.map((q: any, i: number) => (!q.is_ignored && (q.stats?.total || 0) > 0) ? i : -1).filter((i: number) => i !== -1);
+          const activeIndices = (practiceRange === 'learned' && learnedIndices.length > 0) ? learnedIndices : allIndices;
+          const initialIdx = activeIndices.length > 0 ? activeIndices[Math.floor(Math.random() * activeIndices.length)] : 0;
+          setCurrentIndex(initialIdx);
+        }
       } else {
         // FSRS mode: apply goals + session
         const goalsRes = results[1]
@@ -1670,13 +1694,14 @@ export default function PracticePlay() {
 
       axios.get('/api/v1/stats/daily-comparison')
         .then(dcRes => {
-          setDailyComparisonData(dcRes.data)
+          setDailyComparisonData(dcRes.data.days || [])
         })
         .catch(e => console.error("Failed to load daily comparison in background", e))
       
     } catch (e) {
       console.error("Failed to record answer", e);
     }
+    speakPracticeQuestionAndAnswer();
   };
 
   const handleIgnoreQuestion = async () => {
@@ -1833,12 +1858,13 @@ export default function PracticePlay() {
 
       axios.get('/api/v1/stats/daily-comparison')
         .then(dcRes => {
-          setDailyComparisonData(dcRes.data)
+          setDailyComparisonData(dcRes.data.days || [])
         })
         .catch(e => console.error("Failed to load daily comparison in background", e))
     } catch (e) {
       console.error(e);
     }
+    speakPracticeQuestionAndAnswer();
   };
 
   const navigateToQuestion = (idx: number, customPracticeAnswers = practiceAnswers) => {
@@ -2582,9 +2608,9 @@ export default function PracticePlay() {
 
         {/* Premium Question Card container for better space usage and rich aesthetics */}
         <div className="w-full max-w-3xl mx-auto py-1 text-center animate-in fade-in slide-in-from-top-3 duration-500">
-          <div className="w-full bg-gradient-to-br from-indigo-50/40 via-slate-50/60 to-pink-50/20 border border-slate-100 rounded-[2rem] p-5 md:p-6 shadow-sm flex flex-col items-center justify-center text-center gap-4 relative overflow-hidden mb-1">
-            <div className="absolute top-[-10%] left-[-10%] w-[30%] h-[30%] rounded-full bg-indigo-100/20 blur-2xl pointer-events-none" />
-            <div className="absolute bottom-[-10%] right-[-10%] w-[30%] h-[30%] rounded-full bg-pink-100/20 blur-2xl pointer-events-none" />
+          <div className="w-full bg-white border-2 border-indigo-100/80 rounded-[2rem] p-5 md:p-6 shadow-sm flex flex-col items-center justify-center text-center gap-4 relative overflow-hidden mb-1">
+            <div className="absolute top-[-10%] left-[-10%] w-[30%] h-[30%] rounded-full bg-indigo-50/20 blur-2xl pointer-events-none" />
+            <div className="absolute bottom-[-10%] right-[-10%] w-[30%] h-[30%] rounded-full bg-pink-50/20 blur-2xl pointer-events-none" />
 
             {currentQuestion.image && practiceSubMode !== 'listening' && (
               <img
@@ -2612,17 +2638,12 @@ export default function PracticePlay() {
                   <div className="absolute inset-2 rounded-full bg-indigo-300/20 animate-pulse" />
                   <Play className="w-7 h-7 text-indigo-600 fill-indigo-600 group-hover:scale-110 transition-transform" />
                 </div>
-                <span className="text-[9px] font-black text-indigo-500 tracking-widest uppercase mt-1">#{practiceTotalAnswered + 1} — NHẤN ĐỂ NGHE PHÁT ÂM</span>
+                <span className="text-[9px] font-black text-indigo-500 tracking-widest uppercase mt-1">NHẤN ĐỂ NGHE PHÁT ÂM</span>
               </div>
             ) : (
-              <div className="space-y-3 w-full flex flex-col items-center">
-                <span className="text-[10px] font-black tracking-widest text-indigo-600 bg-indigo-50/80 px-3 py-1 rounded-full border border-indigo-100/50 shadow-sm">
-                  #{practiceTotalAnswered + 1}
-                </span>
                 <h2 className="text-xl md:text-2xl lg:text-3xl font-black text-slate-800 leading-snug max-w-2xl px-2">
-                  <TypewriterText text={question} />
+                  <span dangerouslySetInnerHTML={{ __html: parseBBCodeToHtml(question || '') }} />
                 </h2>
-              </div>
             )}
           </div>
         </div>
@@ -3146,14 +3167,6 @@ export default function PracticePlay() {
           </div>
         </div>
         <div className="flex items-center gap-1.5">
-          <button
-            onClick={() => setIsSettingsModalOpen(true)}
-            className="w-8 h-8 flex items-center justify-center bg-slate-50 border border-slate-200 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 hover:border-indigo-200 rounded-xl transition-all active:scale-90 shadow-sm"
-            title="Cấu hình học tập"
-          >
-            <Sliders className="w-3.5 h-3.5" />
-          </button>
-
           <div className={cn(
             "flex items-center gap-1 px-2 py-1 rounded-lg text-white shadow-md text-[10px] font-black transition-all",
             !showFeedback ? "bg-gradient-to-r from-slate-800 to-slate-900 shadow-slate-300" : "bg-gradient-to-r from-emerald-500 to-teal-500 shadow-emerald-200"
@@ -3162,55 +3175,12 @@ export default function PracticePlay() {
             <span>{timeLeft}s</span>
           </div>
 
-          <AnimatePresence>
-            {showFeedback && (
-              <motion.button
-                initial={{ opacity: 0, scale: 0.8 }}
-                animate={{ opacity: 1, scale: 1 }}
-                onClick={copyQuestionToClipboard}
-                className="w-8 h-8 flex items-center justify-center bg-amber-50 border border-amber-100 rounded-xl text-amber-500 shadow-sm active:scale-90 transition-all hover:bg-amber-100"
-                title="Copy card"
-              >
-                <Copy className="w-3.5 h-3.5" />
-              </motion.button>
-            )}
-          </AnimatePresence>
-
           <button
-            onClick={handleIgnoreQuestion}
-            className={cn(
-              "w-8 h-8 flex items-center justify-center rounded-xl border transition-all active:scale-90 shadow-sm",
-              currentQuestion?.is_ignored 
-                ? "bg-slate-700 border-slate-600 text-slate-300 hover:bg-slate-600"
-                : "bg-slate-50 border-slate-200 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 hover:border-indigo-200"
-            )}
-            title={currentQuestion?.is_ignored ? "Restore card" : "Ignore card"}
+            onClick={() => setIsSettingsModalOpen(true)}
+            className="w-8.5 h-8.5 flex items-center justify-center bg-slate-50 border border-slate-200 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 hover:border-indigo-200 rounded-xl transition-all active:scale-90 shadow-sm"
+            title="Cài đặt & Tùy chọn"
           >
-            {currentQuestion?.is_ignored ? <Eye className="w-3.5 h-3.5" /> : <EyeOff className="w-3.5 h-3.5" />}
-          </button>
-          
-          <button
-            onClick={openEditModal}
-            className="w-8 h-8 flex items-center justify-center bg-slate-50 border border-slate-200 rounded-xl text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 hover:border-indigo-200 shadow-sm active:scale-90 transition-all"
-            title="Edit card"
-          >
-            <Edit3 className="w-3.5 h-3.5" />
-          </button>
-
-          {/* Card Map Button */}
-          <button
-            onClick={() => setIsMapOpen(true)}
-            className="w-8 h-8 flex items-center justify-center bg-slate-50 border border-slate-200 rounded-xl text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 hover:border-indigo-200 shadow-sm active:scale-90 transition-all"
-            title="Xem sơ đồ câu hỏi"
-          >
-            <LayoutGrid className="w-3.5 h-3.5" />
-          </button>
-
-          <button
-            onClick={() => setIsQuitModalOpen(true)}
-            className="w-8 h-8 flex items-center justify-center bg-rose-50 border border-rose-200 rounded-xl text-rose-500 hover:bg-rose-100 shadow-sm active:scale-90 transition-all"
-          >
-            <X className="w-3.5 h-3.5" />
+            <Settings className="w-4 h-4" />
           </button>
         </div>
       </header>
@@ -4083,12 +4053,14 @@ export default function PracticePlay() {
                                       "bg-emerald-50 border-emerald-100 text-emerald-600"
                               )}
                             >
-                              <span className="text-sm font-black tracking-wide">
-                                ✓ RATED {selectedOption === 0 ? "AGAIN" : selectedOption === 1 ? "HARD" : selectedOption === 2 ? "GOOD" : "EASY"}
-                              </span>
-                              <span className="opacity-80 text-xs">
-                                — Unlocks in {countdownStr} ⏳
-                              </span>
+                              <div className="flex items-center gap-1 justify-center px-12 text-center">
+                                <span className="text-sm font-black tracking-wide">
+                                  ✓ {selectedOption === 0 ? "AGAIN" : selectedOption === 1 ? "HARD" : selectedOption === 2 ? "GOOD" : "EASY"}
+                                </span>
+                                <span className="opacity-80 text-xs">
+                                  — Unlocks in {countdownStr} ⏳
+                                </span>
+                              </div>
                             </div>
                           );
                         })()}
@@ -4161,6 +4133,10 @@ export default function PracticePlay() {
             {(() => {
               if (!currentQuestion) return null;
 
+              if (mainTab === 'practice' && practiceSubMode !== 'listening' && !showFeedback) {
+                return null;
+              }
+
               const hasAudioOrScript = mainTab === 'practice'
                 ? (!!currentQuestion.audio || !!currentQuestion.others?.front_audio_url || !!currentQuestion.others?.front_audio_content?.trim())
                 : (!isFlipped
@@ -4174,14 +4150,12 @@ export default function PracticePlay() {
                   onClick={async (e) => {
                     e.stopPropagation();
                     if (mainTab === 'practice') {
-                      const practiceData = currentPracticeData;
-                      if (practiceData) {
-                        const { question: qText, question_key: qKey } = practiceData;
-                        if (qKey === 'front') {
-                          await playCardAudio('front');
-                        } else if (qKey === 'back') {
-                          await playCardAudio('back');
-                        } else {
+                      if (showFeedback) {
+                        speakPracticeQuestionAndAnswer();
+                      } else {
+                        const practiceData = currentPracticeData;
+                        if (practiceData) {
+                          const { question: qText } = practiceData;
                           speakMultiLanguage(qText);
                         }
                       }
@@ -4586,6 +4560,268 @@ export default function PracticePlay() {
               >
                 AWESOME, KEEP GOING! 🚀
               </button>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* ⚙️ PRACTICE SETTINGS MODAL */}
+      <AnimatePresence>
+        {isSettingsModalOpen && (
+          <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4">
+            <motion.div 
+              initial={{ opacity: 0 }} 
+              animate={{ opacity: 1 }} 
+              exit={{ opacity: 0 }}
+              onClick={() => setIsSettingsModalOpen(false)}
+              className="absolute inset-0 bg-slate-900/60 backdrop-blur-md pointer-events-auto"
+            />
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              className="relative w-full max-w-md bg-white rounded-[2.5rem] p-6 shadow-2xl border border-slate-100/80 overflow-hidden text-slate-800 pointer-events-auto"
+            >
+              <div className="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-indigo-500 via-purple-500 to-indigo-500"></div>
+              
+              <div className="flex items-center justify-between mb-6">
+                <h3 className="text-lg font-black uppercase tracking-tight flex items-center gap-2 text-indigo-600">
+                  <Sliders className="w-5 h-5" />
+                  Cấu hình luyện tập
+                </h3>
+                <button 
+                  onClick={() => setIsSettingsModalOpen(false)} 
+                  className="w-8 h-8 rounded-full hover:bg-slate-50 flex items-center justify-center text-slate-400 hover:text-slate-600 transition-all"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              <div className="space-y-6">
+                {/* 1. Practice Range */}
+                <div>
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-2">Phạm vi câu hỏi</label>
+                  <div className="grid grid-cols-2 gap-2 bg-slate-50 p-1 rounded-2xl border border-slate-100">
+                    <button
+                      onClick={() => {
+                        setPracticeRange('all');
+                        localStorage.setItem('vocab_practice_range', 'all');
+                      }}
+                      className={cn(
+                        "flex flex-col items-center justify-center gap-1.5 py-3 px-2 rounded-xl text-[10px] font-bold transition-all",
+                        practiceRange === 'all'
+                          ? "bg-white text-indigo-600 shadow-sm border border-slate-100"
+                          : "text-slate-500 hover:bg-white/50"
+                      )}
+                    >
+                      <Shuffle className={cn("w-4.5 h-4.5", practiceRange === 'all' ? "text-indigo-600" : "text-slate-400")} />
+                      <span>Ngẫu nhiên (Tất cả)</span>
+                    </button>
+
+                    <button
+                      onClick={() => {
+                        const learnedIndices = session?.questions?.map((q: any, i: number) => (q.stats?.total || 0) > 0 ? i : -1).filter((i: number) => i !== -1) || [];
+                        if (learnedIndices.length === 0) {
+                          setLearningModeAlert({
+                            visible: true,
+                            message: "Bạn chưa học từ nào trong bộ này! Tự động chuyển về chế độ Ngẫu nhiên (Tất cả).",
+                            type: 'warning'
+                          });
+                          setTimeout(() => {
+                            setLearningModeAlert(prev => prev ? { ...prev, visible: false } : null);
+                          }, 4500);
+                          return;
+                        }
+                        setPracticeRange('learned');
+                        localStorage.setItem('vocab_practice_range', 'learned');
+                        if (!learnedIndices.includes(currentIndex)) {
+                          navigateToQuestion(learnedIndices[0]);
+                        }
+                      }}
+                      className={cn(
+                        "flex flex-col items-center justify-center gap-1.5 py-3 px-2 rounded-xl text-[10px] font-bold transition-all",
+                        practiceRange === 'learned'
+                          ? "bg-white text-indigo-600 shadow-sm border border-slate-100"
+                          : "text-slate-500 hover:bg-white/50"
+                      )}
+                    >
+                      <ListOrdered className={cn("w-4.5 h-4.5", practiceRange === 'learned' ? "text-indigo-600" : "text-slate-400")} />
+                      <span>Thẻ đã học</span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* 2. Practice Sub-mode */}
+                <div>
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-2">Hình thức luyện tập</label>
+                  <div className="grid grid-cols-3 gap-1.5 bg-slate-50 p-1 rounded-2xl border border-slate-100">
+                    {[
+                      { id: 'mcq', label: 'Trắc nghiệm', icon: HelpCircle },
+                      { id: 'typing', label: 'Tự gõ', icon: Keyboard },
+                      { id: 'listening', label: 'Luyện nghe', icon: Volume2 }
+                    ].map(m => {
+                      const IconComp = m.icon;
+                      const active = practiceSubMode === m.id;
+                      return (
+                        <button
+                          key={m.id}
+                          onClick={() => {
+                            setPracticeAnswers({});
+                            setSelectedOption(null);
+                            setShowFeedback(false);
+                            navigate(`/practice/${id}/${m.id}`, { replace: true });
+                            fetchSession('practice', m.id as 'mcq' | 'typing' | 'listening');
+                          }}
+                          className={cn(
+                            "flex flex-col items-center justify-center gap-1.5 py-3 px-1 rounded-xl text-[10px] font-bold transition-all",
+                            active 
+                              ? "bg-white text-indigo-600 shadow-sm border border-slate-100" 
+                              : "text-slate-500 hover:bg-white/50"
+                          )}
+                        >
+                          <IconComp className={cn("w-4.5 h-4.5", active ? "text-indigo-600" : "text-slate-400")} />
+                          <span className="truncate w-full text-center text-[9px]">{m.label}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* 3. Autoplay Audio Toggles */}
+                <div className="flex flex-col gap-3 py-2 border-t border-slate-100">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">Tự động phát âm thanh</label>
+                  
+                  {/* Front Audio Toggle */}
+                  <div className="flex items-center justify-between">
+                    <div className="flex flex-col">
+                      <span className="text-[11px] font-black text-slate-700">Mặt trước</span>
+                      <span className="text-[9px] text-slate-400">Phát âm thanh từ vựng khi hiện thẻ</span>
+                    </div>
+                    <button 
+                      onClick={() => {
+                        const isFrontOn = autoPlayAudio === 'always' || autoPlayAudio === 'front';
+                        const isBackOn = autoPlayAudio === 'always' || autoPlayAudio === 'back';
+                        const nextState = isFrontOn ? (isBackOn ? 'back' : 'never') : (isBackOn ? 'always' : 'front');
+                        setAutoPlayAudio(nextState);
+                        localStorage.setItem('vocaburn_autoplay_audio', nextState);
+                        saveGeneralSettings({ autoplay_audio: nextState });
+                      }}
+                      className={cn(
+                        "w-12 h-6 rounded-full p-0.5 transition-colors duration-200 ease-in-out relative flex items-center",
+                        (autoPlayAudio === 'always' || autoPlayAudio === 'front') ? "bg-indigo-500" : "bg-slate-200"
+                      )}
+                    >
+                      <div className={cn(
+                        "w-5 h-5 bg-white rounded-full shadow-sm transition-transform duration-200 ease-in-out",
+                        (autoPlayAudio === 'always' || autoPlayAudio === 'front') ? "translate-x-6" : "translate-x-0"
+                      )} />
+                    </button>
+                  </div>
+
+                  {/* Back Audio Toggle */}
+                  <div className="flex items-center justify-between">
+                    <div className="flex flex-col">
+                      <span className="text-[11px] font-black text-slate-700">Mặt sau</span>
+                      <span className="text-[9px] text-slate-400">Phát âm thanh giải nghĩa khi lật thẻ</span>
+                    </div>
+                    <button 
+                      onClick={() => {
+                        const isFrontOn = autoPlayAudio === 'always' || autoPlayAudio === 'front';
+                        const isBackOn = autoPlayAudio === 'always' || autoPlayAudio === 'back';
+                        const nextState = isBackOn ? (isFrontOn ? 'front' : 'never') : (isFrontOn ? 'always' : 'back');
+                        setAutoPlayAudio(nextState);
+                        localStorage.setItem('vocaburn_autoplay_audio', nextState);
+                        saveGeneralSettings({ autoplay_audio: nextState });
+                      }}
+                      className={cn(
+                        "w-12 h-6 rounded-full p-0.5 transition-colors duration-200 ease-in-out relative flex items-center",
+                        (autoPlayAudio === 'always' || autoPlayAudio === 'back') ? "bg-indigo-500" : "bg-slate-200"
+                      )}
+                    >
+                      <div className={cn(
+                        "w-5 h-5 bg-white rounded-full shadow-sm transition-transform duration-200 ease-in-out",
+                        (autoPlayAudio === 'always' || autoPlayAudio === 'back') ? "translate-x-6" : "translate-x-0"
+                      )} />
+                    </button>
+                  </div>
+                </div>
+
+                {/* 4. Sound Effects Toggle */}
+                <div className="flex items-center justify-between py-2 border-t border-b border-slate-100">
+                  <div className="flex flex-col">
+                    <span className="text-[11px] font-black text-slate-700">Âm thanh hiệu ứng</span>
+                    <span className="text-[9px] text-slate-400">Phát nhạc chuông khi trả lời Đúng/Sai</span>
+                  </div>
+                  <button 
+                    onClick={() => setSfxEnabled(!sfxEnabled)}
+                    className={cn(
+                      "w-12 h-6 rounded-full p-0.5 transition-colors duration-200 ease-in-out relative flex items-center",
+                      sfxEnabled ? "bg-emerald-500" : "bg-slate-200"
+                    )}
+                  >
+                    <div className={cn(
+                      "w-5 h-5 rounded-full bg-white shadow-sm transform transition-transform duration-200 ease-in-out",
+                      sfxEnabled ? "translate-x-6" : "translate-x-0"
+                    )} />
+                  </button>
+                </div>
+
+                {/* 5. Actions: Copy, Ignore, Edit, Quit */}
+                <div className="pt-2 flex flex-col gap-2">
+                  <div className="grid grid-cols-2 gap-2">
+                    {showFeedback && (
+                      <button 
+                        onClick={() => {
+                          copyQuestionToClipboard();
+                          setIsSettingsModalOpen(false);
+                        }}
+                        className="col-span-2 w-full py-3 bg-amber-50 border border-amber-200/60 rounded-2xl text-amber-600 font-bold text-xs hover:bg-amber-100 shadow-sm active:scale-95 transition-all flex items-center justify-center gap-2"
+                      >
+                        <Copy className="w-4 h-4" />
+                        Copy nội dung
+                      </button>
+                    )}
+
+                    <button
+                      onClick={() => {
+                        setIsSettingsModalOpen(false);
+                        handleIgnoreQuestion();
+                      }}
+                      className={cn(
+                        "w-full py-3 border rounded-2xl font-bold text-xs shadow-sm active:scale-95 transition-all flex items-center justify-center gap-2",
+                        currentQuestion?.is_ignored 
+                          ? "bg-slate-700 border-slate-600 text-slate-300 hover:bg-slate-600"
+                          : "bg-slate-50 border-slate-200/60 text-slate-700 hover:bg-indigo-50 hover:text-indigo-600 hover:border-indigo-200"
+                      )}
+                    >
+                      {currentQuestion?.is_ignored ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
+                      Bỏ qua thẻ
+                    </button>
+
+                    <button 
+                      onClick={() => {
+                        setIsSettingsModalOpen(false);
+                        openEditModal();
+                      }}
+                      className="w-full py-3 bg-slate-50 border border-slate-200/60 rounded-2xl text-slate-700 font-bold text-xs hover:bg-indigo-50 hover:text-indigo-600 hover:border-indigo-200 shadow-sm active:scale-95 transition-all flex items-center justify-center gap-2"
+                    >
+                      <Edit3 className="w-4 h-4" />
+                      Sửa thẻ này
+                    </button>
+                  </div>
+
+                  <button 
+                    onClick={() => {
+                      setIsSettingsModalOpen(false);
+                      setIsQuitModalOpen(true);
+                    }}
+                    className="w-full py-3 bg-rose-50 border border-rose-200/60 rounded-2xl text-rose-600 font-bold text-xs hover:bg-rose-100 shadow-sm active:scale-95 transition-all flex items-center justify-center gap-2"
+                  >
+                    <X className="w-4 h-4" />
+                    Thoát phiên học
+                  </button>
+                </div>
+              </div>
             </motion.div>
           </div>
         )}
