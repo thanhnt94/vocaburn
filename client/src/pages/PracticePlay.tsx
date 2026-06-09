@@ -18,6 +18,10 @@ import { PracticeSetupScreen } from '@/components/PracticeSetupScreen'
 import { QuestionMapGrid } from '@/components/QuestionMapGrid'
 import { MilestoneCelebration } from '@/components/MilestoneCelebration'
 import DailyComparisonChart from '@/components/DailyComparisonChart'
+import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts'
+import { usePlaySettings } from '@/hooks/usePlaySettings'
+import { PlaySettingsModal } from '@/components/PlaySettingsModal'
+import { PlaySessionSummary } from '@/components/PlaySessionSummary'
 
 interface Option {
   id: number
@@ -220,12 +224,8 @@ export default function PracticePlay() {
     }
   };
   const [session, setSession] = useState<any>(null)
-  const [sfxEnabled, setSfxEnabled] = useState<boolean>(() => {
-    if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('vocaburn_sfx_enabled');
-      return saved === null ? true : saved === 'true';
-    }
-    return true;
+  const [autoPlayAudio, setAutoPlayAudio] = useState<'never' | 'always' | 'front' | 'back'>(() => {
+    return (localStorage.getItem('vocaburn_autoplay_audio') as any) || 'never';
   });
   const [currentIndex, setCurrentIndex] = useState(-1)
   const [showAbsoluteFirst, setShowAbsoluteFirst] = useState(false)
@@ -331,6 +331,14 @@ export default function PracticePlay() {
     typing: { active_pairs: [{ q: 'front', a: 'back' }] },
     listening: { active_pairs: [{ q: 'front', a: 'back' }], num_choices: 4 }
   })
+
+  const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false)
+
+  const {
+    sfxEnabled,
+    setSfxEnabled,
+    saveGeneralSettings
+  } = usePlaySettings(id || '', modeSettings, setModeSettings, activeMode, autoPlayAudio);
 
   // Practice stats tracking
   const [practiceTotalAnswered, setPracticeTotalAnswered] = useState(0)
@@ -3136,20 +3144,11 @@ export default function PracticePlay() {
         </div>
         <div className="flex items-center gap-1.5">
           <button
-            onClick={() => {
-              const nextSfx = !sfxEnabled;
-              setSfxEnabled(nextSfx);
-              localStorage.setItem('vocaburn_sfx_enabled', nextSfx ? 'true' : 'false');
-            }}
-            className={cn(
-              "w-8 h-8 flex items-center justify-center rounded-xl border transition-all active:scale-90 shadow-sm",
-              sfxEnabled
-                ? "bg-emerald-50 border-emerald-100 text-emerald-500 hover:bg-emerald-100"
-                : "bg-slate-50 border-slate-200 text-slate-400 hover:bg-slate-100"
-            )}
-            title={sfxEnabled ? "Tắt âm thanh hiệu ứng" : "Bật âm thanh hiệu ứng"}
+            onClick={() => setIsSettingsModalOpen(true)}
+            className="w-8 h-8 flex items-center justify-center bg-slate-50 border border-slate-200 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 hover:border-indigo-200 rounded-xl transition-all active:scale-90 shadow-sm"
+            title="Cấu hình học tập"
           >
-            {sfxEnabled ? <Volume2 className="w-3.5 h-3.5" /> : <VolumeX className="w-3.5 h-3.5" />}
+            <Sliders className="w-3.5 h-3.5" />
           </button>
 
           <div className={cn(

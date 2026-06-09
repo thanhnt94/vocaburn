@@ -24,6 +24,10 @@ import { usePracticeMode } from '@/hooks/usePracticeMode'
 import { FSRSActionButtons } from '@/components/FSRSActionButtons'
 import { FlashcardEditModal } from '@/components/FlashcardEditModal'
 import DailyComparisonChart from '@/components/DailyComparisonChart'
+import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts'
+import { usePlaySettings } from '@/hooks/usePlaySettings'
+import { PlaySettingsModal } from '@/components/PlaySettingsModal'
+import { PlaySessionSummary } from '@/components/PlaySessionSummary'
 
 interface Option {
   id: number
@@ -163,13 +167,6 @@ export default function FlashcardPlay() {
   const { user, gamify, setUser, setGamify, addXp } = useAppStore()
   
   const [session, setSession] = useState<any>(null)
-  const [sfxEnabled, setSfxEnabled] = useState<boolean>(() => {
-    if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('vocaburn_sfx_enabled');
-      return saved === null ? true : saved === 'true';
-    }
-    return true;
-  });
   const [currentIndex, setCurrentIndex] = useState(-1)
   const [showAbsoluteFirst, setShowAbsoluteFirst] = useState(false)
   const [showAbsoluteLast, setShowAbsoluteLast] = useState(false)
@@ -308,23 +305,11 @@ export default function FlashcardPlay() {
   })
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
 
-  const saveGeneralSettings = async (updates: { sfx_enabled?: boolean; autoplay_audio?: 'always' | 'front' | 'back' | 'none'; learning_mode?: string }) => {
-    try {
-      const updatedSettings = {
-        ...modeSettings,
-        sfx_enabled: updates.sfx_enabled !== undefined ? updates.sfx_enabled : sfxEnabled,
-        autoplay_audio: updates.autoplay_audio !== undefined ? updates.autoplay_audio : autoPlayAudio,
-        learning_mode: updates.learning_mode !== undefined ? updates.learning_mode : activeMode
-      }
-      await axios.post(`/api/v1/deck/${id}/practice-settings`, {
-        settings: updatedSettings,
-        is_creator: false
-      })
-      setModeSettings(updatedSettings)
-    } catch (e) {
-      console.error("Failed to save settings to DB", e)
-    }
-  }
+  const {
+    sfxEnabled,
+    setSfxEnabled,
+    saveGeneralSettings
+  } = usePlaySettings(id || '', modeSettings, setModeSettings, activeMode, autoPlayAudio);
   const [learningModeAlert, setLearningModeAlert] = useState<{
     visible: boolean;
     message: string;
@@ -363,22 +348,7 @@ export default function FlashcardPlay() {
     leaderboardMsg = "Hãy tích lũy thêm XP để ghi danh lên Bảng xếp hạng tuần này! 🏆"
   }
 
-  // Keyboard hotkeys for settings and edit card
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      const target = e.target as HTMLElement;
-      if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable)) {
-        return;
-      }
-      const key = e.key.toLowerCase();
-      if (key === 'e') {
-        e.preventDefault();
-        openEditModal();
-      }
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [currentQuestion]);
+
 
   // Autoplay Audio Effect
   useEffect(() => {
@@ -523,97 +493,7 @@ export default function FlashcardPlay() {
     return () => clearInterval(timerRef.current)
   }, [showFeedback, hasRated, mainTab])
 
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.repeat) return;
-      
-      const activeElement = document.activeElement;
-      if (activeElement) {
-        const tagName = activeElement.tagName.toLowerCase();
-        if (tagName === 'input' || tagName === 'textarea' || activeElement.getAttribute('contenteditable') === 'true') {
-          if (e.key === 'Enter' && mainTab === 'practice' && practiceSubMode === 'typing') {
-            e.preventDefault();
-            if (showFeedback) {
-              handleNext();
-            } else {
-              handleTypingAnswer();
-            }
-          }
-          return;
-        }
-      }
 
-      if (isSessionSummaryOpen || isQuitModalOpen || isEditModalOpen || isMapOpen || isFeedbackOpen) {
-        return;
-      }
-
-      const key = e.key.toLowerCase();
-
-      // Practice Mode Hotkeys
-      if (mainTab === 'practice') {
-        if (['mcq', 'listening'].includes(practiceSubMode)) {
-          if (e.key === ' ' || e.key === 'Enter') {
-            e.preventDefault();
-            if (showFeedback) {
-              handleNext();
-            }
-          } else if (!showFeedback && currentPracticeData?.choices) {
-            const choicesCount = currentPracticeData.choices.length;
-            const keyNum = parseInt(e.key);
-            if (!isNaN(keyNum) && keyNum >= 1 && keyNum <= choicesCount) {
-              e.preventDefault();
-              handleMCQAnswer(keyNum - 1);
-            }
-          }
-        } else if (practiceSubMode === 'typing') {
-          if (e.key === ' ' || e.key === 'Enter') {
-            e.preventDefault();
-            if (showFeedback) {
-              handleNext();
-            }
-          }
-        }
-        return;
-      }
-
-      // 3. Handle card flip or FSRS rating submissions
-      if (e.key === ' ' || e.key === 'Enter') {
-        e.preventDefault();
-        if (!isFlipped) {
-          setIsFlipped(true);
-          setShowFeedback(true);
-        } else if (hasRated) {
-          handleNext();
-        }
-      } else if (isFlipped) {
-        if (key === '1') { e.preventDefault(); handleReviewRating(1); }
-        else if (key === '2') { e.preventDefault(); handleReviewRating(2); }
-        else if (key === '3') { e.preventDefault(); handleReviewRating(3); }
-        else if (key === '4') { e.preventDefault(); handleReviewRating(4); }
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-    return () => {
-      window.removeEventListener('keydown', handleKeyDown);
-    };
-  }, [
-    showFeedback,
-    currentQuestion,
-    isSessionSummaryOpen,
-    isQuitModalOpen,
-    isEditModalOpen,
-    isMapOpen,
-    isFeedbackOpen,
-    currentIndex,
-    sessionAnswers,
-    activeMode,
-    isFlipped,
-    hasRated,
-    mainTab,
-    practiceSubMode,
-    typingInput
-  ])
 
   useEffect(() => {
     if (currentQuestion) {
@@ -3132,6 +3012,27 @@ export default function FlashcardPlay() {
     );
   }
 
+  useKeyboardShortcuts({
+    mainTab,
+    practiceSubMode,
+    showFeedback,
+    isFlipped,
+    hasRated,
+    isSessionSummaryOpen,
+    isQuitModalOpen,
+    isEditModalOpen,
+    isMapOpen,
+    isFeedbackOpen,
+    currentPracticeChoicesCount: currentPracticeData?.choices?.length || 0,
+    openEditModal,
+    handleNext,
+    handleTypingAnswer,
+    handleMCQAnswer,
+    handleReviewRating,
+    setIsFlipped,
+    setShowFeedback
+  });
+
   if (!session || currentIndex < 0) return <div className="min-h-screen flex items-center justify-center font-black animate-pulse">LOADING SESSION...</div>
 
   return (
@@ -4238,90 +4139,15 @@ export default function FlashcardPlay() {
 
 
       {/* ✅ SESSION COMPLETE SUMMARY MODAL */}
-      <AnimatePresence>
-        {isSessionSummaryOpen && (() => {
-          const answeredCount = Object.keys(sessionAnswers).length
-          const correctCount = Object.entries(sessionAnswers).filter(([idx, optIdx]) => {
-            const q = session.questions[Number(idx)]
-            if (!q) return false
-            const ratingVal = Array.isArray(optIdx) 
-              ? optIdx[optIdx.length - 1] 
-              : (typeof optIdx === 'number' ? optIdx : 0);
-            return q.options && q.options.length > 0
-              ? q.options[ratingVal]?.is_correct
-              : ratingVal > 0
-          }).length
-          const accuracy = answeredCount > 0 ? Math.round((correctCount / answeredCount) * 100) : 0
-          const grade = accuracy >= 90 ? { label: 'S', color: 'from-yellow-400 to-amber-500', text: 'OUTSTANDING!' } :
-                        accuracy >= 75 ? { label: 'A', color: 'from-emerald-400 to-teal-500', text: 'EXCELLENT!' } :
-                        accuracy >= 60 ? { label: 'B', color: 'from-indigo-400 to-blue-500', text: 'WELL DONE!' } :
-                        accuracy >= 45 ? { label: 'C', color: 'from-amber-400 to-orange-500', text: 'KEEP IT UP!' } :
-                                         { label: 'D', color: 'from-rose-400 to-pink-500', text: 'KEEP PRACTICING!' }
-          return (
-            <div className="fixed inset-0 z-[500] flex items-center justify-center p-4">
-              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                className="absolute inset-0 bg-slate-900/70 backdrop-blur-md"
-                onClick={() => setIsSessionSummaryOpen(false)} />
-              <motion.div initial={{ opacity: 0, scale: 0.8, y: 30 }} animate={{ opacity: 1, scale: 1, y: 0 }}
-                exit={{ opacity: 0, scale: 0.8, y: 30 }} transition={{ type: 'spring', bounce: 0.35 }}
-                className="relative w-full max-w-md bg-white rounded-[2.5rem] shadow-2xl overflow-hidden">
-                {/* Grade header */}
-                <div className={`bg-gradient-to-br ${grade.color} p-8 flex flex-col items-center text-white`}>
-                  <div className="text-[9px] font-black uppercase tracking-[0.4em] opacity-80 mb-2">SESSION COMPLETE</div>
-                  <div className="w-24 h-24 rounded-3xl bg-white/20 backdrop-blur flex items-center justify-center text-5xl font-black mb-3 border-2 border-white/30">
-                    {grade.label}
-                  </div>
-                  <h2 className="text-xl font-black">{grade.text}</h2>
-                  <p className="text-sm opacity-80 mt-1">{accuracy}% accuracy</p>
-                </div>
-
-                {/* Stats grid */}
-                <div className="p-6 space-y-4">
-                  <div className="grid grid-cols-3 gap-3">
-                    <div className="text-center p-3 bg-slate-50 rounded-2xl">
-                      <div className="text-2xl font-black text-slate-800">{answeredCount}</div>
-                      <div className="text-[9px] font-black text-slate-400 uppercase">Answered</div>
-                    </div>
-                    <div className="text-center p-3 bg-emerald-50 rounded-2xl">
-                      <div className="text-2xl font-black text-emerald-600">{correctCount}</div>
-                      <div className="text-[9px] font-black text-emerald-400 uppercase">Correct</div>
-                    </div>
-                    <div className="text-center p-3 bg-indigo-50 rounded-2xl">
-                      <div className="text-2xl font-black text-indigo-600">+{sessionXP}</div>
-                      <div className="text-[9px] font-black text-indigo-400 uppercase">XP Earned</div>
-                    </div>
-                  </div>
-
-                  {/* Milestones unlocked */}
-                  {milestonesHit.size > 0 && (
-                    <div className="p-4 bg-gradient-to-r from-indigo-50 to-purple-50 rounded-2xl border border-indigo-100">
-                      <div className="text-[9px] font-black text-indigo-600 uppercase tracking-widest mb-2">Milestones Unlocked</div>
-                      <div className="flex gap-3">
-                        {milestonesHit.has(25) && <span className="text-2xl" title="25%">🎖</span>}
-                        {milestonesHit.has(50) && <span className="text-2xl" title="50%">🏆</span>}
-                        {milestonesHit.has(75) && <span className="text-2xl" title="75%">🌟</span>}
-                        {milestonesHit.has(100) && <span className="text-2xl" title="100%">🎊</span>}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Action buttons */}
-                  <div className="grid grid-cols-2 gap-3">
-                    <button onClick={() => setIsSessionSummaryOpen(false)}
-                      className="py-3.5 bg-slate-100 text-slate-700 font-black text-[10px] uppercase tracking-widest rounded-2xl hover:bg-slate-200 transition-all">
-                      Keep Going
-                    </button>
-                    <button onClick={() => navigate(`/flashcard/${id}`)}
-                      className="py-3.5 bg-gradient-to-r from-indigo-500 to-purple-600 text-white font-black text-[10px] uppercase tracking-widest rounded-2xl shadow-lg shadow-indigo-200 active:scale-95 transition-all">
-                      Finish &amp; Exit
-                    </button>
-                  </div>
-                </div>
-              </motion.div>
-            </div>
-          )
-        })()}
-      </AnimatePresence>
+      <PlaySessionSummary
+        isOpen={isSessionSummaryOpen}
+        onClose={() => setIsSessionSummaryOpen(false)}
+        sessionAnswers={sessionAnswers}
+        questions={session.questions}
+        sessionXP={sessionXP}
+        milestonesHit={milestonesHit}
+        onNavigateToDeck={() => navigate(`/flashcard/${id}`)}
+      />
 
       {/* Mobile Question Map Modal / Practice Stats Drawer */}
       {/* Mobile Question Map Modal */}
@@ -4756,216 +4582,22 @@ export default function FlashcardPlay() {
       </AnimatePresence>
 
       {/* Smart Settings Modal */}
-      <AnimatePresence>
-        {isSettingsModalOpen && (
-          <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4">
-            <motion.div 
-              initial={{ opacity: 0 }} 
-              animate={{ opacity: 1 }} 
-              exit={{ opacity: 0 }}
-              onClick={() => setIsSettingsModalOpen(false)}
-              className="absolute inset-0 bg-slate-900/60 backdrop-blur-md"
-            />
-            <motion.div 
-              initial={{ opacity: 0, scale: 0.9, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.9, y: 20 }}
-              className="relative w-full max-w-md bg-white rounded-[2.5rem] p-6 shadow-2xl border border-white/20 overflow-hidden text-slate-800"
-            >
-              <div className="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-indigo-500 via-purple-500 to-indigo-500"></div>
-              
-              <div className="flex items-center justify-between mb-6">
-                <h3 className="text-lg font-black uppercase tracking-tight flex items-center gap-2 text-indigo-600">
-                  <Sliders className="w-5 h-5" />
-                  Cấu hình học tập
-                </h3>
-                <button 
-                  onClick={() => setIsSettingsModalOpen(false)} 
-                  className="w-8 h-8 rounded-full hover:bg-slate-50 flex items-center justify-center text-slate-400 hover:text-slate-600 transition-all"
-                >
-                  <X className="w-4 h-4" />
-                </button>
-              </div>
-
-              <div className="space-y-6">
-                {/* 1. Learning Mode Selector */}
-                <div>
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-2">Chế độ học thông minh</label>
-                  <div className="grid grid-cols-4 gap-1.5 bg-slate-50 p-1 rounded-2xl border border-slate-100">
-                    {[
-                      { id: 'fsrs', label: 'FSRS v6', icon: Brain },
-                      { id: 'new', label: 'Học mới', icon: Sparkles },
-                      { id: 'sequential', label: 'Mặc định', icon: ListOrdered },
-                      { id: 'random', label: 'Ngẫu nhiên', icon: Shuffle },
-                      { id: 'unseen', label: 'Chưa học', icon: EyeOff },
-                      { id: 'review', label: 'Ôn tập', icon: AlertCircle },
-                      { id: 'hardest', label: 'Khó nhất', icon: TrendingUp }
-                    ].map(m => {
-                      const IconComp = m.icon;
-                      const active = activeMode === m.id;
-                      return (
-                        <button
-                          key={m.id}
-                          onClick={() => applyLearningMode(m.id)}
-                          className={cn(
-                            "flex flex-col items-center justify-center gap-1 py-2 px-1 rounded-xl text-[10px] font-bold transition-all",
-                            active 
-                              ? "bg-white text-indigo-600 shadow-sm border border-slate-100" 
-                              : "text-slate-500 hover:bg-white/50"
-                          )}
-                        >
-                          <IconComp className={cn("w-4 h-4", active ? "text-indigo-600" : "text-slate-400")} />
-                          <span className="truncate w-full text-center">{m.label}</span>
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                {/* 2. Autoplay Audio Toggles */}
-                <div className="flex flex-col gap-3 py-2 border-t border-slate-100">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">Tự động phát âm thanh</label>
-                  
-                  {/* Front Audio Toggle */}
-                  <div className="flex items-center justify-between">
-                    <div className="flex flex-col">
-                      <span className="text-[11px] font-black text-slate-700">Mặt trước</span>
-                      <span className="text-[9px] text-slate-400">Phát âm thanh từ vựng khi hiện thẻ</span>
-                    </div>
-                    <button 
-                      onClick={() => {
-                        const isFrontOn = autoPlayAudio === 'always' || autoPlayAudio === 'front';
-                        const isBackOn = autoPlayAudio === 'always' || autoPlayAudio === 'back';
-                        const nextState = isFrontOn ? (isBackOn ? 'back' : 'none') : (isBackOn ? 'always' : 'front');
-                        setAutoPlayAudio(nextState);
-                        localStorage.setItem('vocaburn_autoplay_audio', nextState);
-                        saveGeneralSettings({ autoplay_audio: nextState });
-                      }}
-                      className={cn(
-                        "w-12 h-6 rounded-full p-0.5 transition-colors duration-200 ease-in-out relative flex items-center",
-                        (autoPlayAudio === 'always' || autoPlayAudio === 'front') ? "bg-indigo-500" : "bg-slate-200"
-                      )}
-                    >
-                      <div className={cn(
-                        "w-5 h-5 bg-white rounded-full shadow-sm transition-transform duration-200 ease-in-out",
-                        (autoPlayAudio === 'always' || autoPlayAudio === 'front') ? "translate-x-6" : "translate-x-0"
-                      )} />
-                    </button>
-                  </div>
-
-                  {/* Back Audio Toggle */}
-                  <div className="flex items-center justify-between">
-                    <div className="flex flex-col">
-                      <span className="text-[11px] font-black text-slate-700">Mặt sau</span>
-                      <span className="text-[9px] text-slate-400">Phát âm thanh giải nghĩa khi lật thẻ</span>
-                    </div>
-                    <button 
-                      onClick={() => {
-                        const isFrontOn = autoPlayAudio === 'always' || autoPlayAudio === 'front';
-                        const isBackOn = autoPlayAudio === 'always' || autoPlayAudio === 'back';
-                        const nextState = isBackOn ? (isFrontOn ? 'front' : 'none') : (isFrontOn ? 'always' : 'back');
-                        setAutoPlayAudio(nextState);
-                        localStorage.setItem('vocaburn_autoplay_audio', nextState);
-                        saveGeneralSettings({ autoplay_audio: nextState });
-                      }}
-                      className={cn(
-                        "w-12 h-6 rounded-full p-0.5 transition-colors duration-200 ease-in-out relative flex items-center",
-                        (autoPlayAudio === 'always' || autoPlayAudio === 'back') ? "bg-indigo-500" : "bg-slate-200"
-                      )}
-                    >
-                      <div className={cn(
-                        "w-5 h-5 bg-white rounded-full shadow-sm transition-transform duration-200 ease-in-out",
-                        (autoPlayAudio === 'always' || autoPlayAudio === 'back') ? "translate-x-6" : "translate-x-0"
-                      )} />
-                    </button>
-                  </div>
-                </div>
-
-                {/* 3. Sound Effects Toggle */}
-                <div className="flex items-center justify-between py-2 border-t border-b border-slate-100">
-                  <div className="flex flex-col">
-                    <span className="text-[11px] font-black text-slate-700">Âm thanh hiệu ứng</span>
-                    <span className="text-[9px] text-slate-400">Phát nhạc chuông khi trả lời Đúng/Sai</span>
-                  </div>
-                  <button 
-                    onClick={() => {
-                      const nextSfx = !sfxEnabled;
-                      setSfxEnabled(nextSfx);
-                      localStorage.setItem('vocaburn_sfx_enabled', nextSfx ? 'true' : 'false');
-                      saveGeneralSettings({ sfx_enabled: nextSfx });
-                    }}
-                    className={cn(
-                      "w-12 h-6 rounded-full p-0.5 transition-colors duration-200 ease-in-out relative flex items-center",
-                      sfxEnabled ? "bg-emerald-500" : "bg-slate-200"
-                    )}
-                  >
-                    <div className={cn(
-                      "w-5 h-5 rounded-full bg-white shadow-sm transform transition-transform duration-200 ease-in-out",
-                      sfxEnabled ? "translate-x-6" : "translate-x-0"
-                    )} />
-                  </button>
-                </div>
-
-                {/* 4. Actions: Copy, Ignore, Edit, Quit */}
-                <div className="pt-2 flex flex-col gap-2">
-                  <div className="grid grid-cols-2 gap-2">
-                    {showFeedback && (
-                      <button 
-                        onClick={() => {
-                          copyQuestionToClipboard();
-                          setIsSettingsModalOpen(false);
-                        }}
-                        className="col-span-2 w-full py-3 bg-amber-50 border border-amber-200/60 rounded-2xl text-amber-600 font-bold text-xs hover:bg-amber-100 shadow-sm active:scale-95 transition-all flex items-center justify-center gap-2"
-                      >
-                        <Copy className="w-4 h-4" />
-                        Copy nội dung
-                      </button>
-                    )}
-
-                    <button
-                      onClick={() => {
-                        setIsSettingsModalOpen(false);
-                        handleIgnoreQuestion();
-                      }}
-                      className={cn(
-                        "w-full py-3 border rounded-2xl font-bold text-xs shadow-sm active:scale-95 transition-all flex items-center justify-center gap-2",
-                        currentQuestion?.is_ignored 
-                          ? "bg-slate-700 border-slate-600 text-slate-300 hover:bg-slate-600"
-                          : "bg-slate-50 border-slate-200/60 text-slate-700 hover:bg-indigo-50 hover:text-indigo-600 hover:border-indigo-200"
-                      )}
-                    >
-                      {currentQuestion?.is_ignored ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
-                      Bỏ qua thẻ
-                    </button>
-
-                    <button 
-                      onClick={() => {
-                        setIsSettingsModalOpen(false);
-                        openEditModal();
-                      }}
-                      className="w-full py-3 bg-slate-50 border border-slate-200/60 rounded-2xl text-slate-700 font-bold text-xs hover:bg-indigo-50 hover:text-indigo-600 hover:border-indigo-200 shadow-sm active:scale-95 transition-all flex items-center justify-center gap-2"
-                    >
-                      <Edit3 className="w-4 h-4" />
-                      Sửa thẻ này
-                    </button>
-                  </div>
-
-                  <button 
-                    onClick={() => {
-                      setIsSettingsModalOpen(false);
-                      setIsQuitModalOpen(true);
-                    }}
-                    className="w-full py-3 bg-rose-50 border border-rose-200/60 rounded-2xl text-rose-600 font-bold text-xs hover:bg-rose-100 shadow-sm active:scale-95 transition-all flex items-center justify-center gap-2"
-                  >
-                    <X className="w-4 h-4" />
-                    Thoát phiên học
-                  </button>
-                </div>
-              </div>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
+      <PlaySettingsModal
+        isOpen={isSettingsModalOpen}
+        onClose={() => setIsSettingsModalOpen(false)}
+        activeMode={activeMode}
+        applyLearningMode={applyLearningMode}
+        autoPlayAudio={autoPlayAudio}
+        setAutoPlayAudio={setAutoPlayAudio}
+        sfxEnabled={sfxEnabled}
+        setSfxEnabled={setSfxEnabled}
+        showFeedback={showFeedback}
+        copyQuestionToClipboard={copyQuestionToClipboard}
+        currentQuestion={currentQuestion}
+        handleIgnoreQuestion={handleIgnoreQuestion}
+        openEditModal={openEditModal}
+        setIsQuitModalOpen={setIsQuitModalOpen}
+      />
 
       {/* Exit Confirmation Modal */}
       <AnimatePresence>
