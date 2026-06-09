@@ -345,6 +345,15 @@ export default function Stats() {
     }
   })
 
+  const { data: practiceStats } = useQuery({
+    queryKey: ['practiceStats'],
+    queryFn: async () => {
+      const res = await axios.get('/api/v1/deck/stats/practice')
+      return res.data
+    }
+  })
+
+
 
   const currentLeaderboard = leaderboardData?.[activeLeaderboardTab] || { list: [], user_rank: -1, user_value: 0 }
   const topThree = currentLeaderboard.list.slice(0, 3)
@@ -1103,6 +1112,129 @@ export default function Stats() {
                       </div>
                     </div>
                   )}
+
+                  {/* Practice Submode Stats */}
+                  {practiceStats && (
+                    <div className="bg-white rounded-[2.5rem] border border-slate-100 p-6 md:p-10 shadow-sm">
+                      <div className="flex items-center gap-3 mb-6">
+                        <div className="w-9 h-9 rounded-xl bg-violet-50 flex items-center justify-center text-violet-600">
+                          <BookOpen className="w-4.5 h-4.5" />
+                        </div>
+                        <div>
+                          <h3 className="text-xs md:text-sm font-black text-slate-900 uppercase tracking-widest italic leading-none">Thống Kê Luyện Tập</h3>
+                          <p className="text-[9px] font-bold text-slate-400 mt-0.5">Kết quả cộng dồn của các chế độ luyện tập</p>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        {/* MCQ Mode */}
+                        <div className="p-6 bg-slate-50/50 border border-slate-100 rounded-[2rem] flex flex-col justify-between hover:border-violet-200 transition-all">
+                          <div>
+                            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-2">Trắc Nghiệm (MCQ)</span>
+                            <div className="flex items-baseline gap-2">
+                              <span className="text-3xl font-black text-slate-900">
+                                {practiceStats.mcq.correct + practiceStats.mcq.wrong}
+                              </span>
+                              <span className="text-[10px] font-black text-slate-400 uppercase">lượt làm</span>
+                            </div>
+                            <div className="mt-4 space-y-1.5">
+                              <div className="flex justify-between text-[10px] font-semibold text-slate-500">
+                                <span>Chính xác:</span>
+                                <span className="font-bold text-emerald-600">{practiceStats.mcq.correct}</span>
+                              </div>
+                              <div className="flex justify-between text-[10px] font-semibold text-slate-500">
+                                <span>Sai sót:</span>
+                                <span className="font-bold text-rose-500">{practiceStats.mcq.wrong}</span>
+                              </div>
+                              <div className="flex justify-between text-[10px] font-semibold text-slate-500">
+                                <span>Độ chính xác:</span>
+                                <span className="font-bold text-slate-900">
+                                  {practiceStats.mcq.correct + practiceStats.mcq.wrong > 0
+                                    ? Math.round((practiceStats.mcq.correct / (practiceStats.mcq.correct + practiceStats.mcq.wrong)) * 100)
+                                    : 0}%
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+                          <div className="border-t border-slate-100 pt-4 mt-6 flex items-center justify-between text-[10px] font-black text-slate-400 uppercase">
+                            <span>Thời gian:</span>
+                            <span className="text-slate-900 font-extrabold">{Math.round(practiceStats.mcq.time_spent / 60)} phút</span>
+                          </div>
+                        </div>
+
+                        {/* Typing Mode */}
+                        <div className="p-6 bg-slate-50/50 border border-slate-100 rounded-[2rem] flex flex-col justify-between hover:border-violet-200 transition-all">
+                          <div>
+                            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-2">Gõ phím (Typing)</span>
+                            <div className="flex items-baseline gap-2">
+                              <span className="text-3xl font-black text-slate-900">
+                                {practiceStats.typing.correct + practiceStats.typing.wrong}
+                              </span>
+                              <span className="text-[10px] font-black text-slate-400 uppercase">lượt làm</span>
+                            </div>
+                            <div className="mt-4 space-y-1.5">
+                              <div className="flex justify-between text-[10px] font-semibold text-slate-500">
+                                <span>Chính xác:</span>
+                                <span className="font-bold text-emerald-600">{practiceStats.typing.correct}</span>
+                              </div>
+                              <div className="flex justify-between text-[10px] font-semibold text-slate-500">
+                                <span>Sai sót:</span>
+                                <span className="font-bold text-rose-500">{practiceStats.typing.wrong}</span>
+                              </div>
+                              <div className="flex justify-between text-[10px] font-semibold text-slate-500">
+                                <span>Độ chính xác:</span>
+                                <span className="font-bold text-slate-900">
+                                  {practiceStats.typing.correct + practiceStats.typing.wrong > 0
+                                    ? Math.round((practiceStats.typing.correct / (practiceStats.typing.correct + practiceStats.typing.wrong)) * 100)
+                                    : 0}%
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+                          <div className="border-t border-slate-100 pt-4 mt-6 flex items-center justify-between text-[10px] font-black text-slate-400 uppercase">
+                            <span>Thời gian:</span>
+                            <span className="text-slate-900 font-extrabold">{Math.round(practiceStats.typing.time_spent / 60)} phút</span>
+                          </div>
+                        </div>
+
+                        {/* Listening Mode */}
+                        <div className="p-6 bg-slate-50/50 border border-slate-100 rounded-[2rem] flex flex-col justify-between hover:border-violet-200 transition-all">
+                          <div>
+                            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-2">Luyện nghe (Listening)</span>
+                            <div className="flex items-baseline gap-2">
+                              <span className="text-3xl font-black text-slate-900">
+                                {practiceStats.listening.correct + practiceStats.listening.wrong}
+                              </span>
+                              <span className="text-[10px] font-black text-slate-400 uppercase">lượt làm</span>
+                            </div>
+                            <div className="mt-4 space-y-1.5">
+                              <div className="flex justify-between text-[10px] font-semibold text-slate-500">
+                                <span>Chính xác:</span>
+                                <span className="font-bold text-emerald-600">{practiceStats.listening.correct}</span>
+                              </div>
+                              <div className="flex justify-between text-[10px] font-semibold text-slate-500">
+                                <span>Sai sót:</span>
+                                <span className="font-bold text-rose-500">{practiceStats.listening.wrong}</span>
+                              </div>
+                              <div className="flex justify-between text-[10px] font-semibold text-slate-500">
+                                <span>Độ chính xác:</span>
+                                <span className="font-bold text-slate-900">
+                                  {practiceStats.listening.correct + practiceStats.listening.wrong > 0
+                                    ? Math.round((practiceStats.listening.correct / (practiceStats.listening.correct + practiceStats.listening.wrong)) * 100)
+                                    : 0}%
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+                          <div className="border-t border-slate-100 pt-4 mt-6 flex items-center justify-between text-[10px] font-black text-slate-400 uppercase">
+                            <span>Thời gian:</span>
+                            <span className="text-slate-900 font-extrabold">{Math.round(practiceStats.listening.time_spent / 60)} phút</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
 
                   {/* CHART CAROUSEL */}
                   <div className="bg-white rounded-[2.5rem] border border-slate-100 p-6 md:p-10 shadow-sm overflow-hidden group">

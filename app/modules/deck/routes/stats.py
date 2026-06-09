@@ -8,12 +8,48 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, delete, func, Integer, or_, and_, case
 from sqlalchemy.orm import joinedload, selectinload
 from app.core.db import get_db
-from app.modules.deck.models import UserDeckSettings, FlashcardDeck, Flashcard, UserAnswer, DeckAttempt, UserCardMastery, UserDeckGoal, UserDailyProgress, UserGlobalGoal
+from app.modules.deck.models import UserDeckSettings, FlashcardDeck, Flashcard, UserAnswer, DeckAttempt, UserCardMastery, UserDeckGoal, UserDailyProgress, UserGlobalGoal, UserPracticeStats
 from app.modules.auth.services.auth_service import AuthService
 from datetime import datetime, timezone, date, timedelta
 import math
 
 router = APIRouter(tags=["Deck Stats"])
+
+@router.get("/stats/practice")
+async def get_practice_stats(request: Request, deck_id: Optional[int] = None, db: AsyncSession = Depends(get_db)):
+    user = await AuthService.get_current_user(request, db)
+    user_id = user.id if user else 1
+    
+    query = select(
+        UserPracticeStats.practice_mode,
+        func.sum(UserPracticeStats.correct_count).label("correct"),
+        func.sum(UserPracticeStats.wrong_count).label("wrong"),
+        func.sum(UserPracticeStats.total_time_spent).label("time_spent")
+    ).where(UserPracticeStats.user_id == user_id)
+    
+    if deck_id:
+        query = query.join(Flashcard, UserPracticeStats.card_id == Flashcard.id).where(Flashcard.deck_id == deck_id)
+        
+    query = query.group_by(UserPracticeStats.practice_mode)
+    res = await db.execute(query)
+    
+    stats_data = {
+        "mcq": {"correct": 0, "wrong": 0, "time_spent": 0.0},
+        "typing": {"correct": 0, "wrong": 0, "time_spent": 0.0},
+        "listening": {"correct": 0, "wrong": 0, "time_spent": 0.0}
+    }
+    
+    for row in res.all():
+        mode = row.practice_mode
+        if mode in stats_data:
+            stats_data[mode] = {
+                "correct": int(row.correct or 0),
+                "wrong": int(row.wrong or 0),
+                "time_spent": float(row.time_spent or 0.0)
+            }
+            
+    return stats_data
+
 
 @router.get("/stats")
 async def get_deck_stats(db: AsyncSession = Depends(get_db)):

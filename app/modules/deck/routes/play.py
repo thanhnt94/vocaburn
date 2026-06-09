@@ -181,6 +181,7 @@ async def record_answer(request: Request, data: dict, db: AsyncSession = Depends
 
         # --- FSRS v6 Spaced Repetition Mastery Levels ---
         is_practice = data.get("is_practice", False)
+        practice_mode = data.get("practice_mode", "mcq")  # mcq, typing, listening
         
         if not is_practice:
             from fsrs import Card, Scheduler, Rating, State
@@ -306,7 +307,34 @@ async def record_answer(request: Request, data: dict, db: AsyncSession = Depends
                 "intervals": next_intervals
             }
         else:
+            from app.modules.deck.models import UserPracticeStats
+            p_stats_res = await db.execute(
+                select(UserPracticeStats).where(
+                    UserPracticeStats.user_id == user_id,
+                    UserPracticeStats.card_id == card_id,
+                    UserPracticeStats.practice_mode == practice_mode
+                )
+            )
+            p_stats = p_stats_res.scalar_one_or_none()
+            if not p_stats:
+                p_stats = UserPracticeStats(
+                    user_id=user_id,
+                    card_id=card_id,
+                    practice_mode=practice_mode,
+                    correct_count=0,
+                    wrong_count=0,
+                    total_time_spent=0.0
+                )
+                db.add(p_stats)
+            
+            if is_correct:
+                p_stats.correct_count += 1
+            else:
+                p_stats.wrong_count += 1
+            p_stats.total_time_spent += float(time_spent)
+            await db.flush()
             mastery_update_info = None
+
         
         # --- Goal Progress Tracking Logic ---
         from app.modules.deck.models import UserDeckGoal, UserDailyProgress

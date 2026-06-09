@@ -221,3 +221,20 @@ class UserGlobalGoal(Base):
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     user = relationship("User")
+
+
+class UserPracticeStats(Base):
+    __tablename__ = "user_practice_stats"
+    __table_args__ = (UniqueConstraint("user_id", "question_id", "practice_mode", name="uq_user_card_mode"),)
+    
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), index=True)
+    card_id = Column("question_id", Integer, ForeignKey("flashcards.id"), index=True)
+    practice_mode = Column(String(50), default="mcq")  # mcq, typing, listening
+    correct_count = Column(Integer, default=0)
+    wrong_count = Column(Integer, default=0)
+    total_time_spent = Column(Float, default=0.0)      # total time spent on this card in seconds
+    last_practiced = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    card = relationship("Flashcard")
+

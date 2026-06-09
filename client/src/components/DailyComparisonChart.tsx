@@ -1,5 +1,5 @@
 import React from 'react';
-import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts';
+import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ReferenceLine } from 'recharts';
 import { TrendingUp, ArrowUpRight, ArrowDownRight, Minus, BookOpen, Layers, Zap } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -30,6 +30,13 @@ export default function DailyComparisonChart({ data, isLoading }: DailyCompariso
   // Today is the last element in the 14-day array
   const todayData = data.length > 0 ? data[data.length - 1] : { date: "", new_cards: 0, unique_cards: 0, total_reviews: 0 };
   const yesterdayData = data.length > 1 ? data[data.length - 2] : { date: "", new_cards: 0, unique_cards: 0, total_reviews: 0 };
+
+  // Calculate Averages
+  const validDays = data.filter(d => d !== undefined);
+  const totalDays = validDays.length || 1;
+  const avgNewCards = Math.round(validDays.reduce((acc, d) => acc + (d.new_cards || 0), 0) / totalDays * 10) / 10;
+  const avgUniqueCards = Math.round(validDays.reduce((acc, d) => acc + (d.unique_cards || 0), 0) / totalDays * 10) / 10;
+  const avgTotalReviews = Math.round(validDays.reduce((acc, d) => acc + (d.total_reviews || 0), 0) / totalDays * 10) / 10;
 
   const formatLabel = (dateStr: string) => {
     if (!dateStr) return "";
@@ -75,6 +82,18 @@ export default function DailyComparisonChart({ data, isLoading }: DailyCompariso
     }
   };
 
+  const renderDeltaMini = (todayVal: number, avgVal: number) => {
+    const diff = todayVal - avgVal;
+    const formattedDiff = diff > 0 ? `+${diff.toFixed(1)}` : diff.toFixed(1);
+    if (diff > 0) {
+      return <span className="text-emerald-600 font-extrabold">(↑ {formattedDiff})</span>;
+    } else if (diff < 0) {
+      return <span className="text-rose-600 font-extrabold">(↓ {formattedDiff})</span>;
+    } else {
+      return <span className="text-slate-500 font-extrabold">(=)</span>;
+    }
+  };
+
   return (
     <div className="bg-white border border-slate-200/60 rounded-[2.5rem] p-6 shadow-sm flex flex-col gap-5 text-left relative overflow-hidden flex-shrink-0">
       <div className="absolute -right-8 -top-8 w-24 h-24 rounded-full bg-indigo-50/20 blur-md pointer-events-none" />
@@ -87,7 +106,7 @@ export default function DailyComparisonChart({ data, isLoading }: DailyCompariso
           </div>
           <div>
             <h3 className="text-xs sm:text-sm font-black text-slate-900 uppercase tracking-widest italic leading-none">Hiệu suất hàng ngày</h3>
-            <p className="text-[9px] font-bold text-slate-400 mt-1">So sánh học tập hôm nay vs hôm qua</p>
+            <p className="text-[9px] font-bold text-slate-400 mt-1">So sánh học tập hôm nay vs hôm qua & trung bình 14 ngày</p>
           </div>
         </div>
       </div>
@@ -104,7 +123,10 @@ export default function DailyComparisonChart({ data, isLoading }: DailyCompariso
             <span className="text-lg font-black text-slate-800 leading-none">{todayData.new_cards}</span>
             {renderDelta(todayData.new_cards, yesterdayData.new_cards)}
           </div>
-          <span className="text-[7.5px] font-bold text-slate-400 mt-1.5">Hôm qua: {yesterdayData.new_cards}</span>
+          <div className="flex flex-col gap-0.5 mt-1.5 text-[7.5px] font-bold text-slate-400">
+            <span>Hôm qua: {yesterdayData.new_cards}</span>
+            <span className="flex items-center gap-1">TB: {avgNewCards} {renderDeltaMini(todayData.new_cards, avgNewCards)}</span>
+          </div>
         </div>
 
         {/* Unique Cards */}
@@ -117,7 +139,10 @@ export default function DailyComparisonChart({ data, isLoading }: DailyCompariso
             <span className="text-lg font-black text-slate-800 leading-none">{todayData.unique_cards}</span>
             {renderDelta(todayData.unique_cards, yesterdayData.unique_cards)}
           </div>
-          <span className="text-[7.5px] font-bold text-slate-400 mt-1.5">Hôm qua: {yesterdayData.unique_cards}</span>
+          <div className="flex flex-col gap-0.5 mt-1.5 text-[7.5px] font-bold text-slate-400">
+            <span>Hôm qua: {yesterdayData.unique_cards}</span>
+            <span className="flex items-center gap-1">TB: {avgUniqueCards} {renderDeltaMini(todayData.unique_cards, avgUniqueCards)}</span>
+          </div>
         </div>
 
         {/* Total Reviews */}
@@ -130,7 +155,10 @@ export default function DailyComparisonChart({ data, isLoading }: DailyCompariso
             <span className="text-lg font-black text-slate-800 leading-none">{todayData.total_reviews}</span>
             {renderDelta(todayData.total_reviews, yesterdayData.total_reviews)}
           </div>
-          <span className="text-[7.5px] font-bold text-slate-400 mt-1.5">Hôm qua: {yesterdayData.total_reviews}</span>
+          <div className="flex flex-col gap-0.5 mt-1.5 text-[7.5px] font-bold text-slate-400">
+            <span>Hôm qua: {yesterdayData.total_reviews}</span>
+            <span className="flex items-center gap-1">TB: {avgTotalReviews} {renderDeltaMini(todayData.total_reviews, avgTotalReviews)}</span>
+          </div>
         </div>
       </div>
 
@@ -168,6 +196,11 @@ export default function DailyComparisonChart({ data, isLoading }: DailyCompariso
               }}
               cursor={{ fill: '#f8fafc' }}
             />
+            {/* Reference lines for daily averages */}
+            <ReferenceLine y={avgNewCards} stroke="#f59e0b" strokeDasharray="3 3" strokeWidth={1} strokeOpacity={0.6} />
+            <ReferenceLine y={avgUniqueCards} stroke="#10b981" strokeDasharray="3 3" strokeWidth={1} strokeOpacity={0.6} />
+            <ReferenceLine y={avgTotalReviews} stroke="#6366f1" strokeDasharray="3 3" strokeWidth={1} strokeOpacity={0.6} />
+
             <Bar dataKey="new_cards" fill="#f59e0b" radius={[3, 3, 0, 0]} maxBarSize={10} />
             <Bar dataKey="unique_cards" fill="#10b981" radius={[3, 3, 0, 0]} maxBarSize={10} />
             <Bar dataKey="total_reviews" fill="#6366f1" radius={[3, 3, 0, 0]} maxBarSize={10} />
@@ -176,18 +209,23 @@ export default function DailyComparisonChart({ data, isLoading }: DailyCompariso
       </div>
 
       {/* Legend */}
-      <div className="flex justify-center gap-4 border-t border-slate-50 pt-3 flex-wrap">
-        <div className="flex items-center gap-1.5">
-          <div className="w-2.5 h-2.5 rounded bg-amber-500" />
-          <span className="text-[8px] font-black text-slate-500 uppercase tracking-widest">Thẻ mới</span>
+      <div className="flex flex-col gap-2 border-t border-slate-50 pt-3">
+        <div className="flex justify-center gap-4 flex-wrap">
+          <div className="flex items-center gap-1.5">
+            <div className="w-2.5 h-2.5 rounded bg-amber-500" />
+            <span className="text-[8px] font-black text-slate-500 uppercase tracking-widest">Thẻ mới</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <div className="w-2.5 h-2.5 rounded bg-emerald-500" />
+            <span className="text-[8px] font-black text-slate-500 uppercase tracking-widest">Đã ôn (Unique)</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <div className="w-2.5 h-2.5 rounded bg-indigo-500" />
+            <span className="text-[8px] font-black text-slate-500 uppercase tracking-widest">Lượt ôn</span>
+          </div>
         </div>
-        <div className="flex items-center gap-1.5">
-          <div className="w-2.5 h-2.5 rounded bg-emerald-500" />
-          <span className="text-[8px] font-black text-slate-500 uppercase tracking-widest">Đã ôn (Unique)</span>
-        </div>
-        <div className="flex items-center gap-1.5">
-          <div className="w-2.5 h-2.5 rounded bg-indigo-500" />
-          <span className="text-[8px] font-black text-slate-500 uppercase tracking-widest">Lượt ôn</span>
+        <div className="text-center text-[7.5px] font-bold text-slate-400 italic">
+          * Đường nét đứt (---) tương ứng trên biểu đồ biểu thị giá trị Trung bình (TB) của từng chỉ số
         </div>
       </div>
     </div>
