@@ -1055,7 +1055,8 @@ export default function FlashcardPlay() {
 
       axios.get('/api/v1/stats/daily-comparison')
         .then(dcRes => {
-          setDailyComparisonData(dcRes.data)
+          setDailyComparisonData(dcRes.data?.days || [])
+          setDailyComparisonAvg(dcRes.data?.all_time_avg || null)
         })
         .catch(e => console.error("Failed to load daily comparison in background", e))
 
