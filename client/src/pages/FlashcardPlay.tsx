@@ -3240,9 +3240,6 @@ export default function FlashcardPlay() {
             <h1 className="text-[11px] font-black text-slate-700 truncate max-w-[200px] md:max-w-md leading-tight">{session.title}</h1>
             <div className="flex items-center gap-1.5 mt-0.5">
               <span className="text-[11px] font-black text-indigo-600">{gamify.xp} XP</span>
-              <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-gradient-to-r from-indigo-500 to-purple-500 text-white text-[8px] font-black shadow-sm shadow-indigo-200">
-                 <span>+{sessionXP}</span>
-              </div>
               {streak >= 2 && (
                 <div className="flex items-center gap-0.5 px-2 py-0.5 rounded-full bg-gradient-to-r from-orange-500 to-red-500 text-white text-[8px] font-black shadow-sm shadow-orange-200">
                   <Flame className="w-3 h-3 fill-white" />
@@ -3253,20 +3250,22 @@ export default function FlashcardPlay() {
           </div>
         </div>
         <div className="flex items-center gap-1.5">
-          <div className={cn(
-            "flex items-center gap-1 px-2 py-1 rounded-lg text-white shadow-md text-[10px] font-black transition-all",
-            !showFeedback ? "bg-gradient-to-r from-slate-800 to-slate-900 shadow-slate-300" : "bg-gradient-to-r from-emerald-500 to-teal-500 shadow-emerald-200"
-          )}>
-            <Timer className={cn("w-3 h-3", !showFeedback && "animate-pulse")} />
-            <span>{timeLeft}s</span>
-          </div>
-
-          {activeMode === 'fsrs' && dueCardsCount > 0 && (
-            <div className="flex items-center gap-1 px-2 py-1 rounded-lg bg-amber-500 text-white shadow-md shadow-amber-200 text-[10px] font-black" title="Số thẻ ôn tập còn lại">
-              <Brain className="w-3 h-3 animate-pulse" />
-              <span>{dueCardsCount}</span>
+          <div className="flex flex-col gap-0.5 items-end">
+            <div className={cn(
+              "flex items-center gap-0.5 px-1.5 py-0.5 rounded text-white shadow-sm text-[8px] font-black transition-all",
+              !showFeedback ? "bg-gradient-to-r from-slate-800 to-slate-900 shadow-slate-300" : "bg-gradient-to-r from-emerald-500 to-teal-500 shadow-emerald-200"
+            )}>
+              <Timer className={cn("w-2.5 h-2.5", !showFeedback && "animate-pulse")} />
+              <span>{timeLeft}s</span>
             </div>
-          )}
+
+            {activeMode === 'fsrs' && dueCardsCount > 0 && (
+              <div className="flex items-center gap-0.5 px-1.5 py-0.5 rounded bg-amber-500 text-white shadow-sm shadow-amber-200 text-[8px] font-black" title="Số thẻ ôn tập còn lại">
+                <Brain className="w-2.5 h-2.5 animate-pulse" />
+                <span>{dueCardsCount}</span>
+              </div>
+            )}
+          </div>
 
           {/* Card Map button moved to header */}
           <button 
@@ -3580,7 +3579,7 @@ export default function FlashcardPlay() {
         </aside>
 
         <div className="w-full max-w-4xl min-w-0 flex flex-col overflow-hidden h-full">
-          <div className="flex-1 flex flex-col overflow-hidden md:pr-2 md:pb-2 pr-0 pb-24 xl:pb-0">
+          <div className="flex-1 flex flex-col overflow-hidden md:pr-2 md:pb-2 pr-0 pb-[76px] xl:pb-0">
             
 
           <AnimatePresence mode="wait">

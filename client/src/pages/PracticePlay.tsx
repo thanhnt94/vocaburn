@@ -3148,18 +3148,15 @@ export default function PracticePlay() {
         )}
       </AnimatePresence>
 
-      <header className="sticky top-0 flex-shrink-0 z-[120] bg-white/90 backdrop-blur-2xl border-b border-slate-100/80 px-4 py-2.5 flex items-center justify-between shadow-[0_1px_20px_rgba(99,102,241,0.06)]">
+      <header className="sticky top-0 flex-shrink-0 z-[120] bg-white/90 backdrop-blur-2xl border-b border-slate-100/80 px-4 py-2 flex items-center justify-between shadow-[0_1px_20px_rgba(99,102,241,0.06)]">
         <div className="flex items-center gap-3">
           <button onClick={() => navigate('/')} className="w-9 h-9 flex items-center justify-center bg-indigo-50 border border-indigo-100 rounded-xl text-indigo-600 shadow-sm hover:bg-indigo-100 active:scale-90 transition-all">
             <ChevronLeft className="w-4 h-4" />
           </button>
           <div className="flex flex-col">
-            <h1 className="text-[11px] font-black text-slate-700 truncate max-w-[200px] md:max-w-md leading-tight">{session.title}</h1>
+            <h1 className="text-[11px] font-black text-slate-700 truncate max-w-[180px] md:max-w-md leading-tight">{session.title}</h1>
             <div className="flex items-center gap-1.5 mt-0.5">
               <span className="text-[11px] font-black text-indigo-600">{gamify.xp} XP</span>
-              <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-gradient-to-r from-indigo-500 to-purple-500 text-white text-[8px] font-black shadow-sm shadow-indigo-200">
-                <span>+{sessionXP}</span>
-              </div>
               {streak >= 2 && (
                 <div className="flex items-center gap-0.5 px-2 py-0.5 rounded-full bg-gradient-to-r from-orange-500 to-red-500 text-white text-[8px] font-black shadow-sm shadow-orange-200">
                   <Flame className="w-3 h-3 fill-white" />
@@ -3171,16 +3168,16 @@ export default function PracticePlay() {
         </div>
         <div className="flex items-center gap-1.5">
           <div className={cn(
-            "flex items-center gap-1 px-2 py-1 rounded-lg text-white shadow-md text-[10px] font-black transition-all",
+            "flex items-center gap-0.5 px-1.5 py-0.5 rounded text-white shadow-sm text-[8px] font-black transition-all",
             !showFeedback ? "bg-gradient-to-r from-slate-800 to-slate-900 shadow-slate-300" : "bg-gradient-to-r from-emerald-500 to-teal-500 shadow-emerald-200"
           )}>
-            <Timer className={cn("w-3 h-3", !showFeedback && "animate-pulse")} />
+            <Timer className={cn("w-2.5 h-2.5", !showFeedback && "animate-pulse")} />
             <span>{timeLeft}s</span>
           </div>
 
           <button
             onClick={() => setIsSettingsModalOpen(true)}
-            className="w-8.5 h-8.5 flex items-center justify-center bg-slate-50 border border-slate-200 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 hover:border-indigo-200 rounded-xl transition-all active:scale-90 shadow-sm"
+            className="w-8.5 h-8.5 flex items-center justify-center bg-slate-50 border border-slate-200 rounded-xl text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 hover:border-indigo-200 shadow-sm active:scale-90 transition-all"
             title="Cài đặt & Tùy chọn"
           >
             <Settings className="w-4 h-4" />
@@ -3623,7 +3620,7 @@ export default function PracticePlay() {
         </aside>
 
         <div className="w-full max-w-4xl min-w-0 flex flex-col overflow-hidden h-full">
-          <div className="flex-1 flex flex-col overflow-hidden md:pr-2 md:pb-2 pr-0 pb-24 xl:pb-0">
+          <div className="flex-1 flex flex-col overflow-hidden md:pr-2 md:pb-2 pr-0 pb-[76px] xl:pb-0">
 
 
             <AnimatePresence mode="wait">
