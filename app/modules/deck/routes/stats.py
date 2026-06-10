@@ -703,12 +703,14 @@ async def get_global_goals(request: Request, db: AsyncSession = Depends(get_db))
         DeckAttempt, UserAnswer.attempt_id == DeckAttempt.id
     ).where(
         DeckAttempt.user_id == user_id,
+        DeckAttempt.mode == "play",
         UserAnswer.created_at >= today,
         ~UserAnswer.card_id.in_(
             select(UserAnswer.card_id).join(
                 DeckAttempt, UserAnswer.attempt_id == DeckAttempt.id
             ).where(
                 DeckAttempt.user_id == user_id,
+                DeckAttempt.mode == "play",
                 UserAnswer.created_at < today
             )
         )

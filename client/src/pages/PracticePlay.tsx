@@ -282,6 +282,7 @@ export default function PracticePlay() {
   const [isStatsOpen, setIsStatsOpen] = useState(false)
   const [activeStatsTab, setActiveStatsTab] = useState<'performance' | 'goals' | 'leaderboard'>('performance')
   const [dailyComparisonData, setDailyComparisonData] = useState<any[] | null>(null)
+  const [dailyComparisonAvg, setDailyComparisonAvg] = useState<any | null>(null)
   const [isDailyComparisonLoading, setIsDailyComparisonLoading] = useState(true)
   const [isFeedbackOpen, setIsFeedbackOpen] = useState(false)
   const [isQuitModalOpen, setIsQuitModalOpen] = useState(false)
@@ -871,7 +872,8 @@ export default function PracticePlay() {
       }).catch(e => console.error("Failed to load leaderboard", e))
 
       axios.get('/api/v1/stats/daily-comparison').then(res => {
-        setDailyComparisonData(res.data)
+        setDailyComparisonData(res.data?.days || [])
+        setDailyComparisonAvg(res.data?.all_time_avg || null)
         setIsDailyComparisonLoading(false)
       }).catch(e => {
         console.error("Failed to load daily comparison", e)
@@ -4380,6 +4382,7 @@ export default function PracticePlay() {
         activeStatsTab={activeStatsTab}
         setActiveStatsTab={setActiveStatsTab}
         dailyComparisonData={dailyComparisonData || []}
+        dailyComparisonAvg={dailyComparisonAvg}
         isDailyComparisonLoading={isDailyComparisonLoading}
         activeGoal={activeGoal}
         activeMode={activeMode}

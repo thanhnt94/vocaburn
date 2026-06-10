@@ -145,6 +145,7 @@ async def record_answer(request: Request, data: dict, db: AsyncSession = Depends
     time_spent = int(data.get("time_spent", 0))
     card_id = int(data.get("card_id", data.get("question_id", 0)))
     local_date = data.get("local_date")
+    is_practice = data.get("is_practice", False)
 
     # Map incoming rating or fall back to is_correct early
     rating_val = data.get("rating")
@@ -162,10 +163,19 @@ async def record_answer(request: Request, data: dict, db: AsyncSession = Depends
     is_originally_new = False
 
     if card:
-        attempt_res = await db.execute(select(DeckAttempt).filter(DeckAttempt.user_id == user_id, DeckAttempt.deck_id == card.deck_id).order_by(DeckAttempt.id.desc()))
+        attempt_mode = "practice" if is_practice else "play"
+        attempt_res = await db.execute(
+            select(DeckAttempt)
+            .filter(
+                DeckAttempt.user_id == user_id,
+                DeckAttempt.deck_id == card.deck_id,
+                DeckAttempt.mode == attempt_mode
+            )
+            .order_by(DeckAttempt.id.desc())
+        )
         attempt = attempt_res.scalar()
         if not attempt:
-            attempt = DeckAttempt(user_id=user_id, deck_id=card.deck_id, mode="play")
+            attempt = DeckAttempt(user_id=user_id, deck_id=card.deck_id, mode=attempt_mode)
             db.add(attempt)
             await db.flush()
 
@@ -180,7 +190,6 @@ async def record_answer(request: Request, data: dict, db: AsyncSession = Depends
         await db.flush()
 
         # --- FSRS v6 Spaced Repetition Mastery Levels ---
-        is_practice = data.get("is_practice", False)
         practice_mode = data.get("practice_mode", "mcq")  # mcq, typing, listening
         
         if not is_practice:
@@ -429,21 +438,34 @@ async def record_answer(request: Request, data: dict, db: AsyncSession = Depends
     is_first_ever = data.get("is_first_ever", False)
 
     base_xp = 0
-    if rating_val == 4:
-        base_xp = 7
-    elif rating_val == 3:
-        base_xp = 6
-    elif rating_val == 2:
-        base_xp = 5
-    else:
-        base_xp = 1
-        
     bonus_xp_gained = 0
-    if is_first_ever:
-        bonus_xp_gained += 10
-    if session_streak >= 5:
-        bonus_xp_gained += 1
-        
+    if is_practice:
+        practice_mode = data.get("practice_mode", "mcq")
+        if is_correct:
+            if practice_mode == "typing":
+                base_xp = 5
+            else:  # mcq, listening
+                base_xp = 3
+            if session_streak >= 5:
+                bonus_xp_gained = 1
+        else:
+            base_xp = 1
+            bonus_xp_gained = 0
+    else:
+        if rating_val == 4:
+            base_xp = 7
+        elif rating_val == 3:
+            base_xp = 6
+        elif rating_val == 2:
+            base_xp = 5
+        else:
+            base_xp = 1
+            
+        if is_first_ever:
+            bonus_xp_gained += 10
+        if session_streak >= 5:
+            bonus_xp_gained += 1
+            
     xp_gain = base_xp + bonus_xp_gained
     gamify_res = await GamificationInterface.add_xp(db, user_id, xp_gain, source="deck_answer")
     has_leveled_up = gamify_res["level_up"]
