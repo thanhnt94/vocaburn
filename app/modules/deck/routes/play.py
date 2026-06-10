@@ -64,6 +64,43 @@ def build_fsrs_card(mastery, now_utc):
     return fsrs_card
 
 
+def apply_stability_boost(card_copy, rating_val, scheduler) -> float:
+    from fsrs import State
+    stability = card_copy.stability
+    if stability is None or card_copy.state != State.Review:
+        return stability
+
+    try:
+        r_val = int(rating_val)
+    except (TypeError, ValueError):
+        r_val = 3
+
+    # Calculate float_interval_days using the current stability
+    float_interval_days = (stability / scheduler._FACTOR) * (
+        (scheduler.desired_retention ** (1 / scheduler._DECAY)) - 1
+    )
+
+    if float_interval_days < 1.0 and r_val > 1:
+        # Boost mapping:
+        # Rating 2 (Hard): boost by 2.0
+        # Rating 3 (Good): boost by 3.5
+        # Rating 4 (Easy): boost by 5.0
+        boost_map = {
+            2: 2.0,
+            3: 3.5,
+            4: 5.0
+        }
+        boost_factor = boost_map.get(r_val, 1.0)
+        stability = stability * boost_factor
+
+        # Ensure a minimum stability so stability doesn't get stuck near 0
+        min_stability = 0.2
+        if stability < min_stability:
+            stability = min_stability
+
+    return stability
+
+
 def estimate_intervals(scheduler, card, now_utc) -> dict:
     from fsrs import Rating, State
     intervals = {}
@@ -71,6 +108,9 @@ def estimate_intervals(scheduler, card, now_utc) -> dict:
         try:
             card_copy, _ = scheduler.review_card(card, r_enum, now_utc)
             if card_copy.state == State.Review:
+                # Apply stability boost if interval is sub-1-day
+                card_copy.stability = apply_stability_boost(card_copy, r_val, scheduler)
+                
                 float_interval_days = (card_copy.stability / scheduler._FACTOR) * (
                     (scheduler.desired_retention ** (1 / scheduler._DECAY)) - 1
                 )
@@ -237,6 +277,10 @@ async def record_answer(request: Request, data: dict, db: AsyncSession = Depends
             # Run FSRS v6 scheduler with enable_fuzzing=False
             scheduler = Scheduler(enable_fuzzing=False)
             updated_card, review_log = scheduler.review_card(fsrs_card, rating_enum, now_utc)
+            
+            # Apply stability boost if it is Review state
+            if updated_card.state == State.Review:
+                updated_card.stability = apply_stability_boost(updated_card, rating_val, scheduler)
             
             # Save back FSRS properties
             mastery.stability = updated_card.stability
@@ -725,6 +769,10 @@ async def undo_answer(request: Request, data: dict, db: AsyncSession = Depends(g
             ans_rating_enum = ans_rating_map.get(ans.rating, Rating.Good)
             ans_time = ans.created_at.replace(tzinfo=timezone.utc) if ans.created_at else now_utc
             temp_card, _ = scheduler.review_card(temp_card, ans_rating_enum, ans_time)
+            
+            # Apply stability boost at each step of simulation if in State.Review
+            if temp_card.state == State.Review:
+                temp_card.stability = apply_stability_boost(temp_card, ans.rating, scheduler)
 
         if mastery:
             mastery.stability = temp_card.stability
