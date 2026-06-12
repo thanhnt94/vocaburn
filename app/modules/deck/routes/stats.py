@@ -133,6 +133,30 @@ async def get_active_goals(request: Request, local_date: Optional[str] = None, d
     )
     progress_map = {p.goal_id: p for p in prog_res.scalars().all()}
 
+    # Calculate daily new cards count dynamically from UserAnswer to ensure consistency
+    today = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
+    prior_answers_sub = select(UserAnswer.card_id).join(
+        DeckAttempt, UserAnswer.attempt_id == DeckAttempt.id
+    ).where(
+        DeckAttempt.user_id == user_id,
+        DeckAttempt.mode == "play",
+        UserAnswer.created_at < today
+    )
+    
+    deck_progress_res = await db.execute(
+        select(Flashcard.deck_id, func.count(func.distinct(UserAnswer.card_id)))
+        .join(UserAnswer, UserAnswer.card_id == Flashcard.id)
+        .join(DeckAttempt, UserAnswer.attempt_id == DeckAttempt.id)
+        .where(
+            DeckAttempt.user_id == user_id,
+            DeckAttempt.mode == "play",
+            UserAnswer.created_at >= today,
+            ~UserAnswer.card_id.in_(prior_answers_sub)
+        )
+        .group_by(Flashcard.deck_id)
+    )
+    deck_progress_map = {r[0]: r[1] for r in deck_progress_res.all()}
+
     # Bulk query total cards count grouped by deck_id
     c_count_res = await db.execute(
         select(Flashcard.deck_id, func.count(Flashcard.id))
@@ -179,8 +203,8 @@ async def get_active_goals(request: Request, local_date: Optional[str] = None, d
         total_learned = learned_map.get(goal.deck_id, 0)
         
         progress = progress_map.get(goal.id)
-        done_today = progress.count_done if progress else 0
-        is_target_met = progress.is_target_met if progress else False
+        done_today = deck_progress_map.get(goal.deck_id, 0)
+        is_target_met = (progress.is_target_met if progress else False) or (done_today >= goal.daily_target)
         
         remaining_cs = max(0, total_cards - total_learned)
         days_remaining_est = math.ceil(remaining_cs / goal.daily_target) if goal.daily_target > 0 else 0

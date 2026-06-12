@@ -30,7 +30,7 @@ export function usePlaySettings(
       };
       setModeSettings(updatedSettings);
       await axios.post(`/api/v1/deck/${deckId}/practice-settings`, {
-        settings: updatedSettings,
+        settings: updates, // ONLY send the changed fields to backend to merge
         is_creator: false
       });
     } catch (err) {

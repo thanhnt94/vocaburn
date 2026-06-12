@@ -390,7 +390,7 @@ async def record_answer(request: Request, data: dict, db: AsyncSession = Depends
 
         
         # --- Goal Progress Tracking Logic ---
-        from app.modules.deck.models import UserDeckGoal, UserDailyProgress
+        from app.modules.deck.models import UserDeckGoal, UserDailyProgress, Flashcard, UserAnswer, DeckAttempt
         goal_res = await db.execute(
             select(UserDeckGoal).filter(
                 UserDeckGoal.user_id == user_id, 
@@ -412,11 +412,36 @@ async def record_answer(request: Request, data: dict, db: AsyncSession = Depends
             )
             progress = prog_res.scalar_one_or_none()
             if not progress:
+                # Count other new cards studied today in play mode for this deck to avoid mismatch
+                today = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
+                prior_answers_sub = select(UserAnswer.card_id).join(
+                    DeckAttempt, UserAnswer.attempt_id == DeckAttempt.id
+                ).where(
+                    DeckAttempt.user_id == user_id,
+                    DeckAttempt.mode == "play",
+                    UserAnswer.created_at < today
+                )
+                
+                count_today_res = await db.execute(
+                    select(func.count(func.distinct(UserAnswer.card_id)))
+                    .join(Flashcard, UserAnswer.card_id == Flashcard.id)
+                    .join(DeckAttempt, UserAnswer.attempt_id == DeckAttempt.id)
+                    .where(
+                        DeckAttempt.user_id == user_id,
+                        DeckAttempt.mode == "play",
+                        Flashcard.deck_id == goal.deck_id,
+                        UserAnswer.created_at >= today,
+                        UserAnswer.card_id != card_id,
+                        ~UserAnswer.card_id.in_(prior_answers_sub)
+                    )
+                )
+                actual_done_today = count_today_res.scalar() or 0
+
                 progress = UserDailyProgress(
                     goal_id=goal.id,
                     date=today_str,
-                    count_done=0,
-                    is_target_met=False
+                    count_done=actual_done_today,
+                    is_target_met=(actual_done_today >= goal.daily_target)
                 )
                 db.add(progress)
                 await db.flush()
