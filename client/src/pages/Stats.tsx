@@ -17,7 +17,7 @@ import DailyComparisonChart from '@/components/DailyComparisonChart'
 interface PersonalStats {
   daily_activity: Array<{ date: string, attempted: number, correct: number, accuracy: number, time_minutes: number }>
   category_performance: Array<{ category: string, total: number, correct: number, accuracy: number, avg_time: number }>
-  hourly_distribution: Array<{ hour: string, count: number }>
+  hourly_distribution: Array<{ hour: string, count: number, average: number }>
   recent_sessions: Array<{ title: string, score: number, total: number, date: string }>
   summary: { total_questions: number, total_correct: number, total_time_hours: number, global_accuracy: number }
 }
@@ -384,10 +384,10 @@ export default function Stats() {
     },
     {
       title: "Peak Hours",
-      subtitle: "Learning activity by hour",
+      subtitle: "Average cards reviewed per day by UTC hour",
       icon: Clock,
       data: personal.hourly_distribution,
-      key: "count",
+      key: "average",
       color: "#f59e0b",
       type: "bar"
     }
@@ -1314,12 +1314,27 @@ export default function Stats() {
                                           />
                                           <Tooltip 
                                             cursor={{fill: '#f8fafc'}}
-                                            contentStyle={{ borderRadius: '1rem', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)', fontSize: '10px', fontWeight: 900 }}
+                                            content={({ active, payload }: any) => {
+                                              if (active && payload && payload.length) {
+                                                const d = payload[0].payload;
+                                                return (
+                                                  <div className="bg-slate-900 text-white p-3 rounded-2xl border border-slate-800 text-[10px] font-black uppercase tracking-wider shadow-xl flex flex-col gap-1.5">
+                                                    <p className="text-slate-400 font-bold border-b border-slate-800 pb-1">Khung giờ: {d.hour} (UTC)</p>
+                                                    <p className="text-amber-400 font-black">Trung bình: <span className="text-white font-extrabold">{d.average ?? 0} thẻ/ngày</span></p>
+                                                    <p className="text-indigo-400 font-black">Tổng đã học: <span className="text-white font-extrabold">{d.count} thẻ</span></p>
+                                                  </div>
+                                                );
+                                              }
+                                              return null;
+                                            }}
                                           />
-                                          <Bar dataKey="count" radius={[4, 4, 4, 4]}>
-                                             {(charts[activeChart].data as any[]).map((entry: any, index: number) => (
-                                                <Cell key={`cell-${index}`} fill={entry.count > 0 ? charts[activeChart].color : '#f1f5f9'} />
-                                             ))}
+                                          <Bar dataKey={charts[activeChart].key} radius={[4, 4, 4, 4]}>
+                                             {(charts[activeChart].data as any[]).map((entry: any, index: number) => {
+                                                const val = entry[charts[activeChart].key] || 0;
+                                                return (
+                                                   <Cell key={`cell-${index}`} fill={val > 0 ? charts[activeChart].color : '#f1f5f9'} />
+                                                );
+                                             })}
                                           </Bar>
                                        </BarChart>
                                     )}

@@ -145,6 +145,15 @@ class AnalyticsService:
         }
 
         # 4. Hourly Distribution (Study Hours)
+        active_days_stmt = select(
+            func.count(func.distinct(func.date(UserAnswer.created_at)))
+        ).select_from(UserAnswer)\
+         .join(DeckAttempt, UserAnswer.attempt_id == DeckAttempt.id)\
+         .where(DeckAttempt.user_id == user_id)
+        
+        active_days_res = await db.execute(active_days_stmt)
+        active_days_count = active_days_res.scalar() or 1
+
         hour_stmt = select(
             extract('hour', UserAnswer.created_at).label("hour"),
             func.count(UserAnswer.id).label("count")
@@ -159,7 +168,14 @@ class AnalyticsService:
             h = int(row[0]) if row[0] is not None else 0
             hourly_data[h] = row[1]
         
-        hourly_formatted = [{"hour": f"{h:02d}:00", "count": count} for h, count in hourly_data.items()]
+        hourly_formatted = [
+            {
+                "hour": f"{h:02d}:00",
+                "count": count,
+                "average": round(count / active_days_count, 2)
+            }
+            for h, count in hourly_data.items()
+        ]
 
         # 5. Recent Sessions
         recent_stmt = select(
