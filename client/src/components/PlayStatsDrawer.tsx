@@ -54,7 +54,7 @@ export const PlayStatsDrawer: React.FC<PlayStatsDrawerProps> = ({
           initial={{ opacity: 0, y: 50 }} 
           animate={{ opacity: 1, y: 0 }} 
           exit={{ opacity: 0, y: 50 }} 
-          className="fixed inset-x-0 top-0 bottom-[48px] sm:bottom-[54px] z-[200] bg-[#F8FAFC] lg:hidden flex flex-col"
+          className="fixed inset-x-0 top-0 bottom-[32px] sm:bottom-[38px] z-[200] bg-[#F8FAFC] lg:hidden flex flex-col"
         >
           {/* Scrollable Content Area */}
           <div className="flex-1 overflow-y-auto p-4 custom-scrollbar space-y-4 text-left pb-24">
@@ -247,57 +247,47 @@ export const PlayStatsDrawer: React.FC<PlayStatsDrawerProps> = ({
           </div>
 
           {/* Sticky Bottom Footer */}
-          <div className="flex items-center justify-between gap-3 py-4 border-t border-slate-100 bg-white/95 backdrop-blur-xl sticky bottom-0 z-50 px-4">
-            <button
-              onClick={onClose}
-              className="w-10 h-10 flex-shrink-0 flex items-center justify-center bg-slate-50 border border-slate-200 text-slate-500 rounded-xl hover:bg-rose-50 hover:border-rose-100 hover:text-rose-500 active:scale-90 transition-all shadow-sm"
-            >
-              <X className="w-4 h-4" />
-            </button>
-
-            <div className="flex items-center bg-slate-50 p-1 rounded-2xl h-14 border border-slate-200/60 shadow-inner gap-1 flex-1 max-w-[280px] justify-center mx-auto">
+          <div className="flex items-center justify-center py-3 border-t border-slate-100 bg-white/95 backdrop-blur-xl sticky bottom-0 z-50 px-4">
+            <div className="flex items-center bg-slate-50 p-1 rounded-2xl h-12 border border-slate-200/60 shadow-inner gap-1 flex-1 max-w-[280px] justify-center">
               <button
                 onClick={() => setActiveStatsTab('performance')}
                 className={cn(
-                  "flex-1 h-11 flex items-center justify-center rounded-xl transition-all duration-300 gap-1.5 px-3 text-xs font-bold",
+                  "flex-1 h-9 flex items-center justify-center rounded-xl transition-all duration-300 gap-1.5 px-3 text-xs font-bold",
                   activeStatsTab === 'performance'
                     ? "text-indigo-600 bg-white shadow-md border border-indigo-100/60 scale-105"
                     : "text-slate-400 hover:text-slate-600"
                 )}
               >
-                <TrendingUp className="w-4 h-4" />
+                <TrendingUp className="w-3.5 h-3.5" />
                 <span>Hiệu suất</span>
               </button>
 
               <button
                 onClick={() => setActiveStatsTab('goals')}
                 className={cn(
-                  "flex-1 h-11 flex items-center justify-center rounded-xl transition-all duration-300 gap-1.5 px-3 text-xs font-bold",
+                  "flex-1 h-9 flex items-center justify-center rounded-xl transition-all duration-300 gap-1.5 px-3 text-xs font-bold",
                   activeStatsTab === 'goals'
                     ? "text-orange-500 bg-white shadow-md border border-orange-100/60 scale-105"
                     : "text-slate-400 hover:text-slate-600"
                 )}
               >
-                <Target className="w-4 h-4" />
+                <Target className="w-3.5 h-3.5" />
                 <span>Mục tiêu</span>
               </button>
 
               <button
                 onClick={() => setActiveStatsTab('leaderboard')}
                 className={cn(
-                  "flex-1 h-11 flex items-center justify-center rounded-xl transition-all duration-300 gap-1.5 px-3 text-xs font-bold",
+                  "flex-1 h-9 flex items-center justify-center rounded-xl transition-all duration-300 gap-1.5 px-3 text-xs font-bold",
                   activeStatsTab === 'leaderboard'
                     ? "text-amber-500 bg-white shadow-md border border-amber-100/60 scale-105"
                     : "text-slate-400 hover:text-slate-600"
                 )}
               >
-                <Trophy className="w-4 h-4" />
+                <Trophy className="w-3.5 h-3.5" />
                 <span>Xếp hạng</span>
               </button>
             </div>
-
-            {/* Balancer placeholder matching the close button's width to keep tabs centered */}
-            <div className="w-10 h-10 flex-shrink-0" />
           </div>
         </motion.div>
       )}
