@@ -359,6 +359,14 @@ export default function PracticePlay() {
   })
 
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false)
+  const [isUtilityMenuOpen, setIsUtilityMenuOpen] = useState(false)
+
+  useEffect(() => {
+    if (!isUtilityMenuOpen) return;
+    const handleGlobalClick = () => setIsUtilityMenuOpen(false);
+    window.addEventListener('click', handleGlobalClick);
+    return () => window.removeEventListener('click', handleGlobalClick);
+  }, [isUtilityMenuOpen]);
 
   const {
     sfxEnabled,
@@ -3167,31 +3175,6 @@ export default function PracticePlay() {
           </div>
         </div>
         <div className="flex items-center gap-1.5">
-          {/* Mobile Stats Button */}
-          <button 
-             onClick={() => setIsStatsOpen(true)} 
-             className="lg:hidden w-8.5 h-8.5 flex items-center justify-center bg-slate-50 border border-slate-200 rounded-xl text-slate-500 hover:bg-indigo-50 hover:text-indigo-600 active:scale-90 transition-all shadow-sm"
-             title="Xem thống kê"
-          >
-             <TrendingUp className="w-4 h-4 text-indigo-600" />
-          </button>
-
-          {/* Smart Learning Mode Selector (only for FSRS mode) */}
-          {mainTab !== 'practice' && (
-            <button
-              onClick={() => setIsModeMenuOpen(true)}
-              className="w-8.5 h-8.5 flex items-center justify-center bg-slate-50 border border-slate-200 rounded-xl text-slate-500 hover:bg-indigo-50 hover:text-indigo-600 active:scale-90 transition-all shadow-sm"
-              title="Change Smart Learning Mode"
-            >
-              {activeMode === 'fsrs' && <Brain className="w-4 h-4 text-indigo-600" />}
-              {activeMode === 'sequential' && <ListOrdered className="w-4 h-4" />}
-              {activeMode === 'random' && <Shuffle className="w-4 h-4" />}
-              {activeMode === 'unseen' && <EyeOff className="w-4 h-4" />}
-              {activeMode === 'review' && <AlertCircle className="w-4 h-4" />}
-              {activeMode === 'hardest' && <TrendingUp className="w-4 h-4" />}
-            </button>
-          )}
-
           <div className={cn(
             "flex items-center gap-0.5 px-1.5 py-0.5 rounded text-white shadow-sm text-[8px] font-black transition-all",
             !showFeedback ? "bg-gradient-to-r from-slate-800 to-slate-900 shadow-slate-300" : "bg-gradient-to-r from-emerald-500 to-teal-500 shadow-emerald-200"
@@ -3199,14 +3182,6 @@ export default function PracticePlay() {
             <Timer className={cn("w-2.5 h-2.5", !showFeedback && "animate-pulse")} />
             <span>{timeLeft}s</span>
           </div>
-
-          <button
-            onClick={() => setIsSettingsModalOpen(true)}
-            className="w-8.5 h-8.5 flex items-center justify-center bg-slate-50 border border-slate-200 rounded-xl text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 hover:border-indigo-200 shadow-sm active:scale-90 transition-all"
-            title="Cài đặt & Tùy chọn"
-          >
-            <Settings className="w-4 h-4" />
-          </button>
         </div>
       </header>
 
@@ -4190,6 +4165,74 @@ export default function PracticePlay() {
                 {justAnswered && <span className="absolute -top-1 -right-1 w-3 h-3 bg-rose-500 rounded-full border-2 border-white animate-pulse"></span>}
               </button>
             )}
+
+            {/* Grouped More Options Button */}
+            <div className="relative">
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setIsUtilityMenuOpen(!isUtilityMenuOpen);
+                }}
+                className={cn(
+                  "w-12 h-12 flex-shrink-0 flex items-center justify-center border rounded-2xl shadow-sm active:scale-95 transition-all relative z-[130]",
+                  isUtilityMenuOpen
+                    ? "bg-indigo-600 border-indigo-600 text-white"
+                    : "bg-indigo-50 border-indigo-200 text-indigo-600 hover:bg-indigo-100 hover:border-indigo-300"
+                )}
+                title="Thao tác khác"
+              >
+                <Sliders className="w-5.5 h-5.5" />
+              </button>
+              
+              <AnimatePresence>
+                {isUtilityMenuOpen && (
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.95, y: 10 }}
+                    animate={{ opacity: 1, scale: 1, y: 0 }}
+                    exit={{ opacity: 0, scale: 0.95, y: 10 }}
+                    transition={{ duration: 0.15 }}
+                    className="absolute bottom-[calc(100%+0.5rem)] left-0 w-60 bg-white border border-slate-100/90 rounded-3xl shadow-[0_10px_30px_rgba(99,102,241,0.12)] p-2 z-[150] flex flex-col gap-1 origin-bottom-left"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setIsUtilityMenuOpen(false);
+                        setIsSettingsModalOpen(true);
+                      }}
+                      className="flex items-center gap-2.5 w-full px-4 py-3 text-left hover:bg-indigo-50/60 rounded-2xl text-slate-700 hover:text-indigo-600 text-[11px] font-black uppercase tracking-wider transition-all"
+                    >
+                      <Settings className="w-4 h-4 text-slate-400" />
+                      <span>Cấu hình học tập</span>
+                    </button>
+
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setIsUtilityMenuOpen(false);
+                        setIsMapOpen(true);
+                      }}
+                      className="flex items-center gap-2.5 w-full px-4 py-3 text-left hover:bg-indigo-50/60 rounded-2xl text-slate-700 hover:text-indigo-600 text-[11px] font-black uppercase tracking-wider transition-all"
+                    >
+                      <LayoutGrid className="w-4 h-4 text-slate-400" />
+                      <span>Bản đồ thẻ học</span>
+                    </button>
+
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setIsUtilityMenuOpen(false);
+                        setIsStatsOpen(true);
+                      }}
+                      className="flex items-center gap-2.5 w-full px-4 py-3 text-left hover:bg-indigo-50/60 rounded-2xl text-slate-700 hover:text-indigo-600 text-[11px] font-black uppercase tracking-wider transition-all"
+                    >
+                      <TrendingUp className="w-4 h-4 text-slate-400" />
+                      <span>Thống kê tiến trình</span>
+                    </button>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
 
             {/* Main Action Buttons */}
             {mainTab === 'practice' ? (
