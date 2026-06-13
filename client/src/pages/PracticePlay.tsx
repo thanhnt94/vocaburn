@@ -3621,7 +3621,7 @@ export default function PracticePlay() {
         </aside>
 
         <div className="w-full max-w-4xl min-w-0 flex flex-col overflow-hidden h-full">
-          <div className="flex-1 flex flex-col overflow-hidden md:pr-2 md:pb-2 pr-0 pb-[100px] xl:pb-0">
+          <div className="flex-1 flex flex-col overflow-hidden md:pr-2 md:pb-2 pr-0 pb-0 xl:pb-0">
 
 
             <AnimatePresence mode="wait">
@@ -4103,197 +4103,220 @@ export default function PracticePlay() {
       </main>
 
       {(mainTab !== 'practice' || (mainTab === 'practice' && !practiceNeedsSetup)) && (
-        <footer className="relative w-full flex-shrink-0 bg-white/95 backdrop-blur-2xl border-t border-slate-100/80 px-3 pt-3 pb-6 sm:px-4 sm:py-3.5 z-[120] shadow-[0_-4px_24px_rgba(99,102,241,0.06)]">
-          <div className="max-w-2xl mx-auto w-full flex items-center gap-3 h-12 sm:h-14">
-            {/* Grouped More Options Button */}
-            <div className="relative">
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setIsUtilityMenuOpen(!isUtilityMenuOpen);
-                }}
-                className={cn(
-                  "w-12 h-12 flex-shrink-0 flex items-center justify-center border rounded-2xl shadow-sm active:scale-95 transition-all relative z-[130]",
-                  isUtilityMenuOpen
-                    ? "bg-indigo-600 border-indigo-600 text-white"
-                    : "bg-indigo-50 border-indigo-200 text-indigo-600 hover:bg-indigo-100 hover:border-indigo-300"
-                )}
-                title="Thao tác khác"
-              >
-                <Sliders className="w-5.5 h-5.5" />
-              </button>
-              
-              <AnimatePresence>
-                {isUtilityMenuOpen && (
-                  <motion.div
-                    initial={{ opacity: 0, scale: 0.95, y: 10 }}
-                    animate={{ opacity: 1, scale: 1, y: 0 }}
-                    exit={{ opacity: 0, scale: 0.95, y: 10 }}
-                    transition={{ duration: 0.15 }}
-                    className="absolute bottom-[calc(100%+0.5rem)] left-0 w-60 bg-white border border-slate-100/90 rounded-3xl shadow-[0_10px_30px_rgba(99,102,241,0.12)] p-2 z-[150] flex flex-col gap-1 origin-bottom-left"
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setIsUtilityMenuOpen(false);
-                        setIsSettingsModalOpen(true);
-                      }}
-                      className="flex items-center gap-2.5 w-full px-4 py-3 text-left hover:bg-indigo-50/60 rounded-2xl text-slate-700 hover:text-indigo-600 text-[11px] font-black uppercase tracking-wider transition-all"
-                    >
-                      <Settings className="w-4 h-4 text-slate-400" />
-                      <span>Cấu hình học tập</span>
-                    </button>
-
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setIsUtilityMenuOpen(false);
-                        setIsMapOpen(true);
-                      }}
-                      className="flex items-center gap-2.5 w-full px-4 py-3 text-left hover:bg-indigo-50/60 rounded-2xl text-slate-700 hover:text-indigo-600 text-[11px] font-black uppercase tracking-wider transition-all"
-                    >
-                      <LayoutGrid className="w-4 h-4 text-slate-400" />
-                      <span>Bản đồ thẻ học</span>
-                    </button>
-
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setIsUtilityMenuOpen(false);
-                        setIsStatsOpen(true);
-                      }}
-                      className="flex items-center gap-2.5 w-full px-4 py-3 text-left hover:bg-indigo-50/60 rounded-2xl text-slate-700 hover:text-indigo-600 text-[11px] font-black uppercase tracking-wider transition-all"
-                    >
-                      <TrendingUp className="w-4 h-4 text-slate-400" />
-                      <span>Thống kê tiến trình</span>
-                    </button>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </div>
-
-            {/* Audio play button */}
-            {(() => {
-              if (!currentQuestion) return null;
-
-              if (mainTab === 'practice' && practiceSubMode !== 'listening' && !showFeedback) {
-                return null;
-              }
-
-              const hasAudioOrScript = mainTab === 'practice'
-                ? (!!currentQuestion.audio || !!currentQuestion.others?.front_audio_url || !!currentQuestion.others?.front_audio_content?.trim())
-                : (!isFlipped
-                  ? (!!currentQuestion.audio || !!currentQuestion.others?.front_audio_url || !!currentQuestion.others?.front_audio_content?.trim())
-                  : (!!currentQuestion.others?.back_audio_url || !!currentQuestion.others?.back_audio_content?.trim()));
-
-              if (!hasAudioOrScript) return null;
-
-              return (
+        <footer className="relative w-full flex-shrink-0 bg-white/95 backdrop-blur-2xl border-t border-slate-100/80 px-3 pt-2.5 pb-4 sm:px-4 sm:pb-5 sm:pt-3.5 z-[120] shadow-[0_-4px_24px_rgba(99,102,241,0.06)]">
+          <div className="max-w-2xl mx-auto w-full flex flex-col gap-3">
+            <div className="w-full flex items-center gap-1.5 sm:gap-3 h-12 sm:h-14">
+              {/* Grouped More Options Button */}
+              <div className="relative">
                 <button
-                  onClick={async (e) => {
+                  onClick={(e) => {
                     e.stopPropagation();
-                    if (mainTab === 'practice') {
-                      if (showFeedback) {
-                        speakPracticeQuestionAndAnswer();
-                      } else {
-                        const practiceData = currentPracticeData;
-                        if (practiceData) {
-                          const { question: qText } = practiceData;
-                          speakMultiLanguage(qText);
-                        }
-                      }
-                    } else {
-                      await playCardAudio(isFlipped ? 'back' : 'front');
-                    }
+                    setIsUtilityMenuOpen(!isUtilityMenuOpen);
                   }}
-                  className="w-12 h-12 flex-shrink-0 flex items-center justify-center bg-indigo-50 border border-indigo-200 rounded-2xl text-indigo-600 shadow-sm active:scale-95 transition-all hover:bg-indigo-100 hover:border-indigo-300"
-                  title="Phát âm"
+                  className={cn(
+                    "w-12 h-12 flex-shrink-0 flex items-center justify-center border rounded-2xl shadow-sm active:scale-95 transition-all relative z-[130]",
+                    isUtilityMenuOpen
+                      ? "bg-indigo-600 border-indigo-600 text-white"
+                      : "bg-indigo-50 border-indigo-200 text-indigo-600 hover:bg-indigo-100 hover:border-indigo-300"
+                  )}
+                  title="Thao tác khác"
                 >
-                  <Volume2 className="w-5.5 h-5.5 text-indigo-600 animate-pulse" />
+                  <Sliders className="w-5.5 h-5.5" />
                 </button>
-              );
-            })()}
+                
+                <AnimatePresence>
+                  {isUtilityMenuOpen && (
+                    <motion.div
+                      initial={{ opacity: 0, scale: 0.95, y: 10 }}
+                      animate={{ opacity: 1, scale: 1, y: 0 }}
+                      exit={{ opacity: 0, scale: 0.95, y: 10 }}
+                      transition={{ duration: 0.15 }}
+                      className="absolute bottom-[calc(100%+0.5rem)] left-0 w-60 bg-white border border-slate-100/90 rounded-3xl shadow-[0_10px_30px_rgba(99,102,241,0.12)] p-2 z-[150] flex flex-col gap-1 origin-bottom-left"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setIsUtilityMenuOpen(false);
+                          setIsSettingsModalOpen(true);
+                        }}
+                        className="flex items-center gap-2.5 w-full px-4 py-3 text-left hover:bg-indigo-50/60 rounded-2xl text-slate-700 hover:text-indigo-600 text-[11px] font-black uppercase tracking-wider transition-all"
+                      >
+                        <Settings className="w-4 h-4 text-slate-400" />
+                        <span>Cấu hình học tập</span>
+                      </button>
 
-            {/* Lightbulb Explanation Button (visible in FSRS, and also in practice mode if a question is loaded) */}
-            {(mainTab === 'practice' || showFeedback) && (
-              <button
-                onClick={() => {
-                  if (mainTab === 'practice') {
-                    setShowFeedback(true);
-                  }
-                  setIsFeedbackOpen(true);
-                }}
-                className={`xl:hidden w-12 h-12 flex-shrink-0 flex items-center justify-center rounded-2xl shadow-sm active:scale-95 transition-all relative ${justAnswered
-                  ? 'bg-indigo-600 border border-indigo-600 text-white animate-[pulse_1.5s_infinite] ring-4 ring-indigo-300 ring-offset-1 drop-shadow-[0_0_12px_rgba(99,102,241,0.6)]'
-                  : 'bg-indigo-50 border border-indigo-200 text-indigo-600 hover:bg-indigo-100'
-                  }`}
-                title="Xem giải thích và hướng dẫn"
-              >
-                <Lightbulb className="w-5.5 h-5.5" />
-                {justAnswered && <span className="absolute -top-1 -right-1 w-3 h-3 bg-rose-500 rounded-full border-2 border-white animate-pulse"></span>}
-              </button>
-            )}
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setIsUtilityMenuOpen(false);
+                          setIsMapOpen(true);
+                        }}
+                        className="flex items-center gap-2.5 w-full px-4 py-3 text-left hover:bg-indigo-50/60 rounded-2xl text-slate-700 hover:text-indigo-600 text-[11px] font-black uppercase tracking-wider transition-all"
+                      >
+                        <LayoutGrid className="w-4 h-4 text-slate-400" />
+                        <span>Bản đồ thẻ học</span>
+                      </button>
 
-            {/* Main Action Buttons */}
-            {mainTab === 'practice' ? (
-              practiceAnswers[currentIndex] !== undefined ? (
-                <button
-                  onClick={handleNext}
-                  className="flex-1 h-12 bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-600 text-white font-black text-xs rounded-2xl shadow-lg shadow-emerald-300/50 flex items-center justify-center gap-2.5 uppercase tracking-widest active:scale-[0.98] transition-all hover:shadow-emerald-400/60 hover:shadow-xl"
-                >
-                  Continue <ChevronRight className="w-4 h-4" />
-                </button>
-              ) : (
-                <div className="flex-1 flex gap-2 h-12">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setIsUtilityMenuOpen(false);
+                          setIsStatsOpen(true);
+                        }}
+                        className="flex items-center gap-2.5 w-full px-4 py-3 text-left hover:bg-indigo-50/60 rounded-2xl text-slate-700 hover:text-indigo-600 text-[11px] font-black uppercase tracking-wider transition-all"
+                      >
+                        <TrendingUp className="w-4 h-4 text-slate-400" />
+                        <span>Thống kê tiến trình</span>
+                      </button>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+
+              {/* Audio play button */}
+              {(() => {
+                if (!currentQuestion) return null;
+
+                if (mainTab === 'practice' && practiceSubMode !== 'listening' && !showFeedback) {
+                  return null;
+                }
+
+                const hasAudioOrScript = mainTab === 'practice'
+                  ? (!!currentQuestion.audio || !!currentQuestion.others?.front_audio_url || !!currentQuestion.others?.front_audio_content?.trim())
+                  : (!isFlipped
+                    ? (!!currentQuestion.audio || !!currentQuestion.others?.front_audio_url || !!currentQuestion.others?.front_audio_content?.trim())
+                    : (!!currentQuestion.others?.back_audio_url || !!currentQuestion.others?.back_audio_content?.trim()));
+
+                if (!hasAudioOrScript) return null;
+
+                return (
                   <button
-                    onClick={handleNext}
-                    className="flex-1 h-12 bg-slate-50 border border-slate-200 text-slate-500 hover:bg-slate-100 font-black text-xs rounded-2xl flex items-center justify-center gap-1.5 uppercase tracking-widest active:scale-[0.98] transition-all"
+                    onClick={async (e) => {
+                      e.stopPropagation();
+                      if (mainTab === 'practice') {
+                        if (showFeedback) {
+                          speakPracticeQuestionAndAnswer();
+                        } else {
+                          const practiceData = currentPracticeData;
+                          if (practiceData) {
+                            const { question: qText } = practiceData;
+                            speakMultiLanguage(qText);
+                          }
+                        }
+                      } else {
+                        await playCardAudio(isFlipped ? 'back' : 'front');
+                      }
+                    }}
+                    className="w-12 h-12 flex-shrink-0 flex items-center justify-center bg-indigo-50 border border-indigo-200 rounded-2xl text-indigo-600 shadow-sm active:scale-95 transition-all hover:bg-indigo-100 hover:border-indigo-300"
+                    title="Phát âm"
                   >
-                    Skip <ChevronRight className="w-4 h-4" />
+                    <Volume2 className="w-5.5 h-5.5 text-indigo-600 animate-pulse" />
                   </button>
-                  <div className="flex-[2] h-12 bg-slate-100 text-slate-400 font-black text-xs rounded-2xl flex items-center justify-center uppercase tracking-widest pointer-events-none select-none">
-                    Waiting...
-                  </div>
-                </div>
-              )
-            ) : (
-              !hasRated ? (
+                );
+              })()}
+
+              {/* Lightbulb Explanation Button (visible in FSRS, and also in practice mode if a question is loaded) */}
+              {(mainTab === 'practice' || showFeedback) && (
                 <button
                   onClick={() => {
-                    const nextFlipped = !isFlipped;
-                    setIsFlipped(nextFlipped);
-                    if (nextFlipped) {
+                    if (mainTab === 'practice') {
                       setShowFeedback(true);
-                      setJustAnswered(true);
                     }
+                    setIsFeedbackOpen(true);
                   }}
-                  className="flex-1 h-12 bg-gradient-to-r from-indigo-500 via-indigo-600 to-purple-600 text-white font-black text-xs rounded-2xl shadow-lg shadow-indigo-300/50 flex items-center justify-center gap-2.5 uppercase tracking-widest active:scale-[0.98] transition-all hover:shadow-indigo-400/60 hover:shadow-xl"
+                  className={`xl:hidden w-12 h-12 flex-shrink-0 flex items-center justify-center rounded-2xl shadow-sm active:scale-95 transition-all relative ${justAnswered
+                    ? 'bg-indigo-600 border border-indigo-600 text-white animate-[pulse_1.5s_infinite] ring-4 ring-indigo-300 ring-offset-1 drop-shadow-[0_0_12px_rgba(99,102,241,0.6)]'
+                    : 'bg-indigo-50 border border-indigo-200 text-indigo-600 hover:bg-indigo-100'
+                    }`}
+                  title="Xem giải thích và hướng dẫn"
                 >
-                  {isFlipped ? (
-                    <><ChevronRight className="w-4 h-4 rotate-180" /> FLIP BACK</>
-                  ) : (
-                    <>FLIP CARD <ChevronRight className="w-4 h-4 rotate-90" /></>
-                  )}
+                  <Lightbulb className="w-5.5 h-5.5" />
+                  {justAnswered && <span className="absolute -top-1 -right-1 w-3 h-3 bg-rose-500 rounded-full border-2 border-white animate-pulse"></span>}
                 </button>
-              ) : (
-                <div className="flex-1 flex gap-3 h-12">
-                  <button
-                    onClick={() => setIsFlipped(prev => !prev)}
-                    className="w-12 h-12 flex-shrink-0 bg-gradient-to-r from-indigo-50 to-indigo-100/80 hover:from-indigo-100 hover:to-indigo-200 text-indigo-600 border border-indigo-200/50 rounded-2xl flex items-center justify-center gap-2 active:scale-[0.98] transition-all"
-                    title={isFlipped ? "Flip to Front" : "Flip to Back"}
-                  >
-                    <RefreshCw className="w-5 h-5 text-indigo-600 animate-[spin_4s_linear_infinite]" />
-                  </button>
+              )}
+
+              {/* Main Action Buttons */}
+              {mainTab === 'practice' ? (
+                practiceAnswers[currentIndex] !== undefined ? (
                   <button
                     onClick={handleNext}
                     className="flex-1 h-12 bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-600 text-white font-black text-xs rounded-2xl shadow-lg shadow-emerald-300/50 flex items-center justify-center gap-2.5 uppercase tracking-widest active:scale-[0.98] transition-all hover:shadow-emerald-400/60 hover:shadow-xl"
                   >
-                    NEXT CARD <ChevronRight className="w-4 h-4" />
+                    Continue <ChevronRight className="w-4 h-4" />
                   </button>
+                ) : (
+                  <div className="flex-1 flex gap-2 h-12">
+                    <button
+                      onClick={handleNext}
+                      className="flex-1 h-12 bg-slate-50 border border-slate-200 text-slate-500 hover:bg-slate-100 font-black text-xs rounded-2xl flex items-center justify-center gap-1.5 uppercase tracking-widest active:scale-[0.98] transition-all"
+                    >
+                      Skip <ChevronRight className="w-4 h-4" />
+                    </button>
+                    <div className="flex-[2] h-12 bg-slate-100 text-slate-400 font-black text-xs rounded-2xl flex items-center justify-center uppercase tracking-widest pointer-events-none select-none">
+                      Waiting...
+                    </div>
+                  </div>
+                )
+              ) : (
+                !hasRated ? (
+                  <button
+                    onClick={() => {
+                      const nextFlipped = !isFlipped;
+                      setIsFlipped(nextFlipped);
+                      if (nextFlipped) {
+                        setShowFeedback(true);
+                        setJustAnswered(true);
+                      }
+                    }}
+                    className="flex-1 h-12 bg-gradient-to-r from-indigo-500 via-indigo-600 to-purple-600 text-white font-black text-xs rounded-2xl shadow-lg shadow-indigo-300/50 flex items-center justify-center gap-2.5 uppercase tracking-widest active:scale-[0.98] transition-all hover:shadow-indigo-400/60 hover:shadow-xl"
+                  >
+                    {isFlipped ? (
+                      <><ChevronRight className="w-4 h-4 rotate-180" /> FLIP BACK</>
+                    ) : (
+                      <>FLIP CARD <ChevronRight className="w-4 h-4 rotate-90" /></>
+                    )}
+                  </button>
+                ) : (
+                  <div className="flex-1 flex gap-3 h-12">
+                    <button
+                      onClick={() => setIsFlipped(prev => !prev)}
+                      className="w-12 h-12 flex-shrink-0 bg-gradient-to-r from-indigo-50 to-indigo-100/80 hover:from-indigo-100 hover:to-indigo-200 text-indigo-600 border border-indigo-200/50 rounded-2xl flex items-center justify-center gap-2 active:scale-[0.98] transition-all"
+                      title={isFlipped ? "Flip to Front" : "Flip to Back"}
+                    >
+                      <RefreshCw className="w-5 h-5 text-indigo-600 animate-[spin_4s_linear_infinite]" />
+                    </button>
+                    <button
+                      onClick={handleNext}
+                      className="flex-1 h-12 bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-600 text-white font-black text-xs rounded-2xl shadow-lg shadow-emerald-300/50 flex items-center justify-center gap-2.5 uppercase tracking-widest active:scale-[0.98] transition-all hover:shadow-emerald-400/60 hover:shadow-xl"
+                    >
+                      NEXT CARD <ChevronRight className="w-4 h-4" />
+                    </button>
+                  </div>
+                )
+              )}
+            </div>
+
+            {/* Progress bar at the bottom */}
+            {(() => {
+              const answeredCount = Object.keys(practiceAnswers).length;
+              const totalCount = session?.questions?.length || 0;
+              const progressPercent = totalCount > 0 ? (answeredCount / totalCount) * 100 : 0;
+              return (
+                <div className="w-full flex flex-col gap-1.5 mt-1 sm:mt-1.5">
+                  <div className="flex items-center justify-between text-[9px] font-black text-slate-400 uppercase tracking-wider px-1">
+                    <span>Tiến trình luyện tập</span>
+                    <span>{answeredCount} / {totalCount} thẻ ({Math.round(progressPercent)}%)</span>
+                  </div>
+                  <div className="w-full bg-slate-100/80 h-1.5 rounded-full overflow-hidden border border-slate-200/10">
+                    <div 
+                      className="bg-gradient-to-r from-indigo-500 to-indigo-600 h-full rounded-full transition-all duration-500 ease-out shadow-[0_1px_4px_rgba(99,102,241,0.2)]"
+                      style={{ width: `${progressPercent}%` }}
+                    />
+                  </div>
                 </div>
-              )
-            )}
+              );
+            })()}
           </div>
         </footer>
       )}
