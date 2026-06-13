@@ -4106,7 +4106,7 @@ export default function PracticePlay() {
       {(mainTab !== 'practice' || (mainTab === 'practice' && !practiceNeedsSetup)) && (
         <footer className="relative w-full flex-shrink-0 bg-white/95 backdrop-blur-2xl border-t border-slate-100/80 px-0 pt-0 pb-0 z-[300] shadow-[0_-4px_24px_rgba(99,102,241,0.06)]">
           <div className="max-w-2xl mx-auto w-full flex flex-col">
-            {activeBottomTab === 'flashcard' && (
+            {activeBottomTab === 'flashcard' && !isFeedbackOpen && (
               <div className="w-full flex items-center gap-1.5 sm:gap-3 h-12 sm:h-14 px-3 sm:px-4 pt-1.5 pb-2 sm:pt-2 sm:pb-3">
             {/* Settings Button */}
             <button
@@ -4256,10 +4256,10 @@ export default function PracticePlay() {
                     setIsMapOpen(true);
                   }}
                   className={cn(
-                    "flex items-center justify-center gap-1.5 py-2 px-1 transition-all border-t-2",
+                    "flex items-center justify-center gap-1.5 py-2.5 px-1 transition-all",
                     activeBottomTab === 'map'
-                      ? "border-amber-500 bg-amber-50 text-amber-700 font-black"
-                      : "border-transparent text-slate-400 hover:text-slate-600 active:scale-95"
+                      ? "bg-amber-50 text-amber-700 font-black"
+                      : "text-slate-400 hover:text-slate-600 active:scale-95"
                   )}
                   title="Mở bản đồ thẻ"
                 >
@@ -4276,10 +4276,10 @@ export default function PracticePlay() {
                     setIsStatsOpen(false);
                   }}
                   className={cn(
-                    "flex items-center justify-center gap-1.5 py-2 px-1 transition-all border-t-2",
+                    "flex items-center justify-center gap-1.5 py-2.5 px-1 transition-all",
                     activeBottomTab === 'flashcard'
-                      ? "border-amber-500 bg-amber-50 text-amber-700 font-black"
-                      : "border-transparent text-slate-400 hover:text-slate-600 active:scale-95"
+                      ? "bg-amber-50 text-amber-700 font-black"
+                      : "text-slate-400 hover:text-slate-600 active:scale-95"
                   )}
                   title="Tiến trình học tập hiện tại"
                 >
@@ -4296,10 +4296,10 @@ export default function PracticePlay() {
                     setIsStatsOpen(true);
                   }}
                   className={cn(
-                    "flex items-center justify-center gap-1.5 py-2 px-1 transition-all border-t-2",
+                    "flex items-center justify-center gap-1.5 py-2.5 px-1 transition-all",
                     activeBottomTab === 'stats'
-                      ? "border-amber-500 bg-amber-50 text-amber-700 font-black"
-                      : "border-transparent text-slate-400 hover:text-slate-600 active:scale-95"
+                      ? "bg-amber-50 text-amber-700 font-black"
+                      : "text-slate-400 hover:text-slate-600 active:scale-95"
                   )}
                   title="Mở thống kê tiến trình"
                 >

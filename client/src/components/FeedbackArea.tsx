@@ -25,6 +25,7 @@ interface Question {
   content: string
   explanation: string
   ai_explanation?: string
+  mnemonic?: string | null
   options: any[]
   others?: Record<string, any> | null
 }
@@ -133,9 +134,23 @@ export const FeedbackArea: React.FC<FeedbackAreaProps> = ({
                   placeholder="Enter explanation for this question..."
                 />
               ) : (
-                <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeRaw]} components={MarkdownComponents}>
-                  {parseBBCodeToHtml(getInsightText())}
-                </ReactMarkdown>
+                <>
+                  <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeRaw]} components={MarkdownComponents}>
+                    {parseBBCodeToHtml(getInsightText())}
+                  </ReactMarkdown>
+
+                  {currentQuestion?.mnemonic && (
+                    <div className="mt-4 p-4 rounded-2xl bg-amber-50/50 border border-amber-100/60 flex items-start gap-3 shadow-inner text-left animate-in slide-in-from-bottom-2">
+                      <div className="w-6 h-6 rounded-lg bg-amber-500 flex items-center justify-center text-white font-black text-xs shadow shrink-0 mt-0.5">
+                        💡
+                      </div>
+                      <div className="text-slate-700 font-semibold text-xs leading-relaxed flex-1 whitespace-pre-wrap">
+                        <span className="font-black text-[9px] uppercase tracking-wider text-amber-500 block mb-0.5">Cách nhớ (AI Mnemonic)</span>
+                        {currentQuestion.mnemonic}
+                      </div>
+                    </div>
+                  )}
+                </>
               )}
             </div>
           </div>
