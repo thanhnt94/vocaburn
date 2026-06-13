@@ -248,44 +248,44 @@ export const PlayStatsDrawer: React.FC<PlayStatsDrawerProps> = ({
 
           {/* Sticky Bottom Footer */}
           <div className="flex items-center justify-center py-3 border-t border-slate-100 bg-white/95 backdrop-blur-xl sticky bottom-0 z-50 px-4">
-            <div className="flex items-center bg-slate-50 p-1 rounded-2xl h-12 border border-slate-200/60 shadow-inner gap-1 flex-1 max-w-[280px] justify-center">
+            <div className="flex items-center bg-slate-50 p-1 rounded-2xl h-12 border border-slate-200/60 shadow-inner gap-1 flex-1 max-w-[310px] justify-center">
               <button
                 onClick={() => setActiveStatsTab('performance')}
                 className={cn(
-                  "flex-1 h-9 flex items-center justify-center rounded-xl transition-all duration-300 gap-1.5 px-3 text-xs font-bold",
+                  "flex-1 h-9 flex items-center justify-center rounded-xl transition-all duration-300 gap-1 px-1 text-[10px] font-black uppercase tracking-wider",
                   activeStatsTab === 'performance'
                     ? "text-indigo-600 bg-white shadow-md border border-indigo-100/60 scale-105"
                     : "text-slate-400 hover:text-slate-600"
                 )}
               >
-                <TrendingUp className="w-3.5 h-3.5" />
-                <span>Hiệu suất</span>
+                <TrendingUp className="w-3.5 h-3.5 shrink-0" />
+                <span className="truncate">STATS</span>
               </button>
 
               <button
                 onClick={() => setActiveStatsTab('goals')}
                 className={cn(
-                  "flex-1 h-9 flex items-center justify-center rounded-xl transition-all duration-300 gap-1.5 px-3 text-xs font-bold",
+                  "flex-1 h-9 flex items-center justify-center rounded-xl transition-all duration-300 gap-1 px-1 text-[10px] font-black uppercase tracking-wider",
                   activeStatsTab === 'goals'
                     ? "text-orange-500 bg-white shadow-md border border-orange-100/60 scale-105"
                     : "text-slate-400 hover:text-slate-600"
                 )}
               >
-                <Target className="w-3.5 h-3.5" />
-                <span>Mục tiêu</span>
+                <Target className="w-3.5 h-3.5 shrink-0" />
+                <span className="truncate">GOALS</span>
               </button>
 
               <button
                 onClick={() => setActiveStatsTab('leaderboard')}
                 className={cn(
-                  "flex-1 h-9 flex items-center justify-center rounded-xl transition-all duration-300 gap-1.5 px-3 text-xs font-bold",
+                  "flex-1 h-9 flex items-center justify-center rounded-xl transition-all duration-300 gap-1 px-1 text-[10px] font-black uppercase tracking-wider",
                   activeStatsTab === 'leaderboard'
                     ? "text-amber-500 bg-white shadow-md border border-amber-100/60 scale-105"
                     : "text-slate-400 hover:text-slate-600"
                 )}
               >
-                <Trophy className="w-3.5 h-3.5" />
-                <span>Xếp hạng</span>
+                <Trophy className="w-3.5 h-3.5 shrink-0" />
+                <span className="truncate">RANK</span>
               </button>
             </div>
           </div>

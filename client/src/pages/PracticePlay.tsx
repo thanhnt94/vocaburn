@@ -4105,22 +4105,9 @@ export default function PracticePlay() {
 
       {(mainTab !== 'practice' || (mainTab === 'practice' && !practiceNeedsSetup)) && (
         <footer className="relative w-full flex-shrink-0 bg-white/95 backdrop-blur-2xl border-t border-slate-100/80 px-0 pt-0 pb-0 z-[300] shadow-[0_-4px_24px_rgba(99,102,241,0.06)]">
-          {(() => {
-            const answeredCount = Object.keys(practiceAnswers).length;
-            const totalCount = session?.questions?.length || 0;
-            const progressPercent = totalCount > 0 ? (answeredCount / totalCount) * 100 : 0;
-            return (
-              <div className="absolute top-0 left-0 right-0 h-[2.5px] bg-slate-100/70 overflow-hidden">
-                <div 
-                  className="bg-gradient-to-r from-indigo-500 to-indigo-600 h-full transition-all duration-500 ease-out"
-                  style={{ width: `${progressPercent}%` }}
-                />
-              </div>
-            );
-          })()}
           <div className="max-w-2xl mx-auto w-full flex flex-col">
             {activeBottomTab === 'flashcard' && (
-              <div className="w-full flex items-center gap-1.5 sm:gap-3 h-12 sm:h-14 px-3 sm:px-4 pt-1.5 sm:pt-2">
+              <div className="w-full flex items-center gap-1.5 sm:gap-3 h-12 sm:h-14 px-3 sm:px-4 pt-1.5 pb-2 sm:pt-2 sm:pb-3">
             {/* Settings Button */}
             <button
               onClick={(e) => {
