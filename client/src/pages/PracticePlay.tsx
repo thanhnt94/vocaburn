@@ -4111,7 +4111,7 @@ export default function PracticePlay() {
       </main>
 
       {(mainTab !== 'practice' || (mainTab === 'practice' && !practiceNeedsSetup)) && (
-        <footer className="relative w-full flex-shrink-0 bg-white/95 backdrop-blur-2xl border-t border-slate-100/80 px-3 pt-2 pb-2.5 sm:px-4 sm:pb-3 sm:pt-2.5 z-[120] shadow-[0_-4px_24px_rgba(99,102,241,0.06)]">
+        <footer className="relative w-full flex-shrink-0 bg-white/95 backdrop-blur-2xl border-t border-slate-100/80 px-3 pt-1.5 pb-1.5 sm:px-4 sm:pb-2.5 sm:pt-2 z-[120] shadow-[0_-4px_24px_rgba(99,102,241,0.06)]">
           {(() => {
             const answeredCount = Object.keys(practiceAnswers).length;
             const totalCount = session?.questions?.length || 0;
@@ -4335,25 +4335,25 @@ export default function PracticePlay() {
               const accuracy = answeredCount > 0 ? Math.round((correctCount / answeredCount) * 100) : 0;
 
               return (
-                <div className="w-full grid grid-cols-3 divide-x divide-slate-100 mt-1.5 h-6 items-center bg-slate-50/50 rounded-xl border border-slate-100/30">
+                <div className="w-full grid grid-cols-3 divide-x divide-slate-100/50 mt-1 h-5 items-center">
                   {/* 1. Progress */}
-                  <div className="flex items-center justify-center gap-1 px-1 min-w-0">
-                    <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest shrink-0">TIẾN TRÌNH:</span>
-                    <span className="text-[9px] font-bold text-slate-700 truncate">
+                  <div className="flex items-center justify-center gap-1.5 px-1 min-w-0">
+                    <BookOpen className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                    <span className="text-[10px] font-bold text-slate-700 truncate">
                       {answeredCount}/{totalCount} ({Math.round(progressPercent)}%)
                     </span>
                   </div>
                   {/* 2. Accuracy */}
-                  <div className="flex items-center justify-center gap-1 px-1 min-w-0">
-                    <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest shrink-0">CHÍNH XÁC:</span>
-                    <span className="text-[9px] font-bold text-emerald-600 truncate">
+                  <div className="flex items-center justify-center gap-1.5 px-1 min-w-0">
+                    <Target className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+                    <span className="text-[10px] font-bold text-emerald-600 truncate">
                       {accuracy}%
                     </span>
                   </div>
-                  {/* 3. XP / Remaining */}
-                  <div className="flex items-center justify-center gap-1 px-1 min-w-0">
-                    <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest shrink-0">TÍCH LŨY:</span>
-                    <span className="text-[9px] font-bold text-amber-500 truncate">
+                  {/* 3. XP */}
+                  <div className="flex items-center justify-center gap-1.5 px-1 min-w-0">
+                    <Sparkles className="w-3.5 h-3.5 text-amber-500 shrink-0 animate-pulse" />
+                    <span className="text-[10px] font-bold text-amber-500 truncate">
                       +{sessionXP} XP
                     </span>
                   </div>
