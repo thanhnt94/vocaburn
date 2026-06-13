@@ -328,6 +328,38 @@ export default function FlashcardPlay() {
 
   const timerRef = useRef<any>(null)
   const undoInProgressRef = useRef<boolean>(false)
+  const touchStartXRef = useRef<number | null>(null)
+  const touchStartYRef = useRef<number | null>(null)
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    const touch = e.touches[0];
+    touchStartXRef.current = touch.clientX;
+    touchStartYRef.current = touch.clientY;
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    if (touchStartXRef.current === null || touchStartYRef.current === null) return;
+    
+    const touch = e.changedTouches[0];
+    const diffX = touch.clientX - touchStartXRef.current;
+    const diffY = touch.clientY - touchStartYRef.current;
+    
+    // Swipe horizontal of at least 60px and vertical movement less than 50px
+    if (Math.abs(diffX) > 60 && Math.abs(diffY) < 50) {
+      setIsFlipped(prev => {
+        const nextFlipped = !prev;
+        if (nextFlipped) {
+          setShowFeedback(true);
+          setJustAnswered(true);
+        }
+        return nextFlipped;
+      });
+    }
+    
+    touchStartXRef.current = null;
+    touchStartYRef.current = null;
+  };
+
   const [activelyRatedCurrentCard, setActivelyRatedCurrentCard] = useState<boolean>(false)
   const [prevStreakBeforeRating, setPrevStreakBeforeRating] = useState<number>(0)
   const [leaderboardData, setLeaderboardData] = useState<any>(null)
@@ -3289,23 +3321,6 @@ export default function FlashcardPlay() {
               </div>
             )}
           </div>
-
-          {/* Card Map button moved to header */}
-          <button 
-             onClick={() => setIsMapOpen(true)}
-             className="w-8.5 h-8.5 flex items-center justify-center bg-slate-50 border border-slate-200 rounded-xl text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 hover:border-indigo-200 shadow-sm active:scale-90 transition-all"
-             title="Xem sơ đồ câu hỏi"
-          >
-             <LayoutGrid className="w-4 h-4" />
-          </button>
-
-          <button 
-             onClick={() => setIsSettingsModalOpen(true)}
-             className="w-8.5 h-8.5 flex items-center justify-center bg-slate-50 border border-slate-200 rounded-xl text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 hover:border-indigo-200 shadow-sm active:scale-90 transition-all"
-             title="Cài đặt & Tùy chọn"
-          >
-             <Settings className="w-4 h-4" />
-          </button>
         </div>
       </header>
 
@@ -3630,7 +3645,11 @@ export default function FlashcardPlay() {
               ) : mainTab === 'practice' ? (
                 renderPracticeScreen()
               ) : (
-                <div className="perspective-1000 w-full h-full flex-1 relative min-h-0">
+                <div 
+                  className="perspective-1000 w-full h-full flex-1 relative min-h-0"
+                  onTouchStart={handleTouchStart}
+                  onTouchEnd={handleTouchEnd}
+                >
                 <div
                   className="preserve-3d w-full h-full relative transition-transform duration-700 ease-out-quint"
                   style={{
@@ -4026,21 +4045,37 @@ export default function FlashcardPlay() {
         </aside>
       </main>
 
+
       {(mainTab !== 'practice' || (mainTab === 'practice' && !practiceNeedsSetup)) && (
-      <footer className="fixed bottom-0 left-0 right-0 xl:relative flex-shrink-0 bg-white/95 backdrop-blur-2xl border-t border-slate-100/80 px-4 py-3 z-[120] shadow-[0_-4px_24px_rgba(99,102,241,0.06)]">
-        <div className="max-w-2xl mx-auto w-full flex items-center gap-3 h-13">
-          {/* Mobile Stats / Map Button */}
+      <footer className="fixed bottom-0 left-0 right-0 xl:relative flex-shrink-0 bg-white/95 backdrop-blur-2xl border-t border-slate-100/80 px-2 py-2 sm:px-4 sm:py-3 z-[120] shadow-[0_-4px_24px_rgba(99,102,241,0.06)]">
+        <div className="max-w-2xl mx-auto w-full flex items-center gap-1.5 sm:gap-3 h-10 sm:h-13">
+          {/* Settings button */}
+          <button 
+             onClick={() => setIsSettingsModalOpen(true)}
+             className="w-10 h-10 sm:w-12 sm:h-12 flex-shrink-0 flex items-center justify-center bg-slate-50 border border-slate-200 rounded-xl text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 hover:border-indigo-200 shadow-sm active:scale-95 transition-all"
+             title="Cài đặt & Tùy chọn"
+          >
+             <Settings className="w-4.5 h-4.5 sm:w-5 sm:h-5" />
+          </button>
+
+          {/* Card Map button */}
+          <button 
+             onClick={() => setIsMapOpen(true)}
+             className="w-10 h-10 sm:w-12 sm:h-12 flex-shrink-0 flex items-center justify-center bg-slate-50 border border-slate-200 rounded-xl text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 hover:border-indigo-200 shadow-sm active:scale-95 transition-all"
+             title="Xem sơ đồ câu hỏi"
+          >
+             <LayoutGrid className="w-4.5 h-4.5 sm:w-5 sm:h-5" />
+          </button>
+
           {/* Mobile Stats Button */}
           <button 
             onClick={() => setIsStatsOpen(true)} 
-            className="lg:hidden w-12 h-12 flex-shrink-0 flex items-center justify-center bg-slate-50 border border-slate-200 rounded-2xl text-slate-500 hover:bg-indigo-50 hover:text-indigo-600 hover:border-indigo-200 shadow-sm active:scale-95 transition-all"
+            className="lg:hidden w-10 h-10 sm:w-12 sm:h-12 flex-shrink-0 flex items-center justify-center bg-slate-50 border border-slate-200 rounded-xl text-slate-500 hover:bg-indigo-50 hover:text-indigo-600 hover:border-indigo-200 shadow-sm active:scale-95 transition-all"
             title="Xem thống kê"
           >
-            <TrendingUp className="w-5 h-5 text-indigo-600 animate-pulse" />
+            <TrendingUp className="w-4.5 h-4.5 sm:w-5 sm:h-5 text-indigo-600 animate-pulse" />
           </button>
 
-
-          
           {/* Audio play button */}
           {(() => {
             if (!currentQuestion) return null;
@@ -4073,15 +4108,15 @@ export default function FlashcardPlay() {
                     await playCardAudio(isFlipped ? 'back' : 'front');
                   }
                 }}
-                className="w-12 h-12 flex-shrink-0 flex items-center justify-center bg-indigo-50 border border-indigo-200 rounded-2xl text-indigo-600 shadow-sm active:scale-95 transition-all hover:bg-indigo-100 hover:border-indigo-300"
+                className="w-10 h-10 sm:w-12 sm:h-12 flex-shrink-0 flex items-center justify-center bg-indigo-50 border border-indigo-200 rounded-xl text-indigo-600 shadow-sm active:scale-95 transition-all hover:bg-indigo-100 hover:border-indigo-300"
                 title="Phát âm"
               >
-                <Play className="w-5 h-5 fill-indigo-600 animate-pulse" />
+                <Play className="w-4.5 h-4.5 sm:w-5 sm:h-5 fill-indigo-600 animate-pulse" />
               </button>
             );
           })()}
           
-          {/* BookOpen Explanation Button (visible in FSRS after rating, and also in practice mode if a question is loaded) */}
+          {/* BookOpen Explanation Button */}
           {(mainTab === 'practice' || (showFeedback && activelyRatedCurrentCard)) && (
             <button 
               onClick={() => {
@@ -4090,15 +4125,15 @@ export default function FlashcardPlay() {
                 }
                 setIsFeedbackOpen(true);
               }} 
-              className={`xl:hidden w-12 h-12 flex-shrink-0 flex items-center justify-center rounded-2xl shadow-sm active:scale-95 transition-all relative ${
+              className={`xl:hidden w-10 h-10 sm:w-12 sm:h-12 flex-shrink-0 flex items-center justify-center rounded-xl shadow-sm active:scale-95 transition-all relative ${
                 justAnswered 
                   ? 'bg-indigo-600 border border-indigo-600 text-white animate-[pulse_1.5s_infinite] ring-4 ring-indigo-300 ring-offset-1 drop-shadow-[0_0_12px_rgba(99,102,241,0.6)]' 
                   : 'bg-indigo-50 border border-indigo-200 text-indigo-600 hover:bg-indigo-100'
               }`}
               title="Xem giải thích và hướng dẫn"
             >
-              <BookOpen className="w-5 h-5" />
-              {justAnswered && <span className="absolute -top-1 -right-1 w-3 h-3 bg-rose-500 rounded-full border-2 border-white animate-pulse"></span>}
+              <BookOpen className="w-4.5 h-4.5 sm:w-5 sm:h-5" />
+              {justAnswered && <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-rose-500 rounded-full border-2 border-white animate-pulse"></span>}
             </button>
           )}
 
@@ -4107,19 +4142,19 @@ export default function FlashcardPlay() {
             practiceAnswers[currentIndex] !== undefined ? (
               <button 
                 onClick={handleNext}
-                className="flex-1 h-12 bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-600 text-white font-black text-xs rounded-2xl shadow-lg shadow-emerald-300/50 flex items-center justify-center gap-2.5 uppercase tracking-widest active:scale-[0.98] transition-all hover:shadow-emerald-400/60 hover:shadow-xl"
+                className="flex-1 h-10 sm:h-12 bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-600 text-white font-black text-xs rounded-xl sm:rounded-2xl shadow-lg shadow-emerald-300/50 flex items-center justify-center gap-2.5 uppercase tracking-widest active:scale-[0.98] transition-all hover:shadow-emerald-400/60 hover:shadow-xl"
               >
                 Continue <ChevronRight className="w-4 h-4" />
               </button>
             ) : (
-              <div className="flex-1 flex gap-2 h-12">
+              <div className="flex-1 flex gap-2 h-10 sm:h-12">
                 <button
                   onClick={handleNext}
-                  className="flex-1 h-12 bg-slate-50 border border-slate-200 text-slate-500 hover:bg-slate-100 font-black text-xs rounded-2xl flex items-center justify-center gap-1.5 uppercase tracking-widest active:scale-[0.98] transition-all"
+                  className="flex-1 h-10 sm:h-12 bg-slate-50 border border-slate-200 text-slate-500 hover:bg-slate-100 font-black text-xs rounded-xl sm:rounded-2xl flex items-center justify-center gap-1.5 uppercase tracking-widest active:scale-[0.98] transition-all"
                 >
                   Skip <ChevronRight className="w-4 h-4" />
                 </button>
-                <div className="flex-[2] h-12 bg-slate-100 text-slate-400 font-black text-xs rounded-2xl flex items-center justify-center uppercase tracking-widest pointer-events-none select-none">
+                <div className="flex-[2] h-10 sm:h-12 bg-slate-100 text-slate-400 font-black text-xs rounded-xl sm:rounded-2xl flex items-center justify-center uppercase tracking-widest pointer-events-none select-none">
                   Waiting...
                 </div>
               </div>
@@ -4135,7 +4170,7 @@ export default function FlashcardPlay() {
                     setJustAnswered(true);
                   }
                 }}
-                className="flex-1 h-12 bg-gradient-to-r from-indigo-500 via-indigo-600 to-purple-600 text-white font-black text-xs rounded-2xl shadow-lg shadow-indigo-300/50 flex items-center justify-center gap-2.5 uppercase tracking-widest active:scale-[0.98] transition-all hover:shadow-indigo-400/60 hover:shadow-xl"
+                className="flex-1 h-10 sm:h-12 bg-gradient-to-r from-indigo-500 via-indigo-600 to-purple-600 text-white font-black text-xs rounded-xl sm:rounded-2xl shadow-lg shadow-indigo-300/50 flex items-center justify-center gap-2.5 uppercase tracking-widest active:scale-[0.98] transition-all hover:shadow-indigo-400/60 hover:shadow-xl"
               >
                 {isFlipped ? (
                   <><ChevronRight className="w-4 h-4 rotate-180" /> FLIP BACK</>
@@ -4144,17 +4179,17 @@ export default function FlashcardPlay() {
                 )}
               </button>
             ) : (
-              <div className="flex-1 flex gap-3 h-12">
+              <div className="flex-1 flex gap-1.5 sm:gap-3 h-10 sm:h-12">
                 <button 
                   onClick={() => setIsFlipped(prev => !prev)}
-                  className="w-12 h-12 flex-shrink-0 bg-gradient-to-r from-indigo-50 to-indigo-100/80 hover:from-indigo-100 hover:to-indigo-200 text-indigo-600 border border-indigo-200/50 rounded-2xl flex items-center justify-center gap-2 active:scale-[0.98] transition-all"
+                  className="w-10 h-10 sm:w-12 sm:h-12 flex-shrink-0 bg-gradient-to-r from-indigo-50 to-indigo-100/80 hover:from-indigo-100 hover:to-indigo-200 text-indigo-600 border border-indigo-200/50 rounded-xl sm:rounded-2xl flex items-center justify-center gap-2 active:scale-[0.98] transition-all"
                   title={isFlipped ? "Flip to Front" : "Flip to Back"}
                 >
-                  <RefreshCw className="w-5 h-5 text-indigo-600 animate-[spin_4s_linear_infinite]" />
+                  <RefreshCw className="w-4.5 h-4.5 sm:w-5 sm:h-5 text-indigo-600 animate-[spin_4s_linear_infinite]" />
                 </button>
                 <button 
                   onClick={handleNext}
-                  className="flex-1 h-12 bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-600 text-white font-black text-xs rounded-2xl shadow-lg shadow-emerald-300/50 flex items-center justify-center gap-2.5 uppercase tracking-widest active:scale-[0.98] transition-all hover:shadow-emerald-400/60 hover:shadow-xl"
+                  className="flex-1 h-10 sm:h-12 bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-600 text-white font-black text-xs rounded-xl sm:rounded-2xl shadow-lg shadow-emerald-300/50 flex items-center justify-center gap-2.5 uppercase tracking-widest active:scale-[0.98] transition-all hover:shadow-emerald-400/60 hover:shadow-xl"
                 >
                   NEXT CARD <ChevronRight className="w-4 h-4" />
                 </button>
