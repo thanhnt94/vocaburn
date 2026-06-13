@@ -3620,7 +3620,7 @@ export default function PracticePlay() {
         </aside>
 
         <div className="w-full max-w-4xl min-w-0 flex flex-col overflow-hidden h-full">
-          <div className="flex-1 flex flex-col overflow-hidden md:pr-2 md:pb-2 pr-0 pb-[76px] xl:pb-0">
+          <div className="flex-1 flex flex-col overflow-hidden md:pr-2 md:pb-2 pr-0 pb-[100px] xl:pb-0">
 
 
             <AnimatePresence mode="wait">
@@ -4102,8 +4102,8 @@ export default function PracticePlay() {
       </main>
 
       {(mainTab !== 'practice' || (mainTab === 'practice' && !practiceNeedsSetup)) && (
-        <footer className="fixed bottom-0 left-0 right-0 xl:relative flex-shrink-0 bg-white/95 backdrop-blur-2xl border-t border-slate-100/80 px-4 py-3 z-[120] shadow-[0_-4px_24px_rgba(99,102,241,0.06)]">
-          <div className="max-w-2xl mx-auto w-full flex items-center gap-3 h-13">
+        <footer className="fixed bottom-0 left-0 right-0 xl:relative flex-shrink-0 bg-white/95 backdrop-blur-2xl border-t border-slate-100/80 px-3 pt-3 pb-6 sm:px-4 sm:py-3.5 z-[120] shadow-[0_-4px_24px_rgba(99,102,241,0.06)]">
+          <div className="max-w-2xl mx-auto w-full flex items-center gap-3 h-12 sm:h-14">
             {/* Mobile Stats Button */}
             <button
               onClick={() => setIsStatsOpen(true)}
@@ -4166,12 +4166,12 @@ export default function PracticePlay() {
                   className="w-12 h-12 flex-shrink-0 flex items-center justify-center bg-indigo-50 border border-indigo-200 rounded-2xl text-indigo-600 shadow-sm active:scale-95 transition-all hover:bg-indigo-100 hover:border-indigo-300"
                   title="Phát âm"
                 >
-                  <Play className="w-5 h-5 fill-indigo-600 animate-pulse" />
+                  <Volume2 className="w-5.5 h-5.5 text-indigo-600 animate-pulse" />
                 </button>
               );
             })()}
 
-            {/* BookOpen Explanation Button (visible in FSRS, and also in practice mode if a question is loaded) */}
+            {/* Lightbulb Explanation Button (visible in FSRS, and also in practice mode if a question is loaded) */}
             {(mainTab === 'practice' || showFeedback) && (
               <button
                 onClick={() => {
@@ -4186,7 +4186,7 @@ export default function PracticePlay() {
                   }`}
                 title="Xem giải thích và hướng dẫn"
               >
-                <BookOpen className="w-5 h-5" />
+                <Lightbulb className="w-5.5 h-5.5" />
                 {justAnswered && <span className="absolute -top-1 -right-1 w-3 h-3 bg-rose-500 rounded-full border-2 border-white animate-pulse"></span>}
               </button>
             )}
