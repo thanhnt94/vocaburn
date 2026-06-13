@@ -4391,7 +4391,7 @@ export default function FlashcardPlay() {
             )}
           </div>
 
-          {/* Rotating Stats Line */}
+          {/* 3-Column Horizontal Stats bar */}
           {(() => {
             const answeredCount = Object.keys(sessionAnswers).length;
             const totalCount = session?.questions?.length || 0;
@@ -4400,48 +4400,30 @@ export default function FlashcardPlay() {
             const wrongCount = finalRatings.filter(val => val === 0).length;
             const correctCount = answeredCount - wrongCount;
             const accuracy = answeredCount > 0 ? Math.round((correctCount / answeredCount) * 100) : 0;
-            const remainingCount = totalCount - answeredCount;
-
-            const statsList = [
-              {
-                label: "Tiến trình học tập",
-                value: `${answeredCount} / ${totalCount} thẻ (${Math.round(progressPercent)}%)`
-              },
-              {
-                label: "Tỷ lệ chính xác",
-                value: `${accuracy}% (${correctCount} đúng / ${wrongCount} sai)`
-              },
-              {
-                label: "Kinh nghiệm tích lũy",
-                value: `+${sessionXP} XP`
-              },
-              {
-                label: "Số thẻ còn lại",
-                value: `${remainingCount} thẻ`
-              }
-            ];
 
             return (
-              <div className="w-full flex items-center justify-center h-4 overflow-hidden relative mt-1">
-                <AnimatePresence mode="wait">
-                  <motion.div
-                    key={currentStatIndex}
-                    initial={{ y: 12, opacity: 0 }}
-                    animate={{ y: 0, opacity: 1 }}
-                    exit={{ y: -12, opacity: 0 }}
-                    transition={{ duration: 0.35, ease: "easeInOut" }}
-                    className="absolute flex items-center justify-center gap-1.5 whitespace-nowrap"
-                  >
-                    <span className="w-1.5 h-1.5 bg-rose-500 rounded-full animate-pulse flex-shrink-0" />
-                    <span className="text-[9px] font-black text-rose-500 uppercase tracking-widest mr-1">LIVE</span>
-                    <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">
-                      {statsList[currentStatIndex]?.label}:
-                    </span>
-                    <span className="text-[9px] font-bold text-slate-600 uppercase tracking-wider">
-                      {statsList[currentStatIndex]?.value}
-                    </span>
-                  </motion.div>
-                </AnimatePresence>
+              <div className="w-full grid grid-cols-3 divide-x divide-slate-100 mt-1.5 h-6 items-center bg-slate-50/50 rounded-xl border border-slate-100/30">
+                {/* 1. Progress */}
+                <div className="flex items-center justify-center gap-1 px-1 min-w-0">
+                  <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest shrink-0">TIẾN TRÌNH:</span>
+                  <span className="text-[9px] font-bold text-slate-700 truncate">
+                    {answeredCount}/{totalCount} ({Math.round(progressPercent)}%)
+                  </span>
+                </div>
+                {/* 2. Accuracy */}
+                <div className="flex items-center justify-center gap-1 px-1 min-w-0">
+                  <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest shrink-0">CHÍNH XÁC:</span>
+                  <span className="text-[9px] font-bold text-emerald-600 truncate">
+                    {accuracy}%
+                  </span>
+                </div>
+                {/* 3. XP / Remaining */}
+                <div className="flex items-center justify-center gap-1 px-1 min-w-0">
+                  <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest shrink-0">TÍCH LŨY:</span>
+                  <span className="text-[9px] font-bold text-amber-500 truncate">
+                    +{sessionXP} XP
+                  </span>
+                </div>
               </div>
             );
           })()}
