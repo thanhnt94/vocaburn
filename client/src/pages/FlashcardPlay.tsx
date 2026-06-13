@@ -312,6 +312,8 @@ export default function FlashcardPlay() {
   const {
     sfxEnabled,
     setSfxEnabled,
+    quickLearnEnabled,
+    setQuickLearnEnabled,
     saveGeneralSettings
   } = usePlaySettings(id || '', modeSettings, setModeSettings, activeMode, autoPlayAudio);
   const [learningModeAlert, setLearningModeAlert] = useState<{
@@ -557,6 +559,10 @@ export default function FlashcardPlay() {
           const finalMode = (urlMode === 'new' || urlMode === 'fsrs') ? urlMode : uSet.learning_mode;
           setActiveMode(finalMode);
           localStorage.setItem('quiz_learning_mode', finalMode);
+        }
+        if (uSet.quick_learn_enabled !== undefined) {
+          setQuickLearnEnabled(uSet.quick_learn_enabled);
+          localStorage.setItem('vocaburn_quick_learn_enabled', uSet.quick_learn_enabled ? 'true' : 'false');
         }
       }
       
@@ -1259,6 +1265,16 @@ export default function FlashcardPlay() {
           }
         }
       }
+
+      // Tự động chuyển câu (Quick Learn)
+      const quickAnswersCount = Object.keys(newAnswers).length
+      const quickTotalCount = session?.questions?.length || 1
+      const hasMilestone = !!unlockedBadge || (masteryUpdate && masteryUpdate.level_up) || (updatedStreak === 10)
+      if (quickLearnEnabled && quickAnswersCount < quickTotalCount && !hasMilestone) {
+        setTimeout(() => {
+          handleNext(newAnswers)
+        }, 200)
+      }
     } catch (e) {
       console.error("Failed to record answer to server:", e)
       showLocalToast("Warning: Your answer was not saved to the server.", "warning")
@@ -1628,7 +1644,7 @@ export default function FlashcardPlay() {
     saveSession(isPractice ? customPracticeAnswers : sessionAnswers, idx)
   }
 
-  const handleNext = async () => {
+  const handleNext = async (customAnswers?: Record<number, any> | React.MouseEvent) => {
     // Immediately stop any actively playing server audio and clear speech synthesis queues when transitioning
     if (activeAudioRef.current) {
       activeAudioRef.current.pause();
@@ -1670,7 +1686,8 @@ export default function FlashcardPlay() {
     }
 
     let nextIdx = -1
-    const updatedAnswers = { ...sessionAnswers }
+    const isEvent = customAnswers && typeof customAnswers === 'object' && ('nativeEvent' in customAnswers || 'target' in customAnswers)
+    const updatedAnswers = (customAnswers && !isEvent) ? (customAnswers as Record<number, any>) : { ...sessionAnswers }
     const answeredIndexes = Object.keys(updatedAnswers).map(Number)
     
     try {
@@ -4370,6 +4387,8 @@ export default function FlashcardPlay() {
         handleIgnoreQuestion={handleIgnoreQuestion}
         openEditModal={openEditModal}
         setIsQuitModalOpen={setIsQuitModalOpen}
+        quickLearnEnabled={quickLearnEnabled}
+        setQuickLearnEnabled={setQuickLearnEnabled}
       />
 
       {/* Exit Confirmation Modal */}

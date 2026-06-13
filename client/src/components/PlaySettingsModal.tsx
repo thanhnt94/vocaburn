@@ -18,6 +18,8 @@ interface PlaySettingsModalProps {
   handleIgnoreQuestion: () => void;
   openEditModal: () => void;
   setIsQuitModalOpen: (open: boolean) => void;
+  quickLearnEnabled?: boolean;
+  setQuickLearnEnabled?: (enabled: boolean) => void;
 }
 
 export const PlaySettingsModal: React.FC<PlaySettingsModalProps> = ({
@@ -34,7 +36,9 @@ export const PlaySettingsModal: React.FC<PlaySettingsModalProps> = ({
   currentQuestion,
   handleIgnoreQuestion,
   openEditModal,
-  setIsQuitModalOpen
+  setIsQuitModalOpen,
+  quickLearnEnabled = false,
+  setQuickLearnEnabled
 }) => {
   return (
     <AnimatePresence>
@@ -159,7 +163,7 @@ export const PlaySettingsModal: React.FC<PlaySettingsModalProps> = ({
               </div>
 
               {/* 3. Sound Effects Toggle */}
-              <div className="flex items-center justify-between py-2 border-t border-b border-slate-100">
+              <div className="flex items-center justify-between py-2 border-t border-slate-100">
                 <div className="flex flex-col">
                   <span className="text-[11px] font-black text-slate-700">Âm thanh hiệu ứng</span>
                   <span className="text-[9px] text-slate-400">Phát nhạc chuông khi trả lời Đúng/Sai</span>
@@ -177,6 +181,28 @@ export const PlaySettingsModal: React.FC<PlaySettingsModalProps> = ({
                   )} />
                 </button>
               </div>
+
+              {/* 3b. Quick Learn Toggle */}
+              {setQuickLearnEnabled !== undefined && (
+                <div className="flex items-center justify-between py-2 border-t border-b border-slate-100">
+                  <div className="flex flex-col">
+                    <span className="text-[11px] font-black text-slate-700">Tự động chuyển câu (Quick Learn)</span>
+                    <span className="text-[9px] text-slate-400">Tự động chuyển thẻ tiếp theo ngay sau khi đánh giá</span>
+                  </div>
+                  <button 
+                    onClick={() => setQuickLearnEnabled(!quickLearnEnabled)}
+                    className={cn(
+                      "w-12 h-6 rounded-full p-0.5 transition-colors duration-200 ease-in-out relative flex items-center",
+                      quickLearnEnabled ? "bg-indigo-500" : "bg-slate-200"
+                    )}
+                  >
+                    <div className={cn(
+                      "w-5 h-5 rounded-full bg-white shadow-sm transform transition-transform duration-200 ease-in-out",
+                      quickLearnEnabled ? "translate-x-6" : "translate-x-0"
+                    )} />
+                  </button>
+                </div>
+              )}
 
               {/* 4. Actions: Copy, Ignore, Edit, Quit */}
               <div className="pt-2 flex flex-col gap-2">

@@ -16,17 +16,27 @@ export function usePlaySettings(
     return true;
   });
 
+  const [quickLearnEnabled, setQuickLearnEnabledState] = useState<boolean>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('vocaburn_quick_learn_enabled');
+      return saved === 'true';
+    }
+    return false;
+  });
+
   const saveGeneralSettings = async (updates: {
     sfx_enabled?: boolean;
     autoplay_audio?: string;
     learning_mode?: string;
+    quick_learn_enabled?: boolean;
   }) => {
     try {
       const updatedSettings = {
         ...modeSettings,
         sfx_enabled: updates.sfx_enabled !== undefined ? updates.sfx_enabled : sfxEnabled,
         autoplay_audio: updates.autoplay_audio !== undefined ? updates.autoplay_audio : autoPlayAudio,
-        learning_mode: updates.learning_mode !== undefined ? updates.learning_mode : activeMode
+        learning_mode: updates.learning_mode !== undefined ? updates.learning_mode : activeMode,
+        quick_learn_enabled: updates.quick_learn_enabled !== undefined ? updates.quick_learn_enabled : quickLearnEnabled
       };
       setModeSettings(updatedSettings);
       await axios.post(`/api/v1/deck/${deckId}/practice-settings`, {
@@ -46,9 +56,19 @@ export function usePlaySettings(
     saveGeneralSettings({ sfx_enabled: enabled });
   };
 
+  const setQuickLearnEnabled = (enabled: boolean) => {
+    setQuickLearnEnabledState(enabled);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('vocaburn_quick_learn_enabled', enabled ? 'true' : 'false');
+    }
+    saveGeneralSettings({ quick_learn_enabled: enabled });
+  };
+
   return {
     sfxEnabled,
     setSfxEnabled,
+    quickLearnEnabled,
+    setQuickLearnEnabled,
     saveGeneralSettings
   };
 }
