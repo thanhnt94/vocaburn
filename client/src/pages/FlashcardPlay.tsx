@@ -1584,7 +1584,7 @@ export default function FlashcardPlay() {
     }
   };
 
-  const navigateToQuestion = (idx: number, customPracticeAnswers = practiceAnswers) => {
+  const navigateToQuestion = (idx: number, customAnswers?: Record<number, any>) => {
     setCurrentIndex(idx)
     setIsFlipped(false)
     setActivelyRatedCurrentCard(false)
@@ -1602,8 +1602,9 @@ export default function FlashcardPlay() {
     setLearningModeAlert(null)
     
     const isPractice = mainTab === 'practice';
+    const activeAnswers = customAnswers || (isPractice ? practiceAnswers : sessionAnswers);
     if (isPractice) {
-      const prevAns = customPracticeAnswers[idx]
+      const prevAns = activeAnswers[idx]
       if (prevAns !== undefined) {
         setSelectedOption(prevAns)
         setShowFeedback(true)
@@ -1623,7 +1624,7 @@ export default function FlashcardPlay() {
         return parseUTCDate(q.fsrs.due).getTime() - 30000 <= new Date().getTime();
       })()
 
-      const prevOpt = sessionAnswers[idx]
+      const prevOpt = activeAnswers[idx]
       const hasRatedThisSession = prevOpt !== undefined
       const lastRating = Array.isArray(prevOpt) 
         ? prevOpt[prevOpt.length - 1] 
@@ -1641,7 +1642,7 @@ export default function FlashcardPlay() {
     
     setIsEditingNote(false)
     setIsEditingAI(false)
-    saveSession(isPractice ? customPracticeAnswers : sessionAnswers, idx)
+    saveSession(activeAnswers, idx)
   }
 
   const handleNext = async (customAnswers?: Record<number, any> | React.MouseEvent) => {
@@ -1702,7 +1703,7 @@ export default function FlashcardPlay() {
       nextIdx = Math.min(currentIndex + 1, total - 1)
     }
 
-    navigateToQuestion(nextIdx)
+    navigateToQuestion(nextIdx, updatedAnswers)
   }
 
   const applyLearningMode = async (mode: string) => {
@@ -1733,7 +1734,7 @@ export default function FlashcardPlay() {
     }
 
     if (targetIdx !== -1 && targetIdx !== currentIndex) {
-      navigateToQuestion(targetIdx)
+      navigateToQuestion(targetIdx, updatedAnswers)
     }
   }
 
