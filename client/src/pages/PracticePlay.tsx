@@ -4127,73 +4127,17 @@ export default function PracticePlay() {
           })()}
           <div className="max-w-2xl mx-auto w-full flex flex-col gap-1.5 sm:gap-2">
             <div className="w-full flex items-center gap-1.5 sm:gap-3 h-12 sm:h-14">
-              {/* Grouped More Options Button */}
-              <div className="relative">
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setIsUtilityMenuOpen(!isUtilityMenuOpen);
-                  }}
-                  className={cn(
-                    "w-12 h-12 flex-shrink-0 flex items-center justify-center border rounded-2xl shadow-sm active:scale-95 transition-all relative z-[130]",
-                    isUtilityMenuOpen
-                      ? "bg-indigo-600 border-indigo-600 text-white"
-                      : "bg-indigo-50 border-indigo-200 text-indigo-600 hover:bg-indigo-100 hover:border-indigo-300"
-                  )}
-                  title="Thao tác khác"
-                >
-                  <Sliders className="w-5.5 h-5.5" />
-                </button>
-                
-                <AnimatePresence>
-                  {isUtilityMenuOpen && (
-                    <motion.div
-                      initial={{ opacity: 0, scale: 0.95, y: 10 }}
-                      animate={{ opacity: 1, scale: 1, y: 0 }}
-                      exit={{ opacity: 0, scale: 0.95, y: 10 }}
-                      transition={{ duration: 0.15 }}
-                      className="absolute bottom-[calc(100%+0.5rem)] left-0 w-60 bg-white border border-slate-100/90 rounded-3xl shadow-[0_10px_30px_rgba(99,102,241,0.12)] p-2 z-[150] flex flex-col gap-1 origin-bottom-left"
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setIsUtilityMenuOpen(false);
-                          setIsSettingsModalOpen(true);
-                        }}
-                        className="flex items-center gap-2.5 w-full px-4 py-3 text-left hover:bg-indigo-50/60 rounded-2xl text-slate-700 hover:text-indigo-600 text-[11px] font-black uppercase tracking-wider transition-all"
-                      >
-                        <Settings className="w-4 h-4 text-slate-400" />
-                        <span>Cấu hình học tập</span>
-                      </button>
-
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setIsUtilityMenuOpen(false);
-                          setIsMapOpen(true);
-                        }}
-                        className="flex items-center gap-2.5 w-full px-4 py-3 text-left hover:bg-indigo-50/60 rounded-2xl text-slate-700 hover:text-indigo-600 text-[11px] font-black uppercase tracking-wider transition-all"
-                      >
-                        <LayoutGrid className="w-4 h-4 text-slate-400" />
-                        <span>Bản đồ thẻ học</span>
-                      </button>
-
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setIsUtilityMenuOpen(false);
-                          setIsStatsOpen(true);
-                        }}
-                        className="flex items-center gap-2.5 w-full px-4 py-3 text-left hover:bg-indigo-50/60 rounded-2xl text-slate-700 hover:text-indigo-600 text-[11px] font-black uppercase tracking-wider transition-all"
-                      >
-                        <TrendingUp className="w-4 h-4 text-slate-400" />
-                        <span>Thống kê tiến trình</span>
-                      </button>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </div>
+            {/* Settings Button */}
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setIsSettingsModalOpen(true);
+              }}
+              className="w-12 h-12 flex-shrink-0 flex items-center justify-center bg-indigo-50 border border-indigo-200 text-indigo-600 rounded-2xl shadow-sm active:scale-95 hover:bg-indigo-100 hover:border-indigo-300 transition-all"
+              title="Cấu hình học tập"
+            >
+              <Settings className="w-5.5 h-5.5 text-indigo-600" />
+            </button>
 
               {/* Audio play button */}
               {(() => {
@@ -4318,45 +4262,52 @@ export default function PracticePlay() {
               )}
             </div>
 
-            {/* 3-Column Horizontal Stats bar */}
+            {/* Interactive Navigation Tabs */}
             {(() => {
               const answeredCount = Object.keys(practiceAnswers).length;
               const totalCount = session?.questions?.length || 0;
               const progressPercent = totalCount > 0 ? (answeredCount / totalCount) * 100 : 0;
-              const correctCount = Object.entries(practiceAnswers).filter(([idx, ansIdx]) => {
-                const q = session?.questions?.[Number(idx)];
-                if (!q || !q.practice) return false;
-                if (practiceSubMode === 'typing') {
-                  return ansIdx === 3;
-                }
-                return ansIdx === q.practice.correct_index;
-              }).length;
-              const wrongCount = answeredCount - correctCount;
-              const accuracy = answeredCount > 0 ? Math.round((correctCount / answeredCount) * 100) : 0;
 
               return (
                 <div className="w-full grid grid-cols-3 divide-x divide-slate-100/50 mt-1 h-5 items-center">
-                  {/* 1. Progress */}
-                  <div className="flex items-center justify-center gap-1.5 px-1 min-w-0">
-                    <BookOpen className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                    <span className="text-[10px] font-bold text-slate-700 truncate">
+                  {/* 1. Card Map Tab */}
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setIsMapOpen(true);
+                    }}
+                    className="flex items-center justify-center gap-1.5 px-1 min-w-0 active:scale-[0.98] hover:opacity-80 transition-all text-slate-500"
+                    title="Mở bản đồ thẻ"
+                  >
+                    <LayoutGrid className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                    <span className="text-[10px] font-black uppercase tracking-wider truncate">
+                      Bản đồ
+                    </span>
+                  </button>
+                  {/* 2. Flashcard Active View Tab */}
+                  <div 
+                    className="flex items-center justify-center gap-1.5 px-1 min-w-0 text-indigo-600"
+                    title="Tiến trình luyện tập hiện tại"
+                  >
+                    <BookOpen className="w-3.5 h-3.5 text-indigo-500 shrink-0" />
+                    <span className="text-[10px] font-bold truncate">
                       {answeredCount}/{totalCount} ({Math.round(progressPercent)}%)
                     </span>
                   </div>
-                  {/* 2. Accuracy */}
-                  <div className="flex items-center justify-center gap-1.5 px-1 min-w-0">
-                    <Target className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
-                    <span className="text-[10px] font-bold text-emerald-600 truncate">
-                      {accuracy}%
+                  {/* 3. Stats Tab */}
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setIsStatsOpen(true);
+                    }}
+                    className="flex items-center justify-center gap-1.5 px-1 min-w-0 active:scale-[0.98] hover:opacity-80 transition-all text-slate-500"
+                    title="Mở thống kê tiến trình"
+                  >
+                    <TrendingUp className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                    <span className="text-[10px] font-black uppercase tracking-wider truncate">
+                      Thống kê
                     </span>
-                  </div>
-                  {/* 3. XP */}
-                  <div className="flex items-center justify-center gap-1.5 px-1 min-w-0">
-                    <Sparkles className="w-3.5 h-3.5 text-amber-500 shrink-0 animate-pulse" />
-                    <span className="text-[10px] font-bold text-amber-500 truncate">
-                      +{sessionXP} XP
-                    </span>
-                  </div>
+                  </button>
                 </div>
               );
             })()}
