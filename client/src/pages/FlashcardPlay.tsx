@@ -3387,7 +3387,34 @@ export default function FlashcardPlay() {
             </div>
           </div>
         </div>
-        <div className="flex items-center gap-1.5">
+        <div className="flex items-center gap-2">
+          {/* Header Action Toolbar */}
+          <div className="flex items-center gap-1.5 mr-1">
+            <button 
+               onClick={() => setIsSettingsModalOpen(true)}
+               className="w-8 h-8 flex items-center justify-center bg-slate-50 border border-slate-200/80 rounded-xl text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 active:scale-90 transition-all shadow-sm"
+               title="Cài đặt & Tùy chọn"
+            >
+               <Settings className="w-4 h-4" />
+            </button>
+
+            <button 
+               onClick={() => setIsMapOpen(true)}
+               className="w-8 h-8 flex items-center justify-center bg-slate-50 border border-slate-200/80 rounded-xl text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 active:scale-90 transition-all shadow-sm"
+               title="Xem sơ đồ câu hỏi"
+            >
+               <LayoutGrid className="w-4 h-4" />
+            </button>
+
+            <button 
+               onClick={() => setIsStatsOpen(true)} 
+               className="lg:hidden w-8 h-8 flex items-center justify-center bg-slate-50 border border-slate-200/80 rounded-xl text-slate-500 hover:bg-indigo-50 hover:text-indigo-600 active:scale-90 transition-all shadow-sm"
+               title="Xem thống kê"
+            >
+               <TrendingUp className="w-4 h-4 text-indigo-600" />
+            </button>
+          </div>
+
           <div className="flex flex-col gap-0.5 items-end">
             <div className={cn(
               "flex items-center gap-0.5 px-1.5 py-0.5 rounded text-white shadow-sm text-[8px] font-black transition-all",
@@ -3700,7 +3727,7 @@ export default function FlashcardPlay() {
         </aside>
 
         <div className="w-full max-w-4xl min-w-0 flex flex-col overflow-hidden h-full">
-          <div className="flex-1 flex flex-col overflow-hidden md:pr-2 md:pb-2 pr-0 pb-[100px] xl:pb-0">
+          <div className="flex-1 flex flex-col overflow-hidden md:pr-2 md:pb-2 pr-0 pb-3 xl:pb-0">
             
 
           <AnimatePresence mode="wait">
@@ -4168,35 +4195,8 @@ export default function FlashcardPlay() {
 
 
       {(mainTab !== 'practice' || (mainTab === 'practice' && !practiceNeedsSetup)) && (
-      <footer className="fixed bottom-0 left-0 right-0 xl:relative flex-shrink-0 bg-white/95 backdrop-blur-2xl border-t border-slate-100/80 px-3 pt-3 pb-6 sm:px-4 sm:py-3.5 z-[120] shadow-[0_-4px_24px_rgba(99,102,241,0.06)]">
+      <footer className="relative w-full flex-shrink-0 bg-white/95 backdrop-blur-2xl border-t border-slate-100/80 px-3 pt-3 pb-6 sm:px-4 sm:py-3.5 z-[120] shadow-[0_-4px_24px_rgba(99,102,241,0.06)]">
         <div className="max-w-2xl mx-auto w-full flex items-center gap-1.5 sm:gap-3 h-12 sm:h-14">
-          {/* Settings button */}
-          <button 
-             onClick={() => setIsSettingsModalOpen(true)}
-             className="w-12 h-12 flex-shrink-0 flex items-center justify-center bg-slate-50 border border-slate-200 rounded-2xl text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 hover:border-indigo-200 shadow-sm active:scale-95 transition-all"
-             title="Cài đặt & Tùy chọn"
-          >
-             <Settings className="w-5 h-5 sm:w-5.5 sm:h-5.5" />
-          </button>
-
-          {/* Card Map button */}
-          <button 
-             onClick={() => setIsMapOpen(true)}
-             className="w-12 h-12 flex-shrink-0 flex items-center justify-center bg-slate-50 border border-slate-200 rounded-2xl text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 hover:border-indigo-200 shadow-sm active:scale-95 transition-all"
-             title="Xem sơ đồ câu hỏi"
-          >
-             <LayoutGrid className="w-5 h-5 sm:w-5.5 sm:h-5.5" />
-          </button>
-
-          {/* Mobile Stats Button */}
-          <button 
-             onClick={() => setIsStatsOpen(true)} 
-             className="lg:hidden w-12 h-12 flex-shrink-0 flex items-center justify-center bg-slate-50 border border-slate-200 rounded-2xl text-slate-500 hover:bg-indigo-50 hover:text-indigo-600 hover:border-indigo-200 shadow-sm active:scale-95 transition-all"
-             title="Xem thống kê"
-          >
-             <TrendingUp className="w-5 h-5 sm:w-5.5 sm:h-5.5 text-indigo-600 animate-pulse" />
-          </button>
-
           {/* Audio play button */}
           {(() => {
             if (!currentQuestion) return null;
