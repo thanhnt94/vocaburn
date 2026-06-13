@@ -3747,10 +3747,10 @@ export default function FlashcardPlay() {
                         </div>
                       )}
 
-                      {currentQuestion?.others?.back_img && (
+                      {(currentQuestion?.others?.back_img || currentQuestion?.image) && (
                         <div className="space-y-2">
                           <img 
-                            src={currentQuestion.others.back_img} 
+                            src={currentQuestion.others?.back_img || currentQuestion.image || undefined} 
                             alt="Back Visual" 
                             className="max-h-40 md:max-h-48 object-contain rounded-3xl border border-slate-100/80 shadow-md bg-slate-50/50 p-1.5 animate-in zoom-in-95 duration-500"
                           />
