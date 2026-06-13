@@ -235,6 +235,8 @@ async def get_deck_cards(deck_id: int, request: Request, page: int = 1, size: in
                 "content": c.content,
                 "explanation": c.explanation,
                 "ai_explanation": c.ai_explanation,
+                "hint": c.hint,
+                "mnemonic": c.mnemonic,
                 "points": 1,
                 "image": c.image,
                 "audio": c.audio,
@@ -317,6 +319,8 @@ async def update_deck(request: Request, deck_id: int, data: dict, db: AsyncSessi
     if "description" in data: deck.description = data["description"]
     if "category_id" in data: deck.category_id = data["category_id"]
     if "ai_prompt" in data: deck.ai_prompt = data["ai_prompt"]
+    if "ai_prompt_hint" in data: deck.ai_prompt_hint = data["ai_prompt_hint"]
+    if "ai_prompt_mnemonic" in data: deck.ai_prompt_mnemonic = data["ai_prompt_mnemonic"]
     if "instruction" in data: deck.instruction = data["instruction"]
     
     if "tags" in data:
@@ -410,6 +414,8 @@ async def update_card(card_id: int, data: dict, db: AsyncSession = Depends(get_d
     if "content" in data: card.content = data["content"]
     if "explanation" in data: card.explanation = data["explanation"]
     if "ai_explanation" in data: card.ai_explanation = data["ai_explanation"]
+    if "hint" in data: card.hint = data["hint"]
+    if "mnemonic" in data: card.mnemonic = data["mnemonic"]
     if "image" in data: card.image = data["image"]
     if "audio" in data: card.audio = data["audio"]
     if "others" in data:

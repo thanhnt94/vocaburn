@@ -15,6 +15,8 @@ interface Flashcard {
   content: string
   explanation: string
   ai_explanation?: string
+  hint?: string | null
+  mnemonic?: string | null
   image?: string | null
   audio?: string | null
   others?: Record<string, any> | null
@@ -49,6 +51,34 @@ export const FlashcardEditModal: React.FC<FlashcardEditModalProps> = ({
   const [customJsonText, setCustomJsonText] = useState('')
   const [jsonError, setJsonError] = useState('')
   const [regenStatus, setRegenStatus] = useState<Record<string, string>>({})
+  const [isGeneratingField, setIsGeneratingField] = useState<Record<string, boolean>>({})
+
+  const handleGenerateAIField = async (field: 'explanation' | 'hint' | 'mnemonic') => {
+    if (!formData?.id) return;
+    setIsGeneratingField(prev => ({ ...prev, [field]: true }));
+    try {
+      const deckId = formData.deck_id || formData.quiz_id;
+      const res = await axios.post(`/api/v1/deck/${deckId}/ask-ai`, {
+        question_id: formData.id,
+        field: field,
+        sync: true,
+        force: true
+      });
+      
+      const generatedText = res.data[field === 'explanation' ? 'ai_explanation' : field];
+      if (generatedText) {
+        setFormData((prev: any) => ({
+          ...prev,
+          [field === 'explanation' ? 'ai_explanation' : field]: generatedText
+        }));
+      }
+    } catch (e) {
+      console.error(`Failed to generate AI ${field}`, e);
+      alert(`Failed to generate AI ${field}. Please verify AI services are enabled in your admin settings.`);
+    } finally {
+      setIsGeneratingField(prev => ({ ...prev, [field]: false }));
+    }
+  }
 
   useEffect(() => {
     if (flashcard) {
@@ -150,6 +180,8 @@ export const FlashcardEditModal: React.FC<FlashcardEditModalProps> = ({
         content: formData.content,
         explanation: formData.explanation,
         ai_explanation: formData.ai_explanation,
+        hint: formData.hint || null,
+        mnemonic: formData.mnemonic || null,
         image: formData.image || null,
         audio: formData.audio || null,
         others: formData.others || {},
@@ -288,15 +320,69 @@ export const FlashcardEditModal: React.FC<FlashcardEditModalProps> = ({
                     />
                   </div>
                   <div className="space-y-2">
-                    <label className="text-[10px] font-black text-indigo-500 uppercase tracking-widest flex items-center gap-1.5">
-                      <Sparkles className="w-3 h-3 animate-pulse" />
-                      AI Deep Analysis
-                    </label>
+                    <div className="flex items-center justify-between">
+                      <label className="text-[10px] font-black text-indigo-500 uppercase tracking-widest flex items-center gap-1.5">
+                        <Sparkles className="w-3 h-3 animate-pulse" />
+                        AI Deep Analysis
+                      </label>
+                      <button
+                        type="button"
+                        onClick={() => handleGenerateAIField('explanation')}
+                        disabled={isGeneratingField['explanation']}
+                        className="flex items-center gap-1 text-[9px] font-black uppercase tracking-wider text-indigo-600 bg-indigo-50 hover:bg-indigo-100 px-2 py-1 rounded-lg transition-all"
+                      >
+                        <Sparkles className="w-2.5 h-2.5" />
+                        {isGeneratingField['explanation'] ? 'Generating...' : 'Gen AI'}
+                      </button>
+                    </div>
                     <textarea 
                       value={formData.ai_explanation || ''}
                       onChange={(e) => setFormData({...formData, ai_explanation: e.target.value})}
                       className="w-full h-32 p-4 bg-indigo-50/30 rounded-2xl border border-indigo-100 focus:ring-2 focus:ring-indigo-500 font-medium text-slate-700 transition-all resize-none text-xs outline-none"
                       placeholder="AI explanation, breakdown of grammar, etymology..."
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Hint (Gợi ý)</label>
+                      <button
+                        type="button"
+                        onClick={() => handleGenerateAIField('hint')}
+                        disabled={isGeneratingField['hint']}
+                        className="flex items-center gap-1 text-[9px] font-black uppercase tracking-wider text-indigo-600 bg-indigo-50 hover:bg-indigo-100 px-2 py-1 rounded-lg transition-all"
+                      >
+                        <Sparkles className="w-2.5 h-2.5" />
+                        {isGeneratingField['hint'] ? 'Generating...' : 'Gen AI'}
+                      </button>
+                    </div>
+                    <textarea 
+                      value={formData.hint || ''}
+                      onChange={(e) => setFormData({...formData, hint: e.target.value})}
+                      className="w-full h-24 p-4 bg-white rounded-2xl border border-slate-100 focus:ring-2 focus:ring-indigo-500 font-medium text-slate-700 transition-all resize-none text-xs outline-none"
+                      placeholder="Enter a manual hint or click 'Gen AI' to generate one..."
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Mnemonic (Cách nhớ)</label>
+                      <button
+                        type="button"
+                        onClick={() => handleGenerateAIField('mnemonic')}
+                        disabled={isGeneratingField['mnemonic']}
+                        className="flex items-center gap-1 text-[9px] font-black uppercase tracking-wider text-indigo-600 bg-indigo-50 hover:bg-indigo-100 px-2 py-1 rounded-lg transition-all"
+                      >
+                        <Sparkles className="w-2.5 h-2.5" />
+                        {isGeneratingField['mnemonic'] ? 'Generating...' : 'Gen AI'}
+                      </button>
+                    </div>
+                    <textarea 
+                      value={formData.mnemonic || ''}
+                      onChange={(e) => setFormData({...formData, mnemonic: e.target.value})}
+                      className="w-full h-24 p-4 bg-white rounded-2xl border border-slate-100 focus:ring-2 focus:ring-indigo-500 font-medium text-slate-700 transition-all resize-none text-xs outline-none"
+                      placeholder="Enter association stories, visual hooks, or click 'Gen AI'..."
                     />
                   </div>
                 </div>

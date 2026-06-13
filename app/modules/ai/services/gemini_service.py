@@ -16,21 +16,9 @@ class GeminiService:
         config = await AdminInterface.get_ai_config(db)
         return cls(api_key=config.get("api_key"), model_id=config.get("model_id", "gemini-2.0-flash"))
 
-    async def generate_explanation(self, question: str, options: list, correct_answer: str) -> str:
+    async def generate_text(self, prompt: str) -> str:
         if not self.client:
-            return "AI Explanation not available (API Key missing)."
-        
-        prompt = f"""
-        Provide a detailed and educational explanation for the following multiple-choice question.
-        
-        Question: {question}
-        Options: {', '.join(options)}
-        Correct Answer: {correct_answer}
-        
-        Explain why the correct answer is right and why other options might be confusing.
-        Output language should be Vietnamese if the question is in Vietnamese, otherwise English.
-        """
-        
+            return "AI Service not configured (API Key missing)."
         try:
             # Use async client (aio)
             response = await self.client.aio.models.generate_content(
@@ -39,4 +27,4 @@ class GeminiService:
             )
             return response.text
         except Exception as e:
-            return f"Error generating explanation: {str(e)}"
+            return f"Error generating content: {str(e)}"

@@ -20,6 +20,8 @@ class FlashcardDeck(Base):
     category_id = Column(Integer, ForeignKey("categories.id"), index=True)
     creator_id = Column(Integer, nullable=True) # ID of the user who created/uploaded it
     ai_prompt = Column(Text, nullable=True) # System prompt for AI generation related to this deck
+    ai_prompt_hint = Column(Text, nullable=True) # System prompt for AI hint generation
+    ai_prompt_mnemonic = Column(Text, nullable=True) # System prompt for AI mnemonic generation
     instruction = Column(Text, nullable=True) # General instruction for the entire deck
     cover_image = Column(String(512), nullable=True) # URL to the cover image
     time_limit = Column(Integer, default=0) # in minutes, 0 means no limit
@@ -42,6 +44,8 @@ class Flashcard(Base):
     question_type = Column(String(50), default="flashcard")
     explanation = Column(Text, nullable=True)
     ai_explanation = Column(Text, nullable=True)
+    hint = Column(Text, nullable=True)
+    mnemonic = Column(Text, nullable=True)
     others = Column(JSON, nullable=True)
     
     deck = relationship("FlashcardDeck", back_populates="cards")

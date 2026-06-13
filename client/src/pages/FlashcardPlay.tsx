@@ -44,6 +44,8 @@ interface Question {
   content: string
   explanation: string
   ai_explanation?: string
+  hint?: string | null
+  mnemonic?: string | null
   options: Option[]
   stats?: { 
     total: number
@@ -173,10 +175,13 @@ export default function FlashcardPlay() {
   const [currentIndex, setCurrentIndex] = useState(-1)
   const [showAbsoluteFirst, setShowAbsoluteFirst] = useState(false)
   const [showAbsoluteLast, setShowAbsoluteLast] = useState(false)
+  const [showingHint, setShowingHint] = useState(false)
+  const [isAskingHint, setIsAskingHint] = useState(false)
 
   useEffect(() => {
     setShowAbsoluteFirst(false)
     setShowAbsoluteLast(false)
+    setShowingHint(false)
   }, [currentIndex])
   const currentQuestion: Question | null = session?.questions?.[currentIndex] || null
   const [selectedOption, setSelectedOption] = useState<number | null>(null)
@@ -874,6 +879,45 @@ export default function FlashcardPlay() {
     }
   }
 
+  const handleToggleHint = async (e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    if (!currentQuestion) return;
+    if (showingHint) {
+      setShowingHint(false);
+      return;
+    }
+    if (currentQuestion.hint) {
+      setShowingHint(true);
+      return;
+    }
+    
+    setIsAskingHint(true);
+    try {
+      const res = await axios.post(`/api/v1/deck/${id}/ask-ai`, {
+        question_id: currentQuestion.id,
+        field: 'hint',
+        sync: true
+      });
+      const generatedHint = res.data.hint;
+      if (generatedHint) {
+        setSession((prev: any) => {
+          if (!prev) return prev;
+          const newQs = [...prev.questions];
+          const targetIdx = newQs.findIndex(q => q.id === currentQuestion.id);
+          if (targetIdx !== -1) {
+            newQs[targetIdx] = { ...newQs[targetIdx], hint: generatedHint };
+          }
+          return { ...prev, questions: newQs };
+        });
+        setShowingHint(true);
+      }
+    } catch (err) {
+      console.error("Failed to fetch/generate hint:", err);
+    } finally {
+      setIsAskingHint(false);
+    }
+  };
+
   const handleReviewRating = async (rating: number) => {
     console.log("DEBUG: handleReviewRating called with rating:", rating, "currentIndex:", currentIndex);
     if (!currentQuestion) {
@@ -931,6 +975,44 @@ export default function FlashcardPlay() {
     if (!alreadyRated) {
       const prevRatio = prevTotal > 0 ? prevCorrect / prevTotal : 0
       const usuallyCorrect = prevRatio >= 0.7 && prevTotal >= 2
+
+      // Trigger background AI generation if user struggled (rating is Again or Hard)
+      if (!correct || rating === 2) {
+        if (!currentQuestion.hint) {
+          axios.post(`/api/v1/deck/${id}/ask-ai`, { question_id: currentQuestion.id, field: 'hint' })
+            .then(res => {
+              if (res.data.hint) {
+                setSession((prev: any) => {
+                  if (!prev) return prev;
+                  const newQs = [...prev.questions];
+                  const targetIdx = newQs.findIndex(q => q.id === currentQuestion.id);
+                  if (targetIdx !== -1) {
+                    newQs[targetIdx] = { ...newQs[targetIdx], hint: res.data.hint };
+                  }
+                  return { ...prev, questions: newQs };
+                });
+              }
+            })
+            .catch(err => console.error("Error generating background hint:", err));
+        }
+        if (!currentQuestion.mnemonic) {
+          axios.post(`/api/v1/deck/${id}/ask-ai`, { question_id: currentQuestion.id, field: 'mnemonic' })
+            .then(res => {
+              if (res.data.mnemonic) {
+                setSession((prev: any) => {
+                  if (!prev) return prev;
+                  const newQs = [...prev.questions];
+                  const targetIdx = newQs.findIndex(q => q.id === currentQuestion.id);
+                  if (targetIdx !== -1) {
+                    newQs[targetIdx] = { ...newQs[targetIdx], mnemonic: res.data.mnemonic };
+                  }
+                  return { ...prev, questions: newQs };
+                });
+              }
+            })
+            .catch(err => console.error("Error generating background mnemonic:", err));
+        }
+      }
 
       if (correct) {
         updatedStreak = streak + 1
@@ -1626,6 +1708,7 @@ export default function FlashcardPlay() {
     setIsFlipped(false)
     setActivelyRatedCurrentCard(false)
     setJustAnswered(false)
+    setShowingHint(false)
     setTypingInput('')
     setTypingFeedback(null)
     setSelectedOption(null)
@@ -3708,8 +3791,34 @@ export default function FlashcardPlay() {
                           {parseBBCodeToHtml(currentQuestion?.content || '')}
                         </ReactMarkdown>
                       </div>
+
+                      {/* AI Hint Section */}
+                      <div className="flex flex-col items-center gap-3 w-full px-4" onClick={(e) => e.stopPropagation()}>
+                        <button
+                          onClick={handleToggleHint}
+                          disabled={isAskingHint}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-50 hover:bg-indigo-50 text-slate-500 hover:text-indigo-600 border border-slate-200/60 hover:border-indigo-200/80 transition-all font-black text-[10px] tracking-wider uppercase active:scale-95 shadow-sm shrink-0"
+                        >
+                          <Lightbulb className={cn("w-3.5 h-3.5 text-indigo-500", isAskingHint && "animate-pulse")} />
+                          <span>{isAskingHint ? 'Loading Hint...' : 'AI Hint'}</span>
+                        </button>
+
+                        <AnimatePresence>
+                          {showingHint && currentQuestion?.hint && (
+                            <motion.div
+                              initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                              animate={{ opacity: 1, y: 0, scale: 1 }}
+                              exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                              className="w-full max-w-md p-4 rounded-2xl bg-indigo-50/40 border border-indigo-100/50 shadow-sm text-center text-xs font-semibold text-indigo-700 leading-relaxed break-words"
+                            >
+                              <span className="font-black text-[9px] uppercase tracking-wider text-indigo-400 block mb-1">💡 AI Hint</span>
+                              {currentQuestion.hint}
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
+                      </div>
                     </div>
-                    </div>
+                  </div>
 
                   {/* BACK SIDE */}
                   <div
@@ -3773,6 +3882,18 @@ export default function FlashcardPlay() {
                             alt="Back Visual" 
                             className="max-h-40 md:max-h-48 object-contain rounded-3xl border border-slate-100/80 shadow-md bg-slate-50/50 p-1.5 animate-in zoom-in-95 duration-500"
                           />
+                        </div>
+                      )}
+
+                      {currentQuestion?.mnemonic && (
+                        <div className="p-4 rounded-2xl bg-amber-50/50 border border-amber-100/60 flex items-start gap-3 shadow-inner mt-2 animate-in slide-in-from-bottom-3 duration-500">
+                          <div className="w-7 h-7 rounded-xl bg-amber-500 flex items-center justify-center text-white font-black text-sm shadow-md shrink-0 mt-0.5">
+                            💡
+                          </div>
+                          <div className="text-slate-700 font-bold text-xs md:text-sm leading-relaxed flex-1 whitespace-pre-wrap">
+                            <span className="font-black text-[9px] uppercase tracking-wider text-amber-500 block mb-0.5">Cách nhớ (AI Mnemonic)</span>
+                            {currentQuestion.mnemonic}
+                          </div>
                         </div>
                       )}
 

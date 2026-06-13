@@ -1009,6 +1009,8 @@ async def get_deck_data(request: Request, deck_id: int, db: AsyncSession = Depen
         "description": deck.description,
         "instruction": deck.instruction,
         "ai_prompt": deck.ai_prompt,
+        "ai_prompt_hint": deck.ai_prompt_hint,
+        "ai_prompt_mnemonic": deck.ai_prompt_mnemonic,
         "creator_id": deck.creator_id,
         "is_collaborator": is_collaborator,
         "cards_count": c_count,
@@ -1128,6 +1130,8 @@ async def get_deck_play_data(request: Request, deck_id: int, mode: Optional[str]
                 "content": c.content,
                 "explanation": c.explanation,
                 "ai_explanation": c.ai_explanation,
+                "hint": c.hint,
+                "mnemonic": c.mnemonic,
                 "stats": getattr(c, "stats", None),
                 "box_level": 1,
                 "is_ignored": False,
@@ -1175,6 +1179,8 @@ async def get_deck_play_data(request: Request, deck_id: int, mode: Optional[str]
                 "content": c.content,
                 "explanation": c.explanation,
                 "ai_explanation": c.ai_explanation,
+                "hint": c.hint,
+                "mnemonic": c.mnemonic,
                 "stats": getattr(c, 'stats', None),
                 "box_level": m_box_level,
                 "is_ignored": m.is_ignored if m else False,
@@ -1199,6 +1205,8 @@ async def get_deck_play_data(request: Request, deck_id: int, mode: Optional[str]
         "title": deck.title,
         "description": deck.description,
         "ai_prompt": deck.ai_prompt,
+        "ai_prompt_hint": deck.ai_prompt_hint,
+        "ai_prompt_mnemonic": deck.ai_prompt_mnemonic,
         "instruction": deck.instruction,
         "category_id": deck.category_id,
         "creator_id": deck.creator_id,
@@ -1447,120 +1455,172 @@ async def get_next_card(request: Request, deck_id: int, data: dict, db: AsyncSes
 
 async def _generate_ai_task(deck_id: int, card_id: int, prompt_template: Optional[str] = None):
     from app.core.db import AsyncSession, engine
+async def _generate_ai_content_sync(db: AsyncSession, deck_id: int, card_id: int, field: str) -> str:
     from app.modules.deck.models import Flashcard, FlashcardDeck
     from app.modules.ai.services.gemini_service import GeminiService
     
-    async with AsyncSession(engine) as db:
-        result = await db.execute(
-            select(Flashcard)
-            .filter(Flashcard.id == card_id)
-        )
-        c = result.scalar_one_or_none()
-        if not c: return
+    # Fetch card and deck
+    card_res = await db.execute(select(Flashcard).filter(Flashcard.id == card_id))
+    card = card_res.scalar_one_or_none()
+    if not card:
+        return "Card not found"
         
-        gemini = await GeminiService.from_db(db)
-        if not gemini.client:
-            c.ai_explanation = "AI Service not configured."
-            await db.commit()
-            return
-
-        try:
-            if prompt_template:
-                options_text = ""
-                correct_answer_text = c.explanation or ""
-                
-                # Fetch deck info for template
-                deck_res = await db.execute(select(FlashcardDeck).filter(FlashcardDeck.id == deck_id))
-                deck = deck_res.scalar_one_or_none()
-                
-                prompt = prompt_template \
-                    .replace("{{question}}", c.content or "") \
-                    .replace("{{card}}", c.content or "") \
-                    .replace("{{options}}", options_text) \
-                    .replace("{{correct_answer}}", correct_answer_text) \
-                    .replace("{{global_instruction}}", deck.instruction if deck else "") \
-                    .replace("{{quiz_title}}", deck.title if deck else "") \
-                    .replace("{{deck_title}}", deck.title if deck else "") \
-                    .replace("{{quiz_description}}", deck.description if deck else "") \
-                    .replace("{{deck_description}}", deck.description if deck else "")
-                
-                for i in range(4):
-                    prompt = prompt.replace(f"{{{{option_{chr(97+i)}}}}}", "")
-
-                response = await gemini.client.aio.models.generate_content(
-                    model=gemini.model_id,
-                    contents=prompt
-                )
-                ai_response = response.text
-                
-                # Strip markdown wrappers if present
-                ai_response = ai_response.strip()
-                if ai_response.startswith("```markdown"):
-                    ai_response = ai_response[len("```markdown"):].strip()
-                elif ai_response.startswith("```"):
-                    ai_response = ai_response[len("```"):].strip()
-                
-                if ai_response.endswith("```"):
-                    ai_response = ai_response[:-3].strip()
-                
-                # Strip backticks around ruby tags
-                ai_response = re.sub(r'`\s*(<ruby>[\s\S]*?<\/ruby>)\s*`', r'\1', ai_response)
-                    
-            else:
-                options_list = []
-                correct_text = c.explanation or "Unknown"
-                ai_response = await gemini.generate_explanation(c.content, options_list, correct_text)
-                
-                # Also strip wrappers for default generation
-                ai_response = ai_response.strip()
-                if ai_response.startswith("```markdown"):
-                    ai_response = ai_response[len("```markdown"):].strip()
-                elif ai_response.startswith("```"):
-                    ai_response = ai_response[len("```"):].strip()
-                if ai_response.endswith("```"):
-                    ai_response = ai_response[:-3].strip()
-                
-                # Strip backticks around ruby tags
-                ai_response = re.sub(r'`\s*(<ruby>[\s\S]*?<\/ruby>)\s*`', r'\1', ai_response)
+    deck_res = await db.execute(select(FlashcardDeck).filter(FlashcardDeck.id == deck_id))
+    deck = deck_res.scalar_one_or_none()
+    
+    gemini = await GeminiService.from_db(db)
+    if not gemini.client:
+        return "AI Service not configured."
+        
+    # Choose template
+    if field == "hint":
+        template = (deck.ai_prompt_hint if deck else None) or (
+            "Provide a short, clever, and helpful hint for the following vocabulary card or question "
+            "without revealing the answer directly. The hint should guide the user's mind to recall the word/meaning.\n\n"
+            "Card content: {{question}}\n"
+            "Definition/Explanation: {{correct_answer}}\n\n"
+            "Output language must be Vietnamese. Keep it under 2 sentences."
+        )
+    elif field == "mnemonic":
+        template = (deck.ai_prompt_mnemonic if deck else None) or (
+            "Create a creative, funny, or visual mnemonic (mẹo liên tưởng, phương pháp âm thanh tương tự "
+            "hoặc câu chuyện ngắn thú vị) in Vietnamese to help remember the vocabulary word.\n\n"
+            "Word (Front): {{question}}\n"
+            "Definition/Meaning (Back): {{correct_answer}}\n\n"
+            "Make it extremely visual, memorable, and fun. Keep it concise."
+        )
+    else: # explanation
+        template = (deck.ai_prompt if deck else None) or (
+            "Provide a detailed and educational explanation for the following question.\n\n"
+            "Question: {{question}}\n"
+            "Options: {{options}}\n"
+            "Correct Answer: {{correct_answer}}\n\n"
+            "Explain why the correct answer is right and why other options might be confusing.\n"
+            "Output language should be Vietnamese if the question is in Vietnamese, otherwise English."
+        )
+        
+    # Format options
+    options_text = ""
+    if card.options:
+        options_text = ", ".join([o.content for o in card.options])
+        
+    correct_answer_text = card.explanation or ""
+    if card.options:
+        correct_opt = next((o for o in card.options if o.is_correct), None)
+        if correct_opt:
+            correct_answer_text = correct_opt.content
             
-            c.ai_explanation = ai_response
-            await db.commit()
-        except Exception as e:
-            c.ai_explanation = f"AI Error: {str(e)}"
+    prompt = template \
+        .replace("{{question}}", card.content or "") \
+        .replace("{{card}}", card.content or "") \
+        .replace("{{options}}", options_text) \
+        .replace("{{correct_answer}}", correct_answer_text) \
+        .replace("{{global_instruction}}", (deck.instruction if deck else "") or "") \
+        .replace("{{quiz_title}}", (deck.title if deck else "") or "") \
+        .replace("{{deck_title}}", (deck.title if deck else "") or "") \
+        .replace("{{quiz_description}}", (deck.description if deck else "") or "") \
+        .replace("{{deck_description}}", (deck.description if deck else "") or "")
+        
+    for i in range(4):
+        prompt = prompt.replace(f"{{{{option_{chr(97+i)}}}}}", "")
+        
+    ai_response = await gemini.generate_text(prompt)
+    
+    # Clean up markdown
+    ai_response = ai_response.strip()
+    if ai_response.startswith("```markdown"):
+        ai_response = ai_response[len("```markdown"):].strip()
+    elif ai_response.startswith("```"):
+        ai_response = ai_response[len("```"):].strip()
+    if ai_response.endswith("```"):
+        ai_response = ai_response[:-3].strip()
+        
+    ai_response = re.sub(r'`\s*(<ruby>[\s\S]*?<\/ruby>)\s*`', r'\1', ai_response)
+    
+    return ai_response
+
+async def _generate_ai_task(deck_id: int, card_id: int, field: str = "explanation"):
+    from app.modules.deck.models import Flashcard
+    from app.core.db import engine
+    from sqlalchemy.ext.asyncio import AsyncSession
+    
+    async with AsyncSession(engine) as db:
+        content = await _generate_ai_content_sync(db, deck_id, card_id, field)
+        card_res = await db.execute(select(Flashcard).filter(Flashcard.id == card_id))
+        card = card_res.scalar_one_or_none()
+        if card:
+            if field == "hint":
+                card.hint = content
+            elif field == "mnemonic":
+                card.mnemonic = content
+            else:
+                card.ai_explanation = content
             await db.commit()
 
 @router.post("/{deck_id}/ask-ai")
 async def ask_ai(deck_id: int, payload: dict, background_tasks: BackgroundTasks, db: AsyncSession = Depends(get_db)):
     card_id = payload.get("card_id", payload.get("question_id"))
-    from app.modules.deck.models import Flashcard, FlashcardDeck
+    field = payload.get("field", "explanation") # explanation, hint, mnemonic
+    force = payload.get("force", False)
+    sync = payload.get("sync", False)
+    
+    from app.modules.deck.models import Flashcard
     from app.modules.admin.interface import AdminInterface
     
     # Check if AI is enabled
     ai_config = await AdminInterface.get_ai_config(db)
     if not ai_config.get("enabled"):
-        return {"error": "AI Analysis is disabled."}
+        return {"error": "AI Services are disabled."}
 
     result = await db.execute(select(Flashcard).filter(Flashcard.id == card_id))
     c = result.scalar_one_or_none()
     if not c: return {"error": "Not found"}
     
-    # If explanation already exists and no manual override, just return it
-    if c.ai_explanation and "ai_explanation" not in payload:
-        return {"ai_explanation": c.ai_explanation}
-
-    # Manual explanation override (saving)
-    if "ai_explanation" in payload:
+    # Manual Save Override
+    if field == "explanation" and "ai_explanation" in payload:
         val = payload["ai_explanation"]
-        if isinstance(val, str):
-            val = val.strip()
-        c.ai_explanation = val if val else None
+        c.ai_explanation = val.strip() if isinstance(val, str) else val
         await db.commit()
         return {"ai_explanation": c.ai_explanation}
-    
-    # Background generation
-    deck_res = await db.execute(select(FlashcardDeck).filter(FlashcardDeck.id == deck_id))
-    deck = deck_res.scalar_one_or_none()
-    
-    background_tasks.add_task(_generate_ai_task, deck_id, card_id, deck.ai_prompt if deck else None)
-    
-    return {"status": "processing", "message": "AI analysis started in background."}
+    elif field == "hint" and "hint" in payload:
+        val = payload["hint"]
+        c.hint = val.strip() if isinstance(val, str) else val
+        await db.commit()
+        return {"hint": c.hint}
+    elif field == "mnemonic" and "mnemonic" in payload:
+        val = payload["mnemonic"]
+        c.mnemonic = val.strip() if isinstance(val, str) else val
+        await db.commit()
+        return {"mnemonic": c.mnemonic}
+        
+    # Return Cached values
+    if not force:
+        if field == "explanation" and c.ai_explanation:
+            return {"ai_explanation": c.ai_explanation}
+        elif field == "hint" and c.hint:
+            return {"hint": c.hint}
+        elif field == "mnemonic" and c.mnemonic:
+            return {"mnemonic": c.mnemonic}
+            
+    # Sync Generation
+    if sync:
+        content = await _generate_ai_content_sync(db, deck_id, card_id, field)
+        if field == "hint":
+            c.hint = content
+        elif field == "mnemonic":
+            c.mnemonic = content
+        else:
+            c.ai_explanation = content
+        await db.commit()
+        
+        # Return field response
+        if field == "hint":
+            return {"hint": content}
+        elif field == "mnemonic":
+            return {"mnemonic": content}
+        else:
+            return {"ai_explanation": content}
+            
+    # Background Generation
+    background_tasks.add_task(_generate_ai_task, deck_id, card_id, field)
+    return {"status": "processing", "message": f"AI {field} generation started in background."}

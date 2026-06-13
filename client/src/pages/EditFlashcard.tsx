@@ -41,6 +41,8 @@ const EditFlashcard = () => {
     title: '',
     description: '',
     ai_prompt: '',
+    ai_prompt_hint: '',
+    ai_prompt_mnemonic: '',
     instruction: '',
     category_name: '',
     cover_image: '',
@@ -73,6 +75,8 @@ const EditFlashcard = () => {
           title: res.data.title,
           description: res.data.description || '',
           ai_prompt: res.data.ai_prompt || '',
+          ai_prompt_hint: res.data.ai_prompt_hint || '',
+          ai_prompt_mnemonic: res.data.ai_prompt_mnemonic || '',
           instruction: res.data.instruction || '',
           category_name: res.data.category_name || 'General',
           cover_image: res.data.cover_image || '',
@@ -128,6 +132,8 @@ const EditFlashcard = () => {
         title: formData.title,
         description: formData.description,
         ai_prompt: formData.ai_prompt,
+        ai_prompt_hint: formData.ai_prompt_hint,
+        ai_prompt_mnemonic: formData.ai_prompt_mnemonic,
         instruction: formData.instruction,
         cover_image: formData.cover_image,
         tags: formData.tags.split(',').map(t => t.trim()).filter(Boolean)
@@ -633,25 +639,51 @@ const EditFlashcard = () => {
                             </button>
                          </div>
 
-                         <div className="space-y-4">
-                            <div className="space-y-2">
-                               <div className="flex items-center justify-between ml-1">
-                                  <label className="text-[9px] font-black text-white/40 uppercase tracking-widest">Master System Prompt</label>
-                                  <span className="text-[8px] font-bold text-indigo-400 bg-indigo-500/10 px-2 py-0.5 rounded-full uppercase">Gemini 2.0 Ready</span>
-                               </div>
-                               <textarea 
-                                  rows={12}
-                                  placeholder="Define how AI should analyze and explain questions in this collection..."
-                                  value={formData.ai_prompt}
-                                  onChange={(e) => setFormData({ ...formData, ai_prompt: e.target.value })}
-                                  className="w-full bg-white/5 border border-white/10 rounded-2xl p-6 text-[13px] font-medium text-white placeholder:text-white/20 outline-none focus:ring-4 focus:ring-indigo-500/20 transition-all resize-none leading-relaxed custom-scrollbar"
-                               />
-                            </div>
-
-                             <div className="p-5 bg-white/5 border border-white/5 rounded-2xl border-dashed text-[10px] font-medium text-white/50 italic leading-relaxed">
-                               * This prompt will guide the AI on how to explain the answer when the learner clicks the AI Analysis button. Use tags like {"{{question}}"} to personalize the result.
+                         <div className="space-y-6">
+                             <div className="space-y-2">
+                                <div className="flex items-center justify-between ml-1">
+                                   <label className="text-[9px] font-black text-white/40 uppercase tracking-widest">Master System Prompt (AI Explanation)</label>
+                                   <span className="text-[8px] font-bold text-indigo-400 bg-indigo-500/10 px-2 py-0.5 rounded-full uppercase">Gemini 2.0 Ready</span>
+                                </div>
+                                <textarea 
+                                   rows={6}
+                                   placeholder="Define how AI should analyze and explain questions in this collection..."
+                                   value={formData.ai_prompt}
+                                   onChange={(e) => setFormData({ ...formData, ai_prompt: e.target.value })}
+                                   className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 text-[13px] font-medium text-white placeholder:text-white/20 outline-none focus:ring-4 focus:ring-indigo-500/20 transition-all resize-none leading-relaxed custom-scrollbar"
+                                />
                              </div>
-                         </div>
+
+                             <div className="space-y-2">
+                                <div className="flex items-center justify-between ml-1">
+                                   <label className="text-[9px] font-black text-white/40 uppercase tracking-widest">AI Hint Prompt</label>
+                                </div>
+                                <textarea 
+                                   rows={4}
+                                   placeholder="Define how AI should generate hints without giving away the answer..."
+                                   value={formData.ai_prompt_hint}
+                                   onChange={(e) => setFormData({ ...formData, ai_prompt_hint: e.target.value })}
+                                   className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 text-[13px] font-medium text-white placeholder:text-white/20 outline-none focus:ring-4 focus:ring-indigo-500/20 transition-all resize-none leading-relaxed custom-scrollbar"
+                                />
+                             </div>
+
+                             <div className="space-y-2">
+                                <div className="flex items-center justify-between ml-1">
+                                   <label className="text-[9px] font-black text-white/40 uppercase tracking-widest">AI Mnemonic Prompt (Cách nhớ)</label>
+                                </div>
+                                <textarea 
+                                   rows={4}
+                                   placeholder="Define how AI should generate association stories or mnemonic memory tips..."
+                                   value={formData.ai_prompt_mnemonic}
+                                   onChange={(e) => setFormData({ ...formData, ai_prompt_mnemonic: e.target.value })}
+                                   className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 text-[13px] font-medium text-white placeholder:text-white/20 outline-none focus:ring-4 focus:ring-indigo-500/20 transition-all resize-none leading-relaxed custom-scrollbar"
+                                />
+                             </div>
+ 
+                             <div className="p-5 bg-white/5 border border-white/5 rounded-2xl border-dashed text-[10px] font-medium text-white/50 italic leading-relaxed">
+                                * These prompts will guide the AI on how to generate explanations, hints, and mnemonics. Use variables like {"{{question}}"} and {"{{correct_answer}}"} to inject card content dynamically.
+                             </div>
+                          </div>
                        </div>
                     </motion.div>
                  )}
