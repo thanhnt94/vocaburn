@@ -54,7 +54,7 @@ export const PlayStatsDrawer: React.FC<PlayStatsDrawerProps> = ({
           initial={{ opacity: 0, y: 50 }} 
           animate={{ opacity: 1, y: 0 }} 
           exit={{ opacity: 0, y: 50 }} 
-          className="fixed inset-0 z-[200] bg-[#F8FAFC] lg:hidden flex flex-col h-screen h-[100dvh]"
+          className="fixed inset-x-0 top-0 bottom-[48px] sm:bottom-[54px] z-[200] bg-[#F8FAFC] lg:hidden flex flex-col"
         >
           {/* Scrollable Content Area */}
           <div className="flex-1 overflow-y-auto p-4 custom-scrollbar space-y-4 text-left pb-24">

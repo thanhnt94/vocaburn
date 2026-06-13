@@ -368,14 +368,7 @@ export default function PracticePlay() {
   })
 
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false)
-  const [isUtilityMenuOpen, setIsUtilityMenuOpen] = useState(false)
-
-  useEffect(() => {
-    if (!isUtilityMenuOpen) return;
-    const handleGlobalClick = () => setIsUtilityMenuOpen(false);
-    window.addEventListener('click', handleGlobalClick);
-    return () => window.removeEventListener('click', handleGlobalClick);
-  }, [isUtilityMenuOpen]);
+  const activeBottomTab = isMapOpen ? 'map' : (isStatsOpen ? 'stats' : 'flashcard')
 
   const {
     sfxEnabled,
@@ -4111,7 +4104,7 @@ export default function PracticePlay() {
       </main>
 
       {(mainTab !== 'practice' || (mainTab === 'practice' && !practiceNeedsSetup)) && (
-        <footer className="relative w-full flex-shrink-0 bg-white/95 backdrop-blur-2xl border-t border-slate-100/80 px-3 pt-1.5 pb-1.5 sm:px-4 sm:pb-2.5 sm:pt-2 z-[120] shadow-[0_-4px_24px_rgba(99,102,241,0.06)]">
+        <footer className="relative w-full flex-shrink-0 bg-white/95 backdrop-blur-2xl border-t border-slate-100/80 px-3 pt-1.5 pb-1.5 sm:px-4 sm:pb-2.5 sm:pt-2 z-[300] shadow-[0_-4px_24px_rgba(99,102,241,0.06)]">
           {(() => {
             const answeredCount = Object.keys(practiceAnswers).length;
             const totalCount = session?.questions?.length || 0;
@@ -4126,7 +4119,8 @@ export default function PracticePlay() {
             );
           })()}
           <div className="max-w-2xl mx-auto w-full flex flex-col gap-1.5 sm:gap-2">
-            <div className="w-full flex items-center gap-1.5 sm:gap-3 h-12 sm:h-14">
+            {activeBottomTab === 'flashcard' && (
+              <div className="w-full flex items-center gap-1.5 sm:gap-3 h-12 sm:h-14">
             {/* Settings Button */}
             <button
               onClick={(e) => {
@@ -4261,6 +4255,7 @@ export default function PracticePlay() {
                 )
               )}
             </div>
+          )}
 
             {/* Interactive Navigation Tabs */}
             {(() => {
@@ -4269,41 +4264,63 @@ export default function PracticePlay() {
               const progressPercent = totalCount > 0 ? (answeredCount / totalCount) * 100 : 0;
 
               return (
-                <div className="w-full grid grid-cols-3 divide-x divide-slate-100/50 mt-1 h-5 items-center">
+                <div className="w-full grid grid-cols-3 bg-slate-50/80 border border-slate-100/40 rounded-xl p-0.5 mt-1">
                   {/* 1. Card Map Tab */}
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
+                      setIsStatsOpen(false);
                       setIsMapOpen(true);
                     }}
-                    className="flex items-center justify-center gap-1.5 px-1 min-w-0 active:scale-[0.98] hover:opacity-80 transition-all text-slate-500"
+                    className={cn(
+                      "flex items-center justify-center gap-1.5 py-1.5 px-1 rounded-lg transition-all",
+                      activeBottomTab === 'map'
+                        ? "bg-white border border-slate-200/30 text-amber-500 shadow-sm font-black scale-102"
+                        : "text-slate-500 hover:text-slate-700 active:scale-95"
+                    )}
                     title="Mở bản đồ thẻ"
                   >
-                    <LayoutGrid className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                    <LayoutGrid className={cn("w-3.5 h-3.5 shrink-0", activeBottomTab === 'map' ? "text-amber-500" : "text-slate-400")} />
                     <span className="text-[10px] font-black uppercase tracking-wider truncate">
                       Bản đồ
                     </span>
                   </button>
                   {/* 2. Flashcard Active View Tab */}
-                  <div 
-                    className="flex items-center justify-center gap-1.5 px-1 min-w-0 text-indigo-600"
+                  <button 
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setIsMapOpen(false);
+                      setIsStatsOpen(false);
+                    }}
+                    className={cn(
+                      "flex items-center justify-center gap-1.5 py-1.5 px-1 rounded-lg transition-all",
+                      activeBottomTab === 'flashcard'
+                        ? "bg-white border border-slate-200/30 text-amber-500 shadow-sm font-black scale-102"
+                        : "text-slate-500 hover:text-slate-700 active:scale-95"
+                    )}
                     title="Tiến trình luyện tập hiện tại"
                   >
-                    <BookOpen className="w-3.5 h-3.5 text-indigo-500 shrink-0" />
-                    <span className="text-[10px] font-bold truncate">
+                    <BookOpen className={cn("w-3.5 h-3.5 shrink-0", activeBottomTab === 'flashcard' ? "text-amber-500" : "text-slate-400")} />
+                    <span className="text-[10px] font-black uppercase tracking-wider truncate">
                       {answeredCount}/{totalCount} ({Math.round(progressPercent)}%)
                     </span>
-                  </div>
+                  </button>
                   {/* 3. Stats Tab */}
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
+                      setIsMapOpen(false);
                       setIsStatsOpen(true);
                     }}
-                    className="flex items-center justify-center gap-1.5 px-1 min-w-0 active:scale-[0.98] hover:opacity-80 transition-all text-slate-500"
+                    className={cn(
+                      "flex items-center justify-center gap-1.5 py-1.5 px-1 rounded-lg transition-all",
+                      activeBottomTab === 'stats'
+                        ? "bg-white border border-slate-200/30 text-amber-500 shadow-sm font-black scale-102"
+                        : "text-slate-500 hover:text-slate-700 active:scale-95"
+                    )}
                     title="Mở thống kê tiến trình"
                   >
-                    <TrendingUp className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                    <TrendingUp className={cn("w-3.5 h-3.5 shrink-0", activeBottomTab === 'stats' ? "text-amber-500" : "text-slate-400")} />
                     <span className="text-[10px] font-black uppercase tracking-wider truncate">
                       Thống kê
                     </span>
@@ -4409,7 +4426,7 @@ export default function PracticePlay() {
             initial={{ opacity: 0, y: 50 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 50 }}
-            className="fixed inset-0 z-[200] bg-[#F8FAFC] lg:hidden flex flex-col h-screen h-[100dvh]"
+            className="fixed inset-x-0 top-0 bottom-[48px] sm:bottom-[54px] z-[200] bg-[#F8FAFC] lg:hidden flex flex-col"
           >
             {/* Grid Area */}
             <div className="flex-1 overflow-y-auto p-4 custom-scrollbar">
