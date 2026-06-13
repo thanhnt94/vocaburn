@@ -1269,7 +1269,12 @@ export default function FlashcardPlay() {
       // Tự động chuyển câu (Quick Learn)
       const quickAnswersCount = Object.keys(newAnswers).length
       const quickTotalCount = session?.questions?.length || 1
-      const hasMilestone = !!unlockedBadge || (masteryUpdate && masteryUpdate.level_up) || (updatedStreak === 10)
+      const isHalfwayMilestone = (quickAnswersCount === Math.floor(quickTotalCount / 2) && quickTotalCount > 4)
+      const hasMilestone = !!unlockedBadge || 
+                            !!res.data.deck_mastered || 
+                            !!(goalUpdate && goalUpdate.just_completed) || 
+                            (updatedStreak === 10) || 
+                            isHalfwayMilestone
       if (quickLearnEnabled && quickAnswersCount < quickTotalCount && !hasMilestone) {
         setTimeout(() => {
           handleNext(newAnswers)
