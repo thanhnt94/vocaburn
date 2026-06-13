@@ -4518,7 +4518,7 @@ export default function PracticePlay() {
             initial={{ opacity: 0, y: 50 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 50 }}
-            className="fixed inset-0 z-[200] bg-[#F8FAFC] xl:hidden flex flex-col h-screen h-[100dvh]"
+            className="fixed inset-0 z-[400] bg-[#F8FAFC] xl:hidden flex flex-col h-screen h-[100dvh]"
           >
             <div className="flex items-center justify-center p-3 border-b border-slate-100 bg-white shadow-sm flex-shrink-0">
               <h4 className="text-[9px] font-black text-indigo-600 uppercase tracking-[0.4em]">
