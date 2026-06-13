@@ -314,6 +314,14 @@ export default function PracticePlay() {
     xpGained: number
   } | null>(null)
   const [isSessionSummaryOpen, setIsSessionSummaryOpen] = useState(false)
+  const [currentStatIndex, setCurrentStatIndex] = useState(0)
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentStatIndex((prev) => (prev + 1) % 4)
+    }, 3500)
+    return () => clearInterval(interval)
+  }, [])
   const [xpFloat, setXpFloat] = useState<{ visible: boolean; amount: number }>({ visible: false, amount: 0 })
   const [milestonesHit, setMilestonesHit] = useState<Set<number>>(new Set())
   const [goalToast, setGoalToast] = useState<{
@@ -4103,8 +4111,21 @@ export default function PracticePlay() {
       </main>
 
       {(mainTab !== 'practice' || (mainTab === 'practice' && !practiceNeedsSetup)) && (
-        <footer className="relative w-full flex-shrink-0 bg-white/95 backdrop-blur-2xl border-t border-slate-100/80 px-3 pt-2.5 pb-4 sm:px-4 sm:pb-5 sm:pt-3.5 z-[120] shadow-[0_-4px_24px_rgba(99,102,241,0.06)]">
-          <div className="max-w-2xl mx-auto w-full flex flex-col gap-3">
+        <footer className="relative w-full flex-shrink-0 bg-white/95 backdrop-blur-2xl border-t border-slate-100/80 px-3 pt-2 pb-2.5 sm:px-4 sm:pb-3 sm:pt-2.5 z-[120] shadow-[0_-4px_24px_rgba(99,102,241,0.06)]">
+          {(() => {
+            const answeredCount = Object.keys(practiceAnswers).length;
+            const totalCount = session?.questions?.length || 0;
+            const progressPercent = totalCount > 0 ? (answeredCount / totalCount) * 100 : 0;
+            return (
+              <div className="absolute top-0 left-0 right-0 h-[2.5px] bg-slate-100/70 overflow-hidden">
+                <div 
+                  className="bg-gradient-to-r from-indigo-500 to-indigo-600 h-full transition-all duration-500 ease-out"
+                  style={{ width: `${progressPercent}%` }}
+                />
+              </div>
+            );
+          })()}
+          <div className="max-w-2xl mx-auto w-full flex flex-col gap-1.5 sm:gap-2">
             <div className="w-full flex items-center gap-1.5 sm:gap-3 h-12 sm:h-14">
               {/* Grouped More Options Button */}
               <div className="relative">
@@ -4297,23 +4318,63 @@ export default function PracticePlay() {
               )}
             </div>
 
-            {/* Progress bar at the bottom */}
+            {/* Rotating Stats Line */}
             {(() => {
               const answeredCount = Object.keys(practiceAnswers).length;
               const totalCount = session?.questions?.length || 0;
               const progressPercent = totalCount > 0 ? (answeredCount / totalCount) * 100 : 0;
+              const correctCount = Object.entries(practiceAnswers).filter(([idx, ansIdx]) => {
+                const q = session?.questions?.[Number(idx)];
+                if (!q || !q.practice) return false;
+                if (practiceSubMode === 'typing') {
+                  return ansIdx === 3;
+                }
+                return ansIdx === q.practice.correct_index;
+              }).length;
+              const wrongCount = answeredCount - correctCount;
+              const accuracy = answeredCount > 0 ? Math.round((correctCount / answeredCount) * 100) : 0;
+              const remainingCount = totalCount - answeredCount;
+
+              const statsList = [
+                {
+                  label: "Tiến trình luyện tập",
+                  value: `${answeredCount} / ${totalCount} câu (${Math.round(progressPercent)}%)`
+                },
+                {
+                  label: "Tỷ lệ chính xác",
+                  value: `${accuracy}% (${correctCount} đúng / ${wrongCount} sai)`
+                },
+                {
+                  label: "Kinh nghiệm tích lũy",
+                  value: `+${sessionXP} XP`
+                },
+                {
+                  label: "Số câu còn lại",
+                  value: `${remainingCount} câu`
+                }
+              ];
+
               return (
-                <div className="w-full flex flex-col gap-1.5 mt-1 sm:mt-1.5">
-                  <div className="flex items-center justify-between text-[9px] font-black text-slate-400 uppercase tracking-wider px-1">
-                    <span>Tiến trình luyện tập</span>
-                    <span>{answeredCount} / {totalCount} thẻ ({Math.round(progressPercent)}%)</span>
-                  </div>
-                  <div className="w-full bg-slate-100/80 h-1.5 rounded-full overflow-hidden border border-slate-200/10">
-                    <div 
-                      className="bg-gradient-to-r from-indigo-500 to-indigo-600 h-full rounded-full transition-all duration-500 ease-out shadow-[0_1px_4px_rgba(99,102,241,0.2)]"
-                      style={{ width: `${progressPercent}%` }}
-                    />
-                  </div>
+                <div className="w-full flex items-center justify-center h-4 overflow-hidden relative mt-1">
+                  <AnimatePresence mode="wait">
+                    <motion.div
+                      key={currentStatIndex}
+                      initial={{ y: 12, opacity: 0 }}
+                      animate={{ y: 0, opacity: 1 }}
+                      exit={{ y: -12, opacity: 0 }}
+                      transition={{ duration: 0.35, ease: "easeInOut" }}
+                      className="absolute flex items-center justify-center gap-1.5 whitespace-nowrap"
+                    >
+                      <span className="w-1.5 h-1.5 bg-rose-500 rounded-full animate-pulse flex-shrink-0" />
+                      <span className="text-[9px] font-black text-rose-500 uppercase tracking-widest mr-1">LIVE</span>
+                      <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">
+                        {statsList[currentStatIndex]?.label}:
+                      </span>
+                      <span className="text-[9px] font-bold text-slate-600 uppercase tracking-wider">
+                        {statsList[currentStatIndex]?.value}
+                      </span>
+                    </motion.div>
+                  </AnimatePresence>
                 </div>
               );
             })()}
