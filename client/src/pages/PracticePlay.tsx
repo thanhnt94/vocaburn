@@ -4104,68 +4104,6 @@ export default function PracticePlay() {
       {(mainTab !== 'practice' || (mainTab === 'practice' && !practiceNeedsSetup)) && (
         <footer className="relative w-full flex-shrink-0 bg-white/95 backdrop-blur-2xl border-t border-slate-100/80 px-3 pt-3 pb-6 sm:px-4 sm:py-3.5 z-[120] shadow-[0_-4px_24px_rgba(99,102,241,0.06)]">
           <div className="max-w-2xl mx-auto w-full flex items-center gap-3 h-12 sm:h-14">
-            {/* Audio play button */}
-            {(() => {
-              if (!currentQuestion) return null;
-
-              if (mainTab === 'practice' && practiceSubMode !== 'listening' && !showFeedback) {
-                return null;
-              }
-
-              const hasAudioOrScript = mainTab === 'practice'
-                ? (!!currentQuestion.audio || !!currentQuestion.others?.front_audio_url || !!currentQuestion.others?.front_audio_content?.trim())
-                : (!isFlipped
-                  ? (!!currentQuestion.audio || !!currentQuestion.others?.front_audio_url || !!currentQuestion.others?.front_audio_content?.trim())
-                  : (!!currentQuestion.others?.back_audio_url || !!currentQuestion.others?.back_audio_content?.trim()));
-
-              if (!hasAudioOrScript) return null;
-
-              return (
-                <button
-                  onClick={async (e) => {
-                    e.stopPropagation();
-                    if (mainTab === 'practice') {
-                      if (showFeedback) {
-                        speakPracticeQuestionAndAnswer();
-                      } else {
-                        const practiceData = currentPracticeData;
-                        if (practiceData) {
-                          const { question: qText } = practiceData;
-                          speakMultiLanguage(qText);
-                        }
-                      }
-                    } else {
-                      await playCardAudio(isFlipped ? 'back' : 'front');
-                    }
-                  }}
-                  className="w-12 h-12 flex-shrink-0 flex items-center justify-center bg-indigo-50 border border-indigo-200 rounded-2xl text-indigo-600 shadow-sm active:scale-95 transition-all hover:bg-indigo-100 hover:border-indigo-300"
-                  title="Phát âm"
-                >
-                  <Volume2 className="w-5.5 h-5.5 text-indigo-600 animate-pulse" />
-                </button>
-              );
-            })()}
-
-            {/* Lightbulb Explanation Button (visible in FSRS, and also in practice mode if a question is loaded) */}
-            {(mainTab === 'practice' || showFeedback) && (
-              <button
-                onClick={() => {
-                  if (mainTab === 'practice') {
-                    setShowFeedback(true);
-                  }
-                  setIsFeedbackOpen(true);
-                }}
-                className={`xl:hidden w-12 h-12 flex-shrink-0 flex items-center justify-center rounded-2xl shadow-sm active:scale-95 transition-all relative ${justAnswered
-                  ? 'bg-indigo-600 border border-indigo-600 text-white animate-[pulse_1.5s_infinite] ring-4 ring-indigo-300 ring-offset-1 drop-shadow-[0_0_12px_rgba(99,102,241,0.6)]'
-                  : 'bg-indigo-50 border border-indigo-200 text-indigo-600 hover:bg-indigo-100'
-                  }`}
-                title="Xem giải thích và hướng dẫn"
-              >
-                <Lightbulb className="w-5.5 h-5.5" />
-                {justAnswered && <span className="absolute -top-1 -right-1 w-3 h-3 bg-rose-500 rounded-full border-2 border-white animate-pulse"></span>}
-              </button>
-            )}
-
             {/* Grouped More Options Button */}
             <div className="relative">
               <button
@@ -4233,6 +4171,68 @@ export default function PracticePlay() {
                 )}
               </AnimatePresence>
             </div>
+
+            {/* Audio play button */}
+            {(() => {
+              if (!currentQuestion) return null;
+
+              if (mainTab === 'practice' && practiceSubMode !== 'listening' && !showFeedback) {
+                return null;
+              }
+
+              const hasAudioOrScript = mainTab === 'practice'
+                ? (!!currentQuestion.audio || !!currentQuestion.others?.front_audio_url || !!currentQuestion.others?.front_audio_content?.trim())
+                : (!isFlipped
+                  ? (!!currentQuestion.audio || !!currentQuestion.others?.front_audio_url || !!currentQuestion.others?.front_audio_content?.trim())
+                  : (!!currentQuestion.others?.back_audio_url || !!currentQuestion.others?.back_audio_content?.trim()));
+
+              if (!hasAudioOrScript) return null;
+
+              return (
+                <button
+                  onClick={async (e) => {
+                    e.stopPropagation();
+                    if (mainTab === 'practice') {
+                      if (showFeedback) {
+                        speakPracticeQuestionAndAnswer();
+                      } else {
+                        const practiceData = currentPracticeData;
+                        if (practiceData) {
+                          const { question: qText } = practiceData;
+                          speakMultiLanguage(qText);
+                        }
+                      }
+                    } else {
+                      await playCardAudio(isFlipped ? 'back' : 'front');
+                    }
+                  }}
+                  className="w-12 h-12 flex-shrink-0 flex items-center justify-center bg-indigo-50 border border-indigo-200 rounded-2xl text-indigo-600 shadow-sm active:scale-95 transition-all hover:bg-indigo-100 hover:border-indigo-300"
+                  title="Phát âm"
+                >
+                  <Volume2 className="w-5.5 h-5.5 text-indigo-600 animate-pulse" />
+                </button>
+              );
+            })()}
+
+            {/* Lightbulb Explanation Button (visible in FSRS, and also in practice mode if a question is loaded) */}
+            {(mainTab === 'practice' || showFeedback) && (
+              <button
+                onClick={() => {
+                  if (mainTab === 'practice') {
+                    setShowFeedback(true);
+                  }
+                  setIsFeedbackOpen(true);
+                }}
+                className={`xl:hidden w-12 h-12 flex-shrink-0 flex items-center justify-center rounded-2xl shadow-sm active:scale-95 transition-all relative ${justAnswered
+                  ? 'bg-indigo-600 border border-indigo-600 text-white animate-[pulse_1.5s_infinite] ring-4 ring-indigo-300 ring-offset-1 drop-shadow-[0_0_12px_rgba(99,102,241,0.6)]'
+                  : 'bg-indigo-50 border border-indigo-200 text-indigo-600 hover:bg-indigo-100'
+                  }`}
+                title="Xem giải thích và hướng dẫn"
+              >
+                <Lightbulb className="w-5.5 h-5.5" />
+                {justAnswered && <span className="absolute -top-1 -right-1 w-3 h-3 bg-rose-500 rounded-full border-2 border-white animate-pulse"></span>}
+              </button>
+            )}
 
             {/* Main Action Buttons */}
             {mainTab === 'practice' ? (
@@ -4393,14 +4393,7 @@ export default function PracticePlay() {
             exit={{ opacity: 0, y: 50 }}
             className="fixed inset-0 z-[200] bg-[#F8FAFC] lg:hidden flex flex-col h-screen h-[100dvh]"
           >
-            <div className="flex items-center justify-between p-4 border-b border-slate-200 bg-white shadow-sm flex-shrink-0">
-              <h4 className="text-[12px] font-black text-indigo-600 uppercase tracking-[0.3em]">
-                CARD MAP
-              </h4>
-              <button onClick={() => setIsMapOpen(false)} className="w-8 h-8 flex items-center justify-center bg-slate-50 border border-slate-200 rounded-lg text-slate-500 active:scale-95 transition-all">
-                <X className="w-5 h-5" />
-              </button>
-            </div>
+            {/* Grid Area */}
             <div className="flex-1 overflow-y-auto p-4 custom-scrollbar">
               <QuestionMapGrid
                 questions={session.questions}
@@ -4411,6 +4404,21 @@ export default function PracticePlay() {
                 navigateToQuestion={navigateToQuestion}
                 setIsMapOpen={setIsMapOpen}
               />
+            </div>
+
+            {/* Bottom Reachable Header/Dismiss Bar */}
+            <div className="flex items-center justify-between gap-3 p-4 border-t border-slate-100 bg-white/95 backdrop-blur-md flex-shrink-0 pb-7">
+              <button 
+                onClick={() => setIsMapOpen(false)} 
+                className="w-12 h-12 flex items-center justify-center bg-slate-50 border border-slate-200 rounded-2xl text-slate-500 active:scale-95 hover:bg-slate-100 hover:text-slate-700 transition-all shadow-sm flex-shrink-0"
+                title="Đóng bản đồ"
+              >
+                <X className="w-6 h-6" />
+              </button>
+              <div className="flex-1 text-right">
+                <h4 className="text-[11px] font-black text-indigo-600 uppercase tracking-[0.2em] leading-tight">Bản đồ thẻ học</h4>
+                <p className="text-[9px] text-slate-400 font-bold mt-0.5">Dễ dàng theo dõi & lọc thẻ học</p>
+              </div>
             </div>
           </motion.div>
         )}
