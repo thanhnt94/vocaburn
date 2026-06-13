@@ -279,6 +279,7 @@ export default function PracticePlay() {
   const [isCopyMenuOpen, setIsCopyMenuOpen] = useState(false)
   const [isCopied, setIsCopied] = useState(false)
   const [isMapOpen, setIsMapOpen] = useState(false)
+  const [mobileMapFilterMode, setMobileMapFilterMode] = useState<'all' | 'studied' | 'unseen' | 'hard'>('all')
   const [isStatsOpen, setIsStatsOpen] = useState(false)
   const [activeStatsTab, setActiveStatsTab] = useState<'performance' | 'goals' | 'leaderboard'>('performance')
   const [dailyComparisonData, setDailyComparisonData] = useState<any[] | null>(null)
@@ -4403,21 +4404,55 @@ export default function PracticePlay() {
                 currentIndex={currentIndex}
                 navigateToQuestion={navigateToQuestion}
                 setIsMapOpen={setIsMapOpen}
+                filterMode={mobileMapFilterMode}
+                setFilterMode={setMobileMapFilterMode}
+                showFiltersInline={false}
               />
             </div>
 
-            {/* Bottom Reachable Header/Dismiss Bar */}
-            <div className="flex items-center justify-between gap-3 p-4 border-t border-slate-100 bg-white/95 backdrop-blur-md flex-shrink-0 pb-7">
-              <button 
-                onClick={() => setIsMapOpen(false)} 
-                className="w-12 h-12 flex items-center justify-center bg-slate-50 border border-slate-200 rounded-2xl text-slate-500 active:scale-95 hover:bg-slate-100 hover:text-slate-700 transition-all shadow-sm flex-shrink-0"
-                title="Đóng bản đồ"
-              >
-                <X className="w-6 h-6" />
-              </button>
-              <div className="flex-1 text-right">
-                <h4 className="text-[11px] font-black text-indigo-600 uppercase tracking-[0.2em] leading-tight">Bản đồ thẻ học</h4>
-                <p className="text-[9px] text-slate-400 font-bold mt-0.5">Dễ dàng theo dõi & lọc thẻ học</p>
+            {/* Bottom Reachable Header/Dismiss Bar & Filters */}
+            <div className="border-t border-slate-100 bg-white/95 backdrop-blur-md flex-shrink-0 pb-7 flex flex-col gap-3.5">
+              {/* Filter Tabs at the Bottom for reachability */}
+              <div className="px-4 pt-3.5">
+                <div className="flex items-center gap-1 bg-slate-100/80 p-1 rounded-xl border border-slate-200/40 w-full">
+                  {[
+                    { id: 'all', label: 'Tất cả' },
+                    { id: 'studied', label: 'Đã học' },
+                    { id: 'unseen', label: 'Chưa học' },
+                    { id: 'hard', label: 'Thẻ khó' }
+                  ].map(tab => (
+                    <button
+                      key={tab.id}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setMobileMapFilterMode(tab.id as any);
+                      }}
+                      className={cn(
+                        "flex-1 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all",
+                        mobileMapFilterMode === tab.id
+                          ? "bg-white text-indigo-600 shadow-sm border border-slate-200/30"
+                          : "text-slate-500 hover:bg-white/40"
+                      )}
+                    >
+                      {tab.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Dismiss Bar */}
+              <div className="flex items-center justify-between gap-3 px-4">
+                <button 
+                  onClick={() => setIsMapOpen(false)} 
+                  className="w-12 h-12 flex items-center justify-center bg-slate-50 border border-slate-200 rounded-2xl text-slate-500 active:scale-95 hover:bg-slate-100 hover:text-slate-700 transition-all shadow-sm flex-shrink-0"
+                  title="Đóng bản đồ"
+                >
+                  <X className="w-6 h-6" />
+                </button>
+                <div className="flex-1 text-right">
+                  <h4 className="text-[11px] font-black text-indigo-600 uppercase tracking-[0.2em] leading-tight">Bản đồ thẻ học</h4>
+                  <p className="text-[9px] text-slate-400 font-bold mt-0.5">Dễ dàng theo dõi & lọc thẻ học</p>
+                </div>
               </div>
             </div>
           </motion.div>

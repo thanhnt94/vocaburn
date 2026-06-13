@@ -24,6 +24,9 @@ interface QuestionMapGridProps {
   currentIndex: number
   navigateToQuestion: (index: number) => void
   setIsMapOpen: (open: boolean) => void
+  filterMode?: 'all' | 'studied' | 'unseen' | 'hard'
+  setFilterMode?: (mode: 'all' | 'studied' | 'unseen' | 'hard') => void
+  showFiltersInline?: boolean
 }
 
 export const QuestionMapGrid: React.FC<QuestionMapGridProps> = ({
@@ -34,9 +37,15 @@ export const QuestionMapGrid: React.FC<QuestionMapGridProps> = ({
   currentIndex,
   navigateToQuestion,
   setIsMapOpen,
+  filterMode,
+  setFilterMode,
+  showFiltersInline = true,
 }) => {
   const isPractice = mainTab === 'practice'
-  const [filterMode, setFilterMode] = useState<'all' | 'studied' | 'unseen' | 'hard'>('all')
+  const [internalFilterMode, setInternalFilterMode] = useState<'all' | 'studied' | 'unseen' | 'hard'>('all')
+
+  const activeFilterMode = filterMode !== undefined ? filterMode : internalFilterMode
+  const activeSetFilterMode = setFilterMode !== undefined ? setFilterMode : setInternalFilterMode
 
   // Filter logic
   const filteredQuestions = useMemo(() => {
@@ -47,46 +56,49 @@ export const QuestionMapGrid: React.FC<QuestionMapGridProps> = ({
         const stats = item.stats || { total: 0, again_count: 0, hard_count: 0 }
         const total = stats.total || 0
 
-        if (filterMode === 'studied') {
+        if (activeFilterMode === 'studied') {
           return total > 0
         }
-        if (filterMode === 'unseen') {
+        if (activeFilterMode === 'unseen') {
           return total === 0
         }
-        if (filterMode === 'hard') {
+        if (activeFilterMode === 'hard') {
           return total > 0 && ((stats.again_count || 0) > 0 || (stats.hard_count || 0) > 0)
         }
         return true
       })
-  }, [questions, filterMode])
+  }, [questions, activeFilterMode])
 
   return (
     <div className="space-y-3 flex flex-col h-full">
       {/* Dynamic pill-based filter tab bar */}
-      <div className="flex items-center gap-1 bg-slate-100/80 p-1 rounded-xl border border-slate-200/40 w-full flex-shrink-0">
-        {[
-          { id: 'all', label: 'Tất cả' },
-          { id: 'studied', label: 'Đã học' },
-          { id: 'unseen', label: 'Chưa học' },
-          { id: 'hard', label: 'Thẻ khó' }
-        ].map(tab => (
-          <button
-            key={tab.id}
-            onClick={(e) => {
-              e.stopPropagation()
-              setFilterMode(tab.id as any)
-            }}
-            className={cn(
-              "flex-1 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all",
-              filterMode === tab.id
-                ? "bg-white text-indigo-600 shadow-sm border border-slate-200/30"
-                : "text-slate-500 hover:bg-white/40"
-            )}
-          >
-            {tab.label}
-          </button>
-        ))}
-      </div>
+      {showFiltersInline && (
+        <div className="flex items-center gap-1 bg-slate-100/80 p-1 rounded-xl border border-slate-200/40 w-full flex-shrink-0">
+          {[
+            { id: 'all', label: 'Tất cả' },
+            { id: 'studied', label: 'Đã học' },
+            { id: 'unseen', label: 'Chưa học' },
+            { id: 'hard', label: 'Thẻ khó' }
+          ].map(tab => (
+            <button
+              key={tab.id}
+              onClick={(e) => {
+                e.stopPropagation()
+                activeSetFilterMode(tab.id as any)
+              }}
+              className={cn(
+                "flex-1 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all",
+                activeFilterMode === tab.id
+                  ? "bg-white text-indigo-600 shadow-sm border border-slate-200/30"
+                  : "text-slate-500 hover:bg-white/40"
+              )}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+      )}
+
 
       {/* Card Grid Container */}
       <div className="flex-1 min-h-0 overflow-y-auto">
