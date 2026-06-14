@@ -412,27 +412,26 @@ async def record_answer(request: Request, data: dict, db: AsyncSession = Depends
             )
             progress = prog_res.scalar_one_or_none()
             if not progress:
-                # Count other new cards studied today in play mode for this deck to avoid mismatch
+                # Count other new cards studied today for this deck to avoid mismatch
                 today = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
-                prior_answers_sub = select(UserAnswer.card_id).join(
+                first_answers = select(
+                    UserAnswer.card_id,
+                    func.min(UserAnswer.created_at).label("first_answered_at")
+                ).join(
                     DeckAttempt, UserAnswer.attempt_id == DeckAttempt.id
                 ).where(
-                    DeckAttempt.user_id == user_id,
-                    DeckAttempt.mode == "play",
-                    UserAnswer.created_at < today
-                )
-                
+                    DeckAttempt.user_id == user_id
+                ).group_by(
+                    UserAnswer.card_id
+                ).subquery()
+
                 count_today_res = await db.execute(
-                    select(func.count(func.distinct(UserAnswer.card_id)))
-                    .join(Flashcard, UserAnswer.card_id == Flashcard.id)
-                    .join(DeckAttempt, UserAnswer.attempt_id == DeckAttempt.id)
+                    select(func.count(first_answers.c.card_id))
+                    .join(Flashcard, Flashcard.id == first_answers.c.card_id)
                     .where(
-                        DeckAttempt.user_id == user_id,
-                        DeckAttempt.mode == "play",
                         Flashcard.deck_id == goal.deck_id,
-                        UserAnswer.created_at >= today,
-                        UserAnswer.card_id != card_id,
-                        ~UserAnswer.card_id.in_(prior_answers_sub)
+                        first_answers.c.first_answered_at >= today,
+                        first_answers.c.card_id != card_id
                     )
                 )
                 actual_done_today = count_today_res.scalar() or 0

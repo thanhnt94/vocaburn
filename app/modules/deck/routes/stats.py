@@ -135,23 +135,22 @@ async def get_active_goals(request: Request, local_date: Optional[str] = None, d
 
     # Calculate daily new cards count dynamically from UserAnswer to ensure consistency
     today = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
-    prior_answers_sub = select(UserAnswer.card_id).join(
+    first_answers = select(
+        UserAnswer.card_id,
+        func.min(UserAnswer.created_at).label("first_answered_at")
+    ).join(
         DeckAttempt, UserAnswer.attempt_id == DeckAttempt.id
     ).where(
-        DeckAttempt.user_id == user_id,
-        DeckAttempt.mode == "play",
-        UserAnswer.created_at < today
-    )
+        DeckAttempt.user_id == user_id
+    ).group_by(
+        UserAnswer.card_id
+    ).subquery()
     
     deck_progress_res = await db.execute(
-        select(Flashcard.deck_id, func.count(func.distinct(UserAnswer.card_id)))
-        .join(UserAnswer, UserAnswer.card_id == Flashcard.id)
-        .join(DeckAttempt, UserAnswer.attempt_id == DeckAttempt.id)
+        select(Flashcard.deck_id, func.count(first_answers.c.card_id))
+        .join(Flashcard, Flashcard.id == first_answers.c.card_id)
         .where(
-            DeckAttempt.user_id == user_id,
-            DeckAttempt.mode == "play",
-            UserAnswer.created_at >= today,
-            ~UserAnswer.card_id.in_(prior_answers_sub)
+            first_answers.c.first_answered_at >= today
         )
         .group_by(Flashcard.deck_id)
     )
@@ -723,21 +722,19 @@ async def get_global_goals(request: Request, db: AsyncSession = Depends(get_db))
     actual_correct = stats.correct_answers if stats else 0
     
     # 3. Calculate actual_new_cards_completed
-    stmt_new_cards = select(func.count(func.distinct(UserAnswer.card_id))).join(
+    first_answers = select(
+        UserAnswer.card_id,
+        func.min(UserAnswer.created_at).label("first_answered_at")
+    ).join(
         DeckAttempt, UserAnswer.attempt_id == DeckAttempt.id
     ).where(
-        DeckAttempt.user_id == user_id,
-        DeckAttempt.mode == "play",
-        UserAnswer.created_at >= today,
-        ~UserAnswer.card_id.in_(
-            select(UserAnswer.card_id).join(
-                DeckAttempt, UserAnswer.attempt_id == DeckAttempt.id
-            ).where(
-                DeckAttempt.user_id == user_id,
-                DeckAttempt.mode == "play",
-                UserAnswer.created_at < today
-            )
-        )
+        DeckAttempt.user_id == user_id
+    ).group_by(
+        UserAnswer.card_id
+    ).subquery()
+
+    stmt_new_cards = select(func.count(first_answers.c.card_id)).where(
+        first_answers.c.first_answered_at >= today
     )
     new_cards_res = await db.execute(stmt_new_cards)
     actual_new_cards_completed = new_cards_res.scalar() or 0
