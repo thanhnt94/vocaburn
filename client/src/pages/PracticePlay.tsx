@@ -3160,39 +3160,40 @@ export default function PracticePlay() {
         )}
       </AnimatePresence>
 
-      <header className="sticky top-0 flex-shrink-0 z-[120] bg-white/95 backdrop-blur-2xl border-b border-slate-100/80 px-4 py-3 flex items-center justify-between shadow-[0_1px_20px_rgba(99,102,241,0.04)]">
+      <header className="sticky top-0 flex-shrink-0 z-[120] bg-white/95 backdrop-blur-2xl border-b border-slate-100/80 px-4 py-2 flex items-center justify-between shadow-[0_1px_20px_rgba(99,102,241,0.04)]">
         <div className="flex items-center gap-3 font-sans">
           <button 
             onClick={() => navigate('/')} 
-            className="w-9 h-9 flex items-center justify-center bg-slate-50 border border-slate-200/60 rounded-xl text-slate-600 shadow-sm hover:bg-indigo-50 hover:text-indigo-600 hover:border-indigo-100 active:scale-90 transition-all"
+            className="w-8.5 h-8.5 flex items-center justify-center bg-slate-50 border border-slate-200/60 rounded-xl text-slate-600 shadow-sm hover:bg-indigo-50 hover:text-indigo-600 hover:border-indigo-100 active:scale-90 transition-all"
             title="Quay lại thư viện"
           >
-            <ChevronLeft className="w-5 h-5" />
+            <ChevronLeft className="w-4.5 h-4.5" />
           </button>
           <div className="flex flex-col min-w-0">
             <h1 className="text-xs md:text-sm font-extrabold text-slate-800 tracking-tight truncate max-w-[170px] md:max-w-md leading-tight">
               {session.title}
             </h1>
-            <div className="flex items-center gap-2 mt-1 flex-wrap">
-              {/* XP Badge */}
-              <div className="flex items-center gap-1 px-2 py-0.5 bg-amber-50 border border-amber-200/50 rounded-full text-amber-600 text-[9px] font-black shadow-sm shadow-amber-100/30">
-                <Trophy className="w-3 h-3 text-amber-500 fill-amber-500/20" />
-                <span>{gamify.xp.toLocaleString()} XP</span>
-              </div>
-              {/* Streak Badge */}
+            <div className="flex items-center gap-1.5 mt-0.5 text-[10px] font-black">
+              {/* XP */}
+              <span className="text-amber-600 flex items-center gap-0.5" title="XP tích lũy">
+                🏆 {gamify.xp.toLocaleString()}
+              </span>
+              {/* Streak */}
               {streak >= 2 && (
-                <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-orange-50 border border-orange-200/50 text-orange-600 text-[9px] font-black shadow-sm shadow-orange-100/30">
-                  <Flame className="w-3 h-3 fill-orange-500 text-orange-500" />
-                  <span>{streak} ngày 🔥</span>
-                </div>
+                <>
+                  <span className="text-slate-300 font-medium">•</span>
+                  <span className="text-orange-500 flex items-center gap-0.5" title="Chuỗi ngày học liên tục">
+                    🔥 {streak}
+                  </span>
+                </>
               )}
             </div>
           </div>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5">
           {/* Timer Pill */}
           <div className={cn(
-            "flex items-center gap-1.5 px-2.5 py-1 rounded-full border shadow-sm text-[10px] font-black transition-all",
+            "flex items-center gap-1 px-2 py-0.5 rounded-full border shadow-sm text-[10px] font-extrabold transition-all",
             !showFeedback 
               ? "bg-slate-50 border-slate-200 text-slate-700 shadow-slate-100" 
               : "bg-emerald-50 border-emerald-200 text-emerald-700 shadow-emerald-100"
@@ -3346,7 +3347,7 @@ export default function PracticePlay() {
         )}
       </div>
 
-      <main className="flex-1 flex w-full max-w-none justify-center gap-4 lg:gap-8 px-2 lg:px-6 xl:px-10 md:py-3 py-1.5 overflow-hidden">
+      <main className="flex-1 flex w-full max-w-none justify-center gap-4 lg:gap-8 px-2 lg:px-6 xl:px-10 pt-0.5 pb-2 overflow-hidden">
         <aside className="hidden xl:flex w-[340px] 2xl:w-[440px] flex-shrink-0 flex-col overflow-hidden bg-white border border-slate-100 rounded-[2.5rem] shadow-sm">
           {showFeedback ? (
             <FeedbackArea
@@ -4123,7 +4124,7 @@ export default function PracticePlay() {
         <footer className="relative w-full flex-shrink-0 bg-white/95 backdrop-blur-2xl border-t border-slate-100/80 px-0 pt-0 pb-0 z-[300] shadow-[0_-4px_24px_rgba(99,102,241,0.06)]">
           <div className="max-w-2xl mx-auto w-full flex flex-col">
             {activeBottomTab === 'flashcard' && !isFeedbackOpen && (
-              <div className="w-full flex items-center gap-1.5 sm:gap-3 h-12 sm:h-14 px-3 sm:px-4 pt-1.5 pb-2 sm:pt-2 sm:pb-3">
+              <div className="w-full flex items-center gap-1.5 sm:gap-3 px-3 sm:px-4 pt-2.5 pb-4">
             {/* Settings Button */}
             <button
               onClick={(e) => {
