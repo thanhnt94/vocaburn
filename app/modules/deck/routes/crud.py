@@ -259,9 +259,9 @@ async def enroll_deck(request: Request, deck_id: int, db: AsyncSession = Depends
     result = await db.execute(
         select(DeckAttempt).where(DeckAttempt.user_id == user_id, DeckAttempt.deck_id == deck_id)
     )
-    existing = result.scalar_one_or_none()
+    existing_attempts = result.scalars().all()
     
-    if not existing:
+    if not existing_attempts:
         attempt = DeckAttempt(
             user_id=user_id,
             deck_id=deck_id,
@@ -272,7 +272,8 @@ async def enroll_deck(request: Request, deck_id: int, db: AsyncSession = Depends
         )
         db.add(attempt)
     else:
-        existing.is_archived = False
+        for att in existing_attempts:
+            att.is_archived = False
     
     await db.commit()
     return {"status": "ok"}
@@ -282,9 +283,11 @@ async def archive_deck(request: Request, deck_id: int, db: AsyncSession = Depend
     from app.modules.deck.models import DeckAttempt
     user_id = int(request.cookies.get("user_id", 1))
     result = await db.execute(select(DeckAttempt).where(DeckAttempt.user_id == user_id, DeckAttempt.deck_id == deck_id))
-    attempt = result.scalar_one_or_none()
-    if attempt:
-        attempt.is_archived = not attempt.is_archived
+    attempts = result.scalars().all()
+    if attempts:
+        new_status = not attempts[0].is_archived
+        for attempt in attempts:
+            attempt.is_archived = new_status
         await db.commit()
     return {"status": "ok"}
 

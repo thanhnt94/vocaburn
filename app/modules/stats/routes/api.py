@@ -48,23 +48,30 @@ async def get_dashboard_data(request: Request, db: AsyncSession = Depends(get_db
         raise HTTPException(status_code=401, detail="Unauthorized")
     user_id_int = user.id
     
-    from sqlalchemy import func
+    from sqlalchemy import func, case
     from sqlalchemy.orm import selectinload
     from app.modules.deck.models import FlashcardDeck, DeckAttempt, Flashcard
     from app.modules.gamification.interface import GamificationInterface
     from app.modules.notification.interface import NotificationInterface
 
-    # Query A: My & Archived Decks (Join with DeckAttempt for user)
+    # Query A: My & Archived Decks (Join with grouped DeckAttempt subquery to prevent duplicates)
+    subq = select(
+        DeckAttempt.deck_id,
+        func.max(case((DeckAttempt.is_archived == True, 1), else_=0)).label("is_archived")
+    ).where(
+        DeckAttempt.user_id == user_id_int
+    ).group_by(
+        DeckAttempt.deck_id
+    ).subquery()
+
     query_a = select(
         FlashcardDeck,
         select(func.count(Flashcard.id)).where(Flashcard.deck_id == FlashcardDeck.id).scalar_subquery().label("c_count"),
-        DeckAttempt.is_archived
+        subq.c.is_archived
     ).join(
-        DeckAttempt, DeckAttempt.deck_id == FlashcardDeck.id
+        subq, FlashcardDeck.id == subq.c.deck_id
     ).options(
         selectinload(FlashcardDeck.tags)
-    ).where(
-        DeckAttempt.user_id == user_id_int
     )
 
     # Query B: Created Decks (creator_id == user_id_int)
