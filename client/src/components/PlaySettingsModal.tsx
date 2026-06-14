@@ -68,71 +68,16 @@ export const PlaySettingsModal: React.FC<PlaySettingsModalProps> = ({
                 <Sliders className="w-5 h-5" />
                 Cấu hình học tập
               </h3>
-              <div className="flex items-center gap-1 text-slate-400">
-                {showFeedback && (
-                  <button 
-                    onClick={() => {
-                      copyQuestionToClipboard();
-                      onClose();
-                    }}
-                    title="Copy nội dung"
-                    className="w-8 h-8 rounded-full hover:bg-slate-100 flex items-center justify-center text-slate-500 hover:text-slate-700 transition-all"
-                  >
-                    <Copy className="w-4 h-4" />
-                  </button>
-                )}
-                
-                <button
-                  onClick={() => {
-                    onClose();
-                    handleIgnoreQuestion();
-                  }}
-                  title={currentQuestion?.is_ignored ? "Hủy bỏ qua thẻ" : "Bỏ qua thẻ"}
-                  className={cn(
-                    "w-8 h-8 rounded-full flex items-center justify-center transition-all",
-                    currentQuestion?.is_ignored 
-                      ? "bg-indigo-50 text-indigo-600 hover:bg-indigo-100"
-                      : "hover:bg-slate-100 text-slate-500 hover:text-slate-700"
-                  )}
-                >
-                  {currentQuestion?.is_ignored ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
-                </button>
-
-                <button 
-                  onClick={() => {
-                    onClose();
-                    openEditModal();
-                  }}
-                  title="Sửa thẻ này"
-                  className="w-8 h-8 rounded-full hover:bg-slate-100 flex items-center justify-center text-slate-500 hover:text-slate-700 transition-all"
-                >
-                  <Edit3 className="w-4 h-4" />
-                </button>
-
-                <button 
-                  onClick={() => {
-                    onClose();
-                    setIsQuitModalOpen(true);
-                  }}
-                  title="Thoát phiên học"
-                  className="w-8 h-8 rounded-full hover:bg-rose-50 flex items-center justify-center text-rose-500 hover:text-rose-700 transition-all"
-                >
-                  <LogOut className="w-4 h-4" />
-                </button>
-
-                <div className="w-px h-4 bg-slate-200 mx-1" />
-
-                <button 
-                  onClick={onClose} 
-                  title="Đóng"
-                  className="w-8 h-8 rounded-full hover:bg-slate-100 flex items-center justify-center text-slate-400 hover:text-slate-600 transition-all"
-                >
-                  <X className="w-4 h-4" />
-                </button>
-              </div>
+              <button 
+                onClick={onClose} 
+                title="Đóng"
+                className="w-9 h-9 rounded-xl hover:bg-slate-100 flex items-center justify-center text-slate-400 hover:text-slate-600 transition-all border border-slate-200/50"
+              >
+                <X className="w-4 h-4" />
+              </button>
             </div>
 
-            <div className="space-y-6">
+            <div className="space-y-5">
               {/* 1. Learning Mode Selector */}
               <div>
                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-2">Chế độ học thông minh</label>
@@ -167,125 +112,169 @@ export const PlaySettingsModal: React.FC<PlaySettingsModalProps> = ({
                 </div>
               </div>
 
-              {/* 2. Autoplay Audio Toggles */}
-              <div className="flex flex-col gap-3 py-2 border-t border-slate-100">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">Tự động phát âm thanh</label>
+              {/* 2. Compact System options & Audio */}
+              <div className="py-3 border-t border-slate-100 space-y-2.5">
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">Tùy chọn hệ thống</label>
                 
-                {/* Front Audio Toggle */}
-                <div className="flex items-center justify-between">
-                  <div className="flex flex-col">
-                    <span className="text-[11px] font-black text-slate-700">Mặt trước</span>
-                    <span className="text-[9px] text-slate-400">Phát âm thanh từ vựng khi hiện thẻ</span>
+                <div className="grid grid-cols-1 gap-3 bg-slate-50/60 p-3.5 rounded-2xl border border-slate-100/80">
+                  {/* Front Audio */}
+                  <div className="flex items-center justify-between text-xs font-bold text-slate-700">
+                    <span>Tự phát âm mặt trước</span>
+                    <button 
+                      onClick={() => {
+                        const isFrontOn = autoPlayAudio === 'always' || autoPlayAudio === 'front';
+                        const isBackOn = autoPlayAudio === 'always' || autoPlayAudio === 'back';
+                        const nextState = isFrontOn ? (isBackOn ? 'back' : 'none') : (isBackOn ? 'always' : 'front');
+                        setAutoPlayAudio(nextState);
+                      }}
+                      className={cn(
+                        "w-10 h-5.5 rounded-full p-0.5 transition-colors duration-200 ease-in-out relative flex items-center shrink-0",
+                        (autoPlayAudio === 'always' || autoPlayAudio === 'front') ? "bg-indigo-500" : "bg-slate-200"
+                      )}
+                    >
+                      <div className={cn(
+                        "w-4.5 h-4.5 bg-white rounded-full shadow-sm transition-transform duration-200 ease-in-out",
+                        (autoPlayAudio === 'always' || autoPlayAudio === 'front') ? "translate-x-4.5" : "translate-x-0"
+                      )} />
+                    </button>
                   </div>
+
+                  {/* Back Audio */}
+                  <div className="flex items-center justify-between text-xs font-bold text-slate-700">
+                    <span>Tự phát âm mặt sau</span>
+                    <button 
+                      onClick={() => {
+                        const isFrontOn = autoPlayAudio === 'always' || autoPlayAudio === 'front';
+                        const isBackOn = autoPlayAudio === 'always' || autoPlayAudio === 'back';
+                        const nextState = isBackOn ? (isFrontOn ? 'front' : 'none') : (isFrontOn ? 'always' : 'back');
+                        setAutoPlayAudio(nextState);
+                      }}
+                      className={cn(
+                        "w-10 h-5.5 rounded-full p-0.5 transition-colors duration-200 ease-in-out relative flex items-center shrink-0",
+                        (autoPlayAudio === 'always' || autoPlayAudio === 'back') ? "bg-indigo-500" : "bg-slate-200"
+                      )}
+                    >
+                      <div className={cn(
+                        "w-4.5 h-4.5 bg-white rounded-full shadow-sm transition-transform duration-200 ease-in-out",
+                        (autoPlayAudio === 'always' || autoPlayAudio === 'back') ? "translate-x-4.5" : "translate-x-0"
+                      )} />
+                    </button>
+                  </div>
+
+                  {/* Effect Sound */}
+                  <div className="flex items-center justify-between text-xs font-bold text-slate-700">
+                    <span>Âm thanh hiệu ứng (Đúng/Sai)</span>
+                    <button 
+                      onClick={() => setSfxEnabled(!sfxEnabled)}
+                      className={cn(
+                        "w-10 h-5.5 rounded-full p-0.5 transition-colors duration-200 ease-in-out relative flex items-center shrink-0",
+                        sfxEnabled ? "bg-emerald-500" : "bg-slate-200"
+                      )}
+                    >
+                      <div className={cn(
+                        "w-4.5 h-4.5 bg-white rounded-full shadow-sm transition-transform duration-200 ease-in-out",
+                        sfxEnabled ? "translate-x-4.5" : "translate-x-0"
+                      )} />
+                    </button>
+                  </div>
+
+                  {/* Haptic Feedback */}
+                  <div className="flex items-center justify-between text-xs font-bold text-slate-700">
+                    <span>Rung phản hồi (Haptic)</span>
+                    <button 
+                      onClick={() => setHapticEnabled(!hapticEnabled)}
+                      className={cn(
+                        "w-10 h-5.5 rounded-full p-0.5 transition-colors duration-200 ease-in-out relative flex items-center shrink-0",
+                        hapticEnabled ? "bg-indigo-500" : "bg-slate-200"
+                      )}
+                    >
+                      <div className={cn(
+                        "w-4.5 h-4.5 bg-white rounded-full shadow-sm transition-transform duration-200 ease-in-out",
+                        hapticEnabled ? "translate-x-4.5" : "translate-x-0"
+                      )} />
+                    </button>
+                  </div>
+
+                  {/* Quick Learn */}
+                  {setQuickLearnEnabled !== undefined && (
+                    <div className="flex items-center justify-between text-xs font-bold text-slate-700">
+                      <span>Tự động chuyển câu (Quick Learn)</span>
+                      <button 
+                        onClick={() => setQuickLearnEnabled(!quickLearnEnabled)}
+                        className={cn(
+                          "w-10 h-5.5 rounded-full p-0.5 transition-colors duration-200 ease-in-out relative flex items-center shrink-0",
+                          quickLearnEnabled ? "bg-indigo-500" : "bg-slate-200"
+                        )}
+                      >
+                        <div className={cn(
+                          "w-4.5 h-4.5 bg-white rounded-full shadow-sm transition-transform duration-200 ease-in-out",
+                          quickLearnEnabled ? "translate-x-4.5" : "translate-x-0"
+                        )} />
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* 3. Thao tác thẻ học */}
+              <div className="py-3 border-t border-slate-100 space-y-2">
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block text-center">Thao tác thẻ học</label>
+                <div className="flex items-center justify-center gap-3">
+                  {showFeedback && (
+                    <button 
+                      onClick={() => {
+                        copyQuestionToClipboard();
+                        onClose();
+                      }}
+                      title="Copy nội dung"
+                      className="w-11 h-11 rounded-2xl bg-slate-50 border border-slate-200/60 hover:bg-slate-100 flex items-center justify-center text-slate-500 hover:text-slate-700 shadow-sm transition-all active:scale-90"
+                    >
+                      <Copy className="w-5 h-5" />
+                    </button>
+                  )}
+                  
+                  <button
+                    onClick={() => {
+                      onClose();
+                      handleIgnoreQuestion();
+                    }}
+                    title={currentQuestion?.is_ignored ? "Hủy bỏ qua thẻ" : "Bỏ qua thẻ"}
+                    className={cn(
+                      "w-11 h-11 rounded-2xl border flex items-center justify-center shadow-sm transition-all active:scale-90",
+                      currentQuestion?.is_ignored 
+                        ? "bg-indigo-50 border-indigo-200 text-indigo-600 hover:bg-indigo-100"
+                        : "bg-slate-50 border-slate-200/60 hover:bg-slate-100 text-slate-500 hover:text-slate-700"
+                    )}
+                  >
+                    {currentQuestion?.is_ignored ? <Eye className="w-5 h-5" /> : <EyeOff className="w-5 h-5" />}
+                  </button>
+
                   <button 
                     onClick={() => {
-                      const isFrontOn = autoPlayAudio === 'always' || autoPlayAudio === 'front';
-                      const isBackOn = autoPlayAudio === 'always' || autoPlayAudio === 'back';
-                      const nextState = isFrontOn ? (isBackOn ? 'back' : 'none') : (isBackOn ? 'always' : 'front');
-                      setAutoPlayAudio(nextState);
+                      onClose();
+                      openEditModal();
                     }}
-                    className={cn(
-                      "w-12 h-6 rounded-full p-0.5 transition-colors duration-200 ease-in-out relative flex items-center",
-                      (autoPlayAudio === 'always' || autoPlayAudio === 'front') ? "bg-indigo-500" : "bg-slate-200"
-                    )}
+                    title="Sửa thẻ này"
+                    className="w-11 h-11 rounded-2xl bg-slate-50 border border-slate-200/60 hover:bg-slate-100 flex items-center justify-center text-slate-500 hover:text-slate-700 shadow-sm transition-all active:scale-90"
                   >
-                    <div className={cn(
-                      "w-5 h-5 bg-white rounded-full shadow-sm transition-transform duration-200 ease-in-out",
-                      (autoPlayAudio === 'always' || autoPlayAudio === 'front') ? "translate-x-6" : "translate-x-0"
-                    )} />
+                    <Edit3 className="w-5 h-5" />
                   </button>
-                </div>
 
-                {/* Back Audio Toggle */}
-                <div className="flex items-center justify-between">
-                  <div className="flex flex-col">
-                    <span className="text-[11px] font-black text-slate-700">Mặt sau</span>
-                    <span className="text-[9px] text-slate-400">Phát âm thanh giải nghĩa khi lật thẻ</span>
-                  </div>
                   <button 
                     onClick={() => {
-                      const isFrontOn = autoPlayAudio === 'always' || autoPlayAudio === 'front';
-                      const isBackOn = autoPlayAudio === 'always' || autoPlayAudio === 'back';
-                      const nextState = isBackOn ? (isFrontOn ? 'front' : 'none') : (isFrontOn ? 'always' : 'back');
-                      setAutoPlayAudio(nextState);
+                      onClose();
+                      setIsQuitModalOpen(true);
                     }}
-                    className={cn(
-                      "w-12 h-6 rounded-full p-0.5 transition-colors duration-200 ease-in-out relative flex items-center",
-                      (autoPlayAudio === 'always' || autoPlayAudio === 'back') ? "bg-indigo-500" : "bg-slate-200"
-                    )}
+                    title="Thoát phiên học"
+                    className="w-11 h-11 rounded-2xl bg-rose-50 border border-rose-200 text-rose-500 hover:bg-rose-100 flex items-center justify-center shadow-sm transition-all active:scale-90"
                   >
-                    <div className={cn(
-                      "w-5 h-5 bg-white rounded-full shadow-sm transition-transform duration-200 ease-in-out",
-                      (autoPlayAudio === 'always' || autoPlayAudio === 'back') ? "translate-x-6" : "translate-x-0"
-                    )} />
+                    <LogOut className="w-5 h-5" />
                   </button>
                 </div>
               </div>
-
-              {/* 3. Sound Effects Toggle */}
-              <div className="flex items-center justify-between py-2 border-t border-slate-100">
-                <div className="flex flex-col">
-                  <span className="text-[11px] font-black text-slate-700">Âm thanh hiệu ứng</span>
-                  <span className="text-[9px] text-slate-400">Phát nhạc chuông khi trả lời Đúng/Sai</span>
-                </div>
-                <button 
-                  onClick={() => setSfxEnabled(!sfxEnabled)}
-                  className={cn(
-                    "w-12 h-6 rounded-full p-0.5 transition-colors duration-200 ease-in-out relative flex items-center",
-                    sfxEnabled ? "bg-emerald-500" : "bg-slate-200"
-                  )}
-                >
-                  <div className={cn(
-                    "w-5 h-5 rounded-full bg-white shadow-sm transform transition-transform duration-200 ease-in-out",
-                    sfxEnabled ? "translate-x-6" : "translate-x-0"
-                  )} />
-                </button>
-              </div>
-
-              {/* 3c. Haptic Feedback Toggle */}
-              <div className="flex items-center justify-between py-2 border-t border-slate-100">
-                <div className="flex flex-col">
-                  <span className="text-[11px] font-black text-slate-700">Rung phản hồi (Haptic)</span>
-                  <span className="text-[9px] text-slate-400">Rung nhẹ khi tương tác trên thiết bị di động</span>
-                </div>
-                <button 
-                  onClick={() => setHapticEnabled(!hapticEnabled)}
-                  className={cn(
-                    "w-12 h-6 rounded-full p-0.5 transition-colors duration-200 ease-in-out relative flex items-center",
-                    hapticEnabled ? "bg-indigo-500" : "bg-slate-200"
-                  )}
-                >
-                  <div className={cn(
-                    "w-5 h-5 rounded-full bg-white shadow-sm transform transition-transform duration-200 ease-in-out",
-                    hapticEnabled ? "translate-x-6" : "translate-x-0"
-                  )} />
-                </button>
-              </div>
-
-              {/* 3b. Quick Learn Toggle */}
-              {setQuickLearnEnabled !== undefined && (
-                <div className="flex items-center justify-between py-2 border-t border-slate-100">
-                  <div className="flex flex-col">
-                    <span className="text-[11px] font-black text-slate-700">Tự động chuyển câu (Quick Learn)</span>
-                    <span className="text-[9px] text-slate-400">Tự động chuyển thẻ tiếp theo ngay sau khi đánh giá</span>
-                  </div>
-                  <button 
-                    onClick={() => setQuickLearnEnabled(!quickLearnEnabled)}
-                    className={cn(
-                      "w-12 h-6 rounded-full p-0.5 transition-colors duration-200 ease-in-out relative flex items-center",
-                      quickLearnEnabled ? "bg-indigo-500" : "bg-slate-200"
-                    )}
-                  >
-                    <div className={cn(
-                      "w-5 h-5 rounded-full bg-white shadow-sm transform transition-transform duration-200 ease-in-out",
-                      quickLearnEnabled ? "translate-x-6" : "translate-x-0"
-                    )} />
-                  </button>
-                </div>
-              )}
 
               {/* 4. Agree / Close Button */}
-              <div className="pt-4 border-t border-slate-100">
+              <div className="pt-3 border-t border-slate-100">
                 <button 
                   onClick={onClose}
                   className="w-full py-3.5 bg-indigo-600 text-white rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-indigo-700 shadow-lg shadow-indigo-100 hover:shadow-indigo-200 hover:scale-[1.01] active:scale-[0.99] transition-all flex items-center justify-center gap-2"
