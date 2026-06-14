@@ -1,5 +1,5 @@
 import React from 'react'
-import { Sliders, X, Brain, Sparkles, ListOrdered, Shuffle, EyeOff, AlertCircle, TrendingUp, Copy, Eye, Edit3, LogOut } from 'lucide-react'
+import { Sliders, Brain, Sparkles, ListOrdered, Shuffle, EyeOff, AlertCircle, TrendingUp, Copy, Eye, Edit3, LogOut, Volume2, Music, Zap } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { cn } from '@/lib/utils'
 
@@ -59,7 +59,7 @@ export const PlaySettingsModal: React.FC<PlaySettingsModalProps> = ({
             initial={{ opacity: 0, scale: 0.9, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.9, y: 20 }}
-            className="relative w-full max-w-md bg-white rounded-[2.5rem] p-6 shadow-2xl border border-white/20 overflow-hidden text-slate-800"
+            className="relative w-full max-w-md bg-white md:rounded-[2rem] rounded-[1.25rem] p-6 shadow-2xl border border-white/20 overflow-hidden text-slate-800"
           >
             <div className="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-indigo-500 via-purple-500 to-indigo-500"></div>
             
@@ -68,13 +68,6 @@ export const PlaySettingsModal: React.FC<PlaySettingsModalProps> = ({
                 <Sliders className="w-5 h-5" />
                 Cấu hình học tập
               </h3>
-              <button 
-                onClick={onClose} 
-                title="Đóng"
-                className="w-9 h-9 rounded-xl hover:bg-slate-100 flex items-center justify-center text-slate-400 hover:text-slate-600 transition-all border border-slate-200/50"
-              >
-                <X className="w-4 h-4" />
-              </button>
             </div>
 
             <div className="space-y-5">
@@ -112,112 +105,112 @@ export const PlaySettingsModal: React.FC<PlaySettingsModalProps> = ({
                 </div>
               </div>
 
-              {/* 2. Compact System options & Audio */}
-              <div className="py-3 border-t border-slate-100 space-y-2.5">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">Tùy chọn hệ thống</label>
-                
-                <div className="grid grid-cols-1 gap-3 bg-slate-50/60 p-3.5 rounded-2xl border border-slate-100/80">
+              {/* 2. Compact Reading Audio Grid */}
+              <div>
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-2">Âm thanh đọc</label>
+                <div className="grid grid-cols-2 gap-1.5 bg-slate-50 p-1 rounded-2xl border border-slate-100">
                   {/* Front Audio */}
-                  <div className="flex items-center justify-between text-xs font-bold text-slate-700">
-                    <span>Tự phát âm mặt trước</span>
-                    <button 
-                      onClick={() => {
-                        const isFrontOn = autoPlayAudio === 'always' || autoPlayAudio === 'front';
-                        const isBackOn = autoPlayAudio === 'always' || autoPlayAudio === 'back';
-                        const nextState = isFrontOn ? (isBackOn ? 'back' : 'none') : (isBackOn ? 'always' : 'front');
-                        setAutoPlayAudio(nextState);
-                      }}
-                      className={cn(
-                        "w-10 h-5.5 rounded-full p-0.5 transition-colors duration-200 ease-in-out relative flex items-center shrink-0",
-                        (autoPlayAudio === 'always' || autoPlayAudio === 'front') ? "bg-indigo-500" : "bg-slate-200"
-                      )}
-                    >
-                      <div className={cn(
-                        "w-4.5 h-4.5 bg-white rounded-full shadow-sm transition-transform duration-200 ease-in-out",
-                        (autoPlayAudio === 'always' || autoPlayAudio === 'front') ? "translate-x-4.5" : "translate-x-0"
-                      )} />
-                    </button>
-                  </div>
+                  {(() => {
+                    const active = autoPlayAudio === 'always' || autoPlayAudio === 'front';
+                    return (
+                      <button
+                        onClick={() => {
+                          const isFrontOn = autoPlayAudio === 'always' || autoPlayAudio === 'front';
+                          const isBackOn = autoPlayAudio === 'always' || autoPlayAudio === 'back';
+                          const nextState = isFrontOn ? (isBackOn ? 'back' : 'none') : (isBackOn ? 'always' : 'front');
+                          setAutoPlayAudio(nextState);
+                        }}
+                        className={cn(
+                          "flex flex-col items-center justify-center gap-1.5 py-2 px-1 rounded-xl text-[10px] font-bold transition-all active:scale-95",
+                          active 
+                            ? "bg-white text-indigo-600 shadow-sm border border-slate-100" 
+                            : "text-slate-500 hover:bg-white/50"
+                        )}
+                      >
+                        <Volume2 className={cn("w-4.5 h-4.5", active ? "text-indigo-600" : "text-slate-400")} />
+                        <span className="truncate w-full text-center text-[9px]">Mặt trước</span>
+                      </button>
+                    );
+                  })()}
 
                   {/* Back Audio */}
-                  <div className="flex items-center justify-between text-xs font-bold text-slate-700">
-                    <span>Tự phát âm mặt sau</span>
-                    <button 
-                      onClick={() => {
-                        const isFrontOn = autoPlayAudio === 'always' || autoPlayAudio === 'front';
-                        const isBackOn = autoPlayAudio === 'always' || autoPlayAudio === 'back';
-                        const nextState = isBackOn ? (isFrontOn ? 'front' : 'none') : (isFrontOn ? 'always' : 'back');
-                        setAutoPlayAudio(nextState);
-                      }}
-                      className={cn(
-                        "w-10 h-5.5 rounded-full p-0.5 transition-colors duration-200 ease-in-out relative flex items-center shrink-0",
-                        (autoPlayAudio === 'always' || autoPlayAudio === 'back') ? "bg-indigo-500" : "bg-slate-200"
-                      )}
-                    >
-                      <div className={cn(
-                        "w-4.5 h-4.5 bg-white rounded-full shadow-sm transition-transform duration-200 ease-in-out",
-                        (autoPlayAudio === 'always' || autoPlayAudio === 'back') ? "translate-x-4.5" : "translate-x-0"
-                      )} />
-                    </button>
-                  </div>
+                  {(() => {
+                    const active = autoPlayAudio === 'always' || autoPlayAudio === 'back';
+                    return (
+                      <button
+                        onClick={() => {
+                          const isFrontOn = autoPlayAudio === 'always' || autoPlayAudio === 'front';
+                          const isBackOn = autoPlayAudio === 'always' || autoPlayAudio === 'back';
+                          const nextState = isBackOn ? (isFrontOn ? 'front' : 'none') : (isFrontOn ? 'always' : 'back');
+                          setAutoPlayAudio(nextState);
+                        }}
+                        className={cn(
+                          "flex flex-col items-center justify-center gap-1.5 py-2 px-1 rounded-xl text-[10px] font-bold transition-all active:scale-95",
+                          active 
+                            ? "bg-white text-indigo-600 shadow-sm border border-slate-100" 
+                            : "text-slate-500 hover:bg-white/50"
+                        )}
+                      >
+                        <Volume2 className={cn("w-4.5 h-4.5", active ? "text-indigo-600" : "text-slate-400")} />
+                        <span className="truncate w-full text-center text-[9px]">Mặt sau</span>
+                      </button>
+                    );
+                  })()}
+                </div>
+              </div>
 
+              {/* 3. Compact Effects & Interaction Grid */}
+              <div>
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-2">Hiệu ứng hệ thống</label>
+                <div className={cn("grid gap-1.5 bg-slate-50 p-1 rounded-2xl border border-slate-100", setQuickLearnEnabled !== undefined ? "grid-cols-3" : "grid-cols-2")}>
                   {/* Effect Sound */}
-                  <div className="flex items-center justify-between text-xs font-bold text-slate-700">
-                    <span>Âm thanh hiệu ứng (Đúng/Sai)</span>
-                    <button 
-                      onClick={() => setSfxEnabled(!sfxEnabled)}
-                      className={cn(
-                        "w-10 h-5.5 rounded-full p-0.5 transition-colors duration-200 ease-in-out relative flex items-center shrink-0",
-                        sfxEnabled ? "bg-emerald-500" : "bg-slate-200"
-                      )}
-                    >
-                      <div className={cn(
-                        "w-4.5 h-4.5 bg-white rounded-full shadow-sm transition-transform duration-200 ease-in-out",
-                        sfxEnabled ? "translate-x-4.5" : "translate-x-0"
-                      )} />
-                    </button>
-                  </div>
+                  <button
+                    onClick={() => setSfxEnabled(!sfxEnabled)}
+                    className={cn(
+                      "flex flex-col items-center justify-center gap-1.5 py-2 px-1 rounded-xl text-[10px] font-bold transition-all active:scale-95",
+                      sfxEnabled 
+                        ? "bg-white text-emerald-600 shadow-sm border border-slate-100" 
+                        : "text-slate-500 hover:bg-white/50"
+                    )}
+                  >
+                    <Music className={cn("w-4.5 h-4.5", sfxEnabled ? "text-emerald-500" : "text-slate-400")} />
+                    <span className="truncate w-full text-center text-[9px]">Âm hiệu ứng</span>
+                  </button>
 
-                  {/* Haptic Feedback */}
-                  <div className="flex items-center justify-between text-xs font-bold text-slate-700">
-                    <span>Rung phản hồi (Haptic)</span>
-                    <button 
-                      onClick={() => setHapticEnabled(!hapticEnabled)}
-                      className={cn(
-                        "w-10 h-5.5 rounded-full p-0.5 transition-colors duration-200 ease-in-out relative flex items-center shrink-0",
-                        hapticEnabled ? "bg-indigo-500" : "bg-slate-200"
-                      )}
-                    >
-                      <div className={cn(
-                        "w-4.5 h-4.5 bg-white rounded-full shadow-sm transition-transform duration-200 ease-in-out",
-                        hapticEnabled ? "translate-x-4.5" : "translate-x-0"
-                      )} />
-                    </button>
-                  </div>
+                  {/* Haptic */}
+                  <button
+                    onClick={() => setHapticEnabled(!hapticEnabled)}
+                    className={cn(
+                      "flex flex-col items-center justify-center gap-1.5 py-2 px-1 rounded-xl text-[10px] font-bold transition-all active:scale-95",
+                      hapticEnabled 
+                        ? "bg-white text-indigo-600 shadow-sm border border-slate-100" 
+                        : "text-slate-500 hover:bg-white/50"
+                    )}
+                  >
+                    <Zap className={cn("w-4.5 h-4.5", hapticEnabled ? "text-indigo-500" : "text-slate-400")} />
+                    <span className="truncate w-full text-center text-[9px]">Rung Haptic</span>
+                  </button>
 
                   {/* Quick Learn */}
                   {setQuickLearnEnabled !== undefined && (
-                    <div className="flex items-center justify-between text-xs font-bold text-slate-700">
-                      <span>Tự động chuyển câu (Quick Learn)</span>
-                      <button 
-                        onClick={() => setQuickLearnEnabled(!quickLearnEnabled)}
-                        className={cn(
-                          "w-10 h-5.5 rounded-full p-0.5 transition-colors duration-200 ease-in-out relative flex items-center shrink-0",
-                          quickLearnEnabled ? "bg-indigo-500" : "bg-slate-200"
-                        )}
-                      >
-                        <div className={cn(
-                          "w-4.5 h-4.5 bg-white rounded-full shadow-sm transition-transform duration-200 ease-in-out",
-                          quickLearnEnabled ? "translate-x-4.5" : "translate-x-0"
-                        )} />
-                      </button>
-                    </div>
+                    <button
+                      onClick={() => setQuickLearnEnabled(!quickLearnEnabled)}
+                      className={cn(
+                        "flex flex-col items-center justify-center gap-1.5 py-2 px-1 rounded-xl text-[10px] font-bold transition-all active:scale-95",
+                        quickLearnEnabled 
+                          ? "bg-white text-indigo-600 shadow-sm border border-slate-100" 
+                          : "text-slate-500 hover:bg-white/50"
+                      )}
+                    >
+                      <Sparkles className={cn("w-4.5 h-4.5", quickLearnEnabled ? "text-indigo-500" : "text-slate-400")} />
+                      <span className="truncate w-full text-center text-[9px]">Chuyển câu</span>
+                    </button>
                   )}
                 </div>
               </div>
 
-              {/* 3. Thao tác thẻ học */}
-              <div className="py-3 border-t border-slate-100 space-y-2">
+              {/* 4. Thao tác thẻ học */}
+              <div className="py-2.5 border-t border-slate-100 space-y-1.5">
                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block text-center">Thao tác thẻ học</label>
                 <div className="flex items-center justify-center gap-3">
                   {showFeedback && (
@@ -273,11 +266,11 @@ export const PlaySettingsModal: React.FC<PlaySettingsModalProps> = ({
                 </div>
               </div>
 
-              {/* 4. Agree / Close Button */}
-              <div className="pt-3 border-t border-slate-100">
+              {/* 5. Agree / Close Button */}
+              <div className="pt-3 border-t border-slate-100 flex justify-center">
                 <button 
                   onClick={onClose}
-                  className="w-full py-3.5 bg-indigo-600 text-white rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-indigo-700 shadow-lg shadow-indigo-100 hover:shadow-indigo-200 hover:scale-[1.01] active:scale-[0.99] transition-all flex items-center justify-center gap-2"
+                  className="px-8 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold text-xs uppercase tracking-wider shadow-md hover:shadow-lg active:scale-95 transition-all flex items-center justify-center gap-1.5"
                 >
                   Đồng ý / Đóng
                 </button>

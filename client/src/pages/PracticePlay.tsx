@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import confetti from 'canvas-confetti'
 import { useParams, useNavigate } from 'react-router-dom'
-import { ChevronLeft, ChevronRight, MessageSquare, Play, Volume2, Maximize2, Hash, Minimize2, Check, X, RotateCcw, AlertCircle, LayoutGrid, Timer, Flame, Trophy, Sparkles, Lightbulb, StickyNote, Target, CheckCircle2, XCircle, Clock, BookOpen, Copy, Edit3, Brain, FileText, HelpCircle, Sliders, ListOrdered, Shuffle, Eye, EyeOff, TrendingUp, Award, Lock, Keyboard, VolumeX, Settings, RefreshCw, Undo2, LogOut } from 'lucide-react'
+import { ChevronLeft, ChevronRight, MessageSquare, Play, Volume2, Maximize2, Hash, Minimize2, Check, X, RotateCcw, AlertCircle, LayoutGrid, Timer, Flame, Trophy, Sparkles, Lightbulb, StickyNote, Target, CheckCircle2, XCircle, Clock, BookOpen, Copy, Edit3, Brain, FileText, HelpCircle, Sliders, ListOrdered, Shuffle, Eye, EyeOff, TrendingUp, Award, Lock, Keyboard, VolumeX, Settings, RefreshCw, Undo2, LogOut, Zap, Music } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import axios from 'axios'
 import ReactMarkdown from 'react-markdown'
@@ -4707,7 +4707,7 @@ export default function PracticePlay() {
               initial={{ opacity: 0, scale: 0.9, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.9, y: 20 }}
-              className="relative w-full max-w-md bg-white rounded-[2.5rem] p-6 shadow-2xl border border-slate-100/80 overflow-hidden text-slate-800 pointer-events-auto"
+              className="relative w-full max-w-md bg-white md:rounded-[2rem] rounded-[1.25rem] p-6 shadow-2xl border border-slate-100/80 overflow-hidden text-slate-800 pointer-events-auto"
             >
               <div className="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-indigo-500 via-purple-500 to-indigo-500"></div>
               
@@ -4716,68 +4716,6 @@ export default function PracticePlay() {
                   <Sliders className="w-5 h-5" />
                   Cấu hình luyện tập
                 </h3>
-                <div className="flex items-center gap-1 text-slate-400">
-                  {showFeedback && (
-                    <button 
-                      onClick={() => {
-                        copyQuestionToClipboard();
-                        setIsSettingsModalOpen(false);
-                      }}
-                      title="Copy nội dung"
-                      className="w-8 h-8 rounded-full hover:bg-slate-100 flex items-center justify-center text-slate-500 hover:text-slate-700 transition-all"
-                    >
-                      <Copy className="w-4 h-4" />
-                    </button>
-                  )}
-                  
-                  <button
-                    onClick={() => {
-                      setIsSettingsModalOpen(false);
-                      handleIgnoreQuestion();
-                    }}
-                    title={currentQuestion?.is_ignored ? "Hủy bỏ qua thẻ" : "Bỏ qua thẻ"}
-                    className={cn(
-                      "w-8 h-8 rounded-full flex items-center justify-center transition-all",
-                      currentQuestion?.is_ignored 
-                        ? "bg-indigo-50 text-indigo-600 hover:bg-indigo-100"
-                        : "hover:bg-slate-100 text-slate-500 hover:text-slate-700"
-                    )}
-                  >
-                    {currentQuestion?.is_ignored ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
-                  </button>
-
-                  <button 
-                    onClick={() => {
-                      setIsSettingsModalOpen(false);
-                      openEditModal();
-                    }}
-                    title="Sửa thẻ này"
-                    className="w-8 h-8 rounded-full hover:bg-slate-100 flex items-center justify-center text-slate-500 hover:text-slate-700 transition-all"
-                  >
-                    <Edit3 className="w-4 h-4" />
-                  </button>
-
-                  <button 
-                    onClick={() => {
-                      setIsSettingsModalOpen(false);
-                      setIsQuitModalOpen(true);
-                    }}
-                    title="Thoát phiên học"
-                    className="w-8 h-8 rounded-full hover:bg-rose-50 flex items-center justify-center text-rose-500 hover:text-rose-700 transition-all"
-                  >
-                    <LogOut className="w-4 h-4" />
-                  </button>
-
-                  <div className="w-px h-4 bg-slate-200 mx-1" />
-
-                  <button 
-                    onClick={() => setIsSettingsModalOpen(false)} 
-                    title="Đóng"
-                    className="w-8 h-8 rounded-full hover:bg-slate-100 flex items-center justify-center text-slate-400 hover:text-slate-600 transition-all"
-                  >
-                    <X className="w-4 h-4" />
-                  </button>
-                </div>
               </div>
 
               <div className="space-y-6">
@@ -4870,110 +4808,160 @@ export default function PracticePlay() {
                   </div>
                 </div>
 
-                {/* 3. Autoplay Audio Toggles */}
-                <div className="flex flex-col gap-3 py-2 border-t border-slate-100">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">Tự động phát âm thanh</label>
-                  
-                  {/* Front Audio Toggle */}
-                  <div className="flex items-center justify-between">
-                    <div className="flex flex-col">
-                      <span className="text-[11px] font-black text-slate-700">Mặt trước</span>
-                      <span className="text-[9px] text-slate-400">Phát âm thanh từ vựng khi hiện thẻ</span>
-                    </div>
-                    <button 
-                      onClick={() => {
-                        const isFrontOn = autoPlayAudio === 'always' || autoPlayAudio === 'front';
-                        const isBackOn = autoPlayAudio === 'always' || autoPlayAudio === 'back';
-                        const nextState = isFrontOn ? (isBackOn ? 'back' : 'never') : (isBackOn ? 'always' : 'front');
-                        setAutoPlayAudio(nextState);
-                        localStorage.setItem('vocaburn_autoplay_audio', nextState);
-                        saveGeneralSettings({ autoplay_audio: nextState });
-                      }}
-                      className={cn(
-                        "w-12 h-6 rounded-full p-0.5 transition-colors duration-200 ease-in-out relative flex items-center",
-                        (autoPlayAudio === 'always' || autoPlayAudio === 'front') ? "bg-indigo-500" : "bg-slate-200"
-                      )}
-                    >
-                      <div className={cn(
-                        "w-5 h-5 bg-white rounded-full shadow-sm transition-transform duration-200 ease-in-out",
-                        (autoPlayAudio === 'always' || autoPlayAudio === 'front') ? "translate-x-6" : "translate-x-0"
-                      )} />
-                    </button>
-                  </div>
+                {/* 3. Compact Reading Audio Grid */}
+                <div>
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-2">Âm thanh đọc</label>
+                  <div className="grid grid-cols-2 gap-1.5 bg-slate-50 p-1 rounded-2xl border border-slate-100">
+                    {/* Front Audio */}
+                    {(() => {
+                      const active = autoPlayAudio === 'always' || autoPlayAudio === 'front';
+                      return (
+                        <button
+                          onClick={() => {
+                            const isFrontOn = autoPlayAudio === 'always' || autoPlayAudio === 'front';
+                            const isBackOn = autoPlayAudio === 'always' || autoPlayAudio === 'back';
+                            const nextState = isFrontOn ? (isBackOn ? 'back' : 'never') : (isBackOn ? 'always' : 'front');
+                            setAutoPlayAudio(nextState);
+                            localStorage.setItem('vocaburn_autoplay_audio', nextState);
+                            saveGeneralSettings({ autoplay_audio: nextState });
+                          }}
+                          className={cn(
+                            "flex flex-col items-center justify-center gap-1.5 py-2 px-1 rounded-xl text-[10px] font-bold transition-all active:scale-95",
+                            active 
+                              ? "bg-white text-indigo-600 shadow-sm border border-slate-100" 
+                              : "text-slate-500 hover:bg-white/50"
+                          )}
+                        >
+                          <Volume2 className={cn("w-4.5 h-4.5", active ? "text-indigo-600" : "text-slate-400")} />
+                          <span className="truncate w-full text-center text-[9px]">Mặt trước</span>
+                        </button>
+                      );
+                    })()}
 
-                  {/* Back Audio Toggle */}
-                  <div className="flex items-center justify-between">
-                    <div className="flex flex-col">
-                      <span className="text-[11px] font-black text-slate-700">Mặt sau</span>
-                      <span className="text-[9px] text-slate-400">Phát âm thanh giải nghĩa khi lật thẻ</span>
-                    </div>
-                    <button 
-                      onClick={() => {
-                        const isFrontOn = autoPlayAudio === 'always' || autoPlayAudio === 'front';
-                        const isBackOn = autoPlayAudio === 'always' || autoPlayAudio === 'back';
-                        const nextState = isBackOn ? (isFrontOn ? 'front' : 'never') : (isFrontOn ? 'always' : 'back');
-                        setAutoPlayAudio(nextState);
-                        localStorage.setItem('vocaburn_autoplay_audio', nextState);
-                        saveGeneralSettings({ autoplay_audio: nextState });
-                      }}
+                    {/* Back Audio */}
+                    {(() => {
+                      const active = autoPlayAudio === 'always' || autoPlayAudio === 'back';
+                      return (
+                        <button
+                          onClick={() => {
+                            const isFrontOn = autoPlayAudio === 'always' || autoPlayAudio === 'front';
+                            const isBackOn = autoPlayAudio === 'always' || autoPlayAudio === 'back';
+                            const nextState = isBackOn ? (isFrontOn ? 'front' : 'never') : (isFrontOn ? 'always' : 'back');
+                            setAutoPlayAudio(nextState);
+                            localStorage.setItem('vocaburn_autoplay_audio', nextState);
+                            saveGeneralSettings({ autoplay_audio: nextState });
+                          }}
+                          className={cn(
+                            "flex flex-col items-center justify-center gap-1.5 py-2 px-1 rounded-xl text-[10px] font-bold transition-all active:scale-95",
+                            active 
+                              ? "bg-white text-indigo-600 shadow-sm border border-slate-100" 
+                              : "text-slate-500 hover:bg-white/50"
+                          )}
+                        >
+                          <Volume2 className={cn("w-4.5 h-4.5", active ? "text-indigo-600" : "text-slate-400")} />
+                          <span className="truncate w-full text-center text-[9px]">Mặt sau</span>
+                        </button>
+                      );
+                    })()}
+                  </div>
+                </div>
+
+                {/* 4. Compact Effects & Interaction Grid */}
+                <div>
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-2">Hiệu ứng hệ thống</label>
+                  <div className="grid grid-cols-2 gap-1.5 bg-slate-50 p-1 rounded-2xl border border-slate-100">
+                    {/* Effect Sound */}
+                    <button
+                      onClick={() => setSfxEnabled(!sfxEnabled)}
                       className={cn(
-                        "w-12 h-6 rounded-full p-0.5 transition-colors duration-200 ease-in-out relative flex items-center",
-                        (autoPlayAudio === 'always' || autoPlayAudio === 'back') ? "bg-indigo-500" : "bg-slate-200"
+                        "flex flex-col items-center justify-center gap-1.5 py-2 px-1 rounded-xl text-[10px] font-bold transition-all active:scale-95",
+                        sfxEnabled 
+                          ? "bg-white text-emerald-600 shadow-sm border border-slate-100" 
+                          : "text-slate-500 hover:bg-white/50"
                       )}
                     >
-                      <div className={cn(
-                        "w-5 h-5 bg-white rounded-full shadow-sm transition-transform duration-200 ease-in-out",
-                        (autoPlayAudio === 'always' || autoPlayAudio === 'back') ? "translate-x-6" : "translate-x-0"
-                      )} />
+                      <Music className={cn("w-4.5 h-4.5", sfxEnabled ? "text-emerald-500" : "text-slate-400")} />
+                      <span className="truncate w-full text-center text-[9px]">Âm hiệu ứng</span>
+                    </button>
+
+                    {/* Haptic */}
+                    <button
+                      onClick={() => setHapticEnabled(!hapticEnabled)}
+                      className={cn(
+                        "flex flex-col items-center justify-center gap-1.5 py-2 px-1 rounded-xl text-[10px] font-bold transition-all active:scale-95",
+                        hapticEnabled 
+                          ? "bg-white text-indigo-600 shadow-sm border border-slate-100" 
+                          : "text-slate-500 hover:bg-white/50"
+                      )}
+                    >
+                      <Zap className={cn("w-4.5 h-4.5", hapticEnabled ? "text-indigo-500" : "text-slate-400")} />
+                      <span className="truncate w-full text-center text-[9px]">Rung Haptic</span>
                     </button>
                   </div>
                 </div>
 
-                {/* 4. Sound Effects Toggle */}
-                <div className="flex items-center justify-between py-2 border-t border-slate-100">
-                  <div className="flex flex-col">
-                    <span className="text-[11px] font-black text-slate-700">Âm thanh hiệu ứng</span>
-                    <span className="text-[9px] text-slate-400">Phát nhạc chuông khi trả lời Đúng/Sai</span>
-                  </div>
-                  <button 
-                    onClick={() => setSfxEnabled(!sfxEnabled)}
-                    className={cn(
-                      "w-12 h-6 rounded-full p-0.5 transition-colors duration-200 ease-in-out relative flex items-center",
-                      sfxEnabled ? "bg-emerald-500" : "bg-slate-200"
+                {/* Thao tác thẻ học */}
+                <div className="py-2.5 border-t border-slate-100 space-y-1.5">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block text-center">Thao tác thẻ học</label>
+                  <div className="flex items-center justify-center gap-3">
+                    {showFeedback && (
+                      <button 
+                        onClick={() => {
+                          copyQuestionToClipboard();
+                          setIsSettingsModalOpen(false);
+                        }}
+                        title="Copy nội dung"
+                        className="w-11 h-11 rounded-2xl bg-slate-50 border border-slate-200/60 hover:bg-slate-100 flex items-center justify-center text-slate-500 hover:text-slate-700 shadow-sm transition-all active:scale-90"
+                      >
+                        <Copy className="w-5 h-5" />
+                      </button>
                     )}
-                  >
-                    <div className={cn(
-                      "w-5 h-5 rounded-full bg-white shadow-sm transform transition-transform duration-200 ease-in-out",
-                      sfxEnabled ? "translate-x-6" : "translate-x-0"
-                    )} />
-                  </button>
-                </div>
+                    
+                    <button
+                      onClick={() => {
+                        setIsSettingsModalOpen(false);
+                        handleIgnoreQuestion();
+                      }}
+                      title={currentQuestion?.is_ignored ? "Hủy bỏ qua thẻ" : "Bỏ qua thẻ"}
+                      className={cn(
+                        "w-11 h-11 rounded-2xl border flex items-center justify-center shadow-sm transition-all active:scale-90",
+                        currentQuestion?.is_ignored 
+                          ? "bg-indigo-50 border-indigo-200 text-indigo-600 hover:bg-indigo-100"
+                          : "bg-slate-50 border-slate-200/60 hover:bg-slate-100 text-slate-500 hover:text-slate-700"
+                      )}
+                    >
+                      {currentQuestion?.is_ignored ? <Eye className="w-5 h-5" /> : <EyeOff className="w-5 h-5" />}
+                    </button>
 
-                {/* 4b. Haptic Feedback Toggle */}
-                <div className="flex items-center justify-between py-2 border-t border-slate-100">
-                  <div className="flex flex-col">
-                    <span className="text-[11px] font-black text-slate-700">Rung phản hồi (Haptic)</span>
-                    <span className="text-[9px] text-slate-400">Rung nhẹ khi tương tác trên thiết bị di động</span>
+                    <button 
+                      onClick={() => {
+                        setIsSettingsModalOpen(false);
+                        openEditModal();
+                      }}
+                      title="Sửa thẻ này"
+                      className="w-11 h-11 rounded-2xl bg-slate-50 border border-slate-200/60 hover:bg-slate-100 flex items-center justify-center text-slate-500 hover:text-slate-700 shadow-sm transition-all active:scale-90"
+                    >
+                      <Edit3 className="w-5 h-5" />
+                    </button>
+
+                    <button 
+                      onClick={() => {
+                        setIsSettingsModalOpen(false);
+                        setIsQuitModalOpen(true);
+                      }}
+                      title="Thoát phiên học"
+                      className="w-11 h-11 rounded-2xl bg-rose-50 border border-rose-200 text-rose-500 hover:bg-rose-100 flex items-center justify-center shadow-sm transition-all active:scale-90"
+                    >
+                      <LogOut className="w-5 h-5" />
+                    </button>
                   </div>
-                  <button 
-                    onClick={() => setHapticEnabled(!hapticEnabled)}
-                    className={cn(
-                      "w-12 h-6 rounded-full p-0.5 transition-colors duration-200 ease-in-out relative flex items-center",
-                      hapticEnabled ? "bg-indigo-500" : "bg-slate-200"
-                    )}
-                  >
-                    <div className={cn(
-                      "w-5 h-5 rounded-full bg-white shadow-sm transform transition-transform duration-200 ease-in-out",
-                      hapticEnabled ? "translate-x-6" : "translate-x-0"
-                    )} />
-                  </button>
                 </div>
 
                 {/* 5. Agree / Close Button */}
-                <div className="pt-4 border-t border-slate-100">
+                <div className="pt-3 border-t border-slate-100 flex justify-center">
                   <button 
                     onClick={() => setIsSettingsModalOpen(false)}
-                    className="w-full py-3.5 bg-indigo-600 text-white rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-indigo-700 shadow-lg shadow-indigo-100 hover:shadow-indigo-200 hover:scale-[1.01] active:scale-[0.99] transition-all flex items-center justify-center gap-2"
+                    className="px-8 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold text-xs uppercase tracking-wider shadow-md hover:shadow-lg active:scale-95 transition-all flex items-center justify-center gap-1.5"
                   >
                     Đồng ý / Đóng
                   </button>
