@@ -4249,7 +4249,7 @@ export default function PracticePlay() {
           {/* Interactive Navigation Tabs */}
           {(() => {
             return (
-              <div className="w-full grid grid-cols-3 bg-white border-t border-slate-100 p-0">
+              <div className="w-full grid grid-cols-3 bg-white border-t border-slate-100 p-0 relative">
                 {/* 1. Card Map Tab */}
                 <button
                   onClick={(e) => {
@@ -4257,16 +4257,21 @@ export default function PracticePlay() {
                     setIsStatsOpen(false);
                     setIsMapOpen(true);
                   }}
-                  className={cn(
-                    "flex items-center justify-center gap-1.5 py-2.5 px-1 transition-all",
-                    activeBottomTab === 'map'
-                      ? "bg-amber-50 text-amber-700 font-black"
-                      : "text-slate-400 hover:text-slate-600 active:scale-95"
-                  )}
+                  className="relative flex items-center justify-center gap-1.5 py-3 px-1 transition-all active:scale-95 overflow-hidden"
                   title="Mở bản đồ thẻ"
                 >
-                  <LayoutGrid className={cn("w-3.5 h-3.5 shrink-0", activeBottomTab === 'map' ? "text-amber-700" : "text-slate-400")} />
-                  <span className="text-[9px] font-black uppercase tracking-wider truncate">
+                  {activeBottomTab === 'map' && (
+                    <motion.div
+                      layoutId="activeBottomTabBg"
+                      className="absolute inset-0 bg-amber-500/15 border-t-2 border-amber-600"
+                      transition={{ type: "spring", stiffness: 380, damping: 30 }}
+                    />
+                  )}
+                  <span className={cn(
+                    "relative z-10 flex items-center justify-center gap-1.5 text-[9px] font-black uppercase tracking-wider truncate transition-colors duration-200",
+                    activeBottomTab === 'map' ? "text-amber-800 font-black" : "text-slate-400 hover:text-slate-600"
+                  )}>
+                    <LayoutGrid className="w-3.5 h-3.5 shrink-0" />
                     MAP
                   </span>
                 </button>
@@ -4277,16 +4282,21 @@ export default function PracticePlay() {
                     setIsMapOpen(false);
                     setIsStatsOpen(false);
                   }}
-                  className={cn(
-                    "flex items-center justify-center gap-1.5 py-2.5 px-1 transition-all",
-                    activeBottomTab === 'flashcard'
-                      ? "bg-amber-50 text-amber-700 font-black"
-                      : "text-slate-400 hover:text-slate-600 active:scale-95"
-                  )}
+                  className="relative flex items-center justify-center gap-1.5 py-3 px-1 transition-all active:scale-95 overflow-hidden"
                   title="Tiến trình học tập hiện tại"
                 >
-                  <BookOpen className={cn("w-3.5 h-3.5 shrink-0", activeBottomTab === 'flashcard' ? "text-amber-700" : "text-slate-400")} />
-                  <span className="text-[9px] font-black uppercase tracking-wider truncate">
+                  {activeBottomTab === 'flashcard' && (
+                    <motion.div
+                      layoutId="activeBottomTabBg"
+                      className="absolute inset-0 bg-amber-500/15 border-t-2 border-amber-600"
+                      transition={{ type: "spring", stiffness: 380, damping: 30 }}
+                    />
+                  )}
+                  <span className={cn(
+                    "relative z-10 flex items-center justify-center gap-1.5 text-[9px] font-black uppercase tracking-wider truncate transition-colors duration-200",
+                    activeBottomTab === 'flashcard' ? "text-amber-800 font-black" : "text-slate-400 hover:text-slate-600"
+                  )}>
+                    <BookOpen className="w-3.5 h-3.5 shrink-0" />
                     FLASHCARD
                   </span>
                 </button>
@@ -4297,16 +4307,21 @@ export default function PracticePlay() {
                     setIsMapOpen(false);
                     setIsStatsOpen(true);
                   }}
-                  className={cn(
-                    "flex items-center justify-center gap-1.5 py-2.5 px-1 transition-all",
-                    activeBottomTab === 'stats'
-                      ? "bg-amber-50 text-amber-700 font-black"
-                      : "text-slate-400 hover:text-slate-600 active:scale-95"
-                  )}
+                  className="relative flex items-center justify-center gap-1.5 py-3 px-1 transition-all active:scale-95 overflow-hidden"
                   title="Mở thống kê tiến trình"
                 >
-                  <TrendingUp className={cn("w-3.5 h-3.5 shrink-0", activeBottomTab === 'stats' ? "text-amber-700" : "text-slate-400")} />
-                  <span className="text-[9px] font-black uppercase tracking-wider truncate">
+                  {activeBottomTab === 'stats' && (
+                    <motion.div
+                      layoutId="activeBottomTabBg"
+                      className="absolute inset-0 bg-amber-500/15 border-t-2 border-amber-600"
+                      transition={{ type: "spring", stiffness: 380, damping: 30 }}
+                    />
+                  )}
+                  <span className={cn(
+                    "relative z-10 flex items-center justify-center gap-1.5 text-[9px] font-black uppercase tracking-wider truncate transition-colors duration-200",
+                    activeBottomTab === 'stats' ? "text-amber-800 font-black" : "text-slate-400 hover:text-slate-600"
+                  )}>
+                    <TrendingUp className="w-3.5 h-3.5 shrink-0" />
                     STATS
                   </span>
                 </button>
