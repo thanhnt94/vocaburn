@@ -3161,7 +3161,7 @@ export default function PracticePlay() {
       </AnimatePresence>
 
       <header className="sticky top-0 flex-shrink-0 z-[120] bg-white/95 backdrop-blur-2xl border-b border-slate-100/80 px-4 py-1.5 flex items-center justify-between shadow-[0_1px_20px_rgba(99,102,241,0.04)]">
-        <div className="flex items-center gap-2.5 font-sans min-w-0">
+        <div className="flex items-center gap-2 font-sans min-w-0 flex-1 mr-3">
           <button 
             onClick={() => navigate('/')} 
             className="w-8.5 h-8.5 flex items-center justify-center bg-slate-50 border border-slate-200/60 rounded-xl text-slate-600 shadow-sm hover:bg-indigo-50 hover:text-indigo-600 hover:border-indigo-100 active:scale-90 transition-all flex-shrink-0"
@@ -3170,7 +3170,7 @@ export default function PracticePlay() {
             <ChevronLeft className="w-4.5 h-4.5" />
           </button>
           <div className="flex flex-col min-w-0">
-            <h1 className="text-[11px] xs:text-xs md:text-sm font-extrabold text-slate-800 tracking-tight truncate max-w-[100px] xs:max-w-[130px] sm:max-w-[180px] md:max-w-md leading-tight" title={session.title}>
+            <h1 className="text-xs md:text-sm font-extrabold text-slate-800 tracking-tight break-words line-clamp-2 leading-snug" title={session.title}>
               {session.title}
             </h1>
             {streak >= 2 && (
@@ -3181,54 +3181,54 @@ export default function PracticePlay() {
           </div>
         </div>
       
-        <div className="grid grid-cols-2 gap-1 md:gap-1.5 text-[9px] md:text-[10px] font-black flex-shrink-0">
+        <div className="grid grid-cols-2 gap-0.5 md:gap-1 text-[9px] font-black flex-shrink-0">
           {/* Item 1: Daily Goal progress */}
-          <div className="flex items-center bg-slate-50/60 border border-slate-100/80 rounded-lg p-0.5 pr-1.5 md:pr-2 shadow-[inset_0_1px_2px_rgba(255,255,255,0.8)] min-w-[64px] md:min-w-[75px] h-7 md:h-8" title="Mục tiêu ôn tập hàng ngày">
-            <div className="w-5 h-5 md:w-6 md:h-6 flex items-center justify-center bg-indigo-500/10 rounded-md text-indigo-600 mr-1 md:mr-1.5 flex-shrink-0">
-              <Target className="w-3 h-3 md:w-3.5 md:h-3.5" />
+          <div className="flex items-center bg-slate-50/60 border border-slate-100/80 rounded-md p-0.5 pr-1 md:pr-1.5 shadow-[inset_0_1px_2px_rgba(255,255,255,0.8)] min-w-[58px] md:min-w-[68px]" title="Mục tiêu ôn tập hàng ngày">
+            <div className="w-4 h-4 md:w-5 md:h-5 flex items-center justify-center bg-indigo-500/10 rounded text-indigo-600 mr-1 flex-shrink-0">
+              <Target className="w-2.5 h-2.5 md:w-3 md:h-3" />
             </div>
             <div className="flex flex-col min-w-0">
-              <span className="text-[6.5px] md:text-[7px] text-slate-400 font-extrabold uppercase tracking-wider leading-none">Goal</span>
-              <span className="text-[8.5px] md:text-[9.5px] font-black text-slate-700 leading-tight truncate">
+              <span className="text-[5.5px] md:text-[6.5px] text-slate-400 font-extrabold uppercase tracking-wider leading-none">Goal</span>
+              <span className="text-[7.5px] md:text-[8.5px] font-black text-slate-700 leading-tight truncate">
                 {activeGoal ? (activeGoal.daily_target - activeGoal.done_today > 0 ? `Còn ${activeGoal.daily_target - activeGoal.done_today}` : 'Đạt') : '--'}
               </span>
             </div>
           </div>
       
           {/* Item 2: Cards left to study/review */}
-          <div className="flex items-center bg-slate-50/60 border border-slate-100/80 rounded-lg p-0.5 pr-1.5 md:pr-2 shadow-[inset_0_1px_2px_rgba(255,255,255,0.8)] min-w-[64px] md:min-w-[75px] h-7 md:h-8" title="Số thẻ ôn tập/học còn lại">
-            <div className="w-5 h-5 md:w-6 md:h-6 flex items-center justify-center bg-rose-500/10 rounded-md text-rose-600 mr-1 md:mr-1.5 flex-shrink-0">
-              <Brain className="w-3 h-3 md:w-3.5 md:h-3.5" />
+          <div className="flex items-center bg-slate-50/60 border border-slate-100/80 rounded-md p-0.5 pr-1 md:pr-1.5 shadow-[inset_0_1px_2px_rgba(255,255,255,0.8)] min-w-[58px] md:min-w-[68px]" title="Số thẻ ôn tập/học còn lại">
+            <div className="w-4 h-4 md:w-5 md:h-5 flex items-center justify-center bg-rose-500/10 rounded text-rose-600 mr-1 flex-shrink-0">
+              <Brain className="w-2.5 h-2.5 md:w-3 md:h-3" />
             </div>
             <div className="flex flex-col min-w-0">
-              <span className="text-[6.5px] md:text-[7px] text-slate-400 font-extrabold uppercase tracking-wider leading-none">Còn lại</span>
-              <span className="text-[8.5px] md:text-[9.5px] font-black text-slate-700 leading-tight truncate">
+              <span className="text-[5.5px] md:text-[6.5px] text-slate-400 font-extrabold uppercase tracking-wider leading-none">Còn lại</span>
+              <span className="text-[7.5px] md:text-[8.5px] font-black text-slate-700 leading-tight truncate">
                 {session?.questions ? Math.max(0, session.questions.length - currentIndex) : 0}
               </span>
             </div>
           </div>
       
           {/* Item 3: Timer */}
-          <div className="flex items-center bg-slate-50/60 border border-slate-100/80 rounded-lg p-0.5 pr-1.5 md:pr-2 shadow-[inset_0_1px_2px_rgba(255,255,255,0.8)] min-w-[64px] md:min-w-[75px] h-7 md:h-8" title="Thời gian học">
-            <div className="w-5 h-5 md:w-6 md:h-6 flex items-center justify-center bg-emerald-500/10 rounded-md text-emerald-600 mr-1 md:mr-1.5 flex-shrink-0">
-              <Clock className="w-3 h-3 md:w-3.5 md:h-3.5" />
+          <div className="flex items-center bg-slate-50/60 border border-slate-100/80 rounded-md p-0.5 pr-1 md:pr-1.5 shadow-[inset_0_1px_2px_rgba(255,255,255,0.8)] min-w-[58px] md:min-w-[68px]" title="Thời gian học">
+            <div className="w-4 h-4 md:w-5 md:h-5 flex items-center justify-center bg-emerald-500/10 rounded text-emerald-600 mr-1 flex-shrink-0">
+              <Clock className="w-2.5 h-2.5 md:w-3 md:h-3" />
             </div>
             <div className="flex flex-col min-w-0">
-              <span className="text-[6.5px] md:text-[7px] text-slate-400 font-extrabold uppercase tracking-wider leading-none">Thời gian</span>
-              <span className="text-[8.5px] md:text-[9.5px] font-black text-slate-700 leading-tight truncate">
+              <span className="text-[5.5px] md:text-[6.5px] text-slate-400 font-extrabold uppercase tracking-wider leading-none">Thời gian</span>
+              <span className="text-[7.5px] md:text-[8.5px] font-black text-slate-700 leading-tight truncate">
                 {timeLeft}s
               </span>
             </div>
           </div>
       
           {/* Item 4: Current user score */}
-          <div className="flex items-center bg-slate-50/60 border border-slate-100/80 rounded-lg p-0.5 pr-1.5 md:pr-2 shadow-[inset_0_1px_2px_rgba(255,255,255,0.8)] min-w-[64px] md:min-w-[75px] h-7 md:h-8" title="Điểm số hiện tại (XP)">
-            <div className="w-5 h-5 md:w-6 md:h-6 flex items-center justify-center bg-amber-500/10 rounded-md text-amber-600 mr-1 md:mr-1.5 flex-shrink-0">
-              <Trophy className="w-3 h-3 md:w-3.5 md:h-3.5" />
+          <div className="flex items-center bg-slate-50/60 border border-slate-100/80 rounded-md p-0.5 pr-1 md:pr-1.5 shadow-[inset_0_1px_2px_rgba(255,255,255,0.8)] min-w-[58px] md:min-w-[68px]" title="Điểm số hiện tại (XP)">
+            <div className="w-4 h-4 md:w-5 md:h-5 flex items-center justify-center bg-amber-500/10 rounded text-amber-600 mr-1 flex-shrink-0">
+              <Trophy className="w-2.5 h-2.5 md:w-3 md:h-3" />
             </div>
             <div className="flex flex-col min-w-0">
-              <span className="text-[6.5px] md:text-[7px] text-slate-400 font-extrabold uppercase tracking-wider leading-none">Điểm số</span>
-              <span className="text-[8.5px] md:text-[9.5px] font-black text-slate-700 leading-tight truncate">
+              <span className="text-[5.5px] md:text-[6.5px] text-slate-400 font-extrabold uppercase tracking-wider leading-none">Điểm số</span>
+              <span className="text-[7.5px] md:text-[8.5px] font-black text-slate-700 leading-tight truncate">
                 {gamify.xp.toLocaleString()}
               </span>
             </div>
