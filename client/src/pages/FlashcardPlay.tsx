@@ -4255,7 +4255,7 @@ export default function FlashcardPlay() {
               })()}
 
               {/* AI Hint "?" Button */}
-              {!isFlipped && currentQuestion && (
+              {!isFlipped && !hasRated && currentQuestion && (
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
