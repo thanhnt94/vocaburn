@@ -4007,8 +4007,8 @@ export default function FlashcardPlay() {
                         <div className="flex items-center justify-between bg-gradient-to-r from-slate-50/80 via-white to-slate-50/80 rounded-2xl px-1 py-1.5 sm:px-1.5 sm:py-2 border border-slate-100/90 text-[9px] font-bold shadow-[0_4px_20px_rgba(0,0,0,0.01),inset_0_1px_2px_rgba(255,255,255,0.6)] backdrop-blur-md w-full md:mt-3 mt-1.5 gap-0.5 sm:gap-1.5 animate-fadeIn">
                           {/* State */}
                           <div className="flex flex-col items-center gap-0.5 flex-1 justify-center min-w-0">
-                            <span className="text-[7.5px] sm:text-[8px] font-black text-slate-400 uppercase tracking-wider truncate">State</span>
-                            <span className={cn("px-1 py-0.5 rounded-lg border text-[7.5px] sm:text-[9px] font-black uppercase tracking-wider flex items-center gap-0.5 truncate transition-all duration-300", stateColors[stateIdx])}>
+                            <span className="text-[9px] sm:text-[10px] font-black text-slate-400 uppercase tracking-wider truncate">State</span>
+                            <span className={cn("px-1.5 py-0.5 rounded-lg border text-[9.5px] sm:text-[11px] font-black uppercase tracking-wider flex items-center gap-0.5 truncate transition-all duration-300", stateColors[stateIdx])}>
                               <span className={cn("w-1 h-1 rounded-full animate-pulse", stateDots[stateIdx])} />
                               {stateLabels[stateIdx]}
                             </span>
@@ -4017,12 +4017,12 @@ export default function FlashcardPlay() {
 
                           {/* Stability */}
                           <div className="flex flex-col items-center gap-0.5 flex-1 justify-center min-w-0">
-                            <span className="text-[7.5px] sm:text-[8px] font-black text-slate-400 uppercase tracking-wider truncate">Stability</span>
-                            <span className="bg-indigo-50/40 text-indigo-600 border border-indigo-100/30 px-1 py-0.5 rounded-lg font-black text-[8.5px] sm:text-[10px] shadow-sm flex items-center gap-0.5 truncate">
+                            <span className="text-[9px] sm:text-[10px] font-black text-slate-400 uppercase tracking-wider truncate">Stability</span>
+                            <span className="bg-indigo-50/40 text-indigo-600 border border-indigo-100/30 px-1.5 py-0.5 rounded-lg font-black text-[10px] sm:text-[11.5px] shadow-sm flex items-center gap-0.5 truncate">
                               {currentQuestion.fsrs.stability ? (
                                 <>
                                   <span className="tracking-tight">{currentQuestion.fsrs.stability.toFixed(2)}</span>
-                                  <span className="text-[7.5px] font-bold opacity-75">d</span>
+                                  <span className="text-[8.5px] font-bold opacity-75">d</span>
                                 </>
                               ) : (
                                 'none'
@@ -4033,8 +4033,8 @@ export default function FlashcardPlay() {
 
                           {/* Difficulty */}
                           <div className="flex flex-col items-center gap-0.5 flex-1 justify-center min-w-0">
-                            <span className="text-[7.5px] sm:text-[8px] font-black text-slate-400 uppercase tracking-wider truncate">Difficulty</span>
-                            <span className="bg-purple-50/40 text-purple-600 border border-purple-100/30 px-1 py-0.5 rounded-lg font-black text-[8.5px] sm:text-[10px] shadow-sm flex items-center gap-0.5 truncate">
+                            <span className="text-[9px] sm:text-[10px] font-black text-slate-400 uppercase tracking-wider truncate">Difficulty</span>
+                            <span className="bg-purple-50/40 text-purple-600 border border-purple-100/30 px-1.5 py-0.5 rounded-lg font-black text-[10px] sm:text-[11.5px] shadow-sm flex items-center gap-0.5 truncate">
                               {currentQuestion.fsrs.difficulty ? (
                                 <span className="tracking-tight">{currentQuestion.fsrs.difficulty.toFixed(2)}</span>
                               ) : (
@@ -4050,8 +4050,8 @@ export default function FlashcardPlay() {
                             onClick={() => setShowAbsoluteFirst(!showAbsoluteFirst)}
                             title={firstLearnedInfo.full}
                           >
-                            <span className="text-[7.5px] sm:text-[8px] font-black text-slate-400 uppercase tracking-wider truncate">First</span>
-                            <span className="bg-slate-100/60 text-slate-600 border border-slate-200/40 px-1 py-0.5 rounded-lg font-black text-[7.5px] sm:text-[9px] shadow-sm text-center truncate w-full">
+                            <span className="text-[9px] sm:text-[10px] font-black text-slate-400 uppercase tracking-wider truncate">First</span>
+                            <span className="bg-slate-100/60 text-slate-600 border border-slate-200/40 px-1.5 py-0.5 rounded-lg font-black text-[9.5px] sm:text-[11px] shadow-sm truncate">
                               {showAbsoluteFirst ? firstLearnedInfo.full : firstLearnedInfo.relative}
                             </span>
                           </div>
@@ -4063,8 +4063,8 @@ export default function FlashcardPlay() {
                             onClick={() => setShowAbsoluteLast(!showAbsoluteLast)}
                             title={lastReviewedInfo.full}
                           >
-                            <span className="text-[7.5px] sm:text-[8px] font-black text-slate-400 uppercase tracking-wider truncate">Last</span>
-                            <span className="bg-slate-100/60 text-slate-600 border border-slate-200/40 px-1 py-0.5 rounded-lg font-black text-[7.5px] sm:text-[9px] shadow-sm text-center truncate w-full">
+                            <span className="text-[9px] sm:text-[10px] font-black text-slate-400 uppercase tracking-wider truncate">Last</span>
+                            <span className="bg-slate-100/60 text-slate-600 border border-slate-200/40 px-1.5 py-0.5 rounded-lg font-black text-[9.5px] sm:text-[11px] shadow-sm truncate">
                               {showAbsoluteLast ? lastReviewedInfo.full : lastReviewedInfo.relative}
                             </span>
                           </div>
