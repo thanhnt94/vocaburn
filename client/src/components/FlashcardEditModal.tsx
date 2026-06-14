@@ -273,7 +273,7 @@ export const FlashcardEditModal: React.FC<FlashcardEditModalProps> = ({
           initial={{ opacity: 0, scale: 0.95, y: 20 }} 
           animate={{ opacity: 1, scale: 1, y: 0 }} 
           exit={{ opacity: 0, scale: 0.95, y: 20 }} 
-          className="relative w-full max-w-4xl bg-white rounded-[2.5rem] shadow-2xl overflow-hidden"
+          className="relative w-full max-w-4xl bg-white md:rounded-[2rem] rounded-[1.25rem] shadow-2xl overflow-hidden"
         >
           <div className="p-6 md:p-10 space-y-8 max-h-[90vh] overflow-y-auto custom-scrollbar">
             <div className="flex items-center justify-between sticky top-0 bg-white pb-6 z-10 border-b border-slate-50 mb-6">
@@ -288,7 +288,7 @@ export const FlashcardEditModal: React.FC<FlashcardEditModalProps> = ({
               </div>
               <div className="flex items-center gap-3">
                 <button onClick={onClose} className="w-10 h-10 bg-slate-50 rounded-xl flex items-center justify-center text-slate-400 hover:bg-slate-100 transition-all"><X className="w-5 h-5" /></button>
-                <button onClick={handleCommit} disabled={isSaving} className="flex items-center gap-2 px-6 h-10 bg-indigo-600 text-white text-[10px] font-black rounded-xl uppercase tracking-widest shadow-xl shadow-indigo-100 hover:bg-indigo-700 transition-all active:scale-95">
+                <button onClick={handleCommit} disabled={isSaving} className="hidden md:flex items-center gap-2 px-6 h-10 bg-indigo-600 text-white text-[10px] font-black rounded-xl uppercase tracking-widest shadow-xl shadow-indigo-100 hover:bg-indigo-700 transition-all active:scale-95">
                   {isSaving ? "Saving..." : <><Save className="w-4 h-4" /> Save</>}
                 </button>
               </div>
@@ -548,6 +548,25 @@ export const FlashcardEditModal: React.FC<FlashcardEditModalProps> = ({
                   )}
                 </div>
               </div>
+            </div>
+            
+            {/* Sticky Bottom Action Bar for Mobile & Desktop parity */}
+            <div className="sticky bottom-0 bg-white/95 backdrop-blur-md pt-4 pb-2 z-10 border-t border-slate-100/80 flex items-center justify-end gap-3 -mx-6 px-6 md:-mx-10 md:px-10 mt-6">
+              <button 
+                type="button"
+                onClick={onClose} 
+                className="flex-1 md:flex-none px-6 h-12 md:h-11 bg-slate-50 hover:bg-slate-100 text-slate-500 border border-slate-200/60 rounded-xl text-xs font-black uppercase tracking-wider transition-all active:scale-95 flex items-center justify-center gap-1.5"
+              >
+                Hủy / Đóng
+              </button>
+              <button 
+                type="button"
+                onClick={handleCommit} 
+                disabled={isSaving} 
+                className="flex-[2] md:flex-none px-8 h-12 md:h-11 bg-gradient-to-r from-indigo-500 to-purple-600 text-white text-xs font-black rounded-xl uppercase tracking-widest shadow-lg shadow-indigo-100 hover:shadow-xl transition-all active:scale-95 flex items-center justify-center gap-2"
+              >
+                {isSaving ? "Đang lưu..." : <><Save className="w-4 h-4" /> Lưu thay đổi</>}
+              </button>
             </div>
           </div>
         </motion.div>
