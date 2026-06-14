@@ -4220,7 +4220,7 @@ export default function FlashcardPlay() {
                 )}
               </AnimatePresence>
 
-              <div className="w-full flex items-center gap-1.5 sm:gap-3 px-3 sm:px-4 pt-2.5 pb-4">
+              <div className="w-full flex items-center gap-1.5 sm:gap-3 px-3 sm:px-4 pt-1 pb-2">
               {/* Settings Button */}
               <button
                 onClick={(e) => {

@@ -4124,7 +4124,7 @@ export default function PracticePlay() {
         <footer className="relative w-full flex-shrink-0 bg-white/95 backdrop-blur-2xl border-t border-slate-100/80 px-0 pt-0 pb-0 z-[300] shadow-[0_-4px_24px_rgba(99,102,241,0.06)]">
           <div className="max-w-2xl mx-auto w-full flex flex-col">
             {activeBottomTab === 'flashcard' && !isFeedbackOpen && (
-              <div className="w-full flex items-center gap-1.5 sm:gap-3 px-3 sm:px-4 pt-2.5 pb-4">
+              <div className="w-full flex items-center gap-1.5 sm:gap-3 px-3 sm:px-4 pt-1 pb-2">
             {/* Settings Button */}
             <button
               onClick={(e) => {
