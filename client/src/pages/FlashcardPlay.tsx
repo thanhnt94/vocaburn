@@ -3452,7 +3452,7 @@ export default function FlashcardPlay() {
 
       {/* Decoupled - Practice mode moved to standalone /practice/:id page */}
 
-      <main className="flex-1 flex w-full max-w-none justify-center gap-4 lg:gap-8 px-2 lg:px-6 xl:px-10 pt-0.5 pb-2 overflow-hidden">
+      <main className="flex-1 flex w-full max-w-none justify-center gap-4 lg:gap-8 px-2 lg:px-6 xl:px-10 md:py-3 py-2 overflow-hidden">
         <aside className="hidden xl:flex w-[340px] 2xl:w-[440px] flex-shrink-0 flex-col overflow-hidden bg-white border border-slate-100 rounded-[2.5rem] shadow-sm">
           {showFeedback ? (
             <FeedbackArea
@@ -3785,7 +3785,7 @@ export default function FlashcardPlay() {
                 >
                    {/* FRONT SIDE */}
                   <div
-                    className="absolute inset-0 backface-hidden bg-white md:rounded-[3rem] rounded-[2rem] border border-slate-100 md:p-8 p-4 py-6 md:py-8 flex flex-col justify-between shadow-2xl shadow-indigo-100/40"
+                    className="absolute inset-0 backface-hidden bg-white md:rounded-[3rem] rounded-[2rem] border border-slate-100 px-4 md:px-8 pt-1.5 md:pt-2 pb-6 md:pb-8 flex flex-col justify-between shadow-2xl shadow-indigo-100/40"
                     style={{
                       backfaceVisibility: 'hidden',
                       transform: 'none',
@@ -3840,7 +3840,7 @@ export default function FlashcardPlay() {
 
                   {/* BACK SIDE */}
                   <div
-                    className="absolute inset-0 backface-hidden bg-white md:rounded-[3rem] rounded-[2rem] border border-slate-200 md:p-8 p-4 py-6 md:py-8 flex flex-col justify-between shadow-2xl shadow-indigo-100/40"
+                    className="absolute inset-0 backface-hidden bg-white md:rounded-[3rem] rounded-[2rem] border border-slate-200 px-4 md:px-8 pt-1.5 md:pt-2 pb-6 md:pb-8 flex flex-col justify-between shadow-2xl shadow-indigo-100/40"
                     style={{
                       backfaceVisibility: 'hidden',
                       transform: 'rotateY(180deg)',
