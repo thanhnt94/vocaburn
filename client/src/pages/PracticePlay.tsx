@@ -4263,13 +4263,13 @@ export default function PracticePlay() {
                   {activeBottomTab === 'map' && (
                     <motion.div
                       layoutId="activeBottomTabBg"
-                      className="absolute inset-0 bg-amber-500/15 border-t-2 border-amber-600"
+                      className="absolute inset-0 bg-amber-500/10"
                       transition={{ type: "spring", stiffness: 380, damping: 30 }}
                     />
                   )}
                   <span className={cn(
                     "relative z-10 flex items-center justify-center gap-1.5 text-[9px] font-black uppercase tracking-wider truncate transition-colors duration-200",
-                    activeBottomTab === 'map' ? "text-amber-800 font-black" : "text-slate-400 hover:text-slate-600"
+                    activeBottomTab === 'map' ? "text-amber-600 font-black" : "text-slate-400 hover:text-slate-600"
                   )}>
                     <LayoutGrid className="w-3.5 h-3.5 shrink-0" />
                     MAP
@@ -4288,13 +4288,13 @@ export default function PracticePlay() {
                   {activeBottomTab === 'flashcard' && (
                     <motion.div
                       layoutId="activeBottomTabBg"
-                      className="absolute inset-0 bg-amber-500/15 border-t-2 border-amber-600"
+                      className="absolute inset-0 bg-amber-500/10"
                       transition={{ type: "spring", stiffness: 380, damping: 30 }}
                     />
                   )}
                   <span className={cn(
                     "relative z-10 flex items-center justify-center gap-1.5 text-[9px] font-black uppercase tracking-wider truncate transition-colors duration-200",
-                    activeBottomTab === 'flashcard' ? "text-amber-800 font-black" : "text-slate-400 hover:text-slate-600"
+                    activeBottomTab === 'flashcard' ? "text-amber-600 font-black" : "text-slate-400 hover:text-slate-600"
                   )}>
                     <BookOpen className="w-3.5 h-3.5 shrink-0" />
                     FLASHCARD
@@ -4313,13 +4313,13 @@ export default function PracticePlay() {
                   {activeBottomTab === 'stats' && (
                     <motion.div
                       layoutId="activeBottomTabBg"
-                      className="absolute inset-0 bg-amber-500/15 border-t-2 border-amber-600"
+                      className="absolute inset-0 bg-amber-500/10"
                       transition={{ type: "spring", stiffness: 380, damping: 30 }}
                     />
                   )}
                   <span className={cn(
                     "relative z-10 flex items-center justify-center gap-1.5 text-[9px] font-black uppercase tracking-wider truncate transition-colors duration-200",
-                    activeBottomTab === 'stats' ? "text-amber-800 font-black" : "text-slate-400 hover:text-slate-600"
+                    activeBottomTab === 'stats' ? "text-amber-600 font-black" : "text-slate-400 hover:text-slate-600"
                   )}>
                     <TrendingUp className="w-3.5 h-3.5 shrink-0" />
                     STATS
