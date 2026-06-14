@@ -1,4 +1,8 @@
 export function triggerHaptic(type: 'success' | 'error' | 'warning') {
+  if (typeof window !== 'undefined') {
+    const enabled = localStorage.getItem('vocaburn_haptic_enabled') !== 'false';
+    if (!enabled) return;
+  }
   if (typeof window !== 'undefined' && typeof window.navigator.vibrate === 'function') {
     try {
       if (type === 'success') {

@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import confetti from 'canvas-confetti'
 import { useParams, useNavigate } from 'react-router-dom'
-import { ChevronLeft, ChevronRight, MessageSquare, Play, Volume2, Maximize2, Hash, Minimize2, Check, X, RotateCcw, AlertCircle, LayoutGrid, Timer, Flame, Trophy, Sparkles, Lightbulb, StickyNote, Target, CheckCircle2, XCircle, Clock, BookOpen, Copy, Edit3, Brain, FileText, HelpCircle, Sliders, ListOrdered, Shuffle, Eye, EyeOff, TrendingUp, Award, Lock, Keyboard, VolumeX, Settings, RefreshCw, Undo2 } from 'lucide-react'
+import { ChevronLeft, ChevronRight, MessageSquare, Play, Volume2, Maximize2, Hash, Minimize2, Check, X, RotateCcw, AlertCircle, LayoutGrid, Timer, Flame, Trophy, Sparkles, Lightbulb, StickyNote, Target, CheckCircle2, XCircle, Clock, BookOpen, Copy, Edit3, Brain, FileText, HelpCircle, Sliders, ListOrdered, Shuffle, Eye, EyeOff, TrendingUp, Award, Lock, Keyboard, VolumeX, Settings, RefreshCw, Undo2, LogOut } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import axios from 'axios'
 import ReactMarkdown from 'react-markdown'
@@ -373,6 +373,8 @@ export default function PracticePlay() {
   const {
     sfxEnabled,
     setSfxEnabled,
+    hapticEnabled,
+    setHapticEnabled,
     saveGeneralSettings
   } = usePlaySettings(id || '', modeSettings, setModeSettings, activeMode, autoPlayAudio);
 
@@ -4684,12 +4686,68 @@ export default function PracticePlay() {
                   <Sliders className="w-5 h-5" />
                   Cấu hình luyện tập
                 </h3>
-                <button 
-                  onClick={() => setIsSettingsModalOpen(false)} 
-                  className="w-8 h-8 rounded-full hover:bg-slate-50 flex items-center justify-center text-slate-400 hover:text-slate-600 transition-all"
-                >
-                  <X className="w-4 h-4" />
-                </button>
+                <div className="flex items-center gap-1 text-slate-400">
+                  {showFeedback && (
+                    <button 
+                      onClick={() => {
+                        copyQuestionToClipboard();
+                        setIsSettingsModalOpen(false);
+                      }}
+                      title="Copy nội dung"
+                      className="w-8 h-8 rounded-full hover:bg-slate-100 flex items-center justify-center text-slate-500 hover:text-slate-700 transition-all"
+                    >
+                      <Copy className="w-4 h-4" />
+                    </button>
+                  )}
+                  
+                  <button
+                    onClick={() => {
+                      setIsSettingsModalOpen(false);
+                      handleIgnoreQuestion();
+                    }}
+                    title={currentQuestion?.is_ignored ? "Hủy bỏ qua thẻ" : "Bỏ qua thẻ"}
+                    className={cn(
+                      "w-8 h-8 rounded-full flex items-center justify-center transition-all",
+                      currentQuestion?.is_ignored 
+                        ? "bg-indigo-50 text-indigo-600 hover:bg-indigo-100"
+                        : "hover:bg-slate-100 text-slate-500 hover:text-slate-700"
+                    )}
+                  >
+                    {currentQuestion?.is_ignored ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
+                  </button>
+
+                  <button 
+                    onClick={() => {
+                      setIsSettingsModalOpen(false);
+                      openEditModal();
+                    }}
+                    title="Sửa thẻ này"
+                    className="w-8 h-8 rounded-full hover:bg-slate-100 flex items-center justify-center text-slate-500 hover:text-slate-700 transition-all"
+                  >
+                    <Edit3 className="w-4 h-4" />
+                  </button>
+
+                  <button 
+                    onClick={() => {
+                      setIsSettingsModalOpen(false);
+                      setIsQuitModalOpen(true);
+                    }}
+                    title="Thoát phiên học"
+                    className="w-8 h-8 rounded-full hover:bg-rose-50 flex items-center justify-center text-rose-500 hover:text-rose-700 transition-all"
+                  >
+                    <LogOut className="w-4 h-4" />
+                  </button>
+
+                  <div className="w-px h-4 bg-slate-200 mx-1" />
+
+                  <button 
+                    onClick={() => setIsSettingsModalOpen(false)} 
+                    title="Đóng"
+                    className="w-8 h-8 rounded-full hover:bg-slate-100 flex items-center justify-center text-slate-400 hover:text-slate-600 transition-all"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
               </div>
 
               <div className="space-y-6">
@@ -4842,7 +4900,7 @@ export default function PracticePlay() {
                 </div>
 
                 {/* 4. Sound Effects Toggle */}
-                <div className="flex items-center justify-between py-2 border-t border-b border-slate-100">
+                <div className="flex items-center justify-between py-2 border-t border-slate-100">
                   <div className="flex flex-col">
                     <span className="text-[11px] font-black text-slate-700">Âm thanh hiệu ứng</span>
                     <span className="text-[9px] text-slate-400">Phát nhạc chuông khi trả lời Đúng/Sai</span>
@@ -4861,59 +4919,33 @@ export default function PracticePlay() {
                   </button>
                 </div>
 
-                {/* 5. Actions: Copy, Ignore, Edit, Quit */}
-                <div className="pt-2 flex flex-col gap-2">
-                  <div className="grid grid-cols-2 gap-2">
-                    {showFeedback && (
-                      <button 
-                        onClick={() => {
-                          copyQuestionToClipboard();
-                          setIsSettingsModalOpen(false);
-                        }}
-                        className="col-span-2 w-full py-3 bg-amber-50 border border-amber-200/60 rounded-2xl text-amber-600 font-bold text-xs hover:bg-amber-100 shadow-sm active:scale-95 transition-all flex items-center justify-center gap-2"
-                      >
-                        <Copy className="w-4 h-4" />
-                        Copy nội dung
-                      </button>
-                    )}
-
-                    <button
-                      onClick={() => {
-                        setIsSettingsModalOpen(false);
-                        handleIgnoreQuestion();
-                      }}
-                      className={cn(
-                        "w-full py-3 border rounded-2xl font-bold text-xs shadow-sm active:scale-95 transition-all flex items-center justify-center gap-2",
-                        currentQuestion?.is_ignored 
-                          ? "bg-slate-700 border-slate-600 text-slate-300 hover:bg-slate-600"
-                          : "bg-slate-50 border-slate-200/60 text-slate-700 hover:bg-indigo-50 hover:text-indigo-600 hover:border-indigo-200"
-                      )}
-                    >
-                      {currentQuestion?.is_ignored ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
-                      Bỏ qua thẻ
-                    </button>
-
-                    <button 
-                      onClick={() => {
-                        setIsSettingsModalOpen(false);
-                        openEditModal();
-                      }}
-                      className="w-full py-3 bg-slate-50 border border-slate-200/60 rounded-2xl text-slate-700 font-bold text-xs hover:bg-indigo-50 hover:text-indigo-600 hover:border-indigo-200 shadow-sm active:scale-95 transition-all flex items-center justify-center gap-2"
-                    >
-                      <Edit3 className="w-4 h-4" />
-                      Sửa thẻ này
-                    </button>
+                {/* 4b. Haptic Feedback Toggle */}
+                <div className="flex items-center justify-between py-2 border-t border-slate-100">
+                  <div className="flex flex-col">
+                    <span className="text-[11px] font-black text-slate-700">Rung phản hồi (Haptic)</span>
+                    <span className="text-[9px] text-slate-400">Rung nhẹ khi tương tác trên thiết bị di động</span>
                   </div>
-
                   <button 
-                    onClick={() => {
-                      setIsSettingsModalOpen(false);
-                      setIsQuitModalOpen(true);
-                    }}
-                    className="w-full py-3 bg-rose-50 border border-rose-200/60 rounded-2xl text-rose-600 font-bold text-xs hover:bg-rose-100 shadow-sm active:scale-95 transition-all flex items-center justify-center gap-2"
+                    onClick={() => setHapticEnabled(!hapticEnabled)}
+                    className={cn(
+                      "w-12 h-6 rounded-full p-0.5 transition-colors duration-200 ease-in-out relative flex items-center",
+                      hapticEnabled ? "bg-indigo-500" : "bg-slate-200"
+                    )}
                   >
-                    <X className="w-4 h-4" />
-                    Thoát phiên học
+                    <div className={cn(
+                      "w-5 h-5 rounded-full bg-white shadow-sm transform transition-transform duration-200 ease-in-out",
+                      hapticEnabled ? "translate-x-6" : "translate-x-0"
+                    )} />
+                  </button>
+                </div>
+
+                {/* 5. Agree / Close Button */}
+                <div className="pt-4 border-t border-slate-100">
+                  <button 
+                    onClick={() => setIsSettingsModalOpen(false)}
+                    className="w-full py-3.5 bg-indigo-600 text-white rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-indigo-700 shadow-lg shadow-indigo-100 hover:shadow-indigo-200 hover:scale-[1.01] active:scale-[0.99] transition-all flex items-center justify-center gap-2"
+                  >
+                    Đồng ý / Đóng
                   </button>
                 </div>
               </div>

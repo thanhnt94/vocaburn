@@ -343,6 +343,8 @@ export default function FlashcardPlay() {
     setSfxEnabled,
     quickLearnEnabled,
     setQuickLearnEnabled,
+    hapticEnabled,
+    setHapticEnabled,
     saveGeneralSettings
   } = usePlaySettings(id || '', modeSettings, setModeSettings, activeMode, autoPlayAudio);
   const [learningModeAlert, setLearningModeAlert] = useState<{
@@ -4684,6 +4686,8 @@ export default function FlashcardPlay() {
         setAutoPlayAudio={setAutoPlayAudio}
         sfxEnabled={sfxEnabled}
         setSfxEnabled={setSfxEnabled}
+        hapticEnabled={hapticEnabled}
+        setHapticEnabled={setHapticEnabled}
         showFeedback={showFeedback}
         copyQuestionToClipboard={copyQuestionToClipboard}
         currentQuestion={currentQuestion}
