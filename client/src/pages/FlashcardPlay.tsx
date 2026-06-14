@@ -2539,7 +2539,7 @@ export default function FlashcardPlay() {
 
   const renderPracticeLockScreen = () => {
     return (
-      <div className="flex-1 bg-white/60 backdrop-blur-xl md:rounded-[3rem] rounded-[2rem] border border-slate-100 md:p-12 p-6 flex flex-col items-center justify-center text-center shadow-2xl shadow-indigo-100/40 min-h-[400px]">
+      <div className="flex-1 bg-white/60 backdrop-blur-xl md:rounded-[2rem] rounded-[1.25rem] border border-slate-100 md:p-12 p-6 flex flex-col items-center justify-center text-center shadow-2xl shadow-indigo-100/40 min-h-[400px]">
         <div className="max-w-md mx-auto space-y-6">
           <motion.div 
             initial={{ scale: 0.8, opacity: 0 }}
@@ -2571,7 +2571,7 @@ export default function FlashcardPlay() {
 
   const renderPracticeSetupScreen = () => {
     return (
-      <div className="flex-1 bg-white md:rounded-[3rem] rounded-[2rem] border border-slate-100 md:p-8 p-6 flex flex-col justify-between shadow-2xl shadow-indigo-100/40 min-h-0 overflow-y-auto">
+      <div className="flex-1 bg-white md:rounded-[2rem] rounded-[1.25rem] border border-slate-100 md:p-8 p-6 flex flex-col justify-between shadow-2xl shadow-indigo-100/40 min-h-0 overflow-y-auto">
         <div className="max-w-2xl mx-auto w-full py-4">
           <div className="text-center mb-6">
             <div className="w-14 h-14 bg-indigo-50 rounded-2xl flex items-center justify-center text-indigo-600 mx-auto mb-3 border border-indigo-100">
@@ -2695,7 +2695,7 @@ export default function FlashcardPlay() {
     const practiceData = currentPracticeData;
     if (!currentQuestion || !practiceData) {
       return (
-        <div className="flex-1 bg-white md:rounded-[3rem] rounded-[2rem] border border-slate-100 flex items-center justify-center font-bold text-slate-400">
+        <div className="flex-1 bg-white md:rounded-[2rem] rounded-[1.25rem] border border-slate-100 flex items-center justify-center font-bold text-slate-400">
           Chưa có câu hỏi luyện tập nào sẵn sàng...
         </div>
       );
@@ -2726,7 +2726,7 @@ export default function FlashcardPlay() {
     }
 
     return (
-      <div className="flex-1 bg-white md:rounded-[3rem] rounded-[2rem] border border-slate-100 md:p-8 p-6 flex flex-col justify-between shadow-2xl shadow-indigo-100/40 min-h-0 overflow-y-auto">
+      <div className="flex-1 bg-white md:rounded-[2rem] rounded-[1.25rem] border border-slate-100 md:p-8 p-6 flex flex-col justify-between shadow-2xl shadow-indigo-100/40 min-h-0 overflow-y-auto">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
             <span className="text-[9px] font-black tracking-wider text-indigo-600 bg-indigo-50/80 px-2.5 py-1.5 rounded-lg border border-indigo-100/50 uppercase shadow-sm flex items-center gap-1">
@@ -3785,7 +3785,7 @@ export default function FlashcardPlay() {
                 >
                    {/* FRONT SIDE */}
                   <div
-                    className="absolute inset-0 backface-hidden bg-white md:rounded-[3rem] rounded-[2rem] border border-slate-100 px-4 md:px-8 pt-1.5 md:pt-2 pb-6 md:pb-8 flex flex-col justify-between shadow-2xl shadow-indigo-100/40"
+                    className="absolute inset-0 backface-hidden bg-white md:rounded-[2rem] rounded-[1.25rem] border border-slate-100 px-4 md:px-8 pt-1.5 md:pt-2 pb-3 md:pb-4 flex flex-col justify-between shadow-2xl shadow-indigo-100/40"
                     style={{
                       backfaceVisibility: 'hidden',
                       transform: 'none',
@@ -3840,7 +3840,7 @@ export default function FlashcardPlay() {
 
                   {/* BACK SIDE */}
                   <div
-                    className="absolute inset-0 backface-hidden bg-white md:rounded-[3rem] rounded-[2rem] border border-slate-200 px-4 md:px-8 pt-1.5 md:pt-2 pb-6 md:pb-8 flex flex-col justify-between shadow-2xl shadow-indigo-100/40"
+                    className="absolute inset-0 backface-hidden bg-white md:rounded-[2rem] rounded-[1.25rem] border border-slate-200 px-4 md:px-8 pt-1.5 md:pt-2 pb-3 md:pb-4 flex flex-col justify-between shadow-2xl shadow-indigo-100/40"
                     style={{
                       backfaceVisibility: 'hidden',
                       transform: 'rotateY(180deg)',
@@ -4653,7 +4653,7 @@ export default function FlashcardPlay() {
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.8, y: 50 }}
               transition={{ type: 'spring', bounce: 0.35, duration: 0.6 }}
-              className="relative w-full max-w-md bg-white rounded-[3rem] p-8 shadow-[0_25px_60px_rgba(99,102,241,0.3)] border border-slate-100/80 overflow-hidden text-center z-10 pointer-events-auto"
+              className="relative w-full max-w-md bg-white rounded-[2rem] p-8 shadow-[0_25px_60px_rgba(99,102,241,0.3)] border border-slate-100/80 overflow-hidden text-center z-10 pointer-events-auto"
             >
               {/* Top premium border indicator */}
               <div className="absolute top-0 left-0 w-full h-2.5 bg-gradient-to-r from-amber-400 via-orange-500 to-rose-500"></div>

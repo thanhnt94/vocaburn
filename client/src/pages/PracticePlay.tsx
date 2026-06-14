@@ -2553,7 +2553,7 @@ export default function PracticePlay() {
 
   const renderPracticeLockScreen = () => {
     return (
-      <div className="flex-1 bg-white/60 backdrop-blur-xl md:rounded-[3rem] rounded-[2rem] border border-slate-100 md:p-12 p-6 flex flex-col items-center justify-center text-center shadow-2xl shadow-indigo-100/40 min-h-[400px]">
+      <div className="flex-1 bg-white/60 backdrop-blur-xl md:rounded-[2rem] rounded-[1.25rem] border border-slate-100 md:p-12 p-6 flex flex-col items-center justify-center text-center shadow-2xl shadow-indigo-100/40 min-h-[400px]">
         <div className="max-w-md mx-auto space-y-6">
           <motion.div
             initial={{ scale: 0.8, opacity: 0 }}
@@ -2589,7 +2589,7 @@ export default function PracticePlay() {
     const practiceData = currentPracticeData;
     if (!currentQuestion || !practiceData) {
       return (
-        <div className="flex-1 bg-white md:rounded-[3rem] rounded-[2rem] border border-slate-100 flex items-center justify-center font-bold text-slate-400">
+        <div className="flex-1 bg-white md:rounded-[2rem] rounded-[1.25rem] border border-slate-100 flex items-center justify-center font-bold text-slate-400">
           Chưa có câu hỏi luyện tập nào sẵn sàng...
         </div>
       );
@@ -2600,7 +2600,7 @@ export default function PracticePlay() {
 
     if (!question || !correct_answer) {
       return (
-        <div className="flex-1 bg-white md:rounded-[3rem] rounded-[2rem] border border-slate-100 p-8 flex flex-col items-center justify-center text-center gap-4 shadow-2xl shadow-indigo-100/40">
+        <div className="flex-1 bg-white md:rounded-[2rem] rounded-[1.25rem] border border-slate-100 p-8 flex flex-col items-center justify-center text-center gap-4 shadow-2xl shadow-indigo-100/40">
           <div className="w-16 h-16 bg-amber-50 rounded-2xl border border-amber-100 flex items-center justify-center text-amber-500 mb-2">
             <Sliders className="w-8 h-8 animate-pulse" />
           </div>
@@ -2619,7 +2619,7 @@ export default function PracticePlay() {
     }
 
     return (
-      <div className="flex-1 bg-white md:rounded-[3rem] rounded-[2rem] border border-slate-100 md:p-6 md:pt-4 p-4 pt-3 flex flex-col justify-between shadow-2xl shadow-indigo-100/40 min-h-0 overflow-y-auto">
+      <div className="flex-1 bg-white md:rounded-[2rem] rounded-[1.25rem] border border-slate-100 md:p-6 md:pt-4 p-4 pt-3 flex flex-col justify-between shadow-2xl shadow-indigo-100/40 min-h-0 overflow-y-auto">
 
         {/* Premium Question Card container for better space usage and rich aesthetics */}
         <div className="w-full max-w-3xl mx-auto py-1 text-center animate-in fade-in slide-in-from-top-3 duration-500">
@@ -3677,7 +3677,7 @@ export default function PracticePlay() {
                     >
                       {/* FRONT SIDE */}
                       <div
-                        className="absolute inset-0 backface-hidden bg-white md:rounded-[3rem] rounded-[2rem] border border-slate-100 px-4 md:px-8 pt-1.5 md:pt-2 pb-6 md:pb-8 flex flex-col justify-between shadow-2xl shadow-indigo-100/40"
+                        className="absolute inset-0 backface-hidden bg-white md:rounded-[2rem] rounded-[1.25rem] border border-slate-100 px-4 md:px-8 pt-1.5 md:pt-2 pb-3 md:pb-4 flex flex-col justify-between shadow-2xl shadow-indigo-100/40"
                         style={{
                           backfaceVisibility: 'hidden',
                           transform: 'none',
@@ -3743,7 +3743,7 @@ export default function PracticePlay() {
 
                       {/* BACK SIDE */}
                       <div
-                        className="absolute inset-0 backface-hidden bg-white md:rounded-[3rem] rounded-[2rem] border border-slate-200 px-4 md:px-8 pt-1.5 md:pt-2 pb-6 md:pb-8 flex flex-col justify-between shadow-2xl shadow-indigo-100/40"
+                        className="absolute inset-0 backface-hidden bg-white md:rounded-[2rem] rounded-[1.25rem] border border-slate-200 px-4 md:px-8 pt-1.5 md:pt-2 pb-3 md:pb-4 flex flex-col justify-between shadow-2xl shadow-indigo-100/40"
                         style={{
                           backfaceVisibility: 'hidden',
                           transform: 'rotateY(180deg)',
@@ -4637,7 +4637,7 @@ export default function PracticePlay() {
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.8, y: 50 }}
               transition={{ type: 'spring', bounce: 0.35, duration: 0.6 }}
-              className="relative w-full max-w-md bg-white rounded-[3rem] p-8 shadow-[0_25px_60px_rgba(99,102,241,0.3)] border border-slate-100/80 overflow-hidden text-center z-10 pointer-events-auto"
+              className="relative w-full max-w-md bg-white rounded-[2rem] p-8 shadow-[0_25px_60px_rgba(99,102,241,0.3)] border border-slate-100/80 overflow-hidden text-center z-10 pointer-events-auto"
             >
               {/* Top premium border indicator */}
               <div className="absolute top-0 left-0 w-full h-2.5 bg-gradient-to-r from-amber-400 via-orange-500 to-rose-500"></div>
@@ -5403,7 +5403,7 @@ export default function PracticePlay() {
                 animate={{ scale: 1, y: 0 }}
                 exit={{ scale: 0.9, y: 50 }}
                 transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-                className="relative max-w-md w-full bg-slate-900/95 border border-violet-500/30 rounded-[3rem] p-8 text-center shadow-[0_0_80px_rgba(139,92,246,0.35)] overflow-hidden"
+                className="relative max-w-md w-full bg-slate-900/95 border border-violet-500/30 rounded-[2rem] p-8 text-center shadow-[0_0_80px_rgba(139,92,246,0.35)] overflow-hidden"
               >
                 {/* Background neon splashes */}
                 <div className="absolute -top-12 -left-12 w-48 h-48 bg-violet-600/10 rounded-full blur-3xl pointer-events-none" />
