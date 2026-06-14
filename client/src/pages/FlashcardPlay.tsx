@@ -3448,7 +3448,7 @@ export default function FlashcardPlay() {
               <Brain className="w-2.5 h-2.5 md:w-3 md:h-3" />
             </div>
             <div className="flex flex-col min-w-0">
-              <span className="text-[5.5px] md:text-[6.5px] text-slate-400 font-extrabold uppercase tracking-wider leading-none">Còn lại</span>
+              <span className="text-[5.5px] md:text-[6.5px] text-slate-400 font-extrabold uppercase tracking-wider leading-none">Left</span>
               <div className="h-2.5 md:h-3 overflow-hidden relative min-w-[15px]">
                 <AnimatePresence mode="popLayout" initial={false}>
                   <motion.span
@@ -3472,7 +3472,7 @@ export default function FlashcardPlay() {
               <Clock className="w-2.5 h-2.5 md:w-3 md:h-3" />
             </div>
             <div className="flex flex-col min-w-0">
-              <span className="text-[5.5px] md:text-[6.5px] text-slate-400 font-extrabold uppercase tracking-wider leading-none">Thời gian</span>
+              <span className="text-[5.5px] md:text-[6.5px] text-slate-400 font-extrabold uppercase tracking-wider leading-none">Time</span>
               <div className="h-2.5 md:h-3 overflow-hidden relative min-w-[15px]">
                 <AnimatePresence mode="popLayout" initial={false}>
                   <motion.span
@@ -3496,7 +3496,7 @@ export default function FlashcardPlay() {
               <Trophy className="w-2.5 h-2.5 md:w-3 md:h-3" />
             </div>
             <div className="flex flex-col min-w-0">
-              <span className="text-[5.5px] md:text-[6.5px] text-slate-400 font-extrabold uppercase tracking-wider leading-none">Điểm số</span>
+              <span className="text-[5.5px] md:text-[6.5px] text-slate-400 font-extrabold uppercase tracking-wider leading-none">Score</span>
               <div className="h-2.5 md:h-3 overflow-hidden relative min-w-[25px]">
                 <AnimatePresence mode="popLayout" initial={false}>
                   <motion.span
