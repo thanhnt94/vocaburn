@@ -4446,7 +4446,7 @@ export default function FlashcardPlay() {
           {/* Interactive Navigation Tabs */}
           {(() => {
             return (
-              <div className="w-full grid grid-cols-3 bg-white border-t border-slate-100 p-0 relative">
+              <div className="w-full grid grid-cols-3 bg-white border-t border-slate-100 p-0 relative md:hidden">
                 {/* 1. Card Map Tab */}
                 <button
                   onClick={(e) => {
