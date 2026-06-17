@@ -366,7 +366,8 @@ class AnalyticsService:
         reviews_stmt = select(
             func.date(UserAnswer.created_at).label("date_str"),
             func.count(UserAnswer.id).label("total_reviews"),
-            func.count(func.distinct(UserAnswer.card_id)).label("unique_cards")
+            func.count(func.distinct(UserAnswer.card_id)).label("unique_cards"),
+            func.sum(UserAnswer.active_time).label("total_active_time")
         ).join(
             DeckAttempt, UserAnswer.attempt_id == DeckAttempt.id
         ).where(
@@ -402,7 +403,8 @@ class AnalyticsService:
         all_time_reviews_stmt = select(
             func.date(UserAnswer.created_at).label("date_str"),
             func.count(UserAnswer.id).label("total_reviews"),
-            func.count(func.distinct(UserAnswer.card_id)).label("unique_cards")
+            func.count(func.distinct(UserAnswer.card_id)).label("unique_cards"),
+            func.sum(UserAnswer.active_time).label("total_active_time")
         ).join(
             DeckAttempt, UserAnswer.attempt_id == DeckAttempt.id
         ).where(
@@ -433,7 +435,8 @@ class AnalyticsService:
                 "date": d_str,
                 "new_cards": 0,
                 "unique_cards": 0,
-                "total_reviews": 0
+                "total_reviews": 0,
+                "study_minutes": 0.0
             }
 
         def parse_db_date(val) -> str:
@@ -448,6 +451,7 @@ class AnalyticsService:
             if d_str in daily_map:
                 daily_map[d_str]["total_reviews"] = row.total_reviews or 0
                 daily_map[d_str]["unique_cards"] = row.unique_cards or 0
+                daily_map[d_str]["study_minutes"] = round((row.total_active_time or 0.0) / 60.0, 1)
 
         for row in new_cards_res.all():
             d_str = parse_db_date(row.date_str)
@@ -459,13 +463,14 @@ class AnalyticsService:
         for row in all_reviews_res.all():
             d_str = parse_db_date(row.date_str)
             if d_str:
-                all_time_by_day.setdefault(d_str, {"new_cards": 0, "unique_cards": 0, "total_reviews": 0})
+                all_time_by_day.setdefault(d_str, {"new_cards": 0, "unique_cards": 0, "total_reviews": 0, "study_minutes": 0.0})
                 all_time_by_day[d_str]["total_reviews"] = row.total_reviews or 0
                 all_time_by_day[d_str]["unique_cards"] = row.unique_cards or 0
+                all_time_by_day[d_str]["study_minutes"] = round((row.total_active_time or 0.0) / 60.0, 1)
         for row in all_new_res.all():
             d_str = parse_db_date(row.date_str)
             if d_str:
-                all_time_by_day.setdefault(d_str, {"new_cards": 0, "unique_cards": 0, "total_reviews": 0})
+                all_time_by_day.setdefault(d_str, {"new_cards": 0, "unique_cards": 0, "total_reviews": 0, "study_minutes": 0.0})
                 all_time_by_day[d_str]["new_cards"] = row.new_cards or 0
 
         active_days = len(all_time_by_day)
@@ -473,8 +478,9 @@ class AnalyticsService:
             avg_new = round(sum(v["new_cards"] for v in all_time_by_day.values()) / active_days, 1)
             avg_unique = round(sum(v["unique_cards"] for v in all_time_by_day.values()) / active_days, 1)
             avg_reviews = round(sum(v["total_reviews"] for v in all_time_by_day.values()) / active_days, 1)
+            avg_minutes = round(sum(v["study_minutes"] for v in all_time_by_day.values()) / active_days, 1)
         else:
-            avg_new = avg_unique = avg_reviews = 0
+            avg_new = avg_unique = avg_reviews = avg_minutes = 0.0
 
         return {
             "days": [daily_map[k] for k in sorted(daily_map.keys())],
@@ -482,6 +488,7 @@ class AnalyticsService:
                 "new_cards": avg_new,
                 "unique_cards": avg_unique,
                 "total_reviews": avg_reviews,
+                "study_minutes": avg_minutes,
                 "active_days": active_days
             }
         }

@@ -1,6 +1,6 @@
 import React from 'react';
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ReferenceLine } from 'recharts';
-import { TrendingUp, ArrowUpRight, ArrowDownRight, Minus, BookOpen, Layers, Zap } from 'lucide-react';
+import { TrendingUp, ArrowUpRight, ArrowDownRight, Minus, BookOpen, Layers, Zap, Clock } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface DailyComparisonDay {
@@ -8,12 +8,14 @@ interface DailyComparisonDay {
   new_cards: number;
   unique_cards: number;
   total_reviews: number;
+  study_minutes: number;
 }
 
 interface AllTimeAvg {
   new_cards: number;
   unique_cards: number;
   total_reviews: number;
+  study_minutes: number;
   active_days: number;
 }
 
@@ -27,7 +29,7 @@ export default function DailyComparisonChart({ data, allTimeAvg, isLoading }: Da
   if (isLoading || !data) {
     return (
       <div className="bg-white border border-slate-200/60 rounded-[2.5rem] p-6 shadow-sm flex flex-col items-center justify-center text-center h-[400px]">
-        <TrendingUp className="w-8 h-8 text-slate-300 animate-pulse mb-3" />
+        <TrendingUp className="w-8 h-8 text-slate-350 animate-pulse mb-3" />
         <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
           Đang tải biểu đồ so sánh...
         </span>
@@ -36,8 +38,8 @@ export default function DailyComparisonChart({ data, allTimeAvg, isLoading }: Da
   }
 
   // Today is the last element in the array
-  const todayData = data.length > 0 ? data[data.length - 1] : { date: "", new_cards: 0, unique_cards: 0, total_reviews: 0 };
-  const yesterdayData = data.length > 1 ? data[data.length - 2] : { date: "", new_cards: 0, unique_cards: 0, total_reviews: 0 };
+  const todayData = data.length > 0 ? data[data.length - 1] : { date: "", new_cards: 0, unique_cards: 0, total_reviews: 0, study_minutes: 0 };
+  const yesterdayData = data.length > 1 ? data[data.length - 2] : { date: "", new_cards: 0, unique_cards: 0, total_reviews: 0, study_minutes: 0 };
 
   const formatLabel = (dateStr: string) => {
     if (!dateStr) return "";
@@ -111,7 +113,7 @@ export default function DailyComparisonChart({ data, allTimeAvg, isLoading }: Da
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-3 gap-2 sm:gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-4">
         {/* New Cards */}
         <div className="bg-amber-50/20 border border-amber-100/50 rounded-2xl sm:rounded-3xl p-2.5 sm:p-4 flex flex-col gap-1.5 sm:gap-2 relative overflow-hidden">
           <div className="flex items-center gap-1 sm:gap-1.5">
@@ -168,6 +170,25 @@ export default function DailyComparisonChart({ data, allTimeAvg, isLoading }: Da
             )}
           </div>
         </div>
+
+        {/* Study Minutes */}
+        <div className="bg-sky-50/20 border border-sky-100/50 rounded-2xl sm:rounded-3xl p-2.5 sm:p-4 flex flex-col gap-1.5 sm:gap-2 relative overflow-hidden">
+          <div className="flex items-center gap-1 sm:gap-1.5">
+            <Clock className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-sky-500 shrink-0" />
+            <span className="text-[7.5px] sm:text-[9px] font-black uppercase tracking-tighter sm:tracking-widest text-slate-500 truncate">Thời gian</span>
+          </div>
+          <div className="flex flex-row items-center sm:items-end gap-1.5 sm:gap-3 mt-0.5 sm:mt-1">
+            <span className="text-xl sm:text-3xl font-black text-slate-800 leading-none">{todayData.study_minutes}</span>
+            <div className="pb-0 sm:pb-1">{renderDeltaPill(todayData.study_minutes, yesterdayData.study_minutes)}</div>
+          </div>
+          <div className="flex flex-col gap-0.5 sm:gap-0.5 mt-1 sm:mt-2">
+            {allTimeAvg && allTimeAvg.active_days > 0 && (
+              <span className="text-[9px] sm:text-[10px] font-bold text-slate-400 leading-tight">
+                TB: {allTimeAvg.study_minutes} <br className="sm:hidden" /> {renderAvgDiff(todayData.study_minutes, allTimeAvg.study_minutes)}
+              </span>
+            )}
+          </div>
+        </div>
       </div>
 
       {/* Chart container */}
@@ -208,6 +229,10 @@ export default function DailyComparisonChart({ data, allTimeAvg, isLoading }: Da
                         <span className="uppercase tracking-wider">Lượt ôn</span> 
                         <span className="text-orange-500 font-black">{d.total_reviews}</span>
                       </p>
+                      <p className="text-[10px] font-bold text-slate-500 flex justify-between gap-4">
+                        <span className="uppercase tracking-wider">Thời gian</span> 
+                        <span className="text-sky-500 font-black">{d.study_minutes} phút</span>
+                      </p>
                     </div>
                   );
                 }
@@ -218,6 +243,7 @@ export default function DailyComparisonChart({ data, allTimeAvg, isLoading }: Da
             <Bar dataKey="new_cards" fill="#f59e0b" radius={[4, 4, 0, 0]} maxBarSize={6} />
             <Bar dataKey="unique_cards" fill="#10b981" radius={[4, 4, 0, 0]} maxBarSize={6} />
             <Bar dataKey="total_reviews" fill="#6366f1" radius={[4, 4, 0, 0]} maxBarSize={6} />
+            <Bar dataKey="study_minutes" fill="#0ea5e9" radius={[4, 4, 0, 0]} maxBarSize={6} />
 
             {/* All-time average reference lines */}
             {allTimeAvg && allTimeAvg.active_days > 0 && (
@@ -243,6 +269,13 @@ export default function DailyComparisonChart({ data, allTimeAvg, isLoading }: Da
                   strokeWidth={1.5}
                   strokeOpacity={0.4}
                 />
+                <ReferenceLine
+                  y={allTimeAvg.study_minutes}
+                  stroke="#0ea5e9"
+                  strokeDasharray="4 4"
+                  strokeWidth={1.5}
+                  strokeOpacity={0.4}
+                />
               </>
             )}
           </BarChart>
@@ -263,6 +296,10 @@ export default function DailyComparisonChart({ data, allTimeAvg, isLoading }: Da
           <div className="flex items-center gap-2">
             <div className="w-3 h-3 rounded-full bg-indigo-500" />
             <span className="text-[9px] font-black text-slate-600 uppercase tracking-widest">Lượt ôn</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="w-3 h-3 rounded-full bg-sky-500" />
+            <span className="text-[9px] font-black text-slate-600 uppercase tracking-widest">Thời gian (phút)</span>
           </div>
         </div>
         

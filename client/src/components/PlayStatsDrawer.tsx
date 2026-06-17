@@ -62,19 +62,6 @@ export const PlayStatsDrawer: React.FC<PlayStatsDrawerProps> = ({
                <>
                  {/* Daily Comparison Chart */}
                  <DailyComparisonChart data={dailyComparisonData || []} allTimeAvg={dailyComparisonAvg} isLoading={isDailyComparisonLoading} />
-
-                 {/* Optional Practice Stats */}
-                 {practiceStatsNode}
-
-                 {/* Session Quick Stats */}
-                 {sessionStatsNode && (
-                   <div className="bg-slate-100/50 p-4 rounded-[1.75rem] border border-slate-100 space-y-3">
-                     <div className="flex justify-between text-[9px] font-black text-slate-400 uppercase tracking-wider">
-                       <span>Phiên học hiện tại</span>
-                     </div>
-                     {sessionStatsNode}
-                   </div>
-                 )}
                </>
              )}
 
