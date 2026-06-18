@@ -753,7 +753,7 @@ export default function PracticePlay() {
       // Practice Mode Hotkeys
       if (mainTab === 'practice') {
         if (['mcq', 'listening'].includes(practiceSubMode)) {
-          if (e.key === ' ' || e.key === 'Enter') {
+          if (e.key === 'Enter') {
             e.preventDefault();
             if (showFeedback) {
               handleNext();
@@ -767,7 +767,7 @@ export default function PracticePlay() {
             }
           }
         } else if (practiceSubMode === 'typing') {
-          if (e.key === ' ' || e.key === 'Enter') {
+          if (e.key === 'Enter') {
             e.preventDefault();
             if (showFeedback) {
               handleNext();
@@ -777,16 +777,23 @@ export default function PracticePlay() {
         return;
       }
 
-      // 3. Handle card flip or FSRS rating submissions
-      if (e.key === ' ' || e.key === 'Enter') {
-        e.preventDefault();
+      // 3. Handle card flip (Space)
+      if (e.key === ' ') {
         if (!isFlipped) {
+          e.preventDefault();
           setIsFlipped(true);
           setShowFeedback(true);
-        } else if (hasRated) {
+        }
+      } 
+      // Handle next card (Enter)
+      else if (e.key === 'Enter') {
+        if (hasRated) {
+          e.preventDefault();
           handleNext();
         }
-      } else if (isFlipped) {
+      } 
+      // Handle ratings (1, 2, 3, 4)
+      else if (isFlipped) {
         if (key === '1') { e.preventDefault(); handleReviewRating(1); }
         else if (key === '2') { e.preventDefault(); handleReviewRating(2); }
         else if (key === '3') { e.preventDefault(); handleReviewRating(3); }
