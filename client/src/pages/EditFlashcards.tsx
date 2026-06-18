@@ -114,36 +114,36 @@ const EditFlashcards = () => {
     })
   }
 
-  const handleUpdate = async () => {
-    if (!editingFlashcard) return
+  const handleUpdate = async (updatedData: any) => {
+    if (!updatedData) return
     setIsSaving(true)
     try {
-      const updatedOptions = (editingFlashcard.options || []).map((opt: any) => {
+      const updatedOptions = (updatedData.options || []).map((opt: any) => {
         if (opt.is_correct) {
-          return { ...opt, content: editingFlashcard.explanation }
+          return { ...opt, content: updatedData.explanation }
         }
         return opt
       })
 
-      const finalOthers = { ...editingFlashcard.others }
+      const finalOthers = { ...updatedData.others }
 
-      await axios.patch(`/api/v1/deck/flashcard/${editingFlashcard.id}`, {
-        content: editingFlashcard.content,
-        explanation: editingFlashcard.explanation,
-        ai_explanation: editingFlashcard.ai_explanation,
-        image: editingFlashcard.image || null,
-        audio: editingFlashcard.audio || null,
+      await axios.patch(`/api/v1/deck/flashcard/${updatedData.id}`, {
+        content: updatedData.content,
+        explanation: updatedData.explanation,
+        ai_explanation: updatedData.ai_explanation,
+        image: updatedData.image || null,
+        audio: updatedData.audio || null,
         others: finalOthers,
         options: updatedOptions
       })
       
       const updatedFlashcard = {
-        ...editingFlashcard,
+        ...updatedData,
         options: updatedOptions,
         others: finalOthers
       }
 
-      setFlashcards(flashcards.map(q => q.id === editingFlashcard.id ? updatedFlashcard : q))
+      setFlashcards(flashcards.map(q => q.id === updatedData.id ? updatedFlashcard : q))
       setEditingFlashcard(null)
     } catch (err) {
       alert('Failed to update flashcard')

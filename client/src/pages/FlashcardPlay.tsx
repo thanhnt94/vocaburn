@@ -2078,30 +2078,40 @@ export default function FlashcardPlay() {
     setIsEditModalOpen(true)
   }
 
-  const handleSaveEdit = async () => {
-    if (!currentQuestion || !editFormData) return
+  const handleSaveEdit = async (updatedCardData: any) => {
+    if (!currentQuestion || !updatedCardData) return
     setIsSavingEdit(true)
     
     try {
       // Safely parse other_content JSON if provided
-      let finalOthers = { ...editFormData.others };
+      let finalOthers = { ...updatedCardData.others };
       if (finalOthers.other_content) {
         try {
           // If valid JSON, parse it for database storage
-          finalOthers.other_content = JSON.parse(finalOthers.other_content);
+          finalOthers.other_content = typeof finalOthers.other_content === 'string'
+            ? JSON.parse(finalOthers.other_content)
+            : finalOthers.other_content;
         } catch (je) {
           console.warn("other_content is not JSON, saving as raw string:", je)
         }
       }
 
+      // Sync correctness explanation to options content
+      const updatedOptions = (updatedCardData.options || []).map((opt: any) => {
+        if (opt.is_correct && updatedCardData.explanation) {
+          return { ...opt, content: updatedCardData.explanation }
+        }
+        return opt
+      })
+
       const payload = {
-        content: editFormData.content,
-        explanation: editFormData.explanation,
-        ai_explanation: editFormData.ai_explanation,
-        image: editFormData.image || null,
-        audio: editFormData.audio || null,
+        content: updatedCardData.content,
+        explanation: updatedCardData.explanation,
+        ai_explanation: updatedCardData.ai_explanation,
+        image: updatedCardData.image || null,
+        audio: updatedCardData.audio || null,
         others: finalOthers,
-        options: editFormData.options
+        options: updatedOptions
       };
 
       await axios.patch(`/api/v1/deck/question/${currentQuestion.id}`, payload)
@@ -2112,11 +2122,12 @@ export default function FlashcardPlay() {
         newQs[currentIndex] = { 
           ...newQs[currentIndex], 
           ...payload,
-          options: editFormData.options 
+          options: updatedOptions 
         }
         return { ...prev, questions: newQs }
       })
       
+      setEditFormData(null)
       setIsEditModalOpen(false)
     } catch (e) {
       console.error("Failed to save edited question:", e)

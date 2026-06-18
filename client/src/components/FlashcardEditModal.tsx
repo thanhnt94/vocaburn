@@ -288,9 +288,6 @@ export const FlashcardEditModal: React.FC<FlashcardEditModalProps> = ({
               </div>
               <div className="flex items-center gap-3">
                 <button onClick={onClose} className="w-10 h-10 bg-slate-50 rounded-xl flex items-center justify-center text-slate-400 hover:bg-slate-100 transition-all"><X className="w-5 h-5" /></button>
-                <button onClick={handleCommit} disabled={isSaving} className="hidden md:flex items-center gap-2 px-6 h-10 bg-indigo-600 text-white text-[10px] font-black rounded-xl uppercase tracking-widest shadow-xl shadow-indigo-100 hover:bg-indigo-700 transition-all active:scale-95">
-                  {isSaving ? "Saving..." : <><Save className="w-4 h-4" /> Save</>}
-                </button>
               </div>
             </div>
             
