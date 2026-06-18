@@ -753,9 +753,9 @@ export default function PracticePlay() {
       // Practice Mode Hotkeys
       if (mainTab === 'practice') {
         if (['mcq', 'listening'].includes(practiceSubMode)) {
-          if (e.key === 'Enter') {
-            e.preventDefault();
+          if (e.key === 'Enter' || key === 'n') {
             if (showFeedback) {
+              e.preventDefault();
               handleNext();
             }
           } else if (!showFeedback && currentPracticeData?.choices) {
@@ -767,9 +767,9 @@ export default function PracticePlay() {
             }
           }
         } else if (practiceSubMode === 'typing') {
-          if (e.key === 'Enter') {
-            e.preventDefault();
+          if (e.key === 'Enter' || key === 'n') {
             if (showFeedback) {
+              e.preventDefault();
               handleNext();
             }
           }
@@ -779,14 +779,13 @@ export default function PracticePlay() {
 
       // 3. Handle card flip (Space)
       if (e.key === ' ') {
-        if (!isFlipped) {
-          e.preventDefault();
-          setIsFlipped(true);
-          setShowFeedback(true);
-        }
+        e.preventDefault();
+        const nextFlipped = !isFlipped;
+        setIsFlipped(nextFlipped);
+        setShowFeedback(nextFlipped);
       } 
-      // Handle next card (Enter)
-      else if (e.key === 'Enter') {
+      // Handle next card (Enter or N)
+      else if (e.key === 'Enter' || key === 'n') {
         if (hasRated) {
           e.preventDefault();
           handleNext();
