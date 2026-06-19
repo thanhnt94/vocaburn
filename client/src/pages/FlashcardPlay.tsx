@@ -4566,6 +4566,25 @@ export default function FlashcardPlay() {
             exit={{ opacity: 0, y: 50 }} 
             className="fixed inset-x-0 top-0 bottom-[32px] sm:bottom-[38px] z-[200] bg-[#F8FAFC] lg:hidden flex flex-col"
           >
+            {/* Header */}
+            <header className="flex-shrink-0 z-[120] bg-white/95 backdrop-blur-2xl border-b border-slate-100/80 px-4 py-1.5 flex items-center gap-3 shadow-[0_1px_20px_rgba(99,102,241,0.04)]">
+              <button 
+                onClick={() => navigate('/')} 
+                className="w-8.5 h-8.5 flex items-center justify-center bg-slate-50 border border-slate-200/60 rounded-xl text-slate-600 shadow-sm hover:bg-indigo-50 hover:text-indigo-600 hover:border-indigo-100 active:scale-90 transition-all flex-shrink-0"
+                title="Quay lại thư viện"
+              >
+                <ChevronLeft className="w-4.5 h-4.5" />
+              </button>
+              <div className="flex flex-col min-w-0">
+                <h2 className="text-xs md:text-sm font-extrabold text-slate-800 tracking-tight leading-snug">
+                  Bản đồ thẻ học
+                </h2>
+                <p className="text-[9px] text-slate-400 font-bold">
+                  Dễ dàng theo dõi & lọc thẻ học
+                </p>
+              </div>
+            </header>
+
             {/* Grid Area */}
             <div className="flex-1 overflow-y-auto p-4 custom-scrollbar">
               <QuestionMapGrid
@@ -4582,7 +4601,7 @@ export default function FlashcardPlay() {
               />
             </div>
 
-            {/* Bottom Reachable Header/Dismiss Bar & Filters */}
+            {/* Bottom Reachable Dismiss Bar & Filters */}
             <div className="border-t border-slate-100 bg-white/95 backdrop-blur-md flex-shrink-0 pb-3 flex flex-col gap-2.5">
               {/* Filter Tabs at the Bottom for reachability */}
               <div className="px-4 pt-2">
@@ -4610,12 +4629,6 @@ export default function FlashcardPlay() {
                     </button>
                   ))}
                 </div>
-              </div>
-
-              {/* Info Label */}
-              <div className="px-4 py-1 text-center">
-                <h4 className="text-[11px] font-black text-indigo-600 uppercase tracking-[0.2em] leading-tight">Bản đồ thẻ học</h4>
-                <p className="text-[9px] text-slate-400 font-bold mt-0.5">Dễ dàng theo dõi & lọc thẻ học</p>
               </div>
             </div>
           </motion.div>
