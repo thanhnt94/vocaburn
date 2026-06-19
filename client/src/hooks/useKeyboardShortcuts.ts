@@ -19,6 +19,8 @@ interface KeyboardShortcutsParams {
   handleReviewRating: (rating: number) => void;
   setIsFlipped: (flipped: boolean) => void;
   setShowFeedback: (show: boolean) => void;
+  showImages: boolean;
+  setShowImages: (show: boolean) => void;
 }
 
 export function useKeyboardShortcuts(params: KeyboardShortcutsParams) {
@@ -40,7 +42,9 @@ export function useKeyboardShortcuts(params: KeyboardShortcutsParams) {
     handleMCQAnswer,
     handleReviewRating,
     setIsFlipped,
-    setShowFeedback
+    setShowFeedback,
+    showImages,
+    setShowImages
   } = params;
 
   useEffect(() => {
@@ -84,6 +88,13 @@ export function useKeyboardShortcuts(params: KeyboardShortcutsParams) {
       }
 
       const key = e.key.toLowerCase();
+
+      // Handle toggle images (key 'i')
+      if (key === 'i') {
+        e.preventDefault();
+        setShowImages(!showImages);
+        return;
+      }
 
       // Practice Mode Hotkeys
       if (mainTab === 'practice') {
@@ -155,6 +166,8 @@ export function useKeyboardShortcuts(params: KeyboardShortcutsParams) {
     handleMCQAnswer,
     handleReviewRating,
     setIsFlipped,
-    setShowFeedback
+    setShowFeedback,
+    showImages,
+    setShowImages
   ]);
 }

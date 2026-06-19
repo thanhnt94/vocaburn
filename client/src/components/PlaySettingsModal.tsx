@@ -1,5 +1,5 @@
 import React from 'react'
-import { Sliders, Brain, Sparkles, ListOrdered, Shuffle, EyeOff, AlertCircle, TrendingUp, Copy, Eye, Edit3, LogOut, Volume2, Music, Zap } from 'lucide-react'
+import { Sliders, Brain, Sparkles, ListOrdered, Shuffle, EyeOff, AlertCircle, TrendingUp, Copy, Eye, Edit3, LogOut, Volume2, Music, Zap, Image } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { cn } from '@/lib/utils'
 
@@ -22,6 +22,8 @@ interface PlaySettingsModalProps {
   setIsQuitModalOpen: (open: boolean) => void;
   quickLearnEnabled?: boolean;
   setQuickLearnEnabled?: (enabled: boolean) => void;
+  showImages: boolean;
+  setShowImages: (enabled: boolean) => void;
 }
 
 export const PlaySettingsModal: React.FC<PlaySettingsModalProps> = ({
@@ -42,7 +44,9 @@ export const PlaySettingsModal: React.FC<PlaySettingsModalProps> = ({
   openEditModal,
   setIsQuitModalOpen,
   quickLearnEnabled = false,
-  setQuickLearnEnabled
+  setQuickLearnEnabled,
+  showImages,
+  setShowImages
 }) => {
   return (
     <AnimatePresence>
@@ -161,8 +165,8 @@ export const PlaySettingsModal: React.FC<PlaySettingsModalProps> = ({
 
               {/* 3. Compact Effects & Interaction Grid */}
               <div>
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-2">Hiệu ứng hệ thống</label>
-                <div className={cn("grid gap-1.5 bg-slate-50 p-1 rounded-2xl border border-slate-100", setQuickLearnEnabled !== undefined ? "grid-cols-3" : "grid-cols-2")}>
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-2">Hiệu ứng & Hiển thị</label>
+                <div className={cn("grid gap-1.5 bg-slate-50 p-1 rounded-2xl border border-slate-100", setQuickLearnEnabled !== undefined ? "grid-cols-2" : "grid-cols-3")}>
                   {/* Effect Sound */}
                   <button
                     onClick={() => setSfxEnabled(!sfxEnabled)}
@@ -189,6 +193,20 @@ export const PlaySettingsModal: React.FC<PlaySettingsModalProps> = ({
                   >
                     <Zap className={cn("w-4.5 h-4.5", hapticEnabled ? "text-indigo-500" : "text-slate-400")} />
                     <span className="truncate w-full text-center text-[9px]">Rung Haptic</span>
+                  </button>
+
+                  {/* Show Images Toggle */}
+                  <button
+                    onClick={() => setShowImages(!showImages)}
+                    className={cn(
+                      "flex flex-col items-center justify-center gap-1.5 py-2 px-1 rounded-xl text-[10px] font-bold transition-all active:scale-95",
+                      showImages 
+                        ? "bg-white text-indigo-600 shadow-sm border border-slate-100" 
+                        : "text-slate-500 hover:bg-white/50"
+                    )}
+                  >
+                    <Image className={cn("w-4.5 h-4.5", showImages ? "text-indigo-500" : "text-slate-400")} />
+                    <span className="truncate w-full text-center text-[9px]">Hiện hình ảnh</span>
                   </button>
 
                   {/* Quick Learn */}

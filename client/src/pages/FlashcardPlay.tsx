@@ -345,6 +345,8 @@ export default function FlashcardPlay() {
     setQuickLearnEnabled,
     hapticEnabled,
     setHapticEnabled,
+    showImages,
+    setShowImages,
     saveGeneralSettings
   } = usePlaySettings(id || '', modeSettings, setModeSettings, activeMode, autoPlayAudio);
   const [learningModeAlert, setLearningModeAlert] = useState<{
@@ -2752,7 +2754,7 @@ export default function FlashcardPlay() {
         </div>
 
         <div className="flex-1 flex flex-col items-center justify-center py-6 text-center">
-          {currentQuestion.image && practiceSubMode !== 'listening' && (
+          {showImages && currentQuestion.image && practiceSubMode !== 'listening' && (
             <img 
               src={currentQuestion.image} 
               alt="Question" 
@@ -3211,7 +3213,9 @@ export default function FlashcardPlay() {
     handleMCQAnswer,
     handleReviewRating,
     setIsFlipped,
-    setShowFeedback
+    setShowFeedback,
+    showImages,
+    setShowImages
   });
 
   if (!session || currentIndex < 0) return <div className="min-h-screen flex items-center justify-center font-black animate-pulse">LOADING SESSION...</div>
@@ -3892,7 +3896,7 @@ export default function FlashcardPlay() {
 
                     {/* Word / Question Content */}
                     <div className="flex-1 flex flex-col items-center justify-center text-center gap-6 overflow-y-auto custom-scrollbar my-2 py-2">
-                      {(currentQuestion?.image || currentQuestion?.others?.front_img) && (
+                      {showImages && (currentQuestion?.image || currentQuestion?.others?.front_img) && (
                         <img 
                           src={currentQuestion.image || currentQuestion.others?.front_img || undefined} 
                           alt="Front Visual" 
@@ -3970,10 +3974,10 @@ export default function FlashcardPlay() {
                         </div>
                       )}
 
-                      {(currentQuestion?.others?.back_img || currentQuestion?.image) && (
+                      {showImages && currentQuestion?.others?.back_img && (
                         <div className="space-y-2">
                           <img 
-                            src={currentQuestion.others?.back_img || currentQuestion.image || undefined} 
+                            src={currentQuestion.others.back_img} 
                             alt="Back Visual" 
                             className="max-h-40 md:max-h-48 object-contain rounded-3xl border border-slate-100/80 shadow-md bg-slate-50/50 p-1.5 animate-in zoom-in-95 duration-500"
                           />
@@ -4805,6 +4809,8 @@ export default function FlashcardPlay() {
         setIsQuitModalOpen={setIsQuitModalOpen}
         quickLearnEnabled={quickLearnEnabled}
         setQuickLearnEnabled={setQuickLearnEnabled}
+        showImages={showImages}
+        setShowImages={setShowImages}
       />
 
       {/* Exit Confirmation Modal */}

@@ -32,12 +32,21 @@ export function usePlaySettings(
     return true;
   });
 
+  const [showImages, setShowImagesState] = useState<boolean>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('vocaburn_show_images');
+      return saved !== 'false';
+    }
+    return true;
+  });
+
   const saveGeneralSettings = async (updates: {
     sfx_enabled?: boolean;
     autoplay_audio?: string;
     learning_mode?: string;
     quick_learn_enabled?: boolean;
     haptic_enabled?: boolean;
+    show_images?: boolean;
   }) => {
     try {
       const updatedSettings = {
@@ -46,7 +55,8 @@ export function usePlaySettings(
         autoplay_audio: updates.autoplay_audio !== undefined ? updates.autoplay_audio : autoPlayAudio,
         learning_mode: updates.learning_mode !== undefined ? updates.learning_mode : activeMode,
         quick_learn_enabled: updates.quick_learn_enabled !== undefined ? updates.quick_learn_enabled : quickLearnEnabled,
-        haptic_enabled: updates.haptic_enabled !== undefined ? updates.haptic_enabled : hapticEnabled
+        haptic_enabled: updates.haptic_enabled !== undefined ? updates.haptic_enabled : hapticEnabled,
+        show_images: updates.show_images !== undefined ? updates.show_images : showImages
       };
       setModeSettings(updatedSettings);
       await axios.post(`/api/v1/deck/${deckId}/practice-settings`, {
@@ -82,6 +92,14 @@ export function usePlaySettings(
     saveGeneralSettings({ haptic_enabled: enabled });
   };
 
+  const setShowImages = (enabled: boolean) => {
+    setShowImagesState(enabled);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('vocaburn_show_images', enabled ? 'true' : 'false');
+    }
+    saveGeneralSettings({ show_images: enabled });
+  };
+
   return {
     sfxEnabled,
     setSfxEnabled,
@@ -89,6 +107,8 @@ export function usePlaySettings(
     setQuickLearnEnabled,
     hapticEnabled,
     setHapticEnabled,
+    showImages,
+    setShowImages,
     saveGeneralSettings
   };
 }

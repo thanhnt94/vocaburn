@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import confetti from 'canvas-confetti'
 import { useParams, useNavigate } from 'react-router-dom'
-import { ChevronLeft, ChevronRight, MessageSquare, Play, Volume2, Maximize2, Hash, Minimize2, Check, X, RotateCcw, AlertCircle, LayoutGrid, Timer, Flame, Trophy, Sparkles, Lightbulb, StickyNote, Target, CheckCircle2, XCircle, Clock, BookOpen, Copy, Edit3, Brain, FileText, HelpCircle, Sliders, ListOrdered, Shuffle, Eye, EyeOff, TrendingUp, Award, Lock, Keyboard, VolumeX, Settings, RefreshCw, Undo2, LogOut, Zap, Music } from 'lucide-react'
+import { ChevronLeft, ChevronRight, MessageSquare, Play, Volume2, Maximize2, Hash, Minimize2, Check, X, RotateCcw, AlertCircle, LayoutGrid, Timer, Flame, Trophy, Sparkles, Lightbulb, StickyNote, Target, CheckCircle2, XCircle, Clock, BookOpen, Copy, Edit3, Brain, FileText, HelpCircle, Sliders, ListOrdered, Shuffle, Eye, EyeOff, TrendingUp, Award, Lock, Keyboard, VolumeX, Settings, RefreshCw, Undo2, LogOut, Zap, Music, Image } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import axios from 'axios'
 import ReactMarkdown from 'react-markdown'
@@ -375,6 +375,8 @@ export default function PracticePlay() {
     setSfxEnabled,
     hapticEnabled,
     setHapticEnabled,
+    showImages,
+    setShowImages,
     saveGeneralSettings
   } = usePlaySettings(id || '', modeSettings, setModeSettings, activeMode, autoPlayAudio);
 
@@ -750,6 +752,13 @@ export default function PracticePlay() {
 
       const key = e.key.toLowerCase();
 
+      // Handle toggle images (key 'i')
+      if (key === 'i') {
+        e.preventDefault();
+        setShowImages(!showImages);
+        return;
+      }
+
       // Practice Mode Hotkeys
       if (mainTab === 'practice') {
         if (['mcq', 'listening'].includes(practiceSubMode)) {
@@ -819,7 +828,9 @@ export default function PracticePlay() {
     hasRated,
     mainTab,
     practiceSubMode,
-    typingInput
+    typingInput,
+    showImages,
+    setShowImages
   ])
 
   useEffect(() => {
@@ -2633,7 +2644,7 @@ export default function PracticePlay() {
             <div className="absolute top-[-10%] left-[-10%] w-[30%] h-[30%] rounded-full bg-indigo-50/20 blur-2xl pointer-events-none" />
             <div className="absolute bottom-[-10%] right-[-10%] w-[30%] h-[30%] rounded-full bg-pink-50/20 blur-2xl pointer-events-none" />
 
-            {currentQuestion.image && practiceSubMode !== 'listening' && (
+            {showImages && currentQuestion.image && practiceSubMode !== 'listening' && (
               <img
                 src={currentQuestion.image}
                 alt="Question"
@@ -3790,7 +3801,7 @@ export default function PracticePlay() {
 
                         {/* Word / Question Content */}
                         <div className="flex-1 flex flex-col items-center justify-center text-center gap-6 overflow-y-auto custom-scrollbar my-2 py-2">
-                          {(currentQuestion?.image || currentQuestion?.others?.front_img) && (
+                          {showImages && (currentQuestion?.image || currentQuestion?.others?.front_img) && (
                             <img
                               src={currentQuestion.image || currentQuestion.others?.front_img || undefined}
                               alt="Front Visual"
@@ -3879,7 +3890,7 @@ export default function PracticePlay() {
                             </div>
                           )}
 
-                          {currentQuestion?.others?.back_img && (
+                          {showImages && currentQuestion?.others?.back_img && (
                             <div className="space-y-2">
                               <img
                                 src={currentQuestion.others.back_img}
@@ -4951,8 +4962,8 @@ export default function PracticePlay() {
 
                 {/* 4. Compact Effects & Interaction Grid */}
                 <div>
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-2">Hiệu ứng hệ thống</label>
-                  <div className="grid grid-cols-2 gap-1.5 bg-slate-50 p-1 rounded-2xl border border-slate-100">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-2">Hiệu ứng & Hiển thị</label>
+                  <div className="grid grid-cols-3 gap-1.5 bg-slate-50 p-1 rounded-2xl border border-slate-100">
                     {/* Effect Sound */}
                     <button
                       onClick={() => setSfxEnabled(!sfxEnabled)}
@@ -4979,6 +4990,20 @@ export default function PracticePlay() {
                     >
                       <Zap className={cn("w-4.5 h-4.5", hapticEnabled ? "text-indigo-500" : "text-slate-400")} />
                       <span className="truncate w-full text-center text-[9px]">Rung Haptic</span>
+                    </button>
+
+                    {/* Show Images Toggle */}
+                    <button
+                      onClick={() => setShowImages(!showImages)}
+                      className={cn(
+                        "flex flex-col items-center justify-center gap-1.5 py-2 px-1 rounded-xl text-[10px] font-bold transition-all active:scale-95",
+                        showImages 
+                          ? "bg-white text-indigo-600 shadow-sm border border-slate-100" 
+                          : "text-slate-500 hover:bg-white/50"
+                      )}
+                    >
+                      <Image className={cn("w-4.5 h-4.5", showImages ? "text-indigo-500" : "text-slate-400")} />
+                      <span className="truncate w-full text-center text-[9px]">Hiện hình ảnh</span>
                     </button>
                   </div>
                 </div>
