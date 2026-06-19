@@ -1,10 +1,27 @@
 import React from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { X, TrendingUp, Target, Trophy, Flame, ChevronLeft, Crown, Medal, Award, Brain, Clock, Zap } from 'lucide-react'
+import { X, TrendingUp, Target, Trophy, Flame, ChevronLeft, Crown, Medal, Award, Brain, Clock, Zap, Sparkles } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import axios from 'axios'
 import { cn } from '@/lib/utils'
 import DailyComparisonChart from './DailyComparisonChart'
+
+const getAvatarGradient = (username: string) => {
+  if (!username) return 'from-slate-400 to-slate-500';
+  const hash = username.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+  const gradients = [
+    'from-indigo-400 to-purple-500',
+    'from-purple-500 to-pink-500',
+    'from-pink-500 to-rose-500',
+    'from-rose-400 to-orange-500',
+    'from-orange-400 to-amber-500',
+    'from-emerald-400 to-teal-500',
+    'from-blue-400 to-indigo-500',
+    'from-cyan-400 to-blue-500'
+  ];
+  return gradients[hash % gradients.length];
+};
+
 
 interface PlayStatsDrawerProps {
   isOpen: boolean
@@ -313,35 +330,47 @@ export const PlayStatsDrawer: React.FC<PlayStatsDrawerProps> = ({
                         : (leaderboardData.cards_leaderboard || []))
                   : []
 
+                const top1 = currentList.find((u: any) => u.rank === 1)
+                const top2 = currentList.find((u: any) => u.rank === 2)
+                const top3 = currentList.find((u: any) => u.rank === 3)
+                const remainingList = currentList.filter((u: any) => u.rank > 3)
+
+                const tabs = [
+                  { id: 'xp', label: 'XP', icon: Zap },
+                  { id: 'time', label: 'Thời gian', icon: Clock },
+                  { id: 'new_cards', label: 'Thẻ mới', icon: Brain },
+                  { id: 'cards', label: 'Lượt ôn', icon: Flame }
+                ]
+
                 return (
                   <>
                     {/* Leaderboard */}
-                    <div className="bg-white p-5 rounded-[2rem] border border-slate-100 shadow-sm space-y-4">
+                    <div className="bg-white p-5 rounded-[2.5rem] border border-slate-100/80 shadow-md space-y-5">
                       {/* Metric Filter Tabs */}
-                      <div className="flex bg-slate-100/60 p-1 rounded-xl border border-slate-200/40 w-full overflow-x-auto no-scrollbar">
-                        {[
-                          { id: 'xp', label: 'XP' },
-                          { id: 'time', label: 'Thời gian' },
-                          { id: 'new_cards', label: 'Thẻ mới' },
-                          { id: 'cards', label: 'Lượt ôn' }
-                        ].map(tab => (
-                          <button
-                            key={tab.id}
-                            onClick={() => setActiveMetric(tab.id as any)}
-                            className={cn(
-                              "flex-1 py-1 rounded-lg text-[9px] font-black uppercase tracking-wider transition-all whitespace-nowrap px-1.5",
-                              activeMetric === tab.id
-                                ? "bg-white text-indigo-600 shadow-sm border border-slate-200/30"
-                                : "text-slate-500 hover:bg-white/40"
-                            )}
-                          >
-                            {tab.label}
-                          </button>
-                        ))}
+                      <div className="flex bg-slate-100/55 p-1 rounded-2xl border border-slate-200/30 w-full overflow-x-auto no-scrollbar gap-1">
+                        {tabs.map(tab => {
+                          const IconComp = tab.icon
+                          const isActive = activeMetric === tab.id
+                          return (
+                            <button
+                              key={tab.id}
+                              onClick={() => setActiveMetric(tab.id as any)}
+                              className={cn(
+                                "flex-1 py-2 px-2.5 rounded-xl text-[9px] font-black uppercase tracking-wider transition-all duration-200 whitespace-nowrap flex items-center justify-center gap-1.5",
+                                isActive
+                                  ? "bg-gradient-to-r from-indigo-650 via-indigo-700 to-purple-650 text-white shadow-md shadow-indigo-250/20 border-none scale-102"
+                                  : "text-slate-500 hover:text-slate-800 hover:bg-slate-200/20"
+                              )}
+                            >
+                              <IconComp className={cn("w-3.5 h-3.5 shrink-0", isActive ? "text-white" : "text-slate-400")} />
+                              <span>{tab.label}</span>
+                            </button>
+                          )
+                        })}
                       </div>
 
                       {/* Time Range Filter Tabs */}
-                      <div className="flex bg-slate-50 p-0.5 rounded-lg border border-slate-100/80 self-start">
+                      <div className="flex bg-slate-100/50 p-1 rounded-full border border-slate-200/30 w-fit mx-auto gap-0.5">
                         {[
                           { id: 'today', label: 'Hôm nay' },
                           { id: 'week', label: 'Tuần này' },
@@ -351,10 +380,10 @@ export const PlayStatsDrawer: React.FC<PlayStatsDrawerProps> = ({
                             key={filter.id}
                             onClick={() => setTimeFilter(filter.id)}
                             className={cn(
-                              "px-2.5 py-1 rounded-md text-[8px] font-black uppercase tracking-widest transition-all",
+                              "px-4 py-1.5 rounded-full text-[9px] font-black uppercase tracking-wider transition-all duration-200",
                               timeFilter === filter.id
-                                ? "bg-white text-indigo-600 shadow-sm border border-slate-150/40"
-                                : "text-slate-400 hover:text-slate-600"
+                                ? "bg-slate-900 text-white shadow-md shadow-slate-900/10 scale-102"
+                                : "text-slate-400 hover:text-slate-700 hover:bg-white/40"
                             )}
                           >
                             {filter.label}
@@ -363,59 +392,223 @@ export const PlayStatsDrawer: React.FC<PlayStatsDrawerProps> = ({
                       </div>
 
                       {isLeaderboardLoading ? (
-                        <p className="text-[10px] text-slate-400 text-center py-6 animate-pulse">Đang tải bảng xếp hạng...</p>
+                        <p className="text-[10px] text-slate-400 text-center py-8 animate-pulse font-bold">Đang tải bảng xếp hạng...</p>
                       ) : currentList && currentList.length > 0 ? (
-                        <div className="space-y-1.5 py-1">
-                          {currentList.map((u: any) => {
-                            const isSelf = u.is_current_user || u.user_id === user?.id;
-                            const showDots = u.out_of_top_5;
-                            
-                            return (
-                              <React.Fragment key={u.user_id}>
-                                {showDots && (
-                                  <div className="text-center text-[10px] font-black text-slate-350 tracking-widest leading-none my-1">•••</div>
+                        <div className="space-y-4">
+                          {/* Podium Grid (ranks 1, 2, 3) */}
+                          {top1 && (
+                            <div className="grid grid-cols-3 gap-2.5 items-end pt-5 pb-2 px-1 text-center bg-gradient-to-b from-indigo-50/[0.08] to-transparent rounded-3xl border border-indigo-100/[0.04]">
+                              {/* Rank 2 */}
+                              <div className="flex flex-col items-center">
+                                {top2 ? (
+                                  <motion.div 
+                                    initial={{ opacity: 0, y: 15 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    transition={{ duration: 0.3, delay: 0.1 }}
+                                    className={cn(
+                                      "w-full flex flex-col items-center gap-1.5 p-2 rounded-2xl bg-white border border-slate-150/70 shadow-sm relative h-[120px] justify-end",
+                                      (top2.is_current_user || top2.user_id === user?.id) && "ring-2 ring-indigo-500/50 bg-indigo-50/10 border-indigo-200"
+                                    )}
+                                  >
+                                    <div className="relative">
+                                      <div className={cn(
+                                        "w-9 h-9 rounded-full flex items-center justify-center text-white text-[11px] font-black shadow-md bg-gradient-to-br ring-2 ring-slate-200", 
+                                        getAvatarGradient(top2.username)
+                                      )}>
+                                        {top2.username.charAt(0).toUpperCase()}
+                                      </div>
+                                      <span className="absolute -bottom-1.5 -right-1 w-4.5 h-4.5 rounded-full bg-slate-355 text-white border-2 border-white flex items-center justify-center text-[8px] font-black shadow-sm">
+                                        2
+                                      </span>
+                                    </div>
+                                    <div className="text-center w-full min-w-0">
+                                      <p className="text-[9px] font-extrabold text-slate-700 truncate leading-snug">
+                                        {top2.full_name || top2.username}
+                                      </p>
+                                      <p className="text-[8px] font-black text-slate-400 uppercase tracking-tight mt-0.5">
+                                        {formatValue(top2)}
+                                      </p>
+                                    </div>
+                                  </motion.div>
+                                ) : (
+                                  <div className="w-full h-[120px] rounded-2xl border border-dashed border-slate-200/50 bg-slate-50/20 flex items-center justify-center">
+                                    <span className="text-[10px] font-bold text-slate-300">-</span>
+                                  </div>
                                 )}
-                                <div 
+                                <div className="w-full h-5 bg-slate-100/70 rounded-t-lg mt-2.5 flex items-center justify-center border-t border-slate-200/30">
+                                  <span className="text-[9px] font-black text-slate-400">🥈</span>
+                                </div>
+                              </div>
+
+                              {/* Rank 1 */}
+                              <div className="flex flex-col items-center relative -top-2">
+                                <motion.div 
+                                  initial={{ opacity: 0, y: 20, scale: 0.95 }}
+                                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                                  transition={{ type: "spring", stiffness: 260, damping: 15 }}
                                   className={cn(
-                                    "flex items-center justify-between p-2 rounded-2xl border transition-all text-xs",
-                                    isSelf 
-                                      ? "bg-indigo-550/10 border-indigo-200/50 font-black text-indigo-950 shadow-sm shadow-indigo-100/50" 
-                                      : "bg-slate-50/40 border-slate-100/40 text-slate-700 hover:border-slate-200/60"
+                                    "w-full flex flex-col items-center gap-1.5 p-2 rounded-2xl bg-gradient-to-b from-amber-50/50 via-white to-white border-2 border-amber-200/80 shadow-md relative h-[135px] justify-end ring-4 ring-amber-100/20",
+                                    (top1.is_current_user || top1.user_id === user?.id) && "ring-2 ring-indigo-500/50"
                                   )}
                                 >
-                                  <div className="flex items-center gap-2 min-w-0">
-                                    <span className="w-5 text-center font-bold text-slate-400">
-                                      {u.rank === 1 ? "🥇" : u.rank === 2 ? "🥈" : u.rank === 3 ? "🥉" : `#${u.rank}`}
-                                    </span>
-                                    <span className="font-bold truncate text-[11px] uppercase">
-                                      {u.full_name || u.username}
-                                    </span>
-                                    {activeMetric === 'xp' && u.level !== undefined && (
-                                      <span className="text-[9px] text-slate-400 font-medium shrink-0">
-                                        Lv.{u.level}
-                                      </span>
-                                    )}
-                                    {activeMetric === 'xp' && u.streak !== undefined && u.streak > 0 && (
-                                      <span className="text-[9px] text-orange-500 font-bold shrink-0">
-                                        🔥 {u.streak}d
-                                      </span>
-                                    )}
+                                  <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 z-10">
+                                    <Crown className="w-5 h-5 text-amber-500 fill-amber-400 drop-shadow-[0_2px_4px_rgba(245,158,11,0.3)] animate-pulse" />
                                   </div>
-                                  <span className={cn("font-black text-[11px] shrink-0", isSelf ? "text-indigo-600" : "text-slate-900")}>
-                                    {formatValue(u)}
-                                  </span>
+                                  <div className="relative mt-1">
+                                    <div className={cn(
+                                      "w-11 h-11 rounded-full flex items-center justify-center text-white text-xs font-black shadow-md bg-gradient-to-br ring-2 ring-amber-350", 
+                                      getAvatarGradient(top1.username)
+                                    )}>
+                                      {top1.username.charAt(0).toUpperCase()}
+                                    </div>
+                                    <span className="absolute -bottom-1.5 -right-1 w-5 h-5 rounded-full bg-amber-400 text-amber-955 border-2 border-white flex items-center justify-center text-[9px] font-black shadow-sm">
+                                      1
+                                    </span>
+                                  </div>
+                                  <div className="text-center w-full min-w-0">
+                                    <p className="text-[10px] font-black text-slate-800 truncate leading-snug">
+                                      {top1.full_name || top1.username}
+                                    </p>
+                                    <p className="text-[9px] font-black text-amber-600 uppercase tracking-tight mt-0.5">
+                                      {formatValue(top1)}
+                                    </p>
+                                  </div>
+                                </motion.div>
+                                <div className="w-full h-8 bg-amber-100/40 rounded-t-lg mt-2.5 flex items-center justify-center border-t border-amber-200/30 shadow-inner">
+                                  <span className="text-[9px] font-black text-amber-600/70">🏆</span>
                                 </div>
-                              </React.Fragment>
-                            )
-                          })}
+                              </div>
+
+                              {/* Rank 3 */}
+                              <div className="flex flex-col items-center">
+                                {top3 ? (
+                                  <motion.div 
+                                    initial={{ opacity: 0, y: 15 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    transition={{ duration: 0.3, delay: 0.2 }}
+                                    className={cn(
+                                      "w-full flex flex-col items-center gap-1.5 p-2 rounded-2xl bg-white border border-slate-150/70 shadow-sm relative h-[110px] justify-end",
+                                      (top3.is_current_user || top3.user_id === user?.id) && "ring-2 ring-indigo-500/50 bg-indigo-50/10 border-indigo-200"
+                                    )}
+                                  >
+                                    <div className="relative">
+                                      <div className={cn(
+                                        "w-9 h-9 rounded-full flex items-center justify-center text-white text-[11px] font-black shadow-md bg-gradient-to-br ring-2 ring-amber-600/10", 
+                                        getAvatarGradient(top3.username)
+                                      )}>
+                                        {top3.username.charAt(0).toUpperCase()}
+                                      </div>
+                                      <span className="absolute -bottom-1.5 -right-1 w-4.5 h-4.5 rounded-full bg-amber-705 text-amber-900 border-2 border-white flex items-center justify-center text-[8px] font-black shadow-sm">
+                                        3
+                                      </span>
+                                    </div>
+                                    <div className="text-center w-full min-w-0">
+                                      <p className="text-[9px] font-extrabold text-slate-700 truncate leading-snug">
+                                        {top3.full_name || top3.username}
+                                      </p>
+                                      <p className="text-[8px] font-black text-slate-400 uppercase tracking-tight mt-0.5">
+                                        {formatValue(top3)}
+                                      </p>
+                                    </div>
+                                  </motion.div>
+                                ) : (
+                                  <div className="w-full h-[110px] rounded-2xl border border-dashed border-slate-200/50 bg-slate-50/20 flex items-center justify-center">
+                                    <span className="text-[10px] font-bold text-slate-300">-</span>
+                                  </div>
+                                )}
+                                <div className="w-full h-3 bg-slate-100/50 rounded-t-lg mt-2.5 flex items-center justify-center border-t border-slate-200/20">
+                                  <span className="text-[9px] font-black text-amber-800/50">🥉</span>
+                                </div>
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Remaining List (Ranks 4+) */}
+                          {remainingList.length > 0 && (
+                            <div className="space-y-2 py-1">
+                              {remainingList.map((u: any, index: number) => {
+                                const isSelf = u.is_current_user || u.user_id === user?.id
+                                const showDots = u.out_of_top_5
+                                
+                                return (
+                                  <React.Fragment key={u.user_id}>
+                                    {showDots && (
+                                      <div className="text-center text-[10px] font-black text-slate-350 tracking-widest leading-none my-2.5">•••</div>
+                                    )}
+                                    <motion.div 
+                                      initial={{ opacity: 0, x: -8 }}
+                                      animate={{ opacity: 1, x: 0 }}
+                                      transition={{ duration: 0.3, delay: Math.min(index * 0.05, 0.3) }}
+                                      className={cn(
+                                        "flex items-center justify-between p-3 rounded-2xl border transition-all text-xs relative overflow-hidden",
+                                        isSelf 
+                                          ? "bg-gradient-to-r from-indigo-50 to-purple-50/50 border-indigo-200/70 font-black text-indigo-950 shadow-sm" 
+                                          : "bg-slate-50/40 border-slate-100/50 text-slate-700 hover:border-slate-200/80 hover:bg-slate-50/80"
+                                      )}
+                                    >
+                                      {isSelf && (
+                                        <div className="absolute left-0 top-0 bottom-0 w-1 bg-indigo-600" />
+                                      )}
+                                      <div className="flex items-center gap-3 min-w-0">
+                                        <span className={cn(
+                                          "w-6 h-6 rounded-full flex items-center justify-center font-extrabold text-[9px] shrink-0 border",
+                                          isSelf 
+                                            ? "bg-indigo-600 text-white border-indigo-500 shadow-sm" 
+                                            : "bg-slate-100 text-slate-500 border-slate-200/40"
+                                        )}>
+                                          #{u.rank}
+                                        </span>
+                                        
+                                        {/* Avatar */}
+                                        <div className={cn(
+                                          "w-8 h-8 rounded-full flex items-center justify-center text-white text-[10px] font-black shadow-sm bg-gradient-to-br shrink-0", 
+                                          getAvatarGradient(u.username)
+                                        )}>
+                                          {u.username.charAt(0).toUpperCase()}
+                                        </div>
+
+                                        <div className="flex flex-col min-w-0">
+                                          <span className="font-extrabold truncate text-[11px] uppercase tracking-wide">
+                                            {u.full_name || u.username} {isSelf && <span className="text-[8px] text-indigo-600 font-bold lowercase bg-indigo-100/50 px-1.5 py-0.5 rounded-full ml-1 shrink-0">bạn</span>}
+                                          </span>
+                                          <div className="flex items-center gap-2 mt-0.5">
+                                            {activeMetric === 'xp' && u.level !== undefined && (
+                                              <span className="text-[8px] text-slate-400 font-bold bg-slate-100 px-1 rounded shrink-0">
+                                                Lv.{u.level}
+                                              </span>
+                                            )}
+                                            {u.streak !== undefined && u.streak > 0 && (
+                                              <span className="text-[8px] text-orange-500 font-extrabold flex items-center gap-0.5 shrink-0">
+                                                🔥 {u.streak}d
+                                              </span>
+                                            )}
+                                          </div>
+                                        </div>
+                                      </div>
+                                      
+                                      <span className={cn(
+                                        "font-black text-xs shrink-0 tracking-wide", 
+                                        isSelf ? "text-indigo-600 bg-indigo-100/30 px-2 py-0.5 rounded-lg" : "text-slate-800"
+                                      )}>
+                                        {formatValue(u)}
+                                      </span>
+                                    </motion.div>
+                                  </React.Fragment>
+                                )
+                              })}
+                            </div>
+                          )}
                         </div>
                       ) : (
-                        <p className="text-[10px] text-slate-400 text-center py-6">Chưa có dữ liệu xếp hạng trong khoảng thời gian này.</p>
+                        <p className="text-[10px] text-slate-400 text-center py-8 font-medium">Chưa có dữ liệu xếp hạng trong khoảng thời gian này.</p>
                       )}
                       
                       {!isLeaderboardLoading && leaderboardData && (
-                        <div className="p-3 bg-indigo-50/30 rounded-2xl border border-indigo-100/30">
-                          <p className="text-[11px] text-slate-600 leading-relaxed font-semibold">
+                        <div className="p-3.5 bg-gradient-to-r from-indigo-50/40 via-indigo-50/10 to-purple-50/40 rounded-2.5xl border border-indigo-100/35 shadow-sm flex items-start gap-3">
+                          <div className="w-8 h-8 rounded-xl bg-indigo-50/70 border border-indigo-100/50 flex items-center justify-center shrink-0 shadow-sm">
+                            <Sparkles className="w-4 h-4 text-indigo-500 animate-pulse" />
+                          </div>
+                          <p className="text-[11px] text-slate-600 leading-relaxed font-bold mt-0.5">
                             {getLeaderboardMessage()}
                           </p>
                         </div>
