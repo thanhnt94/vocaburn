@@ -3,7 +3,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.modules.deck.models import UserAnswer, FlashcardDeck, Flashcard, Category, DeckAttempt
 from app.modules.auth.models import User
 from app.modules.stats.models import UserDailyStats
-from app.modules.gamification.models import UserGamification
+from app.modules.gamification.models import UserGamification, XPTransaction
 from datetime import datetime, timedelta
 
 class AnalyticsService:
