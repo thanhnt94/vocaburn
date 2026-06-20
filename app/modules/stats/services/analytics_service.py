@@ -207,22 +207,47 @@ class AnalyticsService:
         }
 
     @staticmethod
-    async def get_leaderboard(db: AsyncSession, current_user_id: int):
+    async def get_leaderboard(db: AsyncSession, current_user_id: int, time_filter: str = "all_time"):
+        # Calculate date boundaries in UTC
+        today = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
+        start_datetime = None
+        if time_filter == "today":
+            start_datetime = today
+        elif time_filter == "week":
+            start_datetime = today - timedelta(days=today.weekday())  # Monday of this week
+        elif time_filter == "month":
+            start_datetime = today.replace(day=1)
+
+        start_date_only = start_datetime.date() if start_datetime else None
+
         # 1. Fetch current user's baseline data
         curr_game_res = await db.execute(
             select(UserGamification).where(UserGamification.user_id == current_user_id)
         )
         curr_game = curr_game_res.scalar_one_or_none()
-        curr_xp = curr_game.xp if curr_game else 0
         curr_streak = curr_game.streak_count if curr_game else 0
 
+        # Current user's XP logic based on time filter
+        if time_filter == "all_time":
+            curr_xp = curr_game.xp if curr_game else 0
+        else:
+            curr_xp_res = await db.execute(
+                select(func.sum(XPTransaction.amount)).where(
+                    XPTransaction.user_id == current_user_id,
+                    XPTransaction.created_at >= start_datetime
+                )
+            )
+            curr_xp = curr_xp_res.scalar() or 0
+
         # Current user's daily stats aggregates
-        curr_stats_res = await db.execute(
-            select(
-                func.sum(UserDailyStats.questions_attempted).label("total_q"),
-                func.sum(UserDailyStats.correct_answers).label("total_c")
-            ).where(UserDailyStats.user_id == current_user_id)
-        )
+        curr_stats_stmt = select(
+            func.sum(UserDailyStats.questions_attempted).label("total_q"),
+            func.sum(UserDailyStats.correct_answers).label("total_c")
+        ).where(UserDailyStats.user_id == current_user_id)
+        if start_date_only:
+            curr_stats_stmt = curr_stats_stmt.where(UserDailyStats.date >= start_date_only)
+        
+        curr_stats_res = await db.execute(curr_stats_stmt)
         curr_stats = curr_stats_res.one_or_none()
         curr_total_q = curr_stats.total_q if curr_stats else 0
         curr_total_c = curr_stats.total_c if curr_stats else 0
@@ -244,19 +269,39 @@ class AnalyticsService:
             return out
 
         # --- XP LEADERBOARD ---
-        xp_stmt = select(
-            User.id, User.username, User.full_name,
-            UserGamification.xp.label("value"), UserGamification.level
-        ).select_from(User).join(UserGamification, User.id == UserGamification.user_id)\
-         .order_by(desc(UserGamification.xp)).limit(50)
-        xp_list = await execute_and_format_leaderboard(xp_stmt)
+        if time_filter == "all_time":
+            xp_stmt = select(
+                User.id, User.username, User.full_name,
+                UserGamification.xp.label("value"), UserGamification.level
+            ).select_from(User).join(UserGamification, User.id == UserGamification.user_id)\
+             .order_by(desc(UserGamification.xp)).limit(50)
+            xp_list = await execute_and_format_leaderboard(xp_stmt)
 
-        xp_rank_res = await db.execute(
-            select(func.count(User.id)).select_from(User)
-            .join(UserGamification, User.id == UserGamification.user_id)
-            .where(UserGamification.xp > curr_xp)
-        )
-        xp_rank = xp_rank_res.scalar() + 1
+            xp_rank_res = await db.execute(
+                select(func.count(User.id)).select_from(User)
+                .join(UserGamification, User.id == UserGamification.user_id)
+                .where(UserGamification.xp > curr_xp)
+            )
+            xp_rank = xp_rank_res.scalar() + 1
+        else:
+            xp_stmt = select(
+                User.id, User.username, User.full_name,
+                func.sum(XPTransaction.amount).label("value"), UserGamification.level
+            ).select_from(XPTransaction)\
+             .join(User, User.id == XPTransaction.user_id)\
+             .outerjoin(UserGamification, UserGamification.user_id == XPTransaction.user_id)\
+             .where(XPTransaction.created_at >= start_datetime)\
+             .group_by(User.id, User.username, User.full_name, UserGamification.level)\
+             .order_by(desc("value")).limit(50)
+            xp_list = await execute_and_format_leaderboard(xp_stmt)
+
+            ahead_sub = select(
+                XPTransaction.user_id
+            ).where(
+                XPTransaction.created_at >= start_datetime
+            ).group_by(XPTransaction.user_id).having(func.sum(XPTransaction.amount) > curr_xp).subquery()
+            xp_rank_res = await db.execute(select(func.count()).select_from(ahead_sub))
+            xp_rank = xp_rank_res.scalar() + 1
 
         # --- STREAK LEADERBOARD ---
         streak_stmt = select(
@@ -274,10 +319,16 @@ class AnalyticsService:
         streak_rank = streak_rank_res.scalar() + 1
 
         # --- QUESTIONS LEADERBOARD ---
-        q_subq = select(
-            UserDailyStats.user_id,
-            func.sum(UserDailyStats.questions_attempted).label("total_q")
-        ).group_by(UserDailyStats.user_id).subquery()
+        if start_date_only:
+            q_subq = select(
+                UserDailyStats.user_id,
+                func.sum(UserDailyStats.questions_attempted).label("total_q")
+            ).where(UserDailyStats.date >= start_date_only).group_by(UserDailyStats.user_id).subquery()
+        else:
+            q_subq = select(
+                UserDailyStats.user_id,
+                func.sum(UserDailyStats.questions_attempted).label("total_q")
+            ).group_by(UserDailyStats.user_id).subquery()
 
         q_stmt = select(
             User.id, User.username, User.full_name,
@@ -287,19 +338,32 @@ class AnalyticsService:
          .order_by(desc(q_subq.c.total_q)).limit(50)
         q_list = await execute_and_format_leaderboard(q_stmt)
 
-        q_rank_sub = select(
-            UserDailyStats.user_id
-        ).group_by(UserDailyStats.user_id).having(func.sum(UserDailyStats.questions_attempted) > curr_total_q).subquery()
+        if start_date_only:
+            q_rank_sub = select(
+                UserDailyStats.user_id
+            ).where(UserDailyStats.date >= start_date_only).group_by(UserDailyStats.user_id).having(func.sum(UserDailyStats.questions_attempted) > curr_total_q).subquery()
+        else:
+            q_rank_sub = select(
+                UserDailyStats.user_id
+            ).group_by(UserDailyStats.user_id).having(func.sum(UserDailyStats.questions_attempted) > curr_total_q).subquery()
         q_rank_res = await db.execute(select(func.count()).select_from(q_rank_sub))
         q_rank = q_rank_res.scalar() + 1
 
         # --- ACCURACY LEADERBOARD (min 20 questions) ---
-        acc_subq = select(
-            UserDailyStats.user_id,
-            (func.sum(UserDailyStats.correct_answers) * 100.0 / func.sum(UserDailyStats.questions_attempted)).label("acc")
-        ).group_by(UserDailyStats.user_id)\
-         .having(func.sum(UserDailyStats.questions_attempted) >= 20)\
-         .subquery()
+        if start_date_only:
+            acc_subq = select(
+                UserDailyStats.user_id,
+                (func.sum(UserDailyStats.correct_answers) * 100.0 / func.sum(UserDailyStats.questions_attempted)).label("acc")
+            ).where(UserDailyStats.date >= start_date_only).group_by(UserDailyStats.user_id)\
+             .having(func.sum(UserDailyStats.questions_attempted) >= 20)\
+             .subquery()
+        else:
+            acc_subq = select(
+                UserDailyStats.user_id,
+                (func.sum(UserDailyStats.correct_answers) * 100.0 / func.sum(UserDailyStats.questions_attempted)).label("acc")
+            ).group_by(UserDailyStats.user_id)\
+             .having(func.sum(UserDailyStats.questions_attempted) >= 20)\
+             .subquery()
 
         acc_stmt = select(
             User.id, User.username, User.full_name,
@@ -321,13 +385,22 @@ class AnalyticsService:
             })
 
         if curr_total_q >= 20:
-            acc_rank_sub = select(
-                UserDailyStats.user_id
-            ).group_by(UserDailyStats.user_id)\
-             .having(and_(
-                 func.sum(UserDailyStats.questions_attempted) >= 20,
-                 (func.sum(UserDailyStats.correct_answers) * 100.0 / func.sum(UserDailyStats.questions_attempted)) > curr_acc
-             )).subquery()
+            if start_date_only:
+                acc_rank_sub = select(
+                    UserDailyStats.user_id
+                ).where(UserDailyStats.date >= start_date_only).group_by(UserDailyStats.user_id)\
+                 .having(and_(
+                     func.sum(UserDailyStats.questions_attempted) >= 20,
+                     (func.sum(UserDailyStats.correct_answers) * 100.0 / func.sum(UserDailyStats.questions_attempted)) > curr_acc
+                 )).subquery()
+            else:
+                acc_rank_sub = select(
+                    UserDailyStats.user_id
+                ).group_by(UserDailyStats.user_id)\
+                 .having(and_(
+                     func.sum(UserDailyStats.questions_attempted) >= 20,
+                     (func.sum(UserDailyStats.correct_answers) * 100.0 / func.sum(UserDailyStats.questions_attempted)) > curr_acc
+                 )).subquery()
             acc_rank_res = await db.execute(select(func.count()).select_from(acc_rank_sub))
             acc_rank = acc_rank_res.scalar() + 1
         else:

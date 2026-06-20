@@ -582,11 +582,21 @@ export default function PracticePlay() {
   const currentQuestion: Question | null = session?.questions?.[currentIndex] || null
   currentQuestionIdRef.current = currentQuestion?.id || null
   const [activelyRatedCurrentCard, setActivelyRatedCurrentCard] = useState<boolean>(false)
+  const [leaderboardTimeFilter, setLeaderboardTimeFilter] = useState<'today' | 'week' | 'month' | 'all_time'>('week')
+  const [leaderboardType, setLeaderboardType] = useState<'xp' | 'streak' | 'questions' | 'accuracy'>('xp')
   const [leaderboardData, setLeaderboardData] = useState<any>(null)
+  const [isLeaderboardLoading, setIsLeaderboardLoading] = useState<boolean>(false)
 
-  const xpLeaderboard = leaderboardData?.xp || { list: [], user_rank: -1, user_value: 0 }
+  const xpLeaderboard = leaderboardData?.[leaderboardType] || { list: [], user_rank: -1, user_value: 0 }
   const userRank = xpLeaderboard.user_rank
   const userValue = xpLeaderboard.user_value
+
+  const getUnitName = (type: string) => {
+    if (type === 'xp') return 'XP'
+    if (type === 'streak') return 'ngày'
+    if (type === 'questions') return 'câu'
+    return '%'
+  }
   
   let leaderboardMsg = ""
   if (userRank === 1) {
@@ -594,17 +604,43 @@ export default function PracticePlay() {
   } else if (userRank > 1) {
     const topUser = xpLeaderboard.list[0]
     const prevUser = xpLeaderboard.list[userRank - 2]
+    const unit = getUnitName(leaderboardType)
     if (topUser) {
       const xpToTop = topUser.value - userValue
-      leaderboardMsg = `Cần thêm ${xpToTop.toLocaleString()} XP nữa để đạt Top 1! 🚀`
+      leaderboardMsg = `Cần thêm ${xpToTop.toLocaleString()} ${unit} nữa để đạt Top 1! 🚀`
     }
     if (prevUser) {
       const xpToPrev = prevUser.value - userValue
-      leaderboardMsg += ` Cách Hạng #${userRank - 1} (${prevUser.username}) ${xpToPrev.toLocaleString()} XP! 💪`
+      leaderboardMsg += ` Cách Hạng #${userRank - 1} (${prevUser.username}) ${xpToPrev.toLocaleString()} ${unit}! 💪`
     }
   } else {
-    leaderboardMsg = "Hãy tích lũy thêm XP để ghi danh lên Bảng xếp hạng tuần này! 🏆"
+    leaderboardMsg = `Hãy tích lũy thêm ${getUnitName(leaderboardType)} để ghi danh lên Bảng xếp hạng! 🏆`
   }
+
+  useEffect(() => {
+    let isMounted = true
+    const loadLeaderboard = async () => {
+      setIsLeaderboardLoading(true)
+      try {
+        const res = await axios.get('/api/v1/stats/leaderboard', {
+          params: { time_filter: leaderboardTimeFilter }
+        })
+        if (isMounted) {
+          setLeaderboardData(res.data)
+        }
+      } catch (e) {
+        console.error("Failed to load leaderboard data", e)
+      } finally {
+        if (isMounted) {
+          setIsLeaderboardLoading(false)
+        }
+      }
+    }
+    loadLeaderboard()
+    return () => {
+      isMounted = false
+    }
+  }, [leaderboardTimeFilter])
 
   const [currentTime, setCurrentTime] = useState(new Date())
   useEffect(() => {
@@ -929,9 +965,7 @@ export default function PracticePlay() {
       const results = await Promise.all(fetchPromises)
       const quizRes = results[0]
       
-      axios.get('/api/v1/stats/leaderboard').then(res => {
-        setLeaderboardData(res.data)
-      }).catch(e => console.error("Failed to load leaderboard", e))
+      // Leaderboard is fetched via dynamic useEffect depending on time filter
 
       axios.get('/api/v1/stats/daily-comparison').then(res => {
         setDailyComparisonData(res.data?.days || [])
@@ -1534,7 +1568,7 @@ export default function PracticePlay() {
         }, 4500)
 
         // Also re-fetch leaderboard in background to keep stats Completely dynamic and live!
-        axios.get('/api/v1/stats/leaderboard')
+        axios.get('/api/v1/stats/leaderboard', { params: { time_filter: leaderboardTimeFilter } })
           .then(lbRes => {
             setLeaderboardData(lbRes.data)
           })
@@ -1754,7 +1788,7 @@ export default function PracticePlay() {
       }
 
       // Also re-fetch leaderboard in background to keep stats Completely dynamic and live!
-      axios.get('/api/v1/stats/leaderboard')
+      axios.get('/api/v1/stats/leaderboard', { params: { time_filter: leaderboardTimeFilter } })
         .then(lbRes => {
           setLeaderboardData(lbRes.data)
         })
@@ -1918,7 +1952,7 @@ export default function PracticePlay() {
       }
 
       // Also re-fetch leaderboard in background to keep stats Completely dynamic and live!
-      axios.get('/api/v1/stats/leaderboard')
+      axios.get('/api/v1/stats/leaderboard', { params: { time_filter: leaderboardTimeFilter } })
         .then(lbRes => {
           setLeaderboardData(lbRes.data)
         })
@@ -3662,16 +3696,59 @@ export default function PracticePlay() {
                       <Trophy className="w-4.5 h-4.5" />
                     </div>
                     <div>
-                      <h4 className="text-xs font-black text-slate-700">Bảng xếp hạng tuần</h4>
-                      <p className="text-[10px] text-slate-400 font-medium">Đua top XP tuần này</p>
+                      <h4 className="text-xs font-black text-slate-700">
+                        Bảng xếp hạng {leaderboardType === 'xp' ? 'XP' : leaderboardType === 'streak' ? 'Streak' : leaderboardType === 'questions' ? 'câu hỏi' : 'chính xác'}
+                      </h4>
+                      <p className="text-[10px] text-slate-400 font-medium">
+                        Đua top {leaderboardTimeFilter === 'today' ? 'hôm nay' : leaderboardTimeFilter === 'week' ? 'tuần này' : leaderboardTimeFilter === 'month' ? 'tháng này' : 'mọi lúc'}
+                      </p>
                     </div>
                   </div>
 
+                  {/* Metric Switcher */}
+                  <div className="flex bg-slate-50 p-0.5 rounded-xl border border-slate-100 overflow-x-auto no-scrollbar gap-0.5">
+                    {(['xp', 'streak', 'questions', 'accuracy'] as const).map((type) => (
+                      <button
+                        key={type}
+                        onClick={() => setLeaderboardType(type)}
+                        className={cn(
+                          "flex-1 py-1 px-1.5 rounded-lg text-[8px] font-black uppercase tracking-wider transition-all whitespace-nowrap text-center",
+                          leaderboardType === type 
+                            ? "bg-white text-indigo-650 shadow-sm border border-slate-100/50" 
+                            : "text-slate-400 hover:text-indigo-650"
+                        )}
+                      >
+                        {type === 'xp' ? 'XP' : type === 'streak' ? 'Streak' : type === 'questions' ? 'Questions' : 'Accuracy'}
+                      </button>
+                    ))}
+                  </div>
+
+                  {/* Time Filter Switcher */}
+                  <div className="flex bg-slate-50 p-0.5 rounded-xl border border-slate-100 overflow-x-auto no-scrollbar gap-0.5">
+                    {(['today', 'week', 'month', 'all_time'] as const).map((filter) => (
+                      <button
+                        key={filter}
+                        onClick={() => setLeaderboardTimeFilter(filter)}
+                        className={cn(
+                          "flex-1 py-1 px-1.5 rounded-lg text-[8px] font-black uppercase tracking-wider transition-all whitespace-nowrap text-center",
+                          leaderboardTimeFilter === filter 
+                            ? "bg-slate-900 text-white shadow-sm" 
+                            : "text-slate-400 hover:text-slate-700"
+                        )}
+                      >
+                        {filter === 'today' ? 'Hôm nay' : filter === 'week' ? 'Tuần này' : filter === 'month' ? 'Tháng này' : 'Tất cả'}
+                      </button>
+                    ))}
+                  </div>
+
                   {/* Mini Leaderboard List */}
-                  {xpLeaderboard.list && xpLeaderboard.list.length > 0 ? (
+                  {isLeaderboardLoading ? (
+                    <p className="text-[10px] text-slate-400 text-center py-4 font-bold animate-pulse">Đang tải bảng xếp hạng...</p>
+                  ) : xpLeaderboard.list && xpLeaderboard.list.length > 0 ? (
                     <div className="space-y-1.5 py-1">
                       {xpLeaderboard.list.slice(0, 3).map((u: any, idx: number) => {
-                        const displayValue = u.user_id === user?.id ? gamify.xp : u.value;
+                        const displayValue = u.user_id === user?.id ? xpLeaderboard.user_value : u.value;
+                        const unit = getUnitName(leaderboardType);
                         return (
                         <div 
                           key={u.user_id} 
@@ -3694,7 +3771,7 @@ export default function PracticePlay() {
                             </span>
                           </div>
                           <span className="font-black text-[11px] text-slate-900 shrink-0">
-                            {displayValue.toLocaleString()} XP
+                            {displayValue.toLocaleString()} {unit}
                           </span>
                         </div>
                       )})}
@@ -3704,14 +3781,15 @@ export default function PracticePlay() {
                         const currentUserObj = xpLeaderboard.list.find((u: any) => u.user_id === user?.id) || {
                           full_name: user?.username || "",
                           level: gamify.level,
-                          value: gamify.xp
+                          value: xpLeaderboard.user_value
                         };
+                        const unit = getUnitName(leaderboardType);
                         return (
                           <>
                             <div className="text-center text-[10px] font-black text-slate-300 tracking-widest leading-none my-1">•••</div>
                             <div className="flex items-center justify-between p-2 rounded-2xl border bg-indigo-50 border-indigo-100 font-black text-indigo-950 text-xs">
                               <div className="flex items-center gap-2 min-w-0">
-                                <span className="font-black text-indigo-600 w-5 text-center text-[10px]">
+                                <span className="font-black text-indigo-650 w-5 text-center text-[10px]">
                                   #{userRank}
                                 </span>
                                 <span className="font-bold truncate text-[11px] uppercase">
@@ -3722,7 +3800,7 @@ export default function PracticePlay() {
                                 </span>
                               </div>
                               <span className="font-black text-[11px] text-indigo-600 shrink-0">
-                                {gamify.xp.toLocaleString()} XP
+                                {xpLeaderboard.user_value.toLocaleString()} {unit}
                               </span>
                             </div>
                           </>
@@ -3730,7 +3808,7 @@ export default function PracticePlay() {
                       })()}
                     </div>
                   ) : (
-                    <p className="text-[10px] text-slate-400 text-center py-2">Đang tải bảng xếp hạng...</p>
+                    <p className="text-[10px] text-slate-400 text-center py-2">Chưa có dữ liệu xếp hạng nào.</p>
                   )}
 
                   <div className="p-3 bg-amber-50/50 rounded-2xl border border-amber-100/50">

@@ -258,6 +258,7 @@ export default function Stats() {
   const [activeChart, setActiveChart] = useState(0)
   const [hoveredDay, setHoveredDay] = useState<{ dateStr: string, count: number, x: number, y: number } | null>(null)
   const [activeLeaderboardTab, setActiveLeaderboardTab] = useState<'xp' | 'streak' | 'questions' | 'accuracy'>('xp')
+  const [leaderboardTimeFilter, setLeaderboardTimeFilter] = useState<'today' | 'week' | 'month' | 'all_time'>('all_time')
   
   const { data, isLoading } = useQuery<StatsData>({
     queryKey: ['detailed-stats'],
@@ -279,9 +280,11 @@ export default function Stats() {
 
 
   const { data: leaderboardData, isLoading: isLeaderboardLoading } = useQuery({
-    queryKey: ['stats-leaderboard'],
+    queryKey: ['stats-leaderboard', leaderboardTimeFilter],
     queryFn: async () => {
-      const res = await axios.get('/api/v1/stats/leaderboard')
+      const res = await axios.get('/api/v1/stats/leaderboard', {
+        params: { time_filter: leaderboardTimeFilter }
+      })
       return res.data
     }
   })
@@ -536,20 +539,38 @@ export default function Stats() {
                                   </div>
                                </div>
 
-                               {/* Leaderboard Tab switcher */}
-                               <div className="flex bg-slate-50 p-1 rounded-xl border border-slate-100 overflow-x-auto no-scrollbar max-w-full">
-                                  {(['xp', 'streak', 'questions', 'accuracy'] as const).map((tab) => (
-                                     <button
-                                        key={tab}
-                                        onClick={() => setActiveLeaderboardTab(tab)}
-                                        className={cn(
-                                           "px-3 py-1 rounded-lg text-[8px] font-black uppercase tracking-widest transition-all whitespace-nowrap",
-                                           activeLeaderboardTab === tab ? "bg-white text-indigo-600 shadow-sm border border-slate-100/50" : "text-slate-400"
-                                        )}
-                                     >
-                                        {tab === 'xp' ? 'XP' : tab === 'streak' ? 'Streak' : tab === 'questions' ? 'Questions' : 'Accuracy'}
-                                     </button>
-                                  ))}
+                               <div className="flex flex-col sm:flex-row gap-2 shrink-0">
+                                 {/* Time Filter switcher */}
+                                 <div className="flex bg-slate-50 p-1 rounded-xl border border-slate-100 overflow-x-auto no-scrollbar max-w-full">
+                                    {(['today', 'week', 'month', 'all_time'] as const).map((filter) => (
+                                       <button
+                                          key={filter}
+                                          onClick={() => setLeaderboardTimeFilter(filter)}
+                                          className={cn(
+                                             "px-3 py-1 rounded-lg text-[8px] font-black uppercase tracking-widest transition-all whitespace-nowrap",
+                                             leaderboardTimeFilter === filter ? "bg-slate-900 text-white shadow-sm" : "text-slate-400"
+                                          )}
+                                       >
+                                          {filter === 'today' ? 'Hôm nay' : filter === 'week' ? 'Tuần này' : filter === 'month' ? 'Tháng này' : 'Tất cả'}
+                                       </button>
+                                    ))}
+                                 </div>
+
+                                 {/* Leaderboard Tab switcher */}
+                                 <div className="flex bg-slate-50 p-1 rounded-xl border border-slate-100 overflow-x-auto no-scrollbar max-w-full">
+                                    {(['xp', 'streak', 'questions', 'accuracy'] as const).map((tab) => (
+                                       <button
+                                          key={tab}
+                                          onClick={() => setActiveLeaderboardTab(tab)}
+                                          className={cn(
+                                             "px-3 py-1 rounded-lg text-[8px] font-black uppercase tracking-widest transition-all whitespace-nowrap",
+                                             activeLeaderboardTab === tab ? "bg-white text-indigo-650 shadow-sm border border-slate-100/50" : "text-slate-400"
+                                          )}
+                                       >
+                                          {tab === 'xp' ? 'XP' : tab === 'streak' ? 'Streak' : tab === 'questions' ? 'Questions' : 'Accuracy'}
+                                       </button>
+                                    ))}
+                                 </div>
                                </div>
                             </div>
 

@@ -1,12 +1,33 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
 from .models import UserDailyStats
-from datetime import datetime
+from datetime import datetime, date, timedelta
+from typing import Optional
 
 class StatsInterface:
     @staticmethod
-    async def record_activity(db: AsyncSession, user_id: int, is_correct: bool, time_spent: int):
-        today = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
+    async def record_activity(
+        db: AsyncSession, 
+        user_id: int, 
+        is_correct: bool, 
+        time_spent: int, 
+        local_date_str: Optional[str] = None, 
+        tz_offset: Optional[int] = None
+    ):
+        if local_date_str:
+            try:
+                local_dt = date.fromisoformat(local_date_str)
+            except ValueError:
+                local_dt = datetime.utcnow().date()
+        else:
+            if tz_offset is None:
+                tz_offset = -420
+            now_utc = datetime.utcnow()
+            now_local = now_utc - timedelta(minutes=tz_offset)
+            local_dt = now_local.date()
+            
+        today = datetime.combine(local_dt, datetime.min.time())
+        
         result = await db.execute(
             select(UserDailyStats).where(
                 UserDailyStats.user_id == user_id,
@@ -42,8 +63,28 @@ class StatsInterface:
         return stats
 
     @staticmethod
-    async def revert_activity(db: AsyncSession, user_id: int, is_correct: bool, time_spent: int):
-        today = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
+    async def revert_activity(
+        db: AsyncSession, 
+        user_id: int, 
+        is_correct: bool, 
+        time_spent: int, 
+        local_date_str: Optional[str] = None, 
+        tz_offset: Optional[int] = None
+    ):
+        if local_date_str:
+            try:
+                local_dt = date.fromisoformat(local_date_str)
+            except ValueError:
+                local_dt = datetime.utcnow().date()
+        else:
+            if tz_offset is None:
+                tz_offset = -420
+            now_utc = datetime.utcnow()
+            now_local = now_utc - timedelta(minutes=tz_offset)
+            local_dt = now_local.date()
+            
+        today = datetime.combine(local_dt, datetime.min.time())
+        
         result = await db.execute(
             select(UserDailyStats).where(
                 UserDailyStats.user_id == user_id,

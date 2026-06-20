@@ -28,6 +28,8 @@ async def get_leaderboard(request: Request, time_filter: str = "all_time", db: A
         start_date = today
     elif time_filter == "week":
         start_date = today - timedelta(days=today.weekday()) # Monday of this week
+    elif time_filter == "month":
+        start_date = today.replace(day=1)
 
     # 1. Fetch XP Leaderboard
     if time_filter == "all_time":
