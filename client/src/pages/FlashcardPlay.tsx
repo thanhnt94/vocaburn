@@ -669,7 +669,8 @@ export default function FlashcardPlay() {
 
   const fetchSession = async (activeTab: 'fsrs' | 'practice' = mainTab, subMode = practiceSubMode) => {
     try {
-      const modeParam = activeTab === 'practice' ? `?mode=${subMode}` : ''
+      const tzOffset = new Date().getTimezoneOffset() // e.g. -420 for UTC+7
+      const modeParam = activeTab === 'practice' ? `?mode=${subMode}&tz_offset=${tzOffset}` : `?tz_offset=${tzOffset}`
       const isPractice = activeTab === 'practice'
       
       // 1. Core quiz data load: fetched immediately to show flashcards instantly

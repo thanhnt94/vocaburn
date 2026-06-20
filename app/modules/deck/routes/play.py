@@ -1031,7 +1031,7 @@ def migrate_practice_settings(settings: Optional[dict]) -> dict:
     }
 
 @router.get("/{deck_id}/play-data")
-async def get_deck_play_data(request: Request, deck_id: int, mode: Optional[str] = None, db: AsyncSession = Depends(get_db)):
+async def get_deck_play_data(request: Request, deck_id: int, mode: Optional[str] = None, tz_offset: Optional[int] = None, db: AsyncSession = Depends(get_db)):
     user_id = int(request.cookies.get("user_id", 1))
     is_practice = mode in ("mcq", "typing", "listening")
     
@@ -1060,7 +1060,20 @@ async def get_deck_play_data(request: Request, deck_id: int, mode: Optional[str]
     from app.modules.gamification.models import XPTransaction
     from app.modules.deck.models import UserAnswer, DeckAttempt
     
-    today_start = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
+    # tz_offset follows JS convention: minutes WEST of UTC (e.g. -420 for UTC+7)
+    # Convert to offset in seconds east of UTC: UTC+7 => +25200 seconds
+    if tz_offset is not None:
+        offset_seconds = -tz_offset * 60  # e.g. -(-420)*60 = +25200
+    else:
+        offset_seconds = 7 * 3600  # default UTC+7 for Vietnam
+    
+    now_utc = datetime.utcnow()
+    # Compute local "now" by shifting
+    local_now = now_utc + timedelta(seconds=offset_seconds)
+    # Local midnight in local time
+    local_midnight = local_now.replace(hour=0, minute=0, second=0, microsecond=0)
+    # Convert local midnight back to UTC for DB query
+    today_start = local_midnight - timedelta(seconds=offset_seconds)
     
     today_xp_stmt = select(func.sum(XPTransaction.amount)).where(
         XPTransaction.user_id == user_id,

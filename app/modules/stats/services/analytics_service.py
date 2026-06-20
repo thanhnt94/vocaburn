@@ -49,8 +49,31 @@ class AnalyticsService:
         }
 
     @staticmethod
-    async def get_user_detailed_stats(db: AsyncSession, user_id: int):
-        user_stats = await AnalyticsService._get_user_stats_internal(db, user_id)
+    def get_timezone_boundaries(time_filter: str, tz_offset: int = -420):
+        """
+        Returns (utc_start_datetime, local_start_date) based on user's timezone offset in minutes.
+        - tz_offset = -420 for UTC+7 (Vietnam).
+        """
+        from datetime import datetime, timedelta
+        now_utc = datetime.utcnow()
+        now_local = now_utc - timedelta(minutes=tz_offset)
+        today_local_start = now_local.replace(hour=0, minute=0, second=0, microsecond=0)
+        
+        if time_filter == "today":
+            local_start = today_local_start
+        elif time_filter == "week":
+            local_start = today_local_start - timedelta(days=today_local_start.weekday())
+        elif time_filter == "month":
+            local_start = today_local_start.replace(day=1)
+        else:
+            return None, None
+            
+        utc_start = local_start + timedelta(minutes=tz_offset)
+        return utc_start, local_start.date()
+
+    @staticmethod
+    async def get_user_detailed_stats(db: AsyncSession, user_id: int, time_filter: str = "all_time", tz_offset: int = -420):
+        user_stats = await AnalyticsService._get_user_stats_internal(db, user_id, time_filter, tz_offset)
         global_stats = await AnalyticsService.get_global_stats(db)
         
         return {
@@ -59,7 +82,7 @@ class AnalyticsService:
         }
 
     @staticmethod
-    async def _get_user_stats_internal(db: AsyncSession, user_id: int):
+    async def _get_user_stats_internal(db: AsyncSession, user_id: int, time_filter: str = "all_time", tz_offset: int = -420):
         today = datetime.utcnow().date()
         start_date = today - timedelta(days=29)
         
@@ -125,6 +148,12 @@ class AnalyticsService:
             func.sum(UserDailyStats.total_time_seconds).label("total_time")
         ).where(UserDailyStats.user_id == user_id)
         
+        if time_filter != "all_time":
+            _, local_start_date = AnalyticsService.get_timezone_boundaries(time_filter, tz_offset)
+            if local_start_date:
+                local_start_datetime = datetime.combine(local_start_date, datetime.min.time())
+                summary_stmt = summary_stmt.where(UserDailyStats.date >= local_start_datetime)
+        
         summary_res = (await db.execute(summary_stmt)).one_or_none()
         
         total_q = 0
@@ -154,6 +183,7 @@ class AnalyticsService:
         active_days_res = await db.execute(active_days_stmt)
         active_days_count = active_days_res.scalar() or 1
 
+        # 5. Hourly Distribution (Study Hours)
         hour_stmt = select(
             extract('hour', UserAnswer.created_at).label("hour"),
             func.count(UserAnswer.id).label("count")
@@ -161,7 +191,8 @@ class AnalyticsService:
          .join(DeckAttempt, UserAnswer.attempt_id == DeckAttempt.id)\
          .where(DeckAttempt.user_id == user_id)\
          .group_by("hour")
-         
+          
+         # Note: group_by hour returns standard extract hour
         hour_results = await db.execute(hour_stmt)
         hourly_data = {i: 0 for i in range(24)}
         for row in hour_results.all():
@@ -207,18 +238,10 @@ class AnalyticsService:
         }
 
     @staticmethod
-    async def get_leaderboard(db: AsyncSession, current_user_id: int, time_filter: str = "all_time"):
-        # Calculate date boundaries in UTC
-        today = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
-        start_datetime = None
-        if time_filter == "today":
-            start_datetime = today
-        elif time_filter == "week":
-            start_datetime = today - timedelta(days=today.weekday())  # Monday of this week
-        elif time_filter == "month":
-            start_datetime = today.replace(day=1)
-
-        start_date_only = start_datetime.date() if start_datetime else None
+    async def get_leaderboard(db: AsyncSession, current_user_id: int, time_filter: str = "all_time", tz_offset: int = -420):
+        # Calculate date boundaries in UTC and user local timezone
+        start_datetime, local_start_date = AnalyticsService.get_timezone_boundaries(time_filter, tz_offset)
+        local_start_datetime = datetime.combine(local_start_date, datetime.min.time()) if local_start_date else None
 
         # 1. Fetch current user's baseline data
         curr_game_res = await db.execute(
@@ -244,8 +267,8 @@ class AnalyticsService:
             func.sum(UserDailyStats.questions_attempted).label("total_q"),
             func.sum(UserDailyStats.correct_answers).label("total_c")
         ).where(UserDailyStats.user_id == current_user_id)
-        if start_date_only:
-            curr_stats_stmt = curr_stats_stmt.where(UserDailyStats.date >= start_date_only)
+        if local_start_datetime:
+            curr_stats_stmt = curr_stats_stmt.where(UserDailyStats.date >= local_start_datetime)
         
         curr_stats_res = await db.execute(curr_stats_stmt)
         curr_stats = curr_stats_res.one_or_none()
