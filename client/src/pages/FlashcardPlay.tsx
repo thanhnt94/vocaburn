@@ -3582,8 +3582,8 @@ export default function FlashcardPlay() {
                       timeMode === 'card' 
                         ? timeLeft 
                         : timeMode === 'today' 
-                          ? initialTodayTime + sessionStudyTime 
-                          : initialAllTimeTime + sessionStudyTime
+                          ? formatHeaderTime(initialTodayTime + sessionStudyTime) 
+                          : formatHeaderTime(initialAllTimeTime + sessionStudyTime)
                     }
                     initial={{ y: 8, opacity: 0 }}
                     animate={{ y: 0, opacity: 1 }}
