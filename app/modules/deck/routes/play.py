@@ -1047,17 +1047,43 @@ async def get_deck_play_data(request: Request, deck_id: int, mode: Optional[str]
     deck = await DeckService.get_deck_with_stats(db, deck_id, user_id=user_id)
     if not deck: return JSONResponse(status_code=404, content={"error": "Deck not found"})
     
-    # Skip heavy gamification stats & collaborator check for practice — not needed
-    user_total_xp = 0
-    is_collaborator = False
-    if not is_practice:
-        from app.modules.gamification.interface import GamificationInterface
-        user_stats = await GamificationInterface.get_user_stats(db, user_id)
-        user_total_xp = user_stats.get("xp", 0)
-        
-        from app.modules.deck.models import DeckCollaborator
-        collab_res = await db.execute(select(DeckCollaborator).where(DeckCollaborator.deck_id == deck_id, DeckCollaborator.user_id == user_id))
-        is_collaborator = collab_res.scalar() is not None
+    # Fetch user total XP and check if collaborator
+    from app.modules.gamification.interface import GamificationInterface
+    user_stats = await GamificationInterface.get_user_stats(db, user_id)
+    user_total_xp = user_stats.get("xp", 0)
+    
+    from app.modules.deck.models import DeckCollaborator
+    collab_res = await db.execute(select(DeckCollaborator).where(DeckCollaborator.deck_id == deck_id, DeckCollaborator.user_id == user_id))
+    is_collaborator = collab_res.scalar() is not None
+
+    # Query today's XP, today's time, and all-time time
+    from app.modules.gamification.models import XPTransaction
+    from app.modules.deck.models import UserAnswer, DeckAttempt
+    
+    today_start = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
+    
+    today_xp_stmt = select(func.sum(XPTransaction.amount)).where(
+        XPTransaction.user_id == user_id,
+        XPTransaction.created_at >= today_start
+    )
+    today_time_stmt = select(func.sum(UserAnswer.active_time)).join(DeckAttempt, UserAnswer.attempt_id == DeckAttempt.id).where(
+        DeckAttempt.user_id == user_id,
+        UserAnswer.created_at >= today_start
+    )
+    all_time_time_stmt = select(func.sum(UserAnswer.active_time)).join(DeckAttempt, UserAnswer.attempt_id == DeckAttempt.id).where(
+        DeckAttempt.user_id == user_id
+    )
+    
+    today_xp_res, today_time_res, all_time_time_res = await asyncio.gather(
+        db.execute(today_xp_stmt),
+        db.execute(today_time_stmt),
+        db.execute(all_time_time_stmt)
+    )
+    
+    user_today_xp = today_xp_res.scalar() or 0
+    user_today_time = today_time_res.scalar() or 0
+    user_all_time_time = all_time_time_res.scalar() or 0
+
     
     # Skip mastery loading for practice mode — practice doesn't use FSRS state
     mastery_records = {}
@@ -1211,12 +1237,16 @@ async def get_deck_play_data(request: Request, deck_id: int, mode: Optional[str]
         "creator_id": deck.creator_id,
         "is_collaborator": is_collaborator,
         "user_total_xp": user_total_xp,
+        "user_today_xp": user_today_xp,
+        "user_today_time": user_today_time,
+        "user_all_time_time": user_all_time_time,
         "practice_needs_setup": practice_needs_setup,
         "practice_disabled": practice_disabled,
         "cards": cards_list,
         "questions": cards_list, # compatibility
         "user_settings": user_sett.settings if user_sett else None
     }
+
 
 @router.get("/{deck_id}/session")
 async def get_deck_session(request: Request, deck_id: int, db: AsyncSession = Depends(get_db)):

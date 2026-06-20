@@ -269,6 +269,38 @@ export default function PracticePlay() {
   const [sessionXP, setSessionXP] = useState(0)
   const [initialTotalXP, setInitialTotalXP] = useState(0)
   const [timeLeft, setTimeLeft] = useState(0)
+  const [sessionStudyTime, setSessionStudyTime] = useState(0)
+  const [initialTodayXP, setInitialTodayXP] = useState(0)
+  const [initialTodayTime, setInitialTodayTime] = useState(0)
+  const [initialAllTimeTime, setInitialAllTimeTime] = useState(0)
+  const [scoreMode, setScoreMode] = useState<'today' | 'all'>(() => (localStorage.getItem('vocaburn_score_mode') as 'today' | 'all') || 'all')
+  const [timeMode, setTimeMode] = useState<'card' | 'today' | 'all'>(() => (localStorage.getItem('vocaburn_time_mode') as 'card' | 'today' | 'all') || 'card')
+
+  const toggleScoreMode = () => {
+    const nextMode = scoreMode === 'all' ? 'today' : 'all'
+    setScoreMode(nextMode)
+    localStorage.setItem('vocaburn_score_mode', nextMode)
+  }
+
+  const toggleTimeMode = () => {
+    let nextMode: 'card' | 'today' | 'all' = 'today'
+    if (timeMode === 'card') nextMode = 'today'
+    else if (timeMode === 'today') nextMode = 'all'
+    else nextMode = 'card'
+    setTimeMode(nextMode)
+    localStorage.setItem('vocaburn_time_mode', nextMode)
+  }
+
+  const formatHeaderTime = (seconds: number) => {
+    if (seconds < 60) return `${seconds}s`
+    const mins = Math.floor(seconds / 60)
+    const hours = Math.floor(mins / 60)
+    if (hours > 0) {
+      return `${hours}h ${mins % 60}m`
+    }
+    return `${mins}m`
+  }
+
   const [isAskingAI, setIsAskingAI] = useState(false)
   const [personalNote, setPersonalNote] = useState('')
   const [isEditingNote, setIsEditingNote] = useState(false)
@@ -720,6 +752,7 @@ export default function PracticePlay() {
         } else {
           if (hasRated) return prev
         }
+        setSessionStudyTime(s => s + 1)
         return prev + 1
       })
     }, 1000)
@@ -944,6 +977,9 @@ export default function PracticePlay() {
 
       setPromptInput(quizRes.data.ai_prompt || '')
       setInitialTotalXP(quizRes.data.user_total_xp || 0)
+      setInitialTodayXP(quizRes.data.user_today_xp || 0)
+      setInitialTodayTime(quizRes.data.user_today_time || 0)
+      setInitialAllTimeTime(quizRes.data.user_all_time_time || 0)
       setPracticeNeedsSetup(!!quizRes.data.practice_needs_setup)
       setPracticeDisabled(!!quizRes.data.practice_disabled)
 
@@ -3249,23 +3285,47 @@ export default function PracticePlay() {
           </div>
       
           {/* Item 3: Timer */}
-          <div className="flex items-center bg-white/90 border border-slate-200/30 rounded-lg p-0.5 pr-1 md:pr-1.5 shadow-sm min-w-[52px] xs:min-w-[56px] md:min-w-[66px]" title="Thời gian học">
+          <div 
+            onClick={toggleTimeMode}
+            className="flex items-center bg-white/90 border border-slate-200/30 rounded-lg p-0.5 pr-1 md:pr-1.5 shadow-sm min-w-[52px] xs:min-w-[56px] md:min-w-[66px] cursor-pointer active:scale-95 transition-all select-none hover:bg-slate-50" 
+            title={
+              timeMode === 'card' 
+                ? "Thời gian học thẻ này - Click để chuyển sang thời gian ngày"
+                : timeMode === 'today'
+                  ? "Thời gian học trong ngày - Click để chuyển sang tổng thời gian"
+                  : "Tổng thời gian học toàn bộ - Click để chuyển sang thời gian thẻ này"
+            }
+          >
             <div className="w-4 h-4 md:w-5 md:h-5 flex items-center justify-center bg-emerald-50 text-emerald-600 rounded mr-0.5 md:mr-1 flex-shrink-0">
               <Clock className="w-2.5 h-2.5 md:w-3 md:h-3" />
             </div>
             <div className="flex flex-col min-w-0">
-              <span className="text-[5.5px] md:text-[6.5px] text-slate-400 font-extrabold uppercase tracking-wider leading-none">Time</span>
+              <span className="text-[5.5px] md:text-[6.5px] text-slate-400 font-extrabold uppercase tracking-wider leading-none">
+                {timeMode === 'card' ? 'Time' : timeMode === 'today' ? 'Today' : 'Total'}
+              </span>
               <div className="h-2.5 md:h-3 overflow-hidden relative min-w-[15px]">
                 <AnimatePresence mode="popLayout" initial={false}>
                   <motion.span
-                    key={timeLeft}
+                    key={
+                      timeMode === 'card' 
+                        ? timeLeft 
+                        : timeMode === 'today' 
+                          ? initialTodayTime + sessionStudyTime 
+                          : initialAllTimeTime + sessionStudyTime
+                    }
                     initial={{ y: 8, opacity: 0 }}
                     animate={{ y: 0, opacity: 1 }}
                     exit={{ y: -8, opacity: 0 }}
                     transition={{ type: "spring", stiffness: 350, damping: 18 }}
                     className="text-[7.5px] md:text-[8.5px] font-black text-slate-700 leading-none block truncate"
                   >
-                    {timeLeft}s
+                    {
+                      timeMode === 'card' 
+                        ? `${timeLeft}s` 
+                        : timeMode === 'today' 
+                          ? formatHeaderTime(initialTodayTime + sessionStudyTime) 
+                          : formatHeaderTime(initialAllTimeTime + sessionStudyTime)
+                    }
                   </motion.span>
                 </AnimatePresence>
               </div>
@@ -3273,28 +3333,43 @@ export default function PracticePlay() {
           </div>
       
           {/* Item 4: Current user score */}
-          <div className="flex items-center bg-white/90 border border-slate-200/30 rounded-lg p-0.5 pr-1 md:pr-1.5 shadow-sm min-w-[52px] xs:min-w-[56px] md:min-w-[66px]" title="Điểm số hiện tại (XP)">
+          <div 
+            onClick={toggleScoreMode}
+            className="flex items-center bg-white/90 border border-slate-200/30 rounded-lg p-0.5 pr-1 md:pr-1.5 shadow-sm min-w-[52px] xs:min-w-[56px] md:min-w-[66px] cursor-pointer active:scale-95 transition-all select-none hover:bg-slate-50" 
+            title={
+              scoreMode === 'all' 
+                ? "Điểm số toàn bộ (XP) - Click để chuyển sang điểm ngày"
+                : "Điểm số trong ngày (XP) - Click để chuyển sang toàn bộ điểm"
+            }
+          >
             <div className="w-4 h-4 md:w-5 md:h-5 flex items-center justify-center bg-amber-50 text-amber-600 rounded mr-0.5 md:mr-1 flex-shrink-0">
               <Trophy className="w-2.5 h-2.5 md:w-3 md:h-3" />
             </div>
             <div className="flex flex-col min-w-0">
-              <span className="text-[5.5px] md:text-[6.5px] text-slate-400 font-extrabold uppercase tracking-wider leading-none">Score</span>
+              <span className="text-[5.5px] md:text-[6.5px] text-slate-400 font-extrabold uppercase tracking-wider leading-none">
+                {scoreMode === 'all' ? 'Score' : 'Today'}
+              </span>
               <div className="h-2.5 md:h-3 overflow-hidden relative min-w-[25px]">
                 <AnimatePresence mode="popLayout" initial={false}>
                   <motion.span
-                    key={gamify.xp}
+                    key={scoreMode === 'all' ? gamify.xp : initialTodayXP + sessionXP}
                     initial={{ y: 8, opacity: 0 }}
                     animate={{ y: 0, opacity: 1 }}
                     exit={{ y: -8, opacity: 0 }}
                     transition={{ type: "spring", stiffness: 350, damping: 18 }}
                     className="text-[7.5px] md:text-[8.5px] font-black text-slate-700 leading-none block truncate"
                   >
-                    {gamify.xp.toLocaleString()}
+                    {
+                      scoreMode === 'all' 
+                        ? gamify.xp.toLocaleString() 
+                        : (initialTodayXP + sessionXP).toLocaleString()
+                    }
                   </motion.span>
                 </AnimatePresence>
               </div>
             </div>
           </div>
+
         </div>
       </header>
 
