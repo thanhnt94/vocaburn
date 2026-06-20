@@ -1136,7 +1136,11 @@ export default function PracticePlay() {
           }
 
           if (sessionRes.data.state?.sessionXP) {
-            setSessionXP(sessionRes.data.state.sessionXP)
+            const todayStr = new Date().toISOString().slice(0, 10)
+            const sessionDate = sessionRes.data.state?.session_date
+            if (sessionDate === todayStr) {
+              setSessionXP(sessionRes.data.state.sessionXP)
+            }
           }
           if (sessionRes.data.state?.streak) {
             setStreak(sessionRes.data.state.streak)

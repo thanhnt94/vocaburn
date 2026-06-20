@@ -831,7 +831,13 @@ export default function FlashcardPlay() {
         initIndex()
 
         if (sessionRes.data.state?.sessionXP) {
-          setSessionXP(sessionRes.data.state.sessionXP)
+          const todayStr = new Date().toISOString().slice(0, 10)
+          const sessionDate = sessionRes.data.state?.session_date
+          // Only restore sessionXP if the session was saved today — otherwise reset to 0
+          if (sessionDate === todayStr) {
+            setSessionXP(sessionRes.data.state.sessionXP)
+          }
+          // else: sessionXP stays at 0 (default), old session's XP is already counted in initialTodayXP
         }
         if (sessionRes.data.state?.streak) {
           setStreak(sessionRes.data.state.streak)
@@ -967,7 +973,8 @@ export default function FlashcardPlay() {
           practiceTotalAnswered: newTotalAnswered,
           practiceCorrectCount: newCorrectCount,
           sessionXP: currentXP,
-          streak: currentStreak
+          streak: currentStreak,
+          session_date: new Date().toISOString().slice(0, 10) // track which day this XP belongs to
         }
       })
     } catch (e) {
