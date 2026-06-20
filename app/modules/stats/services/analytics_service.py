@@ -342,11 +342,11 @@ class AnalyticsService:
         streak_rank = streak_rank_res.scalar() + 1
 
         # --- QUESTIONS LEADERBOARD ---
-        if start_date_only:
+        if local_start_datetime:
             q_subq = select(
                 UserDailyStats.user_id,
                 func.sum(UserDailyStats.questions_attempted).label("total_q")
-            ).where(UserDailyStats.date >= start_date_only).group_by(UserDailyStats.user_id).subquery()
+            ).where(UserDailyStats.date >= local_start_datetime).group_by(UserDailyStats.user_id).subquery()
         else:
             q_subq = select(
                 UserDailyStats.user_id,
@@ -361,10 +361,10 @@ class AnalyticsService:
          .order_by(desc(q_subq.c.total_q)).limit(50)
         q_list = await execute_and_format_leaderboard(q_stmt)
 
-        if start_date_only:
+        if local_start_datetime:
             q_rank_sub = select(
                 UserDailyStats.user_id
-            ).where(UserDailyStats.date >= start_date_only).group_by(UserDailyStats.user_id).having(func.sum(UserDailyStats.questions_attempted) > curr_total_q).subquery()
+            ).where(UserDailyStats.date >= local_start_datetime).group_by(UserDailyStats.user_id).having(func.sum(UserDailyStats.questions_attempted) > curr_total_q).subquery()
         else:
             q_rank_sub = select(
                 UserDailyStats.user_id
@@ -373,11 +373,11 @@ class AnalyticsService:
         q_rank = q_rank_res.scalar() + 1
 
         # --- ACCURACY LEADERBOARD (min 20 questions) ---
-        if start_date_only:
+        if local_start_datetime:
             acc_subq = select(
                 UserDailyStats.user_id,
                 (func.sum(UserDailyStats.correct_answers) * 100.0 / func.sum(UserDailyStats.questions_attempted)).label("acc")
-            ).where(UserDailyStats.date >= start_date_only).group_by(UserDailyStats.user_id)\
+            ).where(UserDailyStats.date >= local_start_datetime).group_by(UserDailyStats.user_id)\
              .having(func.sum(UserDailyStats.questions_attempted) >= 20)\
              .subquery()
         else:
@@ -408,10 +408,10 @@ class AnalyticsService:
             })
 
         if curr_total_q >= 20:
-            if start_date_only:
+            if local_start_datetime:
                 acc_rank_sub = select(
                     UserDailyStats.user_id
-                ).where(UserDailyStats.date >= start_date_only).group_by(UserDailyStats.user_id)\
+                ).where(UserDailyStats.date >= local_start_datetime).group_by(UserDailyStats.user_id)\
                  .having(and_(
                      func.sum(UserDailyStats.questions_attempted) >= 20,
                      (func.sum(UserDailyStats.correct_answers) * 100.0 / func.sum(UserDailyStats.questions_attempted)) > curr_acc

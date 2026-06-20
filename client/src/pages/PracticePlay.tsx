@@ -928,8 +928,7 @@ export default function PracticePlay() {
 
   const fetchSession = async (activeTab = mainTab, subMode = practiceSubMode) => {
     try {
-      const tzOffset = new Date().getTimezoneOffset() // e.g. -420 for UTC+7
-      const modeParam = activeTab === 'practice' ? `?mode=${subMode}&tz_offset=${tzOffset}` : `?tz_offset=${tzOffset}`
+      const modeParam = activeTab === 'practice' ? `?mode=${subMode}` : ''
       const isPractice = activeTab === 'practice'
 
       // Practice: only fetch play-data + practice-settings in parallel. No goals. No session restore.
