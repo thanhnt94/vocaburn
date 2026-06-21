@@ -710,9 +710,9 @@ async def get_global_goals(request: Request, db: AsyncSession = Depends(get_db))
         select(UserDailyStats).where(
             UserDailyStats.user_id == user_id,
             UserDailyStats.date >= today
-        )
+        ).order_by(UserDailyStats.date.desc())
     )
-    stats = stats_res.scalar_one_or_none()
+    stats = stats_res.scalars().first()
     
     # Convert seconds to minutes for daily time progress
     actual_seconds = stats.total_time_seconds if stats else 0

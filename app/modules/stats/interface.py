@@ -31,7 +31,7 @@ class StatsInterface:
         result = await db.execute(
             select(UserDailyStats).where(
                 UserDailyStats.user_id == user_id,
-                UserDailyStats.date >= today
+                UserDailyStats.date == today
             )
         )
         stats = result.scalar_one_or_none()
@@ -88,7 +88,7 @@ class StatsInterface:
         result = await db.execute(
             select(UserDailyStats).where(
                 UserDailyStats.user_id == user_id,
-                UserDailyStats.date >= today
+                UserDailyStats.date == today
             )
         )
         stats = result.scalar_one_or_none()
