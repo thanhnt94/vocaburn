@@ -17,7 +17,7 @@ export default function ManageFlashcards() {
   const { data: quizzes, isLoading } = useQuery<any[]>({
     queryKey: ['manage-quizzes'],
     queryFn: async () => {
-      const res = await axios.get('/api/v1/dashboard/data')
+      const res = await axios.get('/api/v1/dashboard/data?only_created=true')
       return res.data.created_quizzes
     }
   })

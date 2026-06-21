@@ -42,7 +42,7 @@ async def get_daily_comparison(request: Request, db: AsyncSession = Depends(get_
 
 
 @router.get("/dashboard/data")
-async def get_dashboard_data(request: Request, db: AsyncSession = Depends(get_db)):
+async def get_dashboard_data(request: Request, only_created: bool = False, db: AsyncSession = Depends(get_db)):
     user = await AuthService.get_current_user(request, db)
     if not user:
         raise HTTPException(status_code=401, detail="Unauthorized")
@@ -53,6 +53,37 @@ async def get_dashboard_data(request: Request, db: AsyncSession = Depends(get_db
     from app.modules.deck.models import FlashcardDeck, DeckAttempt, Flashcard
     from app.modules.gamification.interface import GamificationInterface
     from app.modules.notification.interface import NotificationInterface
+
+    # Query B: Created Decks (creator_id == user_id_int)
+    query_b = select(
+        FlashcardDeck,
+        select(func.count(Flashcard.id)).where(Flashcard.deck_id == FlashcardDeck.id).scalar_subquery().label("c_count")
+    ).options(
+        selectinload(FlashcardDeck.tags)
+    )
+    if user.role != "admin":
+        query_b = query_b.where(FlashcardDeck.creator_id == user_id_int)
+
+    if only_created:
+        res_b = await db.execute(query_b)
+        created_decks_data = []
+        for row in res_b.all():
+            q, count = row
+            deck_dict = {
+                "id": q.id,
+                "title": q.title,
+                "description": q.description,
+                "cover_image": q.cover_image,
+                "questions_count": count or 0,
+                "cards_count": count or 0,  # compatibility
+                "tags": [t.name for t in q.tags],
+                "is_creator": q.creator_id == user_id_int
+            }
+            created_decks_data.append(deck_dict)
+        return {
+            "created_decks": created_decks_data,
+            "created_quizzes": created_decks_data  # compatibility
+        }
 
     # Query A: My & Archived Decks (Join with grouped DeckAttempt subquery to prevent duplicates)
     subq = select(
@@ -73,16 +104,6 @@ async def get_dashboard_data(request: Request, db: AsyncSession = Depends(get_db
     ).options(
         selectinload(FlashcardDeck.tags)
     )
-
-    # Query B: Created Decks (creator_id == user_id_int)
-    query_b = select(
-        FlashcardDeck,
-        select(func.count(Flashcard.id)).where(Flashcard.deck_id == FlashcardDeck.id).scalar_subquery().label("c_count")
-    ).options(
-        selectinload(FlashcardDeck.tags)
-    )
-    if user.role != "admin":
-        query_b = query_b.where(FlashcardDeck.creator_id == user_id_int)
 
     # Query C: Discover Decks (exclude attempted/created, limit 12, order by created_at desc)
     attempted_sub = select(DeckAttempt.deck_id).where(DeckAttempt.user_id == user_id_int)
