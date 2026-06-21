@@ -21,8 +21,9 @@ for f in os.listdir(assets_dir):
         if matches or named_matches:
             print(f"\nFile: {f}")
             for m in matches:
-                snippet = content[max(0, m.start()-50):min(len(content), m.end()+50)].replace("\n", " ")
-                print(f"  Lookbehind: {m.group()} -> ... {snippet} ...")
+                snippet = content[max(0, m.start()-10):min(len(content), m.end()+250)]
+                print(f"  Lookbehind group: {repr(m.group())}")
+                print(f"  Lookbehind full match representation: {repr(snippet)}")
             for m in named_matches:
                 snippet = content[max(0, m.start()-50):min(len(content), m.end()+50)].replace("\n", " ")
                 print(f"  Named Group: {m.group()} -> ... {snippet} ...")
