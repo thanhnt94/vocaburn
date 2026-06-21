@@ -7,10 +7,29 @@
     <meta name="theme-color" content="#4F46E5">
     <script>
       window.onerror = function(message, source, lineno, colno, error) {
+        var msg = String(message || "");
+        var src = String(source || "");
+        var err = error ? String(error.message || error) : "";
+        if (
+          msg.indexOf("import.meta.resolve") !== -1 || 
+          msg.indexOf("legacy-guard") !== -1 ||
+          src.indexOf("import.meta.resolve") !== -1 ||
+          src.indexOf("legacy-guard") !== -1 ||
+          err.indexOf("import.meta.resolve") !== -1 ||
+          err.indexOf("legacy-guard") !== -1
+        ) {
+          console.warn("Ignored Vite legacy detection error:", msg, src);
+          return true; // Ignore Vite legacy feature detection errors
+        }
         alert("Runtime Error: " + message + "\nSource: " + source + "\nLine: " + lineno + ":" + colno);
         return false;
       };
       window.addEventListener('unhandledrejection', function(event) {
+        var reason = event.reason ? String(event.reason.message || event.reason) : "";
+        if (reason.indexOf("import.meta.resolve") !== -1 || reason.indexOf("legacy-guard") !== -1) {
+          console.warn("Ignored Vite legacy detection rejection:", reason);
+          return; // Ignore Vite legacy feature detection promise rejections
+        }
         alert("Unhandled Promise Rejection: " + event.reason);
       });
       if ('serviceWorker' in navigator) {
