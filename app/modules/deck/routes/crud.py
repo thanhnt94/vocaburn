@@ -1,4 +1,4 @@
-from fastapi import APIRouter, UploadFile, File, Depends, Request, BackgroundTasks
+from fastapi import APIRouter, UploadFile, File, Form, Depends, Request, BackgroundTasks
 from typing import Optional
 import logging
 
@@ -77,7 +77,7 @@ async def preview_deck(file: UploadFile = File(...)):
         return JSONResponse(status_code=400, content={"error": str(e)})
 
 @router.post("/upload")
-async def upload_deck(request: Request, file: UploadFile = File(...), metadata_override: str = None, db: AsyncSession = Depends(get_db)):
+async def upload_deck(request: Request, file: UploadFile = File(...), metadata_override: Optional[str] = Form(None), db: AsyncSession = Depends(get_db)):
     try:
         import asyncio
         content = await file.read()
