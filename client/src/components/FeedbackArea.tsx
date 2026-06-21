@@ -111,13 +111,10 @@ export const FeedbackArea: React.FC<FeedbackAreaProps> = ({
   if (!showFeedback) return null
 
   const aiTabs = React.useMemo(() => {
-    return deckInfo?.ai_prompts && deckInfo.ai_prompts.length > 0
-      ? deckInfo.ai_prompts
-      : [
-          { id: 'explanation', title: 'Giải thích' },
-          { id: 'mnemonic', title: 'Cách nhớ' },
-          { id: 'hint', title: 'Gợi ý' }
-        ]
+    return [
+      { id: 'explanation', title: 'Giải thích' },
+      ...(deckInfo?.ai_prompts || [])
+    ]
   }, [deckInfo?.ai_prompts])
 
   const [activeAITab, setActiveAITab] = React.useState<string>(aiTabs[0]?.id || 'explanation')
@@ -132,15 +129,11 @@ export const FeedbackArea: React.FC<FeedbackAreaProps> = ({
   const getActiveAIContent = () => {
     if (!currentQuestion) return ''
     if (activeAITab === 'explanation') return currentQuestion.ai_explanation || ''
-    if (activeAITab === 'mnemonic') return currentQuestion.mnemonic || ''
-    if (activeAITab === 'hint') return currentQuestion.hint || ''
     return currentQuestion.others?.ai_responses?.[activeAITab] || ''
   }
 
   const getActivePromptTemplate = () => {
     if (activeAITab === 'explanation') return deckInfo?.ai_prompt || ''
-    if (activeAITab === 'mnemonic') return deckInfo?.ai_prompt_mnemonic || ''
-    if (activeAITab === 'hint') return deckInfo?.ai_prompt_hint || ''
     const custom = deckInfo?.ai_prompts?.find((p: any) => p.id === activeAITab)
     return custom?.prompt || ''
   }
@@ -157,8 +150,6 @@ export const FeedbackArea: React.FC<FeedbackAreaProps> = ({
   const hasAIAnyContent = () => {
     if (!currentQuestion) return false
     if (currentQuestion.ai_explanation) return true
-    if (currentQuestion.mnemonic) return true
-    if (currentQuestion.hint) return true
     if (currentQuestion.others?.ai_responses && Object.keys(currentQuestion.others.ai_responses).length > 0) return true
     return false
   }
@@ -195,13 +186,25 @@ export const FeedbackArea: React.FC<FeedbackAreaProps> = ({
                     {parseBBCodeToHtml(getInsightText())}
                   </ReactMarkdown>
 
-                  {currentQuestion?.mnemonic && (
-                    <div className="mt-4 p-4 rounded-2xl bg-amber-50/50 border border-amber-100/60 flex items-start gap-3 shadow-inner text-left animate-in slide-in-from-bottom-2">
-                      <div className="w-6 h-6 rounded-lg bg-amber-500 flex items-center justify-center text-white font-black text-xs shadow shrink-0 mt-0.5">
+                  {currentQuestion?.hint && (
+                    <div className="mt-4 p-4 rounded-2xl bg-indigo-50/50 border border-indigo-100/60 flex items-start gap-3 shadow-inner text-left animate-in slide-in-from-bottom-2">
+                      <div className="w-6 h-6 rounded-lg bg-indigo-500 flex items-center justify-center text-white font-black text-xs shadow shrink-0 mt-0.5">
                         💡
                       </div>
                       <div className="text-slate-700 font-semibold text-xs leading-relaxed flex-1 whitespace-pre-wrap">
-                        <span className="font-black text-[9px] uppercase tracking-wider text-amber-500 block mb-0.5">Cách nhớ (AI Mnemonic)</span>
+                        <span className="font-black text-[9px] uppercase tracking-wider text-indigo-500 block mb-0.5">Gợi ý (Hint)</span>
+                        {currentQuestion.hint}
+                      </div>
+                    </div>
+                  )}
+
+                  {currentQuestion?.mnemonic && (
+                    <div className="mt-4 p-4 rounded-2xl bg-amber-50/50 border border-amber-100/60 flex items-start gap-3 shadow-inner text-left animate-in slide-in-from-bottom-2">
+                      <div className="w-6 h-6 rounded-lg bg-amber-500 flex items-center justify-center text-white font-black text-xs shadow shrink-0 mt-0.5">
+                        🧠
+                      </div>
+                      <div className="text-slate-700 font-semibold text-xs leading-relaxed flex-1 whitespace-pre-wrap">
+                        <span className="font-black text-[9px] uppercase tracking-wider text-amber-500 block mb-0.5">Mẹo nhớ (Mnemonic)</span>
                         {currentQuestion.mnemonic}
                       </div>
                     </div>
