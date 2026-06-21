@@ -59,11 +59,15 @@ def migrate_practice_settings(settings: Optional[dict]) -> dict:
         return settings
     active_pairs = settings.get("active_pairs", [])
     num_choices = settings.get("num_choices", 4)
-    return {
+    res = {
         "mcq": {"active_pairs": active_pairs, "num_choices": num_choices},
         "typing": {"active_pairs": active_pairs},
         "listening": {"active_pairs": active_pairs, "num_choices": num_choices}
     }
+    for k, v in settings.items():
+        if k not in ("active_pairs", "num_choices"):
+            res[k] = v
+    return res
 
 @router.get("/{deck_id}/practice-settings")
 async def get_practice_settings(request: Request, deck_id: int, db: AsyncSession = Depends(get_db)):

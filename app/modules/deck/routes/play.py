@@ -1232,6 +1232,7 @@ async def get_deck_play_data(request: Request, deck_id: int, mode: Optional[str]
         "ai_prompt": deck.ai_prompt,
         "ai_prompt_hint": deck.ai_prompt_hint,
         "ai_prompt_mnemonic": deck.ai_prompt_mnemonic,
+        "ai_prompts": deck.practice_settings.get("ai_prompts", []) if (deck.practice_settings and isinstance(deck.practice_settings, dict)) else [],
         "instruction": deck.instruction,
         "category_id": deck.category_id,
         "creator_id": deck.creator_id,
@@ -1518,7 +1519,7 @@ async def _generate_ai_content_sync(db: AsyncSession, deck_id: int, card_id: int
             "Definition/Meaning (Back): {{correct_answer}}\n\n"
             "Make it extremely visual, memorable, and fun. Keep it concise."
         )
-    else: # explanation
+    elif field == "explanation":
         template = (deck.ai_prompt if deck else None) or (
             "Provide a detailed and educational explanation for the following question.\n\n"
             "Question: {{question}}\n"
@@ -1527,6 +1528,17 @@ async def _generate_ai_content_sync(db: AsyncSession, deck_id: int, card_id: int
             "Explain why the correct answer is right and why other options might be confusing.\n"
             "Output language should be Vietnamese if the question is in Vietnamese, otherwise English."
         )
+    else:
+        # Custom prompt! Retrieve it from deck.practice_settings["ai_prompts"]
+        template = None
+        if deck and deck.practice_settings and isinstance(deck.practice_settings, dict):
+            prompts = deck.practice_settings.get("ai_prompts", [])
+            for p in prompts:
+                if p.get("id") == field:
+                    template = p.get("prompt")
+                    break
+        if not template:
+            template = f"Provide dynamic analysis for: {{question}}"
         
     # Format options
     options_text = ""
@@ -1563,7 +1575,7 @@ async def _generate_ai_content_sync(db: AsyncSession, deck_id: int, card_id: int
         ai_response = ai_response[len("```"):].strip()
     if ai_response.endswith("```"):
         ai_response = ai_response[:-3].strip()
-        
+    
     ai_response = re.sub(r'`\s*(<ruby>[\s\S]*?<\/ruby>)\s*`', r'\1', ai_response)
     
     return ai_response
@@ -1572,6 +1584,7 @@ async def _generate_ai_task(deck_id: int, card_id: int, field: str = "explanatio
     from app.modules.deck.models import Flashcard
     from app.core.db import engine
     from sqlalchemy.ext.asyncio import AsyncSession
+    from sqlalchemy.orm.attributes import flag_modified
     
     async with AsyncSession(engine) as db:
         content = await _generate_ai_content_sync(db, deck_id, card_id, field)
@@ -1582,19 +1595,27 @@ async def _generate_ai_task(deck_id: int, card_id: int, field: str = "explanatio
                 card.hint = content
             elif field == "mnemonic":
                 card.mnemonic = content
-            else:
+            elif field == "explanation":
                 card.ai_explanation = content
+            else:
+                if not card.others:
+                    card.others = {}
+                if "ai_responses" not in card.others:
+                    card.others["ai_responses"] = {}
+                card.others["ai_responses"][field] = content
+                flag_modified(card, "others")
             await db.commit()
 
 @router.post("/{deck_id}/ask-ai")
 async def ask_ai(deck_id: int, payload: dict, background_tasks: BackgroundTasks, db: AsyncSession = Depends(get_db)):
     card_id = payload.get("card_id", payload.get("question_id"))
-    field = payload.get("field", "explanation") # explanation, hint, mnemonic
+    field = payload.get("field", "explanation") # explanation, hint, mnemonic, or custom ID
     force = payload.get("force", False)
     sync = payload.get("sync", False)
     
     from app.modules.deck.models import Flashcard
     from app.modules.admin.interface import AdminInterface
+    from sqlalchemy.orm.attributes import flag_modified
     
     # Check if AI is enabled
     ai_config = await AdminInterface.get_ai_config(db)
@@ -1610,26 +1631,40 @@ async def ask_ai(deck_id: int, payload: dict, background_tasks: BackgroundTasks,
         val = payload["ai_explanation"]
         c.ai_explanation = val.strip() if isinstance(val, str) else val
         await db.commit()
-        return {"ai_explanation": c.ai_explanation}
+        return {"ai_explanation": c.ai_explanation, "content": c.ai_explanation}
     elif field == "hint" and "hint" in payload:
         val = payload["hint"]
         c.hint = val.strip() if isinstance(val, str) else val
         await db.commit()
-        return {"hint": c.hint}
+        return {"hint": c.hint, "content": c.hint}
     elif field == "mnemonic" and "mnemonic" in payload:
         val = payload["mnemonic"]
         c.mnemonic = val.strip() if isinstance(val, str) else val
         await db.commit()
-        return {"mnemonic": c.mnemonic}
+        return {"mnemonic": c.mnemonic, "content": c.mnemonic}
+    elif field not in ["explanation", "hint", "mnemonic"] and "content" in payload:
+        val = payload["content"]
+        if not c.others:
+            c.others = {}
+        if "ai_responses" not in c.others:
+            c.others["ai_responses"] = {}
+        c.others["ai_responses"][field] = val.strip() if isinstance(val, str) else val
+        flag_modified(c, "others")
+        await db.commit()
+        return {"content": c.others["ai_responses"][field], "ai_explanation": c.others["ai_responses"][field]}
         
     # Return Cached values
     if not force:
         if field == "explanation" and c.ai_explanation:
-            return {"ai_explanation": c.ai_explanation}
+            return {"ai_explanation": c.ai_explanation, "content": c.ai_explanation}
         elif field == "hint" and c.hint:
-            return {"hint": c.hint}
+            return {"hint": c.hint, "content": c.hint}
         elif field == "mnemonic" and c.mnemonic:
-            return {"mnemonic": c.mnemonic}
+            return {"mnemonic": c.mnemonic, "content": c.mnemonic}
+        elif field not in ["explanation", "hint", "mnemonic"]:
+            if c.others and isinstance(c.others, dict) and "ai_responses" in c.others:
+                if field in c.others["ai_responses"] and c.others["ai_responses"][field]:
+                    return {"ai_explanation": c.others["ai_responses"][field], "content": c.others["ai_responses"][field]}
             
     # Sync Generation
     if sync:
@@ -1638,17 +1673,24 @@ async def ask_ai(deck_id: int, payload: dict, background_tasks: BackgroundTasks,
             c.hint = content
         elif field == "mnemonic":
             c.mnemonic = content
-        else:
+        elif field == "explanation":
             c.ai_explanation = content
+        else:
+            if not c.others:
+                c.others = {}
+            if "ai_responses" not in c.others:
+                c.others["ai_responses"] = {}
+            c.others["ai_responses"][field] = content
+            flag_modified(c, "others")
         await db.commit()
         
         # Return field response
         if field == "hint":
-            return {"hint": content}
+            return {"hint": content, "content": content}
         elif field == "mnemonic":
-            return {"mnemonic": content}
+            return {"mnemonic": content, "content": content}
         else:
-            return {"ai_explanation": content}
+            return {"ai_explanation": content, "content": content}
             
     # Background Generation
     background_tasks.add_task(_generate_ai_task, deck_id, card_id, field)

@@ -26,6 +26,7 @@ interface Question {
   explanation: string
   ai_explanation?: string
   mnemonic?: string | null
+  hint?: string | null
   options: any[]
   others?: Record<string, any> | null
 }
@@ -40,18 +41,18 @@ interface FeedbackAreaProps {
   setInsightInput: (val: string) => void
   currentQuestion: Question | null
   canEdit: boolean
-  clearAIExplanation: () => void
+  clearAIExplanation: (field?: string) => void
   isEditingAI: boolean
   setIsEditingAI: (val: boolean) => void
   isEditingPrompt: boolean
   setIsEditingPrompt: (val: boolean) => void
-  askAI: (customPrompt?: string) => void
+  askAI: (field: string, customPrompt?: string) => void
   isAskingAI: boolean
   aiInput: string
   setAiInput: (val: string) => void
   promptInput: string
   setPromptInput: (val: string) => void
-  savePrompt: () => void
+  savePrompt: (field: string) => void
   saveNote: () => void
   personalNote: string
   setPersonalNote: (val: string) => void
@@ -66,6 +67,7 @@ interface FeedbackAreaProps {
   isCopied: boolean
   handleNext: () => void
   selectedChoiceData?: any
+  deckInfo?: any
 }
 
 export const FeedbackArea: React.FC<FeedbackAreaProps> = ({
@@ -104,12 +106,56 @@ export const FeedbackArea: React.FC<FeedbackAreaProps> = ({
   isCopied,
   handleNext,
   selectedChoiceData,
+  deckInfo,
 }) => {
   if (!showFeedback) return null
 
+  const [activeAITab, setActiveAITab] = React.useState<string>('explanation')
+
+  const aiTabs = [
+    { id: 'explanation', title: 'Giải thích' },
+    { id: 'mnemonic', title: 'Cách nhớ' },
+    { id: 'hint', title: 'Gợi ý' },
+    ...(deckInfo?.ai_prompts || [])
+  ]
+
+  const getActiveAIContent = () => {
+    if (!currentQuestion) return ''
+    if (activeAITab === 'explanation') return currentQuestion.ai_explanation || ''
+    if (activeAITab === 'mnemonic') return currentQuestion.mnemonic || ''
+    if (activeAITab === 'hint') return currentQuestion.hint || ''
+    return currentQuestion.others?.ai_responses?.[activeAITab] || ''
+  }
+
+  const getActivePromptTemplate = () => {
+    if (activeAITab === 'explanation') return deckInfo?.ai_prompt || ''
+    if (activeAITab === 'mnemonic') return deckInfo?.ai_prompt_mnemonic || ''
+    if (activeAITab === 'hint') return deckInfo?.ai_prompt_hint || ''
+    const custom = deckInfo?.ai_prompts?.find((p: any) => p.id === activeAITab)
+    return custom?.prompt || ''
+  }
+
+  React.useEffect(() => {
+    if (activeFeedbackTab === 'ai') {
+      setAiInput(getActiveAIContent())
+      setPromptInput(getActivePromptTemplate())
+      setIsEditingAI(false)
+      setIsEditingPrompt(false)
+    }
+  }, [activeAITab, activeFeedbackTab, currentQuestion?.id, deckInfo])
+
+  const hasAIAnyContent = () => {
+    if (!currentQuestion) return false
+    if (currentQuestion.ai_explanation) return true
+    if (currentQuestion.mnemonic) return true
+    if (currentQuestion.hint) return true
+    if (currentQuestion.others?.ai_responses && Object.keys(currentQuestion.others.ai_responses).length > 0) return true
+    return false
+  }
+
   const tabs = [
     { id: 'insight' as const, label: 'INSIGHT', icon: Lightbulb, color: 'text-amber-500', bg: 'bg-amber-100', hasContent: !!getInsightText() && getInsightText() !== 'No detail.' },
-    { id: 'ai' as const, label: 'AI ANALYSIS', icon: Sparkles, color: 'text-indigo-600', bg: 'bg-indigo-100', hasContent: !!currentQuestion?.ai_explanation },
+    { id: 'ai' as const, label: 'AI ANALYSIS', icon: Sparkles, color: 'text-indigo-600', bg: 'bg-indigo-100', hasContent: hasAIAnyContent() },
     { id: 'note' as const, label: 'PERSONAL NOTE', icon: StickyNote, color: 'text-slate-400', bg: 'bg-slate-100', hasContent: !!personalNote },
     { id: 'card' as const, label: 'CARD INFO', icon: FileText, color: 'text-blue-500', bg: 'bg-blue-100', hasContent: !!selectedChoiceData }
   ]
@@ -158,13 +204,45 @@ export const FeedbackArea: React.FC<FeedbackAreaProps> = ({
       case 'ai':
         return (
           <div className="p-6 rounded-[2rem] ai-glow animate-in fade-in slide-in-from-bottom-2">
+            {/* AI Sub-tabs */}
+            <div className="flex items-center gap-1.5 p-1 bg-slate-100 rounded-xl mb-4 overflow-x-auto custom-scrollbar">
+               {aiTabs.map((tab: any) => {
+                  const isTabActive = activeAITab === tab.id
+                  let tabHasContent = false
+                  if (tab.id === 'explanation') tabHasContent = !!currentQuestion?.ai_explanation
+                  else if (tab.id === 'mnemonic') tabHasContent = !!currentQuestion?.mnemonic
+                  else if (tab.id === 'hint') tabHasContent = !!currentQuestion?.hint
+                  else tabHasContent = !!currentQuestion?.others?.ai_responses?.[tab.id]
+
+                  return (
+                     <button
+                        key={tab.id}
+                        onClick={() => {
+                           setActiveAITab(tab.id)
+                           setIsEditingAI(false)
+                           setIsEditingPrompt(false)
+                        }}
+                        className={cn(
+                           "px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-wider transition-all whitespace-nowrap flex items-center gap-1.5",
+                           isTabActive ? "bg-white text-indigo-600 shadow-sm" : "text-slate-500 hover:text-slate-800"
+                        )}
+                     >
+                        <span>{tab.title || tab.label}</span>
+                        {tabHasContent && <span className="w-1.5 h-1.5 rounded-full bg-indigo-500" />}
+                     </button>
+                  )
+               })}
+            </div>
+
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2">
                 <Sparkles className="w-4 h-4 text-indigo-500 animate-pulse" />
-                <span className="text-[9px] font-black text-indigo-600 uppercase tracking-widest">AI ANALYSIS</span>
-                {canEdit && currentQuestion?.ai_explanation && !isEditingAI && !isEditingPrompt && (
+                <span className="text-[9px] font-black text-indigo-600 uppercase tracking-widest">
+                  AI {aiTabs.find(t => t.id === activeAITab)?.title.toUpperCase()}
+                </span>
+                {canEdit && getActiveAIContent() && !isEditingAI && !isEditingPrompt && (
                   <button
-                    onClick={clearAIExplanation}
+                    onClick={() => clearAIExplanation(activeAITab)}
                     className="text-[9px] font-black text-rose-500 hover:text-rose-700 bg-rose-50 hover:bg-rose-100 px-2.5 py-1 rounded-md border border-rose-200 shadow-sm transition-all ml-2"
                   >
                     CLEAR AI
@@ -183,9 +261,9 @@ export const FeedbackArea: React.FC<FeedbackAreaProps> = ({
                     {isEditingPrompt ? 'CLOSE PROMPT' : 'PROMPT'}
                   </button>
                 )}
-                {!currentQuestion?.ai_explanation && !isEditingAI && !isEditingPrompt && (
+                {!getActiveAIContent() && !isEditingAI && !isEditingPrompt && (
                   <button
-                    onClick={() => askAI()}
+                    onClick={() => askAI(activeAITab)}
                     disabled={isAskingAI}
                     className="text-[9px] font-black text-indigo-600 bg-white px-3 py-1.5 rounded-lg border border-indigo-100 shadow-sm hover:bg-indigo-50 transition-all disabled:opacity-50"
                   >
@@ -196,9 +274,9 @@ export const FeedbackArea: React.FC<FeedbackAreaProps> = ({
                   <button
                     onClick={() => {
                       if (isEditingAI) {
-                        askAI(aiInput)
+                        askAI(activeAITab, aiInput)
                       } else {
-                        setAiInput(currentQuestion?.ai_explanation || '')
+                        setAiInput(getActiveAIContent())
                         setIsEditingAI(true)
                       }
                     }}
@@ -217,9 +295,9 @@ export const FeedbackArea: React.FC<FeedbackAreaProps> = ({
             {isEditingPrompt ? (
               <div className="space-y-3 mt-2 bg-amber-50/50 border border-amber-100 rounded-2xl p-4">
                 <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-black text-amber-700 uppercase tracking-wider">EDIT SYSTEM PROMPT FOR AI</span>
+                  <span className="text-[10px] font-black text-amber-700 uppercase tracking-wider">EDIT SYSTEM PROMPT FOR {aiTabs.find(t => t.id === activeAITab)?.title.toUpperCase()}</span>
                   <button
-                    onClick={savePrompt}
+                    onClick={() => savePrompt(activeAITab)}
                     className="text-[9px] font-black bg-amber-600 hover:bg-amber-700 text-white px-3 py-1.5 rounded-lg shadow-sm transition-all"
                   >
                     SAVE PROMPT
@@ -262,7 +340,7 @@ export const FeedbackArea: React.FC<FeedbackAreaProps> = ({
                   </p>
                 </div>
               ) : (
-                currentQuestion?.ai_explanation && (
+                getActiveAIContent() && (
                   <div className="text-slate-700 font-medium text-sm leading-relaxed markdown-content break-words pr-2 mt-2">
                     <ReactMarkdown
                       remarkPlugins={[remarkGfm]}
@@ -272,7 +350,7 @@ export const FeedbackArea: React.FC<FeedbackAreaProps> = ({
                         p: ({ children }) => <span className="inline-block">{children}</span>
                       }}
                     >
-                      {parseBBCodeToHtml(currentQuestion.ai_explanation)}
+                      {parseBBCodeToHtml(getActiveAIContent())}
                     </ReactMarkdown>
                   </div>
                 )

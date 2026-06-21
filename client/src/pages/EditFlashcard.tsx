@@ -122,7 +122,8 @@ const EditFlashcard = () => {
   const [practiceSettings, setPracticeSettings] = useState<any>({
     mcq: { active_pairs: [{ q: 'front', a: 'back' }], num_choices: 4 },
     typing: { active_pairs: [{ q: 'front', a: 'back' }] },
-    listening: { active_pairs: [{ q: 'front', a: 'back' }], num_choices: 4 }
+    listening: { active_pairs: [{ q: 'front', a: 'back' }], num_choices: 4 },
+    ai_prompts: []
   })
   
   // Collaboration State
@@ -747,6 +748,71 @@ const EditFlashcard = () => {
  
                              <div className="p-5 bg-white/5 border border-white/5 rounded-2xl border-dashed text-[10px] font-medium text-white/50 italic leading-relaxed">
                                 * These prompts will guide the AI on how to generate explanations, hints, and mnemonics. Use variables like {"{{question}}"} and {"{{correct_answer}}"} to inject card content dynamically.
+                             </div>
+
+                             {/* Custom AI Prompts List */}
+                             <div className="space-y-4 pt-4 border-t border-white/10">
+                                <div className="flex items-center justify-between">
+                                   <label className="text-[10px] font-black text-white/50 uppercase tracking-widest">Custom AI Tabs (Các Tab Phản Hồi AI Tự Định Nghĩa)</label>
+                                   <span className="text-[8px] font-bold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full uppercase">Dynamic Content Tabs</span>
+                                </div>
+
+                                {(practiceSettings.ai_prompts || []).map((cp: any, index: number) => (
+                                   <div key={cp.id || index} className="p-5 bg-white/5 border border-white/10 rounded-2xl space-y-4">
+                                      <div className="flex items-center gap-3">
+                                         <div className="flex-1">
+                                            <label className="text-[8px] font-black text-white/40 uppercase tracking-widest block mb-1">Tab Name (Tên tab hiển thị)</label>
+                                            <input 
+                                               type="text"
+                                               placeholder="e.g. Cách dùng, Ví dụ thêm..."
+                                               value={cp.title || ''}
+                                               onChange={(e) => {
+                                                  const newPrompts = [...(practiceSettings.ai_prompts || [])]
+                                                  newPrompts[index] = { ...newPrompts[index], title: e.target.value }
+                                                  setPracticeSettings({ ...practiceSettings, ai_prompts: newPrompts })
+                                               }}
+                                               className="w-full bg-slate-800 border border-white/10 rounded-xl px-3 h-10 text-xs font-bold text-white outline-none focus:ring-2 focus:ring-indigo-500/20"
+                                            />
+                                         </div>
+                                         <button
+                                            type="button"
+                                            onClick={() => {
+                                               const newPrompts = (practiceSettings.ai_prompts || []).filter((_: any, idx: number) => idx !== index)
+                                               setPracticeSettings({ ...practiceSettings, ai_prompts: newPrompts })
+                                            }}
+                                            className="w-10 h-10 rounded-xl bg-white/5 hover:bg-rose-500/15 hover:text-rose-400 border border-white/5 flex items-center justify-center text-white/40 transition-all self-end"
+                                         >
+                                            <Trash2 className="w-4 h-4" />
+                                         </button>
+                                      </div>
+
+                                      <div className="space-y-1.5">
+                                         <label className="text-[8px] font-black text-white/40 uppercase tracking-widest block">AI Prompt Template</label>
+                                         <textarea 
+                                            rows={4}
+                                            placeholder="Define custom instruction for this tab..."
+                                            value={cp.prompt || ''}
+                                            onChange={(e) => {
+                                               const newPrompts = [...(practiceSettings.ai_prompts || [])]
+                                               newPrompts[index] = { ...newPrompts[index], prompt: e.target.value }
+                                               setPracticeSettings({ ...practiceSettings, ai_prompts: newPrompts })
+                                            }}
+                                            className="w-full bg-slate-800 border border-white/10 rounded-xl p-3.5 text-xs font-medium text-white placeholder:text-white/20 outline-none focus:ring-2 focus:ring-indigo-500/20 resize-none custom-scrollbar"
+                                         />
+                                      </div>
+                                   </div>
+                                ))}
+
+                                <button
+                                   type="button"
+                                   onClick={() => {
+                                      const newPrompts = [...(practiceSettings.ai_prompts || []), { id: `custom_${Date.now()}`, title: '', prompt: '' }]
+                                      setPracticeSettings({ ...practiceSettings, ai_prompts: newPrompts })
+                                   }}
+                                   className="py-2.5 px-4 border border-dashed border-indigo-500/30 hover:border-indigo-400 rounded-xl text-indigo-400 text-[10px] font-black uppercase tracking-wider flex items-center gap-1.5 transition-all w-fit bg-indigo-500/5 active:scale-95"
+                                >
+                                   <Plus className="w-3.5 h-3.5" /> Thêm Custom Prompt Tab
+                                </button>
                              </div>
                           </div>
                        </div>

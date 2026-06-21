@@ -1991,12 +1991,17 @@ export default function FlashcardPlay() {
     }
   };
 
-  const askAI = async (manualText?: string) => {
+  const askAI = async (field: string = "explanation", manualText?: string) => {
     if (!currentQuestion) return
     setIsAskingAI(true)
     try {
-      const payload: any = { question_id: currentQuestion.id }
-      if (typeof manualText === 'string') payload.ai_explanation = manualText
+      const payload: any = { question_id: currentQuestion.id, field }
+      if (typeof manualText === 'string') {
+        if (field === 'explanation') payload.ai_explanation = manualText
+        else if (field === 'hint') payload.hint = manualText
+        else if (field === 'mnemonic') payload.mnemonic = manualText
+        else payload.content = manualText
+      }
       
       const res = await axios.post(`/api/v1/deck/${id}/ask-ai`, payload)
       
@@ -2010,17 +2015,32 @@ export default function FlashcardPlay() {
             // Append cache buster to completely bypass browser and proxy caching
             const quizRes = await axios.get(`/api/v1/deck/${id}/play-data?t=${Date.now()}`)
             const updatedQ = quizRes.data.questions?.find((q: any) => q.id === currentQuestion.id)
-            if (updatedQ && updatedQ.ai_explanation) {
-              setSession((prev: any) => {
-                const newQs = [...prev.questions]
-                const targetIdx = newQs.findIndex(q => q.id === updatedQ.id)
-                if (targetIdx !== -1) {
-                  newQs[targetIdx].ai_explanation = updatedQ.ai_explanation
-                }
-                return { ...prev, questions: newQs }
-              })
-              setIsAskingAI(false)
-              clearInterval(poll)
+            if (updatedQ) {
+              let updatedVal = null
+              if (field === 'explanation') updatedVal = updatedQ.ai_explanation
+              else if (field === 'hint') updatedVal = updatedQ.hint
+              else if (field === 'mnemonic') updatedVal = updatedQ.mnemonic
+              else updatedVal = updatedQ.others?.ai_responses?.[field]
+
+              if (updatedVal) {
+                setSession((prev: any) => {
+                  const newQs = [...prev.questions]
+                  const targetIdx = newQs.findIndex(q => q.id === updatedQ.id)
+                  if (targetIdx !== -1) {
+                    if (field === 'explanation') newQs[targetIdx].ai_explanation = updatedVal
+                    else if (field === 'hint') newQs[targetIdx].hint = updatedVal
+                    else if (field === 'mnemonic') newQs[targetIdx].mnemonic = updatedVal
+                    else {
+                      if (!newQs[targetIdx].others) newQs[targetIdx].others = {}
+                      if (!newQs[targetIdx].others.ai_responses) newQs[targetIdx].others.ai_responses = {}
+                      newQs[targetIdx].others.ai_responses[field] = updatedVal
+                    }
+                  }
+                  return { ...prev, questions: newQs }
+                })
+                setIsAskingAI(false)
+                clearInterval(poll)
+              }
             }
           } catch (e) {
             console.error("Error polling play-data for AI explanation:", e)
@@ -2031,10 +2051,18 @@ export default function FlashcardPlay() {
             setIsAskingAI(false)
           }
         }, 2000)
-      } else if (res.data.ai_explanation !== undefined) {
+      } else {
+        const updatedVal = res.data.content || res.data.ai_explanation || res.data.hint || res.data.mnemonic
         setSession((prev: any) => {
           const newQs = [...prev.questions]
-          newQs[currentIndex].ai_explanation = res.data.ai_explanation
+          if (field === 'explanation') newQs[currentIndex].ai_explanation = updatedVal
+          else if (field === 'hint') newQs[currentIndex].hint = updatedVal
+          else if (field === 'mnemonic') newQs[currentIndex].mnemonic = updatedVal
+          else {
+            if (!newQs[currentIndex].others) newQs[currentIndex].others = {}
+            if (!newQs[currentIndex].others.ai_responses) newQs[currentIndex].others.ai_responses = {}
+            newQs[currentIndex].others.ai_responses[field] = updatedVal
+          }
           return { ...prev, questions: newQs }
         })
         if (typeof manualText === 'string') setIsEditingAI(false)
@@ -2047,10 +2075,33 @@ export default function FlashcardPlay() {
     }
   }
 
-  const savePrompt = async () => {
+  const savePrompt = async (field: string = "explanation") => {
     try {
-      await axios.patch(`/api/v1/deck/${id}`, { ai_prompt: promptInput })
-      setSession((prev: any) => ({ ...prev, ai_prompt: promptInput }))
+      if (field === 'explanation' || field === 'mnemonic' || field === 'hint') {
+        const fieldMap: Record<string, string> = {
+          explanation: 'ai_prompt',
+          mnemonic: 'ai_prompt_mnemonic',
+          hint: 'ai_prompt_hint'
+        }
+        const fieldName = fieldMap[field]
+        await axios.patch(`/api/v1/deck/${id}`, { [fieldName]: promptInput })
+        setSession((prev: any) => ({ ...prev, [fieldName]: promptInput }))
+      } else {
+        const newPrompts = (session.ai_prompts || []).map((p: any) => {
+          if (p.id === field) {
+             return { ...p, prompt: promptInput }
+          }
+          return p
+        })
+        const settingsRes = await axios.get(`/api/v1/deck/${id}/practice-settings`)
+        const currentSettings = settingsRes.data.creator_settings || {}
+        currentSettings.ai_prompts = newPrompts
+        await axios.post(`/api/v1/deck/${id}/practice-settings`, {
+          settings: currentSettings,
+          is_creator: true
+        })
+        setSession((prev: any) => ({ ...prev, ai_prompts: newPrompts }))
+      }
       setIsEditingPrompt(false)
       alert("Prompt saved successfully!")
     } catch (e) {
@@ -2058,19 +2109,41 @@ export default function FlashcardPlay() {
     }
   }
 
-  const clearAIExplanation = async () => {
+  const clearAIExplanation = async (field: string = "explanation") => {
     if (!currentQuestion) return
-    if (!window.confirm("Are you sure you want to delete this AI explanation?")) return
+    if (!window.confirm("Are you sure you want to delete this AI content?")) return
     try {
-      await axios.patch(`/api/v1/deck/question/${currentQuestion.id}`, { ai_explanation: null })
-      setSession((prev: any) => {
-        const newQs = [...prev.questions]
-        const targetIdx = newQs.findIndex(q => q.id === currentQuestion.id)
-        if (targetIdx !== -1) {
-          newQs[targetIdx].ai_explanation = null
+      if (field === 'explanation' || field === 'hint' || field === 'mnemonic') {
+        const fieldMap: Record<string, string> = {
+          explanation: 'ai_explanation',
+          mnemonic: 'mnemonic',
+          hint: 'hint'
         }
-        return { ...prev, questions: newQs }
-      })
+        const dbField = fieldMap[field]
+        await axios.patch(`/api/v1/deck/question/${currentQuestion.id}`, { [dbField]: null })
+        setSession((prev: any) => {
+          const newQs = [...prev.questions]
+          const targetIdx = newQs.findIndex(q => q.id === currentQuestion.id)
+          if (targetIdx !== -1) {
+            newQs[targetIdx][dbField] = null
+          }
+          return { ...prev, questions: newQs }
+        })
+      } else {
+        const updatedOthers = { ...(currentQuestion.others || {}) }
+        if (updatedOthers.ai_responses) {
+          delete updatedOthers.ai_responses[field]
+        }
+        await axios.patch(`/api/v1/deck/question/${currentQuestion.id}`, { others: updatedOthers })
+        setSession((prev: any) => {
+          const newQs = [...prev.questions]
+          const targetIdx = newQs.findIndex(q => q.id === currentQuestion.id)
+          if (targetIdx !== -1) {
+            newQs[targetIdx].others = updatedOthers
+          }
+          return { ...prev, questions: newQs }
+        })
+      }
     } catch (e) {
       alert("Failed to delete AI explanation.")
     }
@@ -2275,354 +2348,6 @@ export default function FlashcardPlay() {
                  currentQuestion.options.map((opt, i) => `${String.fromCharCode(65 + i)}: ${opt.content}`).join('\n')
     navigator.clipboard.writeText(text)
     alert("Copied to clipboard!")
-  }
-
-  const renderFeedbackArea = (isMobile = false) => {
-    if (!showFeedback) return null
-    
-    const tabs = [
-      { id: 'insight', label: 'INSIGHT', icon: Lightbulb, color: 'text-amber-500', bg: 'bg-amber-100', hasContent: !!getInsightText() && getInsightText() !== 'No detail.' },
-      { id: 'ai', label: 'AI ANALYSIS', icon: Sparkles, color: 'text-indigo-600', bg: 'bg-indigo-100', hasContent: !!currentQuestion?.ai_explanation },
-      { id: 'note', label: 'PERSONAL NOTE', icon: StickyNote, color: 'text-slate-400', bg: 'bg-slate-100', hasContent: !!personalNote }
-    ]
-
-    const renderTabContent = () => {
-      switch (activeFeedbackTab) {
-        case 'insight':
-          return (
-            <div className="p-6 rounded-[2rem] bg-indigo-50/30 border border-indigo-100 shadow-sm animate-in fade-in slide-in-from-bottom-2">
-                 <div className="flex items-center gap-2 mb-3">
-                   <div className="w-6 h-6 rounded-full bg-amber-100 flex items-center justify-center">
-                      <Lightbulb className="w-3.5 h-3.5 fill-amber-500" />
-                   </div>
-                   <span className="text-[9px] font-black text-indigo-400 uppercase tracking-widest">INSIGHT</span>
-                 </div>
-                 <div className="text-slate-600 font-medium text-sm leading-relaxed markdown-content whitespace-pre-wrap break-words pr-2">
-                    {isEditingInsight ? (
-                      <textarea
-                        value={insightInput}
-                        onChange={(e) => setInsightInput(e.target.value)}
-                        className="w-full h-80 p-3 bg-white border border-indigo-100 rounded-xl text-sm font-medium text-slate-700 focus:ring-2 focus:ring-indigo-500 outline-none transition-all resize-none"
-                        placeholder="Enter explanation for this question..."
-                      />
-                    ) : (
-                      <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeRaw]} components={MarkdownComponents}>
-                        {parseBBCodeToHtml(getInsightText())}
-                      </ReactMarkdown>
-                    )}
-                 </div>
-            </div>
-          )
-        case 'ai':
-          return (
-            <div className="p-6 rounded-[2rem] ai-glow animate-in fade-in slide-in-from-bottom-2">
-               <div className="flex items-center justify-between mb-3">
-                 <div className="flex items-center gap-2">
-                    <Sparkles className="w-4 h-4 text-indigo-500 animate-pulse" />
-                    <span className="text-[9px] font-black text-indigo-600 uppercase tracking-widest">AI ANALYSIS</span>
-                    {canEdit && currentQuestion?.ai_explanation && !isEditingAI && !isEditingPrompt && (
-                      <button 
-                        onClick={clearAIExplanation}
-                        className="text-[9px] font-black text-rose-500 hover:text-rose-700 bg-rose-50 hover:bg-rose-100 px-2.5 py-1 rounded-md border border-rose-200 shadow-sm transition-all ml-2"
-                      >
-                        CLEAR AI
-                      </button>
-                    )}
-                 </div>
-                 <div className="flex gap-2">
-                   {canEdit && (
-                     <button 
-                       onClick={() => setIsEditingPrompt(!isEditingPrompt)}
-                       className={cn(
-                         "text-[9px] font-black uppercase tracking-widest transition-all px-2.5 py-1.5 rounded-md",
-                         isEditingPrompt ? "bg-amber-600 text-white shadow-sm" : "text-amber-500 hover:text-amber-600 hover:bg-white"
-                       )}
-                     >
-                       {isEditingPrompt ? 'CLOSE PROMPT' : 'PROMPT'}
-                     </button>
-                   )}
-                   {!currentQuestion?.ai_explanation && !isEditingAI && !isEditingPrompt && (
-                     <button 
-                       onClick={() => askAI()}
-                       disabled={isAskingAI}
-                       className="text-[9px] font-black text-indigo-600 bg-white px-3 py-1.5 rounded-lg border border-indigo-100 shadow-sm hover:bg-indigo-50 transition-all disabled:opacity-50"
-                     >
-                       {isAskingAI ? 'ANALYZING...' : 'ASK AI INSIGHT'}
-                     </button>
-                   )}
-                   {canEdit && !isEditingPrompt && (
-                     <button 
-                       onClick={() => {
-                         if (isEditingAI) {
-                           askAI(aiInput)
-                         } else {
-                           setAiInput(currentQuestion?.ai_explanation || '')
-                           setIsEditingAI(true)
-                         }
-                       }}
-                       disabled={isAskingAI}
-                       className={cn(
-                         "text-[9px] font-black uppercase tracking-widest transition-all px-2.5 py-1.5 rounded-md",
-                         isEditingAI ? "bg-indigo-600 text-white shadow-sm" : "text-indigo-400 hover:text-indigo-600 hover:bg-white"
-                       )}
-                     >
-                       {isAskingAI ? 'SAVING...' : (isEditingAI ? 'SAVE AI' : 'EDIT')}
-                     </button>
-                   )}
-                 </div>
-               </div>
-               
-               {isEditingPrompt ? (
-                 <div className="space-y-3 mt-2 bg-amber-50/50 border border-amber-100 rounded-2xl p-4">
-                   <div className="flex items-center justify-between">
-                     <span className="text-[10px] font-black text-amber-700 uppercase tracking-wider">EDIT SYSTEM PROMPT FOR AI</span>
-                     <button 
-                       onClick={savePrompt}
-                       className="text-[9px] font-black bg-amber-600 hover:bg-amber-700 text-white px-3 py-1.5 rounded-lg shadow-sm transition-all"
-                     >
-                       SAVE PROMPT
-                     </button>
-                   </div>
-                   <textarea 
-                     value={promptInput}
-                     onChange={(e) => setPromptInput(e.target.value)}
-                     placeholder="Enter System Prompt to guide the AI..."
-                     className="w-full h-80 bg-white rounded-xl p-4 text-xs font-semibold text-slate-700 focus:ring-2 focus:ring-amber-500 outline-none border border-amber-200 resize-none transition-all"
-                   />
-                   <p className="text-[9px] font-medium text-amber-600/80 italic leading-relaxed">
-                     * Guide: Use variables <code>{"{{question}}"}</code>, <code>{"{{options}}"}</code>, <code>{"{{correct_answer}}"}</code> to insert dynamic data. The new prompt will be applied to all subsequently regenerated questions.
-                   </p>
-                 </div>
-               ) : isEditingAI ? (
-                 <div className="space-y-2 mt-2">
-                   <textarea 
-                     value={aiInput}
-                     onChange={(e) => setAiInput(e.target.value)}
-                     placeholder="Enter AI Analysis content manually..."
-                     className="w-full h-80 bg-white/50 rounded-xl p-4 text-sm font-medium text-slate-700 focus:ring-2 focus:ring-indigo-500 outline-none border-none resize-none transition-all"
-                     autoFocus
-                   />
-                   <p className="text-[8px] font-medium text-slate-400 italic">Click 'SAVE AI' to save changes for everyone.</p>
-                 </div>
-               ) : (
-                  isAskingAI ? (
-                    <div className="flex flex-col items-center justify-center py-16 space-y-4 animate-pulse">
-                      <div className="relative w-12 h-12 flex items-center justify-center">
-                        <div className="absolute inset-0 rounded-full border-4 border-indigo-100 animate-ping" />
-                        <div className="w-10 h-10 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin" />
-                        <Sparkles className="w-4 h-4 text-indigo-500 absolute animate-pulse" />
-                      </div>
-                      <p className="text-xs font-black text-indigo-500 uppercase tracking-[0.2em] text-center animate-bounce">
-                        AI DEEP ANALYSIS IN PROGRESS...
-                      </p>
-                      <p className="text-[10px] font-semibold text-slate-400 max-w-xs text-center leading-relaxed">
-                        Please wait a moment, the AI is deeply analyzing the grammar and vocabulary of this question.
-                      </p>
-                    </div>
-                  ) : (
-                    currentQuestion?.ai_explanation && (
-                      <div className="text-slate-700 font-medium text-sm leading-relaxed markdown-content break-words pr-2 mt-2">
-                        <ReactMarkdown 
-                          remarkPlugins={[remarkGfm]} 
-                          rehypePlugins={[rehypeRaw]} 
-                          components={{
-                            ...MarkdownComponents,
-                            p: ({ children }) => <span className="inline-block">{children}</span>
-                          }}
-                        >
-                          {parseBBCodeToHtml(currentQuestion.ai_explanation)}
-                        </ReactMarkdown>
-                      </div>
-                    )
-                  )
-               )}
-            </div>
-          )
-        case 'note':
-          return (
-            <div className="p-6 rounded-[2rem] bg-white border border-slate-100 shadow-sm animate-in fade-in slide-in-from-bottom-2">
-               <div className="flex items-center justify-between mb-4">
-                 <div className="flex items-center gap-2">
-                    <StickyNote className="w-4 h-4 text-slate-400" />
-                    <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">PERSONAL NOTE</span>
-                 </div>
-                 <button 
-                   onClick={() => {
-                     if (isEditingNote) {
-                       saveNote()
-                     }
-                     setIsEditingNote(!isEditingNote)
-                   }}
-                   className={cn(
-                     "text-[9px] font-black uppercase tracking-widest transition-all px-2.5 py-1 rounded-md",
-                     isEditingNote ? "bg-indigo-600 text-white shadow-sm" : "text-slate-400 hover:text-indigo-600 hover:bg-slate-50"
-                   )}
-                 >
-                   {isEditingNote ? 'SAVE & CLOSE' : 'EDIT'}
-                 </button>
-               </div>
-               
-               {!isEditingNote ? (
-                 <div className="text-slate-600 font-medium text-sm leading-relaxed markdown-content min-h-[100px] break-words pr-2">
-                   <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeRaw]} components={MarkdownComponents}>
-                     {personalNote || '*Empty note.*'}
-                   </ReactMarkdown>
-                 </div>
-               ) : (
-                 <div className="space-y-2">
-                   <textarea 
-                     value={personalNote}
-                     onChange={(e) => setPersonalNote(e.target.value)}
-                     placeholder="Write your study notes here... (Supports Markdown)"
-                     className="w-full h-80 bg-slate-50 rounded-xl p-4 text-sm font-medium text-slate-700 focus:ring-2 focus:ring-indigo-500 outline-none border-none resize-none transition-all"
-                     autoFocus
-                   />
-                   <p className="text-[8px] font-medium text-slate-300 italic">Supports Markdown syntax. Click 'SAVE & CLOSE' to complete.</p>
-                 </div>
-               )}
-            </div>
-          )
-      }
-    }
-
-    return (
-      <div className="flex flex-col h-full bg-[#F8FAFC]">
-         {!isMobile && (
-           <div className="p-6 border-b border-slate-50 flex items-center justify-center bg-white sticky top-0 z-10">
-              <span className="text-[11px] font-black text-indigo-600 uppercase tracking-[0.3em]">Learning Insights</span>
-           </div>
-         )}
-         
-         <div className="flex-1 overflow-y-auto p-4 lg:p-8 custom-scrollbar">
-            {renderTabContent()}
-         </div>
-         
-         <div className={cn(
-             "flex items-center justify-between gap-1.5 sm:gap-3 py-4 border-t border-slate-100 bg-white/95 backdrop-blur-xl sticky bottom-0 z-50 px-2 sm:px-6"
-          )}>
-             {isMobile && (
-               <button 
-                 onClick={() => setIsFeedbackOpen(false)}
-                 className="w-10 h-10 flex-shrink-0 flex items-center justify-center bg-slate-50 border border-slate-200 text-slate-500 rounded-xl hover:bg-rose-50 hover:border-rose-100 hover:text-rose-500 active:scale-90 transition-all shadow-sm"
-               >
-                 <X className="w-4 h-4" />
-               </button>
-             )}
-
-             <button 
-               onClick={handleEditCurrentTab}
-               className={cn(
-                 "w-10 h-10 sm:w-12 sm:h-12 flex-shrink-0 flex items-center justify-center rounded-xl sm:rounded-2xl border transition-all duration-300 active:scale-90",
-                 ((activeFeedbackTab === 'ai' && isEditingAI) || (activeFeedbackTab === 'note' && isEditingNote) || (activeFeedbackTab === 'insight' && isEditingInsight))
-                   ? "bg-gradient-to-r from-emerald-500 to-teal-600 border-transparent text-white shadow-lg shadow-emerald-100 scale-105"
-                   : "bg-slate-50 border-slate-200/80 text-slate-500 hover:bg-indigo-50 hover:border-indigo-200 hover:text-indigo-600 shadow-sm"
-               )}
-             >
-               {((activeFeedbackTab === 'ai' && isEditingAI) || (activeFeedbackTab === 'note' && isEditingNote) || (activeFeedbackTab === 'insight' && isEditingInsight)) ? (
-                 <Check className="w-4 h-4 sm:w-5 sm:h-5 stroke-[3] animate-pulse" />
-               ) : (
-                 <Edit3 className="w-4 h-4 sm:w-5 sm:h-5" />
-               )}
-             </button>
-
-             <div className="flex items-center bg-slate-50 p-0.5 sm:p-1 rounded-xl sm:rounded-2xl h-11 sm:h-14 border border-slate-200/60 shadow-inner gap-0.5 sm:gap-1">
-               {tabs.map((tab: any) => {
-                 const isActive = activeFeedbackTab === tab.id
-                 return (
-                   <button
-                     key={tab.id}
-                     onClick={() => setActiveFeedbackTab(tab.id)}
-                     className={cn(
-                       "w-9 sm:w-12 h-9 sm:h-11 flex items-center justify-center rounded-lg sm:rounded-xl transition-all duration-300 relative",
-                       isActive 
-                         ? (
-                             tab.id === 'insight' ? "text-amber-500 bg-white shadow-md border border-amber-100/60 scale-105" :
-                             tab.id === 'ai' ? "text-indigo-600 bg-white shadow-md border border-indigo-100/60 scale-105" :
-                             "text-emerald-600 bg-white shadow-md border border-emerald-100/60 scale-105"
-                           )
-                         : "text-slate-400 hover:text-slate-600 hover:bg-white/40"
-                     )}
-                   >
-                     <div className="relative">
-                       <tab.icon className={cn("w-4.5 h-4.5 sm:w-5 sm:h-5 transition-transform duration-300", isActive && "scale-110")} />
-                       {tab.hasContent && (
-                         <span className={cn(
-                           "absolute -top-1 -right-1 w-1.5 sm:w-2 h-1.5 sm:h-2 rounded-full border border-white animate-pulse",
-                           tab.id === 'insight' ? "bg-amber-500" :
-                           tab.id === 'ai' ? "bg-indigo-600" :
-                           "bg-emerald-500"
-                         )} />
-                       )}
-                     </div>
-                   </button>
-                 )
-               })}
-             </div>
-
-             <div className="relative">
-               <AnimatePresence>
-                 {isCopyMenuOpen && activeFeedbackTab === 'ai' && (
-                   <motion.div 
-                     initial={{ opacity: 0, y: 10, scale: 0.9 }}
-                     animate={{ opacity: 1, y: 0, scale: 1 }}
-                     exit={{ opacity: 0, y: 10, scale: 0.9 }}
-                     className="absolute bottom-16 right-0 w-56 bg-white/95 backdrop-blur-md rounded-2xl shadow-[0_10px_30px_rgba(99,102,241,0.12)] border border-slate-100/80 p-2 flex flex-col gap-1 z-[100] animate-in fade-in slide-in-from-bottom-2 duration-200"
-                   >
-                     <button 
-                       onClick={() => copyCurrentTabContent('default')}
-                       className="flex items-center gap-3 px-4 py-3 hover:bg-slate-50 hover:text-slate-800 rounded-xl transition-all text-left"
-                     >
-                       <FileText className="w-4 h-4 text-slate-400" />
-                       <span className="text-[11px] font-black text-slate-500 uppercase tracking-wider">Copy Result</span>
-                     </button>
-                     <button 
-                       onClick={() => copyCurrentTabContent('question')}
-                       className="flex items-center gap-3 px-4 py-3 hover:bg-slate-50 hover:text-slate-800 rounded-xl transition-all text-left"
-                     >
-                       <HelpCircle className="w-4 h-4 text-slate-400" />
-                       <span className="text-[11px] font-black text-slate-500 uppercase tracking-wider">Copy Question</span>
-                     </button>
-                     <button 
-                       onClick={() => copyCurrentTabContent('prompt')}
-                       className="flex items-center gap-3 px-4 py-3 hover:bg-indigo-50/60 hover:text-indigo-600 rounded-xl transition-all text-left"
-                     >
-                       <Brain className="w-4 h-4 text-indigo-400" />
-                       <span className="text-[11px] font-black text-indigo-500 uppercase tracking-wider">Copy Prompt</span>
-                     </button>
-                   </motion.div>
-                 )}
-               </AnimatePresence>
-
-               <button 
-                 onClick={() => {
-                   if (activeFeedbackTab === 'ai') setIsCopyMenuOpen(!isCopyMenuOpen)
-                   else copyCurrentTabContent()
-                 }}
-                 className={cn(
-                   "w-10 h-10 sm:w-12 sm:h-12 flex-shrink-0 flex items-center justify-center rounded-xl sm:rounded-2xl border transition-all duration-300 active:scale-90 shadow-sm",
-                   isCopied 
-                     ? "bg-gradient-to-r from-emerald-500 to-teal-600 border-transparent text-white shadow-lg shadow-emerald-100 scale-105" 
-                     : "bg-slate-50 border-slate-200/80 text-slate-500 hover:bg-indigo-50 hover:border-indigo-200 hover:text-indigo-600"
-                 )}
-               >
-                 {isCopied ? <Check className="w-4 h-4 sm:w-5 sm:h-5 stroke-[3]" /> : <Copy className="w-4 h-4 sm:w-5 sm:h-5" />}
-               </button>
-             </div>
-
-             {isMobile && (
-               <button 
-                 onClick={() => {
-                   handleNext()
-                   setIsFeedbackOpen(false)
-                 }}
-                 className="w-10 h-10 flex-shrink-0 flex items-center justify-center rounded-xl bg-gradient-to-r from-indigo-500 to-purple-600 text-white shadow-lg shadow-indigo-200/60 active:scale-90 hover:scale-105 hover:rotate-3 transition-all"
-               >
-                 <ChevronRight className="w-5 h-5" />
-               </button>
-             )}
-          </div>
-      </div>
-    )
   }
 
   const renderPracticeLockScreen = () => {
@@ -3684,6 +3409,7 @@ export default function FlashcardPlay() {
               copyCurrentTabContent={copyCurrentTabContent}
               isCopied={isCopied}
               handleNext={handleNext}
+              deckInfo={session}
             />
           ) : (
             <div className="flex flex-col h-full bg-slate-50/40">
@@ -4862,6 +4588,7 @@ export default function FlashcardPlay() {
                 copyCurrentTabContent={copyCurrentTabContent}
                 isCopied={isCopied}
                 handleNext={handleNext}
+                deckInfo={session}
               />
             </div>
           </motion.div>

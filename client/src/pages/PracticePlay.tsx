@@ -2371,12 +2371,17 @@ export default function PracticePlay() {
     }
   }
 
-  const askAI = async (manualText?: string) => {
+  const askAI = async (field: string = "explanation", manualText?: string) => {
     if (!currentQuestion) return
     setIsAskingAI(true)
     try {
-      const payload: any = { question_id: currentQuestion.id }
-      if (typeof manualText === 'string') payload.ai_explanation = manualText
+      const payload: any = { question_id: currentQuestion.id, field }
+      if (typeof manualText === 'string') {
+        if (field === 'explanation') payload.ai_explanation = manualText
+        else if (field === 'hint') payload.hint = manualText
+        else if (field === 'mnemonic') payload.mnemonic = manualText
+        else payload.content = manualText
+      }
 
       const res = await axios.post(`/api/v1/deck/${id}/ask-ai`, payload)
 
@@ -2390,17 +2395,32 @@ export default function PracticePlay() {
             // Append cache buster to completely bypass browser and proxy caching
             const quizRes = await axios.get(`/api/v1/deck/${id}/play-data?t=${Date.now()}`)
             const updatedQ = quizRes.data.questions?.find((q: any) => q.id === currentQuestion.id)
-            if (updatedQ && updatedQ.ai_explanation) {
-              setSession((prev: any) => {
-                const newQs = [...prev.questions]
-                const targetIdx = newQs.findIndex(q => q.id === updatedQ.id)
-                if (targetIdx !== -1) {
-                  newQs[targetIdx].ai_explanation = updatedQ.ai_explanation
-                }
-                return { ...prev, questions: newQs }
-              })
-              setIsAskingAI(false)
-              clearInterval(poll)
+            if (updatedQ) {
+              let updatedVal = null
+              if (field === 'explanation') updatedVal = updatedQ.ai_explanation
+              else if (field === 'hint') updatedVal = updatedQ.hint
+              else if (field === 'mnemonic') updatedVal = updatedQ.mnemonic
+              else updatedVal = updatedQ.others?.ai_responses?.[field]
+
+              if (updatedVal) {
+                setSession((prev: any) => {
+                  const newQs = [...prev.questions]
+                  const targetIdx = newQs.findIndex(q => q.id === updatedQ.id)
+                  if (targetIdx !== -1) {
+                    if (field === 'explanation') newQs[targetIdx].ai_explanation = updatedVal
+                    else if (field === 'hint') newQs[targetIdx].hint = updatedVal
+                    else if (field === 'mnemonic') newQs[targetIdx].mnemonic = updatedVal
+                    else {
+                      if (!newQs[targetIdx].others) newQs[targetIdx].others = {}
+                      if (!newQs[targetIdx].others.ai_responses) newQs[targetIdx].others.ai_responses = {}
+                      newQs[targetIdx].others.ai_responses[field] = updatedVal
+                    }
+                  }
+                  return { ...prev, questions: newQs }
+                })
+                setIsAskingAI(false)
+                clearInterval(poll)
+              }
             }
           } catch (e) { }
 
@@ -2409,10 +2429,18 @@ export default function PracticePlay() {
             setIsAskingAI(false)
           }
         }, 2000)
-      } else if (res.data.ai_explanation !== undefined) {
+      } else {
+        const updatedVal = res.data.content || res.data.ai_explanation || res.data.hint || res.data.mnemonic
         setSession((prev: any) => {
           const newQs = [...prev.questions]
-          newQs[currentIndex].ai_explanation = res.data.ai_explanation
+          if (field === 'explanation') newQs[currentIndex].ai_explanation = updatedVal
+          else if (field === 'hint') newQs[currentIndex].hint = updatedVal
+          else if (field === 'mnemonic') newQs[currentIndex].mnemonic = updatedVal
+          else {
+            if (!newQs[currentIndex].others) newQs[currentIndex].others = {}
+            if (!newQs[currentIndex].others.ai_responses) newQs[currentIndex].others.ai_responses = {}
+            newQs[currentIndex].others.ai_responses[field] = updatedVal
+          }
           return { ...prev, questions: newQs }
         })
         if (typeof manualText === 'string') setIsEditingAI(false)
@@ -2424,10 +2452,33 @@ export default function PracticePlay() {
     }
   }
 
-  const savePrompt = async () => {
+  const savePrompt = async (field: string = "explanation") => {
     try {
-      await axios.patch(`/api/v1/deck/${id}`, { ai_prompt: promptInput })
-      setSession((prev: any) => ({ ...prev, ai_prompt: promptInput }))
+      if (field === 'explanation' || field === 'mnemonic' || field === 'hint') {
+        const fieldMap: Record<string, string> = {
+          explanation: 'ai_prompt',
+          mnemonic: 'ai_prompt_mnemonic',
+          hint: 'ai_prompt_hint'
+        }
+        const fieldName = fieldMap[field]
+        await axios.patch(`/api/v1/deck/${id}`, { [fieldName]: promptInput })
+        setSession((prev: any) => ({ ...prev, [fieldName]: promptInput }))
+      } else {
+        const newPrompts = (session.ai_prompts || []).map((p: any) => {
+          if (p.id === field) {
+             return { ...p, prompt: promptInput }
+          }
+          return p
+        })
+        const settingsRes = await axios.get(`/api/v1/deck/${id}/practice-settings`)
+        const currentSettings = settingsRes.data.creator_settings || {}
+        currentSettings.ai_prompts = newPrompts
+        await axios.post(`/api/v1/deck/${id}/practice-settings`, {
+          settings: currentSettings,
+          is_creator: true
+        })
+        setSession((prev: any) => ({ ...prev, ai_prompts: newPrompts }))
+      }
       setIsEditingPrompt(false)
       alert("Prompt saved successfully!")
     } catch (e) {
@@ -2435,19 +2486,41 @@ export default function PracticePlay() {
     }
   }
 
-  const clearAIExplanation = async () => {
+  const clearAIExplanation = async (field: string = "explanation") => {
     if (!currentQuestion) return
-    if (!window.confirm("Are you sure you want to delete this AI explanation?")) return
+    if (!window.confirm("Are you sure you want to delete this AI content?")) return
     try {
-      await axios.patch(`/api/v1/deck/question/${currentQuestion.id}`, { ai_explanation: null })
-      setSession((prev: any) => {
-        const newQs = [...prev.questions]
-        const targetIdx = newQs.findIndex(q => q.id === currentQuestion.id)
-        if (targetIdx !== -1) {
-          newQs[targetIdx].ai_explanation = null
+      if (field === 'explanation' || field === 'hint' || field === 'mnemonic') {
+        const fieldMap: Record<string, string> = {
+          explanation: 'ai_explanation',
+          mnemonic: 'mnemonic',
+          hint: 'hint'
         }
-        return { ...prev, questions: newQs }
-      })
+        const dbField = fieldMap[field]
+        await axios.patch(`/api/v1/deck/question/${currentQuestion.id}`, { [dbField]: null })
+        setSession((prev: any) => {
+          const newQs = [...prev.questions]
+          const targetIdx = newQs.findIndex(q => q.id === currentQuestion.id)
+          if (targetIdx !== -1) {
+            newQs[targetIdx][dbField] = null
+          }
+          return { ...prev, questions: newQs }
+        })
+      } else {
+        const updatedOthers = { ...(currentQuestion.others || {}) }
+        if (updatedOthers.ai_responses) {
+          delete updatedOthers.ai_responses[field]
+        }
+        await axios.patch(`/api/v1/deck/question/${currentQuestion.id}`, { others: updatedOthers })
+        setSession((prev: any) => {
+          const newQs = [...prev.questions]
+          const targetIdx = newQs.findIndex(q => q.id === currentQuestion.id)
+          if (targetIdx !== -1) {
+            newQs[targetIdx].others = updatedOthers
+          }
+          return { ...prev, questions: newQs }
+        })
+      }
     } catch (e) {
       alert("Failed to delete AI explanation.")
     }
@@ -3592,6 +3665,7 @@ export default function PracticePlay() {
               copyCurrentTabContent={copyCurrentTabContent}
               isCopied={isCopied}
               handleNext={handleNext}
+              deckInfo={session}
             />
           ) : (
             <div className="flex flex-col h-full bg-slate-50/40">
@@ -4845,6 +4919,7 @@ export default function PracticePlay() {
                 copyCurrentTabContent={copyCurrentTabContent}
                 isCopied={isCopied}
                 handleNext={handleNext}
+                deckInfo={session}
               />
             </div>
           </motion.div>
