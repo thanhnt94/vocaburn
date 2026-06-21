@@ -92,7 +92,7 @@ const EditFlashcard = () => {
       setImportSuccess(true)
       setExcelFile(null)
       // reload flashcards/data
-      const res = await axios.get(`/api/v1/deck/${id}/play-data?lightweight=true`)
+      const res = await axios.get(`/api/v1/deck/${id}/play-data?lightweight=true&metadata_only=true`)
       setQuestions(res.data.questions || [])
     } catch (err: any) {
       setImportError(err.response?.data?.error || "Nhập Excel thất bại")
@@ -135,7 +135,7 @@ const EditFlashcard = () => {
   useEffect(() => {
     const fetchQuiz = async () => {
       try {
-        const res = await axios.get(`/api/v1/deck/${id}/play-data?lightweight=true`)
+        const res = await axios.get(`/api/v1/deck/${id}/play-data?lightweight=true&metadata_only=true`)
         setFormData({
           title: res.data.title,
           description: res.data.description || '',
