@@ -96,9 +96,12 @@ async def get_practice_settings(request: Request, deck_id: int, db: AsyncSession
             for k in others_json.keys():
                 if k not in ("id", "item_id", "order_in_container") and not k.endswith("_audio_url") and not k.endswith("_img") and k != "image" and k != "audio" and k != "other_content":
                     available_cols.add(k)
-                    
+    
+    creator_settings = migrate_practice_settings(deck.practice_settings)
+    logger.info(f"GET practice-settings deck={deck_id}: raw={deck.practice_settings}, migrated keys={list(creator_settings.keys()) if creator_settings else None}, ai_prompts={creator_settings.get('ai_prompts', 'NOT_PRESENT') if creator_settings else None}")
+    
     return {
-        "creator_settings": migrate_practice_settings(deck.practice_settings),
+        "creator_settings": creator_settings,
         "user_settings": migrate_practice_settings(user_sett.settings) if user_sett else None,
         "available_columns": sorted(list(available_cols))
     }
@@ -108,6 +111,8 @@ async def save_practice_settings(request: Request, deck_id: int, payload: dict, 
     user_id = int(request.cookies.get("user_id", 1))
     is_creator = payload.get("is_creator", False)
     settings = payload.get("settings")
+    
+    logger.info(f"POST practice-settings deck={deck_id}: is_creator={is_creator}, settings_keys={list(settings.keys()) if isinstance(settings, dict) else type(settings)}, ai_prompts_in_payload={settings.get('ai_prompts', 'NOT_PRESENT') if isinstance(settings, dict) else 'N/A'}")
     
     deck = await DeckService.get_deck_by_id(db, deck_id)
     if not deck:
@@ -124,6 +129,7 @@ async def save_practice_settings(request: Request, deck_id: int, payload: dict, 
             return JSONResponse(status_code=403, content={"error": "No permission to save deck default settings"})
             
         from sqlalchemy.orm.attributes import flag_modified
+        logger.info(f"POST practice-settings deck={deck_id}: existing_settings={deck.practice_settings}")
         if not deck.practice_settings or not settings:
             deck.practice_settings = settings
         else:
@@ -134,6 +140,7 @@ async def save_practice_settings(request: Request, deck_id: int, payload: dict, 
                 merged.update(settings)
             deck.practice_settings = merged
         flag_modified(deck, "practice_settings")
+        logger.info(f"POST practice-settings deck={deck_id}: final_settings_keys={list(deck.practice_settings.keys()) if isinstance(deck.practice_settings, dict) else type(deck.practice_settings)}, ai_prompts={deck.practice_settings.get('ai_prompts', 'NOT_PRESENT') if isinstance(deck.practice_settings, dict) else 'N/A'}")
     else:
         # Save user settings
         user_sett_res = await db.execute(

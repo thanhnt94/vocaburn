@@ -157,8 +157,13 @@ const EditFlashcard = () => {
         // Fetch practice settings
         const settingsRes = await axios.get(`/api/v1/deck/${id}/practice-settings`)
         setAvailableColumns(settingsRes.data.available_columns || ['front', 'back'])
+        console.log('[DEBUG EditFlashcard] Loaded creator_settings:', JSON.stringify(settingsRes.data.creator_settings))
+        console.log('[DEBUG EditFlashcard] ai_prompts from server:', settingsRes.data.creator_settings?.ai_prompts)
         if (settingsRes.data.creator_settings && Object.keys(settingsRes.data.creator_settings).length > 0) {
-          setPracticeSettings(settingsRes.data.creator_settings)
+          const loaded = settingsRes.data.creator_settings
+          // Ensure ai_prompts is always an array even if missing from server data
+          if (!loaded.ai_prompts) loaded.ai_prompts = []
+          setPracticeSettings(loaded)
         }
       } catch (err) {
         setError('Failed to load quiz data')
@@ -205,6 +210,8 @@ const EditFlashcard = () => {
       })
       
       // Save default practice settings for this deck
+      console.log('[DEBUG EditFlashcard] Saving practiceSettings:', JSON.stringify(practiceSettings))
+      console.log('[DEBUG EditFlashcard] ai_prompts being sent:', practiceSettings.ai_prompts)
       await axios.post(`/api/v1/deck/${id}/practice-settings`, {
         settings: practiceSettings,
         is_creator: true
