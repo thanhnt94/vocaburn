@@ -123,6 +123,7 @@ async def save_practice_settings(request: Request, deck_id: int, payload: dict, 
         if not (is_owner or is_collaborator or user_id == 1):
             return JSONResponse(status_code=403, content={"error": "No permission to save deck default settings"})
             
+        from sqlalchemy.orm.attributes import flag_modified
         if not deck.practice_settings or not settings:
             deck.practice_settings = settings
         else:
@@ -132,6 +133,7 @@ async def save_practice_settings(request: Request, deck_id: int, payload: dict, 
             if isinstance(settings, dict):
                 merged.update(settings)
             deck.practice_settings = merged
+        flag_modified(deck, "practice_settings")
     else:
         # Save user settings
         user_sett_res = await db.execute(
@@ -141,11 +143,13 @@ async def save_practice_settings(request: Request, deck_id: int, payload: dict, 
             )
         )
         user_sett = user_sett_res.scalar_one_or_none()
+        from sqlalchemy.orm.attributes import flag_modified
         if not user_sett:
             user_sett = UserDeckSettings(user_id=user_id, deck_id=deck_id, settings=settings)
             db.add(user_sett)
         elif not settings:
             user_sett.settings = {}
+            flag_modified(user_sett, "settings")
         else:
             merged = {}
             if isinstance(user_sett.settings, dict):
@@ -153,6 +157,7 @@ async def save_practice_settings(request: Request, deck_id: int, payload: dict, 
             if isinstance(settings, dict):
                 merged.update(settings)
             user_sett.settings = merged
+            flag_modified(user_sett, "settings")
             
     await db.commit()
     return {"status": "ok"}

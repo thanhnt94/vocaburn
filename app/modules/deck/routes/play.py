@@ -1504,30 +1504,11 @@ async def _generate_ai_content_sync(db: AsyncSession, deck_id: int, card_id: int
         
     # Choose template
     if field == "hint":
-        template = (deck.ai_prompt_hint if deck else None) or (
-            "Provide a short, clever, and helpful hint for the following vocabulary card or question "
-            "without revealing the answer directly. The hint should guide the user's mind to recall the word/meaning.\n\n"
-            "Card content: {{question}}\n"
-            "Definition/Explanation: {{correct_answer}}\n\n"
-            "Output language must be Vietnamese. Keep it under 2 sentences."
-        )
+        template = deck.ai_prompt_hint if deck else None
     elif field == "mnemonic":
-        template = (deck.ai_prompt_mnemonic if deck else None) or (
-            "Create a creative, funny, or visual mnemonic (mẹo liên tưởng, phương pháp âm thanh tương tự "
-            "hoặc câu chuyện ngắn thú vị) in Vietnamese to help remember the vocabulary word.\n\n"
-            "Word (Front): {{question}}\n"
-            "Definition/Meaning (Back): {{correct_answer}}\n\n"
-            "Make it extremely visual, memorable, and fun. Keep it concise."
-        )
+        template = deck.ai_prompt_mnemonic if deck else None
     elif field == "explanation":
-        template = (deck.ai_prompt if deck else None) or (
-            "Provide a detailed and educational explanation for the following question.\n\n"
-            "Question: {{question}}\n"
-            "Options: {{options}}\n"
-            "Correct Answer: {{correct_answer}}\n\n"
-            "Explain why the correct answer is right and why other options might be confusing.\n"
-            "Output language should be Vietnamese if the question is in Vietnamese, otherwise English."
-        )
+        template = deck.ai_prompt if deck else None
     else:
         # Custom prompt! Retrieve it from deck.practice_settings["ai_prompts"]
         template = None
@@ -1537,8 +1518,9 @@ async def _generate_ai_content_sync(db: AsyncSession, deck_id: int, card_id: int
                 if p.get("id") == field:
                     template = p.get("prompt")
                     break
-        if not template:
-            template = f"Provide dynamic analysis for: {{question}}"
+        
+    if not template or not template.strip():
+        return ""
         
     # Format options
     options_text = ""
