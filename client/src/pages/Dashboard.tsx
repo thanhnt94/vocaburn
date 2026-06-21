@@ -1096,37 +1096,13 @@ export default function Dashboard() {
   
   const [timeFilter, setTimeFilter] = useState('all_time')
 
-  // ══════════════════════════════════════════════════════════════════════════
-  // SINGLE consolidated API call — replaces 10 separate useQuery calls
-  // ══════════════════════════════════════════════════════════════════════════
-  const { data: initData, isLoading } = useQuery<any>({
-    queryKey: ['dashboardInit', timeFilter],
+  const { data: globalGoals, refetch: refetchGlobalGoals } = useQuery<GlobalGoals>({
+    queryKey: ['globalGoals'],
     queryFn: async () => {
-      const res = await axios.get('/api/v1/dashboard/init', { params: { time_filter: timeFilter } })
-      setUser(res.data.dashboard.user)
-      setGamify(res.data.dashboard.gamify)
+      const res = await axios.get('/api/v1/deck/goals/global')
       return res.data
-    },
-    retry: false,
-    staleTime: 30 * 1000, // 30 seconds
+    }
   })
-
-  // Destructure all data from the single response
-  const data = initData?.dashboard as DashboardData | undefined
-  const globalGoals = initData?.global_goals as GlobalGoals | undefined
-  const activeGoals = initData?.active_goals as ActiveGoal[] | undefined
-  const isGoalsLoading = isLoading
-  const todayReview = initData?.today_review
-  const isTodayReviewLoading = isLoading
-  const forecastData = initData?.forecast as ForecastResponse | undefined
-  const heatmapData = initData?.heatmap as HeatmapDay[] | undefined
-  const leaderboardData = initData?.leaderboard
-  const badgesProgress = initData?.badges_progress as BadgeProgress[] | undefined
-  const dailyComparisonData = initData?.daily_comparison?.days
-  const dailyComparisonAvg = initData?.daily_comparison?.all_time_avg
-  const isDailyComparisonLoading = isLoading
-
-  const refetchDashboard = () => queryClient.invalidateQueries({ queryKey: ['dashboardInit'] })
 
   const handleSaveGlobalGoals = async (timeTarget: number, cardTarget: number, newCardTarget: number) => {
     await axios.post('/api/v1/deck/goals/global', {
@@ -1134,9 +1110,90 @@ export default function Dashboard() {
       daily_card_target: cardTarget,
       daily_new_card_target: newCardTarget
     })
-    refetchDashboard()
+    refetchGlobalGoals()
   }
 
+  const todayStr = new Date().toISOString().slice(0, 10)
+
+  const { data: activeGoals, isLoading: isGoalsLoading } = useQuery<ActiveGoal[]>({
+    queryKey: ['activeGoals', todayStr],
+    queryFn: async () => {
+      const res = await axios.get('/api/v1/deck/goals/active', { params: { local_date: todayStr } })
+      return res.data
+    }
+  })
+
+  const { data: todayReview, isLoading: isTodayReviewLoading } = useQuery({
+    queryKey: ['todayReview'],
+    queryFn: async () => {
+      const res = await axios.get('/api/v1/deck/today-review')
+      return res.data
+    }
+  })
+
+  const { data: weeklyReport } = useQuery({
+    queryKey: ['weeklyReport'],
+    queryFn: async () => {
+      const res = await axios.get('/api/v1/deck/stats/weekly-report')
+      return res.data
+    }
+  })
+
+  const { data: heatmapData } = useQuery<HeatmapDay[]>({
+    queryKey: ['stats-heatmap'],
+    queryFn: async () => {
+      const res = await axios.get('/api/v1/deck/stats/heatmap')
+      return res.data
+    }
+  })
+
+  const { data: leaderboardData } = useQuery({
+    queryKey: ['leaderboard', timeFilter],
+    queryFn: async () => {
+      const res = await axios.get('/api/v1/gamification/leaderboard', { params: { time_filter: timeFilter } })
+      return res.data
+    },
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  })
+
+  const { data: badgesProgress } = useQuery<BadgeProgress[]>({
+    queryKey: ['badgesProgress'],
+    queryFn: async () => {
+      const res = await axios.get('/api/v1/gamification/badges/progress')
+      return res.data
+    }
+  })
+
+  const { data: forecastData } = useQuery<ForecastResponse>({
+    queryKey: ['reviewForecast'],
+    queryFn: async () => {
+      const res = await axios.get('/api/v1/deck/stats/review-forecast')
+      return res.data
+    }
+  })
+
+  const { data: dailyComparisonRaw, isLoading: isDailyComparisonLoading } = useQuery<any>({
+    queryKey: ['dailyComparison'],
+    queryFn: async () => {
+      const res = await axios.get('/api/v1/stats/daily-comparison')
+      return res.data
+    }
+  })
+  const dailyComparisonData = dailyComparisonRaw?.days
+  const dailyComparisonAvg = dailyComparisonRaw?.all_time_avg
+
+
+
+  const { data, isLoading } = useQuery<DashboardData>({
+    queryKey: ['dashboard'],
+    queryFn: async () => {
+      const res = await axios.get('/api/v1/dashboard/data')
+      setUser(res.data.user)
+      setGamify(res.data.gamify)
+      return res.data
+    },
+    retry: false
+  })
 
   // Lock scroll on desktop
   useEffect(() => {
