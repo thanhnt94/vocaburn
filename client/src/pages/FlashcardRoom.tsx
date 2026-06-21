@@ -7,6 +7,7 @@ import { cn } from '@/lib/utils'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import rehypeRaw from 'rehype-raw'
+import { parseBBCodeToHtml } from '@/lib/text'
 
 interface Participant {
   user_id: number
@@ -422,7 +423,7 @@ export default function QuizRoom() {
                {/* Question Board */}
                <div className="bg-white rounded-[2.5rem] p-6 md:p-10 border border-slate-100 shadow-sm space-y-6">
                  <h3 className="text-lg md:text-xl font-black text-slate-800 leading-tight">
-                   <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeRaw]}>{quizData.questions[currentIndex].content}</ReactMarkdown>
+                   <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeRaw]}>{parseBBCodeToHtml(quizData.questions[currentIndex].content || '')}</ReactMarkdown>
                  </h3>
 
                  <div className="space-y-3">
@@ -468,7 +469,7 @@ export default function QuizRoom() {
                        className="border-t border-slate-50 pt-6 space-y-4"
                      >
                        <p className="text-xs text-slate-500 leading-relaxed italic bg-slate-50 p-4 rounded-xl border border-slate-100">
-                         <strong>Explanation:</strong> <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeRaw]}>{quizData.questions[currentIndex].explanation}</ReactMarkdown>
+                         <strong>Explanation:</strong> <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeRaw]}>{parseBBCodeToHtml(quizData.questions[currentIndex].explanation || '')}</ReactMarkdown>
                        </p>
                        
                        {isHost && (
