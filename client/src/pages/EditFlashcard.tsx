@@ -720,43 +720,15 @@ const EditFlashcard = () => {
                                 />
                              </div>
 
-                             <div className="space-y-2">
-                                <div className="flex items-center justify-between ml-1">
-                                   <label className="text-[9px] font-black text-white/40 uppercase tracking-widest">AI Hint Prompt</label>
-                                </div>
-                                <textarea 
-                                   rows={4}
-                                   placeholder="Define how AI should generate hints without giving away the answer..."
-                                   value={formData.ai_prompt_hint}
-                                   onChange={(e) => setFormData({ ...formData, ai_prompt_hint: e.target.value })}
-                                   className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 text-[13px] font-medium text-white placeholder:text-white/20 outline-none focus:ring-4 focus:ring-indigo-500/20 transition-all resize-none leading-relaxed custom-scrollbar"
-                                />
-                             </div>
-
-                             <div className="space-y-2">
-                                <div className="flex items-center justify-between ml-1">
-                                   <label className="text-[9px] font-black text-white/40 uppercase tracking-widest">AI Mnemonic Prompt (Cách nhớ)</label>
-                                </div>
-                                <textarea 
-                                   rows={4}
-                                   placeholder="Define how AI should generate association stories or mnemonic memory tips..."
-                                   value={formData.ai_prompt_mnemonic}
-                                   onChange={(e) => setFormData({ ...formData, ai_prompt_mnemonic: e.target.value })}
-                                   className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 text-[13px] font-medium text-white placeholder:text-white/20 outline-none focus:ring-4 focus:ring-indigo-500/20 transition-all resize-none leading-relaxed custom-scrollbar"
-                                />
-                             </div>
- 
                              <div className="p-5 bg-white/5 border border-white/5 rounded-2xl border-dashed text-[10px] font-medium text-white/50 italic leading-relaxed">
-                                * These prompts will guide the AI on how to generate explanations, hints, and mnemonics. Use variables like {"{{question}}"} and {"{{correct_answer}}"} to inject card content dynamically.
+                                * This prompt will guide the AI on how to generate explanations. Use variables like {"{{question}}"} and {"{{correct_answer}}"} to inject card content dynamically.
                              </div>
 
-                             {/* Custom AI Prompts List */}
                              <div className="space-y-4 pt-4 border-t border-white/10">
                                 <div className="flex items-center justify-between">
                                    <label className="text-[10px] font-black text-white/50 uppercase tracking-widest">Custom AI Tabs (Các Tab Phản Hồi AI Tự Định Nghĩa)</label>
                                    <span className="text-[8px] font-bold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full uppercase">Dynamic Content Tabs</span>
                                 </div>
-
                                 {(practiceSettings.ai_prompts || []).map((cp: any, index: number) => (
                                    <div key={cp.id || index} className="p-5 bg-white/5 border border-white/10 rounded-2xl space-y-4">
                                       <div className="flex items-center gap-3">
