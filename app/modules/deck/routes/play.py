@@ -1035,6 +1035,7 @@ async def get_deck_play_data(request: Request, deck_id: int, mode: Optional[str]
     user_id = int(request.cookies.get("user_id", 1))
     
     if lightweight:
+        from app.modules.deck.models import FlashcardDeck
         result = await db.execute(
             select(FlashcardDeck).where(FlashcardDeck.id == deck_id).options(
                 selectinload(FlashcardDeck.cards),
