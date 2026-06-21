@@ -111,11 +111,15 @@ export const FeedbackArea: React.FC<FeedbackAreaProps> = ({
   if (!showFeedback) return null
 
   const aiTabs = React.useMemo(() => {
-    return [
-      { id: 'explanation', title: 'Giải thích' },
-      ...(deckInfo?.ai_prompts || [])
-    ]
-  }, [deckInfo?.ai_prompts])
+    const tabs = []
+    if (deckInfo?.ai_prompt || !(deckInfo?.ai_prompts && deckInfo.ai_prompts.length > 0)) {
+      tabs.push({ id: 'explanation', title: 'Giải thích' })
+    }
+    if (deckInfo?.ai_prompts && Array.isArray(deckInfo.ai_prompts)) {
+      tabs.push(...deckInfo.ai_prompts)
+    }
+    return tabs
+  }, [deckInfo?.ai_prompt, deckInfo?.ai_prompts])
 
   const [activeAITab, setActiveAITab] = React.useState<string>(aiTabs[0]?.id || 'explanation')
 
