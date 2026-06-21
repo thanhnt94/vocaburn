@@ -92,7 +92,7 @@ const EditFlashcard = () => {
       setImportSuccess(true)
       setExcelFile(null)
       // reload flashcards/data
-      const res = await axios.get(`/api/v1/deck/${id}/play-data`)
+      const res = await axios.get(`/api/v1/deck/${id}/play-data?lightweight=true`)
       setQuestions(res.data.questions || [])
     } catch (err: any) {
       setImportError(err.response?.data?.error || "Nhập Excel thất bại")
@@ -135,7 +135,7 @@ const EditFlashcard = () => {
   useEffect(() => {
     const fetchQuiz = async () => {
       try {
-        const res = await axios.get(`/api/v1/deck/${id}/play-data`)
+        const res = await axios.get(`/api/v1/deck/${id}/play-data?lightweight=true`)
         setFormData({
           title: res.data.title,
           description: res.data.description || '',
@@ -709,25 +709,7 @@ const EditFlashcard = () => {
                          </div>
 
                          <div className="space-y-6">
-                             <div className="space-y-2">
-                                <div className="flex items-center justify-between ml-1">
-                                   <label className="text-[9px] font-black text-white/40 uppercase tracking-widest">Master System Prompt (AI Explanation)</label>
-                                   <span className="text-[8px] font-bold text-indigo-400 bg-indigo-500/10 px-2 py-0.5 rounded-full uppercase">Gemini 2.0 Ready</span>
-                                </div>
-                                <textarea 
-                                   rows={6}
-                                   placeholder="Define how AI should analyze and explain questions in this collection..."
-                                   value={formData.ai_prompt}
-                                   onChange={(e) => setFormData({ ...formData, ai_prompt: e.target.value })}
-                                   className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 text-[13px] font-medium text-white placeholder:text-white/20 outline-none focus:ring-4 focus:ring-indigo-500/20 transition-all resize-none leading-relaxed custom-scrollbar"
-                                />
-                             </div>
-
-                             <div className="p-5 bg-white/5 border border-white/5 rounded-2xl border-dashed text-[10px] font-medium text-white/50 italic leading-relaxed">
-                                * This prompt will guide the AI on how to generate explanations. Use variables like {"{{question}}"} and {"{{correct_answer}}"} to inject card content dynamically.
-                             </div>
-
-                             <div className="space-y-4 pt-4 border-t border-white/10">
+                             <div className="space-y-4 pt-4">
                                 <div className="flex items-center justify-between">
                                    <label className="text-[10px] font-black text-white/50 uppercase tracking-widest">Custom AI Tabs (Các Tab Phản Hồi AI Tự Định Nghĩa)</label>
                                    <span className="text-[8px] font-bold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full uppercase">Dynamic Content Tabs</span>

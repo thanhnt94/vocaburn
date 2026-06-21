@@ -1031,8 +1031,48 @@ def migrate_practice_settings(settings: Optional[dict]) -> dict:
     }
 
 @router.get("/{deck_id}/play-data")
-async def get_deck_play_data(request: Request, deck_id: int, mode: Optional[str] = None, db: AsyncSession = Depends(get_db)):
+async def get_deck_play_data(request: Request, deck_id: int, mode: Optional[str] = None, lightweight: Optional[bool] = None, db: AsyncSession = Depends(get_db)):
     user_id = int(request.cookies.get("user_id", 1))
+    
+    if lightweight:
+        result = await db.execute(
+            select(FlashcardDeck).where(FlashcardDeck.id == deck_id).options(
+                selectinload(FlashcardDeck.cards),
+                selectinload(FlashcardDeck.tags)
+            )
+        )
+        deck = result.scalar_one_or_none()
+        if not deck: return JSONResponse(status_code=404, content={"error": "Deck not found"})
+        
+        cards_list = [{
+            "id": c.id,
+            "content": c.content,
+            "explanation": c.explanation,
+            "ai_explanation": c.ai_explanation,
+            "hint": c.hint,
+            "mnemonic": c.mnemonic,
+            "image": fix_static_urls(c.image),
+            "audio": fix_static_urls(c.audio),
+            "others": fix_static_urls(c.others)
+        } for c in deck.cards]
+        
+        return {
+            "id": deck.id,
+            "title": deck.title,
+            "description": deck.description,
+            "cover_image": fix_static_urls(deck.cover_image),
+            "tags": [t.name for t in deck.tags] if deck.tags else [],
+            "ai_prompt": deck.ai_prompt,
+            "ai_prompt_hint": deck.ai_prompt_hint,
+            "ai_prompt_mnemonic": deck.ai_prompt_mnemonic,
+            "ai_prompts": deck.practice_settings.get("ai_prompts", []) if (deck.practice_settings and isinstance(deck.practice_settings, dict)) else [],
+            "instruction": deck.instruction,
+            "category_id": deck.category_id,
+            "creator_id": deck.creator_id,
+            "cards": cards_list,
+            "questions": cards_list
+        }
+
     is_practice = mode in ("mcq", "typing", "listening")
     
     # Load user deck settings globally for FSRS & Practice
