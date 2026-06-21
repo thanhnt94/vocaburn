@@ -110,14 +110,24 @@ export const FeedbackArea: React.FC<FeedbackAreaProps> = ({
 }) => {
   if (!showFeedback) return null
 
-  const [activeAITab, setActiveAITab] = React.useState<string>('explanation')
+  const aiTabs = React.useMemo(() => {
+    return deckInfo?.ai_prompts && deckInfo.ai_prompts.length > 0
+      ? deckInfo.ai_prompts
+      : [
+          { id: 'explanation', title: 'Giải thích' },
+          { id: 'mnemonic', title: 'Cách nhớ' },
+          { id: 'hint', title: 'Gợi ý' }
+        ]
+  }, [deckInfo?.ai_prompts])
 
-  const aiTabs = [
-    { id: 'explanation', title: 'Giải thích' },
-    { id: 'mnemonic', title: 'Cách nhớ' },
-    { id: 'hint', title: 'Gợi ý' },
-    ...(deckInfo?.ai_prompts || [])
-  ]
+  const [activeAITab, setActiveAITab] = React.useState<string>(aiTabs[0]?.id || 'explanation')
+
+  React.useEffect(() => {
+    if (aiTabs.length > 0 && !aiTabs.some((t: any) => t.id === activeAITab)) {
+      setActiveAITab(aiTabs[0].id)
+    }
+  }, [aiTabs, activeAITab])
+
 
   const getActiveAIContent = () => {
     if (!currentQuestion) return ''
@@ -238,7 +248,7 @@ export const FeedbackArea: React.FC<FeedbackAreaProps> = ({
               <div className="flex items-center gap-2">
                 <Sparkles className="w-4 h-4 text-indigo-500 animate-pulse" />
                 <span className="text-[9px] font-black text-indigo-600 uppercase tracking-widest">
-                  AI {aiTabs.find(t => t.id === activeAITab)?.title.toUpperCase()}
+                  AI {aiTabs.find((t: any) => t.id === activeAITab)?.title.toUpperCase()}
                 </span>
                 {canEdit && getActiveAIContent() && !isEditingAI && !isEditingPrompt && (
                   <button
@@ -295,7 +305,7 @@ export const FeedbackArea: React.FC<FeedbackAreaProps> = ({
             {isEditingPrompt ? (
               <div className="space-y-3 mt-2 bg-amber-50/50 border border-amber-100 rounded-2xl p-4">
                 <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-black text-amber-700 uppercase tracking-wider">EDIT SYSTEM PROMPT FOR {aiTabs.find(t => t.id === activeAITab)?.title.toUpperCase()}</span>
+                  <span className="text-[10px] font-black text-amber-700 uppercase tracking-wider">EDIT SYSTEM PROMPT FOR {aiTabs.find((t: any) => t.id === activeAITab)?.title.toUpperCase()}</span>
                   <button
                     onClick={() => savePrompt(activeAITab)}
                     className="text-[9px] font-black bg-amber-600 hover:bg-amber-700 text-white px-3 py-1.5 rounded-lg shadow-sm transition-all"
