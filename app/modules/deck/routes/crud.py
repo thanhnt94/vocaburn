@@ -293,7 +293,35 @@ async def archive_deck(request: Request, deck_id: int, db: AsyncSession = Depend
 
 @router.delete("/{deck_id}")
 async def delete_deck(deck_id: int, db: AsyncSession = Depends(get_db)):
-    from app.modules.deck.models import FlashcardDeck
+    from app.modules.deck.models import (
+        FlashcardDeck, Flashcard, DeckAttempt, DeckSession, 
+        DeckRoom, UserDeckGoal, UserDeckSettings, DeckCollaborator,
+        UserCardMastery, UserPracticeStats, UserCardNote, UserAnswer
+    )
+    
+    # 1. Get all card IDs belonging to this deck
+    card_ids_res = await db.execute(select(Flashcard.id).where(Flashcard.deck_id == deck_id))
+    card_ids = [r[0] for r in card_ids_res.all()]
+    
+    if card_ids:
+        # 2. Delete child records referencing flashcards
+        await db.execute(delete(UserCardMastery).where(UserCardMastery.card_id.in_(card_ids)))
+        await db.execute(delete(UserPracticeStats).where(UserPracticeStats.card_id.in_(card_ids)))
+        await db.execute(delete(UserCardNote).where(UserCardNote.card_id.in_(card_ids)))
+        await db.execute(delete(UserAnswer).where(UserAnswer.card_id.in_(card_ids)))
+        
+        # 3. Delete flashcards
+        await db.execute(delete(Flashcard).where(Flashcard.id.in_(card_ids)))
+        
+    # 4. Delete records referencing deck_id
+    await db.execute(delete(DeckAttempt).where(DeckAttempt.deck_id == deck_id))
+    await db.execute(delete(DeckSession).where(DeckSession.deck_id == deck_id))
+    await db.execute(delete(DeckRoom).where(DeckRoom.deck_id == deck_id))
+    await db.execute(delete(UserDeckGoal).where(UserDeckGoal.deck_id == deck_id))
+    await db.execute(delete(UserDeckSettings).where(UserDeckSettings.deck_id == deck_id))
+    await db.execute(delete(DeckCollaborator).where(DeckCollaborator.deck_id == deck_id))
+    
+    # 5. Delete the deck
     await db.execute(delete(FlashcardDeck).where(FlashcardDeck.id == deck_id))
     await db.commit()
     return {"status": "ok"}
@@ -436,7 +464,11 @@ async def update_card(card_id: int, data: dict, db: AsyncSession = Depends(get_d
 @router.delete("/flashcard/{card_id}")
 @router.delete("/card/{card_id}")
 async def delete_card(card_id: int, db: AsyncSession = Depends(get_db)):
-    from app.modules.deck.models import Flashcard
+    from app.modules.deck.models import Flashcard, UserCardMastery, UserPracticeStats, UserCardNote, UserAnswer
+    await db.execute(delete(UserCardMastery).where(UserCardMastery.card_id == card_id))
+    await db.execute(delete(UserPracticeStats).where(UserPracticeStats.card_id == card_id))
+    await db.execute(delete(UserCardNote).where(UserCardNote.card_id == card_id))
+    await db.execute(delete(UserAnswer).where(UserAnswer.card_id == card_id))
     await db.execute(delete(Flashcard).where(Flashcard.id == card_id))
     await db.commit()
     return {"status": "ok"}
