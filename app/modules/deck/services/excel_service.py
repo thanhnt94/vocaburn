@@ -172,6 +172,7 @@ class ExcelDeckService:
                     val = row.get(col)
                     if pd.notna(val):
                         s_val = str(val).strip()
+                        s_val = s_val.replace('_x000D_', '').replace('_x000d_', '')
                         s_val = s_val.replace('\\r\\n', '\n').replace('\\n', '\n')
                         return s_val
                     return default
