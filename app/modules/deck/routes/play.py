@@ -1031,34 +1031,31 @@ def migrate_practice_settings(settings: Optional[dict]) -> dict:
     }
 
 @router.get("/{deck_id}/play-data")
-async def get_deck_play_data(request: Request, deck_id: int, mode: Optional[str] = None, lightweight: Optional[bool] = None, metadata_only: Optional[bool] = None, db: AsyncSession = Depends(get_db)):
+async def get_deck_play_data(request: Request, deck_id: int, mode: Optional[str] = None, lightweight: Optional[bool] = None, db: AsyncSession = Depends(get_db)):
     user_id = int(request.cookies.get("user_id", 1))
     
     if lightweight:
         from app.modules.deck.models import FlashcardDeck
-        options = [selectinload(FlashcardDeck.tags)]
-        if not metadata_only:
-            options.append(selectinload(FlashcardDeck.cards))
-            
         result = await db.execute(
-            select(FlashcardDeck).where(FlashcardDeck.id == deck_id).options(*options)
+            select(FlashcardDeck).where(FlashcardDeck.id == deck_id).options(
+                selectinload(FlashcardDeck.cards),
+                selectinload(FlashcardDeck.tags)
+            )
         )
         deck = result.scalar_one_or_none()
         if not deck: return JSONResponse(status_code=404, content={"error": "Deck not found"})
         
-        cards_list = []
-        if not metadata_only:
-            cards_list = [{
-                "id": c.id,
-                "content": c.content,
-                "explanation": c.explanation,
-                "ai_explanation": c.ai_explanation,
-                "hint": c.hint,
-                "mnemonic": c.mnemonic,
-                "image": fix_static_urls(c.image),
-                "audio": fix_static_urls(c.audio),
-                "others": fix_static_urls(c.others)
-            } for c in deck.cards]
+        cards_list = [{
+            "id": c.id,
+            "content": c.content,
+            "explanation": c.explanation,
+            "ai_explanation": c.ai_explanation,
+            "hint": c.hint,
+            "mnemonic": c.mnemonic,
+            "image": fix_static_urls(c.image),
+            "audio": fix_static_urls(c.audio),
+            "others": fix_static_urls(c.others)
+        } for c in deck.cards]
         
         return {
             "id": deck.id,
