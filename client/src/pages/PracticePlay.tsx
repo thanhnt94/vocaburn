@@ -2385,6 +2385,12 @@ export default function PracticePlay() {
 
       const res = await axios.post(`/api/v1/deck/${id}/ask-ai`, payload)
 
+      if (res.data.error) {
+        alert(res.data.error)
+        setIsAskingAI(false)
+        return
+      }
+
       if (res.data.status === 'processing') {
         // Polling loop
         let attempts = 0

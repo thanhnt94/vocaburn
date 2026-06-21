@@ -1648,6 +1648,27 @@ async def ask_ai(deck_id: int, payload: dict, background_tasks: BackgroundTasks,
                 if field in c.others["ai_responses"] and c.others["ai_responses"][field]:
                     return {"ai_explanation": c.others["ai_responses"][field], "content": c.others["ai_responses"][field]}
             
+    # Check template availability
+    deck_res = await db.execute(select(FlashcardDeck).filter(FlashcardDeck.id == deck_id))
+    deck = deck_res.scalar_one_or_none()
+    template = None
+    if deck:
+        if field == "hint":
+            template = deck.ai_prompt_hint
+        elif field == "mnemonic":
+            template = deck.ai_prompt_mnemonic
+        elif field == "explanation":
+            template = deck.ai_prompt
+        else:
+            if deck.practice_settings and isinstance(deck.practice_settings, dict):
+                prompts = deck.practice_settings.get("ai_prompts", [])
+                for p in prompts:
+                    if p.get("id") == field:
+                        template = p.get("prompt")
+                        break
+    if not template or not template.strip():
+        return {"error": "Không có prompt cấu hình cho tab AI này. Vui lòng thiết lập trong phần chỉnh sửa bộ thẻ."}
+
     # Sync Generation
     if sync:
         content = await _generate_ai_content_sync(db, deck_id, card_id, field)
