@@ -1,4 +1,4 @@
-from fastapi import APIRouter, UploadFile, File, Depends, Request, BackgroundTasks
+from fastapi import APIRouter, UploadFile, File, Form, Depends, Request, BackgroundTasks
 from typing import Optional
 import logging
 
@@ -272,7 +272,7 @@ async def export_deck(deck_id: int, request: Request, exclude_ids: bool = False,
     )
 
 @router.post("/{deck_id}/import-update")
-async def import_update_deck(request: Request, deck_id: int, file: UploadFile = File(...), db: AsyncSession = Depends(get_db)):
+async def import_update_deck(request: Request, deck_id: int, file: UploadFile = File(...), mode: str = Form("merge"), db: AsyncSession = Depends(get_db)):
     try:
         user_id = int(request.cookies.get("user_id", 1))
         deck = await DeckService.get_deck_by_id(db, deck_id)
@@ -315,8 +315,22 @@ async def import_update_deck(request: Request, deck_id: int, file: UploadFile = 
             await DeckService.set_deck_tags(db, deck_id, metadata["tags"])
             
         from app.modules.deck.models import Flashcard
-        existing_c_res = await db.execute(select(Flashcard).filter(Flashcard.deck_id == deck_id))
-        existing_c_map = {c.id: c for c in existing_c_res.scalars().all()}
+        
+        if mode == "overwrite":
+            # Delete existing cards and their stats/answers completely
+            card_ids_res = await db.execute(select(Flashcard.id).filter(Flashcard.deck_id == deck_id))
+            card_ids = [r[0] for r in card_ids_res.all()]
+            if card_ids:
+                from app.modules.deck.models import UserCardMastery, UserPracticeStats, UserCardNote, UserAnswer
+                await db.execute(delete(UserCardMastery).where(UserCardMastery.card_id.in_(card_ids)))
+                await db.execute(delete(UserPracticeStats).where(UserPracticeStats.card_id.in_(card_ids)))
+                await db.execute(delete(UserCardNote).where(UserCardNote.card_id.in_(card_ids)))
+                await db.execute(delete(UserAnswer).where(UserAnswer.card_id.in_(card_ids)))
+                await db.execute(delete(Flashcard).where(Flashcard.id.in_(card_ids)))
+            existing_c_map = {}
+        else:
+            existing_c_res = await db.execute(select(Flashcard).filter(Flashcard.deck_id == deck_id))
+            existing_c_map = {c.id: c for c in existing_c_res.scalars().all()}
         
         for c_data in cards:
             c_id = c_data.get("id")

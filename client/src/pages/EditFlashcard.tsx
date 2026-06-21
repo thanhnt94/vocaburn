@@ -23,7 +23,10 @@ import {
   Trash2,
   UserPlus,
   ShieldCheck,
-  ArrowLeftRight
+  ArrowLeftRight,
+  FileSpreadsheet,
+  Upload,
+  Download
 } from 'lucide-react'
 import axios from 'axios'
 import { cn } from '@/lib/utils'
@@ -35,7 +38,68 @@ const EditFlashcard = () => {
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
-  const [activeTab, setActiveTab] = useState<'basic' | 'ai' | 'collaboration' | 'practice'>('basic')
+  const [activeTab, setActiveTab] = useState<'basic' | 'ai' | 'collaboration' | 'practice' | 'excel'>('basic')
+
+  // Excel Import/Export State
+  const [excelFile, setExcelFile] = useState<File | null>(null)
+  const [importMode, setImportMode] = useState<'merge' | 'overwrite'>('merge')
+  const [isImporting, setIsImporting] = useState(false)
+  const [importSuccess, setImportSuccess] = useState(false)
+  const [importError, setImportError] = useState<string | null>(null)
+  const [showImportModal, setShowImportModal] = useState(false)
+
+  const handleExportExcel = async () => {
+    try {
+      const response = await axios.get(`/api/v1/deck/${id}/export`, {
+        responseType: 'blob'
+      })
+      const url = window.URL.createObjectURL(new Blob([response.data]))
+      const link = document.createElement('a')
+      link.href = url
+      link.setAttribute('download', `${formData.title || 'deck'}_export.xlsx`)
+      document.body.appendChild(link)
+      link.click()
+      link.remove()
+    } catch (err) {
+      alert("Xuất Excel thất bại")
+    }
+  }
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      setExcelFile(e.target.files[0])
+      setImportError(null)
+      setImportSuccess(false)
+    }
+  }
+
+  const handleImportExcel = async () => {
+    if (!excelFile) return
+    setIsImporting(true)
+    setImportError(null)
+    setImportSuccess(false)
+    
+    const data = new FormData()
+    data.append('file', excelFile)
+    data.append('mode', importMode)
+
+    try {
+      await axios.post(`/api/v1/deck/${id}/import-update`, data, {
+        headers: {
+          'Content-Type': 'multipart/form-data'
+        }
+      })
+      setImportSuccess(true)
+      setExcelFile(null)
+      // reload flashcards/data
+      const res = await axios.get(`/api/v1/deck/${id}/play-data`)
+      setQuestions(res.data.questions || [])
+    } catch (err: any) {
+      setImportError(err.response?.data?.error || "Nhập Excel thất bại")
+    } finally {
+      setIsImporting(false)
+    }
+  }
   
   const [formData, setFormData] = useState({
     title: '',
@@ -230,7 +294,7 @@ const EditFlashcard = () => {
       <div className="max-w-5xl mx-auto px-4 pt-[68px] md:pt-0 mt-6 md:mt-10">
         {/* Mobile Tab Switcher */}
         <div className="flex items-center bg-white border border-slate-100 p-1.5 rounded-2xl mb-8 md:hidden shadow-sm overflow-x-auto">
-           {['basic', 'practice', 'ai', 'collaboration'].map(tab => (
+           {['basic', 'practice', 'ai', 'collaboration', 'excel'].map(tab => (
              <button 
                key={tab}
                onClick={() => setActiveTab(tab as any)}
@@ -239,7 +303,7 @@ const EditFlashcard = () => {
                  activeTab === tab ? "bg-slate-900 text-white shadow-md" : "text-slate-400"
                )}
              >
-               {tab === 'basic' ? 'Identity' : tab === 'practice' ? 'Practice' : tab === 'ai' ? 'AI Engine' : 'Rights'}
+               {tab === 'basic' ? 'Identity' : tab === 'practice' ? 'Practice' : tab === 'ai' ? 'AI Engine' : tab === 'collaboration' ? 'Rights' : 'Excel'}
              </button>
            ))}
         </div>
@@ -251,6 +315,7 @@ const EditFlashcard = () => {
               <NavButton active={activeTab === 'practice'} onClick={() => setActiveTab('practice')} icon={Zap} title="Practice Defaults" sub="MCQ, Typing, Listening" />
               <NavButton active={activeTab === 'ai'} onClick={() => setActiveTab('ai')} icon={Brain} title="AI Intelligence" sub="System Prompts & Rules" />
               <NavButton active={activeTab === 'collaboration'} onClick={() => setActiveTab('collaboration')} icon={Users} title="Collaboration" sub="Editors & Ownership" />
+              <NavButton active={activeTab === 'excel'} onClick={() => setActiveTab('excel')} icon={FileSpreadsheet} title="Excel Tools" sub="Import & Export" />
 
               <div className="mt-4 p-6 bg-indigo-600 rounded-[2rem] text-white shadow-xl shadow-indigo-200">
                  <LayoutGrid className="w-8 h-8 mb-4 opacity-50" />
@@ -769,6 +834,95 @@ const EditFlashcard = () => {
                        </div>
                     </motion.div>
                  )}
+
+                 {activeTab === 'excel' && (
+                    <motion.div key="excel" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="space-y-6">
+                       <div className="bg-white rounded-[2rem] p-6 md:p-10 border border-slate-100 shadow-sm space-y-8">
+                          <div>
+                             <div className="flex items-center gap-4 mb-6">
+                                <div className="w-10 h-10 bg-indigo-50 rounded-xl flex items-center justify-center text-indigo-600">
+                                   <FileSpreadsheet className="w-5 h-5" />
+                                </div>
+                                <div>
+                                   <h2 className="text-lg font-black text-slate-800 uppercase italic">Excel Utilities</h2>
+                                   <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-0.5">Nhập / Xuất Excel để quản lý thẻ nhanh</p>
+                                </div>
+                             </div>
+
+                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                {/* Export Section */}
+                                <div className="p-6 bg-slate-50 border border-slate-100 rounded-2xl flex flex-col justify-between">
+                                   <div>
+                                      <h3 className="text-sm font-black text-slate-800 uppercase italic flex items-center gap-2 mb-2">
+                                         <Download className="w-4 h-4 text-indigo-600" />
+                                         Xuất file Excel
+                                      </h3>
+                                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-6 leading-relaxed">
+                                         Tải xuống toàn bộ thẻ hiện tại của collection này thành một file Excel để lưu trữ hoặc sửa nhanh.
+                                      </p>
+                                   </div>
+                                   <button 
+                                      onClick={handleExportExcel}
+                                      className="w-full py-3.5 bg-indigo-600 text-white text-[10px] font-black uppercase tracking-widest rounded-xl hover:bg-indigo-700 transition-all active:scale-95 flex items-center justify-center gap-2 shadow-lg shadow-indigo-100"
+                                   >
+                                      <Download className="w-3.5 h-3.5" />
+                                      Xuất Excel
+                                   </button>
+                                </div>
+
+                                {/* Import Section */}
+                                <div className="p-6 bg-slate-50 border border-slate-100 rounded-2xl flex flex-col justify-between">
+                                   <div>
+                                      <h3 className="text-sm font-black text-slate-800 uppercase italic flex items-center gap-2 mb-2">
+                                         <Upload className="w-4 h-4 text-emerald-600" />
+                                         Nhập file Excel
+                                      </h3>
+                                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-6 leading-relaxed">
+                                         Chọn file Excel của bạn để cập nhật/sửa nhanh hoặc thêm tiếp thẻ mới vào bộ sưu tập.
+                                      </p>
+                                   </div>
+                                   
+                                   <div className="relative">
+                                      <input 
+                                         type="file" 
+                                         accept=".xlsx, .xls"
+                                         onChange={(e) => {
+                                            handleFileChange(e);
+                                            if (e.target.files && e.target.files[0]) {
+                                               setShowImportModal(true);
+                                            }
+                                         }}
+                                         className="hidden" 
+                                         id="excel-file-upload"
+                                      />
+                                      <label 
+                                         htmlFor="excel-file-upload"
+                                         className="w-full py-3.5 bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] font-black uppercase tracking-widest rounded-xl transition-all active:scale-95 flex items-center justify-center gap-2 shadow-lg shadow-emerald-100 cursor-pointer text-center"
+                                      >
+                                         <Upload className="w-3.5 h-3.5" />
+                                         Chọn file Excel
+                                      </label>
+                                   </div>
+                                </div>
+                             </div>
+
+                             {importSuccess && (
+                                <div className="mt-6 p-4 bg-emerald-50 border border-emerald-100 rounded-2xl flex items-center gap-3 text-emerald-700">
+                                   <CheckCircle2 className="w-5 h-5 shrink-0" />
+                                   <span className="text-xs font-bold">Cập nhật dữ liệu từ Excel thành công!</span>
+                                </div>
+                             )}
+
+                             {importError && (
+                                <div className="mt-6 p-4 bg-rose-50 border border-rose-100 rounded-2xl flex items-center gap-3 text-rose-700">
+                                   <AlertCircle className="w-5 h-5 shrink-0" />
+                                   <span className="text-xs font-bold">{importError}</span>
+                                </div>
+                             )}
+                          </div>
+                       </div>
+                    </motion.div>
+                 )}
               </AnimatePresence>
               
               {/* Card Manager Shortcut (Mobile) */}
@@ -833,6 +987,99 @@ const EditFlashcard = () => {
                  </div>
                  <div className="mt-8 p-4 bg-amber-50 rounded-2xl border border-amber-100 border-dashed text-center">
                     <p className="text-[9px] font-bold text-amber-700 leading-relaxed italic uppercase tracking-wider">Using tags properly will help AI explain more accurately!</p>
+                 </div>
+               </div>
+             </motion.div>
+           </div>
+         )}
+      </AnimatePresence>
+
+      {/* Import Settings Modal */}
+      <AnimatePresence>
+         {showImportModal && excelFile && (
+           <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4">
+             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-slate-900/60 backdrop-blur-md" onClick={() => setShowImportModal(false)} />
+             <motion.div initial={{ opacity: 0, scale: 0.9, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.9, y: 20 }} className="relative w-full max-w-lg bg-white rounded-[2.5rem] p-8 md:p-10 shadow-2xl border border-slate-100 overflow-hidden">
+               <div className="flex items-center justify-between mb-6">
+                 <div className="flex items-center gap-4">
+                   <div className="w-12 h-12 bg-indigo-50 rounded-2xl flex items-center justify-center text-indigo-600">
+                     <FileSpreadsheet className="w-6 h-6" />
+                   </div>
+                   <div>
+                     <h3 className="text-xl font-black text-slate-900 uppercase italic tracking-tight">Nhập file Excel</h3>
+                     <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-1">Cấu hình chế độ tải lên</p>
+                   </div>
+                 </div>
+                 <button onClick={() => setShowImportModal(false)} className="w-10 h-10 bg-slate-50 rounded-xl flex items-center justify-center text-slate-400 hover:text-slate-900 transition-all"><X className="w-5 h-5" /></button>
+               </div>
+
+               <div className="space-y-6">
+                 <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100 flex items-center justify-between">
+                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Tên tệp đã chọn:</span>
+                    <span className="text-xs font-bold text-slate-900 truncate max-w-[200px]">{excelFile.name}</span>
+                 </div>
+
+                 <div className="space-y-3">
+                   <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Chọn phương thức nhập:</label>
+                   
+                   {/* Option 1: Overwrite */}
+                   <button 
+                      onClick={() => setImportMode('overwrite')}
+                      className={cn(
+                        "w-full p-4 rounded-2xl border text-left transition-all flex items-start gap-4",
+                        importMode === 'overwrite' ? "bg-indigo-50/40 border-indigo-200 ring-2 ring-indigo-500/10" : "bg-white border-slate-100 hover:bg-slate-50"
+                      )}
+                   >
+                     <div className={cn("w-5 h-5 rounded-full border flex items-center justify-center mt-0.5 shrink-0", importMode === 'overwrite' ? "border-indigo-600 bg-indigo-600 text-white" : "border-slate-300")}>
+                        {importMode === 'overwrite' && <div className="w-2 h-2 rounded-full bg-white" />}
+                     </div>
+                     <div>
+                        <h4 className="text-xs font-black text-slate-800 uppercase italic">Ghi đè (Overwrite / Sửa nhanh)</h4>
+                        <p className="text-[10px] text-slate-400 mt-1 leading-relaxed">
+                           Xóa toàn bộ thẻ cũ trong collection này và thay thế bằng danh sách thẻ từ file Excel. Phù hợp khi bạn xuất ra để sửa rồi nhập đè.
+                        </p>
+                     </div>
+                   </button>
+
+                   {/* Option 2: Merge/Append */}
+                   <button 
+                      onClick={() => setImportMode('merge')}
+                      className={cn(
+                        "w-full p-4 rounded-2xl border text-left transition-all flex items-start gap-4",
+                        importMode === 'merge' ? "bg-indigo-50/40 border-indigo-200 ring-2 ring-indigo-500/10" : "bg-white border-slate-100 hover:bg-slate-50"
+                      )}
+                   >
+                     <div className={cn("w-5 h-5 rounded-full border flex items-center justify-center mt-0.5 shrink-0", importMode === 'merge' ? "border-indigo-600 bg-indigo-600 text-white" : "border-slate-300")}>
+                        {importMode === 'merge' && <div className="w-2 h-2 rounded-full bg-white" />}
+                     </div>
+                     <div>
+                        <h4 className="text-xs font-black text-slate-800 uppercase italic">Thêm tiếp / Trộn (Merge)</h4>
+                        <p className="text-[10px] text-slate-400 mt-1 leading-relaxed">
+                           Giữ nguyên thẻ cũ, cập nhật các thẻ trùng ID từ file Excel và thêm các thẻ không trùng ID thành thẻ mới.
+                        </p>
+                     </div>
+                   </button>
+                 </div>
+
+                 <div className="flex gap-3 pt-4 border-t border-slate-100">
+                    <button 
+                       onClick={() => setShowImportModal(false)}
+                       disabled={isImporting}
+                       className="flex-1 py-3.5 bg-slate-100 hover:bg-slate-200 text-slate-600 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all active:scale-95"
+                    >
+                       Hủy
+                    </button>
+                    <button 
+                       onClick={async () => {
+                          await handleImportExcel();
+                          setShowImportModal(false);
+                       }}
+                       disabled={isImporting}
+                       className="flex-grow py-3.5 bg-indigo-600 hover:bg-indigo-700 text-white text-[10px] font-black uppercase tracking-widest rounded-xl transition-all active:scale-95 flex items-center justify-center gap-2 shadow-lg shadow-indigo-100"
+                    >
+                       {isImporting ? <Zap className="w-3.5 h-3.5 animate-spin" /> : <Upload className="w-3.5 h-3.5" />}
+                       {isImporting ? "Đang nhập..." : "Bắt đầu Nhập"}
+                    </button>
                  </div>
                </div>
              </motion.div>
