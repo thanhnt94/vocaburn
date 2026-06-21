@@ -16,15 +16,19 @@ class GeminiService:
         config = await AdminInterface.get_ai_config(db)
         return cls(api_key=config.get("api_key"), model_id=config.get("model_id", "gemini-2.0-flash"))
 
-    async def generate_text(self, prompt: str) -> str:
+    def generate_text_sync(self, prompt: str) -> str:
         if not self.client:
             return "AI Service not configured (API Key missing)."
         try:
-            # Use async client (aio)
-            response = await self.client.aio.models.generate_content(
+            response = self.client.models.generate_content(
                 model=self.model_id,
                 contents=prompt
             )
             return response.text
         except Exception as e:
             return f"Error generating content: {str(e)}"
+
+    async def generate_text(self, prompt: str) -> str:
+        import asyncio
+        return await asyncio.to_thread(self.generate_text_sync, prompt)
+

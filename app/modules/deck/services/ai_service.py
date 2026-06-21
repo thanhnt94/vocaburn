@@ -9,7 +9,7 @@ class AIService:
         else:
             self.client = None
 
-    async def explain_card(self, card_text: str, options: list, correct_answer: str) -> str:
+    def explain_card_sync(self, card_text: str, options: list, correct_answer: str) -> str:
         if not self.client:
             return "AI service is not configured (API key missing)."
 
@@ -29,6 +29,11 @@ class AIService:
             return response.text
         except Exception as e:
             return f"AI explanation failed: {str(e)}"
+
+    async def explain_card(self, card_text: str, options: list, correct_answer: str) -> str:
+        import asyncio
+        return await asyncio.to_thread(self.explain_card_sync, card_text, options, correct_answer)
+
 
     async def explain_question(self, question_text: str, options: list, correct_answer: str) -> str:
         return await self.explain_card(question_text, options, correct_answer)
