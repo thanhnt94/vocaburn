@@ -121,11 +121,18 @@ async def save_practice_settings(request: Request, deck_id: int, payload: dict, 
     if is_creator:
         # Check if user has permission to edit deck settings
         from app.modules.deck.models import DeckCollaborator
+        from app.modules.auth.models import User as UserDB
         is_owner = deck.creator_id == user_id
         collab_res = await db.execute(select(DeckCollaborator).where(DeckCollaborator.deck_id == deck_id, DeckCollaborator.user_id == user_id))
         is_collaborator = collab_res.scalar() is not None
         
-        if not (is_owner or is_collaborator or user_id == 1):
+        # Also check admin role (matching PATCH /{deck_id} permission logic)
+        user_res = await db.execute(select(UserDB).where(UserDB.id == user_id))
+        user_obj = user_res.scalar_one_or_none()
+        is_admin = user_obj and user_obj.role == "admin"
+        
+        if not (is_owner or is_collaborator or user_id == 1 or is_admin):
+            logger.warning(f"POST practice-settings DENIED deck={deck_id}: user_id={user_id}, creator_id={deck.creator_id}, is_owner={is_owner}, is_collaborator={is_collaborator}, is_admin={is_admin}")
             return JSONResponse(status_code=403, content={"error": "No permission to save deck default settings"})
             
         from sqlalchemy.orm.attributes import flag_modified
