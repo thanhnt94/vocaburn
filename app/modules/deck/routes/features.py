@@ -381,6 +381,93 @@ async def import_update_deck(request: Request, deck_id: int, file: UploadFile = 
         print(f"CRITICAL: Excel update error: {traceback.format_exc()}")
         return JSONResponse(status_code=500, content={"error": str(e)})
 
+@router.post("/{deck_id}/import-text-update")
+async def import_text_update(request: Request, deck_id: int, data: dict, db: AsyncSession = Depends(get_db)):
+    try:
+        user_id = int(request.cookies.get("user_id", 1))
+        deck = await DeckService.get_deck_by_id(db, deck_id)
+        if not deck:
+            return JSONResponse(status_code=404, content={"error": "Deck not found"})
+            
+        from app.modules.deck.models import DeckCollaborator
+        is_owner = deck.creator_id == user_id
+        collab_res = await db.execute(select(DeckCollaborator).where(DeckCollaborator.deck_id == deck_id, DeckCollaborator.user_id == user_id))
+        is_collaborator = collab_res.scalar() is not None
+        
+        # Check admin role
+        from app.modules.auth.models import User as UserDB
+        user_res = await db.execute(select(UserDB).where(UserDB.id == user_id))
+        user_obj = user_res.scalar_one_or_none()
+        is_admin = user_obj and user_obj.role == "admin"
+        
+        if not (is_owner or is_collaborator or user_id == 1 or is_admin):
+            return JSONResponse(status_code=403, content={"error": "No permission to update this deck"})
+            
+        cards = data.get("cards", [])
+        mode = data.get("mode", "merge")
+        
+        if not cards:
+            return JSONResponse(status_code=400, content={"error": "No valid cards provided."})
+            
+        from app.modules.deck.models import Flashcard
+        
+        if mode == "overwrite":
+            # Delete existing cards and their stats/answers completely
+            card_ids_res = await db.execute(select(Flashcard.id).filter(Flashcard.deck_id == deck_id))
+            card_ids = [r[0] for r in card_ids_res.all()]
+            if card_ids:
+                from app.modules.deck.models import UserCardMastery, UserPracticeStats, UserCardNote, UserAnswer
+                await db.execute(delete(UserCardMastery).where(UserCardMastery.card_id.in_(card_ids)))
+                await db.execute(delete(UserPracticeStats).where(UserPracticeStats.card_id.in_(card_ids)))
+                await db.execute(delete(UserCardNote).where(UserCardNote.card_id.in_(card_ids)))
+                await db.execute(delete(UserAnswer).where(UserAnswer.card_id.in_(card_ids)))
+                await db.execute(delete(Flashcard).where(Flashcard.id.in_(card_ids)))
+            existing_c_map = {}
+        else:
+            existing_c_res = await db.execute(select(Flashcard).filter(Flashcard.deck_id == deck_id))
+            existing_c_map = {c.id: c for c in existing_c_res.scalars().all()}
+            
+        for c_data in cards:
+            c_id = c_data.get("id")
+            content = c_data.get("content", "").strip()
+            explanation = c_data.get("explanation", "").strip()
+            
+            # Skip completely empty rows
+            if not content and not explanation:
+                continue
+                
+            if c_id and c_id in existing_c_map:
+                db_c = existing_c_map[c_id]
+                db_c.content = content
+                db_c.explanation = explanation
+                if "ai_explanation" in c_data:
+                    db_c.ai_explanation = c_data.get("ai_explanation")
+                if "image" in c_data:
+                    db_c.image = c_data.get("image")
+                if "audio" in c_data:
+                    db_c.audio = c_data.get("audio")
+                if "others" in c_data:
+                    db_c.others = c_data.get("others")
+            else:
+                db_c = Flashcard(
+                    deck_id=deck_id,
+                    content=content,
+                    explanation=explanation,
+                    ai_explanation=c_data.get("ai_explanation"),
+                    image=c_data.get("image"),
+                    audio=c_data.get("audio"),
+                    question_type=c_data.get("question_type", "flashcard"),
+                    others=c_data.get("others") or {}
+                )
+                db.add(db_c)
+                
+        await db.commit()
+        return {"status": "ok", "message": "Deck updated successfully."}
+    except Exception as e:
+        import traceback
+        print(f"CRITICAL: Text update error: {traceback.format_exc()}")
+        return JSONResponse(status_code=500, content={"error": str(e)})
+
 @router.get("/generate-audio/{card_id}")
 async def generate_card_audio(card_id: int, request: Request, face: str = "front", force: bool = False, db: AsyncSession = Depends(get_db)):
     from app.modules.deck.models import Flashcard

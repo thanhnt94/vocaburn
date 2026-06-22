@@ -26,7 +26,8 @@ import {
   ArrowLeftRight,
   FileSpreadsheet,
   Upload,
-  Download
+  Download,
+  Clipboard
 } from 'lucide-react'
 import axios from 'axios'
 import { cn } from '@/lib/utils'
@@ -47,6 +48,200 @@ const EditFlashcard = () => {
   const [importSuccess, setImportSuccess] = useState(false)
   const [importError, setImportError] = useState<string | null>(null)
   const [showImportModal, setShowImportModal] = useState(false)
+
+  // Copy-paste import states
+  const [rawText, setRawText] = useState('')
+  const [delimiter, setDelimiter] = useState<'auto' | 'tab' | 'space' | 'comma' | 'semicolon' | 'pipe'>('auto')
+  const [parsedCards, setParsedCards] = useState<any[]>([])
+  const [isTextImporting, setIsTextImporting] = useState(false)
+  const [textImportSuccess, setTextImportSuccess] = useState(false)
+  const [textImportError, setTextImportError] = useState<string | null>(null)
+
+  const detectDelimiter = (text: string): string => {
+    let tabCount = 0;
+    let pipeCount = 0;
+    let semicolonCount = 0;
+    let commaCount = 0;
+    let inQuotes = false;
+    
+    for (let i = 0; i < text.length; i++) {
+      const char = text[i];
+      if (char === '"') {
+        if (text[i + 1] === '"') {
+          i++;
+        } else {
+          inQuotes = !inQuotes;
+        }
+      } else if (!inQuotes) {
+        if (char === '\t') tabCount++;
+        else if (char === '|') pipeCount++;
+        else if (char === ';') semicolonCount++;
+        else if (char === ',') commaCount++;
+      }
+    }
+    
+    const counts = [
+      { char: '\t', count: tabCount },
+      { char: '|', count: pipeCount },
+      { char: ';', count: semicolonCount },
+      { char: ',', count: commaCount }
+    ];
+    
+    counts.sort((a, b) => b.count - a.count);
+    return counts[0].count > 0 ? counts[0].char : '\t';
+  }
+
+  const parseClipboardText = (text: string, selectedDelim: string): string[][] => {
+    const delimChar = selectedDelim === 'auto' ? detectDelimiter(text) : (
+      selectedDelim === 'tab' ? '\t' :
+      selectedDelim === 'space' ? ' ' :
+      selectedDelim === 'comma' ? ',' :
+      selectedDelim === 'semicolon' ? ';' :
+      selectedDelim === 'pipe' ? '|' : '\t'
+    );
+
+    const result: string[][] = [];
+    let row: string[] = [];
+    let currentVal = '';
+    let inQuotes = false;
+    
+    for (let i = 0; i < text.length; i++) {
+      const char = text[i];
+      const nextChar = text[i + 1];
+      
+      if (inQuotes) {
+        if (char === '"') {
+          if (nextChar === '"') {
+            currentVal += '"';
+            i++;
+          } else {
+            inQuotes = false;
+          }
+        } else {
+          currentVal += char;
+        }
+      } else {
+        if (char === '"') {
+          inQuotes = true;
+        } else if (char === delimChar) {
+          row.push(currentVal);
+          currentVal = '';
+        } else if (char === '\n' || char === '\r') {
+          if (char === '\r' && nextChar === '\n') {
+            i++;
+          }
+          row.push(currentVal);
+          result.push(row);
+          row = [];
+          currentVal = '';
+        } else {
+          currentVal += char;
+        }
+      }
+    }
+    if (currentVal || row.length > 0) {
+      row.push(currentVal);
+      result.push(row);
+    }
+    
+    return result.filter(r => r.some(cell => cell.trim().length > 0));
+  };
+
+  const handleParseText = () => {
+    if (!rawText.trim()) {
+      setTextImportError("Vui lòng nhập hoặc dán văn bản trước.")
+      return
+    }
+    setTextImportError(null)
+    const rows = parseClipboardText(rawText, delimiter)
+    if (rows.length === 0) {
+      setTextImportError("Không tìm thấy dòng thẻ nào hợp lệ.")
+      return
+    }
+    
+    const nonMainCols = availableColumns.filter(c => c !== 'front' && c !== 'back')
+    const colOrder = ['front', 'back', ...nonMainCols]
+    
+    const cards = rows.map(row => {
+      const cardObj: any = { content: '', explanation: '', others: {} }
+      
+      row.forEach((cellVal, colIdx) => {
+        const targetCol = colOrder[colIdx]
+        if (targetCol === 'front') {
+          cardObj.content = cellVal.trim()
+        } else if (targetCol === 'back') {
+          cardObj.explanation = cellVal.trim()
+        } else if (targetCol) {
+          cardObj.others[targetCol] = cellVal.trim()
+        }
+      })
+      
+      // Initialize missing custom columns with empty string
+      nonMainCols.forEach(c => {
+        if (cardObj.others[c] === undefined) {
+          cardObj.others[c] = ''
+        }
+      })
+      
+      return cardObj
+    })
+    
+    setParsedCards(cards)
+  }
+
+  const handleTextImportSubmit = async () => {
+    if (parsedCards.length === 0) return
+    setIsTextImporting(true)
+    setTextImportError(null)
+    setTextImportSuccess(false)
+    try {
+      const payload = {
+        mode: importMode,
+        cards: parsedCards.map(c => ({
+          content: c.content,
+          explanation: c.explanation,
+          others: c.others
+        }))
+      }
+      await axios.post(`/api/v1/deck/${id}/import-text-update`, payload)
+      setTextImportSuccess(true)
+      setParsedCards([])
+      setRawText('')
+      
+      const res = await axios.get(`/api/v1/deck/${id}/play-data?lightweight=true`)
+      setQuestions(res.data.questions || [])
+    } catch (err: any) {
+      setTextImportError(err.response?.data?.error || "Import văn bản thất bại")
+    } finally {
+      setIsTextImporting(false)
+    }
+  }
+
+  const handleUpdateCardText = (idx: number, field: string, value: string) => {
+    const updated = [...parsedCards]
+    if (field === 'content') {
+      updated[idx].content = value
+    } else if (field === 'explanation') {
+      updated[idx].explanation = value
+    } else {
+      updated[idx].others = {
+        ...updated[idx].others,
+        [field]: value
+      }
+    }
+    setParsedCards(updated)
+  }
+
+  const handleDeleteCardText = (idx: number) => {
+    setParsedCards(parsedCards.filter((_, i) => i !== idx))
+  }
+
+  const handleAddCardRowText = () => {
+    const nonMainCols = availableColumns.filter(c => c !== 'front' && c !== 'back')
+    const othersObj: any = {}
+    nonMainCols.forEach(c => { othersObj[c] = '' })
+    setParsedCards([...parsedCards, { content: '', explanation: '', others: othersObj }])
+  }
 
   const handleExportExcel = async () => {
     try {
@@ -929,6 +1124,200 @@ const EditFlashcard = () => {
                                 </div>
                              </div>
 
+                             {/* Quick Copy-Paste Section */}
+                             <div className="mt-8 pt-8 border-t border-slate-100 space-y-6">
+                                <div>
+                                   <h3 className="text-sm font-black text-slate-800 uppercase italic flex items-center gap-2 mb-2">
+                                      <Clipboard className="w-4 h-4 text-indigo-600" />
+                                      Dán nhanh từ văn bản (Copy-Paste)
+                                   </h3>
+                                   <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-4 leading-relaxed">
+                                      Dán trực tiếp văn bản từ Excel, Google Sheets hoặc Quizlet vào ô bên dưới.
+                                   </p>
+                                </div>
+
+                                <div className="space-y-4">
+                                   <div className="p-4 bg-indigo-50/50 border border-indigo-100 rounded-2xl text-xs space-y-2">
+                                      <div className="font-black text-indigo-900 uppercase tracking-widest text-[9px]">Thứ tự các cột cần dán (Cực kì quan trọng):</div>
+                                      <div className="flex flex-wrap gap-2 items-center text-[11px] font-bold text-indigo-700">
+                                         <span className="px-2 py-0.5 bg-white border border-indigo-200 rounded-md">Cột 1: front (Mặt trước)</span>
+                                         <span className="text-indigo-400">➔</span>
+                                         <span className="px-2 py-0.5 bg-white border border-indigo-200 rounded-md">Cột 2: back (Mặt sau)</span>
+                                         {availableColumns.filter(c => c !== 'front' && c !== 'back').map((col, idx) => (
+                                            <React.Fragment key={col}>
+                                               <span className="text-indigo-400">➔</span>
+                                               <span className="px-2 py-0.5 bg-white border border-indigo-200 rounded-md">Cột {idx + 3}: {col}</span>
+                                            </React.Fragment>
+                                         ))}
+                                      </div>
+                                      <div className="text-[10px] text-slate-500 leading-relaxed font-medium">
+                                         💡 <strong>Lưu ý về CHAR(10) (Dòng mới trong ô):</strong> Các dòng mới nằm bên trong một ô Excel / Google Sheets khi dán vào đây sẽ được tự động nhận diện chính xác mà không làm lệch cột hoặc hàng (hệ thống tự phân tích định dạng dấu ngoặc kép của Excel).
+                                      </div>
+                                   </div>
+
+                                   <div className="flex flex-col md:flex-row gap-4 items-start md:items-center justify-between">
+                                      <div className="space-y-1.5 flex-grow">
+                                         <label className="text-[9px] font-black text-slate-400 uppercase tracking-wider block">Kí tự phân tách (Delimiter)</label>
+                                         <div className="flex flex-wrap gap-1.5">
+                                            {([
+                                               { key: 'auto', label: 'Tự động phát hiện ⚙️' },
+                                               { key: 'tab', label: 'Tab ⇥' },
+                                               { key: 'space', label: 'Khoảng trắng ␣' },
+                                               { key: 'comma', label: 'Dấu phẩy (,) ⎎' },
+                                               { key: 'semicolon', label: 'Dấu chấm phẩy (;) ⎏' },
+                                               { key: 'pipe', label: 'Dấu gạch đứng (|)' }
+                                            ] as const).map(item => (
+                                               <button
+                                                  key={item.key}
+                                                  type="button"
+                                                  onClick={() => setDelimiter(item.key)}
+                                                  className={cn(
+                                                     "px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-wider transition-all border",
+                                                     delimiter === item.key
+                                                        ? "bg-indigo-650 border-indigo-650 text-white shadow-md"
+                                                        : "bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100"
+                                                  )}
+                                               >
+                                                  {item.label}
+                                               </button>
+                                            ))}
+                                         </div>
+                                      </div>
+
+                                      <div className="space-y-1.5 w-full md:w-auto">
+                                         <label className="text-[9px] font-black text-slate-400 uppercase tracking-wider block">Phương thức nhập</label>
+                                         <div className="flex bg-slate-100 p-1 rounded-xl border border-slate-200/40">
+                                            <button
+                                               type="button"
+                                               onClick={() => setImportMode('merge')}
+                                               className={cn(
+                                                  "px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-wider transition-all",
+                                                  importMode === 'merge' ? "bg-white text-indigo-600 shadow-sm" : "text-slate-500 hover:text-slate-700"
+                                               )}
+                                            >
+                                               Thêm tiếp (Merge)
+                                            </button>
+                                            <button
+                                               type="button"
+                                               onClick={() => setImportMode('overwrite')}
+                                               className={cn(
+                                                  "px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-wider transition-all",
+                                                  importMode === 'overwrite' ? "bg-white text-rose-600 shadow-sm" : "text-slate-500 hover:text-slate-700"
+                                               )}
+                                            >
+                                               Ghi đè (Overwrite)
+                                            </button>
+                                         </div>
+                                      </div>
+                                   </div>
+
+                                   {parsedCards.length === 0 ? (
+                                      <div className="space-y-3">
+                                         <textarea
+                                            rows={6}
+                                            value={rawText}
+                                            onChange={(e) => setRawText(e.target.value)}
+                                            className="w-full bg-slate-50 border border-slate-200 rounded-2xl p-4 text-xs font-mono font-bold text-slate-800 outline-none focus:ring-4 focus:ring-indigo-500/5 transition-all"
+                                            placeholder={`Dán dữ liệu từ Excel / Google Sheets vào đây...\nVí dụ:\napple\tquả táo\nbanana\tquả chuối`}
+                                         />
+                                         <div className="flex justify-end">
+                                            <button
+                                               type="button"
+                                               onClick={handleParseText}
+                                               className="px-6 py-3 bg-indigo-600 text-white text-[10px] font-black rounded-xl hover:bg-indigo-700 transition-all shadow-lg uppercase tracking-wider active:scale-95"
+                                            >
+                                               Phân tích văn bản
+                                            </button>
+                                         </div>
+                                      </div>
+                                   ) : (
+                                      <div className="space-y-4">
+                                         <div className="bg-slate-50 rounded-2xl border border-slate-100 p-4 flex items-center justify-between">
+                                            <span className="text-[10px] font-black text-slate-500 uppercase tracking-wider">
+                                               Đã phân tích: <strong className="text-indigo-600">{parsedCards.length} thẻ</strong>
+                                            </span>
+                                            <div className="flex gap-2">
+                                               <button
+                                                  type="button"
+                                                  onClick={() => setParsedCards([])}
+                                                  className="px-4 py-2 bg-slate-200 hover:bg-slate-300 text-slate-600 text-[9px] font-black rounded-lg transition-all uppercase tracking-wider"
+                                               >
+                                                  Hủy
+                                               </button>
+                                               <button
+                                                  type="button"
+                                                  onClick={handleTextImportSubmit}
+                                                  disabled={isTextImporting}
+                                                  className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-[9px] font-black rounded-lg transition-all uppercase tracking-wider flex items-center gap-1 shadow-md shadow-indigo-100"
+                                               >
+                                                  {isTextImporting ? <Zap className="w-3 h-3 animate-spin" /> : <Upload className="w-3 h-3" />}
+                                                  Thực hiện Import ({importMode === 'overwrite' ? 'Ghi đè' : 'Thêm tiếp'})
+                                               </button>
+                                            </div>
+                                         </div>
+
+                                         <div className="border border-slate-100 rounded-2xl max-h-[400px] overflow-y-auto divide-y divide-slate-100 bg-white shadow-sm custom-scrollbar">
+                                            {parsedCards.map((card, idx) => (
+                                               <div key={idx} className="p-4 flex gap-3 items-center hover:bg-slate-50/50 transition-colors">
+                                                  <span className="w-6 h-6 bg-slate-900 text-white rounded-lg flex items-center justify-center text-[9px] font-black shrink-0">
+                                                     {idx + 1}
+                                                  </span>
+                                                  <div className="flex-grow grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                                                     <div className="space-y-1">
+                                                        <span className="text-[8px] font-bold text-slate-400 uppercase">front</span>
+                                                        <input
+                                                           type="text"
+                                                           value={card.content}
+                                                           onChange={(e) => handleUpdateCardText(idx, 'content', e.target.value)}
+                                                           className="w-full h-9 bg-slate-50 border border-slate-200 rounded-lg px-3 text-xs font-bold text-slate-800 outline-none focus:border-indigo-500 focus:bg-white transition-all"
+                                                        />
+                                                     </div>
+                                                     <div className="space-y-1">
+                                                        <span className="text-[8px] font-bold text-slate-400 uppercase">back</span>
+                                                        <input
+                                                           type="text"
+                                                           value={card.explanation}
+                                                           onChange={(e) => handleUpdateCardText(idx, 'explanation', e.target.value)}
+                                                           className="w-full h-9 bg-slate-50 border border-slate-200 rounded-lg px-3 text-xs font-bold text-slate-800 outline-none focus:border-indigo-500 focus:bg-white transition-all"
+                                                        />
+                                                     </div>
+                                                     {Object.keys(card.others || {}).map(otherCol => (
+                                                        <div key={otherCol} className="space-y-1">
+                                                           <span className="text-[8px] font-bold text-slate-400 uppercase">{otherCol}</span>
+                                                           <input
+                                                              type="text"
+                                                              value={card.others[otherCol] || ''}
+                                                              onChange={(e) => handleUpdateCardText(idx, otherCol, e.target.value)}
+                                                              className="w-full h-9 bg-slate-50 border border-slate-200 rounded-lg px-3 text-xs font-bold text-slate-800 outline-none focus:border-indigo-500 focus:bg-white transition-all"
+                                                           />
+                                                        </div>
+                                                     ))}
+                                                  </div>
+                                                  <button
+                                                     type="button"
+                                                     onClick={() => handleDeleteCardText(idx)}
+                                                     className="w-8 h-8 rounded-lg bg-rose-50 text-rose-500 flex items-center justify-center hover:bg-rose-100 transition-all shrink-0"
+                                                  >
+                                                     <Trash2 className="w-3.5 h-3.5" />
+                                                  </button>
+                                               </div>
+                                            ))}
+
+                                            <div className="p-3 bg-slate-50/50">
+                                               <button
+                                                  type="button"
+                                                  onClick={handleAddCardRowText}
+                                                  className="w-full py-2.5 bg-white border border-dashed border-slate-200 hover:border-indigo-400 text-slate-500 hover:text-indigo-600 rounded-xl flex items-center justify-center gap-1.5 text-xs font-black uppercase tracking-wider transition-all"
+                                               >
+                                                  <Plus className="w-3.5 h-3.5" /> Thêm dòng mới
+                                               </button>
+                                            </div>
+                                         </div>
+                                      </div>
+                                   )}
+                                </div>
+                             </div>
+
                              {importSuccess && (
                                 <div className="mt-6 p-4 bg-emerald-50 border border-emerald-100 rounded-2xl flex items-center gap-3 text-emerald-700">
                                    <CheckCircle2 className="w-5 h-5 shrink-0" />
@@ -942,9 +1331,23 @@ const EditFlashcard = () => {
                                    <span className="text-xs font-bold">{importError}</span>
                                 </div>
                              )}
-                          </div>
-                       </div>
-                    </motion.div>
+
+                             {textImportSuccess && (
+                                <div className="mt-6 p-4 bg-emerald-50 border border-emerald-100 rounded-2xl flex items-center gap-3 text-emerald-700">
+                                   <CheckCircle2 className="w-5 h-5 shrink-0" />
+                                   <span className="text-xs font-bold">Import văn bản thành công!</span>
+                                </div>
+                             )}
+
+                             {textImportError && (
+                                <div className="mt-6 p-4 bg-rose-50 border border-rose-100 rounded-2xl flex items-center gap-3 text-rose-700">
+                                   <AlertCircle className="w-5 h-5 shrink-0" />
+                                   <span className="text-xs font-bold">{textImportError}</span>
+                                </div>
+                             )}
+                           </div>
+                        </div>
+                     </motion.div>
                  )}
               </AnimatePresence>
               
