@@ -164,7 +164,9 @@ class UserDeckGoal(Base):
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id"), index=True)
     deck_id = Column("quiz_id", Integer, ForeignKey("flashcard_decks.id"), index=True)
-    daily_target = Column(Integer, default=5)
+    daily_target = Column(Integer, default=5) # daily new card target
+    daily_time_target = Column(Integer, default=10) # in minutes
+    daily_card_target = Column(Integer, default=20) # total cards
     streak_count = Column(Integer, default=0)
     last_completed_date = Column(String(50), nullable=True) # YYYY-MM-DD
     status = Column(String(50), default="active") # active, paused, completed

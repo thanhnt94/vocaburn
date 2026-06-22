@@ -82,7 +82,9 @@ async def get_deck_stats(db: AsyncSession = Depends(get_db)):
 async def create_or_update_goal(request: Request, data: dict, db: AsyncSession = Depends(get_db)):
     user_id = int(request.cookies.get("user_id", 1))
     deck_id = int(data.get("deck_id", data.get("quiz_id")))
-    daily_target = int(data.get("daily_target", 5))
+    daily_target = int(data.get("daily_target", data.get("daily_new_card_target", 5)))
+    daily_time_target = int(data.get("daily_time_target", 10))
+    daily_card_target = int(data.get("daily_card_target", 20))
 
     # Check if goal exists
     res = await db.execute(
@@ -91,18 +93,28 @@ async def create_or_update_goal(request: Request, data: dict, db: AsyncSession =
     goal = res.scalar_one_or_none()
     if goal:
         goal.daily_target = daily_target
+        goal.daily_time_target = daily_time_target
+        goal.daily_card_target = daily_card_target
         goal.status = "active"
     else:
         goal = UserDeckGoal(
             user_id=user_id,
             deck_id=deck_id,
             daily_target=daily_target,
+            daily_time_target=daily_time_target,
+            daily_card_target=daily_card_target,
             status="active"
         )
         db.add(goal)
     
     await db.commit()
-    return {"status": "ok", "goal_id": goal.id, "daily_target": goal.daily_target}
+    return {
+        "status": "ok", 
+        "goal_id": goal.id, 
+        "daily_target": goal.daily_target,
+        "daily_time_target": goal.daily_time_target,
+        "daily_card_target": goal.daily_card_target
+    }
 
 @router.get("/goals/active")
 async def get_active_goals(request: Request, local_date: Optional[str] = None, db: AsyncSession = Depends(get_db)):
@@ -190,6 +202,24 @@ async def get_active_goals(request: Request, local_date: Optional[str] = None, d
     )
     learned_map = {r[0]: r[1] for r in learned_res.all()}
 
+    # Bulk query today's study time (seconds) grouped by deck_id
+    time_res = await db.execute(
+        select(Flashcard.deck_id, func.sum(UserAnswer.active_time))
+        .join(UserAnswer, UserAnswer.card_id == Flashcard.id)
+        .where(UserAnswer.created_at >= today)
+        .group_by(Flashcard.deck_id)
+    )
+    deck_time_map = {r[0]: r[1] for r in time_res.all()}
+
+    # Bulk query today's total card attempts grouped by deck_id
+    attempted_res = await db.execute(
+        select(Flashcard.deck_id, func.count(UserAnswer.id))
+        .join(UserAnswer, UserAnswer.card_id == Flashcard.id)
+        .where(UserAnswer.created_at >= today)
+        .group_by(Flashcard.deck_id)
+    )
+    deck_attempted_map = {r[0]: r[1] for r in attempted_res.all()}
+
     goals_data = []
     for goal in goals:
         deck = goal.deck
@@ -208,6 +238,10 @@ async def get_active_goals(request: Request, local_date: Optional[str] = None, d
         remaining_cs = max(0, total_cards - total_learned)
         days_remaining_est = math.ceil(remaining_cs / goal.daily_target) if goal.daily_target > 0 else 0
         
+        actual_time_seconds = deck_time_map.get(goal.deck_id, 0.0) or 0.0
+        actual_time_minutes = round(actual_time_seconds / 60, 1)
+        actual_cards_completed = deck_attempted_map.get(goal.deck_id, 0) or 0
+        
         goals_data.append({
             "goal_id": goal.id,
             "deck_id": goal.deck_id,
@@ -219,6 +253,12 @@ async def get_active_goals(request: Request, local_date: Optional[str] = None, d
             "total_questions": total_cards, # compatibility
             "total_learned": total_learned,
             "daily_target": goal.daily_target,
+            "daily_time_target": goal.daily_time_target,
+            "daily_card_target": goal.daily_card_target,
+            "daily_new_card_target": goal.daily_target,
+            "actual_time_minutes": actual_time_minutes,
+            "actual_cards_completed": actual_cards_completed,
+            "actual_new_cards_completed": done_today,
             "done_today": done_today,
             "is_target_met": is_target_met,
             "streak_count": goal.streak_count,

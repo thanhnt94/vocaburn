@@ -22,6 +22,12 @@ interface ActiveGoal {
   total_questions: number
   total_learned: number
   daily_target: number
+  daily_time_target: number
+  daily_card_target: number
+  daily_new_card_target: number
+  actual_time_minutes: number
+  actual_cards_completed: number
+  actual_new_cards_completed: number
   done_today: number
   is_target_met: boolean
   streak_count: number
@@ -647,6 +653,7 @@ function TodayFocusWidget({
   activeGoals,
   todayReview,
   onOpenSettings,
+  onOpenDeckSettings,
   onStartPractice,
   navigate
 }: {
@@ -654,6 +661,7 @@ function TodayFocusWidget({
   activeGoals: ActiveGoal[] | undefined;
   todayReview: any | undefined;
   onOpenSettings: () => void;
+  onOpenDeckSettings: (goal: ActiveGoal) => void;
   onStartPractice: (quiz: any) => void;
   navigate: any;
 }) {
@@ -753,7 +761,7 @@ function TodayFocusWidget({
         </div>
 
         {/* New Card Target */}
-        <div className="flex flex-col sm:flex-row items-center justify-center sm:justify-start gap-1 sm:gap-3 bg-white/60 backdrop-blur-sm p-2 sm:p-3.5 rounded-2xl sm:rounded-[1.5rem] border border-slate-100">
+        <div className="flex flex-col sm:flex-row items-center justify-center sm:justify-start gap-1 sm:gap-3 bg-white/60 backdrop-blur-sm p-2 sm:p-3.5 rounded-2xl sm:rounded-[1.5rem] border border-slate-105 border-slate-100">
           <div className="relative w-10 h-10 sm:w-14 sm:h-14 flex-shrink-0 flex items-center justify-center rounded-full bg-white shadow-sm">
             <svg className="w-10 h-10 sm:w-14 sm:h-14 transform -rotate-90">
               <circle cx="50%" cy="50%" r="40%" className="stroke-slate-100 fill-none" strokeWidth="3" />
@@ -793,107 +801,177 @@ function TodayFocusWidget({
             {activeGoals.map(goal => {
               const deckReview = todayReview?.decks_summary?.find((d: any) => d.deck_id === goal.deck_id)
               const dueReviews = deckReview ? deckReview.due_count : 0
-              const isGoalMet = goal.done_today >= goal.daily_target
-              const goalPercentage = goal.daily_target > 0 ? Math.min(100, Math.round((goal.done_today / goal.daily_target) * 100)) : 0
-              const remainingNewToday = Math.max(0, goal.daily_target - goal.done_today)
               const totalRemainingNew = goal.total_questions - goal.total_learned
               const newCountLabel = totalRemainingNew > 0 ? totalRemainingNew : 0
               const hasNewCards = totalRemainingNew > 0
 
-              return (
-                <div key={goal.goal_id} className="p-3.5 rounded-2xl border border-slate-100 bg-slate-50/30 hover:bg-slate-50/60 transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                  <div className="flex items-center gap-3 min-w-0">
-                    {/* Ring for specific deck new cards target */}
-                    <div className="relative w-11 h-11 flex-shrink-0 flex items-center justify-center rounded-full bg-white shadow-sm border border-slate-100">
-                      <svg className="w-11 h-11 transform -rotate-90">
-                        <circle cx="22" cy="22" r="17" className="stroke-slate-50 fill-none" strokeWidth="2.5" />
-                        <circle
-                          cx="22" cy="22" r="17"
-                          className={cn("fill-none transition-all duration-500 ease-out", isGoalMet ? "stroke-amber-400" : "stroke-indigo-600")}
-                          strokeWidth="2.5"
-                          strokeDasharray={2 * Math.PI * 17}
-                          strokeDashoffset={2 * Math.PI * 17 - (goalPercentage / 100) * 2 * Math.PI * 17}
-                          strokeLinecap="round"
-                        />
-                      </svg>
-                      <span className={cn("absolute text-[8px] font-black", isGoalMet ? "text-amber-500" : "text-indigo-600")}>
-                        {goal.done_today}/{goal.daily_target}
-                      </span>
-                    </div>
+              const timePct = goal.daily_time_target > 0 ? Math.min(100, Math.round((goal.actual_time_minutes / goal.daily_time_target) * 100)) : 0
+              const cardPct = goal.daily_card_target > 0 ? Math.min(100, Math.round((goal.actual_cards_completed / goal.daily_card_target) * 100)) : 0
+              const newCardPct = goal.daily_new_card_target > 0 ? Math.min(100, Math.round((goal.actual_new_cards_completed / goal.daily_new_card_target) * 100)) : 0
 
-                    <div className="min-w-0 text-left">
-                      <h4 className="text-xs font-black text-slate-850 truncate leading-snug">{goal.quiz_title}</h4>
-                      <div className="flex flex-wrap items-center gap-2 mt-1">
-                        <span className="text-[8px] font-black px-1.5 py-0.5 rounded bg-orange-50 text-orange-600 border border-orange-100/60">
+              return (
+                <div key={goal.goal_id} className="p-4 rounded-3xl border border-slate-150/70 bg-white hover:shadow-sm hover:border-slate-300 transition-all flex flex-col gap-3.5 text-left relative overflow-hidden">
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="min-w-0">
+                      <h4 className="text-xs font-black text-slate-800 truncate leading-snug">{goal.quiz_title}</h4>
+                      <div className="flex flex-wrap items-center gap-1.5 mt-1">
+                        <span className="text-[8px] font-black px-1.5 py-0.5 rounded bg-orange-50 text-orange-650 border border-orange-100/60">
                           🔥 {goal.streak_count}D
                         </span>
                         {dueReviews > 0 ? (
-                          <span className="text-[8px] font-black px-1.5 py-0.5 rounded bg-rose-50 text-rose-600 border border-rose-100/60 animate-pulse">
-                            ⚠️ {dueReviews} thẻ cần ôn
+                          <span className="text-[8px] font-black px-1.5 py-0.5 rounded bg-rose-50 text-rose-655 border border-rose-100/50">
+                            ⚠️ {dueReviews} ôn
                           </span>
                         ) : (
-                          <span className="text-[8px] font-black px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-600 border border-emerald-100/60">
-                            ✅ Đã sạch thẻ ôn
+                          <span className="text-[8px] font-black px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-600 border border-emerald-100/50">
+                            ✅ Sạch ôn
                           </span>
                         )}
-                        <span className="text-[8px] font-black px-1.5 py-0.5 rounded bg-sky-50 text-sky-600 border border-sky-100/60">
+                        <span className="text-[8px] font-black px-1.5 py-0.5 rounded bg-sky-50 text-sky-600 border border-sky-100/50">
                           📚 Đã học: {goal.total_learned}/{goal.total_questions}
                         </span>
-                        {(() => {
-                          const d = new Date()
-                          d.setDate(d.getDate() + goal.days_remaining_est)
-                          return (
-                            <span className="text-[8px] font-black px-1.5 py-0.5 rounded bg-indigo-50 text-indigo-600 border border-indigo-100/60 flex items-center gap-1">
-                              <Target className="w-2.5 h-2.5" />
-                              Dự kiến xong: {d.toLocaleDateString('vi-VN')}
-                            </span>
-                          )
-                        })()}
+                      </div>
+                    </div>
+
+                    <button
+                      onClick={() => onOpenDeckSettings(goal)}
+                      className="w-7.5 h-7.5 rounded-lg bg-slate-50 border border-slate-200/60 flex items-center justify-center text-slate-500 hover:text-indigo-650 hover:bg-slate-100 active:scale-90 transition-all"
+                      title="Cài đặt mục tiêu bộ thẻ"
+                    >
+                      <Settings className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+
+                  <div className="grid grid-cols-3 gap-2.5 bg-slate-50/45 p-2.5 rounded-2xl border border-slate-100">
+                    <div className="flex items-center gap-2">
+                      <div className="relative w-7 h-7 flex-shrink-0 flex items-center justify-center rounded-full bg-white shadow-sm border border-slate-100">
+                        <svg className="w-7 h-7 transform -rotate-90">
+                          <circle cx="14" cy="14" r="11" className="stroke-slate-50 fill-none" strokeWidth="2" />
+                          <circle
+                            cx="14" cy="14" r="11"
+                            className="stroke-indigo-600 fill-none transition-all duration-500 ease-out"
+                            strokeWidth="2"
+                            strokeDasharray={2 * Math.PI * 11}
+                            strokeDashoffset={2 * Math.PI * 11 - (timePct / 100) * 2 * Math.PI * 11}
+                            strokeLinecap="round"
+                          />
+                        </svg>
+                        <span className="absolute text-[7px] font-black text-indigo-600">
+                          {timePct}%
+                        </span>
+                      </div>
+                      <div className="text-left min-w-0">
+                        <span className="text-[6.5px] font-black text-slate-400 uppercase tracking-wide block leading-none">TG Học</span>
+                        <span className="text-[8.5px] font-black text-slate-700 block mt-0.5 truncate leading-none">
+                          {goal.actual_time_minutes}/{goal.daily_time_target}m
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <div className="relative w-7 h-7 flex-shrink-0 flex items-center justify-center rounded-full bg-white shadow-sm border border-slate-100">
+                        <svg className="w-7 h-7 transform -rotate-90">
+                          <circle cx="14" cy="14" r="11" className="stroke-slate-50 fill-none" strokeWidth="2" />
+                          <circle
+                            cx="14" cy="14" r="11"
+                            className="stroke-emerald-500 fill-none transition-all duration-500 ease-out"
+                            strokeWidth="2"
+                            strokeDasharray={2 * Math.PI * 11}
+                            strokeDashoffset={2 * Math.PI * 11 - (cardPct / 100) * 2 * Math.PI * 11}
+                            strokeLinecap="round"
+                          />
+                        </svg>
+                        <span className="absolute text-[7px] font-black text-emerald-600">
+                          {cardPct}%
+                        </span>
+                      </div>
+                      <div className="text-left min-w-0">
+                        <span className="text-[6.5px] font-black text-slate-400 uppercase tracking-wide block leading-none">Đã ôn</span>
+                        <span className="text-[8.5px] font-black text-slate-700 block mt-0.5 truncate leading-none">
+                          {goal.actual_cards_completed}/{goal.daily_card_target}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <div className="relative w-7 h-7 flex-shrink-0 flex items-center justify-center rounded-full bg-white shadow-sm border border-slate-100">
+                        <svg className="w-7 h-7 transform -rotate-90">
+                          <circle cx="14" cy="14" r="11" className="stroke-slate-50 fill-none" strokeWidth="2" />
+                          <circle
+                            cx="14" cy="14" r="11"
+                            className="stroke-amber-500 fill-none transition-all duration-500 ease-out"
+                            strokeWidth="2"
+                            strokeDasharray={2 * Math.PI * 11}
+                            strokeDashoffset={2 * Math.PI * 11 - (newCardPct / 100) * 2 * Math.PI * 11}
+                            strokeLinecap="round"
+                          />
+                        </svg>
+                        <span className="absolute text-[7px] font-black text-amber-600">
+                          {newCardPct}%
+                        </span>
+                      </div>
+                      <div className="text-left min-w-0">
+                        <span className="text-[6.5px] font-black text-slate-400 uppercase tracking-wide block leading-none">Mới</span>
+                        <span className="text-[8.5px] font-black text-slate-700 block mt-0.5 truncate leading-none">
+                          {goal.actual_new_cards_completed}/{goal.daily_new_card_target}
+                        </span>
                       </div>
                     </div>
                   </div>
 
-                  {/* Actions */}
-                  <div className="flex items-center gap-1.5 self-end sm:self-center">
-                    <button
-                      onClick={() => {
-                        if (hasNewCards) {
-                          navigate(`/flashcard/${goal.deck_id}/play?mode=new`)
-                        }
-                      }}
-                      className={cn(
-                        "h-8.5 px-2 rounded-xl text-[9px] font-black uppercase tracking-wider flex items-center gap-1 shadow-sm active:scale-95 transition-all",
-                        hasNewCards
-                          ? "bg-gradient-to-r from-orange-500 to-rose-500 hover:from-orange-600 hover:to-rose-600 text-white shadow-orange-100"
-                          : "bg-slate-100 text-slate-400 cursor-not-allowed border border-slate-200/50"
-                      )}
-                      disabled={!hasNewCards}
-                      title="Học từ mới"
-                    >
-                      <Sparkles className="w-3.5 h-3.5" />
-                      Mới {newCountLabel > 0 && `(${newCountLabel})`}
-                    </button>
-                    <button
-                      onClick={() => navigate(`/flashcard/${goal.deck_id}/play?mode=fsrs`)}
-                      className={cn(
-                        "h-8.5 px-2 rounded-xl text-[9px] font-black uppercase tracking-wider flex items-center gap-1 shadow-sm active:scale-95 transition-all",
-                        dueReviews > 0
-                          ? "bg-indigo-600 hover:bg-indigo-700 text-white shadow-indigo-100"
-                          : "bg-slate-100 hover:bg-slate-200 text-slate-600"
-                      )}
-                      title="Spaced Repetition"
-                    >
-                      <Brain className="w-3.5 h-3.5" />
-                      Ôn {dueReviews > 0 && `(${dueReviews})`}
-                    </button>
-                    <button
-                      onClick={() => onStartPractice({ id: goal.deck_id, title: goal.quiz_title, questions_count: goal.total_questions })}
-                      className="h-8.5 px-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-[9px] font-black uppercase tracking-wider flex items-center gap-1 shadow-sm shadow-emerald-100 active:scale-95 transition-all"
-                      title="Luyện tập tự do"
-                    >
-                      <Trophy className="w-3.5 h-3.5" />
-                      Tập
-                    </button>
+                  <div className="flex items-center justify-between border-t border-slate-100 pt-2.5 mt-0.5">
+                    {(() => {
+                      const d = new Date()
+                      d.setDate(d.getDate() + goal.days_remaining_est)
+                      return (
+                        <span className="text-[8px] font-black text-indigo-500 flex items-center gap-1">
+                          <Target className="w-2.5 h-2.5" />
+                          Dự kiến xong: {d.toLocaleDateString('vi-VN')}
+                        </span>
+                      )
+                    })()}
+
+                    <div className="flex items-center gap-1.5">
+                      <button
+                        onClick={() => {
+                          if (hasNewCards) {
+                            navigate(`/flashcard/${goal.deck_id}/play?mode=new`)
+                          }
+                        }}
+                        className={cn(
+                          "h-8 px-2.5 rounded-xl text-[9px] font-black uppercase tracking-wider flex items-center gap-1 shadow-sm active:scale-95 transition-all",
+                          hasNewCards
+                            ? "bg-gradient-to-r from-orange-500 to-rose-500 hover:from-orange-600 hover:to-rose-600 text-white shadow-orange-150"
+                            : "bg-slate-100 text-slate-400 cursor-not-allowed border border-slate-200/50"
+                        )}
+                        disabled={!hasNewCards}
+                        title="Học từ mới"
+                      >
+                        <Sparkles className="w-3.5 h-3.5" />
+                        Mới {newCountLabel > 0 && `(${newCountLabel})`}
+                      </button>
+                      <button
+                        onClick={() => navigate(`/flashcard/${goal.deck_id}/play?mode=fsrs`)}
+                        className={cn(
+                          "h-8 px-2.5 rounded-xl text-[9px] font-black uppercase tracking-wider flex items-center gap-1 shadow-sm active:scale-95 transition-all",
+                          dueReviews > 0
+                            ? "bg-indigo-600 hover:bg-indigo-700 text-white shadow-indigo-150"
+                            : "bg-slate-100 hover:bg-slate-200 text-slate-600"
+                        )}
+                        title="Spaced Repetition"
+                      >
+                        <Brain className="w-3.5 h-3.5" />
+                        Ôn {dueReviews > 0 && `(${dueReviews})`}
+                      </button>
+                      <button
+                        onClick={() => onStartPractice({ id: goal.deck_id, title: goal.quiz_title, questions_count: goal.total_questions })}
+                        className="h-8 px-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-[9px] font-black uppercase tracking-wider flex items-center gap-1 shadow-sm shadow-emerald-150 active:scale-95 transition-all"
+                        title="Luyện tập tự do"
+                      >
+                        <Trophy className="w-3.5 h-3.5" />
+                        Tập
+                      </button>
+                    </div>
                   </div>
                 </div>
               )
@@ -1081,6 +1159,186 @@ function GoalSettingsModal({
   )
 }
 
+function DeckGoalSettingsModal({
+  isOpen,
+  onClose,
+  deckId,
+  deckTitle,
+  initialTime,
+  initialCard,
+  initialNewCard,
+  onSave
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+  deckId: number;
+  deckTitle: string;
+  initialTime: number;
+  initialCard: number;
+  initialNewCard: number;
+  onSave: (deckId: number, time: number, card: number, newCard: number) => Promise<void>;
+}) {
+  const [timeTarget, setTimeTarget] = useState(initialTime)
+  const [cardTarget, setCardTarget] = useState(initialCard)
+  const [newCardTarget, setNewCardTarget] = useState(initialNewCard)
+  const [isSaving, setIsSaving] = useState(false)
+
+  const timePresets = [10, 20, 30, 60]
+  const cardPresets = [10, 20, 30, 50]
+
+  useEffect(() => {
+    if (isOpen) {
+      setTimeTarget(initialTime)
+      setCardTarget(initialCard)
+      setNewCardTarget(initialNewCard)
+    }
+  }, [isOpen, initialTime, initialCard, initialNewCard])
+
+  const handleSave = async () => {
+    setIsSaving(true)
+    try {
+      await onSave(deckId, timeTarget, cardTarget, newCardTarget)
+      onClose()
+    } catch (e) {
+      alert("Lỗi khi lưu mục tiêu bộ thẻ")
+    } finally {
+      setIsSaving(false)
+    }
+  }
+
+  return (
+    <AnimatePresence>
+      {isOpen && (
+        <div className="fixed inset-0 z-[1000] flex items-center justify-center p-6">
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={onClose}
+            className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm"
+          />
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9, y: 20 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.9, y: 20 }}
+            className="w-full max-w-sm bg-white rounded-[2.5rem] shadow-2xl relative z-10 p-8 border border-slate-100 text-left"
+          >
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <span className="text-[8px] font-black text-indigo-600 uppercase tracking-widest block">Mục tiêu bộ thẻ</span>
+                <h3 className="text-xs font-black text-slate-800 uppercase tracking-tight mt-0.5 truncate max-w-[200px]">{deckTitle}</h3>
+              </div>
+              <button onClick={onClose} className="w-8 h-8 rounded-full bg-slate-50 flex items-center justify-center text-slate-400 hover:text-rose-500 transition-all">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="space-y-5">
+              <div>
+                <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1.5 block ml-1">Thời gian học (phút/ngày)</label>
+                <div className="grid grid-cols-4 gap-1.5 mb-2">
+                  {timePresets.map(preset => (
+                    <button
+                      key={preset}
+                      type="button"
+                      onClick={() => setTimeTarget(preset)}
+                      className={cn(
+                        "py-2 rounded-xl text-[9px] font-black tracking-wider transition-all border",
+                        timeTarget === preset
+                          ? "bg-indigo-600 border-indigo-600 text-white shadow-md shadow-indigo-100"
+                          : "bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100"
+                      )}
+                    >
+                      {preset}m
+                    </button>
+                  ))}
+                </div>
+                <input
+                  type="number"
+                  min="0"
+                  max="480"
+                  value={timeTarget}
+                  onChange={(e) => setTimeTarget(Math.max(0, parseInt(e.target.value) || 0))}
+                  className="w-full h-10 bg-slate-50 border border-slate-200 rounded-xl px-4 text-xs font-bold text-slate-750 focus:border-indigo-500 focus:bg-white outline-none transition-all"
+                  placeholder="Nhập số phút (0 = không giới hạn)..."
+                />
+              </div>
+
+              <div>
+                <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1.5 block ml-1">Mục tiêu số thẻ học (thẻ/ngày)</label>
+                <div className="grid grid-cols-4 gap-1.5 mb-2">
+                  {cardPresets.map(preset => (
+                    <button
+                      key={preset}
+                      type="button"
+                      onClick={() => setCardTarget(preset)}
+                      className={cn(
+                        "py-2 rounded-xl text-[9px] font-black tracking-wider transition-all border",
+                        cardTarget === preset
+                          ? "bg-emerald-600 border-emerald-600 text-white shadow-md shadow-emerald-100"
+                          : "bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100"
+                      )}
+                    >
+                      {preset}
+                    </button>
+                  ))}
+                </div>
+                <input
+                  type="number"
+                  min="0"
+                  max="1000"
+                  value={cardTarget}
+                  onChange={(e) => setCardTarget(Math.max(0, parseInt(e.target.value) || 0))}
+                  className="w-full h-10 bg-slate-50 border border-slate-200 rounded-xl px-4 text-xs font-bold text-slate-750 focus:border-indigo-500 focus:bg-white outline-none transition-all"
+                  placeholder="Nhập số thẻ (0 = không giới hạn)..."
+                />
+              </div>
+
+              <div>
+                <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1.5 block ml-1">Mục tiêu số thẻ mới (thẻ/ngày)</label>
+                <div className="grid grid-cols-4 gap-1.5 mb-2">
+                  {cardPresets.map(preset => (
+                    <button
+                      key={`new-${preset}`}
+                      type="button"
+                      onClick={() => setNewCardTarget(preset)}
+                      className={cn(
+                        "py-2 rounded-xl text-[9px] font-black tracking-wider transition-all border",
+                        newCardTarget === preset
+                          ? "bg-amber-500 border-amber-500 text-white shadow-md shadow-amber-100"
+                          : "bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100"
+                      )}
+                    >
+                      {preset}
+                    </button>
+                  ))}
+                </div>
+                <input
+                  type="number"
+                  min="0"
+                  max="1000"
+                  value={newCardTarget}
+                  onChange={(e) => setNewCardTarget(Math.max(0, parseInt(e.target.value) || 0))}
+                  className="w-full h-10 bg-slate-50 border border-slate-200 rounded-xl px-4 text-xs font-bold text-slate-750 focus:border-amber-500 focus:bg-white outline-none transition-all"
+                  placeholder="Nhập số thẻ mới (0 = không giới hạn)..."
+                />
+              </div>
+
+              <button
+                onClick={handleSave}
+                disabled={isSaving}
+                className="w-full h-12 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-lg shadow-indigo-150 transition-all flex items-center justify-center"
+              >
+                {isSaving ? "ĐANG LƯU..." : "LƯU MỤC TIÊU"}
+              </button>
+            </div>
+          </motion.div>
+        </div>
+      )}
+    </AnimatePresence>
+  )
+}
+
 // ─── Main Dashboard Component ─────────────────────────────────────────────────
 export default function Dashboard() {
   const { setUser, setGamify } = useAppStore()
@@ -1093,6 +1351,8 @@ export default function Dashboard() {
   const [roomCode, setRoomCode] = useState('')
   const [isJoining, setIsJoining] = useState(false)
   const [isGoalModalOpen, setIsGoalModalOpen] = useState(false)
+  const [isDeckGoalModalOpen, setIsDeckGoalModalOpen] = useState(false)
+  const [selectedDeckGoal, setSelectedDeckGoal] = useState<ActiveGoal | null>(null)
   
   const [timeFilter, setTimeFilter] = useState('all_time')
 
@@ -1111,6 +1371,21 @@ export default function Dashboard() {
       daily_new_card_target: newCardTarget
     })
     refetchGlobalGoals()
+  }
+
+  const handleOpenDeckGoalSettings = (goal: ActiveGoal) => {
+    setSelectedDeckGoal(goal)
+    setIsDeckGoalModalOpen(true)
+  }
+
+  const handleSaveDeckGoal = async (deckId: number, timeTarget: number, cardTarget: number, newCardTarget: number) => {
+    await axios.post('/api/v1/deck/goals', {
+      deck_id: deckId,
+      daily_time_target: timeTarget,
+      daily_card_target: cardTarget,
+      daily_new_card_target: newCardTarget
+    })
+    queryClient.invalidateQueries({ queryKey: ['activeGoals'] })
   }
 
   const todayStr = new Date().toISOString().slice(0, 10)
@@ -1574,6 +1849,7 @@ export default function Dashboard() {
               activeGoals={activeGoals}
               todayReview={todayReview}
               onOpenSettings={() => setIsGoalModalOpen(true)}
+              onOpenDeckSettings={handleOpenDeckGoalSettings}
               onStartPractice={(quiz) => {
                 setSelectedPracticeQuiz(quiz)
                 setIsPracticeModalOpen(true)
@@ -1605,6 +1881,7 @@ export default function Dashboard() {
             activeGoals={activeGoals}
             todayReview={todayReview}
             onOpenSettings={() => setIsGoalModalOpen(true)}
+            onOpenDeckSettings={handleOpenDeckGoalSettings}
             onStartPractice={(quiz) => {
               setSelectedPracticeQuiz(quiz)
               setIsPracticeModalOpen(true)
@@ -1786,6 +2063,23 @@ export default function Dashboard() {
             initialCard={globalGoals.daily_card_target}
             initialNewCard={globalGoals.daily_new_card_target}
             onSave={handleSaveGlobalGoals}
+          />
+        )}
+
+        {/* Deck Goals Settings Modal */}
+        {selectedDeckGoal && (
+          <DeckGoalSettingsModal
+            isOpen={isDeckGoalModalOpen}
+            onClose={() => {
+              setIsDeckGoalModalOpen(false)
+              setSelectedDeckGoal(null)
+            }}
+            deckId={selectedDeckGoal.deck_id}
+            deckTitle={selectedDeckGoal.deck_title}
+            initialTime={selectedDeckGoal.daily_time_target}
+            initialCard={selectedDeckGoal.daily_card_target}
+            initialNewCard={selectedDeckGoal.daily_new_card_target}
+            onSave={handleSaveDeckGoal}
           />
         )}
       </AnimatePresence>

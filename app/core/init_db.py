@@ -37,7 +37,22 @@ async def init_db():
                     
             connection.execute(text("CREATE INDEX IF NOT EXISTS ix_user_card_mastery_due ON user_card_mastery(due)"))
             
+        def migrate_deck_goals_columns(connection):
+            result = connection.execute(text("PRAGMA table_info(user_deck_goals);"))
+            columns = {row[1] for row in result.fetchall()}
+            
+            new_columns = [
+                ("daily_time_target", "INTEGER DEFAULT 10"),
+                ("daily_card_target", "INTEGER DEFAULT 20")
+            ]
+            
+            for col_name, col_type in new_columns:
+                if col_name not in columns:
+                    print(f"[MIGRATE] Adding column {col_name} ({col_type}) to user_deck_goals...")
+                    connection.execute(text(f"ALTER TABLE user_deck_goals ADD COLUMN {col_name} {col_type}"))
+            
         await conn.run_sync(migrate_fsrs_columns)
+        await conn.run_sync(migrate_deck_goals_columns)
         
     async with SessionLocal() as db:
         # Check if category exists
