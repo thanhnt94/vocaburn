@@ -17,6 +17,9 @@ import {
   Eye,
   Image,
   Volume2,
+  Plus,
+  Trash2,
+  Clipboard,
   Settings
 } from 'lucide-react'
 import axios from 'axios'
@@ -69,6 +72,129 @@ const ImportFlashcard = () => {
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
   const [showGuide, setShowGuide] = useState(false)
+
+  const [importMode, setImportMode] = useState<'file' | 'text'>('file')
+  const [rawText, setRawText] = useState('')
+  const [delimiter, setDelimiter] = useState<'auto' | 'tab' | 'space' | 'comma' | 'semicolon' | 'pipe'>('auto')
+  const [parsedCards, setParsedCards] = useState<{ content: string; explanation: string }[]>([])
+  
+  const [textMeta, setTextMeta] = useState({
+    title: 'Mục nhập văn bản nhanh',
+    description: 'Bộ thẻ được tạo bằng cách dán văn bản trực tiếp.',
+    category: 'General',
+    tags: ''
+  })
+
+  const parseRawText = (text: string, delim: string) => {
+    if (!text.trim()) return []
+    const lines = text.split(/\r?\n/).filter(line => line.trim().length > 0)
+    return lines.map(line => {
+      let parts: string[] = []
+      if (delim === 'auto') {
+        if (line.includes('\t')) {
+          parts = line.split('\t')
+        } else if (line.includes('|')) {
+          parts = line.split('|')
+        } else if (line.includes(';')) {
+          parts = line.split(';')
+        } else if (line.includes(',')) {
+          parts = line.split(',')
+        } else {
+          const firstSpaceIdx = line.indexOf(' ')
+          if (firstSpaceIdx !== -1) {
+            parts = [line.substring(0, firstSpaceIdx), line.substring(firstSpaceIdx + 1)]
+          } else {
+            parts = [line]
+          }
+        }
+      } else {
+        const dMap: Record<string, string> = {
+          tab: '\t',
+          space: ' ',
+          comma: ',',
+          semicolon: ';',
+          pipe: '|'
+        }
+        const char = dMap[delim] || '\t'
+        if (char === ' ') {
+          const idx = line.indexOf(' ')
+          if (idx !== -1) {
+            parts = [line.substring(0, idx), line.substring(idx + 1)]
+          } else {
+            parts = [line]
+          }
+        } else {
+          parts = line.split(char)
+        }
+      }
+
+      const content = parts[0]?.trim() || ''
+      const explanation = parts.slice(1).join(delim === 'auto' ? ' ' : (delim === 'comma' ? ',' : delim === 'semicolon' ? ';' : ' ')).trim() || ''
+      return { content, explanation }
+    })
+  }
+
+  const handleParseText = () => {
+    if (!rawText.trim()) {
+      setError("Vui lòng nhập hoặc dán văn bản trước.")
+      return
+    }
+    setError(null)
+    const cards = parseRawText(rawText, delimiter)
+    if (cards.length === 0) {
+      setError("Không tìm thấy dòng thẻ nào hợp lệ.")
+      return
+    }
+    setParsedCards(cards)
+  }
+
+  const handleTextImportSubmit = async () => {
+    if (parsedCards.length === 0) return
+    setIsUploading(true)
+    setError(null)
+    try {
+      const payload = {
+        title: textMeta.title.trim() || 'Quick Text Import',
+        description: textMeta.description.trim() || 'Imported via copy-paste.',
+        category: textMeta.category.trim() || 'General',
+        tags: textMeta.tags.split(',').map(t => t.trim()).filter(Boolean),
+        cards: parsedCards.map(c => ({
+          content: c.content,
+          explanation: c.explanation
+        }))
+      }
+      const response = await axios.post('/api/v1/deck/import-text', payload)
+      if (response.data.status === 'ok') {
+        setSuccess(true)
+        setTimeout(() => navigate('/manage'), 2000)
+      } else {
+        throw new Error(response.data.error || "Neural ingestion failed.")
+      }
+    } catch (err: any) {
+      const msg = err.response?.data?.error || err.message || "Failed to import text deck."
+      setError(msg)
+    } finally {
+      setIsUploading(false)
+    }
+  }
+
+  const handleUpdateCard = (idx: number, field: 'content' | 'explanation', value: string) => {
+    const updated = [...parsedCards]
+    updated[idx] = {
+      ...updated[idx],
+      [field]: value
+    }
+    setParsedCards(updated)
+  }
+
+  const handleDeleteCard = (idx: number) => {
+    const updated = parsedCards.filter((_, i) => i !== idx)
+    setParsedCards(updated)
+  }
+
+  const handleAddCardRow = () => {
+    setParsedCards([...parsedCards, { content: '', explanation: '' }])
+  }
 
   const handlePreview = async (file: File) => {
     setIsPreviewing(true)
@@ -191,63 +317,300 @@ const ImportFlashcard = () => {
 
         {/* Main Upload Zone */}
         <div className={cn("space-y-6", previewData ? "lg:col-span-4" : "lg:col-span-3")}>
+          {!previewData && (
+            <div className="flex bg-slate-100 p-1.5 rounded-2xl border border-slate-200/40">
+              <button
+                type="button"
+                onClick={() => { setImportMode('file'); setError(null); }}
+                className={cn(
+                  "flex-1 py-3 text-[11px] font-black uppercase tracking-wider rounded-xl transition-all flex items-center justify-center gap-2",
+                  importMode === 'file'
+                    ? "bg-white text-indigo-600 shadow-sm border border-slate-200/20"
+                    : "text-slate-500 hover:text-slate-700"
+                )}
+              >
+                <FileSpreadsheet className="w-4 h-4" />
+                Excel Ingestion
+              </button>
+              <button
+                type="button"
+                onClick={() => { setImportMode('text'); setError(null); }}
+                className={cn(
+                  "flex-1 py-3 text-[11px] font-black uppercase tracking-wider rounded-xl transition-all flex items-center justify-center gap-2",
+                  importMode === 'text'
+                    ? "bg-white text-indigo-600 shadow-sm border border-slate-200/20"
+                    : "text-slate-500 hover:text-slate-700"
+                )}
+              >
+                <Clipboard className="w-4 h-4" />
+                Quick Copy-Paste
+              </button>
+            </div>
+          )}
+
           {!previewData ? (
-            <div 
-              className={`relative h-[300px] md:h-[400px] rounded-[2.5rem] md:rounded-[3.5rem] border-4 border-dashed transition-all flex flex-col items-center justify-center p-6 md:p-12 text-center group ${
-                isPreviewing ? 'border-indigo-600 bg-indigo-50/10' :
-                error ? 'border-rose-500 bg-rose-50/30' :
-                'border-slate-200 bg-white hover:border-indigo-600'
-              }`}
-              onDragOver={(e) => e.preventDefault()}
-              onDrop={(e) => {
-                e.preventDefault()
-                const file = e.dataTransfer.files[0]
-                if (file) handlePreview(file)
-              }}
-            >
-              {isPreviewing ? (
-                <div className="flex flex-col items-center">
-                  <div className="w-16 h-16 md:w-20 md:h-20 bg-indigo-600 rounded-[1.5rem] md:rounded-[2rem] flex items-center justify-center text-white mb-6 shadow-xl shadow-indigo-100 animate-pulse">
-                    <Zap className="w-8 h-8 md:w-10 md:h-10 animate-bounce" />
-                  </div>
-                  <h3 className="text-lg md:text-xl font-black text-slate-900 uppercase tracking-tight italic">Parsing Content</h3>
-                  <p className="text-[10px] font-black text-indigo-600 uppercase tracking-widest mt-2 text-center">Extracting flashcard deck from spreadsheet...</p>
-                </div>
-              ) : (
-                <>
-                  <div className="w-16 h-16 md:w-20 md:h-20 bg-slate-50 rounded-[1.5rem] md:rounded-[2rem] flex items-center justify-center text-slate-300 group-hover:bg-indigo-50 group-hover:text-indigo-600 transition-all mb-6 group-hover:scale-110">
-                    <CloudUpload className="w-8 h-8 md:w-10 md:h-10" />
-                  </div>
-                  <h3 className="text-lg md:text-xl font-black text-slate-900 uppercase tracking-tight italic mb-2">Upload Flashcard Decks</h3>
-                  <p className="text-[9px] md:text-[10px] font-medium text-slate-400 max-w-[200px] mx-auto leading-relaxed uppercase tracking-widest">Select an Excel file (.xlsx) to preview your collection</p>
-                  
-                  <button 
-                    onClick={() => document.getElementById('file-upload')?.click()}
-                    className="mt-8 px-8 py-4 bg-indigo-600 text-white text-[10px] font-black rounded-xl md:rounded-2xl hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-100 uppercase tracking-[0.2em] active:scale-95"
-                  >
-                    Select File
-                  </button>
-                </>
-              )}
-
-              {error && (
-                <div className="absolute bottom-6 md:bottom-10 left-6 md:left-10 right-6 md:right-10 flex items-center gap-3 bg-white/90 backdrop-blur p-4 rounded-xl border border-rose-100 text-rose-600 shadow-xl shadow-rose-500/5">
-                  <AlertCircle className="w-5 h-5 shrink-0" />
-                  <p className="text-[9px] md:text-[10px] font-black uppercase tracking-tight text-left leading-tight">{error}</p>
-                </div>
-              )}
-
-              <input 
-                id="file-upload" 
-                type="file" 
-                className="hidden" 
-                accept=".xlsx,.xls"
-                onChange={(e) => {
-                  const file = e.target.files?.[0]
+            importMode === 'file' ? (
+              <div 
+                className={`relative h-[300px] md:h-[400px] rounded-[2.5rem] md:rounded-[3.5rem] border-4 border-dashed transition-all flex flex-col items-center justify-center p-6 md:p-12 text-center group ${
+                  isPreviewing ? 'border-indigo-600 bg-indigo-50/10' :
+                  error ? 'border-rose-500 bg-rose-50/30' :
+                  'border-slate-200 bg-white hover:border-indigo-600'
+                }`}
+                onDragOver={(e) => e.preventDefault()}
+                onDrop={(e) => {
+                  e.preventDefault()
+                  const file = e.dataTransfer.files[0]
                   if (file) handlePreview(file)
                 }}
-              />
-            </div>
+              >
+                {isPreviewing ? (
+                  <div className="flex flex-col items-center">
+                    <div className="w-16 h-16 md:w-20 md:h-20 bg-indigo-600 rounded-[1.5rem] md:rounded-[2rem] flex items-center justify-center text-white mb-6 shadow-xl shadow-indigo-100 animate-pulse">
+                      <Zap className="w-8 h-8 md:w-10 md:h-10 animate-bounce" />
+                    </div>
+                    <h3 className="text-lg md:text-xl font-black text-slate-900 uppercase tracking-tight italic">Parsing Content</h3>
+                    <p className="text-[10px] font-black text-indigo-600 uppercase tracking-widest mt-2 text-center">Extracting flashcard deck from spreadsheet...</p>
+                  </div>
+                ) : (
+                  <>
+                    <div className="w-16 h-16 md:w-20 md:h-20 bg-slate-50 rounded-[1.5rem] md:rounded-[2rem] flex items-center justify-center text-slate-300 group-hover:bg-indigo-50 group-hover:text-indigo-600 transition-all mb-6 group-hover:scale-110">
+                      <CloudUpload className="w-8 h-8 md:w-10 md:h-10" />
+                    </div>
+                    <h3 className="text-lg md:text-xl font-black text-slate-900 uppercase tracking-tight italic mb-2">Upload Flashcard Decks</h3>
+                    <p className="text-[9px] md:text-[10px] font-medium text-slate-400 max-w-[200px] mx-auto leading-relaxed uppercase tracking-widest">Select an Excel file (.xlsx) to preview your collection</p>
+                    
+                    <button 
+                      onClick={() => document.getElementById('file-upload')?.click()}
+                      className="mt-8 px-8 py-4 bg-indigo-600 text-white text-[10px] font-black rounded-xl md:rounded-2xl hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-100 uppercase tracking-[0.2em] active:scale-95"
+                    >
+                      Select File
+                    </button>
+                  </>
+                )}
+
+                {error && (
+                  <div className="absolute bottom-6 md:bottom-10 left-6 md:left-10 right-6 md:right-10 flex items-center gap-3 bg-white/90 backdrop-blur p-4 rounded-xl border border-rose-100 text-rose-600 shadow-xl shadow-rose-500/5">
+                    <AlertCircle className="w-5 h-5 shrink-0" />
+                    <p className="text-[9px] md:text-[10px] font-black uppercase tracking-tight text-left leading-tight">{error}</p>
+                  </div>
+                )}
+
+                <input 
+                  id="file-upload" 
+                  type="file" 
+                  className="hidden" 
+                  accept=".xlsx,.xls"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0]
+                    if (file) handlePreview(file)
+                  }}
+                />
+              </div>
+            ) : parsedCards.length === 0 ? (
+              <div className="bg-white rounded-[2.5rem] p-8 border border-slate-100 shadow-sm space-y-6 text-left">
+                <div>
+                  <h3 className="text-lg font-black text-slate-900 uppercase tracking-tight italic">Quick Copy-Paste Ingestion</h3>
+                  <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mt-1">Dán văn bản trực tiếp để tạo bộ thẻ nhanh chóng</p>
+                </div>
+
+                <div className="space-y-4">
+                  <div>
+                    <label className="text-[9px] font-black text-slate-400 uppercase tracking-wider block mb-2">Định dạng phân tách (Delimiter)</label>
+                    <div className="flex flex-wrap gap-2">
+                      {([
+                        { key: 'auto', label: 'Tự động phát hiện ⚙️' },
+                        { key: 'tab', label: 'Tab ⇥' },
+                        { key: 'space', label: 'Khoảng trắng ␣' },
+                        { key: 'comma', label: 'Dấu phẩy (,) ⎎' },
+                        { key: 'semicolon', label: 'Dấu chấm phẩy (;) ⎏' },
+                        { key: 'pipe', label: 'Dấu gạch đứng (|)' }
+                      ] as const).map(item => (
+                        <button
+                          key={item.key}
+                          type="button"
+                          onClick={() => setDelimiter(item.key)}
+                          className={cn(
+                            "px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all border",
+                            delimiter === item.key
+                              ? "bg-indigo-600 border-indigo-600 text-white shadow-md shadow-indigo-100"
+                              : "bg-slate-50 border-slate-200 text-slate-650 hover:bg-slate-100"
+                          )}
+                        >
+                          {item.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="text-[9px] font-black text-slate-400 uppercase tracking-wider block mb-2">Nhập hoặc dán danh sách từ (Mỗi dòng một thẻ)</label>
+                    <textarea
+                      rows={10}
+                      value={rawText}
+                      onChange={(e) => setRawText(e.target.value)}
+                      className="w-full bg-slate-50 border border-slate-200 rounded-[1.75rem] p-5 text-xs font-mono font-bold text-slate-800 outline-none focus:ring-4 focus:ring-indigo-500/5 transition-all"
+                      placeholder={`Ví dụ (sử dụng Tab):\napple\tquả táo\nbanana\tquả chuối\n\nVí dụ (sử dụng Dấu gạch đứng):\n猫\tcon mèo\n犬\tcon chó`}
+                    />
+                  </div>
+                </div>
+
+                {error && (
+                  <div className="flex items-center gap-3 bg-rose-50/50 p-4 rounded-xl border border-rose-100 text-rose-600">
+                    <AlertCircle className="w-5 h-5 shrink-0" />
+                    <p className="text-[10px] font-black uppercase tracking-tight text-left leading-tight">{error}</p>
+                  </div>
+                )}
+
+                <div className="flex justify-end pt-2">
+                  <button
+                    type="button"
+                    onClick={handleParseText}
+                    className="px-8 py-4 bg-indigo-600 text-white text-[10px] font-black rounded-xl hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-100 uppercase tracking-[0.2em] active:scale-95"
+                  >
+                    Tách từ vựng & Xem trước
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-6">
+                {/* Preview Header Card */}
+                <div className="bg-white rounded-[2.5rem] p-8 md:p-10 border border-slate-100 shadow-sm space-y-8 text-left">
+                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+                    <div className="flex items-center gap-4">
+                      <div className="w-12 h-12 bg-indigo-50 rounded-xl flex items-center justify-center text-indigo-600">
+                        <Clipboard className="w-6 h-6" />
+                      </div>
+                      <div>
+                        <h2 className="text-lg md:text-xl font-black text-slate-900 uppercase italic tracking-tight">Preview & Edit Direct Ingestion</h2>
+                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-1">
+                          {parsedCards.length} Cards parsed • Ready to import
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3 w-full md:w-auto">
+                      <button
+                        onClick={() => { setParsedCards([]); setError(null); }}
+                        className="flex-1 md:flex-none px-6 py-3 bg-slate-50 text-slate-400 text-[10px] font-black rounded-xl hover:bg-slate-100 transition-all uppercase tracking-widest"
+                      >
+                        Hủy bỏ
+                      </button>
+                      <button
+                        onClick={handleTextImportSubmit}
+                        disabled={isUploading || success}
+                        className={cn(
+                          "flex-1 md:flex-none flex items-center justify-center gap-2 px-8 py-3 text-white text-[10px] font-black rounded-xl transition-all shadow-lg uppercase tracking-widest",
+                          success ? "bg-emerald-500 shadow-emerald-100" : "bg-indigo-600 hover:bg-indigo-700 shadow-indigo-100"
+                        )}
+                      >
+                        {isUploading ? <Zap className="w-4 h-4 animate-spin" /> : success ? <CheckCircle2 className="w-4 h-4" /> : <CloudUpload className="w-4 h-4" />}
+                        {isUploading ? "..." : success ? "OK" : "Import"}
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8">
+                    <div className="space-y-4">
+                      <div>
+                        <label className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] block mb-2">Deck Title</label>
+                        <input
+                          type="text"
+                          value={textMeta.title}
+                          onChange={(e) => setTextMeta({ ...textMeta, title: e.target.value })}
+                          className="w-full h-11 bg-slate-50 border border-slate-150 rounded-xl px-4 text-xs font-bold text-slate-900 outline-none focus:ring-4 focus:ring-indigo-500/5 transition-all"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] block mb-2">Description</label>
+                        <textarea
+                          rows={3}
+                          value={textMeta.description}
+                          onChange={(e) => setTextMeta({ ...textMeta, description: e.target.value })}
+                          className="w-full bg-slate-50 border border-slate-150 rounded-xl p-4 text-xs font-bold text-slate-900 outline-none focus:ring-4 focus:ring-indigo-500/5 transition-all resize-none"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="space-y-4">
+                      <div>
+                        <label className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] block mb-2">Category</label>
+                        <input
+                          type="text"
+                          value={textMeta.category}
+                          onChange={(e) => setTextMeta({ ...textMeta, category: e.target.value })}
+                          className="w-full h-11 bg-slate-50 border border-slate-150 rounded-xl px-4 text-xs font-bold text-slate-900 outline-none focus:ring-4 focus:ring-indigo-500/5 transition-all"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] block mb-2">Tags (Comma Separated)</label>
+                        <input
+                          type="text"
+                          value={textMeta.tags}
+                          onChange={(e) => setTextMeta({ ...textMeta, tags: e.target.value })}
+                          className="w-full h-11 bg-slate-50 border border-slate-150 rounded-xl px-4 text-xs font-bold text-slate-900 outline-none focus:ring-4 focus:ring-indigo-500/5 transition-all"
+                          placeholder="jlpt, vocabulary, n3"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Editable parsed list */}
+                <div className="bg-white rounded-[2rem] border border-slate-100 shadow-sm overflow-hidden text-left">
+                  <div className="p-6 md:p-8 border-b border-slate-50 bg-slate-50/30 flex items-center justify-between">
+                    <h3 className="text-[10px] font-black text-slate-900 uppercase tracking-[0.2em] italic">Flashcard Editor</h3>
+                    <div className="px-3 py-1 bg-white rounded-lg border border-slate-100">
+                      <span className="text-[9px] font-black text-indigo-600">{parsedCards.length} CARDS</span>
+                    </div>
+                  </div>
+
+                  <div className="p-6 space-y-4 max-h-[500px] overflow-y-auto custom-scrollbar">
+                    {parsedCards.map((card, idx) => (
+                      <div key={idx} className="flex gap-4 items-center bg-slate-50/30 p-4 rounded-2xl border border-slate-100 hover:border-slate-200 transition-all">
+                        <span className="w-6 h-6 bg-slate-900 text-white rounded-lg flex items-center justify-center text-[10px] font-black shrink-0">
+                          {idx + 1}
+                        </span>
+                        <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div>
+                            <input
+                              type="text"
+                              value={card.content}
+                              onChange={(e) => handleUpdateCard(idx, 'content', e.target.value)}
+                              placeholder="Mặt trước (Từ vựng)"
+                              className="w-full h-10 bg-white border border-slate-200 rounded-xl px-3.5 text-xs font-bold text-slate-850 outline-none focus:border-indigo-500 transition-all"
+                            />
+                          </div>
+                          <div>
+                            <input
+                              type="text"
+                              value={card.explanation}
+                              onChange={(e) => handleUpdateCard(idx, 'explanation', e.target.value)}
+                              placeholder="Mặt sau (Định nghĩa / Giải nghĩa)"
+                              className="w-full h-10 bg-white border border-slate-200 rounded-xl px-3.5 text-xs font-bold text-slate-850 outline-none focus:border-indigo-500 transition-all"
+                            />
+                          </div>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteCard(idx)}
+                          className="w-9 h-9 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center hover:bg-rose-100 hover:text-rose-700 transition-all shrink-0"
+                          title="Xóa dòng"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    ))}
+
+                    <button
+                      type="button"
+                      onClick={handleAddCardRow}
+                      className="w-full py-3.5 border-2 border-dashed border-slate-200 hover:border-indigo-500 rounded-2xl flex items-center justify-center gap-2 text-slate-500 hover:text-indigo-600 transition-all text-xs font-black uppercase tracking-wider bg-white active:scale-[0.99]"
+                    >
+                      <Plus className="w-4 h-4" /> Thêm dòng mới
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )
           ) : (
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
               {/* Preview Header Card */}

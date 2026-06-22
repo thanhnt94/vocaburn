@@ -169,6 +169,72 @@ async def upload_deck(request: Request, file: UploadFile = File(...), metadata_o
         print(f"CRITICAL: Upload Error: {err_trace}")
         return JSONResponse(status_code=500, content={"error": f"Internal matrix error: {str(e)}"})
 
+@router.post("/import-text")
+async def import_text(request: Request, data: dict, db: AsyncSession = Depends(get_db)):
+    try:
+        user_id = int(request.cookies.get("user_id", 1))
+        
+        title = data.get("title", "Quick Text Import")
+        description = data.get("description", "Imported via copy-paste.")
+        category_name = data.get("category", "General")
+        tags = data.get("tags", [])
+        cards = data.get("cards", [])
+        
+        if not cards:
+            return JSONResponse(status_code=400, content={"error": "No valid cards provided."})
+            
+        # Get or create category
+        from app.modules.deck.models import Category
+        result = await db.execute(select(Category).filter(Category.name == category_name))
+        db_cat = result.scalar_one_or_none()
+        if not db_cat:
+            db_cat = Category(name=category_name, description="Created during quick import")
+            db.add(db_cat)
+            await db.commit()
+            await db.refresh(db_cat)
+            
+        deck_data = DeckSchema(
+            title=title,
+            description=description,
+            category_id=db_cat.id,
+            creator_id=user_id,
+            is_active=True
+        )
+        db_deck = await DeckService.create_deck(db, deck_data)
+        
+        card_schemas = []
+        for c in cards:
+            card_schemas.append(CardSchema(
+                content=c.get("content", "").strip(),
+                image=c.get("image"),
+                audio=c.get("audio"),
+                question_type="flashcard",
+                explanation=c.get("explanation", "").strip(),
+                ai_explanation=None,
+                others=c.get("others", {})
+            ))
+        await DeckService.bulk_add_cards(db, db_deck.id, card_schemas)
+        
+        if tags:
+            await DeckService.set_deck_tags(db, db_deck.id, tags)
+            
+        # Auto-enroll the creator
+        from app.modules.deck.models import DeckAttempt
+        attempt = DeckAttempt(
+            user_id=user_id,
+            deck_id=db_deck.id,
+            mode="sequential",
+            score=0,
+            total_cards=0,
+            is_archived=False
+        )
+        db.add(attempt)
+        await db.commit()
+        
+        return {"status": "ok", "message": "Deck import successfully stabilized."}
+    except Exception as e:
+        return JSONResponse(status_code=500, content={"error": str(e)})
+
 @router.post("/validate")
 async def validate_deck(file: UploadFile = File(...)):
     try:
