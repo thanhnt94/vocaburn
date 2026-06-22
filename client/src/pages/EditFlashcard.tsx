@@ -207,9 +207,6 @@ const EditFlashcard = () => {
       setTextImportSuccess(true)
       setParsedCards([])
       setRawText('')
-      
-      const res = await axios.get(`/api/v1/deck/${id}/play-data?lightweight=true`)
-      setQuestions(res.data.questions || [])
     } catch (err: any) {
       setTextImportError(err.response?.data?.error || "Import văn bản thất bại")
     } finally {
@@ -286,9 +283,6 @@ const EditFlashcard = () => {
       })
       setImportSuccess(true)
       setExcelFile(null)
-      // reload flashcards/data
-      const res = await axios.get(`/api/v1/deck/${id}/play-data?lightweight=true`)
-      setQuestions(res.data.questions || [])
     } catch (err: any) {
       setImportError(err.response?.data?.error || "Nhập Excel thất bại")
     } finally {
@@ -309,7 +303,6 @@ const EditFlashcard = () => {
     creator_id: 0
   })
   
-  const [questions, setQuestions] = useState<any[]>([])
   const [showHelpModal, setShowHelpModal] = useState(false)
 
   // Practice Defaults State
@@ -330,7 +323,7 @@ const EditFlashcard = () => {
   useEffect(() => {
     const fetchQuiz = async () => {
       try {
-        const res = await axios.get(`/api/v1/deck/${id}/play-data?lightweight=true`)
+        const res = await axios.get(`/api/v1/deck/${id}/data`)
         setFormData({
           title: res.data.title,
           description: res.data.description || '',
@@ -343,7 +336,6 @@ const EditFlashcard = () => {
           tags: res.data.tags?.join(', ') || '',
           creator_id: res.data.creator_id
         })
-        setQuestions(res.data.questions || [])
         
         // Fetch collaborators
         const collabRes = await axios.get(`/api/v1/deck/${id}/collaborators`)

@@ -101,7 +101,21 @@ class DeckService:
     @staticmethod
     async def get_deck_by_id(db: AsyncSession, deck_id: int):
         result = await db.execute(
-            select(FlashcardDeck).where(FlashcardDeck.id == deck_id).options(selectinload(FlashcardDeck.cards), selectinload(FlashcardDeck.tags))
+            select(FlashcardDeck).where(FlashcardDeck.id == deck_id).options(
+                selectinload(FlashcardDeck.tags),
+                selectinload(FlashcardDeck.category)
+            )
+        )
+        return result.scalar_one_or_none()
+
+    @staticmethod
+    async def get_deck_by_id_with_cards(db: AsyncSession, deck_id: int):
+        result = await db.execute(
+            select(FlashcardDeck).where(FlashcardDeck.id == deck_id).options(
+                selectinload(FlashcardDeck.cards),
+                selectinload(FlashcardDeck.tags),
+                selectinload(FlashcardDeck.category)
+            )
         )
         return result.scalar_one_or_none()
 

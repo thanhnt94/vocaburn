@@ -1014,7 +1014,9 @@ async def get_deck_data(request: Request, deck_id: int, db: AsyncSession = Depen
         "is_collaborator": is_collaborator,
         "cards_count": c_count,
         "questions_count": c_count, # compatibility
-        "tags": [t.name for t in deck.tags]
+        "tags": [t.name for t in deck.tags],
+        "cover_image": deck.cover_image,
+        "category_name": deck.category.name if deck.category else "General"
     }
 
 def migrate_practice_settings(settings: Optional[dict]) -> dict:
@@ -1334,7 +1336,7 @@ async def get_next_card(request: Request, deck_id: int, data: dict, db: AsyncSes
     answered_indexes = data.get("answered_indexes", [])
     current_index = data.get("current_index", 0)
     
-    deck = await DeckService.get_deck_by_id(db, deck_id)
+    deck = await DeckService.get_deck_by_id_with_cards(db, deck_id)
     if not deck:
         return JSONResponse(status_code=404, content={"error": "Deck not found"})
         
