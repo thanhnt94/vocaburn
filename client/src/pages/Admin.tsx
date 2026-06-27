@@ -8,14 +8,14 @@ export default function Admin() {
   const { tab } = useParams();
   const { user, isLoggedIn, isLoading } = useAppStore();
 
-  const [activeTab, setActiveTab] = useState<'sso' | 'ai' | 'telegram' | 'users' | 'maintenance' | 'tts'>('sso');
+  const [activeTab, setActiveTab] = useState<'sso' | 'ai' | 'telegram' | 'users' | 'maintenance' | 'tts' | 'ai-batch'>('sso');
   const [globalLoading, setGlobalLoading] = useState(false);
   const [successMsg, setSuccessMsg] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
 
   // Sync activeTab with URL sub-route
   useEffect(() => {
-    if (tab && ['sso', 'ai', 'telegram', 'users', 'maintenance', 'tts'].includes(tab)) {
+    if (tab && ['sso', 'ai', 'telegram', 'users', 'maintenance', 'tts', 'ai-batch'].includes(tab)) {
       setActiveTab(tab as any);
     } else if (!tab) {
       navigate('/admin/sso', { replace: true });
@@ -109,6 +109,49 @@ export default function Admin() {
       setErrorMsg("Không thể khởi động hàng đợi âm thanh.");
     } finally {
       setIsStartingTTS(false);
+    }
+  };
+
+  // Tab 6: AI Batch Config state
+  const [selectedAIBatchField, setSelectedAIBatchField] = useState<'explanation' | 'hint' | 'mnemonic'>('explanation');
+  const [isFetchingAIBatchStatus, setIsFetchingAIBatchStatus] = useState(false);
+  const [aiBatchStatus, setAiBatchStatus] = useState<{ total_cards: number, missing_ai_cards: number } | null>(null);
+  const [isStartingAIBatch, setIsStartingAIBatch] = useState(false);
+
+  const handleCheckAIBatchStatus = async (deckIdStr: string, fieldStr?: string) => {
+    const activeField = fieldStr || selectedAIBatchField;
+    setSelectedDeckId(deckIdStr);
+    if (!deckIdStr) {
+      setAiBatchStatus(null);
+      return;
+    }
+    setIsFetchingAIBatchStatus(true);
+    setAiBatchStatus(null);
+    try {
+      const res = await axios.get(`/api/v1/deck/${deckIdStr}/ai-status?field=${activeField}`);
+      setAiBatchStatus(res.data);
+    } catch (e) {
+      console.error("Failed to check deck ai status", e);
+    } finally {
+      setIsFetchingAIBatchStatus(false);
+    }
+  };
+
+  const handleStartAIBatchGeneration = async () => {
+    if (!selectedDeckId) return;
+    setIsStartingAIBatch(true);
+    setSuccessMsg('');
+    setErrorMsg('');
+    try {
+      await axios.post(`/api/v1/deck/${selectedDeckId}/generate-all-ai`, { field: selectedAIBatchField, force: false });
+      setSuccessMsg(`Đã bắt đầu hàng đợi sinh AI cho trường '${selectedAIBatchField}' của bộ thẻ!`);
+      setTimeout(() => {
+        handleCheckAIBatchStatus(selectedDeckId);
+      }, 2000);
+    } catch (e) {
+      setErrorMsg("Không thể khởi động hàng đợi sinh AI.");
+    } finally {
+      setIsStartingAIBatch(false);
     }
   };
 
@@ -438,6 +481,17 @@ export default function Admin() {
               className={`p-4 rounded-xl font-bold flex items-center gap-3 transition-all text-left ${activeTab === 'tts' ? 'bg-[#6366f1] text-white shadow-lg shadow-indigo-500/20' : 'bg-white/[0.02] hover:bg-white/[0.05] border border-white/5 text-gray-400'}`}
             >
               🎵 Batch TTS Sync
+            </button>
+            <button
+              onClick={() => {
+                navigate('/admin/ai-batch');
+                if (selectedDeckId) {
+                  handleCheckAIBatchStatus(selectedDeckId, selectedAIBatchField);
+                }
+              }}
+              className={`p-4 rounded-xl font-bold flex items-center gap-3 transition-all text-left ${activeTab === 'ai-batch' ? 'bg-[#6366f1] text-white shadow-lg shadow-indigo-500/20' : 'bg-white/[0.02] hover:bg-white/[0.05] border border-white/5 text-gray-400'}`}
+            >
+              🧠 Batch AI Sync
             </button>
           </div>
 
@@ -878,6 +932,100 @@ export default function Admin() {
                       className="px-6 py-3.5 rounded-xl font-bold bg-amber-500 hover:bg-amber-600 shadow-lg shadow-amber-500/20 transition-all text-sm flex items-center gap-2 active:scale-95 disabled:opacity-40 disabled:pointer-events-none"
                     >
                       {isStartingTTS ? 'Starting Task Queue...' : 'Start TTS Generation'}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Tab 6: AI Batch Queue */}
+            {activeTab === 'ai-batch' && (
+              <div className="flex flex-col gap-6">
+                <div>
+                  <h3 className="text-2xl font-bold mb-2">Batch AI Content Generation</h3>
+                  <p className="text-gray-400 text-sm">Generate explanations, hints, or mnemonics for all flashcards in a deck in the background.</p>
+                </div>
+
+                <div className="space-y-5 bg-[#0d1321]/50 border border-white/5 p-6 rounded-2xl">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Select Card Deck</label>
+                      <select
+                        value={selectedDeckId}
+                        onChange={(e) => handleCheckAIBatchStatus(e.target.value, selectedAIBatchField)}
+                        className="w-full bg-[#0d1321] border border-white/10 rounded-xl px-4 py-3.5 text-white font-bold focus:outline-none focus:border-indigo-500 transition-all text-sm cursor-pointer"
+                      >
+                        {adminDecks.length === 0 ? (
+                          <option value="">No decks found</option>
+                        ) : (
+                          adminDecks.map(d => (
+                            <option key={d.id} value={d.id} className="bg-[#0d1321] text-white font-semibold">
+                              {d.title} (ID: {d.id})
+                            </option>
+                          ))
+                        )}
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Select Target Field</label>
+                      <select
+                        value={selectedAIBatchField}
+                        onChange={(e) => {
+                          const newField = e.target.value as any;
+                          setSelectedAIBatchField(newField);
+                          if (selectedDeckId) {
+                            handleCheckAIBatchStatus(selectedDeckId, newField);
+                          }
+                        }}
+                        className="w-full bg-[#0d1321] border border-white/10 rounded-xl px-4 py-3.5 text-white font-bold focus:outline-none focus:border-indigo-500 transition-all text-sm cursor-pointer"
+                      >
+                        <option value="explanation" className="bg-[#0d1321] text-white font-semibold">AI Explanation</option>
+                        <option value="hint" className="bg-[#0d1321] text-white font-semibold">AI Hint</option>
+                        <option value="mnemonic" className="bg-[#0d1321] text-white font-semibold">AI Mnemonic</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  {/* Status Panel */}
+                  <div className="bg-white/[0.01] border border-white/5 p-5 rounded-xl">
+                    <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-4">Deck AI Status</h4>
+                    
+                    {isFetchingAIBatchStatus ? (
+                      <div className="py-4 flex flex-col items-center justify-center gap-2">
+                        <div className="w-6 h-6 border-2 border-indigo-600/30 border-t-indigo-600 rounded-full animate-spin" />
+                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Scanning cards...</span>
+                      </div>
+                    ) : aiBatchStatus ? (
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="bg-[#0d1321] border border-white/5 p-4 rounded-xl">
+                          <p className="text-[9px] font-black text-gray-500 uppercase">Total Cards</p>
+                          <p className="text-xl font-black text-white mt-1">{aiBatchStatus.total_cards}</p>
+                        </div>
+                        <div className="bg-[#0d1321] border border-white/5 p-4 rounded-xl">
+                          <p className="text-[9px] font-black text-indigo-500 uppercase">Missing AI {selectedAIBatchField}</p>
+                          <p className="text-xl font-black text-indigo-500 mt-1">{aiBatchStatus.missing_ai_cards}</p>
+                        </div>
+                      </div>
+                    ) : (
+                      <p className="text-xs text-gray-500">Select a deck above to scan its AI status.</p>
+                    )}
+                  </div>
+
+                  {aiBatchStatus && aiBatchStatus.missing_ai_cards > 0 && (
+                    <div className="flex items-center gap-3 bg-indigo-500/10 border border-indigo-500/20 p-4 rounded-xl text-xs text-indigo-300 font-bold leading-relaxed">
+                      💡 Có {aiBatchStatus.missing_ai_cards} thẻ chưa có nội dung AI '{selectedAIBatchField}'. Bấm bắt đầu để gửi hàng loạt vào hàng đợi CentralAuth.
+                    </div>
+                  )}
+
+                  <div className="flex justify-end pt-4 border-t border-white/5">
+                    <button
+                      type="button"
+                      onClick={handleStartAIBatchGeneration}
+                      disabled={isFetchingAIBatchStatus || !selectedDeckId || !aiBatchStatus || aiBatchStatus.missing_ai_cards === 0 || isStartingAIBatch}
+                      className="px-6 py-3.5 rounded-xl font-bold bg-indigo-500 hover:bg-indigo-600 shadow-lg shadow-indigo-500/20 transition-all text-sm flex items-center gap-2 active:scale-95 disabled:opacity-40 disabled:pointer-events-none"
+                    >
+                      {isStartingAIBatch ? 'Starting Task Queue...' : 'Start AI Generation'}
                     </button>
                   </div>
                 </div>

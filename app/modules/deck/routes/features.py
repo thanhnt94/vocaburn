@@ -860,3 +860,187 @@ async def ai_queue_callback(data: dict, db: AsyncSession = Depends(get_db)):
     await db.commit()
     logger.info(f"[AI CALLBACK SUCCESS] Updated card {card_id} field '{field}' via CentralAuth Queue Callback.")
     return {"status": "ok"}
+
+async def _bulk_generate_deck_ai_task(deck_id: int, field: str, force: bool, base_url: str):
+    from app.core.db import SessionLocal
+    async with SessionLocal() as db:
+        from app.modules.deck.models import Flashcard, FlashcardDeck
+        res = await db.execute(select(Flashcard).filter(Flashcard.deck_id == deck_id))
+        cards = res.scalars().all()
+        
+        # Get deck prompt templates
+        deck_res = await db.execute(select(FlashcardDeck).filter(FlashcardDeck.id == deck_id))
+        deck = deck_res.scalar_one_or_none()
+        if not deck:
+            return
+            
+        template = None
+        if field == "hint":
+            template = deck.ai_prompt_hint
+        elif field == "mnemonic":
+            template = deck.ai_prompt_mnemonic
+        elif field == "explanation":
+            template = deck.ai_prompt
+        else:
+            if deck.practice_settings and isinstance(deck.practice_settings, dict):
+                prompts = deck.practice_settings.get("ai_prompts", [])
+                for p in prompts:
+                    if p.get("id") == field:
+                        template = p.get("prompt")
+                        break
+                        
+        if not template or not template.strip():
+            logger.error(f"[BULK AI ERROR] No prompt template found for field '{field}' in deck {deck_id}")
+            return
+
+        # Get CentralAuth configuration
+        from app.modules.sso_module.service import SSOService
+        sso_config = await SSOService.get_config(db)
+        if not sso_config.is_enabled or not sso_config.server_url:
+            logger.error("[BULK AI ERROR] CentralAuth is not enabled or server URL is not configured.")
+            return
+
+        import httpx
+        from app.core.config import settings
+        
+        tasks_to_submit = []
+        callback_base = settings.APP_BASE_URL if settings.APP_BASE_URL else base_url
+        callback_url = f"{callback_base.rstrip('/')}/api/v1/deck/ai-callback"
+        
+        for c in cards:
+            await db.refresh(c)
+            
+            # Check if already generated
+            has_val = False
+            if field == "hint":
+                has_val = bool(c.hint and c.hint.strip())
+            elif field == "mnemonic":
+                has_val = bool(c.mnemonic and c.mnemonic.strip())
+            elif field == "explanation":
+                has_val = bool(c.ai_explanation and c.ai_explanation.strip())
+            else:
+                has_val = bool(c.others and c.others.get("ai_responses", {}).get(field))
+                
+            if force or not has_val:
+                options_text = ""
+                card_options = getattr(c, "options", None)
+                if card_options:
+                    options_text = ", ".join([o.content for o in card_options])
+                    
+                correct_answer_text = c.explanation or ""
+                if card_options:
+                    correct_opt = next((o for o in card_options if o.is_correct), None)
+                    if correct_opt:
+                        correct_answer_text = correct_opt.content
+                        
+                prompt = template \
+                    .replace("{{question}}", c.content or "") \
+                    .replace("{{card}}", c.content or "") \
+                    .replace("{{options}}", options_text) \
+                    .replace("{{correct_answer}}", correct_answer_text) \
+                    .replace("{{global_instruction}}", (deck.instruction if deck else "") or "") \
+                    .replace("{{quiz_title}}", (deck.title if deck else "") or "") \
+                    .replace("{{deck_title}}", (deck.title if deck else "") or "") \
+                    .replace("{{quiz_description}}", (deck.description if deck else "") or "") \
+                    .replace("{{deck_description}}", (deck.description if deck else "") or "")
+                    
+                for i in range(4):
+                    prompt = prompt.replace(f"{{{{option_{chr(97+i)}}}}}", "")
+
+                tasks_to_submit.append({
+                    "satellite_source": "vocaburn",
+                    "prompt": prompt,
+                    "callback_url": callback_url,
+                    "extra_data": json.dumps({
+                        "task_type": "ai-explain",
+                        "card_id": c.id,
+                        "field": field,
+                        "deck_id": deck_id
+                    }),
+                    "max_retries": 3
+                })
+
+        if not tasks_to_submit:
+            logger.info(f"[BULK AI] All cards in deck {deck_id} are already fully synchronized for field '{field}'.")
+            return
+
+        logger.info(f"[BULK AI] Submitting {len(tasks_to_submit)} queue tasks to CentralAuth in chunks of 100...")
+        queue_token = getattr(settings, "QUEUE_API_SECRET", "super-secret-token-123")
+        chunk_size = 100
+
+        async with httpx.AsyncClient() as client:
+            for i in range(0, len(tasks_to_submit), chunk_size):
+                chunk = tasks_to_submit[i:i + chunk_size]
+                try:
+                    response = await client.post(
+                        f"{sso_config.server_url.rstrip('/')}/api/queue/submit/batch",
+                        json={"tasks": chunk},
+                        headers={"X-Queue-Token": queue_token},
+                        timeout=30.0
+                    )
+                    if response.status_code != 200:
+                        logger.error(f"[BULK AI SUBMIT ERROR] Chunk {i//chunk_size} failed: {response.text}")
+                    else:
+                        logger.info(f"[BULK AI SUBMIT] Successfully submitted chunk {i//chunk_size} ({len(chunk)} tasks)")
+                except Exception as batch_err:
+                    logger.error(f"[BULK AI SUBMIT EXCEPTION] Exception in chunk {i//chunk_size}: {batch_err}")
+
+@router.get("/{deck_id}/ai-status")
+async def get_deck_ai_status(deck_id: int, field: str = "explanation", db: AsyncSession = Depends(get_db)):
+    from app.modules.deck.models import Flashcard
+    res = await db.execute(select(Flashcard).filter(Flashcard.deck_id == deck_id))
+    cards = res.scalars().all()
+    
+    total = len(cards)
+    missing = 0
+    for c in cards:
+        has_val = False
+        if field == "hint":
+            has_val = bool(c.hint and c.hint.strip())
+        elif field == "mnemonic":
+            has_val = bool(c.mnemonic and c.mnemonic.strip())
+        elif field == "explanation":
+            has_val = bool(c.ai_explanation and c.ai_explanation.strip())
+        else:
+            has_val = bool(c.others and c.others.get("ai_responses", {}).get(field))
+            
+        if not has_val:
+            missing += 1
+            
+    return {
+        "total_cards": total,
+        "missing_ai_cards": missing
+    }
+
+@router.post("/{deck_id}/generate-all-ai")
+async def generate_all_deck_ai(
+    deck_id: int,
+    background_tasks: BackgroundTasks,
+    request: Request,
+    payload: dict = None,
+    db: AsyncSession = Depends(get_db)
+):
+    from app.modules.deck.models import FlashcardDeck
+    res = await db.execute(select(FlashcardDeck).filter(FlashcardDeck.id == deck_id))
+    deck = res.scalar_one_or_none()
+    if not deck:
+        return JSONResponse(status_code=404, content={"error": "Deck not found"})
+        
+    field = "explanation"
+    force = False
+    if payload:
+        field = payload.get("field", "explanation")
+        force = payload.get("force", False)
+        
+    # Detect scheme dynamically (e.g. support HTTPS behind Nginx reverse proxy)
+    scheme = request.headers.get("x-forwarded-proto", request.url.scheme)
+    netloc = request.url.netloc
+    
+    # Force HTTPS for any production domain to bypass Nginx configuration gaps
+    if "localhost" not in netloc and "127.0.0.1" not in netloc:
+        scheme = "https"
+        
+    base_url = f"{scheme}://{netloc}"
+    
+    background_tasks.add_task(_bulk_generate_deck_ai_task, deck_id, field, force, base_url)
+    return {"status": "ok", "message": f"Bulk AI {field} generation queue submission started."}
