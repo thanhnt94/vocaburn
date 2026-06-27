@@ -596,22 +596,88 @@ async def _bulk_generate_deck_audio_task(deck_id: int, force: bool):
         from app.modules.deck.models import Flashcard
         res = await db.execute(select(Flashcard).filter(Flashcard.deck_id == deck_id))
         cards = res.scalars().all()
-        logger.info(f"[BULK TTS] Starting background audio generation for deck {deck_id} ({len(cards)} cards)")
+        logger.info(f"[BULK TTS] Starting batch submission to CentralAuth queue for deck {deck_id} ({len(cards)} cards)")
         
-        for idx, c in enumerate(cards):
-            try:
-                # Refresh/bind card inside session context
-                await db.refresh(c)
-                # Front audio
-                await generate_single_card_audio_helper(c, "front", force, db)
-                # Back audio
-                await generate_single_card_audio_helper(c, "back", force, db)
-                if idx % 10 == 0:
-                    logger.info(f"[BULK TTS] Progress: {idx}/{len(cards)} cards processed for deck {deck_id}")
-            except Exception as card_err:
-                logger.error(f"[BULK TTS ERROR] Failed to process card {c.id}: {card_err}")
+        # Get CentralAuth configuration
+        from app.modules.sso_module.service import SSOService
+        sso_config = await SSOService.get_config(db)
+        if not sso_config.is_enabled or not sso_config.server_url:
+            logger.error("[BULK TTS ERROR] CentralAuth is not enabled or server URL is not configured.")
+            return
+
+        import httpx
+        from app.core.config import settings
         
-        logger.info(f"[BULK TTS] Completed background audio generation for deck {deck_id}")
+        tasks_to_submit = []
+        callback_base = settings.APP_BASE_URL if settings.APP_BASE_URL else "http://localhost:5000"
+        callback_url = f"{callback_base.rstrip('/')}/api/v1/deck/tts-callback"
+
+        for c in cards:
+            await db.refresh(c)
+            front_text = c.others.get("front_audio_content") if c.others else None
+            back_text = c.others.get("back_audio_content") if c.others else None
+            
+            folder_path = os.path.join(settings.VOCABURN_STORAGE_DIR, str(deck_id), "audio")
+            
+            # Front text queue check
+            if front_text and front_text.strip():
+                front_path = os.path.join(folder_path, f"{c.id}_front.mp3")
+                if force or not os.path.exists(front_path) or not c.audio:
+                    tasks_to_submit.append({
+                        "satellite_source": "vocaburn",
+                        "prompt": front_text.strip(),
+                        "callback_url": callback_url,
+                        "extra_data": json.dumps({
+                            "task_type": "tts",
+                            "card_id": c.id,
+                            "face": "front",
+                            "deck_id": deck_id
+                        }),
+                        "max_retries": 3
+                    })
+
+            # Back text queue check
+            if back_text and back_text.strip():
+                back_path = os.path.join(folder_path, f"{c.id}_back.mp3")
+                has_back_audio = bool(c.others and c.others.get("back_audio_url"))
+                if force or not os.path.exists(back_path) or not has_back_audio:
+                    tasks_to_submit.append({
+                        "satellite_source": "vocaburn",
+                        "prompt": back_text.strip(),
+                        "callback_url": callback_url,
+                        "extra_data": json.dumps({
+                            "task_type": "tts",
+                            "card_id": c.id,
+                            "face": "back",
+                            "deck_id": deck_id
+                        }),
+                        "max_retries": 3
+                    })
+
+        if not tasks_to_submit:
+            logger.info(f"[BULK TTS] All cards in deck {deck_id} are already fully synchronized.")
+            return
+
+        logger.info(f"[BULK TTS] Submitting {len(tasks_to_submit)} queue tasks to CentralAuth in chunks of 100...")
+        queue_token = getattr(settings, "QUEUE_API_SECRET", "super-secret-token-123")
+        chunk_size = 100
+
+        async with httpx.AsyncClient() as client:
+            for i in range(0, len(tasks_to_submit), chunk_size):
+                chunk = tasks_to_submit[i:i + chunk_size]
+                try:
+                    response = await client.post(
+                        f"{sso_config.server_url.rstrip('/')}/api/queue/submit/batch",
+                        json={"tasks": chunk},
+                        headers={"X-Queue-Token": queue_token},
+                        timeout=30.0
+                    )
+                    if response.status_code != 200:
+                        logger.error(f"[BULK TTS SUBMIT ERROR] Chunk {i//chunk_size} failed: {response.text}")
+                    else:
+                        logger.info(f"[BULK TTS SUBMIT] Successfully submitted chunk {i//chunk_size} ({len(chunk)} tasks)")
+                except Exception as batch_err:
+                    logger.error(f"[BULK TTS SUBMIT EXCEPTION] Exception in chunk {i//chunk_size}: {batch_err}")
 
 @router.post("/{deck_id}/generate-all-audio")
 async def generate_all_deck_audio(
@@ -631,7 +697,7 @@ async def generate_all_deck_audio(
         force = payload.get("force", False)
         
     background_tasks.add_task(_bulk_generate_deck_audio_task, deck_id, force)
-    return {"status": "ok", "message": "Bulk TTS audio generation started in the background."}
+    return {"status": "ok", "message": "Bulk TTS audio generation queue submission started."}
 
 @router.get("/{deck_id}/tts-status")
 async def get_deck_tts_status(deck_id: int, db: AsyncSession = Depends(get_db)):
@@ -651,3 +717,76 @@ async def get_deck_tts_status(deck_id: int, db: AsyncSession = Depends(get_db)):
         "total_cards": total,
         "missing_audio_cards": missing
     }
+
+@router.post("/tts-callback")
+async def tts_queue_callback(data: dict, db: AsyncSession = Depends(get_db)):
+    task_id = data.get("id")
+    status = data.get("status")
+    result = data.get("result")
+    extra_data_str = data.get("extra_data")
+    
+    if status != "completed" or not result:
+        logger.warning(f"[TTS CALLBACK] Task {task_id} status '{status}' was not processed or has no result.")
+        return {"status": "ignored"}
+        
+    try:
+        extra = json.loads(extra_data_str) if extra_data_str else {}
+        if extra.get("task_type") != "tts":
+            return {"status": "ignored"}
+            
+        card_id = extra.get("card_id")
+        face = extra.get("face")
+        deck_id = extra.get("deck_id")
+    except Exception as parse_err:
+        logger.error(f"[TTS CALLBACK ERROR] Failed to parse extra_data: {parse_err}")
+        return JSONResponse(status_code=400, content={"error": "Invalid extra_data"})
+        
+    from app.modules.deck.models import Flashcard
+    res = await db.execute(select(Flashcard).filter(Flashcard.id == card_id))
+    c = res.scalar_one_or_none()
+    if not c:
+        logger.error(f"[TTS CALLBACK ERROR] Card {card_id} not found in database.")
+        return JSONResponse(status_code=404, content={"error": "Card not found"})
+        
+    # Download audio from CentralAuth
+    from app.modules.sso_module.service import SSOService
+    sso_config = await SSOService.get_config(db)
+    if not sso_config.server_url:
+        return JSONResponse(status_code=400, content={"error": "CentralAuth not configured"})
+        
+    audio_url = f"{sso_config.server_url.rstrip('/')}{result}"
+    from app.core.config import settings
+    folder_path = os.path.join(settings.VOCABURN_STORAGE_DIR, str(deck_id), "audio")
+    filename = f"{card_id}_front.mp3" if face == "front" else f"{card_id}_back.mp3"
+    physical_path = os.path.join(folder_path, filename)
+    
+    os.makedirs(os.path.dirname(physical_path), exist_ok=True)
+    
+    try:
+        import httpx
+        async with httpx.AsyncClient() as client:
+            audio_res = await client.get(audio_url, timeout=20.0)
+            if audio_res.status_code == 200:
+                with open(physical_path, "wb") as f:
+                    f.write(audio_res.content)
+            else:
+                logger.error(f"[TTS CALLBACK ERROR] Failed to download {audio_url}: {audio_res.status_code}")
+                return JSONResponse(status_code=500, content={"error": "Failed to download audio file"})
+    except Exception as dl_err:
+        logger.error(f"[TTS CALLBACK ERROR] Exception during audio download: {dl_err}")
+        return JSONResponse(status_code=500, content={"error": str(dl_err)})
+        
+    # Update local url reference
+    local_url = f"/uploads/{deck_id}/audio/{filename}"
+    if face == "front":
+        c.audio = local_url
+    else:
+        if not c.others:
+            c.others = {}
+        c.others["back_audio_url"] = local_url
+        from sqlalchemy.orm.attributes import flag_modified
+        flag_modified(c, "others")
+        
+    await db.commit()
+    logger.info(f"[TTS CALLBACK SUCCESS] Updated card {card_id} {face} audio via CentralAuth Queue Callback.")
+    return {"status": "ok"}
