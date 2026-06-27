@@ -1567,12 +1567,13 @@ async def _generate_ai_content_sync(db: AsyncSession, deck_id: int, card_id: int
         
     # Format options
     options_text = ""
-    if card.options:
-        options_text = ", ".join([o.content for o in card.options])
+    card_options = getattr(card, "options", None)
+    if card_options:
+        options_text = ", ".join([o.content for o in card_options])
         
     correct_answer_text = card.explanation or ""
-    if card.options:
-        correct_opt = next((o for o in card.options if o.is_correct), None)
+    if card_options:
+        correct_opt = next((o for o in card_options if o.is_correct), None)
         if correct_opt:
             correct_answer_text = correct_opt.content
             
