@@ -590,7 +590,7 @@ async def generate_card_audio(card_id: int, request: Request, face: str = "front
         
     return {"url": url}
 
-async def _bulk_generate_deck_audio_task(deck_id: int, force: bool):
+async def _bulk_generate_deck_audio_task(deck_id: int, force: bool, base_url: str):
     from app.core.db import SessionLocal
     async with SessionLocal() as db:
         from app.modules.deck.models import Flashcard
@@ -609,7 +609,7 @@ async def _bulk_generate_deck_audio_task(deck_id: int, force: bool):
         from app.core.config import settings
         
         tasks_to_submit = []
-        callback_base = settings.APP_BASE_URL if settings.APP_BASE_URL else "http://localhost:5000"
+        callback_base = settings.APP_BASE_URL if settings.APP_BASE_URL else base_url
         callback_url = f"{callback_base.rstrip('/')}/api/v1/deck/tts-callback"
 
         for c in cards:
@@ -683,6 +683,7 @@ async def _bulk_generate_deck_audio_task(deck_id: int, force: bool):
 async def generate_all_deck_audio(
     deck_id: int,
     background_tasks: BackgroundTasks,
+    request: Request,
     payload: dict = None,
     db: AsyncSession = Depends(get_db)
 ):
@@ -696,7 +697,7 @@ async def generate_all_deck_audio(
     if payload:
         force = payload.get("force", False)
         
-    background_tasks.add_task(_bulk_generate_deck_audio_task, deck_id, force)
+    background_tasks.add_task(_bulk_generate_deck_audio_task, deck_id, force, str(request.base_url))
     return {"status": "ok", "message": "Bulk TTS audio generation queue submission started."}
 
 @router.get("/{deck_id}/tts-status")
