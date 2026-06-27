@@ -73,7 +73,7 @@ function AppContent() {
           <Route path="/room/join" element={isLoggedIn ? <RoomJoin /> : <Navigate to="/login" replace />} />
           
           {/* Admin Control Panel */}
-          <Route path="/admin" element={isLoggedIn && user?.role === 'admin' ? <Admin /> : <Navigate to="/" replace />} />
+          <Route path="/admin/:tab?" element={isLoggedIn && user?.role === 'admin' ? <Admin /> : <Navigate to="/" replace />} />
         </Route>
 
         {/* Fullscreen Protected Views */}

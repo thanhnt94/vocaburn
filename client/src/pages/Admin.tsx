@@ -1,16 +1,26 @@
 import React, { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import axios from 'axios';
 import { useAppStore } from '../store/useAppStore';
 
 export default function Admin() {
   const navigate = useNavigate();
+  const { tab } = useParams();
   const { user, isLoggedIn, isLoading } = useAppStore();
 
   const [activeTab, setActiveTab] = useState<'sso' | 'ai' | 'telegram' | 'users' | 'maintenance' | 'tts'>('sso');
   const [globalLoading, setGlobalLoading] = useState(false);
   const [successMsg, setSuccessMsg] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
+
+  // Sync activeTab with URL sub-route
+  useEffect(() => {
+    if (tab && ['sso', 'ai', 'telegram', 'users', 'maintenance', 'tts'].includes(tab)) {
+      setActiveTab(tab as any);
+    } else if (!tab) {
+      navigate('/admin/sso', { replace: true });
+    }
+  }, [tab, navigate]);
 
   // Tab: Telegram Config state
   const [tgBotToken, setTgBotToken] = useState('');
@@ -394,37 +404,37 @@ export default function Admin() {
           {/* Navigation Tabs */}
           <div className="flex flex-col gap-2.5">
             <button
-              onClick={() => setActiveTab('sso')}
+              onClick={() => navigate('/admin/sso')}
               className={`p-4 rounded-xl font-bold flex items-center gap-3 transition-all text-left ${activeTab === 'sso' ? 'bg-[#6366f1] text-white shadow-lg shadow-indigo-500/20' : 'bg-white/[0.02] hover:bg-white/[0.05] border border-white/5 text-gray-400'}`}
             >
               🔒 CentralAuth SSO
             </button>
             <button
-              onClick={() => setActiveTab('ai')}
+              onClick={() => navigate('/admin/ai')}
               className={`p-4 rounded-xl font-bold flex items-center gap-3 transition-all text-left ${activeTab === 'ai' ? 'bg-[#6366f1] text-white shadow-lg shadow-indigo-500/20' : 'bg-white/[0.02] hover:bg-white/[0.05] border border-white/5 text-gray-400'}`}
             >
               🧠 Google Gemini AI
             </button>
             <button
-              onClick={() => setActiveTab('telegram')}
+              onClick={() => navigate('/admin/telegram')}
               className={`p-4 rounded-xl font-bold flex items-center gap-3 transition-all text-left ${activeTab === 'telegram' ? 'bg-[#6366f1] text-white shadow-lg shadow-indigo-500/20' : 'bg-white/[0.02] hover:bg-white/[0.05] border border-white/5 text-gray-400'}`}
             >
               🤖 Telegram Bot
             </button>
             <button
-              onClick={() => setActiveTab('users')}
+              onClick={() => navigate('/admin/users')}
               className={`p-4 rounded-xl font-bold flex items-center gap-3 transition-all text-left ${activeTab === 'users' ? 'bg-[#6366f1] text-white shadow-lg shadow-indigo-500/20' : 'bg-white/[0.02] hover:bg-white/[0.05] border border-white/5 text-gray-400'}`}
             >
               👥 User Registry
             </button>
             <button
-              onClick={() => setActiveTab('maintenance')}
+              onClick={() => navigate('/admin/maintenance')}
               className={`p-4 rounded-xl font-bold flex items-center gap-3 transition-all text-left ${activeTab === 'maintenance' ? 'bg-[#6366f1] text-white shadow-lg shadow-indigo-500/20' : 'bg-white/[0.02] hover:bg-white/[0.05] border border-white/5 text-gray-400'}`}
             >
               ⚙️ System Control
             </button>
             <button
-              onClick={() => setActiveTab('tts')}
+              onClick={() => navigate('/admin/tts')}
               className={`p-4 rounded-xl font-bold flex items-center gap-3 transition-all text-left ${activeTab === 'tts' ? 'bg-[#6366f1] text-white shadow-lg shadow-indigo-500/20' : 'bg-white/[0.02] hover:bg-white/[0.05] border border-white/5 text-gray-400'}`}
             >
               🎵 Batch TTS Sync
