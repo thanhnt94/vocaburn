@@ -522,14 +522,49 @@ async def generate_card_audio(card_id: int, request: Request, face: str = "front
         os.remove(physical_path)
         
     # Generate if not exists
+    success = False
+    
+    # Check if Central SSO is enabled and try centralized TTS
+    from app.modules.sso_module.service import SSOService
     try:
-        success = await AudioGenerator.generate_tts(text, physical_path)
-        if not success:
-            return JSONResponse(status_code=500, content={"error": "Failed to generate audio"})
-    except Exception as e:
-        import traceback
-        logger.error(f"Failed to generate audio: {e}\n{traceback.format_exc()}")
-        return JSONResponse(status_code=500, content={"error": f"Failed to generate audio: {str(e)}"})
+        sso_config = await SSOService.get_config(db)
+        if sso_config.is_enabled and sso_config.server_url:
+            import httpx
+            logger.info(f"[TTS CENTRAL] SSO is enabled. Requesting centralized TTS from {sso_config.server_url} for text: '{text[:30]}...'")
+            async with httpx.AsyncClient() as client:
+                response = await client.post(
+                    f"{sso_config.server_url.rstrip('/')}/api/tts/generate",
+                    json={"text": text},
+                    timeout=20.0
+                )
+                if response.status_code == 200:
+                    data = response.json()
+                    audio_url = f"{sso_config.server_url.rstrip('/')}{data['url']}"
+                    audio_res = await client.get(audio_url, timeout=20.0)
+                    if audio_res.status_code == 200:
+                        os.makedirs(os.path.dirname(physical_path), exist_ok=True)
+                        with open(physical_path, "wb") as f:
+                            f.write(audio_res.content)
+                        success = True
+                        logger.info(f"[TTS CENTRAL] Centralized TTS audio downloaded and saved successfully to {physical_path}")
+                    else:
+                        logger.error(f"[TTS CENTRAL ERROR] Failed to download synthesized file from {audio_url}: {audio_res.status_code}")
+                else:
+                    logger.error(f"[TTS CENTRAL ERROR] Centralized TTS endpoint returned status {response.status_code}: {response.text}")
+    except Exception as sso_err:
+        logger.warning(f"[TTS CENTRAL WARNING] Centralized TTS request failed, will fallback to local generation: {sso_err}")
+
+    # Fallback to local generation if centralized TTS failed or wasn't active
+    if not success:
+        try:
+            logger.info(f"[TTS LOCAL] Generating TTS locally using edge-tts/gTTS for text: '{text[:30]}...'")
+            success = await AudioGenerator.generate_tts(text, physical_path)
+            if not success:
+                return JSONResponse(status_code=500, content={"error": "Failed to generate audio locally"})
+        except Exception as e:
+            import traceback
+            logger.error(f"Failed to generate audio locally: {e}\n{traceback.format_exc()}")
+            return JSONResponse(status_code=500, content={"error": f"Failed to generate audio locally: {str(e)}"})
         
     # Save back to database
     if face == "front":
