@@ -27,8 +27,9 @@ interface FlashcardEditModalProps {
   isOpen: boolean
   onClose: () => void
   flashcard: Flashcard | null
-  onSave: (updatedCard: any) => Promise<void>
+  onSave: (updatedCard: any, addAnother?: boolean) => Promise<any>
   isSaving: boolean
+  availableColumns?: string[]
 }
 
 // Known structured keys that are displayed in dedicated fields
@@ -46,6 +47,7 @@ export const FlashcardEditModal: React.FC<FlashcardEditModalProps> = ({
   flashcard,
   onSave,
   isSaving,
+  availableColumns = [],
 }) => {
   const [formData, setFormData] = useState<any>(null)
   const [customJsonText, setCustomJsonText] = useState('')
@@ -99,6 +101,13 @@ export const FlashcardEditModal: React.FC<FlashcardEditModalProps> = ({
         ...parsedOthers
       }
 
+      // Pre-fill missing custom columns with empty string
+      availableColumns.forEach(col => {
+        if (col !== 'front' && col !== 'back' && merged[col] === undefined) {
+          merged[col] = ''
+        }
+      })
+
       setFormData({
         ...flashcard,
         others: merged
@@ -121,7 +130,7 @@ export const FlashcardEditModal: React.FC<FlashcardEditModalProps> = ({
       setFormData(null)
       setCustomJsonText('')
     }
-  }, [flashcard])
+  }, [flashcard, availableColumns])
 
   // Sync customJsonText back into formData.others on valid edits
   const handleCustomJsonChange = (text: string) => {
@@ -160,47 +169,52 @@ export const FlashcardEditModal: React.FC<FlashcardEditModalProps> = ({
   }
 
   const handleSaveAndRegenAudio = async (face: 'front' | 'back') => {
-    if (!formData?.id) {
-      console.error('[SaveGenAudio] No card ID found, aborting')
-      return
-    }
-    console.log(`[SaveGenAudio] Starting for face=${face}, card_id=${formData.id}`)
+    console.log(`[SaveGenAudio] Starting for face=${face}`)
     setRegenStatus(prev => ({ ...prev, [face]: 'loading' }))
     try {
-      // 1. Prepare options if present
-      const updatedOptions = (formData.options || []).map((opt: any) => {
-        if (opt.is_correct && formData.explanation) {
-          return { ...opt, content: formData.explanation }
+      let currentCard = { ...formData }
+      const updatedOptions = (currentCard.options || []).map((opt: any) => {
+        if (opt.is_correct && currentCard.explanation) {
+          return { ...opt, content: currentCard.explanation }
         }
         return opt
       })
+      currentCard.options = updatedOptions
 
-      // 2. Format request payload
-      const payload = {
-        content: formData.content,
-        explanation: formData.explanation,
-        ai_explanation: formData.ai_explanation,
-        hint: formData.hint || null,
-        mnemonic: formData.mnemonic || null,
-        image: formData.image || null,
-        audio: formData.audio || null,
-        others: formData.others || {},
-        options: updatedOptions
+      // If new card, we must save first to get an ID
+      if (!currentCard.id) {
+        console.log(`[SaveGenAudio] Card is new. Saving card first to get ID...`)
+        const savedResult = await onSave(currentCard, false)
+        if (savedResult && savedResult.id) {
+          currentCard.id = savedResult.id
+          currentCard.deck_id = savedResult.deck_id
+          setFormData(currentCard)
+        } else {
+          throw new Error("Không thể lưu thẻ mới trước khi tạo âm thanh")
+        }
+      } else {
+        // Save existing card to database
+        const payload = {
+          content: currentCard.content,
+          explanation: currentCard.explanation,
+          ai_explanation: currentCard.ai_explanation,
+          hint: currentCard.hint || null,
+          mnemonic: currentCard.mnemonic || null,
+          image: currentCard.image || null,
+          audio: currentCard.audio || null,
+          others: currentCard.others || {},
+          options: updatedOptions
+        }
+        await axios.patch(`/api/v1/deck/question/${currentCard.id}`, payload)
       }
 
-      // 3. Save to database immediately
-      console.log(`[SaveGenAudio] Saving card to DB...`, payload)
-      await axios.patch(`/api/v1/deck/question/${formData.id}`, payload)
-      console.log(`[SaveGenAudio] Card saved successfully. Now generating audio...`)
-
-      // 4. Trigger audio generation via backend with force=true
-      const res = await axios.get(`/api/v1/deck/generate-audio/${formData.id}`, {
+      // Generate audio
+      const res = await axios.get(`/api/v1/deck/generate-audio/${currentCard.id}`, {
         params: { face, force: true }
       })
-      console.log(`[SaveGenAudio] Audio generation response:`, res.data)
       const newUrl = res.data.url
       
-      let updatedFormData = { ...formData, options: updatedOptions }
+      let updatedFormData = { ...currentCard }
       if (face === 'front') {
         updatedFormData.audio = newUrl
       } else {
@@ -208,13 +222,13 @@ export const FlashcardEditModal: React.FC<FlashcardEditModalProps> = ({
       }
       setFormData(updatedFormData)
 
-      // Also trigger parent state sync/callback if desired so local state stays in sync
-      await onSave(updatedFormData)
+      // Sync parent list
+      await onSave(updatedFormData, false)
 
       setRegenStatus(prev => ({ ...prev, [face]: 'done' }))
       setTimeout(() => setRegenStatus(prev => ({ ...prev, [face]: '' })), 2000)
     } catch (e: any) {
-      const msg = e?.response?.data?.error || 'Failed'
+      const msg = e?.response?.data?.error || e.message || 'Failed'
       setRegenStatus(prev => ({ ...prev, [face]: `error:${msg}` }))
       setTimeout(() => setRegenStatus(prev => ({ ...prev, [face]: '' })), 3000)
     }
@@ -222,8 +236,38 @@ export const FlashcardEditModal: React.FC<FlashcardEditModalProps> = ({
 
   if (!isOpen || !formData) return null
 
-  const handleCommit = () => {
-    onSave(formData)
+  const handleCommit = async (addAnother = false) => {
+    try {
+      await onSave(formData, addAnother)
+      if (addAnother) {
+        // Reset inputs
+        const clearedOthers = {
+          back_img: '',
+          back_audio_url: '',
+          front_audio_content: '',
+          back_audio_content: '',
+        }
+        availableColumns.forEach(col => {
+          if (col !== 'front' && col !== 'back') {
+            (clearedOthers as any)[col] = ''
+          }
+        })
+        setFormData({
+          id: undefined,
+          deck_id: formData.deck_id,
+          content: '',
+          explanation: '',
+          ai_explanation: '',
+          image: null,
+          audio: null,
+          others: clearedOthers,
+          options: []
+        })
+        setCustomJsonText('')
+      }
+    } catch (err) {
+      console.error("Save error:", err)
+    }
   }
 
   const renderRegenButton = (face: 'front' | 'back') => {
@@ -325,8 +369,8 @@ export const FlashcardEditModal: React.FC<FlashcardEditModalProps> = ({
                       <button
                         type="button"
                         onClick={() => handleGenerateAIField('explanation')}
-                        disabled={isGeneratingField['explanation']}
-                        className="flex items-center gap-1 text-[9px] font-black uppercase tracking-wider text-indigo-600 bg-indigo-50 hover:bg-indigo-100 px-2 py-1 rounded-lg transition-all"
+                        disabled={!formData?.id || isGeneratingField['explanation']}
+                        className="flex items-center gap-1 text-[9px] font-black uppercase tracking-wider text-indigo-600 bg-indigo-50 hover:bg-indigo-100 px-2 py-1 rounded-lg transition-all disabled:opacity-30 disabled:cursor-not-allowed"
                       >
                         <Sparkles className="w-2.5 h-2.5" />
                         {isGeneratingField['explanation'] ? 'Generating...' : 'Gen AI'}
@@ -348,8 +392,8 @@ export const FlashcardEditModal: React.FC<FlashcardEditModalProps> = ({
                       <button
                         type="button"
                         onClick={() => handleGenerateAIField('hint')}
-                        disabled={isGeneratingField['hint']}
-                        className="flex items-center gap-1 text-[9px] font-black uppercase tracking-wider text-indigo-600 bg-indigo-50 hover:bg-indigo-100 px-2 py-1 rounded-lg transition-all"
+                        disabled={!formData?.id || isGeneratingField['hint']}
+                        className="flex items-center gap-1 text-[9px] font-black uppercase tracking-wider text-indigo-600 bg-indigo-50 hover:bg-indigo-100 px-2 py-1 rounded-lg transition-all disabled:opacity-30 disabled:cursor-not-allowed"
                       >
                         <Sparkles className="w-2.5 h-2.5" />
                         {isGeneratingField['hint'] ? 'Generating...' : 'Gen AI'}
@@ -368,8 +412,8 @@ export const FlashcardEditModal: React.FC<FlashcardEditModalProps> = ({
                       <button
                         type="button"
                         onClick={() => handleGenerateAIField('mnemonic')}
-                        disabled={isGeneratingField['mnemonic']}
-                        className="flex items-center gap-1 text-[9px] font-black uppercase tracking-wider text-indigo-600 bg-indigo-50 hover:bg-indigo-100 px-2 py-1 rounded-lg transition-all"
+                        disabled={!formData?.id || isGeneratingField['mnemonic']}
+                        className="flex items-center gap-1 text-[9px] font-black uppercase tracking-wider text-indigo-600 bg-indigo-50 hover:bg-indigo-100 px-2 py-1 rounded-lg transition-all disabled:opacity-30 disabled:cursor-not-allowed"
                       >
                         <Sparkles className="w-2.5 h-2.5" />
                         {isGeneratingField['mnemonic'] ? 'Generating...' : 'Gen AI'}
@@ -383,6 +427,30 @@ export const FlashcardEditModal: React.FC<FlashcardEditModalProps> = ({
                     />
                   </div>
                 </div>
+
+                {/* Dynamically detected custom fields */}
+                {availableColumns && availableColumns.filter(c => c !== 'front' && c !== 'back').length > 0 && (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2 pt-4 border-t border-slate-100">
+                    {availableColumns.filter(c => c !== 'front' && c !== 'back').map(col => (
+                      <div key={col} className="space-y-2">
+                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{col}</label>
+                        <input
+                          type="text"
+                          value={formData.others?.[col] || ''}
+                          onChange={(e) => setFormData({
+                            ...formData,
+                            others: {
+                              ...formData.others,
+                              [col]: e.target.value
+                            }
+                          })}
+                          className="w-full p-3 bg-white rounded-xl border border-slate-100 focus:ring-2 focus:ring-indigo-500 text-xs font-semibold text-slate-600 outline-none"
+                          placeholder={`Nhập ${col}...`}
+                        />
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
 
               {/* SECTION 2: MULTIMEDIA ASSETS */}
@@ -556,13 +624,25 @@ export const FlashcardEditModal: React.FC<FlashcardEditModalProps> = ({
               >
                 Hủy / Đóng
               </button>
+              
+              {!formData.id && (
+                <button 
+                  type="button"
+                  onClick={() => handleCommit(true)} 
+                  disabled={isSaving} 
+                  className="flex-[2] md:flex-none px-6 h-12 md:h-11 bg-indigo-50 hover:bg-indigo-100 text-indigo-600 text-xs font-black rounded-xl uppercase tracking-widest border border-indigo-200 transition-all active:scale-95 flex items-center justify-center gap-2"
+                >
+                  {isSaving ? "Đang lưu..." : "Lưu & Thêm tiếp"}
+                </button>
+              )}
+
               <button 
                 type="button"
-                onClick={handleCommit} 
+                onClick={() => handleCommit(false)} 
                 disabled={isSaving} 
                 className="flex-[2] md:flex-none px-8 h-12 md:h-11 bg-gradient-to-r from-indigo-500 to-purple-600 text-white text-xs font-black rounded-xl uppercase tracking-widest shadow-lg shadow-indigo-100 hover:shadow-xl transition-all active:scale-95 flex items-center justify-center gap-2"
               >
-                {isSaving ? "Đang lưu..." : <><Save className="w-4 h-4" /> Lưu thay đổi</>}
+                {isSaving ? "Đang lưu..." : <><Save className="w-4 h-4" /> {formData.id ? "Lưu thay đổi" : "Lưu thẻ"}</>}
               </button>
             </div>
           </div>

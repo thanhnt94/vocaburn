@@ -499,6 +499,63 @@ async def transfer_ownership(request: Request, deck_id: int, data: dict, db: Asy
     await db.commit()
     return {"status": "ok"}
 
+@router.post("/{deck_id}/flashcard")
+@router.post("/{deck_id}/card")
+async def create_card(request: Request, deck_id: int, data: dict, db: AsyncSession = Depends(get_db)):
+    user_id = int(request.cookies.get("user_id", 1))
+    
+    deck = await DeckService.get_deck_by_id(db, deck_id)
+    if not deck:
+        return JSONResponse(status_code=404, content={"error": "Deck not found"})
+        
+    from app.modules.deck.models import DeckCollaborator
+    from app.modules.auth.models import User as UserDB
+    is_owner = deck.creator_id == user_id
+    collab_res = await db.execute(select(DeckCollaborator).where(DeckCollaborator.deck_id == deck_id, DeckCollaborator.user_id == user_id))
+    is_collaborator = collab_res.scalar() is not None
+    
+    user_res = await db.execute(select(UserDB).where(UserDB.id == user_id))
+    user_obj = user_res.scalar_one_or_none()
+    is_admin = user_obj and user_obj.role == "admin"
+    
+    if not (is_owner or is_collaborator or user_id == 1 or is_admin):
+        return JSONResponse(status_code=403, content={"error": "No permission to add cards to this deck"})
+        
+    content = data.get("content", "").strip()
+    explanation = data.get("explanation", "").strip()
+    if not content:
+        return JSONResponse(status_code=400, content={"error": "Card content cannot be empty"})
+        
+    from app.modules.deck.models import Flashcard
+    db_c = Flashcard(
+        deck_id=deck_id,
+        content=content,
+        explanation=explanation,
+        ai_explanation=data.get("ai_explanation"),
+        image=data.get("image"),
+        audio=data.get("audio"),
+        question_type=data.get("question_type", "flashcard"),
+        others=data.get("others") or {}
+    )
+    db.add(db_c)
+    await db.commit()
+    await db.refresh(db_c)
+    
+    return {
+        "status": "ok",
+        "id": db_c.id,
+        "card": {
+            "id": db_c.id,
+            "content": db_c.content,
+            "explanation": db_c.explanation,
+            "ai_explanation": db_c.ai_explanation,
+            "image": db_c.image,
+            "audio": db_c.audio,
+            "others": db_c.others,
+            "options": []
+        }
+    }
+
 @router.patch("/question/{card_id}")
 @router.patch("/flashcard/{card_id}")
 @router.patch("/card/{card_id}")

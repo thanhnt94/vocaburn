@@ -22,7 +22,8 @@ import {
   Music,
   Sparkles,
   Download,
-  Upload
+  Upload,
+  Plus
 } from 'lucide-react'
 import axios from 'axios'
 import { cn } from '@/lib/utils'
@@ -44,8 +45,19 @@ const EditFlashcards = () => {
   const [excelUpdateError, setExcelUpdateError] = useState<string | null>(null)
   const [excelUpdateSuccess, setExcelUpdateSuccess] = useState(false)
   const [showExportMenu, setShowExportMenu] = useState(false)
+  const [availableColumns, setAvailableColumns] = useState<string[]>([])
 
-
+  useEffect(() => {
+    const fetchSettings = async () => {
+      try {
+        const res = await axios.get(`/api/v1/deck/${id}/practice-settings`)
+        setAvailableColumns(res.data.available_columns || ['front', 'back'])
+      } catch (e) {
+        console.error("Failed to fetch deck practice settings", e)
+      }
+    }
+    fetchSettings()
+  }, [id])
 
   const handleExcelUpdateUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -116,39 +128,89 @@ const EditFlashcards = () => {
     })
   }
 
-  const handleUpdate = async (updatedData: any) => {
-    if (!updatedData) return
+  const handleCreateNewCard = () => {
+    const initialOthers: Record<string, any> = {
+      back_img: '',
+      back_audio_url: '',
+      front_audio_content: '',
+      back_audio_content: '',
+    }
+    availableColumns.forEach(c => {
+      if (c !== 'front' && c !== 'back') {
+        initialOthers[c] = ''
+      }
+    })
+    setEditingFlashcard({
+      id: undefined,
+      deck_id: Number(id),
+      content: '',
+      explanation: '',
+      ai_explanation: '',
+      image: null,
+      audio: null,
+      others: initialOthers,
+      options: []
+    })
+  }
+
+  const handleUpdate = async (updatedData: any, addAnother = false) => {
+    if (!updatedData) return null
     setIsSaving(true)
     try {
       const updatedOptions = (updatedData.options || []).map((opt: any) => {
-        if (opt.is_correct) {
+        if (opt.is_correct && updatedData.explanation) {
           return { ...opt, content: updatedData.explanation }
         }
         return opt
       })
 
       const finalOthers = { ...updatedData.others }
+      let savedCard: any = null
 
-      await axios.patch(`/api/v1/deck/flashcard/${updatedData.id}`, {
-        content: updatedData.content,
-        explanation: updatedData.explanation,
-        ai_explanation: updatedData.ai_explanation,
-        image: updatedData.image || null,
-        audio: updatedData.audio || null,
-        others: finalOthers,
-        options: updatedOptions
-      })
-      
-      const updatedFlashcard = {
-        ...updatedData,
-        options: updatedOptions,
-        others: finalOthers
+      if (updatedData.id) {
+        // Edit existing card
+        await axios.patch(`/api/v1/deck/flashcard/${updatedData.id}`, {
+          content: updatedData.content,
+          explanation: updatedData.explanation,
+          ai_explanation: updatedData.ai_explanation,
+          image: updatedData.image || null,
+          audio: updatedData.audio || null,
+          others: finalOthers,
+          options: updatedOptions
+        })
+        
+        savedCard = {
+          ...updatedData,
+          options: updatedOptions,
+          others: finalOthers
+        }
+
+        setFlashcards(flashcards.map(q => q.id === updatedData.id ? savedCard : q))
+      } else {
+        // Create new card
+        const res = await axios.post(`/api/v1/deck/${id}/flashcard`, {
+          content: updatedData.content,
+          explanation: updatedData.explanation,
+          ai_explanation: updatedData.ai_explanation,
+          image: updatedData.image || null,
+          audio: updatedData.audio || null,
+          others: finalOthers,
+          options: updatedOptions
+        })
+
+        savedCard = res.data.card
+        setFlashcards([savedCard, ...flashcards].slice(0, 50))
+        setTotal(prev => prev + 1)
       }
 
-      setFlashcards(flashcards.map(q => q.id === updatedData.id ? updatedFlashcard : q))
-      setEditingFlashcard(null)
+      if (!addAnother) {
+        setEditingFlashcard(null)
+      }
+
+      return savedCard
     } catch (err) {
-      alert('Failed to update flashcard')
+      alert('Failed to save flashcard')
+      throw err
     } finally {
       setIsSaving(false)
     }
@@ -194,7 +256,16 @@ const EditFlashcards = () => {
             />
           </div>
 
-           <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2">
+             <button 
+                onClick={handleCreateNewCard}
+                className="h-8 px-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-[10px] font-black rounded-lg flex items-center gap-1 shadow-md active:scale-95 transition-all uppercase tracking-wider shrink-0"
+                title="Thêm thẻ thủ công"
+             >
+                <Plus className="w-3.5 h-3.5" />
+                <span className="hidden xs:inline">Thêm thẻ</span>
+             </button>
+
              <div className="flex items-center gap-4 mr-4 hidden md:flex">
                 <div className="flex items-center gap-1.5">
                    <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
@@ -207,37 +278,37 @@ const EditFlashcards = () => {
              </div>
              
              <div className="relative">
-               <button 
-                  onClick={() => setShowExportMenu(!showExportMenu)}
-                  className="w-8 h-8 bg-indigo-600 text-white rounded-lg flex items-center justify-center shadow-lg hover:bg-indigo-700 active:scale-90 transition-all"
-                  title="Xuất Excel"
-               >
-                  <Download className="w-3.5 h-3.5" />
-               </button>
-               {showExportMenu && (
-                 <>
-                   <div 
-                     className="fixed inset-0 z-[140]" 
-                     onClick={() => setShowExportMenu(false)}
-                   />
-                   <div className="absolute right-0 mt-2 w-56 bg-white border border-slate-100 rounded-xl shadow-xl py-1.5 z-[150] animate-in fade-in slide-in-from-top-2 duration-150">
-                     <a 
-                       href={`/api/v1/deck/${id}/export`} 
-                       onClick={() => setShowExportMenu(false)}
-                       className="block px-4 py-2.5 text-[9px] font-black text-slate-700 hover:bg-indigo-50 hover:text-indigo-600 transition-colors uppercase tracking-wider text-right"
-                     >
-                       Xuất có ID (để sửa rồi update)
-                     </a>
-                     <a 
-                       href={`/api/v1/deck/${id}/export?exclude_ids=true`} 
-                       onClick={() => setShowExportMenu(false)}
-                       className="block px-4 py-2.5 text-[9px] font-black text-slate-700 hover:bg-indigo-50 hover:text-indigo-600 transition-colors border-t border-slate-50 uppercase tracking-wider text-right"
-                     >
-                       Xuất không ID (để import mới)
-                     </a>
-                   </div>
-                 </>
-               )}
+                <button 
+                   onClick={() => setShowExportMenu(!showExportMenu)}
+                   className="w-8 h-8 bg-indigo-600 text-white rounded-lg flex items-center justify-center shadow-lg hover:bg-indigo-700 active:scale-90 transition-all"
+                   title="Xuất Excel"
+                >
+                   <Download className="w-3.5 h-3.5" />
+                </button>
+                {showExportMenu && (
+                  <>
+                    <div 
+                      className="fixed inset-0 z-[140]" 
+                      onClick={() => setShowExportMenu(false)}
+                    />
+                    <div className="absolute right-0 mt-2 w-56 bg-white border border-slate-100 rounded-xl shadow-xl py-1.5 z-[150] animate-in fade-in slide-in-from-top-2 duration-150">
+                      <a 
+                        href={`/api/v1/deck/${id}/export`} 
+                        onClick={() => setShowExportMenu(false)}
+                        className="block px-4 py-2.5 text-[9px] font-black text-slate-700 hover:bg-indigo-50 hover:text-indigo-600 transition-colors uppercase tracking-wider text-right"
+                      >
+                        Xuất có ID (để sửa rồi update)
+                      </a>
+                      <a 
+                        href={`/api/v1/deck/${id}/export?exclude_ids=true`} 
+                        onClick={() => setShowExportMenu(false)}
+                        className="block px-4 py-2.5 text-[9px] font-black text-slate-700 hover:bg-indigo-50 hover:text-indigo-600 transition-colors border-t border-slate-50 uppercase tracking-wider text-right"
+                      >
+                        Xuất không ID (để import mới)
+                      </a>
+                    </div>
+                  </>
+                )}
              </div>
              
              <button 
@@ -274,10 +345,10 @@ const EditFlashcards = () => {
                  key={q.id}
                  initial={{ opacity: 0 }}
                  animate={{ opacity: 1 }}
-                 className="group bg-white rounded-2xl border border-slate-100 p-3 md:p-4 hover:border-indigo-200 hover:shadow-xl hover:shadow-indigo-500/5 transition-all flex items-stretch gap-4 md:gap-6"
+                 className="group bg-white rounded-2xl border border-slate-100 p-2.5 md:p-4 hover:border-indigo-200 hover:shadow-xl hover:shadow-indigo-500/5 transition-all flex items-stretch gap-2.5 md:gap-6"
                >
                   {/* Left: Metadata & Status */}
-                  <div className="flex flex-col items-center justify-center gap-2 shrink-0 border-r border-slate-50 pr-4">
+                  <div className="flex flex-col items-center justify-center gap-2 shrink-0 border-r border-slate-50 pr-2.5 md:pr-4">
                      <span className="text-[8px] font-black text-slate-300 italic">#{(page-1)*50 + idx + 1}</span>
                      <div className="flex flex-col gap-1">
                         <div className={cn("w-1.5 h-1.5 rounded-full", q.explanation ? "bg-emerald-500 shadow-sm shadow-emerald-200" : "bg-slate-100")} />
@@ -317,17 +388,17 @@ const EditFlashcards = () => {
                      </div>
                   </div>
 
-                  {/* Right: Vertical Actions (Always Visible but compact) */}
-                  <div className="flex flex-col gap-1.5 shrink-0 border-l border-slate-50 pl-4 py-1">
+                  {/* Right: Actions (Visible, flex row on mobile, col on desktop) */}
+                  <div className="flex flex-row md:flex-col gap-1.5 shrink-0 border-l border-slate-50 pl-2.5 md:pl-4 py-1 md:py-0 justify-center items-center">
                      <button 
                         onClick={() => openEditModal(q)}
-                        className="w-10 md:w-11 h-8 md:h-10 bg-indigo-600 text-white rounded-xl flex items-center justify-center hover:bg-indigo-700 active:scale-95 transition-all shadow-lg shadow-indigo-100"
+                        className="w-9 md:w-11 h-8 md:h-10 bg-indigo-600 text-white rounded-xl flex items-center justify-center hover:bg-indigo-700 active:scale-95 transition-all shadow-lg shadow-indigo-100"
                      >
                         <Edit2 className="w-3.5 h-3.5 md:w-4 md:h-4" />
                      </button>
                      <button 
                         onClick={() => handleDelete(q.id)}
-                        className="w-10 md:w-11 h-8 md:h-10 bg-slate-50 text-slate-300 hover:text-rose-500 hover:bg-rose-50 border border-slate-100 hover:border-rose-100 rounded-xl flex items-center justify-center active:scale-95 transition-all"
+                        className="w-9 md:w-11 h-8 md:h-10 bg-slate-50 text-slate-300 hover:text-rose-500 hover:bg-rose-50 border border-slate-100 hover:border-rose-100 rounded-xl flex items-center justify-center active:scale-95 transition-all"
                      >
                         <Trash2 className="w-3.5 h-3.5 md:w-4 md:h-4" />
                      </button>
@@ -393,6 +464,7 @@ const EditFlashcards = () => {
         flashcard={editingFlashcard}
         onSave={handleUpdate}
         isSaving={isSaving}
+        availableColumns={availableColumns}
       />
       {/* Floating Status Notification for Excel Import/Update */}
       <AnimatePresence>

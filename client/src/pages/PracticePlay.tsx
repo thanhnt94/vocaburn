@@ -1,8 +1,9 @@
 import { useState, useEffect, useRef } from 'react'
 import confetti from 'canvas-confetti'
 import { useParams, useNavigate } from 'react-router-dom'
-import { ChevronLeft, ChevronRight, MessageSquare, Play, Volume2, Maximize2, Hash, Minimize2, Check, X, RotateCcw, AlertCircle, LayoutGrid, Timer, Flame, Trophy, Sparkles, Lightbulb, StickyNote, Target, CheckCircle2, XCircle, Clock, BookOpen, Copy, Edit3, Brain, FileText, HelpCircle, Sliders, ListOrdered, Shuffle, Eye, EyeOff, TrendingUp, Award, Lock, Keyboard, VolumeX, Settings, RefreshCw, Undo2, LogOut, Zap, Music, Image } from 'lucide-react'
+import { ChevronLeft, ChevronRight, MessageSquare, Play, Volume2, Maximize2, Hash, Minimize2, Check, X, RotateCcw, AlertCircle, LayoutGrid, Timer, Flame, Trophy, Sparkles, Lightbulb, StickyNote, Target, CheckCircle2, XCircle, Clock, BookOpen, Copy, Edit3, Brain, FileText, HelpCircle, Sliders, ListOrdered, Shuffle, Eye, EyeOff, TrendingUp, Award, Lock, Keyboard, VolumeX, Settings, RefreshCw, Undo2, LogOut, Zap, Music, Image, Plus } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
+import { FlashcardEditModal } from '@/components/FlashcardEditModal'
 import axios from 'axios'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
@@ -249,6 +250,8 @@ export default function PracticePlay() {
   };
 
   const [session, setSession] = useState<any>(null)
+  const [editingFlashcard, setEditingFlashcard] = useState<any>(null)
+  const [isSaving, setIsSaving] = useState(false)
   const [autoPlayAudio, setAutoPlayAudio] = useState<'never' | 'always' | 'front' | 'back'>(() => {
     return (localStorage.getItem('vocaburn_autoplay_audio') as any) || 'never';
   });
@@ -1152,6 +1155,108 @@ export default function PracticePlay() {
     }
   }
 
+
+  const handleCreateNewCard = () => {
+    const initialOthers: Record<string, any> = {
+      back_img: '',
+      back_audio_url: '',
+      front_audio_content: '',
+      back_audio_content: '',
+    }
+    availableColumns.forEach(c => {
+      if (c !== 'front' && c !== 'back') {
+        initialOthers[c] = ''
+      }
+    })
+    setEditingFlashcard({
+      id: undefined,
+      deck_id: Number(id),
+      content: '',
+      explanation: '',
+      ai_explanation: '',
+      image: null,
+      audio: null,
+      others: initialOthers,
+      options: []
+    })
+  }
+
+  const handleUpdateQuickAdd = async (updatedData: any, addAnother = false) => {
+    if (!updatedData) return null
+    setIsSaving(true)
+    try {
+      const updatedOptions = (updatedData.options || []).map((opt: any) => {
+        if (opt.is_correct && updatedData.explanation) {
+          return { ...opt, content: updatedData.explanation }
+        }
+        return opt
+      })
+      const finalOthers = { ...updatedData.others }
+      let savedCard: any = null
+
+      if (updatedData.id) {
+        await axios.patch(`/api/v1/deck/flashcard/${updatedData.id}`, {
+          content: updatedData.content,
+          explanation: updatedData.explanation,
+          ai_explanation: updatedData.ai_explanation,
+          image: updatedData.image || null,
+          audio: updatedData.audio || null,
+          others: finalOthers,
+          options: updatedOptions
+        })
+        savedCard = {
+          ...updatedData,
+          options: updatedOptions,
+          others: finalOthers
+        }
+        
+        if (session?.questions) {
+          setSession((prev: any) => {
+            if (!prev) return prev
+            return {
+              ...prev,
+              questions: prev.questions.map((q: any) => q.id === updatedData.id ? savedCard : q)
+            }
+          })
+        }
+      } else {
+        const res = await axios.post(`/api/v1/deck/${id}/flashcard`, {
+          content: updatedData.content,
+          explanation: updatedData.explanation,
+          ai_explanation: updatedData.ai_explanation,
+          image: updatedData.image || null,
+          audio: updatedData.audio || null,
+          others: finalOthers,
+          options: updatedOptions
+        })
+        savedCard = res.data.card
+
+        if (session?.questions) {
+          setSession((prev: any) => {
+            if (!prev) return prev
+            const updatedQs = [...prev.questions]
+            const targetPos = currentIndex + 1
+            updatedQs.splice(targetPos, 0, savedCard)
+            return {
+              ...prev,
+              questions: updatedQs
+            }
+          })
+        }
+      }
+
+      if (!addAnother) {
+        setEditingFlashcard(null)
+      }
+
+      return savedCard
+    } catch (err) {
+      alert('Failed to save flashcard')
+      throw err
+    } finally {
+      setIsSaving(false)
+    }
+  }
 
   const fetchPracticeSettings = async () => {
     try {
@@ -3488,6 +3593,15 @@ export default function PracticePlay() {
           </div>
 
         </div>
+
+        {/* Quick Add Button */}
+        <button
+          onClick={handleCreateNewCard}
+          className="w-8.5 h-8.5 ml-1.5 md:ml-2.5 flex items-center justify-center bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl shadow-md active:scale-90 transition-all flex-shrink-0"
+          title="Thêm thẻ nhanh"
+        >
+          <Plus className="w-4.5 h-4.5" />
+        </button>
       </header>
 
       {/* Dynamic Mode Switcher Bar */}
@@ -5813,6 +5927,14 @@ export default function PracticePlay() {
           />
         )}
       </AnimatePresence>
+      <FlashcardEditModal
+        isOpen={!!editingFlashcard}
+        onClose={() => setEditingFlashcard(null)}
+        flashcard={editingFlashcard}
+        onSave={handleUpdateQuickAdd}
+        isSaving={isSaving}
+        availableColumns={availableColumns}
+      />
     </div>
   )
 }
