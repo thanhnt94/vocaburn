@@ -1638,7 +1638,7 @@ async def ask_ai(deck_id: int, payload: dict, background_tasks: BackgroundTasks,
     force = payload.get("force", False)
     sync = payload.get("sync", False)
     
-    from app.modules.deck.models import Flashcard
+    from app.modules.deck.models import Flashcard, FlashcardDeck
     from app.modules.admin.interface import AdminInterface
     from sqlalchemy.orm.attributes import flag_modified
     
