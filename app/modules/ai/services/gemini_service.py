@@ -11,7 +11,9 @@ class GeminiService:
         self.model_id = model_id
         self.use_sso = use_sso
         self.sso_server_url = sso_server_url
-        if self.api_key and not self.use_sso:
+        if self.use_sso:
+            self.client = "SSO_ACTIVE"
+        elif self.api_key:
             self.client = genai.Client(api_key=self.api_key)
         else:
             self.client = None
@@ -65,7 +67,7 @@ class GeminiService:
             
         try:
             # Re-initialize local client if fallback triggered
-            if not self.client:
+            if not isinstance(self.client, genai.Client):
                 self.client = genai.Client(api_key=self.api_key)
             response = await self.client.aio.models.generate_content(
                 model=self.model_id,
