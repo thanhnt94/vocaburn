@@ -697,7 +697,17 @@ async def generate_all_deck_audio(
     if payload:
         force = payload.get("force", False)
         
-    background_tasks.add_task(_bulk_generate_deck_audio_task, deck_id, force, str(request.base_url))
+    # Detect scheme dynamically (e.g. support HTTPS behind Nginx reverse proxy)
+    scheme = request.headers.get("x-forwarded-proto", request.url.scheme)
+    netloc = request.url.netloc
+    
+    # Force HTTPS for any production domain to bypass Nginx configuration gaps
+    if "localhost" not in netloc and "127.0.0.1" not in netloc:
+        scheme = "https"
+        
+    base_url = f"{scheme}://{netloc}"
+    
+    background_tasks.add_task(_bulk_generate_deck_audio_task, deck_id, force, base_url)
     return {"status": "ok", "message": "Bulk TTS audio generation queue submission started."}
 
 @router.get("/{deck_id}/tts-status")
