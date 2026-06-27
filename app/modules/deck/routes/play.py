@@ -1633,7 +1633,7 @@ async def _generate_ai_task(deck_id: int, card_id: int, field: str = "explanatio
             await db.commit()
 
 @router.post("/{deck_id}/ask-ai")
-async def ask_ai(deck_id: int, payload: dict, background_tasks: BackgroundTasks, db: AsyncSession = Depends(get_db)):
+async def ask_ai(deck_id: int, payload: dict, background_tasks: BackgroundTasks, request: Request, db: AsyncSession = Depends(get_db)):
     card_id = payload.get("card_id", payload.get("question_id"))
     field = payload.get("field", "explanation") # explanation, hint, mnemonic, or custom ID
     force = payload.get("force", False)
@@ -1740,5 +1740,85 @@ async def ask_ai(deck_id: int, payload: dict, background_tasks: BackgroundTasks,
             return {"ai_explanation": content, "content": content}
             
     # Background Generation
+    # Check if Central SSO is enabled and active
+    from app.modules.sso_module.service import SSOService
+    from app.core.config import settings
+    use_sso = False
+    sso_server_url = None
+    try:
+        sso_config = await SSOService.get_config(db)
+        if sso_config.is_enabled and sso_config.server_url:
+            use_sso = True
+            sso_server_url = sso_config.server_url.rstrip('/')
+    except Exception as sso_err:
+        logger.warning(f"[SSO CONFIG CHECK WARNING] failed to check SSO status: {sso_err}")
+
+    if use_sso and sso_server_url:
+        # Build prompt exactly like _generate_ai_content_sync
+        options_text = ""
+        card_options = getattr(c, "options", None)
+        if card_options:
+            options_text = ", ".join([o.content for o in card_options])
+            
+        correct_answer_text = c.explanation or ""
+        if card_options:
+            correct_opt = next((o for o in card_options if o.is_correct), None)
+            if correct_opt:
+                correct_answer_text = correct_opt.content
+                
+        prompt = template \
+            .replace("{{question}}", c.content or "") \
+            .replace("{{card}}", c.content or "") \
+            .replace("{{options}}", options_text) \
+            .replace("{{correct_answer}}", correct_answer_text) \
+            .replace("{{global_instruction}}", (deck.instruction if deck else "") or "") \
+            .replace("{{quiz_title}}", (deck.title if deck else "") or "") \
+            .replace("{{deck_title}}", (deck.title if deck else "") or "") \
+            .replace("{{quiz_description}}", (deck.description if deck else "") or "") \
+            .replace("{{deck_description}}", (deck.description if deck else "") or "")
+            
+        for i in range(4):
+            prompt = prompt.replace(f"{{{{option_{chr(97+i)}}}}}", "")
+
+        # Detect scheme dynamically (e.g. support HTTPS behind Nginx reverse proxy)
+        scheme = request.headers.get("x-forwarded-proto", request.url.scheme)
+        netloc = request.url.netloc
+        if "localhost" not in netloc and "127.0.0.1" not in netloc:
+            scheme = "https"
+        base_url = f"{scheme}://{netloc}"
+        
+        callback_url = f"{base_url}/api/v1/deck/ai-callback"
+        queue_token = getattr(settings, "QUEUE_API_SECRET", "super-secret-token-123")
+        
+        # Submit to CentralAuth Queue
+        import httpx
+        try:
+            async with httpx.AsyncClient() as client:
+                response = await client.post(
+                    f"{sso_server_url}/api/queue/submit",
+                    json={
+                        "satellite_source": "vocaburn",
+                        "prompt": prompt,
+                        "callback_url": callback_url,
+                        "extra_data": json.dumps({
+                            "task_type": "ai-explain",
+                            "card_id": card_id,
+                            "field": field,
+                            "deck_id": deck_id
+                        }),
+                        "max_retries": 3
+                    },
+                    headers={"X-Queue-Token": queue_token},
+                    timeout=15.0
+                )
+                if response.status_code == 200:
+                    logger.info(f"[AI QUEUE] Task submitted to CentralAuth for card {card_id} field '{field}'")
+                    return {"status": "processing", "message": f"AI {field} generation queued on CentralAuth."}
+                else:
+                    logger.error(f"[AI QUEUE ERROR] CentralAuth submit failed ({response.status_code}): {response.text}")
+        except Exception as queue_err:
+            logger.error(f"[AI QUEUE EXCEPTION] Failed to submit task: {queue_err}")
+            
+    # Fallback to local background task if SSO submission fails or is disabled
     background_tasks.add_task(_generate_ai_task, deck_id, card_id, field)
     return {"status": "processing", "message": f"AI {field} generation started in background."}

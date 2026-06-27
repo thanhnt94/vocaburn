@@ -801,3 +801,62 @@ async def tts_queue_callback(data: dict, db: AsyncSession = Depends(get_db)):
     await db.commit()
     logger.info(f"[TTS CALLBACK SUCCESS] Updated card {card_id} {face} audio via CentralAuth Queue Callback.")
     return {"status": "ok"}
+
+@router.post("/ai-callback")
+async def ai_queue_callback(data: dict, db: AsyncSession = Depends(get_db)):
+    task_id = data.get("id")
+    status = data.get("status")
+    result = data.get("result")
+    extra_data_str = data.get("extra_data")
+    
+    if status != "completed" or not result:
+        logger.warning(f"[AI CALLBACK] Task {task_id} status '{status}' was not processed or has no result.")
+        return {"status": "ignored"}
+        
+    try:
+        extra = json.loads(extra_data_str) if extra_data_str else {}
+        if extra.get("task_type") != "ai-explain":
+            return {"status": "ignored"}
+            
+        card_id = extra.get("card_id")
+        field = extra.get("field", "explanation")
+    except Exception as parse_err:
+        logger.error(f"[AI CALLBACK ERROR] Failed to parse extra_data: {parse_err}")
+        return JSONResponse(status_code=400, content={"error": "Invalid extra_data"})
+        
+    from app.modules.deck.models import Flashcard
+    from sqlalchemy.orm.attributes import flag_modified
+    import re
+    
+    res = await db.execute(select(Flashcard).filter(Flashcard.id == card_id))
+    c = res.scalar_one_or_none()
+    if not c:
+        logger.error(f"[AI CALLBACK ERROR] Card {card_id} not found in database.")
+        return JSONResponse(status_code=404, content={"error": "Card not found"})
+        
+    content = result.strip()
+    if content.startswith("```markdown"):
+        content = content[len("```markdown"):].strip()
+    elif content.startswith("```"):
+        content = content[len("```"):].strip()
+    if content.endswith("```"):
+        content = content[:-3].strip()
+    content = re.sub(r'`\s*(<ruby>[\s\S]*?<\/ruby>)\s*`', r'\1', content)
+
+    if field == "hint":
+        c.hint = content
+    elif field == "mnemonic":
+        c.mnemonic = content
+    elif field == "explanation":
+        c.ai_explanation = content
+    else:
+        if not c.others:
+            c.others = {}
+        if "ai_responses" not in c.others:
+            c.others["ai_responses"] = {}
+        c.others["ai_responses"][field] = content
+        flag_modified(c, "others")
+        
+    await db.commit()
+    logger.info(f"[AI CALLBACK SUCCESS] Updated card {card_id} field '{field}' via CentralAuth Queue Callback.")
+    return {"status": "ok"}
