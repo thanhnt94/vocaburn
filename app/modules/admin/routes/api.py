@@ -403,3 +403,22 @@ async def broadcast_telegram_message(request: Request, data: dict, db: AsyncSess
             success_count += 1
             
     return {"status": "success", "message": f"Broadcast sent successfully to {success_count} user(s)."}
+
+@router.get("/decks")
+async def get_admin_decks(request: Request, db: AsyncSession = Depends(get_db)):
+    user = await AuthService.get_current_user(request, db)
+    if not user or user.role != "admin":
+        return JSONResponse(status_code=401, content={"error": "Unauthorized"})
+        
+    from app.modules.deck.models import FlashcardDeck
+    res = await db.execute(select(FlashcardDeck).order_by(FlashcardDeck.title.asc()))
+    decks = res.scalars().all()
+    
+    return [
+        {
+            "id": d.id,
+            "title": d.title,
+            "description": d.description
+        }
+        for d in decks
+    ]

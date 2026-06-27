@@ -7,7 +7,7 @@ export default function Admin() {
   const navigate = useNavigate();
   const { user, isLoggedIn, isLoading } = useAppStore();
 
-  const [activeTab, setActiveTab] = useState<'sso' | 'ai' | 'telegram' | 'users' | 'maintenance'>('sso');
+  const [activeTab, setActiveTab] = useState<'sso' | 'ai' | 'telegram' | 'users' | 'maintenance' | 'tts'>('sso');
   const [globalLoading, setGlobalLoading] = useState(false);
   const [successMsg, setSuccessMsg] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
@@ -40,6 +40,68 @@ export default function Admin() {
   // Tab 4: Maintenance state
   const [maintenanceEnabled, setMaintenanceEnabled] = useState(false);
 
+  // Tab 5: TTS Config state
+  const [adminDecks, setAdminDecks] = useState<any[]>([]);
+  const [selectedDeckId, setSelectedDeckId] = useState<string>('');
+  const [isFetchingTTSStatus, setIsFetchingTTSStatus] = useState(false);
+  const [ttsStatus, setTtsStatus] = useState<{ total_cards: number, missing_audio_cards: number } | null>(null);
+  const [isStartingTTS, setIsStartingTTS] = useState(false);
+
+  const loadAdminDecks = async () => {
+    try {
+      const res = await axios.get('/api/v1/admin/decks');
+      setAdminDecks(res.data || []);
+      if (res.data && res.data.length > 0) {
+        const firstId = res.data[0].id.toString();
+        setSelectedDeckId(firstId);
+        
+        setIsFetchingTTSStatus(true);
+        const statusRes = await axios.get(`/api/v1/deck/${firstId}/tts-status`);
+        setTtsStatus(statusRes.data);
+      }
+    } catch (e) {
+      console.error("Failed to load admin decks", e);
+    } finally {
+      setIsFetchingTTSStatus(false);
+    }
+  };
+
+  const handleCheckTTSStatus = async (deckIdStr: string) => {
+    setSelectedDeckId(deckIdStr);
+    if (!deckIdStr) {
+      setTtsStatus(null);
+      return;
+    }
+    setIsFetchingTTSStatus(true);
+    setTtsStatus(null);
+    try {
+      const res = await axios.get(`/api/v1/deck/${deckIdStr}/tts-status`);
+      setTtsStatus(res.data);
+    } catch (e) {
+      console.error("Failed to check deck tts status", e);
+    } finally {
+      setIsFetchingTTSStatus(false);
+    }
+  };
+
+  const handleStartTTSGeneration = async () => {
+    if (!selectedDeckId) return;
+    setIsStartingTTS(true);
+    setSuccessMsg('');
+    setErrorMsg('');
+    try {
+      await axios.post(`/api/v1/deck/${selectedDeckId}/generate-all-audio`, { force: false });
+      setSuccessMsg("Đã bắt đầu hàng đợi sinh âm thanh tự động ngầm cho bộ bài!");
+      setTimeout(() => {
+        handleCheckTTSStatus(selectedDeckId);
+      }, 2000);
+    } catch (e) {
+      setErrorMsg("Không thể khởi động hàng đợi âm thanh.");
+    } finally {
+      setIsStartingTTS(false);
+    }
+  };
+
   // Enforce admin authorization
   useEffect(() => {
     if (!isLoading) {
@@ -59,6 +121,7 @@ export default function Admin() {
       loadTelegramConfig();
       loadUsersList();
       loadMaintenanceMode();
+      loadAdminDecks();
     }
   }, [isLoggedIn, user]);
 
@@ -359,6 +422,12 @@ export default function Admin() {
               className={`p-4 rounded-xl font-bold flex items-center gap-3 transition-all text-left ${activeTab === 'maintenance' ? 'bg-[#6366f1] text-white shadow-lg shadow-indigo-500/20' : 'bg-white/[0.02] hover:bg-white/[0.05] border border-white/5 text-gray-400'}`}
             >
               ⚙️ System Control
+            </button>
+            <button
+              onClick={() => setActiveTab('tts')}
+              className={`p-4 rounded-xl font-bold flex items-center gap-3 transition-all text-left ${activeTab === 'tts' ? 'bg-[#6366f1] text-white shadow-lg shadow-indigo-500/20' : 'bg-white/[0.02] hover:bg-white/[0.05] border border-white/5 text-gray-400'}`}
+            >
+              🎵 Batch TTS Sync
             </button>
           </div>
 
@@ -728,6 +797,79 @@ export default function Admin() {
                   >
                     {maintenanceEnabled ? 'Disable Maintenance' : 'Enable Maintenance'}
                   </button>
+                </div>
+              </div>
+            )}
+
+            {/* Tab 5: TTS Batch Queue */}
+            {activeTab === 'tts' && (
+              <div className="flex flex-col gap-6">
+                <div>
+                  <h3 className="text-2xl font-bold mb-2">Batch TTS Audio Generation</h3>
+                  <p className="text-gray-400 text-sm">Generate synthesized audio for all flashcards in a deck in the background.</p>
+                </div>
+
+                <div className="space-y-5 bg-[#0d1321]/50 border border-white/5 p-6 rounded-2xl">
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Select Card Deck</label>
+                    <select
+                      value={selectedDeckId}
+                      onChange={(e) => handleCheckTTSStatus(e.target.value)}
+                      className="w-full bg-[#0d1321] border border-white/10 rounded-xl px-4 py-3.5 text-white font-bold focus:outline-none focus:border-indigo-500 transition-all text-sm cursor-pointer"
+                    >
+                      {adminDecks.length === 0 ? (
+                        <option value="">No decks found</option>
+                      ) : (
+                        adminDecks.map(d => (
+                          <option key={d.id} value={d.id} className="bg-[#0d1321] text-white font-semibold">
+                            {d.title} (ID: {d.id})
+                          </option>
+                        ))
+                      )}
+                    </select>
+                  </div>
+
+                  {/* Status Panel */}
+                  <div className="bg-white/[0.01] border border-white/5 p-5 rounded-xl">
+                    <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-4">Deck TTS Audio Status</h4>
+                    
+                    {isFetchingTTSStatus ? (
+                      <div className="py-4 flex flex-col items-center justify-center gap-2">
+                        <div className="w-6 h-6 border-2 border-indigo-600/30 border-t-indigo-600 rounded-full animate-spin" />
+                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Scanning cards...</span>
+                      </div>
+                    ) : ttsStatus ? (
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="bg-[#0d1321] border border-white/5 p-4 rounded-xl">
+                          <p className="text-[9px] font-black text-gray-500 uppercase">Total Cards</p>
+                          <p className="text-xl font-black text-white mt-1">{ttsStatus.total_cards}</p>
+                        </div>
+                        <div className="bg-[#0d1321] border border-white/5 p-4 rounded-xl">
+                          <p className="text-[9px] font-black text-amber-500 uppercase">Missing Audio</p>
+                          <p className="text-xl font-black text-amber-500 mt-1">{ttsStatus.missing_audio_cards}</p>
+                        </div>
+                      </div>
+                    ) : (
+                      <p className="text-xs text-gray-500">Select a deck above to scan its audio status.</p>
+                    )}
+                  </div>
+
+                  {ttsStatus && ttsStatus.missing_audio_cards > 0 && (
+                    <div className="flex items-center gap-3 bg-indigo-500/10 border border-indigo-500/20 p-4 rounded-xl text-xs text-indigo-300 font-bold leading-relaxed">
+                      💡 Có {ttsStatus.missing_audio_cards} thẻ chưa có file âm thanh. Bấm bắt đầu để tạo ngầm tự động.
+                    </div>
+                  )}
+
+                  <div className="flex justify-end pt-4 border-t border-white/5">
+                    <button
+                      type="button"
+                      onClick={handleStartTTSGeneration}
+                      disabled={isFetchingTTSStatus || !selectedDeckId || !ttsStatus || ttsStatus.missing_audio_cards === 0 || isStartingTTS}
+                      className="px-6 py-3.5 rounded-xl font-bold bg-amber-500 hover:bg-amber-600 shadow-lg shadow-amber-500/20 transition-all text-sm flex items-center gap-2 active:scale-95 disabled:opacity-40 disabled:pointer-events-none"
+                    >
+                      {isStartingTTS ? 'Starting Task Queue...' : 'Start TTS Generation'}
+                    </button>
+                  </div>
                 </div>
               </div>
             )}
