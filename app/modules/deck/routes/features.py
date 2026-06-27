@@ -468,16 +468,7 @@ async def import_text_update(request: Request, deck_id: int, data: dict, db: Asy
         print(f"CRITICAL: Text update error: {traceback.format_exc()}")
         return JSONResponse(status_code=500, content={"error": str(e)})
 
-@router.get("/generate-audio/{card_id}")
-async def generate_card_audio(card_id: int, request: Request, face: str = "front", force: bool = False, db: AsyncSession = Depends(get_db)):
-    from app.modules.deck.models import Flashcard
-    res = await db.execute(select(Flashcard).filter(Flashcard.id == card_id))
-    c = res.scalar_one_or_none()
-    if not c:
-        return JSONResponse(status_code=404, content={"error": "Card not found"})
-        
-    from app.modules.deck.services.audio_generator import AudioGenerator
-    
+async def generate_single_card_audio_helper(c, face: str, force: bool, db: AsyncSession) -> Optional[str]:
     # Select text based on face - strictly require front_audio_content / back_audio_content
     text = ""
     if face == "front":
@@ -486,7 +477,7 @@ async def generate_card_audio(card_id: int, request: Request, face: str = "front
         text = c.others.get("back_audio_content") if c.others else None
             
     if not text or not text.strip():
-        return JSONResponse(status_code=400, content={"error": "Audio reading script is empty. Cannot generate audio."})
+        return None
         
     # Determine physical path and absolute URL based on requested deck_id and card_id
     from app.core.config import settings
@@ -515,11 +506,14 @@ async def generate_card_audio(card_id: int, request: Request, face: str = "front
                 db_updated = True
         if db_updated:
             await db.commit()
-        return {"url": url}
+        return url
     
     # Delete existing file if force regeneration
     if force and os.path.exists(physical_path):
-        os.remove(physical_path)
+        try:
+            os.remove(physical_path)
+        except Exception:
+            pass
         
     # Generate if not exists
     success = False
@@ -553,18 +547,20 @@ async def generate_card_audio(card_id: int, request: Request, face: str = "front
                     logger.error(f"[TTS CENTRAL ERROR] Centralized TTS endpoint returned status {response.status_code}: {response.text}")
     except Exception as sso_err:
         logger.warning(f"[TTS CENTRAL WARNING] Centralized TTS request failed, will fallback to local generation: {sso_err}")
-
+ 
     # Fallback to local generation if centralized TTS failed or wasn't active
     if not success:
         try:
+            from app.modules.deck.services.audio_generator import AudioGenerator
             logger.info(f"[TTS LOCAL] Generating TTS locally using edge-tts/gTTS for text: '{text[:30]}...'")
             success = await AudioGenerator.generate_tts(text, physical_path)
-            if not success:
-                return JSONResponse(status_code=500, content={"error": "Failed to generate audio locally"})
         except Exception as e:
             import traceback
             logger.error(f"Failed to generate audio locally: {e}\n{traceback.format_exc()}")
-            return JSONResponse(status_code=500, content={"error": f"Failed to generate audio locally: {str(e)}"})
+            return None
+            
+    if not success:
+        return None
         
     # Save back to database
     if face == "front":
@@ -578,4 +574,80 @@ async def generate_card_audio(card_id: int, request: Request, face: str = "front
         flag_modified(c, "others")
         
     await db.commit()
+    return url
+
+@router.get("/generate-audio/{card_id}")
+async def generate_card_audio(card_id: int, request: Request, face: str = "front", force: bool = False, db: AsyncSession = Depends(get_db)):
+    from app.modules.deck.models import Flashcard
+    res = await db.execute(select(Flashcard).filter(Flashcard.id == card_id))
+    c = res.scalar_one_or_none()
+    if not c:
+        return JSONResponse(status_code=404, content={"error": "Card not found"})
+        
+    url = await generate_single_card_audio_helper(c, face, force, db)
+    if not url:
+        return JSONResponse(status_code=500, content={"error": "Failed to generate audio"})
+        
     return {"url": url}
+
+async def _bulk_generate_deck_audio_task(deck_id: int, force: bool):
+    from app.core.db import SessionLocal
+    async with SessionLocal() as db:
+        from app.modules.deck.models import Flashcard
+        res = await db.execute(select(Flashcard).filter(Flashcard.deck_id == deck_id))
+        cards = res.scalars().all()
+        logger.info(f"[BULK TTS] Starting background audio generation for deck {deck_id} ({len(cards)} cards)")
+        
+        for idx, c in enumerate(cards):
+            try:
+                # Refresh/bind card inside session context
+                await db.refresh(c)
+                # Front audio
+                await generate_single_card_audio_helper(c, "front", force, db)
+                # Back audio
+                await generate_single_card_audio_helper(c, "back", force, db)
+                if idx % 10 == 0:
+                    logger.info(f"[BULK TTS] Progress: {idx}/{len(cards)} cards processed for deck {deck_id}")
+            except Exception as card_err:
+                logger.error(f"[BULK TTS ERROR] Failed to process card {c.id}: {card_err}")
+        
+        logger.info(f"[BULK TTS] Completed background audio generation for deck {deck_id}")
+
+@router.post("/{deck_id}/generate-all-audio")
+async def generate_all_deck_audio(
+    deck_id: int,
+    background_tasks: BackgroundTasks,
+    payload: dict = None,
+    db: AsyncSession = Depends(get_db)
+):
+    from app.modules.deck.models import FlashcardDeck
+    res = await db.execute(select(FlashcardDeck).filter(FlashcardDeck.id == deck_id))
+    deck = res.scalar_one_or_none()
+    if not deck:
+        return JSONResponse(status_code=404, content={"error": "Deck not found"})
+        
+    force = False
+    if payload:
+        force = payload.get("force", False)
+        
+    background_tasks.add_task(_bulk_generate_deck_audio_task, deck_id, force)
+    return {"status": "ok", "message": "Bulk TTS audio generation started in the background."}
+
+@router.get("/{deck_id}/tts-status")
+async def get_deck_tts_status(deck_id: int, db: AsyncSession = Depends(get_db)):
+    from app.modules.deck.models import Flashcard
+    res = await db.execute(select(Flashcard).filter(Flashcard.deck_id == deck_id))
+    cards = res.scalars().all()
+    
+    total = len(cards)
+    missing = 0
+    for c in cards:
+        has_front = bool(c.audio and c.audio.strip())
+        has_back = bool(c.others and c.others.get("back_audio_url") and c.others.get("back_audio_url").strip())
+        if not has_front or not has_back:
+            missing += 1
+            
+    return {
+        "total_cards": total,
+        "missing_audio_cards": missing
+    }

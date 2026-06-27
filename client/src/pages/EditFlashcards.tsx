@@ -45,6 +45,38 @@ const EditFlashcards = () => {
   const [excelUpdateSuccess, setExcelUpdateSuccess] = useState(false)
   const [showExportMenu, setShowExportMenu] = useState(false)
 
+  const [isTTSModalOpen, setIsTTSModalOpen] = useState(false)
+  const [isFetchingTTSStatus, setIsFetchingTTSStatus] = useState(false)
+  const [ttsStatus, setTtsStatus] = useState<{ total_cards: number, missing_audio_cards: number } | null>(null)
+  const [isStartingTTS, setIsStartingTTS] = useState(false)
+
+  const handleOpenTTSModal = async () => {
+    setIsTTSModalOpen(true)
+    setIsFetchingTTSStatus(true)
+    setTtsStatus(null)
+    try {
+      const res = await axios.get(`/api/v1/deck/${id}/tts-status`)
+      setTtsStatus(res.data)
+    } catch (err) {
+      console.error("Failed to fetch TTS status", err)
+    } finally {
+      setIsFetchingTTSStatus(false)
+    }
+  }
+
+  const handleStartTTSGeneration = async () => {
+    setIsStartingTTS(true)
+    try {
+      await axios.post(`/api/v1/deck/${id}/generate-all-audio`, { force: false })
+      setIsTTSModalOpen(false)
+      alert("Đã bắt đầu hàng đợi sinh âm thanh tự động ngầm!")
+    } catch (err) {
+      alert("Không thể khởi động hàng đợi âm thanh.")
+    } finally {
+      setIsStartingTTS(false)
+    }
+  }
+
   const handleExcelUpdateUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
@@ -253,6 +285,14 @@ const EditFlashcards = () => {
                 onChange={handleExcelUpdateUpload}
              />
 
+             <button 
+                onClick={handleOpenTTSModal}
+                className="w-8 h-8 bg-amber-500 hover:bg-amber-600 text-white rounded-lg flex items-center justify-center shadow-lg active:scale-90 transition-all"
+                title="Tạo hàng loạt âm thanh TTS ngầm"
+             >
+                <Music className="w-3.5 h-3.5" />
+             </button>
+
              <button className="w-8 h-8 bg-slate-50 text-slate-600 border border-slate-100 rounded-lg flex items-center justify-center shadow-sm active:scale-90 transition-all">
                 <Layers className="w-3.5 h-3.5" />
              </button>
@@ -434,6 +474,74 @@ const EditFlashcards = () => {
               )}
             </div>
           </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* TTS Queue Confirmation Modal */}
+      <AnimatePresence>
+        {isTTSModalOpen && (
+          <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4">
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setIsTTSModalOpen(false)}
+              className="absolute inset-0 bg-slate-900/40 backdrop-blur-md"
+            />
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="relative w-full max-w-md bg-white rounded-[2.5rem] shadow-2xl p-8 overflow-hidden text-center"
+            >
+              <div className="w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center text-amber-600 mx-auto mb-6">
+                <Music className="w-8 h-8" />
+              </div>
+              <h2 className="text-xl font-black text-slate-800 uppercase italic mb-2">Đồng bộ Âm thanh TTS</h2>
+              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-6">Tạo âm thanh ngầm tự động</p>
+              
+              {isFetchingTTSStatus ? (
+                <div className="py-6 flex flex-col items-center justify-center gap-3">
+                  <div className="w-8 h-8 border-4 border-indigo-600/30 border-t-indigo-600 rounded-full animate-spin" />
+                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Đang quét số lượng thẻ...</span>
+                </div>
+              ) : ttsStatus ? (
+                <div className="space-y-4 mb-8 text-left bg-slate-50 p-5 rounded-2xl border border-slate-100">
+                  <div className="flex justify-between items-center text-xs">
+                    <span className="font-bold text-slate-500 uppercase tracking-wider text-[10px]">Tổng số thẻ:</span>
+                    <span className="font-black text-slate-800">{ttsStatus.total_cards} thẻ</span>
+                  </div>
+                  <div className="flex justify-between items-center text-xs border-t border-slate-100 pt-3">
+                    <span className="font-bold text-slate-500 uppercase tracking-wider text-[10px]">Thẻ thiếu âm thanh:</span>
+                    <span className="font-black text-amber-600">{ttsStatus.missing_audio_cards} thẻ</span>
+                  </div>
+                  <p className="text-[10px] font-bold text-slate-400 leading-relaxed mt-2 italic text-center">
+                    * Hệ thống sẽ chỉ tạo âm thanh cho {ttsStatus.missing_audio_cards} thẻ chưa có âm thanh.
+                  </p>
+                </div>
+              ) : (
+                <p className="text-sm font-bold text-rose-500 mb-6">Không thể lấy thông tin thẻ.</p>
+              )}
+
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => setIsTTSModalOpen(false)}
+                  className="flex-1 py-3 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all"
+                >
+                  Hủy
+                </button>
+                <button
+                  type="button"
+                  onClick={handleStartTTSGeneration}
+                  disabled={isFetchingTTSStatus || !ttsStatus || ttsStatus.missing_audio_cards === 0 || isStartingTTS}
+                  className="flex-1 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-[10px] font-black uppercase tracking-widest shadow-lg shadow-indigo-100 disabled:opacity-40 disabled:pointer-events-none transition-all"
+                >
+                  {isStartingTTS ? "Đang bắt đầu..." : "Bắt đầu"}
+                </button>
+              </div>
+            </motion.div>
+          </div>
         )}
       </AnimatePresence>
     </div>
