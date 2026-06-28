@@ -113,18 +113,38 @@ export default function Admin() {
   };
 
   // Tab 6: AI Batch Config state
-  const [selectedAIBatchField, setSelectedAIBatchField] = useState<'explanation' | 'hint' | 'mnemonic'>('explanation');
+  const [selectedAIBatchField, setSelectedAIBatchField] = useState<string>('');
   const [isFetchingAIBatchStatus, setIsFetchingAIBatchStatus] = useState(false);
   const [aiBatchStatus, setAiBatchStatus] = useState<{ total_cards: number, missing_ai_cards: number } | null>(null);
   const [isStartingAIBatch, setIsStartingAIBatch] = useState(false);
 
   const handleCheckAIBatchStatus = async (deckIdStr: string, fieldStr?: string) => {
-    const activeField = fieldStr || selectedAIBatchField;
     setSelectedDeckId(deckIdStr);
     if (!deckIdStr) {
       setAiBatchStatus(null);
       return;
     }
+
+    const currentDeck = adminDecks.find(d => d.id.toString() === deckIdStr);
+    const customPrompts = currentDeck?.practice_settings?.ai_prompts || [];
+    
+    let activeField = fieldStr || selectedAIBatchField;
+    if (customPrompts.length > 0) {
+      const exists = customPrompts.some((cp: any) => cp.id === activeField);
+      if (!exists || !activeField) {
+        activeField = customPrompts[0].id;
+        setSelectedAIBatchField(activeField);
+      }
+    } else {
+      activeField = '';
+      setSelectedAIBatchField('');
+    }
+
+    if (!activeField) {
+      setAiBatchStatus(null);
+      return;
+    }
+
     setIsFetchingAIBatchStatus(true);
     setAiBatchStatus(null);
     try {
@@ -972,7 +992,7 @@ export default function Admin() {
                       <select
                         value={selectedAIBatchField}
                         onChange={(e) => {
-                          const newField = e.target.value as any;
+                          const newField = e.target.value;
                           setSelectedAIBatchField(newField);
                           if (selectedDeckId) {
                             handleCheckAIBatchStatus(selectedDeckId, newField);
@@ -980,9 +1000,18 @@ export default function Admin() {
                         }}
                         className="w-full bg-[#0d1321] border border-white/10 rounded-xl px-4 py-3.5 text-white font-bold focus:outline-none focus:border-indigo-500 transition-all text-sm cursor-pointer"
                       >
-                        <option value="explanation" className="bg-[#0d1321] text-white font-semibold">AI Explanation</option>
-                        <option value="hint" className="bg-[#0d1321] text-white font-semibold">AI Hint</option>
-                        <option value="mnemonic" className="bg-[#0d1321] text-white font-semibold">AI Mnemonic</option>
+                        {(() => {
+                          const currentDeck = adminDecks.find(d => d.id.toString() === selectedDeckId);
+                          const customPrompts = currentDeck?.practice_settings?.ai_prompts || [];
+                          if (customPrompts.length === 0) {
+                            return <option value="" className="bg-[#0d1321] text-slate-500 font-semibold">No Custom Prompts Configured</option>;
+                          }
+                          return customPrompts.map((cp: any) => (
+                            <option key={cp.id} value={cp.id} className="bg-[#0d1321] text-white font-semibold">
+                              {cp.title || cp.id}
+                            </option>
+                          ));
+                        })()}
                       </select>
                     </div>
                   </div>
@@ -996,27 +1025,34 @@ export default function Admin() {
                         <div className="w-6 h-6 border-2 border-indigo-600/30 border-t-indigo-600 rounded-full animate-spin" />
                         <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Scanning cards...</span>
                       </div>
-                    ) : aiBatchStatus ? (
-                      <div className="grid grid-cols-2 gap-4">
-                        <div className="bg-[#0d1321] border border-white/5 p-4 rounded-xl">
-                          <p className="text-[9px] font-black text-gray-500 uppercase">Total Cards</p>
-                          <p className="text-xl font-black text-white mt-1">{aiBatchStatus.total_cards}</p>
-                        </div>
-                        <div className="bg-[#0d1321] border border-white/5 p-4 rounded-xl">
-                          <p className="text-[9px] font-black text-indigo-500 uppercase">Missing AI {selectedAIBatchField}</p>
-                          <p className="text-xl font-black text-indigo-500 mt-1">{aiBatchStatus.missing_ai_cards}</p>
-                        </div>
-                      </div>
-                    ) : (
+                    ) : aiBatchStatus ? (() => {
+                      const currentDeck = adminDecks.find(d => d.id.toString() === selectedDeckId);
+                      const selectedPromptObj = currentDeck?.practice_settings?.ai_prompts?.find((cp: any) => cp.id === selectedAIBatchField);
+                      const fieldLabel = selectedPromptObj?.title || selectedAIBatchField;
+                      
+                      return (
+                        <>
+                          <div className="grid grid-cols-2 gap-4">
+                            <div className="bg-[#0d1321] border border-white/5 p-4 rounded-xl">
+                              <p className="text-[9px] font-black text-gray-500 uppercase">Total Cards</p>
+                              <p className="text-xl font-black text-white mt-1">{aiBatchStatus.total_cards}</p>
+                            </div>
+                            <div className="bg-[#0d1321] border border-white/5 p-4 rounded-xl">
+                              <p className="text-[9px] font-black text-indigo-500 uppercase">Missing AI {fieldLabel}</p>
+                              <p className="text-xl font-black text-indigo-500 mt-1">{aiBatchStatus.missing_ai_cards}</p>
+                            </div>
+                          </div>
+                          {aiBatchStatus.missing_ai_cards > 0 && (
+                            <div className="flex items-center gap-3 bg-indigo-500/10 border border-indigo-500/20 p-4 rounded-xl text-xs text-indigo-300 font-bold leading-relaxed mt-4">
+                              💡 Có {aiBatchStatus.missing_ai_cards} thẻ chưa có nội dung AI '{fieldLabel}'. Bấm bắt đầu để gửi hàng loạt vào hàng đợi CentralAuth.
+                            </div>
+                          )}
+                        </>
+                      );
+                    })() : (
                       <p className="text-xs text-gray-500">Select a deck above to scan its AI status.</p>
                     )}
                   </div>
-
-                  {aiBatchStatus && aiBatchStatus.missing_ai_cards > 0 && (
-                    <div className="flex items-center gap-3 bg-indigo-500/10 border border-indigo-500/20 p-4 rounded-xl text-xs text-indigo-300 font-bold leading-relaxed">
-                      💡 Có {aiBatchStatus.missing_ai_cards} thẻ chưa có nội dung AI '{selectedAIBatchField}'. Bấm bắt đầu để gửi hàng loạt vào hàng đợi CentralAuth.
-                    </div>
-                  )}
 
                   <div className="flex justify-end pt-4 border-t border-white/5">
                     <button

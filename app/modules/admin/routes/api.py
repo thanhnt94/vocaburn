@@ -418,7 +418,8 @@ async def get_admin_decks(request: Request, db: AsyncSession = Depends(get_db)):
         {
             "id": d.id,
             "title": d.title,
-            "description": d.description
+            "description": d.description,
+            "practice_settings": d.practice_settings
         }
         for d in decks
     ]
