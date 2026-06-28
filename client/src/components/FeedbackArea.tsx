@@ -111,17 +111,30 @@ export const FeedbackArea: React.FC<FeedbackAreaProps> = ({
   if (!showFeedback) return null
 
   const aiTabs = React.useMemo(() => {
-    return [
-      { id: 'explanation', title: 'Giải thích' },
-      ...(deckInfo?.ai_prompts || [])
-    ]
-  }, [deckInfo?.ai_prompts])
+    const tabs = []
+    
+    // Only show default 'explanation' tab if the deck template is configured or it already has content
+    const hasPrompt = !!(deckInfo?.ai_prompt && deckInfo.ai_prompt.trim())
+    const hasContent = !!(currentQuestion?.ai_explanation && currentQuestion.ai_explanation.trim())
+    
+    if (hasPrompt || hasContent) {
+      tabs.push({ id: 'explanation', title: 'Giải thích' })
+    }
+    
+    if (deckInfo?.ai_prompts && Array.isArray(deckInfo.ai_prompts)) {
+      tabs.push(...deckInfo.ai_prompts)
+    }
+    
+    return tabs
+  }, [deckInfo?.ai_prompt, deckInfo?.ai_prompts, currentQuestion?.ai_explanation])
 
-  const [activeAITab, setActiveAITab] = React.useState<string>(aiTabs[0]?.id || 'explanation')
+  const [activeAITab, setActiveAITab] = React.useState<string>('explanation')
 
   React.useEffect(() => {
-    if (aiTabs.length > 0 && !aiTabs.some((t: any) => t.id === activeAITab)) {
-      setActiveAITab(aiTabs[0].id)
+    if (aiTabs.length > 0) {
+      if (!aiTabs.some((t: any) => t.id === activeAITab)) {
+        setActiveAITab(aiTabs[0].id)
+      }
     }
   }, [aiTabs, activeAITab])
 
