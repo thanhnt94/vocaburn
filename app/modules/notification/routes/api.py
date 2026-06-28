@@ -83,8 +83,32 @@ import secrets
 async def get_telegram_config(request: Request, db: AsyncSession = Depends(get_db)):
     from app.modules.notification.models import UserTelegramConfig
     from app.modules.notification.services.telegram_service import TelegramService
-    user_id = int(request.cookies.get("user_id", 1))
+    from app.modules.auth.models import User
     
+    user_id = int(request.cookies.get("user_id", 1))
+    user_res = await db.execute(select(User).where(User.id == user_id))
+    user = user_res.scalar_one_or_none()
+    sso_id = user.sso_id if user else None
+    
+    from app.modules.sso_module.service import SSOService
+    sso_config = await SSOService.get_config(db)
+    if sso_config.is_enabled and sso_config.server_url and sso_id:
+        import httpx
+        from app.core.config import settings
+        queue_token = getattr(settings, "QUEUE_API_SECRET", "super-secret-token-123")
+        try:
+            async with httpx.AsyncClient() as client:
+                response = await client.get(
+                    f"{sso_config.server_url.rstrip('/')}/api/queue/telegram/config/{sso_id}",
+                    headers={"X-Queue-Token": queue_token},
+                    timeout=10.0
+                )
+                if response.status_code == 200:
+                    return response.json()
+        except Exception as e:
+            import logging
+            logging.getLogger(__name__).error(f"Failed to proxy Telegram config GET to CentralAuth: {e}")
+            
     bot_config = await TelegramService.get_bot_config(db)
     
     res = await db.execute(select(UserTelegramConfig).where(UserTelegramConfig.user_id == user_id))
@@ -113,8 +137,33 @@ async def get_telegram_config(request: Request, db: AsyncSession = Depends(get_d
 @router.post("/telegram/config")
 async def update_telegram_config(request: Request, data: dict, db: AsyncSession = Depends(get_db)):
     from app.modules.notification.models import UserTelegramConfig
-    user_id = int(request.cookies.get("user_id", 1))
+    from app.modules.auth.models import User
     
+    user_id = int(request.cookies.get("user_id", 1))
+    user_res = await db.execute(select(User).where(User.id == user_id))
+    user = user_res.scalar_one_or_none()
+    sso_id = user.sso_id if user else None
+    
+    from app.modules.sso_module.service import SSOService
+    sso_config = await SSOService.get_config(db)
+    if sso_config.is_enabled and sso_config.server_url and sso_id:
+        import httpx
+        from app.core.config import settings
+        queue_token = getattr(settings, "QUEUE_API_SECRET", "super-secret-token-123")
+        try:
+            async with httpx.AsyncClient() as client:
+                response = await client.post(
+                    f"{sso_config.server_url.rstrip('/')}/api/queue/telegram/config/{sso_id}",
+                    json=data,
+                    headers={"X-Queue-Token": queue_token},
+                    timeout=10.0
+                )
+                if response.status_code == 200:
+                    return response.json()
+        except Exception as e:
+            import logging
+            logging.getLogger(__name__).error(f"Failed to proxy Telegram config POST to CentralAuth: {e}")
+            
     res = await db.execute(select(UserTelegramConfig).where(UserTelegramConfig.user_id == user_id))
     config = res.scalar_one_or_none()
     
