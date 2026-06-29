@@ -1214,3 +1214,35 @@ async def rename_deck_column(deck_id: int, payload: dict, db: AsyncSession = Dep
             
     await db.commit()
     return {"status": "ok"}
+
+@router.post("/{deck_id}/delete-column")
+async def delete_deck_column(deck_id: int, payload: dict, db: AsyncSession = Depends(get_db)):
+    col_name = payload.get("column_name")
+    if not col_name:
+        return JSONResponse(status_code=400, content={"error": "column_name is required"})
+        
+    deck = await DeckService.get_deck_by_id(db, deck_id)
+    if not deck:
+        return JSONResponse(status_code=404, content={"error": "Deck not found"})
+        
+    from sqlalchemy.orm.attributes import flag_modified
+    if deck.practice_settings and isinstance(deck.practice_settings, dict):
+        custom_cols = deck.practice_settings.get("custom_columns", [])
+        if col_name in custom_cols:
+            custom_cols.remove(col_name)
+            deck.practice_settings["custom_columns"] = custom_cols
+            
+        prompts = deck.practice_settings.get("ai_prompts", [])
+        deck.practice_settings["ai_prompts"] = [p for p in prompts if p.get("column") != col_name and p.get("id") != col_name]
+        flag_modified(deck, "practice_settings")
+        
+    from app.modules.deck.models import Flashcard
+    res = await db.execute(select(Flashcard).where(Flashcard.deck_id == deck_id))
+    cards = res.scalars().all()
+    for c in cards:
+        if c.others and isinstance(c.others, dict) and col_name in c.others:
+            c.others.pop(col_name)
+            flag_modified(c, "others")
+            
+    await db.commit()
+    return {"status": "ok"}

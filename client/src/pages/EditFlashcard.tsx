@@ -653,7 +653,7 @@ const EditFlashcard = () => {
                                                   {isCustom ? 'Tự tạo' : 'Import Excel'}
                                                </span>
                                             </div>
-                                            {isCustom && (
+                                            {true && (
                                                 <div className="flex items-center gap-1.5 ml-1">
                                                    <button
                                                       type="button"
@@ -689,17 +689,17 @@ const EditFlashcard = () => {
                                                    <button
                                                       type="button"
                                                       onClick={async () => {
-                                                         if (!confirm(`Bạn chắc chắn muốn xóa cột "${col}"?`)) return;
-                                                         const nextCustom = customColumns.filter(c => c !== col);
-                                                         setCustomColumns(nextCustom);
+                                                         if (!confirm(`Bạn chắc chắn muốn xóa cột "${col}"? Hành động này sẽ xóa dữ liệu cột này ở toàn bộ các thẻ.`)) return;
                                                          try {
-                                                            await axios.post(`/api/v1/deck/${id}/practice-settings`, {
-                                                               settings: { ...practiceSettings, custom_columns: nextCustom },
-                                                               is_creator: true
+                                                            await axios.post(`/api/v1/deck/${id}/delete-column`, {
+                                                               column_name: col
                                                             });
+                                                            const nextCustom = customColumns.filter(c => c !== col);
+                                                            setCustomColumns(nextCustom);
                                                             const sRes = await axios.get(`/api/v1/deck/${id}/practice-settings`);
                                                             setAvailableColumns(sRes.data.available_columns || ['front', 'back']);
                                                             setPracticeSettings(sRes.data.creator_settings || {});
+                                                            alert("Xóa cột thành công!");
                                                          } catch (err) {
                                                             alert("Lỗi khi xóa cột");
                                                          }
