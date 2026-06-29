@@ -1073,11 +1073,14 @@ async def get_deck_play_data(request: Request, deck_id: int, mode: Optional[str]
             "id": c.id,
             "content": c.content,
             "explanation": c.explanation,
-            "ai_explanation": c.ai_explanation,
-            "hint": c.hint,
-            "mnemonic": c.mnemonic,
-            "image": fix_static_urls(c.image),
-            "audio": fix_static_urls(c.audio),
+            "front_audio_content": c.front_audio_content,
+            "back_audio_content": c.back_audio_content,
+            "front_audio_url": c.front_audio_url,
+            "back_audio_url": c.back_audio_url,
+            "front_img": c.front_img,
+            "back_img": c.back_img,
+            "image": fix_static_urls(c.back_img),
+            "audio": fix_static_urls(c.back_audio_url),
             "others": fix_static_urls(c.others)
         } for c in deck.cards]
         
@@ -1265,9 +1268,12 @@ async def get_deck_play_data(request: Request, deck_id: int, mode: Optional[str]
                 "id": c.id,
                 "content": c.content,
                 "explanation": c.explanation,
-                "ai_explanation": c.ai_explanation,
-                "hint": c.hint,
-                "mnemonic": c.mnemonic,
+                "front_audio_content": c.front_audio_content,
+                "back_audio_content": c.back_audio_content,
+                "front_audio_url": c.front_audio_url,
+                "back_audio_url": c.back_audio_url,
+                "front_img": c.front_img,
+                "back_img": c.back_img,
                 "stats": getattr(c, 'stats', None),
                 "box_level": m_box_level,
                 "is_ignored": m.is_ignored if m else False,
@@ -1282,8 +1288,8 @@ async def get_deck_play_data(request: Request, deck_id: int, mode: Optional[str]
                     "intervals": intervals
                 },
                 "options": [],
-                "image": fix_static_urls(c.image),
-                "audio": fix_static_urls(c.audio),
+                "image": fix_static_urls(c.back_img),
+                "audio": fix_static_urls(c.back_audio_url),
                 "others": fix_static_urls(c.others)
             })
         
