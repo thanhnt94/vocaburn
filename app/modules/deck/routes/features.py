@@ -97,6 +97,11 @@ async def get_practice_settings(request: Request, deck_id: int, db: AsyncSession
                 if k not in ("id", "item_id", "order_in_container") and not k.endswith("_audio_url") and not k.endswith("_img") and k != "image" and k != "audio" and k != "other_content":
                     available_cols.add(k)
     
+    # Also add custom columns from practice_settings
+    if deck.practice_settings and isinstance(deck.practice_settings, dict):
+        for col in deck.practice_settings.get("custom_columns", []):
+            available_cols.add(col)
+            
     creator_settings = migrate_practice_settings(deck.practice_settings)
     
     return {

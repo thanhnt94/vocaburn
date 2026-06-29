@@ -343,7 +343,7 @@ const EditFlashcards = () => {
     <div className="min-h-screen bg-[#F8FAFC] pb-40">
       {/* Fixed Header on Mobile, Sticky on Desktop */}
       <div className="fixed top-0 left-0 right-0 z-[100] bg-white/80 backdrop-blur-xl border-b border-slate-100 px-4 py-3 shadow-sm w-full md:sticky md:top-0">
-        <div className="max-w-6xl mx-auto flex items-center justify-between gap-3">
+        <div className="max-w-[95%] xl:max-w-[98%] mx-auto flex items-center justify-between gap-3">
           <div className="flex items-center gap-2.5 min-w-0">
             <button 
               onClick={() => navigate(`/manage/edit/${id}`)}
@@ -445,7 +445,7 @@ const EditFlashcards = () => {
         </div>
       </div>
 
-      <div className="max-w-6xl mx-auto px-4 pt-[68px] md:pt-0 mt-4">
+      <div className="max-w-[95%] xl:max-w-[98%] mx-auto px-4 pt-[68px] md:pt-0 mt-4">
          {/* Column Manager Bar (Memrise / Multi-column Style) */}
          <div className="bg-white rounded-[2rem] border border-slate-100 p-5 md:p-6 mb-6 shadow-sm space-y-4">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-50 pb-4">
@@ -631,8 +631,8 @@ const EditFlashcards = () => {
       </div>
 
          {/* Full-width Numeric Pagination - White Theme */}
-         <div className="fixed bottom-20 left-0 right-0 z-[110] bg-white/95 backdrop-blur-xl border-t border-slate-100 px-4 py-2 shadow-[0_-10px_30px_rgba(0,0,0,0.03)]">
-            <div className="max-w-6xl mx-auto flex items-center justify-between gap-4">
+         <div className="fixed bottom-[72px] md:bottom-0 left-0 right-0 z-[110] bg-white/95 backdrop-blur-xl border-t border-slate-100 px-4 py-2 shadow-[0_-10px_30px_rgba(0,0,0,0.03)]">
+            <div className="max-w-[95%] xl:max-w-[98%] mx-auto flex items-center justify-between gap-4">
                <button 
                  disabled={page === 1}
                  onClick={() => { setPage(page - 1); window.scrollTo(0, 0); }}
