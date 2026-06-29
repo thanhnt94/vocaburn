@@ -332,6 +332,9 @@ const EditFlashcard = () => {
   const [availableColumns, setAvailableColumns] = useState<string[]>([])
   const [customColumns, setCustomColumns] = useState<string[]>([])
   const [newColName, setNewColName] = useState('')
+  const [showRenameModal, setShowRenameModal] = useState(false)
+  const [renamingColumn, setRenamingColumn] = useState('')
+  const [newRenamedName, setNewRenamedName] = useState('')
   const [practiceSettings, setPracticeSettings] = useState<any>({
     mcq: { active_pairs: [{ q: 'front', a: 'back' }], num_choices: 4 },
     typing: { active_pairs: [{ q: 'front', a: 'back' }] },
@@ -676,29 +679,10 @@ const EditFlashcard = () => {
                                                 <div className="flex items-center gap-1.5 ml-1">
                                                    <button
                                                       type="button"
-                                                      onClick={async () => {
-                                                         const newName = prompt(`Nhập tên mới cho cột "${col}" (viết liền không dấu):`, col);
-                                                         if (!newName) return;
-                                                         const cleanNewName = removeVietnameseTones(newName).toLowerCase().replace(/[^a-z0-9_]/g, '_').replace(/_+/g, '_').replace(/^_+|_+$/g, '').trim();
-                                                         if (!cleanNewName || cleanNewName === col) return;
-                                                         if (availableColumns.includes(cleanNewName)) {
-                                                            alert("Tên cột này đã tồn tại!");
-                                                            return;
-                                                         }
-                                                         try {
-                                                            await axios.post(`/api/v1/deck/${id}/rename-column`, {
-                                                               old_name: col,
-                                                               new_name: cleanNewName
-                                                            });
-                                                            const nextCustom = customColumns.map(c => c === col ? cleanNewName : c);
-                                                            setCustomColumns(nextCustom);
-                                                            const sRes = await axios.get(`/api/v1/deck/${id}/practice-settings`);
-                                                            setAvailableColumns(sRes.data.available_columns || ['front', 'back']);
-                                                            setPracticeSettings(sRes.data.creator_settings || {});
-                                                            alert("Đổi tên cột thành công!");
-                                                         } catch (err) {
-                                                            alert("Lỗi khi đổi tên cột");
-                                                         }
+                                                      onClick={() => {
+                                                         setRenamingColumn(col);
+                                                         setNewRenamedName(col);
+                                                         setShowRenameModal(true);
                                                       }}
                                                       className="w-5 h-5 rounded-lg bg-indigo-100 hover:bg-indigo-200 transition-colors flex items-center justify-center text-indigo-500"
                                                       title="Đổi tên cột"
@@ -746,9 +730,9 @@ const EditFlashcard = () => {
                                 <div className="flex items-center gap-3">
                                    <input 
                                       type="text" 
-                                      placeholder="Tên cột viết liền không dấu, ví dụ: kanji, audio_content..."
+                                      placeholder="Tên cột mới (ví dụ: Nghĩa, Cách nhớ, Kanji...)"
                                       value={newColName}
-                                      onChange={(e) => setNewColName(removeVietnameseTones(e.target.value).toLowerCase().replace(/[^a-z0-9_]/g, '_').replace(/_+/g, '_').replace(/^_+|_+$/g, ''))}
+                                      onChange={(e) => setNewColName(e.target.value)}
                                       className="flex-1 h-12 px-4 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-800 outline-none focus:ring-4 focus:ring-indigo-500/5 focus:border-indigo-500 transition-all"
                                    />
                                    <button
@@ -1627,6 +1611,95 @@ const EditFlashcard = () => {
                </div>
              </motion.div>
            </div>
+         )}
+      </AnimatePresence>
+
+ 
+      {/* Rename Column Modal */}
+      <AnimatePresence>
+         {showRenameModal && (
+            <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4">
+              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-slate-900/60 backdrop-blur-md" onClick={() => setShowRenameModal(false)} />
+              <motion.div initial={{ opacity: 0, scale: 0.9, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.9, y: 20 }} className="relative w-full max-w-md bg-white rounded-[2.5rem] p-8 md:p-10 shadow-2xl border border-slate-100 overflow-hidden">
+                <div className="flex items-center justify-between mb-6">
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 bg-indigo-50 rounded-2xl flex items-center justify-center text-indigo-600">
+                      <Edit2 className="w-6 h-6" />
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-black text-slate-900 uppercase italic tracking-tight">Đổi tên cột</h3>
+                      <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mt-1">Cập nhật tên cột dữ liệu</p>
+                    </div>
+                  </div>
+                  <button onClick={() => setShowRenameModal(false)} className="w-10 h-10 bg-slate-50 rounded-xl flex items-center justify-center text-slate-400 hover:text-slate-900 transition-all"><X className="w-5 h-5" /></button>
+                </div>
+
+                <div className="space-y-6">
+                  <div className="space-y-2">
+                     <label className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Tên cột hiện tại:</label>
+                     <div className="w-full h-12 px-4 bg-slate-50 border border-slate-200 rounded-xl flex items-center text-xs font-bold text-slate-500 uppercase">
+                        {renamingColumn}
+                     </div>
+                  </div>
+
+                  <div className="space-y-2">
+                     <label className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Tên cột mới:</label>
+                     <input 
+                        type="text" 
+                        value={newRenamedName}
+                        onChange={(e) => setNewRenamedName(e.target.value)}
+                        placeholder="Nhập tên cột mới..."
+                        className="w-full h-12 px-4 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-800 outline-none focus:ring-4 focus:ring-indigo-500/5 focus:border-indigo-500 transition-all"
+                     />
+                  </div>
+
+                  <div className="flex gap-3 pt-2">
+                     <button
+                        type="button"
+                        onClick={() => setShowRenameModal(false)}
+                        className="flex-1 h-12 bg-slate-50 text-slate-500 hover:bg-slate-100 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all"
+                     >
+                        Hủy
+                     </button>
+                     <button
+                        type="button"
+                        onClick={async () => {
+                           const cleanNewName = newRenamedName.trim();
+                           if (!cleanNewName || cleanNewName === renamingColumn) {
+                              setShowRenameModal(false);
+                              return;
+                           }
+                           if (availableColumns.includes(cleanNewName)) {
+                              alert("Tên cột này đã tồn tại!");
+                              return;
+                           }
+                           try {
+                              setIsSaving(true);
+                              await axios.post(`/api/v1/deck/${id}/rename-column`, {
+                                 old_name: renamingColumn,
+                                 new_name: cleanNewName
+                              });
+                              const nextCustom = customColumns.map(c => c === renamingColumn ? cleanNewName : c);
+                              setCustomColumns(nextCustom);
+                              const sRes = await axios.get(`/api/v1/deck/${id}/practice-settings`);
+                              setAvailableColumns(sRes.data.available_columns || ['front', 'back']);
+                              setPracticeSettings(sRes.data.creator_settings || {});
+                              setShowRenameModal(false);
+                              alert("Đổi tên cột thành công!");
+                           } catch (err) {
+                              alert("Lỗi khi đổi tên cột");
+                           } finally {
+                              setIsSaving(false);
+                           }
+                        }}
+                        className="flex-1 h-12 bg-indigo-600 text-white hover:bg-indigo-700 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all shadow-lg shadow-indigo-100 flex items-center justify-center"
+                     >
+                        Lưu thay đổi
+                     </button>
+                  </div>
+                </div>
+              </motion.div>
+            </div>
          )}
       </AnimatePresence>
 

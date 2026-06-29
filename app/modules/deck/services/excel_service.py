@@ -284,24 +284,28 @@ class ExcelDeckService:
         for q in cards:
             if q.others and isinstance(q.others, dict):
                 for k in q.others.keys():
-                    if k not in ("id", "item_id", "order_in_container", "front", "back", "explanation", "ai_explanation", "front_img", "front_audio_url", "image", "audio"):
+                    if k not in ("id", "item_id", "order_in_container", "front", "back", "explanation", 
+                                 "front_audio_content", "back_audio_content", "front_audio_url", "back_audio_url", 
+                                 "front_img", "back_img"):
                         custom_cols.add(k)
                         
         custom_cols = sorted(list(custom_cols))
         
-        # Columns to output: id, front, back, explanation, ai_explanation, front_img, front_audio_url, then custom_cols
+        # Columns to output: id, 8 physical columns, then custom_cols
         rows = []
         for q in cards:
             row = {}
             if not exclude_ids:
                 row["id"] = q.id
             row.update({
-                "front": q.content,
+                "front": q.content or "",
                 "back": q.explanation or "",
-                "explanation": q.explanation or "",
-                "ai_explanation": q.ai_explanation or "",
-                "front_img": q.image or "",
-                "front_audio_url": q.audio or ""
+                "front_audio_content": q.front_audio_content or "",
+                "back_audio_content": q.back_audio_content or "",
+                "front_audio_url": q.front_audio_url or "",
+                "back_audio_url": q.back_audio_url or "",
+                "front_img": q.front_img or "",
+                "back_img": q.back_img or ""
             })
             if q.others and isinstance(q.others, dict):
                 for col in custom_cols:
