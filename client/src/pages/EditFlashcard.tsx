@@ -28,6 +28,7 @@ import {
   Upload,
   Download,
   Clipboard,
+  GripVertical,
   Layers
 } from 'lucide-react'
 import axios from 'axios'
@@ -181,8 +182,11 @@ const EditFlashcard = () => {
       return
     }
     
-    const nonMainCols = availableColumns.filter(c => c !== 'front' && c !== 'back')
-    const colOrder = ['front', 'back', ...nonMainCols]
+    const colOrder = [
+      ...SYSTEM_DEFAULTS,
+      ...customColumns,
+      ...availableColumns.filter(c => !SYSTEM_DEFAULTS.includes(c) && !customColumns.includes(c))
+    ]
     
     const cards = rows.map(row => {
       const cardObj: any = { content: '', explanation: '', others: {} }
@@ -199,7 +203,7 @@ const EditFlashcard = () => {
       })
       
       // Initialize missing custom columns with empty string
-      nonMainCols.forEach(c => {
+      colOrder.filter(c => c !== 'front' && c !== 'back').forEach((c: string) => {
         if (cardObj.others[c] === undefined) {
           cardObj.others[c] = ''
         }
@@ -335,6 +339,7 @@ const EditFlashcard = () => {
   const [showRenameModal, setShowRenameModal] = useState(false)
   const [renamingColumn, setRenamingColumn] = useState('')
   const [newRenamedName, setNewRenamedName] = useState('')
+  const [draggedIndex, setDraggedIndex] = useState<number | null>(null)
   const [practiceSettings, setPracticeSettings] = useState<any>({
     mcq: { active_pairs: [{ q: 'front', a: 'back' }], num_choices: 4 },
     typing: { active_pairs: [{ q: 'front', a: 'back' }] },
@@ -667,64 +672,44 @@ const EditFlashcard = () => {
                                          return (
                                             <div 
                                                key={col}
+                                               draggable
+                                               onDragStart={() => setDraggedIndex(idx)}
+                                               onDragOver={(e) => e.preventDefault()}
+                                               onDragEnter={() => {
+                                                  if (draggedIndex === null || draggedIndex === idx) return;
+                                                  const nextCustom = [
+                                                     ...customColumns,
+                                                     ...availableColumns.filter(c => !SYSTEM_DEFAULTS.includes(c) && !customColumns.includes(c))
+                                                  ];
+                                                  const draggedItem = nextCustom[draggedIndex];
+                                                  nextCustom.splice(draggedIndex, 1);
+                                                  nextCustom.splice(idx, 0, draggedItem);
+                                                  setDraggedIndex(idx);
+                                                  setCustomColumns(nextCustom);
+                                               }}
+                                               onDragEnd={async () => {
+                                                  setDraggedIndex(null);
+                                                  try {
+                                                     await axios.post(`/api/v1/deck/${id}/practice-settings`, {
+                                                        settings: { ...practiceSettings, custom_columns: customColumns },
+                                                        is_creator: true
+                                                     });
+                                                  } catch (err) {
+                                                     console.error("Lỗi đồng bộ thứ tự cột", err);
+                                                  }
+                                               }}
                                                className={cn(
-                                                  "px-3 py-2 rounded-xl border flex items-center gap-3 text-xs font-bold transition-all",
+                                                  "px-3 py-2 rounded-xl border flex items-center gap-3 text-xs font-bold transition-all cursor-move select-none",
                                                   isCustom 
-                                                     ? "bg-indigo-50 border-indigo-200 text-indigo-700" 
-                                                     : "bg-emerald-50 border-emerald-200 text-emerald-700"
+                                                     ? "bg-indigo-50 border-indigo-200 text-indigo-700 hover:bg-indigo-100/50" 
+                                                     : "bg-emerald-50 border-emerald-200 text-emerald-700 hover:bg-emerald-100/50",
+                                                  draggedIndex === idx ? "opacity-30 border-dashed border-indigo-400 scale-95" : ""
                                                )}
                                             >
-                                               {/* Reorder Buttons */}
-                                               <div className="flex flex-col gap-0.5 mr-1 shrink-0">
-                                                  {idx > 0 && (
-                                                     <button
-                                                        type="button"
-                                                        title="Di chuyển sang trái"
-                                                        onClick={async () => {
-                                                           const nextCustom = [...orderedCustom];
-                                                           const temp = nextCustom[idx - 1];
-                                                           nextCustom[idx - 1] = nextCustom[idx];
-                                                           nextCustom[idx] = temp;
-                                                           setCustomColumns(nextCustom);
-                                                           try {
-                                                              await axios.post(`/api/v1/deck/${id}/practice-settings`, {
-                                                                 settings: { ...practiceSettings, custom_columns: nextCustom },
-                                                                 is_creator: true
-                                                              });
-                                                           } catch (err) {
-                                                              console.error("Lỗi di chuyển cột", err);
-                                                           }
-                                                        }}
-                                                        className="w-3.5 h-3.5 rounded bg-white hover:bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-500 shadow-sm"
-                                                     >
-                                                        <ChevronLeft className="w-2.5 h-2.5" />
-                                                     </button>
-                                                  )}
-                                                  {idx < orderedCustom.length - 1 && (
-                                                     <button
-                                                        type="button"
-                                                        title="Di chuyển sang phải"
-                                                        onClick={async () => {
-                                                           const nextCustom = [...orderedCustom];
-                                                           const temp = nextCustom[idx + 1];
-                                                           nextCustom[idx + 1] = nextCustom[idx];
-                                                           nextCustom[idx] = temp;
-                                                           setCustomColumns(nextCustom);
-                                                           try {
-                                                              await axios.post(`/api/v1/deck/${id}/practice-settings`, {
-                                                                 settings: { ...practiceSettings, custom_columns: nextCustom },
-                                                                 is_creator: true
-                                                              });
-                                                           } catch (err) {
-                                                              console.error("Lỗi di chuyển cột", err);
-                                                           }
-                                                        }}
-                                                        className="w-3.5 h-3.5 rounded bg-white hover:bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-500 shadow-sm"
-                                                     >
-                                                        <ChevronRight className="w-2.5 h-2.5" />
-                                                     </button>
-                                                  )}
-                                               </div>
+                                               {/* Drag Handle */}
+                                                <div className="text-slate-350 hover:text-indigo-650 transition-colors flex items-center justify-center -ml-1">
+                                                   <GripVertical className="w-3.5 h-3.5" />
+                                                </div>
                                                <div className="flex flex-col">
                                                   <span className="uppercase text-[10px]">{col}</span>
                                                   <span className="text-[7px] font-black uppercase text-slate-400 tracking-wider">
@@ -1392,16 +1377,20 @@ const EditFlashcard = () => {
                                    <div className="p-4 bg-indigo-50/50 border border-indigo-100 rounded-2xl text-xs space-y-2">
                                       <div className="font-black text-indigo-900 uppercase tracking-widest text-[9px]">Thứ tự các cột cần dán (Cực kì quan trọng):</div>
                                       <div className="flex flex-wrap gap-2 items-center text-[11px] font-bold text-indigo-700">
-                                         <span className="px-2 py-0.5 bg-white border border-indigo-200 rounded-md">Cột 1: front (Mặt trước)</span>
-                                         <span className="text-indigo-400">➔</span>
-                                         <span className="px-2 py-0.5 bg-white border border-indigo-200 rounded-md">Cột 2: back (Mặt sau)</span>
-                                         {availableColumns.filter(c => c !== 'front' && c !== 'back').map((col, idx) => (
-                                            <React.Fragment key={col}>
-                                               <span className="text-indigo-400">➔</span>
-                                               <span className="px-2 py-0.5 bg-white border border-indigo-200 rounded-md">Cột {idx + 3}: {col}</span>
-                                            </React.Fragment>
-                                         ))}
-                                      </div>
+                                          {(() => {
+                                             const allOrdered = [
+                                                ...SYSTEM_DEFAULTS,
+                                                ...customColumns,
+                                                ...availableColumns.filter(c => !SYSTEM_DEFAULTS.includes(c) && !customColumns.includes(c))
+                                             ];
+                                             return allOrdered.map((col, idx) => (
+                                                <React.Fragment key={col}>
+                                                   {idx > 0 && <span className="text-indigo-400">➔</span>}
+                                                   <span className="px-2 py-0.5 bg-white border border-indigo-200 rounded-md">{"C\u1ED9t " + (idx + 1)}: {col}</span>
+                                                </React.Fragment>
+                                             ));
+                                          })()}
+                                       </div>
                                       <div className="text-[10px] text-slate-500 leading-relaxed font-medium">
                                          💡 <strong>Lưu ý về CHAR(10) (Dòng mới trong ô):</strong> Các dòng mới nằm bên trong một ô Excel / Google Sheets khi dán vào đây sẽ được tự động nhận diện chính xác mà không làm lệch cột hoặc hàng (hệ thống tự phân tích định dạng dấu ngoặc kép của Excel).
                                       </div>

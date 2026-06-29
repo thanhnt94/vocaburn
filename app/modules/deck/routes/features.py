@@ -446,28 +446,40 @@ async def import_text_update(request: Request, deck_id: int, data: dict, db: Asy
             if not content and not explanation:
                 continue
                 
+            others = dict(c_data.get("others") or {})
+            
+            # Map standard keys in others to physical columns on Flashcard
+            front_audio_content = others.pop("front_audio_content", None)
+            back_audio_content = others.pop("back_audio_content", None)
+            front_audio_url = others.pop("front_audio_url", None)
+            back_audio_url = others.pop("back_audio_url", None)
+            front_img = others.pop("front_img", None)
+            back_img = others.pop("back_img", None)
+            
             if c_id and c_id in existing_c_map:
                 db_c = existing_c_map[c_id]
                 db_c.content = content
                 db_c.explanation = explanation
-                if "ai_explanation" in c_data:
-                    db_c.ai_explanation = c_data.get("ai_explanation")
-                if "image" in c_data:
-                    db_c.image = c_data.get("image")
-                if "audio" in c_data:
-                    db_c.audio = c_data.get("audio")
-                if "others" in c_data:
-                    db_c.others = c_data.get("others")
+                db_c.front_audio_content = front_audio_content
+                db_c.back_audio_content = back_audio_content
+                db_c.front_audio_url = front_audio_url
+                db_c.back_audio_url = back_audio_url
+                db_c.front_img = front_img
+                db_c.back_img = back_img
+                db_c.others = others
             else:
                 db_c = Flashcard(
                     deck_id=deck_id,
                     content=content,
                     explanation=explanation,
-                    ai_explanation=c_data.get("ai_explanation"),
-                    image=c_data.get("image"),
-                    audio=c_data.get("audio"),
+                    front_audio_content=front_audio_content,
+                    back_audio_content=back_audio_content,
+                    front_audio_url=front_audio_url,
+                    back_audio_url=back_audio_url,
+                    front_img=front_img,
+                    back_img=back_img,
                     question_type=c_data.get("question_type", "flashcard"),
-                    others=c_data.get("others") or {}
+                    others=others
                 )
                 db.add(db_c)
                 
