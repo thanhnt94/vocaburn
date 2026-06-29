@@ -1015,9 +1015,6 @@ async def get_deck_data(request: Request, deck_id: int, db: AsyncSession = Depen
         "title": deck.title,
         "description": deck.description,
         "instruction": deck.instruction,
-        "ai_prompt": deck.ai_prompt,
-        "ai_prompt_hint": deck.ai_prompt_hint,
-        "ai_prompt_mnemonic": deck.ai_prompt_mnemonic,
         "creator_id": deck.creator_id,
         "is_collaborator": is_collaborator,
         "is_public": deck.is_public,
@@ -1090,9 +1087,6 @@ async def get_deck_play_data(request: Request, deck_id: int, mode: Optional[str]
             "description": deck.description,
             "cover_image": fix_static_urls(deck.cover_image),
             "tags": [t.name for t in deck.tags] if deck.tags else [],
-            "ai_prompt": deck.ai_prompt,
-            "ai_prompt_hint": deck.ai_prompt_hint,
-            "ai_prompt_mnemonic": deck.ai_prompt_mnemonic,
             "ai_prompts": deck.practice_settings.get("ai_prompts", []) if (deck.practice_settings and isinstance(deck.practice_settings, dict)) else [],
             "instruction": deck.instruction,
             "category_id": deck.category_id,
@@ -1297,9 +1291,6 @@ async def get_deck_play_data(request: Request, deck_id: int, mode: Optional[str]
         "id": deck.id,
         "title": deck.title,
         "description": deck.description,
-        "ai_prompt": deck.ai_prompt,
-        "ai_prompt_hint": deck.ai_prompt_hint,
-        "ai_prompt_mnemonic": deck.ai_prompt_mnemonic,
         "ai_prompts": deck.practice_settings.get("ai_prompts", []) if (deck.practice_settings and isinstance(deck.practice_settings, dict)) else [],
         "instruction": deck.instruction,
         "category_id": deck.category_id,
@@ -1571,21 +1562,13 @@ async def _generate_ai_content_sync(db: AsyncSession, deck_id: int, card_id: int
         return "AI Service not configured."
         
     # Choose template
-    if field == "hint":
-        template = deck.ai_prompt_hint if deck else None
-    elif field == "mnemonic":
-        template = deck.ai_prompt_mnemonic if deck else None
-    elif field == "explanation":
-        template = deck.ai_prompt if deck else None
-    else:
-        # Custom prompt! Retrieve it from deck.practice_settings["ai_prompts"]
-        template = None
-        if deck and deck.practice_settings and isinstance(deck.practice_settings, dict):
-            prompts = deck.practice_settings.get("ai_prompts", [])
-            for p in prompts:
-                if p.get("id") == field:
-                    template = p.get("prompt")
-                    break
+    template = None
+    if deck and deck.practice_settings and isinstance(deck.practice_settings, dict):
+        prompts = deck.practice_settings.get("ai_prompts", [])
+        for p in prompts:
+            if p.get("column") == field or p.get("id") == field:
+                template = p.get("prompt")
+                break
         
     if not template or not template.strip():
         return ""
@@ -1677,92 +1660,70 @@ async def ask_ai(deck_id: int, payload: dict, background_tasks: BackgroundTasks,
     c = result.scalar_one_or_none()
     if not c: return {"error": "Not found"}
     
+    physical_map = {
+        "front": "content",
+        "back": "explanation",
+        "front_audio_content": "front_audio_content",
+        "back_audio_content": "back_audio_content",
+        "front_audio_url": "front_audio_url",
+        "back_audio_url": "back_audio_url",
+        "front_img": "front_img",
+        "back_img": "back_img"
+    }
+
     # Manual Save Override
-    if field == "explanation" and "ai_explanation" in payload:
-        val = payload["ai_explanation"]
-        c.ai_explanation = val.strip() if isinstance(val, str) else val
-        await db.commit()
-        return {"ai_explanation": c.ai_explanation, "content": c.ai_explanation}
-    elif field == "hint" and "hint" in payload:
-        val = payload["hint"]
-        c.hint = val.strip() if isinstance(val, str) else val
-        await db.commit()
-        return {"hint": c.hint, "content": c.hint}
-    elif field == "mnemonic" and "mnemonic" in payload:
-        val = payload["mnemonic"]
-        c.mnemonic = val.strip() if isinstance(val, str) else val
-        await db.commit()
-        return {"mnemonic": c.mnemonic, "content": c.mnemonic}
-    elif field not in ["explanation", "hint", "mnemonic"] and "content" in payload:
-        val = payload["content"]
-        if not c.others:
-            c.others = {}
-        if "ai_responses" not in c.others:
-            c.others["ai_responses"] = {}
-        c.others["ai_responses"][field] = val.strip() if isinstance(val, str) else val
-        flag_modified(c, "others")
-        await db.commit()
-        return {"content": c.others["ai_responses"][field], "ai_explanation": c.others["ai_responses"][field]}
-        
+    if payload:
+        val = payload.get(field) or payload.get("content") or payload.get("ai_explanation")
+        if val is not None:
+            content_str = val.strip() if isinstance(val, str) else val
+            if field in physical_map:
+                setattr(c, physical_map[field], content_str)
+            else:
+                if not c.others:
+                    c.others = {}
+                c.others[field] = content_str
+                flag_modified(c, "others")
+            await db.commit()
+            return {"content": content_str, "ai_explanation": content_str}
+            
     # Return Cached values
     if not force:
-        if field == "explanation" and c.ai_explanation:
-            return {"ai_explanation": c.ai_explanation, "content": c.ai_explanation}
-        elif field == "hint" and c.hint:
-            return {"hint": c.hint, "content": c.hint}
-        elif field == "mnemonic" and c.mnemonic:
-            return {"mnemonic": c.mnemonic, "content": c.mnemonic}
-        elif field not in ["explanation", "hint", "mnemonic"]:
-            if c.others and isinstance(c.others, dict) and "ai_responses" in c.others:
-                if field in c.others["ai_responses"] and c.others["ai_responses"][field]:
-                    return {"ai_explanation": c.others["ai_responses"][field], "content": c.others["ai_responses"][field]}
+        val = None
+        if field in physical_map:
+            val = getattr(c, physical_map[field])
+        elif c.others and isinstance(c.others, dict) and field in c.others:
+            val = c.others[field]
+            
+        if val and val.strip():
+            return {"ai_explanation": val, "content": val}
             
     # Check template availability
     deck_res = await db.execute(select(FlashcardDeck).filter(FlashcardDeck.id == deck_id))
     deck = deck_res.scalar_one_or_none()
     template = None
     if deck:
-        if field == "hint":
-            template = deck.ai_prompt_hint
-        elif field == "mnemonic":
-            template = deck.ai_prompt_mnemonic
-        elif field == "explanation":
-            template = deck.ai_prompt
-        else:
-            if deck.practice_settings and isinstance(deck.practice_settings, dict):
-                prompts = deck.practice_settings.get("ai_prompts", [])
-                for p in prompts:
-                    if p.get("id") == field:
-                        template = p.get("prompt")
-                        break
+        if deck.practice_settings and isinstance(deck.practice_settings, dict):
+            prompts = deck.practice_settings.get("ai_prompts", [])
+            for p in prompts:
+                if p.get("column") == field or p.get("id") == field:
+                    template = p.get("prompt")
+                    break
+                    
     if not template or not template.strip():
         return {"error": "Không có prompt cấu hình cho tab AI này. Vui lòng thiết lập trong phần chỉnh sửa bộ thẻ."}
 
     # Sync Generation
     if sync:
         content = await _generate_ai_content_sync(db, deck_id, card_id, field)
-        if field == "hint":
-            c.hint = content
-        elif field == "mnemonic":
-            c.mnemonic = content
-        elif field == "explanation":
-            c.ai_explanation = content
+        if field in physical_map:
+            setattr(c, physical_map[field], content)
         else:
             if not c.others:
                 c.others = {}
-            if "ai_responses" not in c.others:
-                c.others["ai_responses"] = {}
-            c.others["ai_responses"][field] = content
+            c.others[field] = content
             flag_modified(c, "others")
         await db.commit()
-        
-        # Return field response
-        if field == "hint":
-            return {"hint": content, "content": content}
-        elif field == "mnemonic":
-            return {"mnemonic": content, "content": content}
-        else:
-            return {"ai_explanation": content, "content": content}
+        return {"ai_explanation": content, "content": content}
             
     # Background Generation
     # Check if Central SSO is enabled and active
