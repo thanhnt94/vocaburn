@@ -33,6 +33,25 @@ import {
 import axios from 'axios'
 import { cn } from '@/lib/utils'
 
+const removeVietnameseTones = (str: string) => {
+  str = str.replace(/à|á|ạ|ả|ã|â|ầ|ấ|ậ|ẩ|ẫ|ă|ằ|ắ|ặ|ẳ|ẵ/g, "a");
+  str = str.replace(/è|é|ẹ|ẻ|ẽ|ê|ề|ế|ệ|ể|ễ/g, "e");
+  str = str.replace(/ì|í|ị|ỉ|ĩ/g, "i");
+  str = str.replace(/ò|ó|ọ|ỏ|õ|ô|ồ|ố|ộ|ổ|ỗ|ơ|ờ|ớ|ợ|ở|ỡ/g, "o");
+  str = str.replace(/ù|ú|ụ|ủ|ũ|ư|ừ|ứ|ự|ử|ữ/g, "u");
+  str = str.replace(/ỳ|ý|ỵ|ỷ|ỹ/g, "y");
+  str = str.replace(/đ/g, "d");
+  str = str.replace(/À|Á|Ạ|Ả|Ã|Â|Ầ|Ấ|Ậ|Ẩ|Ẫ|Ă|Ằ|Ắ|Ặ|Ẳ|Ẵ/g, "A");
+  str = str.replace(/È|É|Ẹ|Ẻ|Ẽ|Ê|Ề|Ế|Ệ|Ể|Ễ/g, "E");
+  str = str.replace(/Ì|Í|Ị|Ỉ|Ĩ/g, "I");
+  str = str.replace(/Ò|Ó|Ọ|Ỏ|Õ|Ô|Ồ|Ố|Ộ|Ổ|Ỗ|Ơ|Ờ|Ớ|Ợ|Ở|Ỡ/g, "O");
+  str = str.replace(/Ù|Ú|Ụ|Ủ|Ũ|Ư|Ừ|Ứ|Ự|Ử|Ữ/g, "U");
+  str = str.replace(/Ỳ|Ý|Ỵ|Ỷ|Ỹ/g, "Y");
+  str = str.replace(/Đ/g, "D");
+  str = str.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  return str;
+}
+
 const SYSTEM_DEFAULTS = ['front', 'back', 'front_audio_content', 'back_audio_content', 'front_audio_url', 'back_audio_url', 'front_img', 'back_img']
 
 const EditFlashcard = () => {
@@ -660,7 +679,7 @@ const EditFlashcard = () => {
                                                       onClick={async () => {
                                                          const newName = prompt(`Nhập tên mới cho cột "${col}" (viết liền không dấu):`, col);
                                                          if (!newName) return;
-                                                         const cleanNewName = newName.toLowerCase().replace(/[^a-z0-9_]/g, '').trim();
+                                                         const cleanNewName = removeVietnameseTones(newName).toLowerCase().replace(/[^a-z0-9_]/g, '_').replace(/_+/g, '_').replace(/^_+|_+$/g, '').trim();
                                                          if (!cleanNewName || cleanNewName === col) return;
                                                          if (availableColumns.includes(cleanNewName)) {
                                                             alert("Tên cột này đã tồn tại!");
@@ -729,7 +748,7 @@ const EditFlashcard = () => {
                                       type="text" 
                                       placeholder="Tên cột viết liền không dấu, ví dụ: kanji, audio_content..."
                                       value={newColName}
-                                      onChange={(e) => setNewColName(e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, ''))}
+                                      onChange={(e) => setNewColName(removeVietnameseTones(e.target.value).toLowerCase().replace(/[^a-z0-9_]/g, '_').replace(/_+/g, '_').replace(/^_+|_+$/g, ''))}
                                       className="flex-1 h-12 px-4 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-800 outline-none focus:ring-4 focus:ring-indigo-500/5 focus:border-indigo-500 transition-all"
                                    />
                                    <button
@@ -1587,27 +1606,24 @@ const EditFlashcard = () => {
                </div>
 
                <div className="space-y-4">
-                 <p className="text-xs font-medium text-slate-600 leading-relaxed mb-6">The system will automatically replace the following tags with actual data from each question:</p>
-                 <div className="grid grid-cols-1 gap-2 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
-                    {[
-                      { tag: '{{question}}', desc: 'Question content' },
-                      { tag: '{{options}}', desc: 'List of options A, B, C, D' },
-                      { tag: '{{correct_answer}}', desc: 'Correct answer' },
-                      { tag: '{{quiz_title}}', desc: 'Deck title' },
-                      { tag: '{{option_a}}', desc: 'Option A content' },
-                      { tag: '{{option_b}}', desc: 'Option B content' },
-                      { tag: '{{option_c}}', desc: 'Option C content' },
-                      { tag: '{{option_d}}', desc: 'Option D content' },
-                    ].map((item) => (
-                      <div key={item.tag} className="flex items-center justify-between p-3 bg-slate-50 rounded-xl border border-slate-100 hover:border-indigo-100 transition-all group">
-                        <code className="text-[10px] font-black text-indigo-600">{item.tag}</code>
-                        <span className="text-[9px] font-bold text-slate-400 uppercase tracking-tight">{item.desc}</span>
-                      </div>
-                    ))}
-                 </div>
-                 <div className="mt-8 p-4 bg-amber-50 rounded-2xl border border-amber-100 border-dashed text-center">
-                    <p className="text-[9px] font-bold text-amber-700 leading-relaxed italic uppercase tracking-wider">Using tags properly will help AI explain more accurately!</p>
-                 </div>
+                  <p className="text-xs font-medium text-slate-600 leading-relaxed mb-6">
+                     Hệ thống sẽ tự động thay thế các thẻ sau bằng dữ liệu thực tế từ mỗi thẻ. Bạn có thể sử dụng bất kỳ tên cột nào làm thẻ bằng cách bao quanh bởi <code>{"{{tên_cột}}"}</code>:
+                  </p>
+                  <div className="grid grid-cols-1 gap-2 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
+                     {availableColumns.map((col) => (
+                       <div key={col} className="flex items-center justify-between p-3 bg-slate-50 rounded-xl border border-slate-100 hover:border-indigo-100 transition-all group">
+                         <code className="text-[10px] font-black text-indigo-650 bg-indigo-50/50 px-2 py-0.5 rounded">{"{{" + col + "}}"}</code>
+                         <span className="text-[9px] font-black text-slate-400 uppercase tracking-wider">Cột {col.toUpperCase()}</span>
+                       </div>
+                     ))}
+                     <div className="flex items-center justify-between p-3 bg-slate-50 rounded-xl border border-slate-100 hover:border-indigo-100 transition-all group">
+                       <code className="text-[10px] font-black text-emerald-600 bg-emerald-50/50 px-2 py-0.5 rounded">{"{{global_instruction}}"}</code>
+                       <span className="text-[9px] font-black text-slate-400 uppercase tracking-wider">Hướng dẫn chung bộ bài</span>
+                     </div>
+                  </div>
+                  <div className="mt-8 p-4 bg-amber-50 rounded-2xl border border-amber-100 border-dashed text-center">
+                     <p className="text-[9px] font-bold text-amber-700 leading-relaxed italic uppercase tracking-wider">Sử dụng đúng thẻ sẽ giúp AI giải thích chính xác và sinh động hơn!</p>
+                  </div>
                </div>
              </motion.div>
            </div>
