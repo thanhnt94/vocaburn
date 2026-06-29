@@ -4,13 +4,14 @@ from typing import List, Optional, Dict, Any
 class CardSchema(BaseModel):
     id: Optional[int] = None
     content: str
-    image: Optional[str] = None
-    audio: Optional[str] = None
+    front_audio_content: Optional[str] = None
+    back_audio_content: Optional[str] = None
+    front_audio_url: Optional[str] = None
+    back_audio_url: Optional[str] = None
+    front_img: Optional[str] = None
+    back_img: Optional[str] = None
     question_type: str = "flashcard"
     explanation: Optional[str] = None
-    ai_explanation: Optional[str] = None
-    hint: Optional[str] = None
-    mnemonic: Optional[str] = None
     others: Optional[Dict[str, Any]] = None
 
     class Config:
@@ -22,9 +23,6 @@ class DeckSchema(BaseModel):
     description: Optional[str] = None
     category_id: int
     creator_id: Optional[int] = None
-    ai_prompt: Optional[str] = None
-    ai_prompt_hint: Optional[str] = None
-    ai_prompt_mnemonic: Optional[str] = None
     instruction: Optional[str] = None
     cover_image: Optional[str] = None
     time_limit: int = 0

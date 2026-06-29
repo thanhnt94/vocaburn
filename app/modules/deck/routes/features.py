@@ -853,18 +853,23 @@ async def ai_queue_callback(data: dict, db: AsyncSession = Depends(get_db)):
         content = content[:-3].strip()
     content = re.sub(r'`\s*(<ruby>[\s\S]*?<\/ruby>)\s*`', r'\1', content)
 
-    if field == "hint":
-        c.hint = content
-    elif field == "mnemonic":
-        c.mnemonic = content
-    elif field == "explanation":
-        c.ai_explanation = content
+    physical_map = {
+        "front": "content",
+        "back": "explanation",
+        "front_audio_content": "front_audio_content",
+        "back_audio_content": "back_audio_content",
+        "front_audio_url": "front_audio_url",
+        "back_audio_url": "back_audio_url",
+        "front_img": "front_img",
+        "back_img": "back_img"
+    }
+
+    if field in physical_map:
+        setattr(c, physical_map[field], content)
     else:
         if not c.others:
             c.others = {}
-        if "ai_responses" not in c.others:
-            c.others["ai_responses"] = {}
-        c.others["ai_responses"][field] = content
+        c.others[field] = content
         flag_modified(c, "others")
         
     await db.commit()
@@ -885,19 +890,12 @@ async def _bulk_generate_deck_ai_task(deck_id: int, field: str, force: bool, bas
             return
             
         template = None
-        if field == "hint":
-            template = deck.ai_prompt_hint
-        elif field == "mnemonic":
-            template = deck.ai_prompt_mnemonic
-        elif field == "explanation":
-            template = deck.ai_prompt
-        else:
-            if deck.practice_settings and isinstance(deck.practice_settings, dict):
-                prompts = deck.practice_settings.get("ai_prompts", [])
-                for p in prompts:
-                    if p.get("id") == field:
-                        template = p.get("prompt")
-                        break
+        if deck.practice_settings and isinstance(deck.practice_settings, dict):
+            prompts = deck.practice_settings.get("ai_prompts", [])
+            for p in prompts:
+                if p.get("column") == field or p.get("id") == field:
+                    template = p.get("prompt")
+                    break
                         
         if not template or not template.strip():
             logger.error(f"[BULK AI ERROR] No prompt template found for field '{field}' in deck {deck_id}")
@@ -917,19 +915,27 @@ async def _bulk_generate_deck_ai_task(deck_id: int, field: str, force: bool, bas
         callback_base = settings.APP_BASE_URL if settings.APP_BASE_URL else base_url
         callback_url = f"{callback_base.rstrip('/')}/api/v1/deck/ai-callback"
         
+        physical_map = {
+            "front": "content",
+            "back": "explanation",
+            "front_audio_content": "front_audio_content",
+            "back_audio_content": "back_audio_content",
+            "front_audio_url": "front_audio_url",
+            "back_audio_url": "back_audio_url",
+            "front_img": "front_img",
+            "back_img": "back_img"
+        }
+        
         for c in cards:
             await db.refresh(c)
             
             # Check if already generated
             has_val = False
-            if field == "hint":
-                has_val = bool(c.hint and c.hint.strip())
-            elif field == "mnemonic":
-                has_val = bool(c.mnemonic and c.mnemonic.strip())
-            elif field == "explanation":
-                has_val = bool(c.ai_explanation and c.ai_explanation.strip())
+            if field in physical_map:
+                val = getattr(c, physical_map[field])
+                has_val = bool(val and val.strip())
             else:
-                has_val = bool(c.others and c.others.get("ai_responses", {}).get(field))
+                has_val = bool(c.others and c.others.get(field))
                 
             if force or not has_val:
                 options_text = ""
@@ -982,6 +988,7 @@ async def _bulk_generate_deck_ai_task(deck_id: int, field: str, force: bool, bas
             for i in range(0, len(tasks_to_submit), chunk_size):
                 chunk = tasks_to_submit[i:i + chunk_size]
                 try:
+                    import sqlalchemy as sa
                     response = await client.post(
                         f"{sso_config.server_url.rstrip('/')}/api/queue/submit/batch",
                         json={"tasks": chunk},
@@ -1003,16 +1010,25 @@ async def get_deck_ai_status(deck_id: int, field: str = "explanation", db: Async
     
     total = len(cards)
     missing = 0
+    
+    physical_map = {
+        "front": "content",
+        "back": "explanation",
+        "front_audio_content": "front_audio_content",
+        "back_audio_content": "back_audio_content",
+        "front_audio_url": "front_audio_url",
+        "back_audio_url": "back_audio_url",
+        "front_img": "front_img",
+        "back_img": "back_img"
+    }
+
     for c in cards:
         has_val = False
-        if field == "hint":
-            has_val = bool(c.hint and c.hint.strip())
-        elif field == "mnemonic":
-            has_val = bool(c.mnemonic and c.mnemonic.strip())
-        elif field == "explanation":
-            has_val = bool(c.ai_explanation and c.ai_explanation.strip())
+        if field in physical_map:
+            val = getattr(c, physical_map[field])
+            has_val = bool(val and val.strip())
         else:
-            has_val = bool(c.others and c.others.get("ai_responses", {}).get(field))
+            has_val = bool(c.others and c.others.get(field))
             
         if not has_val:
             missing += 1
@@ -1054,3 +1070,107 @@ async def generate_all_deck_ai(
     
     background_tasks.add_task(_bulk_generate_deck_ai_task, deck_id, field, force, base_url)
     return {"status": "ok", "message": f"Bulk AI {field} generation queue submission started."}
+
+@router.post("/{deck_id}/cards/{card_id}/generate-ai")
+async def generate_single_card_ai(
+    deck_id: int,
+    card_id: int,
+    request: Request,
+    payload: dict,
+    db: AsyncSession = Depends(get_db)
+):
+    from app.modules.deck.models import FlashcardDeck, Flashcard
+    res = await db.execute(select(FlashcardDeck).filter(FlashcardDeck.id == deck_id))
+    deck = res.scalar_one_or_none()
+    if not deck:
+        return JSONResponse(status_code=404, content={"error": "Deck not found"})
+        
+    card_res = await db.execute(select(Flashcard).filter(Flashcard.id == card_id))
+    card = card_res.scalar_one_or_none()
+    if not card:
+        return JSONResponse(status_code=404, content={"error": "Card not found"})
+        
+    field = payload.get("field")
+    if not field:
+        return JSONResponse(status_code=400, content={"error": "Field is required"})
+        
+    template = None
+    if deck.practice_settings and isinstance(deck.practice_settings, dict):
+        prompts = deck.practice_settings.get("ai_prompts", [])
+        for p in prompts:
+            if p.get("column") == field or p.get("id") == field:
+                template = p.get("prompt")
+                break
+                
+    if not template or not template.strip():
+        return JSONResponse(status_code=400, content={"error": f"No prompt template found for column '{field}'"})
+        
+    from app.modules.sso_module.service import SSOService
+    sso_config = await SSOService.get_config(db)
+    if not sso_config.is_enabled or not sso_config.server_url:
+        return JSONResponse(status_code=500, content={"error": "CentralAuth is not enabled or server URL is not configured."})
+        
+    options_text = ""
+    card_options = getattr(card, "options", None)
+    if card_options:
+        options_text = ", ".join([o.content for o in card_options])
+        
+    correct_answer_text = card.explanation or ""
+    if card_options:
+        correct_opt = next((o for o in card_options if o.is_correct), None)
+        if correct_opt:
+            correct_answer_text = correct_opt.content
+            
+    prompt = template \
+        .replace("{{question}}", card.content or "") \
+        .replace("{{card}}", card.content or "") \
+        .replace("{{options}}", options_text) \
+        .replace("{{correct_answer}}", correct_answer_text) \
+        .replace("{{global_instruction}}", (deck.instruction if deck else "") or "") \
+        .replace("{{quiz_title}}", (deck.title if deck else "") or "") \
+        .replace("{{deck_title}}", (deck.title if deck else "") or "") \
+        .replace("{{quiz_description}}", (deck.description if deck else "") or "") \
+        .replace("{{deck_description}}", (deck.description if deck else "") or "")
+        
+    for i in range(4):
+        prompt = prompt.replace(f"{{{{option_{chr(97+i)}}}}}", "")
+        
+    scheme = request.headers.get("x-forwarded-proto", request.url.scheme)
+    netloc = request.url.netloc
+    if "localhost" not in netloc and "127.0.0.1" not in netloc:
+        scheme = "https"
+    base_url = f"{scheme}://{netloc}"
+    
+    callback_url = f"{base_url.rstrip('/')}/api/v1/deck/ai-callback"
+    
+    task_payload = {
+        "satellite_source": "vocaburn",
+        "prompt": prompt,
+        "callback_url": callback_url,
+        "extra_data": json.dumps({
+            "task_type": "ai-explain",
+            "card_id": card.id,
+            "field": field,
+            "deck_id": deck_id
+        }),
+        "max_retries": 3
+    }
+    
+    import httpx
+    from app.core.config import settings
+    queue_token = getattr(settings, "QUEUE_API_SECRET", "super-secret-token-123")
+    
+    async with httpx.AsyncClient() as client:
+        try:
+            response = await client.post(
+                f"{sso_config.server_url.rstrip('/')}/api/queue/submit",
+                json=task_payload,
+                headers={"X-Queue-Token": queue_token},
+                timeout=30.0
+            )
+            if response.status_code != 200:
+                return JSONResponse(status_code=500, content={"error": f"Failed to submit task: {response.text}"})
+        except Exception as e:
+            return JSONResponse(status_code=500, content={"error": f"Exception submitting task: {str(e)}"})
+            
+    return {"status": "ok", "message": f"AI generation for {field} started."}

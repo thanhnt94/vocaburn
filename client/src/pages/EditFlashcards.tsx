@@ -64,17 +64,34 @@ const EditFlashcards = () => {
     }
   }, [availableColumns])
 
+  const [practiceSettings, setPracticeSettings] = useState<any>({})
+  const [generatingCells, setGeneratingCells] = useState<Record<string, boolean>>({})
+
   useEffect(() => {
     const fetchSettings = async () => {
       try {
         const res = await axios.get(`/api/v1/deck/${id}/practice-settings`)
         setAvailableColumns(res.data.available_columns || ['front', 'back'])
+        setPracticeSettings(res.data.creator_settings || {})
       } catch (e) {
         console.error("Failed to fetch deck practice settings", e)
       }
     }
     fetchSettings()
   }, [id])
+
+  const generateCellAi = async (cardId: number, col: string) => {
+    const key = `${cardId}_${col}`
+    setGeneratingCells(prev => ({ ...prev, [key]: true }))
+    try {
+      await axios.post(`/api/v1/deck/${id}/cards/${cardId}/generate-ai`, { field: col })
+      alert("Yêu cầu tạo bằng AI đã được đưa vào hàng đợi của hệ thống CentralAuth! Kết quả sẽ được cập nhật tự động sau vài giây, bạn có thể reload trang để kiểm tra.")
+    } catch (err: any) {
+      alert(err.response?.data?.error || "Gửi yêu cầu AI thất bại")
+    } finally {
+      setGeneratingCells(prev => ({ ...prev, [key]: false }))
+    }
+  }
 
   const handleExcelUpdateUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -252,6 +269,8 @@ const EditFlashcards = () => {
           updated.content = value
         } else if (field === 'back') {
           updated.explanation = value
+        } else if (['front_audio_content', 'back_audio_content', 'front_audio_url', 'back_audio_url', 'front_img', 'back_img'].includes(field)) {
+          updated[field] = value
         } else {
           updated.others = { ...updated.others, [field]: value }
         }
@@ -275,9 +294,12 @@ const EditFlashcards = () => {
       await axios.patch(`/api/v1/deck/flashcard/${card.id}`, {
         content: card.content,
         explanation: card.explanation,
-        ai_explanation: card.ai_explanation,
-        image: card.image || null,
-        audio: card.audio || null,
+        front_audio_content: card.front_audio_content,
+        back_audio_content: card.back_audio_content,
+        front_audio_url: card.front_audio_url,
+        back_audio_url: card.back_audio_url,
+        front_img: card.front_img,
+        back_img: card.back_img,
         others: card.others,
         options: updatedOptions
       })
@@ -300,7 +322,7 @@ const EditFlashcards = () => {
         back_audio_content: '',
       }
       availableColumns.forEach(c => {
-        if (c !== 'front' && c !== 'back') {
+        if (!['front', 'back', 'front_audio_content', 'back_audio_content', 'front_audio_url', 'back_audio_url', 'front_img', 'back_img'].includes(c)) {
           initialOthers[c] = ''
         }
       })
@@ -308,12 +330,18 @@ const EditFlashcards = () => {
       const newCardData: any = {
         content: quickAddValues['front'] || '',
         explanation: quickAddValues['back'] || '',
+        front_audio_content: quickAddValues['front_audio_content'] || '',
+        back_audio_content: quickAddValues['back_audio_content'] || '',
+        front_audio_url: quickAddValues['front_audio_url'] || '',
+        back_audio_url: quickAddValues['back_audio_url'] || '',
+        front_img: quickAddValues['front_img'] || '',
+        back_img: quickAddValues['back_img'] || '',
         others: { ...initialOthers },
         options: []
       }
 
       Object.keys(quickAddValues).forEach(col => {
-        if (col !== 'front' && col !== 'back') {
+        if (!['front', 'back', 'front_audio_content', 'back_audio_content', 'front_audio_url', 'back_audio_url', 'front_img', 'back_img'].includes(col)) {
           newCardData.others[col] = quickAddValues[col]
         }
       })
@@ -321,6 +349,12 @@ const EditFlashcards = () => {
       const res = await axios.post(`/api/v1/deck/${id}/flashcard`, {
         content: newCardData.content,
         explanation: newCardData.explanation,
+        front_audio_content: newCardData.front_audio_content,
+        back_audio_content: newCardData.back_audio_content,
+        front_audio_url: newCardData.front_audio_url,
+        back_audio_url: newCardData.back_audio_url,
+        front_img: newCardData.front_img,
+        back_img: newCardData.back_img,
         others: newCardData.others,
         options: []
       })
@@ -608,13 +642,37 @@ const EditFlashcards = () => {
                         style={{ gridTemplateColumns: `repeat(auto-fit, minmax(220px, 1fr))` }}
                      >
                         {visibleCols.map(col => {
-                           const val = col === 'front' ? q.content : (col === 'back' ? q.explanation : (q.others?.[col] || ''));
+                           const val = col === 'front' ? q.content : (
+                              col === 'back' ? q.explanation : (
+                                 ['front_audio_content', 'back_audio_content', 'front_audio_url', 'back_audio_url', 'front_img', 'back_img'].includes(col) ? q[col] : (q.others?.[col] || '')
+                              )
+                           );
+                           const hasAi = practiceSettings.ai_prompts?.some((p: any) => p.column === col || p.id === col);
+                           
                            return (
-                              <div key={col} className="space-y-1.5">
-                                 <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">{col.toUpperCase()}</label>
+                              <div key={col} className="space-y-1.5 relative group/cell">
+                                 <div className="flex items-center justify-between ml-1">
+                                    <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest">{col.toUpperCase()}</label>
+                                    {hasAi && (
+                                       <button
+                                          type="button"
+                                          onClick={() => generateCellAi(q.id, col)}
+                                          disabled={generatingCells[`${q.id}_${col}`]}
+                                          className="text-[9px] font-bold text-indigo-500 hover:text-indigo-750 flex items-center gap-1 transition-all active:scale-95 disabled:opacity-50 disabled:pointer-events-none"
+                                          title="Tự động tạo bằng AI cho ô này"
+                                       >
+                                          {generatingCells[`${q.id}_${col}`] ? (
+                                             <span className="w-3 h-3 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
+                                          ) : (
+                                             <Sparkles className="w-3.5 h-3.5" />
+                                          )}
+                                          <span>AI</span>
+                                       </button>
+                                    )}
+                                 </div>
                                  <textarea
                                     rows={2}
-                                    value={val}
+                                    value={val || ''}
                                     onChange={(e) => handleRowFieldChange(q.id, col, e.target.value)}
                                     onBlur={() => saveRowCard(q)}
                                     className="w-full bg-slate-50 hover:bg-slate-100/50 focus:bg-white border border-slate-100 rounded-xl px-4 py-3 text-xs font-bold text-slate-700 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/5 outline-none resize-none transition-all"

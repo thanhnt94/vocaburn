@@ -133,11 +133,14 @@ async def upload_deck(request: Request, file: UploadFile = File(...), metadata_o
         for c in cards:
             card_schemas.append(CardSchema(
                 content=c["content"],
-                image=c.get("image"),
-                audio=c.get("audio"),
+                front_audio_content=c.get("front_audio_content"),
+                back_audio_content=c.get("back_audio_content"),
+                front_audio_url=c.get("front_audio_url"),
+                back_audio_url=c.get("back_audio_url"),
+                front_img=c.get("front_img"),
+                back_img=c.get("back_img"),
                 question_type=c.get("question_type", "flashcard"),
                 explanation=c["explanation"],
-                ai_explanation=c.get("ai_explanation"),
                 others=c.get("others")
             ))
         await DeckService.bulk_add_cards(db, db_deck.id, card_schemas)
@@ -206,11 +209,14 @@ async def import_text(request: Request, data: dict, db: AsyncSession = Depends(g
         for c in cards:
             card_schemas.append(CardSchema(
                 content=c.get("content", "").strip(),
-                image=c.get("image"),
-                audio=c.get("audio"),
+                front_audio_content=c.get("front_audio_content"),
+                back_audio_content=c.get("back_audio_content"),
+                front_audio_url=c.get("front_audio_url"),
+                back_audio_url=c.get("back_audio_url"),
+                front_img=c.get("front_img"),
+                back_img=c.get("back_img"),
                 question_type="flashcard",
                 explanation=c.get("explanation", "").strip(),
-                ai_explanation=None,
                 others=c.get("others", {})
             ))
         await DeckService.bulk_add_cards(db, db_deck.id, card_schemas)
@@ -350,12 +356,14 @@ async def get_deck_cards(deck_id: int, request: Request, page: int = 1, size: in
                 "orig_index": (page - 1) * size + i + 1,
                 "content": c.content,
                 "explanation": c.explanation,
-                "ai_explanation": c.ai_explanation,
-                "hint": c.hint,
-                "mnemonic": c.mnemonic,
+                "front_audio_content": c.front_audio_content,
+                "back_audio_content": c.back_audio_content,
+                "front_audio_url": c.front_audio_url,
+                "back_audio_url": c.back_audio_url,
+                "front_img": c.front_img,
+                "back_img": c.back_img,
+                "others": c.others or {},
                 "points": 1,
-                "image": c.image,
-                "audio": c.audio,
                 "stats": stats_map.get(c.id, {"total": 0, "correct": 0, "wrong": 0}),
                 "is_ignored": mastery_map.get(c.id, False),
                 "options": []
@@ -465,9 +473,6 @@ async def update_deck(request: Request, deck_id: int, data: dict, db: AsyncSessi
     if "title" in data: deck.title = data["title"]
     if "description" in data: deck.description = data["description"]
     if "category_id" in data: deck.category_id = data["category_id"]
-    if "ai_prompt" in data: deck.ai_prompt = data["ai_prompt"]
-    if "ai_prompt_hint" in data: deck.ai_prompt_hint = data["ai_prompt_hint"]
-    if "ai_prompt_mnemonic" in data: deck.ai_prompt_mnemonic = data["ai_prompt_mnemonic"]
     if "instruction" in data: deck.instruction = data["instruction"]
     if "is_public" in data: deck.is_public = data["is_public"]
     
@@ -582,9 +587,12 @@ async def create_card(request: Request, deck_id: int, data: dict, db: AsyncSessi
         deck_id=deck_id,
         content=content,
         explanation=explanation,
-        ai_explanation=data.get("ai_explanation"),
-        image=data.get("image"),
-        audio=data.get("audio"),
+        front_audio_content=data.get("front_audio_content"),
+        back_audio_content=data.get("back_audio_content"),
+        front_audio_url=data.get("front_audio_url"),
+        back_audio_url=data.get("back_audio_url"),
+        front_img=data.get("front_img"),
+        back_img=data.get("back_img"),
         question_type=data.get("question_type", "flashcard"),
         others=data.get("others") or {}
     )
@@ -599,9 +607,12 @@ async def create_card(request: Request, deck_id: int, data: dict, db: AsyncSessi
             "id": db_c.id,
             "content": db_c.content,
             "explanation": db_c.explanation,
-            "ai_explanation": db_c.ai_explanation,
-            "image": db_c.image,
-            "audio": db_c.audio,
+            "front_audio_content": db_c.front_audio_content,
+            "back_audio_content": db_c.back_audio_content,
+            "front_audio_url": db_c.front_audio_url,
+            "back_audio_url": db_c.back_audio_url,
+            "front_img": db_c.front_img,
+            "back_img": db_c.back_img,
             "others": db_c.others,
             "options": []
         }
@@ -618,11 +629,12 @@ async def update_card(card_id: int, data: dict, db: AsyncSession = Depends(get_d
     
     if "content" in data: card.content = data["content"]
     if "explanation" in data: card.explanation = data["explanation"]
-    if "ai_explanation" in data: card.ai_explanation = data["ai_explanation"]
-    if "hint" in data: card.hint = data["hint"]
-    if "mnemonic" in data: card.mnemonic = data["mnemonic"]
-    if "image" in data: card.image = data["image"]
-    if "audio" in data: card.audio = data["audio"]
+    if "front_audio_content" in data: card.front_audio_content = data["front_audio_content"]
+    if "back_audio_content" in data: card.back_audio_content = data["back_audio_content"]
+    if "front_audio_url" in data: card.front_audio_url = data["front_audio_url"]
+    if "back_audio_url" in data: card.back_audio_url = data["back_audio_url"]
+    if "front_img" in data: card.front_img = data["front_img"]
+    if "back_img" in data: card.back_img = data["back_img"]
     if "others" in data:
         if not card.others:
             card.others = {}
