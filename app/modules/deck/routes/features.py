@@ -88,13 +88,18 @@ async def get_practice_settings(request: Request, deck_id: int, db: AsyncSession
     
     # Dynamically extract all available data columns in this deck
     from app.modules.deck.models import Flashcard
-    available_cols = {"front", "back"}
+    available_cols = {
+        "front", "back", 
+        "front_audio_content", "back_audio_content", 
+        "back_audio_url", "back_img", 
+        "image", "audio"
+    }
     cards_stmt = select(Flashcard.others).where(Flashcard.deck_id == deck_id)
     res = await db.execute(cards_stmt)
     for others_json in res.scalars():
         if others_json and isinstance(others_json, dict):
             for k in others_json.keys():
-                if k not in ("id", "item_id", "order_in_container") and not k.endswith("_audio_url") and not k.endswith("_img") and k != "image" and k != "audio" and k != "other_content":
+                if k not in ("id", "item_id", "order_in_container") and k != "other_content":
                     available_cols.add(k)
     
     # Also add custom columns from practice_settings

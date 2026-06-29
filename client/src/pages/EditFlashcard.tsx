@@ -33,6 +33,8 @@ import {
 import axios from 'axios'
 import { cn } from '@/lib/utils'
 
+const SYSTEM_DEFAULTS = ['front', 'back', 'front_audio_content', 'back_audio_content', 'back_audio_url', 'back_img', 'image', 'audio']
+
 const EditFlashcard = () => {
   const { id } = useParams()
   const navigate = useNavigate()
@@ -614,28 +616,44 @@ const EditFlashcard = () => {
                           <div className="space-y-4">
                              <div className="p-6 bg-slate-50 border border-slate-100 rounded-2xl space-y-4">
                                 <h3 className="text-xs font-black text-slate-800 uppercase tracking-wider flex items-center gap-2">
-                                   Cột dữ liệu hiện có trong bộ thẻ:
+                                   Cột mặc định của hệ thống:
                                 </h3>
                                 <div className="flex flex-wrap gap-2">
-                                   {availableColumns.map(col => {
-                                      const isDefault = col === 'front' || col === 'back';
+                                   {availableColumns.filter(c => SYSTEM_DEFAULTS.includes(c)).map(col => (
+                                      <div 
+                                         key={col}
+                                         className="px-3 py-2 rounded-xl border bg-slate-100 border-slate-200 text-slate-500 text-xs font-bold transition-all"
+                                      >
+                                         <div className="flex flex-col">
+                                            <span className="uppercase text-[10px]">{col}</span>
+                                            <span className="text-[7px] font-black uppercase text-slate-400 tracking-wider">Mặc định</span>
+                                         </div>
+                                      </div>
+                                   ))}
+                                </div>
+                             </div>
+
+                             <div className="p-6 bg-slate-50 border border-slate-100 rounded-2xl space-y-4">
+                                <h3 className="text-xs font-black text-slate-800 uppercase tracking-wider flex items-center gap-2">
+                                   Cột dữ liệu tùy chỉnh / Excel:
+                                </h3>
+                                <div className="flex flex-wrap gap-2">
+                                   {availableColumns.filter(c => !SYSTEM_DEFAULTS.includes(c)).map(col => {
                                       const isCustom = customColumns.includes(col);
                                       return (
                                          <div 
                                             key={col}
                                             className={cn(
                                                "px-3 py-2 rounded-xl border flex items-center gap-3 text-xs font-bold transition-all",
-                                               isDefault 
-                                                  ? "bg-slate-100 border-slate-200 text-slate-500" 
-                                                  : isCustom 
-                                                     ? "bg-indigo-50 border-indigo-200 text-indigo-700" 
-                                                     : "bg-emerald-50 border-emerald-200 text-emerald-700"
+                                               isCustom 
+                                                  ? "bg-indigo-50 border-indigo-200 text-indigo-700" 
+                                                  : "bg-emerald-50 border-emerald-200 text-emerald-700"
                                             )}
                                          >
                                             <div className="flex flex-col">
                                                <span className="uppercase text-[10px]">{col}</span>
                                                <span className="text-[7px] font-black uppercase text-slate-400 tracking-wider">
-                                                  {isDefault ? 'Mặc định' : isCustom ? 'Tự tạo' : 'Import Excel'}
+                                                  {isCustom ? 'Tự tạo' : 'Import Excel'}
                                                </span>
                                             </div>
                                             {isCustom && (
@@ -657,12 +675,15 @@ const EditFlashcard = () => {
                                                   }}
                                                   className="w-5 h-5 rounded-lg bg-indigo-100 hover:bg-rose-50 hover:text-rose-600 transition-colors flex items-center justify-center text-indigo-400"
                                                >
-                                                  <Trash2 className="w-3 h-3" />
+                                                  <Trash2 className="w-3.5 h-3.5" />
                                                </button>
                                             )}
                                          </div>
                                       );
                                    })}
+                                   {availableColumns.filter(c => !SYSTEM_DEFAULTS.includes(c)).length === 0 && (
+                                      <span className="text-[10px] font-black text-slate-450 uppercase tracking-widest py-2">Không có cột tùy chỉnh nào</span>
+                                   )}
                                 </div>
                              </div>
 
