@@ -91,8 +91,8 @@ async def get_practice_settings(request: Request, deck_id: int, db: AsyncSession
     available_cols = {
         "front", "back", 
         "front_audio_content", "back_audio_content", 
-        "back_audio_url", "back_img", 
-        "image", "audio"
+        "front_audio_url", "back_audio_url", 
+        "front_img", "back_img"
     }
     cards_stmt = select(Flashcard.others).where(Flashcard.deck_id == deck_id)
     res = await db.execute(cards_stmt)
@@ -1174,3 +1174,43 @@ async def generate_single_card_ai(
             return JSONResponse(status_code=500, content={"error": f"Exception submitting task: {str(e)}"})
             
     return {"status": "ok", "message": f"AI generation for {field} started."}
+
+@router.post("/{deck_id}/rename-column")
+async def rename_deck_column(deck_id: int, payload: dict, db: AsyncSession = Depends(get_db)):
+    old_name = payload.get("old_name")
+    new_name = payload.get("new_name")
+    if not old_name or not new_name:
+        return JSONResponse(status_code=400, content={"error": "old_name and new_name are required"})
+        
+    deck = await DeckService.get_deck_by_id(db, deck_id)
+    if not deck:
+        return JSONResponse(status_code=404, content={"error": "Deck not found"})
+        
+    from sqlalchemy.orm.attributes import flag_modified
+    if deck.practice_settings and isinstance(deck.practice_settings, dict):
+        custom_cols = deck.practice_settings.get("custom_columns", [])
+        if old_name in custom_cols:
+            idx = custom_cols.index(old_name)
+            custom_cols[idx] = new_name
+            deck.practice_settings["custom_columns"] = custom_cols
+            
+        prompts = deck.practice_settings.get("ai_prompts", [])
+        for p in prompts:
+            if p.get("column") == old_name:
+                p["column"] = new_name
+                p["id"] = new_name
+                p["title"] = new_name.upper().replace("_", " ")
+        deck.practice_settings["ai_prompts"] = prompts
+        flag_modified(deck, "practice_settings")
+        
+    # Update all cards' others JSON keys
+    from app.modules.deck.models import Flashcard
+    res = await db.execute(select(Flashcard).where(Flashcard.deck_id == deck_id))
+    cards = res.scalars().all()
+    for c in cards:
+        if c.others and isinstance(c.others, dict) and old_name in c.others:
+            c.others[new_name] = c.others.pop(old_name)
+            flag_modified(c, "others")
+            
+    await db.commit()
+    return {"status": "ok"}

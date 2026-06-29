@@ -33,7 +33,7 @@ import {
 import axios from 'axios'
 import { cn } from '@/lib/utils'
 
-const SYSTEM_DEFAULTS = ['front', 'back', 'front_audio_content', 'back_audio_content', 'back_audio_url', 'back_img', 'image', 'audio']
+const SYSTEM_DEFAULTS = ['front', 'back', 'front_audio_content', 'back_audio_content', 'front_audio_url', 'back_audio_url', 'front_img', 'back_img']
 
 const EditFlashcard = () => {
   const { id } = useParams()
@@ -654,27 +654,63 @@ const EditFlashcard = () => {
                                                </span>
                                             </div>
                                             {isCustom && (
-                                               <button
-                                                  type="button"
-                                                  onClick={async () => {
-                                                     const nextCustom = customColumns.filter(c => c !== col);
-                                                     setCustomColumns(nextCustom);
-                                                     try {
-                                                        await axios.post(`/api/v1/deck/${id}/practice-settings`, {
-                                                           settings: { ...practiceSettings, custom_columns: nextCustom },
-                                                           is_creator: true
-                                                        });
-                                                        const sRes = await axios.get(`/api/v1/deck/${id}/practice-settings`);
-                                                        setAvailableColumns(sRes.data.available_columns || ['front', 'back']);
-                                                     } catch (err) {
-                                                        alert("Lỗi khi xóa cột");
-                                                     }
-                                                  }}
-                                                  className="w-5 h-5 rounded-lg bg-indigo-100 hover:bg-rose-50 hover:text-rose-600 transition-colors flex items-center justify-center text-indigo-400"
-                                               >
-                                                  <Trash2 className="w-3.5 h-3.5" />
-                                               </button>
-                                            )}
+                                                <div className="flex items-center gap-1.5 ml-1">
+                                                   <button
+                                                      type="button"
+                                                      onClick={async () => {
+                                                         const newName = prompt(`Nhập tên mới cho cột "${col}" (viết liền không dấu):`, col);
+                                                         if (!newName) return;
+                                                         const cleanNewName = newName.toLowerCase().replace(/[^a-z0-9_]/g, '').trim();
+                                                         if (!cleanNewName || cleanNewName === col) return;
+                                                         if (availableColumns.includes(cleanNewName)) {
+                                                            alert("Tên cột này đã tồn tại!");
+                                                            return;
+                                                         }
+                                                         try {
+                                                            await axios.post(`/api/v1/deck/${id}/rename-column`, {
+                                                               old_name: col,
+                                                               new_name: cleanNewName
+                                                            });
+                                                            const nextCustom = customColumns.map(c => c === col ? cleanNewName : c);
+                                                            setCustomColumns(nextCustom);
+                                                            const sRes = await axios.get(`/api/v1/deck/${id}/practice-settings`);
+                                                            setAvailableColumns(sRes.data.available_columns || ['front', 'back']);
+                                                            setPracticeSettings(sRes.data.creator_settings || {});
+                                                            alert("Đổi tên cột thành công!");
+                                                         } catch (err) {
+                                                            alert("Lỗi khi đổi tên cột");
+                                                         }
+                                                      }}
+                                                      className="w-5 h-5 rounded-lg bg-indigo-100 hover:bg-indigo-200 transition-colors flex items-center justify-center text-indigo-500"
+                                                      title="Đổi tên cột"
+                                                   >
+                                                      <Edit2 className="w-3 h-3" />
+                                                   </button>
+                                                   <button
+                                                      type="button"
+                                                      onClick={async () => {
+                                                         if (!confirm(`Bạn chắc chắn muốn xóa cột "${col}"?`)) return;
+                                                         const nextCustom = customColumns.filter(c => c !== col);
+                                                         setCustomColumns(nextCustom);
+                                                         try {
+                                                            await axios.post(`/api/v1/deck/${id}/practice-settings`, {
+                                                               settings: { ...practiceSettings, custom_columns: nextCustom },
+                                                               is_creator: true
+                                                            });
+                                                            const sRes = await axios.get(`/api/v1/deck/${id}/practice-settings`);
+                                                            setAvailableColumns(sRes.data.available_columns || ['front', 'back']);
+                                                            setPracticeSettings(sRes.data.creator_settings || {});
+                                                         } catch (err) {
+                                                            alert("Lỗi khi xóa cột");
+                                                         }
+                                                      }}
+                                                      className="w-5 h-5 rounded-lg bg-indigo-100 hover:bg-rose-50 hover:text-rose-600 transition-colors flex items-center justify-center text-indigo-400"
+                                                      title="Xóa cột"
+                                                   >
+                                                      <Trash2 className="w-3 h-3" />
+                                                   </button>
+                                                </div>
+                                             )}
                                          </div>
                                       );
                                    })}
