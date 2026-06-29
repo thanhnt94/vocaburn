@@ -235,6 +235,56 @@ async def import_text(request: Request, data: dict, db: AsyncSession = Depends(g
     except Exception as e:
         return JSONResponse(status_code=500, content={"error": str(e)})
 
+@router.post("/create")
+async def create_deck_endpoint(request: Request, data: dict, db: AsyncSession = Depends(get_db)):
+    try:
+        user_id = int(request.cookies.get("user_id", 1))
+        title = data.get("title", "").strip()
+        description = data.get("description", "").strip()
+        cover_image = data.get("cover_image", "").strip() or None
+        is_public = data.get("is_public", True)
+        
+        if not title:
+            return JSONResponse(status_code=400, content={"error": "Deck title cannot be empty"})
+            
+        # Get or create General category
+        from app.modules.deck.models import Category
+        result = await db.execute(select(Category).filter(Category.name == "General"))
+        db_cat = result.scalar_one_or_none()
+        if not db_cat:
+            db_cat = Category(name="General", description="Default category for manual creations")
+            db.add(db_cat)
+            await db.commit()
+            await db.refresh(db_cat)
+            
+        deck_data = DeckSchema(
+            title=title,
+            description=description,
+            category_id=db_cat.id,
+            creator_id=user_id,
+            cover_image=cover_image,
+            is_active=True,
+            is_public=is_public
+        )
+        db_deck = await DeckService.create_deck(db, deck_data)
+        
+        # Auto-enroll the creator
+        from app.modules.deck.models import DeckAttempt
+        attempt = DeckAttempt(
+            user_id=user_id,
+            deck_id=db_deck.id,
+            mode="sequential",
+            score=0,
+            total_cards=0,
+            is_archived=False
+        )
+        db.add(attempt)
+        await db.commit()
+        
+        return {"status": "ok", "id": db_deck.id}
+    except Exception as e:
+        return JSONResponse(status_code=500, content={"error": str(e)})
+
 @router.post("/validate")
 async def validate_deck(file: UploadFile = File(...)):
     try:
@@ -419,6 +469,7 @@ async def update_deck(request: Request, deck_id: int, data: dict, db: AsyncSessi
     if "ai_prompt_hint" in data: deck.ai_prompt_hint = data["ai_prompt_hint"]
     if "ai_prompt_mnemonic" in data: deck.ai_prompt_mnemonic = data["ai_prompt_mnemonic"]
     if "instruction" in data: deck.instruction = data["instruction"]
+    if "is_public" in data: deck.is_public = data["is_public"]
     
     if "tags" in data:
         await DeckService.set_deck_tags(db, deck_id, data["tags"])

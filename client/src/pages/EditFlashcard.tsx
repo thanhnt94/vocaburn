@@ -300,7 +300,8 @@ const EditFlashcard = () => {
     category_name: '',
     cover_image: '',
     tags: '',
-    creator_id: 0
+    creator_id: 0,
+    is_public: true
   })
   
   const [showHelpModal, setShowHelpModal] = useState(false)
@@ -334,7 +335,8 @@ const EditFlashcard = () => {
           category_name: res.data.category_name || 'General',
           cover_image: res.data.cover_image || '',
           tags: res.data.tags?.join(', ') || '',
-          creator_id: res.data.creator_id
+          creator_id: res.data.creator_id,
+          is_public: res.data.is_public !== undefined ? res.data.is_public : true
         })
         
         // Fetch collaborators
@@ -391,6 +393,7 @@ const EditFlashcard = () => {
         ai_prompt_mnemonic: formData.ai_prompt_mnemonic,
         instruction: formData.instruction,
         cover_image: formData.cover_image,
+        is_public: formData.is_public,
         tags: formData.tags.split(',').map(t => t.trim()).filter(Boolean)
       })
       
@@ -553,6 +556,24 @@ const EditFlashcard = () => {
 
                             <Textarea label="Description" value={formData.description} onChange={v => setFormData({...formData, description: v})} rows={4} />
                             <Textarea label="Global Instruction (SSR Header)" value={formData.instruction} onChange={v => setFormData({...formData, instruction: v})} rows={3} placeholder="e.g. Choose the most appropriate answer..." />
+                            
+                            <div className="flex items-center gap-3 bg-slate-50 p-4 rounded-xl border border-slate-100/50">
+                               <input 
+                                  type="checkbox" 
+                                  id="isPublicEdit"
+                                  checked={formData.is_public}
+                                  onChange={(e) => setFormData({ ...formData, is_public: e.target.checked })}
+                                  className="w-5 h-5 text-indigo-600 bg-white border-slate-200 rounded focus:ring-indigo-500"
+                               />
+                               <div className="flex flex-col">
+                                  <label htmlFor="isPublicEdit" className="text-xs font-bold text-slate-700 select-none cursor-pointer">
+                                     Public Deck (Bộ thẻ công khai)
+                                  </label>
+                                  <span className="text-[9px] font-semibold text-slate-400 mt-0.5">
+                                     If unchecked, only you will be able to see and access this collection.
+                                  </span>
+                               </div>
+                            </div>
                             
                             <div className="space-y-1.5">
                                <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Tags (Comma Separated)</label>

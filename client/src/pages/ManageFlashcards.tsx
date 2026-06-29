@@ -11,7 +11,7 @@ export default function ManageFlashcards() {
   const [searchQuery, setSearchQuery] = useState('')
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const [newQuiz, setNewQuiz] = useState({ title: '', description: '', cover_image: '' })
+  const [newQuiz, setNewQuiz] = useState({ title: '', description: '', cover_image: '', is_public: true })
   const [activeExportDeckId, setActiveExportDeckId] = useState<number | null>(null)
 
   const { data: quizzes, isLoading } = useQuery<any[]>({
@@ -38,7 +38,7 @@ export default function ManageFlashcards() {
     try {
       await axios.post('/api/v1/deck/create', newQuiz)
       setIsCreateModalOpen(false)
-      setNewQuiz({ title: '', description: '', cover_image: '' })
+      setNewQuiz({ title: '', description: '', cover_image: '', is_public: true })
       queryClient.invalidateQueries({ queryKey: ['manage-quizzes'] })
     } catch (err) {
       alert('Failed to create deck')
@@ -323,18 +323,36 @@ export default function ManageFlashcards() {
                         </div>
 
                         <div className="space-y-1.5">
-                           <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Cover Image URL</label>
-                           <div className="relative">
-                              <ImageIcon className="absolute left-5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                              <input 
-                                 type="text" 
-                                 value={newQuiz.cover_image}
-                                 onChange={(e) => setNewQuiz({...newQuiz, cover_image: e.target.value})}
-                                 placeholder="https://images.unsplash.com/..."
-                                 className="w-full pl-14 pr-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl text-sm font-bold focus:ring-4 focus:ring-indigo-500/5 outline-none transition-all"
-                              />
-                           </div>
-                        </div>
+                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Cover Image URL</label>
+                            <div className="relative">
+                               <ImageIcon className="absolute left-5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                               <input 
+                                  type="text" 
+                                  value={newQuiz.cover_image}
+                                  onChange={(e) => setNewQuiz({...newQuiz, cover_image: e.target.value})}
+                                  placeholder="https://images.unsplash.com/..."
+                                  className="w-full pl-14 pr-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl text-sm font-bold focus:ring-4 focus:ring-indigo-500/5 outline-none transition-all"
+                               />
+                            </div>
+                         </div>
+
+                         <div className="flex items-center gap-3 bg-slate-50 p-4 rounded-2xl border border-slate-100">
+                            <input 
+                               type="checkbox" 
+                               id="isPublic"
+                               checked={newQuiz.is_public}
+                               onChange={(e) => setNewQuiz({...newQuiz, is_public: e.target.checked})}
+                               className="w-5 h-5 text-indigo-600 bg-white border-slate-200 rounded focus:ring-indigo-500"
+                            />
+                            <div className="flex flex-col">
+                               <label htmlFor="isPublic" className="text-xs font-black text-slate-700 select-none cursor-pointer">
+                                  Public Deck
+                               </label>
+                               <span className="text-[9px] font-semibold text-slate-400 mt-0.5">
+                                  If unchecked, only you will be able to see and access this collection.
+                               </span>
+                            </div>
+                         </div>
 
                         <button 
                            disabled={isSubmitting}

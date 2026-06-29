@@ -26,8 +26,10 @@ class DeckSchema(BaseModel):
     ai_prompt_hint: Optional[str] = None
     ai_prompt_mnemonic: Optional[str] = None
     instruction: Optional[str] = None
+    cover_image: Optional[str] = None
     time_limit: int = 0
     is_active: bool = True
+    is_public: bool = True
     cards: Optional[List[CardSchema]] = []
 
     class Config:

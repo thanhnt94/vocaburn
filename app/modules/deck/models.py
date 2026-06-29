@@ -26,6 +26,7 @@ class FlashcardDeck(Base):
     cover_image = Column(String(512), nullable=True) # URL to the cover image
     time_limit = Column(Integer, default=0) # in minutes, 0 means no limit
     is_active = Column(Boolean, default=True)
+    is_public = Column(Boolean, default=True, nullable=False, server_default='1')
     practice_settings = Column(JSON, nullable=True) # Default creator configurations for practice modes
     created_at = Column(DateTime, default=datetime.utcnow)
     

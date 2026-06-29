@@ -116,7 +116,8 @@ async def get_dashboard_data(request: Request, only_created: bool = False, db: A
         selectinload(FlashcardDeck.tags)
     ).where(
         FlashcardDeck.id.not_in(attempted_sub),
-        FlashcardDeck.id.not_in(created_sub)
+        FlashcardDeck.id.not_in(created_sub),
+        FlashcardDeck.is_public == True
     ).order_by(
         FlashcardDeck.created_at.desc()
     ).limit(12)

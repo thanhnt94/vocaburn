@@ -994,13 +994,21 @@ async def get_deck_data(request: Request, deck_id: int, db: AsyncSession = Depen
     deck = await DeckService.get_deck_by_id(db, deck_id)
     if not deck: return JSONResponse(status_code=404, content={"error": "Deck not found"})
     
-    from app.modules.deck.models import Flashcard
-    c_count_res = await db.execute(select(func.count(Flashcard.id)).where(Flashcard.deck_id == deck_id))
-    c_count = c_count_res.scalar()
-    
     # Check if user is collaborator
     collab_res = await db.execute(select(DeckCollaborator).where(DeckCollaborator.deck_id == deck_id, DeckCollaborator.user_id == user_id))
     is_collaborator = collab_res.scalar() is not None
+
+    from app.modules.auth.models import User as UserDB
+    user_res = await db.execute(select(UserDB).where(UserDB.id == user_id))
+    user_obj = user_res.scalar_one_or_none()
+    is_admin = user_obj and user_obj.role == "admin"
+
+    if not deck.is_public and deck.creator_id != user_id and user_id != 1 and not is_collaborator and not is_admin:
+        return JSONResponse(status_code=403, content={"error": "This is a private deck"})
+    
+    from app.modules.deck.models import Flashcard
+    c_count_res = await db.execute(select(func.count(Flashcard.id)).where(Flashcard.deck_id == deck_id))
+    c_count = c_count_res.scalar()
     
     return {
         "id": deck.id,
@@ -1012,6 +1020,7 @@ async def get_deck_data(request: Request, deck_id: int, db: AsyncSession = Depen
         "ai_prompt_mnemonic": deck.ai_prompt_mnemonic,
         "creator_id": deck.creator_id,
         "is_collaborator": is_collaborator,
+        "is_public": deck.is_public,
         "cards_count": c_count,
         "questions_count": c_count, # compatibility
         "tags": [t.name for t in deck.tags],
@@ -1036,6 +1045,22 @@ def migrate_practice_settings(settings: Optional[dict]) -> dict:
 async def get_deck_play_data(request: Request, deck_id: int, mode: Optional[str] = None, lightweight: Optional[bool] = None, db: AsyncSession = Depends(get_db)):
     user_id = int(request.cookies.get("user_id", 1))
     
+    # Check if deck exists and enforce privacy
+    deck_check = await DeckService.get_deck_by_id(db, deck_id)
+    if not deck_check: return JSONResponse(status_code=404, content={"error": "Deck not found"})
+    
+    from app.modules.deck.models import DeckCollaborator
+    collab_res = await db.execute(select(DeckCollaborator).where(DeckCollaborator.deck_id == deck_id, DeckCollaborator.user_id == user_id))
+    is_collaborator = collab_res.scalar() is not None
+
+    from app.modules.auth.models import User as UserDB
+    user_res = await db.execute(select(UserDB).where(UserDB.id == user_id))
+    user_obj = user_res.scalar_one_or_none()
+    is_admin = user_obj and user_obj.role == "admin"
+
+    if not deck_check.is_public and deck_check.creator_id != user_id and user_id != 1 and not is_collaborator and not is_admin:
+        return JSONResponse(status_code=403, content={"error": "This is a private deck"})
+
     if lightweight:
         from app.modules.deck.models import FlashcardDeck
         result = await db.execute(

@@ -12,8 +12,10 @@ class DeckService:
             description=deck_data.description,
             category_id=deck_data.category_id,
             creator_id=deck_data.creator_id,
+            cover_image=deck_data.cover_image,
             time_limit=deck_data.time_limit,
-            is_active=deck_data.is_active
+            is_active=deck_data.is_active,
+            is_public=deck_data.is_public
         )
         db.add(db_deck)
         await db.commit()
