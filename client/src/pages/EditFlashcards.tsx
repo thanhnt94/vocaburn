@@ -47,18 +47,20 @@ const EditFlashcards = () => {
   const [showExportMenu, setShowExportMenu] = useState(false)
   const [availableColumns, setAvailableColumns] = useState<string[]>([])
   
-  const [quickAddFront, setQuickAddFront] = useState('')
-  const [quickAddBack, setQuickAddBack] = useState('')
-  const [frontCol, setFrontCol] = useState('front')
-  const [backCol, setBackCol] = useState('back')
+  const [quickAddValues, setQuickAddValues] = useState<Record<string, string>>({})
+  const [visibleCols, setVisibleCols] = useState<string[]>(['front', 'back'])
 
   useEffect(() => {
     if (availableColumns.length > 0) {
-      if (availableColumns.includes('front')) setFrontCol('front');
-      else setFrontCol(availableColumns[0]);
-
-      if (availableColumns.includes('back')) setBackCol('back');
-      else setBackCol(availableColumns[1] || availableColumns[0]);
+      const defaultCols = []
+      if (availableColumns.includes('front')) defaultCols.push('front')
+      if (availableColumns.includes('back')) defaultCols.push('back')
+      
+      if (defaultCols.length === 0) {
+        defaultCols.push(availableColumns[0])
+        if (availableColumns[1]) defaultCols.push(availableColumns[1])
+      }
+      setVisibleCols(defaultCols)
     }
   }, [availableColumns])
 
@@ -288,7 +290,7 @@ const EditFlashcards = () => {
 
   const handleQuickAdd = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!quickAddFront.trim() && !quickAddBack.trim()) return
+    if (!Object.values(quickAddValues).some(v => v.trim())) return
     
     try {
       const initialOthers: Record<string, any> = {
@@ -304,18 +306,17 @@ const EditFlashcards = () => {
       })
 
       const newCardData: any = {
-        content: frontCol === 'front' ? quickAddFront : '',
-        explanation: backCol === 'back' ? quickAddBack : '',
+        content: quickAddValues['front'] || '',
+        explanation: quickAddValues['back'] || '',
         others: { ...initialOthers },
         options: []
       }
 
-      if (frontCol !== 'front') {
-        newCardData.others[frontCol] = quickAddFront
-      }
-      if (backCol !== 'back') {
-        newCardData.others[backCol] = quickAddBack
-      }
+      Object.keys(quickAddValues).forEach(col => {
+        if (col !== 'front' && col !== 'back') {
+          newCardData.others[col] = quickAddValues[col]
+        }
+      })
 
       const res = await axios.post(`/api/v1/deck/${id}/flashcard`, {
         content: newCardData.content,
@@ -328,10 +329,11 @@ const EditFlashcards = () => {
       setFlashcards(prev => [savedCard, ...prev].slice(0, 50))
       setTotal(prev => prev + 1)
       
-      setQuickAddFront('')
-      setQuickAddBack('')
+      setQuickAddValues({})
       
-      document.getElementById('quick-add-front')?.focus()
+      if (visibleCols.length > 0) {
+        document.getElementById(`quick-add-${visibleCols[0]}`)?.focus()
+      }
     } catch (err) {
       alert("Lỗi khi thêm thẻ nhanh")
     }
@@ -444,44 +446,72 @@ const EditFlashcards = () => {
       </div>
 
       <div className="max-w-6xl mx-auto px-4 pt-[68px] md:pt-0 mt-4">
-         {/* Column Selector Bar (Memrise Style) */}
-         <div className="bg-white rounded-[2rem] border border-slate-100 p-5 md:p-6 mb-6 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-4">
-            <div className="flex items-center gap-3">
-               <div className="w-9 h-9 bg-indigo-50 rounded-xl flex items-center justify-center text-indigo-600">
-                  <Filter className="w-4 h-4" />
+         {/* Column Manager Bar (Memrise / Multi-column Style) */}
+         <div className="bg-white rounded-[2rem] border border-slate-100 p-5 md:p-6 mb-6 shadow-sm space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-50 pb-4">
+               <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 bg-indigo-50 rounded-xl flex items-center justify-center text-indigo-600">
+                     <Filter className="w-4 h-4" />
+                  </div>
+                  <div>
+                     <h3 className="text-xs font-black text-slate-800 uppercase tracking-tight">Cấu hình cột hiển thị</h3>
+                     <p className="text-[9px] font-semibold text-slate-400 uppercase tracking-wider mt-0.5">Tùy biến thêm/bớt cột để nhập liệu nhanh nhiều trường</p>
+                  </div>
                </div>
-               <div>
-                  <h3 className="text-xs font-black text-slate-800 uppercase tracking-tight">Cấu hình cột hiển thị</h3>
-                  <p className="text-[9px] font-semibold text-slate-400 uppercase tracking-wider mt-0.5">Chọn cột dữ liệu để sửa nhanh</p>
+
+               <div className="flex items-center gap-2">
+                  <button
+                     type="button"
+                     onClick={() => setVisibleCols(['front', 'back'])}
+                     className="px-3 py-1.5 bg-slate-50 hover:bg-slate-100 text-[9px] font-black text-slate-505 rounded-lg uppercase tracking-wider transition-colors border border-slate-100"
+                  >
+                     Reset Mặc Định
+                  </button>
                </div>
             </div>
 
-            <div className="flex flex-wrap items-center gap-4 w-full sm:w-auto">
-               <div className="flex items-center gap-2 flex-1 sm:flex-initial">
-                  <span className="text-[9px] font-black text-slate-400 uppercase tracking-wider whitespace-nowrap">Mặt trước:</span>
-                  <select
-                     value={frontCol}
-                     onChange={(e) => setFrontCol(e.target.value)}
-                     className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-700 outline-none cursor-pointer focus:border-indigo-500 transition-all flex-grow sm:flex-grow-0"
-                  >
-                     {availableColumns.map(col => (
-                        <option key={col} value={col}>{col.toUpperCase()}</option>
-                     ))}
-                  </select>
+            <div className="flex flex-wrap items-center gap-3">
+               <div className="flex flex-wrap items-center gap-2">
+                  {visibleCols.map(col => (
+                     <div 
+                        key={col} 
+                        className="px-3 py-1.5 bg-indigo-50/70 border border-indigo-100 rounded-xl flex items-center gap-2 text-indigo-700 font-bold text-[10px] uppercase shadow-sm"
+                     >
+                        <span>{col}</span>
+                        {visibleCols.length > 1 && (
+                           <button
+                              type="button"
+                              onClick={() => setVisibleCols(visibleCols.filter(c => c !== col))}
+                              className="w-3.5 h-3.5 rounded-full hover:bg-indigo-200/50 flex items-center justify-center text-indigo-400 hover:text-indigo-600 transition-colors"
+                           >
+                              <X className="w-2.5 h-2.5" />
+                           </button>
+                        )}
+                     </div>
+                  ))}
                </div>
 
-               <div className="flex items-center gap-2 flex-1 sm:flex-initial">
-                  <span className="text-[9px] font-black text-slate-400 uppercase tracking-wider whitespace-nowrap">Mặt sau:</span>
-                  <select
-                     value={backCol}
-                     onChange={(e) => setBackCol(e.target.value)}
-                     className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-700 outline-none cursor-pointer focus:border-indigo-500 transition-all flex-grow sm:flex-grow-0"
-                  >
-                     {availableColumns.map(col => (
-                        <option key={col} value={col}>{col.toUpperCase()}</option>
-                     ))}
-                  </select>
-               </div>
+               {availableColumns.filter(c => !visibleCols.includes(c)).length > 0 && (
+                  <div className="flex items-center gap-1.5 ml-auto">
+                     <span className="text-[8px] font-black text-slate-400 uppercase tracking-wider">Thêm cột:</span>
+                     <select
+                        value=""
+                        onChange={(e) => {
+                           if (e.target.value) {
+                              setVisibleCols([...visibleCols, e.target.value])
+                           }
+                        }}
+                        className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-1.5 text-[10px] font-black text-slate-600 outline-none cursor-pointer hover:border-indigo-500 transition-all uppercase tracking-wider"
+                     >
+                        <option value="" disabled>-- Chọn cột --</option>
+                        {availableColumns
+                           .filter(c => !visibleCols.includes(c))
+                           .map(col => (
+                              <option key={col} value={col}>{col.toUpperCase()}</option>
+                           ))}
+                     </select>
+                  </div>
+               )}
             </div>
          </div>
 
@@ -495,29 +525,20 @@ const EditFlashcards = () => {
                <span className="text-[8px] font-bold text-slate-400 uppercase">Nhập và nhấn Enter để thêm</span>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-               <div className="space-y-1.5">
-                  <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">{frontCol.toUpperCase()}</label>
-                  <input
-                     id="quick-add-front"
-                     type="text"
-                     placeholder={`Nhập mặt trước (${frontCol})...`}
-                     value={quickAddFront}
-                     onChange={(e) => setQuickAddFront(e.target.value)}
-                     className="w-full h-12 bg-white border border-slate-200 rounded-2xl px-5 text-xs font-bold text-slate-800 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/5 outline-none transition-all"
-                  />
-               </div>
-               <div className="space-y-1.5">
-                  <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">{backCol.toUpperCase()}</label>
-                  <input
-                     id="quick-add-back"
-                     type="text"
-                     placeholder={`Nhập mặt sau (${backCol})...`}
-                     value={quickAddBack}
-                     onChange={(e) => setQuickAddBack(e.target.value)}
-                     className="w-full h-12 bg-white border border-slate-200 rounded-2xl px-5 text-xs font-bold text-slate-800 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/5 outline-none transition-all"
-                  />
-               </div>
+            <div className="flex flex-wrap gap-4">
+               {visibleCols.map(col => (
+                  <div key={col} className="space-y-1.5 flex-1 min-w-[200px]">
+                     <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">{col.toUpperCase()}</label>
+                     <input
+                        id={`quick-add-${col}`}
+                        type="text"
+                        placeholder={`Nhập ${col}...`}
+                        value={quickAddValues[col] || ''}
+                        onChange={(e) => setQuickAddValues({ ...quickAddValues, [col]: e.target.value })}
+                        className="w-full h-12 bg-white border border-slate-200 rounded-2xl px-5 text-xs font-bold text-slate-800 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/5 outline-none transition-all"
+                     />
+                  </div>
+               ))}
             </div>
 
             <button
@@ -535,9 +556,6 @@ const EditFlashcards = () => {
                   <Zap className="w-8 h-8 text-indigo-600 animate-pulse mx-auto" />
                </div>
             ) : flashcards.map((q, idx) => {
-               const frontVal = frontCol === 'front' ? q.content : (q.others?.[frontCol] || '');
-               const backVal = backCol === 'back' ? q.explanation : (q.others?.[backCol] || '');
-               
                return (
                   <div 
                     key={q.id}
@@ -585,30 +603,26 @@ const EditFlashcards = () => {
                      </div>
 
                      {/* Content Inputs */}
-                     <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                        <div className="space-y-1.5">
-                           <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">{frontCol.toUpperCase()}</label>
-                           <textarea
-                              rows={2}
-                              value={frontVal}
-                              onChange={(e) => handleRowFieldChange(q.id, frontCol === 'front' ? 'front' : frontCol, e.target.value)}
-                              onBlur={() => saveRowCard(q)}
-                              className="w-full bg-slate-50 hover:bg-slate-100/50 focus:bg-white border border-slate-100 rounded-xl px-4 py-3 text-xs font-bold text-slate-700 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/5 outline-none resize-none transition-all"
-                              placeholder={`Nhập ${frontCol}...`}
-                           />
-                        </div>
-
-                        <div className="space-y-1.5">
-                           <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">{backCol.toUpperCase()}</label>
-                           <textarea
-                              rows={2}
-                              value={backVal}
-                              onChange={(e) => handleRowFieldChange(q.id, backCol === 'back' ? 'back' : backCol, e.target.value)}
-                              onBlur={() => saveRowCard(q)}
-                              className="w-full bg-slate-50 hover:bg-slate-100/50 focus:bg-white border border-slate-100 rounded-xl px-4 py-3 text-xs font-bold text-slate-700 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/5 outline-none resize-none transition-all"
-                              placeholder={`Nhập ${backCol}...`}
-                           />
-                        </div>
+                     <div 
+                        className="grid gap-5"
+                        style={{ gridTemplateColumns: `repeat(auto-fit, minmax(220px, 1fr))` }}
+                     >
+                        {visibleCols.map(col => {
+                           const val = col === 'front' ? q.content : (col === 'back' ? q.explanation : (q.others?.[col] || ''));
+                           return (
+                              <div key={col} className="space-y-1.5">
+                                 <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">{col.toUpperCase()}</label>
+                                 <textarea
+                                    rows={2}
+                                    value={val}
+                                    onChange={(e) => handleRowFieldChange(q.id, col, e.target.value)}
+                                    onBlur={() => saveRowCard(q)}
+                                    className="w-full bg-slate-50 hover:bg-slate-100/50 focus:bg-white border border-slate-100 rounded-xl px-4 py-3 text-xs font-bold text-slate-700 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/5 outline-none resize-none transition-all"
+                                    placeholder={`Nhập ${col}...`}
+                                 />
+                              </div>
+                           )
+                        })}
                      </div>
                   </div>
                )
