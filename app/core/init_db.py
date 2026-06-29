@@ -51,8 +51,17 @@ async def init_db():
                     print(f"[MIGRATE] Adding column {col_name} ({col_type}) to user_deck_goals...")
                     connection.execute(text(f"ALTER TABLE user_deck_goals ADD COLUMN {col_name} {col_type}"))
             
+        def cleanup_orphaned_cards(connection):
+            print("[CLEANUP] Deleting orphaned flashcards...")
+            connection.execute(text("DELETE FROM flashcards WHERE quiz_id NOT IN (SELECT id FROM flashcard_decks)"))
+            connection.execute(text("DELETE FROM user_card_mastery WHERE question_id NOT IN (SELECT id FROM flashcards)"))
+            connection.execute(text("DELETE FROM card_answers WHERE question_id NOT IN (SELECT id FROM flashcards)"))
+            connection.execute(text("DELETE FROM user_card_notes WHERE question_id NOT IN (SELECT id FROM flashcards)"))
+            connection.execute(text("DELETE FROM user_practice_stats WHERE question_id NOT IN (SELECT id FROM flashcards)"))
+
         await conn.run_sync(migrate_fsrs_columns)
         await conn.run_sync(migrate_deck_goals_columns)
+        await conn.run_sync(cleanup_orphaned_cards)
         
     async with SessionLocal() as db:
         # Check if category exists
