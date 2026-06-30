@@ -888,6 +888,44 @@ async def ai_queue_callback(data: dict, db: AsyncSession = Depends(get_db)):
     logger.info(f"[AI CALLBACK SUCCESS] Updated card {card_id} field '{field}' via CentralAuth Queue Callback.")
     return {"status": "ok"}
 
+def _resolve_prompt_placeholders(template: str, card, deck, options_text: str, correct_answer_text: str) -> str:
+    prompt = template
+    
+    # 1. Standard replacements
+    prompt = prompt.replace("{{card}}", card.content or "")
+    prompt = prompt.replace("{{question}}", card.content or "")
+    prompt = prompt.replace("{{front}}", card.content or "")
+    prompt = prompt.replace("{{back}}", card.explanation or "")
+    prompt = prompt.replace("{{explanation}}", card.explanation or "")
+    prompt = prompt.replace("{{correct_answer}}", correct_answer_text)
+    prompt = prompt.replace("{{options}}", options_text)
+    prompt = prompt.replace("{{global_instruction}}", (deck.instruction if deck else "") or "")
+    prompt = prompt.replace("{{quiz_title}}", (deck.title if deck else "") or "")
+    prompt = prompt.replace("{{deck_title}}", (deck.title if deck else "") or "")
+    prompt = prompt.replace("{{quiz_description}}", (deck.description if deck else "") or "")
+    prompt = prompt.replace("{{deck_description}}", (deck.description if deck else "") or "")
+    
+    # 2. Custom fields in card.others
+    if card.others and isinstance(card.others, dict):
+        for k, v in card.others.items():
+            if v is not None:
+                prompt = prompt.replace(f"{{{{{k}}}}}", str(v))
+                prompt = prompt.replace(f"{{{{{k.lower()}}}}}", str(v))
+                
+    # 3. Model attribute fallbacks
+    prompt = prompt.replace("{{front_audio_content}}", getattr(card, "front_audio_content", "") or "")
+    prompt = prompt.replace("{{back_audio_content}}", getattr(card, "back_audio_content", "") or "")
+    prompt = prompt.replace("{{front_audio_url}}", getattr(card, "front_audio_url", "") or "")
+    prompt = prompt.replace("{{back_audio_url}}", getattr(card, "back_audio_url", "") or "")
+    prompt = prompt.replace("{{front_img}}", getattr(card, "front_img", "") or "")
+    prompt = prompt.replace("{{back_img}}", getattr(card, "back_img", "") or "")
+    
+    # Replace any option placeholders
+    for i in range(4):
+        prompt = prompt.replace(f"{{{{option_{chr(97+i)}}}}}", "")
+        
+    return prompt
+
 async def _bulk_generate_deck_ai_task(deck_id: int, field: str, force: bool, base_url: str):
     from app.core.db import SessionLocal
     async with SessionLocal() as db:
@@ -961,19 +999,7 @@ async def _bulk_generate_deck_ai_task(deck_id: int, field: str, force: bool, bas
                     if correct_opt:
                         correct_answer_text = correct_opt.content
                         
-                prompt = template \
-                    .replace("{{question}}", c.content or "") \
-                    .replace("{{card}}", c.content or "") \
-                    .replace("{{options}}", options_text) \
-                    .replace("{{correct_answer}}", correct_answer_text) \
-                    .replace("{{global_instruction}}", (deck.instruction if deck else "") or "") \
-                    .replace("{{quiz_title}}", (deck.title if deck else "") or "") \
-                    .replace("{{deck_title}}", (deck.title if deck else "") or "") \
-                    .replace("{{quiz_description}}", (deck.description if deck else "") or "") \
-                    .replace("{{deck_description}}", (deck.description if deck else "") or "")
-                    
-                for i in range(4):
-                    prompt = prompt.replace(f"{{{{option_{chr(97+i)}}}}}", "")
+                prompt = _resolve_prompt_placeholders(template, c, deck, options_text, correct_answer_text)
 
                 tasks_to_submit.append({
                     "satellite_source": "vocaburn",
@@ -1133,19 +1159,7 @@ async def generate_single_card_ai(
         if correct_opt:
             correct_answer_text = correct_opt.content
             
-    prompt = template \
-        .replace("{{question}}", card.content or "") \
-        .replace("{{card}}", card.content or "") \
-        .replace("{{options}}", options_text) \
-        .replace("{{correct_answer}}", correct_answer_text) \
-        .replace("{{global_instruction}}", (deck.instruction if deck else "") or "") \
-        .replace("{{quiz_title}}", (deck.title if deck else "") or "") \
-        .replace("{{deck_title}}", (deck.title if deck else "") or "") \
-        .replace("{{quiz_description}}", (deck.description if deck else "") or "") \
-        .replace("{{deck_description}}", (deck.description if deck else "") or "")
-        
-    for i in range(4):
-        prompt = prompt.replace(f"{{{{option_{chr(97+i)}}}}}", "")
+    prompt = _resolve_prompt_placeholders(template, card, deck, options_text, correct_answer_text)
         
     scheme = request.headers.get("x-forwarded-proto", request.url.scheme)
     netloc = request.url.netloc

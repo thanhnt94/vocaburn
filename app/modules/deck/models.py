@@ -35,8 +35,8 @@ class FlashcardDeck(Base):
 class Flashcard(Base):
     __tablename__ = "flashcards"
     id = Column(Integer, primary_key=True, index=True)
-    deck_id = Column("quiz_id", Integer, ForeignKey("flashcard_decks.id"), index=True)
-    content = Column(Text, nullable=False)
+    deck_id = Column("deck_id", Integer, ForeignKey("flashcard_decks.id"), index=True)
+    content = Column("front", Text, nullable=False)
     front_audio_content = Column(Text, nullable=True)
     back_audio_content = Column(Text, nullable=True)
     front_audio_url = Column(String(512), nullable=True)
@@ -49,14 +49,22 @@ class Flashcard(Base):
     
     deck = relationship("FlashcardDeck", back_populates="cards")
 
+    @property
+    def front(self) -> str:
+        return self.content
+
+    @front.setter
+    def front(self, value: str):
+        self.content = value
+
 class DeckAttempt(Base):
     __tablename__ = "deck_attempts"
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id"), index=True)
-    deck_id = Column("quiz_id", Integer, ForeignKey("flashcard_decks.id"), index=True)
+    deck_id = Column("deck_id", Integer, ForeignKey("flashcard_decks.id"), index=True)
     mode = Column(String(50)) # sequential, random, mastery
     score = Column(Integer, default=0)
-    total_cards = Column("total_questions", Integer, default=0)
+    total_cards = Column("total_cards", Integer, default=0)
     is_archived = Column(Boolean, default=False)
     started_at = Column(DateTime, default=datetime.utcnow)
     completed_at = Column(DateTime, nullable=True)
@@ -67,7 +75,7 @@ class UserAnswer(Base):
     __tablename__ = "card_answers"
     id = Column(Integer, primary_key=True, index=True)
     attempt_id = Column(Integer, ForeignKey("deck_attempts.id"), index=True)
-    card_id = Column("question_id", Integer, ForeignKey("flashcards.id"), index=True)
+    card_id = Column("card_id", Integer, ForeignKey("flashcards.id"), index=True)
     is_correct = Column(Boolean, default=False)
     active_time = Column(Float, default=0.0)
     rating = Column(Integer, nullable=True) # FSRS Rating: 1=Again, 2=Hard, 3=Good, 4=Easy
@@ -79,7 +87,7 @@ class DeckSession(Base):
     __tablename__ = "deck_sessions"
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, index=True)
-    deck_id = Column("quiz_id", Integer, ForeignKey("flashcard_decks.id"), index=True)
+    deck_id = Column("deck_id", Integer, ForeignKey("flashcard_decks.id"), index=True)
     mode = Column(String) # classic, chaos, mastery, batch
     current_index = Column(Integer, default=0)
     state_json = Column(String) # For storing card order/answers
@@ -89,7 +97,7 @@ class UserCardNote(Base):
     __tablename__ = "user_card_notes"
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id"), index=True)
-    card_id = Column("question_id", Integer, ForeignKey("flashcards.id"), index=True)
+    card_id = Column("card_id", Integer, ForeignKey("flashcards.id"), index=True)
     content = Column(Text, nullable=False)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
@@ -105,13 +113,13 @@ class Tag(Base):
 
 class DeckTag(Base):
     __tablename__ = "deck_tags"
-    deck_id = Column("quiz_id", Integer, ForeignKey("flashcard_decks.id"), primary_key=True)
+    deck_id = Column("deck_id", Integer, ForeignKey("flashcard_decks.id"), primary_key=True)
     tag_id = Column(Integer, ForeignKey("tags.id"), primary_key=True)
 
 class DeckRoom(Base):
     __tablename__ = "deck_rooms"
     id = Column(Integer, primary_key=True, index=True)
-    deck_id = Column("quiz_id", Integer, ForeignKey("flashcard_decks.id"), index=True)
+    deck_id = Column("deck_id", Integer, ForeignKey("flashcard_decks.id"), index=True)
     room_code = Column(String(20), unique=True, index=True)
     host_id = Column(Integer, ForeignKey("users.id"), index=True)
     status = Column(String(50), default="waiting") # waiting, active, finished
@@ -151,7 +159,7 @@ class DeckRoomChat(Base):
 
 class DeckCollaborator(Base):
     __tablename__ = "deck_collaborators"
-    deck_id = Column("quiz_id", Integer, ForeignKey("flashcard_decks.id"), primary_key=True)
+    deck_id = Column("deck_id", Integer, ForeignKey("flashcard_decks.id"), primary_key=True)
     user_id = Column(Integer, ForeignKey("users.id"), primary_key=True)
     added_at = Column(DateTime, default=datetime.utcnow)
     
@@ -162,7 +170,7 @@ class UserDeckGoal(Base):
     __tablename__ = "user_deck_goals"
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id"), index=True)
-    deck_id = Column("quiz_id", Integer, ForeignKey("flashcard_decks.id"), index=True)
+    deck_id = Column("deck_id", Integer, ForeignKey("flashcard_decks.id"), index=True)
     daily_target = Column(Integer, default=5) # daily new card target
     daily_time_target = Column(Integer, default=10) # in minutes
     daily_card_target = Column(Integer, default=20) # total cards
@@ -187,10 +195,10 @@ class UserDailyProgress(Base):
 
 class UserCardMastery(Base):
     __tablename__ = "user_card_mastery"
-    __table_args__ = (UniqueConstraint("user_id", "question_id", name="uq_user_question"),)
+    __table_args__ = (UniqueConstraint("user_id", "card_id", name="uq_user_card"),)
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id"), index=True)
-    card_id = Column("question_id", Integer, ForeignKey("flashcards.id"), index=True)
+    card_id = Column("card_id", Integer, ForeignKey("flashcards.id"), index=True)
     is_ignored = Column(Boolean, default=False, nullable=False, server_default='0')
     box_level = Column(Integer, default=1)  # Leitner system box 1-5 (Mastery level)
     consecutive_correct = Column(Integer, default=0)
@@ -230,11 +238,11 @@ class UserGlobalGoal(Base):
 
 class UserPracticeStats(Base):
     __tablename__ = "user_practice_stats"
-    __table_args__ = (UniqueConstraint("user_id", "question_id", "practice_mode", name="uq_user_card_mode"),)
+    __table_args__ = (UniqueConstraint("user_id", "card_id", "practice_mode", name="uq_user_card_mode"),)
     
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id"), index=True)
-    card_id = Column("question_id", Integer, ForeignKey("flashcards.id"), index=True)
+    card_id = Column("card_id", Integer, ForeignKey("flashcards.id"), index=True)
     practice_mode = Column(String(50), default="mcq")  # mcq, typing, listening
     correct_count = Column(Integer, default=0)
     wrong_count = Column(Integer, default=0)

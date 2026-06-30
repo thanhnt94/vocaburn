@@ -53,11 +53,11 @@ async def init_db():
             
         def cleanup_orphaned_cards(connection):
             print("[CLEANUP] Deleting orphaned flashcards...")
-            connection.execute(text("DELETE FROM flashcards WHERE quiz_id NOT IN (SELECT id FROM flashcard_decks)"))
-            connection.execute(text("DELETE FROM user_card_mastery WHERE question_id NOT IN (SELECT id FROM flashcards)"))
-            connection.execute(text("DELETE FROM card_answers WHERE question_id NOT IN (SELECT id FROM flashcards)"))
-            connection.execute(text("DELETE FROM user_card_notes WHERE question_id NOT IN (SELECT id FROM flashcards)"))
-            connection.execute(text("DELETE FROM user_practice_stats WHERE question_id NOT IN (SELECT id FROM flashcards)"))
+            connection.execute(text("DELETE FROM flashcards WHERE deck_id NOT IN (SELECT id FROM flashcard_decks)"))
+            connection.execute(text("DELETE FROM user_card_mastery WHERE card_id NOT IN (SELECT id FROM flashcards)"))
+            connection.execute(text("DELETE FROM card_answers WHERE card_id NOT IN (SELECT id FROM flashcards)"))
+            connection.execute(text("DELETE FROM user_card_notes WHERE card_id NOT IN (SELECT id FROM flashcards)"))
+            connection.execute(text("DELETE FROM user_practice_stats WHERE card_id NOT IN (SELECT id FROM flashcards)"))
 
         await conn.run_sync(migrate_fsrs_columns)
         await conn.run_sync(migrate_deck_goals_columns)
