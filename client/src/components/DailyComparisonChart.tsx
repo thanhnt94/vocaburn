@@ -31,7 +31,7 @@ export default function DailyComparisonChart({ data, allTimeAvg, isLoading }: Da
       <div className="bg-white border border-slate-200/60 rounded-[2.5rem] p-6 shadow-sm flex flex-col items-center justify-center text-center h-[400px]">
         <TrendingUp className="w-8 h-8 text-slate-350 animate-pulse mb-3" />
         <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
-          Đang tải biểu đồ so sánh...
+          Loading comparison chart...
         </span>
       </div>
     );
@@ -52,8 +52,8 @@ export default function DailyComparisonChart({ data, allTimeAvg, isLoading }: Da
     yesterday.setDate(now.getDate() - 1);
     const yesterdayUTC = yesterday.toISOString().split('T')[0];
 
-    if (dateStr === todayUTC) return "Hnay";
-    if (dateStr === yesterdayUTC) return "Hqua";
+    if (dateStr === todayUTC) return "Today";
+    if (dateStr === yesterdayUTC) return "Yesterday";
 
     return `${parts[2]}/${parts[1]}`;
   };
@@ -104,10 +104,10 @@ export default function DailyComparisonChart({ data, allTimeAvg, isLoading }: Da
         </div>
         <div>
           <h3 className="text-base sm:text-lg font-black text-slate-800 uppercase tracking-wide italic leading-tight">
-            Hiệu suất hàng ngày
+            Daily Performance
           </h3>
           <p className="text-[10px] sm:text-xs font-bold text-slate-400">
-            So sánh học tập hôm nay vs hôm qua & trung bình {allTimeAvg?.active_days || 0} ngày
+            Comparing study today vs yesterday & {allTimeAvg?.active_days || 0}-day average
           </p>
         </div>
       </div>
@@ -118,7 +118,7 @@ export default function DailyComparisonChart({ data, allTimeAvg, isLoading }: Da
         <div className="bg-amber-50/20 border border-amber-100/50 rounded-2xl sm:rounded-3xl p-2.5 sm:p-4 flex flex-col gap-1.5 sm:gap-2 relative overflow-hidden">
           <div className="flex items-center gap-1 sm:gap-1.5">
             <BookOpen className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-500 shrink-0" />
-            <span className="text-[7.5px] sm:text-[9px] font-black uppercase tracking-tighter sm:tracking-widest text-slate-500 truncate">Thẻ mới</span>
+            <span className="text-[7.5px] sm:text-[9px] font-black uppercase tracking-tighter sm:tracking-widest text-slate-500 truncate">New Cards</span>
           </div>
           <div className="flex flex-row items-center sm:items-end gap-1.5 sm:gap-3 mt-0.5 sm:mt-1">
             <span className="text-xl sm:text-3xl font-black text-slate-800 leading-none">{todayData.new_cards}</span>
@@ -127,7 +127,7 @@ export default function DailyComparisonChart({ data, allTimeAvg, isLoading }: Da
           <div className="flex flex-col gap-0.5 sm:gap-0.5 mt-1 sm:mt-2">
             {allTimeAvg && allTimeAvg.active_days > 0 && (
               <span className="text-[9px] sm:text-[10px] font-bold text-slate-400 leading-tight">
-                TB: {allTimeAvg.new_cards} <br className="sm:hidden" /> {renderAvgDiff(todayData.new_cards, allTimeAvg.new_cards)}
+                Avg: {allTimeAvg.new_cards} <br className="sm:hidden" /> {renderAvgDiff(todayData.new_cards, allTimeAvg.new_cards)}
               </span>
             )}
           </div>
@@ -137,7 +137,7 @@ export default function DailyComparisonChart({ data, allTimeAvg, isLoading }: Da
         <div className="bg-emerald-50/20 border border-emerald-100/50 rounded-2xl sm:rounded-3xl p-2.5 sm:p-4 flex flex-col gap-1.5 sm:gap-2 relative overflow-hidden">
           <div className="flex items-center gap-1 sm:gap-1.5">
             <Layers className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-emerald-500 shrink-0" />
-            <span className="text-[7.5px] sm:text-[9px] font-black uppercase tracking-tighter sm:tracking-widest text-slate-500 truncate">Đã ôn (U)</span>
+            <span className="text-[7.5px] sm:text-[9px] font-black uppercase tracking-tighter sm:tracking-widest text-slate-500 truncate">Reviewed (U)</span>
           </div>
           <div className="flex flex-row items-center sm:items-end gap-1.5 sm:gap-3 mt-0.5 sm:mt-1">
             <span className="text-xl sm:text-3xl font-black text-slate-800 leading-none">{todayData.unique_cards}</span>
@@ -146,7 +146,7 @@ export default function DailyComparisonChart({ data, allTimeAvg, isLoading }: Da
           <div className="flex flex-col gap-0.5 sm:gap-0.5 mt-1 sm:mt-2">
             {allTimeAvg && allTimeAvg.active_days > 0 && (
               <span className="text-[9px] sm:text-[10px] font-bold text-slate-400 leading-tight">
-                TB: {allTimeAvg.unique_cards} <br className="sm:hidden" /> {renderAvgDiff(todayData.unique_cards, allTimeAvg.unique_cards)}
+                Avg: {allTimeAvg.unique_cards} <br className="sm:hidden" /> {renderAvgDiff(todayData.unique_cards, allTimeAvg.unique_cards)}
               </span>
             )}
           </div>
@@ -156,7 +156,7 @@ export default function DailyComparisonChart({ data, allTimeAvg, isLoading }: Da
         <div className="bg-orange-50/20 border border-orange-100/50 rounded-2xl sm:rounded-3xl p-2.5 sm:p-4 flex flex-col gap-1.5 sm:gap-2 relative overflow-hidden">
           <div className="flex items-center gap-1 sm:gap-1.5">
             <Zap className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-orange-500 shrink-0" />
-            <span className="text-[7.5px] sm:text-[9px] font-black uppercase tracking-tighter sm:tracking-widest text-slate-500 truncate">Lượt ôn</span>
+            <span className="text-[7.5px] sm:text-[9px] font-black uppercase tracking-tighter sm:tracking-widest text-slate-500 truncate">Reviews</span>
           </div>
           <div className="flex flex-row items-center sm:items-end gap-1.5 sm:gap-3 mt-0.5 sm:mt-1">
             <span className="text-xl sm:text-3xl font-black text-slate-800 leading-none">{todayData.total_reviews}</span>
@@ -165,7 +165,7 @@ export default function DailyComparisonChart({ data, allTimeAvg, isLoading }: Da
           <div className="flex flex-col gap-0.5 sm:gap-0.5 mt-1 sm:mt-2">
             {allTimeAvg && allTimeAvg.active_days > 0 && (
               <span className="text-[9px] sm:text-[10px] font-bold text-slate-400 leading-tight">
-                TB: {allTimeAvg.total_reviews} <br className="sm:hidden" /> {renderAvgDiff(todayData.total_reviews, allTimeAvg.total_reviews)}
+                Avg: {allTimeAvg.total_reviews} <br className="sm:hidden" /> {renderAvgDiff(todayData.total_reviews, allTimeAvg.total_reviews)}
               </span>
             )}
           </div>
@@ -175,7 +175,7 @@ export default function DailyComparisonChart({ data, allTimeAvg, isLoading }: Da
         <div className="bg-sky-50/20 border border-sky-100/50 rounded-2xl sm:rounded-3xl p-2.5 sm:p-4 flex flex-col gap-1.5 sm:gap-2 relative overflow-hidden">
           <div className="flex items-center gap-1 sm:gap-1.5">
             <Clock className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-sky-500 shrink-0" />
-            <span className="text-[7.5px] sm:text-[9px] font-black uppercase tracking-tighter sm:tracking-widest text-slate-500 truncate">Thời gian</span>
+            <span className="text-[7.5px] sm:text-[9px] font-black uppercase tracking-tighter sm:tracking-widest text-slate-500 truncate">Time</span>
           </div>
           <div className="flex flex-row items-center sm:items-end gap-1.5 sm:gap-3 mt-0.5 sm:mt-1">
             <span className="text-xl sm:text-3xl font-black text-slate-800 leading-none">{todayData.study_minutes}</span>
@@ -184,7 +184,7 @@ export default function DailyComparisonChart({ data, allTimeAvg, isLoading }: Da
           <div className="flex flex-col gap-0.5 sm:gap-0.5 mt-1 sm:mt-2">
             {allTimeAvg && allTimeAvg.active_days > 0 && (
               <span className="text-[9px] sm:text-[10px] font-bold text-slate-400 leading-tight">
-                TB: {allTimeAvg.study_minutes} <br className="sm:hidden" /> {renderAvgDiff(todayData.study_minutes, allTimeAvg.study_minutes)}
+                Avg: {allTimeAvg.study_minutes}m <br className="sm:hidden" /> {renderAvgDiff(todayData.study_minutes, allTimeAvg.study_minutes)}
               </span>
             )}
           </div>
@@ -218,20 +218,20 @@ export default function DailyComparisonChart({ data, allTimeAvg, isLoading }: Da
                     <div className="bg-white p-4 rounded-[1.5rem] border border-slate-100 shadow-xl flex flex-col gap-2 min-w-[140px]">
                       <p className="text-slate-800 font-black border-b border-slate-100 pb-2 text-xs">{d.date}</p>
                       <p className="text-[10px] font-bold text-slate-500 flex justify-between gap-4">
-                        <span className="uppercase tracking-wider">Thẻ mới</span> 
+                        <span className="uppercase tracking-wider">New Cards</span> 
                         <span className="text-amber-500 font-black">{d.new_cards}</span>
                       </p>
                       <p className="text-[10px] font-bold text-slate-500 flex justify-between gap-4">
-                        <span className="uppercase tracking-wider">Đã ôn (Unique)</span> 
+                        <span className="uppercase tracking-wider">Reviewed (Unique)</span> 
                         <span className="text-emerald-500 font-black">{d.unique_cards}</span>
                       </p>
                       <p className="text-[10px] font-bold text-slate-500 flex justify-between gap-4">
-                        <span className="uppercase tracking-wider">Lượt ôn</span> 
+                        <span className="uppercase tracking-wider">Reviews</span> 
                         <span className="text-orange-500 font-black">{d.total_reviews}</span>
                       </p>
                       <p className="text-[10px] font-bold text-slate-500 flex justify-between gap-4">
-                        <span className="uppercase tracking-wider">Thời gian</span> 
-                        <span className="text-sky-500 font-black">{d.study_minutes} phút</span>
+                        <span className="uppercase tracking-wider">Time</span> 
+                        <span className="text-sky-500 font-black">{d.study_minutes} mins</span>
                       </p>
                     </div>
                   );
@@ -287,25 +287,25 @@ export default function DailyComparisonChart({ data, allTimeAvg, isLoading }: Da
         <div className="flex justify-center gap-6 flex-wrap">
           <div className="flex items-center gap-2">
             <div className="w-3 h-3 rounded-full bg-amber-500" />
-            <span className="text-[9px] font-black text-slate-600 uppercase tracking-widest">Thẻ mới</span>
+            <span className="text-[9px] font-black text-slate-600 uppercase tracking-widest">New Cards</span>
           </div>
           <div className="flex items-center gap-2">
             <div className="w-3 h-3 rounded-full bg-emerald-500" />
-            <span className="text-[9px] font-black text-slate-600 uppercase tracking-widest">Đã ôn (Unique)</span>
+            <span className="text-[9px] font-black text-slate-600 uppercase tracking-widest">Reviewed (Unique)</span>
           </div>
           <div className="flex items-center gap-2">
             <div className="w-3 h-3 rounded-full bg-indigo-500" />
-            <span className="text-[9px] font-black text-slate-600 uppercase tracking-widest">Lượt ôn</span>
+            <span className="text-[9px] font-black text-slate-600 uppercase tracking-widest">Reviews</span>
           </div>
           <div className="flex items-center gap-2">
             <div className="w-3 h-3 rounded-full bg-sky-500" />
-            <span className="text-[9px] font-black text-slate-600 uppercase tracking-widest">Thời gian (phút)</span>
+            <span className="text-[9px] font-black text-slate-600 uppercase tracking-widest">Time (mins)</span>
           </div>
         </div>
         
         {allTimeAvg && allTimeAvg.active_days > 0 && (
           <p className="text-[9px] italic font-semibold text-slate-400 text-center max-w-[80%]">
-            * Đường nét đứt (---) tương ứng trên biểu đồ biểu thị giá trị Trung bình (TB) của từng chỉ số
+            * Dashed lines (---) on the chart represent the average (Avg) value of each metric
           </p>
         )}
       </div>

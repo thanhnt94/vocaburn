@@ -113,7 +113,7 @@ function ReviewForecastWidget({ data }: { data: ForecastResponse | undefined }) 
     return (
       <div className="bg-white border border-slate-200/60 rounded-[2.5rem] p-6 shadow-sm flex flex-col items-center justify-center text-center h-48">
         <TrendingUp className="w-8 h-8 text-slate-350 animate-pulse mb-3" />
-        <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Đang tính toán dữ liệu dự báo...</span>
+        <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Calculating review forecast data...</span>
       </div>
     )
   }
@@ -140,8 +140,8 @@ function ReviewForecastWidget({ data }: { data: ForecastResponse | undefined }) 
               <TrendingUp className="w-4.5 h-4.5" />
             </div>
             <div>
-              <h3 className="text-xs sm:text-sm font-black text-slate-900 uppercase tracking-widest italic leading-none">Dự báo ôn tập FSRS</h3>
-              <p className="text-[9px] font-bold text-slate-400 mt-1">Lượng thẻ ôn tập dự kiến</p>
+              <h3 className="text-xs sm:text-sm font-black text-slate-900 uppercase tracking-widest italic leading-none">FSRS Review Forecast</h3>
+              <p className="text-[9px] font-bold text-slate-400 mt-1">Expected review cards</p>
             </div>
           </div>
 
@@ -154,11 +154,11 @@ function ReviewForecastWidget({ data }: { data: ForecastResponse | undefined }) 
                 className={cn(
                   "px-2 sm:px-3 py-1 rounded-lg text-[8px] font-black uppercase tracking-widest transition-all cursor-pointer",
                   viewMode === mode
-                    ? "bg-white text-orange-650 shadow-sm border border-slate-100/50"
+                    ? "bg-white text-orange-600 shadow-sm border border-slate-100/50"
                     : "text-slate-400 hover:text-slate-600"
                 )}
               >
-                {mode === 'hourly' ? 'Giờ' : mode === 'daily' ? 'Ngày' : 'Tuần'}
+                {mode === 'hourly' ? 'Hour' : mode === 'daily' ? 'Day' : 'Week'}
               </button>
             ))}
           </div>
@@ -171,15 +171,15 @@ function ReviewForecastWidget({ data }: { data: ForecastResponse | undefined }) 
       <div className="grid grid-cols-2 gap-3 bg-gradient-to-r from-orange-50/50 to-indigo-50/30 p-3 rounded-2xl border border-slate-100">
         <div className="flex flex-col">
           <span className="text-[8px] font-black text-slate-400 uppercase tracking-wider">
-            {viewMode === 'hourly' ? "Hôm nay cần ôn" : viewMode === 'daily' ? "Hôm nay cần ôn" : "Tuần này cần ôn"}
+            {viewMode === 'hourly' ? "Due today" : viewMode === 'daily' ? "Due today" : "Due this week"}
           </span>
-          <span className="text-sm font-black text-orange-650 mt-0.5">{todayCount} thẻ</span>
+          <span className="text-sm font-black text-orange-600 mt-0.5">{todayCount} cards</span>
         </div>
         <div className="flex flex-col border-l border-slate-100 pl-3">
           <span className="text-[8px] font-black text-slate-400 uppercase tracking-wider">
-            {viewMode === 'hourly' ? "Tích lũy 24h" : viewMode === 'daily' ? `Tích lũy ${daysRange} ngày` : "Tích lũy 4 tuần"}
+            {viewMode === 'hourly' ? "24h Cumulative" : viewMode === 'daily' ? `${daysRange}-day Cumulative` : "4-week Cumulative"}
           </span>
-          <span className="text-sm font-black text-indigo-600 mt-0.5">{maxCumulative} thẻ</span>
+          <span className="text-sm font-black text-indigo-600 mt-0.5">{maxCumulative} cards</span>
         </div>
       </div>
 
@@ -312,9 +312,9 @@ function MiniHeatmap({ data }: { data: HeatmapDay[] }) {
   return (
     <div className="bg-white border border-slate-200/60 rounded-[2rem] p-5 shadow-sm flex flex-col gap-3 text-left flex-shrink-0">
       <div className="flex items-center justify-between">
-        <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Lịch sử học tập</span>
+        <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Study History</span>
         <span className="text-[9px] font-black text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-lg border border-indigo-100">
-          {totalThisMonth} thẻ tháng này
+          {totalThisMonth} cards this month
         </span>
       </div>
       <div className="flex justify-center gap-[3px] py-2 overflow-x-auto scrollbar-none">
@@ -323,7 +323,7 @@ function MiniHeatmap({ data }: { data: HeatmapDay[] }) {
             {week.map((cell, di) => (
               <div
                 key={di}
-                title={`${cell.date}: ${cell.count} thẻ`}
+                title={`${cell.date}: ${cell.count} cards`}
                 className={cn(
                   'w-3 h-3 rounded-[3px] transition-all hover:scale-125 cursor-default',
                   getColor(cell.count)
@@ -334,11 +334,11 @@ function MiniHeatmap({ data }: { data: HeatmapDay[] }) {
         ))}
       </div>
       <div className="flex items-center justify-center gap-1.5 mt-0.5 border-t border-slate-50 pt-2.5">
-        <span className="text-[8px] font-bold text-slate-400">Ít</span>
+        <span className="text-[8px] font-bold text-slate-400">Less</span>
         {['bg-slate-100', 'bg-indigo-200', 'bg-indigo-400', 'bg-indigo-600', 'bg-indigo-800'].map((c, i) => (
           <div key={i} className={cn('w-2.5 h-2.5 rounded-[2px]', c)} />
         ))}
-        <span className="text-[8px] font-bold text-slate-400">Nhiều</span>
+        <span className="text-[8px] font-bold text-slate-400">More</span>
       </div>
     </div>
   )
@@ -401,7 +401,7 @@ function LeaderboardWidget({ data, activeFilter, onFilterChange }: {
     <div className="bg-white border border-slate-200/60 rounded-[2rem] p-5 shadow-sm flex flex-col gap-4 text-left flex-shrink-0">
       <div className="flex flex-col gap-3 pb-3 border-b border-slate-100">
         <div className="flex items-center justify-between">
-          <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">🏆 Bảng xếp hạng</span>
+          <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">🏆 Leaderboard</span>
           
           <div className="flex items-center bg-slate-100 rounded-lg p-0.5">
             <button
@@ -420,7 +420,7 @@ function LeaderboardWidget({ data, activeFilter, onFilterChange }: {
                 activeTab === 'time' ? "bg-white text-indigo-600 shadow-sm" : "text-slate-400 hover:text-slate-600"
               )}
             >
-              Thời gian
+              Time
             </button>
             <button
               onClick={() => setActiveTab('new_cards')}
@@ -429,7 +429,7 @@ function LeaderboardWidget({ data, activeFilter, onFilterChange }: {
                 activeTab === 'new_cards' ? "bg-white text-indigo-600 shadow-sm" : "text-slate-400 hover:text-slate-600"
               )}
             >
-              Thẻ mới
+              New
             </button>
             <button
               onClick={() => setActiveTab('cards')}
@@ -438,7 +438,7 @@ function LeaderboardWidget({ data, activeFilter, onFilterChange }: {
                 activeTab === 'cards' ? "bg-white text-indigo-600 shadow-sm" : "text-slate-400 hover:text-slate-600"
               )}
             >
-              Lượt ôn
+              Reviews
             </button>
           </div>
         </div>
@@ -446,9 +446,9 @@ function LeaderboardWidget({ data, activeFilter, onFilterChange }: {
         {/* Time Filters */}
         <div className="flex items-center gap-1.5 self-start">
           {[
-            { id: 'today', label: 'Hôm nay' },
-            { id: 'week', label: 'Tuần này' },
-            { id: 'all_time', label: 'Toàn bộ' }
+            { id: 'today', label: 'Today' },
+            { id: 'week', label: 'This Week' },
+            { id: 'all_time', label: 'All Time' }
           ].map(filter => (
             <button
               key={filter.id}
@@ -514,7 +514,7 @@ function LeaderboardWidget({ data, activeFilter, onFilterChange }: {
                     'text-[10px] font-black truncate block',
                     entry.is_current_user ? 'text-indigo-700' : 'text-slate-700'
                   )}>
-                    {entry.username} {entry.is_current_user && '(Bạn)'}
+                    {entry.username} {entry.is_current_user && '(You)'}
                   </span>
                   {activeTab === 'xp' ? (
                     <span className="text-[8px] font-bold text-slate-400 flex items-center gap-1">
@@ -522,15 +522,15 @@ function LeaderboardWidget({ data, activeFilter, onFilterChange }: {
                     </span>
                   ) : activeTab === 'time' ? (
                     <span className="text-[8px] font-bold text-slate-400 flex items-center gap-1">
-                      Tổng thời gian học
+                      Total study time
                     </span>
                   ) : activeTab === 'new_cards' ? (
                     <span className="text-[8px] font-bold text-slate-400 flex items-center gap-1">
-                      Tổng số thẻ mới học
+                      Total new cards
                     </span>
                   ) : (
                     <span className="text-[8px] font-bold text-slate-400 flex items-center gap-1">
-                      Tổng số lượt ôn tập
+                      Total card reviews
                     </span>
                   )}
                 </div>
@@ -545,11 +545,11 @@ function LeaderboardWidget({ data, activeFilter, onFilterChange }: {
                       : activeTab === 'time' 
                         ? formatTime(entry.total_time || 0) 
                         : activeTab === 'new_cards' 
-                          ? `${entry.new_cards || 0} thẻ` 
-                          : `${entry.total_cards || 0} lượt`}
+                          ? `${entry.new_cards || 0} cards` 
+                          : `${entry.total_cards || 0} reviews`}
                   </span>
                   <span className="text-[7px] font-black text-slate-400 block">
-                    {activeTab === 'xp' ? 'XP' : activeTab === 'time' ? 'Đã học' : activeTab === 'new_cards' ? 'Thẻ mới' : 'Lượt ôn'}
+                    {activeTab === 'xp' ? 'XP' : activeTab === 'time' ? 'STUDIED' : activeTab === 'new_cards' ? 'NEW' : 'REVIEWS'}
                   </span>
                 </div>
               </div>
@@ -558,7 +558,7 @@ function LeaderboardWidget({ data, activeFilter, onFilterChange }: {
         })}
         {currentList.length === 0 && (
           <div className="py-4 text-center text-[10px] font-black text-slate-400 uppercase tracking-widest">
-            Chưa có dữ liệu
+            No data available
           </div>
         )}
       </div>
@@ -566,7 +566,7 @@ function LeaderboardWidget({ data, activeFilter, onFilterChange }: {
       {currentRank && (
         <div className="pt-1 border-t border-slate-100 text-center mt-2">
           <span className="text-[9px] font-black text-slate-400">
-            Hạng của bạn: <span className="text-indigo-600 font-extrabold">#{currentRank}</span> toàn hệ thống
+            Your rank: <span className="text-indigo-600 font-extrabold">#{currentRank}</span> system-wide
           </span>
         </div>
       )}
@@ -1822,9 +1822,14 @@ export default function Dashboard() {
           {/* Heatmap */}
           {heatmapData && heatmapData.length > 0 && <MiniHeatmap data={heatmapData} />}
 
+          {/* Leaderboard */}
+          {leaderboardData && leaderboardData.leaderboard?.length > 0 && (
+            <LeaderboardWidget data={leaderboardData} activeFilter={timeFilter} onFilterChange={setTimeFilter} />
+          )}
+
           {/* Studio Manage shortcut */}
           <div className="bg-white/40 backdrop-blur-md border border-white/40 rounded-[2rem] p-5 shadow-sm shadow-slate-100/40 flex flex-col gap-3 text-left flex-shrink-0">
-            <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Quản lý bộ thẻ</span>
+            <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Deck Management</span>
             <Link
               to="/manage"
               className="w-full h-11 bg-slate-900 hover:bg-slate-800 text-white rounded-2xl text-xs font-black uppercase tracking-widest transition-all shadow-md shadow-slate-100/5 flex items-center justify-center gap-2 active:scale-95 cursor-pointer"
@@ -1839,14 +1844,14 @@ export default function Dashboard() {
         <section className="flex-1 h-full flex flex-col gap-5 overflow-y-auto pr-2 scrollbar-thin text-left pb-8">
           <div className="flex items-center justify-between mb-1">
             <div>
-              <h2 className="text-xl font-black text-slate-800 uppercase tracking-tight italic">Mục tiêu hôm nay</h2>
+              <h2 className="text-xl font-black text-slate-800 uppercase tracking-tight italic">Today's Targets</h2>
               <p className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] mt-0.5">Today's Study Targets & Goals</p>
             </div>
             <Link
               to="/library"
               className="h-10 px-5 bg-white border border-slate-200/80 rounded-xl text-[10px] font-black text-indigo-600 uppercase tracking-wider hover:bg-slate-50 active:scale-95 transition-all flex items-center justify-center gap-1.5 shadow-sm"
             >
-              Thư Viện 📚
+              Library 📚
             </Link>
           </div>
 
@@ -1872,11 +1877,6 @@ export default function Dashboard() {
 
           {/* Badge Progress Roadmap */}
           {badgesProgress && <BadgeProgressWidget data={badgesProgress} />}
-
-          {/* Leaderboard */}
-          {leaderboardData && leaderboardData.leaderboard?.length > 0 && (
-            <LeaderboardWidget data={leaderboardData} activeFilter={timeFilter} onFilterChange={setTimeFilter} />
-          )}
         </section>
       </div>
 
