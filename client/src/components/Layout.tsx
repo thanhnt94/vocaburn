@@ -1,5 +1,5 @@
 import { Outlet, Link, useLocation } from 'react-router-dom'
-import { LayoutGrid, Compass, BarChart3, User, BrainCircuit, Bell, Settings, Plus, Library, Users, FolderKanban, BookOpen } from 'lucide-react'
+import { LayoutGrid, Compass, BarChart3, User, BrainCircuit, Bell, Settings, Plus, Library, Users, FolderKanban, BookOpen, Flame, Award } from 'lucide-react'
 import { motion } from 'framer-motion'
 import { useAppStore } from '@/store/useAppStore'
 import { cn } from '@/lib/utils'
@@ -85,25 +85,25 @@ export default function Layout() {
         </div>
         
         {isLoggedIn ? (
-          <div className="flex items-center gap-6">
-            <div className="flex items-center gap-4 border-r border-slate-100 pr-6">
-               <div className="flex items-center gap-2 px-3 py-1.5 bg-orange-50 text-orange-600 rounded-xl">
-                  <LayoutGrid className="w-4 h-4" />
-                  <span className="text-[10px] font-black">{gamify.streak}D STREAK</span>
-                </div>
-                <div className="flex items-center gap-2 px-3 py-1.5 bg-indigo-50 text-indigo-600 rounded-xl">
-                  <BrainCircuit className="w-4 h-4" />
-                  <span className="text-[10px] font-black">LVL {gamify.level}</span>
-               </div>
+          <div className="flex items-center gap-5">
+            <div className="flex items-center gap-4 border-r border-slate-100 pr-5">
+              <span className="flex items-center gap-1 text-orange-500 hover:scale-105 transition-transform" title="Daily Streak">
+                <Flame className="w-4 h-4 fill-orange-500" />
+                <span className="text-xs font-black">{gamify.streak}d</span>
+              </span>
+              <span className="flex items-center gap-1 text-amber-500 hover:scale-105 transition-transform" title="Level">
+                <Award className="w-4 h-4" />
+                <span className="text-xs font-black">Lvl {gamify.level}</span>
+              </span>
             </div>
 
-            <Link to="/profile" className="flex items-center gap-3 group cursor-pointer">
+            <Link to="/profile" className="flex items-center gap-2.5 group cursor-pointer">
               <div className="text-right hidden lg:block">
-                <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">Authenticated</p>
-                <p className="text-[11px] font-black text-slate-900 leading-none">{user?.username || 'GUEST'}</p>
+                <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest leading-none mb-1">Logged In</p>
+                <p className="text-[11px] font-black text-slate-800 leading-none group-hover:text-indigo-600 transition-colors">{user?.username || 'GUEST'}</p>
               </div>
-              <div className="w-10 h-10 rounded-xl bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-400 group-hover:border-indigo-200 group-hover:bg-indigo-50 transition-all">
-                <User className="w-5 h-5" />
+              <div className="w-9 h-9 rounded-xl bg-slate-50 border border-slate-200/80 flex items-center justify-center text-slate-500 group-hover:border-indigo-200 group-hover:bg-indigo-50/50 transition-all">
+                <User className="w-4.5 h-4.5" />
               </div>
             </Link>
           </div>

@@ -805,7 +805,7 @@ function TodayFocusWidget({
             <Link to="/library" className="text-[10px] font-black text-indigo-600 uppercase tracking-wider block mt-1.5 hover:underline">📚 Go to Library</Link>
           </div>
         ) : (
-          <div className="space-y-4">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             {activeGoals.map(goal => {
               const deckReview = todayReview?.decks_summary?.find((d: any) => d.deck_id === goal.deck_id)
               const dueReviews = deckReview ? deckReview.due_count : 0
@@ -1827,17 +1827,6 @@ export default function Dashboard() {
             <LeaderboardWidget data={leaderboardData} activeFilter={timeFilter} onFilterChange={setTimeFilter} />
           )}
 
-          {/* Studio Manage shortcut */}
-          <div className="bg-white/40 backdrop-blur-md border border-white/40 rounded-[2rem] p-5 shadow-sm shadow-slate-100/40 flex flex-col gap-3 text-left flex-shrink-0">
-            <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Deck Management</span>
-            <Link
-              to="/manage"
-              className="w-full h-11 bg-slate-900 hover:bg-slate-800 text-white rounded-2xl text-xs font-black uppercase tracking-widest transition-all shadow-md shadow-slate-100/5 flex items-center justify-center gap-2 active:scale-95 cursor-pointer"
-            >
-              <LayoutGrid className="w-4 h-4" />
-              Creator Studio
-            </Link>
-          </div>
         </aside>
 
         {/* RIGHT COLUMN: Today's targets */}
@@ -1847,12 +1836,6 @@ export default function Dashboard() {
               <h2 className="text-xl font-black text-slate-800 uppercase tracking-tight italic">Today's Targets</h2>
               <p className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] mt-0.5">Today's Study Targets & Goals</p>
             </div>
-            <Link
-              to="/library"
-              className="h-10 px-5 bg-white border border-slate-200/80 rounded-xl text-[10px] font-black text-indigo-600 uppercase tracking-wider hover:bg-slate-50 active:scale-95 transition-all flex items-center justify-center gap-1.5 shadow-sm"
-            >
-              Library 📚
-            </Link>
           </div>
 
           {/* Global Study Goals Widget (Includes individual deck targets & actions) */}
@@ -1871,9 +1854,10 @@ export default function Dashboard() {
             />
           )}
 
-          <ReviewForecastWidget data={forecastData} />
-
-          <DailyComparisonChart data={dailyComparisonData} allTimeAvg={dailyComparisonAvg} isLoading={isDailyComparisonLoading} />
+          <div className="grid grid-cols-1 xl:grid-cols-2 gap-5">
+            <ReviewForecastWidget data={forecastData} />
+            <DailyComparisonChart data={dailyComparisonData} allTimeAvg={dailyComparisonAvg} isLoading={isDailyComparisonLoading} />
+          </div>
 
           {/* Badge Progress Roadmap */}
           {badgesProgress && <BadgeProgressWidget data={badgesProgress} />}
