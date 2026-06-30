@@ -741,9 +741,19 @@ async def get_deck_tts_status(deck_id: int, db: AsyncSession = Depends(get_db)):
     total = len(cards)
     missing = 0
     for c in cards:
+        front_text = c.others.get("front_audio_content") if c.others else None
+        back_text = c.others.get("back_audio_content") if c.others else None
+        
+        if not (front_text and front_text.strip()) and not (back_text and back_text.strip()):
+            continue
+            
+        need_front = bool(front_text and front_text.strip())
+        need_back = bool(back_text and back_text.strip())
+        
         has_front = bool(c.front_audio_url and c.front_audio_url.strip())
         has_back = bool(c.others and c.others.get("back_audio_url") and c.others.get("back_audio_url").strip())
-        if not has_front or not has_back:
+        
+        if (need_front and not has_front) or (need_back and not has_back):
             missing += 1
             
     return {
