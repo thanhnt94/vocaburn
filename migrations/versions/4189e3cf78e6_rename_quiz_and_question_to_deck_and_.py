@@ -1,0 +1,134 @@
+"""rename_quiz_and_question_to_deck_and_card
+
+Revision ID: 4189e3cf78e6
+Revises: f376e525426f
+Create Date: 2026-06-30 20:07:11.578198
+
+"""
+from typing import Sequence, Union
+
+from alembic import op
+import sqlalchemy as sa
+
+
+# revision identifiers, used by Alembic.
+revision: str = '4189e3cf78e6'
+down_revision: Union[str, Sequence[str], None] = 'f376e525426f'
+branch_labels: Union[str, Sequence[str], None] = None
+depends_on: Union[str, Sequence[str], None] = None
+
+
+def upgrade() -> None:
+    """Upgrade schema."""
+    conn = op.get_bind()
+    
+    # Helper to check if column exists
+    def column_exists(table, column):
+        res = conn.execute(sa.text(f"PRAGMA table_info({table})"))
+        columns = [row[1] for row in res.fetchall()]
+        return column in columns
+
+    # Safe column renames
+    renames = [
+        ("flashcards", "quiz_id", "deck_id"),
+        ("flashcards", "content", "front"),
+        ("deck_attempts", "quiz_id", "deck_id"),
+        ("deck_attempts", "total_questions", "total_cards"),
+        ("card_answers", "question_id", "card_id"),
+        ("deck_sessions", "quiz_id", "deck_id"),
+        ("user_card_notes", "question_id", "card_id"),
+        ("deck_tags", "quiz_id", "deck_id"),
+        ("deck_rooms", "quiz_id", "deck_id"),
+        ("deck_collaborators", "quiz_id", "deck_id"),
+        ("user_deck_goals", "quiz_id", "deck_id"),
+        ("user_card_mastery", "question_id", "card_id"),
+        ("user_practice_stats", "question_id", "card_id"),
+    ]
+    for table, old_col, new_col in renames:
+        if column_exists(table, old_col) and not column_exists(table, new_col):
+            conn.execute(sa.text(f"ALTER TABLE {table} RENAME COLUMN {old_col} TO {new_col}"))
+
+    # Helper to check index existence
+    def index_exists(index_name):
+        res = conn.execute(sa.text(f"SELECT name FROM sqlite_master WHERE type='index' AND name='{index_name}'"))
+        return res.fetchone() is not None
+
+    # Safe index drop/create operations
+    if index_exists('ix_card_answers_question_id'):
+        op.drop_index('ix_card_answers_question_id', table_name='card_answers')
+    if not index_exists('ix_card_answers_card_id'):
+        op.create_index(op.f('ix_card_answers_card_id'), 'card_answers', ['card_id'], unique=False)
+
+    if index_exists('ix_deck_attempts_quiz_id'):
+        op.drop_index('ix_deck_attempts_quiz_id', table_name='deck_attempts')
+    if not index_exists('ix_deck_attempts_deck_id'):
+        op.create_index(op.f('ix_deck_attempts_deck_id'), 'deck_attempts', ['deck_id'], unique=False)
+
+    if index_exists('ix_deck_rooms_quiz_id'):
+        op.drop_index('ix_deck_rooms_quiz_id', table_name='deck_rooms')
+    if not index_exists('ix_deck_rooms_deck_id'):
+        op.create_index(op.f('ix_deck_rooms_deck_id'), 'deck_rooms', ['deck_id'], unique=False)
+
+    if index_exists('ix_deck_sessions_quiz_id'):
+        op.drop_index('ix_deck_sessions_quiz_id', table_name='deck_sessions')
+    if not index_exists('ix_deck_sessions_deck_id'):
+        op.create_index(op.f('ix_deck_sessions_deck_id'), 'deck_sessions', ['deck_id'], unique=False)
+
+    if index_exists('ix_flashcards_quiz_id'):
+        op.drop_index('ix_flashcards_quiz_id', table_name='flashcards')
+    if not index_exists('ix_flashcards_deck_id'):
+        op.create_index(op.f('ix_flashcards_deck_id'), 'flashcards', ['deck_id'], unique=False)
+
+    if index_exists('ix_user_card_mastery_question_id'):
+        op.drop_index('ix_user_card_mastery_question_id', table_name='user_card_mastery')
+    try:
+        op.drop_constraint('uq_user_question', 'user_card_mastery', type_='unique')
+    except Exception:
+        pass
+    if not index_exists('ix_user_card_mastery_card_id'):
+        op.create_index(op.f('ix_user_card_mastery_card_id'), 'user_card_mastery', ['card_id'], unique=False)
+    try:
+        op.create_unique_constraint('uq_user_card', 'user_card_mastery', ['user_id', 'card_id'])
+    except Exception:
+        pass
+
+    if index_exists('ix_user_card_notes_question_id'):
+        op.drop_index('ix_user_card_notes_question_id', table_name='user_card_notes')
+    if not index_exists('ix_user_card_notes_card_id'):
+        op.create_index(op.f('ix_user_card_notes_card_id'), 'user_card_notes', ['card_id'], unique=False)
+
+    if index_exists('ix_user_deck_goals_quiz_id'):
+        op.drop_index('ix_user_deck_goals_quiz_id', table_name='user_deck_goals')
+    if not index_exists('ix_user_deck_goals_deck_id'):
+        op.create_index(op.f('ix_user_deck_goals_deck_id'), 'user_deck_goals', ['deck_id'], unique=False)
+
+    if index_exists('ix_user_practice_stats_question_id'):
+        op.drop_index('ix_user_practice_stats_question_id', table_name='user_practice_stats')
+    if not index_exists('ix_user_practice_stats_card_id'):
+        op.create_index(op.f('ix_user_practice_stats_card_id'), 'user_practice_stats', ['card_id'], unique=False)
+
+
+def downgrade() -> None:
+    """Downgrade schema."""
+    # ### commands auto generated by Alembic - please adjust! ###
+    op.drop_index(op.f('ix_user_practice_stats_card_id'), table_name='user_practice_stats')
+    op.create_index(op.f('ix_user_practice_stats_question_id'), 'user_practice_stats', ['card_id'], unique=False)
+    op.drop_index(op.f('ix_user_deck_goals_deck_id'), table_name='user_deck_goals')
+    op.create_index(op.f('ix_user_deck_goals_quiz_id'), 'user_deck_goals', ['deck_id'], unique=False)
+    op.drop_index(op.f('ix_user_card_notes_card_id'), table_name='user_card_notes')
+    op.create_index(op.f('ix_user_card_notes_question_id'), 'user_card_notes', ['card_id'], unique=False)
+    op.drop_constraint('uq_user_card', 'user_card_mastery', type_='unique')
+    op.drop_index(op.f('ix_user_card_mastery_card_id'), table_name='user_card_mastery')
+    op.create_unique_constraint(op.f('uq_user_question'), 'user_card_mastery', ['user_id', 'card_id'])
+    op.create_index(op.f('ix_user_card_mastery_question_id'), 'user_card_mastery', ['card_id'], unique=False)
+    op.drop_index(op.f('ix_flashcards_deck_id'), table_name='flashcards')
+    op.create_index(op.f('ix_flashcards_quiz_id'), 'flashcards', ['deck_id'], unique=False)
+    op.drop_index(op.f('ix_deck_sessions_deck_id'), table_name='deck_sessions')
+    op.create_index(op.f('ix_deck_sessions_quiz_id'), 'deck_sessions', ['deck_id'], unique=False)
+    op.drop_index(op.f('ix_deck_rooms_deck_id'), table_name='deck_rooms')
+    op.create_index(op.f('ix_deck_rooms_quiz_id'), 'deck_rooms', ['deck_id'], unique=False)
+    op.drop_index(op.f('ix_deck_attempts_deck_id'), table_name='deck_attempts')
+    op.create_index(op.f('ix_deck_attempts_quiz_id'), 'deck_attempts', ['deck_id'], unique=False)
+    op.drop_index(op.f('ix_card_answers_card_id'), table_name='card_answers')
+    op.create_index(op.f('ix_card_answers_question_id'), 'card_answers', ['card_id'], unique=False)
+    # ### end Alembic commands ###
