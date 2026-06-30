@@ -1848,39 +1848,31 @@ export default function Dashboard() {
 
         {/* MAIN FEED: Scrollable container */}
         <section className="flex-1 h-full flex flex-col gap-5 overflow-y-auto pr-2 scrollbar-thin text-left pb-8">
-          <div className="flex items-center justify-between mb-1">
-            <div>
-              <h2 className="text-xl font-black text-slate-800 uppercase tracking-tight italic">Today's Targets</h2>
-              <p className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] mt-0.5">Today's Study Targets & Goals</p>
-            </div>
+          
+          {/* Global Study Goals Widget (Includes individual deck targets & actions) */}
+          {globalGoals && (
+            <TodayFocusWidget
+              data={globalGoals}
+              activeGoals={activeGoals}
+              todayReview={todayReview}
+              onOpenSettings={() => setIsGoalModalOpen(true)}
+              onOpenDeckSettings={handleOpenDeckGoalSettings}
+              onStartPractice={(quiz) => {
+                setSelectedPracticeQuiz(quiz)
+                setIsPracticeModalOpen(true)
+              }}
+              navigate={navigate}
+            />
+          )}
+
+          {/* Charts Side-by-Side Grid */}
+          <div className="grid grid-cols-1 xl:grid-cols-2 gap-5 w-full">
+            <ReviewForecastWidget data={forecastData} />
+            <DailyComparisonChart data={dailyComparisonData} allTimeAvg={dailyComparisonAvg} isLoading={isDailyComparisonLoading} />
           </div>
 
-          <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 items-start w-full">
-            {/* Left Column: Targets & Achievements */}
-            <div className="flex flex-col gap-5 w-full">
-              {globalGoals && (
-                <TodayFocusWidget
-                  data={globalGoals}
-                  activeGoals={activeGoals}
-                  todayReview={todayReview}
-                  onOpenSettings={() => setIsGoalModalOpen(true)}
-                  onOpenDeckSettings={handleOpenDeckGoalSettings}
-                  onStartPractice={(quiz) => {
-                    setSelectedPracticeQuiz(quiz)
-                    setIsPracticeModalOpen(true)
-                  }}
-                  navigate={navigate}
-                />
-              )}
-              {badgesProgress && <BadgeProgressWidget data={badgesProgress} />}
-            </div>
-
-            {/* Right Column: Charts & Statistics */}
-            <div className="flex flex-col gap-5 w-full">
-              <ReviewForecastWidget data={forecastData} />
-              <DailyComparisonChart data={dailyComparisonData} allTimeAvg={dailyComparisonAvg} isLoading={isDailyComparisonLoading} />
-            </div>
-          </div>
+          {/* Badge Progress Roadmap Footer */}
+          {badgesProgress && <BadgeProgressWidget data={badgesProgress} />}
         </section>
       </div>
 
