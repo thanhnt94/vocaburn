@@ -77,7 +77,8 @@ async def get_dashboard_data(request: Request, only_created: bool = False, db: A
                 "questions_count": count or 0,
                 "cards_count": count or 0,  # compatibility
                 "tags": [t.name for t in q.tags],
-                "is_creator": q.creator_id == user_id_int
+                "is_creator": q.creator_id == user_id_int,
+                "is_public": q.is_public
             }
             created_decks_data.append(deck_dict)
         return {
@@ -149,7 +150,8 @@ async def get_dashboard_data(request: Request, only_created: bool = False, db: A
             "questions_count": count or 0,
             "cards_count": count or 0,  # compatibility
             "tags": [t.name for t in q.tags],
-            "is_creator": q.creator_id == user_id_int
+            "is_creator": q.creator_id == user_id_int,
+            "is_public": q.is_public
         }
         if is_archived:
             archived_decks_data.append(deck_dict)
@@ -167,7 +169,8 @@ async def get_dashboard_data(request: Request, only_created: bool = False, db: A
             "questions_count": count or 0,
             "cards_count": count or 0,  # compatibility
             "tags": [t.name for t in q.tags],
-            "is_creator": q.creator_id == user_id_int
+            "is_creator": q.creator_id == user_id_int,
+            "is_public": q.is_public
         }
         created_decks_data.append(deck_dict)
 
@@ -182,7 +185,8 @@ async def get_dashboard_data(request: Request, only_created: bool = False, db: A
             "questions_count": count or 0,
             "cards_count": count or 0,  # compatibility
             "tags": [t.name for t in q.tags],
-            "is_creator": q.creator_id == user_id_int
+            "is_creator": q.creator_id == user_id_int,
+            "is_public": q.is_public
         }
         discover_decks_data.append(deck_dict)
 

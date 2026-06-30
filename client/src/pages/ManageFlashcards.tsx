@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { Plus, Edit3, Trash2, Search, Filter, LayoutGrid, ChevronRight, Archive, CheckCircle2, AlertCircle, BookOpen, MoreVertical, Image as ImageIcon, X, Settings as SettingsIcon, Layers, Download } from 'lucide-react'
+import { Plus, Edit3, Trash2, Search, Filter, LayoutGrid, ChevronRight, Archive, CheckCircle2, AlertCircle, BookOpen, MoreVertical, Image as ImageIcon, X, Settings as SettingsIcon, Layers, Download, Lock, Globe } from 'lucide-react'
 import axios from 'axios'
 import { cn } from '@/lib/utils'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -159,9 +159,17 @@ export default function ManageFlashcards() {
                               <BookOpen className="w-12 h-12 text-white/40" />
                            </div>
                         )}
-                        <div className="absolute top-4 left-4">
+                        <div className="absolute top-4 left-4 flex gap-1.5">
                            <div className="px-3 py-1.5 bg-white/90 backdrop-blur-md rounded-xl shadow-sm border border-white/20">
                               <span className="text-[10px] font-black text-indigo-600 uppercase">{quiz.questions_count} Cards</span>
+                           </div>
+                           <div className={cn(
+                              "px-2.5 py-1.5 rounded-xl shadow-sm border flex items-center justify-center backdrop-blur-md",
+                              quiz.is_public 
+                                 ? "bg-emerald-500/95 border-emerald-400/20 text-white" 
+                                 : "bg-amber-500/95 border-amber-400/20 text-white"
+                           )} title={quiz.is_public ? "Public (Công khai)" : "Private (Chỉ mình tôi)"}>
+                              {quiz.is_public ? <Globe className="w-3.5 h-3.5" /> : <Lock className="w-3.5 h-3.5" />}
                            </div>
                         </div>
                         <div className="absolute top-4 right-4 flex gap-1.5 z-10">

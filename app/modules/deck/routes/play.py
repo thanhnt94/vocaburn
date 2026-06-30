@@ -1772,54 +1772,44 @@ async def ask_ai(deck_id: int, payload: dict, background_tasks: BackgroundTasks,
         for i in range(4):
             prompt = prompt.replace(f"{{{{option_{chr(97+i)}}}}}", "")
 
+        # Detect scheme dynamically (e.g. support HTTPS behind Nginx reverse proxy)
+        scheme = request.headers.get("x-forwarded-proto", request.url.scheme)
+        netloc = request.url.netloc
+        if "localhost" not in netloc and "127.0.0.1" not in netloc:
+            scheme = "https"
+        base_url = f"{scheme}://{netloc}"
+        
+        callback_url = f"{base_url}/api/v1/deck/ai-callback"
         queue_token = getattr(settings, "QUEUE_API_SECRET", "super-secret-token-123")
         
-        # Call CentralAuth synchronous generation endpoint directly
+        # Submit to CentralAuth Queue
         import httpx
         try:
             async with httpx.AsyncClient() as client:
                 response = await client.post(
-                    f"{sso_server_url}/api/queue/generate-sync",
-                    json={"prompt": prompt},
+                    f"{sso_server_url}/api/queue/submit",
+                    json={
+                        "satellite_source": "vocaburn",
+                        "prompt": prompt,
+                        "callback_url": callback_url,
+                        "extra_data": json.dumps({
+                            "task_type": "ai-explain",
+                            "card_id": card_id,
+                            "field": field,
+                            "deck_id": deck_id
+                        }),
+                        "max_retries": 3
+                    },
                     headers={"X-Queue-Token": queue_token},
-                    timeout=120.0  # AI generation can take a while
+                    timeout=30.0
                 )
                 if response.status_code == 200:
-                    ai_result = response.json().get("result", "")
-                    
-                    # Clean up markdown
-                    content = ai_result.strip()
-                    if content.startswith("```markdown"):
-                        content = content[len("```markdown"):].strip()
-                    elif content.startswith("```"):
-                        content = content[len("```"):].strip()
-                    if content.endswith("```"):
-                        content = content[:-3].strip()
-                    content = re.sub(r'`\s*(<ruby>[\s\S]*?<\/ruby>)\s*`', r'\1', content)
-                    
-                    # Save to database
-                    from sqlalchemy.orm.attributes import flag_modified as fm
-                    if field == "hint":
-                        c.hint = content
-                    elif field == "mnemonic":
-                        c.mnemonic = content
-                    elif field == "explanation":
-                        c.ai_explanation = content
-                    else:
-                        if not c.others:
-                            c.others = {}
-                        if "ai_responses" not in c.others:
-                            c.others["ai_responses"] = {}
-                        c.others["ai_responses"][field] = content
-                        fm(c, "others")
-                    await db.commit()
-                    
-                    logger.info(f"[AI SYNC] CentralAuth generated content for card {card_id} field '{field}'")
-                    return {"ai_explanation": content, "content": content}
+                    logger.info(f"[AI QUEUE] Task submitted to CentralAuth for card {card_id} field '{field}'")
+                    return {"status": "processing", "message": f"AI {field} generation queued on CentralAuth."}
                 else:
-                    logger.error(f"[AI SYNC ERROR] CentralAuth sync failed ({response.status_code}): {response.text[:300]}")
-        except Exception as sync_err:
-            logger.error(f"[AI SYNC EXCEPTION] Failed sync generation: {sync_err}")
+                    logger.error(f"[AI QUEUE ERROR] CentralAuth submit failed ({response.status_code}): {response.text}")
+        except Exception as queue_err:
+            logger.error(f"[AI QUEUE EXCEPTION] Failed to submit task: {queue_err}")
             
     # Fallback to local background task if SSO submission fails or is disabled
     background_tasks.add_task(_generate_ai_task, deck_id, card_id, field)

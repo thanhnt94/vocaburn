@@ -29,7 +29,9 @@ import {
   Download,
   Clipboard,
   GripVertical,
-  Layers
+  Layers,
+  Lock,
+  Globe
 } from 'lucide-react'
 import axios from 'axios'
 import { cn } from '@/lib/utils'
@@ -586,25 +588,47 @@ const EditFlashcard = () => {
                             </div>
 
                             <Textarea label="Description" value={formData.description} onChange={v => setFormData({...formData, description: v})} rows={4} />
+                            
+                             <div 
+                                className={cn(
+                                   "flex items-center gap-4 p-5 rounded-2xl border transition-all duration-300 cursor-pointer select-none",
+                                   formData.is_public 
+                                      ? "bg-emerald-50/30 border-emerald-100 hover:bg-emerald-50/50" 
+                                      : "bg-amber-50/30 border-amber-100 hover:bg-amber-50/50"
+                                )} 
+                                onClick={() => setFormData({ ...formData, is_public: !formData.is_public })}
+                             >
+                                <div className={cn(
+                                   "w-10 h-10 rounded-xl flex items-center justify-center shrink-0 transition-all duration-300",
+                                   formData.is_public ? "bg-emerald-100 text-emerald-600" : "bg-amber-100 text-amber-600"
+                                )}>
+                                   {formData.is_public ? <Globe className="w-5 h-5" /> : <Lock className="w-5 h-5" />}
+                                </div>
+                                <div className="flex-grow">
+                                   <div className="flex items-center justify-between">
+                                      <span className="text-xs font-black text-slate-800 uppercase italic">
+                                         {formData.is_public ? "Public Collection (Bộ thẻ công khai)" : "Private Collection (Bộ thẻ riêng tư)"}
+                                      </span>
+                                      <div className={cn(
+                                         "w-10 h-6 rounded-full p-1 transition-colors duration-300 shrink-0",
+                                         formData.is_public ? "bg-emerald-500" : "bg-slate-300"
+                                      )}>
+                                         <div className={cn(
+                                            "bg-white w-4 h-4 rounded-full shadow-md transform duration-300",
+                                            formData.is_public ? "translate-x-4" : "translate-x-0"
+                                         )} />
+                                      </div>
+                                   </div>
+                                   <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-1">
+                                      {formData.is_public 
+                                         ? "Mọi thành viên trong hệ thống có thể nhìn thấy và cùng ôn tập." 
+                                         : "Chỉ mình bạn (và những người cộng tác) mới có quyền truy cập."}
+                                   </p>
+                                </div>
+                             </div>
+
                             <Textarea label="Global Instruction (SSR Header)" value={formData.instruction} onChange={v => setFormData({...formData, instruction: v})} rows={3} placeholder="e.g. Choose the most appropriate answer..." />
                             
-                            <div className="flex items-center gap-3 bg-slate-50 p-4 rounded-xl border border-slate-100/50">
-                               <input 
-                                  type="checkbox" 
-                                  id="isPublicEdit"
-                                  checked={formData.is_public}
-                                  onChange={(e) => setFormData({ ...formData, is_public: e.target.checked })}
-                                  className="w-5 h-5 text-indigo-600 bg-white border-slate-200 rounded focus:ring-indigo-500"
-                               />
-                               <div className="flex flex-col">
-                                  <label htmlFor="isPublicEdit" className="text-xs font-bold text-slate-700 select-none cursor-pointer">
-                                     Public Deck (Bộ thẻ công khai)
-                                  </label>
-                                  <span className="text-[9px] font-semibold text-slate-400 mt-0.5">
-                                     If unchecked, only you will be able to see and access this collection.
-                                  </span>
-                               </div>
-                            </div>
                             
                             <div className="space-y-1.5">
                                <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Tags (Comma Separated)</label>
@@ -1844,28 +1868,45 @@ const EditFlashcard = () => {
 }
 
 const NavButton = ({ active, onClick, icon: Icon, title, sub }: { active: boolean, onClick: () => void, icon: any, title: string, sub: string }) => (
-  <button onClick={onClick} className={cn("flex items-center gap-4 p-5 rounded-3xl border transition-all text-left group", active ? "bg-white border-indigo-100 shadow-xl shadow-indigo-500/5" : "bg-transparent border-transparent text-slate-400 hover:bg-white/50")}>
-     <div className={cn("w-10 h-10 rounded-2xl flex items-center justify-center transition-all", active ? "bg-indigo-600 text-white shadow-lg shadow-indigo-100" : "bg-slate-100 text-slate-400")}>
+  <button 
+     onClick={onClick} 
+     className={cn(
+        "flex items-center gap-4 p-5 rounded-3xl border transition-all text-left group relative outline-none", 
+        active 
+           ? "bg-white border-indigo-100 shadow-xl shadow-indigo-500/5 scale-[1.02]" 
+           : "bg-transparent border-transparent text-slate-450 hover:bg-white/50 hover:scale-[1.01]"
+     )}
+  >
+     {active && (
+        <div className="absolute left-0 top-1/4 bottom-1/4 w-1 bg-indigo-600 rounded-r-full" />
+     )}
+     <div className={cn(
+        "w-10 h-10 rounded-2xl flex items-center justify-center transition-all duration-300", 
+        active ? "bg-gradient-to-tr from-indigo-600 to-violet-600 text-white shadow-md shadow-indigo-100" : "bg-slate-100 text-slate-450 group-hover:bg-slate-200/60"
+     )}>
         <Icon className="w-5 h-5" />
      </div>
      <div>
-        <h3 className={cn("text-xs font-black uppercase tracking-tight", active ? "text-slate-900" : "text-slate-400")}>{title}</h3>
-        <p className="text-[9px] font-bold opacity-60">{sub}</p>
+        <h3 className={cn("text-xs font-black uppercase tracking-tight transition-colors", active ? "text-indigo-600" : "text-slate-700 group-hover:text-slate-900")}>{title}</h3>
+        <p className="text-[9px] font-bold opacity-60 mt-0.5">{sub}</p>
      </div>
   </button>
 )
 
 const InputField = ({ label, value, onChange, placeholder, icon: Icon }: { label: string, value: string, onChange: (v: string) => void, placeholder?: string, icon?: any }) => (
-  <div className="space-y-1.5">
+  <div className="space-y-1.5 group-focus-within">
      <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">{label}</label>
      <div className="relative">
-        {Icon && <Icon className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />}
+        {Icon && <Icon className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 transition-colors duration-300 group-focus-within:text-indigo-500" />}
         <input 
            type="text" 
            placeholder={placeholder}
            value={value}
            onChange={(e) => onChange(e.target.value)}
-           className={cn("w-full h-12 bg-slate-50 border border-slate-100 rounded-xl text-xs font-bold text-slate-900 outline-none focus:ring-4 focus:ring-indigo-500/5 transition-all", Icon ? "pl-11 pr-4" : "px-4")}
+           className={cn(
+              "w-full h-12 bg-slate-50/50 border border-slate-200/60 rounded-xl text-xs font-bold text-slate-900 outline-none focus:bg-white focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/5 shadow-sm transition-all duration-300", 
+              Icon ? "pl-11 pr-4" : "px-4"
+           )}
         />
      </div>
   </div>
@@ -1879,7 +1920,7 @@ const Textarea = ({ label, value, onChange, rows, placeholder }: { label: string
         placeholder={placeholder}
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="w-full bg-slate-50 border border-slate-100 rounded-xl p-4 text-xs font-bold text-slate-900 outline-none focus:ring-4 focus:ring-indigo-500/5 transition-all resize-none"
+        className="w-full bg-slate-50/50 border border-slate-200/60 rounded-xl p-4 text-xs font-bold text-slate-900 outline-none focus:bg-white focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/5 shadow-sm transition-all duration-300 resize-none"
      />
   </div>
 )
