@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { Brain, Trophy, ChevronRight, LayoutGrid, Users, Zap, Flame, BrainCircuit, X, Play, Crown, Medal, Star, CheckCircle2, Circle, Swords, Settings, Target, RefreshCw, User, BookOpen, Sparkles, TrendingUp } from 'lucide-react'
+import { Brain, Trophy, ChevronRight, LayoutGrid, Users, Zap, Flame, BrainCircuit, X, Play, Crown, Medal, Star, CheckCircle2, Circle, Swords, Settings, Target, RefreshCw, User, BookOpen, Sparkles, TrendingUp, Clock, Layers } from 'lucide-react'
 import { useAppStore } from '@/store/useAppStore'
 import { cn } from '@/lib/utils'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -715,83 +715,25 @@ function TodayFocusWidget({
         </button>
       </div>
 
-      <div className="grid grid-cols-3 gap-3 sm:gap-5 relative z-10 mb-6 max-w-[720px] mx-auto w-full">
-        {/* Time Target */}
-        <div className="flex flex-col items-center p-3.5 bg-white rounded-3xl border-none shadow-sm shadow-slate-100/40 relative group hover:scale-[1.02] transition-transform duration-300">
-          <div className="relative w-12 h-12 sm:w-16 sm:h-16 flex-shrink-0 flex items-center justify-center rounded-full bg-slate-50 group-hover:shadow-inner transition-shadow">
-            <svg className="w-12 h-12 sm:w-16 sm:h-16 transform -rotate-90 drop-shadow-[0_2px_6px_rgba(99,102,241,0.15)]">
-              <circle cx="50%" cy="50%" r="38%" className="stroke-slate-100 fill-none" strokeWidth="3.5" />
-              <circle
-                cx="50%" cy="50%" r="38%"
-                className="stroke-[url(#timeRingGrad)] fill-none transition-all duration-500 ease-out"
-                strokeWidth="3.5"
-                strokeDasharray="238%"
-                strokeDashoffset={`${238 - (timePercentage / 100) * 238}%`}
-                strokeLinecap="round"
-              />
-            </svg>
-            <span className="absolute text-[9px] sm:text-xs font-black text-indigo-600">
-              {timePercentage}%
-            </span>
-          </div>
-          <div className="text-center mt-2.5">
-            <span className="text-[7.5px] sm:text-[9px] font-black text-slate-400 uppercase tracking-wider block leading-none">Time</span>
-            <span className="text-[9.5px] sm:text-xs font-black text-slate-800 block mt-1 whitespace-nowrap">
-              {data.actual_time_minutes}/{data.daily_time_target}m
-            </span>
-          </div>
+      <div className="flex flex-wrap items-center gap-4 sm:gap-6 bg-slate-50/50 rounded-2xl p-4 mb-6 border border-slate-100/50 max-w-[720px] relative z-10">
+        <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Global Progress:</span>
+        <div className="flex items-center gap-1.5">
+          <Clock className="w-3.5 h-3.5 text-indigo-500" />
+          <span className="text-[10px] font-bold text-slate-500">Time:</span>
+          <span className="text-[10.5px] font-black text-slate-800 bg-white px-2.5 py-0.5 rounded-lg border border-slate-100 shadow-sm">{data.actual_time_minutes}/{data.daily_time_target}m</span>
+          <span className="text-[9px] font-black text-indigo-650">({timePercentage}%)</span>
         </div>
-
-        {/* Reviewed Card Target */}
-        <div className="flex flex-col items-center p-3.5 bg-white rounded-3xl border-none shadow-sm shadow-slate-100/40 relative group hover:scale-[1.02] transition-transform duration-300">
-          <div className="relative w-12 h-12 sm:w-16 sm:h-16 flex-shrink-0 flex items-center justify-center rounded-full bg-slate-50 group-hover:shadow-inner transition-shadow">
-            <svg className="w-12 h-12 sm:w-16 sm:h-16 transform -rotate-90 drop-shadow-[0_2px_6px_rgba(16,185,129,0.15)]">
-              <circle cx="50%" cy="50%" r="38%" className="stroke-slate-100 fill-none" strokeWidth="3.5" />
-              <circle
-                cx="50%" cy="50%" r="38%"
-                className="stroke-[url(#cardRingGrad)] fill-none transition-all duration-500 ease-out"
-                strokeWidth="3.5"
-                strokeDasharray="238%"
-                strokeDashoffset={`${238 - (cardPercentage / 100) * 238}%`}
-                strokeLinecap="round"
-              />
-            </svg>
-            <span className="absolute text-[9px] sm:text-xs font-black text-emerald-600">
-              {cardPercentage}%
-            </span>
-          </div>
-          <div className="text-center mt-2.5">
-            <span className="text-[7.5px] sm:text-[9px] font-black text-slate-400 uppercase tracking-wider block leading-none">Reviewed</span>
-            <span className="text-[9.5px] sm:text-xs font-black text-slate-800 block mt-1 whitespace-nowrap">
-              {data.actual_cards_completed}/{data.daily_card_target}
-            </span>
-          </div>
+        <div className="flex items-center gap-1.5">
+          <Layers className="w-3.5 h-3.5 text-emerald-500" />
+          <span className="text-[10px] font-bold text-slate-500">Reviewed:</span>
+          <span className="text-[10.5px] font-black text-slate-800 bg-white px-2.5 py-0.5 rounded-lg border border-slate-100 shadow-sm">{data.actual_cards_completed}/{data.daily_card_target}</span>
+          <span className="text-[9px] font-black text-emerald-650">({cardPercentage}%)</span>
         </div>
-
-        {/* New Card Target */}
-        <div className="flex flex-col items-center p-3.5 bg-white rounded-3xl border-none shadow-sm shadow-slate-100/40 relative group hover:scale-[1.02] transition-transform duration-300">
-          <div className="relative w-12 h-12 sm:w-16 sm:h-16 flex-shrink-0 flex items-center justify-center rounded-full bg-slate-50 group-hover:shadow-inner transition-shadow">
-            <svg className="w-12 h-12 sm:w-16 sm:h-16 transform -rotate-90 drop-shadow-[0_2px_6px_rgba(245,158,11,0.15)]">
-              <circle cx="50%" cy="50%" r="38%" className="stroke-slate-100 fill-none" strokeWidth="3.5" />
-              <circle
-                cx="50%" cy="50%" r="38%"
-                className="stroke-[url(#newCardRingGrad)] fill-none transition-all duration-500 ease-out"
-                strokeWidth="3.5"
-                strokeDasharray="238%"
-                strokeDashoffset={`${238 - (newCardPercentage / 100) * 238}%`}
-                strokeLinecap="round"
-              />
-            </svg>
-            <span className="absolute text-[9px] sm:text-xs font-black text-amber-600">
-              {newCardPercentage}%
-            </span>
-          </div>
-          <div className="text-center mt-2.5">
-            <span className="text-[7.5px] sm:text-[9px] font-black text-slate-400 uppercase tracking-wider block leading-none">New</span>
-            <span className="text-[9.5px] sm:text-xs font-black text-slate-800 block mt-1 whitespace-nowrap">
-              {data.actual_new_cards_completed}/{data.daily_new_card_target}
-            </span>
-          </div>
+        <div className="flex items-center gap-1.5">
+          <BookOpen className="w-3.5 h-3.5 text-amber-500" />
+          <span className="text-[10px] font-bold text-slate-500">New:</span>
+          <span className="text-[10.5px] font-black text-slate-800 bg-white px-2.5 py-0.5 rounded-lg border border-slate-100 shadow-sm">{data.actual_new_cards_completed}/{data.daily_new_card_target}</span>
+          <span className="text-[9px] font-black text-amber-650">({newCardPercentage}%)</span>
         </div>
       </div>
 
