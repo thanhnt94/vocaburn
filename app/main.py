@@ -78,6 +78,17 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+@app.middleware("http")
+async def clean_user_id_cookie(request: Request, call_next):
+    user_id = request.cookies.get("user_id")
+    if user_id and "." in user_id:
+        try:
+            raw_id = user_id.split(".")[0]
+            request._cookies["user_id"] = raw_id
+        except Exception:
+            pass
+    return await call_next(request)
+
 from app.modules.deck.routes.api import router as deck_api_router
 from app.modules.deck.routes.room import router as deck_room_router
 from app.modules.sso_module.routes import router as sso_api_router

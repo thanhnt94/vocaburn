@@ -7,7 +7,10 @@ router = APIRouter(tags=["Deck"])
 
 @router.get("/today-review")
 async def get_today_review_endpoint(request: Request, db: AsyncSession = Depends(get_db)):
-    user_id = int(request.cookies.get("user_id", 1))
+    try:
+        user_id = int((request.cookies.get("user_id") or "1").split(".")[0])
+    except ValueError:
+        user_id = 1
     try:
         return await DeckService.get_today_review(db, user_id)
     except Exception as e:
