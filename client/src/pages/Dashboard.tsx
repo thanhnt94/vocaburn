@@ -670,117 +670,125 @@ function TodayFocusWidget({
   const newCardPercentage = data.daily_new_card_target > 0 ? Math.min(100, Math.round((data.actual_new_cards_completed / data.daily_new_card_target) * 100)) : 0
 
   const isAllGoalsMet = timePercentage >= 100 && cardPercentage >= 100 && newCardPercentage >= 100;
-  const reviewCards = Math.max(0, data.actual_cards_completed - data.actual_new_cards_completed);
-  const accuracy = data.actual_cards_completed > 0 ? Math.round(((data.actual_correct_answers || 0) / data.actual_cards_completed) * 100) : 0;
-  
-  // Use exact XP tracking from DB
-  const exactXp = data.actual_xp_gained_today || 0;
 
   return (
     <div className={cn(
-      "border rounded-[2.5rem] p-6 shadow-sm relative overflow-hidden text-left mb-5 flex-shrink-0 transition-all duration-700",
+      "rounded-[2.5rem] p-6 text-left mb-5 flex-shrink-0 transition-all duration-700 bg-white/40 backdrop-blur-md border border-white/40",
       isAllGoalsMet 
-        ? "bg-white border-emerald-400 ring-2 ring-emerald-400/20 shadow-emerald-100/50" 
-        : "bg-white border-slate-200/60"
+        ? "shadow-[0_20px_50px_rgba(16,185,129,0.05)] ring-2 ring-emerald-400/20" 
+        : "shadow-sm shadow-slate-100/50"
     )}>
-      <div className={cn(
-        "absolute -right-8 -top-8 w-24 h-24 rounded-full blur-md pointer-events-none transition-all duration-700",
-        isAllGoalsMet ? "bg-emerald-400/10" : "bg-indigo-50/30"
-      )} />
-      
-      <div className="flex items-center justify-between mb-5 relative z-10">
+      {/* SVG Gradients for Progress Rings */}
+      <svg className="absolute w-0 h-0">
+        <defs>
+          <linearGradient id="timeRingGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stopColor="#6366f1" />
+            <stop offset="100%" stopColor="#8b5cf6" />
+          </linearGradient>
+          <linearGradient id="cardRingGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stopColor="#10b981" />
+            <stop offset="100%" stopColor="#059669" />
+          </linearGradient>
+          <linearGradient id="newCardRingGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stopColor="#f59e0b" />
+            <stop offset="100%" stopColor="#d97706" />
+          </linearGradient>
+        </defs>
+      </svg>
+
+      <div className="flex items-center justify-between mb-6 relative z-10">
         <div>
           <span className={cn(
-            "text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded-lg transition-colors",
-            isAllGoalsMet ? "text-emerald-700 bg-emerald-50 border border-emerald-200/50" : "text-indigo-600 bg-indigo-50"
+            "text-[9px] font-black uppercase tracking-widest px-2.5 py-1 rounded-xl transition-colors inline-block",
+            isAllGoalsMet ? "text-emerald-700 bg-emerald-500/10 border border-emerald-200/50" : "text-indigo-600 bg-indigo-50"
           )}>
             {isAllGoalsMet ? "🎉 MỤC TIÊU HOÀN THÀNH" : "🎯 TODAY'S FOCUS"}
           </span>
-          <h3 className="text-sm font-black text-slate-800 uppercase tracking-tight mt-1">Mục tiêu ngày của bạn</h3>
+          <h3 className="text-sm font-black text-slate-800 uppercase tracking-tight mt-1.5">Mục tiêu ngày của bạn</h3>
         </div>
         <button
           onClick={onOpenSettings}
-          className="w-8.5 h-8.5 rounded-xl bg-white/60 border border-slate-200/60 flex items-center justify-center text-slate-600 shadow-sm active:scale-90 hover:bg-slate-100 transition-all backdrop-blur-sm"
+          className="w-9 h-9 rounded-xl bg-white border border-slate-100 flex items-center justify-center text-slate-500 hover:text-indigo-650 hover:bg-slate-50 shadow-sm active:scale-90 transition-all cursor-pointer"
           title="Cài đặt mục tiêu"
         >
           <Settings className="w-4 h-4" />
         </button>
       </div>
 
-      <div className="grid grid-cols-3 gap-2 sm:gap-4 relative z-10 mb-5">
+      <div className="grid grid-cols-3 gap-3 sm:gap-5 relative z-10 mb-6">
         {/* Time Target */}
-        <div className="flex flex-col sm:flex-row items-center justify-center sm:justify-start gap-1 sm:gap-3 bg-white/60 backdrop-blur-sm p-2 sm:p-3.5 rounded-2xl sm:rounded-[1.5rem] border border-slate-100">
-          <div className="relative w-10 h-10 sm:w-14 sm:h-14 flex-shrink-0 flex items-center justify-center rounded-full bg-white shadow-sm">
-            <svg className="w-10 h-10 sm:w-14 sm:h-14 transform -rotate-90">
-              <circle cx="50%" cy="50%" r="40%" className="stroke-slate-100 fill-none" strokeWidth="3" />
+        <div className="flex flex-col items-center p-3.5 bg-white rounded-3xl border-none shadow-sm shadow-slate-100/40 relative group hover:scale-[1.02] transition-transform duration-300">
+          <div className="relative w-12 h-12 sm:w-16 sm:h-16 flex-shrink-0 flex items-center justify-center rounded-full bg-slate-50 group-hover:shadow-inner transition-shadow">
+            <svg className="w-12 h-12 sm:w-16 sm:h-16 transform -rotate-90 drop-shadow-[0_2px_6px_rgba(99,102,241,0.15)]">
+              <circle cx="50%" cy="50%" r="38%" className="stroke-slate-100 fill-none" strokeWidth="3.5" />
               <circle
-                cx="50%" cy="50%" r="40%"
-                className="stroke-indigo-600 fill-none transition-all duration-500 ease-out"
-                strokeWidth="3"
-                strokeDasharray="250%"
-                strokeDashoffset={`${250 - (timePercentage / 100) * 250}%`}
+                cx="50%" cy="50%" r="38%"
+                className="stroke-[url(#timeRingGrad)] fill-none transition-all duration-500 ease-out"
+                strokeWidth="3.5"
+                strokeDasharray="238%"
+                strokeDashoffset={`${238 - (timePercentage / 100) * 238}%`}
                 strokeLinecap="round"
               />
             </svg>
-            <span className="absolute text-[8px] sm:text-[10px] font-black text-indigo-600">
+            <span className="absolute text-[9px] sm:text-xs font-black text-indigo-600">
               {timePercentage}%
             </span>
           </div>
-          <div className="text-center sm:text-left mt-1 sm:mt-0">
-            <span className="text-[7px] sm:text-[9px] font-black text-slate-400 uppercase tracking-wider block leading-none sm:leading-normal">TG Học</span>
-            <span className="text-[9px] sm:text-xs font-black text-slate-850 block mt-0.5 whitespace-nowrap">
+          <div className="text-center mt-2.5">
+            <span className="text-[7.5px] sm:text-[9px] font-black text-slate-400 uppercase tracking-wider block leading-none">Thời gian</span>
+            <span className="text-[9.5px] sm:text-xs font-black text-slate-855 block mt-1 whitespace-nowrap">
               {data.actual_time_minutes}/{data.daily_time_target}m
             </span>
           </div>
         </div>
 
         {/* Reviewed Card Target */}
-        <div className="flex flex-col sm:flex-row items-center justify-center sm:justify-start gap-1 sm:gap-3 bg-white/60 backdrop-blur-sm p-2 sm:p-3.5 rounded-2xl sm:rounded-[1.5rem] border border-slate-100">
-          <div className="relative w-10 h-10 sm:w-14 sm:h-14 flex-shrink-0 flex items-center justify-center rounded-full bg-white shadow-sm">
-            <svg className="w-10 h-10 sm:w-14 sm:h-14 transform -rotate-90">
-              <circle cx="50%" cy="50%" r="40%" className="stroke-slate-100 fill-none" strokeWidth="3" />
+        <div className="flex flex-col items-center p-3.5 bg-white rounded-3xl border-none shadow-sm shadow-slate-100/40 relative group hover:scale-[1.02] transition-transform duration-300">
+          <div className="relative w-12 h-12 sm:w-16 sm:h-16 flex-shrink-0 flex items-center justify-center rounded-full bg-slate-50 group-hover:shadow-inner transition-shadow">
+            <svg className="w-12 h-12 sm:w-16 sm:h-16 transform -rotate-90 drop-shadow-[0_2px_6px_rgba(16,185,129,0.15)]">
+              <circle cx="50%" cy="50%" r="38%" className="stroke-slate-100 fill-none" strokeWidth="3.5" />
               <circle
-                cx="50%" cy="50%" r="40%"
-                className="stroke-emerald-500 fill-none transition-all duration-500 ease-out"
-                strokeWidth="3"
-                strokeDasharray="250%"
-                strokeDashoffset={`${250 - (cardPercentage / 100) * 250}%`}
+                cx="50%" cy="50%" r="38%"
+                className="stroke-[url(#cardRingGrad)] fill-none transition-all duration-500 ease-out"
+                strokeWidth="3.5"
+                strokeDasharray="238%"
+                strokeDashoffset={`${238 - (cardPercentage / 100) * 238}%`}
                 strokeLinecap="round"
               />
             </svg>
-            <span className="absolute text-[8px] sm:text-[10px] font-black text-emerald-600">
+            <span className="absolute text-[9px] sm:text-xs font-black text-emerald-600">
               {cardPercentage}%
             </span>
           </div>
-          <div className="text-center sm:text-left mt-1 sm:mt-0">
-            <span className="text-[7px] sm:text-[9px] font-black text-slate-400 uppercase tracking-wider block leading-none sm:leading-normal">Đã học</span>
-            <span className="text-[9px] sm:text-xs font-black text-slate-850 block mt-0.5 whitespace-nowrap">
+          <div className="text-center mt-2.5">
+            <span className="text-[7.5px] sm:text-[9px] font-black text-slate-400 uppercase tracking-wider block leading-none">Đã ôn</span>
+            <span className="text-[9.5px] sm:text-xs font-black text-slate-855 block mt-1 whitespace-nowrap">
               {data.actual_cards_completed}/{data.daily_card_target}
             </span>
           </div>
         </div>
 
         {/* New Card Target */}
-        <div className="flex flex-col sm:flex-row items-center justify-center sm:justify-start gap-1 sm:gap-3 bg-white/60 backdrop-blur-sm p-2 sm:p-3.5 rounded-2xl sm:rounded-[1.5rem] border border-slate-105 border-slate-100">
-          <div className="relative w-10 h-10 sm:w-14 sm:h-14 flex-shrink-0 flex items-center justify-center rounded-full bg-white shadow-sm">
-            <svg className="w-10 h-10 sm:w-14 sm:h-14 transform -rotate-90">
-              <circle cx="50%" cy="50%" r="40%" className="stroke-slate-100 fill-none" strokeWidth="3" />
+        <div className="flex flex-col items-center p-3.5 bg-white rounded-3xl border-none shadow-sm shadow-slate-100/40 relative group hover:scale-[1.02] transition-transform duration-300">
+          <div className="relative w-12 h-12 sm:w-16 sm:h-16 flex-shrink-0 flex items-center justify-center rounded-full bg-slate-50 group-hover:shadow-inner transition-shadow">
+            <svg className="w-12 h-12 sm:w-16 sm:h-16 transform -rotate-90 drop-shadow-[0_2px_6px_rgba(245,158,11,0.15)]">
+              <circle cx="50%" cy="50%" r="38%" className="stroke-slate-100 fill-none" strokeWidth="3.5" />
               <circle
-                cx="50%" cy="50%" r="40%"
-                className="stroke-amber-500 fill-none transition-all duration-500 ease-out"
-                strokeWidth="3"
-                strokeDasharray="250%"
-                strokeDashoffset={`${250 - (newCardPercentage / 100) * 250}%`}
+                cx="50%" cy="50%" r="38%"
+                className="stroke-[url(#newCardRingGrad)] fill-none transition-all duration-500 ease-out"
+                strokeWidth="3.5"
+                strokeDasharray="238%"
+                strokeDashoffset={`${238 - (newCardPercentage / 100) * 238}%`}
                 strokeLinecap="round"
               />
             </svg>
-            <span className="absolute text-[8px] sm:text-[10px] font-black text-amber-600">
+            <span className="absolute text-[9px] sm:text-xs font-black text-amber-600">
               {newCardPercentage}%
             </span>
           </div>
-          <div className="text-center sm:text-left mt-1 sm:mt-0">
-            <span className="text-[7px] sm:text-[9px] font-black text-slate-400 uppercase tracking-wider block leading-none sm:leading-normal">Học mới</span>
-            <span className="text-[9px] sm:text-xs font-black text-slate-850 block mt-0.5 whitespace-nowrap">
+          <div className="text-center mt-2.5">
+            <span className="text-[7.5px] sm:text-[9px] font-black text-slate-400 uppercase tracking-wider block leading-none">Học mới</span>
+            <span className="text-[9.5px] sm:text-xs font-black text-slate-855 block mt-1 whitespace-nowrap">
               {data.actual_new_cards_completed}/{data.daily_new_card_target}
             </span>
           </div>
@@ -788,16 +796,16 @@ function TodayFocusWidget({
       </div>
 
       {/* Deck-specific targets section */}
-      <div className="border-t border-slate-100 pt-5 relative z-10">
-        <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 block mb-3.5">Mục tiêu theo từng bộ thẻ:</span>
+      <div className="border-t border-slate-100/80 pt-6 relative z-10">
+        <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 block mb-4">Mục tiêu theo từng bộ thẻ:</span>
         
         {!activeGoals || activeGoals.length === 0 ? (
-          <div className="text-center py-4 bg-slate-50/50 rounded-2xl border border-dashed border-slate-200/80">
+          <div className="text-center py-6 bg-slate-50/50 rounded-2xl border border-dashed border-slate-200/80">
             <span className="text-[10px] font-bold text-slate-400">Chưa thiết lập mục tiêu cho bộ thẻ nào.</span>
-            <Link to="/library" className="text-[10px] font-black text-indigo-600 uppercase tracking-wider block mt-1 hover:underline">📚 Đi đến thư viện</Link>
+            <Link to="/library" className="text-[10px] font-black text-indigo-600 uppercase tracking-wider block mt-1.5 hover:underline">📚 Đi đến thư viện</Link>
           </div>
         ) : (
-          <div className="space-y-3">
+          <div className="space-y-4">
             {activeGoals.map(goal => {
               const deckReview = todayReview?.decks_summary?.find((d: any) => d.deck_id === goal.deck_id)
               const dueReviews = deckReview ? deckReview.due_count : 0
@@ -810,24 +818,24 @@ function TodayFocusWidget({
               const newCardPct = goal.daily_new_card_target > 0 ? Math.min(100, Math.round((goal.actual_new_cards_completed / goal.daily_new_card_target) * 100)) : 0
 
               return (
-                <div key={goal.goal_id} className="p-4 rounded-3xl border border-slate-150/70 bg-white hover:shadow-sm hover:border-slate-300 transition-all flex flex-col gap-3.5 text-left relative overflow-hidden">
+                <div key={goal.goal_id} className="p-5 rounded-3xl border-none bg-slate-50/50 hover:bg-slate-50 hover:shadow-[0_8px_30px_rgb(0,0,0,0.02)] transition-all duration-300 flex flex-col gap-4 text-left relative overflow-hidden">
                   <div className="flex items-center justify-between gap-3">
                     <div className="min-w-0">
-                      <h4 className="text-xs font-black text-slate-800 truncate leading-snug">{goal.quiz_title}</h4>
-                      <div className="flex flex-wrap items-center gap-1.5 mt-1">
-                        <span className="text-[8px] font-black px-1.5 py-0.5 rounded bg-orange-50 text-orange-650 border border-orange-100/60">
+                      <h4 className="text-xs sm:text-sm font-black text-slate-800 truncate leading-snug">{goal.quiz_title}</h4>
+                      <div className="flex flex-wrap items-center gap-1.5 mt-1.5">
+                        <span className="text-[8px] font-black px-2 py-0.5 rounded-lg bg-orange-500/10 text-orange-655">
                           🔥 {goal.streak_count}D
                         </span>
                         {dueReviews > 0 ? (
-                          <span className="text-[8px] font-black px-1.5 py-0.5 rounded bg-rose-50 text-rose-655 border border-rose-100/50">
+                          <span className="text-[8px] font-black px-2 py-0.5 rounded-lg bg-rose-500/10 text-rose-605 animate-pulse">
                             ⚠️ {dueReviews} ôn
                           </span>
                         ) : (
-                          <span className="text-[8px] font-black px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-600 border border-emerald-100/50">
+                          <span className="text-[8px] font-black px-2 py-0.5 rounded-lg bg-emerald-500/10 text-emerald-600">
                             ✅ Sạch ôn
                           </span>
                         )}
-                        <span className="text-[8px] font-black px-1.5 py-0.5 rounded bg-sky-50 text-sky-600 border border-sky-100/50">
+                        <span className="text-[8px] font-black px-2 py-0.5 rounded-lg bg-sky-500/10 text-sky-600">
                           📚 Đã học: {goal.total_learned}/{goal.total_questions}
                         </span>
                       </div>
@@ -835,28 +843,28 @@ function TodayFocusWidget({
 
                     <button
                       onClick={() => onOpenDeckSettings(goal)}
-                      className="w-7.5 h-7.5 rounded-lg bg-slate-50 border border-slate-200/60 flex items-center justify-center text-slate-500 hover:text-indigo-650 hover:bg-slate-100 active:scale-90 transition-all"
+                      className="w-8 h-8 rounded-lg bg-white border border-slate-100 flex items-center justify-center text-slate-400 hover:text-indigo-650 hover:bg-slate-50 active:scale-90 transition-all cursor-pointer shadow-sm"
                       title="Cài đặt mục tiêu bộ thẻ"
                     >
                       <Settings className="w-3.5 h-3.5" />
                     </button>
                   </div>
 
-                  <div className="grid grid-cols-3 gap-2.5 bg-slate-50/45 p-2.5 rounded-2xl border border-slate-100">
+                  <div className="grid grid-cols-3 gap-2 bg-white/70 p-3 rounded-2xl border-none shadow-sm shadow-slate-100/40">
                     <div className="flex items-center gap-2">
-                      <div className="relative w-7 h-7 flex-shrink-0 flex items-center justify-center rounded-full bg-white shadow-sm border border-slate-100">
-                        <svg className="w-7 h-7 transform -rotate-90">
-                          <circle cx="14" cy="14" r="11" className="stroke-slate-50 fill-none" strokeWidth="2" />
+                      <div className="relative w-8 h-8 flex-shrink-0 flex items-center justify-center rounded-full bg-slate-50 border border-slate-100">
+                        <svg className="w-8 h-8 transform -rotate-90">
+                          <circle cx="16" cy="16" r="13" className="stroke-slate-50 fill-none" strokeWidth="2" />
                           <circle
-                            cx="14" cy="14" r="11"
-                            className="stroke-indigo-600 fill-none transition-all duration-500 ease-out"
+                            cx="16" cy="16" r="13"
+                            className="stroke-[url(#timeRingGrad)] fill-none transition-all duration-500 ease-out"
                             strokeWidth="2"
-                            strokeDasharray={2 * Math.PI * 11}
-                            strokeDashoffset={2 * Math.PI * 11 - (timePct / 100) * 2 * Math.PI * 11}
+                            strokeDasharray={2 * Math.PI * 13}
+                            strokeDashoffset={2 * Math.PI * 13 - (timePct / 100) * 2 * Math.PI * 13}
                             strokeLinecap="round"
                           />
                         </svg>
-                        <span className="absolute text-[7px] font-black text-indigo-600">
+                        <span className="absolute text-[7.5px] font-black text-indigo-600">
                           {timePct}%
                         </span>
                       </div>
@@ -869,19 +877,19 @@ function TodayFocusWidget({
                     </div>
 
                     <div className="flex items-center gap-2">
-                      <div className="relative w-7 h-7 flex-shrink-0 flex items-center justify-center rounded-full bg-white shadow-sm border border-slate-100">
-                        <svg className="w-7 h-7 transform -rotate-90">
-                          <circle cx="14" cy="14" r="11" className="stroke-slate-50 fill-none" strokeWidth="2" />
+                      <div className="relative w-8 h-8 flex-shrink-0 flex items-center justify-center rounded-full bg-slate-50 border border-slate-100">
+                        <svg className="w-8 h-8 transform -rotate-90">
+                          <circle cx="16" cy="16" r="13" className="stroke-slate-50 fill-none" strokeWidth="2" />
                           <circle
-                            cx="14" cy="14" r="11"
-                            className="stroke-emerald-500 fill-none transition-all duration-500 ease-out"
+                            cx="16" cy="16" r="13"
+                            className="stroke-[url(#cardRingGrad)] fill-none transition-all duration-500 ease-out"
                             strokeWidth="2"
-                            strokeDasharray={2 * Math.PI * 11}
-                            strokeDashoffset={2 * Math.PI * 11 - (cardPct / 100) * 2 * Math.PI * 11}
+                            strokeDasharray={2 * Math.PI * 13}
+                            strokeDashoffset={2 * Math.PI * 13 - (cardPct / 100) * 2 * Math.PI * 13}
                             strokeLinecap="round"
                           />
                         </svg>
-                        <span className="absolute text-[7px] font-black text-emerald-600">
+                        <span className="absolute text-[7.5px] font-black text-emerald-600">
                           {cardPct}%
                         </span>
                       </div>
@@ -894,19 +902,19 @@ function TodayFocusWidget({
                     </div>
 
                     <div className="flex items-center gap-2">
-                      <div className="relative w-7 h-7 flex-shrink-0 flex items-center justify-center rounded-full bg-white shadow-sm border border-slate-100">
-                        <svg className="w-7 h-7 transform -rotate-90">
-                          <circle cx="14" cy="14" r="11" className="stroke-slate-50 fill-none" strokeWidth="2" />
+                      <div className="relative w-8 h-8 flex-shrink-0 flex items-center justify-center rounded-full bg-slate-50 border border-slate-100">
+                        <svg className="w-8 h-8 transform -rotate-90">
+                          <circle cx="16" cy="16" r="13" className="stroke-slate-50 fill-none" strokeWidth="2" />
                           <circle
-                            cx="14" cy="14" r="11"
-                            className="stroke-amber-500 fill-none transition-all duration-500 ease-out"
+                            cx="16" cy="16" r="13"
+                            className="stroke-[url(#newCardRingGrad)] fill-none transition-all duration-500 ease-out"
                             strokeWidth="2"
-                            strokeDasharray={2 * Math.PI * 11}
-                            strokeDashoffset={2 * Math.PI * 11 - (newCardPct / 100) * 2 * Math.PI * 11}
+                            strokeDasharray={2 * Math.PI * 13}
+                            strokeDashoffset={2 * Math.PI * 13 - (newCardPct / 100) * 2 * Math.PI * 13}
                             strokeLinecap="round"
                           />
                         </svg>
-                        <span className="absolute text-[7px] font-black text-amber-600">
+                        <span className="absolute text-[7.5px] font-black text-amber-600">
                           {newCardPct}%
                         </span>
                       </div>
@@ -919,19 +927,19 @@ function TodayFocusWidget({
                     </div>
                   </div>
 
-                  <div className="flex items-center justify-between border-t border-slate-100 pt-2.5 mt-0.5">
+                  <div className="flex items-center justify-between border-t border-slate-100/60 pt-3 mt-1">
                     {(() => {
                       const d = new Date()
                       d.setDate(d.getDate() + goal.days_remaining_est)
                       return (
-                        <span className="text-[8px] font-black text-indigo-500 flex items-center gap-1">
-                          <Target className="w-2.5 h-2.5" />
+                        <span className="text-[8.5px] font-black text-indigo-500 flex items-center gap-1">
+                          <Target className="w-3 h-3" />
                           Dự kiến xong: {d.toLocaleDateString('vi-VN')}
                         </span>
                       )
                     })()}
 
-                    <div className="flex items-center gap-1.5">
+                    <div className="flex items-center gap-2">
                       <button
                         onClick={() => {
                           if (hasNewCards) {
@@ -939,10 +947,10 @@ function TodayFocusWidget({
                           }
                         }}
                         className={cn(
-                          "h-8 px-2.5 rounded-xl text-[9px] font-black uppercase tracking-wider flex items-center gap-1 shadow-sm active:scale-95 transition-all",
+                          "h-8.5 px-3 rounded-xl text-[9px] font-black uppercase tracking-wider flex items-center gap-1 shadow-sm active:scale-95 transition-all cursor-pointer",
                           hasNewCards
-                            ? "bg-gradient-to-r from-orange-500 to-rose-500 hover:from-orange-600 hover:to-rose-600 text-white shadow-orange-150"
-                            : "bg-slate-100 text-slate-400 cursor-not-allowed border border-slate-200/50"
+                            ? "bg-gradient-to-r from-orange-500 to-rose-500 hover:from-orange-600 hover:to-rose-600 text-white shadow-orange-100"
+                            : "bg-slate-100 text-slate-400 cursor-not-allowed border border-slate-200/50 shadow-none"
                         )}
                         disabled={!hasNewCards}
                         title="Học từ mới"
@@ -953,10 +961,10 @@ function TodayFocusWidget({
                       <button
                         onClick={() => navigate(`/flashcard/${goal.deck_id}/play?mode=fsrs`)}
                         className={cn(
-                          "h-8 px-2.5 rounded-xl text-[9px] font-black uppercase tracking-wider flex items-center gap-1 shadow-sm active:scale-95 transition-all",
+                          "h-8.5 px-3 rounded-xl text-[9px] font-black uppercase tracking-wider flex items-center gap-1 shadow-sm active:scale-95 transition-all cursor-pointer",
                           dueReviews > 0
-                            ? "bg-indigo-600 hover:bg-indigo-700 text-white shadow-indigo-150"
-                            : "bg-slate-100 hover:bg-slate-200 text-slate-600"
+                            ? "bg-indigo-650 hover:bg-indigo-700 text-white shadow-indigo-100"
+                            : "bg-slate-100 hover:bg-slate-200 text-slate-655"
                         )}
                         title="Spaced Repetition"
                       >
@@ -964,8 +972,8 @@ function TodayFocusWidget({
                         Ôn {dueReviews > 0 && `(${dueReviews})`}
                       </button>
                       <button
-                        onClick={() => onStartPractice({ id: goal.deck_id, title: goal.quiz_title, questions_count: goal.total_questions })}
-                        className="h-8 px-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-[9px] font-black uppercase tracking-wider flex items-center gap-1 shadow-sm shadow-emerald-150 active:scale-95 transition-all"
+                        onClick={() => navigate(`/flashcard/${goal.deck_id}/play`)}
+                        className="h-8.5 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-[9px] font-black uppercase tracking-wider flex items-center gap-1 shadow-sm shadow-emerald-100 active:scale-95 transition-all cursor-pointer"
                         title="Luyện tập tự do"
                       >
                         <Trophy className="w-3.5 h-3.5" />
@@ -1763,7 +1771,7 @@ export default function Dashboard() {
         <aside className="w-80 flex-shrink-0 flex flex-col gap-5 h-full overflow-y-auto pr-2 pb-6 scrollbar-thin">
 
           {/* User profile card */}
-          <div className="bg-white border border-slate-200/60 rounded-[2rem] p-6 shadow-sm flex flex-col gap-4 text-left relative overflow-hidden flex-shrink-0">
+          <div className="bg-white/40 backdrop-blur-md border border-white/40 rounded-[2rem] p-6 shadow-sm shadow-slate-100/40 flex flex-col gap-4 text-left relative overflow-hidden flex-shrink-0">
             <div className="absolute -right-8 -top-8 w-24 h-24 rounded-full bg-indigo-50/40 blur-md pointer-events-none" />
 
             <div className="flex items-center gap-3.5 z-10">
@@ -1779,25 +1787,25 @@ export default function Dashboard() {
             </div>
 
             <div className="flex flex-col gap-2 mt-1">
-              <div className="flex items-center justify-between p-3 bg-gradient-to-r from-orange-50 to-amber-50/50 border border-orange-100 rounded-2xl shadow-sm">
+              <div className="flex items-center justify-between p-3.5 bg-[#F8FAFC]/75 border-none rounded-2xl transition-colors hover:bg-[#F8FAFC]">
                 <div className="flex items-center gap-2">
                   <Flame className="w-4 h-4 text-orange-500 animate-pulse" />
                   <span className="text-[10px] font-black text-slate-500 uppercase tracking-wider">Streak</span>
                 </div>
-                <span className="text-xs font-black text-orange-600 bg-white px-2.5 py-1 rounded-xl border border-orange-200">{data.gamify?.streak} ngày 🔥</span>
+                <span className="text-xs font-black text-orange-655 bg-white px-3 py-1 rounded-xl shadow-sm border border-slate-100/50">{data.gamify?.streak} ngày 🔥</span>
               </div>
 
-              <div className="flex items-center justify-between p-3 bg-gradient-to-r from-indigo-50 to-purple-50/50 border border-indigo-100 rounded-2xl shadow-sm">
+              <div className="flex items-center justify-between p-3.5 bg-[#F8FAFC]/75 border-none rounded-2xl transition-colors hover:bg-[#F8FAFC]">
                 <div className="flex items-center gap-2">
                   <Zap className="w-4 h-4 text-indigo-500" />
                   <span className="text-[10px] font-black text-slate-500 uppercase tracking-wider">Level</span>
                 </div>
-                <span className="text-xs font-black text-indigo-600 bg-white px-2.5 py-1 rounded-xl border border-indigo-200">Lvl {data.gamify?.level} ⭐</span>
+                <span className="text-xs font-black text-indigo-650 bg-white px-3 py-1 rounded-xl shadow-sm border border-slate-100/50">Lvl {data.gamify?.level} ⭐</span>
               </div>
 
               {/* XP progress to next level */}
-              <div className="px-1">
-                <div className="flex justify-between text-[8px] font-black text-slate-400 mb-1">
+              <div className="px-1 mt-1.5">
+                <div className="flex justify-between text-[8px] font-black text-slate-400 mb-1.5">
                   <span>{data.gamify?.xp} XP</span>
                   <span>{(data.gamify?.level || 1) * 1000} XP next lv</span>
                 </div>
@@ -1815,11 +1823,11 @@ export default function Dashboard() {
           {heatmapData && heatmapData.length > 0 && <MiniHeatmap data={heatmapData} />}
 
           {/* Studio Manage shortcut */}
-          <div className="bg-white border border-slate-200/60 rounded-[2rem] p-5 shadow-sm flex flex-col gap-3 text-left flex-shrink-0">
+          <div className="bg-white/40 backdrop-blur-md border border-white/40 rounded-[2rem] p-5 shadow-sm shadow-slate-100/40 flex flex-col gap-3 text-left flex-shrink-0">
             <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Quản lý bộ thẻ</span>
             <Link
               to="/manage"
-              className="w-full h-11 bg-slate-900 hover:bg-slate-800 text-white rounded-2xl text-xs font-black uppercase tracking-widest transition-all shadow-md shadow-slate-200 flex items-center justify-center gap-2 active:scale-95"
+              className="w-full h-11 bg-slate-900 hover:bg-slate-800 text-white rounded-2xl text-xs font-black uppercase tracking-widest transition-all shadow-md shadow-slate-100/5 flex items-center justify-center gap-2 active:scale-95 cursor-pointer"
             >
               <LayoutGrid className="w-4 h-4" />
               Creator Studio
