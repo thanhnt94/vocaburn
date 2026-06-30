@@ -601,14 +601,14 @@ function BadgeProgressWidget({ data }: { data: BadgeProgress[] }) {
     <div className="bg-white border border-slate-200/60 rounded-[2rem] p-5 shadow-sm flex flex-col gap-3.5 text-left flex-shrink-0">
       <div className="flex items-center justify-between pb-2 border-b border-slate-100">
         <div>
-          <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 block">Hành trình danh hiệu</span>
+          <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 block">Achievements Roadmap</span>
           <span className="text-[8px] font-black text-indigo-600 uppercase tracking-wider block mt-0.5">
-            🏆 Sắp đạt được
+            🏆 Near Completion
           </span>
         </div>
       </div>
 
-      <div className="flex flex-col gap-3">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
         {data.map(badge => {
           const IconComponent = iconsMap[badge.icon] || Trophy
           return (
@@ -715,7 +715,7 @@ function TodayFocusWidget({
         </button>
       </div>
 
-      <div className="grid grid-cols-3 gap-3 sm:gap-5 relative z-10 mb-6">
+      <div className="grid grid-cols-3 gap-3 sm:gap-5 relative z-10 mb-6 max-w-[720px] mx-auto w-full">
         {/* Time Target */}
         <div className="flex flex-col items-center p-3.5 bg-white rounded-3xl border-none shadow-sm shadow-slate-100/40 relative group hover:scale-[1.02] transition-transform duration-300">
           <div className="relative w-12 h-12 sm:w-16 sm:h-16 flex-shrink-0 flex items-center justify-center rounded-full bg-slate-50 group-hover:shadow-inner transition-shadow">
