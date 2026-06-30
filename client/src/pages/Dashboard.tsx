@@ -702,9 +702,9 @@ function TodayFocusWidget({
             "text-[9px] font-black uppercase tracking-widest px-2.5 py-1 rounded-xl transition-colors inline-block",
             isAllGoalsMet ? "text-emerald-700 bg-emerald-500/10 border border-emerald-200/50" : "text-indigo-600 bg-indigo-50"
           )}>
-            {isAllGoalsMet ? "🎉 MỤC TIÊU HOÀN THÀNH" : "🎯 TODAY'S FOCUS"}
+            {isAllGoalsMet ? "🎉 GOALS COMPLETED" : "🎯 TODAY'S FOCUS"}
           </span>
-          <h3 className="text-sm font-black text-slate-800 uppercase tracking-tight mt-1.5">Mục tiêu ngày của bạn</h3>
+          <h3 className="text-sm font-black text-slate-800 uppercase tracking-tight mt-1.5">Your daily targets</h3>
         </div>
         <button
           onClick={onOpenSettings}
@@ -735,8 +735,8 @@ function TodayFocusWidget({
             </span>
           </div>
           <div className="text-center mt-2.5">
-            <span className="text-[7.5px] sm:text-[9px] font-black text-slate-400 uppercase tracking-wider block leading-none">Thời gian</span>
-            <span className="text-[9.5px] sm:text-xs font-black text-slate-855 block mt-1 whitespace-nowrap">
+            <span className="text-[7.5px] sm:text-[9px] font-black text-slate-400 uppercase tracking-wider block leading-none">Time</span>
+            <span className="text-[9.5px] sm:text-xs font-black text-slate-800 block mt-1 whitespace-nowrap">
               {data.actual_time_minutes}/{data.daily_time_target}m
             </span>
           </div>
@@ -761,8 +761,8 @@ function TodayFocusWidget({
             </span>
           </div>
           <div className="text-center mt-2.5">
-            <span className="text-[7.5px] sm:text-[9px] font-black text-slate-400 uppercase tracking-wider block leading-none">Đã ôn</span>
-            <span className="text-[9.5px] sm:text-xs font-black text-slate-855 block mt-1 whitespace-nowrap">
+            <span className="text-[7.5px] sm:text-[9px] font-black text-slate-400 uppercase tracking-wider block leading-none">Reviewed</span>
+            <span className="text-[9.5px] sm:text-xs font-black text-slate-800 block mt-1 whitespace-nowrap">
               {data.actual_cards_completed}/{data.daily_card_target}
             </span>
           </div>
@@ -787,8 +787,8 @@ function TodayFocusWidget({
             </span>
           </div>
           <div className="text-center mt-2.5">
-            <span className="text-[7.5px] sm:text-[9px] font-black text-slate-400 uppercase tracking-wider block leading-none">Học mới</span>
-            <span className="text-[9.5px] sm:text-xs font-black text-slate-855 block mt-1 whitespace-nowrap">
+            <span className="text-[7.5px] sm:text-[9px] font-black text-slate-400 uppercase tracking-wider block leading-none">New</span>
+            <span className="text-[9.5px] sm:text-xs font-black text-slate-800 block mt-1 whitespace-nowrap">
               {data.actual_new_cards_completed}/{data.daily_new_card_target}
             </span>
           </div>
@@ -797,12 +797,12 @@ function TodayFocusWidget({
 
       {/* Deck-specific targets section */}
       <div className="border-t border-slate-100/80 pt-6 relative z-10">
-        <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 block mb-4">Mục tiêu theo từng bộ thẻ:</span>
+        <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 block mb-4">Targets by deck:</span>
         
         {!activeGoals || activeGoals.length === 0 ? (
           <div className="text-center py-6 bg-slate-50/50 rounded-2xl border border-dashed border-slate-200/80">
-            <span className="text-[10px] font-bold text-slate-400">Chưa thiết lập mục tiêu cho bộ thẻ nào.</span>
-            <Link to="/library" className="text-[10px] font-black text-indigo-600 uppercase tracking-wider block mt-1.5 hover:underline">📚 Đi đến thư viện</Link>
+            <span className="text-[10px] font-bold text-slate-400">No deck targets configured yet.</span>
+            <Link to="/library" className="text-[10px] font-black text-indigo-600 uppercase tracking-wider block mt-1.5 hover:underline">📚 Go to Library</Link>
           </div>
         ) : (
           <div className="space-y-4">
@@ -823,28 +823,28 @@ function TodayFocusWidget({
                     <div className="min-w-0">
                       <h4 className="text-xs sm:text-sm font-black text-slate-800 truncate leading-snug">{goal.quiz_title}</h4>
                       <div className="flex flex-wrap items-center gap-1.5 mt-1.5">
-                        <span className="text-[8px] font-black px-2 py-0.5 rounded-lg bg-orange-500/10 text-orange-655">
+                        <span className="text-[8px] font-black px-2 py-0.5 rounded-lg bg-orange-500/10 text-orange-600">
                           🔥 {goal.streak_count}D
                         </span>
                         {dueReviews > 0 ? (
-                          <span className="text-[8px] font-black px-2 py-0.5 rounded-lg bg-rose-500/10 text-rose-605 animate-pulse">
-                            ⚠️ {dueReviews} ôn
+                          <span className="text-[8px] font-black px-2 py-0.5 rounded-lg bg-rose-500/10 text-rose-600 animate-pulse">
+                            ⚠️ {dueReviews} due
                           </span>
                         ) : (
                           <span className="text-[8px] font-black px-2 py-0.5 rounded-lg bg-emerald-500/10 text-emerald-600">
-                            ✅ Sạch ôn
+                            ✅ Clear
                           </span>
                         )}
                         <span className="text-[8px] font-black px-2 py-0.5 rounded-lg bg-sky-500/10 text-sky-600">
-                          📚 Đã học: {goal.total_learned}/{goal.total_questions}
+                          📚 Learned: {goal.total_learned}/{goal.total_questions}
                         </span>
                       </div>
                     </div>
 
                     <button
                       onClick={() => onOpenDeckSettings(goal)}
-                      className="w-8 h-8 rounded-lg bg-white border border-slate-100 flex items-center justify-center text-slate-400 hover:text-indigo-650 hover:bg-slate-50 active:scale-90 transition-all cursor-pointer shadow-sm"
-                      title="Cài đặt mục tiêu bộ thẻ"
+                      className="w-8 h-8 rounded-lg bg-white border border-slate-100 flex items-center justify-center text-slate-400 hover:text-indigo-600 hover:bg-slate-50 active:scale-90 transition-all cursor-pointer shadow-sm"
+                      title="Deck Settings"
                     >
                       <Settings className="w-3.5 h-3.5" />
                     </button>
@@ -953,31 +953,31 @@ function TodayFocusWidget({
                             : "bg-slate-100 text-slate-400 cursor-not-allowed border border-slate-200/50 shadow-none"
                         )}
                         disabled={!hasNewCards}
-                        title="Học từ mới"
+                        title="Learn new cards"
                       >
                         <Sparkles className="w-3.5 h-3.5" />
-                        Mới {newCountLabel > 0 && `(${newCountLabel})`}
+                        New {newCountLabel > 0 && `(${newCountLabel})`}
                       </button>
                       <button
                         onClick={() => navigate(`/flashcard/${goal.deck_id}/play?mode=fsrs`)}
                         className={cn(
                           "h-8.5 px-3 rounded-xl text-[9px] font-black uppercase tracking-wider flex items-center gap-1 shadow-sm active:scale-95 transition-all cursor-pointer",
                           dueReviews > 0
-                            ? "bg-indigo-650 hover:bg-indigo-700 text-white shadow-indigo-100"
-                            : "bg-slate-100 hover:bg-slate-200 text-slate-655"
+                            ? "bg-indigo-600 hover:bg-indigo-700 text-white shadow-indigo-100"
+                            : "bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200/60"
                         )}
                         title="Spaced Repetition"
                       >
                         <Brain className="w-3.5 h-3.5" />
-                        Ôn {dueReviews > 0 && `(${dueReviews})`}
+                        Review {dueReviews > 0 && `(${dueReviews})`}
                       </button>
                       <button
                         onClick={() => navigate(`/flashcard/${goal.deck_id}/play`)}
                         className="h-8.5 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-[9px] font-black uppercase tracking-wider flex items-center gap-1 shadow-sm shadow-emerald-100 active:scale-95 transition-all cursor-pointer"
-                        title="Luyện tập tự do"
+                        title="Free practice"
                       >
                         <Trophy className="w-3.5 h-3.5" />
-                        Tập
+                        Practice
                       </button>
                     </div>
                   </div>
