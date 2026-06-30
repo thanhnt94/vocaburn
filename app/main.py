@@ -90,6 +90,8 @@ async def clean_user_id_cookie(request: Request, call_next):
             break
             
     if cookie_idx != -1 and cookie_val:
+        from app.modules.sso_module.cookie_signer import verify_cookie
+        from app.core.config import settings
         items = cookie_val.split(";")
         new_items = []
         modified = False
@@ -97,11 +99,11 @@ async def clean_user_id_cookie(request: Request, call_next):
             parts = item.strip().split("=", 1)
             if len(parts) == 2 and parts[0] == "user_id":
                 val = parts[1]
-                if "." in val:
-                    raw_id = val.split(".")[0]
-                    new_items.append(f"user_id={raw_id}")
-                    modified = True
-                    continue
+                verified_id = verify_cookie(val, settings.SECRET_KEY)
+                if verified_id:
+                    new_items.append(f"user_id={verified_id}")
+                modified = True
+                continue
             new_items.append(item.strip())
             
         if modified:
