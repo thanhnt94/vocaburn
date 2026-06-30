@@ -715,219 +715,294 @@ function TodayFocusWidget({
         </button>
       </div>
 
-      <div className="flex flex-wrap items-center gap-4 sm:gap-6 bg-slate-50/50 rounded-2xl p-4 mb-6 border border-slate-100/50 max-w-[720px] relative z-10">
-        <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Global Progress:</span>
-        <div className="flex items-center gap-1.5">
-          <Clock className="w-3.5 h-3.5 text-indigo-500" />
-          <span className="text-[10px] font-bold text-slate-500">Time:</span>
-          <span className="text-[10.5px] font-black text-slate-800 bg-white px-2.5 py-0.5 rounded-lg border border-slate-100 shadow-sm">{data.actual_time_minutes}/{data.daily_time_target}m</span>
-          <span className="text-[9px] font-black text-indigo-650">({timePercentage}%)</span>
-        </div>
-        <div className="flex items-center gap-1.5">
-          <Layers className="w-3.5 h-3.5 text-emerald-500" />
-          <span className="text-[10px] font-bold text-slate-500">Reviewed:</span>
-          <span className="text-[10.5px] font-black text-slate-800 bg-white px-2.5 py-0.5 rounded-lg border border-slate-100 shadow-sm">{data.actual_cards_completed}/{data.daily_card_target}</span>
-          <span className="text-[9px] font-black text-emerald-650">({cardPercentage}%)</span>
-        </div>
-        <div className="flex items-center gap-1.5">
-          <BookOpen className="w-3.5 h-3.5 text-amber-500" />
-          <span className="text-[10px] font-bold text-slate-500">New:</span>
-          <span className="text-[10.5px] font-black text-slate-800 bg-white px-2.5 py-0.5 rounded-lg border border-slate-100 shadow-sm">{data.actual_new_cards_completed}/{data.daily_new_card_target}</span>
-          <span className="text-[9px] font-black text-amber-650">({newCardPercentage}%)</span>
-        </div>
-      </div>
-
-      {/* Deck-specific targets section */}
-      <div className="border-t border-slate-100/80 pt-6 relative z-10">
-        <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 block mb-4">Targets by deck:</span>
+      {/* Two column layout for TodayFocusWidget */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 relative z-10 items-start">
         
-        {!activeGoals || activeGoals.length === 0 ? (
-          <div className="text-center py-6 bg-slate-50/50 rounded-2xl border border-dashed border-slate-200/80">
-            <span className="text-[10px] font-bold text-slate-400">No deck targets configured yet.</span>
-            <Link to="/library" className="text-[10px] font-black text-indigo-600 uppercase tracking-wider block mt-1.5 hover:underline">📚 Go to Library</Link>
+        {/* Column 1: Overall Progress circles (lg:col-span-5) */}
+        <div className="lg:col-span-5 bg-white border border-slate-100/80 rounded-3xl p-5 shadow-sm shadow-slate-100/10 flex flex-col gap-4">
+          <div className="flex items-center justify-between pb-2 border-b border-slate-50">
+            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Overall Progress</span>
+            <span className={cn(
+              "text-[8px] font-black uppercase tracking-wider px-2 py-0.5 rounded-lg",
+              isAllGoalsMet ? "text-emerald-700 bg-emerald-50" : "text-indigo-650 bg-indigo-50"
+            )}>
+              {isAllGoalsMet ? "Completed" : "Active"}
+            </span>
           </div>
-        ) : (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            {activeGoals.map(goal => {
-              const deckReview = todayReview?.decks_summary?.find((d: any) => d.deck_id === goal.deck_id)
-              const dueReviews = deckReview ? deckReview.due_count : 0
-              const totalRemainingNew = goal.total_questions - goal.total_learned
-              const newCountLabel = totalRemainingNew > 0 ? totalRemainingNew : 0
-              const hasNewCards = totalRemainingNew > 0
 
-              const timePct = goal.daily_time_target > 0 ? Math.min(100, Math.round((goal.actual_time_minutes / goal.daily_time_target) * 100)) : 0
-              const cardPct = goal.daily_card_target > 0 ? Math.min(100, Math.round((goal.actual_cards_completed / goal.daily_card_target) * 100)) : 0
-              const newCardPct = goal.daily_new_card_target > 0 ? Math.min(100, Math.round((goal.actual_new_cards_completed / goal.daily_new_card_target) * 100)) : 0
+          <div className="grid grid-cols-3 gap-2">
+            {/* Time Target */}
+            <div className="flex flex-col items-center p-2.5 bg-slate-50/50 rounded-2xl border border-slate-100/30">
+              <div className="relative w-11 h-11 flex-shrink-0 flex items-center justify-center rounded-full bg-white shadow-sm">
+                <svg className="w-11 h-11 transform -rotate-90 drop-shadow-[0_2px_4px_rgba(99,102,241,0.1)]">
+                  <circle cx="50%" cy="50%" r="38%" className="stroke-slate-100 fill-none" strokeWidth="2.5" />
+                  <circle
+                    cx="50%" cy="50%" r="38%"
+                    className="stroke-[url(#timeRingGrad)] fill-none transition-all duration-500 ease-out"
+                    strokeWidth="2.5"
+                    strokeDasharray="238%"
+                    strokeDashoffset={`${238 - (timePercentage / 100) * 238}%`}
+                    strokeLinecap="round"
+                  />
+                </svg>
+                <span className="absolute text-[8px] font-black text-indigo-600">
+                  {timePercentage}%
+                </span>
+              </div>
+              <div className="text-center mt-2">
+                <span className="text-[7px] font-black text-slate-400 uppercase tracking-wider block leading-none">Time</span>
+                <span className="text-[9px] font-black text-slate-800 block mt-0.5 whitespace-nowrap">
+                  {data.actual_time_minutes}/{data.daily_time_target}m
+                </span>
+              </div>
+            </div>
 
-              return (
-                <div key={goal.goal_id} className="p-5 rounded-3xl border-none bg-slate-50/50 hover:bg-slate-50 hover:shadow-[0_8px_30px_rgb(0,0,0,0.02)] transition-all duration-300 flex flex-col gap-4 text-left relative overflow-hidden">
-                  <div className="flex items-center justify-between gap-3">
-                    <div className="min-w-0">
-                      <h4 className="text-xs sm:text-sm font-black text-slate-800 truncate leading-snug">{goal.quiz_title}</h4>
-                      <div className="flex flex-wrap items-center gap-1.5 mt-1.5">
-                        <span className="text-[8px] font-black px-2 py-0.5 rounded-lg bg-orange-500/10 text-orange-600">
-                          🔥 {goal.streak_count}D
-                        </span>
-                        {dueReviews > 0 ? (
-                          <span className="text-[8px] font-black px-2 py-0.5 rounded-lg bg-rose-500/10 text-rose-600 animate-pulse">
-                            ⚠️ {dueReviews} due
-                          </span>
-                        ) : (
-                          <span className="text-[8px] font-black px-2 py-0.5 rounded-lg bg-emerald-500/10 text-emerald-600">
-                            ✅ Clear
-                          </span>
-                        )}
-                        <span className="text-[8px] font-black px-2 py-0.5 rounded-lg bg-sky-500/10 text-sky-600">
-                          📚 Learned: {goal.total_learned}/{goal.total_questions}
-                        </span>
-                      </div>
-                    </div>
+            {/* Reviewed Target */}
+            <div className="flex flex-col items-center p-2.5 bg-slate-50/50 rounded-2xl border border-slate-100/30">
+              <div className="relative w-11 h-11 flex-shrink-0 flex items-center justify-center rounded-full bg-white shadow-sm">
+                <svg className="w-11 h-11 transform -rotate-90 drop-shadow-[0_2px_4px_rgba(16,185,129,0.1)]">
+                  <circle cx="50%" cy="50%" r="38%" className="stroke-slate-100 fill-none" strokeWidth="2.5" />
+                  <circle
+                    cx="50%" cy="50%" r="38%"
+                    className="stroke-[url(#cardRingGrad)] fill-none transition-all duration-500 ease-out"
+                    strokeWidth="2.5"
+                    strokeDasharray="238%"
+                    strokeDashoffset={`${238 - (cardPercentage / 100) * 238}%`}
+                    strokeLinecap="round"
+                  />
+                </svg>
+                <span className="absolute text-[8px] font-black text-emerald-600">
+                  {cardPercentage}%
+                </span>
+              </div>
+              <div className="text-center mt-2">
+                <span className="text-[7px] font-black text-slate-400 uppercase tracking-wider block leading-none">Reviewed</span>
+                <span className="text-[9px] font-black text-slate-800 block mt-0.5 whitespace-nowrap">
+                  {data.actual_cards_completed}/{data.daily_card_target}
+                </span>
+              </div>
+            </div>
 
-                    <button
-                      onClick={() => onOpenDeckSettings(goal)}
-                      className="w-8 h-8 rounded-lg bg-white border border-slate-100 flex items-center justify-center text-slate-400 hover:text-indigo-600 hover:bg-slate-50 active:scale-90 transition-all cursor-pointer shadow-sm"
-                      title="Deck Settings"
-                    >
-                      <Settings className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
-
-                  <div className="grid grid-cols-3 gap-2 bg-white/70 p-3 rounded-2xl border-none shadow-sm shadow-slate-100/40">
-                    <div className="flex items-center gap-2">
-                      <div className="relative w-8 h-8 flex-shrink-0 flex items-center justify-center rounded-full bg-slate-50 border border-slate-100">
-                        <svg className="w-8 h-8 transform -rotate-90">
-                          <circle cx="16" cy="16" r="13" className="stroke-slate-50 fill-none" strokeWidth="2" />
-                          <circle
-                            cx="16" cy="16" r="13"
-                            className="stroke-[url(#timeRingGrad)] fill-none transition-all duration-500 ease-out"
-                            strokeWidth="2"
-                            strokeDasharray={2 * Math.PI * 13}
-                            strokeDashoffset={2 * Math.PI * 13 - (timePct / 100) * 2 * Math.PI * 13}
-                            strokeLinecap="round"
-                          />
-                        </svg>
-                        <span className="absolute text-[7.5px] font-black text-indigo-600">
-                          {timePct}%
-                        </span>
-                      </div>
-                      <div className="text-left min-w-0">
-                        <span className="text-[6.5px] font-black text-slate-400 uppercase tracking-wide block leading-none">TG Học</span>
-                        <span className="text-[8.5px] font-black text-slate-700 block mt-0.5 truncate leading-none">
-                          {goal.actual_time_minutes}/{goal.daily_time_target}m
-                        </span>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center gap-2">
-                      <div className="relative w-8 h-8 flex-shrink-0 flex items-center justify-center rounded-full bg-slate-50 border border-slate-100">
-                        <svg className="w-8 h-8 transform -rotate-90">
-                          <circle cx="16" cy="16" r="13" className="stroke-slate-50 fill-none" strokeWidth="2" />
-                          <circle
-                            cx="16" cy="16" r="13"
-                            className="stroke-[url(#cardRingGrad)] fill-none transition-all duration-500 ease-out"
-                            strokeWidth="2"
-                            strokeDasharray={2 * Math.PI * 13}
-                            strokeDashoffset={2 * Math.PI * 13 - (cardPct / 100) * 2 * Math.PI * 13}
-                            strokeLinecap="round"
-                          />
-                        </svg>
-                        <span className="absolute text-[7.5px] font-black text-emerald-600">
-                          {cardPct}%
-                        </span>
-                      </div>
-                      <div className="text-left min-w-0">
-                        <span className="text-[6.5px] font-black text-slate-400 uppercase tracking-wide block leading-none">Đã ôn</span>
-                        <span className="text-[8.5px] font-black text-slate-700 block mt-0.5 truncate leading-none">
-                          {goal.actual_cards_completed}/{goal.daily_card_target}
-                        </span>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center gap-2">
-                      <div className="relative w-8 h-8 flex-shrink-0 flex items-center justify-center rounded-full bg-slate-50 border border-slate-100">
-                        <svg className="w-8 h-8 transform -rotate-90">
-                          <circle cx="16" cy="16" r="13" className="stroke-slate-50 fill-none" strokeWidth="2" />
-                          <circle
-                            cx="16" cy="16" r="13"
-                            className="stroke-[url(#newCardRingGrad)] fill-none transition-all duration-500 ease-out"
-                            strokeWidth="2"
-                            strokeDasharray={2 * Math.PI * 13}
-                            strokeDashoffset={2 * Math.PI * 13 - (newCardPct / 100) * 2 * Math.PI * 13}
-                            strokeLinecap="round"
-                          />
-                        </svg>
-                        <span className="absolute text-[7.5px] font-black text-amber-600">
-                          {newCardPct}%
-                        </span>
-                      </div>
-                      <div className="text-left min-w-0">
-                        <span className="text-[6.5px] font-black text-slate-400 uppercase tracking-wide block leading-none">Mới</span>
-                        <span className="text-[8.5px] font-black text-slate-700 block mt-0.5 truncate leading-none">
-                          {goal.actual_new_cards_completed}/{goal.daily_new_card_target}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center justify-between border-t border-slate-100/60 pt-3 mt-1">
-                    {(() => {
-                      const d = new Date()
-                      d.setDate(d.getDate() + goal.days_remaining_est)
-                      return (
-                        <span className="text-[8.5px] font-black text-indigo-500 flex items-center gap-1">
-                          <Target className="w-3 h-3" />
-                          Dự kiến xong: {d.toLocaleDateString('vi-VN')}
-                        </span>
-                      )
-                    })()}
-
-                    <div className="flex items-center gap-2">
-                      <button
-                        onClick={() => {
-                          if (hasNewCards) {
-                            navigate(`/flashcard/${goal.deck_id}/play?mode=new`)
-                          }
-                        }}
-                        className={cn(
-                          "h-8.5 px-3 rounded-xl text-[9px] font-black uppercase tracking-wider flex items-center gap-1 shadow-sm active:scale-95 transition-all cursor-pointer",
-                          hasNewCards
-                            ? "bg-gradient-to-r from-orange-500 to-rose-500 hover:from-orange-600 hover:to-rose-600 text-white shadow-orange-100"
-                            : "bg-slate-100 text-slate-400 cursor-not-allowed border border-slate-200/50 shadow-none"
-                        )}
-                        disabled={!hasNewCards}
-                        title="Learn new cards"
-                      >
-                        <Sparkles className="w-3.5 h-3.5" />
-                        New {newCountLabel > 0 && `(${newCountLabel})`}
-                      </button>
-                      <button
-                        onClick={() => navigate(`/flashcard/${goal.deck_id}/play?mode=fsrs`)}
-                        className={cn(
-                          "h-8.5 px-3 rounded-xl text-[9px] font-black uppercase tracking-wider flex items-center gap-1 shadow-sm active:scale-95 transition-all cursor-pointer",
-                          dueReviews > 0
-                            ? "bg-indigo-600 hover:bg-indigo-700 text-white shadow-indigo-100"
-                            : "bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200/60"
-                        )}
-                        title="Spaced Repetition"
-                      >
-                        <Brain className="w-3.5 h-3.5" />
-                        Review {dueReviews > 0 && `(${dueReviews})`}
-                      </button>
-                      <button
-                        onClick={() => navigate(`/flashcard/${goal.deck_id}/play`)}
-                        className="h-8.5 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-[9px] font-black uppercase tracking-wider flex items-center gap-1 shadow-sm shadow-emerald-100 active:scale-95 transition-all cursor-pointer"
-                        title="Free practice"
-                      >
-                        <Trophy className="w-3.5 h-3.5" />
-                        Practice
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              )
-            })}
+            {/* New Target */}
+            <div className="flex flex-col items-center p-2.5 bg-slate-50/50 rounded-2xl border border-slate-100/30">
+              <div className="relative w-11 h-11 flex-shrink-0 flex items-center justify-center rounded-full bg-white shadow-sm">
+                <svg className="w-11 h-11 transform -rotate-90 drop-shadow-[0_2px_4px_rgba(245,158,11,0.15)]">
+                  <circle cx="50%" cy="50%" r="38%" className="stroke-slate-100 fill-none" strokeWidth="2.5" />
+                  <circle
+                    cx="50%" cy="50%" r="38%"
+                    className="stroke-[url(#newCardRingGrad)] fill-none transition-all duration-500 ease-out"
+                    strokeWidth="2.5"
+                    strokeDasharray="238%"
+                    strokeDashoffset={`${238 - (newCardPercentage / 100) * 238}%`}
+                    strokeLinecap="round"
+                  />
+                </svg>
+                <span className="absolute text-[8px] font-black text-amber-600">
+                  {newCardPercentage}%
+                </span>
+              </div>
+              <div className="text-center mt-2">
+                <span className="text-[7px] font-black text-slate-400 uppercase tracking-wider block leading-none">New</span>
+                <span className="text-[9px] font-black text-slate-800 block mt-0.5 whitespace-nowrap">
+                  {data.actual_new_cards_completed}/{data.daily_new_card_target}
+                </span>
+              </div>
+            </div>
           </div>
-        )}
+        </div>
+
+        {/* Column 2: Targets by Deck (lg:col-span-7) */}
+        <div className="lg:col-span-7 w-full flex flex-col gap-3">
+          <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 block mb-1">Targets by deck:</span>
+          {!activeGoals || activeGoals.length === 0 ? (
+            <div className="text-center py-6 bg-slate-50/50 rounded-2xl border border-dashed border-slate-200/80">
+              <span className="text-[10px] font-bold text-slate-400">No deck targets configured yet.</span>
+              <Link to="/library" className="text-[10px] font-black text-indigo-600 uppercase tracking-wider block mt-1.5 hover:underline">📚 Go to Library</Link>
+            </div>
+          ) : (
+            <div className="flex flex-col gap-3 w-full">
+              {activeGoals.map(goal => {
+                const deckReview = todayReview?.decks_summary?.find((d: any) => d.deck_id === goal.deck_id)
+                const dueReviews = deckReview ? deckReview.due_count : 0
+                const totalRemainingNew = goal.total_questions - goal.total_learned
+                const newCountLabel = totalRemainingNew > 0 ? totalRemainingNew : 0
+                const hasNewCards = totalRemainingNew > 0
+
+                const timePct = goal.daily_time_target > 0 ? Math.min(100, Math.round((goal.actual_time_minutes / goal.daily_time_target) * 100)) : 0
+                const cardPct = goal.daily_card_target > 0 ? Math.min(100, Math.round((goal.actual_cards_completed / goal.daily_card_target) * 100)) : 0
+                const newCardPct = goal.daily_new_card_target > 0 ? Math.min(100, Math.round((goal.actual_new_cards_completed / goal.daily_new_card_target) * 100)) : 0
+
+                return (
+                  <div key={goal.goal_id} className="p-4 rounded-3xl border-none bg-slate-50/55 hover:bg-slate-50 hover:shadow-[0_8px_30px_rgb(0,0,0,0.02)] transition-all duration-300 flex flex-col gap-3 text-left relative overflow-hidden">
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="min-w-0">
+                        <h4 className="text-xs sm:text-sm font-black text-slate-800 truncate leading-snug">{goal.quiz_title}</h4>
+                        <div className="flex flex-wrap items-center gap-1.5 mt-1.5">
+                          <span className="text-[8px] font-black px-2 py-0.5 rounded-lg bg-orange-500/10 text-orange-600">
+                            🔥 {goal.streak_count}D
+                          </span>
+                          {dueReviews > 0 ? (
+                            <span className="text-[8px] font-black px-2 py-0.5 rounded-lg bg-rose-500/10 text-rose-600 animate-pulse">
+                              ⚠️ {dueReviews} due
+                            </span>
+                          ) : (
+                            <span className="text-[8px] font-black px-2 py-0.5 rounded-lg bg-emerald-500/10 text-emerald-600">
+                              ✅ Clear
+                            </span>
+                          )}
+                          <span className="text-[8px] font-black px-2 py-0.5 rounded-lg bg-sky-500/10 text-sky-600">
+                            📚 Learned: {goal.total_learned}/{goal.total_questions}
+                          </span>
+                        </div>
+                      </div>
+
+                      <button
+                        onClick={() => onOpenDeckSettings(goal)}
+                        className="w-8 h-8 rounded-lg bg-white border border-slate-100 flex items-center justify-center text-slate-400 hover:text-indigo-600 hover:bg-slate-50 active:scale-90 transition-all cursor-pointer shadow-sm animate-none"
+                        title="Deck Settings"
+                      >
+                        <Settings className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+
+                    <div className="grid grid-cols-3 gap-2 bg-white/70 p-2.5 rounded-2xl border-none shadow-sm shadow-slate-100/40">
+                      <div className="flex items-center gap-2">
+                        <div className="relative w-8 h-8 flex-shrink-0 flex items-center justify-center rounded-full bg-slate-50 border border-slate-100">
+                          <svg className="w-8 h-8 transform -rotate-90">
+                            <circle cx="16" cy="16" r="13" className="stroke-slate-50 fill-none" strokeWidth="2" />
+                            <circle
+                              cx="16" cy="16" r="13"
+                              className="stroke-[url(#timeRingGrad)] fill-none transition-all duration-500 ease-out"
+                              strokeWidth="2"
+                              strokeDasharray={2 * Math.PI * 13}
+                              strokeDashoffset={2 * Math.PI * 13 - (timePct / 100) * 2 * Math.PI * 13}
+                              strokeLinecap="round"
+                            />
+                          </svg>
+                          <span className="absolute text-[7.5px] font-black text-indigo-600">
+                            {timePct}%
+                          </span>
+                        </div>
+                        <div className="text-left min-w-0">
+                          <span className="text-[6.5px] font-black text-slate-400 uppercase tracking-wide block leading-none">Time</span>
+                          <span className="text-[8.5px] font-black text-slate-700 block mt-0.5 truncate leading-none">
+                            {goal.actual_time_minutes}/{goal.daily_time_target}m
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        <div className="relative w-8 h-8 flex-shrink-0 flex items-center justify-center rounded-full bg-slate-50 border border-slate-100">
+                          <svg className="w-8 h-8 transform -rotate-90">
+                            <circle cx="16" cy="16" r="13" className="stroke-slate-50 fill-none" strokeWidth="2" />
+                            <circle
+                              cx="16" cy="16" r="13"
+                              className="stroke-[url(#cardRingGrad)] fill-none transition-all duration-500 ease-out"
+                              strokeWidth="2"
+                              strokeDasharray={2 * Math.PI * 13}
+                              strokeDashoffset={2 * Math.PI * 13 - (cardPct / 100) * 2 * Math.PI * 13}
+                              strokeLinecap="round"
+                            />
+                          </svg>
+                          <span className="absolute text-[7.5px] font-black text-emerald-600">
+                            {cardPct}%
+                          </span>
+                        </div>
+                        <div className="text-left min-w-0">
+                          <span className="text-[6.5px] font-black text-slate-400 uppercase tracking-wide block leading-none">Reviewed</span>
+                          <span className="text-[8.5px] font-black text-slate-700 block mt-0.5 truncate leading-none">
+                            {goal.actual_cards_completed}/{goal.daily_card_target}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        <div className="relative w-8 h-8 flex-shrink-0 flex items-center justify-center rounded-full bg-slate-50 border border-slate-100">
+                          <svg className="w-8 h-8 transform -rotate-90">
+                            <circle cx="16" cy="16" r="13" className="stroke-slate-50 fill-none" strokeWidth="2" />
+                            <circle
+                              cx="16" cy="16" r="13"
+                              className="stroke-[url(#newCardRingGrad)] fill-none transition-all duration-500 ease-out"
+                              strokeWidth="2"
+                              strokeDasharray={2 * Math.PI * 13}
+                              strokeDashoffset={2 * Math.PI * 13 - (newCardPct / 100) * 2 * Math.PI * 13}
+                              strokeLinecap="round"
+                            />
+                          </svg>
+                          <span className="absolute text-[7.5px] font-black text-amber-600">
+                            {newCardPct}%
+                          </span>
+                        </div>
+                        <div className="text-left min-w-0">
+                          <span className="text-[6.5px] font-black text-slate-400 uppercase tracking-wide block leading-none">New</span>
+                          <span className="text-[8.5px] font-black text-slate-700 block mt-0.5 truncate leading-none">
+                            {goal.actual_new_cards_completed}/{goal.daily_new_card_target}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between border-t border-slate-100/60 pt-3 mt-1">
+                      {(() => {
+                        const d = new Date()
+                        d.setDate(d.getDate() + goal.days_remaining_est)
+                        return (
+                          <span className="text-[8.5px] font-black text-indigo-500 flex items-center gap-1">
+                            <Target className="w-3 h-3" />
+                            Est. Completion: {d.toLocaleDateString('vi-VN')}
+                          </span>
+                        )
+                      })()}
+
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => {
+                            if (hasNewCards) {
+                              navigate(`/flashcard/${goal.deck_id}/play?mode=new`)
+                            }
+                          }}
+                          className={cn(
+                            "h-8 px-2.5 rounded-xl text-[9px] font-black uppercase tracking-wider flex items-center gap-1 shadow-sm active:scale-95 transition-all cursor-pointer",
+                            hasNewCards
+                              ? "bg-gradient-to-r from-orange-500 to-rose-500 hover:from-orange-600 hover:to-rose-600 text-white shadow-orange-100"
+                              : "bg-slate-100 text-slate-400 cursor-not-allowed border border-slate-200/50 shadow-none"
+                          )}
+                          disabled={!hasNewCards}
+                          title="Learn new cards"
+                        >
+                          <Sparkles className="w-3.5 h-3.5" />
+                          New {newCountLabel > 0 && `(${newCountLabel})`}
+                        </button>
+                        <button
+                          onClick={() => navigate(`/flashcard/${goal.deck_id}/play?mode=fsrs`)}
+                          className={cn(
+                            "h-8 px-2.5 rounded-xl text-[9px] font-black uppercase tracking-wider flex items-center gap-1 shadow-sm active:scale-95 transition-all cursor-pointer",
+                            dueReviews > 0
+                              ? "bg-indigo-600 hover:bg-indigo-700 text-white shadow-indigo-100"
+                              : "bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200/60"
+                          )}
+                          title="Spaced Repetition"
+                        >
+                          <Brain className="w-3.5 h-3.5" />
+                          Review {dueReviews > 0 && `(${dueReviews})`}
+                        </button>
+                        <button
+                          onClick={() => navigate(`/flashcard/${goal.deck_id}/play`)}
+                          className="h-8 px-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-[9px] font-black uppercase tracking-wider flex items-center gap-1 shadow-sm shadow-emerald-100 active:scale-95 transition-all cursor-pointer"
+                          title="Free practice"
+                        >
+                          <Trophy className="w-3.5 h-3.5" />
+                          Practice
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          )}
+        </div>
+
       </div>
     </div>
   )
@@ -1771,7 +1846,7 @@ export default function Dashboard() {
 
         </aside>
 
-        {/* RIGHT COLUMN: Today's targets */}
+        {/* MAIN FEED: Scrollable container */}
         <section className="flex-1 h-full flex flex-col gap-5 overflow-y-auto pr-2 scrollbar-thin text-left pb-8">
           <div className="flex items-center justify-between mb-1">
             <div>
@@ -1780,29 +1855,32 @@ export default function Dashboard() {
             </div>
           </div>
 
-          {/* Global Study Goals Widget (Includes individual deck targets & actions) */}
-          {globalGoals && (
-            <TodayFocusWidget
-              data={globalGoals}
-              activeGoals={activeGoals}
-              todayReview={todayReview}
-              onOpenSettings={() => setIsGoalModalOpen(true)}
-              onOpenDeckSettings={handleOpenDeckGoalSettings}
-              onStartPractice={(quiz) => {
-                setSelectedPracticeQuiz(quiz)
-                setIsPracticeModalOpen(true)
-              }}
-              navigate={navigate}
-            />
-          )}
+          <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 items-start w-full">
+            {/* Left Column: Targets & Achievements */}
+            <div className="flex flex-col gap-5 w-full">
+              {globalGoals && (
+                <TodayFocusWidget
+                  data={globalGoals}
+                  activeGoals={activeGoals}
+                  todayReview={todayReview}
+                  onOpenSettings={() => setIsGoalModalOpen(true)}
+                  onOpenDeckSettings={handleOpenDeckGoalSettings}
+                  onStartPractice={(quiz) => {
+                    setSelectedPracticeQuiz(quiz)
+                    setIsPracticeModalOpen(true)
+                  }}
+                  navigate={navigate}
+                />
+              )}
+              {badgesProgress && <BadgeProgressWidget data={badgesProgress} />}
+            </div>
 
-          <div className="grid grid-cols-1 xl:grid-cols-2 gap-5">
-            <ReviewForecastWidget data={forecastData} />
-            <DailyComparisonChart data={dailyComparisonData} allTimeAvg={dailyComparisonAvg} isLoading={isDailyComparisonLoading} />
+            {/* Right Column: Charts & Statistics */}
+            <div className="flex flex-col gap-5 w-full">
+              <ReviewForecastWidget data={forecastData} />
+              <DailyComparisonChart data={dailyComparisonData} allTimeAvg={dailyComparisonAvg} isLoading={isDailyComparisonLoading} />
+            </div>
           </div>
-
-          {/* Badge Progress Roadmap */}
-          {badgesProgress && <BadgeProgressWidget data={badgesProgress} />}
         </section>
       </div>
 
