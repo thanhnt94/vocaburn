@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
 import { useQuery, useInfiniteQuery, useQueryClient } from '@tanstack/react-query'
-import { ChevronLeft, Award, BookOpen, Search, StickyNote, BarChart2, Settings, Edit2, X, Save, Brain, HelpCircle, Plus, Sparkles, Trophy } from 'lucide-react'
+import { ChevronLeft, Award, BookOpen, Search, StickyNote, BarChart2, Settings, Edit2, X, Save, Brain, HelpCircle, Plus, Sparkles, Trophy, Layers } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import axios from 'axios'
 import { cn } from '@/lib/utils'
 import { useAppStore } from '@/store/useAppStore'
+import { parseBBCodeToHtml } from '@/lib/text'
 
 interface Question {
   id: number
@@ -28,7 +29,31 @@ export default function QuizDetail() {
   const [editTab, setEditTab] = useState<'props' | 'collabs'>('props')
   const [userSearch, setUserSearch] = useState('')
   const [searchResults, setSearchResults] = useState<any[]>([])
+  const [quickAddFront, setQuickAddFront] = useState('')
+  const [quickAddBack, setQuickAddBack] = useState('')
+  const [isQuickAdding, setIsQuickAdding] = useState(false)
   const [collaborators, setCollaborators] = useState<any[]>([])
+
+  const handleQuickAddCard = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!quickAddFront.trim() || !quickAddBack.trim()) return
+    setIsQuickAdding(true)
+    try {
+      await axios.post(`/api/v1/deck/${id}/flashcard`, {
+        content: quickAddFront.trim(),
+        explanation: quickAddBack.trim(),
+        options: []
+      })
+      setQuickAddFront('')
+      setQuickAddBack('')
+      queryClient.invalidateQueries({ queryKey: ['quiz-questions', id] })
+      queryClient.invalidateQueries({ queryKey: ['quiz', id] })
+    } catch (err) {
+      alert('Failed to add card')
+    } finally {
+      setIsQuickAdding(false)
+    }
+  }
 
   useEffect(() => {
     if (id === 'import') {
@@ -134,6 +159,7 @@ export default function QuizDetail() {
   })
 
   const allQuestions = questionsData?.pages.flatMap(p => p.questions) || []
+  const canEdit = quiz?.creator_id === user?.id || user?.id === 1 || quiz?.is_collaborator
 
   return (
     <div className="min-h-screen bg-[#F8FAFC]">
@@ -143,10 +169,10 @@ export default function QuizDetail() {
           <ChevronLeft className="w-6 h-6" />
         </button>
         <div className="flex-1 min-w-0">
-          <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">QUIZ DETAIL</p>
+          <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">DECK DETAIL</p>
           <h2 className="text-sm font-black text-slate-900 truncate tracking-tight">{quiz?.title}</h2>
         </div>
-        {(quiz?.creator_id === user?.id || user?.id === 1 || quiz?.is_collaborator) && (
+        {canEdit && (
           <button 
             onClick={() => {
               setEditFormData({ ...quiz, tags: quiz.tags?.join(', ') })
@@ -181,6 +207,30 @@ export default function QuizDetail() {
               </div>
               <h1 className="text-3xl md:text-5xl font-black text-slate-900 mb-3 tracking-tighter">{quiz?.title}</h1>
               <p className="text-slate-400 font-medium text-base leading-relaxed max-w-2xl">{quiz?.description || "Smart gamified quiz learning platform."}</p>
+              
+              {/* Quick Management Buttons */}
+              {canEdit && (
+                <div className="flex flex-wrap items-center justify-center md:justify-start gap-2.5 mt-5">
+                  <Link
+                    to={`/manage/edit/${id}/flashcards`}
+                    className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-[10px] font-black uppercase tracking-wider rounded-xl shadow-md shadow-indigo-150/15 flex items-center gap-1.5 active:scale-95 transition-all"
+                  >
+                    <Layers className="w-3.5 h-3.5" />
+                    Manage Cards
+                  </Link>
+                  <button
+                    onClick={() => {
+                      setEditFormData({ ...quiz, tags: quiz.tags?.join(', ') })
+                      setEditTab('props')
+                      setIsEditModalOpen(true)
+                    }}
+                    className="px-4 py-2 bg-white hover:bg-slate-50 text-slate-600 border border-slate-100 hover:border-slate-200 text-[10px] font-black uppercase tracking-wider rounded-xl shadow-sm flex items-center gap-1.5 active:scale-95 transition-all"
+                  >
+                    <Settings className="w-3.5 h-3.5" />
+                    Deck Settings
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -291,6 +341,46 @@ export default function QuizDetail() {
 
           {activeTab === 'list' ? (
             <div className="space-y-1">
+              {/* Quick Add Card Form for authorized users */}
+              {canEdit && (
+                <div className="bg-gradient-to-r from-indigo-50/40 to-pink-50/20 p-5 rounded-3xl border border-indigo-100/30 mb-6 text-left relative overflow-hidden">
+                  <div className="flex items-center gap-2 mb-3">
+                    <Sparkles className="w-4 h-4 text-indigo-500 animate-pulse" />
+                    <span className="text-[10px] font-black text-indigo-700 uppercase tracking-widest">Quick Add Card</span>
+                  </div>
+                  <form onSubmit={handleQuickAddCard} className="flex flex-col sm:flex-row gap-3 relative z-10">
+                    <input
+                      type="text"
+                      placeholder="Front side (e.g. Kanji, vocabulary, question)..."
+                      value={quickAddFront}
+                      onChange={(e) => setQuickAddFront(e.target.value)}
+                      className="flex-1 px-4 py-3 bg-white border border-slate-100 rounded-xl text-xs font-semibold focus:ring-4 focus:ring-indigo-500/5 outline-none shadow-sm focus:border-indigo-500 transition-all"
+                      required
+                    />
+                    <input
+                      type="text"
+                      placeholder="Back side (e.g. translation, meaning, explanation)..."
+                      value={quickAddBack}
+                      onChange={(e) => setQuickAddBack(e.target.value)}
+                      className="flex-1 px-4 py-3 bg-white border border-slate-100 rounded-xl text-xs font-semibold focus:ring-4 focus:ring-indigo-500/5 outline-none shadow-sm focus:border-indigo-500 transition-all"
+                      required
+                    />
+                    <button
+                      type="submit"
+                      disabled={isQuickAdding}
+                      className="px-6 py-3 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white text-[10px] font-black uppercase tracking-wider rounded-xl shadow-md active:scale-95 transition-all shrink-0 flex items-center justify-center gap-1.5"
+                    >
+                      {isQuickAdding ? (
+                        <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                      ) : (
+                        <Plus className="w-3.5 h-3.5" />
+                      )}
+                      Add Card
+                    </button>
+                  </form>
+                </div>
+              )}
+
               <div className="relative mb-6">
                 <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-300" />
                 <input 
@@ -309,8 +399,11 @@ export default function QuizDetail() {
                       <div className="flex-shrink-0 min-w-[40px]">
                         <span className="text-[10px] font-black text-slate-300 uppercase tracking-widest">#{q.orig_index}</span>
                       </div>
-                      <div className="flex-1 min-w-0">
-                        <h3 className="text-sm font-bold text-slate-700 leading-relaxed md:line-clamp-2">{q.content}</h3>
+                      <div className="flex-1 min-w-0 text-left">
+                        <h3 
+                          className="text-sm font-bold text-slate-700 leading-relaxed md:line-clamp-2"
+                          dangerouslySetInnerHTML={{ __html: parseBBCodeToHtml(q.content) }}
+                        />
                       </div>
                       <div className="flex items-center gap-5 md:ml-auto flex-shrink-0 pt-2 md:pt-0">
                         <StatItem label="ATTEMPTS" value={q.stats?.total || 0} color="slate" />

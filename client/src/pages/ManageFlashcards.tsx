@@ -11,7 +11,7 @@ export default function ManageFlashcards() {
   const [searchQuery, setSearchQuery] = useState('')
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const [newQuiz, setNewQuiz] = useState({ title: '', description: '', cover_image: '', is_public: true })
+  const [newQuiz, setNewQuiz] = useState({ title: '', description: '', cover_image: '', is_public: false })
   const [activeExportDeckId, setActiveExportDeckId] = useState<number | null>(null)
 
   const { data: quizzes, isLoading } = useQuery<any[]>({
@@ -38,7 +38,7 @@ export default function ManageFlashcards() {
     try {
       await axios.post('/api/v1/deck/create', newQuiz)
       setIsCreateModalOpen(false)
-      setNewQuiz({ title: '', description: '', cover_image: '', is_public: true })
+      setNewQuiz({ title: '', description: '', cover_image: '', is_public: false })
       queryClient.invalidateQueries({ queryKey: ['manage-quizzes'] })
     } catch (err) {
       alert('Failed to create deck')
@@ -140,7 +140,7 @@ export default function ManageFlashcards() {
                ))}
             </div>
          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-6">
                <AnimatePresence mode="popLayout">
                {filteredQuizzes?.map((quiz) => (
                   <motion.div 
@@ -149,114 +149,216 @@ export default function ManageFlashcards() {
                     animate={{ opacity: 1, scale: 1 }}
                     exit={{ opacity: 0, scale: 0.9 }}
                     key={quiz.id} 
-                    className="group bg-white rounded-[2.5rem] border border-slate-100 overflow-hidden shadow-sm hover:shadow-xl hover:shadow-indigo-500/5 transition-all duration-300"
+                    className="w-full"
                   >
-                     <div className="aspect-[16/9] bg-slate-50 relative overflow-hidden">
-                        {quiz.cover_image ? (
-                           <img src={quiz.cover_image} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
-                        ) : (
-                           <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-indigo-500 to-purple-600 opacity-80">
-                              <BookOpen className="w-12 h-12 text-white/40" />
+                     {/* Desktop Card View */}
+                     <div className="hidden md:block group bg-white rounded-[2.5rem] border border-slate-100 overflow-hidden shadow-sm hover:shadow-xl hover:shadow-indigo-500/5 transition-all duration-300">
+                        <div className="aspect-[16/9] bg-slate-50 relative overflow-hidden">
+                           {quiz.cover_image ? (
+                              <img src={quiz.cover_image} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                           ) : (
+                              <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-indigo-500 to-purple-600 opacity-80">
+                                 <BookOpen className="w-12 h-12 text-white/40" />
+                              </div>
+                           )}
+                           <div className="absolute top-4 left-4 flex gap-1.5">
+                              <div className="px-3 py-1.5 bg-white/90 backdrop-blur-md rounded-xl shadow-sm border border-white/20">
+                                 <span className="text-[10px] font-black text-indigo-600 uppercase">{quiz.questions_count} Cards</span>
+                              </div>
+                              <div className={cn(
+                                 "px-2.5 py-1.5 rounded-xl shadow-sm border flex items-center justify-center backdrop-blur-md",
+                                 quiz.is_public 
+                                    ? "bg-emerald-500/95 border-emerald-400/20 text-white" 
+                                    : "bg-amber-500/95 border-amber-400/20 text-white"
+                              )} title={quiz.is_public ? "Public" : "Private"}>
+                                 {quiz.is_public ? <Globe className="w-3.5 h-3.5" /> : <Lock className="w-3.5 h-3.5" />}
+                              </div>
                            </div>
-                        )}
-                        <div className="absolute top-4 left-4 flex gap-1.5">
-                           <div className="px-3 py-1.5 bg-white/90 backdrop-blur-md rounded-xl shadow-sm border border-white/20">
-                              <span className="text-[10px] font-black text-indigo-600 uppercase">{quiz.questions_count} Cards</span>
-                           </div>
-                           <div className={cn(
-                              "px-2.5 py-1.5 rounded-xl shadow-sm border flex items-center justify-center backdrop-blur-md",
-                              quiz.is_public 
-                                 ? "bg-emerald-500/95 border-emerald-400/20 text-white" 
-                                 : "bg-amber-500/95 border-amber-400/20 text-white"
-                           )} title={quiz.is_public ? "Public (Công khai)" : "Private (Chỉ mình tôi)"}>
-                              {quiz.is_public ? <Globe className="w-3.5 h-3.5" /> : <Lock className="w-3.5 h-3.5" />}
-                           </div>
-                        </div>
-                        <div className="absolute top-4 right-4 flex gap-1.5 z-10">
-                           <div className="relative">
+                           <div className="absolute top-4 right-4 flex gap-1.5 z-10">
+                              <div className="relative">
+                                 <button 
+                                    onClick={(e) => {
+                                       e.preventDefault();
+                                       e.stopPropagation();
+                                       setActiveExportDeckId(activeExportDeckId === quiz.id ? null : quiz.id);
+                                    }}
+                                    className="w-9 h-9 bg-white/90 backdrop-blur-md rounded-xl flex items-center justify-center text-slate-500 hover:text-indigo-600 shadow-sm border border-white/20 transition-all active:scale-90"
+                                    title="Export Excel"
+                                 >
+                                    <Download className="w-4 h-4" />
+                                 </button>
+                                 {activeExportDeckId === quiz.id && (
+                                    <>
+                                       <div 
+                                          className="fixed inset-0 z-[140]" 
+                                          onClick={(e) => {
+                                             e.preventDefault();
+                                             e.stopPropagation();
+                                             setActiveExportDeckId(null);
+                                          }}
+                                       />
+                                       <div className="absolute right-0 mt-2 w-56 bg-white border border-slate-100 rounded-xl shadow-xl py-1.5 z-[150] animate-in fade-in slide-in-from-top-2 duration-150 text-left">
+                                          <a 
+                                             href={`/api/v1/deck/${quiz.id}/export`} 
+                                             onClick={(e) => {
+                                                e.stopPropagation();
+                                                setActiveExportDeckId(null);
+                                             }}
+                                             className="block px-4 py-2.5 text-[9px] font-black text-slate-700 hover:bg-indigo-50 hover:text-indigo-600 transition-colors uppercase tracking-wider text-right"
+                                          >
+                                             Export with IDs (for updating)
+                                          </a>
+                                          <a 
+                                             href={`/api/v1/deck/${quiz.id}/export?exclude_ids=true`} 
+                                             onClick={(e) => {
+                                                e.stopPropagation();
+                                                setActiveExportDeckId(null);
+                                             }}
+                                             className="block px-4 py-2.5 text-[9px] font-black text-slate-700 hover:bg-indigo-50 hover:text-indigo-600 transition-colors border-t border-slate-50 uppercase tracking-wider text-right"
+                                          >
+                                             Export clean (new import)
+                                          </a>
+                                       </div>
+                                    </>
+                                 )}
+                              </div>
                               <button 
                                  onClick={(e) => {
                                     e.preventDefault();
                                     e.stopPropagation();
-                                    setActiveExportDeckId(activeExportDeckId === quiz.id ? null : quiz.id);
+                                    handleDelete(quiz.id);
                                  }}
-                                 className="w-9 h-9 bg-white/90 backdrop-blur-md rounded-xl flex items-center justify-center text-slate-500 hover:text-indigo-600 shadow-sm border border-white/20 transition-all active:scale-90"
-                                 title="Xuất Excel"
+                                 className="w-9 h-9 bg-white/90 backdrop-blur-md rounded-xl flex items-center justify-center text-slate-400 hover:text-rose-500 shadow-sm border border-white/20 transition-all active:scale-90"
                               >
-                                 <Download className="w-4 h-4" />
+                                 <Trash2 className="w-4 h-4" />
                               </button>
-                              {activeExportDeckId === quiz.id && (
-                                 <>
-                                    <div 
-                                       className="fixed inset-0 z-[140]" 
-                                       onClick={(e) => {
-                                          e.preventDefault();
-                                          e.stopPropagation();
-                                          setActiveExportDeckId(null);
-                                       }}
-                                    />
-                                    <div className="absolute right-0 mt-2 w-56 bg-white border border-slate-100 rounded-xl shadow-xl py-1.5 z-[150] animate-in fade-in slide-in-from-top-2 duration-150 text-left">
-                                       <a 
-                                          href={`/api/v1/deck/${quiz.id}/export`} 
-                                          onClick={(e) => {
-                                             e.stopPropagation();
-                                             setActiveExportDeckId(null);
-                                          }}
-                                          className="block px-4 py-2.5 text-[9px] font-black text-slate-700 hover:bg-indigo-50 hover:text-indigo-600 transition-colors uppercase tracking-wider text-right"
-                                       >
-                                          Xuất có ID (để sửa rồi update)
-                                       </a>
-                                       <a 
-                                          href={`/api/v1/deck/${quiz.id}/export?exclude_ids=true`} 
-                                          onClick={(e) => {
-                                             e.stopPropagation();
-                                             setActiveExportDeckId(null);
-                                          }}
-                                          className="block px-4 py-2.5 text-[9px] font-black text-slate-700 hover:bg-indigo-50 hover:text-indigo-600 transition-colors border-t border-slate-50 uppercase tracking-wider text-right"
-                                       >
-                                          Xuất không ID (để import mới)
-                                       </a>
-                                    </div>
-                                 </>
-                              )}
                            </div>
+                        </div>
+                        
+                        <div className="p-6">
+                           <div className="mb-4">
+                              <h3 className="text-lg font-black text-slate-800 line-clamp-1 leading-tight">{quiz.title}</h3>
+                              <p className="text-xs text-slate-400 font-medium line-clamp-2 mt-2 leading-relaxed">
+                                 {quiz.description || "No description provided for this collection."}
+                              </p>
+                           </div>
+                           
+                           <div className="flex items-center gap-2 pt-4 border-t border-slate-50">
+                              <Link 
+                                 to={`/manage/edit/${quiz.id}`}
+                                 className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-slate-50 text-slate-600 text-[9px] font-black rounded-xl hover:bg-slate-100 transition-all uppercase tracking-widest border border-slate-100"
+                              >
+                                 <SettingsIcon className="w-3.5 h-3.5" />
+                                 Settings
+                              </Link>
+                              <Link 
+                                 to={`/manage/edit/${quiz.id}/flashcards`}
+                                 className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-indigo-600 text-white text-[9px] font-black rounded-xl hover:bg-indigo-700 transition-all uppercase tracking-widest shadow-lg shadow-indigo-100"
+                              >
+                                 <Layers className="w-3.5 h-3.5" />
+                                 Cards
+                              </Link>
+                           </div>
+                        </div>
+                     </div>
+
+                     {/* Mobile Compact Row View */}
+                     <div className="md:hidden flex items-center gap-3 p-3 bg-white rounded-2xl border border-slate-100/70 shadow-sm active:bg-slate-50 transition-all text-left">
+                        {/* Thumbnail */}
+                        <div className="w-12 h-12 rounded-xl overflow-hidden bg-slate-50 flex-shrink-0 relative">
+                           {quiz.cover_image ? (
+                              <img src={quiz.cover_image} className="w-full h-full object-cover" />
+                           ) : (
+                              <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-indigo-500 to-purple-600 opacity-90">
+                                 <BookOpen className="w-5 h-5 text-white/50" />
+                              </div>
+                           )}
+                        </div>
+
+                        {/* Title & Info */}
+                        <div className="min-w-0 flex-1">
+                           <h4 className="text-xs font-black text-slate-800 truncate leading-snug">{quiz.title}</h4>
+                           <div className="flex items-center gap-1.5 mt-1">
+                              <span className="text-[8px] font-black px-1.5 py-0.5 rounded bg-indigo-50 text-indigo-600">
+                                 {quiz.questions_count} cards
+                              </span>
+                              <span className={cn(
+                                 "text-[8px] font-black px-1.5 py-0.5 rounded flex items-center gap-0.5",
+                                 quiz.is_public ? "bg-emerald-50 text-emerald-600" : "bg-amber-50 text-amber-600"
+                              )}>
+                                 {quiz.is_public ? <Globe className="w-2.5 h-2.5" /> : <Lock className="w-2.5 h-2.5" />}
+                                 {quiz.is_public ? "Public" : "Private"}
+                              </span>
+                           </div>
+                        </div>
+
+                        {/* Mobile Actions */}
+                        <div className="flex items-center gap-1 shrink-0 relative">
+                           <Link 
+                              to={`/manage/edit/${quiz.id}/flashcards`}
+                              className="h-8 px-2.5 bg-indigo-600 text-white rounded-lg flex items-center justify-center text-[9px] font-black uppercase tracking-wider shadow-md shadow-indigo-100 active:scale-95 transition-all shrink-0"
+                           >
+                              Cards
+                           </Link>
+                           <Link 
+                              to={`/manage/edit/${quiz.id}`}
+                              className="w-8 h-8 bg-slate-50 text-slate-400 border border-slate-100 rounded-lg flex items-center justify-center active:scale-95 transition-all shrink-0"
+                              title="Settings"
+                           >
+                              <SettingsIcon className="w-3.5 h-3.5" />
+                           </Link>
                            <button 
                               onClick={(e) => {
                                  e.preventDefault();
                                  e.stopPropagation();
-                                 handleDelete(quiz.id);
+                                 setActiveExportDeckId(activeExportDeckId === quiz.id ? null : quiz.id);
                               }}
-                              className="w-9 h-9 bg-white/90 backdrop-blur-md rounded-xl flex items-center justify-center text-slate-400 hover:text-rose-500 shadow-sm border border-white/20 transition-all active:scale-90"
+                              className="w-8 h-8 bg-slate-50 text-slate-400 border border-slate-100 rounded-lg flex items-center justify-center active:scale-95 transition-all shrink-0"
+                              title="Export Excel"
                            >
-                              <Trash2 className="w-4 h-4" />
+                              <Download className="w-3.5 h-3.5" />
+                           </button>
+                           {activeExportDeckId === quiz.id && (
+                              <>
+                                 <div 
+                                    className="fixed inset-0 z-[140]" 
+                                    onClick={(e) => {
+                                       e.preventDefault();
+                                       e.stopPropagation();
+                                       setActiveExportDeckId(null);
+                                    }}
+                                 />
+                                 <div className="absolute right-0 bottom-10 mt-2 w-48 bg-white border border-slate-100 rounded-xl shadow-xl py-1 z-[150] animate-in fade-in slide-in-from-bottom-2 duration-150 text-left">
+                                    <a 
+                                       href={`/api/v1/deck/${quiz.id}/export`} 
+                                       onClick={(e) => {
+                                          e.stopPropagation();
+                                          setActiveExportDeckId(null);
+                                       }}
+                                       className="block px-3 py-2 text-[8px] font-black text-slate-700 hover:bg-indigo-50 hover:text-indigo-600 transition-colors uppercase tracking-wider text-right"
+                                    >
+                                       Export with IDs
+                                    </a>
+                                    <a 
+                                       href={`/api/v1/deck/${quiz.id}/export?exclude_ids=true`} 
+                                       onClick={(e) => {
+                                          e.stopPropagation();
+                                          setActiveExportDeckId(null);
+                                       }}
+                                       className="block px-3 py-2 text-[8px] font-black text-slate-700 hover:bg-indigo-50 hover:text-indigo-600 transition-colors border-t border-slate-50 uppercase tracking-wider text-right"
+                                    >
+                                       Export clean (No IDs)
+                                    </a>
+                                 </div>
+                              </>
+                           )}
+                           <button 
+                              onClick={() => handleDelete(quiz.id)}
+                              className="w-8 h-8 bg-slate-50 text-slate-400 border border-slate-100 rounded-lg flex items-center justify-center hover:text-rose-500 active:scale-95 transition-all shrink-0"
+                           >
+                              <Trash2 className="w-3.5 h-3.5" />
                            </button>
                         </div>
-                     </div>
-                     
-                     <div className="p-6">
-                        <div className="mb-4">
-                           <h3 className="text-lg font-black text-slate-800 line-clamp-1 leading-tight">{quiz.title}</h3>
-                           <p className="text-xs text-slate-400 font-medium line-clamp-2 mt-2 leading-relaxed">
-                              {quiz.description || "No description provided for this collection."}
-                           </p>
-                        </div>
-                        
-                         <div className="flex items-center gap-2 pt-4 border-t border-slate-50">
-                            <Link 
-                               to={`/manage/edit/${quiz.id}`}
-                               className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-slate-50 text-slate-600 text-[9px] font-black rounded-xl hover:bg-slate-100 transition-all uppercase tracking-widest border border-slate-100"
-                            >
-                               <SettingsIcon className="w-3.5 h-3.5" />
-                               Settings
-                            </Link>
-                            <Link 
-                               to={`/manage/edit/${quiz.id}/flashcards`}
-                               className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-indigo-600 text-white text-[9px] font-black rounded-xl hover:bg-indigo-700 transition-all uppercase tracking-widest shadow-lg shadow-indigo-100"
-                            >
-                               <Layers className="w-3.5 h-3.5" />
-                               Cards
-                            </Link>
-                         </div>
                      </div>
                   </motion.div>
                ))}
