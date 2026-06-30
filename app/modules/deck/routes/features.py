@@ -644,7 +644,7 @@ async def _bulk_generate_deck_audio_task(deck_id: int, force: bool, base_url: st
             # Front text queue check
             if front_text and front_text.strip():
                 front_path = os.path.join(folder_path, f"{c.id}_front.mp3")
-                if force or not os.path.exists(front_path) or not c.audio:
+                if force or not os.path.exists(front_path) or not c.front_audio_url:
                     tasks_to_submit.append({
                         "satellite_source": "vocaburn",
                         "prompt": front_text.strip(),
@@ -741,7 +741,7 @@ async def get_deck_tts_status(deck_id: int, db: AsyncSession = Depends(get_db)):
     total = len(cards)
     missing = 0
     for c in cards:
-        has_front = bool(c.audio and c.audio.strip())
+        has_front = bool(c.front_audio_url and c.front_audio_url.strip())
         has_back = bool(c.others and c.others.get("back_audio_url") and c.others.get("back_audio_url").strip())
         if not has_front or not has_back:
             missing += 1
@@ -812,7 +812,7 @@ async def tts_queue_callback(data: dict, db: AsyncSession = Depends(get_db)):
     # Update local url reference
     local_url = f"/uploads/{deck_id}/audio/{filename}"
     if face == "front":
-        c.audio = local_url
+        c.front_audio_url = local_url
     else:
         if not c.others:
             c.others = {}

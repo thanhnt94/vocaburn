@@ -57,6 +57,14 @@ class Flashcard(Base):
     def front(self, value: str):
         self.content = value
 
+    @property
+    def audio(self) -> str:
+        return self.front_audio_url
+
+    @audio.setter
+    def audio(self, value: str):
+        self.front_audio_url = value
+
 class DeckAttempt(Base):
     __tablename__ = "deck_attempts"
     id = Column(Integer, primary_key=True, index=True)

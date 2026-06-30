@@ -8,6 +8,7 @@ class CardSchema(BaseModel):
     back_audio_content: Optional[str] = None
     front_audio_url: Optional[str] = None
     back_audio_url: Optional[str] = None
+    audio: Optional[str] = None
     front_img: Optional[str] = None
     back_img: Optional[str] = None
     question_type: str = "flashcard"
