@@ -141,7 +141,7 @@ export const FeedbackArea: React.FC<FeedbackAreaProps> = ({
 
   const getActiveAIContent = () => {
     if (!currentQuestion) return ''
-    if (activeAITab === 'explanation') return currentQuestion.ai_explanation || ''
+    if (activeAITab === 'explanation') return currentQuestion.explanation || currentQuestion.ai_explanation || ''
     return currentQuestion.others?.ai_responses?.[activeAITab] || currentQuestion.others?.[activeAITab] || ''
   }
 
