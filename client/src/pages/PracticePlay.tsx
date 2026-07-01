@@ -4625,7 +4625,7 @@ export default function PracticePlay() {
               })()}
 
               {/* Lightbulb Explanation Button (visible in FSRS, and also in practice mode if a question is loaded) */}
-              {(mainTab === 'practice' || showFeedback) && (
+              {(mainTab === 'practice' || isFlipped || showFeedback) && (
                 <button
                   onClick={() => {
                     if (mainTab === 'practice') {

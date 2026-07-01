@@ -4265,7 +4265,7 @@ export default function FlashcardPlay() {
               )}
               
               {/* Lightbulb Explanation Button */}
-              {(mainTab === 'practice' || (showFeedback && activelyRatedCurrentCard)) && (
+              {(mainTab === 'practice' || isFlipped || showFeedback) && (
                 <button 
                   onClick={() => {
                     if (mainTab === 'practice') {
