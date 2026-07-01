@@ -142,7 +142,7 @@ export const FeedbackArea: React.FC<FeedbackAreaProps> = ({
   const getActiveAIContent = () => {
     if (!currentQuestion) return ''
     if (activeAITab === 'explanation') return currentQuestion.ai_explanation || ''
-    return currentQuestion.others?.ai_responses?.[activeAITab] || ''
+    return currentQuestion.others?.ai_responses?.[activeAITab] || currentQuestion.others?.[activeAITab] || ''
   }
 
   const getActivePromptTemplate = () => {
@@ -287,7 +287,7 @@ export const FeedbackArea: React.FC<FeedbackAreaProps> = ({
                     {isEditingPrompt ? 'CLOSE PROMPT' : 'PROMPT'}
                   </button>
                 )}
-                {!getActiveAIContent() && !isEditingAI && !isEditingPrompt && (
+                {canEdit && !getActiveAIContent() && !isEditingAI && !isEditingPrompt && (
                   <button
                     onClick={() => askAI(activeAITab)}
                     disabled={isAskingAI}
@@ -366,7 +366,7 @@ export const FeedbackArea: React.FC<FeedbackAreaProps> = ({
                   </p>
                 </div>
               ) : (
-                getActiveAIContent() && (
+                getActiveAIContent() ? (
                   <div className="text-slate-700 font-medium text-sm leading-relaxed markdown-content break-words pr-2 mt-2">
                     <ReactMarkdown
                       remarkPlugins={[remarkGfm]}
@@ -378,6 +378,11 @@ export const FeedbackArea: React.FC<FeedbackAreaProps> = ({
                     >
                       {parseBBCodeToHtml(getActiveAIContent())}
                     </ReactMarkdown>
+                  </div>
+                ) : (
+                  <div className="flex flex-col items-center justify-center py-12 text-slate-400">
+                    <Sparkles className="w-8 h-8 text-slate-300 mb-2" />
+                    <p className="text-xs font-bold uppercase tracking-wider">Chưa có giải thích AI</p>
                   </div>
                 )
               )

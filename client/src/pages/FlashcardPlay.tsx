@@ -2026,7 +2026,7 @@ export default function FlashcardPlay() {
               if (field === 'explanation') updatedVal = updatedQ.ai_explanation
               else if (field === 'hint') updatedVal = updatedQ.hint
               else if (field === 'mnemonic') updatedVal = updatedQ.mnemonic
-              else updatedVal = updatedQ.others?.ai_responses?.[field]
+              else updatedVal = updatedQ.others?.ai_responses?.[field] || updatedQ.others?.[field]
 
               if (updatedVal) {
                 setSession((prev: any) => {
@@ -2040,6 +2040,7 @@ export default function FlashcardPlay() {
                       if (!newQs[targetIdx].others) newQs[targetIdx].others = {}
                       if (!newQs[targetIdx].others.ai_responses) newQs[targetIdx].others.ai_responses = {}
                       newQs[targetIdx].others.ai_responses[field] = updatedVal
+                      newQs[targetIdx].others[field] = updatedVal
                     }
                   }
                   return { ...prev, questions: newQs }
