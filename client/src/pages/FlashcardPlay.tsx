@@ -335,7 +335,7 @@ export default function FlashcardPlay() {
   const [isDailyComparisonLoading, setIsDailyComparisonLoading] = useState(true)
   const [isFeedbackOpen, setIsFeedbackOpen] = useState(false)
   const [isQuitModalOpen, setIsQuitModalOpen] = useState(false)
-  const [activeFeedbackTab, setActiveFeedbackTab] = useState<'insight' | 'note' | 'card'>('insight')
+  const [activeFeedbackTab, setActiveFeedbackTab] = useState<'insight' | 'community' | 'note' | 'card'>('insight')
   const [isEditModalOpen, setIsEditModalOpen] = useState(false)
   const [isSavingEdit, setIsSavingEdit] = useState(false)
   const [activeUnlockedBadge, setActiveUnlockedBadge] = useState<any | null>(null)
@@ -4548,7 +4548,7 @@ export default function FlashcardPlay() {
           >
             <div className="flex items-center justify-center p-3 border-b border-slate-100 bg-white shadow-sm flex-shrink-0">
               <h4 className="text-[9px] font-black text-indigo-600 uppercase tracking-[0.4em]">
-                {activeFeedbackTab === 'insight' ? 'LEARNING INSIGHTS' : activeFeedbackTab === 'note' ? 'PERSONAL NOTES' : 'CARD INFO'}
+                {activeFeedbackTab === 'insight' ? 'LEARNING INSIGHTS' : activeFeedbackTab === 'community' ? 'COMMUNITY DISCUSSIONS' : activeFeedbackTab === 'note' ? 'PERSONAL NOTES' : 'CARD INFO'}
               </h4>
             </div>
             <div className="flex-1 overflow-y-auto custom-scrollbar">

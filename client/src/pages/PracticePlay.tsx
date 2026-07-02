@@ -322,7 +322,7 @@ export default function PracticePlay() {
   const [isDailyComparisonLoading, setIsDailyComparisonLoading] = useState(true)
   const [isFeedbackOpen, setIsFeedbackOpen] = useState(false)
   const [isQuitModalOpen, setIsQuitModalOpen] = useState(false)
-  const [activeFeedbackTab, setActiveFeedbackTab] = useState<'insight' | 'note' | 'card'>('insight')
+  const [activeFeedbackTab, setActiveFeedbackTab] = useState<'insight' | 'community' | 'note' | 'card'>('insight')
   const [selectedChoiceData, setSelectedChoiceData] = useState<any | null>(null)
   const [isEditModalOpen, setIsEditModalOpen] = useState(false)
   const [isSavingEdit, setIsSavingEdit] = useState(false)
@@ -4992,7 +4992,7 @@ export default function PracticePlay() {
           >
             <div className="flex items-center justify-center p-3 border-b border-slate-100 bg-white shadow-sm flex-shrink-0">
               <h4 className="text-[9px] font-black text-indigo-600 uppercase tracking-[0.4em]">
-                {activeFeedbackTab === 'insight' ? 'LEARNING INSIGHTS' : activeFeedbackTab === 'note' ? 'PERSONAL NOTES' : 'CARD INFO'}
+                {activeFeedbackTab === 'insight' ? 'LEARNING INSIGHTS' : activeFeedbackTab === 'community' ? 'COMMUNITY DISCUSSIONS' : activeFeedbackTab === 'note' ? 'PERSONAL NOTES' : 'CARD INFO'}
               </h4>
             </div>
             <div className="flex-1 overflow-y-auto custom-scrollbar">
@@ -5409,6 +5409,35 @@ export default function PracticePlay() {
                     </button>
                   </div>
                 </div>
+
+                {/* Quản lý bộ thẻ */}
+                {id && (
+                  <div className="py-2.5 border-t border-slate-100 space-y-1.5">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block text-center">Quản lý bộ thẻ</label>
+                    <div className="grid grid-cols-2 gap-2">
+                      <button 
+                        onClick={() => {
+                          setIsSettingsModalOpen(false);
+                          navigate(`/manage/edit/${id}`);
+                        }}
+                        className="flex items-center justify-center gap-2 py-2 px-3 bg-slate-50 hover:bg-slate-100 border border-slate-200/60 rounded-xl text-slate-700 font-black text-[10px] uppercase tracking-wider shadow-sm transition-all active:scale-95"
+                      >
+                        <Settings className="w-4 h-4 text-indigo-500 animate-pulse" />
+                        <span>Cấu hình bộ</span>
+                      </button>
+                      <button 
+                        onClick={() => {
+                          setIsSettingsModalOpen(false);
+                          navigate(`/manage/edit/${id}/flashcards`);
+                        }}
+                        className="flex items-center justify-center gap-2 py-2 px-3 bg-slate-50 hover:bg-slate-100 border border-slate-200/60 rounded-xl text-slate-700 font-black text-[10px] uppercase tracking-wider shadow-sm transition-all active:scale-95"
+                      >
+                        <BookOpen className="w-4 h-4 text-emerald-500 animate-pulse" />
+                        <span>Danh sách thẻ</span>
+                      </button>
+                    </div>
+                  </div>
+                )}
 
                 {/* 5. Agree / Close Button */}
                 <div className="pt-3 border-t border-slate-100 flex justify-center">

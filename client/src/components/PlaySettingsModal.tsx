@@ -1,6 +1,7 @@
 import React from 'react'
-import { Sliders, Brain, Sparkles, ListOrdered, Shuffle, EyeOff, AlertCircle, TrendingUp, Copy, Eye, Edit3, LogOut, Volume2, Music, Zap, Image } from 'lucide-react'
+import { Sliders, Brain, Sparkles, ListOrdered, Shuffle, EyeOff, AlertCircle, TrendingUp, Copy, Eye, Edit3, LogOut, Volume2, Music, Zap, Image, Settings, BookOpen } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
+import { useNavigate, useParams } from 'react-router-dom'
 import { cn } from '@/lib/utils'
 
 interface PlaySettingsModalProps {
@@ -48,6 +49,9 @@ export const PlaySettingsModal: React.FC<PlaySettingsModalProps> = ({
   showImages,
   setShowImages
 }) => {
+  const navigate = useNavigate()
+  const { id } = useParams<{ id: string }>()
+
   return (
     <AnimatePresence>
       {isOpen && (
@@ -283,6 +287,35 @@ export const PlaySettingsModal: React.FC<PlaySettingsModalProps> = ({
                   </button>
                 </div>
               </div>
+
+              {/* Quản lý bộ thẻ */}
+              {id && (
+                <div className="py-2.5 border-t border-slate-100 space-y-1.5">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block text-center">Quản lý bộ thẻ</label>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button 
+                      onClick={() => {
+                        onClose();
+                        navigate(`/manage/edit/${id}`);
+                      }}
+                      className="flex items-center justify-center gap-2 py-2 px-3 bg-slate-50 hover:bg-slate-100 border border-slate-200/60 rounded-xl text-slate-700 font-black text-[10px] uppercase tracking-wider shadow-sm transition-all active:scale-95"
+                    >
+                      <Settings className="w-4 h-4 text-indigo-500 animate-pulse" />
+                      <span>Cấu hình bộ</span>
+                    </button>
+                    <button 
+                      onClick={() => {
+                        onClose();
+                        navigate(`/manage/edit/${id}/flashcards`);
+                      }}
+                      className="flex items-center justify-center gap-2 py-2 px-3 bg-slate-50 hover:bg-slate-100 border border-slate-200/60 rounded-xl text-slate-700 font-black text-[10px] uppercase tracking-wider shadow-sm transition-all active:scale-95"
+                    >
+                      <BookOpen className="w-4 h-4 text-emerald-500 animate-pulse" />
+                      <span>Danh sách thẻ</span>
+                    </button>
+                  </div>
+                </div>
+              )}
 
               {/* 5. Agree / Close Button */}
               <div className="pt-3 border-t border-slate-100 flex justify-center">

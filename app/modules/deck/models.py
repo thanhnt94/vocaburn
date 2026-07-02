@@ -1,5 +1,5 @@
 from sqlalchemy import Column, Integer, String, Boolean, ForeignKey, Text, JSON, DateTime, Float, UniqueConstraint
-from sqlalchemy.orm import relationship
+from sqlalchemy.orm import relationship, backref
 from datetime import datetime
 from app.core.db import Base
 
@@ -48,6 +48,7 @@ class Flashcard(Base):
     others = Column(JSON, nullable=True)
     
     deck = relationship("FlashcardDeck", back_populates="cards")
+    contributions = relationship("CardContribution", back_populates="card", cascade="all, delete-orphan")
 
     @property
     def front(self) -> str:
@@ -258,4 +259,30 @@ class UserPracticeStats(Base):
     last_practiced = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
     card = relationship("Flashcard")
+
+
+class CardContribution(Base):
+    __tablename__ = 'card_contributions'
+
+    id = Column(Integer, primary_key=True, index=True)
+    card_id = Column(Integer, ForeignKey('flashcards.id', ondelete='CASCADE'), index=True)
+    user_id = Column(Integer, ForeignKey('users.id', ondelete='CASCADE'), index=True)
+    parent_id = Column(Integer, ForeignKey('card_contributions.id', ondelete='CASCADE'), nullable=True, index=True)
+    type = Column(String(20), default='comment', nullable=False) # comment, correction
+    content = Column(Text, nullable=False)
+    status = Column(String(20), default='active', nullable=False) # active, pending_review, resolved, ignored
+    likes_count = Column(Integer, default=0, nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    user = relationship("User", backref="card_contributions")
+    card = relationship("Flashcard", back_populates="contributions")
+    replies = relationship("CardContribution", backref=backref("parent", remote_side=[id]), cascade="all, delete-orphan")
+
+
+class ContributionLike(Base):
+    __tablename__ = 'contribution_likes'
+    user_id = Column(Integer, ForeignKey('users.id', ondelete='CASCADE'), primary_key=True)
+    contribution_id = Column(Integer, ForeignKey('card_contributions.id', ondelete='CASCADE'), primary_key=True)
+
 

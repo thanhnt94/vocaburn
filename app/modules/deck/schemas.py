@@ -41,3 +41,42 @@ class CategorySchema(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+class ContributionCreate(BaseModel):
+    content: str
+    type: str = "comment" # comment, correction
+    parent_id: Optional[int] = None
+
+
+class ContributionStatusUpdate(BaseModel):
+    status: str
+
+
+class UserMinimal(BaseModel):
+    id: int
+    username: str
+    full_name: Optional[str] = None
+    role: str
+
+    class Config:
+        from_attributes = True
+
+
+class ContributionResponse(BaseModel):
+    id: int
+    card_id: int
+    user_id: int
+    parent_id: Optional[int] = None
+    type: str
+    content: str
+    status: str
+    likes_count: int
+    is_liked_by_me: bool = False
+    created_at: Any
+    user: UserMinimal
+    replies: List["ContributionResponse"] = []
+
+    class Config:
+        from_attributes = True
+

@@ -1,5 +1,5 @@
 import React from 'react'
-import { Lightbulb, Sparkles, StickyNote, X, Check, Edit3, FileText, HelpCircle, Brain, Copy, ChevronRight } from 'lucide-react'
+import { Lightbulb, Sparkles, StickyNote, X, Check, Edit3, FileText, HelpCircle, Brain, Copy, ChevronRight, MessageSquare, Heart, Trash2, Send } from 'lucide-react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import rehypeRaw from 'rehype-raw'
@@ -33,8 +33,8 @@ interface Question {
 
 interface FeedbackAreaProps {
   showFeedback: boolean
-  activeFeedbackTab: 'insight' | 'note' | 'card'
-  setActiveFeedbackTab: (tab: 'insight' | 'note' | 'card') => void
+  activeFeedbackTab: 'insight' | 'community' | 'note' | 'card'
+  setActiveFeedbackTab: (tab: 'insight' | 'community' | 'note' | 'card') => void
   getInsightText: () => string
   isEditingInsight: boolean
   insightInput: string
@@ -170,8 +170,136 @@ export const FeedbackArea: React.FC<FeedbackAreaProps> = ({
     })
   }
 
+  const [contributions, setContributions] = React.useState<any[]>([])
+  const [isFetchingContributions, setIsFetchingContributions] = React.useState(false)
+  const [commentInput, setCommentInput] = React.useState('')
+  const [contributionType, setContributionType] = React.useState<'comment' | 'correction'>('comment')
+  const [activeReplyId, setActiveReplyId] = React.useState<number | null>(null)
+  const [replyInputs, setReplyInputs] = React.useState<Record<number, string>>({})
+
+  const fetchContributions = async () => {
+    if (!currentQuestion?.id) return
+    setIsFetchingContributions(true)
+    try {
+      const res = await fetch(`/api/v1/deck/question/${currentQuestion.id}/contributions`)
+      if (res.ok) {
+        const data = await res.json()
+        setContributions(data)
+      }
+    } catch (e) {
+      console.error("Failed to fetch contributions:", e)
+    } finally {
+      setIsFetchingContributions(false)
+    }
+  }
+
+  React.useEffect(() => {
+    if (activeFeedbackTab === 'community' && currentQuestion?.id) {
+      fetchContributions()
+    }
+  }, [activeFeedbackTab, currentQuestion?.id])
+
+  const handleLike = async (contribId: number) => {
+    try {
+      const res = await fetch(`/api/v1/deck/contributions/${contribId}/like`, {
+        method: 'POST'
+      })
+      if (res.ok) {
+        const data = await res.json()
+        const updateList = (list: any[]): any[] => {
+          return list.map(c => {
+            if (c.id === contribId) {
+              return { ...c, is_liked_by_me: data.liked, likes_count: data.likes_count }
+            }
+            if (c.replies && c.replies.length > 0) {
+              return { ...c, replies: updateList(c.replies) }
+            }
+            return c
+          })
+        }
+        setContributions(prev => updateList(prev))
+      }
+    } catch (e) {
+      console.error(e)
+    }
+  }
+
+  const handleAddContribution = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!commentInput.trim() || !currentQuestion?.id) return
+    try {
+      const res = await fetch(`/api/v1/deck/question/${currentQuestion.id}/contributions`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          content: commentInput,
+          type: contributionType
+        })
+      })
+      if (res.ok) {
+        setCommentInput('')
+        fetchContributions()
+      }
+    } catch (e) {
+      console.error(e)
+    }
+  }
+
+  const handleAddReply = async (parentId: number) => {
+    const text = replyInputs[parentId]
+    if (!text?.trim() || !currentQuestion?.id) return
+    try {
+      const res = await fetch(`/api/v1/deck/question/${currentQuestion.id}/contributions`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          content: text,
+          type: 'comment',
+          parent_id: parentId
+        })
+      })
+      if (res.ok) {
+        setReplyInputs(prev => ({ ...prev, [parentId]: '' }))
+        setActiveReplyId(null)
+        fetchContributions()
+      }
+    } catch (e) {
+      console.error(e)
+    }
+  }
+
+  const handleDeleteContribution = async (contribId: number) => {
+    if (!confirm("Bạn có chắc chắn muốn xoá bình luận này?")) return
+    try {
+      const res = await fetch(`/api/v1/deck/contributions/${contribId}`, {
+        method: 'DELETE'
+      })
+      if (res.ok) {
+        fetchContributions()
+      }
+    } catch (e) {
+      console.error(e)
+    }
+  }
+
+  const handleUpdateStatus = async (contribId: number, status: string) => {
+    try {
+      const res = await fetch(`/api/v1/deck/contributions/${contribId}/status`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status })
+      })
+      if (res.ok) {
+        fetchContributions()
+      }
+    } catch (e) {
+      console.error(e)
+    }
+  }
+
   const tabs = [
     ...(insightTabs.length > 0 ? [{ id: 'insight' as const, label: 'INSIGHT', icon: Lightbulb, color: 'text-amber-500', bg: 'bg-amber-100', hasContent: hasInsightAnyContent() }] : []),
+    { id: 'community' as const, label: 'COMMUNITY', icon: MessageSquare, color: 'text-purple-500', bg: 'bg-purple-100', hasContent: contributions.length > 0 },
     { id: 'note' as const, label: 'PERSONAL NOTE', icon: StickyNote, color: 'text-slate-400', bg: 'bg-slate-100', hasContent: !!personalNote },
     { id: 'card' as const, label: 'CARD INFO', icon: FileText, color: 'text-blue-500', bg: 'bg-blue-100', hasContent: !!selectedChoiceData }
   ]
@@ -349,6 +477,223 @@ export const FeedbackArea: React.FC<FeedbackAreaProps> = ({
                 )
               )
             )}
+          </div>
+        )
+      case 'community':
+        return (
+          <div className="p-6 rounded-[2rem] bg-purple-50/20 border border-purple-100 shadow-sm animate-in fade-in slide-in-from-bottom-2 flex flex-col h-[500px]">
+            <div className="flex items-center justify-between mb-4 flex-shrink-0">
+              <div className="flex items-center gap-2">
+                <div className="w-6 h-6 rounded-full bg-purple-100 flex items-center justify-center">
+                  <MessageSquare className="w-3.5 h-3.5 text-purple-500" />
+                </div>
+                <span className="text-[9px] font-black text-purple-600 uppercase tracking-widest">Cộng đồng thảo luận</span>
+              </div>
+            </div>
+
+            {/* Form đăng bình luận / Đóng góp mới */}
+            <form onSubmit={handleAddContribution} className="mb-4 bg-white p-3 rounded-2xl border border-slate-100 shadow-inner space-y-2 flex-shrink-0">
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setContributionType('comment')}
+                  className={cn(
+                    "px-3 py-1 rounded-full text-[9px] font-bold uppercase tracking-wider transition-all",
+                    contributionType === 'comment' ? "bg-purple-600 text-white" : "bg-slate-50 text-slate-500 hover:bg-slate-100"
+                  )}
+                >
+                  💬 Thảo luận
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setContributionType('correction')}
+                  className={cn(
+                    "px-3 py-1 rounded-full text-[9px] font-bold uppercase tracking-wider transition-all",
+                    contributionType === 'correction' ? "bg-amber-500 text-white" : "bg-slate-50 text-slate-500 hover:bg-slate-100"
+                  )}
+                >
+                  ✏️ Báo sửa thẻ
+                </button>
+              </div>
+              <div className="flex gap-2">
+                <textarea
+                  value={commentInput}
+                  onChange={(e) => setCommentInput(e.target.value)}
+                  placeholder={contributionType === 'comment' ? "Đặt câu hỏi hoặc thảo luận về từ vựng này..." : "Nhập nội dung đề xuất sửa đổi (Ví dụ: nghĩa đúng phải là...)"}
+                  className="flex-1 min-h-[44px] max-h-[100px] p-2 bg-slate-50 rounded-xl text-xs font-semibold text-slate-700 placeholder:text-slate-400 outline-none border border-transparent focus:border-purple-200 resize-y"
+                  required
+                />
+                <button
+                  type="submit"
+                  className="w-10 h-10 rounded-xl bg-purple-600 hover:bg-purple-700 text-white flex items-center justify-center transition-all active:scale-90 self-end flex-shrink-0"
+                >
+                  <Send className="w-4 h-4" />
+                </button>
+              </div>
+            </form>
+
+            {/* Danh sách bình luận */}
+            <div className="flex-1 overflow-y-auto custom-scrollbar pr-1 space-y-4">
+              {isFetchingContributions ? (
+                <div className="flex flex-col items-center justify-center py-16 animate-pulse">
+                  <div className="w-6 h-6 border-2 border-purple-200 border-t-purple-600 rounded-full animate-spin mb-2" />
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Đang tải thảo luận...</span>
+                </div>
+              ) : contributions.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-12 text-slate-400">
+                  <MessageSquare className="w-8 h-8 opacity-40 mb-2" />
+                  <p className="text-[11px] font-bold uppercase tracking-wider">Chưa có thảo luận nào. Hãy bắt đầu!</p>
+                </div>
+              ) : (
+                contributions.map((c: any) => (
+                  <div key={c.id} className="bg-white p-3 rounded-2xl border border-slate-100 shadow-sm space-y-2">
+                    {/* Header: Author Info */}
+                    <div className="flex items-start justify-between">
+                      <div className="flex items-center gap-2">
+                        <div className="w-6 h-6 rounded-full bg-purple-100 flex items-center justify-center text-purple-600 text-[10px] font-black uppercase">
+                          {c.user.username.substring(0, 2)}
+                        </div>
+                        <div>
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-xs font-black text-slate-700">{c.user.full_name || c.user.username}</span>
+                            {c.user.role === 'admin' && (
+                              <span className="px-1.5 py-0.2 bg-rose-100 text-rose-600 rounded text-[7px] font-black uppercase">Admin</span>
+                            )}
+                          </div>
+                          <span className="text-[8px] font-bold text-slate-400">{new Date(c.created_at).toLocaleDateString('vi-VN')}</span>
+                        </div>
+                      </div>
+                      {/* Badge đóng góp / Sửa đổi */}
+                      <div className="flex items-center gap-1.5">
+                        {c.type === 'correction' && (
+                          <span className={cn(
+                            "px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-wider",
+                            c.status === 'active' ? "bg-amber-100 text-amber-700 animate-pulse" :
+                            c.status === 'resolved' ? "bg-emerald-100 text-emerald-700" : "bg-slate-100 text-slate-500"
+                          )}>
+                            {c.status === 'active' ? 'Đề xuất sửa' : c.status === 'resolved' ? 'Đã duyệt sửa' : 'Đã bỏ qua'}
+                          </span>
+                        )}
+                        {/* Nút xoá (chỉ hiển thị với chính chủ hoặc admin) */}
+                        {(c.user_id === parseInt(document.cookie.split('; ').find(row => row.startsWith('user_id='))?.split('=')[1] || '1') || c.user.role === 'admin') && (
+                          <button
+                            onClick={() => handleDeleteContribution(c.id)}
+                            className="text-slate-300 hover:text-rose-500 transition-colors"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Content */}
+                    <div className="text-xs font-semibold text-slate-600 whitespace-pre-wrap break-words pl-8">
+                      {c.content}
+                    </div>
+
+                    {/* Actions: Like, Reply, Approve/Ignore for admin */}
+                    <div className="flex items-center justify-between pl-8 border-t border-slate-50 pt-2 text-[10px]">
+                      <div className="flex items-center gap-3">
+                        <button
+                          onClick={() => handleLike(c.id)}
+                          className={cn(
+                            "flex items-center gap-1 font-black transition-colors",
+                            c.is_liked_by_me ? "text-purple-600" : "text-slate-400 hover:text-purple-500"
+                          )}
+                        >
+                          <Heart className={cn("w-3.5 h-3.5", c.is_liked_by_me && "fill-purple-600 text-purple-600")} />
+                          <span>{c.likes_count}</span>
+                        </button>
+                        <button
+                          onClick={() => {
+                            setActiveReplyId(activeReplyId === c.id ? null : c.id)
+                          }}
+                          className="text-slate-400 hover:text-purple-500 font-black transition-colors"
+                        >
+                          Trả lời
+                        </button>
+                      </div>
+
+                      {/* Admin action to resolve correction */}
+                      {c.type === 'correction' && c.status === 'active' && canEdit && (
+                        <div className="flex gap-1.5">
+                          <button
+                            onClick={() => handleUpdateStatus(c.id, 'resolved')}
+                            className="px-2 py-0.5 bg-emerald-500 text-white rounded text-[8px] font-black uppercase tracking-wider hover:bg-emerald-600"
+                          >
+                            Duyệt
+                          </button>
+                          <button
+                            onClick={() => handleUpdateStatus(c.id, 'ignored')}
+                            className="px-2 py-0.5 bg-slate-300 text-slate-600 rounded text-[8px] font-black uppercase tracking-wider hover:bg-slate-400"
+                          >
+                            Bỏ qua
+                          </button>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Câu trả lời (Replies) - nested 1 level */}
+                    {c.replies && c.replies.length > 0 && (
+                      <div className="pl-8 space-y-2 mt-2 bg-slate-50/50 p-2.5 rounded-xl border border-slate-100">
+                        {c.replies.map((r: any) => (
+                          <div key={r.id} className="space-y-1">
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-1.5">
+                                <span className="text-[10px] font-black text-slate-700">{r.user.full_name || r.user.username}</span>
+                                {r.user.role === 'admin' && (
+                                  <span className="px-1.5 py-0.2 bg-rose-100 text-rose-600 rounded text-[6px] font-black uppercase">Admin</span>
+                                )}
+                                <span className="text-[8px] text-slate-400">{new Date(r.created_at).toLocaleDateString('vi-VN')}</span>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <button
+                                  onClick={() => handleLike(r.id)}
+                                  className={cn("text-[9px] flex items-center gap-0.5", r.is_liked_by_me ? "text-purple-600" : "text-slate-400")}
+                                >
+                                  <Heart className={cn("w-3 h-3", r.is_liked_by_me && "fill-purple-600 text-purple-600")} />
+                                  <span>{r.likes_count}</span>
+                                </button>
+                                {(r.user_id === parseInt(document.cookie.split('; ').find(row => row.startsWith('user_id='))?.split('=')[1] || '1') || r.user.role === 'admin') && (
+                                  <button
+                                    onClick={() => handleDeleteContribution(r.id)}
+                                    className="text-slate-300 hover:text-rose-500 transition-colors"
+                                  >
+                                    <Trash2 className="w-3 h-3" />
+                                  </button>
+                                )}
+                              </div>
+                            </div>
+                            <div className="text-[11px] font-semibold text-slate-600 whitespace-pre-wrap break-words">
+                              {r.content}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Hộp soạn thảo Reply */}
+                    {activeReplyId === c.id && (
+                      <div className="pl-8 pt-2 flex gap-2">
+                        <input
+                          type="text"
+                          value={replyInputs[c.id] || ''}
+                          onChange={(e) => setReplyInputs(prev => ({ ...prev, [c.id]: e.target.value }))}
+                          placeholder="Trả lời bình luận này..."
+                          className="flex-1 px-3 py-1.5 bg-slate-50 border border-slate-200/50 rounded-xl text-xs font-semibold text-slate-700 placeholder:text-slate-400 outline-none focus:border-purple-200"
+                        />
+                        <button
+                          onClick={() => handleAddReply(c.id)}
+                          className="px-3 py-1.5 rounded-xl bg-purple-600 hover:bg-purple-700 text-white flex items-center justify-center transition-all active:scale-90"
+                        >
+                          <Send className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                ))
+              )}
+            </div>
           </div>
         )
       case 'note':
