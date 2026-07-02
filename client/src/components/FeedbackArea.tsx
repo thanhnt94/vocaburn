@@ -33,8 +33,8 @@ interface Question {
 
 interface FeedbackAreaProps {
   showFeedback: boolean
-  activeFeedbackTab: 'insight' | 'ai' | 'note' | 'card'
-  setActiveFeedbackTab: (tab: 'insight' | 'ai' | 'note' | 'card') => void
+  activeFeedbackTab: 'insight' | 'note' | 'card'
+  setActiveFeedbackTab: (tab: 'insight' | 'note' | 'card') => void
   getInsightText: () => string
   isEditingInsight: boolean
   insightInput: string
@@ -63,7 +63,7 @@ interface FeedbackAreaProps {
   handleEditCurrentTab: () => void
   isCopyMenuOpen: boolean
   setIsCopyMenuOpen: (val: boolean) => void
-  copyCurrentTabContent: (type?: 'default' | 'question' | 'prompt') => void
+  copyCurrentTabContent: (type?: 'default' | 'question' | 'prompt', activeTabId?: string) => void
   isCopied: boolean
   handleNext: () => void
   selectedChoiceData?: any
@@ -110,141 +110,103 @@ export const FeedbackArea: React.FC<FeedbackAreaProps> = ({
 }) => {
   if (!showFeedback) return null
 
-  const aiTabs = React.useMemo(() => {
-    const tabs = []
+  const insightTabs = React.useMemo(() => {
+    const tabs: any[] = []
+    const insightCols = deckInfo?.practice_settings?.insight_columns
     
-    // Only show default 'explanation' tab if the deck template is configured or it already has content
-    const hasPrompt = !!(deckInfo?.ai_prompt && deckInfo.ai_prompt.trim())
-    const hasContent = !!(currentQuestion?.ai_explanation && currentQuestion.ai_explanation.trim())
-    
-    if (hasPrompt || hasContent) {
-      tabs.push({ id: 'explanation', title: 'Giải thích' })
+    if (Array.isArray(insightCols) && insightCols.length > 0) {
+      insightCols.forEach((col: string) => {
+        const customPrompt = deckInfo?.ai_prompts?.find((p: any) => p.column === col || p.id === col)
+        tabs.push({
+          id: col,
+          title: customPrompt?.title || (col === 'back' ? 'Giải thích' : col === 'front' ? 'Từ vựng' : col.toUpperCase().replace(/_/g, ' ')),
+          column: col
+        })
+      })
     }
-    
-    if (deckInfo?.ai_prompts && Array.isArray(deckInfo.ai_prompts)) {
-      tabs.push(...deckInfo.ai_prompts)
-    }
-    
     return tabs
-  }, [deckInfo?.ai_prompt, deckInfo?.ai_prompts, currentQuestion?.ai_explanation])
+  }, [deckInfo?.practice_settings?.insight_columns, deckInfo?.ai_prompts])
 
-  const [activeAITab, setActiveAITab] = React.useState<string>('explanation')
+  const [activeInsightTab, setActiveInsightTab] = React.useState<string>('')
 
   React.useEffect(() => {
-    if (aiTabs.length > 0) {
-      if (!aiTabs.some((t: any) => t.id === activeAITab)) {
-        setActiveAITab(aiTabs[0].id)
+    if (insightTabs.length > 0) {
+      if (!activeInsightTab || !insightTabs.some((t: any) => t.id === activeInsightTab)) {
+        setActiveInsightTab(insightTabs[0].id)
       }
     }
-  }, [aiTabs, activeAITab])
-
+  }, [insightTabs, activeInsightTab])
 
   const getActiveAIContent = () => {
     if (!currentQuestion) return ''
-    if (activeAITab === 'explanation') return currentQuestion.explanation || currentQuestion.ai_explanation || ''
-    return currentQuestion.others?.ai_responses?.[activeAITab] || currentQuestion.others?.[activeAITab] || ''
+    if (activeInsightTab === 'explanation' || activeInsightTab === 'back') {
+      return currentQuestion.explanation || currentQuestion.ai_explanation || ''
+    }
+    return currentQuestion.others?.ai_responses?.[activeInsightTab] || currentQuestion.others?.[activeInsightTab] || ''
   }
 
   const getActivePromptTemplate = () => {
-    if (activeAITab === 'explanation') return deckInfo?.ai_prompt || ''
-    const custom = deckInfo?.ai_prompts?.find((p: any) => p.id === activeAITab)
+    if (activeInsightTab === 'explanation' || activeInsightTab === 'back') return deckInfo?.ai_prompt || ''
+    const custom = deckInfo?.ai_prompts?.find((p: any) => p.id === activeInsightTab || p.column === activeInsightTab)
     return custom?.prompt || ''
   }
 
   React.useEffect(() => {
-    if (activeFeedbackTab === 'ai') {
+    if (activeFeedbackTab === 'insight') {
       setAiInput(getActiveAIContent())
       setPromptInput(getActivePromptTemplate())
       setIsEditingAI(false)
       setIsEditingPrompt(false)
     }
-  }, [activeAITab, activeFeedbackTab, currentQuestion?.id, deckInfo])
+  }, [activeInsightTab, activeFeedbackTab, currentQuestion?.id, deckInfo])
 
-  const hasAIAnyContent = () => {
+  const hasInsightAnyContent = () => {
     if (!currentQuestion) return false
-    if (currentQuestion.ai_explanation) return true
-    if (currentQuestion.others?.ai_responses && Object.keys(currentQuestion.others.ai_responses).length > 0) return true
-    return false
+    return insightTabs.some((tab: any) => {
+      if (tab.id === 'explanation' || tab.id === 'back') {
+        return !!(currentQuestion.explanation || currentQuestion.ai_explanation)
+      }
+      return !!(currentQuestion.others?.ai_responses?.[tab.id] || currentQuestion.others?.[tab.id])
+    })
   }
 
   const tabs = [
-    { id: 'insight' as const, label: 'INSIGHT', icon: Lightbulb, color: 'text-amber-500', bg: 'bg-amber-100', hasContent: !!getInsightText() && getInsightText() !== 'No detail.' },
-    { id: 'ai' as const, label: 'AI ANALYSIS', icon: Sparkles, color: 'text-indigo-600', bg: 'bg-indigo-100', hasContent: hasAIAnyContent() },
+    ...(insightTabs.length > 0 ? [{ id: 'insight' as const, label: 'INSIGHT', icon: Lightbulb, color: 'text-amber-500', bg: 'bg-amber-100', hasContent: hasInsightAnyContent() }] : []),
     { id: 'note' as const, label: 'PERSONAL NOTE', icon: StickyNote, color: 'text-slate-400', bg: 'bg-slate-100', hasContent: !!personalNote },
     { id: 'card' as const, label: 'CARD INFO', icon: FileText, color: 'text-blue-500', bg: 'bg-blue-100', hasContent: !!selectedChoiceData }
   ]
+
+  React.useEffect(() => {
+    if (tabs.length > 0 && !tabs.some(t => t.id === activeFeedbackTab)) {
+      setActiveFeedbackTab(tabs[0].id)
+    }
+  }, [tabs, activeFeedbackTab])
 
   const renderTabContent = () => {
     switch (activeFeedbackTab) {
       case 'insight':
         return (
-          <div className="p-6 rounded-[2rem] bg-indigo-50/30 border border-indigo-100 shadow-sm animate-in fade-in slide-in-from-bottom-2">
-            <div className="flex items-center gap-2 mb-3">
-              <div className="w-6 h-6 rounded-full bg-amber-100 flex items-center justify-center">
-                <Lightbulb className="w-3.5 h-3.5 fill-amber-500" />
-              </div>
-              <span className="text-[9px] font-black text-indigo-400 uppercase tracking-widest">INSIGHT</span>
-            </div>
-            <div className="text-slate-600 font-medium text-sm leading-relaxed markdown-content whitespace-pre-wrap break-words pr-2">
-              {isEditingInsight ? (
-                <textarea
-                  value={insightInput}
-                  onChange={(e) => setInsightInput(e.target.value)}
-                  className="w-full h-80 p-3 bg-white border border-indigo-100 rounded-xl text-sm font-medium text-slate-700 focus:ring-2 focus:ring-indigo-500 outline-none transition-all resize-none"
-                  placeholder="Enter explanation for this question..."
-                />
-              ) : (
-                <>
-                  <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeRaw]} components={MarkdownComponents}>
-                    {parseBBCodeToHtml(getInsightText())}
-                  </ReactMarkdown>
-
-                  {currentQuestion?.hint && (
-                    <div className="mt-4 p-4 rounded-2xl bg-indigo-50/50 border border-indigo-100/60 flex items-start gap-3 shadow-inner text-left animate-in slide-in-from-bottom-2">
-                      <div className="w-6 h-6 rounded-lg bg-indigo-500 flex items-center justify-center text-white font-black text-xs shadow shrink-0 mt-0.5">
-                        💡
-                      </div>
-                      <div className="text-slate-700 font-semibold text-xs leading-relaxed flex-1 whitespace-pre-wrap">
-                        <span className="font-black text-[9px] uppercase tracking-wider text-indigo-500 block mb-0.5">Gợi ý (Hint)</span>
-                        {currentQuestion.hint}
-                      </div>
-                    </div>
-                  )}
-
-                  {currentQuestion?.mnemonic && (
-                    <div className="mt-4 p-4 rounded-2xl bg-amber-50/50 border border-amber-100/60 flex items-start gap-3 shadow-inner text-left animate-in slide-in-from-bottom-2">
-                      <div className="w-6 h-6 rounded-lg bg-amber-500 flex items-center justify-center text-white font-black text-xs shadow shrink-0 mt-0.5">
-                        🧠
-                      </div>
-                      <div className="text-slate-700 font-semibold text-xs leading-relaxed flex-1 whitespace-pre-wrap">
-                        <span className="font-black text-[9px] uppercase tracking-wider text-amber-500 block mb-0.5">Mẹo nhớ (Mnemonic)</span>
-                        {currentQuestion.mnemonic}
-                      </div>
-                    </div>
-                  )}
-                </>
-              )}
-            </div>
-          </div>
-        )
-      case 'ai':
-        return (
           <div className="p-6 rounded-[2rem] ai-glow animate-in fade-in slide-in-from-bottom-2">
-            {/* AI Sub-tabs */}
+            {/* Insight Sub-tabs */}
             <div className="flex items-center gap-1.5 p-1 bg-slate-100 rounded-xl mb-4 overflow-x-auto custom-scrollbar">
-               {aiTabs.map((tab: any) => {
-                  const isTabActive = activeAITab === tab.id
+               {insightTabs.map((tab: any) => {
+                  const isTabActive = activeInsightTab === tab.id
                   let tabHasContent = false
-                  if (tab.id === 'explanation') tabHasContent = !!currentQuestion?.ai_explanation
-                  else if (tab.id === 'mnemonic') tabHasContent = !!currentQuestion?.mnemonic
-                  else if (tab.id === 'hint') tabHasContent = !!currentQuestion?.hint
-                  else tabHasContent = !!currentQuestion?.others?.ai_responses?.[tab.id]
+                  if (tab.id === 'explanation' || tab.id === 'back') {
+                     tabHasContent = !!(currentQuestion?.explanation || currentQuestion?.ai_explanation)
+                  } else if (tab.id === 'mnemonic') {
+                     tabHasContent = !!currentQuestion?.mnemonic
+                  } else if (tab.id === 'hint') {
+                     tabHasContent = !!currentQuestion?.hint
+                  } else {
+                     tabHasContent = !!(currentQuestion?.others?.ai_responses?.[tab.id] || currentQuestion?.others?.[tab.id])
+                  }
 
                   return (
                      <button
                         key={tab.id}
                         onClick={() => {
-                           setActiveAITab(tab.id)
+                           setActiveInsightTab(tab.id)
                            setIsEditingAI(false)
                            setIsEditingPrompt(false)
                         }}
@@ -264,11 +226,11 @@ export const FeedbackArea: React.FC<FeedbackAreaProps> = ({
               <div className="flex items-center gap-2">
                 <Sparkles className="w-4 h-4 text-indigo-500 animate-pulse" />
                 <span className="text-[9px] font-black text-indigo-600 uppercase tracking-widest">
-                  AI {aiTabs.find((t: any) => t.id === activeAITab)?.title.toUpperCase()}
+                  {insightTabs.find((t: any) => t.id === activeInsightTab)?.title.toUpperCase()}
                 </span>
                 {canEdit && getActiveAIContent() && !isEditingAI && !isEditingPrompt && (
                   <button
-                    onClick={() => clearAIExplanation(activeAITab)}
+                    onClick={() => clearAIExplanation(activeInsightTab)}
                     className="text-[9px] font-black text-rose-500 hover:text-rose-700 bg-rose-50 hover:bg-rose-100 px-2.5 py-1 rounded-md border border-rose-200 shadow-sm transition-all ml-2"
                   >
                     CLEAR AI
@@ -276,20 +238,20 @@ export const FeedbackArea: React.FC<FeedbackAreaProps> = ({
                 )}
               </div>
               <div className="flex gap-2">
-                {canEdit && (
+                {canEdit && getActivePromptTemplate() && (
                   <button
                     onClick={() => setIsEditingPrompt(!isEditingPrompt)}
                     className={cn(
-                      "text-[9px] font-black uppercase tracking-widest transition-all px-2.5 py-1.5 rounded-md",
-                      isEditingPrompt ? "bg-amber-600 text-white shadow-sm" : "text-amber-500 hover:text-amber-600 hover:bg-white"
+                       "text-[9px] font-black uppercase tracking-widest transition-all px-2.5 py-1.5 rounded-md",
+                       isEditingPrompt ? "bg-amber-600 text-white shadow-sm" : "text-amber-500 hover:text-amber-600 hover:bg-white"
                     )}
                   >
                     {isEditingPrompt ? 'CLOSE PROMPT' : 'PROMPT'}
                   </button>
                 )}
-                {canEdit && !getActiveAIContent() && !isEditingAI && !isEditingPrompt && (
+                {canEdit && getActivePromptTemplate() && !getActiveAIContent() && !isEditingAI && !isEditingPrompt && (
                   <button
-                    onClick={() => askAI(activeAITab)}
+                    onClick={() => askAI(activeInsightTab)}
                     disabled={isAskingAI}
                     className="text-[9px] font-black text-indigo-600 bg-white px-3 py-1.5 rounded-lg border border-indigo-100 shadow-sm hover:bg-indigo-50 transition-all disabled:opacity-50"
                   >
@@ -300,7 +262,7 @@ export const FeedbackArea: React.FC<FeedbackAreaProps> = ({
                   <button
                     onClick={() => {
                       if (isEditingAI) {
-                        askAI(activeAITab, aiInput)
+                        askAI(activeInsightTab, aiInput)
                       } else {
                         setAiInput(getActiveAIContent())
                         setIsEditingAI(true)
@@ -312,7 +274,7 @@ export const FeedbackArea: React.FC<FeedbackAreaProps> = ({
                       isEditingAI ? "bg-indigo-600 text-white shadow-sm" : "text-indigo-400 hover:text-indigo-600 hover:bg-white"
                     )}
                   >
-                    {isAskingAI ? 'SAVING...' : (isEditingAI ? 'SAVE AI' : 'EDIT')}
+                    {isAskingAI ? 'SAVING...' : (isEditingAI ? 'SAVE' : 'EDIT')}
                   </button>
                 )}
               </div>
@@ -321,9 +283,9 @@ export const FeedbackArea: React.FC<FeedbackAreaProps> = ({
             {isEditingPrompt ? (
               <div className="space-y-3 mt-2 bg-amber-50/50 border border-amber-100 rounded-2xl p-4">
                 <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-black text-amber-700 uppercase tracking-wider">EDIT SYSTEM PROMPT FOR {aiTabs.find((t: any) => t.id === activeAITab)?.title.toUpperCase()}</span>
+                  <span className="text-[10px] font-black text-amber-700 uppercase tracking-wider">EDIT SYSTEM PROMPT FOR {insightTabs.find((t: any) => t.id === activeInsightTab)?.title.toUpperCase()}</span>
                   <button
-                    onClick={() => savePrompt(activeAITab)}
+                    onClick={() => savePrompt(activeInsightTab)}
                     className="text-[9px] font-black bg-amber-600 hover:bg-amber-700 text-white px-3 py-1.5 rounded-lg shadow-sm transition-all"
                   >
                     SAVE PROMPT
@@ -344,11 +306,11 @@ export const FeedbackArea: React.FC<FeedbackAreaProps> = ({
                 <textarea
                   value={aiInput}
                   onChange={(e) => setAiInput(e.target.value)}
-                  placeholder="Enter AI Analysis content manually..."
+                  placeholder="Enter content manually..."
                   className="w-full h-80 bg-white/50 rounded-xl p-4 text-sm font-medium text-slate-700 focus:ring-2 focus:ring-indigo-500 outline-none border-none resize-none transition-all"
                   autoFocus
                 />
-                <p className="text-[8px] font-medium text-slate-400 italic">Click 'SAVE AI' to save changes for everyone.</p>
+                <p className="text-[8px] font-medium text-slate-400 italic">Click 'SAVE' to save changes for everyone.</p>
               </div>
             ) : (
               isAskingAI ? (
@@ -382,7 +344,7 @@ export const FeedbackArea: React.FC<FeedbackAreaProps> = ({
                 ) : (
                   <div className="flex flex-col items-center justify-center py-12 text-slate-400">
                     <Sparkles className="w-8 h-8 text-slate-300 mb-2" />
-                    <p className="text-xs font-bold uppercase tracking-wider">Chưa có giải thích AI</p>
+                    <p className="text-xs font-bold uppercase tracking-wider">Chưa có thông tin</p>
                   </div>
                 )
               )
@@ -503,12 +465,12 @@ export const FeedbackArea: React.FC<FeedbackAreaProps> = ({
           onClick={handleEditCurrentTab}
           className={cn(
             "w-10 h-10 sm:w-12 sm:h-12 flex-shrink-0 flex items-center justify-center rounded-xl sm:rounded-2xl border transition-all duration-300 active:scale-90",
-            ((activeFeedbackTab === 'ai' && isEditingAI) || (activeFeedbackTab === 'note' && isEditingNote) || (activeFeedbackTab === 'insight' && isEditingInsight))
+            (activeFeedbackTab === 'note' && isEditingNote)
               ? "bg-gradient-to-r from-emerald-500 to-teal-600 border-transparent text-white shadow-lg shadow-emerald-100 scale-105"
               : "bg-slate-50 border-slate-200/80 text-slate-500 hover:bg-indigo-50 hover:border-indigo-200 hover:text-indigo-600 shadow-sm"
           )}
         >
-          {((activeFeedbackTab === 'ai' && isEditingAI) || (activeFeedbackTab === 'note' && isEditingNote) || (activeFeedbackTab === 'insight' && isEditingInsight)) ? (
+          {(activeFeedbackTab === 'note' && isEditingNote) ? (
             <Check className="w-4 h-4 sm:w-5 sm:h-5 stroke-[3] animate-pulse" />
           ) : (
             <Edit3 className="w-4 h-4 sm:w-5 sm:h-5" />
@@ -527,8 +489,8 @@ export const FeedbackArea: React.FC<FeedbackAreaProps> = ({
                   isActive
                     ? (
                       tab.id === 'insight' ? "text-amber-500 bg-white shadow-md border border-amber-100/60 scale-105" :
-                      tab.id === 'ai' ? "text-indigo-600 bg-white shadow-md border border-indigo-100/60 scale-105" :
-                      "text-emerald-600 bg-white shadow-md border border-emerald-100/60 scale-105"
+                      tab.id === 'note' ? "text-slate-600 bg-white shadow-md border border-slate-200 scale-105" :
+                      "text-blue-600 bg-white shadow-md border border-blue-100/60 scale-105"
                     )
                     : "text-slate-400 hover:text-slate-600 hover:bg-white/40"
                 )}
@@ -539,8 +501,8 @@ export const FeedbackArea: React.FC<FeedbackAreaProps> = ({
                     <span className={cn(
                       "absolute -top-1 -right-1 w-1.5 sm:w-2 h-1.5 sm:h-2 rounded-full border border-white animate-pulse",
                       tab.id === 'insight' ? "bg-amber-500" :
-                      tab.id === 'ai' ? "bg-indigo-600" :
-                      "bg-emerald-500"
+                      tab.id === 'note' ? "bg-slate-400" :
+                      "bg-blue-500"
                     )} />
                   )}
                 </div>
@@ -551,7 +513,7 @@ export const FeedbackArea: React.FC<FeedbackAreaProps> = ({
 
         <div className="relative">
           <AnimatePresence>
-            {isCopyMenuOpen && activeFeedbackTab === 'ai' && (
+            {isCopyMenuOpen && activeFeedbackTab === 'insight' && (
               <motion.div
                 initial={{ opacity: 0, y: 10, scale: 0.9 }}
                 animate={{ opacity: 1, y: 0, scale: 1 }}
@@ -559,21 +521,21 @@ export const FeedbackArea: React.FC<FeedbackAreaProps> = ({
                 className="absolute bottom-16 right-0 w-56 bg-white/95 backdrop-blur-md rounded-2xl shadow-[0_10px_30px_rgba(99,102,241,0.12)] border border-slate-100/80 p-2 flex flex-col gap-1 z-[100] animate-in fade-in slide-in-from-bottom-2 duration-200"
               >
                 <button
-                  onClick={() => copyCurrentTabContent('default')}
+                  onClick={() => copyCurrentTabContent('default', activeInsightTab)}
                   className="flex items-center gap-3 px-4 py-3 hover:bg-slate-50 hover:text-slate-800 rounded-xl transition-all text-left animate-in fade-in"
                 >
                   <FileText className="w-4 h-4 text-slate-400" />
                   <span className="text-[11px] font-black text-slate-500 uppercase tracking-wider">Copy Result</span>
                 </button>
                 <button
-                  onClick={() => copyCurrentTabContent('question')}
+                  onClick={() => copyCurrentTabContent('question', activeInsightTab)}
                   className="flex items-center gap-3 px-4 py-3 hover:bg-slate-50 hover:text-slate-800 rounded-xl transition-all text-left"
                 >
                   <HelpCircle className="w-4 h-4 text-slate-400" />
                   <span className="text-[11px] font-black text-slate-500 uppercase tracking-wider">Copy Question</span>
                 </button>
                 <button
-                  onClick={() => copyCurrentTabContent('prompt')}
+                  onClick={() => copyCurrentTabContent('prompt', activeInsightTab)}
                   className="flex items-center gap-3 px-4 py-3 hover:bg-indigo-50/60 hover:text-indigo-600 rounded-xl transition-all text-left"
                 >
                   <Brain className="w-4 h-4 text-indigo-400" />
@@ -585,7 +547,7 @@ export const FeedbackArea: React.FC<FeedbackAreaProps> = ({
 
           <button
             onClick={() => {
-              if (activeFeedbackTab === 'ai') setIsCopyMenuOpen(!isCopyMenuOpen)
+              if (activeFeedbackTab === 'insight') setIsCopyMenuOpen(!isCopyMenuOpen)
               else copyCurrentTabContent()
             }}
             className={cn(

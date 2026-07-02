@@ -322,7 +322,7 @@ export default function PracticePlay() {
   const [isDailyComparisonLoading, setIsDailyComparisonLoading] = useState(true)
   const [isFeedbackOpen, setIsFeedbackOpen] = useState(false)
   const [isQuitModalOpen, setIsQuitModalOpen] = useState(false)
-  const [activeFeedbackTab, setActiveFeedbackTab] = useState<'insight' | 'ai' | 'note' | 'card'>('insight')
+  const [activeFeedbackTab, setActiveFeedbackTab] = useState<'insight' | 'note' | 'card'>('insight')
   const [selectedChoiceData, setSelectedChoiceData] = useState<any | null>(null)
   const [isEditModalOpen, setIsEditModalOpen] = useState(false)
   const [isSavingEdit, setIsSavingEdit] = useState(false)
@@ -2763,30 +2763,34 @@ export default function PracticePlay() {
     }
   }
 
-  const copyCurrentTabContent = (type: 'default' | 'prompt' | 'question' = 'default') => {
+  const copyCurrentTabContent = (type: 'default' | 'prompt' | 'question' = 'default', activeTabId?: string) => {
     let content = ''
-    if (activeFeedbackTab === 'insight') content = getInsightText()
-    else if (activeFeedbackTab === 'ai') {
+    if (activeFeedbackTab === 'insight') {
       if (type === 'question') {
         content = currentQuestion?.content || ''
-      } else if (type === 'prompt' && session.ai_prompt) {
-        const optionsText = currentQuestion?.options.map((opt, i) => `${String.fromCharCode(65 + i)}. ${opt.content}`).join('\n')
-        const correctOpt = currentQuestion?.options.find(o => o.is_correct)
-        const correctAnswerText = correctOpt ? `${String.fromCharCode(65 + (currentQuestion?.options?.indexOf(correctOpt) ?? 0))}. ${correctOpt.content}` : 'Unknown'
-
-        content = session.ai_prompt
-          .replace(/{{question}}/g, currentQuestion?.content || '')
-          .replace(/{{options}}/g, optionsText)
-          .replace(/{{correct_answer}}/g, correctAnswerText)
-          .replace(/{{global_instruction}}/g, session.instruction || '')
-          .replace(/{{quiz_title}}/g, session.title || '')
-          .replace(/{{quiz_description}}/g, session.description || '')
-          .replace(/{{option_a}}/g, currentQuestion?.options[0]?.content || '')
-          .replace(/{{option_b}}/g, currentQuestion?.options[1]?.content || '')
-          .replace(/{{option_c}}/g, currentQuestion?.options[2]?.content || '')
-          .replace(/{{option_d}}/g, currentQuestion?.options[3]?.content || '')
+      } else if (type === 'prompt') {
+        const targetPrompt = session.ai_prompts?.find((p: any) => p.column === activeTabId || p.id === activeTabId)
+        const promptTemplate = targetPrompt?.prompt || ''
+        
+        if (promptTemplate) {
+          const optionsText = currentQuestion?.options ? currentQuestion.options.map((opt, i) => `${String.fromCharCode(65 + i)}. ${opt.content}`).join('\n') : ''
+          const correctOpt = currentQuestion?.options?.find(o => o.is_correct)
+          const correctAnswerText = correctOpt ? `${String.fromCharCode(65 + (currentQuestion?.options?.indexOf(correctOpt) ?? 0))}. ${correctOpt.content}` : 'Unknown'
+          
+          content = promptTemplate
+            .replace(/{{question}}/g, currentQuestion?.content || '')
+            .replace(/{{options}}/g, optionsText)
+            .replace(/{{correct_answer}}/g, correctAnswerText)
+            .replace(/{{global_instruction}}/g, session.instruction || '')
+            .replace(/{{quiz_title}}/g, session.title || '')
+            .replace(/{{quiz_description}}/g, session.description || '')
+        }
       } else {
-        content = currentQuestion?.ai_explanation || ''
+        if (activeTabId === 'explanation' || activeTabId === 'back') {
+          content = currentQuestion?.explanation || ''
+        } else {
+          content = currentQuestion?.others?.ai_responses?.[activeTabId || ''] || currentQuestion?.others?.[activeTabId || ''] || ''
+        }
       }
     }
     else if (activeFeedbackTab === 'note') content = personalNote || ''
@@ -2800,19 +2804,7 @@ export default function PracticePlay() {
   }
 
   const handleEditCurrentTab = () => {
-    if (activeFeedbackTab === 'insight') {
-      if (isEditingInsight) saveInsight()
-      else {
-        setInsightInput(getInsightText() === 'No detail.' ? '' : getInsightText())
-        setIsEditingInsight(true)
-      }
-    } else if (activeFeedbackTab === 'ai') {
-      if (isEditingAI) askAI(aiInput)
-      else {
-        setAiInput(currentQuestion?.ai_explanation || '')
-        setIsEditingAI(true)
-      }
-    } else if (activeFeedbackTab === 'note') {
+    if (activeFeedbackTab === 'note') {
       if (isEditingNote) saveNote()
       setIsEditingNote(!isEditingNote)
     }
@@ -5000,7 +4992,7 @@ export default function PracticePlay() {
           >
             <div className="flex items-center justify-center p-3 border-b border-slate-100 bg-white shadow-sm flex-shrink-0">
               <h4 className="text-[9px] font-black text-indigo-600 uppercase tracking-[0.4em]">
-                {activeFeedbackTab === 'insight' ? 'LEARNING INSIGHTS' : activeFeedbackTab === 'ai' ? 'AI DEEP ANALYSIS' : activeFeedbackTab === 'card' ? 'CARD INFO' : 'PERSONAL NOTES'}
+                {activeFeedbackTab === 'insight' ? 'LEARNING INSIGHTS' : activeFeedbackTab === 'note' ? 'PERSONAL NOTES' : 'CARD INFO'}
               </h4>
             </div>
             <div className="flex-1 overflow-y-auto custom-scrollbar">

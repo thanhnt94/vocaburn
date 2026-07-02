@@ -383,8 +383,9 @@ const EditFlashcard = () => {
         setCustomColumns(settingsRes.data.creator_settings?.custom_columns || [])
         if (settingsRes.data.creator_settings && Object.keys(settingsRes.data.creator_settings).length > 0) {
           const loaded = settingsRes.data.creator_settings
-          // Ensure ai_prompts is always an array even if missing from server data
+          // Ensure arrays exist even if missing from server data
           if (!loaded.ai_prompts) loaded.ai_prompts = []
+          if (!loaded.insight_columns) loaded.insight_columns = []
           setPracticeSettings(loaded)
         }
       } catch (err) {
@@ -1144,7 +1145,7 @@ const EditFlashcard = () => {
                        <div className="bg-slate-900 rounded-[2.5rem] p-6 md:p-10 border border-slate-800 shadow-2xl space-y-6">
                          <div className="flex items-center justify-between mb-2">
                             <div className="flex items-center gap-4">
-                               <div className="w-10 h-10 bg-white/10 rounded-xl flex items-center justify-center text-indigo-400">
+                         <div className="w-10 h-10 bg-white/10 rounded-xl flex items-center justify-center text-indigo-400">
                                   <Brain className="w-5 h-5" />
                                </div>
                                <h2 className="text-lg font-black text-white uppercase italic">AI Intelligence</h2>
@@ -1157,7 +1158,40 @@ const EditFlashcard = () => {
                             </button>
                          </div>
 
-                         <div className="space-y-4 pt-4">
+                         <div className="space-y-4 pt-4 border-b border-white/5 pb-6">
+                            <div className="flex items-center justify-between">
+                               <label className="text-[10px] font-black text-white/50 uppercase tracking-widest">Cấu hình hiển thị Insight (Learning Insights)</label>
+                               <span className="text-[8px] font-bold text-indigo-400 bg-indigo-500/10 px-2 py-0.5 rounded-full uppercase">Insight Columns</span>
+                            </div>
+                            <p className="text-white/40 text-xs font-medium">Chọn các cột dữ liệu sẽ xuất hiện dưới dạng các thẻ trong phần giải thích (Learning Insights) của màn hình học.</p>
+                            <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                               {availableColumns.map((col: string) => {
+                                  const isChecked = (practiceSettings.insight_columns || []).includes(col)
+                                  return (
+                                     <label key={col} className="flex items-center gap-2.5 p-3 rounded-xl bg-white/5 border border-white/5 hover:bg-white/10 hover:border-white/10 transition-all cursor-pointer">
+                                        <input 
+                                           type="checkbox"
+                                           checked={isChecked}
+                                           onChange={(e) => {
+                                              const currentCols = practiceSettings.insight_columns || []
+                                              let nextCols = []
+                                              if (e.target.checked) {
+                                                 nextCols = [...currentCols, col]
+                                              } else {
+                                                 nextCols = currentCols.filter((c: string) => c !== col)
+                                              }
+                                              setPracticeSettings({ ...practiceSettings, insight_columns: nextCols })
+                                           }}
+                                           className="rounded bg-slate-800 border-white/10 text-indigo-600 focus:ring-indigo-500 focus:ring-offset-slate-900"
+                                        />
+                                        <span className="text-xs font-bold text-white uppercase">{col === 'back' ? 'Giải thích (Back)' : col === 'front' ? 'Từ vựng (Front)' : col}</span>
+                                     </label>
+                                  )
+                               })}
+                            </div>
+                        </div>
+
+                        <div className="space-y-4 pt-4">
                              <div className="flex items-center justify-between">
                                 <label className="text-[10px] font-black text-white/50 uppercase tracking-widest">Cấu hình tạo nội dung bằng AI (AI Prompts)</label>
                                 <span className="text-[8px] font-bold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full uppercase">Column-to-Prompt Mapping</span>

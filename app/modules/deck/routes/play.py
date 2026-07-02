@@ -1310,6 +1310,7 @@ async def get_deck_play_data(request: Request, deck_id: int, mode: Optional[str]
         "practice_disabled": practice_disabled,
         "cards": cards_list,
         "questions": cards_list, # compatibility
+        "practice_settings": deck.practice_settings,
         "user_settings": user_sett.settings if user_sett else None
     }
 
