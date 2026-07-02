@@ -4170,7 +4170,48 @@ export default function FlashcardPlay() {
               </div>
               )}
             </motion.div>
-          </AnimatePresence>
+            {/* Level Up Celebration Overlay */}
+            <AnimatePresence>
+              {activeMasteryUpgrade && (
+                <motion.div 
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.9 }}
+                  className="absolute inset-0 bg-white/95 backdrop-blur-md z-[250] flex flex-col items-center justify-center text-center p-6 md:rounded-[2rem] rounded-[1.25rem] border-2 border-indigo-200/50 shadow-2xl"
+                >
+                  <motion.div 
+                    initial={{ rotate: -15, scale: 0 }}
+                    animate={{ rotate: 0, scale: 1 }}
+                    transition={{ delay: 0.15, type: "spring", stiffness: 150 }}
+                    className="text-6xl mb-3 drop-shadow-lg"
+                  >
+                    🎉
+                  </motion.div>
+                  <h3 className="text-xl font-black text-indigo-600 uppercase tracking-widest mb-1.5 animate-pulse">
+                    Thẻ Lên Cấp!
+                  </h3>
+                  <p className="text-[10px] font-black text-slate-400 mb-6 uppercase tracking-[0.2em]">
+                    Độ bền trí nhớ đã nâng cấp
+                  </p>
+                  
+                  <div className="flex items-center gap-5 bg-slate-50/80 px-5 py-4 rounded-3xl border border-slate-100 shadow-inner">
+                    <div className="text-center">
+                      <span className="text-[8px] font-black text-slate-400 block mb-1 uppercase tracking-widest">Cấp độ cũ</span>
+                      <span className="px-3.5 py-1.5 bg-slate-200/80 text-slate-600 rounded-xl text-xs font-black">Level {activeMasteryUpgrade.old_level}</span>
+                    </div>
+                    <div className="text-indigo-500 font-black text-lg animate-pulse">➔</div>
+                    <div className="text-center">
+                      <span className="text-[8px] font-black text-emerald-400 block mb-1 uppercase tracking-widest">Cấp độ mới</span>
+                      <span className="px-3.5 py-1.5 bg-gradient-to-r from-emerald-400 to-emerald-500 text-white rounded-xl text-xs font-black shadow-md shadow-emerald-200/60 flex items-center gap-1">
+                        Level {activeMasteryUpgrade.new_level} ⚡
+                      </span>
+                    </div>
+                  </div>
+                  <p className="text-[9px] font-bold text-slate-300 italic mt-6">Khắc sâu từ vựng thành công!</p>
+                </motion.div>
+              )}
+            </AnimatePresence>
+            </AnimatePresence>
           </div>
         </div>
 
