@@ -1253,8 +1253,9 @@ export default function FlashcardPlay() {
       
       if (!alreadyRated) {
         if (res.data.goal_update) {
-          setGoalToast(res.data.goal_update);
-          setTimeout(() => setGoalToast(null), 4000);
+          // Disabled goal completed popup as requested
+          // setGoalToast(res.data.goal_update);
+          // setTimeout(() => setGoalToast(null), 4000);
 
           // Real-time update for goals
           setActiveGoal((prev: any) => {
@@ -1340,7 +1341,7 @@ export default function FlashcardPlay() {
           }
         })
 
-        if (masteryUpdate.level_up) {
+        if (masteryUpdate.level_up && masteryUpdate.new_level > masteryUpdate.old_level) {
           confetti({ zIndex: 9999,
             particleCount: 50,
             angle: 90,
@@ -1375,6 +1376,8 @@ export default function FlashcardPlay() {
 
       const goalUpdate = res.data.goal_update
       if (goalUpdate) {
+        // Disabled goal completed toast
+        /*
         setGoalToast({
           visible: !goalUpdate.just_completed,
           message: goalUpdate.motivational_message,
@@ -1385,6 +1388,7 @@ export default function FlashcardPlay() {
           dailyTarget: goalUpdate.daily_target,
           bonusXP: goalUpdate.bonus_xp
         })
+        */
         
         setActiveGoal((prev: any) => {
           if (!prev) return {
@@ -1418,7 +1422,8 @@ export default function FlashcardPlay() {
         }, 4500)
 
         if (goalUpdate.just_completed) {
-          setShowGoalCelebration(true)
+          // Disabled full screen goal celebration popup
+          // setShowGoalCelebration(true)
           // Epic continuous confetti shower from bottom corners
           const end = Date.now() + 4.5 * 1000;
           const colors = ['#F59E0B', '#10B981', '#3B82F6', '#8B5CF6', '#EC4899'];
