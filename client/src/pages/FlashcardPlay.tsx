@@ -3777,6 +3777,33 @@ export default function FlashcardPlay() {
                       </div>
                     </div>
 
+                    {/* Memory Strength Bar */}
+                    {currentQuestion && (
+                      <div className="mt-3 px-1">
+                        <div className="flex items-center justify-between text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1">
+                          <span>Độ bền trí nhớ</span>
+                          <span className={cn(
+                            "font-black",
+                            (currentQuestion.box_level || 1) === 5 ? "text-emerald-500" :
+                            (currentQuestion.box_level || 1) >= 3 ? "text-indigo-600" : "text-amber-500"
+                          )}>{(currentQuestion.box_level || 1) * 20}%</span>
+                        </div>
+                        <div className="h-2 w-full bg-slate-100 rounded-full overflow-hidden border border-slate-200/40 p-0.5 shadow-inner">
+                          <motion.div 
+                            initial={{ width: 0 }}
+                            animate={{ width: `${(currentQuestion.box_level || 1) * 20}%` }}
+                            transition={{ type: "spring", stiffness: 80, damping: 15 }}
+                            className={cn(
+                              "h-full rounded-full transition-all duration-500",
+                              (currentQuestion.box_level || 1) === 5 ? "bg-gradient-to-r from-emerald-400 to-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]" :
+                              (currentQuestion.box_level || 1) >= 3 ? "bg-gradient-to-r from-indigo-400 to-indigo-500 shadow-[0_0_8px_rgba(99,102,241,0.5)]" :
+                              "bg-gradient-to-r from-amber-400 to-amber-500"
+                            )}
+                          />
+                        </div>
+                      </div>
+                    )}
+
                     {/* Word / Question Content */}
                     <div className="flex-1 flex flex-col items-center justify-center text-center gap-6 overflow-y-auto custom-scrollbar my-2 py-2">
                       {showImages && (currentQuestion?.image || currentQuestion?.others?.front_img) && (
@@ -3831,6 +3858,33 @@ export default function FlashcardPlay() {
                         {currentQuestion && getMasteryPill(currentQuestion.box_level || 1)}
                       </div>
                     </div>
+
+                    {/* Memory Strength Bar */}
+                    {currentQuestion && (
+                      <div className="mt-3 px-1">
+                        <div className="flex items-center justify-between text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1">
+                          <span>Độ bền trí nhớ</span>
+                          <span className={cn(
+                            "font-black",
+                            (currentQuestion.box_level || 1) === 5 ? "text-emerald-500" :
+                            (currentQuestion.box_level || 1) >= 3 ? "text-indigo-600" : "text-amber-500"
+                          )}>{(currentQuestion.box_level || 1) * 20}%</span>
+                        </div>
+                        <div className="h-2 w-full bg-slate-100 rounded-full overflow-hidden border border-slate-200/40 p-0.5 shadow-inner">
+                          <motion.div 
+                            initial={{ width: 0 }}
+                            animate={{ width: `${(currentQuestion.box_level || 1) * 20}%` }}
+                            transition={{ type: "spring", stiffness: 80, damping: 15 }}
+                            className={cn(
+                              "h-full rounded-full transition-all duration-500",
+                              (currentQuestion.box_level || 1) === 5 ? "bg-gradient-to-r from-emerald-400 to-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]" :
+                              (currentQuestion.box_level || 1) >= 3 ? "bg-gradient-to-r from-indigo-400 to-indigo-500 shadow-[0_0_8px_rgba(99,102,241,0.5)]" :
+                              "bg-gradient-to-r from-amber-400 to-amber-500"
+                            )}
+                          />
+                        </div>
+                      </div>
+                    )}
 
                     {/* Definition & explanation */}
                     <div className="flex-1 overflow-y-auto custom-scrollbar my-3 md:my-4 flex flex-col gap-3 md:gap-4 text-left pr-1 md:pr-2">
