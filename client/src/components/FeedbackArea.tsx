@@ -314,7 +314,7 @@ export const FeedbackArea: React.FC<FeedbackAreaProps> = ({
     switch (activeFeedbackTab) {
       case 'insight':
         return (
-          <div className="p-6 rounded-[2rem] ai-glow animate-in fade-in slide-in-from-bottom-2">
+          <div className="p-3 md:p-6 rounded-2xl md:rounded-[2rem] ai-glow animate-in fade-in slide-in-from-bottom-2">
             {/* Insight Sub-tabs */}
             <div className="flex items-center gap-1.5 p-1 bg-slate-100 rounded-xl mb-4 overflow-x-auto custom-scrollbar">
                {insightTabs.map((tab: any) => {
@@ -698,7 +698,7 @@ export const FeedbackArea: React.FC<FeedbackAreaProps> = ({
         )
       case 'note':
         return (
-          <div className="p-6 rounded-[2rem] bg-white border border-slate-100 shadow-sm animate-in fade-in slide-in-from-bottom-2">
+          <div className="p-3 md:p-6 rounded-2xl md:rounded-[2rem] bg-white border border-slate-100 shadow-sm animate-in fade-in slide-in-from-bottom-2">
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-2">
                 <StickyNote className="w-4 h-4 text-slate-400" />
@@ -750,7 +750,7 @@ export const FeedbackArea: React.FC<FeedbackAreaProps> = ({
           )
         }
         return (
-          <div className="p-6 rounded-[2rem] bg-blue-50/30 border border-blue-100 shadow-sm animate-in fade-in slide-in-from-bottom-2">
+          <div className="p-3 md:p-6 rounded-2xl md:rounded-[2rem] bg-blue-50/30 border border-blue-100 shadow-sm animate-in fade-in slide-in-from-bottom-2">
             <div className="flex items-center gap-2 mb-6">
               <div className="w-6 h-6 rounded-full bg-blue-100 flex items-center justify-center">
                 <FileText className="w-3.5 h-3.5 fill-blue-500 text-blue-500" />
@@ -790,7 +790,7 @@ export const FeedbackArea: React.FC<FeedbackAreaProps> = ({
         </div>
       )}
 
-      <div className="flex-1 overflow-y-auto p-4 lg:p-8 custom-scrollbar">
+      <div className="flex-1 overflow-y-auto p-2 md:p-4 lg:p-8 custom-scrollbar">
         {renderTabContent()}
       </div>
 

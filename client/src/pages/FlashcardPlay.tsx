@@ -3754,7 +3754,7 @@ export default function FlashcardPlay() {
                 >
                    {/* FRONT SIDE */}
                   <div
-                    className="absolute inset-0 backface-hidden bg-white md:rounded-[2rem] rounded-[1.25rem] border border-slate-100 px-4 md:px-8 pt-1.5 md:pt-2 pb-3 md:pb-4 flex flex-col justify-between shadow-2xl shadow-indigo-100/40"
+                    className="absolute inset-0 backface-hidden bg-white md:rounded-[2rem] rounded-[1.25rem] border border-slate-100 px-3 md:px-8 pt-2.5 md:pt-2 pb-2.5 md:pb-4 flex flex-col justify-between shadow-2xl shadow-indigo-100/40"
                     style={{
                       backfaceVisibility: 'hidden',
                       transform: 'none',
@@ -3836,7 +3836,7 @@ export default function FlashcardPlay() {
 
                   {/* BACK SIDE */}
                   <div
-                    className="absolute inset-0 backface-hidden bg-white md:rounded-[2rem] rounded-[1.25rem] border border-slate-200 px-4 md:px-8 pt-1.5 md:pt-2 pb-3 md:pb-4 flex flex-col justify-between shadow-2xl shadow-indigo-100/40"
+                    className="absolute inset-0 backface-hidden bg-white md:rounded-[2rem] rounded-[1.25rem] border border-slate-200 px-3 md:px-8 pt-2.5 md:pt-2 pb-2.5 md:pb-4 flex flex-col justify-between shadow-2xl shadow-indigo-100/40"
                     style={{
                       backfaceVisibility: 'hidden',
                       transform: 'rotateY(180deg)',

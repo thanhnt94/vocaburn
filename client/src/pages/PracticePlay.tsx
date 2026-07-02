@@ -2933,7 +2933,7 @@ export default function PracticePlay() {
 
         <div className="w-full max-w-3xl mx-auto pt-6 border-t border-slate-100">
           {['mcq', 'listening'].includes(practiceSubMode) && choices && (
-            <div className="grid grid-cols-1 gap-3.5 mb-4">
+            <div className="grid grid-cols-1 gap-2 md:gap-3.5 mb-2 md:mb-4">
               {choices.map((choice: string, idx: number) => {
                 const isSelected = selectedOption === idx;
                 const isCorrectChoice = idx === correct_index;
@@ -2969,7 +2969,7 @@ export default function PracticePlay() {
                       }
                     }}
                     className={cn(
-                      "group p-5 md:p-6 rounded-[2rem] border text-left font-extrabold text-base md:text-xl transition-all duration-300 flex items-center justify-between gap-4 min-h-[72px] shadow-sm",
+                      "group p-3.5 md:p-6 rounded-2xl md:rounded-[2rem] border text-left font-extrabold text-sm md:text-xl transition-all duration-300 flex items-center justify-between gap-3 min-h-[54px] md:min-h-[72px] shadow-sm",
                       btnStyle
                     )}
                   >
