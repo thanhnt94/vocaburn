@@ -24,7 +24,8 @@ import {
   Sparkles,
   Download,
   Upload,
-  Plus
+  Plus,
+  SlidersHorizontal
 } from 'lucide-react'
 import axios from 'axios'
 import { cn } from '@/lib/utils'
@@ -44,6 +45,8 @@ const EditFlashcards = () => {
   const [deleteTargetId, setDeleteTargetId] = useState<number | null>(null)
   const [isScrolled, setIsScrolled] = useState(false)
   const [isQuickAddOpen, setIsQuickAddOpen] = useState(true)
+  const [isColumnConfigOpen, setIsColumnConfigOpen] = useState(false)
+  const [toastMessage, setToastMessage] = useState<string | null>(null)
 
   const [isUpdatingExcel, setIsUpdatingExcel] = useState(false)
   const [excelUpdateError, setExcelUpdateError] = useState<string | null>(null)
@@ -405,6 +408,8 @@ const EditFlashcards = () => {
       }
       
       setQuickAddValues({})
+      setToastMessage("Đã lưu thẻ mới thành công!")
+      setTimeout(() => setToastMessage(null), 3000)
       
       if (visibleCols.length > 0) {
         document.getElementById(`quick-add-${visibleCols[0]}`)?.focus()
@@ -454,6 +459,19 @@ const EditFlashcards = () => {
                   <span className="hidden xs:inline">Nhập nhanh</span>
                </button>
              )}
+
+             <button 
+                onClick={() => setIsColumnConfigOpen(!isColumnConfigOpen)}
+                className={cn(
+                   "h-8 w-8 rounded-lg flex items-center justify-center border active:scale-95 transition-all shrink-0",
+                   isColumnConfigOpen 
+                      ? "bg-indigo-50 border-indigo-200 text-indigo-600" 
+                      : "bg-slate-50 border-slate-100 text-slate-400 hover:bg-slate-100"
+                )}
+                title="Cấu hình hiển thị cột"
+             >
+                <SlidersHorizontal className="w-3.5 h-3.5" />
+             </button>
 
              <button 
                 onClick={handleCreateNewCard}
@@ -533,73 +551,83 @@ const EditFlashcards = () => {
 
       <div className="w-full max-w-full sm:max-w-[95%] xl:max-w-[98%] mx-auto px-1 sm:px-2 md:px-4 pt-[60px] md:pt-0 mt-2 md:mt-4">
          {/* Column Manager Bar (Memrise / Multi-column Style) */}
-         <div className="bg-white rounded-[2rem] border border-slate-100 p-5 md:p-6 mb-6 shadow-sm space-y-4">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-50 pb-4">
-               <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 bg-indigo-50 rounded-xl flex items-center justify-center text-indigo-600">
-                     <Filter className="w-4 h-4" />
-                  </div>
-                  <div>
-                     <h3 className="text-xs font-black text-slate-800 uppercase tracking-tight">Cấu hình cột hiển thị</h3>
-                     <p className="text-[9px] font-semibold text-slate-400 uppercase tracking-wider mt-0.5">Tùy biến thêm/bớt cột để nhập liệu nhanh nhiều trường</p>
-                  </div>
-               </div>
-
-               <div className="flex items-center gap-2">
-                  <button
-                     type="button"
-                     onClick={() => setVisibleCols(['front', 'back'])}
-                     className="px-3 py-1.5 bg-slate-50 hover:bg-slate-100 text-[9px] font-black text-slate-505 rounded-lg uppercase tracking-wider transition-colors border border-slate-100"
-                  >
-                     Reset Mặc Định
-                  </button>
-               </div>
-            </div>
-
-            <div className="flex flex-wrap items-center gap-3">
-               <div className="flex flex-wrap items-center gap-2">
-                  {visibleCols.map(col => (
-                     <div 
-                        key={col} 
-                        className="px-3 py-1.5 bg-indigo-50/70 border border-indigo-100 rounded-xl flex items-center gap-2 text-indigo-700 font-bold text-[10px] uppercase shadow-sm"
-                     >
-                        <span>{col}</span>
-                        {visibleCols.length > 1 && (
-                           <button
-                              type="button"
-                              onClick={() => setVisibleCols(visibleCols.filter(c => c !== col))}
-                              className="w-3.5 h-3.5 rounded-full hover:bg-indigo-200/50 flex items-center justify-center text-indigo-400 hover:text-indigo-600 transition-colors"
-                           >
-                              <X className="w-2.5 h-2.5" />
-                           </button>
-                        )}
+         <AnimatePresence>
+            {isColumnConfigOpen && (
+               <motion.div 
+                 initial={{ height: 0, opacity: 0, marginBottom: 0 }}
+                 animate={{ height: 'auto', opacity: 1, marginBottom: 24 }}
+                 exit={{ height: 0, opacity: 0, marginBottom: 0 }}
+                 transition={{ duration: 0.2 }}
+                 className="bg-white rounded-[2rem] border border-slate-150 p-5 md:p-6 shadow-md space-y-4 overflow-hidden"
+               >
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-50 pb-4">
+                     <div className="flex items-center gap-3">
+                        <div className="w-9 h-9 bg-indigo-50 rounded-xl flex items-center justify-center text-indigo-600">
+                           <Filter className="w-4 h-4" />
+                        </div>
+                        <div>
+                           <h3 className="text-xs font-black text-slate-800 uppercase tracking-tight">Cấu hình cột hiển thị</h3>
+                           <p className="text-[9px] font-semibold text-slate-400 uppercase tracking-wider mt-0.5">Tùy biến thêm/bớt cột để nhập liệu nhanh nhiều trường</p>
+                        </div>
                      </div>
-                  ))}
-               </div>
 
-               {availableColumns.filter(c => !visibleCols.includes(c)).length > 0 && (
-                  <div className="flex items-center gap-1.5 ml-auto">
-                     <span className="text-[8px] font-black text-slate-400 uppercase tracking-wider">Thêm cột:</span>
-                     <select
-                        value=""
-                        onChange={(e) => {
-                           if (e.target.value) {
-                              setVisibleCols([...visibleCols, e.target.value])
-                           }
-                        }}
-                        className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-1.5 text-[10px] font-black text-slate-600 outline-none cursor-pointer hover:border-indigo-500 transition-all uppercase tracking-wider"
-                     >
-                        <option value="" disabled>-- Chọn cột --</option>
-                        {availableColumns
-                           .filter(c => !visibleCols.includes(c))
-                           .map(col => (
-                              <option key={col} value={col}>{col.toUpperCase()}</option>
-                           ))}
-                     </select>
+                     <div className="flex items-center gap-2">
+                        <button
+                           type="button"
+                           onClick={() => setVisibleCols(['front', 'back'])}
+                           className="px-3 py-1.5 bg-slate-50 hover:bg-slate-100 text-[9px] font-black text-slate-500 rounded-lg uppercase tracking-wider transition-colors border border-slate-150"
+                        >
+                           Reset Mặc Định
+                        </button>
+                     </div>
                   </div>
-               )}
-            </div>
-         </div>
+
+                  <div className="flex flex-wrap items-center gap-3">
+                     <div className="flex flex-wrap items-center gap-2">
+                        {visibleCols.map(col => (
+                           <div 
+                              key={col} 
+                              className="px-3 py-1.5 bg-indigo-50/70 border border-indigo-100 rounded-xl flex items-center gap-2 text-indigo-700 font-bold text-[10px] uppercase shadow-sm"
+                           >
+                              <span>{col}</span>
+                              {visibleCols.length > 1 && (
+                                 <button
+                                    type="button"
+                                    onClick={() => setVisibleCols(visibleCols.filter(c => c !== col))}
+                                    className="w-3.5 h-3.5 rounded-full hover:bg-indigo-200/50 flex items-center justify-center text-indigo-400 hover:text-indigo-600 transition-colors"
+                                 >
+                                    <X className="w-2.5 h-2.5" />
+                                 </button>
+                              )}
+                           </div>
+                        ))}
+                     </div>
+
+                     {availableColumns.filter(c => !visibleCols.includes(c)).length > 0 && (
+                        <div className="flex items-center gap-1.5 ml-auto">
+                           <span className="text-[8px] font-black text-slate-400 uppercase tracking-wider">Thêm cột:</span>
+                           <select
+                              value=""
+                              onChange={(e) => {
+                                 if (e.target.value) {
+                                    setVisibleCols([...visibleCols, e.target.value])
+                                 }
+                              }}
+                              className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-1.5 text-[10px] font-black text-slate-600 outline-none cursor-pointer hover:border-indigo-500 transition-all uppercase tracking-wider"
+                           >
+                              <option value="" disabled>-- Chọn cột --</option>
+                              {availableColumns
+                                 .filter(c => !visibleCols.includes(c))
+                                 .map(col => (
+                                    <option key={col} value={col}>{col.toUpperCase()}</option>
+                                 ))}
+                           </select>
+                        </div>
+                     )}
+                  </div>
+               </motion.div>
+            )}
+         </AnimatePresence>
 
          {/* Flashcards List */}
          <div className="space-y-3.5 md:space-y-6">
@@ -929,6 +957,23 @@ const EditFlashcards = () => {
                   <X className="w-3.5 h-3.5" />
                 </button>
               )}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* General Toast Success Notification */}
+      <AnimatePresence>
+        {toastMessage && (
+          <motion.div 
+            initial={{ opacity: 0, y: 50, scale: 0.9 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 50, scale: 0.9 }}
+            className="fixed bottom-24 left-1/2 -translate-x-1/2 z-[250] max-w-sm w-full px-4"
+          >
+            <div className="p-3.5 bg-slate-900/90 text-white border border-slate-850 backdrop-blur-md rounded-2xl shadow-2xl flex items-center justify-center gap-2 text-[10px] font-black uppercase tracking-wider">
+              <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+              <span>{toastMessage}</span>
             </div>
           </motion.div>
         )}
