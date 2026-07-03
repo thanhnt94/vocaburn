@@ -415,7 +415,7 @@ const EditFlashcards = () => {
   }
 
   return (
-    <div className={cn("min-h-screen bg-[#F8FAFC]", isQuickAddOpen ? "pb-64 md:pb-48" : "pb-40 md:pb-32")}>
+    <div className={cn("min-h-screen bg-[#F8FAFC]", isQuickAddOpen ? "pb-56 md:pb-40" : "pb-20 md:pb-16")}>
       {/* Fixed Header on Mobile, Sticky on Desktop */}
       <div className="fixed top-0 left-0 right-0 z-[100] bg-white/80 backdrop-blur-xl border-b border-slate-100 px-4 py-3 shadow-sm w-full md:sticky md:top-0">
         <div className="max-w-[95%] xl:max-w-[98%] mx-auto flex items-center justify-between gap-3">
@@ -720,7 +720,7 @@ const EditFlashcards = () => {
       </div>
 
          {/* Full-width Numeric Pagination - White Theme */}
-         <div className="fixed bottom-[60px] md:bottom-0 left-0 right-0 z-[110] bg-white/95 backdrop-blur-xl border-t border-slate-100 px-4 py-2 shadow-[0_-10px_30px_rgba(0,0,0,0.03)]">
+         <div className="fixed bottom-0 left-0 right-0 z-[110] bg-white/95 backdrop-blur-xl border-t border-slate-100 px-4 py-2 shadow-[0_-10px_30px_rgba(0,0,0,0.03)]">
             <div className="max-w-[95%] xl:max-w-[98%] mx-auto flex items-center justify-between gap-4">
                <button 
                  disabled={page === 1}
@@ -787,7 +787,7 @@ const EditFlashcards = () => {
             animate={{ y: 0, opacity: 1 }}
             exit={{ y: 150, opacity: 0 }}
             transition={{ type: "spring", damping: 25, stiffness: 220 }}
-            className="fixed bottom-[114px] md:bottom-[56px] left-0 right-0 z-[105] bg-white/95 backdrop-blur-xl border-t border-indigo-50/80 p-3.5 shadow-[0_-12px_30px_rgba(0,0,0,0.06)]"
+            className="fixed bottom-[56px] left-0 right-0 z-[105] bg-white/95 backdrop-blur-xl border-t border-indigo-50/80 p-3.5 shadow-[0_-12px_30px_rgba(0,0,0,0.06)]"
           >
             <form 
               onSubmit={handleQuickAdd} 
