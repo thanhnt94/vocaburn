@@ -40,6 +40,7 @@ const EditFlashcards = () => {
   
   const [editingFlashcard, setEditingFlashcard] = useState<any>(null)
   const [isSaving, setIsSaving] = useState(false)
+  const [deleteTargetId, setDeleteTargetId] = useState<number | null>(null)
 
   const [isUpdatingExcel, setIsUpdatingExcel] = useState(false)
   const [excelUpdateError, setExcelUpdateError] = useState<string | null>(null)
@@ -279,15 +280,8 @@ const EditFlashcards = () => {
     }
   }
 
-  const handleDelete = async (flashcardId: number) => {
-    if (!confirm('Are you sure? This card will be erased.')) return
-    try {
-      await axios.delete(`/api/v1/deck/flashcard/${flashcardId}`)
-      setFlashcards(flashcards.filter(q => q.id !== flashcardId))
-      setTotal(prev => prev - 1)
-    } catch (err) {
-      alert('Deletion failed')
-    }
+  const handleDelete = (flashcardId: number) => {
+    setDeleteTargetId(flashcardId)
   }
 
   const handleRowFieldChange = (cardId: number, field: string, value: string) => {
@@ -586,7 +580,7 @@ const EditFlashcards = () => {
          </div>
 
          {/* Quick Add Row (Quizlet Style) */}
-         <form onSubmit={handleQuickAdd} className="bg-gradient-to-r from-indigo-50/50 to-pink-50/30 rounded-[2.5rem] border border-indigo-100/50 p-6 mb-8 shadow-sm space-y-4">
+         <form onSubmit={handleQuickAdd} className="sticky top-[56px] md:top-[68px] z-[90] bg-gradient-to-r from-indigo-50/50 to-pink-50/30 rounded-2xl md:rounded-[2.5rem] border border-indigo-100/50 p-3 md:p-6 mb-4 md:mb-8 shadow-md backdrop-blur-md space-y-3 md:space-y-4">
             <div className="flex items-center justify-between mb-1">
                <div className="flex items-center gap-2">
                   <Sparkles className="w-4 h-4 text-indigo-500 animate-pulse" />
@@ -595,7 +589,7 @@ const EditFlashcards = () => {
                <span className="text-[8px] font-bold text-slate-400 uppercase">Nhập và nhấn Enter để thêm</span>
             </div>
 
-            <div className="flex flex-wrap gap-4">
+            <div className="flex flex-wrap gap-3 md:gap-4">
                {visibleCols.map(col => (
                   <div key={col} className="space-y-1.5 flex-1 min-w-[200px]">
                      <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">{col.toUpperCase()}</label>
@@ -605,7 +599,7 @@ const EditFlashcards = () => {
                         placeholder={`Nhập ${col}...`}
                         value={quickAddValues[col] || ''}
                         onChange={(e) => setQuickAddValues({ ...quickAddValues, [col]: e.target.value })}
-                        className="w-full h-12 bg-white border border-slate-200 rounded-2xl px-5 text-xs font-bold text-slate-800 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/5 outline-none transition-all"
+                        className="w-full h-10 md:h-12 bg-white border border-slate-200 rounded-xl md:rounded-2xl px-4 md:px-5 text-xs font-bold text-slate-800 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/5 outline-none transition-all"
                      />
                   </div>
                ))}
@@ -613,14 +607,14 @@ const EditFlashcards = () => {
 
             <button
                type="submit"
-               className="w-full py-4 bg-indigo-600 hover:bg-indigo-700 text-white font-black text-[10px] uppercase tracking-[0.2em] rounded-2xl shadow-lg shadow-indigo-100 transition-all flex items-center justify-center gap-2 active:scale-95"
+               className="w-full py-2.5 md:py-4 bg-indigo-600 hover:bg-indigo-700 text-white font-black text-[10px] uppercase tracking-[0.2em] rounded-xl md:rounded-2xl shadow-lg shadow-indigo-100 transition-all flex items-center justify-center gap-2 active:scale-95"
             >
                <Plus className="w-4 h-4" /> THÊM VÀO BỘ BÀI
             </button>
          </form>
 
          {/* Flashcards List */}
-         <div className="space-y-6">
+         <div className="space-y-3.5 md:space-y-6">
             {isLoading ? (
                <div className="py-20 text-center">
                   <Zap className="w-8 h-8 text-indigo-600 animate-pulse mx-auto" />
@@ -632,7 +626,7 @@ const EditFlashcards = () => {
                   <div 
                     key={q.id}
                     className={cn(
-                      "bg-white rounded-[2.2rem] border p-6 transition-all duration-300 shadow-sm space-y-4 hover:shadow-md",
+                      "bg-white rounded-2xl md:rounded-[2.2rem] border p-3.5 md:p-6 transition-all duration-300 shadow-sm space-y-3 md:space-y-4 hover:shadow-md",
                       isDuplicate ? "border-rose-200 bg-rose-50/20 shadow-rose-100/30" :
                       q.isDirty ? "border-amber-200 bg-amber-50/5 shadow-amber-100/50" : "border-slate-100"
                     )}
@@ -680,7 +674,7 @@ const EditFlashcards = () => {
 
                      {/* Content Inputs */}
                      <div 
-                        className="grid gap-5"
+                        className="grid gap-2.5 md:gap-5"
                         style={{ gridTemplateColumns: `repeat(auto-fit, minmax(220px, 1fr))` }}
                      >
                         {visibleCols.map(col => {
@@ -717,7 +711,7 @@ const EditFlashcards = () => {
                                     value={val || ''}
                                     onChange={(e) => handleRowFieldChange(q.id, col, e.target.value)}
                                     onBlur={() => saveRowCard(q)}
-                                    className="w-full bg-slate-50 hover:bg-slate-100/50 focus:bg-white border border-slate-100 rounded-xl px-4 py-3 text-xs font-bold text-slate-700 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/5 outline-none resize-none transition-all"
+                                    className="w-full bg-slate-50 hover:bg-slate-100/50 focus:bg-white border border-slate-100 rounded-xl px-3 py-2 md:px-4 md:py-3 text-xs font-bold text-slate-700 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/5 outline-none resize-none transition-all"
                                     placeholder={`Nhập ${col}...`}
                                  />
                               </div>
@@ -788,6 +782,64 @@ const EditFlashcards = () => {
         isSaving={isSaving}
         availableColumns={availableColumns}
       />
+
+      {/* Custom Delete Confirmation Modal */}
+      <AnimatePresence>
+        {deleteTargetId !== null && (
+          <div className="fixed inset-0 z-[300] flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setDeleteTargetId(null)}
+              className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm"
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 10 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 10 }}
+              className="relative w-full max-w-sm bg-white rounded-3xl border border-slate-100 p-6 shadow-2xl space-y-4"
+            >
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-rose-50 flex items-center justify-center text-rose-500 shrink-0">
+                  <AlertCircle className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-xs font-black text-slate-800 uppercase tracking-wider">Xác nhận xóa thẻ</h3>
+                  <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">Hành động này không thể hoàn tác</p>
+                </div>
+              </div>
+              <p className="text-xs font-bold text-slate-500 leading-relaxed">
+                Bạn có chắc chắn muốn xóa thẻ này khỏi bộ bài? Mọi thông tin ghi nhớ liên quan sẽ bị mất vĩnh viễn.
+              </p>
+              <div className="flex gap-2.5 pt-2">
+                <button
+                  onClick={() => setDeleteTargetId(null)}
+                  className="flex-1 py-3 bg-slate-50 hover:bg-slate-100 text-slate-500 font-black text-[9px] uppercase tracking-wider rounded-xl border border-slate-200/50 active:scale-95 transition-all"
+                >
+                  Hủy bỏ
+                </button>
+                <button
+                  onClick={async () => {
+                    const targetId = deleteTargetId;
+                    setDeleteTargetId(null);
+                    try {
+                      await axios.delete(`/api/v1/deck/flashcard/${targetId}`)
+                      setFlashcards(flashcards.filter(q => q.id !== targetId))
+                      setTotal(prev => prev - 1)
+                    } catch (err) {
+                      alert('Xóa thẻ thất bại')
+                    }
+                  }}
+                  className="flex-1 py-3 bg-rose-600 hover:bg-rose-700 text-white font-black text-[9px] uppercase tracking-wider rounded-xl shadow-lg shadow-rose-100 active:scale-95 transition-all"
+                >
+                  Xóa vĩnh viễn
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
       {/* Floating Status Notification for Excel Import/Update */}
       <AnimatePresence>
         {(isUpdatingExcel || excelUpdateError || excelUpdateSuccess) && (
