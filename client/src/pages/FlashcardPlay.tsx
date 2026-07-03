@@ -675,7 +675,8 @@ export default function FlashcardPlay() {
       const isPractice = activeTab === 'practice'
       
       // 1. Core quiz data load: fetched immediately to show flashcards instantly
-      const quizRes = await axios.get(`/api/v1/deck/${id}/play-data${modeParam}`)
+      const fetchUrl = id === 'quick' ? '/api/v1/deck/quick-play-data' : `/api/v1/deck/${id}/play-data${modeParam}`
+      const quizRes = await axios.get(fetchUrl)
       const questions = quizRes.data.questions || []
       setSession({ ...quizRes.data, questions })
 

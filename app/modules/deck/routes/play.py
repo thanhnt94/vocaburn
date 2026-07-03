@@ -1038,6 +1038,218 @@ def migrate_practice_settings(settings: Optional[dict]) -> dict:
         "listening": {"active_pairs": active_pairs, "num_choices": num_choices}
     }
 
+@router.get("/quick-play-data")
+async def get_quick_play_data(request: Request, db: AsyncSession = Depends(get_db)):
+    user_id = int(request.cookies.get("user_id", 1))
+    
+    # 1. Fetch all decks connected to this user
+    from app.modules.deck.models import FlashcardDeck, DeckCollaborator, DeckAttempt
+    
+    attempt_sub = select(DeckAttempt.deck_id).where(DeckAttempt.user_id == user_id).scalar_subquery()
+    collab_sub = select(DeckCollaborator.deck_id).where(DeckCollaborator.user_id == user_id).scalar_subquery()
+    
+    deck_stmt = select(FlashcardDeck).where(
+        or_(
+            FlashcardDeck.creator_id == user_id,
+            FlashcardDeck.id.in_(attempt_sub),
+            FlashcardDeck.id.in_(collab_sub)
+        )
+    )
+    deck_res = await db.execute(deck_stmt)
+    decks = deck_res.scalars().all()
+    
+    if not decks:
+        # Load active public decks if user has no decks
+        public_deck_stmt = select(FlashcardDeck).where(FlashcardDeck.is_public == True).limit(5)
+        public_deck_res = await db.execute(public_deck_stmt)
+        decks = public_deck_res.scalars().all()
+        
+    deck_ids = [d.id for d in decks]
+    if not deck_ids:
+        return {
+            "id": 0,
+            "title": "Học Nhanh (Quick Play)",
+            "description": "Tự động ôn tập các thẻ đến hạn và học mới ngẫu nhiên từ tất cả các bộ bài của bạn.",
+            "cards": [],
+            "questions": [],
+            "user_total_xp": 0,
+            "user_today_xp": 0,
+            "user_today_time": 0,
+            "user_all_time_time": 0
+        }
+        
+    # 2. Fetch all cards of these decks
+    from app.modules.deck.models import Flashcard
+    card_stmt = select(Flashcard).where(Flashcard.deck_id.in_(deck_ids))
+    card_res = await db.execute(card_stmt)
+    cards = card_res.scalars().all()
+    
+    if not cards:
+        return {
+            "id": 0,
+            "title": "Học Nhanh (Quick Play)",
+            "description": "Tự động ôn tập các thẻ đến hạn và học mới ngẫu nhiên từ tất cả các bộ bài của bạn.",
+            "cards": [],
+            "questions": [],
+            "user_total_xp": 0,
+            "user_today_xp": 0,
+            "user_today_time": 0,
+            "user_all_time_time": 0
+        }
+        
+    # 3. Load user card mastery
+    from app.modules.deck.models import UserCardMastery
+    mastery_stmt = select(UserCardMastery).where(
+        UserCardMastery.user_id == user_id,
+        UserCardMastery.card_id.in_([c.id for c in cards])
+    )
+    mastery_res = await db.execute(mastery_stmt)
+    mastery_records = {m.card_id: m for m in mastery_res.scalars().all()}
+    
+    # 4. Group into due and new
+    now_utc = datetime.utcnow().replace(tzinfo=timezone.utc)
+    due_cards = []
+    new_cards = []
+    
+    for c in cards:
+        m = mastery_records.get(c.id)
+        if m:
+            if m.is_ignored:
+                continue
+            m_due = m.due.replace(tzinfo=timezone.utc) if m.due else now_utc
+            if m_due <= now_utc:
+                due_cards.append((c, m))
+        else:
+            new_cards.append(c)
+            
+    import random
+    selected_items = []
+    if due_cards:
+        random.shuffle(due_cards)
+        selected_items = due_cards[:100]
+    else:
+        random.shuffle(new_cards)
+        selected_items = [(c, None) for c in new_cards[:30]]
+        
+    # 5. Fetch review times
+    from app.modules.deck.models import UserAnswer
+    selected_card_ids = [item[0].id for item in selected_items]
+    
+    review_times_stmt = select(
+        UserAnswer.card_id,
+        func.min(UserAnswer.created_at),
+        func.max(UserAnswer.created_at)
+    ).join(DeckAttempt, UserAnswer.attempt_id == DeckAttempt.id)\
+     .where(
+         DeckAttempt.user_id == user_id,
+         UserAnswer.card_id.in_(selected_card_ids)
+     ).group_by(UserAnswer.card_id)
+     
+    review_times_res = await db.execute(review_times_stmt)
+    review_times_map = {row[0]: (row[1], row[2]) for row in review_times_res.all()}
+    
+    # 6. Fetch gamification stats
+    from app.modules.gamification.interface import GamificationInterface
+    user_stats = await GamificationInterface.get_user_stats(db, user_id)
+    user_total_xp = user_stats.get("xp", 0)
+    
+    from app.modules.gamification.models import XPTransaction
+    today_start = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
+    today_xp_stmt = select(func.sum(XPTransaction.amount)).where(
+        XPTransaction.user_id == user_id,
+        XPTransaction.created_at >= today_start
+    )
+    today_time_stmt = select(func.sum(UserAnswer.active_time)).join(DeckAttempt, UserAnswer.attempt_id == DeckAttempt.id).where(
+        DeckAttempt.user_id == user_id,
+        UserAnswer.created_at >= today_start
+    )
+    all_time_time_stmt = select(func.sum(UserAnswer.active_time)).join(DeckAttempt, UserAnswer.attempt_id == DeckAttempt.id).where(
+        DeckAttempt.user_id == user_id
+    )
+    
+    today_xp_res, today_time_res, all_time_time_res = await asyncio.gather(
+        db.execute(today_xp_stmt),
+        db.execute(today_time_stmt),
+        db.execute(all_time_time_stmt)
+    )
+    
+    user_today_xp = today_xp_res.scalar() or 0
+    user_today_time = today_time_res.scalar() or 0
+    user_all_time_time = all_time_time_res.scalar() or 0
+    
+    from fsrs import Scheduler
+    scheduler = Scheduler(enable_fuzzing=False)
+    new_card_template = build_fsrs_card(None, now_utc)
+    default_new_intervals = estimate_intervals(scheduler, new_card_template, now_utc)
+    
+    cards_list = []
+    for c, m in selected_items:
+        m_state = m.state if m else 0
+        m_stability = m.stability if m else None
+        m_difficulty = m.difficulty if m else None
+        m_due = m.due if m else datetime.utcnow()
+        m_last_review = m.last_review if m else None
+        m_box_level = m.box_level if m else 1
+        
+        is_new = (m is None) or (m_state == 0) or (m_stability is None)
+        if is_new:
+            intervals = default_new_intervals
+        else:
+            fsrs_card = build_fsrs_card(m, now_utc)
+            intervals = estimate_intervals(scheduler, fsrs_card, now_utc)
+            
+        r_times = review_times_map.get(c.id)
+        first_learned = r_times[0] if r_times else None
+        last_reviewed = r_times[1] if r_times else None
+        
+        cards_list.append({
+            "id": c.id,
+            "content": c.content,
+            "explanation": c.explanation,
+            "front_audio_content": c.front_audio_content,
+            "back_audio_content": c.back_audio_content,
+            "front_audio_url": c.front_audio_url,
+            "back_audio_url": c.back_audio_url,
+            "front_img": c.front_img,
+            "back_img": c.back_img,
+            "stats": getattr(c, 'stats', None),
+            "box_level": m_box_level,
+            "is_ignored": m.is_ignored if m else False,
+            "fsrs": {
+                "state": m_state,
+                "stability": m_stability,
+                "difficulty": m_difficulty,
+                "due": m_due.isoformat() if m_due else None,
+                "last_review": m_last_review.isoformat() if m_last_review else None,
+                "first_learned": first_learned.isoformat() if first_learned else None,
+                "last_reviewed": last_reviewed.isoformat() if last_reviewed else None,
+                "intervals": intervals
+            },
+            "options": [],
+            "image": fix_static_urls(c.back_img),
+            "audio": fix_static_urls(c.back_audio_url),
+            "others": fix_static_urls(c.others)
+        })
+        
+    return {
+        "id": 0,
+        "title": "Học Nhanh (Quick Play)",
+        "description": "Tự động ôn tập các thẻ đến hạn và học mới ngẫu nhiên từ tất cả các bộ bài của bạn.",
+        "ai_prompts": [],
+        "instruction": "",
+        "category_id": 0,
+        "creator_id": 0,
+        "is_collaborator": False,
+        "user_total_xp": user_total_xp,
+        "user_today_xp": user_today_xp,
+        "user_today_time": user_today_time,
+        "user_all_time_time": user_all_time_time,
+        "practice_needs_setup": False,
+        "practice_disabled": False,
+        "cards": cards_list,
+        "questions": cards_list
+    }
+
 @router.get("/{deck_id}/play-data")
 async def get_deck_play_data(request: Request, deck_id: int, mode: Optional[str] = None, lightweight: Optional[bool] = None, db: AsyncSession = Depends(get_db)):
     user_id = int(request.cookies.get("user_id", 1))

@@ -1,5 +1,5 @@
 import { Outlet, Link, useLocation } from 'react-router-dom'
-import { LayoutGrid, Compass, BarChart3, User, BrainCircuit, Bell, Settings, Plus, Library, Users, FolderKanban, BookOpen, Flame, Award } from 'lucide-react'
+import { LayoutGrid, Compass, BarChart3, User, BrainCircuit, Bell, Settings, Plus, Library, Users, FolderKanban, BookOpen, Flame, Award, Sparkles } from 'lucide-react'
 import { motion } from 'framer-motion'
 import { useAppStore } from '@/store/useAppStore'
 import { cn } from '@/lib/utils'
@@ -24,8 +24,9 @@ export default function Layout() {
   })
   
   const navItems = [
-    { label: 'Home', path: '/', icon: LayoutGrid },
-    { label: 'Library', path: '/library', icon: Library },
+    { label: 'Home', path: '/', icon: Compass },
+    { label: 'Library', path: '/library', icon: BookOpen },
+    { label: 'Quick Play', path: '/flashcard/quick/play', icon: Sparkles },
     { label: 'Stats', path: '/stats', icon: BarChart3 },
     { label: 'Studio', path: '/manage', icon: FolderKanban },
     { label: 'Settings', path: '/profile', icon: User },
@@ -37,7 +38,10 @@ export default function Layout() {
 
   const isLandingPage = location.pathname === '/' && !isLoggedIn
   const isDashboard = location.pathname === '/' || location.pathname === '/dashboard'
-  const showBottomNav = isLoggedIn && !location.pathname.includes('/flashcards')
+  const isPlaying = location.pathname.includes('/play') || 
+                    location.pathname.includes('/practice/') || 
+                    location.pathname.includes('/room/')
+  const showBottomNav = isLoggedIn && !isPlaying
 
   return (
     <div className={cn(
@@ -162,7 +166,7 @@ export default function Layout() {
                   {isActive && (
                     <motion.div 
                       layoutId="navActiveSquircle"
-                      className="absolute inset-0 bg-indigo-600 rounded-2xl shadow-lg shadow-indigo-200"
+                      className="absolute inset-0 bg-gradient-to-tr from-orange-500 to-rose-500 rounded-[1.25rem] shadow-lg shadow-orange-500/20"
                       transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
                     />
                   )}
