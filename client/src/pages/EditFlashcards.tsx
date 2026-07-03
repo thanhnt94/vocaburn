@@ -54,6 +54,7 @@ const EditFlashcards = () => {
   const [newColName, setNewColName] = useState('')
   const [renamingCol, setRenamingCol] = useState<string | null>(null)
   const [renamingNewValue, setRenamingNewValue] = useState('')
+  const [deckName, setDeckName] = useState('')
 
   const [isUpdatingExcel, setIsUpdatingExcel] = useState(false)
   const [excelUpdateError, setExcelUpdateError] = useState<string | null>(null)
@@ -108,6 +109,7 @@ const EditFlashcards = () => {
         const res = await axios.get(`/api/v1/deck/${id}/practice-settings`)
         setAvailableColumns(res.data.available_columns || ['front', 'back'])
         setPracticeSettings(res.data.creator_settings || {})
+        if (res.data.deck_name) setDeckName(res.data.deck_name)
       } catch (e) {
         console.error("Failed to fetch deck practice settings", e)
       }
@@ -598,19 +600,23 @@ const EditFlashcards = () => {
   }
 
   return (
-    <div className={cn("min-h-screen bg-[#F8FAFC]", isQuickAddOpen ? "pb-56 md:pb-40" : "pb-20 md:pb-16")}>
+    <div className={cn("min-h-screen bg-[#F8FAFC]", isQuickAddOpen ? "pb-[230px] md:pb-[180px]" : "pb-[64px] md:pb-[56px]")}>
       {/* Fixed Header on Mobile, Sticky on Desktop */}
       <div className="fixed top-0 left-0 right-0 z-[100] bg-white/80 backdrop-blur-xl border-b border-slate-100 px-4 py-3 shadow-sm w-full md:sticky md:top-0">
         <div className="max-w-[95%] xl:max-w-[98%] mx-auto flex items-center justify-between gap-3">
           <div className="flex items-center gap-2.5 min-w-0">
             <button 
-              onClick={() => navigate(`/manage/edit/${id}`)}
-              className="w-8 h-8 bg-slate-50 rounded-lg flex items-center justify-center text-slate-400 border border-slate-100 active:scale-95 shrink-0"
+              onClick={() => navigate('/manage')}
+              className="w-8 h-8 bg-rose-50 hover:bg-rose-100 rounded-lg flex items-center justify-center text-rose-500 border border-rose-200 active:scale-95 shrink-0"
+              title="Đóng"
             >
-              <ChevronLeft className="w-4 h-4" />
+              <X className="w-4 h-4" />
             </button>
             <div className="flex flex-col min-w-0">
-              <h1 className="text-[11px] md:text-sm font-black text-slate-900 uppercase tracking-tight italic truncate leading-none mb-1">Card Manager</h1>
+              <h1 className="text-[11px] md:text-sm font-black text-slate-800 uppercase tracking-tight truncate leading-none mb-1">Card Manager</h1>
+              {deckName && (
+                <p className="text-[9px] font-black text-indigo-600 uppercase tracking-wide truncate leading-none mb-1">{deckName}</p>
+              )}
               <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest leading-none">{total} Items</p>
             </div>
           </div>
@@ -803,55 +809,55 @@ const EditFlashcards = () => {
          </div>
       </div>
 
-         {/* Full-width Numeric Pagination - White Theme */}
-         <div className="fixed bottom-0 left-0 right-0 z-[110] bg-white/95 backdrop-blur-xl border-t border-slate-100 px-4 py-2 shadow-[0_-10px_30px_rgba(0,0,0,0.03)]">
-            <div className="max-w-[95%] xl:max-w-[98%] mx-auto flex items-center justify-between gap-4">
-               <button 
-                 disabled={page === 1}
-                 onClick={() => { setPage(page - 1); window.scrollTo(0, 0); }}
-                 className="flex items-center gap-2 px-3 h-10 bg-slate-50 text-slate-400 text-[10px] font-black uppercase rounded-xl border border-slate-100 disabled:opacity-30"
-               >
-                  <ChevronLeft className="w-4 h-4" />
-               </button>
-
-               <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-hide py-1">
-                  {(() => {
-                     const totalPages = Math.ceil(total / 50)
-                     const pages = []
-                     const start = Math.max(1, page - 2)
-                     const end = Math.min(totalPages, start + 5)
-                     const finalStart = Math.max(1, end - 5)
-                     
-                     for (let i = finalStart; i <= end; i++) {
-                        if (i < 1) continue;
-                        pages.push(
-                           <button
-                              key={i}
-                              onClick={() => { setPage(i); window.scrollTo(0, 0); }}
-                              className={cn(
-                                 "min-w-[36px] h-9 rounded-xl flex items-center justify-center text-[10px] font-black transition-all",
-                                 page === i 
-                                    ? "bg-indigo-600 text-white shadow-lg shadow-indigo-100" 
-                                    : "bg-slate-50 text-slate-400 border border-slate-100"
-                              )}
-                           >
-                              {i}
-                           </button>
-                        )
-                     }
-                     return pages
-                  })()}
-               </div>
-
-               <button 
-                 disabled={page * 50 >= total}
-                 onClick={() => { setPage(page + 1); window.scrollTo(0, 0); }}
-                 className="flex items-center gap-2 px-3 h-10 bg-slate-50 text-slate-400 text-[10px] font-black uppercase rounded-xl border border-slate-100 disabled:opacity-30"
-               >
-                  <ChevronRight className="w-4 h-4" />
-               </button>
-            </div>
-         </div>
+          {/* Full-width Numeric Pagination - White Theme */}
+          <div className="fixed bottom-0 left-0 right-0 z-[110] bg-white/95 backdrop-blur-xl border-t border-slate-100 px-4 py-1.5 shadow-[0_-10px_30px_rgba(0,0,0,0.03)]">
+             <div className="max-w-[95%] xl:max-w-[98%] mx-auto flex items-center justify-between gap-4">
+                <button 
+                  disabled={page === 1}
+                  onClick={() => { setPage(page - 1); window.scrollTo(0, 0); }}
+                  className="flex items-center gap-2 px-2.5 h-8 bg-slate-50 text-slate-400 text-[10px] font-black uppercase rounded-lg border border-slate-100 disabled:opacity-30 active:scale-95 transition-all"
+                >
+                   <ChevronLeft className="w-4 h-4" />
+                </button>
+ 
+                <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-hide py-0.5">
+                   {(() => {
+                      const totalPages = Math.ceil(total / 50)
+                      const pages = []
+                      const start = Math.max(1, page - 2)
+                      const end = Math.min(totalPages, start + 5)
+                      const finalStart = Math.max(1, end - 5)
+                      
+                      for (let i = finalStart; i <= end; i++) {
+                         if (i < 1) continue;
+                         pages.push(
+                            <button
+                               key={i}
+                               onClick={() => { setPage(i); window.scrollTo(0, 0); }}
+                               className={cn(
+                                  "min-w-[32px] h-8 rounded-lg flex items-center justify-center text-[10px] font-black transition-all",
+                                  page === i 
+                                     ? "bg-indigo-600 text-white shadow-lg shadow-indigo-100" 
+                                     : "bg-slate-50 text-slate-400 border border-slate-100"
+                               )}
+                            >
+                               {i}
+                            </button>
+                         )
+                      }
+                      return pages
+                   })()}
+                </div>
+ 
+                <button 
+                  disabled={page * 50 >= total}
+                  onClick={() => { setPage(page + 1); window.scrollTo(0, 0); }}
+                  className="flex items-center gap-2 px-2.5 h-8 bg-slate-50 text-slate-400 text-[10px] font-black uppercase rounded-lg border border-slate-100 disabled:opacity-30 active:scale-95 transition-all"
+                >
+                   <ChevronRight className="w-4 h-4" />
+                </button>
+             </div>
+          </div>
 
       <FlashcardEditModal
         isOpen={!!editingFlashcard}
@@ -871,7 +877,7 @@ const EditFlashcards = () => {
             animate={{ y: 0, opacity: 1 }}
             exit={{ y: 150, opacity: 0 }}
             transition={{ type: "spring", damping: 25, stiffness: 220 }}
-            className="fixed bottom-[56px] left-0 right-0 z-[105] bg-white/95 backdrop-blur-xl border-t border-indigo-50/80 p-3.5 shadow-[0_-12px_30px_rgba(0,0,0,0.06)]"
+            className="fixed bottom-[44px] left-0 right-0 z-[105] bg-white/95 backdrop-blur-xl border-t border-indigo-50/80 p-3.5 shadow-[0_-12px_30px_rgba(0,0,0,0.06)]"
           >
             <form 
               onSubmit={handleQuickAdd} 
