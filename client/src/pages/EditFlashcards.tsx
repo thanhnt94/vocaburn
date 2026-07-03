@@ -626,13 +626,13 @@ const EditFlashcards = () => {
                   <div 
                     key={q.id}
                     className={cn(
-                      "bg-white rounded-2xl md:rounded-[2.2rem] border p-3.5 md:p-6 transition-all duration-300 shadow-sm space-y-3 md:space-y-4 hover:shadow-md",
+                      "bg-white rounded-2xl md:rounded-[2.2rem] border p-2.5 md:p-6 transition-all duration-300 shadow-sm space-y-2 md:space-y-4 hover:shadow-md",
                       isDuplicate ? "border-rose-200 bg-rose-50/20 shadow-rose-100/30" :
                       q.isDirty ? "border-amber-200 bg-amber-50/5 shadow-amber-100/50" : "border-slate-100"
                     )}
                   >
                      {/* Header */}
-                     <div className="flex items-center justify-between border-b border-slate-50 pb-3">
+                     <div className="flex items-center justify-between border-b border-slate-50 pb-1.5 md:pb-3">
                         <div className="flex items-center gap-3">
                            <span className="text-[10px] font-black text-slate-300 italic">#{(page-1)*50 + idx + 1}</span>
                            {isDuplicate && (
