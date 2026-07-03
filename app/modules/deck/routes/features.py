@@ -1211,6 +1211,34 @@ async def generate_single_card_ai(
             
     return {"status": "ok", "message": f"AI generation for {field} started."}
 
+@router.post("/{deck_id}/add-column")
+async def add_deck_column(deck_id: int, payload: dict, db: AsyncSession = Depends(get_db)):
+    col_name = payload.get("column_name")
+    if not col_name:
+        return JSONResponse(status_code=400, content={"error": "column_name is required"})
+    col_name = col_name.strip().lower().replace(" ", "_")
+    if not col_name:
+        return JSONResponse(status_code=400, content={"error": "Invalid column name"})
+        
+    deck = await DeckService.get_deck_by_id(db, deck_id)
+    if not deck:
+        return JSONResponse(status_code=404, content={"error": "Deck not found"})
+        
+    from sqlalchemy.orm.attributes import flag_modified
+    if not deck.practice_settings or not isinstance(deck.practice_settings, dict):
+        deck.practice_settings = {}
+        
+    custom_cols = deck.practice_settings.get("custom_columns", [])
+    if col_name in custom_cols or col_name in ["front", "back", "content", "explanation"]:
+        return JSONResponse(status_code=400, content={"error": "Column already exists"})
+        
+    custom_cols.append(col_name)
+    deck.practice_settings["custom_columns"] = custom_cols
+    flag_modified(deck, "practice_settings")
+    
+    await db.commit()
+    return {"status": "ok", "column_name": col_name}
+
 @router.post("/{deck_id}/rename-column")
 async def rename_deck_column(deck_id: int, payload: dict, db: AsyncSession = Depends(get_db)):
     old_name = payload.get("old_name")

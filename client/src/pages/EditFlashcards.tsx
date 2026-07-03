@@ -50,6 +50,10 @@ const EditFlashcards = () => {
   const [toastMessage, setToastMessage] = useState<string | null>(null)
   const [isPasteModalOpen, setIsPasteModalOpen] = useState(false)
   const [pasteText, setPasteText] = useState('')
+  const [isManageColumnsOpen, setIsManageColumnsOpen] = useState(false)
+  const [newColName, setNewColName] = useState('')
+  const [renamingCol, setRenamingCol] = useState<string | null>(null)
+  const [renamingNewValue, setRenamingNewValue] = useState('')
 
   const [isUpdatingExcel, setIsUpdatingExcel] = useState(false)
   const [excelUpdateError, setExcelUpdateError] = useState<string | null>(null)
@@ -542,6 +546,56 @@ const EditFlashcards = () => {
       setIsSaving(false)
     }
   }
+  const handleAddColumn = async () => {
+    if (!newColName.trim()) return
+    try {
+      const res = await axios.post(`/api/v1/deck/${id}/add-column`, {
+        column_name: newColName
+      })
+      const addedCol = res.data.column_name
+      setAvailableColumns(prev => [...prev, addedCol])
+      setNewColName('')
+      setToastMessage("Thêm cột mới thành công!")
+      setTimeout(() => setToastMessage(null), 3000)
+    } catch (e: any) {
+      alert(e.response?.data?.error || "Lỗi khi thêm cột")
+    }
+  }
+
+  const handleRenameColumn = async (oldName: string) => {
+    if (!renamingNewValue.trim()) return
+    try {
+      await axios.post(`/api/v1/deck/${id}/rename-column`, {
+        old_name: oldName,
+        new_name: renamingNewValue
+      })
+      
+      setAvailableColumns(prev => prev.map(c => c === oldName ? renamingNewValue : c))
+      setVisibleCols(prev => prev.map(c => c === oldName ? renamingNewValue : c))
+      setRenamingCol(null)
+      setRenamingNewValue('')
+      setToastMessage("Đổi tên cột thành công!")
+      setTimeout(() => setToastMessage(null), 3000)
+    } catch (e: any) {
+      alert(e.response?.data?.error || "Lỗi khi đổi tên cột")
+    }
+  }
+
+  const handleDeleteColumn = async (colName: string) => {
+    if (!window.confirm(`Bạn có chắc chắn muốn xóa cột "${colName}"? Mọi dữ liệu trong cột này ở tất cả các thẻ sẽ bị mất.`)) return
+    try {
+      await axios.post(`/api/v1/deck/${id}/delete-column`, {
+        column_name: colName
+      })
+      
+      setAvailableColumns(prev => prev.filter(c => c !== colName))
+      setVisibleCols(prev => prev.filter(c => c !== colName))
+      setToastMessage("Xóa cột thành công!")
+      setTimeout(() => setToastMessage(null), 3000)
+    } catch (e: any) {
+      alert(e.response?.data?.error || "Lỗi khi xóa cột")
+    }
+  }
 
   return (
     <div className={cn("min-h-screen bg-[#F8FAFC]", isQuickAddOpen ? "pb-56 md:pb-40" : "pb-20 md:pb-16")}>
@@ -651,6 +705,13 @@ const EditFlashcards = () => {
                      </div>
 
                      <div className="flex items-center gap-2">
+                        <button
+                           type="button"
+                           onClick={() => setIsManageColumnsOpen(true)}
+                           className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-[9px] font-black rounded-lg uppercase tracking-wider transition-colors shadow-sm"
+                        >
+                           Quản Lý Cột
+                        </button>
                         <button
                            type="button"
                            onClick={() => setVisibleCols(['front', 'back'])}
@@ -1065,6 +1126,129 @@ orange	quả cam"
                 >
                   {isSaving ? "Đang xử lý..." : "Phân tích & Thêm mới"}
                 </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Column Manager Modal */}
+      <AnimatePresence>
+        {isManageColumnsOpen && (
+          <div className="fixed inset-0 z-[300] flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setIsManageColumnsOpen(false)}
+              className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm"
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 15 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 15 }}
+              className="relative w-full max-w-md bg-white rounded-3xl border border-slate-100 p-5 md:p-6 shadow-2xl space-y-4 text-left"
+            >
+              <div className="flex items-center justify-between border-b border-slate-50 pb-3">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-indigo-50 flex items-center justify-center text-indigo-600 shrink-0">
+                    <SlidersHorizontal className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="text-xs font-black text-slate-800 uppercase tracking-wider">Quản Lý Cột Dữ Liệu</h3>
+                    <p className="text-[9px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">Thêm, xóa hoặc sửa tên các cột trong bộ bài này</p>
+                  </div>
+                </div>
+                <button 
+                  onClick={() => setIsManageColumnsOpen(false)}
+                  className="w-8 h-8 bg-slate-50 hover:bg-slate-100 rounded-xl flex items-center justify-center text-slate-400 active:scale-95 transition-all"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              {/* List of Custom Columns */}
+              <div className="space-y-2 max-h-56 overflow-y-auto custom-scrollbar pr-1">
+                <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block mb-1">Cột Mặc định (Không được sửa/xóa)</span>
+                <div className="flex flex-wrap gap-2 mb-3">
+                  <span className="px-3 py-1.5 bg-slate-50 border border-slate-200 text-slate-400 rounded-xl text-[10px] font-bold uppercase">front</span>
+                  <span className="px-3 py-1.5 bg-slate-50 border border-slate-200 text-slate-400 rounded-xl text-[10px] font-bold uppercase">back</span>
+                </div>
+
+                <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block mb-1">Cột Tùy Biến (Custom Columns)</span>
+                {availableColumns.filter(c => c !== 'front' && c !== 'back').length === 0 ? (
+                  <p className="text-[10px] font-bold text-slate-400 italic py-2">Chưa có cột tùy biến nào được tạo.</p>
+                ) : (
+                  <div className="space-y-2">
+                    {availableColumns.filter(c => c !== 'front' && c !== 'back').map(col => (
+                      <div key={col} className="flex items-center justify-between p-2.5 bg-slate-50/50 border border-slate-250/60 rounded-2xl">
+                        {renamingCol === col ? (
+                          <div className="flex items-center gap-2 flex-1 mr-2">
+                            <input
+                              type="text"
+                              value={renamingNewValue}
+                              onChange={(e) => setRenamingNewValue(e.target.value)}
+                              className="flex-1 h-8 bg-white border border-slate-205 focus:border-indigo-500 rounded-lg px-2 text-xs font-bold text-slate-800 outline-none"
+                              placeholder="Tên mới..."
+                              autoFocus
+                            />
+                            <button
+                              onClick={() => handleRenameColumn(col)}
+                              className="h-8 px-2.5 bg-indigo-600 text-white rounded-lg text-[9px] font-black uppercase"
+                            >
+                              Lưu
+                            </button>
+                            <button
+                              onClick={() => { setRenamingCol(null); setRenamingNewValue(''); }}
+                              className="h-8 px-2 bg-slate-100 text-slate-500 rounded-lg text-[9px] font-black uppercase"
+                            >
+                              Hủy
+                            </button>
+                          </div>
+                        ) : (
+                          <>
+                            <span className="text-[10px] font-black text-slate-700 uppercase tracking-wider pl-1.5">{col.replace(/_/g, ' ')}</span>
+                            <div className="flex items-center gap-1.5">
+                              <button
+                                onClick={() => { setRenamingCol(col); setRenamingNewValue(col); }}
+                                className="px-2 py-1 bg-white hover:bg-slate-100 border border-slate-200 rounded-lg text-[9px] font-black text-indigo-600 uppercase transition-all"
+                              >
+                                Sửa
+                              </button>
+                              <button
+                                onClick={() => handleDeleteColumn(col)}
+                                className="px-2 py-1 bg-white hover:bg-rose-50 border border-slate-200 hover:border-rose-100 rounded-lg text-[9px] font-black text-rose-500 uppercase transition-all"
+                              >
+                                Xóa
+                              </button>
+                            </div>
+                          </>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Add New Column Input */}
+              <div className="pt-3 border-t border-slate-50 space-y-2">
+                <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block">Thêm cột tùy biến mới</span>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={newColName}
+                    onChange={(e) => setNewColName(e.target.value)}
+                    placeholder="Ví dụ: cách đọc, từ trái nghĩa..."
+                    className="flex-1 h-9 bg-slate-50 border border-slate-200 focus:bg-white focus:border-indigo-500 rounded-xl px-3.5 text-xs font-bold text-slate-800 outline-none transition-all"
+                  />
+                  <button
+                    onClick={handleAddColumn}
+                    disabled={!newColName.trim()}
+                    className="h-9 px-4 bg-indigo-600 hover:bg-indigo-700 text-white font-black text-[10px] uppercase tracking-wider rounded-xl shadow-lg shadow-indigo-100 transition-all flex items-center justify-center gap-1.5 disabled:opacity-50"
+                  >
+                    Thêm
+                  </button>
+                </div>
               </div>
             </motion.div>
           </div>
