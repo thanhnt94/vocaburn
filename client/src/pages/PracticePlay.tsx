@@ -162,6 +162,12 @@ export default function PracticePlay() {
   const navigate = useNavigate()
   const { user, gamify, setUser, setGamify, addXp } = useAppStore()
 
+  useEffect(() => {
+    if (id && id !== 'quick') {
+      localStorage.setItem('vocaburn_last_deck_id', id);
+    }
+  }, [id]);
+
   const activeAudioRef = useRef<HTMLAudioElement | null>(null)
   const currentQuestionIdRef = useRef<number | null>(null)
 

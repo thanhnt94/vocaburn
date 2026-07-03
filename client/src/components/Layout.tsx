@@ -1,4 +1,4 @@
-import { Outlet, Link, useLocation } from 'react-router-dom'
+import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom'
 import { LayoutGrid, Compass, BarChart3, User, BrainCircuit, Bell, Settings, Plus, Library, Users, FolderKanban, BookOpen, Flame, Award, Sparkles } from 'lucide-react'
 import { motion } from 'framer-motion'
 import { useAppStore } from '@/store/useAppStore'
@@ -9,6 +9,32 @@ import axios from 'axios'
 export default function Layout() {
   const { user, gamify, setUser, setGamify, isLoggedIn, authConfig } = useAppStore()
   const location = useLocation()
+  const navigate = useNavigate()
+
+  const handleNavClick = (e: React.MouseEvent, path: string, label: string) => {
+    if (label === 'Quick Play') {
+      e.preventDefault()
+      const lastId = localStorage.getItem('vocaburn_last_deck_id')
+      if (lastId) {
+        navigate(`/flashcard/${lastId}/play`)
+        return
+      }
+      
+      const firstGoalDeckId = data?.active_goals?.[0]?.deck_id
+      if (firstGoalDeckId) {
+        navigate(`/flashcard/${firstGoalDeckId}/play`)
+        return
+      }
+
+      const firstMyDeckId = data?.my_quizzes?.[0]?.id || data?.my_decks?.[0]?.id
+      if (firstMyDeckId) {
+        navigate(`/flashcard/${firstMyDeckId}/play`)
+        return
+      }
+
+      navigate('/library')
+    }
+  }
 
   // Ensure data is loaded even if we land on subpages (only if logged in)
   const { data } = useQuery({
@@ -77,6 +103,7 @@ export default function Layout() {
                 <Link 
                   key={item.path}
                   to={item.path} 
+                  onClick={(e) => handleNavClick(e, item.path, item.label)}
                   className={cn(
                     "text-[10px] font-black uppercase tracking-widest transition-colors",
                     location.pathname === item.path ? "text-indigo-600" : "text-slate-400 hover:text-slate-600"
@@ -161,6 +188,7 @@ export default function Layout() {
                 <Link 
                   key={item.path}
                   to={item.path} 
+                  onClick={(e) => handleNavClick(e, item.path, item.label)}
                   className="relative flex items-center justify-center w-11 h-11"
                 >
                   {isActive && (

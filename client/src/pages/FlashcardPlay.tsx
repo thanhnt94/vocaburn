@@ -180,6 +180,12 @@ export default function FlashcardPlay() {
   const [isUtilityMenuOpen, setIsUtilityMenuOpen] = useState(false)
 
   useEffect(() => {
+    if (id && id !== 'quick') {
+      localStorage.setItem('vocaburn_last_deck_id', id);
+    }
+  }, [id]);
+
+  useEffect(() => {
     if (!isUtilityMenuOpen) return;
     const handleGlobalClick = () => setIsUtilityMenuOpen(false);
     window.addEventListener('click', handleGlobalClick);
