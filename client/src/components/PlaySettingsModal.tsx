@@ -55,6 +55,7 @@ export const PlaySettingsModal: React.FC<PlaySettingsModalProps> = ({
 }) => {
   const navigate = useNavigate()
   const { id } = useParams<{ id: string }>()
+  const [activeSettingsTab, setActiveSettingsTab] = React.useState<'modes' | 'display'>('modes')
 
   return (
     <AnimatePresence>
@@ -75,265 +76,301 @@ export const PlaySettingsModal: React.FC<PlaySettingsModalProps> = ({
           >
             <div className="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-indigo-500 via-purple-500 to-indigo-500"></div>
             
-            <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-black uppercase tracking-tight flex items-center gap-2 text-indigo-600">
                 <Sliders className="w-5 h-5" />
                 Cấu hình học tập
               </h3>
             </div>
 
-            <div className="space-y-5">
-              {/* 1. Learning Mode Selector */}
-              <div>
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-2">Chế độ học thông minh</label>
-                <div className="grid grid-cols-4 gap-1.5 bg-slate-50 p-1 rounded-2xl border border-slate-100">
-                  {[
-                    { id: 'fsrs', label: 'FSRS v6', icon: Brain },
-                    { id: 'new', label: 'Học mới', icon: Sparkles },
-                    { id: 'sequential', label: 'Mặc định', icon: ListOrdered },
-                    { id: 'random', label: 'Ngẫu nhiên', icon: Shuffle },
-                    { id: 'unseen', label: 'Chưa học', icon: EyeOff },
-                    { id: 'review', label: 'Ôn tập', icon: AlertCircle },
-                    { id: 'hardest', label: 'Khó nhất', icon: TrendingUp }
-                  ].map(m => {
-                    const IconComp = m.icon;
-                    const active = activeMode === m.id;
-                    return (
-                      <button
-                        key={m.id}
-                        onClick={() => applyLearningMode(m.id)}
-                        className={cn(
-                          "flex flex-col items-center justify-center gap-1 py-2 px-1 rounded-xl text-[10px] font-bold transition-all",
-                          active 
-                            ? "bg-white text-indigo-600 shadow-sm border border-slate-100" 
-                            : "text-slate-500 hover:bg-white/50"
-                        )}
-                      >
-                        <IconComp className={cn("w-4 h-4", active ? "text-indigo-600" : "text-slate-400")} />
-                        <span className="truncate w-full text-center text-[9px]">{m.label}</span>
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
+            {/* Tabs Navigation */}
+            <div className="flex bg-slate-100 p-1 rounded-xl shrink-0 gap-1 mb-4">
+              <button
+                type="button"
+                onClick={() => setActiveSettingsTab('modes')}
+                className={cn(
+                  "flex-1 py-1.5 text-center text-[10px] font-black uppercase tracking-wider rounded-lg transition-all",
+                  activeSettingsTab === 'modes' 
+                    ? "bg-white text-indigo-600 shadow-sm" 
+                    : "text-slate-500 hover:text-slate-800"
+                )}
+              >
+                Chế độ & Âm thanh
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveSettingsTab('display')}
+                className={cn(
+                  "flex-1 py-1.5 text-center text-[10px] font-black uppercase tracking-wider rounded-lg transition-all",
+                  activeSettingsTab === 'display' 
+                    ? "bg-white text-indigo-600 shadow-sm" 
+                    : "text-slate-500 hover:text-slate-800"
+                )}
+              >
+                Hiển thị & Công cụ
+              </button>
+            </div>
 
-              {/* 2. Compact Reading Audio Grid */}
-              <div>
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-2">Âm thanh đọc</label>
-                <div className="grid grid-cols-2 gap-1.5 bg-slate-50 p-1 rounded-2xl border border-slate-100">
-                  {/* Front Audio */}
-                  {(() => {
-                    const active = autoPlayAudio === 'always' || autoPlayAudio === 'front';
-                    return (
-                      <button
-                        onClick={() => {
-                          const isFrontOn = autoPlayAudio === 'always' || autoPlayAudio === 'front';
-                          const isBackOn = autoPlayAudio === 'always' || autoPlayAudio === 'back';
-                          const nextState = isFrontOn ? (isBackOn ? 'back' : 'none') : (isBackOn ? 'always' : 'front');
-                          setAutoPlayAudio(nextState);
-                        }}
-                        className={cn(
-                          "flex flex-col items-center justify-center gap-1.5 py-2 px-1 rounded-xl text-[10px] font-bold transition-all active:scale-95",
-                          active 
-                            ? "bg-white text-indigo-600 shadow-sm border border-slate-100" 
-                            : "text-slate-500 hover:bg-white/50"
-                        )}
-                      >
-                        <Volume2 className={cn("w-4.5 h-4.5", active ? "text-indigo-600" : "text-slate-400")} />
-                        <span className="truncate w-full text-center text-[9px]">Mặt trước</span>
-                      </button>
-                    );
-                  })()}
-
-                  {/* Back Audio */}
-                  {(() => {
-                    const active = autoPlayAudio === 'always' || autoPlayAudio === 'back';
-                    return (
-                      <button
-                        onClick={() => {
-                          const isFrontOn = autoPlayAudio === 'always' || autoPlayAudio === 'front';
-                          const isBackOn = autoPlayAudio === 'always' || autoPlayAudio === 'back';
-                          const nextState = isBackOn ? (isFrontOn ? 'front' : 'none') : (isFrontOn ? 'always' : 'back');
-                          setAutoPlayAudio(nextState);
-                        }}
-                        className={cn(
-                          "flex flex-col items-center justify-center gap-1.5 py-2 px-1 rounded-xl text-[10px] font-bold transition-all active:scale-95",
-                          active 
-                            ? "bg-white text-indigo-600 shadow-sm border border-slate-100" 
-                            : "text-slate-500 hover:bg-white/50"
-                        )}
-                      >
-                        <Volume2 className={cn("w-4.5 h-4.5", active ? "text-indigo-600" : "text-slate-400")} />
-                        <span className="truncate w-full text-center text-[9px]">Mặt sau</span>
-                      </button>
-                    );
-                  })()}
-                </div>
-              </div>
-
-              {/* 3. Compact Effects & Interaction Grid */}
-              <div>
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-2">Hiệu ứng & Hiển thị</label>
-                <div className="grid grid-cols-2 gap-1.5 bg-slate-50 p-1 rounded-2xl border border-slate-100">
-                  {/* Effect Sound */}
-                  <button
-                    onClick={() => setSfxEnabled(!sfxEnabled)}
-                    className={cn(
-                      "flex flex-col items-center justify-center gap-1.5 py-2 px-1 rounded-xl text-[10px] font-bold transition-all active:scale-95",
-                      sfxEnabled 
-                        ? "bg-white text-emerald-600 shadow-sm border border-slate-100" 
-                        : "text-slate-500 hover:bg-white/50"
-                    )}
-                  >
-                    <Music className={cn("w-4.5 h-4.5", sfxEnabled ? "text-emerald-500" : "text-slate-400")} />
-                    <span className="truncate w-full text-center text-[9px]">Âm hiệu ứng</span>
-                  </button>
-
-                  {/* Haptic */}
-                  <button
-                    onClick={() => setHapticEnabled(!hapticEnabled)}
-                    className={cn(
-                      "flex flex-col items-center justify-center gap-1.5 py-2 px-1 rounded-xl text-[10px] font-bold transition-all active:scale-95",
-                      hapticEnabled 
-                        ? "bg-white text-indigo-600 shadow-sm border border-slate-100" 
-                        : "text-slate-500 hover:bg-white/50"
-                    )}
-                  >
-                    <Zap className={cn("w-4.5 h-4.5", hapticEnabled ? "text-indigo-500" : "text-slate-400")} />
-                    <span className="truncate w-full text-center text-[9px]">Rung Haptic</span>
-                  </button>
-
-                  {/* Show Images Toggle */}
-                  <button
-                    onClick={() => setShowImages(!showImages)}
-                    className={cn(
-                      "flex flex-col items-center justify-center gap-1.5 py-2 px-1 rounded-xl text-[10px] font-bold transition-all active:scale-95",
-                      showImages 
-                        ? "bg-white text-indigo-600 shadow-sm border border-slate-100" 
-                        : "text-slate-500 hover:bg-white/50"
-                    )}
-                  >
-                    <Image className={cn("w-4.5 h-4.5", showImages ? "text-indigo-500" : "text-slate-400")} />
-                    <span className="truncate w-full text-center text-[9px]">Hiện hình ảnh</span>
-                  </button>
-
-                  {/* Quick Learn */}
-                  {setQuickLearnEnabled !== undefined && (
-                    <button
-                      onClick={() => setQuickLearnEnabled(!quickLearnEnabled)}
-                      className={cn(
-                        "flex flex-col items-center justify-center gap-1.5 py-2 px-1 rounded-xl text-[10px] font-bold transition-all active:scale-95",
-                        quickLearnEnabled 
-                          ? "bg-white text-indigo-600 shadow-sm border border-slate-100" 
-                          : "text-slate-500 hover:bg-white/50"
-                      )}
-                    >
-                      <Sparkles className={cn("w-4.5 h-4.5", quickLearnEnabled ? "text-indigo-500" : "text-slate-400")} />
-                      <span className="truncate w-full text-center text-[9px]">Chuyển câu</span>
-                    </button>
-                  )}
-
-                  {/* FSRS Toggle */}
-                  {setShowFsrs !== undefined && (
-                    <button
-                      onClick={() => setShowFsrs(!showFsrs)}
-                      className={cn(
-                        "flex flex-col items-center justify-center gap-1.5 py-2 px-1 rounded-xl text-[10px] font-bold transition-all active:scale-95 col-span-2 sm:col-span-1",
-                        showFsrs 
-                          ? "bg-white text-indigo-600 shadow-sm border border-slate-100" 
-                          : "text-slate-500 hover:bg-white/50"
-                      )}
-                    >
-                      <Brain className={cn("w-4.5 h-4.5", showFsrs ? "text-indigo-500" : "text-slate-400")} />
-                      <span className="truncate w-full text-center text-[9px]">Hiện chỉ số FSRS</span>
-                    </button>
-                  )}
-                </div>
-              </div>
-
-              {/* 4. Thao tác thẻ học */}
-              <div className="py-2.5 border-t border-slate-100 space-y-1.5">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block text-center">Thao tác thẻ học</label>
-                <div className="flex items-center justify-center gap-3">
-                  {showFeedback && (
-                    <button 
-                      onClick={() => {
-                        copyQuestionToClipboard();
-                        onClose();
-                      }}
-                      title="Copy nội dung"
-                      className="w-11 h-11 rounded-2xl bg-slate-50 border border-slate-200/60 hover:bg-slate-100 flex items-center justify-center text-slate-500 hover:text-slate-700 shadow-sm transition-all active:scale-90"
-                    >
-                      <Copy className="w-5 h-5" />
-                    </button>
-                  )}
-                  
-                  <button
-                    onClick={() => {
-                      onClose();
-                      handleIgnoreQuestion();
-                    }}
-                    title={currentQuestion?.is_ignored ? "Hủy bỏ qua thẻ" : "Bỏ qua thẻ"}
-                    className={cn(
-                      "w-11 h-11 rounded-2xl border flex items-center justify-center shadow-sm transition-all active:scale-90",
-                      currentQuestion?.is_ignored 
-                        ? "bg-indigo-50 border-indigo-200 text-indigo-600 hover:bg-indigo-100"
-                        : "bg-slate-50 border-slate-200/60 hover:bg-slate-100 text-slate-500 hover:text-slate-700"
-                    )}
-                  >
-                    {currentQuestion?.is_ignored ? <Eye className="w-5 h-5" /> : <EyeOff className="w-5 h-5" />}
-                  </button>
-
-                  <button 
-                    onClick={() => {
-                      onClose();
-                      openEditModal();
-                    }}
-                    title="Sửa thẻ này"
-                    className="w-11 h-11 rounded-2xl bg-slate-50 border border-slate-200/60 hover:bg-slate-100 flex items-center justify-center text-slate-500 hover:text-slate-700 shadow-sm transition-all active:scale-90"
-                  >
-                    <Edit3 className="w-5 h-5" />
-                  </button>
-
-                  <button 
-                    onClick={() => {
-                      onClose();
-                      setIsQuitModalOpen(true);
-                    }}
-                    title="Thoát phiên học"
-                    className="w-11 h-11 rounded-2xl bg-rose-50 border border-rose-200 text-rose-500 hover:bg-rose-100 flex items-center justify-center shadow-sm transition-all active:scale-90"
-                  >
-                    <LogOut className="w-5 h-5" />
-                  </button>
-                </div>
-              </div>
-
-              {/* Quản lý bộ thẻ */}
-              {id && (
-                <div className="py-2.5 border-t border-slate-100 space-y-1.5">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block text-center">Quản lý bộ thẻ</label>
-                  <div className="grid grid-cols-2 gap-2">
-                    <button 
-                      onClick={() => {
-                        onClose();
-                        navigate(`/manage/edit/${id}`);
-                      }}
-                      className="flex items-center justify-center gap-2 py-2 px-3 bg-slate-50 hover:bg-slate-100 border border-slate-200/60 rounded-xl text-slate-700 font-black text-[10px] uppercase tracking-wider shadow-sm transition-all active:scale-95"
-                    >
-                      <Settings className="w-4 h-4 text-indigo-500 animate-pulse" />
-                      <span>Cấu hình bộ</span>
-                    </button>
-                    <button 
-                      onClick={() => {
-                        onClose();
-                        navigate(`/manage/edit/${id}/flashcards`);
-                      }}
-                      className="flex items-center justify-center gap-2 py-2 px-3 bg-slate-50 hover:bg-slate-100 border border-slate-200/60 rounded-xl text-slate-700 font-black text-[10px] uppercase tracking-wider shadow-sm transition-all active:scale-95"
-                    >
-                      <BookOpen className="w-4 h-4 text-emerald-500 animate-pulse" />
-                      <span>Danh sách thẻ</span>
-                    </button>
+            <div className="space-y-4">
+              {activeSettingsTab === 'modes' && (
+                <div className="space-y-4 animate-in fade-in duration-200">
+                  {/* 1. Learning Mode Selector */}
+                  <div>
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-2">Chế độ học thông minh</label>
+                    <div className="grid grid-cols-4 gap-1.5 bg-slate-50 p-1 rounded-2xl border border-slate-100">
+                      {[
+                        { id: 'fsrs', label: 'FSRS v6', icon: Brain },
+                        { id: 'new', label: 'Học mới', icon: Sparkles },
+                        { id: 'sequential', label: 'Mặc định', icon: ListOrdered },
+                        { id: 'random', label: 'Ngẫu nhiên', icon: Shuffle },
+                        { id: 'unseen', label: 'Chưa học', icon: EyeOff },
+                        { id: 'review', label: 'Ôn tập', icon: AlertCircle },
+                        { id: 'hardest', label: 'Khó nhất', icon: TrendingUp }
+                      ].map(m => {
+                        const IconComp = m.icon;
+                        const active = activeMode === m.id;
+                        return (
+                          <button
+                            key={m.id}
+                            onClick={() => applyLearningMode(m.id)}
+                            className={cn(
+                              "flex flex-col items-center justify-center gap-1 py-2 px-1 rounded-xl text-[10px] font-bold transition-all",
+                              active 
+                                ? "bg-white text-indigo-600 shadow-sm border border-slate-100" 
+                                : "text-slate-500 hover:bg-white/50"
+                            )}
+                          >
+                            <IconComp className={cn("w-4 h-4", active ? "text-indigo-600" : "text-slate-400")} />
+                            <span className="truncate w-full text-center text-[9px]">{m.label}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
                   </div>
+
+                  {/* 2. Compact Reading Audio Grid */}
+                  <div>
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-2">Âm thanh đọc</label>
+                    <div className="grid grid-cols-2 gap-1.5 bg-slate-50 p-1 rounded-2xl border border-slate-100">
+                      {/* Front Audio */}
+                      {(() => {
+                        const active = autoPlayAudio === 'always' || autoPlayAudio === 'front';
+                        return (
+                          <button
+                            onClick={() => {
+                              const isFrontOn = autoPlayAudio === 'always' || autoPlayAudio === 'front';
+                              const isBackOn = autoPlayAudio === 'always' || autoPlayAudio === 'back';
+                              const nextState = isFrontOn ? (isBackOn ? 'back' : 'none') : (isBackOn ? 'always' : 'front');
+                              setAutoPlayAudio(nextState);
+                            }}
+                            className={cn(
+                              "flex flex-col items-center justify-center gap-1.5 py-2 px-1 rounded-xl text-[10px] font-bold transition-all active:scale-95",
+                              active 
+                                ? "bg-white text-indigo-600 shadow-sm border border-slate-100" 
+                                : "text-slate-500 hover:bg-white/50"
+                            )}
+                          >
+                            <Volume2 className={cn("w-4.5 h-4.5", active ? "text-indigo-600" : "text-slate-400")} />
+                            <span className="truncate w-full text-center text-[9px]">Mặt trước</span>
+                          </button>
+                        );
+                      })()}
+
+                      {/* Back Audio */}
+                      {(() => {
+                        const active = autoPlayAudio === 'always' || autoPlayAudio === 'back';
+                        return (
+                          <button
+                            onClick={() => {
+                              const isFrontOn = autoPlayAudio === 'always' || autoPlayAudio === 'front';
+                              const isBackOn = autoPlayAudio === 'always' || autoPlayAudio === 'back';
+                              const nextState = isBackOn ? (isFrontOn ? 'front' : 'none') : (isFrontOn ? 'always' : 'back');
+                              setAutoPlayAudio(nextState);
+                            }}
+                            className={cn(
+                              "flex flex-col items-center justify-center gap-1.5 py-2 px-1 rounded-xl text-[10px] font-bold transition-all active:scale-95",
+                              active 
+                                ? "bg-white text-indigo-650 shadow-sm border border-slate-100" 
+                                : "text-slate-500 hover:bg-white/50"
+                            )}
+                          >
+                            <Volume2 className={cn("w-4.5 h-4.5", active ? "text-indigo-655" : "text-slate-400")} />
+                            <span className="truncate w-full text-center text-[9px]">Mặt sau</span>
+                          </button>
+                        );
+                      })()}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {activeSettingsTab === 'display' && (
+                <div className="space-y-4 animate-in fade-in duration-200">
+                  {/* 3. Compact Effects & Interaction Grid */}
+                  <div>
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-2">Hiệu ứng & Hiển thị</label>
+                    <div className="grid grid-cols-2 gap-1.5 bg-slate-50 p-1 rounded-2xl border border-slate-100">
+                      {/* Effect Sound */}
+                      <button
+                        onClick={() => setSfxEnabled(!sfxEnabled)}
+                        className={cn(
+                          "flex flex-col items-center justify-center gap-1.5 py-2 px-1 rounded-xl text-[10px] font-bold transition-all active:scale-95",
+                          sfxEnabled 
+                            ? "bg-white text-emerald-600 shadow-sm border border-slate-100" 
+                            : "text-slate-500 hover:bg-white/50"
+                        )}
+                      >
+                        <Music className={cn("w-4.5 h-4.5", sfxEnabled ? "text-emerald-500" : "text-slate-400")} />
+                        <span className="truncate w-full text-center text-[9px]">Âm hiệu ứng</span>
+                      </button>
+
+                      {/* Haptic */}
+                      <button
+                        onClick={() => setHapticEnabled(!hapticEnabled)}
+                        className={cn(
+                          "flex flex-col items-center justify-center gap-1.5 py-2 px-1 rounded-xl text-[10px] font-bold transition-all active:scale-95",
+                          hapticEnabled 
+                            ? "bg-white text-indigo-600 shadow-sm border border-slate-100" 
+                            : "text-slate-500 hover:bg-white/50"
+                        )}
+                      >
+                        <Zap className={cn("w-4.5 h-4.5", hapticEnabled ? "text-indigo-500" : "text-slate-400")} />
+                        <span className="truncate w-full text-center text-[9px]">Rung Haptic</span>
+                      </button>
+
+                      {/* Show Images Toggle */}
+                      <button
+                        onClick={() => setShowImages(!showImages)}
+                        className={cn(
+                          "flex flex-col items-center justify-center gap-1.5 py-2 px-1 rounded-xl text-[10px] font-bold transition-all active:scale-95",
+                          showImages 
+                            ? "bg-white text-indigo-600 shadow-sm border border-slate-100" 
+                            : "text-slate-500 hover:bg-white/50"
+                        )}
+                      >
+                        <Image className={cn("w-4.5 h-4.5", showImages ? "text-indigo-500" : "text-slate-400")} />
+                        <span className="truncate w-full text-center text-[9px]">Hiện hình ảnh</span>
+                      </button>
+
+                      {/* Quick Learn */}
+                      {setQuickLearnEnabled !== undefined && (
+                        <button
+                          onClick={() => setQuickLearnEnabled(!quickLearnEnabled)}
+                          className={cn(
+                            "flex flex-col items-center justify-center gap-1.5 py-2 px-1 rounded-xl text-[10px] font-bold transition-all active:scale-95",
+                            quickLearnEnabled 
+                              ? "bg-white text-indigo-600 shadow-sm border border-slate-100" 
+                              : "text-slate-500 hover:bg-white/50"
+                          )}
+                        >
+                          <Sparkles className={cn("w-4.5 h-4.5", quickLearnEnabled ? "text-indigo-500" : "text-slate-400")} />
+                          <span className="truncate w-full text-center text-[9px]">Chuyển câu</span>
+                        </button>
+                      )}
+
+                      {/* FSRS Toggle */}
+                      {setShowFsrs !== undefined && (
+                        <button
+                          onClick={() => setShowFsrs(!showFsrs)}
+                          className={cn(
+                            "flex flex-col items-center justify-center gap-1.5 py-2 px-1 rounded-xl text-[10px] font-bold transition-all active:scale-95 col-span-2 sm:col-span-1",
+                            showFsrs 
+                              ? "bg-white text-indigo-600 shadow-sm border border-slate-100" 
+                              : "text-slate-500 hover:bg-white/50"
+                          )}
+                        >
+                          <Brain className={cn("w-4.5 h-4.5", showFsrs ? "text-indigo-500" : "text-slate-400")} />
+                          <span className="truncate w-full text-center text-[9px]">Hiện chỉ số FSRS</span>
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* 4. Thao tác thẻ học */}
+                  <div className="py-2 border-t border-slate-100 space-y-1.5">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block text-center">Thao tác thẻ học</label>
+                    <div className="flex items-center justify-center gap-3">
+                      {showFeedback && (
+                        <button 
+                          onClick={() => {
+                            copyQuestionToClipboard();
+                            onClose();
+                          }}
+                          title="Copy nội dung"
+                          className="w-11 h-11 rounded-2xl bg-slate-50 border border-slate-200/60 hover:bg-slate-100 flex items-center justify-center text-slate-500 hover:text-slate-700 shadow-sm transition-all active:scale-90"
+                        >
+                          <Copy className="w-5 h-5" />
+                        </button>
+                      )}
+                      
+                      <button
+                        onClick={() => {
+                          onClose();
+                          handleIgnoreQuestion();
+                        }}
+                        title={currentQuestion?.is_ignored ? "Hủy bỏ qua thẻ" : "Bỏ qua thẻ"}
+                        className={cn(
+                          "w-11 h-11 rounded-2xl border flex items-center justify-center shadow-sm transition-all active:scale-90",
+                          currentQuestion?.is_ignored 
+                            ? "bg-indigo-50 border-indigo-200 text-indigo-600 hover:bg-indigo-100"
+                            : "bg-slate-50 border-slate-200/60 hover:bg-slate-100 text-slate-500 hover:text-slate-700"
+                        )}
+                      >
+                        {currentQuestion?.is_ignored ? <Eye className="w-5 h-5" /> : <EyeOff className="w-5 h-5" />}
+                      </button>
+
+                      <button 
+                        onClick={() => {
+                          onClose();
+                          openEditModal();
+                        }}
+                        title="Sửa thẻ này"
+                        className="w-11 h-11 rounded-2xl bg-slate-50 border border-slate-200/60 hover:bg-slate-100 flex items-center justify-center text-slate-500 hover:text-slate-700 shadow-sm transition-all active:scale-90"
+                      >
+                        <Edit3 className="w-5 h-5" />
+                      </button>
+
+                      <button 
+                        onClick={() => {
+                          onClose();
+                          setIsQuitModalOpen(true);
+                        }}
+                        title="Thoát phiên học"
+                        className="w-11 h-11 rounded-2xl bg-rose-50 border border-rose-200 text-rose-500 hover:bg-rose-100 flex items-center justify-center shadow-sm transition-all active:scale-90"
+                      >
+                        <LogOut className="w-5 h-5" />
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Quản lý bộ thẻ */}
+                  {id && (
+                    <div className="py-2 border-t border-slate-100 space-y-1.5">
+                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block text-center">Quản lý bộ thẻ</label>
+                      <div className="grid grid-cols-2 gap-2">
+                        <button 
+                          onClick={() => {
+                            onClose();
+                            navigate(`/manage/edit/${id}`);
+                          }}
+                          className="flex items-center justify-center gap-2 py-2 px-3 bg-slate-50 hover:bg-slate-100 border border-slate-200/60 rounded-xl text-slate-700 font-black text-[10px] uppercase tracking-wider shadow-sm transition-all active:scale-95"
+                        >
+                          <Settings className="w-4 h-4 text-indigo-500 animate-pulse" />
+                          <span>Cấu hình bộ</span>
+                        </button>
+                        <button 
+                          onClick={() => {
+                            onClose();
+                            navigate(`/manage/edit/${id}/flashcards`);
+                          }}
+                          className="flex items-center justify-center gap-2 py-2 px-3 bg-slate-50 hover:bg-slate-100 border border-slate-200/60 rounded-xl text-slate-700 font-black text-[10px] uppercase tracking-wider shadow-sm transition-all active:scale-95"
+                        >
+                          <BookOpen className="w-4 h-4 text-emerald-500 animate-pulse" />
+                          <span>Danh sách thẻ</span>
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
 
