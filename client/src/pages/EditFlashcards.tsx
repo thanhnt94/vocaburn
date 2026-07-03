@@ -821,26 +821,35 @@ const EditFlashcards = () => {
 
           {/* Full-width Numeric Pagination - White Theme */}
           <div className="fixed bottom-0 left-0 right-0 z-[110] bg-white/95 backdrop-blur-xl border-t border-slate-100 px-4 py-1.5 shadow-[0_-10px_30px_rgba(0,0,0,0.03)]">
-             <div className="max-w-[95%] xl:max-w-[98%] mx-auto flex items-center justify-between gap-4">
-                <button 
-                  disabled={page === 1}
-                  onClick={() => { setPage(page - 1); window.scrollTo(0, 0); }}
-                  className="flex items-center gap-2 px-2.5 h-8 bg-slate-50 text-slate-400 text-[10px] font-black uppercase rounded-lg border border-slate-100 disabled:opacity-30 active:scale-95 transition-all"
-                >
-                   <ChevronLeft className="w-4 h-4" />
-                </button>
- 
-                <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-hide py-0.5">
-                   {(() => {
-                      const totalPages = Math.ceil(total / 50)
-                      const pages = []
-                      const start = Math.max(1, page - 2)
-                      const end = Math.min(totalPages, start + 5)
-                      const finalStart = Math.max(1, end - 5)
-                      
-                      for (let i = finalStart; i <= end; i++) {
-                         if (i < 1) continue;
-                         pages.push(
+             <div className="max-w-[95%] xl:max-w-[98%] mx-auto flex items-center justify-center gap-1.5 overflow-x-auto scrollbar-hide py-0.5">
+                {(() => {
+                   const totalPages = Math.ceil(total / 50)
+                   const start = Math.max(1, page - 2)
+                   const end = Math.min(totalPages, start + 5)
+                   const finalStart = Math.max(1, end - 5)
+                   
+                   const visiblePages = []
+                   for (let i = finalStart; i <= end; i++) {
+                      if (i >= 1 && i <= totalPages) {
+                         visiblePages.push(i)
+                      }
+                   }
+
+                   return (
+                      <>
+                         {!visiblePages.includes(1) && (
+                            <>
+                               <button
+                                  onClick={() => { setPage(1); window.scrollTo(0, 0); }}
+                                  className="min-w-[32px] h-8 rounded-lg flex items-center justify-center text-[10px] font-black bg-slate-50 text-slate-400 border border-slate-100 active:scale-95 transition-all"
+                               >
+                                  1
+                               </button>
+                               <span className="text-[10px] text-slate-300 px-0.5">...</span>
+                            </>
+                         )}
+
+                         {visiblePages.map(i => (
                             <button
                                key={i}
                                onClick={() => { setPage(i); window.scrollTo(0, 0); }}
@@ -853,19 +862,22 @@ const EditFlashcards = () => {
                             >
                                {i}
                             </button>
-                         )
-                      }
-                      return pages
-                   })()}
-                </div>
- 
-                <button 
-                  disabled={page * 50 >= total}
-                  onClick={() => { setPage(page + 1); window.scrollTo(0, 0); }}
-                  className="flex items-center gap-2 px-2.5 h-8 bg-slate-50 text-slate-400 text-[10px] font-black uppercase rounded-lg border border-slate-100 disabled:opacity-30 active:scale-95 transition-all"
-                >
-                   <ChevronRight className="w-4 h-4" />
-                </button>
+                         ))}
+
+                         {!visiblePages.includes(totalPages) && totalPages > 1 && (
+                            <>
+                               <span className="text-[10px] text-slate-300 px-0.5">...</span>
+                               <button
+                                  onClick={() => { setPage(totalPages); window.scrollTo(0, 0); }}
+                                  className="min-w-[32px] h-8 rounded-lg flex items-center justify-center text-[10px] font-black bg-slate-50 text-slate-400 border border-slate-100 active:scale-95 transition-all"
+                               >
+                                  {totalPages}
+                               </button>
+                            </>
+                         )}
+                      </>
+                   )
+                })()}
              </div>
           </div>
 
