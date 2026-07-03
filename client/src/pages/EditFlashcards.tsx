@@ -25,7 +25,8 @@ import {
   Download,
   Upload,
   Plus,
-  SlidersHorizontal
+  SlidersHorizontal,
+  Clipboard
 } from 'lucide-react'
 import axios from 'axios'
 import { cn } from '@/lib/utils'
@@ -47,6 +48,8 @@ const EditFlashcards = () => {
   const [isQuickAddOpen, setIsQuickAddOpen] = useState(true)
   const [isColumnConfigOpen, setIsColumnConfigOpen] = useState(false)
   const [toastMessage, setToastMessage] = useState<string | null>(null)
+  const [isPasteModalOpen, setIsPasteModalOpen] = useState(false)
+  const [pasteText, setPasteText] = useState('')
 
   const [isUpdatingExcel, setIsUpdatingExcel] = useState(false)
   const [excelUpdateError, setExcelUpdateError] = useState<string | null>(null)
@@ -418,6 +421,86 @@ const EditFlashcards = () => {
       alert("Lỗi khi thêm thẻ nhanh")
     }
   }
+  const handlePasteExcel = async () => {
+    if (!pasteText.trim()) return;
+    setIsSaving(true)
+    try {
+      const lines = pasteText.split('\n')
+      const cardsToAdd: any[] = []
+      
+      lines.forEach(line => {
+        const trimmed = line.trim()
+        if (!trimmed) return
+        const parts = trimmed.split('\t')
+        
+        const cardData: any = {
+          content: '',
+          explanation: '',
+          front_audio_content: '',
+          back_audio_content: '',
+          front_audio_url: '',
+          back_audio_url: '',
+          front_img: '',
+          back_img: '',
+          others: {},
+          options: []
+        }
+        
+        visibleCols.forEach((col, index) => {
+          const val = parts[index] ? parts[index].trim() : ''
+          if (col === 'front') {
+            cardData.content = val
+          } else if (col === 'back') {
+            cardData.explanation = val
+          } else if (['front_audio_content', 'back_audio_content', 'front_audio_url', 'back_audio_url', 'front_img', 'back_img'].includes(col)) {
+            cardData[col] = val
+          } else {
+            cardData.others[col] = val
+          }
+        })
+        
+        cardsToAdd.push(cardData)
+      })
+      
+      if (cardsToAdd.length === 0) {
+        setIsPasteModalOpen(false)
+        setIsSaving(false)
+        return
+      }
+      
+      await Promise.all(cardsToAdd.map(card => {
+        return axios.post(`/api/v1/deck/${id}/flashcard`, {
+          content: card.content,
+          explanation: card.explanation,
+          front_audio_content: card.front_audio_content,
+          back_audio_content: card.back_audio_content,
+          front_audio_url: card.front_audio_url,
+          back_audio_url: card.back_audio_url,
+          front_img: card.front_img,
+          back_img: card.back_img,
+          others: card.others,
+          options: []
+        })
+      }))
+      
+      const newTotal = total + cardsToAdd.length
+      const lastPage = Math.max(1, Math.ceil(newTotal / 50))
+      shouldScrollToBottomRef.current = true
+      setTotal(newTotal)
+      setPage(lastPage)
+      fetchFlashcards()
+      
+      setPasteText('')
+      setIsPasteModalOpen(false)
+      setToastMessage(`Đã dán và thêm thành công ${cardsToAdd.length} thẻ mới!`)
+      setTimeout(() => setToastMessage(null), 3000)
+    } catch (err) {
+      console.error("Paste import failed:", err)
+      alert("Lỗi khi dán và import dữ liệu")
+    } finally {
+      setIsSaving(false)
+    }
+  }
 
   return (
     <div className={cn("min-h-screen bg-[#F8FAFC]", isQuickAddOpen ? "pb-56 md:pb-40" : "pb-20 md:pb-16")}>
@@ -492,58 +575,13 @@ const EditFlashcards = () => {
                    <span className="text-[7px] font-black text-slate-400 uppercase">AI</span>
                 </div>
              </div>
-             
-             <div className="relative">
-                <button 
-                   onClick={() => setShowExportMenu(!showExportMenu)}
-                   className="w-8 h-8 bg-indigo-600 text-white rounded-lg flex items-center justify-center shadow-lg hover:bg-indigo-700 active:scale-90 transition-all"
-                   title="Xuất Excel"
-                >
-                   <Download className="w-3.5 h-3.5" />
-                </button>
-                {showExportMenu && (
-                  <>
-                    <div 
-                      className="fixed inset-0 z-[140]" 
-                      onClick={() => setShowExportMenu(false)}
-                    />
-                    <div className="absolute right-0 mt-2 w-56 bg-white border border-slate-100 rounded-xl shadow-xl py-1.5 z-[150] animate-in fade-in slide-in-from-top-2 duration-150">
-                      <a 
-                        href={`/api/v1/deck/${id}/export`} 
-                        onClick={() => setShowExportMenu(false)}
-                        className="block px-4 py-2.5 text-[9px] font-black text-slate-700 hover:bg-indigo-50 hover:text-indigo-600 transition-colors uppercase tracking-wider text-right"
-                      >
-                        Xuất có ID (để sửa rồi update)
-                      </a>
-                      <a 
-                        href={`/api/v1/deck/${id}/export?exclude_ids=true`} 
-                        onClick={() => setShowExportMenu(false)}
-                        className="block px-4 py-2.5 text-[9px] font-black text-slate-700 hover:bg-indigo-50 hover:text-indigo-600 transition-colors border-t border-slate-50 uppercase tracking-wider text-right"
-                      >
-                        Xuất không ID (để import mới)
-                      </a>
-                    </div>
-                  </>
-                )}
-             </div>
-             
              <button 
-                onClick={() => document.getElementById('excel-update-upload')?.click()}
-                className="w-8 h-8 bg-slate-900 text-white rounded-lg flex items-center justify-center shadow-lg hover:bg-slate-800 active:scale-90 transition-all"
-                title="Sửa nhanh từ Excel"
+                onClick={() => setIsPasteModalOpen(true)}
+                className="h-8 px-2.5 bg-slate-900 hover:bg-slate-800 text-white text-[10px] font-black rounded-lg flex items-center gap-1 shadow-md active:scale-95 transition-all uppercase tracking-wider shrink-0"
+                title="Dán nhanh từ Excel"
              >
-                <Upload className="w-3.5 h-3.5" />
-             </button>
-             <input 
-                id="excel-update-upload"
-                type="file"
-                className="hidden"
-                accept=".xlsx,.xls"
-                onChange={handleExcelUpdateUpload}
-             />
-
-             <button className="w-8 h-8 bg-slate-50 text-slate-600 border border-slate-100 rounded-lg flex items-center justify-center shadow-sm active:scale-90 transition-all">
-                <Layers className="w-3.5 h-3.5" />
+                <Clipboard className="w-3.5 h-3.5" />
+                <span className="hidden xs:inline">Dán Excel</span>
              </button>
           </div>
         </div>
@@ -917,6 +955,81 @@ const EditFlashcards = () => {
           </div>
         )}
       </AnimatePresence>
+
+      {/* Excel Paste Modal */}
+      <AnimatePresence>
+        {isPasteModalOpen && (
+          <div className="fixed inset-0 z-[300] flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setIsPasteModalOpen(false)}
+              className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm"
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 15 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 15 }}
+              className="relative w-full max-w-lg bg-white rounded-3xl border border-slate-100 p-5 md:p-6 shadow-2xl space-y-4 text-left"
+            >
+              <div className="flex items-center gap-3 border-b border-slate-50 pb-3">
+                <div className="w-10 h-10 rounded-xl bg-slate-900 flex items-center justify-center text-white shrink-0">
+                  <Clipboard className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-xs font-black text-slate-800 uppercase tracking-wider">Dán nhanh từ Excel</h3>
+                  <p className="text-[9px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">Sao chép các ô từ Excel/Sheets rồi dán vào đây</p>
+                </div>
+              </div>
+
+              <div className="space-y-2 bg-indigo-50/40 p-4 rounded-2xl border border-indigo-50/50">
+                <span className="text-[9px] font-black text-indigo-600 uppercase tracking-wider block mb-1">Thứ tự các cột cần dán (Cực kì quan trọng):</span>
+                <div className="flex flex-wrap items-center gap-1.5">
+                  {visibleCols.map((col, idx) => (
+                    <React.Fragment key={col}>
+                      {idx > 0 && <span className="text-slate-300 text-[9px]">→</span>}
+                      <span className="px-2 py-0.5 bg-white border border-indigo-100 rounded-lg text-[9px] font-black text-indigo-600 uppercase">
+                        {col}
+                      </span>
+                    </React.Fragment>
+                  ))}
+                </div>
+                <p className="text-[8px] font-medium text-slate-400 uppercase tracking-wider mt-1.5 italic">
+                  * Hệ thống sẽ tự động bỏ các cột thừa ở vị trí phía sau nếu bạn dán nhiều cột hơn số lượng hiển thị ở trên. Chỉ thêm mới (không ghi đè).
+                </p>
+              </div>
+
+              <textarea
+                rows={8}
+                value={pasteText}
+                onChange={(e) => setPasteText(e.target.value)}
+                placeholder="Ví dụ dán từ Excel (các cột cách nhau bởi phím Tab):
+apple	quả táo
+orange	quả cam"
+                className="w-full p-4 bg-slate-50 border border-slate-200 focus:bg-white focus:border-indigo-500 rounded-2xl text-xs font-semibold text-slate-700 outline-none transition-all resize-none"
+              />
+
+              <div className="flex gap-2.5 pt-2">
+                <button
+                  onClick={() => { setIsPasteModalOpen(false); setPasteText(''); }}
+                  className="flex-1 py-2.5 bg-slate-50 hover:bg-slate-100 text-slate-500 font-black text-[9px] uppercase tracking-wider rounded-xl border border-slate-200/50 active:scale-95 transition-all"
+                >
+                  Hủy bỏ
+                </button>
+                <button
+                  onClick={handlePasteExcel}
+                  disabled={isSaving || !pasteText.trim()}
+                  className="flex-1 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-black text-[9px] uppercase tracking-wider rounded-xl shadow-lg shadow-indigo-100 active:scale-95 transition-all disabled:opacity-50"
+                >
+                  {isSaving ? "Đang xử lý..." : "Phân tích & Thêm mới"}
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
       {/* Floating Status Notification for Excel Import/Update */}
       <AnimatePresence>
         {(isUpdatingExcel || excelUpdateError || excelUpdateSuccess) && (
