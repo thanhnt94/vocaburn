@@ -425,13 +425,54 @@ const EditFlashcards = () => {
     if (!pasteText.trim()) return;
     setIsSaving(true)
     try {
-      const lines = pasteText.split('\n')
+      const parsedRows: string[][] = []
+      let currentRow: string[] = []
+      let currentField = ''
+      let inQuotes = false
+      
+      const text = pasteText
+      for (let i = 0; i < text.length; i++) {
+        const char = text[i]
+        const nextChar = text[i + 1]
+        
+        if (inQuotes) {
+          if (char === '"') {
+            if (nextChar === '"') {
+              currentField += '"'
+              i++
+            } else {
+              inQuotes = false
+            }
+          } else {
+            currentField += char
+          }
+        } else {
+          if (char === '"') {
+            inQuotes = true
+          } else if (char === '\t') {
+            currentRow.push(currentField)
+            currentField = ''
+          } else if (char === '\r') {
+            // skip carriage return
+          } else if (char === '\n') {
+            currentRow.push(currentField)
+            parsedRows.push(currentRow)
+            currentRow = []
+            currentField = ''
+          } else {
+            currentField += char
+          }
+        }
+      }
+      if (currentField || currentRow.length > 0) {
+        currentRow.push(currentField)
+        parsedRows.push(currentRow)
+      }
+
       const cardsToAdd: any[] = []
       
-      lines.forEach(line => {
-        const trimmed = line.trim()
-        if (!trimmed) return
-        const parts = trimmed.split('\t')
+      parsedRows.forEach(parts => {
+        if (parts.length === 0 || (parts.length === 1 && !parts[0].trim())) return
         
         const cardData: any = {
           content: '',
