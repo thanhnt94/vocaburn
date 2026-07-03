@@ -41,6 +41,8 @@ const EditFlashcards = () => {
   const [editingFlashcard, setEditingFlashcard] = useState<any>(null)
   const [isSaving, setIsSaving] = useState(false)
   const [deleteTargetId, setDeleteTargetId] = useState<number | null>(null)
+  const [isScrolled, setIsScrolled] = useState(false)
+  const [showQuickAddDropdown, setShowQuickAddDropdown] = useState(false)
 
   const [isUpdatingExcel, setIsUpdatingExcel] = useState(false)
   const [excelUpdateError, setExcelUpdateError] = useState<string | null>(null)
@@ -77,6 +79,14 @@ const EditFlashcards = () => {
       setVisibleCols(defaultCols)
     }
   }, [availableColumns])
+
+  useEffect(() => {
+    const handleScroll = () => {
+      setIsScrolled(window.scrollY > 250)
+    }
+    window.addEventListener('scroll', handleScroll)
+    return () => window.removeEventListener('scroll', handleScroll)
+  }, [])
 
   const [practiceSettings, setPracticeSettings] = useState<any>({})
   const [generatingCells, setGeneratingCells] = useState<Record<string, boolean>>({})
@@ -433,6 +443,17 @@ const EditFlashcards = () => {
           </div>
 
             <div className="flex items-center gap-2">
+             {isScrolled && (
+               <button 
+                  onClick={() => setShowQuickAddDropdown(prev => !prev)}
+                  className="h-8 px-2.5 bg-gradient-to-r from-orange-500 to-rose-500 hover:from-orange-600 hover:to-rose-600 text-white text-[10px] font-black rounded-lg flex items-center gap-1 shadow-md active:scale-95 transition-all uppercase tracking-wider shrink-0 animate-in fade-in zoom-in duration-200"
+                  title="Nhập nhanh"
+               >
+                  <Plus className="w-3.5 h-3.5" />
+                  <span className="hidden xs:inline">Nhập nhanh</span>
+               </button>
+             )}
+
              <button 
                 onClick={handleCreateNewCard}
                 className="h-8 px-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-[10px] font-black rounded-lg flex items-center gap-1 shadow-md active:scale-95 transition-all uppercase tracking-wider shrink-0"
@@ -509,7 +530,7 @@ const EditFlashcards = () => {
         </div>
       </div>
 
-      <div className="max-w-[95%] xl:max-w-[98%] mx-auto px-4 pt-[68px] md:pt-0 mt-4">
+      <div className="w-full max-w-full sm:max-w-[95%] xl:max-w-[98%] mx-auto px-1 sm:px-2 md:px-4 pt-[60px] md:pt-0 mt-2 md:mt-4">
          {/* Column Manager Bar (Memrise / Multi-column Style) */}
          <div className="bg-white rounded-[2rem] border border-slate-100 p-5 md:p-6 mb-6 shadow-sm space-y-4">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-50 pb-4">
@@ -580,7 +601,7 @@ const EditFlashcards = () => {
          </div>
 
          {/* Quick Add Row (Quizlet Style) */}
-         <form onSubmit={handleQuickAdd} className="sticky top-[56px] md:top-[68px] z-[90] bg-gradient-to-r from-indigo-50/50 to-pink-50/30 rounded-2xl md:rounded-[2.5rem] border border-indigo-100/50 p-3 md:p-6 mb-4 md:mb-8 shadow-md backdrop-blur-md space-y-3 md:space-y-4">
+         <form onSubmit={handleQuickAdd} className="bg-white rounded-2xl md:rounded-[2.5rem] border border-slate-100 p-3 md:p-6 mb-4 md:mb-8 shadow-sm space-y-3 md:space-y-4">
             <div className="flex items-center justify-between mb-1">
                <div className="flex items-center gap-2">
                   <Sparkles className="w-4 h-4 text-indigo-500 animate-pulse" />
@@ -599,7 +620,7 @@ const EditFlashcards = () => {
                         placeholder={`Nhập ${col}...`}
                         value={quickAddValues[col] || ''}
                         onChange={(e) => setQuickAddValues({ ...quickAddValues, [col]: e.target.value })}
-                        className="w-full h-10 md:h-12 bg-white border border-slate-200 rounded-xl md:rounded-2xl px-4 md:px-5 text-xs font-bold text-slate-800 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/5 outline-none transition-all"
+                        className="w-full h-10 md:h-12 bg-slate-50 border border-slate-200 rounded-xl md:rounded-2xl px-4 md:px-5 text-xs font-bold text-slate-800 focus:bg-white focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/5 outline-none transition-all"
                      />
                   </div>
                ))}
@@ -782,6 +803,68 @@ const EditFlashcards = () => {
         isSaving={isSaving}
         availableColumns={availableColumns}
       />
+
+      {/* Floating Quick Add Dropdown Overlay */}
+      <AnimatePresence>
+        {showQuickAddDropdown && (
+          <div className="fixed top-[52px] md:top-[68px] left-0 right-0 z-[120] px-2 md:px-4">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setShowQuickAddDropdown(false)}
+              className="fixed inset-0 bg-slate-900/25 backdrop-blur-sm"
+            />
+            <motion.form 
+              initial={{ opacity: 0, y: -15, scale: 0.95 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: -15, scale: 0.95 }}
+              onSubmit={(e) => {
+                handleQuickAdd(e);
+                setShowQuickAddDropdown(false);
+              }}
+              className="relative bg-white border border-indigo-100/80 rounded-2xl p-4 shadow-2xl space-y-3.5 max-w-[95%] sm:max-w-md mx-auto mt-2"
+            >
+               <div className="flex items-center justify-between mb-1">
+                  <div className="flex items-center gap-2">
+                     <Sparkles className="w-4 h-4 text-indigo-500 animate-pulse" />
+                     <span className="text-[10px] font-black text-indigo-600 uppercase tracking-wider">Thêm thẻ nhanh</span>
+                  </div>
+                  <button 
+                    type="button" 
+                    onClick={() => setShowQuickAddDropdown(false)}
+                    className="w-6 h-6 rounded-lg bg-slate-50 hover:bg-slate-100 flex items-center justify-center text-slate-400 hover:text-slate-650 transition-colors"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+               </div>
+
+               <div className="space-y-3">
+                  {visibleCols.map(col => (
+                     <div key={col} className="space-y-1">
+                        <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">{col.toUpperCase()}</label>
+                        <input
+                           id={`quick-add-dropdown-${col}`}
+                           type="text"
+                           placeholder={`Nhập ${col}...`}
+                           value={quickAddValues[col] || ''}
+                           onChange={(e) => setQuickAddValues({ ...quickAddValues, [col]: e.target.value })}
+                           className="w-full h-10 bg-slate-50 border border-slate-200 rounded-xl px-4 text-xs font-bold text-slate-800 focus:bg-white focus:border-indigo-500 outline-none transition-all"
+                        />
+                     </div>
+                  ))}
+               </div>
+
+               <button
+                  type="submit"
+                  className="w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-black text-[10px] uppercase tracking-[0.2em] rounded-xl shadow-lg shadow-indigo-100 transition-all flex items-center justify-center gap-2 active:scale-95"
+               >
+                  <Plus className="w-4 h-4" /> THÊM VÀO BỘ BÀI
+               </button>
+            </motion.form>
+          </div>
+        )}
+      </AnimatePresence>
 
       {/* Custom Delete Confirmation Modal */}
       <AnimatePresence>
