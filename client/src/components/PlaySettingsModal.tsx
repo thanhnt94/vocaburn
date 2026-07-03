@@ -25,6 +25,8 @@ interface PlaySettingsModalProps {
   setQuickLearnEnabled?: (enabled: boolean) => void;
   showImages: boolean;
   setShowImages: (enabled: boolean) => void;
+  showFsrs?: boolean;
+  setShowFsrs?: (enabled: boolean) => void;
 }
 
 export const PlaySettingsModal: React.FC<PlaySettingsModalProps> = ({
@@ -47,7 +49,9 @@ export const PlaySettingsModal: React.FC<PlaySettingsModalProps> = ({
   quickLearnEnabled = false,
   setQuickLearnEnabled,
   showImages,
-  setShowImages
+  setShowImages,
+  showFsrs = true,
+  setShowFsrs
 }) => {
   const navigate = useNavigate()
   const { id } = useParams<{ id: string }>()
@@ -170,7 +174,7 @@ export const PlaySettingsModal: React.FC<PlaySettingsModalProps> = ({
               {/* 3. Compact Effects & Interaction Grid */}
               <div>
                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-2">Hiệu ứng & Hiển thị</label>
-                <div className={cn("grid gap-1.5 bg-slate-50 p-1 rounded-2xl border border-slate-100", setQuickLearnEnabled !== undefined ? "grid-cols-2" : "grid-cols-3")}>
+                <div className="grid grid-cols-2 gap-1.5 bg-slate-50 p-1 rounded-2xl border border-slate-100">
                   {/* Effect Sound */}
                   <button
                     onClick={() => setSfxEnabled(!sfxEnabled)}
@@ -226,6 +230,22 @@ export const PlaySettingsModal: React.FC<PlaySettingsModalProps> = ({
                     >
                       <Sparkles className={cn("w-4.5 h-4.5", quickLearnEnabled ? "text-indigo-500" : "text-slate-400")} />
                       <span className="truncate w-full text-center text-[9px]">Chuyển câu</span>
+                    </button>
+                  )}
+
+                  {/* FSRS Toggle */}
+                  {setShowFsrs !== undefined && (
+                    <button
+                      onClick={() => setShowFsrs(!showFsrs)}
+                      className={cn(
+                        "flex flex-col items-center justify-center gap-1.5 py-2 px-1 rounded-xl text-[10px] font-bold transition-all active:scale-95 col-span-2 sm:col-span-1",
+                        showFsrs 
+                          ? "bg-white text-indigo-600 shadow-sm border border-slate-100" 
+                          : "text-slate-500 hover:bg-white/50"
+                      )}
+                    >
+                      <Brain className={cn("w-4.5 h-4.5", showFsrs ? "text-indigo-500" : "text-slate-400")} />
+                      <span className="truncate w-full text-center text-[9px]">Hiện chỉ số FSRS</span>
                     </button>
                   )}
                 </div>

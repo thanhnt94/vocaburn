@@ -40,6 +40,14 @@ export function usePlaySettings(
     return true;
   });
 
+  const [showFsrs, setShowFsrsState] = useState<boolean>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('vocaburn_show_fsrs');
+      return saved !== 'false';
+    }
+    return true;
+  });
+
   const saveGeneralSettings = async (updates: {
     sfx_enabled?: boolean;
     autoplay_audio?: string;
@@ -47,6 +55,7 @@ export function usePlaySettings(
     quick_learn_enabled?: boolean;
     haptic_enabled?: boolean;
     show_images?: boolean;
+    show_fsrs?: boolean;
   }) => {
     try {
       const updatedSettings = {
@@ -56,7 +65,8 @@ export function usePlaySettings(
         learning_mode: updates.learning_mode !== undefined ? updates.learning_mode : activeMode,
         quick_learn_enabled: updates.quick_learn_enabled !== undefined ? updates.quick_learn_enabled : quickLearnEnabled,
         haptic_enabled: updates.haptic_enabled !== undefined ? updates.haptic_enabled : hapticEnabled,
-        show_images: updates.show_images !== undefined ? updates.show_images : showImages
+        show_images: updates.show_images !== undefined ? updates.show_images : showImages,
+        show_fsrs: updates.show_fsrs !== undefined ? updates.show_fsrs : showFsrs
       };
       setModeSettings(updatedSettings);
       await axios.post(`/api/v1/deck/${deckId}/practice-settings`, {
@@ -100,6 +110,14 @@ export function usePlaySettings(
     saveGeneralSettings({ show_images: enabled });
   };
 
+  const setShowFsrs = (enabled: boolean) => {
+    setShowFsrsState(enabled);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('vocaburn_show_fsrs', enabled ? 'true' : 'false');
+    }
+    saveGeneralSettings({ show_fsrs: enabled });
+  };
+
   return {
     sfxEnabled,
     setSfxEnabled,
@@ -109,6 +127,8 @@ export function usePlaySettings(
     setHapticEnabled,
     showImages,
     setShowImages,
+    showFsrs,
+    setShowFsrs,
     saveGeneralSettings
   };
 }

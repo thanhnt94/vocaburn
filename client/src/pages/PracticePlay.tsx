@@ -412,6 +412,8 @@ export default function PracticePlay() {
     setHapticEnabled,
     showImages,
     setShowImages,
+    showFsrs,
+    setShowFsrs,
     saveGeneralSettings
   } = usePlaySettings(id || '', modeSettings, setModeSettings, activeMode, autoPlayAudio);
 
@@ -4283,7 +4285,7 @@ export default function PracticePlay() {
                           const allTimeWrong = stats.wrong || 0;
                           const allTimeAccuracy = allTimeTotal > 0 ? Math.round((allTimeCorrect / allTimeTotal) * 100) : 0;
 
-                          return (
+                          return showFsrs ? (
                             <div className="md:mt-3 mt-1.5 p-2.5 bg-slate-50/50 rounded-2xl border border-slate-100 flex flex-col gap-1.5 w-full">
                               <div className="flex items-center justify-between text-[8px] font-black text-slate-400 uppercase tracking-widest px-1">
                                 <span>Card Performance Stats</span>
@@ -4309,11 +4311,11 @@ export default function PracticePlay() {
                                 </div>
                               </div>
                             </div>
-                          );
+                          ) : null;
                         })()}
 
                         {/* FSRS Stats Row */}
-                        {currentQuestion?.fsrs && (() => {
+                        {showFsrs && currentQuestion?.fsrs && (() => {
                           const stateLabels = ['New', 'Learning', 'Review', 'Relearning'];
                           const stateColors = [
                             'bg-blue-500/10 text-blue-600 border-blue-500/20 shadow-sm shadow-blue-500/5',
@@ -5308,7 +5310,7 @@ export default function PracticePlay() {
                 {/* 4. Compact Effects & Interaction Grid */}
                 <div>
                   <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-2">Hiệu ứng & Hiển thị</label>
-                  <div className="grid grid-cols-3 gap-1.5 bg-slate-50 p-1 rounded-2xl border border-slate-100">
+                  <div className="grid grid-cols-2 gap-1.5 bg-slate-50 p-1 rounded-2xl border border-slate-100">
                     {/* Effect Sound */}
                     <button
                       onClick={() => setSfxEnabled(!sfxEnabled)}
@@ -5349,6 +5351,20 @@ export default function PracticePlay() {
                     >
                       <Image className={cn("w-4.5 h-4.5", showImages ? "text-indigo-500" : "text-slate-400")} />
                       <span className="truncate w-full text-center text-[9px]">Hiện hình ảnh</span>
+                    </button>
+
+                    {/* FSRS Toggle */}
+                    <button
+                      onClick={() => setShowFsrs(!showFsrs)}
+                      className={cn(
+                        "flex flex-col items-center justify-center gap-1.5 py-2 px-1 rounded-xl text-[10px] font-bold transition-all active:scale-95",
+                        showFsrs 
+                          ? "bg-white text-indigo-600 shadow-sm border border-slate-100" 
+                          : "text-slate-500 hover:bg-white/50"
+                      )}
+                    >
+                      <Brain className={cn("w-4.5 h-4.5", showFsrs ? "text-indigo-500" : "text-slate-400")} />
+                      <span className="truncate w-full text-center text-[9px]">Hiện chỉ số FSRS</span>
                     </button>
                   </div>
                 </div>

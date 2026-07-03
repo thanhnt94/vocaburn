@@ -379,6 +379,8 @@ export default function FlashcardPlay() {
     setHapticEnabled,
     showImages,
     setShowImages,
+    showFsrs,
+    setShowFsrs,
     saveGeneralSettings
   } = usePlaySettings(id || '', modeSettings, setModeSettings, activeMode, autoPlayAudio);
   const [learningModeAlert, setLearningModeAlert] = useState<{
@@ -3977,7 +3979,7 @@ export default function FlashcardPlay() {
                       const allTimeWrong = stats.wrong || 0;
                       const allTimeAccuracy = allTimeTotal > 0 ? Math.round((allTimeCorrect / allTimeTotal) * 100) : 0;
 
-                      return (
+                      return showFsrs ? (
                         <div className="md:mt-3 mt-1.5 p-2.5 bg-slate-50/50 rounded-2xl border border-slate-100 flex flex-col gap-1.5 w-full">
                           <div className="flex items-center justify-between text-[8px] font-black text-slate-400 uppercase tracking-widest px-1">
                             <span>Card Performance Stats</span>
@@ -4003,11 +4005,11 @@ export default function FlashcardPlay() {
                             </div>
                           </div>
                         </div>
-                      );
+                      ) : null;
                     })()}
 
                     {/* FSRS Stats Row */}
-                    {currentQuestion?.fsrs && (() => {
+                    {showFsrs && currentQuestion?.fsrs && (() => {
                       const stateLabels = ['New', 'Learning', 'Review', 'Relearning'];
                       const stateColors = [
                         'bg-blue-500/10 text-blue-600 border-blue-500/20 shadow-sm shadow-blue-500/5',
@@ -4808,6 +4810,8 @@ export default function FlashcardPlay() {
         setQuickLearnEnabled={setQuickLearnEnabled}
         showImages={showImages}
         setShowImages={setShowImages}
+        showFsrs={showFsrs}
+        setShowFsrs={setShowFsrs}
       />
 
       {/* Exit Confirmation Modal */}
