@@ -55,6 +55,24 @@ export const FlashcardEditModal: React.FC<FlashcardEditModalProps> = ({
   const [regenStatus, setRegenStatus] = useState<Record<string, string>>({})
   const [isGeneratingField, setIsGeneratingField] = useState<Record<string, boolean>>({})
 
+  const showAiExplanation = useMemo(() => {
+    return availableColumns.includes('ai_explanation') || 
+           availableColumns.includes('explanation_ai') ||
+           (formData?.ai_explanation && formData.ai_explanation.trim() !== '')
+  }, [availableColumns, formData?.ai_explanation])
+
+  const showHint = useMemo(() => {
+    return availableColumns.includes('hint') || 
+           availableColumns.includes('gợi ý') ||
+           (formData?.hint && formData.hint.trim() !== '')
+  }, [availableColumns, formData?.hint])
+
+  const showMnemonic = useMemo(() => {
+    return availableColumns.includes('mnemonic') || 
+           availableColumns.includes('cách nhớ') ||
+           (formData?.mnemonic && formData.mnemonic.trim() !== '')
+  }, [availableColumns, formData?.mnemonic])
+
   const handleGenerateAIField = async (field: 'explanation' | 'hint' | 'mnemonic') => {
     if (!formData?.id) return;
     setIsGeneratingField(prev => ({ ...prev, [field]: true }));
@@ -303,39 +321,40 @@ export const FlashcardEditModal: React.FC<FlashcardEditModalProps> = ({
     )
   }
 
+  if (!isOpen || !formData) return null;
+
   return (
     <AnimatePresence>
-      <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4">
+      <div className="fixed inset-0 z-[1000] flex items-center justify-center p-2 md:p-4">
         <motion.div 
           initial={{ opacity: 0 }} 
           animate={{ opacity: 1 }} 
           exit={{ opacity: 0 }} 
           onClick={onClose} 
-          className="absolute inset-0 bg-slate-900/60 backdrop-blur-md" 
+          className="absolute inset-0 bg-slate-900/65 backdrop-blur-md" 
         />
         <motion.div 
           initial={{ opacity: 0, scale: 0.95, y: 20 }} 
           animate={{ opacity: 1, scale: 1, y: 0 }} 
           exit={{ opacity: 0, scale: 0.95, y: 20 }} 
-          className="relative w-full max-w-4xl bg-white md:rounded-[2rem] rounded-[1.25rem] shadow-2xl overflow-hidden"
+          className="relative w-full max-w-4xl bg-white md:rounded-[2rem] rounded-t-[1.75rem] rounded-b-[1.75rem] shadow-2xl overflow-hidden h-[90vh] md:h-[85vh] flex flex-col z-10"
         >
-          <div className="p-6 md:p-10 space-y-8 max-h-[90vh] overflow-y-auto custom-scrollbar">
-            <div className="flex items-center justify-between sticky top-0 bg-white pb-6 z-10 border-b border-slate-50 mb-6">
-              <div className="flex items-center gap-4">
-                <div className="w-12 h-12 bg-indigo-600 rounded-2xl flex-shrink-0 flex items-center justify-center text-white">
-                  <Pencil className="w-5 h-5" />
+          {/* Fixed Header */}
+          <div className="flex items-center justify-between bg-white px-5 py-3.5 border-b border-slate-100 shrink-0">
+             <div className="flex items-center gap-3">
+                <div className="w-9 h-9 bg-indigo-50 rounded-xl flex-shrink-0 flex items-center justify-center text-indigo-600">
+                   <Pencil className="w-4.5 h-4.5" />
                 </div>
-                <div>
-                  <h2 className="text-xl font-black text-slate-900">Edit Card</h2>
-                  <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mt-0.5">Card #{formData.id}</p>
+                <div className="text-left">
+                   <h2 className="text-xs font-black text-slate-900 uppercase tracking-wider">Chỉnh sửa thẻ</h2>
+                   <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest mt-0.5">Card #{formData.id || 'Mới'}</p>
                 </div>
-              </div>
-              <div className="flex items-center gap-3">
-                <button onClick={onClose} className="w-10 h-10 bg-slate-50 rounded-xl flex items-center justify-center text-slate-400 hover:bg-slate-100 transition-all"><X className="w-5 h-5" /></button>
-              </div>
-            </div>
-            
-            <div className="space-y-6">
+             </div>
+             <button onClick={onClose} className="w-8.5 h-8.5 bg-slate-50 hover:bg-slate-100 rounded-xl flex items-center justify-center text-slate-400 active:scale-95 transition-all"><X className="w-4.5 h-4.5" /></button>
+          </div>
+
+          {/* Scrollable Body */}
+          <div className="flex-1 overflow-y-auto custom-scrollbar p-3.5 md:p-8 space-y-5 text-left">
               {/* SECTION 1: TEXT CONTENT */}
               <div className="space-y-4 bg-slate-50/50 p-6 rounded-3xl border border-slate-100 text-left">
                 <span className="text-[10px] font-black text-indigo-600 uppercase tracking-[0.2em] block mb-2">1. Text Content</span>
@@ -350,7 +369,7 @@ export const FlashcardEditModal: React.FC<FlashcardEditModalProps> = ({
                   />
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className={cn("grid gap-4", showAiExplanation ? "grid-cols-1 md:grid-cols-2" : "grid-cols-1")}>
                   <div className="space-y-2">
                     <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Back Side (Definition)</label>
                     <textarea 
@@ -360,73 +379,82 @@ export const FlashcardEditModal: React.FC<FlashcardEditModalProps> = ({
                       placeholder="Enter the definition, synonyms, examples..."
                     />
                   </div>
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <label className="text-[10px] font-black text-indigo-500 uppercase tracking-widest flex items-center gap-1.5">
-                        <Sparkles className="w-3 h-3 animate-pulse" />
-                        AI Deep Analysis
-                      </label>
-                      <button
-                        type="button"
-                        onClick={() => handleGenerateAIField('explanation')}
-                        disabled={!formData?.id || isGeneratingField['explanation']}
-                        className="flex items-center gap-1 text-[9px] font-black uppercase tracking-wider text-indigo-600 bg-indigo-50 hover:bg-indigo-100 px-2 py-1 rounded-lg transition-all disabled:opacity-30 disabled:cursor-not-allowed"
-                      >
-                        <Sparkles className="w-2.5 h-2.5" />
-                        {isGeneratingField['explanation'] ? 'Generating...' : 'Gen AI'}
-                      </button>
+                  {showAiExplanation && (
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <label className="text-[10px] font-black text-indigo-500 uppercase tracking-widest flex items-center gap-1.5">
+                          <Sparkles className="w-3 h-3 animate-pulse" />
+                          AI Deep Analysis
+                        </label>
+                        <button
+                          type="button"
+                          onClick={() => handleGenerateAIField('explanation')}
+                          disabled={!formData?.id || isGeneratingField['explanation']}
+                          className="flex items-center gap-1 text-[9px] font-black uppercase tracking-wider text-indigo-600 bg-indigo-50 hover:bg-indigo-100 px-2 py-1 rounded-lg transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+                        >
+                          <Sparkles className="w-2.5 h-2.5" />
+                          {isGeneratingField['explanation'] ? 'Generating...' : 'Gen AI'}
+                        </button>
+                      </div>
+                      <textarea 
+                        value={formData.ai_explanation || ''}
+                        onChange={(e) => setFormData({...formData, ai_explanation: e.target.value})}
+                        className="w-full h-32 p-4 bg-indigo-50/30 rounded-2xl border border-indigo-100 focus:ring-2 focus:ring-indigo-500 font-medium text-slate-700 transition-all resize-none text-xs outline-none"
+                        placeholder="AI explanation, breakdown of grammar, etymology..."
+                      />
                     </div>
-                    <textarea 
-                      value={formData.ai_explanation || ''}
-                      onChange={(e) => setFormData({...formData, ai_explanation: e.target.value})}
-                      className="w-full h-32 p-4 bg-indigo-50/30 rounded-2xl border border-indigo-100 focus:ring-2 focus:ring-indigo-500 font-medium text-slate-700 transition-all resize-none text-xs outline-none"
-                      placeholder="AI explanation, breakdown of grammar, etymology..."
-                    />
-                  </div>
+                  )}
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Hint (Gợi ý)</label>
-                      <button
-                        type="button"
-                        onClick={() => handleGenerateAIField('hint')}
-                        disabled={!formData?.id || isGeneratingField['hint']}
-                        className="flex items-center gap-1 text-[9px] font-black uppercase tracking-wider text-indigo-600 bg-indigo-50 hover:bg-indigo-100 px-2 py-1 rounded-lg transition-all disabled:opacity-30 disabled:cursor-not-allowed"
-                      >
-                        <Sparkles className="w-2.5 h-2.5" />
-                        {isGeneratingField['hint'] ? 'Generating...' : 'Gen AI'}
-                      </button>
-                    </div>
-                    <textarea 
-                      value={formData.hint || ''}
-                      onChange={(e) => setFormData({...formData, hint: e.target.value})}
-                      className="w-full h-24 p-4 bg-white rounded-2xl border border-slate-100 focus:ring-2 focus:ring-indigo-500 font-medium text-slate-700 transition-all resize-none text-xs outline-none"
-                      placeholder="Enter a manual hint or click 'Gen AI' to generate one..."
-                    />
+                {(showHint || showMnemonic) && (
+                  <div className={cn("grid gap-4 mt-2", (showHint && showMnemonic) ? "grid-cols-1 md:grid-cols-2" : "grid-cols-1")}>
+                    {showHint && (
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between">
+                          <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Hint (Gợi ý)</label>
+                          <button
+                            type="button"
+                            onClick={() => handleGenerateAIField('hint')}
+                            disabled={!formData?.id || isGeneratingField['hint']}
+                            className="flex items-center gap-1 text-[9px] font-black uppercase tracking-wider text-indigo-600 bg-indigo-50 hover:bg-indigo-100 px-2 py-1 rounded-lg transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+                          >
+                            <Sparkles className="w-2.5 h-2.5" />
+                            {isGeneratingField['hint'] ? 'Generating...' : 'Gen AI'}
+                          </button>
+                        </div>
+                        <textarea 
+                          value={formData.hint || ''}
+                          onChange={(e) => setFormData({...formData, hint: e.target.value})}
+                          className="w-full h-24 p-4 bg-white rounded-2xl border border-slate-100 focus:ring-2 focus:ring-indigo-500 font-medium text-slate-700 transition-all resize-none text-xs outline-none"
+                          placeholder="Enter a manual hint or click 'Gen AI' to generate one..."
+                        />
+                      </div>
+                    )}
+
+                    {showMnemonic && (
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between">
+                          <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Mnemonic (Cách nhớ)</label>
+                          <button
+                            type="button"
+                            onClick={() => handleGenerateAIField('mnemonic')}
+                            disabled={!formData?.id || isGeneratingField['mnemonic']}
+                            className="flex items-center gap-1 text-[9px] font-black uppercase tracking-wider text-indigo-600 bg-indigo-50 hover:bg-indigo-100 px-2 py-1 rounded-lg transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+                          >
+                            <Sparkles className="w-2.5 h-2.5" />
+                            {isGeneratingField['mnemonic'] ? 'Generating...' : 'Gen AI'}
+                          </button>
+                        </div>
+                        <textarea 
+                          value={formData.mnemonic || ''}
+                          onChange={(e) => setFormData({...formData, mnemonic: e.target.value})}
+                          className="w-full h-24 p-4 bg-white rounded-2xl border border-slate-100 focus:ring-2 focus:ring-indigo-500 font-medium text-slate-700 transition-all resize-none text-xs outline-none"
+                          placeholder="Enter association stories, visual hooks, or click 'Gen AI'..."
+                        />
+                      </div>
+                    )}
                   </div>
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Mnemonic (Cách nhớ)</label>
-                      <button
-                        type="button"
-                        onClick={() => handleGenerateAIField('mnemonic')}
-                        disabled={!formData?.id || isGeneratingField['mnemonic']}
-                        className="flex items-center gap-1 text-[9px] font-black uppercase tracking-wider text-indigo-600 bg-indigo-50 hover:bg-indigo-100 px-2 py-1 rounded-lg transition-all disabled:opacity-30 disabled:cursor-not-allowed"
-                      >
-                        <Sparkles className="w-2.5 h-2.5" />
-                        {isGeneratingField['mnemonic'] ? 'Generating...' : 'Gen AI'}
-                      </button>
-                    </div>
-                    <textarea 
-                      value={formData.mnemonic || ''}
-                      onChange={(e) => setFormData({...formData, mnemonic: e.target.value})}
-                      className="w-full h-24 p-4 bg-white rounded-2xl border border-slate-100 focus:ring-2 focus:ring-indigo-500 font-medium text-slate-700 transition-all resize-none text-xs outline-none"
-                      placeholder="Enter association stories, visual hooks, or click 'Gen AI'..."
-                    />
-                  </div>
-                </div>
+                )}
 
                 {/* Dynamically detected custom fields */}
                 {availableColumns && availableColumns.filter(c => c !== 'front' && c !== 'back').length > 0 && (
@@ -645,9 +673,8 @@ export const FlashcardEditModal: React.FC<FlashcardEditModalProps> = ({
                 {isSaving ? "Đang lưu..." : <><Save className="w-4 h-4" /> {formData.id ? "Lưu thay đổi" : "Lưu thẻ"}</>}
               </button>
             </div>
-          </div>
-        </motion.div>
-      </div>
-    </AnimatePresence>
+          </motion.div>
+        </div>
+      </AnimatePresence>
   )
 }

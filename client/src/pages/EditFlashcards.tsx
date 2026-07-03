@@ -450,7 +450,7 @@ const EditFlashcards = () => {
                   className="h-8 px-2.5 bg-gradient-to-r from-orange-500 to-rose-500 hover:from-orange-600 hover:to-rose-600 text-white text-[10px] font-black rounded-lg flex items-center gap-1 shadow-md active:scale-95 transition-all uppercase tracking-wider shrink-0 animate-in fade-in zoom-in duration-200"
                   title="Nhập nhanh"
                >
-                  <Plus className="w-3.5 h-3.5" />
+                  <Zap className="w-3.5 h-3.5" />
                   <span className="hidden xs:inline">Nhập nhanh</span>
                </button>
              )}
