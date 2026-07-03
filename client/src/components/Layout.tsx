@@ -37,12 +37,13 @@ export default function Layout() {
 
   const isLandingPage = location.pathname === '/' && !isLoggedIn
   const isDashboard = location.pathname === '/' || location.pathname === '/dashboard'
+  const showBottomNav = isLoggedIn && !location.pathname.includes('/flashcards')
 
   return (
     <div className={cn(
       "min-h-screen flex flex-col",
       isLoggedIn 
-        ? (isDashboard ? "pb-20 md:pb-0 md:min-h-0 md:h-screen md:w-screen md:overflow-hidden" : "pb-20 md:pb-0")
+        ? (isDashboard ? "pb-20 md:pb-0 md:min-h-0 md:h-screen md:w-screen md:overflow-hidden" : (showBottomNav ? "pb-20 md:pb-0" : "pb-0"))
         : ""
     )}>
 
@@ -145,7 +146,7 @@ export default function Layout() {
       </main>
 
       {/* RemiNote-Style Mobile Bottom Nav */}
-      {isLoggedIn && (
+      {showBottomNav && (
         <div className="fixed bottom-0 left-0 right-0 z-[120] md:hidden bg-white/80 backdrop-blur-2xl border-t border-slate-100 px-4 py-1.5">
           <nav className="flex items-center justify-between max-w-md mx-auto h-12">
             {navItems.filter(item => item.label !== 'Admin').map((item, idx) => {
