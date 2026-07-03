@@ -57,23 +57,103 @@ export const FlashcardEditModal: React.FC<FlashcardEditModalProps> = ({
   const [regenStatus, setRegenStatus] = useState<Record<string, string>>({})
   const [isGeneratingField, setIsGeneratingField] = useState<Record<string, boolean>>({})
 
-  const showAiExplanation = useMemo(() => {
-    return availableColumns.includes('ai_explanation') || 
-           availableColumns.includes('explanation_ai') ||
-           (formData?.ai_explanation && formData.ai_explanation.trim() !== '')
-  }, [availableColumns, formData?.ai_explanation])
+  const getFieldValue = (col: string) => {
+    if (!formData) return '';
+    if (col === 'front') return formData.content || '';
+    if (col === 'back') return formData.explanation || '';
+    if (col === 'ai_explanation') return formData.ai_explanation || '';
+    if (col === 'hint') return formData.hint || '';
+    if (col === 'mnemonic') return formData.mnemonic || '';
+    if (col === 'image') return formData.image || '';
+    if (col === 'audio') return formData.audio || '';
+    return formData.others?.[col] || '';
+  };
 
-  const showHint = useMemo(() => {
-    return availableColumns.includes('hint') || 
-           availableColumns.includes('gợi ý') ||
-           (formData?.hint && formData.hint.trim() !== '')
-  }, [availableColumns, formData?.hint])
+  const setFieldValue = (col: string, val: string) => {
+    if (!formData) return;
+    if (col === 'front') {
+      setFormData({ ...formData, content: val });
+    } else if (col === 'back') {
+      setFormData({ ...formData, explanation: val });
+    } else if (col === 'ai_explanation') {
+      setFormData({ ...formData, ai_explanation: val });
+    } else if (col === 'hint') {
+      setFormData({ ...formData, hint: val });
+    } else if (col === 'mnemonic') {
+      setFormData({ ...formData, mnemonic: val });
+    } else if (col === 'image') {
+      setFormData({ ...formData, image: val });
+    } else if (col === 'audio') {
+      setFormData({ ...formData, audio: val });
+    } else {
+      setFormData({
+        ...formData,
+        others: {
+          ...formData.others,
+          [col]: val
+        }
+      });
+    }
+  };
 
-  const showMnemonic = useMemo(() => {
-    return availableColumns.includes('mnemonic') || 
-           availableColumns.includes('cách nhớ') ||
-           (formData?.mnemonic && formData.mnemonic.trim() !== '')
-  }, [availableColumns, formData?.mnemonic])
+  const allColumns = useMemo(() => {
+    if (!formData) return [];
+    const cols = new Set<string>();
+    cols.add('front');
+    cols.add('back');
+    if (formData.ai_explanation !== undefined || availableColumns.includes('ai_explanation')) cols.add('ai_explanation');
+    if (formData.hint !== undefined || availableColumns.includes('hint')) cols.add('hint');
+    if (formData.mnemonic !== undefined || availableColumns.includes('mnemonic')) cols.add('mnemonic');
+    
+    availableColumns.forEach(c => {
+      if (c !== 'front' && c !== 'back') {
+        cols.add(c);
+      }
+    });
+
+    if (formData.others) {
+      Object.keys(formData.others).forEach(k => {
+        if (!STRUCTURED_KEYS.has(k)) {
+          cols.add(k);
+        } else {
+          cols.add(k);
+        }
+      });
+    }
+
+    return Array.from(cols);
+  }, [availableColumns, formData]);
+
+  const aiCols = useMemo(() => {
+    return allColumns.filter(col => {
+      if (['ai_explanation', 'hint', 'mnemonic'].includes(col)) return true;
+      return practiceSettings?.ai_prompts?.some((p: any) => p.column === col || p.id === col);
+    });
+  }, [allColumns, practiceSettings]);
+
+  const imageCols = useMemo(() => {
+    return allColumns.filter(col => 
+      ['front_img', 'back_img', 'image', 'img'].includes(col.toLowerCase()) ||
+      col.toLowerCase().includes('image') || col.toLowerCase().includes('img')
+    );
+  }, [allColumns]);
+
+  const audioCols = useMemo(() => {
+    return allColumns.filter(col => 
+      col.toLowerCase().includes('audio') || 
+      ['audio', 'sound', 'pronunciation'].includes(col.toLowerCase())
+    );
+  }, [allColumns]);
+
+  const generalCols = useMemo(() => {
+    return allColumns.filter(col => {
+      if (col === 'front' || col === 'back') return false;
+      if (aiCols.includes(col)) return false;
+      if (imageCols.includes(col)) return false;
+      if (audioCols.includes(col)) return false;
+      return true;
+    });
+  }, [allColumns, aiCols, imageCols, audioCols]);
 
   const handleGenerateAIField = async (field: string) => {
     if (!formData?.id) return;
@@ -366,287 +446,171 @@ export const FlashcardEditModal: React.FC<FlashcardEditModalProps> = ({
              </div>
              <button onClick={onClose} className="w-8.5 h-8.5 bg-slate-50 hover:bg-slate-100 rounded-xl flex items-center justify-center text-slate-400 active:scale-95 transition-all"><X className="w-4.5 h-4.5" /></button>
           </div>
-
-          {/* Scrollable Body */}
-          <div className="flex-1 overflow-y-auto custom-scrollbar p-3.5 md:p-8 space-y-5 text-left">
-              {/* SECTION 1: TEXT CONTENT */}
-              <div className="space-y-4 bg-slate-50/50 p-6 rounded-3xl border border-slate-100 text-left">
-                <span className="text-[10px] font-black text-indigo-600 uppercase tracking-[0.2em] block mb-2">1. Text Content</span>
+          <div className="flex-1 overflow-y-auto custom-scrollbar p-3.5 md:p-8 space-y-6 text-left">
+              {/* SECTION 1: TEXT CONTENT & GENERAL FIELDS */}
+              <div className="space-y-4 bg-slate-50/50 p-5 rounded-3xl border border-slate-100/60 text-left">
+                <span className="text-[10px] font-black text-indigo-600 uppercase tracking-[0.2em] block mb-2">1. Nội dung chữ & Các trường bổ sung</span>
                 
-                <div className="space-y-2">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Front Side (Word / Question)</label>
-                  <textarea 
-                    value={formData.content}
-                    onChange={(e) => setFormData({...formData, content: e.target.value})}
-                    className="w-full h-20 p-4 bg-white rounded-2xl border border-slate-100 focus:ring-2 focus:ring-indigo-500 font-medium text-slate-700 transition-all resize-none text-xs outline-none"
-                    placeholder="Enter the front side word or phrase..."
-                  />
-                </div>
-
-                <div className={cn("grid gap-4", showAiExplanation ? "grid-cols-1 md:grid-cols-2" : "grid-cols-1")}>
-                  <div className="space-y-2">
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Back Side (Definition)</label>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Mặt trước (Từ / Câu hỏi)</label>
                     <textarea 
-                      value={formData.explanation}
-                      onChange={(e) => setFormData({...formData, explanation: e.target.value})}
-                      className="w-full h-32 p-4 bg-white rounded-2xl border border-slate-100 focus:ring-2 focus:ring-indigo-500 font-medium text-slate-700 transition-all resize-none text-xs outline-none"
-                      placeholder="Enter the definition, synonyms, examples..."
+                      value={getFieldValue('front')}
+                      onChange={(e) => setFieldValue('front', e.target.value)}
+                      className="w-full h-20 p-3 bg-white rounded-2xl border border-slate-200/80 focus:ring-2 focus:ring-indigo-500 font-medium text-slate-700 transition-all resize-none text-xs outline-none"
+                      placeholder="Nhập mặt trước..."
                     />
                   </div>
-                  {showAiExplanation && (
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between">
-                        <label className="text-[10px] font-black text-indigo-500 uppercase tracking-widest flex items-center gap-1.5">
-                          <Sparkles className="w-3 h-3 animate-pulse" />
-                          AI Deep Analysis
-                        </label>
-                        <button
-                          type="button"
-                          onClick={() => handleGenerateAIField('explanation')}
-                          disabled={!formData?.id || isGeneratingField['explanation']}
-                          className="flex items-center gap-1 text-[9px] font-black uppercase tracking-wider text-indigo-600 bg-indigo-50 hover:bg-indigo-100 px-2 py-1 rounded-lg transition-all disabled:opacity-30 disabled:cursor-not-allowed"
-                        >
-                          <Sparkles className="w-2.5 h-2.5" />
-                          {isGeneratingField['explanation'] ? 'Generating...' : 'Gen AI'}
-                        </button>
-                      </div>
-                      <textarea 
-                        value={formData.ai_explanation || ''}
-                        onChange={(e) => setFormData({...formData, ai_explanation: e.target.value})}
-                        className="w-full h-32 p-4 bg-indigo-50/30 rounded-2xl border border-indigo-100 focus:ring-2 focus:ring-indigo-500 font-medium text-slate-700 transition-all resize-none text-xs outline-none"
-                        placeholder="AI explanation, breakdown of grammar, etymology..."
-                      />
-                    </div>
-                  )}
+
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Mặt sau (Định nghĩa / Giải nghĩa)</label>
+                    <textarea 
+                      value={getFieldValue('back')}
+                      onChange={(e) => setFieldValue('back', e.target.value)}
+                      className="w-full h-20 p-3 bg-white rounded-2xl border border-slate-200/80 focus:ring-2 focus:ring-indigo-500 font-medium text-slate-700 transition-all resize-none text-xs outline-none"
+                      placeholder="Nhập mặt sau..."
+                    />
+                  </div>
                 </div>
 
-                {(showHint || showMnemonic) && (
-                  <div className={cn("grid gap-4 mt-2", (showHint && showMnemonic) ? "grid-cols-1 md:grid-cols-2" : "grid-cols-1")}>
-                    {showHint && (
-                      <div className="space-y-2">
-                        <div className="flex items-center justify-between">
-                          <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Hint (Gợi ý)</label>
-                          <button
-                            type="button"
-                            onClick={() => handleGenerateAIField('hint')}
-                            disabled={!formData?.id || isGeneratingField['hint']}
-                            className="flex items-center gap-1 text-[9px] font-black uppercase tracking-wider text-indigo-600 bg-indigo-50 hover:bg-indigo-100 px-2 py-1 rounded-lg transition-all disabled:opacity-30 disabled:cursor-not-allowed"
-                          >
-                            <Sparkles className="w-2.5 h-2.5" />
-                            {isGeneratingField['hint'] ? 'Generating...' : 'Gen AI'}
-                          </button>
-                        </div>
-                        <textarea 
-                          value={formData.hint || ''}
-                          onChange={(e) => setFormData({...formData, hint: e.target.value})}
-                          className="w-full h-24 p-4 bg-white rounded-2xl border border-slate-100 focus:ring-2 focus:ring-indigo-500 font-medium text-slate-700 transition-all resize-none text-xs outline-none"
-                          placeholder="Enter a manual hint or click 'Gen AI' to generate one..."
+                {generalCols.length > 0 && (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t border-slate-100">
+                    {generalCols.map(col => (
+                      <div key={col} className="space-y-1.5">
+                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{col.replace(/_/g, ' ')}</label>
+                        <textarea
+                          rows={2}
+                          value={getFieldValue(col)}
+                          onChange={(e) => setFieldValue(col, e.target.value)}
+                          className="w-full p-3 bg-white rounded-xl border border-slate-200/80 focus:ring-2 focus:ring-indigo-500 text-xs font-semibold text-slate-600 outline-none resize-none"
+                          placeholder={`Nhập ${col.replace(/_/g, ' ')}...`}
                         />
                       </div>
-                    )}
-
-                    {showMnemonic && (
-                      <div className="space-y-2">
-                        <div className="flex items-center justify-between">
-                          <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Mnemonic (Cách nhớ)</label>
-                          <button
-                            type="button"
-                            onClick={() => handleGenerateAIField('mnemonic')}
-                            disabled={!formData?.id || isGeneratingField['mnemonic']}
-                            className="flex items-center gap-1 text-[9px] font-black uppercase tracking-wider text-indigo-600 bg-indigo-50 hover:bg-indigo-100 px-2 py-1 rounded-lg transition-all disabled:opacity-30 disabled:cursor-not-allowed"
-                          >
-                            <Sparkles className="w-2.5 h-2.5" />
-                            {isGeneratingField['mnemonic'] ? 'Generating...' : 'Gen AI'}
-                          </button>
-                        </div>
-                        <textarea 
-                          value={formData.mnemonic || ''}
-                          onChange={(e) => setFormData({...formData, mnemonic: e.target.value})}
-                          className="w-full h-24 p-4 bg-white rounded-2xl border border-slate-100 focus:ring-2 focus:ring-indigo-500 font-medium text-slate-700 transition-all resize-none text-xs outline-none"
-                          placeholder="Enter association stories, visual hooks, or click 'Gen AI'..."
-                        />
-                      </div>
-                    )}
+                    ))}
                   </div>
                 )}
+              </div>
 
-                {/* Dynamically detected custom fields */}
-                {availableColumns && availableColumns.filter(c => c !== 'front' && c !== 'back').length > 0 && (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2 pt-4 border-t border-slate-100">
-                    {availableColumns.filter(c => c !== 'front' && c !== 'back').map(col => {
-                      const hasAi = practiceSettings?.ai_prompts?.some((p: any) => p.column === col || p.id === col);
+              {/* SECTION 2: AI ASSISTANCE */}
+              {aiCols.length > 0 && (
+                <div className="space-y-4 bg-indigo-50/10 p-5 rounded-3xl border border-indigo-50/40 text-left animate-in fade-in duration-200">
+                  <span className="text-[10px] font-black text-indigo-600 uppercase tracking-[0.2em] block mb-2">2. Hỗ trợ học tập bằng AI</span>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {aiCols.map(col => {
+                      const val = getFieldValue(col);
+                      const isMainAi = col === 'ai_explanation';
                       return (
                         <div key={col} className="space-y-1.5">
                           <div className="flex items-center justify-between">
-                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{col}</label>
-                            {hasAi && (
-                              <button
-                                type="button"
-                                onClick={() => handleGenerateAIField(col)}
-                                disabled={!formData?.id || isGeneratingField[col]}
-                                className="flex items-center gap-1 text-[9px] font-black uppercase tracking-wider text-indigo-600 bg-indigo-50 hover:bg-indigo-100 px-2 py-1 rounded-lg transition-all disabled:opacity-30 disabled:cursor-not-allowed"
-                              >
-                                <Sparkles className="w-2.5 h-2.5" />
-                                {isGeneratingField[col] ? 'Generating...' : 'Gen AI'}
-                              </button>
-                            )}
+                            <label className={cn("text-[10px] font-black uppercase tracking-widest", isMainAi ? "text-indigo-600 flex items-center gap-1.5" : "text-slate-400")}>
+                              {isMainAi && <Sparkles className="w-3.5 h-3.5 animate-pulse" />}
+                              {col.replace(/_/g, ' ')}
+                            </label>
+                            <button
+                              type="button"
+                              onClick={() => handleGenerateAIField(col)}
+                              disabled={!formData?.id || isGeneratingField[col]}
+                              className="flex items-center gap-1 text-[9px] font-black uppercase tracking-wider text-indigo-600 bg-indigo-50 hover:bg-indigo-100 px-2 py-1 rounded-lg transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+                            >
+                              <Sparkles className="w-2.5 h-2.5" />
+                              {isGeneratingField[col] ? 'Generating...' : 'Gen AI'}
+                            </button>
                           </div>
                           <textarea
-                            rows={2}
-                            value={formData.others?.[col] || ''}
-                            onChange={(e) => setFormData({
-                              ...formData,
-                              others: {
-                                ...formData.others,
-                                [col]: e.target.value
-                              }
-                            })}
-                            className="w-full p-3 bg-white rounded-xl border border-slate-100 focus:ring-2 focus:ring-indigo-500 text-xs font-semibold text-slate-600 outline-none resize-none"
-                            placeholder={`Nhập ${col}...`}
+                            rows={isMainAi ? 4 : 2}
+                            value={val}
+                            onChange={(e) => setFieldValue(col, e.target.value)}
+                            className={cn(
+                              "w-full p-3 rounded-xl border focus:ring-2 font-medium text-slate-700 transition-all resize-none text-xs outline-none",
+                              isMainAi ? "bg-indigo-50/20 border-indigo-100 focus:ring-indigo-500" : "bg-white border-slate-200/80 focus:ring-indigo-500"
+                            )}
+                            placeholder={`Nhấn 'Gen AI' để tạo hoặc tự nhập ${col.replace(/_/g, ' ')}...`}
                           />
                         </div>
                       )
                     })}
                   </div>
-                )}
-              </div>
+                </div>
+              )}
 
-              {/* SECTION 2: MULTIMEDIA ASSETS */}
-              <div className="space-y-6 bg-slate-50/50 p-6 rounded-3xl border border-slate-100 text-left">
-                <span className="text-[10px] font-black text-indigo-600 uppercase tracking-[0.2em] block mb-2">2. Multimedia & Audio Assets</span>
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {/* Front Side Media & Audio */}
-                  <div className="space-y-4 bg-white p-4 rounded-2xl border border-slate-100/80">
-                    <span className="text-[9px] font-black text-indigo-500 uppercase tracking-wider block mb-1">Front Side</span>
-                    
-                    <div className="space-y-2">
-                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Front Image URL</label>
-                      <input 
-                        type="text"
-                        value={formData.image || ''}
-                        onChange={(e) => setFormData({...formData, image: e.target.value})}
-                        className="w-full p-3 bg-slate-50/50 rounded-xl border border-slate-100 focus:ring-2 focus:ring-indigo-500 text-xs font-semibold text-slate-600 outline-none"
-                        placeholder="e.g. /static/uploads/1/images/word.jpg"
-                      />
-                    </div>
-
-                    <div className="space-y-2 pt-2 border-t border-slate-50">
-                      <div className="flex items-center justify-between">
-                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Front Audio Reading Script</label>
-                        {renderRegenButton('front')}
+              {/* SECTION 3: IMAGE ASSETS */}
+              {imageCols.length > 0 && (
+                <div className="space-y-4 bg-slate-50/50 p-5 rounded-3xl border border-slate-100 text-left">
+                  <span className="text-[10px] font-black text-indigo-600 uppercase tracking-[0.2em] block mb-2">3. Hình ảnh minh họa</span>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {imageCols.map(col => (
+                      <div key={col} className="space-y-1.5">
+                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{col.replace(/_/g, ' ')}</label>
+                        <input
+                          type="text"
+                          value={getFieldValue(col)}
+                          onChange={(e) => setFieldValue(col, e.target.value)}
+                          className="w-full p-3 bg-white rounded-xl border border-slate-200/80 focus:ring-2 focus:ring-indigo-500 text-xs font-semibold text-slate-600 outline-none"
+                          placeholder={`Đường dẫn hình ảnh cho ${col.replace(/_/g, ' ')}...`}
+                        />
                       </div>
-                      <p className="text-[8px] font-semibold text-slate-400 italic">
-                        Format: `lang_code:text` (e.g. `ja:こんにちは`). Click "Save & Gen Audio" to generate.
-                      </p>
-                      <textarea 
-                        value={formData.others?.front_audio_content || ''}
-                        onChange={(e) => setFormData({
-                          ...formData,
-                          others: { ...formData.others, front_audio_content: e.target.value }
-                        })}
-                        className="w-full h-20 p-3 bg-slate-50/50 rounded-xl border border-slate-100 focus:ring-2 focus:ring-indigo-500 font-medium text-slate-700 transition-all resize-none text-xs outline-none"
-                        placeholder="ja:こんにちは"
-                      />
-                          <div className="space-y-2">
-                      <div className="flex items-center justify-between">
-                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Front Audio URL</label>
-                        {formData.audio && (
-                          <button
-                            type="button"
-                            onClick={() => {
-                              const audio = new Audio(formData.audio);
-                              audio.play().catch(e => console.error("Preview failed:", e));
-                            }}
-                            className="flex items-center gap-1 text-[9px] font-black uppercase text-indigo-600 hover:text-indigo-800 transition-all bg-indigo-50 px-2 py-1 rounded-lg"
-                            title="Play Front Audio"
-                          >
-                            <Volume2 className="w-3 h-3" />
-                            Test Audio
-                          </button>
-                        )}
-                      </div>
-                      <input 
-                        type="text"
-                        value={formData.audio || ''}
-                        onChange={(e) => setFormData({...formData, audio: e.target.value})}
-                        className="w-full p-3 bg-slate-50/50 rounded-xl border border-slate-100 focus:ring-2 focus:ring-indigo-500 text-xs font-semibold text-slate-600 outline-none"
-                        placeholder="e.g. /static/uploads/1/audio/1_front.mp3"
-                      />
-                    </div>
-                  </div>
-
-                  {/* Back Side Media & Audio */}
-                  <div className="space-y-4 bg-white p-4 rounded-2xl border border-slate-100/80">
-                    <span className="text-[9px] font-black text-indigo-500 uppercase tracking-wider block mb-1">Back Side</span>
-                    
-                    <div className="space-y-2">
-                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Back Image URL</label>
-                      <input 
-                        type="text"
-                        value={formData.others?.back_img || ''}
-                        onChange={(e) => setFormData({
-                          ...formData,
-                          others: { ...formData.others, back_img: e.target.value }
-                        })}
-                        className="w-full p-3 bg-slate-50/50 rounded-xl border border-slate-100 focus:ring-2 focus:ring-indigo-500 text-xs font-semibold text-slate-600 outline-none"
-                        placeholder="e.g. /static/uploads/1/images/def.jpg"
-                      />
-                    </div>
-
-                    <div className="space-y-2 pt-2 border-t border-slate-50">
-                      <div className="flex items-center justify-between">
-                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Back Audio Reading Script</label>
-                        {renderRegenButton('back')}
-                      </div>
-                      <p className="text-[8px] font-semibold text-slate-400 italic">
-                        Format: `lang_code:text` (e.g. `vi:xin chào`). Click "Save & Gen Audio" to generate.
-                      </p>
-                      <textarea 
-                        value={formData.others?.back_audio_content || ''}
-                        onChange={(e) => setFormData({
-                          ...formData,
-                          others: { ...formData.others, back_audio_content: e.target.value }
-                        })}
-                        className="w-full h-20 p-3 bg-slate-50/50 rounded-xl border border-slate-100 focus:ring-2 focus:ring-indigo-500 font-medium text-slate-700 transition-all resize-none text-xs outline-none"
-                        placeholder="vi:xin chào"
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between">
-                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Back Audio URL</label>
-                        {formData.others?.back_audio_url && (
-                          <button
-                            type="button"
-                            onClick={() => {
-                              const audio = new Audio(formData.others.back_audio_url);
-                              audio.play().catch(e => console.error("Preview failed:", e));
-                            }}
-                            className="flex items-center gap-1 text-[9px] font-black uppercase text-indigo-600 hover:text-indigo-800 transition-all bg-indigo-50 px-2 py-1 rounded-lg"
-                            title="Play Back Audio"
-                          >
-                            <Volume2 className="w-3 h-3" />
-                            Test Audio
-                          </button>
-                        )}
-                      </div>
-                      <input 
-                        type="text"
-                        value={formData.others?.back_audio_url || ''}
-                        onChange={(e) => setFormData({
-                          ...formData,
-                          others: { ...formData.others, back_audio_url: e.target.value }
-                        })}
-                        className="w-full p-3 bg-slate-50/50 rounded-xl border border-slate-100 focus:ring-2 focus:ring-indigo-500 text-xs font-semibold text-slate-600 outline-none"
-                        placeholder="e.g. /static/uploads/1/audio/1_back.mp3"
-                      />
-                    </div>                  </div>
+                    ))}
                   </div>
                 </div>
-              </div>
+              )}
 
-            </div>
+              {/* SECTION 4: AUDIO ASSETS */}
+              {audioCols.length > 0 && (
+                <div className="space-y-4 bg-slate-50/50 p-5 rounded-3xl border border-slate-100 text-left">
+                  <span className="text-[10px] font-black text-indigo-600 uppercase tracking-[0.2em] block mb-2">4. Phát âm & Âm thanh</span>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {audioCols.map(col => {
+                      const val = getFieldValue(col);
+                      const isScript = col.toLowerCase().includes('content') || col.toLowerCase().includes('script');
+                      const isFront = col.toLowerCase().includes('front') || (col.toLowerCase().includes('audio') && !col.toLowerCase().includes('back'));
+                      
+                      return (
+                        <div key={col} className="space-y-1.5">
+                          <div className="flex items-center justify-between">
+                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{col.replace(/_/g, ' ')}</label>
+                            {isScript ? (
+                              renderRegenButton(isFront ? 'front' : 'back')
+                            ) : (
+                              val && (
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    const audio = new Audio(val);
+                                    audio.play().catch(e => console.error("Preview failed:", e));
+                                  }}
+                                  className="flex items-center gap-1 text-[9px] font-black uppercase text-indigo-600 hover:text-indigo-800 transition-all bg-indigo-50 px-2 py-1 rounded-lg"
+                                  title="Play Audio"
+                                >
+                                  <Volume2 className="w-3 h-3" />
+                                  Nghe thử
+                                </button>
+                              )
+                            )}
+                          </div>
+                          {isScript ? (
+                            <textarea
+                              rows={2}
+                              value={val}
+                              onChange={(e) => setFieldValue(col, e.target.value)}
+                              className="w-full p-3 bg-white rounded-xl border border-slate-200/80 focus:ring-2 focus:ring-indigo-500 font-medium text-slate-700 transition-all resize-none text-xs outline-none"
+                              placeholder="Ví dụ ja:こんにちは"
+                            />
+                          ) : (
+                            <input
+                              type="text"
+                              value={val}
+                              onChange={(e) => setFieldValue(col, e.target.value)}
+                              className="w-full p-3 bg-white rounded-xl border border-slate-200/80 focus:ring-2 focus:ring-indigo-500 text-xs font-semibold text-slate-600 outline-none"
+                              placeholder="Đường dẫn file âm thanh..."
+                            />
+                          )}
+                        </div>
+                      )
+                    })}
+                  </div>
+                </div>
+              )}
+          </div>
             
             {/* Sticky Bottom Action Bar for Mobile & Desktop parity */}
             <div className="sticky bottom-0 bg-white/95 backdrop-blur-md pt-3 pb-3 z-10 border-t border-slate-100 flex items-center justify-end gap-2.5 shrink-0 px-4 mt-6">
