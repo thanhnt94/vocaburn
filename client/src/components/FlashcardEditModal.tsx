@@ -30,6 +30,7 @@ interface FlashcardEditModalProps {
   onSave: (updatedCard: any, addAnother?: boolean) => Promise<any>
   isSaving: boolean
   availableColumns?: string[]
+  practiceSettings?: any
 }
 
 // Known structured keys that are displayed in dedicated fields
@@ -48,6 +49,7 @@ export const FlashcardEditModal: React.FC<FlashcardEditModalProps> = ({
   onSave,
   isSaving,
   availableColumns = [],
+  practiceSettings = {},
 }) => {
   const [formData, setFormData] = useState<any>(null)
   const [customJsonText, setCustomJsonText] = useState('')
@@ -73,28 +75,40 @@ export const FlashcardEditModal: React.FC<FlashcardEditModalProps> = ({
            (formData?.mnemonic && formData.mnemonic.trim() !== '')
   }, [availableColumns, formData?.mnemonic])
 
-  const handleGenerateAIField = async (field: 'explanation' | 'hint' | 'mnemonic') => {
+  const handleGenerateAIField = async (field: string) => {
     if (!formData?.id) return;
     setIsGeneratingField(prev => ({ ...prev, [field]: true }));
     try {
       const deckId = formData.deck_id || formData.quiz_id;
-      const res = await axios.post(`/api/v1/deck/${deckId}/ask-ai`, {
-        question_id: formData.id,
-        field: field,
-        sync: true,
-        force: true
-      });
       
-      const generatedText = res.data[field === 'explanation' ? 'ai_explanation' : field];
-      if (generatedText) {
-        setFormData((prev: any) => ({
-          ...prev,
-          [field === 'explanation' ? 'ai_explanation' : field]: generatedText
-        }));
+      // Call the generic AI generator endpoint
+      await axios.post(`/api/v1/deck/${deckId}/cards/${formData.id}/generate-ai`, { field: field });
+      
+      // Fetch the updated card values from the server
+      const res = await axios.get(`/api/v1/deck/${deckId}/cards/${formData.id}`);
+      if (res.data) {
+        let parsedOthers: any = {}
+        if (res.data.others) {
+          try {
+            parsedOthers = typeof res.data.others === 'string' ? JSON.parse(res.data.others) : res.data.others
+          } catch (e) {
+            console.error("Failed to parse others field", e)
+          }
+        }
+        setFormData({
+          ...res.data,
+          others: {
+            back_img: '',
+            back_audio_url: '',
+            front_audio_content: '',
+            back_audio_content: '',
+            ...parsedOthers
+          }
+        });
       }
     } catch (e) {
       console.error(`Failed to generate AI ${field}`, e);
-      alert(`Failed to generate AI ${field}. Please verify AI services are enabled in your admin settings.`);
+      alert(`Gửi yêu cầu tạo AI cho ô ${field} thất bại.`);
     } finally {
       setIsGeneratingField(prev => ({ ...prev, [field]: false }));
     }
@@ -459,24 +473,40 @@ export const FlashcardEditModal: React.FC<FlashcardEditModalProps> = ({
                 {/* Dynamically detected custom fields */}
                 {availableColumns && availableColumns.filter(c => c !== 'front' && c !== 'back').length > 0 && (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2 pt-4 border-t border-slate-100">
-                    {availableColumns.filter(c => c !== 'front' && c !== 'back').map(col => (
-                      <div key={col} className="space-y-2">
-                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{col}</label>
-                        <input
-                          type="text"
-                          value={formData.others?.[col] || ''}
-                          onChange={(e) => setFormData({
-                            ...formData,
-                            others: {
-                              ...formData.others,
-                              [col]: e.target.value
-                            }
-                          })}
-                          className="w-full p-3 bg-white rounded-xl border border-slate-100 focus:ring-2 focus:ring-indigo-500 text-xs font-semibold text-slate-600 outline-none"
-                          placeholder={`Nhập ${col}...`}
-                        />
-                      </div>
-                    ))}
+                    {availableColumns.filter(c => c !== 'front' && c !== 'back').map(col => {
+                      const hasAi = practiceSettings?.ai_prompts?.some((p: any) => p.column === col || p.id === col);
+                      return (
+                        <div key={col} className="space-y-1.5">
+                          <div className="flex items-center justify-between">
+                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{col}</label>
+                            {hasAi && (
+                              <button
+                                type="button"
+                                onClick={() => handleGenerateAIField(col)}
+                                disabled={!formData?.id || isGeneratingField[col]}
+                                className="flex items-center gap-1 text-[9px] font-black uppercase tracking-wider text-indigo-600 bg-indigo-50 hover:bg-indigo-100 px-2 py-1 rounded-lg transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+                              >
+                                <Sparkles className="w-2.5 h-2.5" />
+                                {isGeneratingField[col] ? 'Generating...' : 'Gen AI'}
+                              </button>
+                            )}
+                          </div>
+                          <textarea
+                            rows={2}
+                            value={formData.others?.[col] || ''}
+                            onChange={(e) => setFormData({
+                              ...formData,
+                              others: {
+                                ...formData.others,
+                                [col]: e.target.value
+                              }
+                            })}
+                            className="w-full p-3 bg-white rounded-xl border border-slate-100 focus:ring-2 focus:ring-indigo-500 text-xs font-semibold text-slate-600 outline-none resize-none"
+                            placeholder={`Nhập ${col}...`}
+                          />
+                        </div>
+                      )
+                    })}
                   </div>
                 )}
               </div>
@@ -616,39 +646,14 @@ export const FlashcardEditModal: React.FC<FlashcardEditModalProps> = ({
                 </div>
               </div>
 
-              {/* SECTION 4: CUSTOM METADATA */}
-              <div className="space-y-4 bg-slate-50/50 p-6 rounded-3xl border border-slate-100 text-left">
-                <span className="text-[10px] font-black text-indigo-600 uppercase tracking-[0.2em] block mb-2">4. Custom Metadata (JSON)</span>
-                <div className="space-y-2">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Extra Properties</label>
-                  <textarea 
-                    value={customJsonText}
-                    onChange={(e) => handleCustomJsonChange(e.target.value)}
-                    className={cn(
-                      "w-full h-32 p-4 bg-white rounded-2xl border focus:ring-2 font-mono text-xs text-slate-600 transition-all outline-none resize-none",
-                      jsonError
-                        ? "border-red-300 focus:ring-red-400"
-                        : "border-slate-100 focus:ring-indigo-500"
-                    )}
-                    placeholder='e.g. { "custom_mode": "vocab", "tags": ["n3", "nouns"] }'
-                  />
-                  {jsonError ? (
-                    <p className="text-[9px] font-bold text-red-500">{jsonError}</p>
-                  ) : (
-                    <p className="text-[9px] font-medium text-slate-400">
-                      Any extra fields stored in the card's metadata. Known fields (audio scripts, image URLs) are excluded.
-                    </p>
-                  )}
-                </div>
-              </div>
             </div>
             
             {/* Sticky Bottom Action Bar for Mobile & Desktop parity */}
-            <div className="sticky bottom-0 bg-white/95 backdrop-blur-md pt-4 pb-2 z-10 border-t border-slate-100/80 flex items-center justify-end gap-3 -mx-6 px-6 md:-mx-10 md:px-10 mt-6">
+            <div className="sticky bottom-0 bg-white/95 backdrop-blur-md pt-3 pb-3 z-10 border-t border-slate-100 flex items-center justify-end gap-2.5 shrink-0 px-4 mt-6">
               <button 
                 type="button"
                 onClick={onClose} 
-                className="flex-1 md:flex-none px-6 h-12 md:h-11 bg-slate-50 hover:bg-slate-100 text-slate-500 border border-slate-200/60 rounded-xl text-xs font-black uppercase tracking-wider transition-all active:scale-95 flex items-center justify-center gap-1.5"
+                className="px-4 h-9 bg-slate-50 hover:bg-slate-100 text-slate-500 border border-slate-200/50 rounded-xl text-xs font-bold uppercase tracking-wider transition-all active:scale-95 flex items-center justify-center gap-1.5"
               >
                 Hủy / Đóng
               </button>
@@ -658,7 +663,7 @@ export const FlashcardEditModal: React.FC<FlashcardEditModalProps> = ({
                   type="button"
                   onClick={() => handleCommit(true)} 
                   disabled={isSaving} 
-                  className="flex-[2] md:flex-none px-6 h-12 md:h-11 bg-indigo-50 hover:bg-indigo-100 text-indigo-600 text-xs font-black rounded-xl uppercase tracking-widest border border-indigo-200 transition-all active:scale-95 flex items-center justify-center gap-2"
+                  className="px-4 h-9 bg-indigo-50 hover:bg-indigo-100 text-indigo-600 text-xs font-bold rounded-xl uppercase tracking-widest border border-indigo-200 transition-all active:scale-95 flex items-center justify-center gap-1.5"
                 >
                   {isSaving ? "Đang lưu..." : "Lưu & Thêm tiếp"}
                 </button>
@@ -668,9 +673,9 @@ export const FlashcardEditModal: React.FC<FlashcardEditModalProps> = ({
                 type="button"
                 onClick={() => handleCommit(false)} 
                 disabled={isSaving} 
-                className="flex-[2] md:flex-none px-8 h-12 md:h-11 bg-gradient-to-r from-indigo-500 to-purple-600 text-white text-xs font-black rounded-xl uppercase tracking-widest shadow-lg shadow-indigo-100 hover:shadow-xl transition-all active:scale-95 flex items-center justify-center gap-2"
+                className="px-6 h-9 bg-gradient-to-r from-indigo-500 to-purple-600 text-white text-xs font-bold rounded-xl uppercase tracking-widest shadow-md hover:shadow-lg transition-all active:scale-95 flex items-center justify-center gap-1.5"
               >
-                {isSaving ? "Đang lưu..." : <><Save className="w-4 h-4" /> {formData.id ? "Lưu thay đổi" : "Lưu thẻ"}</>}
+                {isSaving ? "Đang lưu..." : <><Save className="w-3.5 h-3.5" /> {formData.id ? "Lưu thay đổi" : "Lưu thẻ"}</>}
               </button>
             </div>
           </motion.div>

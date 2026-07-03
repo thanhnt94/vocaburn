@@ -776,6 +776,7 @@ const EditFlashcards = () => {
         onSave={handleUpdate}
         isSaving={isSaving}
         availableColumns={availableColumns}
+        practiceSettings={practiceSettings}
       />
 
       {/* Floating Bottom Quick Add Panel (Optimized for One-Handed Mobile Use) */}
