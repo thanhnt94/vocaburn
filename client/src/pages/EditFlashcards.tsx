@@ -47,7 +47,10 @@ const EditFlashcards = () => {
   const [isScrolled, setIsScrolled] = useState(false)
   const [isQuickAddOpen, setIsQuickAddOpen] = useState(true)
   const [isConfigModalOpen, setIsConfigModalOpen] = useState(false)
-  const [configTab, setConfigTab] = useState<'display' | 'manage'>('display')
+  const [configTab, setConfigTab] = useState<'display' | 'filter' | 'manage'>('display')
+  const [sortBy, setSortBy] = useState<string>('id_asc')
+  const [filterType, setFilterType] = useState<string>('all')
+  const [filterCol, setFilterCol] = useState<string>('')
   const [toastMessage, setToastMessage] = useState<string | null>(null)
   const [isPasteModalOpen, setIsPasteModalOpen] = useState(false)
   const [pasteText, setPasteText] = useState('')
@@ -163,7 +166,14 @@ const EditFlashcards = () => {
     setIsLoading(true)
     try {
       const res = await axios.get(`/api/v1/deck/${id}/flashcards`, {
-        params: { page, size: 50, search }
+        params: { 
+          page, 
+          size: 50, 
+          search,
+          sort: sortBy,
+          filter: filterType,
+          filter_col: filterCol
+        }
       })
       setFlashcards(res.data.flashcards || res.data.questions || [])
       setTotal(res.data.total)
@@ -185,7 +195,7 @@ const EditFlashcards = () => {
 
   useEffect(() => {
     fetchFlashcards()
-  }, [id, page, search])
+  }, [id, page, search, sortBy, filterType, filterCol])
 
   const openEditModal = (q: any) => {
     let parsedOthers: any = {}
@@ -1091,7 +1101,7 @@ orange	quả cam"
               </div>
 
               {/* Tabs Selector */}
-              <div className="flex bg-slate-100 p-1 rounded-xl shrink-0">
+              <div className="flex bg-slate-100 p-1 rounded-xl shrink-0 gap-1">
                 <button
                   type="button"
                   onClick={() => setConfigTab('display')}
@@ -1103,6 +1113,18 @@ orange	quả cam"
                   )}
                 >
                   Hiển thị cột
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setConfigTab('filter')}
+                  className={cn(
+                    "flex-1 py-2 text-center text-[10px] font-black uppercase tracking-wider rounded-lg transition-all",
+                    configTab === 'filter' 
+                      ? "bg-white text-indigo-600 shadow-sm" 
+                      : "text-slate-500 hover:text-slate-800"
+                  )}
+                >
+                  Lọc & Sắp xếp
                 </button>
                 <button
                   type="button"
@@ -1120,6 +1142,89 @@ orange	quả cam"
 
               {/* Tab Contents */}
               <div className="flex-1 overflow-y-auto custom-scrollbar space-y-4 pr-1 py-2">
+                {configTab === 'filter' && (
+                  <div className="space-y-4 animate-in fade-in duration-200">
+                    {/* Sort Options */}
+                    <div>
+                      <span className="text-[10px] font-black text-slate-800 uppercase tracking-wider block mb-2">Sắp xếp thẻ học:</span>
+                      <div className="grid grid-cols-2 gap-2">
+                        {[
+                          { value: 'id_asc', label: 'Thứ tự ban đầu' },
+                          { value: 'id_desc', label: 'Mới nhất trước' },
+                          { value: 'az', label: 'Tên A → Z' },
+                          { value: 'za', label: 'Tên Z → A' }
+                        ].map(opt => (
+                          <button
+                            key={opt.value}
+                            type="button"
+                            onClick={() => { setSortBy(opt.value); setPage(1); }}
+                            className={cn(
+                              "h-9 px-3 border rounded-xl text-[10px] font-bold uppercase transition-all text-left flex items-center justify-between",
+                              sortBy === opt.value
+                                ? "bg-indigo-50 border-indigo-200 text-indigo-700 shadow-sm"
+                                : "bg-slate-50/50 border-slate-200 text-slate-600 hover:bg-slate-100"
+                            )}
+                          >
+                            <span>{opt.label}</span>
+                            {sortBy === opt.value && <div className="w-1.5 h-1.5 rounded-full bg-indigo-600" />}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Filter Options */}
+                    <div className="pt-3 border-t border-slate-50 space-y-3">
+                      <div>
+                        <span className="text-[10px] font-black text-slate-800 uppercase tracking-wider block mb-2">Lọc theo trạng thái:</span>
+                        <div className="grid grid-cols-3 gap-2">
+                          {[
+                            { value: 'all', label: 'Tất cả thẻ' },
+                            { value: 'duplicate', label: 'Thẻ trùng lặp' },
+                            { value: 'missing_column', label: 'Thiếu cột...' }
+                          ].map(opt => (
+                            <button
+                              key={opt.value}
+                              type="button"
+                              onClick={() => {
+                                setFilterType(opt.value);
+                                setPage(1);
+                                if (opt.value !== 'missing_column') setFilterCol('');
+                                else if (!filterCol) setFilterCol(availableColumns[0] || 'front');
+                              }}
+                              className={cn(
+                                "h-9 px-2 border rounded-xl text-[9px] font-black uppercase tracking-wider transition-all text-center flex flex-col items-center justify-center gap-1",
+                                filterType === opt.value
+                                  ? "bg-indigo-50 border-indigo-200 text-indigo-700 shadow-sm"
+                                  : "bg-slate-50/50 border-slate-200 text-slate-600 hover:bg-slate-100"
+                              )}
+                            >
+                              <span>{opt.label}</span>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      {filterType === 'missing_column' && (
+                        <div className="space-y-1.5 animate-in slide-in-from-top-2 duration-150">
+                          <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest pl-1">Chọn cột bị thiếu dữ liệu:</label>
+                          <select
+                            value={filterCol}
+                            onChange={(e) => { setFilterCol(e.target.value); setPage(1); }}
+                            className="w-full bg-slate-50 border border-slate-250/60 rounded-xl px-3.5 h-10 text-[10px] font-black text-slate-600 outline-none cursor-pointer hover:border-indigo-500 transition-all uppercase tracking-wider"
+                          >
+                            {availableColumns.map(col => (
+                              <option key={col} value={col}>{col.toUpperCase().replace(/_/g, ' ')}</option>
+                            ))}
+                          </select>
+                          <p className="text-[8px] font-semibold text-slate-450 uppercase tracking-wide mt-1 italic pl-1">
+                            * Hệ thống sẽ chỉ lọc ra những thẻ chưa nhập dữ liệu cho cột này để bạn dễ điền thông tin.
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+
                 {configTab === 'display' && (
                   <div className="space-y-4 animate-in fade-in duration-200">
                     <div>

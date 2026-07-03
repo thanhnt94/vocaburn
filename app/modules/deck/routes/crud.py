@@ -316,10 +316,43 @@ async def validate_deck(file: UploadFile = File(...)):
 @router.get("/{deck_id}/cards")
 async def get_deck_cards(deck_id: int, request: Request, page: int = 1, size: int = 50, search: str = "", db: AsyncSession = Depends(get_db)):
     from app.modules.deck.models import Flashcard
+    from sqlalchemy import or_, and_, func, cast, String
     
-    query = select(Flashcard).where(Flashcard.deck_id == deck_id).order_by(Flashcard.id.asc())
+    sort_by = request.query_params.get("sort", "id_asc")
+    filter_type = request.query_params.get("filter", "all")
+    filter_col = request.query_params.get("filter_col", "")
+    
+    query = select(Flashcard).where(Flashcard.deck_id == deck_id)
     if search:
         query = query.filter(Flashcard.content.ilike(f"%{search}%"))
+        
+    if filter_type == "duplicate":
+        dup_sub = select(Flashcard.content).where(Flashcard.deck_id == deck_id).group_by(Flashcard.content).having(func.count(Flashcard.id) > 1).subquery()
+        query = query.join(dup_sub, Flashcard.content == dup_sub.c.content)
+    elif filter_type == "missing_column" and filter_col:
+        if filter_col == "front":
+            query = query.filter(or_(Flashcard.content == None, Flashcard.content == ""))
+        elif filter_col == "back":
+            query = query.filter(or_(Flashcard.explanation == None, Flashcard.explanation == ""))
+        elif filter_col in ("front_audio_content", "back_audio_content", "front_audio_url", "back_audio_url", "front_img", "back_img"):
+            col_attr = getattr(Flashcard, filter_col, None)
+            if col_attr is not None:
+                query = query.filter(or_(col_attr == None, col_attr == ""))
+        else:
+            query = query.filter(or_(
+                Flashcard.others[filter_col] == None,
+                cast(Flashcard.others[filter_col], String) == '""',
+                cast(Flashcard.others[filter_col], String) == ''
+            ))
+            
+    if sort_by == "az":
+        query = query.order_by(Flashcard.content.asc())
+    elif sort_by == "za":
+        query = query.order_by(Flashcard.content.desc())
+    elif sort_by == "id_desc":
+        query = query.order_by(Flashcard.id.desc())
+    else:
+        query = query.order_by(Flashcard.id.asc())
     
     # Count total for pagination
     count_res = await db.execute(select(func.count()).select_from(query.subquery()))

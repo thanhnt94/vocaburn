@@ -113,7 +113,7 @@ async def get_practice_settings(request: Request, deck_id: int, db: AsyncSession
         "creator_settings": creator_settings,
         "user_settings": migrate_practice_settings(user_sett.settings) if user_sett else None,
         "available_columns": sorted(list(available_cols)),
-        "deck_name": deck.name
+        "deck_name": deck.title
     }
 
 @router.post("/{deck_id}/practice-settings")
