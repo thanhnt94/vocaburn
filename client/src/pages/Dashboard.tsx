@@ -673,7 +673,7 @@ function TodayFocusWidget({
 
   return (
     <div className={cn(
-      "rounded-[2.5rem] p-6 text-left mb-5 flex-shrink-0 transition-all duration-700 bg-white/40 backdrop-blur-md border border-white/40",
+      "rounded-[1.5rem] md:rounded-[2.5rem] p-3 md:p-6 text-left mb-5 flex-shrink-0 transition-all duration-700 bg-white/40 backdrop-blur-md border border-white/40",
       isAllGoalsMet 
         ? "shadow-[0_20px_50px_rgba(16,185,129,0.05)] ring-2 ring-emerald-400/20" 
         : "shadow-sm shadow-slate-100/50"
@@ -719,7 +719,7 @@ function TodayFocusWidget({
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 relative z-10 items-start">
         
         {/* Column 1: Overall Progress circles (lg:col-span-5) */}
-        <div className="lg:col-span-5 bg-white border border-slate-100/80 rounded-3xl p-5 shadow-sm shadow-slate-100/10 flex flex-col gap-4">
+        <div className="lg:col-span-5 bg-white border border-slate-100/80 rounded-[1.5rem] md:rounded-3xl p-3.5 md:p-5 shadow-sm shadow-slate-100/10 flex flex-col gap-3 md:gap-4">
           <div className="flex items-center justify-between pb-2 border-b border-slate-50">
             <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Overall Progress</span>
             <span className={cn(
@@ -730,9 +730,9 @@ function TodayFocusWidget({
             </span>
           </div>
 
-          <div className="grid grid-cols-3 gap-2">
+          <div className="grid grid-cols-3 gap-1 md:gap-2">
             {/* Time Target */}
-            <div className="flex flex-col items-center p-2.5 bg-slate-50/50 rounded-2xl border border-slate-100/30">
+            <div className="flex flex-col items-center p-1.5 md:p-2.5 bg-slate-50/50 rounded-[1.25rem] md:rounded-2xl border border-slate-100/30">
               <div className="relative w-11 h-11 flex-shrink-0 flex items-center justify-center rounded-full bg-white shadow-sm">
                 <svg className="w-11 h-11 transform -rotate-90 drop-shadow-[0_2px_4px_rgba(99,102,241,0.1)]">
                   <circle cx="50%" cy="50%" r="38%" className="stroke-slate-100 fill-none" strokeWidth="2.5" />
@@ -758,7 +758,7 @@ function TodayFocusWidget({
             </div>
 
             {/* Reviewed Target */}
-            <div className="flex flex-col items-center p-2.5 bg-slate-50/50 rounded-2xl border border-slate-100/30">
+            <div className="flex flex-col items-center p-1.5 md:p-2.5 bg-slate-50/50 rounded-[1.25rem] md:rounded-2xl border border-slate-100/30">
               <div className="relative w-11 h-11 flex-shrink-0 flex items-center justify-center rounded-full bg-white shadow-sm">
                 <svg className="w-11 h-11 transform -rotate-90 drop-shadow-[0_2px_4px_rgba(16,185,129,0.1)]">
                   <circle cx="50%" cy="50%" r="38%" className="stroke-slate-100 fill-none" strokeWidth="2.5" />
@@ -784,7 +784,7 @@ function TodayFocusWidget({
             </div>
 
             {/* New Target */}
-            <div className="flex flex-col items-center p-2.5 bg-slate-50/50 rounded-2xl border border-slate-100/30">
+            <div className="flex flex-col items-center p-1.5 md:p-2.5 bg-slate-50/50 rounded-[1.25rem] md:rounded-2xl border border-slate-100/30">
               <div className="relative w-11 h-11 flex-shrink-0 flex items-center justify-center rounded-full bg-white shadow-sm">
                 <svg className="w-11 h-11 transform -rotate-90 drop-shadow-[0_2px_4px_rgba(245,158,11,0.15)]">
                   <circle cx="50%" cy="50%" r="38%" className="stroke-slate-100 fill-none" strokeWidth="2.5" />
@@ -833,7 +833,7 @@ function TodayFocusWidget({
                 const newCardPct = goal.daily_new_card_target > 0 ? Math.min(100, Math.round((goal.actual_new_cards_completed / goal.daily_new_card_target) * 100)) : 0
 
                 return (
-                  <div key={goal.goal_id} className="p-4 rounded-3xl border-none bg-slate-50/55 hover:bg-slate-50 hover:shadow-[0_8px_30px_rgb(0,0,0,0.02)] transition-all duration-300 flex flex-col gap-3 text-left relative overflow-hidden">
+                  <div key={goal.goal_id} className="p-3 md:p-4 rounded-[1.5rem] md:rounded-3xl border-none bg-slate-50/55 hover:bg-slate-50 hover:shadow-[0_8px_30px_rgb(0,0,0,0.02)] transition-all duration-300 flex flex-col gap-2.5 md:gap-3 text-left relative overflow-hidden">
                     <div className="flex items-center justify-between gap-3">
                       <div className="min-w-0">
                         <h4 className="text-xs sm:text-sm font-black text-slate-800 truncate leading-snug">{goal.quiz_title}</h4>
@@ -865,7 +865,7 @@ function TodayFocusWidget({
                       </button>
                     </div>
 
-                    <div className="grid grid-cols-3 gap-2 bg-white/70 p-2.5 rounded-2xl border-none shadow-sm shadow-slate-100/40">
+                    <div className="grid grid-cols-3 gap-1 md:gap-2 bg-white/70 p-2 md:p-2.5 rounded-[1.25rem] md:rounded-2xl border-none shadow-sm shadow-slate-100/40">
                       <div className="flex items-center gap-2">
                         <div className="relative w-8 h-8 flex-shrink-0 flex items-center justify-center rounded-full bg-slate-50 border border-slate-100">
                           <svg className="w-8 h-8 transform -rotate-90">
@@ -942,7 +942,7 @@ function TodayFocusWidget({
                       </div>
                     </div>
 
-                    <div className="flex items-center justify-between border-t border-slate-100/60 pt-3 mt-1">
+                    <div className="flex flex-col gap-2.5 sm:flex-row sm:items-center sm:justify-between border-t border-slate-100/60 pt-3 mt-1">
                       {(() => {
                         const d = new Date()
                         d.setDate(d.getDate() + goal.days_remaining_est)
@@ -954,7 +954,7 @@ function TodayFocusWidget({
                         )
                       })()}
 
-                      <div className="flex items-center gap-2">
+                      <div className="flex flex-wrap items-center gap-1.5 justify-end w-full sm:w-auto">
                         <button
                           onClick={() => {
                             if (hasNewCards) {
