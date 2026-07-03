@@ -317,7 +317,7 @@ async def validate_deck(file: UploadFile = File(...)):
 async def get_deck_cards(deck_id: int, request: Request, page: int = 1, size: int = 50, search: str = "", db: AsyncSession = Depends(get_db)):
     from app.modules.deck.models import Flashcard
     
-    query = select(Flashcard).where(Flashcard.deck_id == deck_id)
+    query = select(Flashcard).where(Flashcard.deck_id == deck_id).order_by(Flashcard.id.asc())
     if search:
         query = query.filter(Flashcard.content.ilike(f"%{search}%"))
     

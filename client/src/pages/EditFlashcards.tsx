@@ -50,6 +50,19 @@ const EditFlashcards = () => {
   const [quickAddValues, setQuickAddValues] = useState<Record<string, string>>({})
   const [visibleCols, setVisibleCols] = useState<string[]>(['front', 'back'])
 
+  const shouldScrollToBottomRef = React.useRef(false)
+
+  const contentCounts = React.useMemo(() => {
+    const counts: Record<string, number> = {}
+    flashcards.forEach(c => {
+      const text = (c.content || '').trim().toLowerCase()
+      if (text) {
+        counts[text] = (counts[text] || 0) + 1
+      }
+    })
+    return counts
+  }, [flashcards])
+
   useEffect(() => {
     if (availableColumns.length > 0) {
       const defaultCols = []
@@ -130,6 +143,15 @@ const EditFlashcards = () => {
       })
       setFlashcards(res.data.flashcards || res.data.questions || [])
       setTotal(res.data.total)
+      if (shouldScrollToBottomRef.current) {
+        setTimeout(() => {
+          window.scrollTo({
+            top: document.documentElement.scrollHeight,
+            behavior: 'smooth'
+          })
+          shouldScrollToBottomRef.current = false
+        }, 150)
+      }
     } catch (err) {
       setError('Failed to fetch flashcards')
     } finally {
@@ -233,8 +255,15 @@ const EditFlashcards = () => {
         })
 
         savedCard = res.data.card
-        setFlashcards([savedCard, ...flashcards].slice(0, 50))
-        setTotal(prev => prev + 1)
+        const newTotal = total + 1
+        const lastPage = Math.max(1, Math.ceil(newTotal / 50))
+        shouldScrollToBottomRef.current = true
+        setTotal(newTotal)
+        if (page === lastPage) {
+          fetchFlashcards()
+        } else {
+          setPage(lastPage)
+        }
       }
 
       if (!addAnother) {
@@ -360,8 +389,15 @@ const EditFlashcards = () => {
       })
 
       const savedCard = res.data.card
-      setFlashcards(prev => [savedCard, ...prev].slice(0, 50))
-      setTotal(prev => prev + 1)
+      const newTotal = total + 1
+      const lastPage = Math.max(1, Math.ceil(newTotal / 50))
+      shouldScrollToBottomRef.current = true
+      setTotal(newTotal)
+      if (page === lastPage) {
+        fetchFlashcards()
+      } else {
+        setPage(lastPage)
+      }
       
       setQuickAddValues({})
       
@@ -590,11 +626,14 @@ const EditFlashcards = () => {
                   <Zap className="w-8 h-8 text-indigo-600 animate-pulse mx-auto" />
                </div>
             ) : flashcards.map((q, idx) => {
+               const textNormalized = (q.content || '').trim().toLowerCase()
+               const isDuplicate = textNormalized ? (contentCounts[textNormalized] > 1) : false
                return (
                   <div 
                     key={q.id}
                     className={cn(
                       "bg-white rounded-[2.2rem] border p-6 transition-all duration-300 shadow-sm space-y-4 hover:shadow-md",
+                      isDuplicate ? "border-rose-200 bg-rose-50/20 shadow-rose-100/30" :
                       q.isDirty ? "border-amber-200 bg-amber-50/5 shadow-amber-100/50" : "border-slate-100"
                     )}
                   >
@@ -602,6 +641,9 @@ const EditFlashcards = () => {
                      <div className="flex items-center justify-between border-b border-slate-50 pb-3">
                         <div className="flex items-center gap-3">
                            <span className="text-[10px] font-black text-slate-300 italic">#{(page-1)*50 + idx + 1}</span>
+                           {isDuplicate && (
+                              <span className="px-2.5 py-0.5 rounded-full bg-rose-100 text-rose-800 text-[8px] font-black uppercase tracking-wider tracking-widest animate-pulse">Trùng lặp</span>
+                           )}
                            {q.isDirty && (
                               <span className="px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-800 text-[8px] font-black uppercase tracking-wider tracking-widest animate-pulse">Chưa lưu</span>
                            )}
@@ -689,7 +731,7 @@ const EditFlashcards = () => {
       </div>
 
          {/* Full-width Numeric Pagination - White Theme */}
-         <div className="fixed bottom-[72px] md:bottom-0 left-0 right-0 z-[110] bg-white/95 backdrop-blur-xl border-t border-slate-100 px-4 py-2 shadow-[0_-10px_30px_rgba(0,0,0,0.03)]">
+         <div className="fixed bottom-[60px] md:bottom-0 left-0 right-0 z-[110] bg-white/95 backdrop-blur-xl border-t border-slate-100 px-4 py-2 shadow-[0_-10px_30px_rgba(0,0,0,0.03)]">
             <div className="max-w-[95%] xl:max-w-[98%] mx-auto flex items-center justify-between gap-4">
                <button 
                  disabled={page === 1}

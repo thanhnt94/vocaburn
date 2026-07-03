@@ -42,7 +42,7 @@ export default function Layout() {
     <div className={cn(
       "min-h-screen flex flex-col",
       isLoggedIn 
-        ? (isDashboard ? "pb-24 md:pb-0 md:min-h-0 md:h-screen md:w-screen md:overflow-hidden" : "pb-24 md:pb-0")
+        ? (isDashboard ? "pb-20 md:pb-0 md:min-h-0 md:h-screen md:w-screen md:overflow-hidden" : "pb-20 md:pb-0")
         : ""
     )}>
 
@@ -146,8 +146,8 @@ export default function Layout() {
 
       {/* RemiNote-Style Mobile Bottom Nav */}
       {isLoggedIn && (
-        <div className="fixed bottom-0 left-0 right-0 z-[120] md:hidden bg-white/80 backdrop-blur-2xl border-t border-slate-100 px-6 py-3">
-          <nav className="flex items-center justify-between max-w-md mx-auto h-16">
+        <div className="fixed bottom-0 left-0 right-0 z-[120] md:hidden bg-white/80 backdrop-blur-2xl border-t border-slate-100 px-4 py-1.5">
+          <nav className="flex items-center justify-between max-w-md mx-auto h-12">
             {navItems.filter(item => item.label !== 'Admin').map((item, idx) => {
               const Icon = item.icon
               const isActive = location.pathname === item.path
@@ -156,17 +156,17 @@ export default function Layout() {
                 <Link 
                   key={item.path}
                   to={item.path} 
-                  className="relative flex items-center justify-center w-14 h-14"
+                  className="relative flex items-center justify-center w-11 h-11"
                 >
                   {isActive && (
                     <motion.div 
                       layoutId="navActiveSquircle"
-                      className="absolute inset-0 bg-indigo-600 rounded-[1.5rem] shadow-lg shadow-indigo-200"
+                      className="absolute inset-0 bg-indigo-600 rounded-2xl shadow-lg shadow-indigo-200"
                       transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
                     />
                   )}
                   <Icon className={cn(
-                    "w-6 h-6 relative z-10 transition-all duration-300",
+                    "w-5 h-5 relative z-10 transition-all duration-300",
                     isActive ? "text-white scale-110" : "text-slate-400"
                   )} />
                 </Link>
