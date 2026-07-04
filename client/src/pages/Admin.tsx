@@ -1153,9 +1153,9 @@ export default function Admin() {
                         }}
                         className="w-full bg-[#0d1321] border border-white/10 rounded-xl px-4 py-3.5 text-white font-bold focus:outline-none focus:border-indigo-500 transition-all text-sm cursor-pointer"
                       >
-                        <option value="" className="bg-[#0d1321] text-slate-500 font-semibold">-- Chọn bộ thẻ --</option>
+                        <option value="" style={{ color: '#94a3b8', backgroundColor: '#0d1321' }}>-- Chọn bộ thẻ --</option>
                         {adminDecks.map((deck) => (
-                          <option key={deck.id} value={deck.id.toString()} className="bg-[#0d1321] text-white font-semibold">
+                          <option key={deck.id} value={deck.id.toString()} style={{ color: '#ffffff', backgroundColor: '#0d1321' }} className="font-semibold">
                             {deck.name}
                           </option>
                         ))}
@@ -1170,13 +1170,13 @@ export default function Admin() {
                         onChange={(e) => setSelectedImageSourceField(e.target.value)}
                         className="w-full bg-[#0d1321] border border-white/10 rounded-xl px-4 py-3.5 text-white font-bold focus:outline-none focus:border-indigo-500 transition-all text-sm cursor-pointer"
                       >
-                        <option value="front" className="bg-[#0d1321] text-white font-semibold">Mặt Trước (Word)</option>
-                        <option value="back" className="bg-[#0d1321] text-white font-semibold">Mặt Sau (Definition)</option>
+                        <option value="front" style={{ color: '#ffffff', backgroundColor: '#0d1321' }} className="font-semibold">Mặt Trước (Word)</option>
+                        <option value="back" style={{ color: '#ffffff', backgroundColor: '#0d1321' }} className="font-semibold">Mặt Sau (Definition)</option>
                         {(() => {
                           const currentDeck = adminDecks.find(d => d.id.toString() === selectedDeckId);
                           const customCols = currentDeck?.practice_settings?.custom_columns || [];
                           return customCols.map((c: string) => (
-                            <option key={c} value={c} className="bg-[#0d1321] text-white font-semibold">{c}</option>
+                            <option key={c} value={c} style={{ color: '#ffffff', backgroundColor: '#0d1321' }} className="font-semibold">{c}</option>
                           ));
                         })()}
                       </select>
@@ -1196,13 +1196,13 @@ export default function Admin() {
                         }}
                         className="w-full bg-[#0d1321] border border-white/10 rounded-xl px-4 py-3.5 text-white font-bold focus:outline-none focus:border-indigo-500 transition-all text-sm cursor-pointer"
                       >
-                        <option value="front_img" className="bg-[#0d1321] text-white font-semibold">front_img (Ảnh mặt trước)</option>
-                        <option value="back_img" className="bg-[#0d1321] text-white font-semibold">back_img (Ảnh mặt sau)</option>
+                        <option value="front_img" style={{ color: '#ffffff', backgroundColor: '#0d1321' }} className="font-semibold">front_img (Ảnh mặt trước)</option>
+                        <option value="back_img" style={{ color: '#ffffff', backgroundColor: '#0d1321' }} className="font-semibold">back_img (Ảnh mặt sau)</option>
                         {(() => {
                           const currentDeck = adminDecks.find(d => d.id.toString() === selectedDeckId);
                           const customCols = currentDeck?.practice_settings?.custom_columns || [];
                           return customCols.map((c: string) => (
-                            <option key={c} value={c} className="bg-[#0d1321] text-white font-semibold">{c}</option>
+                            <option key={c} value={c} style={{ color: '#ffffff', backgroundColor: '#0d1321' }} className="font-semibold">{c}</option>
                           ));
                         })()}
                       </select>
