@@ -617,6 +617,10 @@ async def create_card(request: Request, deck_id: int, data: dict, db: AsyncSessi
     if not (is_owner or is_collaborator or user_id == 1 or is_admin):
         return JSONResponse(status_code=403, content={"error": "No permission to add cards to this deck"})
         
+    from .media_resolver import get_sso_server_url, unresolve_card_dict
+    sso_url = await get_sso_server_url(db)
+    unresolve_card_dict(data, sso_url)
+
     content = data.get("content", "").strip()
     explanation = data.get("explanation", "").strip()
     if not content:
@@ -675,6 +679,10 @@ async def update_card(card_id: int, data: dict, db: AsyncSession = Depends(get_d
     result = await db.execute(select(Flashcard).where(Flashcard.id == card_id))
     card = result.scalar_one_or_none()
     if not card: return JSONResponse(status_code=404, content={"error": "Card not found"})
+    
+    from .media_resolver import get_sso_server_url, unresolve_card_dict
+    sso_url = await get_sso_server_url(db)
+    unresolve_card_dict(data, sso_url)
     
     if "content" in data: card.content = data["content"]
     if "explanation" in data: card.explanation = data["explanation"]

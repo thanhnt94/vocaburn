@@ -34,3 +34,35 @@ def resolve_card_dict(c_dict: dict, sso_url: str) -> dict:
             if field in others:
                 others[field] = resolve_central_url(others[field], sso_url)
     return c_dict
+
+def unresolve_central_url(url: str, sso_url: str) -> str:
+    if not url or not sso_url:
+        return url
+    sso_url_clean = sso_url.rstrip("/")
+    # Check with sso url
+    if url.startswith(f"{sso_url_clean}/static/uploads/media/"):
+        filename = url[len(f"{sso_url_clean}/static/uploads/media/"):]
+        return f"central-media://{filename}"
+    if url.startswith(f"{sso_url_clean}/static/uploads/tts/"):
+        filename = url[len(f"{sso_url_clean}/static/uploads/tts/"):]
+        return f"central-tts://{filename}"
+    # Fallback to check relative paths if sent by frontend
+    if url.startswith("/static/uploads/media/"):
+        filename = url[len("/static/uploads/media/"):]
+        return f"central-media://{filename}"
+    if url.startswith("/static/uploads/tts/"):
+        filename = url[len("/static/uploads/tts/"):]
+        return f"central-tts://{filename}"
+    return url
+
+def unresolve_card_dict(c_dict: dict, sso_url: str) -> dict:
+    for field in ["front_audio_url", "back_audio_url", "front_img", "back_img"]:
+        if field in c_dict and isinstance(c_dict[field], str):
+            c_dict[field] = unresolve_central_url(c_dict[field], sso_url)
+    
+    others = c_dict.get("others")
+    if isinstance(others, dict):
+        for field in ["front_audio_url", "back_audio_url", "front_img", "back_img"]:
+            if field in others and isinstance(others[field], str):
+                others[field] = unresolve_central_url(others[field], sso_url)
+    return c_dict
