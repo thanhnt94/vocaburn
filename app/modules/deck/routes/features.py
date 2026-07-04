@@ -857,6 +857,92 @@ async def tts_queue_callback(data: dict, db: AsyncSession = Depends(get_db)):
     logger.info(f"[TTS CALLBACK SUCCESS] Updated card {card_id} {face} audio via CentralAuth Queue Callback.")
     return {"status": "ok"}
 
+@router.post("/image-callback")
+async def image_queue_callback(data: dict, db: AsyncSession = Depends(get_db)):
+    task_id = data.get("id")
+    status = data.get("status")
+    result = data.get("result")
+    extra_data_str = data.get("extra_data")
+    
+    if status != "completed" or not result:
+        logger.warning(f"[IMAGE CALLBACK] Task {task_id} status '{status}' was not processed or has no result.")
+        return {"status": "ignored"}
+        
+    try:
+        extra = json.loads(extra_data_str) if extra_data_str else {}
+        if extra.get("task_type") != "image":
+            return {"status": "ignored"}
+            
+        card_id = extra.get("card_id")
+        target_field = extra.get("target_field", "front_img")
+        deck_id = extra.get("deck_id")
+    except Exception as parse_err:
+        logger.error(f"[IMAGE CALLBACK ERROR] Failed to parse extra_data: {parse_err}")
+        return JSONResponse(status_code=400, content={"error": "Invalid extra_data"})
+        
+    from app.modules.deck.models import Flashcard
+    res = await db.execute(select(Flashcard).filter(Flashcard.id == card_id))
+    c = res.scalar_one_or_none()
+    if not c:
+        logger.error(f"[IMAGE CALLBACK ERROR] Card {card_id} not found in database.")
+        return JSONResponse(status_code=404, content={"error": "Card not found"})
+        
+    # Download image from CentralAuth
+    from app.modules.sso_module.service import SSOService
+    sso_config = await SSOService.get_config(db)
+    if not sso_config.server_url:
+        return JSONResponse(status_code=400, content={"error": "CentralAuth not configured"})
+        
+    image_url = f"{sso_config.server_url.rstrip('/')}{result}"
+    from app.core.config import settings
+    import os
+    folder_path = os.path.join(settings.VOCABURN_STORAGE_DIR, str(deck_id), "images")
+    
+    # Get original extension from result path
+    _, ext = os.path.splitext(result)
+    if not ext:
+        ext = ".jpg"
+        
+    filename = f"{card_id}_{target_field}{ext}"
+    physical_path = os.path.join(folder_path, filename)
+    
+    os.makedirs(os.path.dirname(physical_path), exist_ok=True)
+    
+    try:
+        import httpx
+        async with httpx.AsyncClient() as client:
+            image_res = await client.get(image_url, timeout=20.0)
+            if image_res.status_code == 200:
+                with open(physical_path, "wb") as f:
+                    f.write(image_res.content)
+            else:
+                logger.error(f"[IMAGE CALLBACK ERROR] Failed to download {image_url}: {image_res.status_code}")
+                return JSONResponse(status_code=500, content={"error": "Failed to download image file"})
+    except Exception as dl_err:
+        logger.error(f"[IMAGE CALLBACK ERROR] Exception during image download: {dl_err}")
+        return JSONResponse(status_code=500, content={"error": str(dl_err)})
+        
+    # Update local url reference
+    local_url = f"/uploads/{deck_id}/images/{filename}"
+    
+    physical_map = {
+        "front_img": "front_img",
+        "back_img": "back_img"
+    }
+    
+    if target_field in physical_map:
+        setattr(c, physical_map[target_field], local_url)
+    else:
+        if not c.others:
+            c.others = {}
+        c.others[target_field] = local_url
+        from sqlalchemy.orm.attributes import flag_modified
+        flag_modified(c, "others")
+        
+    await db.commit()
+    logger.info(f"[IMAGE CALLBACK SUCCESS] Updated card {card_id} field '{target_field}' via CentralAuth Queue Callback.")
+    return {"status": "ok"}
+
 @router.post("/ai-callback")
 async def ai_queue_callback(data: dict, db: AsyncSession = Depends(get_db)):
     task_id = data.get("id")
@@ -1333,3 +1419,155 @@ async def delete_deck_column(deck_id: int, payload: dict, db: AsyncSession = Dep
             
     await db.commit()
     return {"status": "ok"}
+
+@router.get("/{deck_id}/image-status")
+async def get_deck_image_status(deck_id: int, target_field: str = "front_img", db: AsyncSession = Depends(get_db)):
+    from app.modules.deck.models import Flashcard
+    res = await db.execute(select(Flashcard).filter(Flashcard.deck_id == deck_id))
+    cards = res.scalars().all()
+    
+    total = len(cards)
+    missing = 0
+    
+    physical_map = {
+        "front_img": "front_img",
+        "back_img": "back_img"
+    }
+    
+    for c in cards:
+        has_val = False
+        if target_field in physical_map:
+            val = getattr(c, physical_map[target_field])
+            has_val = bool(val and val.strip())
+        else:
+            has_val = bool(c.others and c.others.get(target_field))
+        if not has_val:
+            missing += 1
+            
+    return {
+        "total_cards": total,
+        "missing_image_cards": missing
+    }
+
+@router.post("/{deck_id}/generate-all-images")
+async def generate_all_deck_images(
+    deck_id: int,
+    background_tasks: BackgroundTasks,
+    request: Request,
+    payload: dict = None,
+    db: AsyncSession = Depends(get_db)
+):
+    from app.modules.deck.models import FlashcardDeck
+    res = await db.execute(select(FlashcardDeck).filter(FlashcardDeck.id == deck_id))
+    deck = res.scalar_one_or_none()
+    if not deck:
+        return JSONResponse(status_code=404, content={"error": "Deck not found"})
+        
+    source_field = "front"
+    target_field = "front_img"
+    force = False
+    if payload:
+        source_field = payload.get("source_field", "front")
+        target_field = payload.get("target_field", "front_img")
+        force = payload.get("force", False)
+        
+    scheme = request.headers.get("x-forwarded-proto", request.url.scheme)
+    netloc = request.url.netloc
+    if "localhost" not in netloc and "127.0.0.1" not in netloc:
+        scheme = "https"
+    base_url = f"{scheme}://{netloc}"
+    
+    background_tasks.add_task(_bulk_generate_deck_images_task, deck_id, source_field, target_field, force, base_url)
+    return {"status": "ok", "message": f"Bulk image generation queue submission started."}
+
+async def _bulk_generate_deck_images_task(deck_id: int, source_field: str, target_field: str, force: bool, base_url: str):
+    from app.core.db import SessionLocal
+    async with SessionLocal() as db:
+        from app.modules.deck.models import Flashcard
+        res = await db.execute(select(Flashcard).filter(Flashcard.deck_id == deck_id))
+        cards = res.scalars().all()
+        
+        # Get CentralAuth configuration
+        from app.modules.sso_module.service import SSOService
+        sso_config = await SSOService.get_config(db)
+        if not sso_config.is_enabled or not sso_config.server_url:
+            logger.error("[BULK IMAGE ERROR] CentralAuth is not enabled or server URL is not configured.")
+            return
+
+        import httpx
+        from app.core.config import settings
+        
+        tasks_to_submit = []
+        callback_base = settings.APP_BASE_URL if settings.APP_BASE_URL else base_url
+        callback_url = f"{callback_base.rstrip('/')}/api/v1/deck/image-callback"
+        
+        source_map = {
+            "front": "content",
+            "back": "explanation",
+        }
+        
+        target_map = {
+            "front_img": "front_img",
+            "back_img": "back_img"
+        }
+        
+        for c in cards:
+            await db.refresh(c)
+            
+            # Check if already has image
+            has_val = False
+            if target_field in target_map:
+                val = getattr(c, target_map[target_field])
+                has_val = bool(val and val.strip())
+            else:
+                has_val = bool(c.others and c.others.get(target_field))
+                
+            if force or not has_val:
+                # Get keyword text from source field
+                keyword = ""
+                if source_field in source_map:
+                    keyword = getattr(c, source_map[source_field])
+                else:
+                    keyword = c.others.get(source_field) if c.others else ""
+                    
+                if not keyword or not keyword.strip():
+                    continue
+                    
+                tasks_to_submit.append({
+                    "satellite_source": "vocaburn",
+                    "prompt": keyword.strip(),
+                    "callback_url": callback_url,
+                    "extra_data": json.dumps({
+                        "task_type": "image",
+                        "card_id": c.id,
+                        "source_field": source_field,
+                        "target_field": target_field,
+                        "deck_id": deck_id
+                    }),
+                    "max_retries": 3
+                })
+
+        if not tasks_to_submit:
+            logger.info(f"[BULK IMAGE] All cards in deck {deck_id} are already fully synchronized for field '{target_field}'.")
+            return
+
+        logger.info(f"[BULK IMAGE] Submitting {len(tasks_to_submit)} queue tasks to CentralAuth...")
+        queue_token = getattr(settings, "QUEUE_API_SECRET", "super-secret-token-123")
+        chunk_size = 100
+
+        async with httpx.AsyncClient() as client:
+            for i in range(0, len(tasks_to_submit), chunk_size):
+                  chunk = tasks_to_submit[i:i + chunk_size]
+                  try:
+                      response = await client.post(
+                          f"{sso_config.server_url.rstrip('/')}/api/queue/submit/batch",
+                          json={"tasks": chunk},
+                          headers={"X-Queue-Token": queue_token},
+                          timeout=30.0
+                      )
+                      if response.status_code != 200:
+                          logger.error(f"[BULK IMAGE SUBMIT ERROR] Chunk {i//chunk_size} failed: {response.text}")
+                      else:
+                          logger.info(f"[BULK IMAGE SUBMIT] Successfully submitted chunk {i//chunk_size} ({len(chunk)} tasks)")
+                  except Exception as batch_err:
+                      logger.error(f"[BULK IMAGE SUBMIT EXCEPTION] Exception in chunk {i//chunk_size}: {batch_err}")

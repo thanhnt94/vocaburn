@@ -8,14 +8,14 @@ export default function Admin() {
   const { tab } = useParams();
   const { user, isLoggedIn, isLoading } = useAppStore();
 
-  const [activeTab, setActiveTab] = useState<'sso' | 'ai' | 'telegram' | 'users' | 'maintenance' | 'tts' | 'ai-batch'>('sso');
+  const [activeTab, setActiveTab] = useState<'sso' | 'ai' | 'telegram' | 'users' | 'maintenance' | 'tts' | 'ai-batch' | 'image-batch'>('sso');
   const [globalLoading, setGlobalLoading] = useState(false);
   const [successMsg, setSuccessMsg] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
 
   // Sync activeTab with URL sub-route
   useEffect(() => {
-    if (tab && ['sso', 'ai', 'telegram', 'users', 'maintenance', 'tts', 'ai-batch'].includes(tab)) {
+    if (tab && ['sso', 'ai', 'telegram', 'users', 'maintenance', 'tts', 'ai-batch', 'image-batch'].includes(tab)) {
       setActiveTab(tab as any);
     } else if (!tab) {
       navigate('/admin/sso', { replace: true });
@@ -117,6 +117,54 @@ export default function Admin() {
   const [isFetchingAIBatchStatus, setIsFetchingAIBatchStatus] = useState(false);
   const [aiBatchStatus, setAiBatchStatus] = useState<{ total_cards: number, missing_ai_cards: number } | null>(null);
   const [isStartingAIBatch, setIsStartingAIBatch] = useState(false);
+
+  // Tab 7: Image Batch Config state
+  const [selectedImageSourceField, setSelectedImageSourceField] = useState<string>('front');
+  const [selectedImageTargetField, setSelectedImageTargetField] = useState<string>('front_img');
+  const [isFetchingImageBatchStatus, setIsFetchingImageBatchStatus] = useState(false);
+  const [imageBatchStatus, setImageBatchStatus] = useState<{ total_cards: number, missing_image_cards: number } | null>(null);
+  const [isStartingImageBatch, setIsStartingImageBatch] = useState(false);
+
+  const handleCheckImageBatchStatus = async (deckIdStr: string, targetFieldStr?: string) => {
+    setSelectedDeckId(deckIdStr);
+    if (!deckIdStr) {
+      setImageBatchStatus(null);
+      return;
+    }
+    const target = targetFieldStr || selectedImageTargetField;
+    setIsFetchingImageBatchStatus(true);
+    setImageBatchStatus(null);
+    try {
+      const res = await axios.get(`/api/v1/deck/${deckIdStr}/image-status?target_field=${target}`);
+      setImageBatchStatus(res.data);
+    } catch (e) {
+      console.error("Failed to check deck image status", e);
+    } finally {
+      setIsFetchingImageBatchStatus(false);
+    }
+  };
+
+  const handleStartImageBatchGeneration = async () => {
+    if (!selectedDeckId) return;
+    setIsStartingImageBatch(true);
+    setSuccessMsg('');
+    setErrorMsg('');
+    try {
+      await axios.post(`/api/v1/deck/${selectedDeckId}/generate-all-images`, {
+        source_field: selectedImageSourceField,
+        target_field: selectedImageTargetField,
+        force: false
+      });
+      setSuccessMsg(`Đã bắt đầu hàng đợi tìm & tải ảnh hàng loạt cho trường '${selectedImageTargetField}'!`);
+      setTimeout(() => {
+        handleCheckImageBatchStatus(selectedDeckId, selectedImageTargetField);
+      }, 2000);
+    } catch (e) {
+      setErrorMsg("Không thể khởi động hàng đợi tìm ảnh hàng loạt.");
+    } finally {
+      setIsStartingImageBatch(false);
+    }
+  };
 
   const handleCheckAIBatchStatus = async (deckIdStr: string, fieldStr?: string) => {
     setSelectedDeckId(deckIdStr);
@@ -512,6 +560,17 @@ export default function Admin() {
               className={`p-4 rounded-xl font-bold flex items-center gap-3 transition-all text-left ${activeTab === 'ai-batch' ? 'bg-[#6366f1] text-white shadow-lg shadow-indigo-500/20' : 'bg-white/[0.02] hover:bg-white/[0.05] border border-white/5 text-gray-400'}`}
             >
               🧠 Batch AI Sync
+            </button>
+            <button
+              onClick={() => {
+                navigate('/admin/image-batch');
+                if (selectedDeckId) {
+                  handleCheckImageBatchStatus(selectedDeckId, selectedImageTargetField);
+                }
+              }}
+              className={`p-4 rounded-xl font-bold flex items-center gap-3 transition-all text-left ${activeTab === 'image-batch' ? 'bg-[#6366f1] text-white shadow-lg shadow-indigo-500/20' : 'bg-white/[0.02] hover:bg-white/[0.05] border border-white/5 text-gray-400'}`}
+            >
+              🖼️ Batch Image Sync
             </button>
           </div>
 
@@ -1062,6 +1121,134 @@ export default function Admin() {
                       className="px-6 py-3.5 rounded-xl font-bold bg-indigo-500 hover:bg-indigo-600 shadow-lg shadow-indigo-500/20 transition-all text-sm flex items-center gap-2 active:scale-95 disabled:opacity-40 disabled:pointer-events-none"
                     >
                       {isStartingAIBatch ? 'Starting Task Queue...' : 'Start AI Generation'}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Tab 7: Image Batch Queue */}
+            {activeTab === 'image-batch' && (
+              <div className="space-y-6">
+                <div>
+                  <h3 className="text-2xl font-bold mb-2">Batch Image Search & Download</h3>
+                  <p className="text-gray-400 text-sm">Tìm kiếm và tải ảnh minh họa hàng loạt cho cả bộ thẻ qua CentralAuth.</p>
+                </div>
+
+                <div className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    {/* Select Deck */}
+                    <div className="flex flex-col">
+                      <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Chọn bộ thẻ</label>
+                      <select
+                        value={selectedDeckId}
+                        onChange={(e) => {
+                          const newDeckId = e.target.value;
+                          setSelectedDeckId(newDeckId);
+                          if (newDeckId) {
+                            handleCheckImageBatchStatus(newDeckId, selectedImageTargetField);
+                          } else {
+                            setImageBatchStatus(null);
+                          }
+                        }}
+                        className="w-full bg-[#0d1321] border border-white/10 rounded-xl px-4 py-3.5 text-white font-bold focus:outline-none focus:border-indigo-500 transition-all text-sm cursor-pointer"
+                      >
+                        <option value="" className="bg-[#0d1321] text-slate-500 font-semibold">-- Chọn bộ thẻ --</option>
+                        {adminDecks.map((deck) => (
+                          <option key={deck.id} value={deck.id.toString()} className="bg-[#0d1321] text-white font-semibold">
+                            {deck.name}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    {/* Select Source Keyword Field */}
+                    <div className="flex flex-col">
+                      <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Cột chứa Từ khóa (Source)</label>
+                      <select
+                        value={selectedImageSourceField}
+                        onChange={(e) => setSelectedImageSourceField(e.target.value)}
+                        className="w-full bg-[#0d1321] border border-white/10 rounded-xl px-4 py-3.5 text-white font-bold focus:outline-none focus:border-indigo-500 transition-all text-sm cursor-pointer"
+                      >
+                        <option value="front" className="bg-[#0d1321] text-white font-semibold">Mặt Trước (Word)</option>
+                        <option value="back" className="bg-[#0d1321] text-white font-semibold">Mặt Sau (Definition)</option>
+                        {(() => {
+                          const currentDeck = adminDecks.find(d => d.id.toString() === selectedDeckId);
+                          const customCols = currentDeck?.practice_settings?.custom_columns || [];
+                          return customCols.map((c: string) => (
+                            <option key={c} value={c} className="bg-[#0d1321] text-white font-semibold">{c}</option>
+                          ));
+                        })()}
+                      </select>
+                    </div>
+
+                    {/* Select Target Image Field */}
+                    <div className="flex flex-col">
+                      <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Cột lưu URL Ảnh (Target)</label>
+                      <select
+                        value={selectedImageTargetField}
+                        onChange={(e) => {
+                          const newField = e.target.value;
+                          setSelectedImageTargetField(newField);
+                          if (selectedDeckId) {
+                            handleCheckImageBatchStatus(selectedDeckId, newField);
+                          }
+                        }}
+                        className="w-full bg-[#0d1321] border border-white/10 rounded-xl px-4 py-3.5 text-white font-bold focus:outline-none focus:border-indigo-500 transition-all text-sm cursor-pointer"
+                      >
+                        <option value="front_img" className="bg-[#0d1321] text-white font-semibold">front_img (Ảnh mặt trước)</option>
+                        <option value="back_img" className="bg-[#0d1321] text-white font-semibold">back_img (Ảnh mặt sau)</option>
+                        {(() => {
+                          const currentDeck = adminDecks.find(d => d.id.toString() === selectedDeckId);
+                          const customCols = currentDeck?.practice_settings?.custom_columns || [];
+                          return customCols.map((c: string) => (
+                            <option key={c} value={c} className="bg-[#0d1321] text-white font-semibold">{c}</option>
+                          ));
+                        })()}
+                      </select>
+                    </div>
+                  </div>
+
+                  {/* Status Panel */}
+                  <div className="bg-white/[0.01] border border-white/5 p-5 rounded-xl">
+                    <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-4">Trạng thái ảnh bộ thẻ</h4>
+                    
+                    {isFetchingImageBatchStatus ? (
+                      <div className="py-4 flex flex-col items-center justify-center gap-2">
+                        <div className="w-6 h-6 border-2 border-indigo-600/30 border-t-indigo-600 rounded-full animate-spin" />
+                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Scanning cards...</span>
+                      </div>
+                    ) : imageBatchStatus ? (
+                      <>
+                        <div className="grid grid-cols-2 gap-4">
+                          <div className="bg-[#0d1321] border border-white/5 p-4 rounded-xl">
+                            <p className="text-[9px] font-black text-gray-500 uppercase">Tổng số thẻ</p>
+                            <p className="text-xl font-black text-white mt-1">{imageBatchStatus.total_cards}</p>
+                          </div>
+                          <div className="bg-[#0d1321] border border-white/5 p-4 rounded-xl">
+                            <p className="text-[9px] font-black text-indigo-500 uppercase">Thẻ thiếu ảnh ở cột '{selectedImageTargetField}'</p>
+                            <p className="text-xl font-black text-indigo-500 mt-1">{imageBatchStatus.missing_image_cards}</p>
+                          </div>
+                        </div>
+                        {imageBatchStatus.missing_image_cards > 0 && (
+                          <div className="flex items-center gap-3 bg-indigo-500/10 border border-indigo-500/20 p-4 rounded-xl text-xs text-indigo-300 font-bold leading-relaxed mt-4">
+                            💡 Có {imageBatchStatus.missing_image_cards} thẻ chưa có ảnh ở cột '{selectedImageTargetField}'. Bấm bắt đầu để tự động tìm kiếm và tải ảnh.
+                          </div>
+                        )}
+                      </>
+                    ) : (
+                      <p className="text-xs text-gray-500">Chọn bộ thẻ ở trên để quét tình trạng ảnh minh họa.</p>
+                    )}
+                  </div>
+
+                  <div className="flex justify-end pt-4 border-t border-white/5">
+                    <button
+                      type="button"
+                      onClick={handleStartImageBatchGeneration}
+                      disabled={isFetchingImageBatchStatus || !selectedDeckId || !imageBatchStatus || imageBatchStatus.missing_image_cards === 0 || isStartingImageBatch}
+                      className="px-6 py-3.5 rounded-xl font-bold bg-indigo-500 hover:bg-indigo-600 shadow-lg shadow-indigo-500/20 transition-all text-sm flex items-center gap-2 active:scale-95 disabled:opacity-40 disabled:pointer-events-none"
+                    >
+                      {isStartingImageBatch ? 'Starting Task Queue...' : 'Start Image Generation'}
                     </button>
                   </div>
                 </div>
