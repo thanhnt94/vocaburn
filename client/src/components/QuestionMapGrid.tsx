@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react'
 import { cn } from '@/lib/utils'
+import { LayoutGrid, BookOpen, Brain, Trophy, Flame, Star, EyeOff } from 'lucide-react'
 
 interface Question {
   stats?: {
@@ -25,8 +26,8 @@ interface QuestionMapGridProps {
   currentIndex: number
   navigateToQuestion: (index: number) => void
   setIsMapOpen: (open: boolean) => void
-  filterMode?: 'all' | 'unseen' | 'learning' | 'mastered' | 'hard' | 'starred' | 'ignored' | 'box1' | 'box2' | 'box3' | 'box4' | 'box5'
-  setFilterMode?: (mode: 'all' | 'unseen' | 'learning' | 'mastered' | 'hard' | 'starred' | 'ignored' | 'box1' | 'box2' | 'box3' | 'box4' | 'box5') => void
+  filterMode?: 'all' | 'unseen' | 'learning' | 'mastered' | 'hard' | 'starred' | 'ignored'
+  setFilterMode?: (mode: 'all' | 'unseen' | 'learning' | 'mastered' | 'hard' | 'starred' | 'ignored') => void
   showFiltersInline?: boolean
 }
 
@@ -43,7 +44,7 @@ export const QuestionMapGrid: React.FC<QuestionMapGridProps> = ({
   showFiltersInline = true,
 }) => {
   const isPractice = mainTab === 'practice'
-  const [internalFilterMode, setInternalFilterMode] = useState<'all' | 'unseen' | 'learning' | 'mastered' | 'hard' | 'starred' | 'ignored' | 'box1' | 'box2' | 'box3' | 'box4' | 'box5'>('all')
+  const [internalFilterMode, setInternalFilterMode] = useState<'all' | 'unseen' | 'learning' | 'mastered' | 'hard' | 'starred' | 'ignored'>('all')
 
   const activeFilterMode = filterMode !== undefined ? filterMode : internalFilterMode
   const activeSetFilterMode = setFilterMode !== undefined ? setFilterMode : setInternalFilterMode
@@ -74,11 +75,6 @@ export const QuestionMapGrid: React.FC<QuestionMapGridProps> = ({
       .map((q, idx) => ({ ...q, originalIndex: idx }))
       .filter((item) => {
         if (activeFilterMode === 'all') return true;
-        if (activeFilterMode === 'box1') return (item.box_level || 1) === 1;
-        if (activeFilterMode === 'box2') return item.box_level === 2;
-        if (activeFilterMode === 'box3') return item.box_level === 3;
-        if (activeFilterMode === 'box4') return item.box_level === 4;
-        if (activeFilterMode === 'box5') return item.box_level === 5;
         return getCardBoxId(item) === activeFilterMode;
       })
   }, [questions, activeFilterMode])
@@ -89,35 +85,35 @@ export const QuestionMapGrid: React.FC<QuestionMapGridProps> = ({
       {showFiltersInline && (
         <div className="flex items-center gap-1 bg-slate-100/80 p-1 rounded-xl border border-slate-200/40 w-full overflow-x-auto no-scrollbar flex-shrink-0">
           {[
-            { id: 'all', label: 'Tất cả' },
-            { id: 'box1', label: 'Hộp 1' },
-            { id: 'box2', label: 'Hộp 2' },
-            { id: 'box3', label: 'Hộp 3' },
-            { id: 'box4', label: 'Hộp 4' },
-            { id: 'box5', label: 'Hộp 5' },
-            { id: 'unseen', label: 'Chưa học' },
-            { id: 'learning', label: 'Đang học' },
-            { id: 'mastered', label: 'Đã thuộc' },
-            { id: 'hard', label: 'Thẻ khó' },
-            { id: 'starred', label: '★ Gắn sao' },
-            { id: 'ignored', label: 'Bỏ qua' }
-          ].map(tab => (
-            <button
-              key={tab.id}
-              onClick={(e) => {
-                e.stopPropagation()
-                activeSetFilterMode(tab.id as any)
-              }}
-              className={cn(
-                "flex-shrink-0 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all whitespace-nowrap",
-                activeFilterMode === tab.id
-                  ? "bg-white text-indigo-650 shadow-sm border border-slate-200/30"
-                  : "text-slate-500 hover:bg-white/40"
-              )}
-            >
-              {tab.label}
-            </button>
-          ))}
+            { id: 'all', label: 'Tất cả', icon: LayoutGrid, activeColor: 'bg-indigo-50 border-indigo-200 text-indigo-650', iconColor: 'text-indigo-500' },
+            { id: 'unseen', label: 'Chưa học', icon: BookOpen, activeColor: 'bg-slate-50 border-slate-200 text-slate-600', iconColor: 'text-slate-500' },
+            { id: 'learning', label: 'Đang học', icon: Brain, activeColor: 'bg-amber-50 border-amber-200 text-amber-750', iconColor: 'text-amber-500' },
+            { id: 'mastered', label: 'Đã thuộc', icon: Trophy, activeColor: 'bg-emerald-50 border-emerald-200 text-emerald-750', iconColor: 'text-emerald-500' },
+            { id: 'hard', label: 'Thẻ khó', icon: Flame, activeColor: 'bg-rose-50 border-rose-200 text-rose-750', iconColor: 'text-rose-500' },
+            { id: 'starred', label: 'Gắn sao', icon: Star, activeColor: 'bg-yellow-50 border-yellow-250 text-yellow-750', iconColor: 'text-yellow-500 fill-yellow-500' },
+            { id: 'ignored', label: 'Bỏ qua', icon: EyeOff, activeColor: 'bg-slate-100 border-slate-250 text-slate-700', iconColor: 'text-slate-650' }
+          ].map(tab => {
+            const Icon = tab.icon
+            const isActive = activeFilterMode === tab.id
+            return (
+              <button
+                key={tab.id}
+                onClick={(e) => {
+                  e.stopPropagation()
+                  activeSetFilterMode(tab.id as any)
+                }}
+                className={cn(
+                  "flex-shrink-0 px-2.5 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all whitespace-nowrap flex items-center gap-1.5 border border-transparent",
+                  isActive
+                    ? tab.activeColor + " shadow-sm font-bold"
+                    : "text-slate-500 hover:bg-white/40 hover:text-slate-700"
+                )}
+              >
+                <Icon className={cn("w-3.5 h-3.5", isActive ? tab.iconColor : "text-slate-400")} />
+                <span>{tab.label}</span>
+              </button>
+            )
+          })}
         </div>
       )}
 

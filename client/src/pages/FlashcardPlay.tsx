@@ -167,6 +167,47 @@ function formatRelativeTime(dateStr: string | null | undefined): { relative: str
   return { relative, full };
 }
 
+const getMapTitleInfo = (mode: string) => {
+  switch (mode) {
+    case 'unseen':
+      return {
+        title: "Hộp 1: Chưa học",
+        subtitle: "Các từ vựng mới tinh chưa bao giờ bắt đầu ôn luyện"
+      };
+    case 'learning':
+      return {
+        title: "Hộp 2: Đang học",
+        subtitle: "Các từ vựng đang học dở dang ở các cấp độ ghi nhớ"
+      };
+    case 'mastered':
+      return {
+        title: "Hộp 3: Đã thuộc",
+        subtitle: "Các từ vựng đã học thuộc lòng hoàn toàn"
+      };
+    case 'hard':
+      return {
+        title: "Hộp 4: Thẻ khó cần lưu ý",
+        subtitle: "Các từ vựng bạn hay gặp khó khăn hoặc trả lời sai nhiều"
+      };
+    case 'starred':
+      return {
+        title: "Hộp 5: Đã gắn sao",
+        subtitle: "Các từ vựng quan trọng do chính bạn đánh dấu ưu tiên"
+      };
+    case 'ignored':
+      return {
+        title: "Hộp 6: Đã bỏ qua",
+        subtitle: "Các từ vựng đã loại trừ khỏi phiên học hiện tại"
+      };
+    case 'all':
+    default:
+      return {
+        title: "Bản đồ thẻ học - Tất cả",
+        subtitle: "Theo dõi và tra cứu toàn bộ từ vựng trong phiên học"
+      };
+  }
+};
+
 export default function FlashcardPlay() {
   const { id, mode, subMode } = useParams()
   const navigate = useNavigate()
@@ -334,7 +375,7 @@ export default function FlashcardPlay() {
   const [isCopyMenuOpen, setIsCopyMenuOpen] = useState(false)
   const [isCopied, setIsCopied] = useState(false)
   const [isMapOpen, setIsMapOpen] = useState(false)
-  const [mobileMapFilterMode, setMobileMapFilterMode] = useState<'all' | 'unseen' | 'learning' | 'mastered' | 'hard' | 'starred' | 'ignored' | 'box1' | 'box2' | 'box3' | 'box4' | 'box5'>('all')
+  const [mobileMapFilterMode, setMobileMapFilterMode] = useState<'all' | 'unseen' | 'learning' | 'mastered' | 'hard' | 'starred' | 'ignored'>('all')
   const [isStatsOpen, setIsStatsOpen] = useState(false)
   const [activeStatsTab, setActiveStatsTab] = useState<'performance' | 'goals' | 'leaderboard'>('performance')
   const [dailyComparisonData, setDailyComparisonData] = useState<any[] | null>(null)
@@ -4601,14 +4642,19 @@ export default function FlashcardPlay() {
               >
                 <ChevronLeft className="w-4.5 h-4.5" />
               </button>
-              <div className="flex flex-col min-w-0">
-                <h2 className="text-xs md:text-sm font-extrabold text-slate-800 tracking-tight leading-snug">
-                  Bản đồ thẻ học
-                </h2>
-                <p className="text-[9px] text-slate-400 font-bold">
-                  Dễ dàng theo dõi & lọc thẻ học
-                </p>
-              </div>
+              {(() => {
+                const info = getMapTitleInfo(mobileMapFilterMode);
+                return (
+                  <div className="flex flex-col min-w-0">
+                    <h2 className="text-xs md:text-sm font-extrabold text-slate-800 tracking-tight leading-snug">
+                      {info.title}
+                    </h2>
+                    <p className="text-[9px] text-slate-400 font-bold">
+                      {info.subtitle}
+                    </p>
+                  </div>
+                );
+              })()}
             </header>
 
             {/* Grid Area */}
@@ -4633,31 +4679,35 @@ export default function FlashcardPlay() {
               <div className="px-4 pt-2">
                 <div className="flex items-center gap-1 bg-slate-100/80 p-1 rounded-xl border border-slate-200/40 w-full overflow-x-auto no-scrollbar">
                   {[
-                    { id: 'all', label: 'Tất cả' },
-                    { id: 'box1', label: 'Hộp 1' },
-                    { id: 'box2', label: 'Hộp 2' },
-                    { id: 'box3', label: 'Hộp 3' },
-                    { id: 'box4', label: 'Hộp 4' },
-                    { id: 'box5', label: 'Hộp 5' },
-                    { id: 'unseen', label: 'Chưa học' },
-                    { id: 'hard', label: 'Thẻ khó' }
-                  ].map(tab => (
-                    <button
-                      key={tab.id}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setMobileMapFilterMode(tab.id as any);
-                      }}
-                      className={cn(
-                        "flex-shrink-0 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all whitespace-nowrap",
-                        mobileMapFilterMode === tab.id
-                          ? "bg-white text-indigo-600 shadow-sm border border-slate-200/30"
-                          : "text-slate-500 hover:bg-white/40"
-                      )}
-                    >
-                      {tab.label}
-                    </button>
-                  ))}
+                    { id: 'all', label: 'Tất cả', icon: LayoutGrid, activeColor: 'bg-indigo-50 border-indigo-200 text-indigo-650', iconColor: 'text-indigo-500' },
+                    { id: 'unseen', label: 'Chưa học', icon: BookOpen, activeColor: 'bg-slate-50 border-slate-200 text-slate-600', iconColor: 'text-slate-500' },
+                    { id: 'learning', label: 'Đang học', icon: Brain, activeColor: 'bg-amber-50 border-amber-200 text-amber-750', iconColor: 'text-amber-500' },
+                    { id: 'mastered', label: 'Đã thuộc', icon: Trophy, activeColor: 'bg-emerald-50 border-emerald-200 text-emerald-750', iconColor: 'text-emerald-500' },
+                    { id: 'hard', label: 'Thẻ khó', icon: Flame, activeColor: 'bg-rose-50 border-rose-200 text-rose-750', iconColor: 'text-rose-500' },
+                    { id: 'starred', label: 'Gắn sao', icon: Star, activeColor: 'bg-yellow-50 border-yellow-250 text-yellow-750', iconColor: 'text-yellow-500 fill-yellow-500' },
+                    { id: 'ignored', label: 'Bỏ qua', icon: EyeOff, activeColor: 'bg-slate-100 border-slate-250 text-slate-700', iconColor: 'text-slate-650' }
+                  ].map(tab => {
+                    const Icon = tab.icon
+                    const isActive = mobileMapFilterMode === tab.id
+                    return (
+                      <button
+                        key={tab.id}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setMobileMapFilterMode(tab.id as any);
+                        }}
+                        className={cn(
+                          "flex-shrink-0 px-2.5 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all whitespace-nowrap flex items-center gap-1.5 border border-transparent",
+                          isActive
+                            ? tab.activeColor + " shadow-sm font-bold"
+                            : "text-slate-500 hover:bg-white/40 hover:text-slate-700"
+                        )}
+                      >
+                        <Icon className={cn("w-3.5 h-3.5", isActive ? tab.iconColor : "text-slate-400")} />
+                        <span>{tab.label}</span>
+                      </button>
+                    )
+                  })}
                 </div>
               </div>
             </div>
