@@ -3326,19 +3326,14 @@ export default function FlashcardPlay() {
           <button 
             onClick={() => navigate('/')} 
             className="w-8.5 h-8.5 flex items-center justify-center bg-slate-50 border border-slate-200/60 rounded-xl text-slate-600 shadow-sm hover:bg-indigo-50 hover:text-indigo-600 hover:border-indigo-100 active:scale-90 transition-all flex-shrink-0"
-            title="Quay lại thư viện"
+            title="Thoát phiên học"
           >
-            <ChevronLeft className="w-4.5 h-4.5" />
+            <X className="w-4.5 h-4.5" />
           </button>
           <div className="flex flex-col min-w-0">
             <h1 className="text-xs md:text-sm font-extrabold text-slate-800 tracking-tight break-words line-clamp-2 leading-snug" title={session.title}>
               {session.title}
             </h1>
-            {streak >= 2 && (
-              <div className="flex items-center mt-0.5 text-[9px] font-bold text-orange-500" title="Chuỗi ngày học liên tục">
-                🔥 {streak} ngày
-              </div>
-            )}
           </div>
         </div>
       
@@ -4641,9 +4636,9 @@ export default function FlashcardPlay() {
             {/* Header */}
             <header className="flex-shrink-0 z-[120] bg-white/95 backdrop-blur-2xl border-b border-slate-100/80 px-4 py-1.5 flex items-center gap-3 shadow-[0_1px_20px_rgba(99,102,241,0.04)]">
               <button 
-                onClick={() => navigate('/')} 
+                onClick={() => setIsMapOpen(false)} 
                 className="w-8.5 h-8.5 flex items-center justify-center bg-slate-50 border border-slate-200/60 rounded-xl text-slate-600 shadow-sm hover:bg-indigo-50 hover:text-indigo-600 hover:border-indigo-100 active:scale-90 transition-all flex-shrink-0"
-                title="Quay lại thư viện"
+                title="Quay lại thẻ học"
               >
                 <ChevronLeft className="w-4.5 h-4.5" />
               </button>

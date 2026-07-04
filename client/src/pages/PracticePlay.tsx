@@ -3513,19 +3513,14 @@ export default function PracticePlay() {
           <button 
             onClick={() => navigate('/')} 
             className="w-8.5 h-8.5 flex items-center justify-center bg-slate-50 border border-slate-200/60 rounded-xl text-slate-600 shadow-sm hover:bg-indigo-50 hover:text-indigo-600 hover:border-indigo-100 active:scale-90 transition-all flex-shrink-0"
-            title="Quay lại thư viện"
+            title="Thoát phiên học"
           >
-            <ChevronLeft className="w-4.5 h-4.5" />
+            <X className="w-4.5 h-4.5" />
           </button>
           <div className="flex flex-col min-w-0">
             <h1 className="text-xs md:text-sm font-extrabold text-slate-800 tracking-tight break-words line-clamp-2 leading-snug" title={session.title}>
               {session.title}
             </h1>
-            {streak >= 2 && (
-              <div className="flex items-center mt-0.5 text-[9px] font-bold text-orange-500" title="Chuỗi ngày học liên tục">
-                🔥 {streak} ngày
-              </div>
-            )}
           </div>
         </div>
       
@@ -4963,6 +4958,31 @@ export default function PracticePlay() {
             exit={{ opacity: 0, y: 50 }}
             className="fixed inset-x-0 top-0 bottom-[32px] sm:bottom-[38px] z-[200] bg-[#F8FAFC] lg:hidden flex flex-col"
           >
+            {/* Header */}
+            <header className="flex-shrink-0 z-[120] bg-white/95 backdrop-blur-2xl border-b border-slate-100/80 px-4 py-1.5 flex items-center gap-3 shadow-[0_1px_20px_rgba(99,102,241,0.04)]">
+              <button 
+                onClick={() => setIsMapOpen(false)} 
+                className="w-8.5 h-8.5 flex items-center justify-center bg-slate-50 border border-slate-200/60 rounded-xl text-slate-600 shadow-sm hover:bg-indigo-50 hover:text-indigo-600 hover:border-indigo-100 active:scale-90 transition-all flex-shrink-0"
+                title="Quay lại thẻ học"
+              >
+                <ChevronLeft className="w-4.5 h-4.5" />
+              </button>
+              {(() => {
+                const info = getMapTitleInfo(mobileMapFilterMode);
+                const count = getFilteredCount(mobileMapFilterMode);
+                return (
+                  <div className="flex flex-col min-w-0">
+                    <h2 className="text-xs md:text-sm font-extrabold text-slate-800 tracking-tight leading-snug">
+                      {info.title} ({count})
+                    </h2>
+                    <p className="text-[9px] text-slate-400 font-bold">
+                      {info.subtitle}
+                    </p>
+                  </div>
+                );
+              })()}
+            </header>
+
             {/* Grid Area */}
             <div className="flex-1 overflow-y-auto p-4 custom-scrollbar">
               <QuestionMapGrid
@@ -5018,21 +5038,7 @@ export default function PracticePlay() {
                 </div>
               </div>
 
-              {/* Info Label */}
-              {(() => {
-                const info = getMapTitleInfo(mobileMapFilterMode);
-                const count = getFilteredCount(mobileMapFilterMode);
-                return (
-                  <div className="px-4 py-1 text-center">
-                    <h4 className="text-[11px] font-black text-indigo-600 uppercase tracking-[0.2em] leading-tight">
-                      {info.title} ({count})
-                    </h4>
-                    <p className="text-[9px] text-slate-400 font-bold mt-0.5">
-                      {info.subtitle}
-                    </p>
-                  </div>
-                );
-              })()}
+
             </div>
           </motion.div>
         )}

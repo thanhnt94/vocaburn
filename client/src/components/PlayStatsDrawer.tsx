@@ -212,9 +212,9 @@ export const PlayStatsDrawer: React.FC<PlayStatsDrawerProps> = ({
           {/* Header */}
           <header className="flex-shrink-0 z-[120] bg-white/95 backdrop-blur-2xl border-b border-slate-100/80 px-4 py-1.5 flex items-center gap-3 shadow-[0_1px_20px_rgba(99,102,241,0.04)]">
             <button 
-              onClick={() => navigate('/')} 
+              onClick={onClose} 
               className="w-8.5 h-8.5 flex items-center justify-center bg-slate-50 border border-slate-200/60 rounded-xl text-slate-600 shadow-sm hover:bg-indigo-50 hover:text-indigo-600 hover:border-indigo-100 active:scale-90 transition-all flex-shrink-0"
-              title="Quay lại thư viện"
+              title="Quay lại thẻ học"
             >
               <ChevronLeft className="w-4.5 h-4.5" />
             </button>
