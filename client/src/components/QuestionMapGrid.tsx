@@ -54,13 +54,12 @@ export const QuestionMapGrid: React.FC<QuestionMapGridProps> = ({
     if (item.is_starred) return 'starred';
     
     // Hard card check
-    const stats = item.stats || { total: 0, again_count: 0, hard_count: 0 };
-    const total = stats.total || 0;
-    const again = stats.again_count || 0;
-    const hard = stats.hard_count || 0;
+    const stats = item.stats || { total: 0, again_count: 0 }
+    const total = stats.total || 0
+    const again = stats.again_count || 0
     const isHard = (item.fsrs?.difficulty !== undefined && item.fsrs.difficulty !== null)
-      ? item.fsrs.difficulty >= 7.0
-      : (total >= 3 && ((again + hard) >= 2) && ((again + hard) / total >= 0.3));
+      ? item.fsrs.difficulty >= 8.0
+      : (total >= 5 && again >= 3 && (again / total >= 0.4));
       
     if (isHard) return 'hard';
     if (item.box_level === 5) return 'mastered';
