@@ -4558,6 +4558,8 @@ export default function PracticePlay() {
                     currentIndex={currentIndex}
                     navigateToQuestion={navigateToQuestion}
                     setIsMapOpen={setIsMapOpen}
+                    filterMode={mobileMapFilterMode}
+                    setFilterMode={setMobileMapFilterMode}
                   />
                 </>
               )}

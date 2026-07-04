@@ -4269,6 +4269,8 @@ export default function FlashcardPlay() {
                     currentIndex={currentIndex}
                     navigateToQuestion={navigateToQuestion}
                     setIsMapOpen={setIsMapOpen}
+                    filterMode={mobileMapFilterMode}
+                    setFilterMode={setMobileMapFilterMode}
                   />
                 </>
               )}
