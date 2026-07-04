@@ -311,7 +311,7 @@ async def record_answer(request: Request, data: dict, db: AsyncSession = Depends
                 
             # Map box_level for gamification metrics & badges compatibility
             if mastery.state == 2: # Review
-                if mastery.stability and mastery.stability >= 10.0:
+                if mastery.stability and mastery.stability >= 10.0 and (mastery.consecutive_correct or 0) >= 3:
                     mastery.box_level = 5
                 elif mastery.stability and mastery.stability >= 3.0:
                     mastery.box_level = 4

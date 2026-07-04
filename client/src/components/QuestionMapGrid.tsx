@@ -68,7 +68,7 @@ export const QuestionMapGrid: React.FC<QuestionMapGridProps> = ({
       : (total >= 20 && (again + hard) >= 8 && ((again + hard) / total >= 0.4));
       
     if (isHard) return 'hard';
-    if (item.box_level === 5) return 'mastered';
+    if (item.box_level === 5 && total >= 4) return 'mastered';
     if (total === 0) return 'unseen';
     return 'learning';
   };
