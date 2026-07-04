@@ -66,6 +66,12 @@ export const FlashcardEditModal: React.FC<FlashcardEditModalProps> = ({
     if (col === 'mnemonic') return formData.mnemonic || '';
     if (col === 'image') return formData.image || '';
     if (col === 'audio') return formData.audio || '';
+    if (col === 'front_img') return formData.front_img || '';
+    if (col === 'back_img') return formData.back_img || '';
+    if (col === 'front_audio_url') return formData.front_audio_url || '';
+    if (col === 'back_audio_url') return formData.back_audio_url || '';
+    if (col === 'front_audio_content') return formData.front_audio_content || '';
+    if (col === 'back_audio_content') return formData.back_audio_content || '';
     return formData.others?.[col] || '';
   };
 
@@ -85,6 +91,18 @@ export const FlashcardEditModal: React.FC<FlashcardEditModalProps> = ({
       setFormData({ ...formData, image: val });
     } else if (col === 'audio') {
       setFormData({ ...formData, audio: val });
+    } else if (col === 'front_img') {
+      setFormData({ ...formData, front_img: val });
+    } else if (col === 'back_img') {
+      setFormData({ ...formData, back_img: val });
+    } else if (col === 'front_audio_url') {
+      setFormData({ ...formData, front_audio_url: val });
+    } else if (col === 'back_audio_url') {
+      setFormData({ ...formData, back_audio_url: val });
+    } else if (col === 'front_audio_content') {
+      setFormData({ ...formData, front_audio_content: val });
+    } else if (col === 'back_audio_content') {
+      setFormData({ ...formData, back_audio_content: val });
     } else {
       setFormData({
         ...formData,

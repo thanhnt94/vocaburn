@@ -51,6 +51,12 @@ interface Question {
   box_level?: number
   image?: string | null
   audio?: string | null
+  front_img?: string | null
+  back_img?: string | null
+  front_audio_url?: string | null
+  back_audio_url?: string | null
+  front_audio_content?: string | null
+  back_audio_content?: string | null
   others?: Record<string, any> | null
   fsrs?: {
     state: number
@@ -1279,6 +1285,9 @@ export default function PracticePlay() {
         return opt
       })
       const finalOthers = { ...updatedData.others }
+      const systemFields = ['front_img', 'back_img', 'front_audio_url', 'back_audio_url', 'front_audio_content', 'back_audio_content']
+      systemFields.forEach(f => delete finalOthers[f])
+      
       let savedCard: any = null
 
       if (updatedData.id) {
@@ -1288,6 +1297,12 @@ export default function PracticePlay() {
           ai_explanation: updatedData.ai_explanation,
           image: updatedData.image || null,
           audio: updatedData.audio || null,
+          front_img: updatedData.front_img || '',
+          back_img: updatedData.back_img || '',
+          front_audio_url: updatedData.front_audio_url || '',
+          back_audio_url: updatedData.back_audio_url || '',
+          front_audio_content: updatedData.front_audio_content || '',
+          back_audio_content: updatedData.back_audio_content || '',
           others: finalOthers,
           options: updatedOptions
         })
@@ -1313,6 +1328,12 @@ export default function PracticePlay() {
           ai_explanation: updatedData.ai_explanation,
           image: updatedData.image || null,
           audio: updatedData.audio || null,
+          front_img: updatedData.front_img || '',
+          back_img: updatedData.back_img || '',
+          front_audio_url: updatedData.front_audio_url || '',
+          back_audio_url: updatedData.back_audio_url || '',
+          front_audio_content: updatedData.front_audio_content || '',
+          back_audio_content: updatedData.back_audio_content || '',
           others: finalOthers,
           options: updatedOptions
         })
@@ -2809,7 +2830,10 @@ export default function PracticePlay() {
 
     try {
       // Safely parse other_content JSON if provided
-      let finalOthers = { ...editFormData.others };
+      const finalOthers = { ...editFormData.others };
+      const systemFields = ['front_img', 'back_img', 'front_audio_url', 'back_audio_url', 'front_audio_content', 'back_audio_content'];
+      systemFields.forEach(f => delete finalOthers[f]);
+
       if (finalOthers.other_content) {
         try {
           // If valid JSON, parse it for database storage
@@ -2825,6 +2849,12 @@ export default function PracticePlay() {
         ai_explanation: editFormData.ai_explanation,
         image: editFormData.image || null,
         audio: editFormData.audio || null,
+        front_img: editFormData.front_img || '',
+        back_img: editFormData.back_img || '',
+        front_audio_url: editFormData.front_audio_url || '',
+        back_audio_url: editFormData.back_audio_url || '',
+        front_audio_content: editFormData.front_audio_content || '',
+        back_audio_content: editFormData.back_audio_content || '',
         others: finalOthers,
         options: editFormData.options
       };
@@ -4226,12 +4256,12 @@ export default function PracticePlay() {
 
                         {/* Word / Question Content */}
                         <div className="flex-1 flex flex-col items-center justify-center text-center gap-6 overflow-y-auto custom-scrollbar my-2 py-2">
-                          {showImages && (currentQuestion?.image || currentQuestion?.others?.front_img) && (
+                          {showImages && (currentQuestion?.front_img || currentQuestion?.others?.front_img) && (
                             <img
-                              src={currentQuestion.image || currentQuestion.others?.front_img || undefined}
+                              src={currentQuestion.front_img || currentQuestion.others?.front_img || undefined}
                               alt="Front Visual"
                               className="max-h-40 md:max-h-48 object-contain rounded-3xl border border-slate-100/80 shadow-md bg-slate-50/50 p-1.5 animate-in zoom-in-95 duration-500 cursor-zoom-in hover:opacity-95 transition-opacity"
-                              onClick={() => setZoomedImage(currentQuestion.image || currentQuestion.others?.front_img || null)}
+                              onClick={() => setZoomedImage(currentQuestion.front_img || currentQuestion.others?.front_img || null)}
                             />
                           )}
                           <div className="text-3xl md:text-4xl font-black text-slate-800 tracking-tight leading-normal max-w-2xl markdown-content text-center flex flex-col items-center justify-center whitespace-pre-wrap">
@@ -4316,13 +4346,13 @@ export default function PracticePlay() {
                             </div>
                           )}
 
-                          {showImages && currentQuestion?.others?.back_img && (
+                          {showImages && (currentQuestion?.back_img || currentQuestion?.others?.back_img) && (
                             <div className="space-y-2 flex justify-center">
                               <img
-                                src={currentQuestion.others.back_img}
+                                src={currentQuestion.back_img || currentQuestion.others?.back_img || undefined}
                                 alt="Back Visual"
                                 className="max-h-40 md:max-h-48 object-contain rounded-3xl border border-slate-100/80 shadow-md bg-slate-50/50 p-1.5 animate-in zoom-in-95 duration-500 cursor-zoom-in hover:opacity-95 transition-opacity"
-                                onClick={() => setZoomedImage(currentQuestion?.others?.back_img || null)}
+                                onClick={() => setZoomedImage(currentQuestion.back_img || currentQuestion?.others?.back_img || null)}
                               />
                             </div>
                           )}

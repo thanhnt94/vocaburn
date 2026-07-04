@@ -255,6 +255,9 @@ const EditFlashcards = () => {
       })
 
       const finalOthers = { ...updatedData.others }
+      const systemFields = ['front_img', 'back_img', 'front_audio_url', 'back_audio_url', 'front_audio_content', 'back_audio_content']
+      systemFields.forEach(f => delete finalOthers[f])
+      
       let savedCard: any = null
 
       if (updatedData.id) {
@@ -265,6 +268,12 @@ const EditFlashcards = () => {
           ai_explanation: updatedData.ai_explanation,
           image: updatedData.image || null,
           audio: updatedData.audio || null,
+          front_img: updatedData.front_img || '',
+          back_img: updatedData.back_img || '',
+          front_audio_url: updatedData.front_audio_url || '',
+          back_audio_url: updatedData.back_audio_url || '',
+          front_audio_content: updatedData.front_audio_content || '',
+          back_audio_content: updatedData.back_audio_content || '',
           others: finalOthers,
           options: updatedOptions
         })
@@ -284,6 +293,12 @@ const EditFlashcards = () => {
           ai_explanation: updatedData.ai_explanation,
           image: updatedData.image || null,
           audio: updatedData.audio || null,
+          front_img: updatedData.front_img || '',
+          back_img: updatedData.back_img || '',
+          front_audio_url: updatedData.front_audio_url || '',
+          back_audio_url: updatedData.back_audio_url || '',
+          front_audio_content: updatedData.front_audio_content || '',
+          back_audio_content: updatedData.back_audio_content || '',
           others: finalOthers,
           options: updatedOptions
         })
