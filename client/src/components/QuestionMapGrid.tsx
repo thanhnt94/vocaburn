@@ -25,8 +25,8 @@ interface QuestionMapGridProps {
   currentIndex: number
   navigateToQuestion: (index: number) => void
   setIsMapOpen: (open: boolean) => void
-  filterMode?: 'all' | 'unseen' | 'learning' | 'mastered' | 'hard' | 'starred' | 'ignored'
-  setFilterMode?: (mode: 'all' | 'unseen' | 'learning' | 'mastered' | 'hard' | 'starred' | 'ignored') => void
+  filterMode?: 'all' | 'unseen' | 'learning' | 'mastered' | 'hard' | 'starred' | 'ignored' | 'box1' | 'box2' | 'box3' | 'box4' | 'box5'
+  setFilterMode?: (mode: 'all' | 'unseen' | 'learning' | 'mastered' | 'hard' | 'starred' | 'ignored' | 'box1' | 'box2' | 'box3' | 'box4' | 'box5') => void
   showFiltersInline?: boolean
 }
 
@@ -43,7 +43,7 @@ export const QuestionMapGrid: React.FC<QuestionMapGridProps> = ({
   showFiltersInline = true,
 }) => {
   const isPractice = mainTab === 'practice'
-  const [internalFilterMode, setInternalFilterMode] = useState<'all' | 'unseen' | 'learning' | 'mastered' | 'hard' | 'starred' | 'ignored'>('all')
+  const [internalFilterMode, setInternalFilterMode] = useState<'all' | 'unseen' | 'learning' | 'mastered' | 'hard' | 'starred' | 'ignored' | 'box1' | 'box2' | 'box3' | 'box4' | 'box5'>('all')
 
   const activeFilterMode = filterMode !== undefined ? filterMode : internalFilterMode
   const activeSetFilterMode = setFilterMode !== undefined ? setFilterMode : setInternalFilterMode
@@ -74,6 +74,11 @@ export const QuestionMapGrid: React.FC<QuestionMapGridProps> = ({
       .map((q, idx) => ({ ...q, originalIndex: idx }))
       .filter((item) => {
         if (activeFilterMode === 'all') return true;
+        if (activeFilterMode === 'box1') return (item.box_level || 1) === 1;
+        if (activeFilterMode === 'box2') return item.box_level === 2;
+        if (activeFilterMode === 'box3') return item.box_level === 3;
+        if (activeFilterMode === 'box4') return item.box_level === 4;
+        if (activeFilterMode === 'box5') return item.box_level === 5;
         return getCardBoxId(item) === activeFilterMode;
       })
   }, [questions, activeFilterMode])
@@ -85,6 +90,11 @@ export const QuestionMapGrid: React.FC<QuestionMapGridProps> = ({
         <div className="flex items-center gap-1 bg-slate-100/80 p-1 rounded-xl border border-slate-200/40 w-full overflow-x-auto no-scrollbar flex-shrink-0">
           {[
             { id: 'all', label: 'Tất cả' },
+            { id: 'box1', label: 'Hộp 1' },
+            { id: 'box2', label: 'Hộp 2' },
+            { id: 'box3', label: 'Hộp 3' },
+            { id: 'box4', label: 'Hộp 4' },
+            { id: 'box5', label: 'Hộp 5' },
             { id: 'unseen', label: 'Chưa học' },
             { id: 'learning', label: 'Đang học' },
             { id: 'mastered', label: 'Đã thuộc' },

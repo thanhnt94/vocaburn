@@ -320,7 +320,7 @@ export default function PracticePlay() {
   const [isCopyMenuOpen, setIsCopyMenuOpen] = useState(false)
   const [isCopied, setIsCopied] = useState(false)
   const [isMapOpen, setIsMapOpen] = useState(false)
-  const [mobileMapFilterMode, setMobileMapFilterMode] = useState<'all' | 'unseen' | 'learning' | 'mastered' | 'hard' | 'starred' | 'ignored'>('all')
+  const [mobileMapFilterMode, setMobileMapFilterMode] = useState<'all' | 'unseen' | 'learning' | 'mastered' | 'hard' | 'starred' | 'ignored' | 'box1' | 'box2' | 'box3' | 'box4' | 'box5'>('all')
   const [isStatsOpen, setIsStatsOpen] = useState(false)
   const [activeStatsTab, setActiveStatsTab] = useState<'performance' | 'goals' | 'leaderboard'>('performance')
   const [dailyComparisonData, setDailyComparisonData] = useState<any[] | null>(null)
@@ -4914,6 +4914,11 @@ export default function PracticePlay() {
                 <div className="flex items-center gap-1 bg-slate-100/80 p-1 rounded-xl border border-slate-200/40 w-full overflow-x-auto no-scrollbar">
                   {[
                     { id: 'all', label: 'Tất cả' },
+                    { id: 'box1', label: 'Hộp 1' },
+                    { id: 'box2', label: 'Hộp 2' },
+                    { id: 'box3', label: 'Hộp 3' },
+                    { id: 'box4', label: 'Hộp 4' },
+                    { id: 'box5', label: 'Hộp 5' },
                     { id: 'unseen', label: 'Chưa học' },
                     { id: 'learning', label: 'Đang học' },
                     { id: 'mastered', label: 'Đã thuộc' },
