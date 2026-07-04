@@ -597,12 +597,18 @@ export default function FlashcardPlay() {
     if (item.is_ignored) return 'ignored';
     if (item.is_starred) return 'starred';
     
-    const stats = item.stats || { total: 0, again_count: 0 }
+    const stats = item.stats || { total: 0, again_count: 0, hard_count: 0 }
     const total = stats.total || 0
     const again = stats.again_count || 0
+    const hard = stats.hard_count || 0
     const isHard = (item.fsrs?.difficulty !== undefined && item.fsrs.difficulty !== null)
-      ? item.fsrs.difficulty >= 8.0
-      : (total >= 5 && again >= 3 && (again / total >= 0.4));
+      ? (
+          item.fsrs.difficulty >= 8.0 &&
+          (item.fsrs.stability === undefined || item.fsrs.stability === null || item.fsrs.stability < 5.0) &&
+          total >= 20 &&
+          ((again + hard) / total >= 0.4)
+        )
+      : (total >= 20 && (again + hard) >= 8 && ((again + hard) / total >= 0.4));
       
     if (isHard) return 'hard';
     if (item.box_level === 5) return 'mastered';
@@ -4422,24 +4428,7 @@ export default function FlashcardPlay() {
               })()}
 
               {/* AI Hint "?" Button */}
-              {!isFlipped && !hasRated && currentQuestion && (
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleToggleHint();
-                  }}
-                  disabled={isAskingHint}
-                  className={cn(
-                    "w-12 h-12 flex-shrink-0 flex items-center justify-center rounded-2xl shadow-sm active:scale-95 transition-all hover:bg-indigo-100 hover:border-indigo-300",
-                    showingHint
-                      ? "bg-amber-500 border border-amber-600 text-white shadow-lg shadow-amber-200/50"
-                      : "bg-indigo-50 border border-indigo-200 text-indigo-600 hover:bg-indigo-100"
-                  )}
-                  title={isAskingHint ? "Đang tạo gợi ý..." : "Xem gợi ý AI"}
-                >
-                  <HelpCircle className={cn("w-5.5 h-5.5", isAskingHint ? "animate-pulse text-amber-500" : (showingHint ? "text-white" : "text-indigo-600"))} />
-                </button>
-              )}
+
               
               {/* Lightbulb Explanation Button */}
               {(mainTab === 'practice' || isFlipped || showFeedback) && (
