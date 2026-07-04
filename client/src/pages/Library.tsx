@@ -460,58 +460,45 @@ export default function Library() {
                       <motion.div key={quiz.id} layout initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95 }} transition={{ delay: idx * 0.02 }}>
                         
                         <div className="group h-full flex flex-col justify-between bg-white rounded-[2rem] border border-slate-200/50 p-6.5 shadow-sm hover:shadow-xl hover:shadow-indigo-100/20 hover:-translate-y-1.5 transition-all relative overflow-hidden text-left">
-                           <div className="absolute top-0 left-0 right-0 h-2 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 opacity-80" />
-
                            <div>
                              <div className="flex items-start justify-between mb-5 mt-1">
-                                <div className={cn(
-                                   "w-14 h-14 rounded-[1.25rem] overflow-hidden flex-shrink-0 shadow-md transition-all",
-                                   !quiz.cover_image && (
-                                      idx % 5 === 0 ? "bg-gradient-to-br from-indigo-400 to-purple-500 shadow-indigo-100" :
-                                      idx % 5 === 1 ? "bg-gradient-to-br from-rose-400 to-orange-500 shadow-rose-100" :
-                                      idx % 5 === 2 ? "bg-gradient-to-br from-emerald-400 to-teal-500 shadow-emerald-100" :
-                                      idx % 5 === 3 ? "bg-gradient-to-br from-blue-400 to-cyan-500 shadow-blue-100" :
-                                      "bg-gradient-to-br from-amber-400 to-yellow-500 shadow-amber-100"
-                                   )
-                                )}>
-                                   {quiz.cover_image ? (
-                                     <img src={quiz.cover_image} alt="" className="w-full h-full object-cover" />
-                                   ) : (
-                                     <div className="w-full h-full flex items-center justify-center text-white">
-                                       <LayoutGrid className="w-7 h-7" />
-                                     </div>
-                                   )}
-                                </div>
+                                <Link to={`/flashcard/${quiz.id}`} className="block flex-shrink-0 transition-transform hover:scale-105" title="Vào Dashboard bộ thẻ">
+                                  <div className={cn(
+                                     "w-14 h-14 rounded-[1.25rem] overflow-hidden shadow-md transition-all",
+                                     !quiz.cover_image && (
+                                        idx % 5 === 0 ? "bg-gradient-to-br from-indigo-400 to-purple-500 shadow-indigo-100" :
+                                        idx % 5 === 1 ? "bg-gradient-to-br from-rose-400 to-orange-500 shadow-rose-100" :
+                                        idx % 5 === 2 ? "bg-gradient-to-br from-emerald-400 to-teal-500 shadow-emerald-100" :
+                                        idx % 5 === 3 ? "bg-gradient-to-br from-blue-400 to-cyan-500 shadow-blue-100" :
+                                        "bg-gradient-to-br from-amber-400 to-yellow-500 shadow-amber-100"
+                                     )
+                                  )}>
+                                     {quiz.cover_image ? (
+                                       <img src={quiz.cover_image} alt="" className="w-full h-full object-cover" />
+                                     ) : (
+                                       <div className="w-full h-full flex items-center justify-center text-white">
+                                         <LayoutGrid className="w-7 h-7" />
+                                       </div>
+                                     )}
+                                  </div>
+                                </Link>
                                 <div className="flex items-center gap-2">
+                                  {/* Single unified Dashboard button to enter the main study/stats console */}
                                   <Link 
-                                     to={`/flashcard/${quiz.id}/play?mode=new`}
-                                     className="w-9 h-9 rounded-xl bg-gradient-to-br from-orange-400 to-rose-500 hover:from-orange-500 hover:to-rose-600 text-white flex items-center justify-center shadow-md shadow-orange-100 hover:scale-110 active:scale-95 transition-all"
-                                     title="Học từ mới (Learn New)"
+                                     to={`/flashcard/${quiz.id}`}
+                                     className="px-3.5 py-1.5 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white flex items-center gap-1.5 shadow-md shadow-indigo-100 hover:scale-105 active:scale-95 transition-all text-xs font-black uppercase tracking-wider"
+                                     title="Vào Dashboard & Học tập"
                                   >
-                                     <Sparkles className="w-4 h-4" />
+                                     <LayoutGrid className="w-3.5 h-3.5" />
+                                     <span>Học</span>
                                   </Link>
-                                  <Link 
-                                     to={`/flashcard/${quiz.id}/play?mode=fsrs`}
-                                     className="w-9 h-9 rounded-xl bg-indigo-600 text-white flex items-center justify-center shadow-md shadow-indigo-200 hover:scale-110 active:scale-95 transition-all"
-                                     title="Ôn tập Spaced Repetition (FSRS)"
-                                  >
-                                     <Brain className="w-4 h-4" />
-                                  </Link>
-                                  <button 
-                                     onClick={() => {
-                                        setSelectedPracticeQuiz(quiz)
-                                        setIsPracticeModalOpen(true)
-                                     }}
-                                     className="w-9 h-9 rounded-xl bg-emerald-600 text-white flex items-center justify-center shadow-md shadow-emerald-200 hover:scale-110 active:scale-95 transition-all"
-                                     title="Luyện tập tự do"
-                                  >
-                                     <Trophy className="w-4 h-4" />
-                                  </button>
                                 </div>
                              </div>
 
                              <div className="flex-1">
-                                <h3 className="text-lg font-black text-slate-800 group-hover:text-indigo-600 transition-colors leading-snug mb-2.5 truncate">{quiz.title}</h3>
+                                <Link to={`/flashcard/${quiz.id}`} className="block hover:underline" title="Vào Dashboard bộ thẻ">
+                                  <h3 className="text-lg font-black text-slate-800 hover:text-indigo-600 transition-colors leading-snug mb-2.5 truncate">{quiz.title}</h3>
+                                </Link>
                                 <div className="flex flex-wrap gap-1.5 mb-3.5">
                                    {quiz.tags?.map(t => <span key={t} className="px-2 py-0.5 bg-slate-50 border border-slate-200/50 rounded-lg text-[9px] font-black text-slate-400 uppercase tracking-wider">#{t}</span>)}
                                 </div>
@@ -582,15 +569,10 @@ export default function Library() {
                                       <Settings className="w-4 h-4" />
                                     </Link>
                                   )}
-                                  <Link 
-                                    to={`/flashcard/${quiz.id}`} 
-                                    className="w-9 h-9 bg-white hover:bg-slate-50 text-slate-600 border border-slate-200 rounded-full flex items-center justify-center transition-all shadow-sm active:scale-95 hover:scale-105"
-                                    title="Chi tiết bộ thẻ"
-                                  >
-                                    <Info className="w-4 h-4" />
-                                  </Link>
                               </div>
-                              <ChevronRight className="w-5 h-5 text-slate-300 group-hover:text-indigo-600 transition-all" />
+                              <Link to={`/flashcard/${quiz.id}`} className="hover:translate-x-1 transition-transform" title="Vào Dashboard bộ thẻ">
+                                <ChevronRight className="w-5 h-5 text-slate-300 hover:text-indigo-600 transition-all" />
+                              </Link>
                            </div>
                         </div>
 
