@@ -546,53 +546,65 @@ export default function FlashcardPlay() {
 
   const hasRated = activelyRatedCurrentCard || (sessionAnswers[currentIndex] !== undefined && !isCardUnlocked)
 
-  const getMasteryPill = (q: any) => {
-    if (q.is_ignored) {
-      return (
-        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-[10px] font-black uppercase tracking-wider bg-slate-200 text-slate-500 border border-slate-300 shadow-sm animate-fadeIn">
-          🚫 BỎ QUA
-        </span>
-      )
-    }
+  const getCardBoxId = (item: any) => {
+    if (item.is_ignored) return 'ignored';
+    if (item.is_starred) return 'starred';
     
-    const stats = q.stats || { total: 0, again_count: 0, hard_count: 0 }
-    const totalReviews = stats.total || 0
-    const again = stats.again_count || 0
-    const hard = stats.hard_count || 0
-    
-    const isHard = (q.fsrs?.difficulty !== undefined && q.fsrs.difficulty !== null)
-      ? q.fsrs.difficulty >= 7.0
-      : (totalReviews >= 3 && ((again + hard) >= 2) && ((again + hard) / totalReviews >= 0.3));
-    
-    if (isHard) {
-      return (
-        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-[10px] font-black uppercase tracking-wider bg-rose-500/10 text-rose-600 border border-rose-500/20 shadow-sm animate-fadeIn">
-          ⚠️ THẺ KHÓ
-        </span>
-      )
-    }
+    const stats = item.stats || { total: 0, again_count: 0, hard_count: 0 };
+    const total = stats.total || 0;
+    const again = stats.again_count || 0;
+    const hard = stats.hard_count || 0;
+    const isHard = (item.fsrs?.difficulty !== undefined && item.fsrs.difficulty !== null)
+      ? item.fsrs.difficulty >= 7.0
+      : (total >= 3 && ((again + hard) >= 2) && ((again + hard) / total >= 0.3));
+      
+    if (isHard) return 'hard';
+    if (item.box_level === 5) return 'mastered';
+    if (total === 0) return 'unseen';
+    return 'learning';
+  };
 
-    const boxLevel = q.box_level || 1
-    if (boxLevel === 5) {
-      return (
-        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-[10px] font-black uppercase tracking-wider bg-emerald-500/10 text-emerald-600 border border-emerald-500/20 shadow-sm animate-fadeIn">
-          🏆 ĐÃ THUỘC
-        </span>
-      )
-    } else if (boxLevel >= 2) {
-      return (
-        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-[10px] font-black uppercase tracking-wider bg-amber-500/10 text-amber-600 border border-amber-500/20 shadow-sm animate-fadeIn">
-          🌱 ĐANG HỌC
-        </span>
-      )
-    } else {
-      return (
-        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-[10px] font-black uppercase tracking-wider bg-slate-500/10 text-slate-650 border border-slate-500/20 shadow-sm animate-fadeIn">
-          ⭐ MỚI
-        </span>
-      )
+  const getMasteryPill = (q: any) => {
+    const boxId = getCardBoxId(q);
+    switch (boxId) {
+      case 'ignored':
+        return (
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-[10px] font-black uppercase tracking-wider bg-slate-200 text-slate-500 border border-slate-300 shadow-sm animate-fadeIn">
+            🚫 BỎ QUA
+          </span>
+        );
+      case 'starred':
+        return (
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-[10px] font-black uppercase tracking-wider bg-amber-500 text-white border border-amber-600 shadow-sm animate-fadeIn">
+            ★ ĐÃ GẮN SAO
+          </span>
+        );
+      case 'hard':
+        return (
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-[10px] font-black uppercase tracking-wider bg-rose-500/10 text-rose-600 border border-rose-500/20 shadow-sm animate-fadeIn">
+            ⚠️ THẺ KHÓ
+          </span>
+        );
+      case 'mastered':
+        return (
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-[10px] font-black uppercase tracking-wider bg-emerald-500/10 text-emerald-600 border border-emerald-500/20 shadow-sm animate-fadeIn">
+            🏆 ĐÃ THUỘC
+          </span>
+        );
+      case 'learning':
+        return (
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-[10px] font-black uppercase tracking-wider bg-amber-500/10 text-amber-600 border border-amber-500/20 shadow-sm animate-fadeIn">
+            🌱 ĐANG HỌC
+          </span>
+        );
+      default:
+        return (
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-[10px] font-black uppercase tracking-wider bg-slate-500/10 text-slate-650 border border-slate-500/20 shadow-sm animate-fadeIn">
+            ⭐ MỚI
+          </span>
+        );
     }
-  }
+  };
 
   const getBadgeIcon = (badgeId: string) => {
     switch (badgeId) {
