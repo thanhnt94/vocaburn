@@ -48,6 +48,18 @@ export const QuestionMapGrid: React.FC<QuestionMapGridProps> = ({
   const activeFilterMode = filterMode !== undefined ? filterMode : internalFilterMode
   const activeSetFilterMode = setFilterMode !== undefined ? setFilterMode : setInternalFilterMode
 
+  const isHardCard = (q: any) => {
+    if (!q) return false;
+    if (q.fsrs?.difficulty !== undefined && q.fsrs.difficulty !== null) {
+      return q.fsrs.difficulty >= 7.0;
+    }
+    const stats = q.stats || { total: 0, again_count: 0, hard_count: 0 };
+    const total = stats.total || 0;
+    const again = stats.again_count || 0;
+    const hard = stats.hard_count || 0;
+    return total >= 3 && ((again + hard) >= 2) && ((again + hard) / total >= 0.3);
+  };
+
   // Filter logic
   const filteredQuestions = useMemo(() => {
     if (!questions) return []
@@ -62,13 +74,13 @@ export const QuestionMapGrid: React.FC<QuestionMapGridProps> = ({
           return total === 0 && !item.is_ignored
         }
         if (activeFilterMode === 'learning') {
-          return total > 0 && !isMastered && !item.is_ignored
+          return total > 0 && !isMastered && !isHardCard(item) && !item.is_ignored
         }
         if (activeFilterMode === 'mastered') {
           return isMastered && !item.is_ignored
         }
         if (activeFilterMode === 'hard') {
-          return total > 0 && ((stats.again_count || 0) > 0 || (stats.hard_count || 0) > 0) && !item.is_ignored
+          return isHardCard(item) && !item.is_ignored
         }
         if (activeFilterMode === 'starred') {
           return !!item.is_starred
