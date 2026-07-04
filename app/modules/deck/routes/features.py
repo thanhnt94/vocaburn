@@ -649,13 +649,16 @@ async def _bulk_generate_deck_audio_task(
     source_field: str, 
     target_field: str, 
     force: bool, 
-    base_url: str
+    base_url: str,
+    card_ids: list = None
 ):
     from app.core.db import SessionLocal
     async with SessionLocal() as db:
         from app.modules.deck.models import Flashcard
         res = await db.execute(select(Flashcard).filter(Flashcard.deck_id == deck_id))
         cards = res.scalars().all()
+        if card_ids is not None:
+            cards = [c for c in cards if c.id in card_ids]
         logger.info(f"[BULK TTS] Starting batch submission to CentralAuth queue for deck {deck_id} ({len(cards)} cards) Source={source_field} Target={target_field}")
         
         # Get CentralAuth configuration
@@ -753,11 +756,13 @@ async def generate_all_deck_audio(
     force = False
     source_field = "front"
     target_field = "front_audio_url"
+    card_ids = None
     
     if payload:
         force = payload.get("force", False)
         source_field = payload.get("source_field", "front")
         target_field = payload.get("target_field", "front_audio_url")
+        card_ids = payload.get("card_ids", None)
         
     # Detect scheme dynamically (e.g. support HTTPS behind Nginx reverse proxy)
     scheme = request.headers.get("x-forwarded-proto", request.url.scheme)
@@ -769,7 +774,7 @@ async def generate_all_deck_audio(
         
     base_url = f"{scheme}://{netloc}"
     
-    background_tasks.add_task(_bulk_generate_deck_audio_task, deck_id, source_field, target_field, force, base_url)
+    background_tasks.add_task(_bulk_generate_deck_audio_task, deck_id, source_field, target_field, force, base_url, card_ids)
     return {"status": "ok", "message": "Bulk TTS audio generation queue submission started."}
 
 @router.get("/{deck_id}/tts-status")
@@ -785,6 +790,8 @@ async def get_deck_tts_status(
     
     total = len(cards)
     missing = 0
+    cards_list = []
+    
     for c in cards:
         # Determine text
         if source_field == "front":
@@ -809,9 +816,16 @@ async def get_deck_tts_status(
         if not has_audio:
             missing += 1
             
+        cards_list.append({
+            "id": c.id,
+            "content": c.content,
+            "missing": not has_audio
+        })
+            
     return {
         "total_cards": total,
-        "missing_audio_cards": missing
+        "missing_audio_cards": missing,
+        "cards": cards_list
     }
 
 @router.post("/tts-callback")
@@ -1025,12 +1039,14 @@ def _resolve_prompt_placeholders(template: str, card, deck, options_text: str, c
         
     return prompt
 
-async def _bulk_generate_deck_ai_task(deck_id: int, field: str, force: bool, base_url: str):
+async def _bulk_generate_deck_ai_task(deck_id: int, field: str, force: bool, base_url: str, card_ids: list = None):
     from app.core.db import SessionLocal
     async with SessionLocal() as db:
         from app.modules.deck.models import Flashcard, FlashcardDeck
         res = await db.execute(select(Flashcard).filter(Flashcard.deck_id == deck_id))
         cards = res.scalars().all()
+        if card_ids is not None:
+            cards = [c for c in cards if c.id in card_ids]
         
         # Get deck prompt templates
         deck_res = await db.execute(select(FlashcardDeck).filter(FlashcardDeck.id == deck_id))
@@ -1147,6 +1163,7 @@ async def get_deck_ai_status(deck_id: int, field: str = "explanation", db: Async
     
     total = len(cards)
     missing = 0
+    cards_list = []
     
     physical_map = {
         "front": "content",
@@ -1170,9 +1187,16 @@ async def get_deck_ai_status(deck_id: int, field: str = "explanation", db: Async
         if not has_val:
             missing += 1
             
+        cards_list.append({
+            "id": c.id,
+            "content": c.content,
+            "missing": not has_val
+        })
+            
     return {
         "total_cards": total,
-        "missing_ai_cards": missing
+        "missing_ai_cards": missing,
+        "cards": cards_list
     }
 
 @router.post("/{deck_id}/generate-all-ai")
@@ -1191,9 +1215,11 @@ async def generate_all_deck_ai(
         
     field = "explanation"
     force = False
+    card_ids = None
     if payload:
         field = payload.get("field", "explanation")
         force = payload.get("force", False)
+        card_ids = payload.get("card_ids", None)
         
     # Detect scheme dynamically (e.g. support HTTPS behind Nginx reverse proxy)
     scheme = request.headers.get("x-forwarded-proto", request.url.scheme)
@@ -1205,7 +1231,7 @@ async def generate_all_deck_ai(
         
     base_url = f"{scheme}://{netloc}"
     
-    background_tasks.add_task(_bulk_generate_deck_ai_task, deck_id, field, force, base_url)
+    background_tasks.add_task(_bulk_generate_deck_ai_task, deck_id, field, force, base_url, card_ids)
     return {"status": "ok", "message": f"Bulk AI {field} generation queue submission started."}
 
 @router.post("/{deck_id}/cards/{card_id}/generate-ai")
@@ -1408,6 +1434,7 @@ async def get_deck_image_status(deck_id: int, target_field: str = "front_img", d
     
     total = len(cards)
     missing = 0
+    cards_list = []
     
     physical_map = {
         "front_img": "front_img",
@@ -1424,9 +1451,16 @@ async def get_deck_image_status(deck_id: int, target_field: str = "front_img", d
         if not has_val:
             missing += 1
             
+        cards_list.append({
+            "id": c.id,
+            "content": c.content,
+            "missing": not has_val
+        })
+            
     return {
         "total_cards": total,
-        "missing_image_cards": missing
+        "missing_image_cards": missing,
+        "cards": cards_list
     }
 
 @router.post("/{deck_id}/generate-all-images")
@@ -1446,10 +1480,12 @@ async def generate_all_deck_images(
     source_field = "front"
     target_field = "front_img"
     force = False
+    card_ids = None
     if payload:
         source_field = payload.get("source_field", "front")
         target_field = payload.get("target_field", "front_img")
         force = payload.get("force", False)
+        card_ids = payload.get("card_ids", None)
         
     scheme = request.headers.get("x-forwarded-proto", request.url.scheme)
     netloc = request.url.netloc
@@ -1457,15 +1493,17 @@ async def generate_all_deck_images(
         scheme = "https"
     base_url = f"{scheme}://{netloc}"
     
-    background_tasks.add_task(_bulk_generate_deck_images_task, deck_id, source_field, target_field, force, base_url)
+    background_tasks.add_task(_bulk_generate_deck_images_task, deck_id, source_field, target_field, force, base_url, card_ids)
     return {"status": "ok", "message": f"Bulk image generation queue submission started."}
 
-async def _bulk_generate_deck_images_task(deck_id: int, source_field: str, target_field: str, force: bool, base_url: str):
+async def _bulk_generate_deck_images_task(deck_id: int, source_field: str, target_field: str, force: bool, base_url: str, card_ids: list = None):
     from app.core.db import SessionLocal
     async with SessionLocal() as db:
         from app.modules.deck.models import Flashcard
         res = await db.execute(select(Flashcard).filter(Flashcard.deck_id == deck_id))
         cards = res.scalars().all()
+        if card_ids is not None:
+            cards = [c for c in cards if c.id in card_ids]
         
         # Get CentralAuth configuration
         from app.modules.sso_module.service import SSOService

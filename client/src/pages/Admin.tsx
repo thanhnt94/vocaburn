@@ -3,6 +3,119 @@ import { useNavigate, useParams } from 'react-router-dom';
 import axios from 'axios';
 import { useAppStore } from '../store/useAppStore';
 
+const CardListSelector = ({ 
+  cards, 
+  selectedIds, 
+  onChange 
+}: { 
+  cards: Array<{ id: number, content: string, missing: boolean }>, 
+  selectedIds: number[], 
+  onChange: (ids: number[]) => void 
+}) => {
+  const [searchQuery, setSearchQuery] = useState('');
+  
+  const filteredCards = cards.filter(c => 
+    c.content.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+  
+  const handleToggle = (id: number) => {
+    if (selectedIds.includes(id)) {
+      onChange(selectedIds.filter(x => x !== id));
+    } else {
+      onChange([...selectedIds, id]);
+    }
+  };
+
+  const selectAll = () => {
+    onChange(filteredCards.map(c => c.id));
+  };
+
+  const deselectAll = () => {
+    onChange([]);
+  };
+
+  const selectMissingOnly = () => {
+    onChange(filteredCards.filter(c => c.missing).map(c => c.id));
+  };
+
+  return (
+    <div className="mt-6 border border-white/5 rounded-3xl p-6 bg-slate-900/50 space-y-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h4 className="text-sm font-black uppercase tracking-wider text-slate-400">Chọn Thẻ Để Đồng Bộ ({selectedIds.length}/{cards.length} thẻ được chọn)</h4>
+          <p className="text-[10px] text-slate-500 mt-0.5">Tích chọn các thẻ bạn muốn chạy tạo mới/đồng bộ.</p>
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <button 
+            type="button"
+            onClick={selectAll} 
+            className="px-3 py-1.5 bg-white/5 hover:bg-white/10 text-[9px] font-black uppercase tracking-wider rounded-xl text-slate-300 active:scale-95 transition-all"
+          >
+            Tất Cả
+          </button>
+          <button 
+            type="button"
+            onClick={selectMissingOnly} 
+            className="px-3 py-1.5 bg-indigo-500/20 hover:bg-indigo-500/30 text-[9px] font-black uppercase tracking-wider rounded-xl text-indigo-400 active:scale-95 transition-all"
+          >
+            Chỉ Thẻ Thiếu
+          </button>
+          <button 
+            type="button"
+            onClick={deselectAll} 
+            className="px-3 py-1.5 bg-white/5 hover:bg-white/10 text-[9px] font-black uppercase tracking-wider rounded-xl text-slate-300 active:scale-95 transition-all"
+          >
+            Bỏ Chọn
+          </button>
+        </div>
+      </div>
+
+      <div className="relative">
+        <input 
+          type="text"
+          placeholder="Tìm kiếm thẻ..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          className="w-full bg-[#0d1321]/60 border border-white/10 rounded-2xl px-4 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500/50"
+        />
+      </div>
+
+      <div className="max-h-[300px] overflow-y-auto custom-scrollbar border border-white/5 rounded-2xl divide-y divide-white/5 bg-[#0d1321]/40 pr-1">
+        {filteredCards.length === 0 ? (
+          <div className="p-8 text-center text-xs text-slate-500 font-bold">Không tìm thấy thẻ nào</div>
+        ) : (
+          filteredCards.map((c) => {
+            const isSelected = selectedIds.includes(c.id);
+            return (
+              <div 
+                key={c.id} 
+                onClick={() => handleToggle(c.id)}
+                className={`flex items-center gap-3 p-3 text-xs cursor-pointer transition-colors ${isSelected ? 'bg-indigo-500/5' : 'hover:bg-white/5'}`}
+              >
+                <div className="shrink-0 text-indigo-500">
+                  {isSelected ? (
+                    <div className="w-4 h-4 bg-indigo-600 rounded flex items-center justify-center text-white text-[10px] font-bold">✓</div>
+                  ) : (
+                    <div className="w-4 h-4 border border-white/20 rounded" />
+                  )}
+                </div>
+                <div className="flex-1 font-bold text-slate-300 truncate">{c.content}</div>
+                <div className="shrink-0">
+                  {c.missing ? (
+                    <span className="px-2 py-0.5 rounded-lg text-[8px] font-black uppercase tracking-wider bg-amber-500/10 text-amber-400 border border-amber-500/20">Thiếu</span>
+                  ) : (
+                    <span className="px-2 py-0.5 rounded-lg text-[8px] font-black uppercase tracking-wider bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">Đã Có</span>
+                  )}
+                </div>
+              </div>
+            );
+          })
+        )}
+      </div>
+    </div>
+  );
+};
+
 export default function Admin() {
   const navigate = useNavigate();
   const { tab } = useParams();
@@ -60,10 +173,14 @@ export default function Admin() {
   const [adminDecks, setAdminDecks] = useState<any[]>([]);
   const [selectedDeckId, setSelectedDeckId] = useState<string>('');
   const [isFetchingTTSStatus, setIsFetchingTTSStatus] = useState(false);
-  const [ttsStatus, setTtsStatus] = useState<{ total_cards: number, missing_audio_cards: number } | null>(null);
+  const [ttsStatus, setTtsStatus] = useState<any | null>(null);
   const [isStartingTTS, setIsStartingTTS] = useState(false);
   const [selectedTtsSourceField, setSelectedTtsSourceField] = useState<string>('front');
   const [selectedTtsTargetField, setSelectedTtsTargetField] = useState<string>('front_audio_url');
+  
+  const [selectedTtsCardIds, setSelectedTtsCardIds] = useState<number[]>([]);
+  const [selectedAICardIds, setSelectedAICardIds] = useState<number[]>([]);
+  const [selectedImageCardIds, setSelectedImageCardIds] = useState<number[]>([]);
 
   const loadAdminDecks = async () => {
     try {
@@ -76,6 +193,9 @@ export default function Admin() {
         setIsFetchingTTSStatus(true);
         const statusRes = await axios.get(`/api/v1/deck/${firstId}/tts-status?source_field=front&target_field=front_audio_url`);
         setTtsStatus(statusRes.data);
+        if (statusRes.data?.cards) {
+          setSelectedTtsCardIds(statusRes.data.cards.filter((c: any) => c.missing).map((c: any) => c.id));
+        }
       }
     } catch (e) {
       console.error("Failed to load admin decks", e);
@@ -88,15 +208,20 @@ export default function Admin() {
     setSelectedDeckId(deckIdStr);
     if (!deckIdStr) {
       setTtsStatus(null);
+      setSelectedTtsCardIds([]);
       return;
     }
     const source = sourceFieldStr || selectedTtsSourceField;
     const target = targetFieldStr || selectedTtsTargetField;
     setIsFetchingTTSStatus(true);
     setTtsStatus(null);
+    setSelectedTtsCardIds([]);
     try {
       const res = await axios.get(`/api/v1/deck/${deckIdStr}/tts-status?source_field=${source}&target_field=${target}`);
       setTtsStatus(res.data);
+      if (res.data?.cards) {
+        setSelectedTtsCardIds(res.data.cards.filter((c: any) => c.missing).map((c: any) => c.id));
+      }
     } catch (e) {
       console.error("Failed to check deck tts status", e);
     } finally {
@@ -113,7 +238,8 @@ export default function Admin() {
       await axios.post(`/api/v1/deck/${selectedDeckId}/generate-all-audio`, {
         force: false,
         source_field: selectedTtsSourceField,
-        target_field: selectedTtsTargetField
+        target_field: selectedTtsTargetField,
+        card_ids: selectedTtsCardIds
       });
       setSuccessMsg("Đã bắt đầu hàng đợi sinh âm thanh tự động ngầm cho bộ bài!");
       setTimeout(() => {
@@ -129,28 +255,33 @@ export default function Admin() {
   // Tab 6: AI Batch Config state
   const [selectedAIBatchField, setSelectedAIBatchField] = useState<string>('');
   const [isFetchingAIBatchStatus, setIsFetchingAIBatchStatus] = useState(false);
-  const [aiBatchStatus, setAiBatchStatus] = useState<{ total_cards: number, missing_ai_cards: number } | null>(null);
+  const [aiBatchStatus, setAiBatchStatus] = useState<any | null>(null);
   const [isStartingAIBatch, setIsStartingAIBatch] = useState(false);
 
   // Tab 7: Image Batch Config state
   const [selectedImageSourceField, setSelectedImageSourceField] = useState<string>('front');
   const [selectedImageTargetField, setSelectedImageTargetField] = useState<string>('front_img');
   const [isFetchingImageBatchStatus, setIsFetchingImageBatchStatus] = useState(false);
-  const [imageBatchStatus, setImageBatchStatus] = useState<{ total_cards: number, missing_image_cards: number } | null>(null);
+  const [imageBatchStatus, setImageBatchStatus] = useState<any | null>(null);
   const [isStartingImageBatch, setIsStartingImageBatch] = useState(false);
 
   const handleCheckImageBatchStatus = async (deckIdStr: string, targetFieldStr?: string) => {
     setSelectedDeckId(deckIdStr);
     if (!deckIdStr) {
       setImageBatchStatus(null);
+      setSelectedImageCardIds([]);
       return;
     }
     const target = targetFieldStr || selectedImageTargetField;
     setIsFetchingImageBatchStatus(true);
     setImageBatchStatus(null);
+    setSelectedImageCardIds([]);
     try {
       const res = await axios.get(`/api/v1/deck/${deckIdStr}/image-status?target_field=${target}`);
       setImageBatchStatus(res.data);
+      if (res.data?.cards) {
+        setSelectedImageCardIds(res.data.cards.filter((c: any) => c.missing).map((c: any) => c.id));
+      }
     } catch (e) {
       console.error("Failed to check deck image status", e);
     } finally {
@@ -167,7 +298,8 @@ export default function Admin() {
       await axios.post(`/api/v1/deck/${selectedDeckId}/generate-all-images`, {
         source_field: selectedImageSourceField,
         target_field: selectedImageTargetField,
-        force: false
+        force: false,
+        card_ids: selectedImageCardIds
       });
       setSuccessMsg(`Đã bắt đầu hàng đợi tìm & tải ảnh hàng loạt cho trường '${selectedImageTargetField}'!`);
       setTimeout(() => {
@@ -184,6 +316,7 @@ export default function Admin() {
     setSelectedDeckId(deckIdStr);
     if (!deckIdStr) {
       setAiBatchStatus(null);
+      setSelectedAICardIds([]);
       return;
     }
 
@@ -204,14 +337,19 @@ export default function Admin() {
 
     if (!activeField) {
       setAiBatchStatus(null);
+      setSelectedAICardIds([]);
       return;
     }
 
     setIsFetchingAIBatchStatus(true);
     setAiBatchStatus(null);
+    setSelectedAICardIds([]);
     try {
       const res = await axios.get(`/api/v1/deck/${deckIdStr}/ai-status?field=${activeField}`);
       setAiBatchStatus(res.data);
+      if (res.data?.cards) {
+        setSelectedAICardIds(res.data.cards.filter((c: any) => c.missing).map((c: any) => c.id));
+      }
     } catch (e) {
       console.error("Failed to check deck ai status", e);
     } finally {
@@ -225,7 +363,11 @@ export default function Admin() {
     setSuccessMsg('');
     setErrorMsg('');
     try {
-      await axios.post(`/api/v1/deck/${selectedDeckId}/generate-all-ai`, { field: selectedAIBatchField, force: false });
+      await axios.post(`/api/v1/deck/${selectedDeckId}/generate-all-ai`, { 
+        field: selectedAIBatchField, 
+        force: false,
+        card_ids: selectedAICardIds
+      });
       setSuccessMsg(`Đã bắt đầu hàng đợi sinh AI cho trường '${selectedAIBatchField}' của bộ thẻ!`);
       setTimeout(() => {
         handleCheckAIBatchStatus(selectedDeckId);
@@ -1081,9 +1223,17 @@ export default function Admin() {
                     )}
                   </div>
 
-                  {ttsStatus && ttsStatus.missing_audio_cards > 0 && (
+                  {ttsStatus && ttsStatus.cards && ttsStatus.cards.length > 0 && (
+                    <CardListSelector 
+                      cards={ttsStatus.cards}
+                      selectedIds={selectedTtsCardIds}
+                      onChange={setSelectedTtsCardIds}
+                    />
+                  )}
+
+                  {ttsStatus && (
                     <div className="flex items-center gap-3 bg-indigo-500/10 border border-indigo-500/20 p-4 rounded-xl text-xs text-indigo-300 font-bold leading-relaxed">
-                      💡 Có {ttsStatus.missing_audio_cards} thẻ chưa có file âm thanh cho cấu hình đã chọn. Bấm bắt đầu để tạo ngầm tự động.
+                      💡 Có {ttsStatus.missing_audio_cards} thẻ chưa có file âm thanh. Bạn đã chọn {selectedTtsCardIds.length} thẻ để đồng bộ.
                     </div>
                   )}
 
@@ -1091,7 +1241,7 @@ export default function Admin() {
                     <button
                       type="button"
                       onClick={handleStartTTSGeneration}
-                      disabled={isFetchingTTSStatus || !selectedDeckId || !ttsStatus || ttsStatus.missing_audio_cards === 0 || isStartingTTS}
+                      disabled={isFetchingTTSStatus || !selectedDeckId || !ttsStatus || selectedTtsCardIds.length === 0 || isStartingTTS}
                       className="px-6 py-3.5 rounded-xl font-bold bg-amber-500 hover:bg-amber-600 shadow-lg shadow-amber-500/20 transition-all text-sm flex items-center gap-2 active:scale-95 disabled:opacity-40 disabled:pointer-events-none"
                     >
                       {isStartingTTS ? 'Starting Task Queue...' : 'Start TTS Generation'}
@@ -1185,9 +1335,16 @@ export default function Admin() {
                               <p className="text-xl font-black text-indigo-500 mt-1">{aiBatchStatus.missing_ai_cards}</p>
                             </div>
                           </div>
-                          {aiBatchStatus.missing_ai_cards > 0 && (
+                          {aiBatchStatus && aiBatchStatus.cards && aiBatchStatus.cards.length > 0 && (
+                            <CardListSelector 
+                              cards={aiBatchStatus.cards}
+                              selectedIds={selectedAICardIds}
+                              onChange={setSelectedAICardIds}
+                            />
+                          )}
+                          {aiBatchStatus && (
                             <div className="flex items-center gap-3 bg-indigo-500/10 border border-indigo-500/20 p-4 rounded-xl text-xs text-indigo-300 font-bold leading-relaxed mt-4">
-                              💡 Có {aiBatchStatus.missing_ai_cards} thẻ chưa có nội dung AI '{fieldLabel}'. Bấm bắt đầu để gửi hàng loạt vào hàng đợi CentralAuth.
+                              💡 Có {aiBatchStatus.missing_ai_cards} thẻ chưa có nội dung AI '{fieldLabel}'. Bạn đã chọn {selectedAICardIds.length} thẻ để đồng bộ.
                             </div>
                           )}
                         </>
@@ -1201,7 +1358,7 @@ export default function Admin() {
                     <button
                       type="button"
                       onClick={handleStartAIBatchGeneration}
-                      disabled={isFetchingAIBatchStatus || !selectedDeckId || !aiBatchStatus || aiBatchStatus.missing_ai_cards === 0 || isStartingAIBatch}
+                      disabled={isFetchingAIBatchStatus || !selectedDeckId || !aiBatchStatus || selectedAICardIds.length === 0 || isStartingAIBatch}
                       className="px-6 py-3.5 rounded-xl font-bold bg-indigo-500 hover:bg-indigo-600 shadow-lg shadow-indigo-500/20 transition-all text-sm flex items-center gap-2 active:scale-95 disabled:opacity-40 disabled:pointer-events-none"
                     >
                       {isStartingAIBatch ? 'Starting Task Queue...' : 'Start AI Generation'}
@@ -1314,9 +1471,16 @@ export default function Admin() {
                             <p className="text-xl font-black text-indigo-500 mt-1">{imageBatchStatus.missing_image_cards}</p>
                           </div>
                         </div>
-                        {imageBatchStatus.missing_image_cards > 0 && (
+                        {imageBatchStatus && imageBatchStatus.cards && imageBatchStatus.cards.length > 0 && (
+                          <CardListSelector 
+                            cards={imageBatchStatus.cards}
+                            selectedIds={selectedImageCardIds}
+                            onChange={setSelectedImageCardIds}
+                          />
+                        )}
+                        {imageBatchStatus && (
                           <div className="flex items-center gap-3 bg-indigo-500/10 border border-indigo-500/20 p-4 rounded-xl text-xs text-indigo-300 font-bold leading-relaxed mt-4">
-                            💡 Có {imageBatchStatus.missing_image_cards} thẻ chưa có ảnh ở cột '{selectedImageTargetField}'. Bấm bắt đầu để tự động tìm kiếm và tải ảnh.
+                            💡 Có {imageBatchStatus.missing_image_cards} thẻ chưa có ảnh ở cột '{selectedImageTargetField}'. Bạn đã chọn {selectedImageCardIds.length} thẻ để đồng bộ.
                           </div>
                         )}
                       </>
@@ -1329,7 +1493,7 @@ export default function Admin() {
                     <button
                       type="button"
                       onClick={handleStartImageBatchGeneration}
-                      disabled={isFetchingImageBatchStatus || !selectedDeckId || !imageBatchStatus || imageBatchStatus.missing_image_cards === 0 || isStartingImageBatch}
+                      disabled={isFetchingImageBatchStatus || !selectedDeckId || !imageBatchStatus || selectedImageCardIds.length === 0 || isStartingImageBatch}
                       className="px-6 py-3.5 rounded-xl font-bold bg-indigo-500 hover:bg-indigo-600 shadow-lg shadow-indigo-500/20 transition-all text-sm flex items-center gap-2 active:scale-95 disabled:opacity-40 disabled:pointer-events-none"
                     >
                       {isStartingImageBatch ? 'Starting Task Queue...' : 'Start Image Generation'}
