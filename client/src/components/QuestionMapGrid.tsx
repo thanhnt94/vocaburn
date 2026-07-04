@@ -14,6 +14,7 @@ interface Question {
     correct_index?: number
   }
   is_ignored?: boolean
+  is_starred?: boolean
 }
 
 interface QuestionMapGridProps {
@@ -24,8 +25,8 @@ interface QuestionMapGridProps {
   currentIndex: number
   navigateToQuestion: (index: number) => void
   setIsMapOpen: (open: boolean) => void
-  filterMode?: 'all' | 'studied' | 'unseen' | 'hard'
-  setFilterMode?: (mode: 'all' | 'studied' | 'unseen' | 'hard') => void
+  filterMode?: 'all' | 'unseen' | 'learning' | 'mastered' | 'hard' | 'starred' | 'ignored'
+  setFilterMode?: (mode: 'all' | 'unseen' | 'learning' | 'mastered' | 'hard' | 'starred' | 'ignored') => void
   showFiltersInline?: boolean
 }
 
@@ -42,7 +43,7 @@ export const QuestionMapGrid: React.FC<QuestionMapGridProps> = ({
   showFiltersInline = true,
 }) => {
   const isPractice = mainTab === 'practice'
-  const [internalFilterMode, setInternalFilterMode] = useState<'all' | 'studied' | 'unseen' | 'hard'>('all')
+  const [internalFilterMode, setInternalFilterMode] = useState<'all' | 'unseen' | 'learning' | 'mastered' | 'hard' | 'starred' | 'ignored'>('all')
 
   const activeFilterMode = filterMode !== undefined ? filterMode : internalFilterMode
   const activeSetFilterMode = setFilterMode !== undefined ? setFilterMode : setInternalFilterMode
@@ -55,17 +56,28 @@ export const QuestionMapGrid: React.FC<QuestionMapGridProps> = ({
       .filter((item) => {
         const stats = item.stats || { total: 0, again_count: 0, hard_count: 0 }
         const total = stats.total || 0
+        const isMastered = item.box_level === 5
 
-        if (activeFilterMode === 'studied') {
-          return total > 0
-        }
         if (activeFilterMode === 'unseen') {
-          return total === 0
+          return total === 0 && !item.is_ignored
+        }
+        if (activeFilterMode === 'learning') {
+          return total > 0 && !isMastered && !item.is_ignored
+        }
+        if (activeFilterMode === 'mastered') {
+          return isMastered && !item.is_ignored
         }
         if (activeFilterMode === 'hard') {
-          return total > 0 && ((stats.again_count || 0) > 0 || (stats.hard_count || 0) > 0)
+          return total > 0 && ((stats.again_count || 0) > 0 || (stats.hard_count || 0) > 0) && !item.is_ignored
         }
-        return true
+        if (activeFilterMode === 'starred') {
+          return !!item.is_starred
+        }
+        if (activeFilterMode === 'ignored') {
+          return !!item.is_ignored
+        }
+        // 'all': show everything except ignored
+        return !item.is_ignored
       })
   }, [questions, activeFilterMode])
 
@@ -73,12 +85,15 @@ export const QuestionMapGrid: React.FC<QuestionMapGridProps> = ({
     <div className="space-y-3 flex flex-col h-full">
       {/* Dynamic pill-based filter tab bar */}
       {showFiltersInline && (
-        <div className="flex items-center gap-1 bg-slate-100/80 p-1 rounded-xl border border-slate-200/40 w-full flex-shrink-0">
+        <div className="flex items-center gap-1 bg-slate-100/80 p-1 rounded-xl border border-slate-200/40 w-full overflow-x-auto no-scrollbar flex-shrink-0">
           {[
             { id: 'all', label: 'Tất cả' },
-            { id: 'studied', label: 'Đã học' },
             { id: 'unseen', label: 'Chưa học' },
-            { id: 'hard', label: 'Thẻ khó' }
+            { id: 'learning', label: 'Đang học' },
+            { id: 'mastered', label: 'Đã thuộc' },
+            { id: 'hard', label: 'Thẻ khó' },
+            { id: 'starred', label: '★ Gắn sao' },
+            { id: 'ignored', label: 'Bỏ qua' }
           ].map(tab => (
             <button
               key={tab.id}
@@ -87,9 +102,9 @@ export const QuestionMapGrid: React.FC<QuestionMapGridProps> = ({
                 activeSetFilterMode(tab.id as any)
               }}
               className={cn(
-                "flex-1 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all",
+                "flex-shrink-0 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all whitespace-nowrap",
                 activeFilterMode === tab.id
-                  ? "bg-white text-indigo-600 shadow-sm border border-slate-200/30"
+                  ? "bg-white text-indigo-650 shadow-sm border border-slate-200/30"
                   : "text-slate-500 hover:bg-white/40"
               )}
             >
@@ -134,6 +149,9 @@ export const QuestionMapGrid: React.FC<QuestionMapGridProps> = ({
 
               if (q.is_ignored) {
                 fsrsClass = "border-slate-300 bg-slate-200 text-slate-400 opacity-60 hover:opacity-100 font-bold cursor-not-allowed"
+                fsrsStyle = {}
+              } else if (q.is_starred) {
+                fsrsClass = "border-amber-300 bg-amber-50 text-amber-700 hover:bg-amber-100/60 font-bold shadow-sm"
                 fsrsStyle = {}
               } else if (totalReviews > 0) {
                 const again = stats.again_count || 0
@@ -203,6 +221,9 @@ export const QuestionMapGrid: React.FC<QuestionMapGridProps> = ({
                   )}
                   style={fsrsStyle}
                 >
+                  {q.is_starred && (
+                    <span className="absolute top-0.5 right-1 text-[8px] text-amber-500 font-bold z-20">★</span>
+                  )}
                   <span className={cn("relative z-10 text-[12px] text-slate-800")}>{i + 1}</span>
                   {hasAttemptedThisSession && (
                     <span className={cn(

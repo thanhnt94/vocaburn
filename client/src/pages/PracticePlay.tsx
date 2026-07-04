@@ -320,7 +320,7 @@ export default function PracticePlay() {
   const [isCopyMenuOpen, setIsCopyMenuOpen] = useState(false)
   const [isCopied, setIsCopied] = useState(false)
   const [isMapOpen, setIsMapOpen] = useState(false)
-  const [mobileMapFilterMode, setMobileMapFilterMode] = useState<'all' | 'studied' | 'unseen' | 'hard'>('all')
+  const [mobileMapFilterMode, setMobileMapFilterMode] = useState<'all' | 'unseen' | 'learning' | 'mastered' | 'hard' | 'starred' | 'ignored'>('all')
   const [isStatsOpen, setIsStatsOpen] = useState(false)
   const [activeStatsTab, setActiveStatsTab] = useState<'performance' | 'goals' | 'leaderboard'>('performance')
   const [dailyComparisonData, setDailyComparisonData] = useState<any[] | null>(null)
@@ -4909,12 +4909,15 @@ export default function PracticePlay() {
             <div className="border-t border-slate-100 bg-white/95 backdrop-blur-md flex-shrink-0 pb-3 flex flex-col gap-2.5">
               {/* Filter Tabs at the Bottom for reachability */}
               <div className="px-4 pt-2">
-                <div className="flex items-center gap-1 bg-slate-100/80 p-1 rounded-xl border border-slate-200/40 w-full">
+                <div className="flex items-center gap-1 bg-slate-100/80 p-1 rounded-xl border border-slate-200/40 w-full overflow-x-auto no-scrollbar">
                   {[
                     { id: 'all', label: 'Tất cả' },
-                    { id: 'studied', label: 'Đã học' },
                     { id: 'unseen', label: 'Chưa học' },
-                    { id: 'hard', label: 'Thẻ khó' }
+                    { id: 'learning', label: 'Đang học' },
+                    { id: 'mastered', label: 'Đã thuộc' },
+                    { id: 'hard', label: 'Thẻ khó' },
+                    { id: 'starred', label: '★ Gắn sao' },
+                    { id: 'ignored', label: 'Bỏ qua' }
                   ].map(tab => (
                     <button
                       key={tab.id}
@@ -4923,7 +4926,7 @@ export default function PracticePlay() {
                         setMobileMapFilterMode(tab.id as any);
                       }}
                       className={cn(
-                        "flex-1 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all",
+                        "flex-shrink-0 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all whitespace-nowrap",
                         mobileMapFilterMode === tab.id
                           ? "bg-white text-indigo-600 shadow-sm border border-slate-200/30"
                           : "text-slate-500 hover:bg-white/40"

@@ -27,7 +27,8 @@ async def init_db():
                 ("state", "INTEGER DEFAULT 0"),
                 ("step", "INTEGER DEFAULT 0"),
                 ("due", "DATETIME DEFAULT CURRENT_TIMESTAMP"),
-                ("last_review", "DATETIME NULL")
+                ("last_review", "DATETIME NULL"),
+                ("is_starred", "BOOLEAN DEFAULT 0")
             ]
             
             for col_name, col_type in new_columns:

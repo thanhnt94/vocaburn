@@ -1215,6 +1215,7 @@ async def get_quick_play_data(request: Request, db: AsyncSession = Depends(get_d
             "stats": getattr(c, 'stats', None),
             "box_level": m_box_level,
             "is_ignored": m.is_ignored if m else False,
+            "is_starred": m.is_starred if m else False,
             "fsrs": {
                 "state": m_state,
                 "stability": m_stability,
@@ -1437,6 +1438,7 @@ async def get_deck_play_data(request: Request, deck_id: int, mode: Optional[str]
                 "stats": getattr(c, "stats", None),
                 "box_level": 1,
                 "is_ignored": False,
+                "is_starred": False,
                 "fsrs": None,
                 "options": [],
                 "image": fix_static_urls(c.image),
@@ -1489,6 +1491,7 @@ async def get_deck_play_data(request: Request, deck_id: int, mode: Optional[str]
                 "stats": getattr(c, 'stats', None),
                 "box_level": m_box_level,
                 "is_ignored": m.is_ignored if m else False,
+                "is_starred": m.is_starred if m else False,
                 "fsrs": {
                     "state": m_state,
                     "stability": m_stability,

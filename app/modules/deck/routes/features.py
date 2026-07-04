@@ -248,6 +248,28 @@ async def toggle_card_ignore(request: Request, card_id: int, data: dict, db: Asy
     await db.commit()
     return {"status": "ok", "is_ignored": is_ignored}
 
+@router.post("/question/{card_id}/star")
+@router.post("/flashcard/{card_id}/star")
+@router.post("/card/{card_id}/star")
+async def toggle_card_star(request: Request, card_id: int, data: dict, db: AsyncSession = Depends(get_db)):
+    from app.modules.deck.models import UserCardMastery
+    user_id = int(request.cookies.get("user_id", 1))
+    is_starred = data.get("is_starred", True)
+    
+    result = await db.execute(
+        select(UserCardMastery).where(UserCardMastery.user_id == user_id, UserCardMastery.card_id == card_id)
+    )
+    mastery = result.scalar_one_or_none()
+    
+    if mastery:
+        mastery.is_starred = is_starred
+    else:
+        mastery = UserCardMastery(user_id=user_id, card_id=card_id, is_starred=is_starred)
+        db.add(mastery)
+        
+    await db.commit()
+    return {"status": "ok", "is_starred": is_starred}
+
 @router.get("/{deck_id}/notes")
 async def get_deck_notes(request: Request, deck_id: int, db: AsyncSession = Depends(get_db)):
     from app.modules.deck.models import UserCardNote, Flashcard
