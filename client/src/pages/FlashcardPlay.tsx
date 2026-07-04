@@ -171,32 +171,32 @@ const getMapTitleInfo = (mode: string) => {
   switch (mode) {
     case 'unseen':
       return {
-        title: "Hộp 1: Chưa học",
+        title: "Chưa học",
         subtitle: "Các từ vựng mới tinh chưa bao giờ bắt đầu ôn luyện"
       };
     case 'learning':
       return {
-        title: "Hộp 2: Đang học",
+        title: "Đang học",
         subtitle: "Các từ vựng đang học dở dang ở các cấp độ ghi nhớ"
       };
     case 'mastered':
       return {
-        title: "Hộp 3: Đã thuộc",
+        title: "Đã thuộc",
         subtitle: "Các từ vựng đã học thuộc lòng hoàn toàn"
       };
     case 'hard':
       return {
-        title: "Hộp 4: Thẻ khó cần lưu ý",
+        title: "Thẻ khó cần lưu ý",
         subtitle: "Các từ vựng bạn hay gặp khó khăn hoặc trả lời sai nhiều"
       };
     case 'starred':
       return {
-        title: "Hộp 5: Đã gắn sao",
+        title: "Đã gắn sao",
         subtitle: "Các từ vựng quan trọng do chính bạn đánh dấu ưu tiên"
       };
     case 'ignored':
       return {
-        title: "Hộp 6: Đã bỏ qua",
+        title: "Đã bỏ qua",
         subtitle: "Các từ vựng đã loại trừ khỏi phiên học hiện tại"
       };
     case 'all':
@@ -586,6 +586,12 @@ export default function FlashcardPlay() {
   }, [session, activeMode, currentTime, sessionAnswers]);
 
   const hasRated = activelyRatedCurrentCard || (sessionAnswers[currentIndex] !== undefined && !isCardUnlocked)
+
+  const getFilteredCount = (mode: string) => {
+    if (!session?.questions) return 0;
+    if (mode === 'all') return session.questions.length;
+    return session.questions.filter((q: any) => getCardBoxId(q) === mode).length;
+  };
 
   const getCardBoxId = (item: any) => {
     if (item.is_ignored) return 'ignored';
@@ -4643,10 +4649,11 @@ export default function FlashcardPlay() {
               </button>
               {(() => {
                 const info = getMapTitleInfo(mobileMapFilterMode);
+                const count = getFilteredCount(mobileMapFilterMode);
                 return (
                   <div className="flex flex-col min-w-0">
                     <h2 className="text-xs md:text-sm font-extrabold text-slate-800 tracking-tight leading-snug">
-                      {info.title}
+                      {info.title} ({count})
                     </h2>
                     <p className="text-[9px] text-slate-400 font-bold">
                       {info.subtitle}

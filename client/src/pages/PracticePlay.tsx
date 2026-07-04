@@ -33,6 +33,7 @@ interface Option {
 interface Question {
   id: number
   is_ignored?: boolean
+  is_starred?: boolean
   content: string
   explanation: string
   ai_explanation?: string
@@ -156,6 +157,47 @@ function formatRelativeTime(dateStr: string | null | undefined): { relative: str
   
   return { relative, full };
 }
+
+const getMapTitleInfo = (mode: string) => {
+  switch (mode) {
+    case 'unseen':
+      return {
+        title: "Chưa học",
+        subtitle: "Các từ vựng mới tinh chưa bao giờ bắt đầu ôn luyện"
+      };
+    case 'learning':
+      return {
+        title: "Đang học",
+        subtitle: "Các từ vựng đang học dở dang ở các cấp độ ghi nhớ"
+      };
+    case 'mastered':
+      return {
+        title: "Đã thuộc",
+        subtitle: "Các từ vựng đã học thuộc lòng hoàn toàn"
+      };
+    case 'hard':
+      return {
+        title: "Thẻ khó cần lưu ý",
+        subtitle: "Các từ vựng bạn hay gặp khó khăn hoặc trả lời sai nhiều"
+      };
+    case 'starred':
+      return {
+        title: "Đã gắn sao",
+        subtitle: "Các từ vựng quan trọng do chính bạn đánh dấu ưu tiên"
+      };
+    case 'ignored':
+      return {
+        title: "Đã bỏ qua",
+        subtitle: "Các từ vựng đã loại trừ khỏi phiên học hiện tại"
+      };
+    case 'all':
+    default:
+      return {
+        title: "Bản đồ thẻ học - Tất cả",
+        subtitle: "Theo dõi và tra cứu toàn bộ từ vựng trong phiên học"
+      };
+  }
+};
 
 export default function PracticePlay() {
   const { id, subMode } = useParams()
@@ -670,38 +712,68 @@ export default function PracticePlay() {
 
   const hasRated = activelyRatedCurrentCard || (sessionAnswers[currentIndex] !== undefined && !isCardUnlocked)
 
-  const getMasteryPill = (boxLevel: number) => {
-    switch (boxLevel) {
-      case 5:
+  const getCardBoxId = (item: any) => {
+    if (item.is_ignored) return 'ignored';
+    if (item.is_starred) return 'starred';
+    
+    const stats = item.stats || { total: 0, again_count: 0 };
+    const total = stats.total || 0;
+    const again = stats.again_count || 0;
+    const isHard = (item.fsrs?.difficulty !== undefined && item.fsrs.difficulty !== null)
+      ? item.fsrs.difficulty >= 8.0
+      : (total >= 5 && again >= 3 && (again / total >= 0.4));
+      
+    if (isHard) return 'hard';
+    if (item.box_level === 5) return 'mastered';
+    if (total === 0) return 'unseen';
+    return 'learning';
+  };
+
+  const getFilteredCount = (mode: string) => {
+    if (!session?.questions) return 0;
+    if (mode === 'all') return session.questions.length;
+    return session.questions.filter((q: any) => getCardBoxId(q) === mode).length;
+  };
+
+  const getMasteryPill = (q: any) => {
+    const boxId = getCardBoxId(q);
+    switch (boxId) {
+      case 'ignored':
+        return (
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-[10px] font-black uppercase tracking-wider bg-slate-200 text-slate-500 border border-slate-300 shadow-sm">
+            🚫 BỎ QUA
+          </span>
+        );
+      case 'starred':
+        return (
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-[10px] font-black uppercase tracking-wider bg-amber-500 text-white border border-amber-600 shadow-sm">
+            ★ ĐÃ GẮN SAO
+          </span>
+        );
+      case 'hard':
+        return (
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-[10px] font-black uppercase tracking-wider bg-rose-500/10 text-rose-600 border border-rose-500/20 shadow-sm">
+            ⚠️ THỂ KHÓ
+          </span>
+        );
+      case 'mastered':
         return (
           <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-[10px] font-black uppercase tracking-wider bg-emerald-500/10 text-emerald-600 border border-emerald-500/20 shadow-sm">
-            🏆 MASTERED
+            🏆 ĐÃ THUỘC
           </span>
-        )
-      case 4:
-        return (
-          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-[10px] font-black uppercase tracking-wider bg-indigo-500/10 text-indigo-600 border border-indigo-500/20 shadow-sm">
-            ⚡ PROFICIENT
-          </span>
-        )
-      case 3:
-        return (
-          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-[10px] font-black uppercase tracking-wider bg-blue-500/10 text-blue-600 border border-blue-500/20 shadow-sm">
-            📘 FAMILIAR
-          </span>
-        )
-      case 2:
+        );
+      case 'learning':
         return (
           <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-[10px] font-black uppercase tracking-wider bg-amber-500/10 text-amber-600 border border-amber-500/20 shadow-sm">
-            🌱 LEARNING
+            🌱 ĐANG HỌC
           </span>
-        )
+        );
       default:
         return (
           <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-[10px] font-black uppercase tracking-wider bg-slate-500/10 text-slate-600 border border-slate-500/20 shadow-sm">
-            ⭐ NEW
+            ⭐ MỚI
           </span>
-        )
+        );
     }
   }
 
@@ -4147,7 +4219,7 @@ export default function PracticePlay() {
                           </div>
 
                           <div className="flex items-center gap-2">
-                            {currentQuestion && getMasteryPill(currentQuestion.box_level || 1)}
+                            {currentQuestion && getMasteryPill(currentQuestion)}
                           </div>
                         </div>
 
@@ -4213,7 +4285,7 @@ export default function PracticePlay() {
                           </div>
 
                           <div className="flex items-center gap-2">
-                            {currentQuestion && getMasteryPill(currentQuestion.box_level || 1)}
+                            {currentQuestion && getMasteryPill(currentQuestion)}
                           </div>
                         </div>
 
@@ -4947,10 +5019,20 @@ export default function PracticePlay() {
               </div>
 
               {/* Info Label */}
-              <div className="px-4 py-1 text-center">
-                <h4 className="text-[11px] font-black text-indigo-600 uppercase tracking-[0.2em] leading-tight">Bản đồ thẻ học</h4>
-                <p className="text-[9px] text-slate-400 font-bold mt-0.5">Dễ dàng theo dõi & lọc thẻ học</p>
-              </div>
+              {(() => {
+                const info = getMapTitleInfo(mobileMapFilterMode);
+                const count = getFilteredCount(mobileMapFilterMode);
+                return (
+                  <div className="px-4 py-1 text-center">
+                    <h4 className="text-[11px] font-black text-indigo-600 uppercase tracking-[0.2em] leading-tight">
+                      {info.title} ({count})
+                    </h4>
+                    <p className="text-[9px] text-slate-400 font-bold mt-0.5">
+                      {info.subtitle}
+                    </p>
+                  </div>
+                );
+              })()}
             </div>
           </motion.div>
         )}
