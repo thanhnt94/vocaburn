@@ -13,15 +13,6 @@ export default function Admin() {
   const [successMsg, setSuccessMsg] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
 
-  // Sync activeTab with URL sub-route
-  useEffect(() => {
-    if (tab && ['sso', 'ai', 'telegram', 'users', 'maintenance', 'tts', 'ai-batch', 'image-batch'].includes(tab)) {
-      setActiveTab(tab as any);
-    } else if (!tab) {
-      navigate('/admin/sso', { replace: true });
-    }
-  }, [tab, navigate]);
-
   // Tab: Telegram Config state
   const [tgBotToken, setTgBotToken] = useState('');
   const [tgBotUsername, setTgBotUsername] = useState('');
@@ -36,6 +27,21 @@ export default function Admin() {
   const [ssoClientSecret, setSsoClientSecret] = useState('');
   const [ssoEnabled, setSsoEnabled] = useState(false);
   const [ssoTestStatus, setSsoTestStatus] = useState<{ status: 'idle' | 'loading' | 'success' | 'error'; message?: string }>({ status: 'idle' });
+
+  // Sync activeTab with URL sub-route and handle SSO-dependent tabs visibility
+  useEffect(() => {
+    if (tab && ['sso', 'ai', 'telegram', 'users', 'maintenance', 'tts', 'ai-batch', 'image-batch'].includes(tab)) {
+      if (ssoEnabled && (tab === 'ai' || tab === 'telegram')) {
+        navigate('/admin/sso', { replace: true });
+      } else if (!ssoEnabled && ['tts', 'ai-batch', 'image-batch'].includes(tab)) {
+        navigate('/admin/sso', { replace: true });
+      } else {
+        setActiveTab(tab as any);
+      }
+    } else if (!tab) {
+      navigate('/admin/sso', { replace: true });
+    }
+  }, [tab, navigate, ssoEnabled]);
 
   // Tab 2: AI Config state
   const [aiKey, setAiKey] = useState('');
@@ -56,6 +62,8 @@ export default function Admin() {
   const [isFetchingTTSStatus, setIsFetchingTTSStatus] = useState(false);
   const [ttsStatus, setTtsStatus] = useState<{ total_cards: number, missing_audio_cards: number } | null>(null);
   const [isStartingTTS, setIsStartingTTS] = useState(false);
+  const [selectedTtsSourceField, setSelectedTtsSourceField] = useState<string>('front');
+  const [selectedTtsTargetField, setSelectedTtsTargetField] = useState<string>('front_audio_url');
 
   const loadAdminDecks = async () => {
     try {
@@ -66,7 +74,7 @@ export default function Admin() {
         setSelectedDeckId(firstId);
         
         setIsFetchingTTSStatus(true);
-        const statusRes = await axios.get(`/api/v1/deck/${firstId}/tts-status`);
+        const statusRes = await axios.get(`/api/v1/deck/${firstId}/tts-status?source_field=front&target_field=front_audio_url`);
         setTtsStatus(statusRes.data);
       }
     } catch (e) {
@@ -76,16 +84,18 @@ export default function Admin() {
     }
   };
 
-  const handleCheckTTSStatus = async (deckIdStr: string) => {
+  const handleCheckTTSStatus = async (deckIdStr: string, sourceFieldStr?: string, targetFieldStr?: string) => {
     setSelectedDeckId(deckIdStr);
     if (!deckIdStr) {
       setTtsStatus(null);
       return;
     }
+    const source = sourceFieldStr || selectedTtsSourceField;
+    const target = targetFieldStr || selectedTtsTargetField;
     setIsFetchingTTSStatus(true);
     setTtsStatus(null);
     try {
-      const res = await axios.get(`/api/v1/deck/${deckIdStr}/tts-status`);
+      const res = await axios.get(`/api/v1/deck/${deckIdStr}/tts-status?source_field=${source}&target_field=${target}`);
       setTtsStatus(res.data);
     } catch (e) {
       console.error("Failed to check deck tts status", e);
@@ -100,7 +110,11 @@ export default function Admin() {
     setSuccessMsg('');
     setErrorMsg('');
     try {
-      await axios.post(`/api/v1/deck/${selectedDeckId}/generate-all-audio`, { force: false });
+      await axios.post(`/api/v1/deck/${selectedDeckId}/generate-all-audio`, {
+        force: false,
+        source_field: selectedTtsSourceField,
+        target_field: selectedTtsTargetField
+      });
       setSuccessMsg("Đã bắt đầu hàng đợi sinh âm thanh tự động ngầm cho bộ bài!");
       setTimeout(() => {
         handleCheckTTSStatus(selectedDeckId);
@@ -520,18 +534,22 @@ export default function Admin() {
             >
               🔒 CentralAuth SSO
             </button>
-            <button
-              onClick={() => navigate('/admin/ai')}
-              className={`p-4 rounded-xl font-bold flex items-center gap-3 transition-all text-left ${activeTab === 'ai' ? 'bg-[#6366f1] text-white shadow-lg shadow-indigo-500/20' : 'bg-white/[0.02] hover:bg-white/[0.05] border border-white/5 text-gray-400'}`}
-            >
-              🧠 Google Gemini AI
-            </button>
-            <button
-              onClick={() => navigate('/admin/telegram')}
-              className={`p-4 rounded-xl font-bold flex items-center gap-3 transition-all text-left ${activeTab === 'telegram' ? 'bg-[#6366f1] text-white shadow-lg shadow-indigo-500/20' : 'bg-white/[0.02] hover:bg-white/[0.05] border border-white/5 text-gray-400'}`}
-            >
-              🤖 Telegram Bot
-            </button>
+            {!ssoEnabled && (
+              <>
+                <button
+                  onClick={() => navigate('/admin/ai')}
+                  className={`p-4 rounded-xl font-bold flex items-center gap-3 transition-all text-left ${activeTab === 'ai' ? 'bg-[#6366f1] text-white shadow-lg shadow-indigo-500/20' : 'bg-white/[0.02] hover:bg-white/[0.05] border border-white/5 text-gray-400'}`}
+                >
+                  🧠 Google Gemini AI
+                </button>
+                <button
+                  onClick={() => navigate('/admin/telegram')}
+                  className={`p-4 rounded-xl font-bold flex items-center gap-3 transition-all text-left ${activeTab === 'telegram' ? 'bg-[#6366f1] text-white shadow-lg shadow-indigo-500/20' : 'bg-white/[0.02] hover:bg-white/[0.05] border border-white/5 text-gray-400'}`}
+                >
+                  🤖 Telegram Bot
+                </button>
+              </>
+            )}
             <button
               onClick={() => navigate('/admin/users')}
               className={`p-4 rounded-xl font-bold flex items-center gap-3 transition-all text-left ${activeTab === 'users' ? 'bg-[#6366f1] text-white shadow-lg shadow-indigo-500/20' : 'bg-white/[0.02] hover:bg-white/[0.05] border border-white/5 text-gray-400'}`}
@@ -544,34 +562,38 @@ export default function Admin() {
             >
               ⚙️ System Control
             </button>
-            <button
-              onClick={() => navigate('/admin/tts')}
-              className={`p-4 rounded-xl font-bold flex items-center gap-3 transition-all text-left ${activeTab === 'tts' ? 'bg-[#6366f1] text-white shadow-lg shadow-indigo-500/20' : 'bg-white/[0.02] hover:bg-white/[0.05] border border-white/5 text-gray-400'}`}
-            >
-              🎵 Batch TTS Sync
-            </button>
-            <button
-              onClick={() => {
-                navigate('/admin/ai-batch');
-                if (selectedDeckId) {
-                  handleCheckAIBatchStatus(selectedDeckId, selectedAIBatchField);
-                }
-              }}
-              className={`p-4 rounded-xl font-bold flex items-center gap-3 transition-all text-left ${activeTab === 'ai-batch' ? 'bg-[#6366f1] text-white shadow-lg shadow-indigo-500/20' : 'bg-white/[0.02] hover:bg-white/[0.05] border border-white/5 text-gray-400'}`}
-            >
-              🧠 Batch AI Sync
-            </button>
-            <button
-              onClick={() => {
-                navigate('/admin/image-batch');
-                if (selectedDeckId) {
-                  handleCheckImageBatchStatus(selectedDeckId, selectedImageTargetField);
-                }
-              }}
-              className={`p-4 rounded-xl font-bold flex items-center gap-3 transition-all text-left ${activeTab === 'image-batch' ? 'bg-[#6366f1] text-white shadow-lg shadow-indigo-500/20' : 'bg-white/[0.02] hover:bg-white/[0.05] border border-white/5 text-gray-400'}`}
-            >
-              🖼️ Batch Image Sync
-            </button>
+            {ssoEnabled && (
+              <>
+                <button
+                  onClick={() => navigate('/admin/tts')}
+                  className={`p-4 rounded-xl font-bold flex items-center gap-3 transition-all text-left ${activeTab === 'tts' ? 'bg-[#6366f1] text-white shadow-lg shadow-indigo-500/20' : 'bg-white/[0.02] hover:bg-white/[0.05] border border-white/5 text-gray-400'}`}
+                >
+                  🎵 Batch TTS Sync
+                </button>
+                <button
+                  onClick={() => {
+                    navigate('/admin/ai-batch');
+                    if (selectedDeckId) {
+                      handleCheckAIBatchStatus(selectedDeckId, selectedAIBatchField);
+                    }
+                  }}
+                  className={`p-4 rounded-xl font-bold flex items-center gap-3 transition-all text-left ${activeTab === 'ai-batch' ? 'bg-[#6366f1] text-white shadow-lg shadow-indigo-500/20' : 'bg-white/[0.02] hover:bg-white/[0.05] border border-white/5 text-gray-400'}`}
+                >
+                  🧠 Batch AI Sync
+                </button>
+                <button
+                  onClick={() => {
+                    navigate('/admin/image-batch');
+                    if (selectedDeckId) {
+                      handleCheckImageBatchStatus(selectedDeckId, selectedImageTargetField);
+                    }
+                  }}
+                  className={`p-4 rounded-xl font-bold flex items-center gap-3 transition-all text-left ${activeTab === 'image-batch' ? 'bg-[#6366f1] text-white shadow-lg shadow-indigo-500/20' : 'bg-white/[0.02] hover:bg-white/[0.05] border border-white/5 text-gray-400'}`}
+                >
+                  🖼️ Batch Image Sync
+                </button>
+              </>
+            )}
           </div>
 
           {/* Form Content Area */}
@@ -946,30 +968,90 @@ export default function Admin() {
 
             {/* Tab 5: TTS Batch Queue */}
             {activeTab === 'tts' && (
-              <div className="flex flex-col gap-6">
+              <div className="space-y-6">
                 <div>
                   <h3 className="text-2xl font-bold mb-2">Batch TTS Audio Generation</h3>
-                  <p className="text-gray-400 text-sm">Generate synthesized audio for all flashcards in a deck in the background.</p>
+                  <p className="text-gray-400 text-sm">Tạo âm thanh đọc từ vựng hàng loạt cho cả bộ thẻ qua CentralAuth.</p>
                 </div>
 
-                <div className="space-y-5 bg-[#0d1321]/50 border border-white/5 p-6 rounded-2xl">
-                  <div>
-                    <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Select Card Deck</label>
-                    <select
-                      value={selectedDeckId}
-                      onChange={(e) => handleCheckTTSStatus(e.target.value)}
-                      className="w-full bg-[#0d1321] border border-white/10 rounded-xl px-4 py-3.5 text-white font-bold focus:outline-none focus:border-indigo-500 transition-all text-sm cursor-pointer"
-                    >
-                      {adminDecks.length === 0 ? (
-                        <option value="">No decks found</option>
-                      ) : (
-                        adminDecks.map(d => (
-                          <option key={d.id} value={d.id} className="bg-[#0d1321] text-white font-semibold">
-                            {d.title} (ID: {d.id})
+                <div className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    {/* Select Deck */}
+                    <div className="flex flex-col">
+                      <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Chọn bộ thẻ</label>
+                      <select
+                        value={selectedDeckId}
+                        onChange={(e) => {
+                          const newDeckId = e.target.value;
+                          setSelectedDeckId(newDeckId);
+                          if (newDeckId) {
+                            handleCheckTTSStatus(newDeckId, selectedTtsSourceField, selectedTtsTargetField);
+                          } else {
+                            setTtsStatus(null);
+                          }
+                        }}
+                        className="w-full bg-[#0d1321] border border-white/10 rounded-xl px-4 py-3.5 text-white font-bold focus:outline-none focus:border-indigo-500 transition-all text-sm cursor-pointer"
+                      >
+                        <option value="" style={{ color: '#94a3b8', backgroundColor: '#0d1321' }}>-- Chọn bộ thẻ --</option>
+                        {adminDecks.map((deck) => (
+                          <option key={deck.id} value={deck.id.toString()} style={{ color: '#ffffff', backgroundColor: '#0d1321' }} className="font-semibold">
+                            {deck.title} (ID: {deck.id})
                           </option>
-                        ))
-                      )}
-                    </select>
+                        ))}
+                      </select>
+                    </div>
+
+                    {/* Select Source Text Field */}
+                    <div className="flex flex-col">
+                      <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Cột chứa Nội dung (Source)</label>
+                      <select
+                        value={selectedTtsSourceField}
+                        onChange={(e) => {
+                          const newField = e.target.value;
+                          setSelectedTtsSourceField(newField);
+                          if (selectedDeckId) {
+                            handleCheckTTSStatus(selectedDeckId, newField, selectedTtsTargetField);
+                          }
+                        }}
+                        className="w-full bg-[#0d1321] border border-white/10 rounded-xl px-4 py-3.5 text-white font-bold focus:outline-none focus:border-indigo-500 transition-all text-sm cursor-pointer"
+                      >
+                        <option value="front" style={{ color: '#ffffff', backgroundColor: '#0d1321' }} className="font-semibold">Mặt Trước (Word)</option>
+                        <option value="back" style={{ color: '#ffffff', backgroundColor: '#0d1321' }} className="font-semibold">Mặt Sau (Definition)</option>
+                        {(() => {
+                          const currentDeck = adminDecks.find(d => d.id.toString() === selectedDeckId);
+                          const customCols = currentDeck?.practice_settings?.custom_columns || [];
+                          return customCols.map((c: string) => (
+                            <option key={c} value={c} style={{ color: '#ffffff', backgroundColor: '#0d1321' }} className="font-semibold">{c}</option>
+                          ));
+                        })()}
+                      </select>
+                    </div>
+
+                    {/* Select Target Audio Field */}
+                    <div className="flex flex-col">
+                      <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Cột lưu URL Audio (Target)</label>
+                      <select
+                        value={selectedTtsTargetField}
+                        onChange={(e) => {
+                          const newField = e.target.value;
+                          setSelectedTtsTargetField(newField);
+                          if (selectedDeckId) {
+                            handleCheckTTSStatus(selectedDeckId, selectedTtsSourceField, newField);
+                          }
+                        }}
+                        className="w-full bg-[#0d1321] border border-white/10 rounded-xl px-4 py-3.5 text-white font-bold focus:outline-none focus:border-indigo-500 transition-all text-sm cursor-pointer"
+                      >
+                        <option value="front_audio_url" style={{ color: '#ffffff', backgroundColor: '#0d1321' }} className="font-semibold">front_audio_url (Audio mặt trước)</option>
+                        <option value="back_audio_url" style={{ color: '#ffffff', backgroundColor: '#0d1321' }} className="font-semibold">back_audio_url (Audio mặt sau)</option>
+                        {(() => {
+                          const currentDeck = adminDecks.find(d => d.id.toString() === selectedDeckId);
+                          const customCols = currentDeck?.practice_settings?.custom_columns || [];
+                          return customCols.map((c: string) => (
+                            <option key={c} value={c} style={{ color: '#ffffff', backgroundColor: '#0d1321' }} className="font-semibold">{c}</option>
+                          ));
+                        })()}
+                      </select>
+                    </div>
                   </div>
 
                   {/* Status Panel */}
@@ -999,7 +1081,7 @@ export default function Admin() {
 
                   {ttsStatus && ttsStatus.missing_audio_cards > 0 && (
                     <div className="flex items-center gap-3 bg-indigo-500/10 border border-indigo-500/20 p-4 rounded-xl text-xs text-indigo-300 font-bold leading-relaxed">
-                      💡 Có {ttsStatus.missing_audio_cards} thẻ chưa có file âm thanh. Bấm bắt đầu để tạo ngầm tự động.
+                      💡 Có {ttsStatus.missing_audio_cards} thẻ chưa có file âm thanh cho cấu hình đã chọn. Bấm bắt đầu để tạo ngầm tự động.
                     </div>
                   )}
 
@@ -1156,7 +1238,7 @@ export default function Admin() {
                         <option value="" style={{ color: '#94a3b8', backgroundColor: '#0d1321' }}>-- Chọn bộ thẻ --</option>
                         {adminDecks.map((deck) => (
                           <option key={deck.id} value={deck.id.toString()} style={{ color: '#ffffff', backgroundColor: '#0d1321' }} className="font-semibold">
-                            {deck.name}
+                            {deck.title} (ID: {deck.id})
                           </option>
                         ))}
                       </select>

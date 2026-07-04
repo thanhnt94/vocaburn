@@ -34,6 +34,21 @@ def fix_static_urls(val):
         return [fix_static_urls(v) for v in val]
     return val
 
+async def resolve_play_cards(cards_list, db):
+    from .media_resolver import get_sso_server_url, resolve_card_dict, resolve_central_url
+    sso_url = await get_sso_server_url(db)
+    for c in cards_list:
+        resolve_card_dict(c, sso_url)
+        # Also resolve duplicate image, audio, or others keys
+        for key in ["image", "audio"]:
+            if key in c and c[key]:
+                c[key] = resolve_central_url(c[key], sso_url)
+        if "others" in c and isinstance(c["others"], dict):
+            for key in ["front_audio_url", "back_audio_url", "front_img", "back_img"]:
+                if key in c["others"] and c["others"][key]:
+                    c["others"][key] = resolve_central_url(c["others"][key], sso_url)
+    return cards_list
+
 def build_fsrs_card(mastery, now_utc):
     from fsrs import Card, State
     state_map = {
@@ -1232,6 +1247,7 @@ async def get_quick_play_data(request: Request, db: AsyncSession = Depends(get_d
             "others": fix_static_urls(c.others)
         })
         
+    await resolve_play_cards(cards_list, db)
     return {
         "id": 0,
         "title": "Học Nhanh (Quick Play)",
@@ -1297,6 +1313,7 @@ async def get_deck_play_data(request: Request, deck_id: int, mode: Optional[str]
             "others": fix_static_urls(c.others)
         } for c in deck.cards]
         
+        await resolve_play_cards(cards_list, db)
         return {
             "id": deck.id,
             "title": deck.title,
@@ -1508,6 +1525,7 @@ async def get_deck_play_data(request: Request, deck_id: int, mode: Optional[str]
                 "others": fix_static_urls(c.others)
             })
         
+    await resolve_play_cards(cards_list, db)
     return {
         "id": deck.id,
         "title": deck.title,

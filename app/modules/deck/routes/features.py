@@ -635,13 +635,19 @@ async def generate_card_audio(card_id: int, request: Request, face: str = "front
         
     return {"url": url}
 
-async def _bulk_generate_deck_audio_task(deck_id: int, force: bool, base_url: str):
+async def _bulk_generate_deck_audio_task(
+    deck_id: int, 
+    source_field: str, 
+    target_field: str, 
+    force: bool, 
+    base_url: str
+):
     from app.core.db import SessionLocal
     async with SessionLocal() as db:
         from app.modules.deck.models import Flashcard
         res = await db.execute(select(Flashcard).filter(Flashcard.deck_id == deck_id))
         cards = res.scalars().all()
-        logger.info(f"[BULK TTS] Starting batch submission to CentralAuth queue for deck {deck_id} ({len(cards)} cards)")
+        logger.info(f"[BULK TTS] Starting batch submission to CentralAuth queue for deck {deck_id} ({len(cards)} cards) Source={source_field} Target={target_field}")
         
         # Get CentralAuth configuration
         from app.modules.sso_module.service import SSOService
@@ -659,45 +665,42 @@ async def _bulk_generate_deck_audio_task(deck_id: int, force: bool, base_url: st
 
         for c in cards:
             await db.refresh(c)
-            front_text = c.others.get("front_audio_content") if c.others else None
-            back_text = c.others.get("back_audio_content") if c.others else None
             
-            folder_path = os.path.join(settings.VOCABURN_STORAGE_DIR, str(deck_id), "audio")
+            # Determine prompt text
+            if source_field == "front":
+                text = c.content
+            elif source_field == "back":
+                text = c.explanation
+            else:
+                text = c.others.get(source_field) if c.others else None
+                
+            if not text or not str(text).strip():
+                continue
+                
+            text = str(text).strip()
             
-            # Front text queue check
-            if front_text and front_text.strip():
-                front_path = os.path.join(folder_path, f"{c.id}_front.mp3")
-                if force or not os.path.exists(front_path) or not c.front_audio_url:
-                    tasks_to_submit.append({
-                        "satellite_source": "vocaburn",
-                        "prompt": front_text.strip(),
-                        "callback_url": callback_url,
-                        "extra_data": json.dumps({
-                            "task_type": "tts",
-                            "card_id": c.id,
-                            "face": "front",
-                            "deck_id": deck_id
-                        }),
-                        "max_retries": 3
-                    })
-
-            # Back text queue check
-            if back_text and back_text.strip():
-                back_path = os.path.join(folder_path, f"{c.id}_back.mp3")
-                has_back_audio = bool(c.others and c.others.get("back_audio_url"))
-                if force or not os.path.exists(back_path) or not has_back_audio:
-                    tasks_to_submit.append({
-                        "satellite_source": "vocaburn",
-                        "prompt": back_text.strip(),
-                        "callback_url": callback_url,
-                        "extra_data": json.dumps({
-                            "task_type": "tts",
-                            "card_id": c.id,
-                            "face": "back",
-                            "deck_id": deck_id
-                        }),
-                        "max_retries": 3
-                    })
+            # Check target field
+            has_audio = False
+            if target_field == "front_audio_url":
+                has_audio = bool(c.front_audio_url and c.front_audio_url.strip())
+            elif target_field == "back_audio_url":
+                has_audio = bool(c.others and c.others.get("back_audio_url"))
+            else:
+                has_audio = bool(c.others and c.others.get(target_field))
+                
+            if force or not has_audio:
+                tasks_to_submit.append({
+                    "satellite_source": "vocaburn",
+                    "prompt": text,
+                    "callback_url": callback_url,
+                    "extra_data": json.dumps({
+                        "task_type": "tts",
+                        "card_id": c.id,
+                        "face": target_field,
+                        "deck_id": deck_id
+                    }),
+                    "max_retries": 3
+                })
 
         if not tasks_to_submit:
             logger.info(f"[BULK TTS] All cards in deck {deck_id} are already fully synchronized.")
@@ -739,8 +742,13 @@ async def generate_all_deck_audio(
         return JSONResponse(status_code=404, content={"error": "Deck not found"})
         
     force = False
+    source_field = "front"
+    target_field = "front_audio_url"
+    
     if payload:
         force = payload.get("force", False)
+        source_field = payload.get("source_field", "front")
+        target_field = payload.get("target_field", "front_audio_url")
         
     # Detect scheme dynamically (e.g. support HTTPS behind Nginx reverse proxy)
     scheme = request.headers.get("x-forwarded-proto", request.url.scheme)
@@ -752,11 +760,16 @@ async def generate_all_deck_audio(
         
     base_url = f"{scheme}://{netloc}"
     
-    background_tasks.add_task(_bulk_generate_deck_audio_task, deck_id, force, base_url)
+    background_tasks.add_task(_bulk_generate_deck_audio_task, deck_id, source_field, target_field, force, base_url)
     return {"status": "ok", "message": "Bulk TTS audio generation queue submission started."}
 
 @router.get("/{deck_id}/tts-status")
-async def get_deck_tts_status(deck_id: int, db: AsyncSession = Depends(get_db)):
+async def get_deck_tts_status(
+    deck_id: int, 
+    source_field: str = "front", 
+    target_field: str = "front_audio_url", 
+    db: AsyncSession = Depends(get_db)
+):
     from app.modules.deck.models import Flashcard
     res = await db.execute(select(Flashcard).filter(Flashcard.deck_id == deck_id))
     cards = res.scalars().all()
@@ -764,19 +777,27 @@ async def get_deck_tts_status(deck_id: int, db: AsyncSession = Depends(get_db)):
     total = len(cards)
     missing = 0
     for c in cards:
-        front_text = c.front_audio_content
-        back_text = c.back_audio_content
-        
-        if not (front_text and front_text.strip()) and not (back_text and back_text.strip()):
+        # Determine text
+        if source_field == "front":
+            text = c.content
+        elif source_field == "back":
+            text = c.explanation
+        else:
+            text = c.others.get(source_field) if c.others else None
+            
+        if not text or not str(text).strip():
             continue
             
-        need_front = bool(front_text and front_text.strip())
-        need_back = bool(back_text and back_text.strip())
-        
-        has_front = bool(c.front_audio_url and c.front_audio_url.strip())
-        has_back = bool(c.back_audio_url and c.back_audio_url.strip())
-        
-        if (need_front and not has_front) or (need_back and not has_back):
+        # Check target field
+        has_audio = False
+        if target_field == "front_audio_url":
+            has_audio = bool(c.front_audio_url and c.front_audio_url.strip())
+        elif target_field == "back_audio_url":
+            has_audio = bool(c.others and c.others.get("back_audio_url"))
+        else:
+            has_audio = bool(c.others and c.others.get(target_field))
+            
+        if not has_audio:
             missing += 1
             
     return {
@@ -802,7 +823,6 @@ async def tts_queue_callback(data: dict, db: AsyncSession = Depends(get_db)):
             
         card_id = extra.get("card_id")
         face = extra.get("face")
-        deck_id = extra.get("deck_id")
     except Exception as parse_err:
         logger.error(f"[TTS CALLBACK ERROR] Failed to parse extra_data: {parse_err}")
         return JSONResponse(status_code=400, content={"error": "Invalid extra_data"})
@@ -814,47 +834,33 @@ async def tts_queue_callback(data: dict, db: AsyncSession = Depends(get_db)):
         logger.error(f"[TTS CALLBACK ERROR] Card {card_id} not found in database.")
         return JSONResponse(status_code=404, content={"error": "Card not found"})
         
-    # Download audio from CentralAuth
-    from app.modules.sso_module.service import SSOService
-    sso_config = await SSOService.get_config(db)
-    if not sso_config.server_url:
-        return JSONResponse(status_code=400, content={"error": "CentralAuth not configured"})
-        
-    audio_url = f"{sso_config.server_url.rstrip('/')}{result}"
-    from app.core.config import settings
-    folder_path = os.path.join(settings.VOCABURN_STORAGE_DIR, str(deck_id), "audio")
-    filename = f"{card_id}_front.mp3" if face == "front" else f"{card_id}_back.mp3"
-    physical_path = os.path.join(folder_path, filename)
+    # Instead of downloading, we store the logical path reference
+    filename = os.path.basename(result)
+    central_ref = f"central-tts://{filename}"
     
-    os.makedirs(os.path.dirname(physical_path), exist_ok=True)
-    
-    try:
-        import httpx
-        async with httpx.AsyncClient() as client:
-            audio_res = await client.get(audio_url, timeout=20.0)
-            if audio_res.status_code == 200:
-                with open(physical_path, "wb") as f:
-                    f.write(audio_res.content)
-            else:
-                logger.error(f"[TTS CALLBACK ERROR] Failed to download {audio_url}: {audio_res.status_code}")
-                return JSONResponse(status_code=500, content={"error": "Failed to download audio file"})
-    except Exception as dl_err:
-        logger.error(f"[TTS CALLBACK ERROR] Exception during audio download: {dl_err}")
-        return JSONResponse(status_code=500, content={"error": str(dl_err)})
-        
-    # Update local url reference
-    local_url = f"/uploads/{deck_id}/audio/{filename}"
+    target_attr = face
     if face == "front":
-        c.front_audio_url = local_url
+        target_attr = "front_audio_url"
+    elif face == "back":
+        target_attr = "back_audio_url"
+        
+    if target_attr == "front_audio_url":
+        c.front_audio_url = central_ref
+    elif target_attr == "back_audio_url":
+        if not c.others:
+            c.others = {}
+        c.others["back_audio_url"] = central_ref
+        from sqlalchemy.orm.attributes import flag_modified
+        flag_modified(c, "others")
     else:
         if not c.others:
             c.others = {}
-        c.others["back_audio_url"] = local_url
+        c.others[target_attr] = central_ref
         from sqlalchemy.orm.attributes import flag_modified
         flag_modified(c, "others")
         
     await db.commit()
-    logger.info(f"[TTS CALLBACK SUCCESS] Updated card {card_id} {face} audio via CentralAuth Queue Callback.")
+    logger.info(f"[TTS CALLBACK SUCCESS] Updated card {card_id} field '{target_attr}' with central reference {central_ref}.")
     return {"status": "ok"}
 
 @router.post("/image-callback")
@@ -875,7 +881,6 @@ async def image_queue_callback(data: dict, db: AsyncSession = Depends(get_db)):
             
         card_id = extra.get("card_id")
         target_field = extra.get("target_field", "front_img")
-        deck_id = extra.get("deck_id")
     except Exception as parse_err:
         logger.error(f"[IMAGE CALLBACK ERROR] Failed to parse extra_data: {parse_err}")
         return JSONResponse(status_code=400, content={"error": "Invalid extra_data"})
@@ -887,43 +892,9 @@ async def image_queue_callback(data: dict, db: AsyncSession = Depends(get_db)):
         logger.error(f"[IMAGE CALLBACK ERROR] Card {card_id} not found in database.")
         return JSONResponse(status_code=404, content={"error": "Card not found"})
         
-    # Download image from CentralAuth
-    from app.modules.sso_module.service import SSOService
-    sso_config = await SSOService.get_config(db)
-    if not sso_config.server_url:
-        return JSONResponse(status_code=400, content={"error": "CentralAuth not configured"})
-        
-    image_url = f"{sso_config.server_url.rstrip('/')}{result}"
-    from app.core.config import settings
-    import os
-    folder_path = os.path.join(settings.VOCABURN_STORAGE_DIR, str(deck_id), "images")
-    
-    # Get original extension from result path
-    _, ext = os.path.splitext(result)
-    if not ext:
-        ext = ".jpg"
-        
-    filename = f"{card_id}_{target_field}{ext}"
-    physical_path = os.path.join(folder_path, filename)
-    
-    os.makedirs(os.path.dirname(physical_path), exist_ok=True)
-    
-    try:
-        import httpx
-        async with httpx.AsyncClient() as client:
-            image_res = await client.get(image_url, timeout=20.0)
-            if image_res.status_code == 200:
-                with open(physical_path, "wb") as f:
-                    f.write(image_res.content)
-            else:
-                logger.error(f"[IMAGE CALLBACK ERROR] Failed to download {image_url}: {image_res.status_code}")
-                return JSONResponse(status_code=500, content={"error": "Failed to download image file"})
-    except Exception as dl_err:
-        logger.error(f"[IMAGE CALLBACK ERROR] Exception during image download: {dl_err}")
-        return JSONResponse(status_code=500, content={"error": str(dl_err)})
-        
-    # Update local url reference
-    local_url = f"/uploads/{deck_id}/images/{filename}"
+    # Instead of downloading, we store the logical path reference
+    filename = os.path.basename(result)
+    central_ref = f"central-media://{filename}"
     
     physical_map = {
         "front_img": "front_img",
@@ -931,16 +902,16 @@ async def image_queue_callback(data: dict, db: AsyncSession = Depends(get_db)):
     }
     
     if target_field in physical_map:
-        setattr(c, physical_map[target_field], local_url)
+        setattr(c, physical_map[target_field], central_ref)
     else:
         if not c.others:
             c.others = {}
-        c.others[target_field] = local_url
+        c.others[target_field] = central_ref
         from sqlalchemy.orm.attributes import flag_modified
         flag_modified(c, "others")
         
     await db.commit()
-    logger.info(f"[IMAGE CALLBACK SUCCESS] Updated card {card_id} field '{target_field}' via CentralAuth Queue Callback.")
+    logger.info(f"[IMAGE CALLBACK SUCCESS] Updated card {card_id} field '{target_field}' with central reference {central_ref}.")
     return {"status": "ok"}
 
 @router.post("/ai-callback")

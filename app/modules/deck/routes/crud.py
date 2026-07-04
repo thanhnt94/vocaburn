@@ -382,26 +382,33 @@ async def get_deck_cards(deck_id: int, request: Request, page: int = 1, size: in
     mastery_res = await db.execute(mastery_query)
     mastery_map = {m.card_id: m.is_ignored for m in mastery_res.scalars().all()}
     
+    from .media_resolver import get_sso_server_url, resolve_card_dict
+    sso_url = await get_sso_server_url(db)
+    
+    questions_list = []
+    for i, c in enumerate(cs):
+        q_dict = {
+            "id": c.id,
+            "orig_index": (page - 1) * size + i + 1,
+            "content": c.content,
+            "explanation": c.explanation,
+            "front_audio_content": c.front_audio_content,
+            "back_audio_content": c.back_audio_content,
+            "front_audio_url": c.front_audio_url,
+            "back_audio_url": c.back_audio_url,
+            "front_img": c.front_img,
+            "back_img": c.back_img,
+            "others": c.others or {},
+            "points": 1,
+            "stats": stats_map.get(c.id, {"total": 0, "correct": 0, "wrong": 0}),
+            "is_ignored": mastery_map.get(c.id, False),
+            "options": []
+        }
+        resolve_card_dict(q_dict, sso_url)
+        questions_list.append(q_dict)
+
     return {
-        "questions": [
-            {
-                "id": c.id,
-                "orig_index": (page - 1) * size + i + 1,
-                "content": c.content,
-                "explanation": c.explanation,
-                "front_audio_content": c.front_audio_content,
-                "back_audio_content": c.back_audio_content,
-                "front_audio_url": c.front_audio_url,
-                "back_audio_url": c.back_audio_url,
-                "front_img": c.front_img,
-                "back_img": c.back_img,
-                "others": c.others or {},
-                "points": 1,
-                "stats": stats_map.get(c.id, {"total": 0, "correct": 0, "wrong": 0}),
-                "is_ignored": mastery_map.get(c.id, False),
-                "options": []
-            } for i, c in enumerate(cs)
-        ],
+        "questions": questions_list,
         "total": total,
         "page": page,
         "size": size
@@ -633,23 +640,31 @@ async def create_card(request: Request, deck_id: int, data: dict, db: AsyncSessi
     await db.commit()
     await db.refresh(db_c)
     
+    from .media_resolver import get_sso_server_url, resolve_card_dict
+    sso_url = await get_sso_server_url(db)
+    
+    card_dict = {
+        "id": db_c.id,
+        "content": db_c.content,
+        "explanation": db_c.explanation,
+        "front_audio_content": db_c.front_audio_content,
+        "back_audio_content": db_c.back_audio_content,
+        "front_audio_url": db_c.front_audio_url,
+        "audio": db_c.audio,
+        "back_audio_url": db_c.back_audio_url,
+        "front_img": db_c.front_img,
+        "back_img": db_c.back_img,
+        "others": db_c.others,
+        "options": []
+    }
+    resolve_card_dict(card_dict, sso_url)
+    if "audio" in card_dict:
+        card_dict["audio"] = card_dict["front_audio_url"]
+
     return {
         "status": "ok",
         "id": db_c.id,
-        "card": {
-            "id": db_c.id,
-            "content": db_c.content,
-            "explanation": db_c.explanation,
-            "front_audio_content": db_c.front_audio_content,
-            "back_audio_content": db_c.back_audio_content,
-            "front_audio_url": db_c.front_audio_url,
-            "audio": db_c.audio,
-            "back_audio_url": db_c.back_audio_url,
-            "front_img": db_c.front_img,
-            "back_img": db_c.back_img,
-            "others": db_c.others,
-            "options": []
-        }
+        "card": card_dict
     }
 
 @router.patch("/question/{card_id}")
