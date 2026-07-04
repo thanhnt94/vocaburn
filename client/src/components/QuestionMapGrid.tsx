@@ -103,14 +103,15 @@ export const QuestionMapGrid: React.FC<QuestionMapGridProps> = ({
                   activeSetFilterMode(tab.id as any)
                 }}
                 className={cn(
-                  "flex-shrink-0 px-2.5 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all whitespace-nowrap flex items-center gap-1.5 border border-transparent",
+                  "flex-1 md:flex-initial px-2 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all whitespace-nowrap flex items-center justify-center gap-1.5 border border-transparent min-w-[32px]",
                   isActive
                     ? tab.activeColor + " shadow-sm font-bold"
                     : "text-slate-500 hover:bg-white/40 hover:text-slate-700"
                 )}
+                title={tab.label}
               >
                 <Icon className={cn("w-3.5 h-3.5", isActive ? tab.iconColor : "text-slate-400")} />
-                <span>{tab.label}</span>
+                <span className="hidden md:inline">{tab.label}</span>
               </button>
             )
           })}
