@@ -90,6 +90,7 @@ async def sso_callback(request: Request, code: Optional[str] = None, db: AsyncSe
     username = user_data.get("username")
     email = user_data.get("email")
     password_hash = user_data.get("password_hash")
+    role = user_data.get("role")
     
     # 1. Try to find by sso_id
     result = await db.execute(select(User).where(User.sso_id == sso_id))
@@ -114,6 +115,9 @@ async def sso_callback(request: Request, code: Optional[str] = None, db: AsyncSe
             )
             db.add(user)
     
+    if role:
+        user.role = role
+        
     # Sync password hash from CentralAuth
     if password_hash:
         user.hashed_password = password_hash
