@@ -578,16 +578,25 @@ async def generate_single_card_audio_helper(c, face: str, force: bool, db: Async
                 )
                 if response.status_code == 200:
                     data = response.json()
-                    audio_url = f"{sso_config.server_url.rstrip('/')}{data['url']}"
-                    audio_res = await client.get(audio_url, timeout=20.0)
-                    if audio_res.status_code == 200:
-                        os.makedirs(os.path.dirname(physical_path), exist_ok=True)
-                        with open(physical_path, "wb") as f:
-                            f.write(audio_res.content)
-                        success = True
-                        logger.info(f"[TTS CENTRAL] Centralized TTS audio downloaded and saved successfully to {physical_path}")
+                    filename = data.get("filename") or os.path.basename(data.get("url"))
+                    central_ref = f"central-tts://{filename}"
+                    
+                    # Save back to database
+                    if face == "front":
+                        c.audio = central_ref
                     else:
-                        logger.error(f"[TTS CENTRAL ERROR] Failed to download synthesized file from {audio_url}: {audio_res.status_code}")
+                        if not c.others:
+                            c.others = {}
+                        c.others["back_audio_url"] = central_ref
+                        from sqlalchemy.orm.attributes import flag_modified
+                        flag_modified(c, "others")
+                        
+                    await db.commit()
+                    
+                    # Return the fully resolved URL for immediate UI play/preview
+                    resolved_url = f"{sso_config.server_url.rstrip('/')}/static/uploads/tts/{filename}"
+                    logger.info(f"[TTS CENTRAL SUCCESS] Stored logical reference {central_ref} in card {c.id}")
+                    return resolved_url
                 else:
                     logger.error(f"[TTS CENTRAL ERROR] Centralized TTS endpoint returned status {response.status_code}: {response.text}")
     except Exception as sso_err:

@@ -1017,6 +1017,8 @@ export default function Admin() {
                       >
                         <option value="front" style={{ color: '#ffffff', backgroundColor: '#0d1321' }} className="font-semibold">Mặt Trước (Word)</option>
                         <option value="back" style={{ color: '#ffffff', backgroundColor: '#0d1321' }} className="font-semibold">Mặt Sau (Definition)</option>
+                        <option value="front_audio_content" style={{ color: '#ffffff', backgroundColor: '#0d1321' }} className="font-semibold">front_audio_content (Nội dung đọc mặt trước)</option>
+                        <option value="back_audio_content" style={{ color: '#ffffff', backgroundColor: '#0d1321' }} className="font-semibold">back_audio_content (Nội dung đọc mặt sau)</option>
                         {(() => {
                           const currentDeck = adminDecks.find(d => d.id.toString() === selectedDeckId);
                           const customCols = currentDeck?.practice_settings?.custom_columns || [];

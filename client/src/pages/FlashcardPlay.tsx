@@ -243,6 +243,7 @@ export default function FlashcardPlay() {
   const [selectedOption, setSelectedOption] = useState<number | null>(null)
   const [showFeedback, setShowFeedback] = useState(false)
   const [isFlipped, setIsFlipped] = useState(false)
+  const [zoomedImage, setZoomedImage] = useState<string | null>(null)
   const [badgeVisible, setBadgeVisible] = useState(false)
   const [badgeMessage, setBadgeMessage] = useState("")
 
@@ -2675,7 +2676,8 @@ export default function FlashcardPlay() {
             <img 
               src={currentQuestion.image} 
               alt="Question" 
-              className="max-h-36 object-contain rounded-2xl mb-4 border border-slate-100 shadow-sm" 
+              className="max-h-36 object-contain rounded-2xl mb-4 border border-slate-100 shadow-sm cursor-zoom-in hover:opacity-95 transition-opacity" 
+              onClick={() => setZoomedImage(currentQuestion.image || null)}
             />
           )}
           
@@ -3913,7 +3915,8 @@ export default function FlashcardPlay() {
                         <img 
                           src={currentQuestion.image || currentQuestion.others?.front_img || undefined} 
                           alt="Front Visual" 
-                          className="max-h-40 md:max-h-48 object-contain rounded-3xl border border-slate-100/80 shadow-md bg-slate-50/50 p-1.5 animate-in zoom-in-95 duration-500"
+                          className="max-h-40 md:max-h-48 object-contain rounded-3xl border border-slate-100/80 shadow-md bg-slate-50/50 p-1.5 animate-in zoom-in-95 duration-500 cursor-zoom-in hover:opacity-95 transition-opacity"
+                          onClick={() => setZoomedImage(currentQuestion.image || currentQuestion.others?.front_img || null)}
                         />
                       )}
                       <div className="text-3xl md:text-4xl font-black text-slate-800 tracking-tight leading-normal max-w-2xl markdown-content text-center flex flex-col items-center justify-center whitespace-pre-wrap">
@@ -4005,11 +4008,12 @@ export default function FlashcardPlay() {
                       )}
 
                       {showImages && currentQuestion?.others?.back_img && (
-                        <div className="space-y-2">
+                        <div className="space-y-2 flex justify-center">
                           <img 
                             src={currentQuestion.others.back_img} 
                             alt="Back Visual" 
-                            className="max-h-40 md:max-h-48 object-contain rounded-3xl border border-slate-100/80 shadow-md bg-slate-50/50 p-1.5 animate-in zoom-in-95 duration-500"
+                            className="max-h-40 md:max-h-48 object-contain rounded-3xl border border-slate-100/80 shadow-md bg-slate-50/50 p-1.5 animate-in zoom-in-95 duration-500 cursor-zoom-in hover:opacity-95 transition-opacity"
+                            onClick={() => setZoomedImage(currentQuestion?.others?.back_img || null)}
                           />
                         </div>
                       )}
@@ -5006,6 +5010,28 @@ export default function FlashcardPlay() {
             {localToast.type === 'warning' && <AlertCircle className="w-5 h-5 text-amber-100" />}
             {localToast.type === 'success' && <CheckCircle2 className="w-5 h-5 text-emerald-100" />}
             <span className="font-bold text-sm tracking-wide">{localToast.message}</span>
+          </motion.div>
+        )}
+      </AnimatePresence>
+      
+      {/* Zoomed Image Modal Overlay */}
+      <AnimatePresence>
+        {zoomedImage && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setZoomedImage(null)}
+            className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-950/80 backdrop-blur-md cursor-zoom-out p-4"
+          >
+            <motion.img
+              initial={{ scale: 0.95 }}
+              animate={{ scale: 1 }}
+              exit={{ scale: 0.95 }}
+              src={zoomedImage}
+              alt="Zoomed Visual"
+              className="max-w-full max-h-[90vh] object-contain rounded-2xl shadow-2xl border border-white/10"
+            />
           </motion.div>
         )}
       </AnimatePresence>
