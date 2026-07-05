@@ -137,6 +137,24 @@ export const FeedbackArea: React.FC<FeedbackAreaProps> = ({
     }
   }, [insightTabs, activeInsightTab])
 
+  const handlePrevTab = () => {
+    const currentIndex = insightTabs.findIndex((t: any) => t.id === activeInsightTab)
+    if (currentIndex > 0) {
+      setActiveInsightTab(insightTabs[currentIndex - 1].id)
+      setIsEditingAI(false)
+      setIsEditingPrompt(false)
+    }
+  }
+
+  const handleNextTab = () => {
+    const currentIndex = insightTabs.findIndex((t: any) => t.id === activeInsightTab)
+    if (currentIndex < insightTabs.length - 1) {
+      setActiveInsightTab(insightTabs[currentIndex + 1].id)
+      setIsEditingAI(false)
+      setIsEditingPrompt(false)
+    }
+  }
+
   const getActiveAIContent = () => {
     if (!currentQuestion) return ''
     if (activeInsightTab === 'explanation' || activeInsightTab === 'back') {
@@ -350,133 +368,155 @@ export const FeedbackArea: React.FC<FeedbackAreaProps> = ({
                })}
             </div>
 
-            <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center gap-2">
-                <Sparkles className="w-4 h-4 text-indigo-500 animate-pulse" />
-                <span className="text-[9px] font-black text-indigo-600 uppercase tracking-widest">
-                  {insightTabs.find((t: any) => t.id === activeInsightTab)?.title.toUpperCase()}
-                </span>
-                {canEdit && getActiveAIContent() && !isEditingAI && !isEditingPrompt && (
-                  <button
-                    onClick={() => clearAIExplanation(activeInsightTab)}
-                    className="text-[9px] font-black text-rose-500 hover:text-rose-700 bg-rose-50 hover:bg-rose-100 px-2.5 py-1 rounded-md border border-rose-200 shadow-sm transition-all ml-2"
-                  >
-                    CLEAR AI
-                  </button>
-                )}
-              </div>
-              <div className="flex gap-2">
-                {canEdit && getActivePromptTemplate() && (
-                  <button
-                    onClick={() => setIsEditingPrompt(!isEditingPrompt)}
-                    className={cn(
-                       "text-[9px] font-black uppercase tracking-widest transition-all px-2.5 py-1.5 rounded-md",
-                       isEditingPrompt ? "bg-amber-600 text-white shadow-sm" : "text-amber-500 hover:text-amber-600 hover:bg-white"
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={activeInsightTab}
+                drag={(!isEditingAI && !isEditingPrompt) ? "x" : false}
+                dragConstraints={{ left: 0, right: 0 }}
+                dragElastic={0.2}
+                onDragEnd={(e, info) => {
+                  const swipeThreshold = 50
+                  if (info.offset.x > swipeThreshold) {
+                    handlePrevTab()
+                  } else if (info.offset.x < -swipeThreshold) {
+                    handleNextTab()
+                  }
+                }}
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -20 }}
+                transition={{ duration: 0.2 }}
+                className="touch-pan-y select-none"
+              >
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-2">
+                    <Sparkles className="w-4 h-4 text-indigo-500 animate-pulse" />
+                    <span className="text-[9px] font-black text-indigo-600 uppercase tracking-widest">
+                      {insightTabs.find((t: any) => t.id === activeInsightTab)?.title.toUpperCase()}
+                    </span>
+                    {canEdit && getActiveAIContent() && !isEditingAI && !isEditingPrompt && (
+                      <button
+                        onClick={() => clearAIExplanation(activeInsightTab)}
+                        className="text-[9px] font-black text-rose-500 hover:text-rose-700 bg-rose-50 hover:bg-rose-100 px-2.5 py-1 rounded-md border border-rose-200 shadow-sm transition-all ml-2"
+                      >
+                        CLEAR AI
+                      </button>
                     )}
-                  >
-                    {isEditingPrompt ? 'CLOSE PROMPT' : 'PROMPT'}
-                  </button>
-                )}
-                {canEdit && getActivePromptTemplate() && !getActiveAIContent() && !isEditingAI && !isEditingPrompt && (
-                  <button
-                    onClick={() => askAI(activeInsightTab)}
-                    disabled={isAskingAI}
-                    className="text-[9px] font-black text-indigo-600 bg-white px-3 py-1.5 rounded-lg border border-indigo-100 shadow-sm hover:bg-indigo-50 transition-all disabled:opacity-50"
-                  >
-                    {isAskingAI ? 'ANALYZING...' : 'ASK AI INSIGHT'}
-                  </button>
-                )}
-                {canEdit && !isEditingPrompt && (
-                  <button
-                    onClick={() => {
-                      if (isEditingAI) {
-                        askAI(activeInsightTab, aiInput)
-                      } else {
-                        setAiInput(getActiveAIContent())
-                        setIsEditingAI(true)
-                      }
-                    }}
-                    disabled={isAskingAI}
-                    className={cn(
-                      "text-[9px] font-black uppercase tracking-widest transition-all px-2.5 py-1.5 rounded-md",
-                      isEditingAI ? "bg-indigo-600 text-white shadow-sm" : "text-indigo-400 hover:text-indigo-600 hover:bg-white"
-                    )}
-                  >
-                    {isAskingAI ? 'SAVING...' : (isEditingAI ? 'SAVE' : 'EDIT')}
-                  </button>
-                )}
-              </div>
-            </div>
-
-            {isEditingPrompt ? (
-              <div className="space-y-3 mt-2 bg-amber-50/50 border border-amber-100 rounded-2xl p-4">
-                <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-black text-amber-700 uppercase tracking-wider">EDIT SYSTEM PROMPT FOR {insightTabs.find((t: any) => t.id === activeInsightTab)?.title.toUpperCase()}</span>
-                  <button
-                    onClick={() => savePrompt(activeInsightTab)}
-                    className="text-[9px] font-black bg-amber-600 hover:bg-amber-700 text-white px-3 py-1.5 rounded-lg shadow-sm transition-all"
-                  >
-                    SAVE PROMPT
-                  </button>
-                </div>
-                <textarea
-                  value={promptInput}
-                  onChange={(e) => setPromptInput(e.target.value)}
-                  placeholder="Enter System Prompt to guide the AI..."
-                  className="w-full h-80 bg-white rounded-xl p-4 text-xs font-semibold text-slate-700 focus:ring-2 focus:ring-amber-500 outline-none border border-amber-200 resize-none transition-all"
-                />
-                <p className="text-[9px] font-medium text-amber-600/80 italic leading-relaxed">
-                  * Guide: Use variables <code>{"{{question}}"}</code>, <code>{"{{options}}"}</code>, <code>{"{{correct_answer}}"}</code> to insert dynamic data. The new prompt will be applied to all subsequently regenerated questions.
-                </p>
-              </div>
-            ) : isEditingAI ? (
-              <div className="space-y-2 mt-2">
-                <textarea
-                  value={aiInput}
-                  onChange={(e) => setAiInput(e.target.value)}
-                  placeholder="Enter content manually..."
-                  className="w-full h-80 bg-white/50 rounded-xl p-4 text-sm font-medium text-slate-700 focus:ring-2 focus:ring-indigo-500 outline-none border-none resize-none transition-all"
-                  autoFocus
-                />
-                <p className="text-[8px] font-medium text-slate-400 italic">Click 'SAVE' to save changes for everyone.</p>
-              </div>
-            ) : (
-              isAskingAI ? (
-                <div className="flex flex-col items-center justify-center py-16 space-y-4 animate-pulse">
-                  <div className="relative w-12 h-12 flex items-center justify-center">
-                    <div className="absolute inset-0 rounded-full border-4 border-indigo-100 animate-ping" />
-                    <div className="w-10 h-10 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin" />
-                    <Sparkles className="w-4 h-4 text-indigo-500 absolute animate-pulse" />
                   </div>
-                  <p className="text-xs font-black text-indigo-500 uppercase tracking-[0.2em] text-center animate-bounce">
-                    AI DEEP ANALYSIS IN PROGRESS...
-                  </p>
-                  <p className="text-[10px] font-semibold text-slate-400 max-w-xs text-center leading-relaxed">
-                    Please wait a moment, the AI is deeply analyzing the grammar and vocabulary of this question.
-                  </p>
+                  <div className="flex gap-2">
+                    {canEdit && getActivePromptTemplate() && (
+                      <button
+                        onClick={() => setIsEditingPrompt(!isEditingPrompt)}
+                        className={cn(
+                           "text-[9px] font-black uppercase tracking-widest transition-all px-2.5 py-1.5 rounded-md",
+                           isEditingPrompt ? "bg-amber-600 text-white shadow-sm" : "text-amber-500 hover:text-amber-600 hover:bg-white"
+                        )}
+                      >
+                        {isEditingPrompt ? 'CLOSE PROMPT' : 'PROMPT'}
+                      </button>
+                    )}
+                    {canEdit && getActivePromptTemplate() && !getActiveAIContent() && !isEditingAI && !isEditingPrompt && (
+                      <button
+                        onClick={() => askAI(activeInsightTab)}
+                        disabled={isAskingAI}
+                        className="text-[9px] font-black text-indigo-600 bg-white px-3 py-1.5 rounded-lg border border-indigo-100 shadow-sm hover:bg-indigo-50 transition-all disabled:opacity-50"
+                      >
+                        {isAskingAI ? 'ANALYZING...' : 'ASK AI INSIGHT'}
+                      </button>
+                    )}
+                    {canEdit && !isEditingPrompt && (
+                      <button
+                        onClick={() => {
+                          if (isEditingAI) {
+                            askAI(activeInsightTab, aiInput)
+                          } else {
+                            setAiInput(getActiveAIContent())
+                            setIsEditingAI(true)
+                          }
+                        }}
+                        disabled={isAskingAI}
+                        className={cn(
+                          "text-[9px] font-black uppercase tracking-widest transition-all px-2.5 py-1.5 rounded-md",
+                          isEditingAI ? "bg-indigo-600 text-white shadow-sm" : "text-indigo-400 hover:text-indigo-600 hover:bg-white"
+                        )}
+                      >
+                        {isAskingAI ? 'SAVING...' : (isEditingAI ? 'SAVE' : 'EDIT')}
+                      </button>
+                    )}
+                  </div>
                 </div>
-              ) : (
-                getActiveAIContent() ? (
-                  <div className="text-slate-700 font-medium text-sm leading-relaxed markdown-content break-words pr-2 mt-2">
-                    <ReactMarkdown
-                      remarkPlugins={[remarkGfm]}
-                      rehypePlugins={[rehypeRaw]}
-                      components={{
-                        ...MarkdownComponents,
-                        p: ({ children }) => <span className="inline-block">{children}</span>
-                      }}
-                    >
-                      {parseBBCodeToHtml(getActiveAIContent())}
-                    </ReactMarkdown>
+
+                {isEditingPrompt ? (
+                  <div className="space-y-3 mt-2 bg-amber-50/50 border border-amber-100 rounded-2xl p-4">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] font-black text-amber-700 uppercase tracking-wider">EDIT SYSTEM PROMPT FOR {insightTabs.find((t: any) => t.id === activeInsightTab)?.title.toUpperCase()}</span>
+                      <button
+                        onClick={() => savePrompt(activeInsightTab)}
+                        className="text-[9px] font-black bg-amber-600 hover:bg-amber-700 text-white px-3 py-1.5 rounded-lg shadow-sm transition-all"
+                      >
+                        SAVE PROMPT
+                      </button>
+                    </div>
+                    <textarea
+                      value={promptInput}
+                      onChange={(e) => setPromptInput(e.target.value)}
+                      placeholder="Enter System Prompt to guide the AI..."
+                      className="w-full h-80 bg-white rounded-xl p-4 text-xs font-semibold text-slate-700 focus:ring-2 focus:ring-amber-500 outline-none border border-amber-200 resize-none transition-all"
+                    />
+                    <p className="text-[9px] font-medium text-amber-600/80 italic leading-relaxed">
+                      * Guide: Use variables <code>{"{{question}}"}</code>, <code>{"{{options}}"}</code>, <code>{"{{correct_answer}}"}</code> to insert dynamic data. The new prompt will be applied to all subsequently regenerated questions.
+                    </p>
+                  </div>
+                ) : isEditingAI ? (
+                  <div className="space-y-2 mt-2">
+                    <textarea
+                      value={aiInput}
+                      onChange={(e) => setAiInput(e.target.value)}
+                      placeholder="Enter content manually..."
+                      className="w-full h-80 bg-white/50 rounded-xl p-4 text-sm font-medium text-slate-700 focus:ring-2 focus:ring-indigo-500 outline-none border-none resize-none transition-all"
+                      autoFocus
+                    />
+                    <p className="text-[8px] font-medium text-slate-400 italic">Click 'SAVE' to save changes for everyone.</p>
                   </div>
                 ) : (
-                  <div className="flex flex-col items-center justify-center py-12 text-slate-400">
-                    <Sparkles className="w-8 h-8 text-slate-300 mb-2" />
-                    <p className="text-xs font-bold uppercase tracking-wider">Chưa có thông tin</p>
-                  </div>
-                )
-              )
-            )}
+                  isAskingAI ? (
+                    <div className="flex flex-col items-center justify-center py-16 space-y-4 animate-pulse">
+                      <div className="relative w-12 h-12 flex items-center justify-center">
+                        <div className="absolute inset-0 rounded-full border-4 border-indigo-100 animate-ping" />
+                        <div className="w-10 h-10 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin" />
+                        <Sparkles className="w-4 h-4 text-indigo-500 absolute animate-pulse" />
+                      </div>
+                      <p className="text-xs font-black text-indigo-500 uppercase tracking-[0.2em] text-center animate-bounce">
+                        AI DEEP ANALYSIS IN PROGRESS...
+                      </p>
+                      <p className="text-[10px] font-semibold text-slate-400 max-w-xs text-center leading-relaxed">
+                        Please wait a moment, the AI is deeply analyzing the grammar and vocabulary of this question.
+                      </p>
+                    </div>
+                  ) : (
+                    getActiveAIContent() ? (
+                      <div className="text-slate-700 font-medium text-sm leading-relaxed markdown-content break-words pr-2 mt-2 select-text">
+                        <ReactMarkdown
+                          remarkPlugins={[remarkGfm]}
+                          rehypePlugins={[rehypeRaw]}
+                          components={{
+                            ...MarkdownComponents,
+                            p: ({ children }) => <span className="inline-block">{children}</span>
+                          }}
+                        >
+                          {parseBBCodeToHtml(getActiveAIContent())}
+                        </ReactMarkdown>
+                      </div>
+                    ) : (
+                      <div className="flex flex-col items-center justify-center py-12 text-slate-400">
+                        <Sparkles className="w-8 h-8 text-slate-300 mb-2" />
+                        <p className="text-xs font-bold uppercase tracking-wider">Chưa có thông tin</p>
+                      </div>
+                    )
+                  )
+                )}
+              </motion.div>
+            </AnimatePresence>
           </div>
         )
       case 'community':
