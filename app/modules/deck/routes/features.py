@@ -330,11 +330,16 @@ async def import_update_deck(request: Request, deck_id: int, file: UploadFile = 
             return JSONResponse(status_code=404, content={"error": "Deck not found"})
             
         from app.modules.deck.models import DeckCollaborator
+        from app.modules.auth.models import User as UserDB
         is_owner = deck.creator_id == user_id
         collab_res = await db.execute(select(DeckCollaborator).where(DeckCollaborator.deck_id == deck_id, DeckCollaborator.user_id == user_id))
         is_collaborator = collab_res.scalar() is not None
         
-        if not (is_owner or is_collaborator or user_id == 1):
+        user_res = await db.execute(select(UserDB).where(UserDB.id == user_id))
+        user_obj = user_res.scalar_one_or_none()
+        is_admin = user_obj and user_obj.role == "admin"
+        
+        if not (is_owner or is_collaborator or user_id == 1 or is_admin):
             return JSONResponse(status_code=403, content={"error": "No permission to update this deck"})
             
         content = await file.read()
