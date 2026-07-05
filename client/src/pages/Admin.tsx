@@ -1066,7 +1066,6 @@ export default function Admin() {
                                 <option value="mod" className="bg-[#0d1321] text-emerald-400 font-bold">MOD</option>
                                 <option value="admin" className="bg-[#0d1321] text-pink-400 font-bold">ADMIN</option>
                                 <option value="guest" className="bg-[#0d1321] text-purple-400 font-bold">GUEST</option>
-                                <option value="user" className="bg-[#0d1321] text-indigo-400 font-bold">USER (LEGACY)</option>
                               </select>
                             </td>
 

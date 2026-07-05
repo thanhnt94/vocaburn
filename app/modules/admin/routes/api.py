@@ -257,7 +257,7 @@ async def api_admin_update_user_role(user_id: int, payload: dict, request: Reque
         return JSONResponse(status_code=401, content={"error": "Unauthorized"})
         
     role = payload.get("role")
-    if role not in ["admin", "user", "free_user", "vip_user", "mod", "guest"]:
+    if role not in ["admin", "free_user", "vip_user", "mod", "guest"]:
         return JSONResponse(status_code=400, content={"error": "Invalid role"})
         
     from app.modules.auth.models import User as UserDB
