@@ -47,7 +47,7 @@ async def ecosystem_sync(
                 email=email,
                 username=username,
                 full_name=u_data.get("full_name") or username,
-                role="admin" if u_data.get("role") == "admin" else "user",
+                role=u_data.get("role") or "free_user",
                 hashed_password=u_data.get("password_hash")
             )
             db.add(user)
@@ -58,7 +58,7 @@ async def ecosystem_sync(
             user.username = username
             user.full_name = u_data.get("full_name", user.full_name)
             if u_data.get("role"):
-                user.role = "admin" if u_data.get("role") == "admin" else "user"
+                user.role = u_data.get("role")
             
             if u_data.get("password_hash"):
                 user.hashed_password = u_data.get("password_hash")
@@ -257,7 +257,7 @@ async def api_admin_update_user_role(user_id: int, payload: dict, request: Reque
         return JSONResponse(status_code=401, content={"error": "Unauthorized"})
         
     role = payload.get("role")
-    if role not in ["admin", "user"]:
+    if role not in ["admin", "user", "free_user", "vip_user", "mod", "guest"]:
         return JSONResponse(status_code=400, content={"error": "Invalid role"})
         
     from app.modules.auth.models import User as UserDB

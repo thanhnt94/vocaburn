@@ -1058,11 +1058,15 @@ export default function Admin() {
                                 }}
                                 disabled={u.id === user?.id}
                                 className={`bg-[#0d1321] border border-white/10 rounded-xl px-3 py-1.5 text-xs font-bold focus:outline-none focus:ring-1 focus:ring-indigo-500 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed ${
-                                  u.role === 'admin' ? 'text-pink-400' : 'text-indigo-400'
+                                  u.role === 'admin' ? 'text-pink-400' : u.role === 'vip_user' ? 'text-amber-400' : u.role === 'mod' ? 'text-emerald-400' : 'text-indigo-400'
                                 }`}
                               >
-                                <option value="user" className="bg-[#0d1321] text-indigo-400 font-bold">USER</option>
+                                <option value="free_user" className="bg-[#0d1321] text-slate-400 font-bold">FREE USER</option>
+                                <option value="vip_user" className="bg-[#0d1321] text-amber-400 font-bold">VIP USER</option>
+                                <option value="mod" className="bg-[#0d1321] text-emerald-400 font-bold">MOD</option>
                                 <option value="admin" className="bg-[#0d1321] text-pink-400 font-bold">ADMIN</option>
+                                <option value="guest" className="bg-[#0d1321] text-purple-400 font-bold">GUEST</option>
+                                <option value="user" className="bg-[#0d1321] text-indigo-400 font-bold">USER (LEGACY)</option>
                               </select>
                             </td>
 
