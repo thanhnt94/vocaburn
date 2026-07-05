@@ -18,7 +18,7 @@ class TelegramService:
         return {}
 
     @staticmethod
-    async def send_message(db: AsyncSession, chat_id: str, text: str):
+    async def send_message(db: AsyncSession, chat_id: str, text: str, message_type: str = "study_reminder"):
         # Delegate to CentralAuth if SSO is active
         from app.modules.sso_module.service import SSOService
         try:
@@ -31,7 +31,12 @@ class TelegramService:
                 async with httpx.AsyncClient() as client:
                     response = await client.post(
                         f"{sso_config.server_url.rstrip('/')}/api/queue/telegram/send-message",
-                        json={"chat_id": chat_id, "text": text},
+                        json={
+                            "chat_id": chat_id,
+                            "text": text,
+                            "source": "vocaburn",
+                            "message_type": message_type
+                        },
                         headers={"X-Queue-Token": queue_token},
                         timeout=15.0
                     )

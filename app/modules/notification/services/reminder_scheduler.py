@@ -87,7 +87,8 @@ async def check_and_send_reminders_for_minute(current_time_str: str):
                         await TelegramService.send_message(
                             db,
                             config["telegram_chat_id"],
-                            f"<b>{title}</b>\n{body}\n\n<a href='https://vocaburn.click/dashboard'>👉 Bắt đầu học ngay</a>"
+                            f"<b>{title}</b>\n{body}\n\n<a href='https://vocaburn.click/dashboard'>👉 Bắt đầu học ngay</a>",
+                            message_type="study_reminder"
                         )
                         
                     # 2. Send Web Push
@@ -116,7 +117,7 @@ async def check_advanced_reminders_for_minute(current_time_str: str, now: dateti
                     if review_data.get("streak_at_risk", False) or review_data.get("due_cards_count", 0) > 0:
                         title = "🚨 BÁO ĐỘNG ĐỎ: NGUY CƠ MẤT STREAK! 🚨"
                         body = "Chỉ còn 2 tiếng nữa là hết ngày! Bạn chưa hoàn thành mục tiêu học. Vào cứu lấy chuỗi học ngay nào!"
-                        await TelegramService.send_message(db, config["telegram_chat_id"], f"<b>{title}</b>\n{body}\n\n<a href='https://vocaburn.click/dashboard'>👉 Cứu Streak Ngay</a>")
+                        await TelegramService.send_message(db, config["telegram_chat_id"], f"<b>{title}</b>\n{body}\n\n<a href='https://vocaburn.click/dashboard'>👉 Cứu Streak Ngay</a>", message_type="streak_guard")
                 except Exception as e:
                     logger.error(f"[SCHEDULER] Error processing streak guard for user {config.get('local_user_id')}: {e}")
 
@@ -128,7 +129,7 @@ async def check_advanced_reminders_for_minute(current_time_str: str, now: dateti
                 try:
                     title = "📊 BÁO CÁO TIẾN ĐỘ TUẦN (VOCABURN)"
                     body = "Chúc mừng bạn đã hoàn thành một tuần học tập chăm chỉ! Hãy tiếp tục duy trì ngọn lửa đam mê trong tuần mới nhé!"
-                    await TelegramService.send_message(db, config["telegram_chat_id"], f"<b>{title}</b>\n{body}\n\n<a href='https://vocaburn.click/dashboard'>👉 Xem thống kê chi tiết</a>")
+                    await TelegramService.send_message(db, config["telegram_chat_id"], f"<b>{title}</b>\n{body}\n\n<a href='https://vocaburn.click/dashboard'>👉 Xem thống kê chi tiết</a>", message_type="weekly_summary")
                 except Exception as e:
                     logger.error(f"[SCHEDULER] Error processing weekly summary for user {config.get('local_user_id')}: {e}")
                     
