@@ -177,10 +177,32 @@ export default function Admin() {
   const [isStartingTTS, setIsStartingTTS] = useState(false);
   const [selectedTtsSourceField, setSelectedTtsSourceField] = useState<string>('front');
   const [selectedTtsTargetField, setSelectedTtsTargetField] = useState<string>('front_audio_url');
-  
   const [selectedTtsCardIds, setSelectedTtsCardIds] = useState<number[]>([]);
   const [selectedAICardIds, setSelectedAICardIds] = useState<number[]>([]);
   const [selectedImageCardIds, setSelectedImageCardIds] = useState<number[]>([]);
+  
+  const [selectedDeckCustomCols, setSelectedDeckCustomCols] = useState<string[]>([]);
+
+  useEffect(() => {
+    if (!selectedDeckId) {
+      setSelectedDeckCustomCols([]);
+      return;
+    }
+    const fetchDeckSettings = async () => {
+      try {
+        const res = await axios.get(`/api/v1/deck/${selectedDeckId}/practice-settings`);
+        const availCols = res.data.available_columns || [];
+        const loadedCustom = res.data.creator_settings?.custom_columns || [];
+        const defaults = ['front', 'back', 'front_audio_content', 'back_audio_content', 'front_audio_url', 'back_audio_url', 'front_img', 'back_img'];
+        const nonDefaults = availCols.filter((c: string) => !defaults.includes(c));
+        const merged = Array.from(new Set([...loadedCustom, ...nonDefaults]));
+        setSelectedDeckCustomCols(merged);
+      } catch (err) {
+        console.error("Failed to fetch selected deck practice settings", err);
+      }
+    };
+    fetchDeckSettings();
+  }, [selectedDeckId]);
 
   const loadAdminDecks = async () => {
     try {
@@ -1164,13 +1186,9 @@ export default function Admin() {
                         <option value="back" style={{ color: '#ffffff', backgroundColor: '#0d1321' }} className="font-semibold">Mặt Sau (Definition)</option>
                         <option value="front_audio_content" style={{ color: '#ffffff', backgroundColor: '#0d1321' }} className="font-semibold">front_audio_content (Nội dung đọc mặt trước)</option>
                         <option value="back_audio_content" style={{ color: '#ffffff', backgroundColor: '#0d1321' }} className="font-semibold">back_audio_content (Nội dung đọc mặt sau)</option>
-                        {(() => {
-                          const currentDeck = adminDecks.find(d => d.id.toString() === selectedDeckId);
-                          const customCols = currentDeck?.practice_settings?.custom_columns || [];
-                          return customCols.map((c: string) => (
-                            <option key={c} value={c} style={{ color: '#ffffff', backgroundColor: '#0d1321' }} className="font-semibold">{c}</option>
-                          ));
-                        })()}
+                        {selectedDeckCustomCols.map((c: string) => (
+                          <option key={c} value={c} style={{ color: '#ffffff', backgroundColor: '#0d1321' }} className="font-semibold">{c}</option>
+                        ))}
                       </select>
                     </div>
 
@@ -1190,13 +1208,9 @@ export default function Admin() {
                       >
                         <option value="front_audio_url" style={{ color: '#ffffff', backgroundColor: '#0d1321' }} className="font-semibold">front_audio_url (Audio mặt trước)</option>
                         <option value="back_audio_url" style={{ color: '#ffffff', backgroundColor: '#0d1321' }} className="font-semibold">back_audio_url (Audio mặt sau)</option>
-                        {(() => {
-                          const currentDeck = adminDecks.find(d => d.id.toString() === selectedDeckId);
-                          const customCols = currentDeck?.practice_settings?.custom_columns || [];
-                          return customCols.map((c: string) => (
-                            <option key={c} value={c} style={{ color: '#ffffff', backgroundColor: '#0d1321' }} className="font-semibold">{c}</option>
-                          ));
-                        })()}
+                        {selectedDeckCustomCols.map((c: string) => (
+                          <option key={c} value={c} style={{ color: '#ffffff', backgroundColor: '#0d1321' }} className="font-semibold">{c}</option>
+                        ))}
                       </select>
                     </div>
                   </div>
@@ -1416,13 +1430,9 @@ export default function Admin() {
                       >
                         <option value="front" style={{ color: '#ffffff', backgroundColor: '#0d1321' }} className="font-semibold">Mặt Trước (Word)</option>
                         <option value="back" style={{ color: '#ffffff', backgroundColor: '#0d1321' }} className="font-semibold">Mặt Sau (Definition)</option>
-                        {(() => {
-                          const currentDeck = adminDecks.find(d => d.id.toString() === selectedDeckId);
-                          const customCols = currentDeck?.practice_settings?.custom_columns || [];
-                          return customCols.map((c: string) => (
-                            <option key={c} value={c} style={{ color: '#ffffff', backgroundColor: '#0d1321' }} className="font-semibold">{c}</option>
-                          ));
-                        })()}
+                        {selectedDeckCustomCols.map((c: string) => (
+                          <option key={c} value={c} style={{ color: '#ffffff', backgroundColor: '#0d1321' }} className="font-semibold">{c}</option>
+                        ))}
                       </select>
                     </div>
 
@@ -1442,13 +1452,9 @@ export default function Admin() {
                       >
                         <option value="front_img" style={{ color: '#ffffff', backgroundColor: '#0d1321' }} className="font-semibold">front_img (Ảnh mặt trước)</option>
                         <option value="back_img" style={{ color: '#ffffff', backgroundColor: '#0d1321' }} className="font-semibold">back_img (Ảnh mặt sau)</option>
-                        {(() => {
-                          const currentDeck = adminDecks.find(d => d.id.toString() === selectedDeckId);
-                          const customCols = currentDeck?.practice_settings?.custom_columns || [];
-                          return customCols.map((c: string) => (
-                            <option key={c} value={c} style={{ color: '#ffffff', backgroundColor: '#0d1321' }} className="font-semibold">{c}</option>
-                          ));
-                        })()}
+                        {selectedDeckCustomCols.map((c: string) => (
+                          <option key={c} value={c} style={{ color: '#ffffff', backgroundColor: '#0d1321' }} className="font-semibold">{c}</option>
+                        ))}
                       </select>
                     </div>
                   </div>
