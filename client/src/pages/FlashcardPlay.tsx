@@ -2330,19 +2330,10 @@ export default function FlashcardPlay() {
   const openEditModal = () => {
     if (!currentQuestion) return
     
-    // Ensure nested 'others' is properly initialized with empty strings if not present
     const others = currentQuestion.others ? { ...currentQuestion.others } : {};
-    const defaultOthers = {
-      front_img: others.front_img || '',
-      back_img: others.back_img || '',
-      front_audio_url: others.front_audio_url || '',
-      back_audio_url: others.back_audio_url || '',
-      front_audio_content: others.front_audio_content || '',
-      back_audio_content: others.back_audio_content || '',
-      other_content: typeof others.other_content === 'object' 
-        ? JSON.stringify(others.other_content, null, 2) 
-        : (others.other_content || '')
-    };
+    // Strip out column fields from others if they leaked in
+    const systemFields = ['front_img', 'back_img', 'front_audio_url', 'back_audio_url', 'front_audio_content', 'back_audio_content'];
+    systemFields.forEach(f => delete others[f]);
 
     setEditFormData({
       id: currentQuestion.id,
@@ -2351,11 +2342,14 @@ export default function FlashcardPlay() {
       ai_explanation: currentQuestion.ai_explanation,
       image: currentQuestion.image || '',
       audio: currentQuestion.audio || '',
+      front_img: currentQuestion.front_img || '',
+      back_img: currentQuestion.back_img || '',
+      front_audio_url: currentQuestion.front_audio_url || '',
+      back_audio_url: currentQuestion.back_audio_url || '',
+      front_audio_content: currentQuestion.front_audio_content || '',
+      back_audio_content: currentQuestion.back_audio_content || '',
       options: currentQuestion.options.map(o => ({ id: o.id, content: o.content, is_correct: o.is_correct })),
-      others: {
-        ...others,
-        ...defaultOthers
-      }
+      others: others
     })
     setIsEditModalOpen(true)
   }
