@@ -566,6 +566,18 @@ export const FlashcardEditModal: React.FC<FlashcardEditModalProps> = ({
                           className="w-full p-3 bg-white rounded-xl border border-slate-200/80 focus:ring-2 focus:ring-indigo-500 text-xs font-semibold text-slate-600 outline-none"
                           placeholder={`Đường dẫn hình ảnh cho ${col.replace(/_/g, ' ')}...`}
                         />
+                        {getFieldValue(col) && (
+                          <div className="mt-2.5 relative w-full h-32 rounded-2xl overflow-hidden border border-slate-100 bg-slate-900/5 flex items-center justify-center">
+                            <img
+                              src={getFieldValue(col)}
+                              alt={col}
+                              className="max-w-full max-h-full object-contain"
+                              onError={(e) => {
+                                (e.target as HTMLElement).style.display = 'none';
+                              }}
+                            />
+                          </div>
+                        )}
                       </div>
                     ))}
                   </div>
