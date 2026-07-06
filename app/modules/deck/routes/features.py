@@ -537,9 +537,9 @@ async def generate_single_card_audio_helper(c, face: str, force: bool, db: Async
     # Select text based on face - strictly require front_audio_content / back_audio_content
     text = ""
     if face == "front":
-        text = c.others.get("front_audio_content") if c.others else None
+        text = c.front_audio_content or (c.others.get("front_audio_content") if c.others else None)
     else:
-        text = c.others.get("back_audio_content") if c.others else None
+        text = c.back_audio_content or (c.others.get("back_audio_content") if c.others else None)
             
     if not text or not text.strip():
         return None
@@ -562,12 +562,8 @@ async def generate_single_card_audio_helper(c, face: str, force: bool, db: Async
                 c.audio = url
                 db_updated = True
         else:
-            if not c.others:
-                c.others = {}
-            if c.others.get("back_audio_url") != url:
-                c.others["back_audio_url"] = url
-                from sqlalchemy.orm.attributes import flag_modified
-                flag_modified(c, "others")
+            if c.back_audio_url != url:
+                c.back_audio_url = url
                 db_updated = True
         if db_updated:
             await db.commit()
@@ -605,11 +601,7 @@ async def generate_single_card_audio_helper(c, face: str, force: bool, db: Async
                     if face == "front":
                         c.audio = central_ref
                     else:
-                        if not c.others:
-                            c.others = {}
-                        c.others["back_audio_url"] = central_ref
-                        from sqlalchemy.orm.attributes import flag_modified
-                        flag_modified(c, "others")
+                        c.back_audio_url = central_ref
                         
                     await db.commit()
                     
@@ -640,12 +632,7 @@ async def generate_single_card_audio_helper(c, face: str, force: bool, db: Async
     if face == "front":
         c.audio = url
     else:
-        if not c.others:
-            c.others = {}
-        c.others["back_audio_url"] = url
-        # Mark others dirty for SQLAlchemy JSON tracking
-        from sqlalchemy.orm.attributes import flag_modified
-        flag_modified(c, "others")
+        c.back_audio_url = url
         
     await db.commit()
     return url
@@ -703,6 +690,10 @@ async def _bulk_generate_deck_audio_task(
                 text = c.content
             elif source_field == "back":
                 text = c.explanation
+            elif source_field == "front_audio_content":
+                text = c.front_audio_content
+            elif source_field == "back_audio_content":
+                text = c.back_audio_content
             else:
                 text = c.others.get(source_field) if c.others else None
                 
@@ -716,7 +707,7 @@ async def _bulk_generate_deck_audio_task(
             if target_field == "front_audio_url":
                 has_audio = bool(c.front_audio_url and c.front_audio_url.strip())
             elif target_field == "back_audio_url":
-                has_audio = bool(c.others and c.others.get("back_audio_url"))
+                has_audio = bool(c.back_audio_url and c.back_audio_url.strip())
             else:
                 has_audio = bool(c.others and c.others.get(target_field))
                 
@@ -818,6 +809,10 @@ async def get_deck_tts_status(
             text = c.content
         elif source_field == "back":
             text = c.explanation
+        elif source_field == "front_audio_content":
+            text = c.front_audio_content
+        elif source_field == "back_audio_content":
+            text = c.back_audio_content
         else:
             text = c.others.get(source_field) if c.others else None
             
@@ -829,7 +824,7 @@ async def get_deck_tts_status(
         if target_field == "front_audio_url":
             has_audio = bool(c.front_audio_url and c.front_audio_url.strip())
         elif target_field == "back_audio_url":
-            has_audio = bool(c.others and c.others.get("back_audio_url"))
+            has_audio = bool(c.back_audio_url and c.back_audio_url.strip())
         else:
             has_audio = bool(c.others and c.others.get(target_field))
             
@@ -887,14 +882,13 @@ async def tts_queue_callback(data: dict, db: AsyncSession = Depends(get_db)):
     elif face == "back":
         target_attr = "back_audio_url"
         
-    if target_attr == "front_audio_url":
-        c.front_audio_url = central_ref
-    elif target_attr == "back_audio_url":
-        if not c.others:
-            c.others = {}
-        c.others["back_audio_url"] = central_ref
-        from sqlalchemy.orm.attributes import flag_modified
-        flag_modified(c, "others")
+    physical_map = {
+        "front_audio_url": "front_audio_url",
+        "back_audio_url": "back_audio_url"
+    }
+    
+    if target_attr in physical_map:
+        setattr(c, physical_map[target_attr], central_ref)
     else:
         if not c.others:
             c.others = {}
