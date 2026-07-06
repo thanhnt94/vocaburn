@@ -379,15 +379,23 @@ const EditFlashcard = () => {
 
         // Fetch practice settings
         const settingsRes = await axios.get(`/api/v1/deck/${id}/practice-settings`)
-        setAvailableColumns(settingsRes.data.available_columns || ['front', 'back'])
-        setCustomColumns(settingsRes.data.creator_settings?.custom_columns || [])
-        if (settingsRes.data.creator_settings && Object.keys(settingsRes.data.creator_settings).length > 0) {
-          const loaded = settingsRes.data.creator_settings
-          // Ensure arrays exist even if missing from server data
-          if (!loaded.ai_prompts) loaded.ai_prompts = []
-          if (!loaded.insight_columns) loaded.insight_columns = []
-          setPracticeSettings(loaded)
-        }
+        const availCols = settingsRes.data.available_columns || ['front', 'back']
+        setAvailableColumns(availCols)
+        
+        const loaded = settingsRes.data.creator_settings && Object.keys(settingsRes.data.creator_settings).length > 0
+          ? settingsRes.data.creator_settings
+          : {}
+          
+        if (!loaded.ai_prompts) loaded.ai_prompts = []
+        if (!loaded.insight_columns) loaded.insight_columns = []
+        
+        const loadedCustom = loaded.custom_columns || []
+        const availNonDefault = availCols.filter((c: string) => !SYSTEM_DEFAULTS.includes(c))
+        const mergedCustom = Array.from(new Set([...loadedCustom, ...availNonDefault]))
+        
+        loaded.custom_columns = mergedCustom
+        setCustomColumns(mergedCustom)
+        setPracticeSettings(loaded)
       } catch (err) {
         setError('Failed to load quiz data')
       } finally {
@@ -738,7 +746,7 @@ const EditFlashcard = () => {
                                                <div className="flex flex-col">
                                                   <span className="uppercase text-[10px]">{col}</span>
                                                   <span className="text-[7px] font-black uppercase text-slate-400 tracking-wider">
-                                                     {isCustom ? 'Tự tạo' : 'Import Excel'}
+                                                     Tùy chỉnh
                                                   </span>
                                                </div>
                                                <div className="flex items-center gap-1.5 ml-1">
