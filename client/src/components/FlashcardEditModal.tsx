@@ -42,6 +42,48 @@ const STRUCTURED_KEYS = new Set([
   'id', 'item_id', 'order_in_container',
 ])
 
+const unresolveUrl = (url: string | null | undefined): string => {
+  if (!url) return '';
+  const ssoUrl = 'https://auth.mindstack.click';
+  if (url.startsWith(`${ssoUrl}/static/uploads/media/`)) {
+    return 'central-media://' + url.slice(`${ssoUrl}/static/uploads/media/`.length);
+  }
+  if (url.startsWith(`${ssoUrl}/static/uploads/tts/`)) {
+    return 'central-tts://' + url.slice(`${ssoUrl}/static/uploads/tts/`.length);
+  }
+  if (url.startsWith('/static/uploads/media/')) {
+    return 'central-media://' + url.slice('/static/uploads/media/'.length);
+  }
+  if (url.startsWith('/static/uploads/tts/')) {
+    return 'central-tts://' + url.slice('/static/uploads/tts/'.length);
+  }
+  return url;
+};
+
+const resolveUrl = (url: string | null | undefined): string => {
+  if (!url) return '';
+  const ssoUrl = 'https://auth.mindstack.click';
+  if (url.startsWith('central-media://')) {
+    return `${ssoUrl}/static/uploads/media/` + url.slice('central-media://'.length);
+  }
+  if (url.startsWith('central-tts://')) {
+    return `${ssoUrl}/static/uploads/tts/` + url.slice('central-tts://'.length);
+  }
+  return url;
+};
+
+const unresolveDict = (obj: any) => {
+  if (!obj) return obj;
+  const resObj = { ...obj };
+  const fields = ['front_img', 'back_img', 'front_audio_url', 'back_audio_url', 'audio'];
+  fields.forEach(f => {
+    if (resObj[f] && typeof resObj[f] === 'string') {
+      resObj[f] = unresolveUrl(resObj[f]);
+    }
+  });
+  return resObj;
+};
+
 export const FlashcardEditModal: React.FC<FlashcardEditModalProps> = ({
   isOpen,
   onClose,
@@ -150,10 +192,17 @@ export const FlashcardEditModal: React.FC<FlashcardEditModalProps> = ({
   }, [allColumns, practiceSettings]);
 
   const imageCols = useMemo(() => {
-    return allColumns.filter(col => 
+    const cols = allColumns.filter(col => 
       ['front_img', 'back_img', 'image', 'img'].includes(col.toLowerCase()) ||
       col.toLowerCase().includes('image') || col.toLowerCase().includes('img')
     );
+    return cols.sort((a, b) => {
+      const aIsFront = a.toLowerCase().includes('front') || a.toLowerCase() === 'image' || a.toLowerCase() === 'img';
+      const bIsFront = b.toLowerCase().includes('front') || b.toLowerCase() === 'image' || b.toLowerCase() === 'img';
+      if (aIsFront && !bIsFront) return -1;
+      if (!aIsFront && bIsFront) return 1;
+      return 0;
+    });
   }, [allColumns]);
 
   const audioCols = useMemo(() => {
@@ -162,6 +211,26 @@ export const FlashcardEditModal: React.FC<FlashcardEditModalProps> = ({
       ['audio', 'sound', 'pronunciation'].includes(col.toLowerCase())
     );
   }, [allColumns]);
+
+  const audioGroups = useMemo(() => {
+    const frontGroup = audioCols.filter(col => col.toLowerCase().includes('front') || (!col.toLowerCase().includes('back') && !col.toLowerCase().includes('content') && col.toLowerCase().includes('url')));
+    const backGroup = audioCols.filter(col => col.toLowerCase().includes('back'));
+    
+    const sortGroup = (group: string[]) => {
+      return [...group].sort((a, b) => {
+        const aIsContent = a.toLowerCase().includes('content') || a.toLowerCase().includes('script');
+        const bIsContent = b.toLowerCase().includes('content') || b.toLowerCase().includes('script');
+        if (aIsContent && !bIsContent) return -1;
+        if (!aIsContent && bIsContent) return 1;
+        return 0;
+      });
+    };
+
+    return {
+      front: sortGroup(frontGroup),
+      back: sortGroup(backGroup)
+    };
+  }, [audioCols]);
 
   const generalCols = useMemo(() => {
     return allColumns.filter(col => {
@@ -185,16 +254,18 @@ export const FlashcardEditModal: React.FC<FlashcardEditModalProps> = ({
       // Fetch the updated card values from the server
       const res = await axios.get(`/api/v1/deck/${deckId}/cards/${formData.id}`);
       if (res.data) {
+        const unresolvedCard = unresolveDict(res.data);
         let parsedOthers: any = {}
-        if (res.data.others) {
+        if (unresolvedCard.others) {
           try {
-            parsedOthers = typeof res.data.others === 'string' ? JSON.parse(res.data.others) : res.data.others
+            parsedOthers = typeof unresolvedCard.others === 'string' ? JSON.parse(unresolvedCard.others) : unresolvedCard.others
           } catch (e) {
             console.error("Failed to parse others field", e)
           }
         }
+        parsedOthers = unresolveDict(parsedOthers);
         setFormData({
-          ...res.data,
+          ...unresolvedCard,
           others: {
             back_img: '',
             back_audio_url: '',
@@ -214,14 +285,16 @@ export const FlashcardEditModal: React.FC<FlashcardEditModalProps> = ({
 
   useEffect(() => {
     if (flashcard) {
+      const unresolvedCard = unresolveDict(flashcard);
       let parsedOthers: any = {}
-      if (flashcard.others) {
+      if (unresolvedCard.others) {
         try {
-          parsedOthers = typeof flashcard.others === 'string' ? JSON.parse(flashcard.others) : flashcard.others
+          parsedOthers = typeof unresolvedCard.others === 'string' ? JSON.parse(unresolvedCard.others) : unresolvedCard.others
         } catch (e) {
           console.error("Failed to parse others field", e)
         }
       }
+      parsedOthers = unresolveDict(parsedOthers);
 
       const merged = {
         back_img: '',
@@ -239,7 +312,7 @@ export const FlashcardEditModal: React.FC<FlashcardEditModalProps> = ({
       })
 
       setFormData({
-        ...flashcard,
+        ...unresolvedCard,
         others: merged
       })
 
@@ -569,7 +642,7 @@ export const FlashcardEditModal: React.FC<FlashcardEditModalProps> = ({
                         {getFieldValue(col) && (
                           <div className="mt-2.5 relative w-full h-32 rounded-2xl overflow-hidden border border-slate-100 bg-slate-900/5 flex items-center justify-center">
                             <img
-                              src={getFieldValue(col)}
+                              src={resolveUrl(getFieldValue(col))}
                               alt={col}
                               className="max-w-full max-h-full object-contain"
                               onError={(e) => {
@@ -588,55 +661,96 @@ export const FlashcardEditModal: React.FC<FlashcardEditModalProps> = ({
               {audioCols.length > 0 && (
                 <div className="space-y-4 bg-slate-50/50 p-5 rounded-3xl border border-slate-100 text-left">
                   <span className="text-[10px] font-black text-indigo-600 uppercase tracking-[0.2em] block mb-2">4. Phát âm & Âm thanh</span>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {audioCols.map(col => {
-                      const val = getFieldValue(col);
-                      const isScript = col.toLowerCase().includes('content') || col.toLowerCase().includes('script');
-                      const isFront = col.toLowerCase().includes('front') || (col.toLowerCase().includes('audio') && !col.toLowerCase().includes('back'));
-                      
-                      return (
-                        <div key={col} className="space-y-1.5">
-                          <div className="flex items-center justify-between">
-                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{col.replace(/_/g, ' ')}</label>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {/* Front Audio Column */}
+                    <div className="space-y-4">
+                      <h4 className="text-[11px] font-black text-indigo-500 uppercase tracking-wider border-b border-slate-200/60 pb-1.5">Mặt Trước (Front)</h4>
+                      {audioGroups.front.map(col => {
+                        const val = getFieldValue(col);
+                        const isScript = col.toLowerCase().includes('content') || col.toLowerCase().includes('script');
+                        return (
+                          <div key={col} className="space-y-1.5">
+                            <div className="flex items-center justify-between">
+                              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{col.replace(/_/g, ' ')}</label>
+                              {isScript && renderRegenButton('front')}
+                            </div>
                             {isScript ? (
-                              renderRegenButton(isFront ? 'front' : 'back')
+                              <textarea
+                                rows={2}
+                                value={val}
+                                onChange={(e) => setFieldValue(col, e.target.value)}
+                                className="w-full p-3 bg-white rounded-xl border border-slate-200/80 focus:ring-2 focus:ring-indigo-500 font-medium text-slate-700 transition-all resize-none text-xs outline-none"
+                                placeholder="Ví dụ ja:こんにちは"
+                              />
                             ) : (
-                              val && (
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    const audio = new Audio(val);
-                                    audio.play().catch(e => console.error("Preview failed:", e));
-                                  }}
-                                  className="flex items-center gap-1 text-[9px] font-black uppercase text-indigo-600 hover:text-indigo-800 transition-all bg-indigo-50 px-2 py-1 rounded-lg"
-                                  title="Play Audio"
-                                >
-                                  <Volume2 className="w-3 h-3" />
-                                  Nghe thử
-                                </button>
-                              )
+                              <>
+                                <input
+                                  type="text"
+                                  value={val}
+                                  onChange={(e) => setFieldValue(col, e.target.value)}
+                                  className="w-full p-3 bg-white rounded-xl border border-slate-200/80 focus:ring-2 focus:ring-indigo-500 text-xs font-semibold text-slate-600 outline-none"
+                                  placeholder="Đường dẫn file âm thanh..."
+                                />
+                                {val && (
+                                  <div className="mt-1.5">
+                                    <audio 
+                                      controls 
+                                      src={resolveUrl(val)} 
+                                      className="w-full h-8 rounded-lg"
+                                    />
+                                  </div>
+                                )}
+                              </>
                             )}
                           </div>
-                          {isScript ? (
-                            <textarea
-                              rows={2}
-                              value={val}
-                              onChange={(e) => setFieldValue(col, e.target.value)}
-                              className="w-full p-3 bg-white rounded-xl border border-slate-200/80 focus:ring-2 focus:ring-indigo-500 font-medium text-slate-700 transition-all resize-none text-xs outline-none"
-                              placeholder="Ví dụ ja:こんにちは"
-                            />
-                          ) : (
-                            <input
-                              type="text"
-                              value={val}
-                              onChange={(e) => setFieldValue(col, e.target.value)}
-                              className="w-full p-3 bg-white rounded-xl border border-slate-200/80 focus:ring-2 focus:ring-indigo-500 text-xs font-semibold text-slate-600 outline-none"
-                              placeholder="Đường dẫn file âm thanh..."
-                            />
-                          )}
-                        </div>
-                      )
-                    })}
+                        );
+                      })}
+                    </div>
+
+                    {/* Back Audio Column */}
+                    <div className="space-y-4">
+                      <h4 className="text-[11px] font-black text-indigo-500 uppercase tracking-wider border-b border-slate-200/60 pb-1.5">Mặt Sau (Back)</h4>
+                      {audioGroups.back.map(col => {
+                        const val = getFieldValue(col);
+                        const isScript = col.toLowerCase().includes('content') || col.toLowerCase().includes('script');
+                        return (
+                          <div key={col} className="space-y-1.5">
+                            <div className="flex items-center justify-between">
+                              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{col.replace(/_/g, ' ')}</label>
+                              {isScript && renderRegenButton('back')}
+                            </div>
+                            {isScript ? (
+                              <textarea
+                                rows={2}
+                                value={val}
+                                onChange={(e) => setFieldValue(col, e.target.value)}
+                                className="w-full p-3 bg-white rounded-xl border border-slate-200/80 focus:ring-2 focus:ring-indigo-500 font-medium text-slate-700 transition-all resize-none text-xs outline-none"
+                                placeholder="Ví dụ ja:こんにちは"
+                              />
+                            ) : (
+                              <>
+                                <input
+                                  type="text"
+                                  value={val}
+                                  onChange={(e) => setFieldValue(col, e.target.value)}
+                                  className="w-full p-3 bg-white rounded-xl border border-slate-200/80 focus:ring-2 focus:ring-indigo-500 text-xs font-semibold text-slate-600 outline-none"
+                                  placeholder="Đường dẫn file âm thanh..."
+                                />
+                                {val && (
+                                  <div className="mt-1.5">
+                                    <audio 
+                                      controls 
+                                      src={resolveUrl(val)} 
+                                      className="w-full h-8 rounded-lg"
+                                    />
+                                  </div>
+                                )}
+                              </>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
                   </div>
                 </div>
               )}
