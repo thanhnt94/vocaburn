@@ -2823,40 +2823,49 @@ export default function PracticePlay() {
     })
     setIsEditModalOpen(true)
   }
-
-  const handleSaveEdit = async () => {
-    if (!currentQuestion || !editFormData) return
+  const handleSaveEdit = async (updatedCardData: any) => {
+    if (!currentQuestion || !updatedCardData) return
     setIsSavingEdit(true)
 
     try {
       // Safely parse other_content JSON if provided
-      const finalOthers = { ...editFormData.others };
+      const finalOthers = { ...updatedCardData.others };
       const systemFields = ['front_img', 'back_img', 'front_audio_url', 'back_audio_url', 'front_audio_content', 'back_audio_content'];
       systemFields.forEach(f => delete finalOthers[f]);
 
       if (finalOthers.other_content) {
         try {
           // If valid JSON, parse it for database storage
-          finalOthers.other_content = JSON.parse(finalOthers.other_content);
+          finalOthers.other_content = typeof finalOthers.other_content === 'string'
+            ? JSON.parse(finalOthers.other_content)
+            : finalOthers.other_content;
         } catch (je) {
           // If not valid JSON, save as string
         }
       }
 
+      // Sync correctness explanation to options content
+      const updatedOptions = (updatedCardData.options || []).map((opt: any) => {
+        if (opt.is_correct && updatedCardData.explanation) {
+          return { ...opt, content: updatedCardData.explanation }
+        }
+        return opt
+      })
+
       const payload = {
-        content: editFormData.content,
-        explanation: editFormData.explanation,
-        ai_explanation: editFormData.ai_explanation,
-        image: editFormData.image || null,
-        audio: editFormData.audio || null,
-        front_img: editFormData.front_img || '',
-        back_img: editFormData.back_img || '',
-        front_audio_url: editFormData.front_audio_url || '',
-        back_audio_url: editFormData.back_audio_url || '',
-        front_audio_content: editFormData.front_audio_content || '',
-        back_audio_content: editFormData.back_audio_content || '',
+        content: updatedCardData.content,
+        explanation: updatedCardData.explanation,
+        ai_explanation: updatedCardData.ai_explanation,
+        image: updatedCardData.image || null,
+        audio: updatedCardData.audio || null,
+        front_img: updatedCardData.front_img || '',
+        back_img: updatedCardData.back_img || '',
+        front_audio_url: updatedCardData.front_audio_url || '',
+        back_audio_url: updatedCardData.back_audio_url || '',
+        front_audio_content: updatedCardData.front_audio_content || '',
+        back_audio_content: updatedCardData.back_audio_content || '',
         others: finalOthers,
-        options: editFormData.options
+        options: updatedOptions
       };
 
       await axios.patch(`/api/v1/deck/question/${currentQuestion.id}`, payload)
@@ -2867,7 +2876,7 @@ export default function PracticePlay() {
         newQs[currentIndex] = {
           ...newQs[currentIndex],
           ...payload,
-          options: editFormData.options
+          options: updatedOptions
         }
         return { ...prev, questions: newQs }
       })
