@@ -321,6 +321,61 @@ async def export_deck(deck_id: int, request: Request, exclude_ids: bool = False,
         }
     )
 
+@router.post("/{deck_id}/import-analyze")
+async def import_analyze_deck(request: Request, deck_id: int, file: UploadFile = File(...), db: AsyncSession = Depends(get_db)):
+    try:
+        user_id = int(request.cookies.get("user_id", 1))
+        deck = await DeckService.get_deck_by_id(db, deck_id)
+        if not deck:
+            return JSONResponse(status_code=404, content={"error": "Deck not found"})
+            
+        from app.modules.deck.models import DeckCollaborator
+        from app.modules.auth.models import User as UserDB
+        is_owner = deck.creator_id == user_id
+        collab_res = await db.execute(select(DeckCollaborator).where(DeckCollaborator.deck_id == deck_id, DeckCollaborator.user_id == user_id))
+        is_collaborator = collab_res.scalar() is not None
+        
+        user_res = await db.execute(select(UserDB).where(UserDB.id == user_id))
+        user_obj = user_res.scalar_one_or_none()
+        is_admin = user_obj and user_obj.role == "admin"
+        
+        if not (is_owner or is_collaborator or user_id == 1 or is_admin):
+            return JSONResponse(status_code=403, content={"error": "No permission to view this deck"})
+            
+        content = await file.read()
+        import asyncio
+        metadata, cards = await asyncio.to_thread(ExcelDeckService.parse_deck_excel, content)
+        
+        if not cards:
+            return JSONResponse(status_code=400, content={"error": "No valid cards found in Excel file."})
+            
+        from app.modules.deck.models import Flashcard
+        existing_c_res = await db.execute(select(Flashcard.id).filter(Flashcard.deck_id == deck_id))
+        existing_ids = {r[0] for r in existing_c_res.all()}
+        
+        updated_count = 0
+        added_count = 0
+        
+        for c_data in cards:
+            c_id = c_data.get("id")
+            if c_id and c_id in existing_ids:
+                updated_count += 1
+            else:
+                added_count += 1
+                
+        return {
+            "status": "ok",
+            "title": metadata.get("title", deck.title),
+            "description": metadata.get("description", deck.description),
+            "total_excel_rows": len(cards),
+            "updated_count": updated_count,
+            "added_count": added_count
+        }
+    except Exception as e:
+        import traceback
+        print(f"CRITICAL: Excel analysis error: {traceback.format_exc()}")
+        return JSONResponse(status_code=500, content={"error": str(e)})
+
 @router.post("/{deck_id}/import-update")
 async def import_update_deck(request: Request, deck_id: int, file: UploadFile = File(...), mode: str = Form("merge"), db: AsyncSession = Depends(get_db)):
     try:
@@ -371,21 +426,8 @@ async def import_update_deck(request: Request, deck_id: int, file: UploadFile = 
             
         from app.modules.deck.models import Flashcard
         
-        if mode == "overwrite":
-            # Delete existing cards and their stats/answers completely
-            card_ids_res = await db.execute(select(Flashcard.id).filter(Flashcard.deck_id == deck_id))
-            card_ids = [r[0] for r in card_ids_res.all()]
-            if card_ids:
-                from app.modules.deck.models import UserCardMastery, UserPracticeStats, UserCardNote, UserAnswer
-                await db.execute(delete(UserCardMastery).where(UserCardMastery.card_id.in_(card_ids)))
-                await db.execute(delete(UserPracticeStats).where(UserPracticeStats.card_id.in_(card_ids)))
-                await db.execute(delete(UserCardNote).where(UserCardNote.card_id.in_(card_ids)))
-                await db.execute(delete(UserAnswer).where(UserAnswer.card_id.in_(card_ids)))
-                await db.execute(delete(Flashcard).where(Flashcard.id.in_(card_ids)))
-            existing_c_map = {}
-        else:
-            existing_c_res = await db.execute(select(Flashcard).filter(Flashcard.deck_id == deck_id))
-            existing_c_map = {c.id: c for c in existing_c_res.scalars().all()}
+        existing_c_res = await db.execute(select(Flashcard).filter(Flashcard.deck_id == deck_id))
+        existing_c_map = {c.id: c for c in existing_c_res.scalars().all()}
         
         for c_data in cards:
             c_id = c_data.get("id")

@@ -73,6 +73,8 @@ const EditFlashcard = () => {
   const [importSuccess, setImportSuccess] = useState(false)
   const [importError, setImportError] = useState<string | null>(null)
   const [showImportModal, setShowImportModal] = useState(false)
+  const [analysisResult, setAnalysisResult] = useState<{ updated_count: number, added_count: number, total_excel_rows: number } | null>(null)
+  const [isAnalyzing, setIsAnalyzing] = useState(false)
 
   // Copy-paste import states
   const [rawText, setRawText] = useState('')
@@ -285,11 +287,32 @@ const EditFlashcard = () => {
     }
   }
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
-      setExcelFile(e.target.files[0])
+      const file = e.target.files[0]
+      setExcelFile(file)
       setImportError(null)
       setImportSuccess(false)
+      setIsAnalyzing(true)
+      setAnalysisResult(null)
+      setShowImportModal(true)
+      
+      const data = new FormData()
+      data.append('file', file)
+      
+      try {
+        const res = await axios.post(`/api/v1/deck/${id}/import-analyze`, data, {
+          headers: {
+            'Content-Type': 'multipart/form-data'
+          }
+        })
+        setAnalysisResult(res.data)
+      } catch (err: any) {
+        setImportError(err.response?.data?.error || "Phân tích file Excel thất bại")
+        setShowImportModal(false)
+      } finally {
+        setIsAnalyzing(false)
+      }
     }
   }
 
@@ -301,7 +324,7 @@ const EditFlashcard = () => {
     
     const data = new FormData()
     data.append('file', excelFile)
-    data.append('mode', importMode)
+    data.append('mode', 'merge')
 
     try {
       await axios.post(`/api/v1/deck/${id}/import-update`, data, {
@@ -311,6 +334,10 @@ const EditFlashcard = () => {
       })
       setImportSuccess(true)
       setExcelFile(null)
+      
+      // Re-fetch deck/practice settings to refresh page state
+      const settingsRes = await axios.get(`/api/v1/deck/${id}/practice-settings`)
+      setAvailableColumns(settingsRes.data.available_columns || ['front', 'back'])
     } catch (err: any) {
       setImportError(err.response?.data?.error || "Nhập Excel thất bại")
     } finally {
@@ -1419,14 +1446,12 @@ const EditFlashcard = () => {
                                       <input 
                                          type="file" 
                                          accept=".xlsx, .xls"
-                                         onChange={(e) => {
-                                            handleFileChange(e);
-                                            if (e.target.files && e.target.files[0]) {
-                                               setShowImportModal(true);
-                                            }
-                                         }}
+                                         onChange={handleFileChange}
                                          className="hidden" 
                                          id="excel-file-upload"
+                                         onClick={(e) => {
+                                            (e.target as HTMLInputElement).value = '';
+                                         }}
                                       />
                                       <label 
                                          htmlFor="excel-file-upload"
@@ -1784,46 +1809,46 @@ const EditFlashcard = () => {
                         Hủy
                      </button>
                      <button
-                        type="button"
-                        onClick={async () => {
-                           const cleanNewName = newRenamedName.trim();
-                           if (!cleanNewName || cleanNewName === renamingColumn) {
-                              setShowRenameModal(false);
-                              return;
-                           }
-                           if (availableColumns.includes(cleanNewName)) {
-                              alert("Tên cột này đã tồn tại!");
-                              return;
-                           }
-                           try {
-                              setIsSaving(true);
-                              await axios.post(`/api/v1/deck/${id}/rename-column`, {
-                                 old_name: renamingColumn,
-                                 new_name: cleanNewName
-                              });
-                              const nextCustom = customColumns.map(c => c === renamingColumn ? cleanNewName : c);
-                              setCustomColumns(nextCustom);
-                              const sRes = await axios.get(`/api/v1/deck/${id}/practice-settings`);
-                              setAvailableColumns(sRes.data.available_columns || ['front', 'back']);
-                              setPracticeSettings(sRes.data.creator_settings || {});
-                              setShowRenameModal(false);
-                              alert("Đổi tên cột thành công!");
-                           } catch (err) {
-                              alert("Lỗi khi đổi tên cột");
-                           } finally {
-                              setIsSaving(false);
-                           }
-                        }}
-                        className="flex-1 h-12 bg-indigo-600 text-white hover:bg-indigo-700 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all shadow-lg shadow-indigo-100 flex items-center justify-center"
-                     >
-                        Lưu thay đổi
-                     </button>
-                  </div>
-                </div>
-              </motion.div>
-            </div>
-         )}
-      </AnimatePresence>
+                         type="button"
+                         onClick={async () => {
+                            const cleanNewName = newRenamedName.trim();
+                            if (!cleanNewName || cleanNewName === renamingColumn) {
+                               setShowRenameModal(false);
+                               return;
+                            }
+                            if (availableColumns.includes(cleanNewName)) {
+                               alert("Tên cột này đã tồn tại!");
+                               return;
+                            }
+                            try {
+                               setIsSaving(true);
+                               await axios.post(`/api/v1/deck/${id}/rename-column`, {
+                                  old_name: renamingColumn,
+                                  new_name: cleanNewName
+                               });
+                               const nextCustom = customColumns.map(c => c === renamingColumn ? cleanNewName : c);
+                               setCustomColumns(nextCustom);
+                               const sRes = await axios.get(`/api/v1/deck/${id}/practice-settings`);
+                               setAvailableColumns(sRes.data.available_columns || ['front', 'back']);
+                               setPracticeSettings(sRes.data.creator_settings || {});
+                               setShowRenameModal(false);
+                               alert("Đổi tên cột thành công!");
+                            } catch (err) {
+                               alert("Lỗi khi đổi tên cột");
+                            } finally {
+                               setIsSaving(false);
+                            }
+                         }}
+                         className="flex-1 h-12 bg-indigo-600 text-white hover:bg-indigo-700 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all shadow-lg shadow-indigo-100 flex items-center justify-center"
+                      >
+                         Lưu thay đổi
+                      </button>
+                   </div>
+                 </div>
+               </motion.div>
+             </div>
+          )}
+       </AnimatePresence>
 
       {/* Import Settings Modal */}
       <AnimatePresence>
@@ -1838,7 +1863,7 @@ const EditFlashcard = () => {
                    </div>
                    <div>
                      <h3 className="text-xl font-black text-slate-900 uppercase italic tracking-tight">Nhập file Excel</h3>
-                     <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-1">Cấu hình chế độ tải lên</p>
+                     <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-1">Xác nhận cập nhật dữ liệu</p>
                    </div>
                  </div>
                  <button onClick={() => setShowImportModal(false)} className="w-10 h-10 bg-slate-50 rounded-xl flex items-center justify-center text-slate-400 hover:text-slate-900 transition-all"><X className="w-5 h-5" /></button>
@@ -1850,56 +1875,42 @@ const EditFlashcard = () => {
                     <span className="text-xs font-bold text-slate-900 truncate max-w-[200px]">{excelFile.name}</span>
                  </div>
 
-                 <div className="space-y-3">
-                   <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Chọn phương thức nhập:</label>
-                   
-                   {/* Option 1: Overwrite */}
-                   <button 
-                      onClick={() => setImportMode('overwrite')}
-                      className={cn(
-                        "w-full p-4 rounded-2xl border text-left transition-all flex items-start gap-4",
-                        importMode === 'overwrite' ? "bg-indigo-50/40 border-indigo-200 ring-2 ring-indigo-500/10" : "bg-white border-slate-100 hover:bg-slate-50"
-                      )}
-                   >
-                     <div className={cn("w-5 h-5 rounded-full border flex items-center justify-center mt-0.5 shrink-0", importMode === 'overwrite' ? "border-indigo-600 bg-indigo-600 text-white" : "border-slate-300")}>
-                        {importMode === 'overwrite' && <div className="w-2 h-2 rounded-full bg-white" />}
-                     </div>
-                     <div>
-                        <h4 className="text-xs font-black text-slate-800 uppercase italic">Ghi đè (Overwrite / Sửa nhanh)</h4>
-                        <p className="text-[10px] text-slate-400 mt-1 leading-relaxed">
-                           Xóa toàn bộ thẻ cũ trong collection này và thay thế bằng danh sách thẻ từ file Excel. Phù hợp khi bạn xuất ra để sửa rồi nhập đè.
-                        </p>
-                     </div>
-                   </button>
+                 {isAnalyzing ? (
+                    <div className="py-8 flex flex-col items-center justify-center gap-3">
+                       <Zap className="w-8 h-8 text-indigo-600 animate-spin" />
+                       <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Đang phân tích dữ liệu file Excel...</span>
+                    </div>
+                 ) : analysisResult ? (
+                    <div className="space-y-4">
+                       <div className="grid grid-cols-3 gap-3">
+                          <div className="p-4 bg-slate-50 border border-slate-100 rounded-2xl text-center">
+                             <div className="text-lg font-black text-slate-800">{analysisResult.total_excel_rows}</div>
+                             <div className="text-[8px] font-black text-slate-400 uppercase tracking-wider mt-1">Tổng số thẻ</div>
+                          </div>
+                          <div className="p-4 bg-amber-50/50 border border-amber-100 rounded-2xl text-center">
+                             <div className="text-lg font-black text-amber-600">{analysisResult.updated_count}</div>
+                             <div className="text-[8px] font-black text-amber-500 uppercase tracking-wider mt-1">Cập nhật</div>
+                          </div>
+                          <div className="p-4 bg-emerald-50/50 border border-emerald-100 rounded-2xl text-center">
+                             <div className="text-lg font-black text-emerald-600">{analysisResult.added_count}</div>
+                             <div className="text-[8px] font-black text-emerald-500 uppercase tracking-wider mt-1 font-semibold">Thêm mới</div>
+                          </div>
+                       </div>
 
-                   {/* Option 2: Merge/Append */}
-                   <button 
-                      onClick={() => setImportMode('merge')}
-                      className={cn(
-                        "w-full p-4 rounded-2xl border text-left transition-all flex items-start gap-4",
-                        importMode === 'merge' ? "bg-indigo-50/40 border-indigo-200 ring-2 ring-indigo-500/10" : "bg-white border-slate-100 hover:bg-slate-50"
-                      )}
-                   >
-                     <div className={cn("w-5 h-5 rounded-full border flex items-center justify-center mt-0.5 shrink-0", importMode === 'merge' ? "border-indigo-600 bg-indigo-600 text-white" : "border-slate-300")}>
-                        {importMode === 'merge' && <div className="w-2 h-2 rounded-full bg-white" />}
-                     </div>
-                     <div>
-                        <h4 className="text-xs font-black text-slate-800 uppercase italic">Thêm tiếp / Trộn (Merge)</h4>
-                        <p className="text-[10px] text-slate-400 mt-1 leading-relaxed">
-                           Giữ nguyên thẻ cũ, cập nhật các thẻ trùng ID từ file Excel và thêm các thẻ không trùng ID thành thẻ mới.
-                        </p>
-                     </div>
-                   </button>
-                 </div>
+                       <div className="p-4 bg-indigo-50/30 border border-indigo-100 rounded-2xl text-[10px] text-indigo-700 font-bold leading-relaxed">
+                          💡 Hệ thống tự động đối chiếu cột <strong>ID (item_id)</strong>: nếu trùng khớp sẽ thực hiện cập nhật ghi đè; các dòng không có ID hoặc ID mới sẽ được tạo thành thẻ mới.
+                       </div>
+                    </div>
+                 ) : null}
 
                  <div className="flex gap-3 pt-4 border-t border-slate-100">
                     <button 
                        onClick={() => setShowImportModal(false)}
-                       disabled={isImporting}
+                       disabled={isImporting || isAnalyzing}
                        className="flex-1 py-3.5 bg-slate-100 hover:bg-slate-200 text-slate-600 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all active:scale-95"
                     >
-                       Hủy
-                    </button>
+                        Hủy
+                     </button>
                     <button 
                        onClick={async () => {
                           await handleImportExcel();
