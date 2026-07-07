@@ -525,7 +525,7 @@ const EditFlashcard = () => {
     <div className="min-h-screen bg-[#F8FAFC] pb-10">
       {/* Fixed Header on Mobile, Sticky on Desktop */}
       <div className="fixed top-0 left-0 right-0 z-[100] bg-white/80 backdrop-blur-xl border-b border-slate-100 px-4 py-3 shadow-sm w-full md:sticky md:top-0">
-        <div className="max-w-5xl mx-auto flex items-center justify-between gap-3">
+        <div className="max-w-[1400px] mx-auto flex items-center justify-between gap-3">
           <div className="flex items-center gap-2.5 min-w-0">
             <button 
               onClick={() => navigate('/manage')}
@@ -553,7 +553,7 @@ const EditFlashcard = () => {
         </div>
       </div>
 
-      <div className="max-w-5xl mx-auto px-4 pt-[68px] md:pt-0 mt-6 md:mt-10">
+      <div className="max-w-[1400px] mx-auto px-4 pt-[68px] md:pt-0 mt-6 md:mt-10">
         {/* Mobile Tab Switcher */}
         <div className="flex items-center bg-white border border-slate-100 p-1.5 rounded-2xl mb-8 md:hidden shadow-sm overflow-x-auto">
            {['basic', 'columns', 'practice', 'ai', 'collaboration', 'excel'].map(tab => (
@@ -570,7 +570,7 @@ const EditFlashcard = () => {
            ))}
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
            {/* Navigation Aside (Desktop) */}
            <aside className="hidden md:flex flex-col gap-3">
               <NavButton active={activeTab === 'basic'} onClick={() => setActiveTab('basic')} icon={SettingsIcon} title="Basic Info" sub="Title, Cover, Tags" />
@@ -594,7 +594,7 @@ const EditFlashcard = () => {
            </aside>
 
            {/* Main Content Area */}
-           <div className="md:col-span-2">
+           <div className="md:col-span-3">
               <AnimatePresence mode="wait">
                  {activeTab === 'basic' && (
                     <motion.div key="basic" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="space-y-6">
