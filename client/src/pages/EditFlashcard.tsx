@@ -594,6 +594,18 @@ const EditFlashcard = () => {
                                      className="w-full pl-11 pr-4 h-12 bg-slate-50 border border-slate-100 rounded-xl text-xs font-bold text-slate-900 outline-none focus:ring-4 focus:ring-indigo-500/5 transition-all"
                                   />
                                </div>
+                               {formData.cover_image && (
+                                   <div className="mt-3 relative rounded-2xl overflow-hidden border border-slate-100 max-w-xs h-36 bg-slate-50 shadow-sm flex items-center justify-center">
+                                      <img 
+                                         src={formData.cover_image} 
+                                         alt="Cover Preview" 
+                                         className="w-full h-full object-cover"
+                                         onError={(e) => {
+                                            (e.target as HTMLElement).style.display = 'none';
+                                         }}
+                                      />
+                                   </div>
+                                )}
                             </div>
 
                             <Textarea label="Description" value={formData.description} onChange={v => setFormData({...formData, description: v})} rows={4} />
