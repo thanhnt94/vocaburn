@@ -891,7 +891,10 @@ const EditFlashcards = () => {
              
              {!isQuickAddOpen && (
                 <button
-                   onClick={() => setIsQuickAddOpen(true)}
+                   onClick={() => {
+                      setIsQuickAddOpen(true);
+                      setIsSearchOpen(false);
+                   }}
                    className="absolute right-4 top-1/2 -translate-y-1/2 w-8 h-8 rounded-lg bg-gradient-to-r from-orange-500 to-rose-500 text-white flex items-center justify-center shadow-md active:scale-95 transition-all z-[120]"
                    title="Mở thanh nhập nhanh"
                 >
