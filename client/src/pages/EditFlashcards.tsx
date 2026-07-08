@@ -829,7 +829,7 @@ const EditFlashcards = () => {
       </div>
 
           {/* Full-width Numeric Pagination - White Theme */}
-          <div className="fixed bottom-0 left-0 right-0 z-[110] bg-white/95 backdrop-blur-xl border-t border-slate-100 px-4 py-1.5 shadow-[0_-10px_30px_rgba(0,0,0,0.03)] relative">
+          <div className="fixed bottom-0 left-0 right-0 z-[110] bg-white/95 backdrop-blur-xl border-t border-slate-100 px-4 py-1.5 shadow-[0_-10px_30px_rgba(0,0,0,0.03)]">
              {/* Left Search Toggle Button (Mobile Only) */}
              <button
                 onClick={() => {
