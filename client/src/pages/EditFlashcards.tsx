@@ -41,6 +41,7 @@ const EditFlashcards = () => {
   const [page, setPage] = useState(1)
   const [search, setSearch] = useState('')
   const [searchCol, setSearchCol] = useState('all')
+  const [isSearchOpen, setIsSearchOpen] = useState(false)
   const [error, setError] = useState<string | null>(null)
   
   const [editingFlashcard, setEditingFlashcard] = useState<any>(null)
@@ -959,8 +960,9 @@ const EditFlashcards = () => {
                </button>
             </form>
 
-            {/* Search row right below Add Card form (Hidden on Desktop) */}
-            <div className="max-w-full sm:max-w-[95%] xl:max-w-[98%] mx-auto mt-3.5 pt-3 border-t border-slate-100 flex items-center gap-2.5 md:hidden">
+            {/* Search row right below Add Card form (Hidden on Desktop, Toggleable on Mobile) */}
+            {isSearchOpen && (
+               <div className="max-w-full sm:max-w-[95%] xl:max-w-[98%] mx-auto mt-3.5 pt-3 border-t border-slate-100 flex items-center gap-2.5 md:hidden">
                <div className="relative flex-grow">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                   <input
@@ -987,6 +989,7 @@ const EditFlashcards = () => {
                   <ChevronDown className="w-4 h-4 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
                </div>
             </div>
+            )}
           </motion.div>
         )}
       </AnimatePresence>
