@@ -855,12 +855,17 @@ const EditFlashcards = () => {
              <div className="max-w-[95%] xl:max-w-[98%] mx-auto flex items-center justify-center gap-1.5 overflow-x-auto scrollbar-hide py-0.5">
                 {(() => {
                    const totalPages = Math.ceil(total / 50)
-                   const start = Math.max(1, page - 2)
-                   const end = Math.min(totalPages, start + 5)
-                   const finalStart = Math.max(1, end - 5)
+                   const maxMiddlePages = window.innerWidth < 768 ? 3 : 5
+                   const half = Math.floor(maxMiddlePages / 2)
+                   
+                   let start = Math.max(1, page - half)
+                   let end = Math.min(totalPages, start + maxMiddlePages - 1)
+                   if (end - start + 1 < maxMiddlePages) {
+                      start = Math.max(1, end - maxMiddlePages + 1)
+                   }
                    
                    const visiblePages = []
-                   for (let i = finalStart; i <= end; i++) {
+                   for (let i = start; i <= end; i++) {
                       if (i >= 1 && i <= totalPages) {
                          visiblePages.push(i)
                       }
