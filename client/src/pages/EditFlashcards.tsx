@@ -949,12 +949,12 @@ const EditFlashcards = () => {
             >
                {/* Collapse Button */}
                <button 
-                 type="button"
-                 onClick={() => setIsQuickAddOpen(false)}
-                 className="absolute -top-1.5 right-1 w-6 h-6 rounded-lg bg-slate-50 hover:bg-slate-100 flex items-center justify-center text-slate-400 hover:text-slate-600 active:scale-90 transition-all border border-slate-100"
-                 title="Thu gọn nhập nhanh"
+                  type="button"
+                  onClick={() => setIsQuickAddOpen(false)}
+                  className="absolute -top-1.5 right-1 w-6 h-6 rounded-lg bg-slate-50 hover:bg-slate-100 flex items-center justify-center text-slate-400 hover:text-slate-600 active:scale-90 transition-all border border-slate-100"
+                  title="Thu gọn nhập nhanh"
                >
-                 <ChevronDown className="w-4 h-4" />
+                  <ChevronDown className="w-4 h-4" />
                </button>
 
                <div className="flex flex-wrap gap-2.5 flex-1 w-full pr-7">
@@ -982,12 +982,33 @@ const EditFlashcards = () => {
                   <Plus className="w-3.5 h-3.5" /> THÊM THẺ
                </button>
             </form>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
-            {/* Search row right below Add Card form (Hidden on Desktop, Toggleable on Mobile) */}
-            {isSearchOpen && (
-               <div className="max-w-full sm:max-w-[95%] xl:max-w-[98%] mx-auto mt-3.5 pt-3 border-t border-slate-100 flex items-center gap-2.5 md:hidden">
-               <div className="relative flex-grow">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+      {/* Floating Bottom Search Panel (Mobile Only) */}
+      <AnimatePresence>
+        {isSearchOpen && (
+          <motion.div
+            initial={{ y: 150, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            exit={{ y: 150, opacity: 0 }}
+            transition={{ type: "spring", damping: 25, stiffness: 220 }}
+            className="fixed bottom-[44px] left-0 right-0 z-[105] bg-white/95 backdrop-blur-xl border-t border-indigo-50/80 p-3.5 shadow-[0_-12px_30px_rgba(0,0,0,0.06)] md:hidden"
+          >
+            <div className="max-w-full sm:max-w-[95%] xl:max-w-[98%] mx-auto flex items-center gap-2.5 relative">
+               {/* Collapse Button */}
+               <button 
+                  type="button"
+                  onClick={() => setIsSearchOpen(false)}
+                  className="absolute -top-1.5 right-1 w-6 h-6 rounded-lg bg-slate-50 hover:bg-slate-100 flex items-center justify-center text-slate-400 hover:text-slate-600 active:scale-90 transition-all border border-slate-100 z-[106]"
+                  title="Thu gọn tìm kiếm"
+               >
+                  <ChevronDown className="w-4 h-4" />
+               </button>
+               
+               <div className="relative flex-grow pr-7">
+                  <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                   <input
                      type="text"
                      placeholder="Tìm kiếm thẻ..."
@@ -996,7 +1017,7 @@ const EditFlashcards = () => {
                      className="w-full h-9 bg-slate-50 border border-slate-200 focus:bg-white focus:border-indigo-500 rounded-xl pl-9 pr-4 text-xs font-bold text-slate-800 outline-none transition-all"
                   />
                </div>
-               <div className="relative shrink-0 min-w-[120px]">
+               <div className="relative shrink-0 min-w-[120px] pr-7">
                   <select
                      value={searchCol}
                      onChange={(e) => { setSearchCol(e.target.value); setPage(1); }}
@@ -1009,10 +1030,9 @@ const EditFlashcards = () => {
                         <option key={col} value={col}>{col.toUpperCase()}</option>
                      ))}
                   </select>
-                  <ChevronDown className="w-4 h-4 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                  <ChevronDown className="w-4 h-4 text-slate-400 absolute right-10 top-1/2 -translate-y-1/2 pointer-events-none" />
                </div>
             </div>
-            )}
           </motion.div>
         )}
       </AnimatePresence>

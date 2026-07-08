@@ -1,6 +1,6 @@
 {
   "index-legacy.html": {
-    "file": "assets/index-legacy-Bv0IGxlB.js",
+    "file": "assets/index-legacy-D2c3aNc3.js",
     "name": "index",
     "src": "index-legacy.html",
     "isEntry": true
@@ -12,12 +12,12 @@
     "isEntry": true
   },
   "index.html": {
-    "file": "assets/index-BeiNjIk5.js",
+    "file": "assets/index-C3MH0eE3.js",
     "name": "index",
     "src": "index.html",
     "isEntry": true,
     "css": [
-      "assets/index-sFX8Z0g3.css"
+      "assets/index-CbPRTFN6.css"
     ]
   }
 }
