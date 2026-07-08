@@ -831,24 +831,26 @@ const EditFlashcards = () => {
           {/* Full-width Numeric Pagination - White Theme */}
           <div className="fixed bottom-0 left-0 right-0 z-[110] bg-white/95 backdrop-blur-xl border-t border-slate-100 px-4 py-1.5 shadow-[0_-10px_30px_rgba(0,0,0,0.03)]">
              {/* Left Search Toggle Button (Mobile Only) */}
-             <button
-                onClick={() => {
-                   const nextVal = !isSearchOpen;
-                   setIsSearchOpen(nextVal);
-                   if (nextVal) {
-                      setIsQuickAddOpen(false);
-                   }
-                }}
-                className={cn(
-                   "absolute left-4 top-1/2 -translate-y-1/2 w-8 h-8 rounded-lg flex items-center justify-center shadow-sm active:scale-95 transition-all z-[120] md:hidden border",
-                   isSearchOpen 
-                      ? "bg-indigo-50 border-indigo-200 text-indigo-650" 
-                      : "bg-slate-50 border-slate-200 text-slate-500"
-                )}
-                title="Mở thanh tìm kiếm"
-             >
-                <Search className="w-4 h-4" />
-             </button>
+             {!isSearchOpen && (
+                 <button
+                    onClick={() => {
+                       const nextVal = !isSearchOpen;
+                       setIsSearchOpen(nextVal);
+                       if (nextVal) {
+                          setIsQuickAddOpen(false);
+                       }
+                    }}
+                    className={cn(
+                       "absolute left-4 top-1/2 -translate-y-1/2 w-8 h-8 rounded-lg flex items-center justify-center shadow-sm active:scale-95 transition-all z-[120] md:hidden border",
+                       isSearchOpen 
+                          ? "bg-indigo-50 border-indigo-200 text-indigo-650" 
+                          : "bg-slate-50 border-slate-200 text-slate-500"
+                    )}
+                    title="Mở thanh tìm kiếm"
+                 >
+                    <Search className="w-4 h-4" />
+                 </button>
+              )}
 
              <div className="max-w-[95%] xl:max-w-[98%] mx-auto flex items-center justify-center gap-1.5 overflow-x-auto scrollbar-hide py-0.5">
                 {(() => {
