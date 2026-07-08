@@ -39,6 +39,7 @@ const EditFlashcards = () => {
   const [total, setTotal] = useState(0)
   const [page, setPage] = useState(1)
   const [search, setSearch] = useState('')
+  const [searchCol, setSearchCol] = useState('all')
   const [error, setError] = useState<string | null>(null)
   
   const [editingFlashcard, setEditingFlashcard] = useState<any>(null)
@@ -170,6 +171,7 @@ const EditFlashcards = () => {
           page, 
           size: 50, 
           search,
+          search_col: searchCol,
           sort: sortBy,
           filter: filterType,
           filter_col: filterCol
@@ -195,7 +197,7 @@ const EditFlashcards = () => {
 
   useEffect(() => {
     fetchFlashcards()
-  }, [id, page, search, sortBy, filterType, filterCol])
+  }, [id, page, search, searchCol, sortBy, filterType, filterCol])
 
   const openEditModal = (q: any) => {
     let parsedOthers: any = {}
@@ -955,6 +957,35 @@ const EditFlashcards = () => {
                   <Plus className="w-3.5 h-3.5" /> THÊM THẺ
                </button>
             </form>
+
+            {/* Search row right below Add Card form */}
+            <div className="max-w-full sm:max-w-[95%] xl:max-w-[98%] mx-auto mt-3.5 pt-3 border-t border-slate-100 flex items-center gap-2.5">
+               <div className="relative flex-grow">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                  <input
+                     type="text"
+                     placeholder="Tìm kiếm thẻ..."
+                     value={search}
+                     onChange={(e) => { setSearch(e.target.value); setPage(1); }}
+                     className="w-full h-9 bg-slate-50 border border-slate-200 focus:bg-white focus:border-indigo-500 rounded-xl pl-9 pr-4 text-xs font-bold text-slate-800 outline-none transition-all"
+                  />
+               </div>
+               <div className="relative shrink-0 min-w-[120px]">
+                  <select
+                     value={searchCol}
+                     onChange={(e) => { setSearchCol(e.target.value); setPage(1); }}
+                     className="w-full h-9 pl-3 pr-8 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 outline-none focus:border-indigo-500 transition-all cursor-pointer appearance-none"
+                  >
+                     <option value="all">Tất cả cột</option>
+                     <option value="front">Mặt trước</option>
+                     <option value="back">Mặt sau</option>
+                     {availableColumns.filter(c => c !== 'front' && c !== 'back').map(col => (
+                        <option key={col} value={col}>{col.toUpperCase()}</option>
+                     ))}
+                  </select>
+                  <ChevronDown className="w-4 h-4 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+               </div>
+            </div>
           </motion.div>
         )}
       </AnimatePresence>

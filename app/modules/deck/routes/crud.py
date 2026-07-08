@@ -322,9 +322,27 @@ async def get_deck_cards(deck_id: int, request: Request, page: int = 1, size: in
     filter_type = request.query_params.get("filter", "all")
     filter_col = request.query_params.get("filter_col", "")
     
+    search_col = request.query_params.get("search_col", "all")
+    
     query = select(Flashcard).where(Flashcard.deck_id == deck_id)
     if search:
-        query = query.filter(Flashcard.content.ilike(f"%{search}%"))
+        if search_col == "front":
+            query = query.filter(Flashcard.content.ilike(f"%{search}%"))
+        elif search_col == "back":
+            query = query.filter(Flashcard.explanation.ilike(f"%{search}%"))
+        elif search_col == "all":
+            query = query.filter(or_(
+                Flashcard.content.ilike(f"%{search}%"),
+                Flashcard.explanation.ilike(f"%{search}%"),
+                cast(Flashcard.others, String).ilike(f"%{search}%")
+            ))
+        else:
+            if search_col in ("front_audio_content", "back_audio_content", "front_audio_url", "back_audio_url", "front_img", "back_img"):
+                col_attr = getattr(Flashcard, search_col, None)
+                if col_attr is not None:
+                    query = query.filter(col_attr.ilike(f"%{search}%"))
+            else:
+                query = query.filter(cast(Flashcard.others[search_col], String).ilike(f"%{search}%"))
         
     if filter_type == "duplicate":
         dup_sub = select(Flashcard.content).where(Flashcard.deck_id == deck_id).group_by(Flashcard.content).having(func.count(Flashcard.id) > 1).subquery()
