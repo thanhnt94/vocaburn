@@ -8,6 +8,7 @@ import {
   Search,
   ChevronRight,
   ChevronDown,
+  ChevronUp,
   Edit2,
   Trash2,
   Zap,
@@ -893,7 +894,7 @@ const EditFlashcards = () => {
                    className="absolute right-4 top-1/2 -translate-y-1/2 w-8 h-8 rounded-lg bg-gradient-to-r from-orange-500 to-rose-500 text-white flex items-center justify-center shadow-md active:scale-95 transition-all z-[120]"
                    title="Mở thanh nhập nhanh"
                 >
-                   <Plus className="w-4 h-4" />
+                   <ChevronUp className="w-4 h-4" />
                 </button>
              )}
           </div>
@@ -958,37 +959,8 @@ const EditFlashcards = () => {
                </button>
             </form>
 
-            {/* Search row right below Add Card form */}
-            <div className="max-w-full sm:max-w-[95%] xl:max-w-[98%] mx-auto mt-3.5 pt-3 border-t border-slate-100 flex items-center gap-2.5">
-               <div className="relative flex-grow">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                  <input
-                     type="text"
-                     placeholder="Tìm kiếm thẻ..."
-                     value={search}
-                     onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-                     className="w-full h-9 bg-slate-50 border border-slate-200 focus:bg-white focus:border-indigo-500 rounded-xl pl-9 pr-4 text-xs font-bold text-slate-800 outline-none transition-all"
-                  />
-               </div>
-               <div className="relative shrink-0 min-w-[120px]">
-                  <select
-                     value={searchCol}
-                     onChange={(e) => { setSearchCol(e.target.value); setPage(1); }}
-                     className="w-full h-9 pl-3 pr-8 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 outline-none focus:border-indigo-500 transition-all cursor-pointer appearance-none"
-                  >
-                     <option value="all">Tất cả cột</option>
-                     <option value="front">Mặt trước</option>
-                     <option value="back">Mặt sau</option>
-                     {availableColumns.filter(c => c !== 'front' && c !== 'back').map(col => (
-                        <option key={col} value={col}>{col.toUpperCase()}</option>
-                     ))}
-                  </select>
-                  <ChevronDown className="w-4 h-4 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
-               </div>
-            </div>
-
-            {/* Search row right below Add Card form */}
-            <div className="max-w-full sm:max-w-[95%] xl:max-w-[98%] mx-auto mt-3.5 pt-3 border-t border-slate-100 flex items-center gap-2.5">
+            {/* Search row right below Add Card form (Hidden on Desktop) */}
+            <div className="max-w-full sm:max-w-[95%] xl:max-w-[98%] mx-auto mt-3.5 pt-3 border-t border-slate-100 flex items-center gap-2.5 md:hidden">
                <div className="relative flex-grow">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                   <input
