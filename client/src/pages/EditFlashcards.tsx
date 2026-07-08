@@ -660,16 +660,6 @@ const EditFlashcards = () => {
           </div>
 
             <div className="flex items-center gap-2">
-             {!isQuickAddOpen && (
-               <button 
-                  onClick={() => setIsQuickAddOpen(true)}
-                  className="h-8 px-2.5 bg-gradient-to-r from-orange-500 to-rose-500 hover:from-orange-600 hover:to-rose-600 text-white text-[10px] font-black rounded-lg flex items-center gap-1 shadow-md active:scale-95 transition-all uppercase tracking-wider shrink-0 animate-in fade-in zoom-in duration-200"
-                  title="Nhập nhanh"
-               >
-                  <Zap className="w-3.5 h-3.5" />
-                  <span className="hidden xs:inline">Nhập nhanh</span>
-               </button>
-             )}
 
              <button 
                 onClick={() => { setIsConfigModalOpen(true); setConfigTab('display'); }}
@@ -896,6 +886,16 @@ const EditFlashcards = () => {
                    )
                 })()}
              </div>
+             
+             {!isQuickAddOpen && (
+                <button
+                   onClick={() => setIsQuickAddOpen(true)}
+                   className="absolute right-4 top-1/2 -translate-y-1/2 w-8 h-8 rounded-lg bg-gradient-to-r from-orange-500 to-rose-500 text-white flex items-center justify-center shadow-md active:scale-95 transition-all z-[120]"
+                   title="Mở thanh nhập nhanh"
+                >
+                   <Plus className="w-4 h-4" />
+                </button>
+             )}
           </div>
 
       <FlashcardEditModal
@@ -957,6 +957,35 @@ const EditFlashcards = () => {
                   <Plus className="w-3.5 h-3.5" /> THÊM THẺ
                </button>
             </form>
+
+            {/* Search row right below Add Card form */}
+            <div className="max-w-full sm:max-w-[95%] xl:max-w-[98%] mx-auto mt-3.5 pt-3 border-t border-slate-100 flex items-center gap-2.5">
+               <div className="relative flex-grow">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                  <input
+                     type="text"
+                     placeholder="Tìm kiếm thẻ..."
+                     value={search}
+                     onChange={(e) => { setSearch(e.target.value); setPage(1); }}
+                     className="w-full h-9 bg-slate-50 border border-slate-200 focus:bg-white focus:border-indigo-500 rounded-xl pl-9 pr-4 text-xs font-bold text-slate-800 outline-none transition-all"
+                  />
+               </div>
+               <div className="relative shrink-0 min-w-[120px]">
+                  <select
+                     value={searchCol}
+                     onChange={(e) => { setSearchCol(e.target.value); setPage(1); }}
+                     className="w-full h-9 pl-3 pr-8 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 outline-none focus:border-indigo-500 transition-all cursor-pointer appearance-none"
+                  >
+                     <option value="all">Tất cả cột</option>
+                     <option value="front">Mặt trước</option>
+                     <option value="back">Mặt sau</option>
+                     {availableColumns.filter(c => c !== 'front' && c !== 'back').map(col => (
+                        <option key={col} value={col}>{col.toUpperCase()}</option>
+                     ))}
+                  </select>
+                  <ChevronDown className="w-4 h-4 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+               </div>
+            </div>
 
             {/* Search row right below Add Card form */}
             <div className="max-w-full sm:max-w-[95%] xl:max-w-[98%] mx-auto mt-3.5 pt-3 border-t border-slate-100 flex items-center gap-2.5">
