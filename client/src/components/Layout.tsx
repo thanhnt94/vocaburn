@@ -66,7 +66,8 @@ export default function Layout() {
   const isDashboard = location.pathname === '/' || location.pathname === '/dashboard'
   const isPlaying = location.pathname.includes('/play') || 
                     location.pathname.includes('/practice/') || 
-                    location.pathname.includes('/room/')
+                    location.pathname.includes('/room/') ||
+                    location.pathname.includes('/flashcards')
   const showBottomNav = isLoggedIn && !isPlaying
 
   return (
