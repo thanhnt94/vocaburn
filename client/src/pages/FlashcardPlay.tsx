@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useMemo } from 'react'
 import confetti from 'canvas-confetti'
 import { useParams, useNavigate } from 'react-router-dom'
-import { ChevronLeft, ChevronRight, LayoutGrid, Timer, Flame, Trophy, Check, X, Sparkles, Lightbulb, StickyNote, Play, Target, CheckCircle2, XCircle, Clock, BookOpen, Hash, Copy, Edit3, Brain, FileText, HelpCircle, Sliders, ListOrdered, Shuffle, Eye, EyeOff, AlertCircle, TrendingUp, Award, Lock, Keyboard, Volume2, VolumeX, RefreshCw, Undo2, Settings, Star } from 'lucide-react'
+import { ChevronLeft, ChevronRight, ChevronDown, LayoutGrid, Timer, Flame, Trophy, Check, X, Sparkles, Lightbulb, StickyNote, Play, Target, CheckCircle2, XCircle, Clock, BookOpen, Hash, Copy, Edit3, Brain, FileText, HelpCircle, Sliders, ListOrdered, Shuffle, Eye, EyeOff, AlertCircle, TrendingUp, Award, Lock, Keyboard, Volume2, VolumeX, RefreshCw, Undo2, Settings, Star } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import axios from 'axios'
 import ReactMarkdown from 'react-markdown'
@@ -4678,40 +4678,23 @@ export default function FlashcardPlay() {
 
             {/* Bottom Reachable Dismiss Bar & Filters */}
             <div className="border-t border-slate-100 bg-white/95 backdrop-blur-md flex-shrink-0 pb-3 flex flex-col gap-2.5">
-              {/* Filter Tabs at the Bottom for reachability */}
+              {/* Filter Dropdown at the Bottom for reachability */}
               <div className="px-4 pt-2">
-                <div className="flex items-center gap-1 bg-slate-100/80 p-1 rounded-xl border border-slate-200/40 w-full overflow-x-auto no-scrollbar">
-                  {[
-                    { id: 'all', label: 'Tất cả', icon: LayoutGrid, activeColor: 'bg-indigo-50 border-indigo-200 text-indigo-650', iconColor: 'text-indigo-500' },
-                    { id: 'unseen', label: 'Chưa học', icon: BookOpen, activeColor: 'bg-slate-50 border-slate-200 text-slate-600', iconColor: 'text-slate-500' },
-                    { id: 'learning', label: 'Đang học', icon: Brain, activeColor: 'bg-amber-50 border-amber-200 text-amber-750', iconColor: 'text-amber-500' },
-                    { id: 'mastered', label: 'Đã thuộc', icon: Trophy, activeColor: 'bg-emerald-50 border-emerald-200 text-emerald-750', iconColor: 'text-emerald-500' },
-                    { id: 'hard', label: 'Thẻ khó', icon: Flame, activeColor: 'bg-rose-50 border-rose-200 text-rose-750', iconColor: 'text-rose-500' },
-                    { id: 'starred', label: 'Gắn sao', icon: Star, activeColor: 'bg-yellow-50 border-yellow-250 text-yellow-750', iconColor: 'text-yellow-500 fill-yellow-500' },
-                    { id: 'ignored', label: 'Bỏ qua', icon: EyeOff, activeColor: 'bg-slate-100 border-slate-250 text-slate-700', iconColor: 'text-slate-650' }
-                  ].map(tab => {
-                    const Icon = tab.icon
-                    const isActive = mobileMapFilterMode === tab.id
-                    return (
-                      <button
-                        key={tab.id}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setMobileMapFilterMode(tab.id as any);
-                        }}
-                        className={cn(
-                          "flex-1 md:flex-initial px-2 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all whitespace-nowrap flex items-center justify-center gap-1.5 border border-transparent min-w-[32px]",
-                          isActive
-                            ? tab.activeColor + " shadow-sm font-bold"
-                            : "text-slate-500 hover:bg-white/40 hover:text-slate-700"
-                        )}
-                        title={tab.label}
-                      >
-                        <Icon className={cn("w-3.5 h-3.5", isActive ? tab.iconColor : "text-slate-400")} />
-                        <span className="hidden md:inline">{tab.label}</span>
-                      </button>
-                    )
-                  })}
+                <div className="relative w-full">
+                  <select
+                     value={mobileMapFilterMode}
+                     onChange={(e) => setMobileMapFilterMode(e.target.value as any)}
+                     className="w-full h-10 pl-4 pr-10 bg-slate-100/80 border border-slate-200/50 rounded-xl text-xs font-black uppercase tracking-wider text-slate-700 outline-none appearance-none cursor-pointer focus:border-indigo-300 focus:bg-white transition-all shadow-sm"
+                  >
+                     <option value="all">📁 Tất cả</option>
+                     <option value="unseen">📖 Chưa học</option>
+                     <option value="learning">🧠 Đang học</option>
+                     <option value="mastered">🏆 Đã thuộc</option>
+                     <option value="hard">🔥 Thẻ khó</option>
+                     <option value="starred">⭐ Gắn sao</option>
+                     <option value="ignored">🚫 Bỏ qua</option>
+                  </select>
+                  <ChevronDown className="w-4 h-4 text-slate-400 absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
                 </div>
               </div>
             </div>
