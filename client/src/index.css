@@ -90,14 +90,20 @@ html, body, #root {
 
 /* Table Styling - PodLearn Style */
 .markdown-content table {
-  @apply w-full border-separate border-spacing-0 border border-slate-200 rounded-[1.5rem] overflow-hidden my-8 shadow-sm bg-white;
+  @apply w-full border-separate border-spacing-0 border border-slate-200 rounded-[1.5rem] my-8 shadow-sm bg-white;
   display: table;
+  table-layout: fixed;
+  max-width: 100%;
 }
 .markdown-content th {
   @apply bg-slate-50 text-slate-400 font-black uppercase tracking-[0.15em] px-5 py-4 text-left border-b border-slate-100 text-[10px];
+  word-wrap: break-word;
+  word-break: break-word;
 }
 .markdown-content td {
   @apply px-5 py-4 border-b border-slate-50 text-slate-700 font-bold align-middle text-xs;
+  word-wrap: break-word;
+  word-break: break-word;
 }
 .markdown-content tr:last-child td { border-bottom: none; }
 .markdown-content tr:hover td { @apply bg-indigo-50/30; }
@@ -118,8 +124,15 @@ html, body, #root {
 .markdown-content blockquote {
   @apply pl-6 border-l-4 border-indigo-500 bg-indigo-50/30 py-4 pr-4 rounded-r-2xl text-indigo-900 font-bold italic my-6;
 }
+.markdown-content pre {
+  max-width: 100%;
+  overflow-x: auto;
+  @apply bg-slate-50 border border-slate-200/50 rounded-2xl p-4 my-4;
+}
 .markdown-content code {
   @apply px-2 py-0.5 bg-indigo-50 text-indigo-600 rounded-lg font-bold text-[0.9em] border border-indigo-100;
+  word-wrap: break-word;
+  word-break: break-word;
 }
 
 /* Strong & Emphasis */
