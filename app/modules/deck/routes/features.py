@@ -1693,36 +1693,7 @@ async def _bulk_generate_deck_images_task(deck_id: int, source_field: str, targe
                   except Exception as batch_err:
                       logger.error(f"[BULK IMAGE SUBMIT EXCEPTION] Exception in chunk {i//chunk_size}: {batch_err}")
 
-from pydantic import BaseModel
-import httpx
 
-class FuriganaRequest(BaseModel):
-    text: str
-
-@router.post("/generate-furigana")
-async def generate_furigana(
-    body: FuriganaRequest,
-    db: AsyncSession = Depends(get_db)
-):
-    """Proxies Japanese Furigana generation request to CentralAuth AI service."""
-    from app.modules.sso_module.service import SSOService
-    try:
-        sso_config = await SSOService.get_config(db)
-        if not sso_config.is_enabled or not sso_config.server_url:
-            return JSONResponse(status_code=400, content={"error": "CentralAuth is not enabled or configured."})
-        
-        async with httpx.AsyncClient() as client:
-            response = await client.post(
-                f"{sso_config.server_url.rstrip('/')}/api/chat/generate-furigana",
-                json={"text": body.text},
-                timeout=30.0
-            )
-            if response.status_code == 200:
-                return response.json()
-            flag_modified(c, "others")
-            
-    await db.commit()
-    return {"status": "ok"}
 
 @router.get("/{deck_id}/image-status")
 async def get_deck_image_status(deck_id: int, target_field: str = "front_img", db: AsyncSession = Depends(get_db)):
@@ -1915,13 +1886,9 @@ async def generate_furigana(
             )
             if response.status_code == 200:
                 return response.json()
-            else:
-                return JSONResponse(
-                    status_code=response.status_code,
-                    content={"error": f"CentralAuth API error: {response.text}"}
-                )
+            return JSONResponse(status_code=response.status_code, content={"error": response.text})
     except Exception as e:
-        logger.error(f"[FURIGANA PROXY ERROR] Failed to proxy furigana generation: {e}")
+        logger.error(f"[FURIGANA ERROR] {e}")
         return JSONResponse(status_code=500, content={"error": str(e)})
 
 @router.get("/{deck_id}/furigana-status")
