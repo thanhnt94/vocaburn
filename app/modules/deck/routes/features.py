@@ -2028,7 +2028,7 @@ async def generate_all_deck_furigana(
     payload: dict = None,
     db: AsyncSession = Depends(get_db)
 ):
-    from app.core.db import AsyncSessionLocal
+    from app.core.db import SessionLocal
     
     source_field = "front"
     target_field = "front"
@@ -2044,6 +2044,6 @@ async def generate_all_deck_furigana(
         source_field,
         target_field,
         card_ids,
-        AsyncSessionLocal
+        SessionLocal
     )
     return {"status": "started", "message": "Batch Furigana generation task has been queued."}
