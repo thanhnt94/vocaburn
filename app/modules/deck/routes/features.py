@@ -1944,7 +1944,7 @@ async def get_deck_furigana_status(
         "cards": cards_list
     }
 
-async def _bulk_generate_deck_furigana_task(deck_id: int, source_field: str, target_field: str, card_ids: list, db_session_maker):
+async def _bulk_generate_deck_furigana_task(deck_id: int, source_field: str, target_field: str, card_ids: list, base_url: str, db_session_maker):
     from app.modules.deck.models import Flashcard
     from app.modules.sso_module.service import SSOService
     from app.core.config import settings
@@ -1963,7 +1963,7 @@ async def _bulk_generate_deck_furigana_task(deck_id: int, source_field: str, tar
             cards = res.scalars().all()
             
             tasks_to_submit = []
-            callback_base = settings.APP_BASE_URL if settings.APP_BASE_URL else f"http://localhost:8000"
+            callback_base = settings.APP_BASE_URL if settings.APP_BASE_URL else base_url
             callback_url = f"{callback_base.rstrip('/')}/api/v1/deck/furigana-callback"
             
             physical_map = {
@@ -2025,6 +2025,7 @@ async def _bulk_generate_deck_furigana_task(deck_id: int, source_field: str, tar
 async def generate_all_deck_furigana(
     deck_id: int,
     background_tasks: BackgroundTasks,
+    request: Request,
     payload: dict = None,
     db: AsyncSession = Depends(get_db)
 ):
@@ -2038,12 +2039,19 @@ async def generate_all_deck_furigana(
         target_field = payload.get("target_field", "front")
         card_ids = payload.get("card_ids", None)
         
+    scheme = request.headers.get("x-forwarded-proto", request.url.scheme)
+    netloc = request.url.netloc
+    if "localhost" not in netloc and "127.0.0.1" not in netloc:
+        scheme = "https"
+    base_url = f"{scheme}://{netloc}"
+    
     background_tasks.add_task(
         _bulk_generate_deck_furigana_task,
         deck_id,
         source_field,
         target_field,
         card_ids,
+        base_url,
         SessionLocal
     )
     return {"status": "started", "message": "Batch Furigana generation task has been queued."}
