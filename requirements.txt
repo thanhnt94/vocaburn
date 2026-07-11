@@ -42,3 +42,6 @@ pywebpush
 cryptography
 
 python-telegram-bot
+
+# Japanese NLP
+pykakasi

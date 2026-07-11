@@ -1932,16 +1932,12 @@ async def get_deck_furigana_status(
 
 async def _bulk_generate_deck_furigana_task(deck_id: int, source_field: str, target_field: str, card_ids: list, db_session_maker):
     from app.modules.deck.models import Flashcard
-    from app.modules.sso_module.service import SSOService
     from sqlalchemy.orm.attributes import flag_modified
+    import pykakasi
+    import re
     
     async with db_session_maker() as db:
         try:
-            sso_config = await SSOService.get_config(db)
-            if not sso_config.is_enabled or not sso_config.server_url:
-                logger.error("[BULK FURIGANA ERROR] CentralAuth is not enabled or configured.")
-                return
-                
             if card_ids:
                 res = await db.execute(select(Flashcard).filter(Flashcard.deck_id == deck_id, Flashcard.id.in_(card_ids)))
             else:
@@ -1953,40 +1949,44 @@ async def _bulk_generate_deck_furigana_task(deck_id: int, source_field: str, tar
                 "back": "explanation",
             }
             
-            async with httpx.AsyncClient() as client:
-                for c in cards:
-                    src_val = ""
-                    if source_field in physical_map:
-                        src_val = getattr(c, physical_map[source_field]) or ""
-                    else:
-                        src_val = c.others.get(source_field) if c.others else ""
-                        
-                    if not src_val or not src_val.strip():
-                        continue
-                        
-                    try:
-                        response = await client.post(
-                            f"{sso_config.server_url.rstrip('/')}/api/chat/generate-furigana",
-                            json={"text": src_val},
-                            timeout=15.0
-                        )
-                        if response.status_code == 200:
-                            furi_text = response.json().get("text", "")
-                            if furi_text:
-                                if target_field in physical_map:
-                                    setattr(c, physical_map[target_field], furi_text)
-                                else:
-                                    if not c.others:
-                                        c.others = {}
-                                    c.others[target_field] = furi_text
-                                    flag_modified(c, "others")
+            kks = pykakasi.kakasi()
+            kanji_pattern = re.compile(r'[\u4e00-\u9fff\u3400-\u4dbf]')
+            
+            for c in cards:
+                src_val = ""
+                if source_field in physical_map:
+                    src_val = getattr(c, physical_map[source_field]) or ""
+                else:
+                    src_val = c.others.get(source_field) if c.others else ""
+                    
+                if not src_val or not src_val.strip():
+                    continue
+                    
+                try:
+                    convert_result = kks.convert(src_val)
+                    parts = []
+                    for item in convert_result:
+                        orig = item['orig']
+                        hira = item['hira']
+                        if kanji_pattern.search(orig):
+                            parts.append(f"{orig}[{hira}]")
                         else:
-                            logger.error(f"[BULK FURIGANA ERROR] CentralAuth returned status {response.status_code} for card {c.id}")
-                    except Exception as card_err:
-                        logger.error(f"[BULK FURIGANA CARD ERROR] Card {c.id} failed: {card_err}")
+                            parts.append(orig)
+                            
+                    furi_text = "".join(parts)
+                    if furi_text:
+                        if target_field in physical_map:
+                            setattr(c, physical_map[target_field], furi_text)
+                        else:
+                            if not c.others:
+                                c.others = {}
+                            c.others[target_field] = furi_text
+                            flag_modified(c, "others")
+                except Exception as card_err:
+                    logger.error(f"[BULK FURIGANA CARD ERROR] Card {c.id} failed: {card_err}")
                         
             await db.commit()
-            logger.info(f"[BULK FURIGANA SUCCESS] Completed batch furigana generation for deck {deck_id}")
+            logger.info(f"[BULK FURIGANA SUCCESS] Completed local batch furigana generation for deck {deck_id}")
         except Exception as e:
             logger.error(f"[BULK FURIGANA SYSTEM ERROR] System error in batch furigana: {e}")
 
