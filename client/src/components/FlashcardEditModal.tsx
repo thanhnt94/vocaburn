@@ -283,6 +283,26 @@ export const FlashcardEditModal: React.FC<FlashcardEditModalProps> = ({
     }
   }
 
+  const [isFuriganaRunning, setIsFuriganaRunning] = useState<Record<string, boolean>>({})
+
+  const handleApplyFurigana = async (col: string) => {
+    const val = getFieldValue(col)
+    if (!val || !val.trim()) return
+    
+    setIsFuriganaRunning(prev => ({ ...prev, [col]: true }))
+    try {
+      const response = await axios.post('/api/v1/deck/generate-furigana', { text: val })
+      if (response.data && response.data.text) {
+        setFieldValue(col, response.data.text)
+      }
+    } catch (e) {
+      console.error(e)
+      alert("Lỗi khi rắc Furigana cho ô này.")
+    } finally {
+      setIsFuriganaRunning(prev => ({ ...prev, [col]: false }))
+    }
+  }
+
   useEffect(() => {
     if (flashcard) {
       const unresolvedCard = unresolveDict(flashcard);
@@ -544,7 +564,19 @@ export const FlashcardEditModal: React.FC<FlashcardEditModalProps> = ({
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-1.5">
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Mặt trước (Từ / Câu hỏi)</label>
+                    <div className="flex items-center justify-between">
+                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Mặt trước (Từ / Câu hỏi)</label>
+                      {getFieldValue('front') && (
+                        <button
+                          type="button"
+                          onClick={() => handleApplyFurigana('front')}
+                          disabled={isFuriganaRunning['front']}
+                          className="text-[9px] font-black uppercase tracking-wider text-indigo-600 bg-indigo-50 hover:bg-indigo-100 px-2 py-0.5 rounded-md transition-all active:scale-95 disabled:opacity-50"
+                        >
+                          {isFuriganaRunning['front'] ? 'Rắc...' : 'Rắc Furigana'}
+                        </button>
+                      )}
+                    </div>
                     <textarea 
                       value={getFieldValue('front')}
                       onChange={(e) => setFieldValue('front', e.target.value)}
@@ -554,7 +586,19 @@ export const FlashcardEditModal: React.FC<FlashcardEditModalProps> = ({
                   </div>
 
                   <div className="space-y-1.5">
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Mặt sau (Định nghĩa / Giải nghĩa)</label>
+                    <div className="flex items-center justify-between">
+                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Mặt sau (Định nghĩa / Giải nghĩa)</label>
+                      {getFieldValue('back') && (
+                        <button
+                          type="button"
+                          onClick={() => handleApplyFurigana('back')}
+                          disabled={isFuriganaRunning['back']}
+                          className="text-[9px] font-black uppercase tracking-wider text-indigo-600 bg-indigo-50 hover:bg-indigo-100 px-2 py-0.5 rounded-md transition-all active:scale-95 disabled:opacity-50"
+                        >
+                          {isFuriganaRunning['back'] ? 'Rắc...' : 'Rắc Furigana'}
+                        </button>
+                      )}
+                    </div>
                     <textarea 
                       value={getFieldValue('back')}
                       onChange={(e) => setFieldValue('back', e.target.value)}
@@ -568,7 +612,19 @@ export const FlashcardEditModal: React.FC<FlashcardEditModalProps> = ({
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t border-slate-100">
                     {generalCols.map(col => (
                       <div key={col} className="space-y-1.5">
-                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{col.replace(/_/g, ' ')}</label>
+                        <div className="flex items-center justify-between">
+                          <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{col.replace(/_/g, ' ')}</label>
+                          {getFieldValue(col) && (
+                            <button
+                              type="button"
+                              onClick={() => handleApplyFurigana(col)}
+                              disabled={isFuriganaRunning[col]}
+                              className="text-[9px] font-black uppercase tracking-wider text-indigo-600 bg-indigo-50 hover:bg-indigo-100 px-2 py-0.5 rounded-md transition-all active:scale-95 disabled:opacity-50"
+                            >
+                              {isFuriganaRunning[col] ? 'Rắc...' : 'Rắc Furigana'}
+                            </button>
+                          )}
+                        </div>
                         <textarea
                           rows={2}
                           value={getFieldValue(col)}
