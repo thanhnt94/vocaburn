@@ -231,12 +231,12 @@ export default function PracticePlay() {
     window.speechSynthesis.cancel();
 
     let audioUrl = face === 'front'
-      ? (currentQuestion.audio || currentQuestion.others?.front_audio_url)
-      : currentQuestion.others?.back_audio_url;
+      ? (currentQuestion.audio || currentQuestion.front_audio_url || currentQuestion.others?.front_audio_url)
+      : (currentQuestion.back_audio_url || currentQuestion.others?.back_audio_url);
 
     const script = face === 'front'
-      ? currentQuestion.others?.front_audio_content
-      : currentQuestion.others?.back_audio_content;
+      ? (currentQuestion.front_audio_content || currentQuestion.others?.front_audio_content)
+      : (currentQuestion.back_audio_content || currentQuestion.others?.back_audio_content);
 
     // Lazily generate audio if it is not yet created on backend, but ONLY if script is present
     if (!audioUrl && currentQuestion.id && script && script.trim()) {
@@ -4703,10 +4703,10 @@ export default function PracticePlay() {
                 }
 
                 const hasAudioOrScript = mainTab === 'practice'
-                  ? (!!currentQuestion.audio || !!currentQuestion.others?.front_audio_url || !!currentQuestion.others?.front_audio_content?.trim())
+                  ? (!!currentQuestion.audio || !!currentQuestion.front_audio_url || !!currentQuestion.others?.front_audio_url || !!currentQuestion.front_audio_content?.trim() || !!currentQuestion.others?.front_audio_content?.trim())
                   : (!isFlipped
-                    ? (!!currentQuestion.audio || !!currentQuestion.others?.front_audio_url || !!currentQuestion.others?.front_audio_content?.trim())
-                    : (!!currentQuestion.others?.back_audio_url || !!currentQuestion.others?.back_audio_content?.trim()));
+                    ? (!!currentQuestion.audio || !!currentQuestion.front_audio_url || !!currentQuestion.others?.front_audio_url || !!currentQuestion.front_audio_content?.trim() || !!currentQuestion.others?.front_audio_content?.trim())
+                    : (!!currentQuestion.back_audio_url || !!currentQuestion.others?.back_audio_url || !!currentQuestion.back_audio_content?.trim() || !!currentQuestion.others?.back_audio_content?.trim()));
 
                 if (!hasAudioOrScript) return null;
 

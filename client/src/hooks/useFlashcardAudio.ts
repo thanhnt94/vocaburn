@@ -41,12 +41,12 @@ export function useFlashcardAudio(currentQuestion: any) {
     stopAudio();
 
     let audioUrl = face === 'front' 
-      ? (currentQuestion.audio || currentQuestion.others?.front_audio_url)
-      : currentQuestion.others?.back_audio_url;
+      ? (currentQuestion.audio || currentQuestion.front_audio_url || currentQuestion.others?.front_audio_url)
+      : (currentQuestion.back_audio_url || currentQuestion.others?.back_audio_url);
 
     const script = face === 'front'
-      ? currentQuestion.others?.front_audio_content
-      : currentQuestion.others?.back_audio_content;
+      ? (currentQuestion.front_audio_content || currentQuestion.others?.front_audio_content)
+      : (currentQuestion.back_audio_content || currentQuestion.others?.back_audio_content);
 
     // Lazily generate audio if it is not yet created on backend, but ONLY if script is present
     if (!audioUrl && currentQuestion.id && script && script.trim()) {

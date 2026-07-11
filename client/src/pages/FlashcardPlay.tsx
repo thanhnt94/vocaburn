@@ -4405,10 +4405,10 @@ export default function FlashcardPlay() {
                 if (!currentQuestion) return null;
                 
                 const hasAudioOrScript = mainTab === 'practice'
-                  ? (!!currentQuestion.audio || !!currentQuestion.others?.front_audio_url || !!currentQuestion.others?.front_audio_content?.trim())
+                  ? (!!currentQuestion.audio || !!currentQuestion.front_audio_url || !!currentQuestion.others?.front_audio_url || !!currentQuestion.front_audio_content?.trim() || !!currentQuestion.others?.front_audio_content?.trim())
                   : (!isFlipped 
-                    ? (!!currentQuestion.audio || !!currentQuestion.others?.front_audio_url || !!currentQuestion.others?.front_audio_content?.trim())
-                    : (!!currentQuestion.others?.back_audio_url || !!currentQuestion.others?.back_audio_content?.trim()));
+                    ? (!!currentQuestion.audio || !!currentQuestion.front_audio_url || !!currentQuestion.others?.front_audio_url || !!currentQuestion.front_audio_content?.trim() || !!currentQuestion.others?.front_audio_content?.trim())
+                    : (!!currentQuestion.back_audio_url || !!currentQuestion.others?.back_audio_url || !!currentQuestion.back_audio_content?.trim() || !!currentQuestion.others?.back_audio_content?.trim()));
                   
                 if (!hasAudioOrScript) return null;
                 
