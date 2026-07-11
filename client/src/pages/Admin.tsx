@@ -121,7 +121,7 @@ export default function Admin() {
   const { tab } = useParams();
   const { user, isLoggedIn, isLoading } = useAppStore();
 
-  const [activeTab, setActiveTab] = useState<'sso' | 'ai' | 'telegram' | 'users' | 'maintenance' | 'tts' | 'ai-batch' | 'image-batch'>('sso');
+  const [activeTab, setActiveTab] = useState<'sso' | 'ai' | 'telegram' | 'users' | 'maintenance' | 'tts' | 'ai-batch' | 'image-batch' | 'furigana-batch'>('sso');
   const [globalLoading, setGlobalLoading] = useState(false);
   const [successMsg, setSuccessMsg] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
@@ -143,10 +143,10 @@ export default function Admin() {
 
   // Sync activeTab with URL sub-route and handle SSO-dependent tabs visibility
   useEffect(() => {
-    if (tab && ['sso', 'ai', 'telegram', 'users', 'maintenance', 'tts', 'ai-batch', 'image-batch'].includes(tab)) {
+    if (tab && ['sso', 'ai', 'telegram', 'users', 'maintenance', 'tts', 'ai-batch', 'image-batch', 'furigana-batch'].includes(tab)) {
       if (ssoEnabled && (tab === 'ai' || tab === 'telegram')) {
         navigate('/admin/sso', { replace: true });
-      } else if (!ssoEnabled && ['tts', 'ai-batch', 'image-batch'].includes(tab)) {
+      } else if (!ssoEnabled && ['tts', 'ai-batch', 'image-batch', 'furigana-batch'].includes(tab)) {
         navigate('/admin/sso', { replace: true });
       } else {
         setActiveTab(tab as any);
@@ -181,6 +181,14 @@ export default function Admin() {
   const [selectedAICardIds, setSelectedAICardIds] = useState<number[]>([]);
   const [selectedImageCardIds, setSelectedImageCardIds] = useState<number[]>([]);
   
+  // Tab 8: Furigana Config state
+  const [isFetchingFuriganaStatus, setIsFetchingFuriganaStatus] = useState(false);
+  const [furiganaStatus, setFuriganaStatus] = useState<any | null>(null);
+  const [isStartingFurigana, setIsStartingFurigana] = useState(false);
+  const [selectedFuriganaSourceField, setSelectedFuriganaSourceField] = useState<string>('front');
+  const [selectedFuriganaTargetField, setSelectedFuriganaTargetField] = useState<string>('front');
+  const [selectedFuriganaCardIds, setSelectedFuriganaCardIds] = useState<number[]>([]);
+
   const [selectedDeckCustomCols, setSelectedDeckCustomCols] = useState<string[]>([]);
 
   useEffect(() => {
@@ -308,6 +316,53 @@ export default function Admin() {
       console.error("Failed to check deck image status", e);
     } finally {
       setIsFetchingImageBatchStatus(false);
+    }
+  };
+
+  const handleCheckFuriganaBatchStatus = async (deckIdStr: string, sourceFieldStr?: string, targetFieldStr?: string) => {
+    setSelectedDeckId(deckIdStr);
+    if (!deckIdStr) {
+      setFuriganaStatus(null);
+      setSelectedFuriganaCardIds([]);
+      return;
+    }
+    const source = sourceFieldStr || selectedFuriganaSourceField;
+    const target = targetFieldStr || selectedFuriganaTargetField;
+    setIsFetchingFuriganaStatus(true);
+    setFuriganaStatus(null);
+    setSelectedFuriganaCardIds([]);
+    try {
+      const res = await axios.get(`/api/v1/deck/${deckIdStr}/furigana-status?source_field=${source}&target_field=${target}`);
+      setFuriganaStatus(res.data);
+      if (res.data?.cards) {
+        setSelectedFuriganaCardIds(res.data.cards.filter((c: any) => c.missing).map((c: any) => c.id));
+      }
+    } catch (e) {
+      console.error("Failed to check deck furigana status", e);
+    } finally {
+      setIsFetchingFuriganaStatus(false);
+    }
+  };
+
+  const handleStartFuriganaBatchGeneration = async () => {
+    if (!selectedDeckId) return;
+    setIsStartingFurigana(true);
+    setSuccessMsg('');
+    setErrorMsg('');
+    try {
+      await axios.post(`/api/v1/deck/${selectedDeckId}/generate-all-furigana`, {
+        source_field: selectedFuriganaSourceField,
+        target_field: selectedFuriganaTargetField,
+        card_ids: selectedFuriganaCardIds
+      });
+      setSuccessMsg(`Đã bắt đầu xử lý rắc Furigana hàng loạt cho trường '${selectedFuriganaTargetField}'!`);
+      setTimeout(() => {
+        handleCheckFuriganaBatchStatus(selectedDeckId, selectedFuriganaSourceField, selectedFuriganaTargetField);
+      }, 1500);
+    } catch (e) {
+      setErrorMsg("Không thể khởi động tiến trình rắc Furigana hàng loạt.");
+    } finally {
+      setIsStartingFurigana(false);
     }
   };
 
@@ -755,6 +810,17 @@ export default function Admin() {
                   className={`p-4 rounded-xl font-bold flex items-center gap-3 transition-all text-left ${activeTab === 'image-batch' ? 'bg-[#6366f1] text-white shadow-lg shadow-indigo-500/20' : 'bg-white/[0.02] hover:bg-white/[0.05] border border-white/5 text-gray-400'}`}
                 >
                   🖼️ Batch Image Sync
+                </button>
+                <button
+                  onClick={() => {
+                    navigate('/admin/furigana-batch');
+                    if (selectedDeckId) {
+                      handleCheckFuriganaBatchStatus(selectedDeckId, selectedFuriganaSourceField, selectedFuriganaTargetField);
+                    }
+                  }}
+                  className={`p-4 rounded-xl font-bold flex items-center gap-3 transition-all text-left ${activeTab === 'furigana-batch' ? 'bg-[#6366f1] text-white shadow-lg shadow-indigo-500/20' : 'bg-white/[0.02] hover:bg-white/[0.05] border border-white/5 text-gray-400'}`}
+                >
+                  🎌 Batch Furigana Sync
                 </button>
               </>
             )}
@@ -1506,6 +1572,139 @@ export default function Admin() {
                       className="px-6 py-3.5 rounded-xl font-bold bg-indigo-500 hover:bg-indigo-600 shadow-lg shadow-indigo-500/20 transition-all text-sm flex items-center gap-2 active:scale-95 disabled:opacity-40 disabled:pointer-events-none"
                     >
                       {isStartingImageBatch ? 'Starting Task Queue...' : 'Start Image Generation'}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Tab 8: Furigana Batch Sync */}
+            {activeTab === 'furigana-batch' && (
+              <div className="flex flex-col gap-6">
+                <div>
+                  <h3 className="text-2xl font-bold mb-2">🎌 Batch Furigana Generation</h3>
+                  <p className="text-gray-400 text-sm">Tự động rắc Furigana (Kanji[Furigana]) cho toàn bộ chữ tiếng Nhật trong bộ thẻ mà không tốn phí.</p>
+                </div>
+
+                <div className="space-y-5 bg-[#0d1321]/50 border border-white/5 p-6 rounded-2xl">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    {/* Select Deck */}
+                    <div className="flex flex-col">
+                      <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Chọn bộ thẻ</label>
+                      <select
+                        value={selectedDeckId}
+                        onChange={(e) => {
+                          const newDeckId = e.target.value;
+                          setSelectedDeckId(newDeckId);
+                          if (newDeckId) {
+                            handleCheckFuriganaBatchStatus(newDeckId, selectedFuriganaSourceField, selectedFuriganaTargetField);
+                          } else {
+                            setFuriganaStatus(null);
+                          }
+                        }}
+                        className="w-full bg-[#0d1321] border border-white/10 rounded-xl px-4 py-3.5 text-white font-bold focus:outline-none focus:border-indigo-500 transition-all text-sm cursor-pointer"
+                      >
+                        <option value="" style={{ color: '#94a3b8', backgroundColor: '#0d1321' }}>-- Chọn bộ thẻ --</option>
+                        {adminDecks.map((deck) => (
+                          <option key={deck.id} value={deck.id.toString()} style={{ color: '#ffffff', backgroundColor: '#0d1321' }} className="font-semibold">
+                            {deck.title} (ID: {deck.id})
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    {/* Select Source Field */}
+                    <div className="flex flex-col">
+                      <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Cột gốc (Source)</label>
+                      <select
+                        value={selectedFuriganaSourceField}
+                        onChange={(e) => {
+                          const newField = e.target.value;
+                          setSelectedFuriganaSourceField(newField);
+                          if (selectedDeckId) {
+                            handleCheckFuriganaBatchStatus(selectedDeckId, newField, selectedFuriganaTargetField);
+                          }
+                        }}
+                        className="w-full bg-[#0d1321] border border-white/10 rounded-xl px-4 py-3.5 text-white font-bold focus:outline-none focus:border-indigo-500 transition-all text-sm cursor-pointer"
+                      >
+                        <option value="front" style={{ color: '#ffffff', backgroundColor: '#0d1321' }} className="font-semibold">Mặt Trước (Word)</option>
+                        <option value="back" style={{ color: '#ffffff', backgroundColor: '#0d1321' }} className="font-semibold">Mặt Sau (Definition)</option>
+                        {selectedDeckCustomCols.map((c: string) => (
+                          <option key={c} value={c} style={{ color: '#ffffff', backgroundColor: '#0d1321' }} className="font-semibold">{c}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    {/* Select Target Field */}
+                    <div className="flex flex-col">
+                      <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Cột lưu kết quả (Target)</label>
+                      <select
+                        value={selectedFuriganaTargetField}
+                        onChange={(e) => {
+                          const newField = e.target.value;
+                          setSelectedFuriganaTargetField(newField);
+                          if (selectedDeckId) {
+                            handleCheckFuriganaBatchStatus(selectedDeckId, selectedFuriganaSourceField, newField);
+                          }
+                        }}
+                        className="w-full bg-[#0d1321] border border-white/10 rounded-xl px-4 py-3.5 text-white font-bold focus:outline-none focus:border-indigo-500 transition-all text-sm cursor-pointer"
+                      >
+                        <option value="front" style={{ color: '#ffffff', backgroundColor: '#0d1321' }} className="font-semibold">Mặt Trước (Word)</option>
+                        <option value="back" style={{ color: '#ffffff', backgroundColor: '#0d1321' }} className="font-semibold">Mặt Sau (Definition)</option>
+                        {selectedDeckCustomCols.map((c: string) => (
+                          <option key={c} value={c} style={{ color: '#ffffff', backgroundColor: '#0d1321' }} className="font-semibold">{c}</option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+
+                  {/* Status Panel */}
+                  <div className="bg-white/[0.01] border border-white/5 p-5 rounded-xl">
+                    <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-4">Trạng thái rắc Furigana bộ thẻ</h4>
+                    
+                    {isFetchingFuriganaStatus ? (
+                      <div className="py-4 flex flex-col items-center justify-center gap-2">
+                        <div className="w-6 h-6 border-2 border-indigo-600/30 border-t-indigo-600 rounded-full animate-spin" />
+                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Scanning cards...</span>
+                      </div>
+                    ) : furiganaStatus ? (
+                      <>
+                        <div className="grid grid-cols-2 gap-4">
+                          <div className="bg-[#0d1321] border border-white/5 p-4 rounded-xl">
+                            <p className="text-[9px] font-black text-gray-500 uppercase">Tổng số thẻ</p>
+                            <p className="text-xl font-black text-white mt-1">{furiganaStatus.total_cards}</p>
+                          </div>
+                          <div className="bg-[#0d1321] border border-white/5 p-4 rounded-xl">
+                            <p className="text-[9px] font-black text-amber-500 uppercase">Thẻ chưa có Furigana ở cột '{selectedFuriganaTargetField}'</p>
+                            <p className="text-xl font-black text-amber-500 mt-1">{furiganaStatus.missing_furigana_cards}</p>
+                          </div>
+                        </div>
+                        {furiganaStatus && furiganaStatus.cards && furiganaStatus.cards.length > 0 && (
+                          <CardListSelector 
+                            cards={furiganaStatus.cards}
+                            selectedIds={selectedFuriganaCardIds}
+                            onChange={setSelectedFuriganaCardIds}
+                          />
+                        )}
+                        {furiganaStatus && (
+                          <div className="flex items-center gap-3 bg-amber-500/10 border border-amber-500/20 p-4 rounded-xl text-xs text-amber-300 font-bold leading-relaxed mt-4">
+                            💡 Có {furiganaStatus.missing_furigana_cards} thẻ thiếu Furigana. Bạn đã chọn {selectedFuriganaCardIds.length} thẻ để xử lý.
+                          </div>
+                        )}
+                      </>
+                    ) : (
+                      <p className="text-xs text-gray-500">Chọn bộ thẻ ở trên để quét tình trạng Furigana.</p>
+                    )}
+                  </div>
+
+                  <div className="flex justify-end pt-4 border-t border-white/5">
+                    <button
+                      type="button"
+                      onClick={handleStartFuriganaBatchGeneration}
+                      disabled={isFetchingFuriganaStatus || !selectedDeckId || !furiganaStatus || selectedFuriganaCardIds.length === 0 || isStartingFurigana}
+                      className="px-6 py-3.5 rounded-xl font-bold bg-indigo-500 hover:bg-indigo-600 shadow-lg shadow-indigo-500/20 transition-all text-sm flex items-center gap-2 active:scale-95 disabled:opacity-40 disabled:pointer-events-none"
+                    >
+                      {isStartingFurigana ? 'Processing...' : 'Bắt đầu rắc Furigana'}
                     </button>
                   </div>
                 </div>

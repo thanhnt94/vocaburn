@@ -1672,6 +1672,202 @@ async def generate_furigana(
             )
             if response.status_code == 200:
                 return response.json()
+            flag_modified(c, "others")
+            
+    await db.commit()
+    return {"status": "ok"}
+
+@router.get("/{deck_id}/image-status")
+async def get_deck_image_status(deck_id: int, target_field: str = "front_img", db: AsyncSession = Depends(get_db)):
+    from app.modules.deck.models import Flashcard
+    res = await db.execute(select(Flashcard).filter(Flashcard.deck_id == deck_id))
+    cards = res.scalars().all()
+    
+    total = len(cards)
+    missing = 0
+    cards_list = []
+    
+    physical_map = {
+        "front_img": "front_img",
+        "back_img": "back_img"
+    }
+    
+    for c in cards:
+        has_val = False
+        if target_field in physical_map:
+            val = getattr(c, physical_map[target_field])
+            has_val = bool(val and val.strip())
+        else:
+            has_val = bool(c.others and c.others.get(target_field))
+        if not has_val:
+            missing += 1
+            
+        cards_list.append({
+            "id": c.id,
+            "content": c.content,
+            "missing": not has_val
+        })
+            
+    return {
+        "total_cards": total,
+        "missing_image_cards": missing,
+        "cards": cards_list
+    }
+
+@router.post("/{deck_id}/generate-all-images")
+async def generate_all_deck_images(
+    deck_id: int,
+    background_tasks: BackgroundTasks,
+    request: Request,
+    payload: dict = None,
+    db: AsyncSession = Depends(get_db)
+):
+    from app.modules.deck.models import FlashcardDeck
+    res = await db.execute(select(FlashcardDeck).filter(FlashcardDeck.id == deck_id))
+    deck = res.scalar_one_or_none()
+    if not deck:
+        return JSONResponse(status_code=404, content={"error": "Deck not found"})
+        
+    source_field = "front"
+    target_field = "front_img"
+    force = False
+    card_ids = None
+    if payload:
+        source_field = payload.get("source_field", "front")
+        target_field = payload.get("target_field", "front_img")
+        force = payload.get("force", False)
+        card_ids = payload.get("card_ids", None)
+        
+    scheme = request.headers.get("x-forwarded-proto", request.url.scheme)
+    netloc = request.url.netloc
+    if "localhost" not in netloc and "127.0.0.1" not in netloc:
+        scheme = "https"
+    base_url = f"{scheme}://{netloc}"
+    
+    background_tasks.add_task(_bulk_generate_deck_images_task, deck_id, source_field, target_field, force, base_url, card_ids)
+    return {"status": "ok", "message": f"Bulk image generation queue submission started."}
+
+async def _bulk_generate_deck_images_task(deck_id: int, source_field: str, target_field: str, force: bool, base_url: str, card_ids: list = None):
+    from app.core.db import SessionLocal
+    async with SessionLocal() as db:
+        from app.modules.deck.models import Flashcard
+        res = await db.execute(select(Flashcard).filter(Flashcard.deck_id == deck_id))
+        cards = res.scalars().all()
+        if card_ids is not None:
+            cards = [c for c in cards if c.id in card_ids]
+        
+        # Get CentralAuth configuration
+        from app.modules.sso_module.service import SSOService
+        sso_config = await SSOService.get_config(db)
+        if not sso_config.is_enabled or not sso_config.server_url:
+            logger.error("[BULK IMAGE ERROR] CentralAuth is not enabled or server URL is not configured.")
+            return
+
+        import httpx
+        from app.core.config import settings
+        
+        tasks_to_submit = []
+        callback_base = settings.APP_BASE_URL if settings.APP_BASE_URL else base_url
+        callback_url = f"{callback_base.rstrip('/')}/api/v1/deck/image-callback"
+        
+        source_map = {
+            "front": "content",
+            "back": "explanation",
+        }
+        
+        target_map = {
+            "front_img": "front_img",
+            "back_img": "back_img"
+        }
+        
+        for c in cards:
+            await db.refresh(c)
+            
+            # Check if already has image
+            has_val = False
+            if target_field in target_map:
+                val = getattr(c, target_map[target_field])
+                has_val = bool(val and val.strip())
+            else:
+                has_val = bool(c.others and c.others.get(target_field))
+                
+            if force or not has_val:
+                # Get keyword text from source field
+                keyword = ""
+                if source_field in source_map:
+                    keyword = getattr(c, source_map[source_field])
+                else:
+                    keyword = c.others.get(source_field) if c.others else ""
+                    
+                if not keyword or not keyword.strip():
+                    continue
+                    
+                tasks_to_submit.append({
+                    "satellite_source": "vocaburn",
+                    "prompt": keyword.strip(),
+                    "callback_url": callback_url,
+                    "extra_data": json.dumps({
+                        "task_type": "image",
+                        "card_id": c.id,
+                        "source_field": source_field,
+                        "target_field": target_field,
+                        "deck_id": deck_id
+                    }),
+                    "max_retries": 3
+                })
+
+        if not tasks_to_submit:
+            logger.info(f"[BULK IMAGE] All cards in deck {deck_id} are already fully synchronized for field '{target_field}'.")
+            return
+
+        logger.info(f"[BULK IMAGE] Submitting {len(tasks_to_submit)} queue tasks to CentralAuth...")
+        queue_token = getattr(settings, "QUEUE_API_SECRET", "super-secret-token-123")
+        chunk_size = 100
+
+        async with httpx.AsyncClient() as client:
+            for i in range(0, len(tasks_to_submit), chunk_size):
+                  chunk = tasks_to_submit[i:i + chunk_size]
+                  try:
+                      response = await client.post(
+                          f"{sso_config.server_url.rstrip('/')}/api/queue/submit/batch",
+                          json={"tasks": chunk},
+                          headers={"X-Queue-Token": queue_token},
+                          timeout=30.0
+                      )
+                      if response.status_code != 200:
+                          logger.error(f"[BULK IMAGE SUBMIT ERROR] Chunk {i//chunk_size} failed: {response.text}")
+                      else:
+                          logger.info(f"[BULK IMAGE SUBMIT] Successfully submitted chunk {i//chunk_size} ({len(chunk)} tasks)")
+                  except Exception as batch_err:
+                      logger.error(f"[BULK IMAGE SUBMIT EXCEPTION] Exception in chunk {i//chunk_size}: {batch_err}")
+
+from pydantic import BaseModel
+import httpx
+import re
+
+class FuriganaRequest(BaseModel):
+    text: str
+
+@router.post("/generate-furigana")
+async def generate_furigana(
+    body: FuriganaRequest,
+    db: AsyncSession = Depends(get_db)
+):
+    """Proxies Japanese Furigana generation request to CentralAuth AI service."""
+    from app.modules.sso_module.service import SSOService
+    try:
+        sso_config = await SSOService.get_config(db)
+        if not sso_config.is_enabled or not sso_config.server_url:
+            return JSONResponse(status_code=400, content={"error": "CentralAuth is not enabled or configured."})
+        
+        async with httpx.AsyncClient() as client:
+            response = await client.post(
+                f"{sso_config.server_url.rstrip('/')}/api/chat/generate-furigana",
+                json={"text": body.text},
+                timeout=30.0
+            )
+            if response.status_code == 200:
+                return response.json()
             else:
                 return JSONResponse(
                     status_code=response.status_code,
@@ -1680,3 +1876,143 @@ async def generate_furigana(
     except Exception as e:
         logger.error(f"[FURIGANA PROXY ERROR] Failed to proxy furigana generation: {e}")
         return JSONResponse(status_code=500, content={"error": str(e)})
+
+@router.get("/{deck_id}/furigana-status")
+async def get_deck_furigana_status(
+    deck_id: int,
+    source_field: str = "front",
+    target_field: str = "front",
+    db: AsyncSession = Depends(get_db)
+):
+    from app.modules.deck.models import Flashcard
+    res = await db.execute(select(Flashcard).filter(Flashcard.deck_id == deck_id))
+    cards = res.scalars().all()
+    
+    total = len(cards)
+    missing = 0
+    cards_list = []
+    
+    physical_map = {
+        "front": "content",
+        "back": "explanation",
+    }
+    
+    kanji_pattern = re.compile(r'[\u4e00-\u9fff\u3400-\u4dbf]')
+    
+    for c in cards:
+        src_val = ""
+        if source_field in physical_map:
+            src_val = getattr(c, physical_map[source_field]) or ""
+        else:
+            src_val = c.others.get(source_field) if c.others else ""
+            
+        tgt_val = ""
+        if target_field in physical_map:
+            tgt_val = getattr(c, physical_map[target_field]) or ""
+        else:
+            tgt_val = c.others.get(target_field) if c.others else ""
+            
+        has_bracket = "[" in tgt_val and "]" in tgt_val
+        needs_furi = bool(src_val and kanji_pattern.search(src_val) and not has_bracket)
+        
+        if needs_furi:
+            missing += 1
+            
+        cards_list.append({
+            "id": c.id,
+            "content": src_val[:50] + "..." if len(src_val) > 50 else src_val,
+            "missing": needs_furi
+        })
+        
+    return {
+        "total_cards": total,
+        "missing_furigana_cards": missing,
+        "cards": cards_list
+    }
+
+async def _bulk_generate_deck_furigana_task(deck_id: int, source_field: str, target_field: str, card_ids: list, db_session_maker):
+    from app.modules.deck.models import Flashcard
+    from app.modules.sso_module.service import SSOService
+    from sqlalchemy.orm.attributes import flag_modified
+    
+    async with db_session_maker() as db:
+        try:
+            sso_config = await SSOService.get_config(db)
+            if not sso_config.is_enabled or not sso_config.server_url:
+                logger.error("[BULK FURIGANA ERROR] CentralAuth is not enabled or configured.")
+                return
+                
+            if card_ids:
+                res = await db.execute(select(Flashcard).filter(Flashcard.deck_id == deck_id, Flashcard.id.in_(card_ids)))
+            else:
+                res = await db.execute(select(Flashcard).filter(Flashcard.deck_id == deck_id))
+            cards = res.scalars().all()
+            
+            physical_map = {
+                "front": "content",
+                "back": "explanation",
+            }
+            
+            async with httpx.AsyncClient() as client:
+                for c in cards:
+                    src_val = ""
+                    if source_field in physical_map:
+                        src_val = getattr(c, physical_map[source_field]) or ""
+                    else:
+                        src_val = c.others.get(source_field) if c.others else ""
+                        
+                    if not src_val or not src_val.strip():
+                        continue
+                        
+                    try:
+                        response = await client.post(
+                            f"{sso_config.server_url.rstrip('/')}/api/chat/generate-furigana",
+                            json={"text": src_val},
+                            timeout=15.0
+                        )
+                        if response.status_code == 200:
+                            furi_text = response.json().get("text", "")
+                            if furi_text:
+                                if target_field in physical_map:
+                                    setattr(c, physical_map[target_field], furi_text)
+                                else:
+                                    if not c.others:
+                                        c.others = {}
+                                    c.others[target_field] = furi_text
+                                    flag_modified(c, "others")
+                        else:
+                            logger.error(f"[BULK FURIGANA ERROR] CentralAuth returned status {response.status_code} for card {c.id}")
+                    except Exception as card_err:
+                        logger.error(f"[BULK FURIGANA CARD ERROR] Card {c.id} failed: {card_err}")
+                        
+            await db.commit()
+            logger.info(f"[BULK FURIGANA SUCCESS] Completed batch furigana generation for deck {deck_id}")
+        except Exception as e:
+            logger.error(f"[BULK FURIGANA SYSTEM ERROR] System error in batch furigana: {e}")
+
+@router.post("/{deck_id}/generate-all-furigana")
+async def generate_all_deck_furigana(
+    deck_id: int,
+    background_tasks: BackgroundTasks,
+    payload: dict = None,
+    db: AsyncSession = Depends(get_db)
+):
+    from app.core.db import AsyncSessionLocal
+    
+    source_field = "front"
+    target_field = "front"
+    card_ids = None
+    if payload:
+        source_field = payload.get("source_field", "front")
+        target_field = payload.get("target_field", "front")
+        card_ids = payload.get("card_ids", None)
+        
+    background_tasks.add_task(
+        _bulk_generate_deck_furigana_task,
+        deck_id,
+        source_field,
+        target_field,
+        card_ids,
+        AsyncSessionLocal
+    )
+    return {"status": "started", "message": "Batch Furigana generation task has been queued."}
