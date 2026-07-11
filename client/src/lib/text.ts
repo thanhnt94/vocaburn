@@ -1,6 +1,10 @@
 export const parseBBCodeToHtml = (text: string): string => {
   if (!text) return '';
   let html = text;
+  // Convert Markdown bold/italic to HTML tags first to avoid parser confusion with raw HTML <ruby>
+  html = html.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+  html = html.replace(/\*([^*]+)\*/g, '<em>$1</em>');
+
   html = html.replace(/\[b\]/gi, '<strong>');
   html = html.replace(/\[\/b\]/gi, '</strong>');
   html = html.replace(/\[i\]/gi, '<em>');
