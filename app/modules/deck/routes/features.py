@@ -993,6 +993,53 @@ async def image_queue_callback(data: dict, db: AsyncSession = Depends(get_db)):
     logger.info(f"[IMAGE CALLBACK SUCCESS] Updated card {card_id} field '{target_field}' with central reference {central_ref}.")
     return {"status": "ok"}
 
+@router.post("/furigana-callback")
+async def furigana_queue_callback(data: dict, db: AsyncSession = Depends(get_db)):
+    task_id = data.get("id")
+    status = data.get("status")
+    result = data.get("result")
+    extra_data_str = data.get("extra_data")
+    
+    if status != "completed" or not result:
+        logger.warning(f"[FURIGANA CALLBACK] Task {task_id} status '{status}' was not processed or has no result.")
+        return {"status": "ignored"}
+        
+    try:
+        extra = json.loads(extra_data_str) if extra_data_str else {}
+        if extra.get("task_type") != "furigana":
+            return {"status": "ignored"}
+            
+        card_id = extra.get("card_id")
+        target_field = extra.get("target_field", "front")
+    except Exception as parse_err:
+        logger.error(f"[FURIGANA CALLBACK ERROR] Failed to parse extra_data: {parse_err}")
+        return JSONResponse(status_code=400, content={"error": "Invalid extra_data"})
+        
+    from app.modules.deck.models import Flashcard
+    res = await db.execute(select(Flashcard).filter(Flashcard.id == card_id))
+    c = res.scalar_one_or_none()
+    if not c:
+        logger.error(f"[FURIGANA CALLBACK ERROR] Card {card_id} not found in database.")
+        return JSONResponse(status_code=404, content={"error": "Card not found"})
+        
+    physical_map = {
+        "front": "content",
+        "back": "explanation",
+    }
+    
+    if target_field in physical_map:
+        setattr(c, physical_map[target_field], result)
+    else:
+        if not c.others:
+            c.others = {}
+        c.others[target_field] = result
+        from sqlalchemy.orm.attributes import flag_modified
+        flag_modified(c, "others")
+        
+    await db.commit()
+    logger.info(f"[FURIGANA CALLBACK SUCCESS] Updated card {card_id} field '{target_field}' with furigana text.")
+    return {"status": "ok"}
+
 @router.post("/ai-callback")
 async def ai_queue_callback(data: dict, db: AsyncSession = Depends(get_db)):
     task_id = data.get("id")
@@ -1932,25 +1979,30 @@ async def get_deck_furigana_status(
 
 async def _bulk_generate_deck_furigana_task(deck_id: int, source_field: str, target_field: str, card_ids: list, db_session_maker):
     from app.modules.deck.models import Flashcard
-    from sqlalchemy.orm.attributes import flag_modified
-    import pykakasi
-    import re
+    from app.modules.sso_module.service import SSOService
+    from app.core.config import settings
     
     async with db_session_maker() as db:
         try:
+            sso_config = await SSOService.get_config(db)
+            if not sso_config.is_enabled or not sso_config.server_url:
+                logger.error("[BULK FURIGANA ERROR] CentralAuth is not enabled or server URL is not configured.")
+                return
+                
             if card_ids:
                 res = await db.execute(select(Flashcard).filter(Flashcard.deck_id == deck_id, Flashcard.id.in_(card_ids)))
             else:
                 res = await db.execute(select(Flashcard).filter(Flashcard.deck_id == deck_id))
             cards = res.scalars().all()
             
+            tasks_to_submit = []
+            callback_base = settings.APP_BASE_URL if settings.APP_BASE_URL else f"http://localhost:8000"
+            callback_url = f"{callback_base.rstrip('/')}/api/v1/deck/furigana-callback"
+            
             physical_map = {
                 "front": "content",
                 "back": "explanation",
             }
-            
-            kks = pykakasi.kakasi()
-            kanji_pattern = re.compile(r'[\u4e00-\u9fff\u3400-\u4dbf]')
             
             for c in cards:
                 src_val = ""
@@ -1962,31 +2014,43 @@ async def _bulk_generate_deck_furigana_task(deck_id: int, source_field: str, tar
                 if not src_val or not src_val.strip():
                     continue
                     
-                try:
-                    convert_result = kks.convert(src_val)
-                    parts = []
-                    for item in convert_result:
-                        orig = item['orig']
-                        hira = item['hira']
-                        if kanji_pattern.search(orig):
-                            parts.append(f"{orig}[{hira}]")
-                        else:
-                            parts.append(orig)
-                            
-                    furi_text = "".join(parts)
-                    if furi_text:
-                        if target_field in physical_map:
-                            setattr(c, physical_map[target_field], furi_text)
-                        else:
-                            if not c.others:
-                                c.others = {}
-                            c.others[target_field] = furi_text
-                            flag_modified(c, "others")
-                except Exception as card_err:
-                    logger.error(f"[BULK FURIGANA CARD ERROR] Card {c.id} failed: {card_err}")
-                        
-            await db.commit()
-            logger.info(f"[BULK FURIGANA SUCCESS] Completed local batch furigana generation for deck {deck_id}")
+                tasks_to_submit.append({
+                    "satellite_source": "vocaburn",
+                    "prompt": src_val.strip(),
+                    "callback_url": callback_url,
+                    "extra_data": json.dumps({
+                        "task_type": "furigana",
+                        "card_id": c.id,
+                        "source_field": source_field,
+                        "target_field": target_field,
+                        "deck_id": deck_id
+                    }),
+                    "max_retries": 3
+                })
+
+            if not tasks_to_submit:
+                return
+
+            logger.info(f"[BULK FURIGANA] Submitting {len(tasks_to_submit)} queue tasks to CentralAuth...")
+            queue_token = getattr(settings, "QUEUE_API_SECRET", "super-secret-token-123")
+            chunk_size = 100
+
+            async with httpx.AsyncClient() as client:
+                for i in range(0, len(tasks_to_submit), chunk_size):
+                      chunk = tasks_to_submit[i:i + chunk_size]
+                      try:
+                          response = await client.post(
+                              f"{sso_config.server_url.rstrip('/')}/api/queue/submit/batch",
+                              json={"tasks": chunk},
+                              headers={"X-Queue-Token": queue_token},
+                              timeout=30.0
+                          )
+                          if response.status_code != 200:
+                              logger.error(f"[BULK FURIGANA SUBMIT ERROR] Chunk {i//chunk_size} failed: {response.text}")
+                      except Exception as batch_err:
+                          logger.error(f"[BULK FURIGANA SUBMIT EXCEPTION] Exception in chunk {i//chunk_size}: {batch_err}")
+                          
+            logger.info(f"[BULK FURIGANA SUCCESS] Successfully submitted batch furigana generation tasks to CentralAuth.")
         except Exception as e:
             logger.error(f"[BULK FURIGANA SYSTEM ERROR] System error in batch furigana: {e}")
 
