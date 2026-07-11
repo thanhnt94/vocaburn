@@ -1449,17 +1449,17 @@ async def get_deck_play_data(request: Request, deck_id: int, mode: Optional[str]
                 "id": c.id,
                 "content": c.content,
                 "explanation": c.explanation,
-                "ai_explanation": c.ai_explanation,
-                "hint": c.hint,
-                "mnemonic": c.mnemonic,
+                "ai_explanation": c.others.get("ai_explanation") if c.others else None,
+                "hint": c.others.get("hint") if c.others else None,
+                "mnemonic": c.others.get("mnemonic") if c.others else None,
                 "stats": getattr(c, "stats", None),
                 "box_level": 1,
                 "is_ignored": False,
                 "is_starred": False,
                 "fsrs": None,
                 "options": [],
-                "image": fix_static_urls(c.image),
-                "audio": fix_static_urls(c.audio),
+                "image": fix_static_urls(c.back_img),
+                "audio": fix_static_urls(c.back_audio_url),
                 "others": fix_static_urls(c.others)
             })
     else:
