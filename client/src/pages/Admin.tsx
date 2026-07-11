@@ -99,7 +99,7 @@ const CardListSelector = ({
                     <div className="w-4 h-4 border border-white/20 rounded" />
                   )}
                 </div>
-                <div className="flex-1 font-bold text-slate-300 truncate">{c.content}</div>
+                <div className="flex-1 font-bold text-slate-300 truncate min-w-0">{c.content}</div>
                 <div className="shrink-0">
                   {c.missing ? (
                     <span className="px-2 py-0.5 rounded-lg text-[8px] font-black uppercase tracking-wider bg-amber-500/10 text-amber-400 border border-amber-500/20">Thiếu</span>
