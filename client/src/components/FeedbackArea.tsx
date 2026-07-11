@@ -1,5 +1,5 @@
 import React from 'react'
-import { Lightbulb, Sparkles, StickyNote, X, Check, Edit3, FileText, HelpCircle, Brain, Copy, ChevronRight, MessageSquare, Heart, Trash2, Send } from 'lucide-react'
+import { Lightbulb, Sparkles, StickyNote, X, Check, Edit3, FileText, HelpCircle, Brain, Copy, ChevronRight, MessageSquare, Heart, Trash2, Send, ChevronsDown, ChevronsUp } from 'lucide-react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import rehypeRaw from 'rehype-raw'
@@ -128,7 +128,9 @@ export const FeedbackArea: React.FC<FeedbackAreaProps> = ({
   }, [deckInfo?.practice_settings?.insight_columns, deckInfo?.ai_prompts])
 
   const [activeInsightTab, setActiveInsightTab] = React.useState<string>('')
+  const [openInsightTabs, setOpenInsightTabs] = React.useState<string[]>([])
   const [activeFullCardTab, setActiveFullCardTab] = React.useState<string>('')
+  const [openFullCardTabs, setOpenFullCardTabs] = React.useState<string[]>([])
 
   const allTabs = React.useMemo(() => {
     const tabs: any[] = [
@@ -169,7 +171,9 @@ export const FeedbackArea: React.FC<FeedbackAreaProps> = ({
   React.useEffect(() => {
     if (insightTabs.length > 0) {
       if (!activeInsightTab || !insightTabs.some((t: any) => t.id === activeInsightTab)) {
-        setActiveInsightTab(insightTabs[0].id)
+        const firstId = insightTabs[0].id
+        setActiveInsightTab(firstId)
+        setOpenInsightTabs([firstId])
       }
     }
   }, [insightTabs, activeInsightTab])
@@ -177,7 +181,9 @@ export const FeedbackArea: React.FC<FeedbackAreaProps> = ({
   React.useEffect(() => {
     if (allTabs.length > 0) {
       if (!activeFullCardTab || !allTabs.some((t: any) => t.id === activeFullCardTab)) {
-        setActiveFullCardTab(allTabs[0].id)
+        const firstId = allTabs[0].id
+        setActiveFullCardTab(firstId)
+        setOpenFullCardTabs([firstId])
       }
     }
   }, [allTabs, activeFullCardTab])
@@ -379,7 +385,7 @@ export const FeedbackArea: React.FC<FeedbackAreaProps> = ({
         return (
           <div className="p-1.5 md:p-3 rounded-2xl md:rounded-[2rem] ai-glow animate-in fade-in slide-in-from-bottom-2">
             {insightTabs.map((tab: any) => {
-              const isOpen = activeInsightTab === tab.id
+              const isOpen = openInsightTabs.includes(tab.id)
               let tabHasContent = false
               let content = ''
               
@@ -403,8 +409,10 @@ export const FeedbackArea: React.FC<FeedbackAreaProps> = ({
                   <button
                     onClick={() => {
                       if (isOpen) {
-                        setActiveInsightTab('')
+                        setOpenInsightTabs(openInsightTabs.filter(id => id !== tab.id))
+                        if (activeInsightTab === tab.id) setActiveInsightTab('')
                       } else {
+                        setOpenInsightTabs([tab.id]) // Accordion default: collapse others
                         setActiveInsightTab(tab.id)
                         setIsEditingAI(false)
                         setIsEditingPrompt(false)
@@ -843,7 +851,7 @@ export const FeedbackArea: React.FC<FeedbackAreaProps> = ({
             </div>
 
             {allTabs.map((tab: any) => {
-              const isOpen = activeFullCardTab === tab.id
+              const isOpen = openFullCardTabs.includes(tab.id)
               const content = getTabContent(tab.id)
               const tabHasContent = !!content
 
@@ -853,8 +861,10 @@ export const FeedbackArea: React.FC<FeedbackAreaProps> = ({
                   <button
                     onClick={() => {
                       if (isOpen) {
-                        setActiveFullCardTab('')
+                        setOpenFullCardTabs(openFullCardTabs.filter(id => id !== tab.id))
+                        if (activeFullCardTab === tab.id) setActiveFullCardTab('')
                       } else {
+                        setOpenFullCardTabs([tab.id]) // Accordion default: collapse others
                         setActiveFullCardTab(tab.id)
                       }
                     }}
@@ -988,45 +998,48 @@ export const FeedbackArea: React.FC<FeedbackAreaProps> = ({
           })}
         </div>
 
-        <div className="relative">
-          <AnimatePresence>
-            {isCopyMenuOpen && activeFeedbackTab === 'insight' && (
-              <motion.div
-                initial={{ opacity: 0, y: 10, scale: 0.9 }}
-                animate={{ opacity: 1, y: 0, scale: 1 }}
-                exit={{ opacity: 0, y: 10, scale: 0.9 }}
-                className="absolute bottom-16 right-0 w-56 bg-white/95 backdrop-blur-md rounded-2xl shadow-[0_10px_30px_rgba(99,102,241,0.12)] border border-slate-100/80 p-2 flex flex-col gap-1 z-[100] animate-in fade-in slide-in-from-bottom-2 duration-200"
-              >
-                <button
-                  onClick={() => copyCurrentTabContent('default', activeInsightTab)}
-                  className="flex items-center gap-3 px-4 py-3 hover:bg-slate-50 hover:text-slate-800 rounded-xl transition-all text-left animate-in fade-in"
-                >
-                  <FileText className="w-4 h-4 text-slate-400" />
-                  <span className="text-[11px] font-black text-slate-500 uppercase tracking-wider">Copy Result</span>
-                </button>
-                <button
-                  onClick={() => copyCurrentTabContent('question', activeInsightTab)}
-                  className="flex items-center gap-3 px-4 py-3 hover:bg-slate-50 hover:text-slate-800 rounded-xl transition-all text-left"
-                >
-                  <HelpCircle className="w-4 h-4 text-slate-400" />
-                  <span className="text-[11px] font-black text-slate-500 uppercase tracking-wider">Copy Question</span>
-                </button>
-                <button
-                  onClick={() => copyCurrentTabContent('prompt', activeInsightTab)}
-                  className="flex items-center gap-3 px-4 py-3 hover:bg-indigo-50/60 hover:text-indigo-600 rounded-xl transition-all text-left"
-                >
-                  <Brain className="w-4 h-4 text-indigo-400" />
-                  <span className="text-[11px] font-black text-indigo-500 uppercase tracking-wider">Copy Prompt</span>
-                </button>
-              </motion.div>
-            )}
-          </AnimatePresence>
-
+        {/* Collapse/Expand Toggle Button for Insight / Card tabs, Copy Button for others */}
+        {activeFeedbackTab === 'insight' ? (
           <button
             onClick={() => {
-              if (activeFeedbackTab === 'insight') setIsCopyMenuOpen(!isCopyMenuOpen)
-              else copyCurrentTabContent()
+              const isAllOpen = openInsightTabs.length === insightTabs.length
+              if (isAllOpen) {
+                setOpenInsightTabs([])
+              } else {
+                setOpenInsightTabs(insightTabs.map(t => t.id))
+              }
             }}
+            className="w-10 h-10 sm:w-12 sm:h-12 flex-shrink-0 flex items-center justify-center rounded-xl sm:rounded-2xl border border-slate-200/80 text-slate-500 hover:bg-indigo-50 hover:border-indigo-200 hover:text-indigo-600 bg-slate-50 transition-all duration-300 active:scale-90 shadow-sm"
+            title={openInsightTabs.length === insightTabs.length ? "Collapse All" : "Expand All"}
+          >
+            {openInsightTabs.length === insightTabs.length ? (
+              <ChevronsUp className="w-4 h-4 sm:w-5 sm:h-5" />
+            ) : (
+              <ChevronsDown className="w-4 h-4 sm:w-5 sm:h-5" />
+            )}
+          </button>
+        ) : activeFeedbackTab === 'card' ? (
+          <button
+            onClick={() => {
+              const isAllOpen = openFullCardTabs.length === allTabs.length
+              if (isAllOpen) {
+                setOpenFullCardTabs([])
+              } else {
+                setOpenFullCardTabs(allTabs.map(t => t.id))
+              }
+            }}
+            className="w-10 h-10 sm:w-12 sm:h-12 flex-shrink-0 flex items-center justify-center rounded-xl sm:rounded-2xl border border-slate-200/80 text-slate-500 hover:bg-indigo-50 hover:border-indigo-200 hover:text-indigo-600 bg-slate-50 transition-all duration-300 active:scale-90 shadow-sm"
+            title={openFullCardTabs.length === allTabs.length ? "Collapse All" : "Expand All"}
+          >
+            {openFullCardTabs.length === allTabs.length ? (
+              <ChevronsUp className="w-4 h-4 sm:w-5 sm:h-5" />
+            ) : (
+              <ChevronsDown className="w-4 h-4 sm:w-5 sm:h-5" />
+            )}
+          </button>
+        ) : (
+          <button
+            onClick={() => copyCurrentTabContent()}
             className={cn(
               "w-10 h-10 sm:w-12 sm:h-12 flex-shrink-0 flex items-center justify-center rounded-xl sm:rounded-2xl border transition-all duration-300 active:scale-90 shadow-sm",
               isCopied
@@ -1036,7 +1049,7 @@ export const FeedbackArea: React.FC<FeedbackAreaProps> = ({
           >
             {isCopied ? <Check className="w-4 h-4 sm:w-5 sm:h-5 stroke-[3]" /> : <Copy className="w-4 h-4 sm:w-5 sm:h-5" />}
           </button>
-        </div>
+        )}
 
         {isMobile && (
           <button
