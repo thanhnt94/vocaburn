@@ -4828,6 +4828,7 @@ export default function PracticePlay() {
                     e.stopPropagation();
                     setIsStatsOpen(false);
                     setIsMapOpen(true);
+                    setIsFeedbackOpen(false);
                   }}
                   className="relative flex items-center justify-center gap-1.5 py-3 px-1 transition-all active:scale-95 overflow-hidden"
                   title="Mở bản đồ thẻ"
@@ -4853,6 +4854,7 @@ export default function PracticePlay() {
                     e.stopPropagation();
                     setIsMapOpen(false);
                     setIsStatsOpen(false);
+                    setIsFeedbackOpen(false);
                   }}
                   className="relative flex items-center justify-center gap-1.5 py-3 px-1 transition-all active:scale-95 overflow-hidden"
                   title="Tiến trình học tập hiện tại"
@@ -4878,6 +4880,7 @@ export default function PracticePlay() {
                     e.stopPropagation();
                     setIsMapOpen(false);
                     setIsStatsOpen(true);
+                    setIsFeedbackOpen(false);
                   }}
                   className="relative flex items-center justify-center gap-1.5 py-3 px-1 transition-all active:scale-95 overflow-hidden"
                   title="Mở thống kê tiến trình"

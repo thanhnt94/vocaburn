@@ -80,6 +80,7 @@ const getQuestionField = (question: any, key: string, useAiResponse: boolean = f
   
   const normalize = (s: string) => {
     return s.toLowerCase()
+      .replace(/đ/g, 'd')
       .normalize('NFD')
       .replace(/[\u0300-\u036f]/g, '')
       .replace(/[^a-z0-9]/g, '');
