@@ -70,6 +70,36 @@ interface FeedbackAreaProps {
   deckInfo?: any
 }
 
+const getQuestionField = (question: any, key: string, useAiResponse: boolean = false): string => {
+  if (!question || !question.others) return '';
+  
+  const targetObj = useAiResponse ? question.others.ai_responses : question.others;
+  if (!targetObj) return '';
+  
+  if (targetObj[key]) return targetObj[key];
+  
+  const normalize = (s: string) => {
+    return s.toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^a-z0-9]/g, '');
+  };
+  const normKey = normalize(key);
+  
+  if (normKey === 'cachnhotuvung' || normKey === 'cachnhocachdoc') {
+    const foundKey = Object.keys(targetObj).find(k => {
+      const nk = normalize(k);
+      return nk === 'cachnhotuvung' || nk === 'cachnhocachdoc';
+    });
+    if (foundKey) return targetObj[foundKey];
+  }
+  
+  const foundKey = Object.keys(targetObj).find(k => normalize(k) === normKey);
+  if (foundKey) return targetObj[foundKey];
+  
+  return '';
+};
+
 export const FeedbackArea: React.FC<FeedbackAreaProps> = ({
   showFeedback,
   activeFeedbackTab,
@@ -164,7 +194,7 @@ export const FeedbackArea: React.FC<FeedbackAreaProps> = ({
     if (tabId === 'back' || tabId === 'explanation') return currentQuestion.explanation || ''
     if (tabId === 'mnemonic') return currentQuestion.mnemonic || ''
     if (tabId === 'hint') return currentQuestion.hint || ''
-    return currentQuestion.others?.[tabId] || ''
+    return getQuestionField(currentQuestion, tabId) || ''
   }
 
   React.useEffect(() => {
@@ -210,7 +240,7 @@ export const FeedbackArea: React.FC<FeedbackAreaProps> = ({
     if (activeInsightTab === 'explanation' || activeInsightTab === 'back') {
       return currentQuestion.explanation || currentQuestion.ai_explanation || ''
     }
-    return currentQuestion.others?.ai_responses?.[activeInsightTab] || currentQuestion.others?.[activeInsightTab] || ''
+    return getQuestionField(currentQuestion, activeInsightTab, true) || getQuestionField(currentQuestion, activeInsightTab) || ''
   }
 
   const getActivePromptTemplate = () => {
@@ -226,7 +256,7 @@ export const FeedbackArea: React.FC<FeedbackAreaProps> = ({
       setIsEditingAI(false)
       setIsEditingPrompt(false)
     }
-  }, [activeInsightTab, activeFeedbackTab, currentQuestion?.id, deckInfo])
+  }, [activeInsightTab, activeFeedbackTab, currentQuestion?.id, deckInfo?.ai_prompt, JSON.stringify(deckInfo?.ai_prompts)])
 
   const hasInsightAnyContent = () => {
     if (!currentQuestion) return false
@@ -234,7 +264,7 @@ export const FeedbackArea: React.FC<FeedbackAreaProps> = ({
       if (tab.id === 'explanation' || tab.id === 'back') {
         return !!(currentQuestion.explanation || currentQuestion.ai_explanation)
       }
-      return !!(currentQuestion.others?.ai_responses?.[tab.id] || currentQuestion.others?.[tab.id])
+      return !!(getQuestionField(currentQuestion, tab.id, true) || getQuestionField(currentQuestion, tab.id))
     })
   }
 
@@ -398,8 +428,8 @@ export const FeedbackArea: React.FC<FeedbackAreaProps> = ({
                  content = currentQuestion?.hint || ''
                  tabHasContent = !!content
               } else {
-                 content = currentQuestion?.others?.ai_responses?.[tab.id] || currentQuestion?.others?.[tab.id] || ''
-                 tabHasContent = !!content
+                content = getQuestionField(currentQuestion, tab.id, true) || getQuestionField(currentQuestion, tab.id) || ''
+                tabHasContent = !!content
               }
 
               return (
