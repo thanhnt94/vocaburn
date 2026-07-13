@@ -108,7 +108,6 @@ export const FeedbackArea: React.FC<FeedbackAreaProps> = ({
   selectedChoiceData,
   deckInfo,
 }) => {
-  if (!showFeedback) return null
 
   const insightTabs = React.useMemo(() => {
     const tabs: any[] = []
@@ -923,6 +922,8 @@ export const FeedbackArea: React.FC<FeedbackAreaProps> = ({
         )
     }
   }
+
+  if (!showFeedback) return null;
 
   return (
     <div className="flex flex-col h-full bg-[#F8FAFC]">
