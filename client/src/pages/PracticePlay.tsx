@@ -2928,6 +2928,8 @@ export default function PracticePlay() {
     if (activeFeedbackTab === 'note') {
       if (isEditingNote) saveNote()
       setIsEditingNote(!isEditingNote)
+    } else {
+      openEditModal()
     }
   }
 

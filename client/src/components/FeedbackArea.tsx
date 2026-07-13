@@ -217,10 +217,11 @@ export const FeedbackArea: React.FC<FeedbackAreaProps> = ({
       if (!activeFullCardTab || !allTabs.some((t: any) => t.id === activeFullCardTab)) {
         const firstId = allTabs[0].id
         setActiveFullCardTab(firstId)
-        setOpenFullCardTabs([firstId])
       }
+      // Expand all tabs by default when loading a new card/deck
+      setOpenFullCardTabs(allTabs.map((t: any) => t.id))
     }
-  }, [allTabs, activeFullCardTab])
+  }, [allTabs])
 
   const handlePrevTab = () => {
     const currentIndex = insightTabs.findIndex((t: any) => t.id === activeInsightTab)

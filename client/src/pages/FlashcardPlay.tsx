@@ -2466,6 +2466,8 @@ export default function FlashcardPlay() {
     if (activeFeedbackTab === 'note') {
       if (isEditingNote) saveNote()
       setIsEditingNote(!isEditingNote)
+    } else {
+      openEditModal()
     }
   }
 
