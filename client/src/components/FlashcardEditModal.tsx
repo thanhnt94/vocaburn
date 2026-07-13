@@ -353,7 +353,7 @@ export const FlashcardEditModal: React.FC<FlashcardEditModalProps> = ({
       setFormData(null)
       setCustomJsonText('')
     }
-  }, [flashcard, availableColumns])
+  }, [flashcard?.id, availableColumns])
 
   // Sync customJsonText back into formData.others on valid edits
   const handleCustomJsonChange = (text: string) => {
