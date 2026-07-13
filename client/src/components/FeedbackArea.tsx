@@ -112,10 +112,10 @@ export const FeedbackArea: React.FC<FeedbackAreaProps> = ({
   currentQuestion,
   canEdit,
   clearAIExplanation,
-  isEditingAI,
-  setIsEditingAI,
-  isEditingPrompt,
-  setIsEditingPrompt,
+  isEditingAI: _unused_isEditingAI,
+  setIsEditingAI: _unused_setIsEditingAI,
+  isEditingPrompt: _unused_isEditingPrompt,
+  setIsEditingPrompt: _unused_setIsEditingPrompt,
   askAI,
   isAskingAI,
   aiInput,
@@ -161,6 +161,9 @@ export const FeedbackArea: React.FC<FeedbackAreaProps> = ({
   const [openInsightTabs, setOpenInsightTabs] = React.useState<string[]>([])
   const [activeFullCardTab, setActiveFullCardTab] = React.useState<string>('')
   const [openFullCardTabs, setOpenFullCardTabs] = React.useState<string[]>([])
+  
+  const [isEditingAI, setIsEditingAI] = React.useState(false)
+  const [isEditingPrompt, setIsEditingPrompt] = React.useState(false)
 
   const allTabs = React.useMemo(() => {
     const tabs: any[] = [
@@ -203,10 +206,11 @@ export const FeedbackArea: React.FC<FeedbackAreaProps> = ({
       if (!activeInsightTab || !insightTabs.some((t: any) => t.id === activeInsightTab)) {
         const firstId = insightTabs[0].id
         setActiveInsightTab(firstId)
-        setOpenInsightTabs([firstId])
       }
+      // Expand all tabs by default when loading a new card/deck
+      setOpenInsightTabs(insightTabs.map((t: any) => t.id))
     }
-  }, [insightTabs, activeInsightTab])
+  }, [insightTabs])
 
   React.useEffect(() => {
     if (allTabs.length > 0) {
@@ -526,6 +530,7 @@ export const FeedbackArea: React.FC<FeedbackAreaProps> = ({
                                 onClick={() => {
                                   if (isEditingAI) {
                                     askAI(tab.id, aiInput)
+                                    setIsEditingAI(false)
                                   } else {
                                     setAiInput(content)
                                     setIsEditingAI(true)
