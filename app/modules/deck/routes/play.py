@@ -2278,3 +2278,138 @@ async def update_contribution_status(
     await db.commit()
     return {"status": "success", "new_status": contrib.status}
 
+
+async def get_deck_roadmap_status_helper(db: AsyncSession, user_id: int, deck_id: int, settings: dict) -> dict:
+    roadmap_active = settings.get("roadmap_active", False)
+    roadmap_daily_new = int(settings.get("roadmap_daily_new", 10))
+    roadmap_daily_review_max = int(settings.get("roadmap_daily_review_max", 50))
+    
+    from app.modules.deck.models import Flashcard, UserCardMastery, UserAnswer, DeckAttempt
+    total_cards = await db.scalar(
+        select(func.count(Flashcard.id)).where(Flashcard.deck_id == deck_id)
+    ) or 0
+    
+    # We count studied cards as those with state > 0 in mastery
+    learned_cards = await db.scalar(
+        select(func.count(UserCardMastery.id))
+        .join(Flashcard, UserCardMastery.card_id == Flashcard.id)
+        .where(
+            Flashcard.deck_id == deck_id,
+            UserCardMastery.user_id == user_id,
+            UserCardMastery.state > 0
+        )
+    ) or 0
+    
+    unlearned_cards = max(0, total_cards - learned_cards)
+    
+    import math
+    days_left = math.ceil(unlearned_cards / roadmap_daily_new) if roadmap_daily_new > 0 else 0
+    estimated_completion_date = (datetime.utcnow() + timedelta(days=days_left)).strftime("%Y-%m-%d")
+    
+    today_start = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
+    
+    min_answer_sub = select(
+        UserAnswer.card_id,
+        func.min(UserAnswer.created_at).label("min_created")
+    ).join(DeckAttempt, UserAnswer.attempt_id == DeckAttempt.id)\
+    .where(DeckAttempt.user_id == user_id)\
+    .group_by(UserAnswer.card_id).subquery()
+    
+    new_learned_today = await db.scalar(
+        select(func.count(min_answer_sub.c.card_id))
+        .join(Flashcard, min_answer_sub.c.card_id == Flashcard.id)
+        .where(
+            Flashcard.deck_id == deck_id,
+            min_answer_sub.c.min_created >= today_start
+        )
+    ) or 0
+    
+    review_completed_today = await db.scalar(
+        select(func.count(func.distinct(UserAnswer.card_id)))
+        .join(DeckAttempt, UserAnswer.attempt_id == DeckAttempt.id)
+        .join(Flashcard, UserAnswer.card_id == Flashcard.id)
+        .join(min_answer_sub, UserAnswer.card_id == min_answer_sub.c.card_id)
+        .where(
+            DeckAttempt.user_id == user_id,
+            Flashcard.deck_id == deck_id,
+            UserAnswer.created_at >= today_start,
+            min_answer_sub.c.min_created < today_start
+        )
+    ) or 0
+    
+    review_due_today = await db.scalar(
+        select(func.count(UserCardMastery.id))
+        .join(Flashcard, UserCardMastery.card_id == Flashcard.id)
+        .where(
+            Flashcard.deck_id == deck_id,
+            UserCardMastery.user_id == user_id,
+            UserCardMastery.state > 0,
+            UserCardMastery.due <= datetime.utcnow()
+        )
+    ) or 0
+    
+    return {
+        "roadmap_active": roadmap_active,
+        "roadmap_daily_new": roadmap_daily_new,
+        "roadmap_daily_review_max": roadmap_daily_review_max,
+        "total_cards": total_cards,
+        "learned_cards": learned_cards,
+        "unlearned_cards": unlearned_cards,
+        "days_left": days_left,
+        "estimated_completion_date": estimated_completion_date,
+        "new_learned_today": new_learned_today,
+        "new_target_today": roadmap_daily_new,
+        "review_completed_today": review_completed_today,
+        "review_due_today": review_due_today
+    }
+
+
+@router.get("/roadmap/decks")
+async def get_roadmap_decks(request: Request, db: AsyncSession = Depends(get_db)):
+    user_id = int(request.cookies.get("user_id", 1))
+    
+    user_setts_res = await db.execute(
+        select(UserDeckSettings).where(UserDeckSettings.user_id == user_id)
+    )
+    user_setts = user_setts_res.scalars().all()
+    
+    active_roadmaps = []
+    from app.modules.deck.models import FlashcardDeck
+    for sett in user_setts:
+        s_dict = sett.settings or {}
+        if s_dict.get("roadmap_active", False):
+            deck_res = await db.execute(select(FlashcardDeck).where(FlashcardDeck.id == sett.deck_id))
+            deck = deck_res.scalar_one_or_none()
+            if deck:
+                status = await get_deck_roadmap_status_helper(db, user_id, deck.id, s_dict)
+                # Resolve cover image url
+                from .media_resolver import get_sso_server_url, resolve_central_url
+                sso_url = await get_sso_server_url(db)
+                cover_image = resolve_central_url(deck.cover_image, sso_url) if deck.cover_image else None
+                active_roadmaps.append({
+                    "deck_id": deck.id,
+                    "title": deck.title,
+                    "description": deck.description,
+                    "cover_image": cover_image,
+                    "status": status
+                })
+                
+    return {"decks": active_roadmaps}
+
+
+@router.get("/{deck_id}/roadmap-status")
+async def get_deck_roadmap_status(request: Request, deck_id: int, db: AsyncSession = Depends(get_db)):
+    user_id = int(request.cookies.get("user_id", 1))
+    
+    user_sett_res = await db.execute(
+        select(UserDeckSettings).where(
+            UserDeckSettings.user_id == user_id,
+            UserDeckSettings.deck_id == deck_id
+        )
+    )
+    user_sett = user_sett_res.scalar_one_or_none()
+    settings = user_sett.settings if (user_sett and user_sett.settings) else {}
+    
+    status = await get_deck_roadmap_status_helper(db, user_id, deck_id, settings)
+    return status
+
