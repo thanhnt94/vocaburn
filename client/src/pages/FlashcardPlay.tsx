@@ -416,13 +416,27 @@ export default function FlashcardPlay() {
   const [activeMode, setActiveMode] = useState<string>(() => {
     const searchParams = new URLSearchParams(window.location.search);
     const urlMode = searchParams.get('mode');
-    if (urlMode === 'new' || urlMode === 'fsrs') {
+    if (urlMode === 'new' || urlMode === 'fsrs' || urlMode === 'roadmap') {
       localStorage.setItem('quiz_learning_mode', urlMode);
       return urlMode;
     }
     return localStorage.getItem('quiz_learning_mode') || 'fsrs';
   })
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
+  const [roadmapStatus, setRoadmapStatus] = useState<any>(null);
+  const [showRoadmapCompleteModal, setShowRoadmapCompleteModal] = useState<boolean>(false);
+
+  const fetchRoadmapStatus = async () => {
+    try {
+      const res = await axios.get(`/api/v1/deck/${id}/roadmap-status`);
+      setRoadmapStatus(res.data);
+      return res.data;
+    } catch (err) {
+      console.error("Failed to fetch roadmap status:", err);
+      return null;
+    }
+  };
+
   const activeBottomTab = isMapOpen ? 'map' : (isStatsOpen ? 'stats' : 'flashcard');
 
   const {
@@ -692,10 +706,11 @@ export default function FlashcardPlay() {
   useEffect(() => {
     const searchParams = new URLSearchParams(window.location.search);
     const urlMode = searchParams.get('mode');
-    if (urlMode === 'new' || urlMode === 'fsrs') {
+    if (urlMode === 'new' || urlMode === 'fsrs' || urlMode === 'roadmap') {
       saveGeneralSettings({ learning_mode: urlMode });
     }
     fetchSession()
+    fetchRoadmapStatus()
   }, [id])
 
   // Tự động đóng toàn bộ các popup/toast khi người dùng click mở bất kỳ khung thông tin hoặc modal phụ nào
@@ -1362,6 +1377,17 @@ export default function FlashcardPlay() {
             };
           });
         }
+      }
+      if (activeMode === 'roadmap') {
+        fetchRoadmapStatus().then(updated => {
+          if (updated) {
+            const newDone = updated.new_learned_today >= updated.new_target_today;
+            const reviewDone = updated.review_completed_today >= updated.review_due_today || updated.review_due_today === 0;
+            if (newDone && reviewDone) {
+              setShowRoadmapCompleteModal(true);
+            }
+          }
+        });
       }
 
       // Also re-fetch leaderboard in background to keep stats Completely dynamic and live!
@@ -3358,53 +3384,89 @@ export default function FlashcardPlay() {
       
         {/* Live Dashboard HUD - Clean Light Ticker Style */}
         <div className="bg-slate-100/50 border border-slate-200/40 rounded-xl p-0.5 flex items-center gap-0.5 md:gap-1.5 shadow-[inset_0_1px_2px_rgba(0,0,0,0.02)] flex-shrink-0 mr-0.5 md:mr-0">
-          {/* Item 1: Daily Goal progress */}
-          <div className="flex items-center bg-white/90 border border-slate-200/30 rounded-lg p-0.5 pr-1 md:pr-1.5 shadow-sm min-w-[52px] xs:min-w-[56px] md:min-w-[66px]" title="Mục tiêu ôn tập hàng ngày">
-            <div className="w-4 h-4 md:w-5 md:h-5 flex items-center justify-center bg-indigo-50 text-indigo-600 rounded mr-0.5 md:mr-1 flex-shrink-0">
-              <Target className="w-2.5 h-2.5 md:w-3 md:h-3" />
-            </div>
-            <div className="flex flex-col min-w-0">
-              <span className="text-[5.5px] md:text-[6.5px] text-slate-400 font-extrabold uppercase tracking-wider leading-none">Goal</span>
-              <div className="h-2.5 md:h-3 overflow-hidden relative min-w-[20px]">
-                <AnimatePresence mode="popLayout" initial={false}>
-                  <motion.span
-                    key={activeGoal ? `${activeGoal.done_today}/${activeGoal.daily_target}` : 'none'}
-                    initial={{ y: 8, opacity: 0 }}
-                    animate={{ y: 0, opacity: 1 }}
-                    exit={{ y: -8, opacity: 0 }}
-                    transition={{ type: "spring", stiffness: 350, damping: 18 }}
-                    className="text-[7.5px] md:text-[8.5px] font-black text-slate-700 leading-none block truncate"
-                  >
-                    {activeGoal ? `${activeGoal.done_today}/${activeGoal.daily_target}` : '--'}
-                  </motion.span>
-                </AnimatePresence>
+          {activeMode === 'roadmap' && roadmapStatus ? (
+            <>
+              {/* Item 1: Roadmap New Progress */}
+              <div className="flex items-center bg-white/90 border border-slate-200/30 rounded-lg p-0.5 pr-1 md:pr-1.5 shadow-sm min-w-[52px] xs:min-w-[56px] md:min-w-[66px]" title="Mục tiêu từ mới hàng ngày">
+                <div className="w-4 h-4 md:w-5 md:h-5 flex items-center justify-center bg-orange-50 text-orange-600 rounded mr-0.5 md:mr-1 flex-shrink-0">
+                  <Sparkles className="w-2.5 h-2.5 md:w-3 md:h-3" />
+                </div>
+                <div className="flex flex-col min-w-0">
+                  <span className="text-[5.5px] md:text-[6.5px] text-slate-400 font-extrabold uppercase tracking-wider leading-none">New</span>
+                  <div className="h-2.5 md:h-3 overflow-hidden relative min-w-[20px]">
+                    <span className="text-[7.5px] md:text-[8.5px] font-black text-slate-700 leading-none block truncate">
+                      {roadmapStatus.new_learned_today}/{roadmapStatus.new_target_today}
+                    </span>
+                  </div>
+                </div>
               </div>
-            </div>
-          </div>
-      
-          {/* Item 2: Cards left to study/review */}
-          <div className="flex items-center bg-white/90 border border-slate-200/30 rounded-lg p-0.5 pr-1 md:pr-1.5 shadow-sm min-w-[52px] xs:min-w-[56px] md:min-w-[66px]" title="Số thẻ ôn tập/học còn lại">
-            <div className="w-4 h-4 md:w-5 md:h-5 flex items-center justify-center bg-rose-550/10 bg-rose-50 text-rose-600 rounded mr-0.5 md:mr-1 flex-shrink-0">
-              <Brain className="w-2.5 h-2.5 md:w-3 md:h-3" />
-            </div>
-            <div className="flex flex-col min-w-0">
-              <span className="text-[5.5px] md:text-[6.5px] text-slate-400 font-extrabold uppercase tracking-wider leading-none">Left</span>
-              <div className="h-2.5 md:h-3 overflow-hidden relative min-w-[15px]">
-                <AnimatePresence mode="popLayout" initial={false}>
-                  <motion.span
-                    key={activeMode === 'fsrs' && dueCardsCount > 0 ? dueCardsCount : (session?.questions ? Math.max(0, session.questions.length - currentIndex) : 0)}
-                    initial={{ y: 8, opacity: 0 }}
-                    animate={{ y: 0, opacity: 1 }}
-                    exit={{ y: -8, opacity: 0 }}
-                    transition={{ type: "spring", stiffness: 350, damping: 18 }}
-                    className="text-[7.5px] md:text-[8.5px] font-black text-slate-700 leading-none block truncate"
-                  >
-                    {activeMode === 'fsrs' && dueCardsCount > 0 ? dueCardsCount : (session?.questions ? Math.max(0, session.questions.length - currentIndex) : 0)}
-                  </motion.span>
-                </AnimatePresence>
+
+              {/* Item 2: Roadmap Review Progress */}
+              <div className="flex items-center bg-white/90 border border-slate-200/30 rounded-lg p-0.5 pr-1 md:pr-1.5 shadow-sm min-w-[52px] xs:min-w-[56px] md:min-w-[66px]" title="Thẻ cần ôn tập hôm nay">
+                <div className="w-4 h-4 md:w-5 md:h-5 flex items-center justify-center bg-indigo-50 text-indigo-600 rounded mr-0.5 md:mr-1 flex-shrink-0">
+                  <Brain className="w-2.5 h-2.5 md:w-3 md:h-3" />
+                </div>
+                <div className="flex flex-col min-w-0">
+                  <span className="text-[5.5px] md:text-[6.5px] text-slate-400 font-extrabold uppercase tracking-wider leading-none">Due</span>
+                  <div className="h-2.5 md:h-3 overflow-hidden relative min-w-[15px]">
+                    <span className="text-[7.5px] md:text-[8.5px] font-black text-slate-700 leading-none block truncate">
+                      {roadmapStatus.review_completed_today}/{roadmapStatus.review_due_today}
+                    </span>
+                  </div>
+                </div>
               </div>
-            </div>
-          </div>
+            </>
+          ) : (
+            <>
+              {/* Item 1: Daily Goal progress */}
+              <div className="flex items-center bg-white/90 border border-slate-200/30 rounded-lg p-0.5 pr-1 md:pr-1.5 shadow-sm min-w-[52px] xs:min-w-[56px] md:min-w-[66px]" title="Mục tiêu ôn tập hàng ngày">
+                <div className="w-4 h-4 md:w-5 md:h-5 flex items-center justify-center bg-indigo-50 text-indigo-600 rounded mr-0.5 md:mr-1 flex-shrink-0">
+                  <Target className="w-2.5 h-2.5 md:w-3 md:h-3" />
+                </div>
+                <div className="flex flex-col min-w-0">
+                  <span className="text-[5.5px] md:text-[6.5px] text-slate-400 font-extrabold uppercase tracking-wider leading-none">Goal</span>
+                  <div className="h-2.5 md:h-3 overflow-hidden relative min-w-[20px]">
+                    <AnimatePresence mode="popLayout" initial={false}>
+                      <motion.span
+                        key={activeGoal ? `${activeGoal.done_today}/${activeGoal.daily_target}` : 'none'}
+                        initial={{ y: 8, opacity: 0 }}
+                        animate={{ y: 0, opacity: 1 }}
+                        exit={{ y: -8, opacity: 0 }}
+                        transition={{ type: "spring", stiffness: 350, damping: 18 }}
+                        className="text-[7.5px] md:text-[8.5px] font-black text-slate-700 leading-none block truncate"
+                      >
+                        {activeGoal ? `${activeGoal.done_today}/${activeGoal.daily_target}` : '--'}
+                      </motion.span>
+                    </AnimatePresence>
+                  </div>
+                </div>
+              </div>
+          
+              {/* Item 2: Cards left to study/review */}
+              <div className="flex items-center bg-white/90 border border-slate-200/30 rounded-lg p-0.5 pr-1 md:pr-1.5 shadow-sm min-w-[52px] xs:min-w-[56px] md:min-w-[66px]" title="Số thẻ ôn tập/học còn lại">
+                <div className="w-4 h-4 md:w-5 md:h-5 flex items-center justify-center bg-rose-550/10 bg-rose-50 text-rose-600 rounded mr-0.5 md:mr-1 flex-shrink-0">
+                  <Brain className="w-2.5 h-2.5 md:w-3 md:h-3" />
+                </div>
+                <div className="flex flex-col min-w-0">
+                  <span className="text-[5.5px] md:text-[6.5px] text-slate-400 font-extrabold uppercase tracking-wider leading-none">Left</span>
+                  <div className="h-2.5 md:h-3 overflow-hidden relative min-w-[15px]">
+                    <AnimatePresence mode="popLayout" initial={false}>
+                      <motion.span
+                        key={activeMode === 'fsrs' && dueCardsCount > 0 ? dueCardsCount : (session?.questions ? Math.max(0, session.questions.length - currentIndex) : 0)}
+                        initial={{ y: 8, opacity: 0 }}
+                        animate={{ y: 0, opacity: 1 }}
+                        exit={{ y: -8, opacity: 0 }}
+                        transition={{ type: "spring", stiffness: 350, damping: 18 }}
+                        className="text-[7.5px] md:text-[8.5px] font-black text-slate-700 leading-none block truncate"
+                      >
+                        {activeMode === 'fsrs' && dueCardsCount > 0 ? dueCardsCount : (session?.questions ? Math.max(0, session.questions.length - currentIndex) : 0)}
+                      </motion.span>
+                    </AnimatePresence>
+                  </div>
+                </div>
+              </div>
+            </>
+          )}
       
           {/* Item 3: Timer */}
           <div 
@@ -5030,6 +5092,83 @@ export default function FlashcardPlay() {
               className="max-w-full max-h-[90vh] object-contain rounded-2xl shadow-2xl border border-white/10"
             />
           </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* ROADMAP DAILY COMPLETE MODAL */}
+      <AnimatePresence>
+        {showRoadmapCompleteModal && roadmapStatus && (
+          <div className="fixed inset-0 z-[2000] flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setShowRoadmapCompleteModal(false)}
+              className="absolute inset-0 bg-slate-900/60 backdrop-blur-md pointer-events-auto"
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              className="relative w-full max-w-md bg-white rounded-[2.5rem] p-8 shadow-2xl border border-slate-100 overflow-hidden text-slate-800 pointer-events-auto text-center"
+            >
+              <div className="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-orange-500 via-rose-500 to-amber-500"></div>
+              <div className="absolute -top-12 -right-12 w-32 h-32 rounded-full bg-orange-100/40 blur-2xl pointer-events-none" />
+
+              <div className="w-20 h-20 bg-gradient-to-tr from-orange-400 to-rose-500 rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-lg shadow-orange-200/50 animate-bounce">
+                <Trophy className="w-10 h-10 text-white fill-white" />
+              </div>
+
+              <h3 className="text-2xl font-black text-slate-800 mb-2 uppercase tracking-tight">Hoàn thành lộ trình ngày! 🎉</h3>
+              <p className="text-slate-500 font-bold text-sm leading-relaxed mb-6">
+                Tuyệt vời! Bạn đã xuất sắc hoàn thành tất cả các thẻ học mới và ôn tập theo lộ trình hôm nay.
+              </p>
+
+              <div className="grid grid-cols-2 gap-4 bg-slate-50 p-4 rounded-3xl border border-slate-100 mb-8">
+                <div className="text-center border-r border-slate-200/60">
+                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Đã Học Mới</span>
+                  <span className="text-xl font-black text-orange-600">+{roadmapStatus.new_learned_today} từ</span>
+                </div>
+                <div className="text-center">
+                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Đã Ôn Tập</span>
+                  <span className="text-xl font-black text-indigo-600">+{roadmapStatus.review_completed_today} thẻ</span>
+                </div>
+              </div>
+
+              <div className="flex flex-col gap-3">
+                <button
+                  onClick={async () => {
+                    try {
+                      const nextNewTarget = roadmapStatus.roadmap_daily_new + 5;
+                      await axios.post(`/api/v1/deck/${id}/practice-settings`, {
+                        settings: { roadmap_daily_new: nextNewTarget },
+                        is_creator: false
+                      });
+                      const updated = await fetchRoadmapStatus();
+                      setShowRoadmapCompleteModal(false);
+                      if (updated) {
+                        handleNext();
+                      }
+                    } catch (e) {
+                      console.error("Failed to update daily new cards limit:", e);
+                    }
+                  }}
+                  className="py-4 bg-gradient-to-r from-orange-500 to-rose-500 hover:from-orange-600 hover:to-rose-600 text-white font-black text-xs uppercase tracking-widest rounded-2xl shadow-lg shadow-orange-100 active:scale-95 transition-all"
+                >
+                  HỌC THÊM 5 TỪ MỚI 🚀
+                </button>
+                <button
+                  onClick={() => {
+                    setShowRoadmapCompleteModal(false);
+                    navigate('/');
+                  }}
+                  className="py-4 bg-slate-900 hover:bg-slate-800 text-white font-black text-xs uppercase tracking-widest rounded-2xl shadow-lg active:scale-95 transition-all"
+                >
+                  TRỞ VỀ TRANG CHỦ 🏠
+                </button>
+              </div>
+            </motion.div>
+          </div>
         )}
       </AnimatePresence>
     </div>

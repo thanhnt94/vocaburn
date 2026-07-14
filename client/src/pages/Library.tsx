@@ -654,30 +654,30 @@ export default function Library() {
                              </div>
                          </div>
                          <div className="flex items-center gap-2">
-                           <Link 
-                              to={`/flashcard/${quiz.id}/play?mode=new`} 
+                            <Link 
+                              to={`/flashcard/${quiz.id}/play?mode=roadmap`} 
                               className="w-9 h-9 rounded-xl bg-gradient-to-br from-orange-400 to-rose-500 hover:from-orange-500 hover:to-rose-600 text-white flex items-center justify-center shadow-md shadow-orange-100 active:scale-90 transition-all"
-                              title="Học từ mới (Learn New)"
+                              title="Học lộ trình hàng ngày"
                             >
                                <Sparkles className="w-4 h-4" />
                             </Link>
                             <Link 
                               to={`/flashcard/${quiz.id}/play?mode=fsrs`} 
                               className="w-9 h-9 rounded-xl bg-indigo-600 text-white flex items-center justify-center shadow-md shadow-indigo-200 active:scale-90 transition-all"
-                              title="Ôn tập Spaced Repetition"
+                              title="Ôn tập Spaced Repetition FSRS"
                             >
                                <Brain className="w-4 h-4" />
                             </Link>
-                           <button 
-                             onClick={() => {
-                                setSelectedPracticeQuiz(quiz)
-                                setIsPracticeModalOpen(true)
-                             }}
-                             className="w-9 h-9 rounded-xl bg-emerald-600 text-white flex items-center justify-center shadow-md shadow-emerald-200 active:scale-90 transition-all"
-                             title="Luyện tập tự do"
-                           >
+                            <button 
+                              onClick={() => {
+                                 setSelectedPracticeQuiz(quiz)
+                                 setIsPracticeModalOpen(true)
+                              }}
+                              className="w-9 h-9 rounded-xl bg-emerald-600 text-white flex items-center justify-center shadow-md shadow-emerald-200 active:scale-90 transition-all"
+                              title="Thực hành ôn tập"
+                            >
                               <Trophy className="w-4 h-4" />
-                           </button>
+                            </button>
                          </div>
                       </div>
                       

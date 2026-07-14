@@ -652,6 +652,7 @@ function TodayFocusWidget({
   data,
   activeGoals,
   todayReview,
+  roadmapDecks,
   onOpenSettings,
   onOpenDeckSettings,
   onStartPractice,
@@ -660,6 +661,7 @@ function TodayFocusWidget({
   data: GlobalGoals;
   activeGoals: ActiveGoal[] | undefined;
   todayReview: any | undefined;
+  roadmapDecks: any[] | undefined;
   onOpenSettings: () => void;
   onOpenDeckSettings: (goal: ActiveGoal) => void;
   onStartPractice: (quiz: any) => void;
@@ -813,7 +815,105 @@ function TodayFocusWidget({
 
         {/* Column 2: Targets by Deck (lg:col-span-7) */}
         <div className="lg:col-span-7 w-full flex flex-col gap-3">
-          <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 block mb-1">Targets by deck:</span>
+          {/* ROADMAP DECKS SECTION */}
+          {roadmapDecks && roadmapDecks.length > 0 && (
+            <div className="flex flex-col gap-3 w-full mb-4">
+              <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 block mb-1">Lộ trình học tập:</span>
+              <div className="flex flex-col gap-3 w-full">
+                {roadmapDecks.map((deck) => {
+                  const status = deck.status || {};
+                  const newPct = status.new_target_today > 0 ? Math.min(100, Math.round((status.new_learned_today / status.new_target_today) * 100)) : 0;
+                  const reviewPct = status.review_due_today > 0 ? Math.min(100, Math.round((status.review_completed_today / status.review_due_today) * 100)) : 0;
+                  const totalLearnedPct = status.total_cards > 0 ? Math.min(100, Math.round((status.learned_cards / status.total_cards) * 100)) : 0;
+                  
+                  return (
+                    <div key={deck.deck_id} className="p-3 md:p-4 rounded-[1.5rem] md:rounded-3xl border-none bg-white shadow-sm border border-slate-100/60 hover:shadow-[0_8px_30px_rgb(0,0,0,0.02)] transition-all duration-300 flex flex-col gap-2.5 md:gap-3 text-left relative overflow-hidden">
+                      <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-orange-400 via-rose-400 to-indigo-400" />
+                      
+                      <div className="flex gap-3 min-w-0">
+                        {deck.cover_image && (
+                          <img src={deck.cover_image} alt={deck.title} className="w-12 h-12 rounded-2xl object-cover border border-slate-100/50 shadow-sm flex-shrink-0" />
+                        )}
+                        <div className="flex-1 min-w-0">
+                          <h4 className="text-xs sm:text-sm font-black text-slate-800 truncate leading-snug">{deck.title}</h4>
+                          <p className="text-[9px] text-slate-400 truncate leading-relaxed mt-0.5">{deck.description || 'Không có mô tả'}</p>
+                          <div className="flex flex-wrap items-center gap-1.5 mt-1.5">
+                            <span className="text-[8px] font-black px-1.5 py-0.5 rounded bg-indigo-50 text-indigo-600 uppercase">
+                              Đã học: {status.learned_cards}/{status.total_cards} ({totalLearnedPct}%)
+                            </span>
+                            {status.estimated_completion_date && (
+                              <span className="text-[8px] font-black px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-600 uppercase flex items-center gap-0.5">
+                                <Target className="w-2.5 h-2.5" />
+                                Xong: {new Date(status.estimated_completion_date).toLocaleDateString('vi-VN')}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Daily quota status bars */}
+                      <div className="grid grid-cols-2 gap-3 bg-slate-50/60 p-3 rounded-2xl border border-slate-100/60">
+                        <div>
+                          <div className="flex items-center justify-between mb-1">
+                            <span className="text-[8.5px] font-black text-slate-400 uppercase tracking-wide flex items-center gap-0.5">
+                              <Sparkles className="w-2.5 h-2.5 text-orange-500" /> Học mới
+                            </span>
+                            <span className="text-[8.5px] font-black text-slate-600">{status.new_learned_today}/{status.new_target_today}</span>
+                          </div>
+                          <div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                            <div className="h-full bg-gradient-to-r from-orange-400 to-rose-400 transition-all duration-550 ease-out" style={{ width: `${newPct}%` }} />
+                          </div>
+                        </div>
+
+                        <div>
+                          <div className="flex items-center justify-between mb-1">
+                            <span className="text-[8.5px] font-black text-slate-400 uppercase tracking-wide flex items-center gap-0.5">
+                              <Brain className="w-2.5 h-2.5 text-indigo-500" /> Ôn tập
+                            </span>
+                            <span className="text-[8.5px] font-black text-slate-600">{status.review_completed_today}/{status.review_due_today}</span>
+                          </div>
+                          <div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                            <div className="h-full bg-gradient-to-r from-indigo-500 to-purple-500 transition-all duration-550 ease-out" style={{ width: `${reviewPct}%` }} />
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* actions */}
+                      <div className="flex flex-wrap items-center gap-2 justify-end mt-1">
+                        <button
+                          onClick={() => navigate(`/flashcard/${deck.deck_id}/play?mode=roadmap`)}
+                          className="h-8 px-3 rounded-xl bg-gradient-to-r from-orange-500 to-rose-500 hover:from-orange-600 hover:to-rose-600 text-[9px] font-black uppercase tracking-wider flex items-center gap-1 shadow-md shadow-orange-100 active:scale-95 transition-all cursor-pointer"
+                        >
+                          <Sparkles className="w-3.5 h-3.5" />
+                          Học lộ trình
+                        </button>
+                        
+                        <button
+                          onClick={() => navigate(`/flashcard/${deck.deck_id}/play?mode=fsrs`)}
+                          className="h-8 px-3 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-[9px] font-black uppercase tracking-wider flex items-center gap-1 shadow-md shadow-indigo-100 active:scale-95 transition-all cursor-pointer"
+                        >
+                          <Brain className="w-3.5 h-3.5" />
+                          Học FSRS
+                        </button>
+
+                        <button
+                          onClick={() => {
+                            onStartPractice({ id: deck.deck_id, title: deck.title, questions_count: status.total_cards });
+                          }}
+                          className="h-8 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-[9px] font-black uppercase tracking-wider flex items-center gap-1 shadow-md shadow-emerald-100 active:scale-95 transition-all cursor-pointer"
+                        >
+                          <Trophy className="w-3.5 h-3.5" />
+                          Thực hành
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 block mb-1">Mục tiêu theo bộ thẻ:</span>
           {!activeGoals || activeGoals.length === 0 ? (
             <div className="text-center py-6 bg-slate-50/50 rounded-2xl border border-dashed border-slate-200/80">
               <span className="text-[10px] font-bold text-slate-400">No deck targets configured yet.</span>
@@ -956,22 +1056,12 @@ function TodayFocusWidget({
 
                       <div className="flex flex-wrap items-center gap-1.5 justify-end w-full sm:w-auto">
                         <button
-                          onClick={() => {
-                            if (hasNewCards) {
-                              navigate(`/flashcard/${goal.deck_id}/play?mode=new`)
-                            }
-                          }}
-                          className={cn(
-                            "h-8 px-2.5 rounded-xl text-[9px] font-black uppercase tracking-wider flex items-center gap-1 shadow-sm active:scale-95 transition-all cursor-pointer",
-                            hasNewCards
-                              ? "bg-gradient-to-r from-orange-500 to-rose-500 hover:from-orange-600 hover:to-rose-600 text-white shadow-orange-100"
-                              : "bg-slate-100 text-slate-400 cursor-not-allowed border border-slate-200/50 shadow-none"
-                          )}
-                          disabled={!hasNewCards}
-                          title="Learn new cards"
+                          onClick={() => navigate(`/flashcard/${goal.deck_id}/play?mode=roadmap`)}
+                          className="h-8 px-2.5 rounded-xl bg-gradient-to-r from-orange-500 to-rose-500 hover:from-orange-600 hover:to-rose-600 text-white text-[9px] font-black uppercase tracking-wider flex items-center gap-1 shadow-sm shadow-orange-100 active:scale-95 transition-all cursor-pointer"
+                          title="Học theo lộ trình thông minh"
                         >
                           <Sparkles className="w-3.5 h-3.5" />
-                          New {newCountLabel > 0 && `(${newCountLabel})`}
+                          Lộ trình
                         </button>
                         <button
                           onClick={() => navigate(`/flashcard/${goal.deck_id}/play?mode=fsrs`)}
@@ -981,18 +1071,20 @@ function TodayFocusWidget({
                               ? "bg-indigo-600 hover:bg-indigo-700 text-white shadow-indigo-100"
                               : "bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200/60"
                           )}
-                          title="Spaced Repetition"
+                          title="Spaced Repetition FSRS"
                         >
                           <Brain className="w-3.5 h-3.5" />
-                          Review {dueReviews > 0 && `(${dueReviews})`}
+                          FSRS {dueReviews > 0 && `(${dueReviews})`}
                         </button>
                         <button
-                          onClick={() => navigate(`/flashcard/${goal.deck_id}/play`)}
+                          onClick={() => {
+                            onStartPractice({ id: goal.deck_id, title: goal.quiz_title, questions_count: goal.total_questions })
+                          }}
                           className="h-8 px-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-[9px] font-black uppercase tracking-wider flex items-center gap-1 shadow-sm shadow-emerald-100 active:scale-95 transition-all cursor-pointer"
-                          title="Free practice"
+                          title="Ôn tập thực hành"
                         >
                           <Trophy className="w-3.5 h-3.5" />
-                          Practice
+                          Thực hành
                         </button>
                       </div>
                     </div>
@@ -1420,6 +1512,14 @@ export default function Dashboard() {
     queryFn: async () => {
       const res = await axios.get('/api/v1/deck/goals/active', { params: { local_date: todayStr } })
       return res.data
+    }
+  })
+
+  const { data: roadmapDecks, isLoading: isRoadmapDecksLoading, refetch: refetchRoadmapDecks } = useQuery<any[]>({
+    queryKey: ['roadmapDecks'],
+    queryFn: async () => {
+      const res = await axios.get('/api/v1/deck/roadmap/decks')
+      return res.data?.decks || []
     }
   })
 
@@ -1855,6 +1955,7 @@ export default function Dashboard() {
               data={globalGoals}
               activeGoals={activeGoals}
               todayReview={todayReview}
+                    roadmapDecks={roadmapDecks}
               onOpenSettings={() => setIsGoalModalOpen(true)}
               onOpenDeckSettings={handleOpenDeckGoalSettings}
               onStartPractice={(quiz) => {
@@ -1884,6 +1985,7 @@ export default function Dashboard() {
             data={globalGoals}
             activeGoals={activeGoals}
             todayReview={todayReview}
+                    roadmapDecks={roadmapDecks}
             onOpenSettings={() => setIsGoalModalOpen(true)}
             onOpenDeckSettings={handleOpenDeckGoalSettings}
             onStartPractice={(quiz) => {
