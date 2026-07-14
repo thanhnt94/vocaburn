@@ -115,9 +115,25 @@ class ExcelDeckService:
                     elif key == "tags": metadata["tags"] = [t.strip() for t in value.split(",") if t.strip()]
                     elif key == "practice_settings":
                         try:
-                            metadata["practice_settings"] = json.loads(value)
+                            parsed = json.loads(value)
+                            if isinstance(parsed, dict):
+                                if "practice_settings" not in metadata or not isinstance(metadata["practice_settings"], dict):
+                                    metadata["practice_settings"] = {}
+                                metadata["practice_settings"].update(parsed)
                         except:
                             pass
+                    elif key in ("custom_columns", "insight_columns", "ai_prompts", "mcq", "typing", "listening"):
+                        try:
+                            parsed_val = json.loads(value)
+                        except:
+                            if key in ("custom_columns", "insight_columns"):
+                                parsed_val = [t.strip() for t in value.split(",") if t.strip()]
+                            else:
+                                parsed_val = value
+                        
+                        if "practice_settings" not in metadata or not isinstance(metadata["practice_settings"], dict):
+                            metadata["practice_settings"] = {}
+                        metadata["practice_settings"][key] = parsed_val
                     elif key == "time_limit": 
                         try: metadata["time_limit"] = int(float(value))
                         except: pass
@@ -269,6 +285,15 @@ class ExcelDeckService:
         if practice_settings:
             info_data.append({"key": "practice_settings", "value": json.dumps(practice_settings, ensure_ascii=False)})
             
+            for sub_key in ["custom_columns", "insight_columns", "ai_prompts", "mcq", "typing", "listening"]:
+                if sub_key in practice_settings:
+                    val = practice_settings[sub_key]
+                    if isinstance(val, (dict, list)):
+                        val_str = json.dumps(val, ensure_ascii=False)
+                    else:
+                        val_str = str(val)
+                    info_data.append({"key": sub_key, "value": val_str})
+                    
             active_pairs = practice_settings.get("active_pairs", [])
             num_choices = practice_settings.get("num_choices", 4)
             if active_pairs:
