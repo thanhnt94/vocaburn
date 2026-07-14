@@ -1618,7 +1618,68 @@ async def get_next_card(request: Request, deck_id: int, data: dict, db: AsyncSes
             
     effective_answered = set(answered_indexes) | ignored_indexes
         
-    if mode == "fsrs":
+    if mode == "roadmap":
+        from app.modules.deck.models import UserDeckSettings
+        user_sett_res = await db.execute(
+            select(UserDeckSettings).where(
+                UserDeckSettings.user_id == user_id,
+                UserDeckSettings.deck_id == deck_id
+            )
+        )
+        user_sett = user_sett_res.scalar_one_or_none()
+        settings = user_sett.settings if (user_sett and user_sett.settings) else {}
+        roadmap_daily_new = int(settings.get("roadmap_daily_new", 10))
+        
+        today_start = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
+        from app.modules.deck.models import UserAnswer, DeckAttempt
+        min_answer_sub = select(
+            UserAnswer.card_id,
+            func.min(UserAnswer.created_at).label("min_created")
+        ).join(DeckAttempt, UserAnswer.attempt_id == DeckAttempt.id)\
+        .where(DeckAttempt.user_id == user_id)\
+        .group_by(UserAnswer.card_id).subquery()
+        
+        new_learned_today = await db.scalar(
+            select(func.count(min_answer_sub.c.card_id))
+            .join(Flashcard, min_answer_sub.c.card_id == Flashcard.id)
+            .where(
+                Flashcard.deck_id == deck_id,
+                min_answer_sub.c.min_created >= today_start
+            )
+        ) or 0
+        
+        if new_learned_today < roadmap_daily_new:
+            for idx, c in enumerate(deck.cards):
+                if idx in ignored_indexes:
+                    continue
+                m = mastery_map.get(c.id)
+                is_new = not m or m.state == 0 or m.stability is None
+                if is_new and idx not in effective_answered:
+                    return {"next_index": idx, "phase": "new"}
+                    
+        now_utc = datetime.utcnow()
+        due_cards = []
+        for idx, c in enumerate(deck.cards):
+            if idx in ignored_indexes:
+                continue
+            m = mastery_map.get(c.id)
+            if not m or m.state == 0 or m.stability is None:
+                continue
+            is_due = (m.due - timedelta(seconds=30)) <= now_utc
+            if is_due and idx not in answered_indexes:
+                due_cards.append({"idx": idx, "stability": m.stability or 0.0})
+                
+        if due_cards:
+            due_cards.sort(key=lambda x: x["stability"])
+            return {"next_index": due_cards[0]["idx"], "phase": "review"}
+            
+        for idx in range(total):
+            if idx not in effective_answered:
+                return {"next_index": idx, "phase": "free"}
+                
+        return {"next_index": min(current_index + 1, total - 1), "phase": "free"}
+
+    elif mode == "fsrs":
         now_utc = datetime.utcnow()
         
         due_cards = []
