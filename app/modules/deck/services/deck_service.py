@@ -27,11 +27,14 @@ class DeckService:
         db_card = Flashcard(
             deck_id=deck_id,
             content=card_data.content,
-            image=card_data.image,
-            audio=card_data.audio,
+            front_audio_content=card_data.front_audio_content,
+            back_audio_content=card_data.back_audio_content,
+            front_audio_url=card_data.front_audio_url or card_data.audio,
+            back_audio_url=card_data.back_audio_url,
+            front_img=card_data.front_img,
+            back_img=card_data.back_img,
             question_type=card_data.question_type,
             explanation=card_data.explanation,
-            ai_explanation=card_data.ai_explanation,
             others=card_data.others
         )
         db.add(db_card)
@@ -46,11 +49,14 @@ class DeckService:
             db_card = Flashcard(
                 deck_id=deck_id,
                 content=c_data.content,
-                image=c_data.image,
-                audio=c_data.audio,
+                front_audio_content=c_data.front_audio_content,
+                back_audio_content=c_data.back_audio_content,
+                front_audio_url=c_data.front_audio_url or c_data.audio,
+                back_audio_url=c_data.back_audio_url,
+                front_img=c_data.front_img,
+                back_img=c_data.back_img,
                 question_type=c_data.question_type,
                 explanation=c_data.explanation,
-                ai_explanation=c_data.ai_explanation,
                 others=c_data.others
             )
             db_cards.append(db_card)
