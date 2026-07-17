@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
 import { useQuery, useInfiniteQuery, useQueryClient } from '@tanstack/react-query'
-import { ChevronLeft, Award, BookOpen, Search, StickyNote, BarChart2, Settings, Edit2, X, Save, Brain, HelpCircle, Plus, Sparkles, Trophy, Layers } from 'lucide-react'
+import { ChevronLeft, Award, BookOpen, Search, StickyNote, BarChart2, Settings, Edit2, X, Save, Brain, HelpCircle, Plus, Sparkles, Trophy, Layers, RotateCcw } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import axios from 'axios'
 import { cn } from '@/lib/utils'
@@ -455,55 +455,37 @@ export default function QuizDetail() {
 
       {/* Action Bar */}
       <div className="fixed bottom-0 left-0 right-0 p-4 md:p-8 bg-white/80 backdrop-blur-2xl border-t border-slate-100 z-[130] shadow-[0_-10px_40px_rgba(0,0,0,0.05)]">
-        <div className="max-w-5xl mx-auto flex flex-col md:flex-row gap-3">
-          {sessionData && (Object.keys(sessionData.state || {}).length > 0 || sessionData.current_index > 0) ? (
-            <>
-              <button 
-                onClick={async () => {
+        <div className="max-w-5xl mx-auto flex gap-3">
+          {sessionData && (Object.keys(sessionData.state || {}).length > 0 || sessionData.current_index > 0) && (
+            <button 
+              onClick={async () => {
+                if (window.confirm("Bạn có chắc chắn muốn làm mới/xoá tiến trình học hiện tại không?")) {
                   await axios.delete(`/api/v1/deck/${id}/session`)
-                  // Refresh the query to update UI
                   queryClient.invalidateQueries({ queryKey: ['quiz-session', id] })
-                  navigate(`/flashcard/${id}/play?mode=fsrs`)
-                }}
-                className="flex-1 py-5 bg-white border-2 border-rose-100 text-rose-600 font-black text-xs md:text-sm rounded-2xl active:scale-95 transition-all tracking-widest uppercase flex items-center justify-center gap-2"
-              >
-                LÀM MỚI FSRS (RESET)
-              </button>
-              <button 
-                onClick={() => navigate(`/flashcard/${id}/play?mode=new`)}
-                className="flex-1 py-5 bg-gradient-to-r from-orange-500 to-rose-500 hover:from-orange-600 hover:to-rose-600 text-white font-black text-xs md:text-sm rounded-2xl shadow-xl shadow-orange-500/20 active:scale-95 transition-all tracking-widest uppercase flex items-center justify-center gap-2"
-              >
-                <Sparkles className="w-4.5 h-4.5" /> HỌC MỚI (NEW)
-              </button>
-              <button 
-                onClick={() => navigate(`/flashcard/${id}/play?mode=fsrs`)}
-                className="flex-[1.5] py-5 bg-indigo-600 text-white font-black text-xs md:text-sm rounded-2xl shadow-xl shadow-indigo-500/20 active:scale-95 transition-all tracking-widest uppercase flex items-center justify-center gap-2"
-              >
-                <Brain className="w-4.5 h-4.5" /> TIẾP TỤC HỌC (FSRS)
-              </button>
-            </>
-          ) : (
-            <>
-              <button 
-                onClick={() => navigate(`/flashcard/${id}/play?mode=new`)}
-                className="flex-1 py-5 bg-gradient-to-r from-orange-500 to-rose-500 hover:from-orange-600 hover:to-rose-600 text-white font-black text-xs md:text-sm rounded-2xl shadow-xl shadow-orange-500/20 active:scale-95 transition-all tracking-widest uppercase flex items-center justify-center gap-2"
-              >
-                <Sparkles className="w-4.5 h-4.5" /> HỌC MỚI (NEW)
-              </button>
-              <button 
-                onClick={() => navigate(`/flashcard/${id}/play?mode=fsrs`)}
-                className="flex-1 py-5 bg-indigo-600 text-white font-black text-xs md:text-sm rounded-2xl shadow-xl shadow-indigo-500/20 active:scale-95 transition-all tracking-widest uppercase flex items-center justify-center gap-2"
-              >
-                <Brain className="w-4.5 h-4.5" /> ÔN TẬP (FSRS)
-              </button>
-            </>
+                }
+              }}
+              className="w-14 h-14 bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-600 rounded-2xl flex items-center justify-center transition-all shrink-0 active:scale-95"
+              title="Làm mới tiến trình (Reset)"
+            >
+              <RotateCcw className="w-5 h-5" />
+            </button>
           )}
 
           <button 
-            onClick={() => navigate(`/practice/${id}`)}
-            className="flex-1 py-5 bg-emerald-600 text-white font-black text-xs md:text-sm rounded-2xl shadow-xl shadow-emerald-500/20 active:scale-95 transition-all tracking-widest uppercase flex items-center justify-center gap-2"
+            onClick={() => {
+              const savedMode = localStorage.getItem('quiz_learning_mode') || 'fsrs'
+              navigate(`/flashcard/${id}/play?mode=${savedMode}`)
+            }}
+            className="flex-1 py-5 bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xs md:text-sm rounded-2xl shadow-xl shadow-indigo-500/20 active:scale-95 transition-all tracking-widest uppercase flex items-center justify-center gap-2"
           >
-            <Trophy className="w-4.5 h-4.5" /> LUYỆN TẬP (PRACTICE)
+            <Brain className="w-4.5 h-4.5" /> HỌC FLASHCARD
+          </button>
+
+          <button 
+            onClick={() => navigate(`/practice/${id}`)}
+            className="flex-1 py-5 bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs md:text-sm rounded-2xl shadow-xl shadow-emerald-500/20 active:scale-95 transition-all tracking-widest uppercase flex items-center justify-center gap-2"
+          >
+            <Trophy className="w-4.5 h-4.5" /> LUYỆN TẬP
           </button>
         </div>
       </div>
