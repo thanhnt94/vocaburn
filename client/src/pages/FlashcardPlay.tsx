@@ -3172,7 +3172,8 @@ export default function FlashcardPlay() {
     setIsFlipped,
     setShowFeedback,
     showImages,
-    setShowImages
+    setShowImages,
+    activeMode
   });
 
   if (!session || currentIndex < 0) return <div className="min-h-screen flex items-center justify-center font-black animate-pulse">LOADING SESSION...</div>
@@ -4263,13 +4264,15 @@ export default function FlashcardPlay() {
 
 
                     {/* FSRS Buttons Grid (Visible inside card back, hidden after rating until it unlocks) */}
-                    <FSRSActionButtons
-                      isFlipped={isFlipped}
-                      hasRated={hasRated}
-                      selectedOption={selectedOption}
-                      intervals={currentQuestion?.fsrs?.intervals}
-                      onRate={handleReviewRating}
-                    />
+                    {activeMode !== 'flip' && (
+                      <FSRSActionButtons
+                        isFlipped={isFlipped}
+                        hasRated={hasRated}
+                        selectedOption={selectedOption}
+                        intervals={currentQuestion?.fsrs?.intervals}
+                        onRate={handleReviewRating}
+                      />
+                    )}
 
                     {/* After rating: show colorful dynamic rated badge with real-time unlocking countdown */}
                     {isFlipped && hasRated && selectedOption !== null && selectedOption !== undefined && (() => {
@@ -4552,7 +4555,7 @@ export default function FlashcardPlay() {
                   </div>
                 )
               ) : (
-                !hasRated ? (
+                (!hasRated && activeMode !== 'flip') || (activeMode === 'flip' && !isFlipped) ? (
                   <button 
                     onClick={() => {
                       const nextFlipped = !isFlipped;

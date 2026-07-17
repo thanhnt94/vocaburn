@@ -8,7 +8,7 @@ interface Pair {
 }
 
 interface PracticeSetupScreenProps {
-  practiceSubMode: 'mcq' | 'typing' | 'listening' | 'flip'
+  practiceSubMode: 'mcq' | 'typing' | 'listening'
   setupPairs: Pair[]
   setSetupPairs: (pairs: Pair[]) => void
   availableColumns: string[]
@@ -38,7 +38,7 @@ export const PracticeSetupScreen: React.FC<PracticeSetupScreenProps> = ({
             <Sliders className="w-7 h-7" />
           </div>
           <h2 className="text-xl font-black text-slate-800">
-            Practice Settings: {practiceSubMode === 'mcq' ? 'Multiple Choice' : practiceSubMode === 'typing' ? 'Typing' : practiceSubMode === 'listening' ? 'Listening' : 'Rapid Flip'}
+            Practice Settings: {practiceSubMode === 'mcq' ? 'Multiple Choice' : practiceSubMode === 'typing' ? 'Typing' : 'Listening'}
           </h2>
           <p className="text-xs text-slate-400 mt-1">Select the column pairs you want to use as questions and answers.</p>
         </div>

@@ -1,5 +1,5 @@
 import React from 'react'
-import { Sliders, Brain, Sparkles, ListOrdered, Shuffle, EyeOff, AlertCircle, TrendingUp, Copy, Eye, Edit3, LogOut, Volume2, Music, Zap, Image, Settings, BookOpen } from 'lucide-react'
+import { Sliders, Brain, Sparkles, ListOrdered, Shuffle, EyeOff, AlertCircle, TrendingUp, Copy, Eye, Edit3, LogOut, Volume2, Music, Zap, Image, Settings, BookOpen, RotateCcw } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useNavigate, useParams } from 'react-router-dom'
 import { cn } from '@/lib/utils'
@@ -125,7 +125,8 @@ export const PlaySettingsModal: React.FC<PlaySettingsModalProps> = ({
                         { id: 'random', label: 'Ngẫu nhiên', icon: Shuffle },
                         { id: 'unseen', label: 'Chưa học', icon: EyeOff },
                         { id: 'review', label: 'Ôn tập', icon: AlertCircle },
-                        { id: 'hardest', label: 'Khó nhất', icon: TrendingUp }
+                        { id: 'hardest', label: 'Khó nhất', icon: TrendingUp },
+                        { id: 'flip', label: 'Lật nhanh', icon: RotateCcw }
                       ].map(m => {
                         const IconComp = m.icon;
                         const active = activeMode === m.id;

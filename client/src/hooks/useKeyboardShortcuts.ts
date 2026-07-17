@@ -21,6 +21,7 @@ interface KeyboardShortcutsParams {
   setShowFeedback: (show: boolean) => void;
   showImages: boolean;
   setShowImages: (show: boolean) => void;
+  activeMode?: string;
 }
 
 export function useKeyboardShortcuts(params: KeyboardShortcutsParams) {
@@ -44,7 +45,8 @@ export function useKeyboardShortcuts(params: KeyboardShortcutsParams) {
     setIsFlipped,
     setShowFeedback,
     showImages,
-    setShowImages
+    setShowImages,
+    activeMode
   } = params;
 
   useEffect(() => {
@@ -131,7 +133,7 @@ export function useKeyboardShortcuts(params: KeyboardShortcutsParams) {
       } 
       // Handle next card (Enter or N)
       else if (e.key === 'Enter' || key === 'n') {
-        if (hasRated) {
+        if (hasRated || activeMode === 'flip') {
           e.preventDefault();
           handleNext();
         }
@@ -168,6 +170,7 @@ export function useKeyboardShortcuts(params: KeyboardShortcutsParams) {
     setIsFlipped,
     setShowFeedback,
     showImages,
-    setShowImages
+    setShowImages,
+    activeMode
   ]);
 }
