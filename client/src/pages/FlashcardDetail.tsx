@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
 import { useQuery, useInfiniteQuery, useQueryClient } from '@tanstack/react-query'
-import { ChevronLeft, Award, BookOpen, Search, StickyNote, BarChart2, Settings, Edit2, X, Save, Brain, HelpCircle, Plus, Sparkles, Trophy, Layers, RotateCcw } from 'lucide-react'
+import { ChevronLeft, Award, BookOpen, Search, StickyNote, BarChart2, Settings, Edit2, X, Save, Brain, HelpCircle, Plus, Sparkles, Trophy, Layers, RotateCcw, Compass, Flame, Target } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import axios from 'axios'
 import { cn } from '@/lib/utils'
@@ -33,6 +33,12 @@ export default function QuizDetail() {
   const [quickAddBack, setQuickAddBack] = useState('')
   const [isQuickAdding, setIsQuickAdding] = useState(false)
   const [collaborators, setCollaborators] = useState<any[]>([])
+
+  const [dailyNewInput, setDailyNewInput] = useState(10)
+  const [dailyReviewInput, setDailyReviewInput] = useState(50)
+  const [isSavingRoadmapSettings, setIsSavingRoadmapSettings] = useState(false)
+  const [isRoadmapSettingsOpen, setIsRoadmapSettingsOpen] = useState(false)
+
 
   const handleQuickAddCard = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -138,6 +144,41 @@ export default function QuizDetail() {
     }
   })
 
+  const { data: roadmapStatus, refetch: refetchRoadmapStatus } = useQuery({
+    queryKey: ['quiz-roadmap-status', id],
+    queryFn: async () => {
+      const res = await axios.get(`/api/v1/deck/${id}/roadmap-status`)
+      return res.data
+    }
+  })
+
+  useEffect(() => {
+    if (roadmapStatus) {
+      setDailyNewInput(roadmapStatus.roadmap_daily_new || 10)
+      setDailyReviewInput(roadmapStatus.roadmap_daily_review_max || 50)
+    }
+  }, [roadmapStatus])
+
+  const handleSaveRoadmap = async (active: boolean) => {
+    setIsSavingRoadmapSettings(true)
+    try {
+      await axios.post(`/api/v1/deck/${id}/practice-settings`, {
+        settings: {
+          roadmap_active: active,
+          roadmap_daily_new: dailyNewInput,
+          roadmap_daily_review_max: dailyReviewInput
+        },
+        is_creator: false
+      })
+      refetchRoadmapStatus()
+      setIsRoadmapSettingsOpen(false)
+    } catch (e) {
+      console.error("Error updating roadmap settings", e)
+    } finally {
+      setIsSavingRoadmapSettings(false)
+    }
+  }
+
   const { 
     data: questionsData, 
     fetchNextPage, 
@@ -234,6 +275,244 @@ export default function QuizDetail() {
             </div>
           </div>
         </div>
+
+        {/* Roadmap Widget */}
+        {roadmapStatus && (
+          <div className="px-6 max-w-5xl mx-auto mb-8 animate-in fade-in slide-in-from-bottom-4 duration-300">
+            <div className="bg-white rounded-[2.5rem] p-6 md:p-8 shadow-sm border border-slate-100 relative overflow-hidden text-left">
+              <div className="flex items-center justify-between gap-4 mb-6">
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-xl bg-indigo-50 flex items-center justify-center text-indigo-650">
+                    <Compass className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="text-xs md:text-sm font-black text-slate-900 uppercase tracking-widest leading-none">Lộ trình học tập</h3>
+                    <p className="text-[9px] font-bold text-slate-400 mt-1">Mục tiêu học tập phân bổ theo ngày</p>
+                  </div>
+                </div>
+
+                {roadmapStatus.roadmap_active && (
+                  <button
+                    onClick={() => setIsRoadmapSettingsOpen(true)}
+                    className="w-8 h-8 rounded-lg bg-white border border-slate-150 flex items-center justify-center text-slate-450 hover:text-indigo-600 transition-all active:scale-90"
+                    title="Cấu hình lộ trình"
+                  >
+                    <Settings className="w-4 h-4" />
+                  </button>
+                )}
+              </div>
+
+              {!roadmapStatus.roadmap_active ? (
+                <div className="p-6 md:p-8 rounded-[1.75rem] bg-indigo-50/40 border border-indigo-100/50 flex flex-col md:flex-row items-center justify-between gap-6">
+                  <div className="flex-1 text-center md:text-left">
+                    <span className="text-[10px] font-black text-indigo-600 uppercase tracking-widest block mb-1">Tính năng thông minh</span>
+                    <h4 className="text-base font-black text-slate-800 leading-snug">Chưa kích hoạt Lộ trình học</h4>
+                    <p className="text-xs text-slate-500 font-medium mt-1 max-w-xl">Hệ thống sẽ tự động tính toán số thẻ học mới và ôn tập mỗi ngày dựa theo tốc độ mong muốn để bạn hoàn thành đúng hạn.</p>
+                  </div>
+
+                  <div className="flex items-center gap-3 flex-shrink-0">
+                    <div className="flex flex-col gap-1 text-left">
+                      <span className="text-[8px] font-black text-slate-400 uppercase tracking-wider block">Học mới/ngày</span>
+                      <input
+                        type="number"
+                        min="1"
+                        value={dailyNewInput}
+                        onChange={(e) => setDailyNewInput(Math.max(1, parseInt(e.target.value) || 1))}
+                        className="w-16 h-8 px-2 bg-white border border-slate-200 rounded-lg text-xs font-bold text-center outline-none focus:border-indigo-500"
+                      />
+                    </div>
+                    <button
+                      onClick={() => handleSaveRoadmap(true)}
+                      disabled={isSavingRoadmapSettings}
+                      className="h-10 px-5 bg-indigo-600 hover:bg-indigo-750 text-white text-xs font-black uppercase tracking-wider rounded-xl shadow-md shadow-indigo-150 transition-all active:scale-95 disabled:opacity-50"
+                    >
+                      Kích hoạt
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-6">
+                  {/* Quotas grid */}
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    {/* Progress Card */}
+                    <div className="p-4 rounded-2xl bg-slate-50 border border-slate-100 flex flex-col justify-between">
+                      <div>
+                        <span className="text-[8px] font-black text-slate-400 uppercase tracking-wider block mb-1">TIẾN ĐỘ CHUNG</span>
+                        <h5 className="text-xl font-black text-slate-800 leading-none">
+                          {roadmapStatus.learned_cards} / {roadmapStatus.total_cards}
+                        </h5>
+                        <span className="text-[9px] font-bold text-slate-400 mt-1 block">từ đã học được lưu vào bộ nhớ</span>
+                      </div>
+                      <div className="w-full h-2 bg-slate-200 rounded-full overflow-hidden mt-3">
+                        <div
+                          className="h-full bg-gradient-to-r from-indigo-500 to-purple-500 rounded-full transition-all"
+                          style={{ width: `${roadmapStatus.total_cards > 0 ? Math.round((roadmapStatus.learned_cards / roadmapStatus.total_cards) * 100) : 0}%` }}
+                        />
+                      </div>
+                    </div>
+
+                    {/* Streak & Est Date Card */}
+                    <div className="p-4 rounded-2xl bg-slate-50 border border-slate-100 flex flex-col justify-between">
+                      <div>
+                        <span className="text-[8px] font-black text-slate-400 uppercase tracking-wider block mb-1">DỰ KIẾN HOÀN THÀNH</span>
+                        <h5 className="text-base font-black text-slate-850 leading-none flex items-center gap-1.5">
+                          <Target className="w-4 h-4 text-emerald-500 animate-pulse" />
+                          {roadmapStatus.estimated_completion_date ? new Date(roadmapStatus.estimated_completion_date).toLocaleDateString('vi-VN') : 'N/A'}
+                        </h5>
+                        <span className="text-[9px] font-bold text-slate-400 mt-1 block">
+                          còn khoảng {roadmapStatus.days_left} ngày học đều đặn
+                        </span>
+                      </div>
+
+                      {roadmapStatus.streak > 0 ? (
+                        <div className="mt-3 flex items-center gap-1">
+                          <span className="text-[9px] font-black text-orange-650 bg-orange-50 px-2 py-0.5 rounded-lg flex items-center gap-0.5 shadow-sm">
+                            🔥 {roadmapStatus.streak} ngày liên tiếp
+                          </span>
+                        </div>
+                      ) : (
+                        <span className="text-[8px] font-bold text-slate-450 mt-3 block">Chưa có chuỗi streak học</span>
+                      )}
+                    </div>
+
+                    {/* Today Progress Map */}
+                    <div className="p-4 rounded-2xl bg-slate-50 border border-slate-100 flex flex-col justify-between">
+                      <span className="text-[8px] font-black text-slate-400 uppercase tracking-wider block mb-2">MỤC TIÊU HÔM NAY</span>
+                      <div className="space-y-2">
+                        {/* New cards target */}
+                        <div>
+                          <div className="flex items-center justify-between text-[9px] font-bold text-slate-500 mb-0.5">
+                            <span>Học mới:</span>
+                            <span className="font-black text-slate-700">{roadmapStatus.new_learned_today} / {roadmapStatus.new_target_today}</span>
+                          </div>
+                          <div className="w-full h-1.5 bg-slate-200 rounded-full overflow-hidden">
+                            <div
+                              className="h-full bg-gradient-to-r from-orange-400 to-rose-400 rounded-full transition-all"
+                              style={{ width: `${roadmapStatus.new_target_today > 0 ? Math.min(100, Math.round((roadmapStatus.new_learned_today / roadmapStatus.new_target_today) * 100)) : 0}%` }}
+                            />
+                          </div>
+                        </div>
+
+                        {/* Review cards target */}
+                        <div>
+                          <div className="flex items-center justify-between text-[9px] font-bold text-slate-500 mb-0.5">
+                            <span>Ôn tập:</span>
+                            <span className="font-black text-slate-700">{roadmapStatus.review_completed_today} / {roadmapStatus.review_due_today}</span>
+                          </div>
+                          <div className="w-full h-1.5 bg-slate-200 rounded-full overflow-hidden">
+                            <div
+                              className="h-full bg-gradient-to-r from-indigo-500 to-purple-500 rounded-full transition-all"
+                              style={{ width: `${roadmapStatus.review_due_today > 0 ? Math.min(100, Math.round((roadmapStatus.review_completed_today / roadmapStatus.review_due_today) * 100)) : 0}%` }}
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* 7-day Activity Calendar */}
+                  {roadmapStatus.seven_days && roadmapStatus.seven_days.length > 0 && (
+                    <div className="pt-3 border-t border-slate-100">
+                      <span className="text-[8px] font-black text-slate-400 uppercase tracking-wider block mb-2">LỊCH SỬ CHINH PHỤC 7 NGÀY QUA</span>
+                      <div className="grid grid-cols-7 gap-2">
+                        {roadmapStatus.seven_days.map((day: any) => {
+                          const dateObj = new Date(day.date);
+                          const formattedDate = dateObj.toLocaleDateString('vi-VN', { day: 'numeric', month: 'numeric' });
+                          return (
+                            <div key={day.date} className="flex flex-col items-center gap-1.5 p-2 rounded-xl bg-slate-50/50 border border-slate-100/50">
+                              <span className="text-[7.5px] font-black text-slate-450 uppercase">{day.day_name}</span>
+                              <div className={cn(
+                                "w-7 h-7 rounded-full flex items-center justify-center shadow-sm transition-all duration-300",
+                                day.active
+                                  ? "bg-amber-500 text-white scale-105"
+                                  : "bg-slate-100 text-slate-300"
+                              )}>
+                                {day.active ? (
+                                  <Flame className="w-4.5 h-4.5 fill-white text-white" />
+                                ) : (
+                                  <span className="text-[8px] font-black text-slate-400">{dateObj.getDate()}</span>
+                                )}
+                              </div>
+                              <span className="text-[7.5px] font-bold text-slate-400 leading-none">{formattedDate}</span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Roadmap Settings Modal */}
+        <AnimatePresence>
+          {isRoadmapSettingsOpen && (
+            <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4">
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                onClick={() => setIsRoadmapSettingsOpen(false)}
+                className="absolute inset-0 bg-slate-900/60 backdrop-blur-md"
+              />
+              <motion.div
+                initial={{ opacity: 0, scale: 0.9, y: 20 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.9, y: 20 }}
+                className="relative w-full max-w-sm bg-white rounded-[2rem] p-6 shadow-2xl border border-slate-100/60 overflow-hidden text-slate-800"
+              >
+                <div className="flex items-center justify-between mb-6">
+                  <h3 className="text-base font-black text-slate-800 uppercase tracking-widest">🎯 Cài đặt lộ trình</h3>
+                  <button onClick={() => setIsRoadmapSettingsOpen(false)} className="w-8 h-8 rounded-full bg-slate-50 flex items-center justify-center text-slate-400 hover:text-rose-500 transition-all">
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+                
+                <div className="space-y-4 mb-6 text-left">
+                  <div>
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-2">Số từ học mới mỗi ngày</label>
+                    <input
+                      type="number"
+                      min="1"
+                      value={dailyNewInput}
+                      onChange={(e) => setDailyNewInput(Math.max(1, parseInt(e.target.value) || 1))}
+                      className="w-full px-4 py-3 bg-slate-50 border border-slate-100 rounded-xl text-sm font-semibold outline-none focus:ring-4 focus:ring-indigo-500/5 focus:border-indigo-500 transition-all"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-2">Số thẻ ôn tập tối đa mỗi ngày</label>
+                    <input
+                      type="number"
+                      min="1"
+                      value={dailyReviewInput}
+                      onChange={(e) => setDailyReviewInput(Math.max(1, parseInt(e.target.value) || 1))}
+                      className="w-full px-4 py-3 bg-slate-50 border border-slate-100 rounded-xl text-sm font-semibold outline-none focus:ring-4 focus:ring-indigo-500/5 focus:border-indigo-500 transition-all"
+                    />
+                  </div>
+                </div>
+                
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => handleSaveRoadmap(false)}
+                    disabled={isSavingRoadmapSettings}
+                    className="flex-1 h-12 bg-rose-50 hover:bg-rose-100 text-rose-600 rounded-2xl font-black text-xs uppercase tracking-widest transition-all"
+                  >
+                    Tắt lộ trình
+                  </button>
+                  <button
+                    onClick={() => handleSaveRoadmap(true)}
+                    disabled={isSavingRoadmapSettings}
+                    className="flex-1 h-12 bg-indigo-650 hover:bg-indigo-755 text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-lg shadow-indigo-150 transition-all"
+                  >
+                    Lưu cấu hình
+                  </button>
+                </div>
+              </motion.div>
+            </div>
+          )}
+        </AnimatePresence>
 
         {/* Deck Mastery Distribution Widget */}
         {masteryData && (

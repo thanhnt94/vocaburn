@@ -2443,6 +2443,47 @@ async def get_deck_roadmap_status_helper(db: AsyncSession, user_id: int, deck_id
             UserCardMastery.due <= datetime.utcnow()
         )
     ) or 0
+
+    # Calculate streak and 7-day activity map
+    from sqlalchemy import Date, cast
+    active_dates_res = await db.execute(
+        select(cast(UserAnswer.created_at, Date))
+        .join(DeckAttempt, UserAnswer.attempt_id == DeckAttempt.id)
+        .join(Flashcard, UserAnswer.card_id == Flashcard.id)
+        .where(
+            DeckAttempt.user_id == user_id,
+            Flashcard.deck_id == deck_id
+        )
+        .group_by(cast(UserAnswer.created_at, Date))
+        .order_by(cast(UserAnswer.created_at, Date).desc())
+    )
+    active_dates = [row[0] for row in active_dates_res.all()]
+
+    streak = 0
+    if active_dates:
+        today_date = datetime.utcnow().date()
+        yesterday_date = today_date - timedelta(days=1)
+        if active_dates[0] == today_date or active_dates[0] == yesterday_date:
+            streak = 1
+            current_date = active_dates[0]
+            for date_val in active_dates[1:]:
+                if (current_date - date_val).days == 1:
+                    streak += 1
+                    current_date = date_val
+                elif (current_date - date_val).days == 0:
+                    continue
+                else:
+                    break
+
+    today_date = datetime.utcnow().date()
+    seven_days = []
+    for i in range(6, -1, -1):
+        d = today_date - timedelta(days=i)
+        seven_days.append({
+            "date": d.strftime("%Y-%m-%d"),
+            "day_name": d.strftime("%a"),
+            "active": d in active_dates
+        })
     
     return {
         "roadmap_active": roadmap_active,
@@ -2456,7 +2497,9 @@ async def get_deck_roadmap_status_helper(db: AsyncSession, user_id: int, deck_id
         "new_learned_today": new_learned_today,
         "new_target_today": roadmap_daily_new,
         "review_completed_today": review_completed_today,
-        "review_due_today": review_due_today
+        "review_due_today": review_due_today,
+        "streak": streak,
+        "seven_days": seven_days
     }
 
 

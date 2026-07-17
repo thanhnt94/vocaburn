@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { Brain, Trophy, ChevronRight, LayoutGrid, Users, Zap, Flame, BrainCircuit, X, Play, Crown, Medal, Star, CheckCircle2, Circle, Swords, Settings, Target, RefreshCw, User, BookOpen, Sparkles, TrendingUp, Clock, Layers } from 'lucide-react'
+import { Brain, Trophy, ChevronRight, LayoutGrid, Users, Zap, Flame, BrainCircuit, X, Play, Crown, Medal, Star, CheckCircle2, Circle, Swords, Settings, Target, RefreshCw, User, BookOpen, Sparkles, TrendingUp, Clock, Layers, Compass } from 'lucide-react'
 import { useAppStore } from '@/store/useAppStore'
 import { cn } from '@/lib/utils'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -637,467 +637,147 @@ function BadgeProgressWidget({ data }: { data: BadgeProgress[] }) {
   )
 }
 
-interface GlobalGoals {
-  daily_time_target: number
-  daily_card_target: number
-  daily_new_card_target: number
-  actual_time_minutes: number
-  actual_cards_completed: number
-  actual_new_cards_completed: number
-  actual_correct_answers?: number
-  actual_xp_gained_today?: number
-}
-
 function TodayFocusWidget({
-  data,
-  activeGoals,
-  todayReview,
   roadmapDecks,
-  onOpenSettings,
-  onOpenDeckSettings,
   onStartPractice,
   navigate
 }: {
-  data: GlobalGoals;
-  activeGoals: ActiveGoal[] | undefined;
-  todayReview: any | undefined;
   roadmapDecks: any[] | undefined;
-  onOpenSettings: () => void;
-  onOpenDeckSettings: (goal: ActiveGoal) => void;
   onStartPractice: (quiz: any) => void;
   navigate: any;
 }) {
-  const timePercentage = data.daily_time_target > 0 ? Math.min(100, Math.round((data.actual_time_minutes / data.daily_time_target) * 100)) : 0
-  const cardPercentage = data.daily_card_target > 0 ? Math.min(100, Math.round((data.actual_cards_completed / data.daily_card_target) * 100)) : 0
-  const newCardPercentage = data.daily_new_card_target > 0 ? Math.min(100, Math.round((data.actual_new_cards_completed / data.daily_new_card_target) * 100)) : 0
-
-  const isAllGoalsMet = timePercentage >= 100 && cardPercentage >= 100 && newCardPercentage >= 100;
+  const hasRoadmaps = roadmapDecks && roadmapDecks.length > 0;
 
   return (
     <div className={cn(
-      "rounded-[1.5rem] md:rounded-[2.5rem] p-3 md:p-6 text-left mb-5 flex-shrink-0 transition-all duration-700 bg-white/40 backdrop-blur-md border border-white/40",
-      isAllGoalsMet 
-        ? "shadow-[0_20px_50px_rgba(16,185,129,0.05)] ring-2 ring-emerald-400/20" 
-        : "shadow-sm shadow-slate-100/50"
+      "rounded-[1.5rem] md:rounded-[2.5rem] p-4 md:p-8 text-left mb-5 flex-shrink-0 transition-all duration-700 bg-white shadow-sm border border-slate-100",
+      hasRoadmaps ? "shadow-[0_20px_50px_rgba(99,102,241,0.02)]" : ""
     )}>
-      {/* SVG Gradients for Progress Rings */}
-      <svg className="absolute w-0 h-0">
-        <defs>
-          <linearGradient id="timeRingGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stopColor="#6366f1" />
-            <stop offset="100%" stopColor="#8b5cf6" />
-          </linearGradient>
-          <linearGradient id="cardRingGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stopColor="#10b981" />
-            <stop offset="100%" stopColor="#059669" />
-          </linearGradient>
-          <linearGradient id="newCardRingGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stopColor="#f59e0b" />
-            <stop offset="100%" stopColor="#d97706" />
-          </linearGradient>
-        </defs>
-      </svg>
-
       <div className="flex items-center justify-between mb-6 relative z-10">
         <div>
-          <span className={cn(
-            "text-[9px] font-black uppercase tracking-widest px-2.5 py-1 rounded-xl transition-colors inline-block",
-            isAllGoalsMet ? "text-emerald-700 bg-emerald-500/10 border border-emerald-200/50" : "text-indigo-600 bg-indigo-50"
-          )}>
-            {isAllGoalsMet ? "🎉 GOALS COMPLETED" : "🎯 TODAY'S FOCUS"}
+          <span className="text-[9px] font-black uppercase tracking-widest px-2.5 py-1 rounded-xl text-indigo-600 bg-indigo-50 inline-block">
+            🎯 LỘ TRÌNH HỌC HÔM NAY
           </span>
-          <h3 className="text-sm font-black text-slate-800 uppercase tracking-tight mt-1.5">Your daily targets</h3>
+          <h3 className="text-sm font-black text-slate-800 uppercase tracking-tight mt-1.5 font-bold">Mục tiêu học tập hàng ngày</h3>
         </div>
-        <button
-          onClick={onOpenSettings}
-          className="w-9 h-9 rounded-xl bg-white border border-slate-100 flex items-center justify-center text-slate-500 hover:text-indigo-650 hover:bg-slate-50 shadow-sm active:scale-90 transition-all cursor-pointer"
-          title="Cài đặt mục tiêu"
-        >
-          <Settings className="w-4 h-4" />
-        </button>
       </div>
 
-      {/* Two column layout for TodayFocusWidget */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 relative z-10 items-start">
-        
-        {/* Column 1: Overall Progress circles (lg:col-span-5) */}
-        <div className="lg:col-span-5 bg-white border border-slate-100/80 rounded-[1.5rem] md:rounded-3xl p-3.5 md:p-5 shadow-sm shadow-slate-100/10 flex flex-col gap-3 md:gap-4">
-          <div className="flex items-center justify-between pb-2 border-b border-slate-50">
-            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Overall Progress</span>
-            <span className={cn(
-              "text-[8px] font-black uppercase tracking-wider px-2 py-0.5 rounded-lg",
-              isAllGoalsMet ? "text-emerald-700 bg-emerald-50" : "text-indigo-650 bg-indigo-50"
-            )}>
-              {isAllGoalsMet ? "Completed" : "Active"}
-            </span>
+      {!hasRoadmaps ? (
+        <div className="text-center py-10 bg-slate-50/50 rounded-3xl border border-dashed border-slate-200/80">
+          <div className="w-12 h-12 rounded-full bg-indigo-50 flex items-center justify-center mx-auto mb-3 text-indigo-500">
+            <Compass className="w-6 h-6 animate-pulse" />
           </div>
-
-          <div className="grid grid-cols-3 gap-1 md:gap-2">
-            {/* Time Target */}
-            <div className="flex flex-col items-center p-1.5 md:p-2.5 bg-slate-50/50 rounded-[1.25rem] md:rounded-2xl border border-slate-100/30">
-              <div className="relative w-11 h-11 flex-shrink-0 flex items-center justify-center rounded-full bg-white shadow-sm">
-                <svg className="w-11 h-11 transform -rotate-90 drop-shadow-[0_2px_4px_rgba(99,102,241,0.1)]">
-                  <circle cx="50%" cy="50%" r="38%" className="stroke-slate-100 fill-none" strokeWidth="2.5" />
-                  <circle
-                    cx="50%" cy="50%" r="38%"
-                    className="stroke-[url(#timeRingGrad)] fill-none transition-all duration-500 ease-out"
-                    strokeWidth="2.5"
-                    strokeDasharray="238%"
-                    strokeDashoffset={`${238 - (timePercentage / 100) * 238}%`}
-                    strokeLinecap="round"
-                  />
-                </svg>
-                <span className="absolute text-[8px] font-black text-indigo-600">
-                  {timePercentage}%
-                </span>
-              </div>
-              <div className="text-center mt-2">
-                <span className="text-[7px] font-black text-slate-400 uppercase tracking-wider block leading-none">Time</span>
-                <span className="text-[9px] font-black text-slate-800 block mt-0.5 whitespace-nowrap">
-                  {data.actual_time_minutes}/{data.daily_time_target}m
-                </span>
-              </div>
-            </div>
-
-            {/* Reviewed Target */}
-            <div className="flex flex-col items-center p-1.5 md:p-2.5 bg-slate-50/50 rounded-[1.25rem] md:rounded-2xl border border-slate-100/30">
-              <div className="relative w-11 h-11 flex-shrink-0 flex items-center justify-center rounded-full bg-white shadow-sm">
-                <svg className="w-11 h-11 transform -rotate-90 drop-shadow-[0_2px_4px_rgba(16,185,129,0.1)]">
-                  <circle cx="50%" cy="50%" r="38%" className="stroke-slate-100 fill-none" strokeWidth="2.5" />
-                  <circle
-                    cx="50%" cy="50%" r="38%"
-                    className="stroke-[url(#cardRingGrad)] fill-none transition-all duration-500 ease-out"
-                    strokeWidth="2.5"
-                    strokeDasharray="238%"
-                    strokeDashoffset={`${238 - (cardPercentage / 100) * 238}%`}
-                    strokeLinecap="round"
-                  />
-                </svg>
-                <span className="absolute text-[8px] font-black text-emerald-600">
-                  {cardPercentage}%
-                </span>
-              </div>
-              <div className="text-center mt-2">
-                <span className="text-[7px] font-black text-slate-400 uppercase tracking-wider block leading-none">Reviewed</span>
-                <span className="text-[9px] font-black text-slate-800 block mt-0.5 whitespace-nowrap">
-                  {data.actual_cards_completed}/{data.daily_card_target}
-                </span>
-              </div>
-            </div>
-
-            {/* New Target */}
-            <div className="flex flex-col items-center p-1.5 md:p-2.5 bg-slate-50/50 rounded-[1.25rem] md:rounded-2xl border border-slate-100/30">
-              <div className="relative w-11 h-11 flex-shrink-0 flex items-center justify-center rounded-full bg-white shadow-sm">
-                <svg className="w-11 h-11 transform -rotate-90 drop-shadow-[0_2px_4px_rgba(245,158,11,0.15)]">
-                  <circle cx="50%" cy="50%" r="38%" className="stroke-slate-100 fill-none" strokeWidth="2.5" />
-                  <circle
-                    cx="50%" cy="50%" r="38%"
-                    className="stroke-[url(#newCardRingGrad)] fill-none transition-all duration-500 ease-out"
-                    strokeWidth="2.5"
-                    strokeDasharray="238%"
-                    strokeDashoffset={`${238 - (newCardPercentage / 100) * 238}%`}
-                    strokeLinecap="round"
-                  />
-                </svg>
-                <span className="absolute text-[8px] font-black text-amber-600">
-                  {newCardPercentage}%
-                </span>
-              </div>
-              <div className="text-center mt-2">
-                <span className="text-[7px] font-black text-slate-400 uppercase tracking-wider block leading-none">New</span>
-                <span className="text-[9px] font-black text-slate-800 block mt-0.5 whitespace-nowrap">
-                  {data.actual_new_cards_completed}/{data.daily_new_card_target}
-                </span>
-              </div>
-            </div>
-          </div>
+          <span className="text-xs font-bold text-slate-500 block">Bạn chưa kích hoạt Lộ trình học nào.</span>
+          <p className="text-[10px] text-slate-400 mt-1 max-w-sm mx-auto font-medium">Hãy chọn một bộ thẻ từ thư viện và bật "Lộ trình học" để hệ thống tự động thiết lập mục tiêu hàng ngày cho bạn.</p>
+          <button
+            onClick={() => navigate('/library')}
+            className="mt-4 px-4 py-2 bg-indigo-600 hover:bg-indigo-750 text-white text-[10px] font-black uppercase tracking-wider rounded-xl shadow-sm shadow-indigo-100 transition-all cursor-pointer"
+          >
+            📚 Đi tới Thư viện
+          </button>
         </div>
-
-        {/* Column 2: Targets by Deck (lg:col-span-7) */}
-        <div className="lg:col-span-7 w-full flex flex-col gap-3">
-          {/* ROADMAP DECKS SECTION */}
-          {roadmapDecks && roadmapDecks.length > 0 && (
-            <div className="flex flex-col gap-3 w-full mb-4">
-              <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 block mb-1">Lộ trình học tập:</span>
-              <div className="flex flex-col gap-3 w-full">
-                {roadmapDecks.map((deck) => {
-                  const status = deck.status || {};
-                  const newPct = status.new_target_today > 0 ? Math.min(100, Math.round((status.new_learned_today / status.new_target_today) * 100)) : 0;
-                  const reviewPct = status.review_due_today > 0 ? Math.min(100, Math.round((status.review_completed_today / status.review_due_today) * 100)) : 0;
-                  const totalLearnedPct = status.total_cards > 0 ? Math.min(100, Math.round((status.learned_cards / status.total_cards) * 100)) : 0;
-                  
-                  return (
-                    <div key={deck.deck_id} className="p-3 md:p-4 rounded-[1.5rem] md:rounded-3xl border-none bg-white shadow-sm border border-slate-100/60 hover:shadow-[0_8px_30px_rgb(0,0,0,0.02)] transition-all duration-300 flex flex-col gap-2.5 md:gap-3 text-left relative overflow-hidden">
-                      <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-orange-400 via-rose-400 to-indigo-400" />
-                      
-                      <div className="flex gap-3 min-w-0">
-                        {deck.cover_image && (
-                          <img src={deck.cover_image} alt={deck.title} className="w-12 h-12 rounded-2xl object-cover border border-slate-100/50 shadow-sm flex-shrink-0" />
-                        )}
-                        <div className="flex-1 min-w-0">
-                          <h4 className="text-xs sm:text-sm font-black text-slate-800 truncate leading-snug">{deck.title}</h4>
-                          <p className="text-[9px] text-slate-400 truncate leading-relaxed mt-0.5">{deck.description || 'Không có mô tả'}</p>
-                          <div className="flex flex-wrap items-center gap-1.5 mt-1.5">
-                            <span className="text-[8px] font-black px-1.5 py-0.5 rounded bg-indigo-50 text-indigo-600 uppercase">
-                              Đã học: {status.learned_cards}/{status.total_cards} ({totalLearnedPct}%)
-                            </span>
-                            {status.estimated_completion_date && (
-                              <span className="text-[8px] font-black px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-600 uppercase flex items-center gap-0.5">
-                                <Target className="w-2.5 h-2.5" />
-                                Xong: {new Date(status.estimated_completion_date).toLocaleDateString('vi-VN')}
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Daily quota status bars */}
-                      <div className="grid grid-cols-2 gap-3 bg-slate-50/60 p-3 rounded-2xl border border-slate-100/60">
-                        <div>
-                          <div className="flex items-center justify-between mb-1">
-                            <span className="text-[8.5px] font-black text-slate-400 uppercase tracking-wide flex items-center gap-0.5">
-                              <Sparkles className="w-2.5 h-2.5 text-orange-500" /> Học mới
-                            </span>
-                            <span className="text-[8.5px] font-black text-slate-600">{status.new_learned_today}/{status.new_target_today}</span>
-                          </div>
-                          <div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden">
-                            <div className="h-full bg-gradient-to-r from-orange-400 to-rose-400 transition-all duration-550 ease-out" style={{ width: `${newPct}%` }} />
-                          </div>
-                        </div>
-
-                        <div>
-                          <div className="flex items-center justify-between mb-1">
-                            <span className="text-[8.5px] font-black text-slate-400 uppercase tracking-wide flex items-center gap-0.5">
-                              <Brain className="w-2.5 h-2.5 text-indigo-500" /> Ôn tập
-                            </span>
-                            <span className="text-[8.5px] font-black text-slate-600">{status.review_completed_today}/{status.review_due_today}</span>
-                          </div>
-                          <div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden">
-                            <div className="h-full bg-gradient-to-r from-indigo-500 to-purple-500 transition-all duration-550 ease-out" style={{ width: `${reviewPct}%` }} />
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* actions */}
-                      <div className="flex flex-wrap items-center gap-2 justify-end mt-1">
-                        <button
-                          onClick={() => navigate(`/flashcard/${deck.deck_id}/play?mode=roadmap`)}
-                          className="h-8 px-3 rounded-xl bg-gradient-to-r from-orange-500 to-rose-500 hover:from-orange-600 hover:to-rose-600 text-[9px] font-black uppercase tracking-wider flex items-center gap-1 shadow-md shadow-orange-100 active:scale-95 transition-all cursor-pointer"
-                        >
-                          <Sparkles className="w-3.5 h-3.5" />
-                          Học lộ trình
-                        </button>
-                        
-                        <button
-                          onClick={() => navigate(`/flashcard/${deck.deck_id}/play?mode=fsrs`)}
-                          className="h-8 px-3 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-[9px] font-black uppercase tracking-wider flex items-center gap-1 shadow-md shadow-indigo-100 active:scale-95 transition-all cursor-pointer"
-                        >
-                          <Brain className="w-3.5 h-3.5" />
-                          Học FSRS
-                        </button>
-
-                        <button
-                          onClick={() => {
-                            onStartPractice({ id: deck.deck_id, title: deck.title, questions_count: status.total_cards });
-                          }}
-                          className="h-8 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-[9px] font-black uppercase tracking-wider flex items-center gap-1 shadow-md shadow-emerald-100 active:scale-95 transition-all cursor-pointer"
-                        >
-                          <Trophy className="w-3.5 h-3.5" />
-                          Thực hành
-                        </button>
-                      </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {roadmapDecks.map((deck) => {
+            const status = deck.status || {};
+            const newPct = status.new_target_today > 0 ? Math.min(100, Math.round((status.new_learned_today / status.new_target_today) * 100)) : 0;
+            const reviewPct = status.review_due_today > 0 ? Math.min(100, Math.round((status.review_completed_today / status.review_due_today) * 100)) : 0;
+            const totalLearnedPct = status.total_cards > 0 ? Math.min(100, Math.round((status.learned_cards / status.total_cards) * 100)) : 0;
+            const streak = status.streak || 0;
+            
+            return (
+              <div key={deck.deck_id} className="p-4 rounded-[1.5rem] md:rounded-3xl border border-slate-100 bg-white hover:shadow-[0_12px_40px_rgb(99,102,241,0.03)] transition-all duration-300 flex flex-col gap-3 text-left relative overflow-hidden">
+                <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-orange-400 via-rose-400 to-indigo-500" />
+                
+                <div className="flex gap-3 min-w-0">
+                  {deck.cover_image && (
+                    <img src={deck.cover_image} alt={deck.title} className="w-12 h-12 rounded-2xl object-cover border border-slate-100/50 shadow-sm flex-shrink-0" />
+                  )}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between gap-2">
+                      <h4 className="text-xs sm:text-sm font-black text-slate-800 truncate leading-snug">{deck.title}</h4>
+                      {streak > 0 && (
+                        <span className="text-[9px] font-black text-orange-650 bg-orange-50 px-1.5 py-0.5 rounded-lg flex items-center gap-0.5 shrink-0">
+                          🔥 {streak} ngày
+                        </span>
+                      )}
                     </div>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-
-          <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 block mb-1">Mục tiêu theo bộ thẻ:</span>
-          {!activeGoals || activeGoals.length === 0 ? (
-            <div className="text-center py-6 bg-slate-50/50 rounded-2xl border border-dashed border-slate-200/80">
-              <span className="text-[10px] font-bold text-slate-400">No deck targets configured yet.</span>
-              <Link to="/library" className="text-[10px] font-black text-indigo-600 uppercase tracking-wider block mt-1.5 hover:underline">📚 Go to Library</Link>
-            </div>
-          ) : (
-            <div className="flex flex-col gap-3 w-full">
-              {activeGoals.map(goal => {
-                const deckReview = todayReview?.decks_summary?.find((d: any) => d.deck_id === goal.deck_id)
-                const dueReviews = deckReview ? deckReview.due_count : 0
-                const totalRemainingNew = goal.total_questions - goal.total_learned
-                const newCountLabel = totalRemainingNew > 0 ? totalRemainingNew : 0
-                const hasNewCards = totalRemainingNew > 0
-
-                const timePct = goal.daily_time_target > 0 ? Math.min(100, Math.round((goal.actual_time_minutes / goal.daily_time_target) * 100)) : 0
-                const cardPct = goal.daily_card_target > 0 ? Math.min(100, Math.round((goal.actual_cards_completed / goal.daily_card_target) * 100)) : 0
-                const newCardPct = goal.daily_new_card_target > 0 ? Math.min(100, Math.round((goal.actual_new_cards_completed / goal.daily_new_card_target) * 100)) : 0
-
-                return (
-                  <div key={goal.goal_id} className="p-3 md:p-4 rounded-[1.5rem] md:rounded-3xl border-none bg-slate-50/55 hover:bg-slate-50 hover:shadow-[0_8px_30px_rgb(0,0,0,0.02)] transition-all duration-300 flex flex-col gap-2.5 md:gap-3 text-left relative overflow-hidden">
-                    <div className="flex items-center justify-between gap-3">
-                      <div className="min-w-0">
-                        <h4 className="text-xs sm:text-sm font-black text-slate-800 truncate leading-snug">{goal.quiz_title}</h4>
-                        <div className="flex flex-wrap items-center gap-1.5 mt-1.5">
-                          <span className="text-[8px] font-black px-2 py-0.5 rounded-lg bg-orange-500/10 text-orange-600">
-                            🔥 {goal.streak_count}D
-                          </span>
-                          {dueReviews > 0 ? (
-                            <span className="text-[8px] font-black px-2 py-0.5 rounded-lg bg-rose-500/10 text-rose-600 animate-pulse">
-                              ⚠️ {dueReviews} due
-                            </span>
-                          ) : (
-                            <span className="text-[8px] font-black px-2 py-0.5 rounded-lg bg-emerald-500/10 text-emerald-600">
-                              ✅ Clear
-                            </span>
-                          )}
-                          <span className="text-[8px] font-black px-2 py-0.5 rounded-lg bg-sky-500/10 text-sky-600">
-                            📚 Learned: {goal.total_learned}/{goal.total_questions}
-                          </span>
-                        </div>
-                      </div>
-
-                      <button
-                        onClick={() => onOpenDeckSettings(goal)}
-                        className="w-8 h-8 rounded-lg bg-white border border-slate-100 flex items-center justify-center text-slate-400 hover:text-indigo-600 hover:bg-slate-50 active:scale-90 transition-all cursor-pointer shadow-sm animate-none"
-                        title="Deck Settings"
-                      >
-                        <Settings className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
-
-                    <div className="grid grid-cols-3 gap-1 md:gap-2 bg-white/70 p-2 md:p-2.5 rounded-[1.25rem] md:rounded-2xl border-none shadow-sm shadow-slate-100/40">
-                      <div className="flex items-center gap-2">
-                        <div className="relative w-8 h-8 flex-shrink-0 flex items-center justify-center rounded-full bg-slate-50 border border-slate-100">
-                          <svg className="w-8 h-8 transform -rotate-90">
-                            <circle cx="16" cy="16" r="13" className="stroke-slate-50 fill-none" strokeWidth="2" />
-                            <circle
-                              cx="16" cy="16" r="13"
-                              className="stroke-[url(#timeRingGrad)] fill-none transition-all duration-500 ease-out"
-                              strokeWidth="2"
-                              strokeDasharray={2 * Math.PI * 13}
-                              strokeDashoffset={2 * Math.PI * 13 - (timePct / 100) * 2 * Math.PI * 13}
-                              strokeLinecap="round"
-                            />
-                          </svg>
-                          <span className="absolute text-[7.5px] font-black text-indigo-600">
-                            {timePct}%
-                          </span>
-                        </div>
-                        <div className="text-left min-w-0">
-                          <span className="text-[6.5px] font-black text-slate-400 uppercase tracking-wide block leading-none">Time</span>
-                          <span className="text-[8.5px] font-black text-slate-700 block mt-0.5 truncate leading-none">
-                            {goal.actual_time_minutes}/{goal.daily_time_target}m
-                          </span>
-                        </div>
-                      </div>
-
-                      <div className="flex items-center gap-2">
-                        <div className="relative w-8 h-8 flex-shrink-0 flex items-center justify-center rounded-full bg-slate-50 border border-slate-100">
-                          <svg className="w-8 h-8 transform -rotate-90">
-                            <circle cx="16" cy="16" r="13" className="stroke-slate-50 fill-none" strokeWidth="2" />
-                            <circle
-                              cx="16" cy="16" r="13"
-                              className="stroke-[url(#cardRingGrad)] fill-none transition-all duration-500 ease-out"
-                              strokeWidth="2"
-                              strokeDasharray={2 * Math.PI * 13}
-                              strokeDashoffset={2 * Math.PI * 13 - (cardPct / 100) * 2 * Math.PI * 13}
-                              strokeLinecap="round"
-                            />
-                          </svg>
-                          <span className="absolute text-[7.5px] font-black text-emerald-600">
-                            {cardPct}%
-                          </span>
-                        </div>
-                        <div className="text-left min-w-0">
-                          <span className="text-[6.5px] font-black text-slate-400 uppercase tracking-wide block leading-none">Reviewed</span>
-                          <span className="text-[8.5px] font-black text-slate-700 block mt-0.5 truncate leading-none">
-                            {goal.actual_cards_completed}/{goal.daily_card_target}
-                          </span>
-                        </div>
-                      </div>
-
-                      <div className="flex items-center gap-2">
-                        <div className="relative w-8 h-8 flex-shrink-0 flex items-center justify-center rounded-full bg-slate-50 border border-slate-100">
-                          <svg className="w-8 h-8 transform -rotate-90">
-                            <circle cx="16" cy="16" r="13" className="stroke-slate-50 fill-none" strokeWidth="2" />
-                            <circle
-                              cx="16" cy="16" r="13"
-                              className="stroke-[url(#newCardRingGrad)] fill-none transition-all duration-500 ease-out"
-                              strokeWidth="2"
-                              strokeDasharray={2 * Math.PI * 13}
-                              strokeDashoffset={2 * Math.PI * 13 - (newCardPct / 100) * 2 * Math.PI * 13}
-                              strokeLinecap="round"
-                            />
-                          </svg>
-                          <span className="absolute text-[7.5px] font-black text-amber-600">
-                            {newCardPct}%
-                          </span>
-                        </div>
-                        <div className="text-left min-w-0">
-                          <span className="text-[6.5px] font-black text-slate-400 uppercase tracking-wide block leading-none">New</span>
-                          <span className="text-[8.5px] font-black text-slate-700 block mt-0.5 truncate leading-none">
-                            {goal.actual_new_cards_completed}/{goal.daily_new_card_target}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="flex flex-col gap-2.5 sm:flex-row sm:items-center sm:justify-between border-t border-slate-100/60 pt-3 mt-1">
-                      {(() => {
-                        const d = new Date()
-                        d.setDate(d.getDate() + goal.days_remaining_est)
-                        return (
-                          <span className="text-[8.5px] font-black text-indigo-500 flex items-center gap-1">
-                            <Target className="w-3 h-3" />
-                            Est. Completion: {d.toLocaleDateString('vi-VN')}
-                          </span>
-                        )
-                      })()}
-
-                      <div className="flex flex-wrap items-center gap-1.5 justify-end w-full sm:w-auto">
-                        <button
-                          onClick={() => navigate(`/flashcard/${goal.deck_id}/play?mode=roadmap`)}
-                          className="h-8 px-2.5 rounded-xl bg-gradient-to-r from-orange-500 to-rose-500 hover:from-orange-600 hover:to-rose-600 text-white text-[9px] font-black uppercase tracking-wider flex items-center gap-1 shadow-sm shadow-orange-100 active:scale-95 transition-all cursor-pointer"
-                          title="Học theo lộ trình thông minh"
-                        >
-                          <Sparkles className="w-3.5 h-3.5" />
-                          Lộ trình
-                        </button>
-                        <button
-                          onClick={() => navigate(`/flashcard/${goal.deck_id}/play?mode=fsrs`)}
-                          className={cn(
-                            "h-8 px-2.5 rounded-xl text-[9px] font-black uppercase tracking-wider flex items-center gap-1 shadow-sm active:scale-95 transition-all cursor-pointer",
-                            dueReviews > 0
-                              ? "bg-indigo-600 hover:bg-indigo-700 text-white shadow-indigo-100"
-                              : "bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200/60"
-                          )}
-                          title="Spaced Repetition FSRS"
-                        >
-                          <Brain className="w-3.5 h-3.5" />
-                          FSRS {dueReviews > 0 && `(${dueReviews})`}
-                        </button>
-                        <button
-                          onClick={() => {
-                            onStartPractice({ id: goal.deck_id, title: goal.quiz_title, questions_count: goal.total_questions })
-                          }}
-                          className="h-8 px-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-[9px] font-black uppercase tracking-wider flex items-center gap-1 shadow-sm shadow-emerald-100 active:scale-95 transition-all cursor-pointer"
-                          title="Ôn tập thực hành"
-                        >
-                          <Trophy className="w-3.5 h-3.5" />
-                          Thực hành
-                        </button>
-                      </div>
+                    <div className="flex flex-wrap items-center gap-1.5 mt-1.5">
+                      <span className="text-[8px] font-black px-1.5 py-0.5 rounded bg-indigo-50 text-indigo-600 uppercase">
+                        Đã học: {status.learned_cards}/{status.total_cards} ({totalLearnedPct}%)
+                      </span>
+                      {status.estimated_completion_date && (
+                        <span className="text-[8px] font-black px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-600 uppercase flex items-center gap-0.5">
+                          <Target className="w-2.5 h-2.5" />
+                          Dự kiến: {new Date(status.estimated_completion_date).toLocaleDateString('vi-VN')}
+                        </span>
+                      )}
                     </div>
                   </div>
-                )
-              })}
-            </div>
-          )}
-        </div>
+                </div>
 
-      </div>
+                {/* Daily quota status bars */}
+                <div className="grid grid-cols-2 gap-3 bg-slate-50/60 p-3 rounded-2xl border border-slate-100/60">
+                  <div>
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-[8.5px] font-black text-slate-400 uppercase tracking-wide flex items-center gap-0.5">
+                        <Sparkles className="w-2.5 h-2.5 text-orange-505" /> Học mới
+                      </span>
+                      <span className="text-[8.5px] font-black text-slate-600">{status.new_learned_today}/{status.new_target_today}</span>
+                    </div>
+                    <div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                      <div className="h-full bg-gradient-to-r from-orange-400 to-rose-400 transition-all duration-550 ease-out" style={{ width: `${newPct}%` }} />
+                    </div>
+                  </div>
+
+                  <div>
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-[8.5px] font-black text-slate-400 uppercase tracking-wide flex items-center gap-0.5">
+                        <Brain className="w-2.5 h-2.5 text-indigo-505" /> Ôn tập
+                      </span>
+                      <span className="text-[8.5px] font-black text-slate-600">{status.review_completed_today}/{status.review_due_today}</span>
+                    </div>
+                    <div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                      <div className="h-full bg-gradient-to-r from-indigo-500 to-purple-500 transition-all duration-550 ease-out" style={{ width: `${reviewPct}%` }} />
+                    </div>
+                  </div>
+                </div>
+
+                {/* actions */}
+                <div className="flex flex-wrap items-center gap-2 justify-end mt-1 border-t border-slate-100 pt-3">
+                  <button
+                    onClick={() => navigate(`/flashcard/${deck.deck_id}/play?mode=roadmap`)}
+                    className="h-8 px-3 rounded-xl bg-gradient-to-r from-orange-500 to-rose-500 hover:from-orange-600 hover:to-rose-600 text-white text-[9px] font-black uppercase tracking-wider flex items-center gap-1 shadow-md shadow-orange-100 active:scale-95 transition-all cursor-pointer"
+                  >
+                    <Sparkles className="w-3.5 h-3.5" />
+                    Học lộ trình
+                  </button>
+                  
+                  <button
+                    onClick={() => navigate(`/flashcard/${deck.deck_id}/play?mode=fsrs`)}
+                    className="h-8 px-3 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-[9px] font-black uppercase tracking-wider flex items-center gap-1 shadow-md shadow-indigo-100 active:scale-95 transition-all cursor-pointer"
+                  >
+                    <Brain className="w-3.5 h-3.5" />
+                    Học FSRS
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      onStartPractice({ id: deck.deck_id, title: deck.title, questions_count: status.total_cards });
+                    }}
+                    className="h-8 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-[9px] font-black uppercase tracking-wider flex items-center gap-1 shadow-md shadow-emerald-100 active:scale-95 transition-all cursor-pointer"
+                  >
+                    <Trophy className="w-3.5 h-3.5" />
+                    Thực hành
+                  </button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
     </div>
-  )
+  );
 }
 
 function GoalSettingsModal({
@@ -1467,53 +1147,7 @@ export default function Dashboard() {
   const [isJoinModalOpen, setIsJoinModalOpen] = useState(false)
   const [roomCode, setRoomCode] = useState('')
   const [isJoining, setIsJoining] = useState(false)
-  const [isGoalModalOpen, setIsGoalModalOpen] = useState(false)
-  const [isDeckGoalModalOpen, setIsDeckGoalModalOpen] = useState(false)
-  const [selectedDeckGoal, setSelectedDeckGoal] = useState<ActiveGoal | null>(null)
-  
   const [timeFilter, setTimeFilter] = useState('all_time')
-
-  const { data: globalGoals, refetch: refetchGlobalGoals } = useQuery<GlobalGoals>({
-    queryKey: ['globalGoals'],
-    queryFn: async () => {
-      const res = await axios.get('/api/v1/deck/goals/global')
-      return res.data
-    }
-  })
-
-  const handleSaveGlobalGoals = async (timeTarget: number, cardTarget: number, newCardTarget: number) => {
-    await axios.post('/api/v1/deck/goals/global', {
-      daily_time_target: timeTarget,
-      daily_card_target: cardTarget,
-      daily_new_card_target: newCardTarget
-    })
-    refetchGlobalGoals()
-  }
-
-  const handleOpenDeckGoalSettings = (goal: ActiveGoal) => {
-    setSelectedDeckGoal(goal)
-    setIsDeckGoalModalOpen(true)
-  }
-
-  const handleSaveDeckGoal = async (deckId: number, timeTarget: number, cardTarget: number, newCardTarget: number) => {
-    await axios.post('/api/v1/deck/goals', {
-      deck_id: deckId,
-      daily_time_target: timeTarget,
-      daily_card_target: cardTarget,
-      daily_new_card_target: newCardTarget
-    })
-    queryClient.invalidateQueries({ queryKey: ['activeGoals'] })
-  }
-
-  const todayStr = new Date().toISOString().slice(0, 10)
-
-  const { data: activeGoals, isLoading: isGoalsLoading } = useQuery<ActiveGoal[]>({
-    queryKey: ['activeGoals', todayStr],
-    queryFn: async () => {
-      const res = await axios.get('/api/v1/deck/goals/active', { params: { local_date: todayStr } })
-      return res.data
-    }
-  })
 
   const { data: roadmapDecks, isLoading: isRoadmapDecksLoading, refetch: refetchRoadmapDecks } = useQuery<any[]>({
     queryKey: ['roadmapDecks'],
@@ -1734,102 +1368,6 @@ export default function Dashboard() {
     )
   }
 
-  const renderActiveGoals = (isMobile: boolean) => {
-    if (isGoalsLoading) {
-      return <div className="text-center py-8 text-xs font-bold text-slate-400 animate-pulse">ĐANG TẢI MỤC TIÊU...</div>
-    }
-
-    if (!activeGoals || activeGoals.length === 0) {
-      return (
-        <div className="w-full bg-white border border-slate-200/60 rounded-3xl p-8 text-center flex flex-col items-center justify-center shadow-sm">
-          <span className="text-3xl mb-3">🎯</span>
-          <h3 className="text-xs font-black text-slate-800 uppercase tracking-widest mb-1">Chưa có mục tiêu học tập</h3>
-          <p className="text-[10px] text-slate-400 max-w-[240px] leading-relaxed mb-4">Đặt mục tiêu ôn luyện hàng ngày để duy trì streak và học tập hiệu quả hơn.</p>
-          <Link
-            to="/library"
-            className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-[10px] font-black uppercase tracking-widest transition-all shadow-md active:scale-95"
-          >
-            Khám Phá Thư Viện Thẻ
-          </Link>
-        </div>
-      )
-    }
-
-    return (
-      <div className={cn(
-        "grid gap-4",
-        isMobile ? "grid-cols-1" : "grid-cols-1 md:grid-cols-2"
-      )}>
-        {activeGoals.map(goal => {
-          const isLimitless = goal.done_today > goal.daily_target
-          const percentage = goal.daily_target > 0 ? Math.min(100, Math.round((goal.done_today / goal.daily_target) * 100)) : 0
-
-          return (
-            <div
-              key={goal.goal_id}
-              className={cn(
-                "p-4 rounded-[1.75rem] border flex items-center justify-between gap-4 transition-all duration-300 bg-white",
-                isLimitless
-                  ? "border-amber-500/30 shadow-[0_4px_20px_rgba(245,158,11,0.08)] bg-gradient-to-r from-white to-amber-50/10"
-                  : "border-slate-200/50 shadow-sm"
-              )}
-            >
-              <div className="flex items-center gap-3.5 min-w-0">
-                <div className="relative w-12 h-12 flex-shrink-0 flex items-center justify-center rounded-full bg-slate-50">
-                  <svg className="w-12 h-12 transform -rotate-90">
-                    <circle cx="24" cy="24" r="20" className="stroke-slate-100 fill-none" strokeWidth="3.5" />
-                    <circle
-                      cx="24" cy="24" r="20"
-                      className={cn("fill-none transition-all duration-500 ease-out", isLimitless ? "stroke-amber-400" : "stroke-indigo-600")}
-                      strokeWidth="3.5"
-                      strokeDasharray={2 * Math.PI * 20}
-                      strokeDashoffset={2 * Math.PI * 20 - (percentage / 100) * 2 * Math.PI * 20}
-                      strokeLinecap="round"
-                    />
-                  </svg>
-                  <span className={cn("absolute text-[9px] font-black", isLimitless ? "text-amber-500" : "text-indigo-600")}>
-                    {goal.done_today}/{goal.daily_target}
-                  </span>
-                </div>
-
-                <div className="min-w-0 text-left">
-                  <h4 className="text-xs font-black text-slate-800 truncate leading-snug">{goal.quiz_title}</h4>
-                  <div className="flex items-center gap-2 mt-1">
-                    <span className="text-[8px] font-black px-1 py-0.5 rounded bg-orange-50 text-orange-600 border border-orange-100">
-                      🔥 {goal.streak_count}D
-                    </span>
-                    <span className="text-[8px] font-bold text-slate-400">
-                      {isLimitless ? "Đã đạt mục tiêu ⚡" : `Còn lại ${goal.daily_target - goal.done_today} câu`}
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-1.5 flex-shrink-0">
-                <Link
-                  to={`/flashcard/${goal.deck_id}/play`}
-                  className="w-8.5 h-8.5 rounded-xl bg-indigo-600 text-white flex items-center justify-center shadow-md shadow-indigo-100 hover:scale-105 active:scale-95 transition-all"
-                  title="Spaced Repetition"
-                >
-                  <Brain className="w-4 h-4" />
-                </Link>
-                <button
-                  onClick={() => {
-                    setSelectedPracticeQuiz({ id: goal.deck_id, title: goal.quiz_title, questions_count: goal.total_questions })
-                    setIsPracticeModalOpen(true)
-                  }}
-                  className="w-8.5 h-8.5 rounded-xl bg-emerald-600 text-white flex items-center justify-center shadow-md shadow-emerald-100 hover:scale-105 active:scale-95 transition-all"
-                  title="Luyện tập tự do"
-                >
-                  <Trophy className="w-4 h-4" />
-                </button>
-              </div>
-            </div>
-          )
-        })}
-      </div>
-    )
-  }
 
   if (isLoading || !data) return (
     <div className="h-screen flex items-center justify-center font-black animate-pulse text-indigo-600 tracking-widest uppercase bg-[#fafbfd]">
@@ -1949,22 +1487,14 @@ export default function Dashboard() {
         {/* MAIN FEED: Scrollable container */}
         <section className="flex-1 h-full flex flex-col gap-5 overflow-y-auto pr-2 scrollbar-thin text-left pb-8">
           
-          {/* Global Study Goals Widget (Includes individual deck targets & actions) */}
-          {globalGoals && (
-            <TodayFocusWidget
-              data={globalGoals}
-              activeGoals={activeGoals}
-              todayReview={todayReview}
-                    roadmapDecks={roadmapDecks}
-              onOpenSettings={() => setIsGoalModalOpen(true)}
-              onOpenDeckSettings={handleOpenDeckGoalSettings}
-              onStartPractice={(quiz) => {
-                setSelectedPracticeQuiz(quiz)
-                setIsPracticeModalOpen(true)
-              }}
-              navigate={navigate}
-            />
-          )}
+          <TodayFocusWidget
+            roadmapDecks={roadmapDecks}
+            onStartPractice={(quiz) => {
+              setSelectedPracticeQuiz(quiz)
+              setIsPracticeModalOpen(true)
+            }}
+            navigate={navigate}
+          />
 
           {/* Charts Side-by-Side Grid */}
           <div className="grid grid-cols-1 xl:grid-cols-2 gap-5 w-full">
@@ -1979,22 +1509,14 @@ export default function Dashboard() {
 
       {/* MOBILE FEED */}
       <div className="md:hidden px-4 w-full pt-[80px] flex-grow space-y-4 overflow-y-auto pb-24">
-        {/* Global Study Goals Widget (Includes individual deck targets & actions) */}
-        {globalGoals && (
-          <TodayFocusWidget
-            data={globalGoals}
-            activeGoals={activeGoals}
-            todayReview={todayReview}
-                    roadmapDecks={roadmapDecks}
-            onOpenSettings={() => setIsGoalModalOpen(true)}
-            onOpenDeckSettings={handleOpenDeckGoalSettings}
-            onStartPractice={(quiz) => {
-              setSelectedPracticeQuiz(quiz)
-              setIsPracticeModalOpen(true)
-            }}
-            navigate={navigate}
-          />
-        )}
+        <TodayFocusWidget
+          roadmapDecks={roadmapDecks}
+          onStartPractice={(quiz) => {
+            setSelectedPracticeQuiz(quiz)
+            setIsPracticeModalOpen(true)
+          }}
+          navigate={navigate}
+        />
 
         <ReviewForecastWidget data={forecastData} />
 
@@ -2160,34 +1682,7 @@ export default function Dashboard() {
           </div>
         )}
 
-        {/* Global Goals Settings Modal */}
-        {globalGoals && (
-          <GoalSettingsModal
-            isOpen={isGoalModalOpen}
-            onClose={() => setIsGoalModalOpen(false)}
-            initialTime={globalGoals.daily_time_target}
-            initialCard={globalGoals.daily_card_target}
-            initialNewCard={globalGoals.daily_new_card_target}
-            onSave={handleSaveGlobalGoals}
-          />
-        )}
 
-        {/* Deck Goals Settings Modal */}
-        {selectedDeckGoal && (
-          <DeckGoalSettingsModal
-            isOpen={isDeckGoalModalOpen}
-            onClose={() => {
-              setIsDeckGoalModalOpen(false)
-              setSelectedDeckGoal(null)
-            }}
-            deckId={selectedDeckGoal.deck_id}
-            deckTitle={selectedDeckGoal.deck_title}
-            initialTime={selectedDeckGoal.daily_time_target}
-            initialCard={selectedDeckGoal.daily_card_target}
-            initialNewCard={selectedDeckGoal.daily_new_card_target}
-            onSave={handleSaveDeckGoal}
-          />
-        )}
       </AnimatePresence>
     </div>
   )

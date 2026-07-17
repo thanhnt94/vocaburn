@@ -51,11 +51,6 @@ export default function Library() {
   const [roomCode, setRoomCode] = useState('')
   const [isJoining, setIsJoining] = useState(false)
   
-  // Goals State
-  const [selectedGoalQuiz, setSelectedGoalQuiz] = useState<Quiz | null>(null)
-  const [dailyTargetInput, setDailyTargetInput] = useState(5)
-  const [isGoalModalOpen, setIsGoalModalOpen] = useState(false)
-
   // Practice Popup State
   const [selectedPracticeQuiz, setSelectedPracticeQuiz] = useState<Quiz | null>(null)
   const [isPracticeModalOpen, setIsPracticeModalOpen] = useState(false)
@@ -67,52 +62,6 @@ export default function Library() {
   const { setUser, setGamify } = useAppStore()
   const queryClient = useQueryClient()
   const navigate = useNavigate()
-
-  const todayStr = new Date().toISOString().slice(0, 10)
-  const { data: activeGoals } = useQuery<ActiveGoal[]>({
-    queryKey: ['activeGoals', todayStr],
-    queryFn: async () => {
-      const res = await axios.get('/api/v1/deck/goals/active', {
-        params: { local_date: todayStr }
-      })
-      return res.data
-    }
-  })
-
-  const setGoalMutation = useMutation({
-    mutationFn: (args: { quiz_id: number, daily_target: number }) => axios.post('/api/v1/deck/goals', { deck_id: args.quiz_id, quiz_id: args.quiz_id, daily_target: args.daily_target }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['activeGoals'] })
-      queryClient.invalidateQueries({ queryKey: ['dashboard'] })
-    }
-  })
-
-  const removeGoalMutation = useMutation({
-    mutationFn: (quizId: number) => axios.post('/api/v1/deck/goals/remove', { deck_id: quizId, quiz_id: quizId }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['activeGoals'] })
-      queryClient.invalidateQueries({ queryKey: ['dashboard'] })
-    }
-  })
-
-  const handleOpenGoalModal = (quiz: Quiz) => {
-    setSelectedGoalQuiz(quiz)
-    const existing = activeGoals?.find(g => g.quiz_id === quiz.id)
-    setDailyTargetInput(existing ? existing.daily_target : 5)
-    setIsGoalModalOpen(true)
-  }
-
-  const handleSaveGoal = () => {
-    if (!selectedGoalQuiz) return
-    setGoalMutation.mutate({
-      quiz_id: selectedGoalQuiz.id,
-      daily_target: dailyTargetInput
-    }, {
-      onSuccess: () => {
-        setIsGoalModalOpen(false)
-      }
-    })
-  }
 
   const { data, isLoading, error } = useQuery<DashboardData>({
     queryKey: ['dashboard'],
@@ -507,18 +456,7 @@ export default function Library() {
                                     <BrainCircuit className="w-3.5 h-3.5 text-slate-400" />
                                     {quiz.questions_count} Flashcards
                                   </p>
-                                  {(() => {
-                                    const goal = activeGoals?.find(g => g.quiz_id === quiz.id)
-                                    if (!goal) return null
-                                    const d = new Date()
-                                    d.setDate(d.getDate() + goal.days_remaining_est)
-                                    return (
-                                      <p className="text-[9px] font-bold text-indigo-500 uppercase tracking-widest flex items-center gap-1.5">
-                                        <Target className="w-3 h-3 text-indigo-400" />
-                                        Mục tiêu xong: {d.toLocaleDateString('vi-VN')}
-                                      </p>
-                                    )
-                                  })()}
+
                                 </div>
                              </div>
                            </div>
@@ -542,15 +480,7 @@ export default function Library() {
                                       >
                                         <Users className="w-4 h-4" />
                                       </button>
-                                      {activeTab === 'my' && (
-                                        <button 
-                                          onClick={() => handleOpenGoalModal(quiz)}
-                                          className="w-9 h-9 bg-amber-50 text-amber-600 hover:bg-amber-100 border border-amber-200 rounded-full flex items-center justify-center transition-all shadow-sm active:scale-95 hover:scale-105"
-                                          title="Đặt mục tiêu học tập"
-                                        >
-                                          <Target className="w-4 h-4" />
-                                        </button>
-                                      )}
+
                                       <button 
                                         onClick={() => archiveMutation.mutate(quiz.id)} 
                                         className="w-9 h-9 bg-slate-50 text-slate-500 hover:bg-slate-100 border border-slate-200/50 rounded-full flex items-center justify-center transition-all shadow-sm active:scale-95 hover:scale-105"
@@ -639,18 +569,7 @@ export default function Library() {
                                    </div>
                                    {quiz.tags?.[0] && <span className="text-[8px] font-black text-indigo-500 uppercase tracking-widest">#{quiz.tags[0]}</span>}
                                 </div>
-                                {(() => {
-                                  const goal = activeGoals?.find(g => g.quiz_id === quiz.id)
-                                  if (!goal) return null
-                                  const d = new Date()
-                                  d.setDate(d.getDate() + goal.days_remaining_est)
-                                  return (
-                                    <div className="flex items-center gap-1 text-indigo-500">
-                                      <Target className="w-2.5 h-2.5" />
-                                      <span className="text-[8px] font-black uppercase">Xong: {d.toLocaleDateString('vi-VN')}</span>
-                                    </div>
-                                  )
-                                })()}
+
                              </div>
                          </div>
                          <div className="flex items-center gap-2">
@@ -700,15 +619,6 @@ export default function Library() {
                                  >
                                    <Users className="w-3.5 h-3.5" />
                                  </button>
-                                 {activeTab === 'my' && (
-                                  <button 
-                                     onClick={() => handleOpenGoalModal(quiz)}
-                                     className="w-8 h-8 rounded-full bg-amber-50 text-amber-600 border border-amber-200/50 flex items-center justify-center active:scale-95"
-                                     title="Đặt mục tiêu học tập"
-                                   >
-                                     <Target className="w-3.5 h-3.5" />
-                                   </button>
-                                 )}
                                  <button 
                                    onClick={() => archiveMutation.mutate(quiz.id)} 
                                    className="w-8 h-8 rounded-full bg-slate-50 text-slate-400 border border-slate-200/50 flex items-center justify-center active:scale-95"
@@ -798,80 +708,6 @@ export default function Library() {
                 >
                   {isJoining ? 'CONNECTING...' : 'ENTER ROOM NOW'}
                 </button>
-              </div>
-            </motion.div>
-          </div>
-        )}
-
-        {/* SET DAILY GOAL MODAL */}
-        {isGoalModalOpen && selectedGoalQuiz && (
-          <div className="fixed inset-0 z-[1000] flex items-center justify-center p-6">
-            <motion.div 
-              initial={{ opacity: 0 }} 
-              animate={{ opacity: 1 }} 
-              exit={{ opacity: 0 }}
-              onClick={() => setIsGoalModalOpen(false)}
-              className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm"
-            />
-            <motion.div 
-              initial={{ opacity: 0, scale: 0.9, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.9, y: 20 }}
-              className="w-full max-w-sm bg-white rounded-[2.5rem] shadow-2xl relative z-10 p-8 border border-slate-100 text-left"
-            >
-              <div className="flex items-center justify-between mb-5">
-                <h3 className="text-base font-black text-slate-800 uppercase tracking-widest">🎯 Set Daily Study Goal</h3>
-                <button onClick={() => setIsGoalModalOpen(false)} className="w-8 h-8 rounded-full bg-slate-50 flex items-center justify-center text-slate-400 hover:text-rose-500 transition-all">
-                   <X className="w-4 h-4" />
-                </button>
-              </div>
-
-              <div className="space-y-5">
-                <div>
-                  <h4 className="text-sm font-black text-indigo-600 leading-snug">{selectedGoalQuiz.title}</h4>
-                  <p className="text-[10px] text-slate-400 mt-1 uppercase tracking-wider font-semibold">Total questions: {selectedGoalQuiz.questions_count}</p>
-                </div>
-
-                <div>
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 block">Daily target questions</label>
-                  <div className="grid grid-cols-4 gap-2 mb-3">
-                    {[5, 10, 15, 20].map(val => (
-                      <button
-                        key={val}
-                        type="button"
-                        onClick={() => setDailyTargetInput(val)}
-                        className={cn(
-                          "h-10 rounded-xl text-xs font-black uppercase transition-all border",
-                          dailyTargetInput === val
-                            ? "bg-indigo-600 border-indigo-600 text-white shadow-md shadow-indigo-100"
-                            : "bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100"
-                        )}
-                      >
-                        {val} qs
-                      </button>
-                    ))}
-                  </div>
-
-                  <input 
-                    type="number" 
-                    min="1"
-                    max="100"
-                    placeholder="Custom amount..."
-                    value={dailyTargetInput || ''}
-                    onChange={(e) => setDailyTargetInput(parseInt(e.target.value) || 0)}
-                    className="w-full h-11 bg-slate-50 border border-slate-200 rounded-xl px-4 text-xs font-semibold outline-none focus:bg-white focus:ring-4 focus:ring-indigo-500/5 transition-all text-center"
-                  />
-                </div>
-
-                <div className="pt-2">
-                  <button 
-                    onClick={handleSaveGoal}
-                    disabled={dailyTargetInput <= 0}
-                    className="w-full h-12 bg-indigo-600 text-white rounded-2xl font-black shadow-lg shadow-indigo-200 hover:bg-indigo-700 active:scale-95 transition-all disabled:opacity-50 disabled:bg-slate-200 disabled:shadow-none uppercase tracking-widest text-xs"
-                  >
-                    Save Study Goal
-                  </button>
-                </div>
               </div>
             </motion.div>
           </div>
