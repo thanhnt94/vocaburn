@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { selectDistractors } from '@/lib/distractor';
 
-export type PracticeSubMode = 'mcq' | 'typing' | 'listening';
+export type PracticeSubMode = 'mcq' | 'typing' | 'listening' | 'flip';
 export type PracticeRange = 'all' | 'learned';
 
 export function usePracticeMode(
@@ -49,7 +49,8 @@ export function usePracticeMode(
   const [modeSettings, setModeSettings] = useState<Record<PracticeSubMode, { active_pairs: { q: string; a: string }[]; num_choices?: number }>>({
     mcq: { active_pairs: [{ q: 'front', a: 'back' }], num_choices: 4 },
     typing: { active_pairs: [{ q: 'front', a: 'back' }] },
-    listening: { active_pairs: [{ q: 'front', a: 'back' }], num_choices: 4 }
+    listening: { active_pairs: [{ q: 'front', a: 'back' }], num_choices: 4 },
+    flip: { active_pairs: [{ q: 'front', a: 'back' }] }
   });
 
   // Practice stats tracking
@@ -183,7 +184,7 @@ export function usePracticeMode(
         question_key,
         answer_key
       });
-    } else if (subMode === 'typing') {
+    } else if (subMode === 'typing' || subMode === 'flip') {
       setCurrentPracticeData({
         question: questionText,
         correct_answer: correctAns,

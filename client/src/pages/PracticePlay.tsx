@@ -439,7 +439,7 @@ export default function PracticePlay() {
   // ── Multi-Modal Practice State Hooks ──
   const mainTab = 'practice' as 'fsrs' | 'practice'
   const setMainTab = (tab: 'fsrs' | 'practice') => { }
-  const [practiceSubMode, setPracticeSubMode] = useState<'mcq' | 'typing' | 'listening'>(() => (localStorage.getItem('vocab_practice_submode') as 'mcq' | 'typing' | 'listening') || 'mcq')
+  const [practiceSubMode, setPracticeSubMode] = useState<'mcq' | 'typing' | 'listening' | 'flip'>(() => (localStorage.getItem('vocab_practice_submode') as 'mcq' | 'typing' | 'listening' | 'flip') || 'mcq')
   const [practiceRange, setPracticeRange] = useState<'all' | 'learned'>(() => (localStorage.getItem('vocab_practice_range') as 'all' | 'learned') || 'all')
   const [practiceNeedsSetup, setPracticeNeedsSetup] = useState(false)
   const [practiceDisabled, setPracticeDisabled] = useState(false)
@@ -451,10 +451,11 @@ export default function PracticePlay() {
   const [currentPracticeData, setCurrentPracticeData] = useState<any>(null)
 
   // Per-mode settings state
-  const [modeSettings, setModeSettings] = useState<Record<'mcq' | 'typing' | 'listening', { active_pairs: { q: string, a: string }[], num_choices?: number }>>({
+  const [modeSettings, setModeSettings] = useState<Record<'mcq' | 'typing' | 'listening' | 'flip', { active_pairs: { q: string, a: string }[], num_choices?: number }>>({
     mcq: { active_pairs: [{ q: 'front', a: 'back' }], num_choices: 4 },
     typing: { active_pairs: [{ q: 'front', a: 'back' }] },
-    listening: { active_pairs: [{ q: 'front', a: 'back' }], num_choices: 4 }
+    listening: { active_pairs: [{ q: 'front', a: 'back' }], num_choices: 4 },
+    flip: { active_pairs: [{ q: 'front', a: 'back' }] }
   })
 
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false)
@@ -478,7 +479,7 @@ export default function PracticePlay() {
 
   // Sync practiceSubMode from URL params
   useEffect(() => {
-    if (subMode === 'mcq' || subMode === 'typing' || subMode === 'listening') {
+    if (subMode === 'mcq' || subMode === 'typing' || subMode === 'listening' || subMode === 'flip') {
       setPracticeSubMode(subMode)
       localStorage.setItem('vocab_practice_submode', subMode)
     }
@@ -926,6 +927,17 @@ export default function PracticePlay() {
 
       // Practice Mode Hotkeys
       if (mainTab === 'practice') {
+        if (practiceSubMode === 'flip') {
+          if (e.key === ' ') {
+            e.preventDefault();
+            setIsFlipped(prev => !prev);
+          } else if (e.key === 'Enter' || key === 'n') {
+            e.preventDefault();
+            setIsFlipped(false);
+            handleNext();
+          }
+          return;
+        }
         if (['mcq', 'listening'].includes(practiceSubMode)) {
           if (e.key === 'Enter' || key === 'n') {
             if (showFeedback) {
@@ -1385,7 +1397,8 @@ export default function PracticePlay() {
         const fallback = {
           mcq: { active_pairs: [{ q: 'front', a: 'back' }], num_choices: 4 },
           typing: { active_pairs: [{ q: 'front', a: 'back' }] },
-          listening: { active_pairs: [{ q: 'front', a: 'back' }], num_choices: 4 }
+          listening: { active_pairs: [{ q: 'front', a: 'back' }], num_choices: 4 },
+          flip: { active_pairs: [{ q: 'front', a: 'back' }] }
         }
         setModeSettings(fallback)
         setSetupPairs([{ q: 'front', a: 'back' }])
@@ -2989,6 +3002,187 @@ export default function PracticePlay() {
     const { question, choices, choice_item_ids, correct_index, correct_answer, question_key, answer_key } = practiceData;
     const answered = practiceAnswers[currentIndex] !== undefined;
 
+    if (practiceSubMode === 'flip') {
+      return (
+        <div className="flex-1 bg-white md:rounded-[2rem] rounded-[1.25rem] border border-slate-100 md:p-6 md:pt-4 p-4 pt-3 flex flex-col justify-between min-h-0 relative text-left">
+          <div className="perspective-1000 w-full h-full flex-1 relative min-h-0">
+            <div
+              className="preserve-3d w-full h-full relative transition-transform duration-700 ease-out-quint cursor-pointer select-none"
+              onClick={() => setIsFlipped(prev => !prev)}
+              style={{
+                transform: isFlipped ? 'rotateY(180deg)' : 'rotateY(0deg)',
+                transformStyle: 'preserve-3d',
+              }}
+            >
+              {/* FRONT SIDE */}
+              <div
+                className="absolute inset-0 backface-hidden bg-white md:rounded-[2rem] rounded-[1.25rem] border border-slate-100 px-4 md:px-8 py-6 flex flex-col justify-between shadow-sm min-h-0"
+                style={{
+                  backfaceVisibility: 'hidden',
+                  transform: 'none',
+                  WebkitFontSmoothing: 'antialiased',
+                  pointerEvents: 'auto',
+                  zIndex: isFlipped ? 1 : 2,
+                  visibility: isFlipped ? 'hidden' : 'visible',
+                  transition: 'visibility 0s ' + (isFlipped ? '0.7s' : '0s'),
+                }}
+              >
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] font-black tracking-widest text-indigo-600 bg-indigo-50 px-3 py-1.5 rounded-xl border border-indigo-100">
+                    MẶT TRƯỚC (QUESTION)
+                  </span>
+                  <span className="text-[10px] font-black tracking-wider text-white bg-indigo-500 px-3 py-1.5 rounded-xl border border-indigo-600">
+                    {currentIndex + 1}
+                  </span>
+                </div>
+
+                <div className="flex-1 flex flex-col items-center justify-center text-center gap-6 overflow-y-auto custom-scrollbar my-2">
+                  {showImages && (currentQuestion?.front_img || currentQuestion?.others?.front_img) && (
+                    <img
+                      src={currentQuestion.front_img || currentQuestion.others?.front_img || undefined}
+                      alt="Front Visual"
+                      className="max-h-40 md:max-h-48 object-contain rounded-3xl border border-slate-100/80 shadow-md bg-slate-50/50 p-1.5"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setZoomedImage(currentQuestion.front_img || currentQuestion.others?.front_img || null);
+                      }}
+                    />
+                  )}
+                  <div className="text-3xl md:text-4xl font-black text-slate-800 tracking-tight leading-normal max-w-2xl markdown-content">
+                    <ReactMarkdown
+                      remarkPlugins={[remarkGfm]}
+                      rehypePlugins={[rehypeRaw]}
+                      components={{
+                        ...MarkdownComponents,
+                        p: ({ children }) => <p className="mb-2 last:mb-0 whitespace-pre-wrap">{children}</p>
+                      }}
+                    >
+                      {parseBBCodeToHtml(question || '')}
+                    </ReactMarkdown>
+                  </div>
+                </div>
+
+                <div className="flex flex-col items-center justify-center gap-2">
+                  <span className="text-[10px] font-black text-indigo-500 tracking-[0.2em] uppercase animate-pulse">
+                    Click thẻ hoặc nhấn Space để lật mặt sau
+                  </span>
+                </div>
+              </div>
+
+              {/* BACK SIDE */}
+              <div
+                className="absolute inset-0 backface-hidden bg-white md:rounded-[2rem] rounded-[1.25rem] border border-slate-200 px-4 md:px-8 py-6 flex flex-col justify-between shadow-sm min-h-0"
+                style={{
+                  backfaceVisibility: 'hidden',
+                  transform: 'rotateY(180deg)',
+                  WebkitFontSmoothing: 'antialiased',
+                  pointerEvents: 'auto',
+                  zIndex: isFlipped ? 2 : 1,
+                  visibility: isFlipped ? 'visible' : 'hidden',
+                  transition: 'visibility 0s ' + (isFlipped ? '0s' : '0.7s'),
+                }}
+              >
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] font-black tracking-widest text-emerald-600 bg-emerald-50 px-3 py-1.5 rounded-xl border border-emerald-100">
+                    MẶT SAU (ANSWER)
+                  </span>
+                  <span className="text-[10px] font-black tracking-wider text-white bg-indigo-500 px-3 py-1.5 rounded-xl border border-indigo-600">
+                    {currentIndex + 1}
+                  </span>
+                </div>
+
+                <div className="flex-1 overflow-y-auto custom-scrollbar my-3 md:my-4 flex flex-col gap-3 md:gap-4 text-left pr-1 md:pr-2">
+                  <div className="space-y-2">
+                    <div className="md:p-6 p-4 rounded-3xl bg-emerald-50/50 border border-emerald-100/80 flex items-start gap-4">
+                      <div className="w-8 h-8 rounded-xl bg-emerald-500 flex items-center justify-center text-white font-black text-lg shadow-sm">
+                        ✓
+                      </div>
+                      <div className="text-slate-800 font-extrabold text-2xl md:text-3xl lg:text-4xl leading-snug markdown-content flex-1">
+                        <ReactMarkdown
+                          remarkPlugins={[remarkGfm]}
+                          rehypePlugins={[rehypeRaw]}
+                          components={{
+                            ...MarkdownComponents,
+                            p: ({ children }) => <p className="mb-2 last:mb-0 whitespace-pre-wrap">{children}</p>
+                          }}
+                        >
+                          {parseBBCodeToHtml(correct_answer || '')}
+                        </ReactMarkdown>
+                      </div>
+                    </div>
+                  </div>
+
+                  {showImages && (currentQuestion?.back_img || currentQuestion?.others?.back_img) && (
+                    <div className="space-y-2 flex justify-center">
+                      <img
+                        src={currentQuestion.back_img || currentQuestion.others?.back_img || undefined}
+                        alt="Back Visual"
+                        className="max-h-40 md:max-h-48 object-contain rounded-3xl border border-slate-100/80 shadow-md bg-slate-50/50 p-1.5"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setZoomedImage(currentQuestion.back_img || currentQuestion?.others?.back_img || null);
+                        }}
+                      />
+                    </div>
+                  )}
+
+                  {currentQuestion?.explanation && (
+                    <div className="flex-1 w-full bg-white text-left flex flex-col min-h-0 mt-2">
+                      <span className="text-[10px] font-black text-slate-400 tracking-widest uppercase block mb-1">Gợi ý / Giải thích:</span>
+                      <div className="text-slate-700 font-bold text-base md:text-lg leading-relaxed markdown-content flex-1 overflow-y-auto custom-scrollbar">
+                        <ReactMarkdown
+                          remarkPlugins={[remarkGfm]}
+                          rehypePlugins={[rehypeRaw]}
+                          components={{
+                            ...MarkdownComponents,
+                            p: ({ children }) => <p className="mb-2 last:mb-0 whitespace-pre-wrap">{children}</p>
+                          }}
+                        >
+                          {parseBBCodeToHtml(currentQuestion.explanation)}
+                        </ReactMarkdown>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                <div className="flex flex-col items-center justify-center gap-2">
+                  <span className="text-[10px] font-black text-slate-400 tracking-wider uppercase">
+                    Đã lật để xem đáp án
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* BOTTOM FLIP & NEXT CONTROLS */}
+          <div className="grid grid-cols-2 gap-3 mt-4 relative z-10 w-full max-w-xl mx-auto">
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setIsFlipped(prev => !prev);
+              }}
+              className="py-4 bg-slate-100 hover:bg-slate-200 text-slate-700 font-black text-xs uppercase tracking-widest rounded-2xl shadow-md active:scale-95 transition-all flex items-center justify-center gap-2 border border-slate-200/60"
+            >
+              <RotateCcw className="w-4 h-4" />
+              <span>Lật thẻ (Space)</span>
+            </button>
+            
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setIsFlipped(false);
+                handleNext();
+              }}
+              className="py-4 bg-gradient-to-r from-orange-500 to-rose-500 hover:from-orange-600 hover:to-rose-600 text-white font-black text-xs uppercase tracking-widest rounded-2xl shadow-lg shadow-orange-100 active:scale-95 transition-all flex items-center justify-center gap-2"
+            >
+              <span>Tiếp theo (Enter)</span>
+              <Zap className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+      );
+    }
+
     if (!question || !correct_answer) {
       return (
         <div className="flex-1 bg-white md:rounded-[2rem] rounded-[1.25rem] border border-slate-100 p-8 flex flex-col items-center justify-center text-center gap-4 shadow-2xl shadow-indigo-100/40">
@@ -3843,6 +4037,26 @@ export default function PracticePlay() {
               >
                 <Volume2 className="w-3.5 h-3.5" />
                 <span className="hidden md:inline">Listening</span>
+              </button>
+
+              <button
+                onClick={() => {
+                  setPracticeAnswers({});
+                  setSelectedOption(null);
+                  setShowFeedback(false);
+                  navigate(`/practice/${id}/flip`, { replace: true });
+                  fetchSession('practice', 'flip');
+                }}
+                className={cn(
+                  "px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-wider transition-all duration-200 flex items-center gap-1.5",
+                  practiceSubMode === 'flip'
+                    ? "bg-white text-indigo-600 shadow-sm border border-slate-200/10"
+                    : "text-slate-500 hover:text-slate-700"
+                )}
+                title="Rapid Flip"
+              >
+                <RotateCcw className="w-3.5 h-3.5" />
+                <span className="hidden md:inline">Lật nhanh</span>
               </button>
             </div>
 

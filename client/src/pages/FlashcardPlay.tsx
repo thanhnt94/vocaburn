@@ -989,7 +989,8 @@ export default function FlashcardPlay() {
         const fallback = {
           mcq: { active_pairs: [{ q: 'front', a: 'back' }], num_choices: 4 },
           typing: { active_pairs: [{ q: 'front', a: 'back' }] },
-          listening: { active_pairs: [{ q: 'front', a: 'back' }], num_choices: 4 }
+          listening: { active_pairs: [{ q: 'front', a: 'back' }], num_choices: 4 },
+          flip: { active_pairs: [{ q: 'front', a: 'back' }] }
         }
         setModeSettings(fallback)
         setSetupPairs([{ q: 'front', a: 'back' }])
