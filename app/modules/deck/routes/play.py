@@ -1591,15 +1591,16 @@ async def get_next_card(request: Request, deck_id: int, data: dict, db: AsyncSes
     mode = data.get("mode", "fsrs")
     answered_indexes = data.get("answered_indexes", [])
     current_index = data.get("current_index", 0)
-    
+    random_enabled = data.get("random_enabled", False)
+
     deck = await DeckService.get_deck_by_id_with_cards(db, deck_id)
     if not deck:
         return JSONResponse(status_code=404, content={"error": "Deck not found"})
-        
+
     total = len(deck.cards)
     if total == 0:
         return {"next_index": 0}
-        
+
     from app.modules.deck.models import UserCardMastery
     c_ids = [c.id for c in deck.cards]
     mastery_res = await db.execute(
@@ -1609,15 +1610,15 @@ async def get_next_card(request: Request, deck_id: int, data: dict, db: AsyncSes
         )
     )
     mastery_map = {m.card_id: m for m in mastery_res.scalars().all()}
-    
+
     ignored_indexes = set()
     for idx, c in enumerate(deck.cards):
         m = mastery_map.get(c.id)
         if m and getattr(m, 'is_ignored', False):
             ignored_indexes.add(idx)
-            
+
     effective_answered = set(answered_indexes) | ignored_indexes
-        
+
     if mode == "roadmap":
         from app.modules.deck.models import UserDeckSettings
         user_sett_res = await db.execute(
@@ -1629,16 +1630,16 @@ async def get_next_card(request: Request, deck_id: int, data: dict, db: AsyncSes
         user_sett = user_sett_res.scalar_one_or_none()
         settings = user_sett.settings if (user_sett and user_sett.settings) else {}
         roadmap_daily_new = int(settings.get("roadmap_daily_new", 10))
-        
+
         today_start = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
         from app.modules.deck.models import UserAnswer, DeckAttempt
         min_answer_sub = select(
             UserAnswer.card_id,
             func.min(UserAnswer.created_at).label("min_created")
         ).join(DeckAttempt, UserAnswer.attempt_id == DeckAttempt.id)\
-        .where(DeckAttempt.user_id == user_id)\
-        .group_by(UserAnswer.card_id).subquery()
-        
+         .where(DeckAttempt.user_id == user_id)\
+         .group_by(UserAnswer.card_id).subquery()
+
         new_learned_today = await db.scalar(
             select(func.count(min_answer_sub.c.card_id))
             .join(Flashcard, min_answer_sub.c.card_id == Flashcard.id)
@@ -1647,16 +1648,23 @@ async def get_next_card(request: Request, deck_id: int, data: dict, db: AsyncSes
                 min_answer_sub.c.min_created >= today_start
             )
         ) or 0
-        
+
         if new_learned_today < roadmap_daily_new:
+            new_cards = []
             for idx, c in enumerate(deck.cards):
                 if idx in ignored_indexes:
                     continue
                 m = mastery_map.get(c.id)
                 is_new = not m or m.state == 0 or m.stability is None
                 if is_new and idx not in effective_answered:
-                    return {"next_index": idx, "phase": "new"}
-                    
+                    new_cards.append(idx)
+            if new_cards:
+                if random_enabled:
+                    import random
+                    return {"next_index": random.choice(new_cards), "phase": "new"}
+                else:
+                    return {"next_index": new_cards[0], "phase": "new"}
+
         now_utc = datetime.utcnow()
         due_cards = []
         for idx, c in enumerate(deck.cards):
@@ -1668,43 +1676,55 @@ async def get_next_card(request: Request, deck_id: int, data: dict, db: AsyncSes
             is_due = (m.due - timedelta(seconds=30)) <= now_utc
             if is_due and idx not in answered_indexes:
                 due_cards.append({"idx": idx, "stability": m.stability or 0.0})
-                
+
         if due_cards:
-            due_cards.sort(key=lambda x: x["stability"])
-            return {"next_index": due_cards[0]["idx"], "phase": "review"}
-            
-        for idx in range(total):
-            if idx not in effective_answered:
-                return {"next_index": idx, "phase": "free"}
-                
+            if random_enabled:
+                import random
+                next_index = random.choice(due_cards)["idx"]
+                return {"next_index": next_index, "phase": "review"}
+            else:
+                due_cards.sort(key=lambda x: x["stability"])
+                return {"next_index": due_cards[0]["idx"], "phase": "review"}
+
+        unanswered = [idx for idx in range(total) if idx not in effective_answered]
+        if unanswered:
+            if random_enabled:
+                import random
+                return {"next_index": random.choice(unanswered), "phase": "free"}
+            else:
+                return {"next_index": unanswered[0], "phase": "free"}
+
         return {"next_index": min(current_index + 1, total - 1), "phase": "free"}
 
     elif mode == "fsrs":
         now_utc = datetime.utcnow()
-        
         due_cards = []
         for idx, c in enumerate(deck.cards):
             if idx in ignored_indexes:
                 continue
-                
+
             m = mastery_map.get(c.id)
             if not m or m.state == 0 or m.stability is None:
                 continue
-                
+
             is_due = (m.due - timedelta(seconds=30)) <= now_utc
-            
             has_answered = idx in answered_indexes
             if has_answered and not is_due:
                 continue
-                
+
             if is_due:
                 due_cards.append({"idx": idx, "stability": m.stability or 0.0})
-                
+
         if due_cards:
-            due_cards.sort(key=lambda x: x["stability"])
-            next_index = due_cards[0]["idx"]
+            if random_enabled:
+                import random
+                next_index = random.choice(due_cards)["idx"]
+            else:
+                due_cards.sort(key=lambda x: x["stability"])
+                next_index = due_cards[0]["idx"]
             return {"next_index": next_index}
         else:
+            new_cards = []
             for idx, c in enumerate(deck.cards):
                 if idx in ignored_indexes:
                     continue
@@ -1712,25 +1732,41 @@ async def get_next_card(request: Request, deck_id: int, data: dict, db: AsyncSes
                 is_new = not m or m.state == 0 or m.stability is None
                 has_not_answered = idx not in effective_answered
                 if is_new and has_not_answered:
-                    return {"next_index": idx}
-                    
-            for idx in range(total):
-                if idx not in effective_answered:
-                    return {"next_index": idx}
-                    
+                    new_cards.append(idx)
+            if new_cards:
+                if random_enabled:
+                    import random
+                    return {"next_index": random.choice(new_cards)}
+                else:
+                    return {"next_index": new_cards[0]}
+
+            unanswered = [idx for idx in range(total) if idx not in effective_answered]
+            if unanswered:
+                if random_enabled:
+                    import random
+                    return {"next_index": random.choice(unanswered)}
+                else:
+                    return {"next_index": unanswered[0]}
+
             return {"next_index": min(current_index + 1, total - 1)}
-            
+
     elif mode == "new":
-        # First, find cards that are new (state == 0 or no mastery) and have not been answered in this session
+        new_cards = []
         for idx, c in enumerate(deck.cards):
             if idx in ignored_indexes:
                 continue
             m = mastery_map.get(c.id)
             is_new = not m or m.state == 0 or m.stability is None
             if is_new and idx not in effective_answered:
-                return {"next_index": idx}
-                
-        # Fallback 1: if no new cards are left, check if any FSRS cards are due
+                new_cards.append(idx)
+
+        if new_cards:
+            if random_enabled:
+                import random
+                return {"next_index": random.choice(new_cards)}
+            else:
+                return {"next_index": new_cards[0]}
+
         now_utc = datetime.utcnow()
         due_cards = []
         for idx, c in enumerate(deck.cards):
@@ -1743,80 +1779,57 @@ async def get_next_card(request: Request, deck_id: int, data: dict, db: AsyncSes
             if is_due and idx not in answered_indexes:
                 due_cards.append({"idx": idx, "stability": m.stability or 0.0})
         if due_cards:
-            due_cards.sort(key=lambda x: x["stability"])
-            return {"next_index": due_cards[0]["idx"]}
-            
-        # Fallback 2: any unanswered cards
-        for idx in range(total):
-            if idx not in effective_answered:
-                return {"next_index": idx}
-                
+            if random_enabled:
+                import random
+                return {"next_index": random.choice(due_cards)["idx"]}
+            else:
+                due_cards.sort(key=lambda x: x["stability"])
+                return {"next_index": due_cards[0]["idx"]}
+
+        unanswered = [idx for idx in range(total) if idx not in effective_answered]
+        if unanswered:
+            if random_enabled:
+                import random
+                return {"next_index": random.choice(unanswered)}
+            else:
+                return {"next_index": unanswered[0]}
+
         return {"next_index": min(current_index + 1, total - 1)}
-            
-    elif mode == "sequential":
-        found = -1
-        for i in range(current_index + 1, total):
-            if i not in effective_answered:
-                found = i
-                break
-        if found == -1:
-            for i in range(0, current_index + 1):
-                if i not in effective_answered:
-                    found = i
-                    break
-        next_index = found if found != -1 else min(current_index + 1, total - 1)
-        return {"next_index": next_index}
-        
-    elif mode == "random":
-        import random
-        pool = [i for i in range(total) if i not in effective_answered]
-        if pool:
-            return {"next_index": random.choice(pool)}
-        return {"next_index": min(current_index + 1, total - 1)}
-        
-    elif mode == "unseen":
-        deck_with_stats = await DeckService.get_deck_with_stats(db, deck_id, user_id=user_id)
-        for idx in range(current_index + 1, total):
-            c = deck_with_stats.cards[idx]
-            c_stats = getattr(c, "stats", None) or {}
-            if (c_stats.get("total") or 0) == 0 and idx not in effective_answered:
-                return {"next_index": idx}
-        for idx in range(0, current_index + 1):
-            c = deck_with_stats.cards[idx]
-            c_stats = getattr(c, "stats", None) or {}
-            if (c_stats.get("total") or 0) == 0 and idx not in effective_answered:
-                return {"next_index": idx}
-        for idx in range(total):
-            if idx not in effective_answered:
-                return {"next_index": idx}
-        return {"next_index": min(current_index + 1, total - 1)}
-        
+
     elif mode == "review":
         deck_with_stats = await DeckService.get_deck_with_stats(db, deck_id, user_id=user_id)
-        for idx in range(current_index + 1, total):
-            c = deck_with_stats.cards[idx]
-            c_stats = getattr(c, "stats", None) or {}
-            total_attempts = c_stats.get("total") or 0
-            correct_attempts = c_stats.get("correct") or 0
-            if total_attempts - correct_attempts > 0 and idx not in effective_answered:
-                return {"next_index": idx}
-        for idx in range(0, current_index + 1):
-            c = deck_with_stats.cards[idx]
-            c_stats = getattr(c, "stats", None) or {}
-            total_attempts = c_stats.get("total") or 0
-            correct_attempts = c_stats.get("correct") or 0
-            if total_attempts - correct_attempts > 0 and idx not in effective_answered:
-                return {"next_index": idx}
+        review_candidates = []
         for idx in range(total):
-            if idx not in effective_answered:
-                return {"next_index": idx}
+            if idx in ignored_indexes or idx in effective_answered:
+                continue
+            c = deck_with_stats.cards[idx]
+            c_stats = getattr(c, "stats", None) or {}
+            if (c_stats.get("total") or 0) > 0:
+                review_candidates.append(idx)
+
+        if review_candidates:
+            if random_enabled:
+                import random
+                return {"next_index": random.choice(review_candidates)}
+            else:
+                for idx in review_candidates:
+                    if idx > current_index:
+                        return {"next_index": idx}
+                return {"next_index": review_candidates[0]}
+
+        unanswered = [idx for idx in range(total) if idx not in effective_answered]
+        if unanswered:
+            if random_enabled:
+                import random
+                return {"next_index": random.choice(unanswered)}
+            else:
+                return {"next_index": unanswered[0]}
+
         return {"next_index": min(current_index + 1, total - 1)}
-        
+
     elif mode == "hardest":
         deck_with_stats = await DeckService.get_deck_with_stats(db, deck_id, user_id=user_id)
-        best_idx = -1
-        min_ratio = float('inf')
-        max_wrongs = -1
+        candidates = []
         for idx in range(total):
             if idx in effective_answered:
                 continue
@@ -1827,18 +1840,40 @@ async def get_next_card(request: Request, deck_id: int, data: dict, db: AsyncSes
             wrongs = t - c_val
             if t > 0:
                 ratio = c_val / t
-                if ratio < min_ratio:
-                    min_ratio = ratio
-                    max_wrongs = wrongs
-                    best_idx = idx
-                elif ratio == min_ratio and wrongs > max_wrongs:
-                    max_wrongs = wrongs
-                    best_idx = idx
-        if best_idx != -1:
-            return {"next_index": best_idx}
-        for idx in range(total):
-            if idx not in effective_answered:
-                return {"next_index": idx}
+                candidates.append({"idx": idx, "ratio": ratio, "wrongs": wrongs})
+
+        if candidates:
+            if random_enabled:
+                import random
+                candidates.sort(key=lambda x: (x["ratio"], -x["wrongs"]))
+                top_n = candidates[:min(len(candidates), 5)]
+                return {"next_index": random.choice(top_n)["idx"]}
+            else:
+                candidates.sort(key=lambda x: (x["ratio"], -x["wrongs"]))
+                return {"next_index": candidates[0]["idx"]}
+
+        unanswered = [idx for idx in range(total) if idx not in effective_answered]
+        if unanswered:
+            if random_enabled:
+                import random
+                return {"next_index": random.choice(unanswered)}
+            else:
+                return {"next_index": unanswered[0]}
+
+        return {"next_index": min(current_index + 1, total - 1)}
+
+    elif mode == "flip":
+        pool = [idx for idx in range(total) if idx not in effective_answered]
+        if pool:
+            if random_enabled:
+                import random
+                return {"next_index": random.choice(pool)}
+            else:
+                for idx in pool:
+                    if idx > current_index:
+                        return {"next_index": idx}
+                return {"next_index": pool[0]}
+
         return {"next_index": min(current_index + 1, total - 1)}
         
     return {"next_index": min(current_index + 1, total - 1)}

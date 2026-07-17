@@ -27,6 +27,8 @@ interface PlaySettingsModalProps {
   setShowImages: (enabled: boolean) => void;
   showFsrs?: boolean;
   setShowFsrs?: (enabled: boolean) => void;
+  randomEnabled?: boolean;
+  setRandomEnabled?: (enabled: boolean) => void;
 }
 
 export const PlaySettingsModal: React.FC<PlaySettingsModalProps> = ({
@@ -51,7 +53,9 @@ export const PlaySettingsModal: React.FC<PlaySettingsModalProps> = ({
   showImages,
   setShowImages,
   showFsrs = true,
-  setShowFsrs
+  setShowFsrs,
+  randomEnabled = false,
+  setRandomEnabled
 }) => {
   const navigate = useNavigate()
   const { id } = useParams<{ id: string }>()
@@ -117,13 +121,10 @@ export const PlaySettingsModal: React.FC<PlaySettingsModalProps> = ({
                   {/* 1. Learning Mode Selector */}
                   <div>
                     <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-2">Chế độ học thông minh</label>
-                    <div className="grid grid-cols-4 gap-1.5 bg-slate-50 p-1 rounded-2xl border border-slate-100">
+                    <div className="grid grid-cols-5 gap-1.5 bg-slate-50 p-1 rounded-2xl border border-slate-100">
                       {[
                         { id: 'fsrs', label: 'FSRS v6', icon: Brain },
                         { id: 'new', label: 'Học mới', icon: Sparkles },
-                        { id: 'sequential', label: 'Mặc định', icon: ListOrdered },
-                        { id: 'random', label: 'Ngẫu nhiên', icon: Shuffle },
-                        { id: 'unseen', label: 'Chưa học', icon: EyeOff },
                         { id: 'review', label: 'Ôn tập', icon: AlertCircle },
                         { id: 'hardest', label: 'Khó nhất', icon: TrendingUp },
                         { id: 'flip', label: 'Lật nhanh', icon: RotateCcw }
@@ -146,6 +147,32 @@ export const PlaySettingsModal: React.FC<PlaySettingsModalProps> = ({
                           </button>
                         );
                       })}
+                    </div>
+                    {/* Switch for Random Shuffle */}
+                    <div className="mt-3 flex items-center justify-between p-3 rounded-2xl bg-slate-50 border border-slate-100">
+                      <div className="flex items-center gap-2">
+                        <div className="w-8 h-8 rounded-xl bg-indigo-50 flex items-center justify-center border border-indigo-100">
+                          <Shuffle className="w-4 h-4 text-indigo-600" />
+                        </div>
+                        <div className="text-left">
+                          <span className="text-xs font-extrabold text-slate-700 block">Xáo trộn câu hỏi</span>
+                          <span className="text-[9px] font-bold text-slate-400 block">Học ngẫu nhiên thay vì tuần tự</span>
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => setRandomEnabled?.(!randomEnabled)}
+                        className={cn(
+                          "w-11 h-6 rounded-full transition-all duration-300 relative p-0.5",
+                          randomEnabled ? "bg-indigo-600" : "bg-slate-200"
+                        )}
+                      >
+                        <div
+                          className={cn(
+                            "w-5 h-5 rounded-full bg-white shadow-sm transition-all duration-300 transform",
+                            randomEnabled ? "translate-x-5" : "translate-x-0"
+                          )}
+                        />
+                      </button>
                     </div>
                   </div>
 

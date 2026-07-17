@@ -48,6 +48,14 @@ export function usePlaySettings(
     return true;
   });
 
+  const [randomEnabled, setRandomEnabledState] = useState<boolean>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('vocaburn_random_enabled');
+      return saved === 'true';
+    }
+    return false;
+  });
+
   const saveGeneralSettings = async (updates: {
     sfx_enabled?: boolean;
     autoplay_audio?: string;
@@ -56,6 +64,7 @@ export function usePlaySettings(
     haptic_enabled?: boolean;
     show_images?: boolean;
     show_fsrs?: boolean;
+    random_enabled?: boolean;
   }) => {
     try {
       const updatedSettings = {
@@ -66,7 +75,8 @@ export function usePlaySettings(
         quick_learn_enabled: updates.quick_learn_enabled !== undefined ? updates.quick_learn_enabled : quickLearnEnabled,
         haptic_enabled: updates.haptic_enabled !== undefined ? updates.haptic_enabled : hapticEnabled,
         show_images: updates.show_images !== undefined ? updates.show_images : showImages,
-        show_fsrs: updates.show_fsrs !== undefined ? updates.show_fsrs : showFsrs
+        show_fsrs: updates.show_fsrs !== undefined ? updates.show_fsrs : showFsrs,
+        random_enabled: updates.random_enabled !== undefined ? updates.random_enabled : randomEnabled
       };
       setModeSettings(updatedSettings);
       await axios.post(`/api/v1/deck/${deckId}/practice-settings`, {
@@ -118,6 +128,14 @@ export function usePlaySettings(
     saveGeneralSettings({ show_fsrs: enabled });
   };
 
+  const setRandomEnabled = (enabled: boolean) => {
+    setRandomEnabledState(enabled);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('vocaburn_random_enabled', enabled ? 'true' : 'false');
+    }
+    saveGeneralSettings({ random_enabled: enabled });
+  };
+
   return {
     sfxEnabled,
     setSfxEnabled,
@@ -129,6 +147,8 @@ export function usePlaySettings(
     setShowImages,
     showFsrs,
     setShowFsrs,
+    randomEnabled,
+    setRandomEnabled,
     saveGeneralSettings
   };
 }

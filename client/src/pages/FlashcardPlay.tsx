@@ -450,6 +450,8 @@ export default function FlashcardPlay() {
     setShowImages,
     showFsrs,
     setShowFsrs,
+    randomEnabled,
+    setRandomEnabled,
     saveGeneralSettings
   } = usePlaySettings(id || '', modeSettings, setModeSettings, activeMode, autoPlayAudio);
   const [learningModeAlert, setLearningModeAlert] = useState<{
@@ -899,7 +901,8 @@ export default function FlashcardPlay() {
               const res = await axios.post(`/api/v1/deck/${id}/next-card`, {
                 mode: savedMode,
                 answered_indexes: answeredIndexes,
-                current_index: curIdx
+                current_index: curIdx,
+                random_enabled: localStorage.getItem('vocaburn_random_enabled') === 'true'
               })
               curIdx = res.data.next_index
             } catch (err) {
@@ -2044,7 +2047,8 @@ export default function FlashcardPlay() {
       const res = await axios.post(`/api/v1/deck/${id}/next-card`, {
         mode: activeMode,
         answered_indexes: answeredIndexes,
-        current_index: currentIndex
+        current_index: currentIndex,
+        random_enabled: randomEnabled
       })
       nextIdx = res.data.next_index
     } catch (err) {
@@ -2074,7 +2078,8 @@ export default function FlashcardPlay() {
       const res = await axios.post(`/api/v1/deck/${id}/next-card`, {
         mode: mode,
         answered_indexes: answeredIndexes,
-        current_index: currentIndex
+        current_index: currentIndex,
+        random_enabled: randomEnabled
       })
       targetIdx = res.data.next_index
     } catch (err) {
@@ -4965,6 +4970,8 @@ export default function FlashcardPlay() {
         setShowImages={setShowImages}
         showFsrs={showFsrs}
         setShowFsrs={setShowFsrs}
+        randomEnabled={randomEnabled}
+        setRandomEnabled={setRandomEnabled}
       />
 
       {/* Exit Confirmation Modal */}
