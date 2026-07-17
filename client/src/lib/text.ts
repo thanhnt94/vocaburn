@@ -17,9 +17,8 @@ export const parseBBCodeToHtml = (text: string): string => {
   html = html.replace(/\[\/color\]/gi, '</span>');
   html = html.replace(/\[size=([^\]]+)\]/gi, (_, size) => `<span style="font-size: ${size}">`);
   html = html.replace(/\[\/size\]/gi, '</span>');
-  
   // Furigana (Anki-style: Kanji[Furigana] -> <ruby>Kanji<rt>Furigana</rt></ruby>)
-  html = html.replace(/([\u4e00-\u9fff\u3400-\u4dbf][\u4e00-\u9fff\u3400-\u4dbf\u3040-\u309f\u30a0-\u30ff]*)\[([^\]]+)\]/g, '<ruby>$1<rt>$2</rt></ruby>');
+  html = html.replace(/([\u4e00-\u9fff\u3400-\u4dbf\u3005][\u4e00-\u9fff\u3400-\u4dbf\u3005\u3040-\u309f\u30a0-\u30ff]*)\[([^\]]+)\]/g, '<ruby>$1<rt>$2</rt></ruby>');
   
   return html;
 };
