@@ -1160,7 +1160,6 @@ export default function Dashboard() {
   const [roomCode, setRoomCode] = useState('')
   const [isJoining, setIsJoining] = useState(false)
   const [timeFilter, setTimeFilter] = useState('all_time')
-  const [activeMobileTab, setActiveMobileTab] = useState<'study' | 'stats'>('study')
   const carouselRef = useRef<HTMLDivElement>(null)
   const scrollCarousel = (direction: 'left' | 'right') => {
     if (carouselRef.current) {

@@ -1,5 +1,5 @@
 import React from 'react'
-import { Lightbulb, Sparkles, StickyNote, X, Check, Edit3, FileText, HelpCircle, Brain, Copy, ChevronRight, MessageSquare, Heart, Trash2, Send, ChevronsDown, ChevronsUp } from 'lucide-react'
+import { Lightbulb, Sparkles, StickyNote, X, Check, Edit3, FileText, Copy, ChevronRight, MessageSquare, Heart, Trash2, Send, ChevronsDown, ChevronsUp } from 'lucide-react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import rehypeRaw from 'rehype-raw'
@@ -8,7 +8,7 @@ import { cn } from '@/lib/utils'
 import { parseBBCodeToHtml } from '@/lib/text'
 
 const MarkdownComponents = {
-  code({ node, className, children, ...props }: any) {
+  code({ className, children, ...props }: any) {
     const value = String(children || '').replace(/\n$/, '')
     const hasRuby = value.includes('<ruby>') || value.includes('</ruby>')
     if (hasRuby) {
@@ -105,17 +105,9 @@ export const FeedbackArea: React.FC<FeedbackAreaProps> = ({
   showFeedback,
   activeFeedbackTab,
   setActiveFeedbackTab,
-  getInsightText,
-  isEditingInsight,
-  insightInput,
-  setInsightInput,
   currentQuestion,
   canEdit,
   clearAIExplanation,
-  isEditingAI: _unused_isEditingAI,
-  setIsEditingAI: _unused_setIsEditingAI,
-  isEditingPrompt: _unused_isEditingPrompt,
-  setIsEditingPrompt: _unused_setIsEditingPrompt,
   askAI,
   isAskingAI,
   aiInput,
@@ -131,12 +123,9 @@ export const FeedbackArea: React.FC<FeedbackAreaProps> = ({
   isMobile = false,
   setIsFeedbackOpen,
   handleEditCurrentTab,
-  isCopyMenuOpen,
-  setIsCopyMenuOpen,
   copyCurrentTabContent,
   isCopied,
   handleNext,
-  selectedChoiceData,
   deckInfo,
 }) => {
 
@@ -223,23 +212,7 @@ export const FeedbackArea: React.FC<FeedbackAreaProps> = ({
     }
   }, [allTabs])
 
-  const handlePrevTab = () => {
-    const currentIndex = insightTabs.findIndex((t: any) => t.id === activeInsightTab)
-    if (currentIndex > 0) {
-      setActiveInsightTab(insightTabs[currentIndex - 1].id)
-      setIsEditingAI(false)
-      setIsEditingPrompt(false)
-    }
-  }
 
-  const handleNextTab = () => {
-    const currentIndex = insightTabs.findIndex((t: any) => t.id === activeInsightTab)
-    if (currentIndex < insightTabs.length - 1) {
-      setActiveInsightTab(insightTabs[currentIndex + 1].id)
-      setIsEditingAI(false)
-      setIsEditingPrompt(false)
-    }
-  }
 
   const getActiveAIContent = () => {
     if (!currentQuestion) return ''

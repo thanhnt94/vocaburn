@@ -1,7 +1,6 @@
 import React from 'react';
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ReferenceLine } from 'recharts';
 import { TrendingUp, ArrowUpRight, ArrowDownRight, Minus, BookOpen, Layers, Zap, Clock } from 'lucide-react';
-import { cn } from '@/lib/utils';
 
 interface DailyComparisonDay {
   date: string;

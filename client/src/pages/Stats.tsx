@@ -1,12 +1,11 @@
-import { useState, useRef, useEffect, useMemo } from 'react'
+import { useState, useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { Link } from 'react-router-dom'
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, Cell, AreaChart, Area, ComposedChart } from 'recharts'
+import { Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, Cell, AreaChart, Area, ComposedChart } from 'recharts'
 import { 
-  TrendingUp, Clock, Target, Award, BrainCircuit, ChevronRight, Zap, 
-  Flame, BarChart3, Layers, Calendar, Activity, ChevronLeft, 
-  Target as TargetIcon, Users, Globe, BookOpen, ChevronDown, Timer,
-  Sparkles, Lock, ArrowUpRight, ArrowDownRight, Info, Trophy, Crown
+  TrendingUp, Clock, BrainCircuit, ChevronRight, Zap, 
+  Flame, Layers, Calendar, Activity, ChevronLeft, 
+  Target as TargetIcon, Users, Globe, BookOpen, Timer,
+  Sparkles, Trophy, Crown
 } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import axios from 'axios'
@@ -72,7 +71,7 @@ interface ForecastResponse {
 // ─── FSRS Review Forecast ──────────────────────────────────────────────────────
 function ReviewForecastWidget({ data }: { data: ForecastResponse | undefined }) {
   const [viewMode, setViewMode] = useState<'hourly' | 'daily' | 'weekly'>('daily')
-  const [daysRange, setDaysRange] = useState<7 | 14 | 30>(14)
+  const daysRange = 14
 
   const chartData = useMemo<any[]>(() => {
     if (!data) return []
