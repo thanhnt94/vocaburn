@@ -2012,6 +2012,67 @@ export default function FlashcardPlay() {
     const questions = session.questions
     const total = questions.length
 
+    if (activeMode === 'flip' && currentQuestion) {
+      const alreadyRated = sessionAnswers[currentIndex] !== undefined;
+      if (!alreadyRated) {
+        // Record the view on backend
+        try {
+          await axios.post('/api/v1/deck/record_answer', {
+            question_id: currentQuestion.id,
+            is_correct: true,
+            rating: 3, // count as 'Good' / seen
+            time_spent: timeLeft,
+            local_date: new Date().toISOString().slice(0, 10)
+          });
+        } catch (e) {
+          console.error("Failed to record flip view:", e);
+        }
+
+        // Update local state and stats
+        const prevRatings = Array.isArray(sessionAnswers[currentIndex]) 
+          ? (sessionAnswers[currentIndex] as number[]) 
+          : (typeof sessionAnswers[currentIndex] === 'number' ? [sessionAnswers[currentIndex] as number] : [])
+        const newRatings = [...prevRatings, 2] // index 2 (rating 3)
+        const newAnswers = { ...sessionAnswers, [currentIndex]: newRatings }
+        setSessionAnswers(newAnswers)
+
+        setSession((prev: any) => {
+          if (!prev) return prev
+          const newSession = { ...prev }
+          const newQs = [...newSession.questions]
+          const q = { ...newQs[currentIndex] }
+          if (q) {
+            const currentStats = q.stats || { 
+              total: 0, 
+              correct: 0, 
+              avg_time: 0,
+              again_count: 0,
+              hard_count: 0,
+              good_count: 0,
+              easy_count: 0
+            }
+            const newTotal = currentStats.total + 1
+            const newCorrect = currentStats.correct + 1
+            const oldTotalTime = (currentStats.avg_time || 0) * currentStats.total
+            const newAvgTime = Math.round((oldTotalTime + timeLeft) / newTotal)
+            q.stats = {
+              total: newTotal,
+              correct: newCorrect,
+              wrong: newTotal - newCorrect,
+              avg_time: newAvgTime,
+              again_count: currentStats.again_count || 0,
+              hard_count: currentStats.hard_count || 0,
+              good_count: (currentStats.good_count || 0) + 1,
+              easy_count: currentStats.easy_count || 0
+            }
+            newQs[currentIndex] = q
+          }
+          newSession.questions = newQs
+          return newSession
+        })
+      }
+    }
+
     const getNextPracticeIndex = (currentIdx: number, range: 'all' | 'learned', totalQuestions: any[]): number => {
       const allIndices = totalQuestions.map((_, i) => i);
       const learnedIndices = totalQuestions.map((q, i) => (q.stats?.total || 0) > 0 ? i : -1).filter(i => i !== -1);
