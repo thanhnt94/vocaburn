@@ -1722,6 +1722,20 @@ export default function Dashboard() {
           </div>
         )}
 
+        {/* ── Restoration: Study History (Heatmap) on Mobile ── */}
+        {heatmapData && heatmapData.length > 0 && (
+          <div className="pt-2">
+            <MiniHeatmap data={heatmapData} />
+          </div>
+        )}
+
+        {/* ── Restoration: Leaderboard Widget on Mobile ── */}
+        {leaderboardData && leaderboardData.leaderboard?.length > 0 && (
+          <div className="pt-1 pb-4">
+            <LeaderboardWidget data={leaderboardData} activeFilter={timeFilter} onFilterChange={setTimeFilter} />
+          </div>
+        )}
+
       </div>
 
       {/* JOIN ROOM MODAL */}
