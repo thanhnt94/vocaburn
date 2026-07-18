@@ -68,7 +68,7 @@ html, body, #root {
 .markdown-content ul { list-style-type: none; margin-left: 1.5rem; margin-top: 0.6rem; margin-bottom: 0.6rem; }
 .markdown-content ol { list-style-type: decimal; margin-left: 1.5rem; margin-top: 0.6rem; margin-bottom: 0.6rem; }
 .markdown-content li { 
-  @apply relative mb-2 text-slate-700 leading-relaxed;
+  @apply relative mb-2 text-slate-600 font-medium leading-relaxed;
 }
 .markdown-content ul li::before {
   content: "•";
