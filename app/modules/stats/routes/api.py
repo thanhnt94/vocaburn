@@ -89,7 +89,8 @@ async def get_dashboard_data(request: Request, only_created: bool = False, db: A
     # Query A: My & Archived Decks (Join with grouped DeckAttempt subquery to prevent duplicates)
     subq = select(
         DeckAttempt.deck_id,
-        func.max(case((DeckAttempt.is_archived == True, 1), else_=0)).label("is_archived")
+        func.max(case((DeckAttempt.is_archived == True, 1), else_=0)).label("is_archived"),
+        func.max(DeckAttempt.started_at).label("last_studied_at")
     ).where(
         DeckAttempt.user_id == user_id_int
     ).group_by(
@@ -99,11 +100,14 @@ async def get_dashboard_data(request: Request, only_created: bool = False, db: A
     query_a = select(
         FlashcardDeck,
         select(func.count(Flashcard.id)).where(Flashcard.deck_id == FlashcardDeck.id).scalar_subquery().label("c_count"),
-        subq.c.is_archived
+        subq.c.is_archived,
+        subq.c.last_studied_at
     ).join(
         subq, FlashcardDeck.id == subq.c.deck_id
     ).options(
         selectinload(FlashcardDeck.tags)
+    ).order_by(
+        subq.c.last_studied_at.desc()
     )
 
     # Query C: Discover Decks (exclude attempted/created, limit 12, order by created_at desc)
@@ -141,7 +145,7 @@ async def get_dashboard_data(request: Request, only_created: bool = False, db: A
 
     # Map Query A results
     for row in res_a.all():
-        q, count, is_archived = row
+        q, count, is_archived, last_studied_at = row
         deck_dict = {
             "id": q.id,
             "title": q.title,
