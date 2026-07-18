@@ -1389,39 +1389,29 @@ export default function Dashboard() {
   )
 
   return (
-    <div className="flex flex-col bg-gradient-to-br from-[#f8fafc] via-[#f1f6fa] to-[#f8fafc] min-h-[calc(100vh-6rem)] relative overflow-x-hidden md:overflow-hidden md:min-h-0 md:h-full">
+    <div className="flex flex-col bg-white md:bg-gradient-to-br md:from-[#f8fafc] md:via-[#f1f6fa] md:to-[#f8fafc] min-h-[calc(100vh-6rem)] relative overflow-x-hidden md:overflow-hidden md:min-h-0 md:h-full">
 
-      {/* Soft blobs */}
-      <div className="absolute top-[20%] left-[-10%] w-[40vw] h-[40vw] rounded-full bg-indigo-200/10 blur-[130px] pointer-events-none" />
-      <div className="absolute bottom-[20%] right-[-10%] w-[40vw] h-[40vw] rounded-full bg-pink-200/10 blur-[130px] pointer-events-none" />
+      {/* Soft blobs - desktop only */}
+      <div className="hidden md:block absolute top-[20%] left-[-10%] w-[40vw] h-[40vw] rounded-full bg-indigo-200/10 blur-[130px] pointer-events-none" />
+      <div className="hidden md:block absolute bottom-[20%] right-[-10%] w-[40vw] h-[40vw] rounded-full bg-pink-200/10 blur-[130px] pointer-events-none" />
 
       {/* MOBILE HEADER */}
-      <div className="fixed top-0 left-0 right-0 z-[150] bg-white/70 backdrop-blur-md border-b border-slate-100/50 md:hidden flex-shrink-0 shadow-[0_2px_20px_rgba(0,0,0,0.015)]">
-        <div className="px-5 py-3 flex items-center justify-between gap-4">
-          {/* Logo & Brand Vocaburn on the Left */}
-          <Link to="/" className="flex items-center gap-2 group flex-shrink-0">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-orange-500 to-rose-500 flex items-center justify-center text-white shadow-md shadow-orange-500/10 group-hover:rotate-12 transition-transform">
-              <BookOpen className="w-4 h-4" />
+      <div className="fixed top-0 left-0 right-0 z-[150] bg-white/90 backdrop-blur-md border-b border-slate-100 md:hidden flex-shrink-0">
+        <div className="px-4 py-2.5 flex items-center justify-between">
+          {/* Logo */}
+          <Link to="/" className="flex items-center gap-2 flex-shrink-0">
+            <div className="w-7 h-7 rounded-lg bg-gradient-to-tr from-orange-500 to-rose-500 flex items-center justify-center text-white">
+              <BookOpen className="w-3.5 h-3.5" />
             </div>
-            <span className="text-[11px] font-black tracking-widest text-slate-800 uppercase">
+            <span className="text-[13px] font-bold text-slate-800">
               Voca<span className="text-orange-500">burn</span>
             </span>
           </Link>
 
-          {/* User Info & Avatar on the Right */}
-          <div className="flex items-center gap-2">
-            <div className="flex items-center gap-1.5">
-              <span className="flex items-center gap-0.5 px-2.5 py-1 bg-amber-500/10 border border-amber-500/20 rounded-full text-[9px] font-black text-amber-600 uppercase tracking-wider">
-                <Flame className="w-3 h-3 fill-amber-500 text-amber-500" />
-                {data.gamify?.streak}D
-              </span>
-            </div>
-            
-            {/* User Avatar (Normal style: circular box with User icon) */}
-            <Link to="/profile" className="w-9 h-9 rounded-full bg-slate-50 border border-slate-200/50 flex items-center justify-center text-slate-500 shadow-sm active:scale-95 transition-all hover:bg-slate-100">
-              <User className="w-4.5 h-4.5" />
-            </Link>
-          </div>
+          {/* Avatar */}
+          <Link to="/profile" className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 active:scale-95 transition-all">
+            <User className="w-4 h-4" />
+          </Link>
         </div>
       </div>
 
@@ -1514,105 +1504,192 @@ export default function Dashboard() {
       </div>
 
       {/* MOBILE FEED */}
-      <div className="md:hidden px-4 w-full pt-[80px] flex-grow space-y-4 overflow-y-auto pb-24 scrollbar-none text-left">
+      <div className="md:hidden px-4 w-full pt-[68px] flex-grow space-y-3 overflow-y-auto pb-24 scrollbar-none text-left">
         
-        {/* User HUD / Progress Card */}
-        <div className="bg-gradient-to-br from-[#4f46e5] via-[#6366f1] to-[#a855f7] rounded-[2.2rem] p-6 text-white shadow-xl shadow-indigo-500/15 relative overflow-hidden">
-          {/* Glowing mesh shapes */}
-          <div className="absolute right-[-15%] top-[-30%] w-48 h-48 rounded-full bg-pink-400/20 blur-2xl pointer-events-none" />
-          <div className="absolute left-[-10%] bottom-[-20%] w-36 h-36 rounded-full bg-indigo-400/25 blur-xl pointer-events-none" />
-
-          <div className="flex items-center justify-between gap-4 relative z-10">
-            <div className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-2xl bg-white/15 backdrop-blur-md border border-white/20 flex items-center justify-center text-2xl shadow-inner shadow-white/10">
-                ⚡
+        {/* ── Compact Stats Bar ── */}
+        <div className="bg-white rounded-2xl border border-slate-100 p-3.5 shadow-sm">
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="w-9 h-9 rounded-xl bg-indigo-50 flex items-center justify-center text-indigo-600 flex-shrink-0">
+                <Zap className="w-4.5 h-4.5" />
               </div>
               <div className="min-w-0">
-                <span className="text-[9px] font-black text-indigo-100/85 uppercase tracking-widest block">Neural Level {data.gamify?.level}</span>
-                <h3 className="text-base font-black truncate max-w-[170px] leading-tight mt-0.5 tracking-tight">{data.user?.username}</h3>
+                <span className="text-[13px] font-bold text-slate-800 block truncate leading-tight">
+                  {data.user?.username}
+                </span>
+                <div className="flex items-center gap-2 mt-0.5 text-[11px] text-slate-500">
+                  <span className="font-semibold">Cấp {data.gamify?.level}</span>
+                  <span className="text-slate-300">·</span>
+                  <span className="flex items-center gap-0.5 font-semibold">
+                    <Flame className="w-3 h-3 text-orange-500" />
+                    {data.gamify?.streak} ngày
+                  </span>
+                  <span className="text-slate-300">·</span>
+                  <span className="font-semibold">{data.gamify?.xp?.toLocaleString()} XP</span>
+                </div>
               </div>
             </div>
-            
-            <div className="flex items-center gap-1.5 bg-white/12 backdrop-blur-md border border-white/15 px-3 py-1.5 rounded-2xl text-[9px] font-black text-amber-350 uppercase tracking-widest shadow-sm">
-              <Flame className="w-4 h-4 fill-amber-400 text-amber-400 animate-pulse" />
-              <span>{data.gamify?.streak} NGÀY</span>
-            </div>
           </div>
-
-          {/* XP Progress Slider */}
-          <div className="mt-6 pt-4 border-t border-white/10 relative z-10">
-            <div className="flex justify-between text-[9px] font-black text-indigo-150 mb-2 uppercase tracking-widest">
-              <span>{data.gamify?.xp} XP tích lũy</span>
-              <span>Cấp {(data.gamify?.level || 1) + 1} ({Math.min(100, Math.round(((data.gamify?.xp || 0) % 1000) / 10))}%)</span>
+          {/* Thin XP progress bar */}
+          <div className="mt-2.5">
+            <div className="flex justify-between text-[10px] text-slate-400 mb-1">
+              <span>Tiến trình lên cấp {(data.gamify?.level || 1) + 1}</span>
+              <span>{Math.min(100, Math.round(((data.gamify?.xp || 0) % 1000) / 10))}%</span>
             </div>
-            <div className="h-2 bg-indigo-950/30 rounded-full overflow-hidden w-full p-[2px] border border-indigo-950/10">
+            <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden">
               <div
-                className="h-full bg-gradient-to-r from-amber-400 via-orange-400 to-pink-500 rounded-full transition-all duration-1000 ease-out shadow-[0_0_10px_rgba(245,158,11,0.5)]"
+                className="h-full bg-indigo-500 rounded-full transition-all duration-700"
                 style={{ width: `${Math.min(100, ((data.gamify?.xp || 0) % 1000) / 10)}%` }}
               />
             </div>
           </div>
         </div>
 
-        {/* Tab Switcher HUD */}
-        <div className="flex items-center bg-slate-100/80 backdrop-blur-md p-1 rounded-2xl border border-slate-200/35 w-full shrink-0 relative">
-          <button
-            onClick={() => setActiveMobileTab('study')}
-            className={cn(
-              "flex-1 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all cursor-pointer flex items-center justify-center gap-1.5 relative z-10",
-              activeMobileTab === 'study' ? "text-indigo-600 font-extrabold" : "text-slate-400 hover:text-slate-600"
-            )}
-          >
-            {activeMobileTab === 'study' && (
-              <motion.div
-                layoutId="activeDashboardTab"
-                className="absolute inset-0 bg-white shadow-sm border border-slate-200/50 rounded-xl -z-10"
-                transition={{ type: "spring", stiffness: 350, damping: 30 }}
-              />
-            )}
-            <Target className="w-3.5 h-3.5" />
-            Học tập
-          </button>
-          <button
-            onClick={() => setActiveMobileTab('stats')}
-            className={cn(
-              "flex-1 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all cursor-pointer flex items-center justify-center gap-1.5 relative z-10",
-              activeMobileTab === 'stats' ? "text-indigo-600 font-extrabold" : "text-slate-400 hover:text-slate-600"
-            )}
-          >
-            {activeMobileTab === 'stats' && (
-              <motion.div
-                layoutId="activeDashboardTab"
-                className="absolute inset-0 bg-white shadow-sm border border-slate-200/50 rounded-xl -z-10"
-                transition={{ type: "spring", stiffness: 350, damping: 30 }}
-              />
-            )}
-            <TrendingUp className="w-3.5 h-3.5" />
-            Thống kê & Rank
-          </button>
-        </div>
+        {/* ── Today Review Alert (from FSRS) ── */}
+        {renderTodayReviewWidget()}
 
-        {/* Tab Contents */}
-        {activeMobileTab === 'study' ? (
-          <div className="space-y-4">
-            <TodayFocusWidget
-              roadmapDecks={roadmapDecks}
-              onStartPractice={(quiz) => {
-                setSelectedPracticeQuiz(quiz)
-                setIsPracticeModalOpen(true)
-              }}
-              navigate={navigate}
-            />
-          </div>
-        ) : (
-          <div className="space-y-5 pb-8">
-            <ReviewForecastWidget data={forecastData} />
-            <DailyComparisonChart data={dailyComparisonData} allTimeAvg={dailyComparisonAvg} isLoading={isDailyComparisonLoading} />
-            {badgesProgress && <BadgeProgressWidget data={badgesProgress} />}
-            {leaderboardData && leaderboardData.leaderboard?.length > 0 && (
-              <LeaderboardWidget data={leaderboardData} activeFilter={timeFilter} onFilterChange={setTimeFilter} />
-            )}
-            {heatmapData && heatmapData.length > 0 && <MiniHeatmap data={heatmapData} />}
+        {/* ── Today Summary + CTA ── */}
+        {(() => {
+          const hasRoadmaps = roadmapDecks && roadmapDecks.length > 0;
+          // Aggregate totals across all roadmap decks
+          const totalNew = roadmapDecks?.reduce((sum: number, d: any) => sum + (d.status?.new_target_today || 0), 0) || 0;
+          const totalNewDone = roadmapDecks?.reduce((sum: number, d: any) => sum + (d.status?.new_learned_today || 0), 0) || 0;
+          const totalReview = roadmapDecks?.reduce((sum: number, d: any) => sum + (d.status?.review_due_today || 0), 0) || 0;
+          const totalReviewDone = roadmapDecks?.reduce((sum: number, d: any) => sum + (d.status?.review_completed_today || 0), 0) || 0;
+          const totalCards = totalNew + totalReview;
+          const totalDone = totalNewDone + totalReviewDone;
+          const allDone = totalCards > 0 && totalDone >= totalCards;
+
+          if (!hasRoadmaps) {
+            return (
+              <div className="bg-white rounded-2xl border border-slate-100 p-5 shadow-sm text-center">
+                <div className="w-12 h-12 rounded-full bg-slate-50 flex items-center justify-center mx-auto mb-3">
+                  <Compass className="w-6 h-6 text-slate-400" />
+                </div>
+                <h3 className="text-sm font-semibold text-slate-700">Chưa có lộ trình học</h3>
+                <p className="text-[12px] text-slate-400 mt-1 leading-relaxed max-w-[260px] mx-auto">
+                  Chọn một bộ thẻ từ thư viện và bật "Lộ trình học" để bắt đầu.
+                </p>
+                <button
+                  onClick={() => navigate('/library')}
+                  className="mt-4 w-full h-12 bg-indigo-600 active:bg-indigo-700 text-white rounded-xl text-sm font-semibold shadow-sm transition-all active:scale-[0.98]"
+                >
+                  📚 Đi tới Thư viện
+                </button>
+              </div>
+            );
+          }
+
+          return (
+            <div className="bg-white rounded-2xl border border-slate-100 p-4 shadow-sm">
+              <div className="flex items-center justify-between mb-3">
+                <h2 className="text-[15px] font-bold text-slate-800">Hôm nay</h2>
+                {allDone && (
+                  <span className="text-[11px] font-semibold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-lg">
+                    ✅ Hoàn thành!
+                  </span>
+                )}
+              </div>
+
+              {/* Aggregated stats row */}
+              <div className="flex items-center gap-4 mb-4">
+                <div className="flex items-center gap-1.5">
+                  <Sparkles className="w-3.5 h-3.5 text-orange-500" />
+                  <span className="text-[12px] text-slate-600">
+                    <span className="font-bold text-slate-800">{totalNewDone}/{totalNew}</span> thẻ mới
+                  </span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <RefreshCw className="w-3.5 h-3.5 text-indigo-500" />
+                  <span className="text-[12px] text-slate-600">
+                    <span className="font-bold text-slate-800">{totalReviewDone}/{totalReview}</span> ôn tập
+                  </span>
+                </div>
+              </div>
+
+              {/* Big primary CTA button */}
+              <button
+                onClick={() => {
+                  // Navigate to the first deck that still has cards due
+                  const activeDeck = roadmapDecks?.find((d: any) => {
+                    const s = d.status || {};
+                    return (s.new_target_today - s.new_learned_today > 0) || (s.review_due_today - s.review_completed_today > 0);
+                  }) || roadmapDecks?.[0];
+                  if (activeDeck) navigate(`/flashcard/${activeDeck.deck_id}/play?mode=roadmap`);
+                }}
+                className={cn(
+                  "w-full h-12 rounded-xl text-sm font-semibold shadow-sm transition-all active:scale-[0.98] flex items-center justify-center gap-2",
+                  allDone
+                    ? "bg-slate-100 text-slate-500"
+                    : "bg-indigo-600 active:bg-indigo-700 text-white"
+                )}
+              >
+                <Play className="w-4 h-4" />
+                {allDone ? 'Đã hoàn thành hôm nay' : 'Bắt đầu học'}
+              </button>
+            </div>
+          );
+        })()}
+
+        {/* ── Deck List: Compact rows ── */}
+        {roadmapDecks && roadmapDecks.length > 0 && (
+          <div className="space-y-2">
+            <h3 className="text-[13px] font-bold text-slate-500 px-1">Lộ trình đang học</h3>
+            {roadmapDecks.map((deck: any) => {
+              const status = deck.status || {};
+              const totalPct = status.total_cards > 0 ? Math.min(100, Math.round((status.learned_cards / status.total_cards) * 100)) : 0;
+              const newRemaining = Math.max(0, (status.new_target_today || 0) - (status.new_learned_today || 0));
+              const reviewRemaining = Math.max(0, (status.review_due_today || 0) - (status.review_completed_today || 0));
+              const hasDue = newRemaining > 0 || reviewRemaining > 0;
+
+              return (
+                <div
+                  key={deck.deck_id}
+                  onClick={() => navigate(`/flashcard/${deck.deck_id}`)}
+                  className="bg-white rounded-xl border border-slate-100 p-3.5 shadow-sm active:bg-slate-50 transition-all cursor-pointer"
+                >
+                  <div className="flex items-center gap-3">
+                    {/* Small deck icon */}
+                    <div className="w-10 h-10 rounded-lg bg-slate-100 flex items-center justify-center text-lg flex-shrink-0 overflow-hidden">
+                      {deck.cover_image ? (
+                        <img src={deck.cover_image} alt="" className="w-full h-full object-cover" />
+                      ) : (
+                        <span>📘</span>
+                      )}
+                    </div>
+                    
+                    {/* Info */}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between gap-2">
+                        <h4 className="text-[13px] font-semibold text-slate-800 truncate">{deck.title}</h4>
+                        <span className="text-[11px] font-semibold text-slate-400 flex-shrink-0">{totalPct}%</span>
+                      </div>
+                      
+                      {/* Thin progress bar */}
+                      <div className="h-1 bg-slate-100 rounded-full overflow-hidden mt-1.5 mb-1.5">
+                        <div className="h-full bg-indigo-500 rounded-full transition-all" style={{ width: `${totalPct}%` }} />
+                      </div>
+                      
+                      {/* Today's remaining for this deck */}
+                      <div className="flex items-center gap-3 text-[11px] text-slate-500">
+                        <span>{status.learned_cards}/{status.total_cards} thẻ</span>
+                        {hasDue && (
+                          <>
+                            <span className="text-slate-300">·</span>
+                            <span className="text-orange-600 font-medium">
+                              Hôm nay: {newRemaining > 0 ? `${newRemaining} mới` : ''}{newRemaining > 0 && reviewRemaining > 0 ? ', ' : ''}{reviewRemaining > 0 ? `${reviewRemaining} ôn` : ''}
+                            </span>
+                          </>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Arrow */}
+                    <ChevronRight className="w-4 h-4 text-slate-300 flex-shrink-0" />
+                  </div>
+                </div>
+              );
+            })}
           </div>
         )}
 
