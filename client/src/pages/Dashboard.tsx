@@ -677,100 +677,108 @@ function TodayFocusWidget({
           </button>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
           {roadmapDecks.map((deck) => {
             const status = deck.status || {};
-            const newPct = status.new_target_today > 0 ? Math.min(100, Math.round((status.new_learned_today / status.new_target_today) * 100)) : 0;
-            const reviewPct = status.review_due_today > 0 ? Math.min(100, Math.round((status.review_completed_today / status.review_due_today) * 100)) : 0;
             const totalLearnedPct = status.total_cards > 0 ? Math.min(100, Math.round((status.learned_cards / status.total_cards) * 100)) : 0;
             const streak = status.streak || 0;
             
             return (
-              <div key={deck.deck_id} className="p-4 rounded-[1.5rem] md:rounded-3xl border border-slate-100 bg-white hover:shadow-[0_12px_40px_rgb(99,102,241,0.03)] transition-all duration-300 flex flex-col gap-3 text-left relative overflow-hidden">
-                <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-orange-400 via-rose-400 to-indigo-500" />
+              <div key={deck.deck_id} className="group relative rounded-3xl border border-slate-100 bg-white hover:shadow-[0_12px_45px_rgba(99,102,241,0.05)] transition-all duration-300 flex flex-col overflow-hidden shadow-sm">
                 
-                <div className="flex gap-3 min-w-0">
-                  {deck.cover_image && (
-                    <img src={deck.cover_image} alt={deck.title} className="w-12 h-12 rounded-2xl object-cover border border-slate-100/50 shadow-sm flex-shrink-0" />
+                {/* Visual Header / Cover Image Banner */}
+                <div className="relative h-28 w-full bg-slate-100 overflow-hidden shrink-0 flex items-center justify-center">
+                  {deck.cover_image ? (
+                    <img src={deck.cover_image} alt={deck.title} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
+                  ) : (
+                    <div className="w-full h-full bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 flex items-center justify-center" />
                   )}
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between gap-2">
-                      <h4 className="text-xs sm:text-sm font-black text-slate-800 truncate leading-snug">{deck.title}</h4>
-                      {streak > 0 && (
-                        <span className="text-[9px] font-black text-orange-650 bg-orange-50 px-1.5 py-0.5 rounded-lg flex items-center gap-0.5 shrink-0">
-                          🔥 {streak} ngày
-                        </span>
-                      )}
-                    </div>
-                    <div className="flex flex-wrap items-center gap-1.5 mt-1.5">
-                      <span className="text-[8px] font-black px-1.5 py-0.5 rounded bg-indigo-50 text-indigo-600 uppercase">
-                        Đã học: {status.learned_cards}/{status.total_cards} ({totalLearnedPct}%)
-                      </span>
-                      {status.estimated_completion_date && (
-                        <span className="text-[8px] font-black px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-600 uppercase flex items-center gap-0.5">
-                          <Target className="w-2.5 h-2.5" />
-                          Dự kiến: {new Date(status.estimated_completion_date).toLocaleDateString('vi-VN')}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                </div>
-
-                {/* Daily quota status bars */}
-                <div className="grid grid-cols-2 gap-3 bg-slate-50/60 p-3 rounded-2xl border border-slate-100/60">
-                  <div>
-                    <div className="flex items-center justify-between mb-1">
-                      <span className="text-[8.5px] font-black text-slate-400 uppercase tracking-wide flex items-center gap-0.5">
-                        <Sparkles className="w-2.5 h-2.5 text-orange-505" /> Học mới
-                      </span>
-                      <span className="text-[8.5px] font-black text-slate-600">{status.new_learned_today}/{status.new_target_today}</span>
-                    </div>
-                    <div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden">
-                      <div className="h-full bg-gradient-to-r from-orange-400 to-rose-400 transition-all duration-550 ease-out" style={{ width: `${newPct}%` }} />
-                    </div>
-                  </div>
-
-                  <div>
-                    <div className="flex items-center justify-between mb-1">
-                      <span className="text-[8.5px] font-black text-slate-400 uppercase tracking-wide flex items-center gap-0.5">
-                        <Brain className="w-2.5 h-2.5 text-indigo-505" /> Ôn tập
-                      </span>
-                      <span className="text-[8.5px] font-black text-slate-600">{status.review_completed_today}/{status.review_due_today}</span>
-                    </div>
-                    <div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden">
-                      <div className="h-full bg-gradient-to-r from-indigo-500 to-purple-500 transition-all duration-550 ease-out" style={{ width: `${reviewPct}%` }} />
-                    </div>
-                  </div>
-                </div>
-
-                {/* actions */}
-                <div className="flex flex-wrap items-center gap-2 justify-end mt-1 border-t border-slate-100 pt-3">
-                  <button
-                    onClick={() => navigate(`/flashcard/${deck.deck_id}/play?mode=roadmap`)}
-                    className="h-8 px-3 rounded-xl bg-gradient-to-r from-orange-500 to-rose-500 hover:from-orange-600 hover:to-rose-600 text-white text-[9px] font-black uppercase tracking-wider flex items-center gap-1 shadow-md shadow-orange-100 active:scale-95 transition-all cursor-pointer"
-                  >
-                    <Sparkles className="w-3.5 h-3.5" />
-                    Học lộ trình
-                  </button>
+                  {/* Subtle Gradient Overlay */}
+                  <div className="absolute inset-0 bg-gradient-to-t from-slate-900/60 via-slate-900/10 to-transparent" />
                   
-                  <button
-                    onClick={() => navigate(`/flashcard/${deck.deck_id}/play?mode=fsrs`)}
-                    className="h-8 px-3 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-[9px] font-black uppercase tracking-wider flex items-center gap-1 shadow-md shadow-indigo-100 active:scale-95 transition-all cursor-pointer"
-                  >
-                    <Brain className="w-3.5 h-3.5" />
-                    Học FSRS
-                  </button>
-
-                  <button
-                    onClick={() => {
-                      onStartPractice({ id: deck.deck_id, title: deck.title, questions_count: status.total_cards });
-                    }}
-                    className="h-8 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-[9px] font-black uppercase tracking-wider flex items-center gap-1 shadow-md shadow-emerald-100 active:scale-95 transition-all cursor-pointer"
-                  >
-                    <Trophy className="w-3.5 h-3.5" />
-                    Thực hành
-                  </button>
+                  {/* Title & Floating Elements inside Image */}
+                  <div className="absolute bottom-3 left-4 right-4 flex items-end justify-between gap-2 text-white">
+                    <h4 className="text-[12px] sm:text-xs font-black uppercase tracking-wider truncate leading-tight drop-shadow-sm">{deck.title}</h4>
+                    {streak > 0 && (
+                      <span className="text-[8px] font-black text-amber-500 bg-white/95 px-2 py-0.5 rounded-lg flex items-center gap-0.5 shrink-0 shadow-sm leading-none">
+                        🔥 {streak} ngày
+                      </span>
+                    )}
+                  </div>
                 </div>
+
+                {/* Progress / stats bar */}
+                <div className="p-4 flex flex-col gap-3">
+                  <div className="flex items-center justify-between gap-2 text-[8px] font-black text-slate-400 uppercase tracking-wider">
+                    <span>Đã học {status.learned_cards}/{status.total_cards} ({totalLearnedPct}%)</span>
+                    {status.estimated_completion_date && (
+                      <span className="text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded-md flex items-center gap-0.5 normal-case font-bold">
+                        🎯 Kết thúc: {new Date(status.estimated_completion_date).toLocaleDateString('vi-VN')}
+                      </span>
+                    )}
+                  </div>
+                  
+                  <div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden shrink-0">
+                    <div className="h-full bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 rounded-full transition-all duration-550 ease-out" style={{ width: `${totalLearnedPct}%` }} />
+                  </div>
+
+                  {/* Daily Quota Pills */}
+                  <div className="grid grid-cols-2 gap-2 mt-1">
+                    <div className="bg-slate-50/60 rounded-xl p-2.5 border border-slate-100/80 flex items-center justify-between gap-1.5">
+                      <div className="min-w-0">
+                        <span className="text-[8px] font-black text-slate-450 uppercase tracking-wider block">Từ mới</span>
+                        <span className="text-[11px] font-black text-slate-800 mt-0.5 block leading-none">
+                          {status.new_learned_today} <span className="text-slate-400 font-bold">/ {status.new_target_today}</span>
+                        </span>
+                      </div>
+                      <div className="relative w-8 h-8 shrink-0 flex items-center justify-center bg-white rounded-lg shadow-sm border border-slate-100/50">
+                        <Sparkles className="w-3.5 h-3.5 text-orange-500" />
+                      </div>
+                    </div>
+
+                    <div className="bg-slate-50/60 rounded-xl p-2.5 border border-slate-100/80 flex items-center justify-between gap-1.5">
+                      <div className="min-w-0">
+                        <span className="text-[8px] font-black text-slate-450 uppercase tracking-wider block">Ôn tập</span>
+                        <span className="text-[11px] font-black text-slate-800 mt-0.5 block leading-none">
+                          {status.review_completed_today} <span className="text-slate-400 font-bold">/ {status.review_due_today}</span>
+                        </span>
+                      </div>
+                      <div className="relative w-8 h-8 shrink-0 flex items-center justify-center bg-white rounded-lg shadow-sm border border-slate-100/50">
+                        <Brain className="w-3.5 h-3.5 text-indigo-500" />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Action buttons list */}
+                  <div className="flex items-center gap-2 mt-2 pt-3 border-t border-slate-100">
+                    <button
+                      onClick={() => navigate(`/flashcard/${deck.deck_id}/play?mode=roadmap`)}
+                      className="flex-1 h-8 rounded-xl bg-gradient-to-r from-orange-500 to-rose-500 hover:from-orange-600 hover:to-rose-600 text-white text-[9px] font-black uppercase tracking-wider flex items-center justify-center gap-1 shadow-md shadow-orange-100 active:scale-95 transition-all cursor-pointer"
+                    >
+                      <Sparkles className="w-3.5 h-3.5" />
+                      Học lộ trình
+                    </button>
+                    
+                    <button
+                      onClick={() => navigate(`/flashcard/${deck.deck_id}/play?mode=fsrs`)}
+                      className="h-8 px-2.5 rounded-xl bg-indigo-50 hover:bg-indigo-100 border border-indigo-100/35 text-indigo-650 text-[9px] font-black uppercase tracking-wider flex items-center justify-center gap-1 active:scale-95 transition-all cursor-pointer"
+                      title="Học FSRS"
+                    >
+                      <Brain className="w-3.5 h-3.5" />
+                    </button>
+
+                    <button
+                      onClick={() => {
+                        onStartPractice({ id: deck.deck_id, title: deck.title, questions_count: status.total_cards });
+                      }}
+                      className="h-8 px-2.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 border border-emerald-100/35 text-emerald-655 text-[9px] font-black uppercase tracking-wider flex items-center justify-center gap-1 active:scale-95 transition-all cursor-pointer"
+                      title="Luyện tập tự do"
+                    >
+                      <Trophy className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                </div>
+
               </div>
             );
           })}
@@ -1148,6 +1156,7 @@ export default function Dashboard() {
   const [roomCode, setRoomCode] = useState('')
   const [isJoining, setIsJoining] = useState(false)
   const [timeFilter, setTimeFilter] = useState('all_time')
+  const [activeMobileTab, setActiveMobileTab] = useState<'study' | 'stats'>('study')
 
   const { data: roadmapDecks, isLoading: isRoadmapDecksLoading, refetch: refetchRoadmapDecks } = useQuery<any[]>({
     queryKey: ['roadmapDecks'],
@@ -1508,31 +1517,100 @@ export default function Dashboard() {
       </div>
 
       {/* MOBILE FEED */}
-      <div className="md:hidden px-4 w-full pt-[80px] flex-grow space-y-4 overflow-y-auto pb-24">
-        <TodayFocusWidget
-          roadmapDecks={roadmapDecks}
-          onStartPractice={(quiz) => {
-            setSelectedPracticeQuiz(quiz)
-            setIsPracticeModalOpen(true)
-          }}
-          navigate={navigate}
-        />
+      <div className="md:hidden px-4 w-full pt-[80px] flex-grow space-y-4 overflow-y-auto pb-24 scrollbar-none text-left">
+        
+        {/* User HUD / Progress Card */}
+        <div className="bg-gradient-to-br from-indigo-650 via-indigo-700 to-purple-800 rounded-3xl p-5 text-white shadow-lg shadow-indigo-500/10 relative overflow-hidden">
+          {/* Decorative shapes */}
+          <div className="absolute right-[-10%] top-[-20%] w-32 h-32 rounded-full bg-white/10 blur-xl pointer-events-none" />
+          <div className="absolute left-[-5%] bottom-[-10%] w-24 h-24 rounded-full bg-white/5 blur-lg pointer-events-none" />
 
-        <ReviewForecastWidget data={forecastData} />
+          <div className="flex items-center justify-between gap-4 relative z-10">
+            <div className="flex items-center gap-3">
+              <div className="w-11 h-11 rounded-2xl bg-white/10 border border-white/20 flex items-center justify-center text-xl">
+                🎓
+              </div>
+              <div className="min-w-0">
+                <span className="text-[10px] font-black text-indigo-200 uppercase tracking-widest block">Xin chào</span>
+                <h3 className="text-sm font-black truncate max-w-[150px] leading-tight mt-0.5">{data.user?.username}</h3>
+              </div>
+            </div>
+            
+            <div className="flex flex-col items-end gap-1.5">
+              <div className="flex items-center gap-1 bg-amber-500/20 border border-amber-500/30 px-2.5 py-1 rounded-xl text-[9px] font-black text-amber-300 uppercase tracking-wider">
+                <Flame className="w-3.5 h-3.5 fill-amber-400 text-amber-400 animate-pulse" />
+                {data.gamify?.streak} ngày lặp
+              </div>
+            </div>
+          </div>
 
-        <DailyComparisonChart data={dailyComparisonData} allTimeAvg={dailyComparisonAvg} isLoading={isDailyComparisonLoading} />
+          {/* XP Progress Slider */}
+          <div className="mt-5 pt-3 border-t border-white/10 relative z-10">
+            <div className="flex justify-between text-[8px] font-black text-indigo-200 mb-1.5 uppercase tracking-wider">
+              <span>{data.gamify?.xp} XP tích lũy</span>
+              <span>Cấp {(data.gamify?.level || 1) + 1} cần {(data.gamify?.level || 1) * 1000} XP</span>
+            </div>
+            <div className="h-1.5 bg-indigo-900/40 rounded-full overflow-hidden w-full border border-indigo-950/20">
+              <div
+                className="h-full bg-gradient-to-r from-amber-400 to-orange-400 rounded-full transition-all duration-700 ease-out"
+                style={{ width: `${Math.min(100, ((data.gamify?.xp || 0) % 1000) / 10)}%` }}
+              />
+            </div>
+          </div>
+        </div>
 
+        {/* Tab Switcher HUD */}
+        <div className="flex items-center bg-slate-100 p-1 rounded-2xl border border-slate-200/40 w-full shrink-0">
+          <button
+            onClick={() => setActiveMobileTab('study')}
+            className={cn(
+              "flex-1 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all cursor-pointer flex items-center justify-center gap-1.5",
+              activeMobileTab === 'study'
+                ? "bg-white text-indigo-650 shadow-sm border border-slate-150"
+                : "text-slate-400 hover:text-slate-600"
+            )}
+          >
+            <Target className="w-3.5 h-3.5" />
+            Học tập
+          </button>
+          <button
+            onClick={() => setActiveMobileTab('stats')}
+            className={cn(
+              "flex-1 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all cursor-pointer flex items-center justify-center gap-1.5",
+              activeMobileTab === 'stats'
+                ? "bg-white text-indigo-650 shadow-sm border border-slate-150"
+                : "text-slate-400 hover:text-slate-600"
+            )}
+          >
+            <TrendingUp className="w-3.5 h-3.5" />
+            Thống kê & Rank
+          </button>
+        </div>
 
-        {/* Badge Progress Roadmap */}
-        {badgesProgress && <BadgeProgressWidget data={badgesProgress} />}
-
-        {/* Leaderboard */}
-        {leaderboardData && leaderboardData.leaderboard?.length > 0 && (
-          <LeaderboardWidget data={leaderboardData} activeFilter={timeFilter} onFilterChange={setTimeFilter} />
+        {/* Tab Contents */}
+        {activeMobileTab === 'study' ? (
+          <div className="space-y-4">
+            <TodayFocusWidget
+              roadmapDecks={roadmapDecks}
+              onStartPractice={(quiz) => {
+                setSelectedPracticeQuiz(quiz)
+                setIsPracticeModalOpen(true)
+              }}
+              navigate={navigate}
+            />
+          </div>
+        ) : (
+          <div className="space-y-5 pb-8">
+            <ReviewForecastWidget data={forecastData} />
+            <DailyComparisonChart data={dailyComparisonData} allTimeAvg={dailyComparisonAvg} isLoading={isDailyComparisonLoading} />
+            {badgesProgress && <BadgeProgressWidget data={badgesProgress} />}
+            {leaderboardData && leaderboardData.leaderboard?.length > 0 && (
+              <LeaderboardWidget data={leaderboardData} activeFilter={timeFilter} onFilterChange={setTimeFilter} />
+            )}
+            {heatmapData && heatmapData.length > 0 && <MiniHeatmap data={heatmapData} />}
+          </div>
         )}
 
-        {/* Heatmap */}
-        {heatmapData && heatmapData.length > 0 && <MiniHeatmap data={heatmapData} />}
       </div>
 
       {/* JOIN ROOM MODAL */}
