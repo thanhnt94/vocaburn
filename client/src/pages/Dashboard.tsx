@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react'
+import React, { useState, useEffect, useMemo, useRef } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Brain, Trophy, ChevronRight, LayoutGrid, Users, Zap, Flame, BrainCircuit, X, Play, Crown, Medal, Star, CheckCircle2, Circle, Swords, Settings, Target, RefreshCw, User, BookOpen, Sparkles, TrendingUp, Clock, Layers, Compass } from 'lucide-react'
@@ -1161,6 +1161,16 @@ export default function Dashboard() {
   const [isJoining, setIsJoining] = useState(false)
   const [timeFilter, setTimeFilter] = useState('all_time')
   const [activeMobileTab, setActiveMobileTab] = useState<'study' | 'stats'>('study')
+  const carouselRef = useRef<HTMLDivElement>(null)
+  const scrollCarousel = (direction: 'left' | 'right') => {
+    if (carouselRef.current) {
+      const scrollAmount = 240;
+      carouselRef.current.scrollBy({
+        left: direction === 'left' ? -scrollAmount : scrollAmount,
+        behavior: 'smooth'
+      });
+    }
+  }
 
   const { data: roadmapDecks, isLoading: isRoadmapDecksLoading, refetch: refetchRoadmapDecks } = useQuery<any[]>({
     queryKey: ['roadmapDecks'],
@@ -1695,7 +1705,7 @@ export default function Dashboard() {
           if (!activeDeck) return null;
 
           return (
-            <div className="bg-gradient-to-br from-indigo-650 via-indigo-600 to-purple-650 rounded-[2.25rem] p-5 text-white shadow-lg shadow-indigo-150 relative overflow-hidden">
+            <div className="bg-gradient-to-br from-indigo-900 via-slate-900 to-indigo-950 border border-indigo-500/25 rounded-[2.25rem] p-5 text-white shadow-lg shadow-indigo-950/20 relative overflow-hidden">
               <div className="absolute right-[-10%] top-[-20%] w-28 h-28 rounded-full bg-white/10 blur-xl pointer-events-none" />
               <div className="absolute left-[-10%] bottom-[-20%] w-20 h-20 rounded-full bg-white/10 blur-xl pointer-events-none" />
               
@@ -1755,8 +1765,32 @@ export default function Dashboard() {
         {/* ── Horizontal Decks Carousel ── */}
         {activeDecks && activeDecks.length > 1 && (
           <div className="space-y-3 pt-1">
-            <h3 className="text-[10px] font-black text-slate-400 tracking-widest uppercase px-1">Các bộ thẻ đang học</h3>
-            <div className="flex overflow-x-auto gap-4 pb-4 px-1 scrollbar-none snap-x snap-mandatory">
+            <div className="flex items-center justify-between px-1">
+              <h3 className="text-[10px] font-black text-slate-400 tracking-widest uppercase">Các bộ thẻ đang học</h3>
+              {activeDecks.length > 2 && (
+                <div className="flex items-center gap-1">
+                  <button
+                    onClick={() => scrollCarousel('left')}
+                    className="w-6 h-6 rounded-full bg-white border border-slate-150 flex items-center justify-center text-[10px] font-black text-slate-500 shadow-sm active:scale-90 transition-all hover:bg-slate-50"
+                    title="Cuộn trái"
+                  >
+                    ❮
+                  </button>
+                  <button
+                    onClick={() => scrollCarousel('right')}
+                    className="w-6 h-6 rounded-full bg-white border border-slate-150 flex items-center justify-center text-[10px] font-black text-slate-500 shadow-sm active:scale-90 transition-all hover:bg-slate-50"
+                    title="Cuộn phải"
+                  >
+                    ❯
+                  </button>
+                </div>
+              )}
+            </div>
+
+            <div 
+              ref={carouselRef}
+              className="flex overflow-x-auto gap-4 pb-2 px-1 snap-x snap-mandatory [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
+            >
               {activeDecks.slice(1).map((deck: any) => {
                 return (
                   <div
