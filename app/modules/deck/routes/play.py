@@ -2445,19 +2445,31 @@ async def get_deck_roadmap_status_helper(db: AsyncSession, user_id: int, deck_id
     ) or 0
 
     # Calculate streak and 7-day activity map
-    from sqlalchemy import Date, cast
     active_dates_res = await db.execute(
-        select(cast(UserAnswer.created_at, Date))
+        select(func.date(UserAnswer.created_at))
         .join(DeckAttempt, UserAnswer.attempt_id == DeckAttempt.id)
         .join(Flashcard, UserAnswer.card_id == Flashcard.id)
         .where(
             DeckAttempt.user_id == user_id,
             Flashcard.deck_id == deck_id
         )
-        .group_by(cast(UserAnswer.created_at, Date))
-        .order_by(cast(UserAnswer.created_at, Date).desc())
+        .group_by(func.date(UserAnswer.created_at))
+        .order_by(func.date(UserAnswer.created_at).desc())
     )
-    active_dates = [row[0] for row in active_dates_res.all()]
+    active_dates = []
+    for row in active_dates_res.all():
+        val = row[0]
+        if not val:
+            continue
+        if isinstance(val, str):
+            try:
+                active_dates.append(date.fromisoformat(val))
+            except Exception:
+                pass
+        elif isinstance(val, datetime):
+            active_dates.append(val.date())
+        elif isinstance(val, date):
+            active_dates.append(val)
 
     streak = 0
     if active_dates:

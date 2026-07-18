@@ -6,13 +6,13 @@ src/
 ├─ assets/               # Images, SVGs, icons
 ├─ components/           # Re‑usable UI pieces (e.g. FlashcardCard, FlashcardMap, Navbar)
 ├─ pages/                # Route‑level views
-│   ├─ Dashboard.tsx     # Main entry after login – shows decks & stats
-│   ├─ Library.tsx       # List of user's decks
-│   ├─ FlashcardPlay.tsx # Study session – shows one flashcard at a time
-│   ├─ FlashcardDetail.tsx # View / edit a single flashcard
-│   ├─ EditFlashcards.tsx # Bulk editor for a deck
+│   ├─ Dashboard.tsx     # Main entry – shows active roadmap decks & daily progress
+│   ├─ Library.tsx       # List of public/shared decks
+│   ├─ FlashcardDetail.tsx # Deck overview – displays roadmap status, 7-day calendar, study options, and settings
+│   ├─ FlashcardPlay.tsx # Spaced repetition (FSRS) learning session
+│   ├─ PracticePlay.tsx  # Free practice play session (MCQ, typing, writing)
 │   ├─ ImportFlashcard.tsx # Excel import UI
-│   ├─ Settings.tsx      # User settings & global goals
+│   ├─ Settings.tsx      # User preferences & account settings
 │   └─ Profile.tsx       # XP, level, achievements
 ├─ lib/                  # API client wrappers, utility functions
 ├─ store/                # Zustand global store (`useAppStore.ts`)
@@ -33,15 +33,15 @@ src/
 
 ## Routing (`App.tsx`)
 ```tsx
-<Route path="/" element={<Landing/>} />
-<Route path="/login" element={<Login/>} />
-<Route element={<ProtectedLayout/>}>
-  <Route path="/dashboard" element={<Dashboard/>} />
-  <Route path="/library" element={<Library/>} />
-  <Route path="/deck/:deckId" element={<FlashcardPlay/>} />
-  <Route path="/deck/:deckId/edit" element={<EditFlashcards/>} />
-  <Route path="/profile" element={<Profile/>} />
-  <Route path="/settings" element={<Settings/>} />
+<Route path="/" element={isLoggedIn ? <Dashboard /> : <Landing />} />
+<Route path="/login" element={<Login />} />
+<Route element={<ProtectedLayout />}>
+  <Route path="/library" element={<Library />} />
+  <Route path="/flashcard/:id" element={<FlashcardDetail />} />
+  <Route path="/flashcard/:id/play" element={<FlashcardPlay />} />
+  <Route path="/practice/:id/:subMode?" element={<PracticePlay />} />
+  <Route path="/profile" element={<Profile />} />
+  <Route path="/settings" element={<Settings />} />
 </Route>
 ```
 Protected routes check `store.isLoggedIn` and redirect to `/login` if false.

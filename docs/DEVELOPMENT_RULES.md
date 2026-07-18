@@ -50,3 +50,11 @@ Mỗi khi thực hiện thay đổi và triển khai lên máy chủ VPS:
 1. **Kiểm tra cục bộ**: Chạy thử nghiệm và đảm bảo ứng dụng backend + frontend chạy không có lỗi.
 2. **Biên dịch Frontend**: Luôn chạy script biên dịch frontend (chạy `build_vite.py` tự động thông qua `run_vocaburn.py` hoặc chạy thủ công) để cập nhật các asset tĩnh sang thư mục `app/static/dist`.
 3. **Sử dụng tool remote update**: Chạy [remote_update_vocaburn.py](file:///c:/Code/Ecosystem/remote_update_vocaburn.py) để tự động hóa quá trình đẩy mã nguồn lên GitHub và kích hoạt lệnh cập nhật trên VPS qua SSH.
+
+---
+
+## 6. Quy tắc Cập nhật Tài liệu và Nhật ký Chỉnh sửa (Documentation & Changelog)
+
+Để đảm bảo tài liệu kỹ thuật luôn đồng bộ với các thay đổi mã nguồn:
+- **Cập nhật tài liệu tương ứng**: Khi thực hiện bất kỳ cải tiến, sửa đổi tính năng, hoặc thay đổi cấu trúc dữ liệu nào, **bắt buộc** phải cập nhật lại các file hướng dẫn `.md` liên quan của dự án (ví dụ: `DATABASE_STRUCTURE.md`, `DEVELOPMENT_RULES.md`, `.docs/` guides) để phản ánh đúng thực tế hiện tại của code.
+- **Cập nhật Lịch sử chỉnh sửa**: Mỗi lần thay đổi tính năng hoặc cấu trúc code, bạn phải ghi chú chi tiết vào file [CHANGELOG.md](file:///c:/Code/Ecosystem/Vocaburn/docs/CHANGELOG.md) bao gồm: ngày chỉnh sửa, nội dung thay đổi, lý do, và danh sách các file bị tác động.

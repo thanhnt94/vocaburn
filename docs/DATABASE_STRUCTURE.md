@@ -105,26 +105,19 @@ Bảng lưu trữ chỉ số ghi nhớ của người dùng đối với từng 
 
 ---
 
-## 4. Các bảng Quản lý Mục tiêu Học tập (Goals & Progress)
+## 4. Các bảng Quản lý Lộ trình & Cấu hình bộ thẻ (Roadmap & Settings)
 
-### `user_deck_goals`
-- `id` (INTEGER, Khóa chính).
-- `user_id` (INTEGER, Khóa ngoại `users.id`).
-- `quiz_id` (INTEGER, Khóa ngoại `flashcard_decks.id`).
-- `daily_target` (INTEGER, default: 5): Mục tiêu học thẻ mới mỗi ngày.
-- `daily_time_target` (INTEGER, default: 10): Mục tiêu thời gian học mỗi ngày (phút).
-- `daily_card_target` (INTEGER, default: 20): Mục tiêu tổng số lượt thẻ ôn tập mỗi ngày.
-- `streak_count` (INTEGER, default: 0): Số ngày liên tiếp hoàn thành mục tiêu.
-- `last_completed_date` (VARCHAR(50), NULL): Ngày gần nhất hoàn thành mục tiêu (YYYY-MM-DD).
-- `status` (VARCHAR(50), default: 'active'): Trạng thái mục tiêu ('active', 'paused').
-- `created_at` (DATETIME).
+Hệ thống Mục tiêu Học tập cũ (`user_deck_goals`) đã được gỡ bỏ và thay thế hoàn toàn bằng hệ thống quản lý theo Lộ trình (Roadmap). Các mục tiêu học và giới hạn hàng ngày được lưu trữ tập trung dưới dạng cấu hình JSON.
 
-### `user_daily_progress`
+### `user_deck_settings`
+Bảng lưu trữ cấu hình lộ trình học tập và tùy chọn luyện tập của người dùng riêng cho từng bộ thẻ.
 - `id` (INTEGER, Khóa chính).
-- `goal_id` (INTEGER, Khóa ngoại `user_deck_goals.id`).
-- `date` (VARCHAR(50), INDEX): Ngày ghi nhận (YYYY-MM-DD).
-- `count_done` (INTEGER, default: 0): Số lượng thẻ đã học trong ngày.
-- `is_target_met` (BOOLEAN, default: False): Đã đạt mục tiêu chưa.
+- `user_id` (INTEGER, Khóa ngoại `users.id`, INDEX).
+- `deck_id` (INTEGER, Khóa ngoại `flashcard_decks.id`, INDEX).
+- `settings` (JSON, default: '{}'): Chứa cấu hình lộ trình:
+  - `roadmap_active` (BOOLEAN): Trạng thái kích hoạt lộ trình học tập của bộ thẻ này.
+  - `roadmap_daily_new` (INTEGER): Chỉ tiêu số lượng thẻ mới cần học mỗi ngày (mặc định: 10).
+  - `roadmap_daily_review_max` (INTEGER): Giới hạn số lượng thẻ tối đa cần ôn tập mỗi ngày (mặc định: 50).
 - `created_at` (DATETIME).
 
 ---
