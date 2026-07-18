@@ -65,16 +65,25 @@ html, body, #root {
   .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #CBD5E1; }
 }
 
+.markdown-content {
+  white-space: normal !important;
+}
 .markdown-content ul { list-style-type: none; margin-left: 1.5rem; margin-top: 0.6rem; margin-bottom: 0.6rem; }
 .markdown-content ol { list-style-type: decimal; margin-left: 1.5rem; margin-top: 0.6rem; margin-bottom: 0.6rem; }
 .markdown-content li { 
+  white-space: pre-wrap;
   @apply relative mb-2 text-slate-600 font-medium leading-relaxed;
 }
 .markdown-content ul li::before {
   content: "•";
   @apply absolute -left-5 text-indigo-500 font-black;
 }
-.markdown-content p { margin-bottom: 0.6rem; line-height: 1.6; @apply text-slate-600 font-medium; }
+.markdown-content p { 
+  white-space: pre-wrap;
+  margin-bottom: 0.6rem; 
+  line-height: 1.6; 
+  @apply text-slate-600 font-medium; 
+}
 
 .markdown-content h1, .markdown-content h2, .markdown-content h3 { 
   @apply font-black text-slate-900 tracking-tight mt-10 mb-5 flex items-center gap-3;
