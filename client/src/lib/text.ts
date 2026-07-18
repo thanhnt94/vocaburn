@@ -1,5 +1,10 @@
+const bbcodeCache = new Map<string, string>();
+
 export const parseBBCodeToHtml = (text: string): string => {
   if (!text) return '';
+  const cached = bbcodeCache.get(text);
+  if (cached !== undefined) return cached;
+
   let html = text;
   // Convert Markdown bold/italic to HTML tags first to avoid parser confusion with raw HTML <ruby>
   html = html.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
@@ -20,6 +25,7 @@ export const parseBBCodeToHtml = (text: string): string => {
   // Furigana (Anki-style: Kanji[Furigana] -> <ruby>Kanji<rt>Furigana</rt></ruby>)
   html = html.replace(/([\u4e00-\u9fff\u3400-\u4dbf\u3005][\u4e00-\u9fff\u3400-\u4dbf\u3005\u3040-\u309f\u30a0-\u30ff]*)\[([^\]]+)\]/g, '<ruby>$1<rt>$2</rt></ruby>');
   
+  bbcodeCache.set(text, html);
   return html;
 };
 

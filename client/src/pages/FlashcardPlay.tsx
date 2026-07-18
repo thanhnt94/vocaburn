@@ -214,6 +214,89 @@ const getMapTitleInfo = (mode: string) => {
   }
 };
 
+interface TimerWidgetProps {
+  timeMode: 'card' | 'today' | 'all';
+  initialTodayTime: number;
+  initialAllTimeTime: number;
+  showFeedback: boolean;
+  hasRated: boolean;
+  mainTab: 'fsrs' | 'practice';
+  currentIndex: number;
+  timeLeftRef: React.MutableRefObject<number>;
+  sessionStudyTimeRef: React.MutableRefObject<number>;
+  formatHeaderTime: (secs: number) => string;
+}
+
+const TimerWidget: React.FC<TimerWidgetProps> = ({
+  timeMode,
+  initialTodayTime,
+  initialAllTimeTime,
+  showFeedback,
+  hasRated,
+  mainTab,
+  currentIndex,
+  timeLeftRef,
+  sessionStudyTimeRef,
+  formatHeaderTime
+}) => {
+  const [localTimeLeft, setLocalTimeLeft] = useState(0);
+  const [localSessionStudyTime, setLocalSessionStudyTime] = useState(0);
+
+  // Reset the card timer when the index changes
+  useEffect(() => {
+    setLocalTimeLeft(0);
+    timeLeftRef.current = 0;
+  }, [currentIndex, timeLeftRef]);
+
+  // Sync state to ref
+  useEffect(() => {
+    timeLeftRef.current = localTimeLeft;
+  }, [localTimeLeft, timeLeftRef]);
+
+  useEffect(() => {
+    sessionStudyTimeRef.current = localSessionStudyTime;
+  }, [localSessionStudyTime, sessionStudyTimeRef]);
+
+  // Ticking logic
+  useEffect(() => {
+    const timer = setInterval(() => {
+      if (document.hidden || !document.hasFocus()) return;
+      if (mainTab === 'practice') {
+        if (showFeedback) return;
+      } else {
+        if (hasRated) return;
+      }
+      setLocalTimeLeft(prev => prev + 1);
+      setLocalSessionStudyTime(prev => prev + 1);
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [showFeedback, hasRated, mainTab]);
+
+  const displayTime = useMemo(() => {
+    if (timeMode === 'card') {
+      return `${localTimeLeft}s`;
+    }
+    const baseTime = timeMode === 'today' ? initialTodayTime : initialAllTimeTime;
+    return formatHeaderTime(baseTime + localSessionStudyTime);
+  }, [timeMode, localTimeLeft, localSessionStudyTime, initialTodayTime, initialAllTimeTime, formatHeaderTime]);
+
+  return (
+    <AnimatePresence mode="popLayout" initial={false}>
+      <motion.span
+        key={displayTime}
+        initial={{ y: 8, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        exit={{ y: -8, opacity: 0 }}
+        transition={{ type: "spring", stiffness: 350, damping: 18 }}
+        className="text-[7.5px] md:text-[8.5px] font-black text-slate-700 leading-none block truncate"
+      >
+        {displayTime}
+      </motion.span>
+    </AnimatePresence>
+  );
+};
+
 export default function FlashcardPlay() {
   const { id, mode, subMode } = useParams()
   const navigate = useNavigate()
@@ -245,6 +328,49 @@ export default function FlashcardPlay() {
     setShowAbsoluteLast(false)
     setShowingHint(false)
   }, [currentIndex])
+
+  // Asset preloading for the next card (image & audio)
+  useEffect(() => {
+    if (!session?.questions || currentIndex < 0) return;
+    const nextIdx = currentIndex + 1;
+    if (nextIdx >= session.questions.length) return;
+    
+    const nextQ = session.questions[nextIdx];
+    if (!nextQ) return;
+    
+    // Preload audio
+    const audioUrls = [
+      nextQ.front_audio_url,
+      nextQ.back_audio_url,
+      nextQ.audio
+    ].filter(Boolean) as string[];
+    
+    audioUrls.forEach(url => {
+      try {
+        const audio = new Audio();
+        audio.src = url;
+        audio.preload = 'auto';
+      } catch (e) {
+        // Silently catch audio construction errors if any
+      }
+    });
+    
+    // Preload images
+    const imgUrls = [
+      nextQ.image,
+      nextQ.front_img,
+      nextQ.back_img
+    ].filter(Boolean) as string[];
+    
+    imgUrls.forEach(url => {
+      try {
+        const img = new Image();
+        img.src = url;
+      } catch (e) {
+        // Silently catch image preloading errors
+      }
+    });
+  }, [currentIndex, session?.questions]);
   const currentQuestion: Question | null = session?.questions?.[currentIndex] || null
   const [selectedOption, setSelectedOption] = useState<number | null>(null)
   const [showFeedback, setShowFeedback] = useState(false)
@@ -339,8 +465,8 @@ export default function FlashcardPlay() {
   } = usePracticeMode(session, currentIndex, mainTab)
 
   const [initialTotalXP, setInitialTotalXP] = useState(0)
-  const [timeLeft, setTimeLeft] = useState(0)
-  const [sessionStudyTime, setSessionStudyTime] = useState(0)
+  const timeLeftRef = useRef(0)
+  const sessionStudyTimeRef = useRef(0)
   const [initialTodayXP, setInitialTodayXP] = useState(0)
   const [initialTodayTime, setInitialTodayTime] = useState(0)
   const [initialAllTimeTime, setInitialAllTimeTime] = useState(0)
@@ -464,7 +590,7 @@ export default function FlashcardPlay() {
 
 
 
-  const timerRef = useRef<any>(null)
+
   const undoInProgressRef = useRef<boolean>(false)
   const touchStartXRef = useRef<number | null>(null)
   const touchStartYRef = useRef<number | null>(null)
@@ -727,21 +853,7 @@ export default function FlashcardPlay() {
     }
   }, [isFeedbackOpen, isMapOpen, isStatsOpen, isEditModalOpen, isQuitModalOpen, isSessionSummaryOpen])
 
-  useEffect(() => {
-    timerRef.current = setInterval(() => {
-      setTimeLeft(prev => {
-        if (document.hidden || !document.hasFocus()) return prev
-        if (mainTab === 'practice') {
-          if (showFeedback) return prev
-        } else {
-          if (hasRated) return prev
-        }
-        setSessionStudyTime(s => s + 1)
-        return prev + 1
-      })
-    }, 1000)
-    return () => clearInterval(timerRef.current)
-  }, [showFeedback, hasRated, mainTab])
+
 
 
 
@@ -1158,7 +1270,7 @@ export default function FlashcardPlay() {
     const prevTotal = currentQuestion.stats?.total || 0
     const prevCorrect = currentQuestion.stats?.correct || 0
     const avgTime = currentQuestion.stats?.avg_time || 0
-    const timeTaken = timeLeft
+    const timeTaken = timeLeftRef.current
     
     const prevRatings = Array.isArray(sessionAnswers[currentIndex]) 
       ? (sessionAnswers[currentIndex] as number[]) 
@@ -1843,7 +1955,7 @@ export default function FlashcardPlay() {
         is_correct: isCorrect,
         is_practice: true,
         rating: isCorrect ? 3 : 1,
-        time_spent: timeLeft,
+        time_spent: timeLeftRef.current,
         local_date: new Date().toISOString().slice(0, 10)
       });
     } catch (e) {
@@ -1927,7 +2039,7 @@ export default function FlashcardPlay() {
         is_correct: isCorrect,
         is_practice: true,
         rating: isCorrect ? 3 : 1,
-        time_spent: timeLeft,
+        time_spent: timeLeftRef.current,
         local_date: new Date().toISOString().slice(0, 10)
       });
     } catch (e) {
@@ -1966,7 +2078,7 @@ export default function FlashcardPlay() {
       } else {
         setSelectedOption(null)
         setShowFeedback(false)
-        setTimeLeft(0)
+        timeLeftRef.current = 0
       }
     } else {
       // Check if the card is unlocked (clock drift buffered) to reset selectedOption for new reviews
@@ -1988,7 +2100,7 @@ export default function FlashcardPlay() {
       } else {
         setSelectedOption(null)
         setShowFeedback(false)
-        setTimeLeft(0)
+        timeLeftRef.current = 0
       }
     }
     
@@ -2022,7 +2134,7 @@ export default function FlashcardPlay() {
             is_correct: true,
             is_practice: true, // Bypass FSRS evaluation / scheduling updates
             rating: 3, // count as 'Good' / seen
-            time_spent: timeLeft,
+            time_spent: timeLeftRef.current,
             local_date: new Date().toISOString().slice(0, 10)
           });
         } catch (e) {
@@ -2055,7 +2167,7 @@ export default function FlashcardPlay() {
             const newTotal = currentStats.total + 1
             const newCorrect = currentStats.correct + 1
             const oldTotalTime = (currentStats.avg_time || 0) * currentStats.total
-            const newAvgTime = Math.round((oldTotalTime + timeLeft) / newTotal)
+            const newAvgTime = Math.round((oldTotalTime + timeLeftRef.current) / newTotal)
             q.stats = {
               total: newTotal,
               correct: newCorrect,
@@ -3557,30 +3669,18 @@ export default function FlashcardPlay() {
                 {timeMode === 'card' ? 'Time' : timeMode === 'today' ? 'Today' : 'Total'}
               </span>
               <div className="h-2.5 md:h-3 overflow-hidden relative min-w-[15px]">
-                <AnimatePresence mode="popLayout" initial={false}>
-                  <motion.span
-                    key={
-                      timeMode === 'card' 
-                        ? timeLeft 
-                        : timeMode === 'today' 
-                          ? formatHeaderTime(initialTodayTime + sessionStudyTime) 
-                          : formatHeaderTime(initialAllTimeTime + sessionStudyTime)
-                    }
-                    initial={{ y: 8, opacity: 0 }}
-                    animate={{ y: 0, opacity: 1 }}
-                    exit={{ y: -8, opacity: 0 }}
-                    transition={{ type: "spring", stiffness: 350, damping: 18 }}
-                    className="text-[7.5px] md:text-[8.5px] font-black text-slate-700 leading-none block truncate"
-                  >
-                    {
-                      timeMode === 'card' 
-                        ? `${timeLeft}s` 
-                        : timeMode === 'today' 
-                          ? formatHeaderTime(initialTodayTime + sessionStudyTime) 
-                          : formatHeaderTime(initialAllTimeTime + sessionStudyTime)
-                    }
-                  </motion.span>
-                </AnimatePresence>
+                <TimerWidget
+                  timeMode={timeMode}
+                  initialTodayTime={initialTodayTime}
+                  initialAllTimeTime={initialAllTimeTime}
+                  showFeedback={showFeedback}
+                  hasRated={selectedOption !== null}
+                  mainTab={mainTab}
+                  currentIndex={currentIndex}
+                  timeLeftRef={timeLeftRef}
+                  sessionStudyTimeRef={sessionStudyTimeRef}
+                  formatHeaderTime={formatHeaderTime}
+                />
               </div>
             </div>
           </div>

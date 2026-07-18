@@ -75,7 +75,7 @@ class DeckAttempt(Base):
     score = Column(Integer, default=0)
     total_cards = Column("total_cards", Integer, default=0)
     is_archived = Column(Boolean, default=False)
-    started_at = Column(DateTime, default=datetime.utcnow)
+    started_at = Column(DateTime, default=datetime.utcnow, index=True)
     completed_at = Column(DateTime, nullable=True)
     
     answers = relationship("UserAnswer", back_populates="attempt", cascade="all, delete-orphan")
@@ -88,7 +88,7 @@ class UserAnswer(Base):
     is_correct = Column(Boolean, default=False)
     active_time = Column(Float, default=0.0)
     rating = Column(Integer, nullable=True) # FSRS Rating: 1=Again, 2=Hard, 3=Good, 4=Easy
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=datetime.utcnow, index=True)
     
     attempt = relationship("DeckAttempt", back_populates="answers")
 
