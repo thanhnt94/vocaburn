@@ -2020,6 +2020,7 @@ export default function FlashcardPlay() {
           await axios.post('/api/v1/deck/record_answer', {
             question_id: currentQuestion.id,
             is_correct: true,
+            is_practice: true, // Bypass FSRS evaluation / scheduling updates
             rating: 3, // count as 'Good' / seen
             time_spent: timeLeft,
             local_date: new Date().toISOString().slice(0, 10)
