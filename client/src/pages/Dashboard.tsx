@@ -1520,96 +1520,148 @@ export default function Dashboard() {
       {/* MOBILE FEED */}
       <div className="md:hidden px-4 w-full pt-[60px] flex-grow space-y-3 overflow-y-auto pb-24 scrollbar-none text-left">
 
-        {/* ── Today Review Alert (from FSRS) ── */}
-        {renderTodayReviewWidget()}
-
-        {/* ── Today Summary + CTA ── */}
+        {/* ── Consolidated Today's Learning Card ── */}
         {(() => {
           const hasRoadmaps = roadmapDecks && roadmapDecks.length > 0;
-          // Aggregate totals across all roadmap decks
+          
+          // FSRS summary stats
+          const fsrsDueCount = todayReview?.due_cards_count || 0;
+          const estMinutes = todayReview?.estimated_minutes || 0;
+          const streakAtRisk = todayReview?.streak_at_risk || 0;
+
+          // Roadmap stats
           const totalNew = roadmapDecks?.reduce((sum: number, d: any) => sum + (d.status?.new_target_today || 0), 0) || 0;
           const totalNewDone = roadmapDecks?.reduce((sum: number, d: any) => sum + (d.status?.new_learned_today || 0), 0) || 0;
           const totalReview = roadmapDecks?.reduce((sum: number, d: any) => sum + (d.status?.review_due_today || 0), 0) || 0;
           const totalReviewDone = roadmapDecks?.reduce((sum: number, d: any) => sum + (d.status?.review_completed_today || 0), 0) || 0;
-          const totalCards = totalNew + totalReview;
+          
+          const totalTasks = totalNew + totalReview + fsrsDueCount;
           const totalDone = totalNewDone + totalReviewDone;
-          const allDone = totalCards > 0 && totalDone >= totalCards;
+          const allFinished = totalTasks > 0 && totalDone >= (totalNew + totalReview) && fsrsDueCount === 0;
 
-          if (!hasRoadmaps) {
+          if (!hasRoadmaps && fsrsDueCount === 0) {
             return (
-              <div className="bg-white rounded-2xl border border-slate-100 p-5 shadow-sm text-center">
-                <div className="w-12 h-12 rounded-full bg-slate-50 flex items-center justify-center mx-auto mb-3">
+              <div className="bg-slate-50/50 rounded-2xl p-6 text-center border border-slate-100/80">
+                <div className="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center mx-auto mb-3">
                   <Compass className="w-6 h-6 text-slate-400" />
                 </div>
-                <h3 className="text-sm font-semibold text-slate-700">Chưa có lộ trình học</h3>
+                <h3 className="text-sm font-semibold text-slate-700">Tất cả đã hoàn thành!</h3>
                 <p className="text-[12px] text-slate-400 mt-1 leading-relaxed max-w-[260px] mx-auto">
-                  Chọn một bộ thẻ từ thư viện và bật "Lộ trình học" để bắt đầu.
+                  Bạn không có bài học nào hôm nay. Hãy vào thư viện để chọn thêm bộ thẻ học nhé.
                 </p>
                 <button
                   onClick={() => navigate('/library')}
-                  className="mt-4 w-full h-12 bg-indigo-600 active:bg-indigo-700 text-white rounded-xl text-sm font-semibold shadow-sm transition-all active:scale-[0.98]"
+                  className="mt-4 w-full h-11 bg-indigo-600 active:bg-indigo-700 text-white rounded-xl text-[13px] font-semibold transition-all active:scale-[0.98]"
                 >
-                  📚 Đi tới Thư viện
+                  Đi tới Thư viện
                 </button>
               </div>
             );
           }
 
           return (
-            <div className="bg-white rounded-2xl border border-slate-100 p-4 shadow-sm">
-              <div className="flex items-center justify-between mb-3">
-                <h2 className="text-[15px] font-bold text-slate-800">Hôm nay</h2>
-                {allDone && (
-                  <span className="text-[11px] font-semibold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-lg">
-                    ✅ Hoàn thành!
+            <div className="bg-slate-50/60 rounded-2xl p-5 border border-slate-100/50">
+              {/* Badges / Header status */}
+              <div className="flex flex-wrap items-center gap-1.5 mb-2.5">
+                {allFinished ? (
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-600">
+                    ✓ Hoàn thành mục tiêu
                   </span>
+                ) : (
+                  <>
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-600">
+                      🎯 Hôm nay
+                    </span>
+                    {estMinutes > 0 && (
+                      <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-slate-100 text-slate-500">
+                        ⏱️ Khoảng {estMinutes} phút
+                      </span>
+                    )}
+                    {streakAtRisk && (
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-rose-50 text-rose-500 animate-pulse">
+                        🔥 Sắp mất streak
+                      </span>
+                    )}
+                  </>
                 )}
               </div>
 
-              {/* Aggregated stats row */}
-              <div className="flex items-center gap-4 mb-4">
-                <div className="flex items-center gap-1.5">
-                  <Sparkles className="w-3.5 h-3.5 text-orange-500" />
-                  <span className="text-[12px] text-slate-600">
-                    <span className="font-bold text-slate-800">{totalNewDone}/{totalNew}</span> thẻ mới
-                  </span>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <RefreshCw className="w-3.5 h-3.5 text-indigo-500" />
-                  <span className="text-[12px] text-slate-600">
-                    <span className="font-bold text-slate-800">{totalReviewDone}/{totalReview}</span> ôn tập
-                  </span>
-                </div>
-              </div>
+              {/* Status Message */}
+              <h2 className="text-[15px] font-semibold text-slate-800 tracking-tight leading-snug mb-3">
+                {allFinished ? (
+                  "Bạn đã hoàn thành xuất sắc tất cả các mục tiêu hôm nay! 🎉"
+                ) : (
+                  <>
+                    Bạn có <span className="text-indigo-600 font-bold">{fsrsDueCount + (totalNew - totalNewDone) + (totalReview - totalReviewDone)} thẻ</span> cần học & ôn tập
+                  </>
+                )}
+              </h2>
 
-              {/* Big primary CTA button */}
+              {/* Detailed counter specs (Neutral gray style) */}
+              {!allFinished && (
+                <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 mb-4 text-[12px] text-slate-500">
+                  {totalNew > 0 && (
+                    <div className="flex items-center gap-1">
+                      <Sparkles className="w-3.5 h-3.5 text-slate-400" />
+                      <span>Thẻ mới: <span className="font-semibold text-slate-700">{totalNewDone}/{totalNew}</span></span>
+                    </div>
+                  )}
+                  {totalReview > 0 && (
+                    <div className="flex items-center gap-1">
+                      <RefreshCw className="w-3.5 h-3.5 text-slate-400" />
+                      <span>Ôn tập: <span className="font-semibold text-slate-700">{totalReviewDone}/{totalReview}</span></span>
+                    </div>
+                  )}
+                  {fsrsDueCount > 0 && (
+                    <div className="flex items-center gap-1">
+                      <Brain className="w-3.5 h-3.5 text-slate-400" />
+                      <span>Đến hạn FSRS: <span className="font-semibold text-slate-700">{fsrsDueCount}</span></span>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* One Single Premium Button */}
               <button
                 onClick={() => {
-                  // Navigate to the first deck that still has cards due
+                  // If we have FSRS cards, prioritize FSRS play, else roadmap
+                  if (fsrsDueCount > 0) {
+                    const firstDeck = todayReview?.decks_summary?.[0];
+                    if (firstDeck) {
+                      navigate(`/flashcard/${firstDeck.deck_id}/play?mode=fsrs`);
+                      return;
+                    }
+                  }
+                  
                   const activeDeck = roadmapDecks?.find((d: any) => {
                     const s = d.status || {};
                     return (s.new_target_today - s.new_learned_today > 0) || (s.review_due_today - s.review_completed_today > 0);
                   }) || roadmapDecks?.[0];
-                  if (activeDeck) navigate(`/flashcard/${activeDeck.deck_id}/play?mode=roadmap`);
+                  
+                  if (activeDeck) {
+                    navigate(`/flashcard/${activeDeck.deck_id}/play?mode=roadmap`);
+                  } else {
+                    navigate('/library');
+                  }
                 }}
                 className={cn(
-                  "w-full h-12 rounded-xl text-sm font-semibold shadow-sm transition-all active:scale-[0.98] flex items-center justify-center gap-2",
-                  allDone
-                    ? "bg-slate-100 text-slate-500"
-                    : "bg-indigo-600 active:bg-indigo-700 text-white"
+                  "w-full h-11 rounded-xl text-[13px] font-semibold transition-all active:scale-[0.98] flex items-center justify-center gap-2 shadow-sm",
+                  allFinished
+                    ? "bg-slate-100 text-slate-500 shadow-none"
+                    : "bg-indigo-600 text-white shadow-indigo-600/10 hover:bg-indigo-700"
                 )}
               >
-                <Play className="w-4 h-4" />
-                {allDone ? 'Đã hoàn thành hôm nay' : 'Bắt đầu học'}
+                <Play className="w-3.5 h-3.5 fill-current" />
+                {allFinished ? 'Xem lại bài đã học' : 'Bắt đầu học ngay'}
               </button>
             </div>
           );
         })()}
 
-        {/* ── Deck List: Compact rows ── */}
+        {/* ── Deck List: Premium Minimalist Cards ── */}
         {roadmapDecks && roadmapDecks.length > 0 && (
-          <div className="space-y-2">
-            <h3 className="text-[13px] font-bold text-slate-500 px-1">Lộ trình đang học</h3>
+          <div className="space-y-2 pt-2">
+            <h3 className="text-[12px] font-semibold text-slate-400 tracking-wider uppercase px-1">Lộ trình của bạn</h3>
             {roadmapDecks.map((deck: any) => {
               const status = deck.status || {};
               const totalPct = status.total_cards > 0 ? Math.min(100, Math.round((status.learned_cards / status.total_cards) * 100)) : 0;
@@ -1621,11 +1673,11 @@ export default function Dashboard() {
                 <div
                   key={deck.deck_id}
                   onClick={() => navigate(`/flashcard/${deck.deck_id}`)}
-                  className="bg-white rounded-xl border border-slate-100 p-3.5 shadow-sm active:bg-slate-50 transition-all cursor-pointer"
+                  className="bg-white rounded-xl border border-slate-100/70 p-3.5 shadow-[0_4px_20px_rgba(0,0,0,0.015)] active:bg-slate-50 transition-all cursor-pointer"
                 >
                   <div className="flex items-center gap-3">
                     {/* Small deck icon */}
-                    <div className="w-10 h-10 rounded-lg bg-slate-100 flex items-center justify-center text-lg flex-shrink-0 overflow-hidden">
+                    <div className="w-10 h-10 rounded-lg bg-slate-50 flex items-center justify-center text-lg flex-shrink-0 overflow-hidden border border-slate-100/50">
                       {deck.cover_image ? (
                         <img src={deck.cover_image} alt="" className="w-full h-full object-cover" />
                       ) : (
@@ -1637,7 +1689,7 @@ export default function Dashboard() {
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between gap-2">
                         <h4 className="text-[13px] font-semibold text-slate-800 truncate">{deck.title}</h4>
-                        <span className="text-[11px] font-semibold text-slate-400 flex-shrink-0">{totalPct}%</span>
+                        <span className="text-[11px] font-medium text-slate-450 flex-shrink-0">{totalPct}%</span>
                       </div>
                       
                       {/* Thin progress bar */}
@@ -1646,13 +1698,13 @@ export default function Dashboard() {
                       </div>
                       
                       {/* Today's remaining for this deck */}
-                      <div className="flex items-center gap-3 text-[11px] text-slate-500">
+                      <div className="flex items-center gap-3 text-[11px] text-slate-400">
                         <span>{status.learned_cards}/{status.total_cards} thẻ</span>
                         {hasDue && (
                           <>
-                            <span className="text-slate-300">·</span>
-                            <span className="text-orange-600 font-medium">
-                              Hôm nay: {newRemaining > 0 ? `${newRemaining} mới` : ''}{newRemaining > 0 && reviewRemaining > 0 ? ', ' : ''}{reviewRemaining > 0 ? `${reviewRemaining} ôn` : ''}
+                            <span className="text-slate-200">·</span>
+                            <span className="text-indigo-650 font-medium">
+                              {newRemaining > 0 ? `${newRemaining} mới` : ''}{newRemaining > 0 && reviewRemaining > 0 ? ', ' : ''}{reviewRemaining > 0 ? `${reviewRemaining} ôn` : ''}
                             </span>
                           </>
                         )}
