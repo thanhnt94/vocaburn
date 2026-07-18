@@ -650,57 +650,58 @@ function TodayFocusWidget({
 
   return (
     <div className={cn(
-      "rounded-[1.5rem] md:rounded-[2.5rem] p-4 md:p-8 text-left mb-5 flex-shrink-0 transition-all duration-700 bg-white shadow-sm border border-slate-100",
+      "rounded-[2rem] p-5 md:p-8 text-left mb-6 flex-shrink-0 transition-all duration-700 bg-white shadow-sm border border-slate-100",
       hasRoadmaps ? "shadow-[0_20px_50px_rgba(99,102,241,0.02)]" : ""
     )}>
-      <div className="flex items-center justify-between mb-6 relative z-10">
+      <div className="flex items-center justify-between mb-5 relative z-10">
         <div>
           <span className="text-[9px] font-black uppercase tracking-widest px-2.5 py-1 rounded-xl text-indigo-600 bg-indigo-50 inline-block">
             🎯 LỘ TRÌNH HỌC HÔM NAY
           </span>
-          <h3 className="text-sm font-black text-slate-800 uppercase tracking-tight mt-1.5 font-bold">Mục tiêu học tập hàng ngày</h3>
+          <h3 className="text-sm font-black text-slate-800 uppercase tracking-tight mt-2 font-bold">Mục tiêu học tập hàng ngày</h3>
         </div>
       </div>
 
       {!hasRoadmaps ? (
-        <div className="text-center py-10 bg-slate-50/50 rounded-3xl border border-dashed border-slate-200/80">
-          <div className="w-12 h-12 rounded-full bg-indigo-50 flex items-center justify-center mx-auto mb-3 text-indigo-500">
-            <Compass className="w-6 h-6 animate-pulse" />
+        <div className="text-center py-12 bg-slate-50/50 rounded-[2rem] border border-dashed border-slate-200/80">
+          <div className="w-14 h-14 rounded-full bg-indigo-50 flex items-center justify-center mx-auto mb-4 text-indigo-500 shadow-inner">
+            <Compass className="w-7 h-7 animate-pulse" />
           </div>
-          <span className="text-xs font-bold text-slate-500 block">Bạn chưa kích hoạt Lộ trình học nào.</span>
-          <p className="text-[10px] text-slate-400 mt-1 max-w-sm mx-auto font-medium">Hãy chọn một bộ thẻ từ thư viện và bật "Lộ trình học" để hệ thống tự động thiết lập mục tiêu hàng ngày cho bạn.</p>
-          <button
+          <span className="text-xs font-black text-slate-700 block uppercase tracking-wider">Bạn chưa kích hoạt Lộ trình học nào.</span>
+          <p className="text-[10px] text-slate-400 mt-2 max-w-xs mx-auto font-bold uppercase tracking-wider leading-relaxed">Hãy chọn một bộ thẻ từ thư viện và bật "Lộ trình học" để hệ thống tự động thiết lập mục tiêu hàng ngày cho bạn.</p>
+          <motion.button
+            whileTap={{ scale: 0.95 }}
             onClick={() => navigate('/library')}
-            className="mt-4 px-4 py-2 bg-indigo-600 hover:bg-indigo-750 text-white text-[10px] font-black uppercase tracking-wider rounded-xl shadow-sm shadow-indigo-100 transition-all cursor-pointer"
+            className="mt-5 px-5 py-2.5 bg-indigo-600 hover:bg-indigo-750 text-white text-[10px] font-black uppercase tracking-widest rounded-xl shadow-md shadow-indigo-100 transition-all cursor-pointer"
           >
             📚 Đi tới Thư viện
-          </button>
+          </motion.button>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {roadmapDecks.map((deck) => {
             const status = deck.status || {};
             const totalLearnedPct = status.total_cards > 0 ? Math.min(100, Math.round((status.learned_cards / status.total_cards) * 100)) : 0;
             const streak = status.streak || 0;
             
             return (
-              <div key={deck.deck_id} className="group relative rounded-3xl border border-slate-100 bg-white hover:shadow-[0_12px_45px_rgba(99,102,241,0.05)] transition-all duration-300 flex flex-col overflow-hidden shadow-sm">
+              <div key={deck.deck_id} className="group relative rounded-[2rem] border border-slate-100/80 bg-white hover:shadow-[0_15px_40px_rgba(99,102,241,0.06)] transition-all duration-300 flex flex-col overflow-hidden shadow-sm">
                 
                 {/* Visual Header / Cover Image Banner */}
-                <div className="relative h-28 w-full bg-slate-100 overflow-hidden shrink-0 flex items-center justify-center">
+                <div className="relative h-32 w-full bg-slate-100 overflow-hidden shrink-0 flex items-center justify-center">
                   {deck.cover_image ? (
                     <img src={deck.cover_image} alt={deck.title} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
                   ) : (
                     <div className="w-full h-full bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 flex items-center justify-center" />
                   )}
                   {/* Subtle Gradient Overlay */}
-                  <div className="absolute inset-0 bg-gradient-to-t from-slate-900/60 via-slate-900/10 to-transparent" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-slate-950/70 via-slate-950/20 to-transparent" />
                   
                   {/* Title & Floating Elements inside Image */}
-                  <div className="absolute bottom-3 left-4 right-4 flex items-end justify-between gap-2 text-white">
-                    <h4 className="text-[12px] sm:text-xs font-black uppercase tracking-wider truncate leading-tight drop-shadow-sm">{deck.title}</h4>
+                  <div className="absolute bottom-3.5 left-4 right-4 flex items-end justify-between gap-3 text-white">
+                    <h4 className="text-[12px] sm:text-xs font-black uppercase tracking-wider truncate leading-tight drop-shadow-md">{deck.title}</h4>
                     {streak > 0 && (
-                      <span className="text-[8px] font-black text-amber-500 bg-white/95 px-2 py-0.5 rounded-lg flex items-center gap-0.5 shrink-0 shadow-sm leading-none">
+                      <span className="text-[8px] font-black text-orange-600 bg-white/95 px-2 py-1 rounded-lg flex items-center gap-0.5 shrink-0 shadow-sm leading-none uppercase tracking-wider">
                         🔥 {streak} ngày
                       </span>
                     )}
@@ -708,74 +709,77 @@ function TodayFocusWidget({
                 </div>
 
                 {/* Progress / stats bar */}
-                <div className="p-4 flex flex-col gap-3">
-                  <div className="flex items-center justify-between gap-2 text-[8px] font-black text-slate-400 uppercase tracking-wider">
+                <div className="p-4 flex flex-col gap-4">
+                  <div className="flex items-center justify-between gap-2 text-[8px] font-black text-slate-400 uppercase tracking-widest">
                     <span>Đã học {status.learned_cards}/{status.total_cards} ({totalLearnedPct}%)</span>
                     {status.estimated_completion_date && (
-                      <span className="text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded-md flex items-center gap-0.5 normal-case font-bold">
+                      <span className="text-emerald-600 bg-emerald-50/80 px-2 py-0.5 rounded-md flex items-center gap-0.5 normal-case font-bold border border-emerald-100/50">
                         🎯 Kết thúc: {new Date(status.estimated_completion_date).toLocaleDateString('vi-VN')}
                       </span>
                     )}
                   </div>
                   
-                  <div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden shrink-0">
-                    <div className="h-full bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 rounded-full transition-all duration-550 ease-out" style={{ width: `${totalLearnedPct}%` }} />
+                  <div className="w-full h-2 bg-slate-100/80 rounded-full overflow-hidden shrink-0 p-[1px]">
+                    <div className="h-full bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 rounded-full transition-all duration-700 ease-out" style={{ width: `${totalLearnedPct}%` }} />
                   </div>
 
                   {/* Daily Quota Pills */}
-                  <div className="grid grid-cols-2 gap-2 mt-1">
-                    <div className="bg-slate-50/60 rounded-xl p-2.5 border border-slate-100/80 flex items-center justify-between gap-1.5">
+                  <div className="grid grid-cols-2 gap-3 mt-1">
+                    <div className="bg-orange-50/30 rounded-2xl p-3 border border-orange-100/30 flex items-center justify-between gap-1.5 transition-colors hover:bg-orange-50/50">
                       <div className="min-w-0">
-                        <span className="text-[8px] font-black text-slate-450 uppercase tracking-wider block">Từ mới</span>
-                        <span className="text-[11px] font-black text-slate-800 mt-0.5 block leading-none">
+                        <span className="text-[8px] font-black text-orange-600/70 uppercase tracking-widest block">Từ mới</span>
+                        <span className="text-[12px] font-black text-slate-800 mt-1 block leading-none">
                           {status.new_learned_today} <span className="text-slate-400 font-bold">/ {status.new_target_today}</span>
                         </span>
                       </div>
-                      <div className="relative w-8 h-8 shrink-0 flex items-center justify-center bg-white rounded-lg shadow-sm border border-slate-100/50">
-                        <Sparkles className="w-3.5 h-3.5 text-orange-500" />
+                      <div className="relative w-8 h-8 shrink-0 flex items-center justify-center bg-white rounded-xl shadow-sm border border-orange-100/20">
+                        <Sparkles className="w-4 h-4 text-orange-500" />
                       </div>
                     </div>
 
-                    <div className="bg-slate-50/60 rounded-xl p-2.5 border border-slate-100/80 flex items-center justify-between gap-1.5">
+                    <div className="bg-indigo-50/30 rounded-2xl p-3 border border-indigo-100/30 flex items-center justify-between gap-1.5 transition-colors hover:bg-indigo-50/50">
                       <div className="min-w-0">
-                        <span className="text-[8px] font-black text-slate-450 uppercase tracking-wider block">Ôn tập</span>
-                        <span className="text-[11px] font-black text-slate-800 mt-0.5 block leading-none">
+                        <span className="text-[8px] font-black text-indigo-650/70 uppercase tracking-widest block">Ôn tập</span>
+                        <span className="text-[12px] font-black text-slate-800 mt-1 block leading-none">
                           {status.review_completed_today} <span className="text-slate-400 font-bold">/ {status.review_due_today}</span>
                         </span>
                       </div>
-                      <div className="relative w-8 h-8 shrink-0 flex items-center justify-center bg-white rounded-lg shadow-sm border border-slate-100/50">
-                        <Brain className="w-3.5 h-3.5 text-indigo-500" />
+                      <div className="relative w-8 h-8 shrink-0 flex items-center justify-center bg-white rounded-xl shadow-sm border border-indigo-100/20">
+                        <Brain className="w-4 h-4 text-indigo-500" />
                       </div>
                     </div>
                   </div>
 
                   {/* Action buttons list */}
-                  <div className="flex items-center gap-2 mt-2 pt-3 border-t border-slate-100">
-                    <button
+                  <div className="flex items-center gap-2 mt-2 pt-4 border-t border-slate-100">
+                    <motion.button
+                      whileTap={{ scale: 0.96 }}
                       onClick={() => navigate(`/flashcard/${deck.deck_id}/play?mode=roadmap`)}
-                      className="flex-1 h-8 rounded-xl bg-gradient-to-r from-orange-500 to-rose-500 hover:from-orange-600 hover:to-rose-600 text-white text-[9px] font-black uppercase tracking-wider flex items-center justify-center gap-1 shadow-md shadow-orange-100 active:scale-95 transition-all cursor-pointer"
+                      className="flex-1 h-9 rounded-xl bg-gradient-to-r from-orange-500 to-rose-500 hover:from-orange-600 hover:to-rose-600 text-white text-[9px] font-black uppercase tracking-widest flex items-center justify-center gap-1 shadow-md shadow-orange-100/50 border-b-2 border-rose-700 transition-all cursor-pointer"
                     >
                       <Sparkles className="w-3.5 h-3.5" />
                       Học lộ trình
-                    </button>
+                    </motion.button>
                     
-                    <button
+                    <motion.button
+                      whileTap={{ scale: 0.93 }}
                       onClick={() => navigate(`/flashcard/${deck.deck_id}/play?mode=fsrs`)}
-                      className="h-8 px-2.5 rounded-xl bg-indigo-50 hover:bg-indigo-100 border border-indigo-100/35 text-indigo-650 text-[9px] font-black uppercase tracking-wider flex items-center justify-center gap-1 active:scale-95 transition-all cursor-pointer"
+                      className="h-9 px-3 rounded-xl bg-indigo-50 hover:bg-indigo-100/80 border border-indigo-150/40 text-indigo-650 text-[9px] font-black uppercase tracking-wider flex items-center justify-center gap-1 transition-all cursor-pointer"
                       title="Học FSRS"
                     >
                       <Brain className="w-3.5 h-3.5" />
-                    </button>
+                    </motion.button>
 
-                    <button
+                    <motion.button
+                      whileTap={{ scale: 0.93 }}
                       onClick={() => {
                         onStartPractice({ id: deck.deck_id, title: deck.title, questions_count: status.total_cards });
                       }}
-                      className="h-8 px-2.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 border border-emerald-100/35 text-emerald-655 text-[9px] font-black uppercase tracking-wider flex items-center justify-center gap-1 active:scale-95 transition-all cursor-pointer"
+                      className="h-9 px-3 rounded-xl bg-emerald-50 hover:bg-emerald-100/80 border border-emerald-150/40 text-emerald-655 text-[9px] font-black uppercase tracking-wider flex items-center justify-center gap-1 transition-all cursor-pointer"
                       title="Luyện tập tự do"
                     >
                       <Trophy className="w-3.5 h-3.5" />
-                    </button>
+                    </motion.button>
                   </div>
                 </div>
 
@@ -1392,37 +1396,30 @@ export default function Dashboard() {
       <div className="absolute bottom-[20%] right-[-10%] w-[40vw] h-[40vw] rounded-full bg-pink-200/10 blur-[130px] pointer-events-none" />
 
       {/* MOBILE HEADER */}
-      <div className="fixed top-0 left-0 right-0 z-[150] bg-white/75 backdrop-blur-3xl border-b border-slate-200/40 md:hidden flex-shrink-0 shadow-[0_2px_15px_-3px_rgba(0,0,0,0.02)]">
-        <div className="px-5 py-3.5 flex items-center justify-between gap-4">
+      <div className="fixed top-0 left-0 right-0 z-[150] bg-white/70 backdrop-blur-md border-b border-slate-100/50 md:hidden flex-shrink-0 shadow-[0_2px_20px_rgba(0,0,0,0.015)]">
+        <div className="px-5 py-3 flex items-center justify-between gap-4">
           {/* Logo & Brand Vocaburn on the Left */}
           <Link to="/" className="flex items-center gap-2 group flex-shrink-0">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-orange-500 to-rose-500 flex items-center justify-center text-white shadow-lg shadow-orange-500/20 group-hover:rotate-12 transition-transform">
-              <BookOpen className="w-5 h-5" />
+            <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-orange-500 to-rose-500 flex items-center justify-center text-white shadow-md shadow-orange-500/10 group-hover:rotate-12 transition-transform">
+              <BookOpen className="w-4 h-4" />
             </div>
-            <span className="text-xs font-black tracking-wider text-slate-800 uppercase">
+            <span className="text-[11px] font-black tracking-widest text-slate-800 uppercase">
               Voca<span className="text-orange-500">burn</span>
             </span>
           </Link>
 
           {/* User Info & Avatar on the Right */}
-          <div className="flex items-center gap-3">
-            <div className="text-right">
-              <h1 className="text-[12px] font-black text-slate-900 leading-none mb-1.5">Hello {data.user?.username}! 👋</h1>
-              <div className="flex items-center gap-1.5 justify-end">
-                <span className="flex items-center gap-0.5 px-2 py-0.5 bg-indigo-50 border border-indigo-100/30 rounded-lg text-[8px] font-black text-indigo-600 uppercase tracking-wider shadow-sm">
-                  <BrainCircuit className="w-2.5 h-2.5" />
-                  LVL {data.gamify?.level}
-                </span>
-                <span className="flex items-center gap-0.5 px-2 py-0.5 bg-orange-50 border border-orange-100/30 rounded-lg text-[8px] font-black text-orange-650 uppercase tracking-wider shadow-sm">
-                  <Flame className="w-2.5 h-2.5 text-orange-500 fill-orange-500" />
-                  {data.gamify?.streak}D Streak
-                </span>
-              </div>
+          <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5">
+              <span className="flex items-center gap-0.5 px-2.5 py-1 bg-amber-500/10 border border-amber-500/20 rounded-full text-[9px] font-black text-amber-600 uppercase tracking-wider">
+                <Flame className="w-3 h-3 fill-amber-500 text-amber-500" />
+                {data.gamify?.streak}D
+              </span>
             </div>
             
-            {/* User Avatar (Normal style: square box with User icon) */}
-            <Link to="/profile" className="w-11 h-11 rounded-2xl bg-slate-50 border border-slate-200/60 flex items-center justify-center text-slate-450 shadow-sm active:scale-95 transition-all hover:bg-slate-100">
-              <User className="w-5 h-5" />
+            {/* User Avatar (Normal style: circular box with User icon) */}
+            <Link to="/profile" className="w-9 h-9 rounded-full bg-slate-50 border border-slate-200/50 flex items-center justify-center text-slate-500 shadow-sm active:scale-95 transition-all hover:bg-slate-100">
+              <User className="w-4.5 h-4.5" />
             </Link>
           </div>
         </div>
@@ -1520,39 +1517,37 @@ export default function Dashboard() {
       <div className="md:hidden px-4 w-full pt-[80px] flex-grow space-y-4 overflow-y-auto pb-24 scrollbar-none text-left">
         
         {/* User HUD / Progress Card */}
-        <div className="bg-gradient-to-br from-indigo-650 via-indigo-700 to-purple-800 rounded-3xl p-5 text-white shadow-lg shadow-indigo-500/10 relative overflow-hidden">
-          {/* Decorative shapes */}
-          <div className="absolute right-[-10%] top-[-20%] w-32 h-32 rounded-full bg-white/10 blur-xl pointer-events-none" />
-          <div className="absolute left-[-5%] bottom-[-10%] w-24 h-24 rounded-full bg-white/5 blur-lg pointer-events-none" />
+        <div className="bg-gradient-to-br from-[#4f46e5] via-[#6366f1] to-[#a855f7] rounded-[2.2rem] p-6 text-white shadow-xl shadow-indigo-500/15 relative overflow-hidden">
+          {/* Glowing mesh shapes */}
+          <div className="absolute right-[-15%] top-[-30%] w-48 h-48 rounded-full bg-pink-400/20 blur-2xl pointer-events-none" />
+          <div className="absolute left-[-10%] bottom-[-20%] w-36 h-36 rounded-full bg-indigo-400/25 blur-xl pointer-events-none" />
 
           <div className="flex items-center justify-between gap-4 relative z-10">
             <div className="flex items-center gap-3">
-              <div className="w-11 h-11 rounded-2xl bg-white/10 border border-white/20 flex items-center justify-center text-xl">
-                🎓
+              <div className="w-12 h-12 rounded-2xl bg-white/15 backdrop-blur-md border border-white/20 flex items-center justify-center text-2xl shadow-inner shadow-white/10">
+                ⚡
               </div>
               <div className="min-w-0">
-                <span className="text-[10px] font-black text-indigo-200 uppercase tracking-widest block">Xin chào</span>
-                <h3 className="text-sm font-black truncate max-w-[150px] leading-tight mt-0.5">{data.user?.username}</h3>
+                <span className="text-[9px] font-black text-indigo-100/85 uppercase tracking-widest block">Neural Level {data.gamify?.level}</span>
+                <h3 className="text-base font-black truncate max-w-[170px] leading-tight mt-0.5 tracking-tight">{data.user?.username}</h3>
               </div>
             </div>
             
-            <div className="flex flex-col items-end gap-1.5">
-              <div className="flex items-center gap-1 bg-amber-500/20 border border-amber-500/30 px-2.5 py-1 rounded-xl text-[9px] font-black text-amber-300 uppercase tracking-wider">
-                <Flame className="w-3.5 h-3.5 fill-amber-400 text-amber-400 animate-pulse" />
-                {data.gamify?.streak} ngày lặp
-              </div>
+            <div className="flex items-center gap-1.5 bg-white/12 backdrop-blur-md border border-white/15 px-3 py-1.5 rounded-2xl text-[9px] font-black text-amber-350 uppercase tracking-widest shadow-sm">
+              <Flame className="w-4 h-4 fill-amber-400 text-amber-400 animate-pulse" />
+              <span>{data.gamify?.streak} NGÀY</span>
             </div>
           </div>
 
           {/* XP Progress Slider */}
-          <div className="mt-5 pt-3 border-t border-white/10 relative z-10">
-            <div className="flex justify-between text-[8px] font-black text-indigo-200 mb-1.5 uppercase tracking-wider">
+          <div className="mt-6 pt-4 border-t border-white/10 relative z-10">
+            <div className="flex justify-between text-[9px] font-black text-indigo-150 mb-2 uppercase tracking-widest">
               <span>{data.gamify?.xp} XP tích lũy</span>
-              <span>Cấp {(data.gamify?.level || 1) + 1} cần {(data.gamify?.level || 1) * 1000} XP</span>
+              <span>Cấp {(data.gamify?.level || 1) + 1} ({Math.min(100, Math.round(((data.gamify?.xp || 0) % 1000) / 10))}%)</span>
             </div>
-            <div className="h-1.5 bg-indigo-900/40 rounded-full overflow-hidden w-full border border-indigo-950/20">
+            <div className="h-2 bg-indigo-950/30 rounded-full overflow-hidden w-full p-[2px] border border-indigo-950/10">
               <div
-                className="h-full bg-gradient-to-r from-amber-400 to-orange-400 rounded-full transition-all duration-700 ease-out"
+                className="h-full bg-gradient-to-r from-amber-400 via-orange-400 to-pink-500 rounded-full transition-all duration-1000 ease-out shadow-[0_0_10px_rgba(245,158,11,0.5)]"
                 style={{ width: `${Math.min(100, ((data.gamify?.xp || 0) % 1000) / 10)}%` }}
               />
             </div>
@@ -1560,28 +1555,38 @@ export default function Dashboard() {
         </div>
 
         {/* Tab Switcher HUD */}
-        <div className="flex items-center bg-slate-100 p-1 rounded-2xl border border-slate-200/40 w-full shrink-0">
+        <div className="flex items-center bg-slate-100/80 backdrop-blur-md p-1 rounded-2xl border border-slate-200/35 w-full shrink-0 relative">
           <button
             onClick={() => setActiveMobileTab('study')}
             className={cn(
-              "flex-1 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all cursor-pointer flex items-center justify-center gap-1.5",
-              activeMobileTab === 'study'
-                ? "bg-white text-indigo-650 shadow-sm border border-slate-150"
-                : "text-slate-400 hover:text-slate-600"
+              "flex-1 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all cursor-pointer flex items-center justify-center gap-1.5 relative z-10",
+              activeMobileTab === 'study' ? "text-indigo-600 font-extrabold" : "text-slate-400 hover:text-slate-600"
             )}
           >
+            {activeMobileTab === 'study' && (
+              <motion.div
+                layoutId="activeDashboardTab"
+                className="absolute inset-0 bg-white shadow-sm border border-slate-200/50 rounded-xl -z-10"
+                transition={{ type: "spring", stiffness: 350, damping: 30 }}
+              />
+            )}
             <Target className="w-3.5 h-3.5" />
             Học tập
           </button>
           <button
             onClick={() => setActiveMobileTab('stats')}
             className={cn(
-              "flex-1 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all cursor-pointer flex items-center justify-center gap-1.5",
-              activeMobileTab === 'stats'
-                ? "bg-white text-indigo-650 shadow-sm border border-slate-150"
-                : "text-slate-400 hover:text-slate-600"
+              "flex-1 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all cursor-pointer flex items-center justify-center gap-1.5 relative z-10",
+              activeMobileTab === 'stats' ? "text-indigo-600 font-extrabold" : "text-slate-400 hover:text-slate-600"
             )}
           >
+            {activeMobileTab === 'stats' && (
+              <motion.div
+                layoutId="activeDashboardTab"
+                className="absolute inset-0 bg-white shadow-sm border border-slate-200/50 rounded-xl -z-10"
+                transition={{ type: "spring", stiffness: 350, damping: 30 }}
+              />
+            )}
             <TrendingUp className="w-3.5 h-3.5" />
             Thống kê & Rank
           </button>
