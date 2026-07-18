@@ -1520,220 +1520,289 @@ export default function Dashboard() {
       {/* MOBILE FEED */}
       <div className="md:hidden px-4 w-full pt-[60px] flex-grow space-y-4 overflow-y-auto pb-28 scrollbar-none text-left bg-gradient-to-b from-slate-50/60 via-indigo-50/10 to-slate-50/80">
 
-        {/* ── Consolidated Today's Learning Card ── */}
-        {(() => {
-          const hasRoadmaps = roadmapDecks && roadmapDecks.length > 0;
-          
-          // FSRS summary stats
-          const fsrsDueCount = todayReview?.due_cards_count || 0;
-          const estMinutes = todayReview?.estimated_minutes || 0;
-          const streakAtRisk = todayReview?.streak_at_risk || 0;
+        {/* Mobile Tab Switcher */}
+        <div className="flex bg-slate-100/80 backdrop-blur-md p-1 rounded-2xl border border-slate-200/40 mt-1">
+          <button
+            onClick={() => setActiveMobileTab('study')}
+            className={cn(
+              "flex-grow py-2.5 text-center text-[10px] font-black uppercase tracking-wider rounded-xl transition-all",
+              activeMobileTab === 'study'
+                ? "bg-white text-indigo-650 shadow-sm border border-slate-200/20"
+                : "text-slate-450 hover:text-slate-655"
+            )}
+          >
+            📚 Học tập
+          </button>
+          <button
+            onClick={() => setActiveMobileTab('stats')}
+            className={cn(
+              "flex-grow py-2.5 text-center text-[10px] font-black uppercase tracking-wider rounded-xl transition-all",
+              activeMobileTab === 'stats'
+                ? "bg-white text-indigo-650 shadow-sm border border-slate-200/20"
+                : "text-slate-450 hover:text-slate-655"
+            )}
+          >
+            📊 Thống kê & Bảng xếp hạng
+          </button>
+        </div>
 
-          // Roadmap stats
-          const totalNew = roadmapDecks?.reduce((sum: number, d: any) => sum + (d.status?.new_target_today || 0), 0) || 0;
-          const totalNewDone = roadmapDecks?.reduce((sum: number, d: any) => sum + (d.status?.new_learned_today || 0), 0) || 0;
-          const totalReview = roadmapDecks?.reduce((sum: number, d: any) => sum + (d.status?.review_due_today || 0), 0) || 0;
-          const totalReviewDone = roadmapDecks?.reduce((sum: number, d: any) => sum + (d.status?.review_completed_today || 0), 0) || 0;
-          
-          const totalTasks = totalNew + totalReview + fsrsDueCount;
-          const totalDone = totalNewDone + totalReviewDone;
-          const allFinished = totalTasks > 0 && totalDone >= (totalNew + totalReview) && fsrsDueCount === 0;
+        {activeMobileTab === 'study' ? (
+          <>
+            {/* ── Circular Daily Goal Widget ── */}
+            {(() => {
+              const hasRoadmaps = roadmapDecks && roadmapDecks.length > 0;
+              const fsrsDueCount = todayReview?.due_cards_count || 0;
+              const estMinutes = todayReview?.estimated_minutes || 0;
+              const streakAtRisk = todayReview?.streak_at_risk || 0;
 
-          if (!hasRoadmaps && fsrsDueCount === 0) {
-            return (
-              <div className="bg-white rounded-2xl p-6 text-center border border-slate-100 shadow-[0_4px_20px_rgba(0,0,0,0.015)]">
-                <div className="w-12 h-12 rounded-full bg-slate-50 flex items-center justify-center mx-auto mb-3">
-                  <Compass className="w-6 h-6 text-slate-400" />
-                </div>
-                <h3 className="text-sm font-semibold text-slate-700">Tất cả đã hoàn thành!</h3>
-                <p className="text-[12px] text-slate-400 mt-1 leading-relaxed max-w-[260px] mx-auto">
-                  Bạn không có bài học nào hôm nay. Hãy vào thư viện để chọn thêm bộ thẻ học nhé.
-                </p>
-                <button
-                  onClick={() => navigate('/library')}
-                  className="mt-4 w-full h-11 bg-indigo-600 active:bg-indigo-700 text-white rounded-xl text-[13px] font-semibold transition-all active:scale-[0.98]"
-                >
-                  Đi tới Thư viện
-                </button>
-              </div>
-            );
-          }
-
-          return (
-            <div className="bg-gradient-to-br from-indigo-50/70 via-white to-white rounded-2xl p-5 border border-indigo-100/40 shadow-sm relative overflow-hidden">
-              {/* Subtle background glow */}
-              <div className="absolute right-[-10%] top-[-20%] w-32 h-32 rounded-full bg-indigo-200/10 blur-xl pointer-events-none" />
+              const totalNew = roadmapDecks?.reduce((sum: number, d: any) => sum + (d.status?.new_target_today || 0), 0) || 0;
+              const totalNewDone = roadmapDecks?.reduce((sum: number, d: any) => sum + (d.status?.new_learned_today || 0), 0) || 0;
+              const totalReview = roadmapDecks?.reduce((sum: number, d: any) => sum + (d.status?.review_due_today || 0), 0) || 0;
+              const totalReviewDone = roadmapDecks?.reduce((sum: number, d: any) => sum + (d.status?.review_completed_today || 0), 0) || 0;
               
-              {/* Badges / Header status */}
-              <div className="flex flex-wrap items-center gap-1.5 mb-2.5 relative z-10">
-                {allFinished ? (
-                  <span className="text-[10px] font-bold px-2.5 py-0.8 rounded-full bg-emerald-50 text-emerald-600 border border-emerald-100/30">
-                    ✓ Hoàn thành mục tiêu
-                  </span>
-                ) : (
-                  <>
-                    <span className="text-[10px] font-bold px-2.5 py-0.8 rounded-full bg-indigo-600 text-white shadow-sm shadow-indigo-150">
-                      🎯 Hôm nay
-                    </span>
-                    {estMinutes > 0 && (
-                      <span className="text-[10px] font-medium px-2 py-0.8 rounded-full bg-slate-100 text-slate-500">
-                        ⏱️ Khoảng {estMinutes} phút
-                      </span>
-                    )}
-                    {streakAtRisk && (
-                      <span className="text-[10px] font-bold px-2 py-0.8 rounded-full bg-rose-50 text-rose-500 animate-pulse border border-rose-100">
-                        🔥 Sắp mất streak
-                      </span>
-                    )}
-                  </>
-                )}
-              </div>
+              const totalTasks = totalNew + totalReview + fsrsDueCount;
+              const totalDone = totalNewDone + totalReviewDone;
+              const percentComplete = totalTasks > 0 
+                ? Math.min(100, Math.round((totalDone / (totalTasks + totalDone)) * 100)) 
+                : 100;
+              const allFinished = totalTasks > 0 && totalDone >= (totalNew + totalReview) && fsrsDueCount === 0;
 
-              {/* Status Message */}
-              <h2 className="text-[15px] font-bold text-slate-800 tracking-tight leading-snug mb-3 relative z-10">
-                {allFinished ? (
-                  "Bạn đã hoàn thành xuất sắc tất cả các mục tiêu hôm nay! 🎉"
-                ) : (
-                  <>
-                    Bạn có <span className="text-indigo-600 font-extrabold">{fsrsDueCount + (totalNew - totalNewDone) + (totalReview - totalReviewDone)} thẻ</span> cần học & ôn tập
-                  </>
-                )}
-              </h2>
+              if (!hasRoadmaps && fsrsDueCount === 0) {
+                return (
+                  <div className="bg-white rounded-2xl p-6 text-center border border-slate-100 shadow-sm">
+                    <div className="w-12 h-12 rounded-full bg-slate-50 flex items-center justify-center mx-auto mb-3">
+                      <Compass className="w-6 h-6 text-slate-400" />
+                    </div>
+                    <h3 className="text-xs font-bold text-slate-700">Tất cả đã hoàn thành!</h3>
+                    <p className="text-[10px] text-slate-400 mt-1 leading-relaxed max-w-[260px] mx-auto">
+                      Bạn không có bài học nào hôm nay. Hãy vào thư viện để chọn thêm bộ thẻ học nhé.
+                    </p>
+                    <button
+                      onClick={() => navigate('/library')}
+                      className="mt-4 w-full h-11 bg-indigo-650 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold transition-all active:scale-[0.98]"
+                    >
+                      Đi tới Thư viện
+                    </button>
+                  </div>
+                );
+              }
 
-              {/* Detailed counter specs (Neutral gray style) */}
-              {!allFinished && (
-                <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 mb-4 text-[12px] text-slate-500 relative z-10">
-                  {totalNew > 0 && (
-                    <div className="flex items-center gap-1">
-                      <Sparkles className="w-3.5 h-3.5 text-slate-400" />
-                      <span>Thẻ mới: <span className="font-bold text-slate-700">{totalNewDone}/{totalNew}</span></span>
+              // SVG Circle properties
+              const radius = 32;
+              const strokeWidth = 6;
+              const circumference = 2 * Math.PI * radius;
+              const strokeDashoffset = circumference - (circumference * percentComplete) / 100;
+
+              return (
+                <div className="bg-white rounded-[2rem] p-5 border border-slate-100 shadow-sm flex items-center gap-5 relative overflow-hidden">
+                  <div className="absolute right-[-10%] top-[-20%] w-24 h-24 rounded-full bg-indigo-50/15 blur-xl pointer-events-none" />
+                  
+                  {/* SVG Circular Progress */}
+                  <div className="relative w-20 h-20 flex-shrink-0 flex items-center justify-center">
+                    <svg className="w-full h-full transform -rotate-90">
+                      <circle
+                        cx="40"
+                        cy="40"
+                        r={radius}
+                        fill="transparent"
+                        stroke="#f1f5f9"
+                        strokeWidth={strokeWidth}
+                      />
+                      <circle
+                        cx="40"
+                        cy="40"
+                        r={radius}
+                        fill="transparent"
+                        stroke="#6366f1"
+                        strokeWidth={strokeWidth}
+                        strokeDasharray={circumference}
+                        strokeDashoffset={strokeDashoffset}
+                        strokeLinecap="round"
+                        className="transition-all duration-500"
+                      />
+                    </svg>
+                    <div className="absolute flex flex-col items-center justify-center text-center">
+                      <span className="text-xs font-black text-slate-800">{percentComplete}%</span>
+                      <span className="text-[7.5px] font-bold text-slate-400 uppercase tracking-wider">Mục tiêu</span>
                     </div>
-                  )}
-                  {totalReview > 0 && (
-                    <div className="flex items-center gap-1">
-                      <RefreshCw className="w-3.5 h-3.5 text-slate-400" />
-                      <span>Ôn tập: <span className="font-bold text-slate-700">{totalReviewDone}/{totalReview}</span></span>
+                  </div>
+
+                  {/* Goal Info */}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-1.5 mb-1">
+                      <span className="text-[8.5px] font-bold px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-600 border border-indigo-100/50">
+                        🎯 Hôm nay
+                      </span>
+                      {estMinutes > 0 && (
+                        <span className="text-[8.5px] font-medium px-2 py-0.5 rounded-full bg-slate-100 text-slate-500">
+                          ⏱️ {estMinutes}m
+                        </span>
+                      )}
+                      {streakAtRisk && (
+                        <span className="text-[8.5px] font-bold px-2 py-0.5 rounded-full bg-rose-50 text-rose-500 animate-pulse border border-rose-100/30">
+                          🔥 Sắp mất streak
+                        </span>
+                      )}
                     </div>
-                  )}
-                  {fsrsDueCount > 0 && (
-                    <div className="flex items-center gap-1">
-                      <Brain className="w-3.5 h-3.5 text-slate-400" />
-                      <span>Đến hạn FSRS: <span className="font-bold text-slate-700">{fsrsDueCount}</span></span>
+                    
+                    <h2 className="text-[13px] font-black text-slate-800 leading-snug tracking-tight">
+                      {allFinished ? "Tất cả mục tiêu đã hoàn thành! 🎉" : "Tiến độ ôn tập trong ngày"}
+                    </h2>
+                    
+                    <div className="flex items-center gap-3 text-[10px] text-slate-400 font-bold mt-1.5">
+                      <span>Đã học: <span className="text-indigo-600 font-black">{totalDone}</span>/{totalTasks + totalDone} thẻ</span>
+                      {fsrsDueCount > 0 && (
+                        <>
+                          <span className="text-slate-200">·</span>
+                          <span className="text-rose-500 font-black">FSRS: {fsrsDueCount}</span>
+                        </>
+                      )}
                     </div>
-                  )}
+                  </div>
                 </div>
-              )}
+              );
+            })()}
 
-              {/* One Single Premium Button */}
-              <button
-                onClick={() => {
-                  if (fsrsDueCount > 0) {
-                    const firstDeck = todayReview?.decks_summary?.[0];
-                    if (firstDeck) {
-                      navigate(`/flashcard/${firstDeck.deck_id}/play?mode=fsrs`);
-                      return;
-                    }
-                  }
-                  
-                  const activeDeck = roadmapDecks?.find((d: any) => {
-                    const s = d.status || {};
-                    return (s.new_target_today - s.new_learned_today > 0) || (s.review_due_today - s.review_completed_today > 0);
-                  }) || roadmapDecks?.[0];
-                  
-                  if (activeDeck) {
-                    navigate(`/flashcard/${activeDeck.deck_id}/play?mode=roadmap`);
-                  } else {
-                    navigate('/library');
-                  }
-                }}
-                className={cn(
-                  "w-full h-12 rounded-xl text-[13px] font-bold transition-all active:scale-[0.98] flex items-center justify-center gap-2 shadow-md relative z-10",
-                  allFinished
-                    ? "bg-slate-100 text-slate-450 shadow-none border border-slate-200/50"
-                    : "bg-indigo-600 text-white shadow-indigo-650/20 hover:bg-indigo-750"
-                )}
-              >
-                <Play className="w-3.5 h-3.5 fill-current" />
-                {allFinished ? 'Xem lại bài đã học' : 'Bắt đầu học ngay'}
-              </button>
-            </div>
-          );
-        })()}
+            {/* ── Active Deck Quick-Resume Banner ── */}
+            {(() => {
+              const activeDeck = roadmapDecks?.[0];
+              if (!activeDeck) return null;
 
-        {/* ── Deck List: Premium Minimalist Cards ── */}
-        {roadmapDecks && roadmapDecks.length > 0 && (
-          <div className="space-y-2 pt-1">
-            <h3 className="text-[11px] font-black text-slate-400 tracking-wider uppercase px-1">Lộ trình của bạn</h3>
-            {roadmapDecks.map((deck: any) => {
-              const status = deck.status || {};
+              const status = activeDeck.status || {};
               const totalPct = status.total_cards > 0 ? Math.min(100, Math.round((status.learned_cards / status.total_cards) * 100)) : 0;
               const newRemaining = Math.max(0, (status.new_target_today || 0) - (status.new_learned_today || 0));
               const reviewRemaining = Math.max(0, (status.review_due_today || 0) - (status.review_completed_today || 0));
               const hasDue = newRemaining > 0 || reviewRemaining > 0;
 
               return (
-                <div
-                  key={deck.deck_id}
-                  onClick={() => navigate(`/flashcard/${deck.deck_id}`)}
-                  className="bg-white rounded-xl border border-slate-100 p-3.5 shadow-[0_2px_12px_rgba(0,0,0,0.01)] active:bg-slate-50/80 transition-all cursor-pointer"
-                >
-                  <div className="flex items-center gap-3">
-                    {/* Small deck icon */}
-                    <div className="w-10 h-10 rounded-lg bg-slate-50 flex items-center justify-center text-lg flex-shrink-0 overflow-hidden border border-slate-100">
-                      {deck.cover_image ? (
-                        <img src={deck.cover_image} alt="" className="w-full h-full object-cover" />
+                <div className="bg-gradient-to-br from-indigo-650 via-indigo-600 to-purple-650 rounded-[2.25rem] p-5 text-white shadow-lg shadow-indigo-150 relative overflow-hidden">
+                  <div className="absolute right-[-10%] top-[-20%] w-28 h-28 rounded-full bg-white/10 blur-xl pointer-events-none" />
+                  <div className="absolute left-[-10%] bottom-[-20%] w-20 h-20 rounded-full bg-white/10 blur-xl pointer-events-none" />
+                  
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-[8.5px] font-black uppercase tracking-widest text-indigo-200 bg-white/10 px-2.5 py-0.5 rounded-full">
+                      🔥 Học tiếp
+                    </span>
+                    {hasDue && (
+                      <span className="text-[8.5px] font-black uppercase tracking-widest text-amber-300 bg-amber-400/10 px-2.5 py-0.5 rounded-full animate-pulse border border-amber-400/20">
+                        Hôm nay: {newRemaining > 0 ? `${newRemaining} mới` : ''}{newRemaining > 0 && reviewRemaining > 0 ? ', ' : ''}{reviewRemaining > 0 ? `${reviewRemaining} ôn` : ''}
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="flex items-center gap-4 mt-3">
+                    <div className="w-12 h-12 rounded-2xl bg-white/15 backdrop-blur-md flex items-center justify-center text-2xl border border-white/10 flex-shrink-0 overflow-hidden">
+                      {activeDeck.cover_image ? (
+                        <img src={activeDeck.cover_image} alt="" className="w-full h-full object-cover" />
                       ) : (
                         <span>📘</span>
                       )}
                     </div>
                     
-                    {/* Info */}
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between gap-2">
-                        <h4 className="text-[13px] font-bold text-slate-800 truncate">{deck.title}</h4>
-                        <span className="text-[11px] font-bold text-slate-450 flex-shrink-0">{totalPct}%</span>
-                      </div>
-                      
-                      {/* Thin progress bar */}
-                      <div className="h-1 bg-slate-100 rounded-full overflow-hidden mt-1.5 mb-1.5">
-                        <div className="h-full bg-indigo-500 rounded-full transition-all" style={{ width: `${totalPct}%` }} />
-                      </div>
-                      
-                      {/* Today's remaining for this deck */}
-                      <div className="flex items-center gap-3 text-[11px] text-slate-400">
-                        <span>{status.learned_cards}/{status.total_cards} thẻ</span>
-                        {hasDue && (
-                          <>
-                            <span className="text-slate-200">·</span>
-                            <span className="text-indigo-600 font-bold">
-                              Hôm nay: {newRemaining > 0 ? `${newRemaining} mới` : ''}{newRemaining > 0 && reviewRemaining > 0 ? ', ' : ''}{reviewRemaining > 0 ? `${reviewRemaining} ôn` : ''}
-                            </span>
-                          </>
-                        )}
-                      </div>
+                      <h3 className="text-sm font-black truncate leading-tight">{activeDeck.title}</h3>
+                      <p className="text-[10px] text-indigo-100 font-bold mt-1">
+                        Tiến độ: {status.learned_cards}/{status.total_cards} thẻ ({totalPct}%)
+                      </p>
                     </div>
-
-                    {/* Arrow */}
-                    <ChevronRight className="w-4 h-4 text-slate-300 flex-shrink-0" />
                   </div>
+
+                  {/* Progress bar */}
+                  <div className="h-1.5 bg-white/15 rounded-full overflow-hidden mt-4 mb-4">
+                    <div 
+                      className="h-full bg-white rounded-full transition-all" 
+                      style={{ width: `${totalPct}%` }} 
+                    />
+                  </div>
+
+                  <button
+                    onClick={() => {
+                      if (todayReview?.due_cards_count > 0 && todayReview?.decks_summary?.[0]?.deck_id === activeDeck.deck_id) {
+                        navigate(`/flashcard/${activeDeck.deck_id}/play?mode=fsrs`);
+                      } else {
+                        navigate(`/flashcard/${activeDeck.deck_id}/play?mode=${hasDue ? 'roadmap' : 'fsrs'}`);
+                      }
+                    }}
+                    className="w-full h-11 bg-white hover:bg-slate-50 text-indigo-700 font-black text-[11px] rounded-xl active:scale-[0.98] transition-all flex items-center justify-center gap-1.5 shadow-sm"
+                  >
+                    <Play className="w-3 h-3 fill-current" />
+                    HỌC TIẾP NGAY
+                  </button>
                 </div>
               );
-            })}
-          </div>
-        )}
+            })()}
 
-        {/* ── Restoration: Study History (Heatmap) on Mobile ── */}
-        {heatmapData && heatmapData.length > 0 && (
-          <div className="pt-2">
-            <MiniHeatmap data={heatmapData} />
-          </div>
-        )}
+            {/* ── Horizontal Decks Carousel ── */}
+            {roadmapDecks && roadmapDecks.length > 0 && (
+              <div className="space-y-3 pt-1">
+                <h3 className="text-[10px] font-black text-slate-400 tracking-widest uppercase px-1">Lộ trình học của tôi</h3>
+                <div className="flex overflow-x-auto gap-4 pb-4 px-1 scrollbar-none snap-x snap-mandatory">
+                  {roadmapDecks.map((deck: any) => {
+                    const status = deck.status || {};
+                    const totalPct = status.total_cards > 0 ? Math.min(100, Math.round((status.learned_cards / status.total_cards) * 100)) : 0;
+                    const newRemaining = Math.max(0, (status.new_target_today || 0) - (status.new_learned_today || 0));
+                    const reviewRemaining = Math.max(0, (status.review_due_today || 0) - (status.review_completed_today || 0));
+                    const hasDue = newRemaining > 0 || reviewRemaining > 0;
 
-        {/* ── Restoration: Leaderboard Widget on Mobile ── */}
-        {leaderboardData && leaderboardData.leaderboard?.length > 0 && (
-          <div className="pt-1 pb-4">
-            <LeaderboardWidget data={leaderboardData} activeFilter={timeFilter} onFilterChange={setTimeFilter} />
-          </div>
+                    return (
+                      <div
+                        key={deck.deck_id}
+                        onClick={() => navigate(`/flashcard/${deck.deck_id}`)}
+                        className="bg-white rounded-2xl border border-slate-100 p-4 shadow-[0_2px_10px_rgba(0,0,0,0.01)] active:bg-slate-50/80 transition-all cursor-pointer flex-shrink-0 w-[230px] snap-start flex flex-col justify-between"
+                      >
+                        <div className="flex items-start gap-3 mb-3">
+                          <div className="w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center text-lg flex-shrink-0 overflow-hidden border border-slate-100">
+                            {deck.cover_image ? (
+                              <img src={deck.cover_image} alt="" className="w-full h-full object-cover" />
+                            ) : (
+                              <span>📘</span>
+                            )}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <h4 className="text-[12px] font-bold text-slate-800 truncate leading-snug">{deck.title}</h4>
+                            <span className="text-[9px] font-bold text-slate-400 mt-0.5 block">{status.learned_cards}/{status.total_cards} thẻ ({totalPct}%)</span>
+                          </div>
+                        </div>
+
+                        <div>
+                          {/* Progress bar */}
+                          <div className="h-1 bg-slate-100 rounded-full overflow-hidden mb-2.5">
+                            <div className="h-full bg-indigo-500 rounded-full transition-all" style={{ width: `${totalPct}%` }} />
+                          </div>
+
+                          <div className="flex items-center justify-between">
+                            <span className="text-[9px] font-black text-indigo-650 bg-indigo-50/50 px-2 py-0.5 rounded-md">
+                              {hasDue ? 'Còn hạn học' : 'Đã xong'}
+                            </span>
+                            {hasDue && (
+                              <span className="text-[9px] font-bold text-rose-500">
+                                {newRemaining > 0 ? `${newRemaining} mới` : ''}{newRemaining > 0 && reviewRemaining > 0 ? ', ' : ''}{reviewRemaining > 0 ? `${reviewRemaining} ôn` : ''}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+          </>
+        ) : (
+          <>
+            {/* ── Stats Tab: Heatmap & Leaderboard ── */}
+            {heatmapData && heatmapData.length > 0 && (
+              <div className="pt-1">
+                <MiniHeatmap data={heatmapData} />
+              </div>
+            )}
+
+            {leaderboardData && leaderboardData.leaderboard?.length > 0 && (
+              <div className="pt-1 pb-4">
+                <LeaderboardWidget data={leaderboardData} activeFilter={timeFilter} onFilterChange={setTimeFilter} />
+              </div>
+            )}
+          </>
         )}
 
       </div>
