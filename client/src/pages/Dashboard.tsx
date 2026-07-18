@@ -1588,34 +1588,25 @@ export default function Dashboard() {
 
         {/* ── Circular Daily Goal Widget ── */}
         {(() => {
-          const hasRoadmaps = activeDecks && activeDecks.length > 0;
+          const hasRoadmaps = roadmapDecks && roadmapDecks.length > 0;
           const fsrsDueCount = todayReview?.due_cards_count || 0;
           const estMinutes = todayReview?.estimated_minutes || 0;
           const streakAtRisk = todayReview?.streak_at_risk || 0;
 
-          const totalNew = activeDecks?.reduce((sum: number, d: any) => sum + (d.new_remaining || 0), 0) || 0;
-          const totalReview = activeDecks?.reduce((sum: number, d: any) => sum + (d.review_remaining || 0), 0) || 0;
-          
-          const totalTasks = totalNew + totalReview + fsrsDueCount;
-          const totalDone = activeDecks?.reduce((sum: number, d: any) => sum + (d.learned_cards || 0), 0) || 0;
-          const percentComplete = totalTasks > 0 
-            ? Math.min(100, Math.round((totalDone / (totalTasks + totalDone)) * 100)) 
-            : 100;
-          const allFinished = totalTasks === 0;
-
+          // If no active roadmap decks and no FSRS cards due
           if (!hasRoadmaps && fsrsDueCount === 0) {
             return (
-              <div className="bg-white rounded-2xl p-6 text-center border border-slate-100 shadow-sm">
-                <div className="w-12 h-12 rounded-full bg-slate-50 flex items-center justify-center mx-auto mb-3">
+              <div className="bg-white rounded-[2rem] p-6 text-center border border-slate-100 shadow-sm flex flex-col items-center justify-center">
+                <div className="w-12 h-12 rounded-full bg-slate-50 flex items-center justify-center mb-3">
                   <Compass className="w-6 h-6 text-slate-400" />
                 </div>
-                <h3 className="text-xs font-bold text-slate-700">Tất cả đã hoàn thành!</h3>
-                <p className="text-[10px] text-slate-400 mt-1 leading-relaxed max-w-[260px] mx-auto">
-                  Bạn không có bài học nào hôm nay. Hãy vào thư viện để chọn thêm bộ thẻ học nhé.
+                <h3 className="text-xs font-black text-slate-700 uppercase tracking-wider">Bạn chưa kích hoạt lộ trình học nào</h3>
+                <p className="text-[10px] text-slate-400 mt-2 leading-relaxed max-w-[260px] mx-auto">
+                  Hãy chọn một bộ thẻ từ thư viện và bật "Lộ trình học" để hệ thống tự động thiết lập mục tiêu hàng ngày cho bạn.
                 </p>
                 <button
                   onClick={() => navigate('/library')}
-                  className="mt-4 w-full h-11 bg-indigo-650 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold transition-all active:scale-[0.98]"
+                  className="mt-4 px-6 h-11 bg-indigo-650 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold transition-all active:scale-[0.98] shadow-sm shadow-indigo-100"
                 >
                   Đi tới Thư viện
                 </button>
@@ -1623,7 +1614,47 @@ export default function Dashboard() {
             );
           }
 
-          // SVG Circle properties
+          // Case: User has NO active roadmap goals, but has FSRS cards to review!
+          if (!hasRoadmaps && fsrsDueCount > 0) {
+            return (
+              <div className="bg-white rounded-[2rem] p-5 border border-slate-100 shadow-sm flex items-center gap-4 relative overflow-hidden">
+                <div className="absolute right-[-10%] top-[-20%] w-24 h-24 rounded-full bg-indigo-50/10 blur-xl pointer-events-none" />
+                
+                <div className="w-12 h-12 rounded-2xl bg-indigo-50 flex items-center justify-center text-indigo-600 flex-shrink-0 border border-indigo-100/50">
+                  <Brain className="w-6 h-6 text-indigo-600 animate-pulse" />
+                </div>
+
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-1.5 mb-1">
+                    <span className="text-[8.5px] font-bold px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-650 border border-indigo-100/30">
+                      ⚡ Chế độ FSRS
+                    </span>
+                    {estMinutes > 0 && (
+                      <span className="text-[8.5px] font-medium px-2 py-0.5 rounded-full bg-slate-100 text-slate-500">
+                        ⏱️ ~{estMinutes}m
+                      </span>
+                    )}
+                  </div>
+                  <h2 className="text-[13px] font-black text-slate-800 leading-snug">Bạn có thẻ đến hạn ôn tập FSRS</h2>
+                  <p className="text-[10px] font-bold text-rose-500 mt-0.5">Số thẻ cần ôn tập: {fsrsDueCount} thẻ</p>
+                </div>
+              </div>
+            );
+          }
+
+          // Case: User has active roadmap goals! Show the circular progress widget tracking today's progress.
+          const totalNew = roadmapDecks?.reduce((sum: number, d: any) => sum + (d.status?.new_target_today || 0), 0) || 0;
+          const totalNewDone = roadmapDecks?.reduce((sum: number, d: any) => sum + (d.status?.new_learned_today || 0), 0) || 0;
+          const totalReview = roadmapDecks?.reduce((sum: number, d: any) => sum + (d.status?.review_due_today || 0), 0) || 0;
+          const totalReviewDone = roadmapDecks?.reduce((sum: number, d: any) => sum + (d.status?.review_completed_today || 0), 0) || 0;
+
+          const totalTasks = totalNew + totalReview;
+          const totalDone = totalNewDone + totalReviewDone;
+          const percentComplete = totalTasks > 0 
+            ? Math.min(100, Math.round((totalDone / totalTasks) * 100)) 
+            : 100;
+          const allFinished = totalTasks > 0 && totalDone >= totalTasks;
+
           const radius = 32;
           const strokeWidth = 6;
           const circumference = 2 * Math.PI * radius;
@@ -1659,7 +1690,7 @@ export default function Dashboard() {
                 </svg>
                 <div className="absolute flex flex-col items-center justify-center text-center">
                   <span className="text-xs font-black text-slate-800">{percentComplete}%</span>
-                  <span className="text-[7.5px] font-bold text-slate-400 uppercase tracking-wider">Mục tiêu</span>
+                  <span className="text-[7.5px] font-bold text-slate-400 uppercase tracking-wider">Tiến độ</span>
                 </div>
               </div>
 
@@ -1682,17 +1713,13 @@ export default function Dashboard() {
                 </div>
                 
                 <h2 className="text-[13px] font-black text-slate-800 leading-snug tracking-tight">
-                  {allFinished ? "Tất cả mục tiêu đã hoàn thành! 🎉" : "Tiến độ ôn tập trong ngày"}
+                  {allFinished ? "Tất cả mục tiêu đã hoàn thành! 🎉" : "Tiến độ học tập theo lộ trình"}
                 </h2>
                 
                 <div className="flex items-center gap-3 text-[10px] text-slate-400 font-bold mt-1.5">
-                  <span>Đã học: <span className="text-indigo-600 font-black">{totalDone}</span>/{totalTasks + totalDone} thẻ</span>
-                  {fsrsDueCount > 0 && (
-                    <>
-                      <span className="text-slate-200">·</span>
-                      <span className="text-rose-500 font-black">FSRS: {fsrsDueCount}</span>
-                    </>
-                  )}
+                  <span>Học mới: <span className="text-indigo-650 font-black">{totalNewDone}/{totalNew}</span></span>
+                  <span className="text-slate-200">·</span>
+                  <span>Ôn tập: <span className="text-indigo-650 font-black">{totalReviewDone}/{totalReview}</span></span>
                 </div>
               </div>
             </div>
