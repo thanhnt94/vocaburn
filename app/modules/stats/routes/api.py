@@ -50,7 +50,7 @@ async def get_dashboard_data(request: Request, only_created: bool = False, db: A
     
     from sqlalchemy import func, case
     from sqlalchemy.orm import selectinload
-    from app.modules.deck.models import FlashcardDeck, DeckAttempt, Flashcard
+    from app.modules.deck.models import FlashcardDeck, DeckAttempt, Flashcard, UserAnswer
     from app.modules.gamification.interface import GamificationInterface
     from app.modules.notification.interface import NotificationInterface
 
@@ -86,11 +86,13 @@ async def get_dashboard_data(request: Request, only_created: bool = False, db: A
             "created_quizzes": created_decks_data  # compatibility
         }
 
-    # Query A: My & Archived Decks (Join with grouped DeckAttempt subquery to prevent duplicates)
+    # Query A: My & Archived Decks (Join with grouped DeckAttempt and UserAnswer subquery to track actual last study time)
     subq = select(
         DeckAttempt.deck_id,
         func.max(case((DeckAttempt.is_archived == True, 1), else_=0)).label("is_archived"),
-        func.max(DeckAttempt.started_at).label("last_studied_at")
+        func.max(func.coalesce(UserAnswer.created_at, DeckAttempt.started_at)).label("last_studied_at")
+    ).outerjoin(
+        UserAnswer, DeckAttempt.id == UserAnswer.attempt_id
     ).where(
         DeckAttempt.user_id == user_id_int
     ).group_by(
