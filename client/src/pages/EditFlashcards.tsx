@@ -749,7 +749,9 @@ const EditFlashcards = () => {
                               {visibleCols.map(col => {
                                  const val = col === 'front' ? q.content : (
                                     col === 'back' ? q.explanation : (
-                                       ['front_audio_content', 'back_audio_content', 'front_audio_url', 'back_audio_url', 'front_img', 'back_img'].includes(col) ? q[col] : (q.others?.[col] || '')
+                                       ['front_audio_content', 'back_audio_content', 'front_audio_url', 'back_audio_url', 'front_img', 'back_img'].includes(col) 
+                                          ? (q[col] || q.others?.[col] || '') 
+                                          : (q.others?.[col] || '')
                                     )
                                  );
                                  const hasAi = practiceSettings.ai_prompts?.some((p: any) => p.column === col || p.id === col);
