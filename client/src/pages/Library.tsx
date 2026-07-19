@@ -37,6 +37,8 @@ export default function Library() {
   // Unified Study Popup State
   const [selectedStudyQuiz, setSelectedStudyQuiz] = useState<Quiz | null>(null)
   const [isStudyModalOpen, setIsStudyModalOpen] = useState(false)
+  const [studyModalTab, setStudyModalTab] = useState<'flashcard' | 'practice'>('flashcard')
+
   
   // Pagination State
   const [currentPage, setCurrentPage] = useState(1)
@@ -409,16 +411,28 @@ export default function Library() {
                                       )}
                                    </div>
                                  </Link>
-                                 <div className="flex items-center gap-2">
+                                 <div className="flex items-center gap-1.5">
                                    <button 
                                       onClick={() => {
                                         setSelectedStudyQuiz(quiz)
+                                        setStudyModalTab('flashcard')
                                         setIsStudyModalOpen(true)
                                       }}
-                                      className="px-4 py-2 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-650 hover:from-indigo-600 hover:to-purple-755 text-white flex items-center gap-1.5 shadow-md shadow-indigo-100/50 hover:scale-105 active:scale-95 transition-all text-xs font-black uppercase tracking-wider"
+                                      className="px-3.5 py-2 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 hover:from-indigo-650 hover:to-purple-700 text-white flex items-center gap-1 shadow-md shadow-indigo-100 hover:scale-105 active:scale-95 transition-all text-[10px] font-black uppercase tracking-wider"
                                    >
                                       <Brain className="w-3.5 h-3.5" />
                                       <span>Học</span>
+                                   </button>
+                                   <button 
+                                      onClick={() => {
+                                        setSelectedStudyQuiz(quiz)
+                                        setStudyModalTab('practice')
+                                        setIsStudyModalOpen(true)
+                                      }}
+                                      className="px-3.5 py-2 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white flex items-center gap-1 shadow-md shadow-emerald-100 hover:scale-105 active:scale-95 transition-all text-[10px] font-black uppercase tracking-wider"
+                                   >
+                                      <Trophy className="w-3.5 h-3.5" />
+                                      <span>Luyện</span>
                                    </button>
                                  </div>
                               </div>
@@ -543,16 +557,28 @@ export default function Library() {
                             )}
                          </div>
                          <div className="flex gap-1.5">
-                           <button 
-                              onClick={() => {
-                                 setSelectedStudyQuiz(quiz)
-                                 setIsStudyModalOpen(true)
-                              }}
-                              className="px-4 py-2 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 text-white flex items-center gap-1 text-[9px] font-black uppercase tracking-wider shadow-sm active:scale-95"
-                           >
-                              <Brain className="w-3 h-3" />
-                              <span>Học</span>
-                           </button>
+                            <button 
+                               onClick={() => {
+                                  setSelectedStudyQuiz(quiz)
+                                  setStudyModalTab('flashcard')
+                                  setIsStudyModalOpen(true)
+                               }}
+                               className="px-3.5 py-2 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-650 text-white flex items-center gap-1 text-[9px] font-black uppercase tracking-wider shadow-sm active:scale-95"
+                            >
+                               <Brain className="w-3.5 h-3.5" />
+                               <span>Học</span>
+                            </button>
+                            <button 
+                               onClick={() => {
+                                  setSelectedStudyQuiz(quiz)
+                                  setStudyModalTab('practice')
+                                  setIsStudyModalOpen(true)
+                               }}
+                               className="px-3.5 py-2 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-650 text-white flex items-center gap-1 text-[9px] font-black uppercase tracking-wider shadow-sm active:scale-95"
+                            >
+                               <Trophy className="w-3.5 h-3.5" />
+                               <span>Luyện</span>
+                            </button>
                          </div>
                       </div>
                    </div>
@@ -655,63 +681,87 @@ export default function Library() {
               </div>
 
               <div className="flex-1 overflow-y-auto pr-1 space-y-5 custom-scrollbar min-h-0">
-                {/* ── FLASHCARD MODES ── */}
-                <div className="space-y-2.5">
-                  <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest block ml-2">Flashcard Modes</span>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                    {[
-                      { mode: 'fsrs', icon: '🧠', title: 'FSRS Spaced Repetition', desc: 'Học lặp lại ngắt quãng thông minh' },
-                      { mode: 'roadmap', icon: '🗺️', title: 'Roadmap Mode', desc: 'Học theo lộ trình mục tiêu mỗi ngày' },
-                      { mode: 'flip', icon: '🔄', title: 'Flip Card', desc: 'Lật thẻ ghi nhớ phản xạ tự do' },
-                      { mode: 'review', icon: '📚', title: 'Review Only', desc: 'Chỉ ôn tập lại các thẻ cũ' },
-                      { mode: 'new', icon: '✨', title: 'New Only', desc: 'Chỉ học các thẻ mới chưa biết' },
-                    ].map(item => (
-                      <button
-                        key={item.mode}
-                        onClick={() => {
-                          setIsStudyModalOpen(false)
-                          localStorage.setItem('quiz_learning_mode', item.mode)
-                          navigate(`/flashcard/${selectedStudyQuiz.id}/play?mode=${item.mode}`)
-                        }}
-                        className="group flex items-start gap-3 p-3.5 rounded-2xl border border-slate-150/70 bg-white hover:border-indigo-500 hover:bg-indigo-50/10 active:scale-[0.98] transition-all text-left shadow-sm"
-                      >
-                        <span className="text-xl bg-slate-50 p-2 rounded-xl group-hover:scale-110 transition-all flex-shrink-0">{item.icon}</span>
-                        <div className="min-w-0">
-                          <span className="text-[10px] font-black text-slate-800 uppercase tracking-wider block mb-0.5 group-hover:text-indigo-600 transition-colors truncate">{item.title}</span>
-                          <span className="text-[8px] font-semibold text-slate-400 block leading-snug line-clamp-1">{item.desc}</span>
-                        </div>
-                      </button>
-                    ))}
-                  </div>
+                {/* Tab selector inside modal */}
+                <div className="flex bg-slate-100 p-1 rounded-xl border border-slate-200/50">
+                  <button 
+                    onClick={() => setStudyModalTab('flashcard')}
+                    className={cn(
+                      "flex-1 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all", 
+                      studyModalTab === 'flashcard' ? "bg-white text-indigo-650 shadow-sm" : "text-slate-450 hover:text-slate-600"
+                    )}
+                  >
+                    Flashcard Modes
+                  </button>
+                  <button 
+                    onClick={() => setStudyModalTab('practice')}
+                    className={cn(
+                      "flex-1 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all", 
+                      studyModalTab === 'practice' ? "bg-white text-emerald-650 shadow-sm" : "text-slate-450 hover:text-slate-600"
+                    )}
+                  >
+                    Practice Modes
+                  </button>
                 </div>
 
-                {/* ── PRACTICE MODES ── */}
-                <div className="space-y-2.5">
-                  <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest block ml-2">Practice Modes</span>
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                    {[
-                      { mode: 'mcq', icon: '🎯', title: 'MCQ Test', desc: 'Trắc nghiệm phản xạ 4 đáp án', color: 'indigo' },
-                      { mode: 'typing', icon: '⌨️', title: 'Typing Test', desc: 'Gõ từ vựng nhớ chi tiết', color: 'rose' },
-                      { mode: 'listening', icon: '🎧', title: 'Listening Test', desc: 'Nghe audio chọn đáp án', color: 'amber' },
-                    ].map(item => (
-                      <button
-                        key={item.mode}
-                        onClick={() => {
-                          setIsStudyModalOpen(false)
-                          localStorage.setItem('vocab_practice_submode', item.mode)
-                          navigate(`/practice/${selectedStudyQuiz.id}/${item.mode}`)
-                        }}
-                        className="group flex flex-col items-center p-3.5 rounded-2xl border border-slate-150/70 bg-white hover:border-emerald-500 hover:bg-emerald-50/10 active:scale-[0.98] transition-all text-center shadow-sm"
-                      >
-                        <span className="text-xl bg-slate-50 p-2 rounded-xl group-hover:scale-110 transition-all mb-2 flex-shrink-0">{item.icon}</span>
-                        <div className="w-full">
-                          <span className="text-[10px] font-black text-slate-800 uppercase tracking-wider block mb-0.5 group-hover:text-emerald-600 transition-colors truncate">{item.title}</span>
-                          <span className="text-[8px] font-semibold text-slate-400 block leading-snug leading-snug line-clamp-2">{item.desc}</span>
-                        </div>
-                      </button>
-                    ))}
+                {/* ── FLASHCARD MODES ── */}
+                {studyModalTab === 'flashcard' && (
+                  <div className="space-y-2.5">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      {[
+                        { mode: 'fsrs', icon: '🧠', title: 'FSRS Spaced Repetition', desc: 'Học lặp lại ngắt quãng thông minh' },
+                        { mode: 'roadmap', icon: '🗺️', title: 'Roadmap Mode', desc: 'Học theo lộ trình mục tiêu mỗi ngày' },
+                        { mode: 'flip', icon: '🔄', title: 'Flip Card', desc: 'Lật thẻ ghi nhớ phản xạ tự do' },
+                        { mode: 'review', icon: '📚', title: 'Review Only', desc: 'Chỉ ôn tập lại các thẻ cũ' },
+                        { mode: 'new', icon: '✨', title: 'New Only', desc: 'Chỉ học các thẻ mới chưa biết' },
+                      ].map(item => (
+                        <button
+                          key={item.mode}
+                          onClick={() => {
+                            setIsStudyModalOpen(false)
+                            localStorage.setItem('quiz_learning_mode', item.mode)
+                            navigate(`/flashcard/${selectedStudyQuiz.id}/play?mode=${item.mode}`)
+                          }}
+                          className="group flex items-start gap-3 p-3.5 rounded-2xl border border-slate-150/70 bg-white hover:border-indigo-500 hover:bg-indigo-50/10 active:scale-[0.98] transition-all text-left shadow-sm"
+                        >
+                          <span className="text-xl bg-slate-50 p-2 rounded-xl group-hover:scale-110 transition-all flex-shrink-0">{item.icon}</span>
+                          <div className="min-w-0">
+                            <span className="text-[10px] font-black text-slate-800 uppercase tracking-wider block mb-0.5 group-hover:text-indigo-600 transition-colors truncate">{item.title}</span>
+                            <span className="text-[8px] font-semibold text-slate-400 block leading-snug line-clamp-1">{item.desc}</span>
+                          </div>
+                        </button>
+                      ))}
+                    </div>
                   </div>
-                </div>
+                )}
+
+                {/* ── PRACTICE MODES ── */}
+                {studyModalTab === 'practice' && (
+                  <div className="space-y-2.5">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      {[
+                        { mode: 'mcq', icon: '🎯', title: 'MCQ Test', desc: 'Trắc nghiệm phản xạ 4 đáp án' },
+                        { mode: 'typing', icon: '⌨️', title: 'Typing Test', desc: 'Gõ từ vựng nhớ chi tiết' },
+                        { mode: 'listening', icon: '🎧', title: 'Listening Test', desc: 'Nghe audio chọn đáp án' },
+                      ].map(item => (
+                        <button
+                          key={item.mode}
+                          onClick={() => {
+                            setIsStudyModalOpen(false)
+                            localStorage.setItem('vocab_practice_submode', item.mode)
+                            navigate(`/practice/${selectedStudyQuiz.id}/${item.mode}`)
+                          }}
+                          className="group flex items-start gap-3 p-3.5 rounded-2xl border border-slate-150/70 bg-white hover:border-emerald-500 hover:bg-emerald-50/10 active:scale-[0.98] transition-all text-left shadow-sm"
+                        >
+                          <span className="text-xl bg-slate-50 p-2 rounded-xl group-hover:scale-110 transition-all flex-shrink-0">{item.icon}</span>
+                          <div className="min-w-0">
+                            <span className="text-[10px] font-black text-slate-800 uppercase tracking-wider block mb-0.5 group-hover:text-emerald-600 transition-colors truncate">{item.title}</span>
+                            <span className="text-[8px] font-semibold text-slate-400 block leading-snug line-clamp-1">{item.desc}</span>
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             </motion.div>
           </div>
