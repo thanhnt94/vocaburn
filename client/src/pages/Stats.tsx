@@ -529,6 +529,19 @@ export default function Stats() {
          </div>
       </div>
       <div className="px-4 max-w-7xl mx-auto space-y-6 pt-6">
+         {/* Page Header */}
+         <div className="flex items-center justify-between pb-2 border-b border-slate-100">
+            <div className="flex items-center gap-3">
+               <div className="w-10 h-10 rounded-2xl bg-indigo-600 flex items-center justify-center text-white shadow-lg shadow-indigo-150">
+                  <TrendingUp className="w-5 h-5" />
+               </div>
+               <div>
+                  <h1 className="text-sm md:text-lg font-black text-slate-900 uppercase tracking-widest italic leading-none">Thống kê học tập</h1>
+                  <p className="text-[9px] font-bold text-slate-400 mt-1 uppercase tracking-wider">Phân tích chi tiết lộ trình học & Xếp hạng thành viên</p>
+               </div>
+            </div>
+         </div>
+
          <AnimatePresence mode="wait">
             {activeTab === 'overview' && (
                <motion.div 
