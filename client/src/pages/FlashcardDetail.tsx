@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
 import { useQuery, useInfiniteQuery, useQueryClient } from '@tanstack/react-query'
-import { ChevronLeft, Award, BookOpen, Search, StickyNote, BarChart2, Settings, Edit2, X, Save, Brain, HelpCircle, Plus, Sparkles, Trophy, Layers, RotateCcw, Compass, Flame, Target } from 'lucide-react'
+import { ChevronLeft, Award, BookOpen, Search, StickyNote, BarChart2, Settings, Edit2, X, Save, Brain, HelpCircle, Plus, Sparkles, Trophy, Layers, RotateCcw, Compass, Flame, Target, ChevronDown } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import axios from 'axios'
 import { cn } from '@/lib/utils'
@@ -38,6 +38,8 @@ export default function QuizDetail() {
   const [dailyReviewInput, setDailyReviewInput] = useState(50)
   const [isSavingRoadmapSettings, setIsSavingRoadmapSettings] = useState(false)
   const [isRoadmapSettingsOpen, setIsRoadmapSettingsOpen] = useState(false)
+  const [showFlashcardMenu, setShowFlashcardMenu] = useState(false)
+  const [showPracticeMenu, setShowPracticeMenu] = useState(false)
 
 
   const handleQuickAddCard = async (e: React.FormEvent) => {
@@ -735,6 +737,8 @@ export default function QuizDetail() {
       {/* Action Bar */}
       <div className="fixed bottom-0 left-0 right-0 p-4 md:p-8 bg-white/80 backdrop-blur-2xl border-t border-slate-100 z-[130] shadow-[0_-10px_40px_rgba(0,0,0,0.05)]">
         <div className="max-w-5xl mx-auto flex gap-3">
+          {/* Reload button commented out as requested */}
+          {/*
           {sessionData && (Object.keys(sessionData.state || {}).length > 0 || sessionData.current_index > 0) && (
             <button 
               onClick={async () => {
@@ -749,23 +753,147 @@ export default function QuizDetail() {
               <RotateCcw className="w-5 h-5" />
             </button>
           )}
+          */}
 
-          <button 
-            onClick={() => {
-              const savedMode = localStorage.getItem('quiz_learning_mode') || 'fsrs'
-              navigate(`/flashcard/${id}/play?mode=${savedMode}`)
-            }}
-            className="flex-1 py-5 bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xs md:text-sm rounded-2xl shadow-xl shadow-indigo-500/20 active:scale-95 transition-all tracking-widest uppercase flex items-center justify-center gap-2"
-          >
-            <Brain className="w-4.5 h-4.5" /> HỌC FLASHCARD
-          </button>
+          {/* HỌC FLASHCARD BUTTON WITH DROPDOWN */}
+          <div className="flex-1 flex relative">
+            <button 
+              onClick={() => {
+                const savedMode = localStorage.getItem('quiz_learning_mode') || 'fsrs'
+                navigate(`/flashcard/${id}/play?mode=${savedMode}`)
+              }}
+              className="flex-1 py-5 bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xs md:text-sm rounded-l-2xl shadow-xl shadow-indigo-500/20 active:scale-95 transition-all tracking-widest uppercase flex items-center justify-center gap-2"
+            >
+              <Brain className="w-4.5 h-4.5" /> HỌC FLASHCARD
+            </button>
+            <button
+              onClick={(e) => {
+                e.stopPropagation()
+                setShowFlashcardMenu(!showFlashcardMenu)
+                setShowPracticeMenu(false)
+              }}
+              className="px-3 md:px-4 bg-indigo-600 hover:bg-indigo-700 border-l border-indigo-500/50 text-white rounded-r-2xl active:scale-95 transition-all flex items-center justify-center"
+              title="Chọn chế độ học"
+            >
+              <ChevronDown className="w-4 h-4" />
+            </button>
 
-          <button 
-            onClick={() => navigate(`/practice/${id}`)}
-            className="flex-1 py-5 bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs md:text-sm rounded-2xl shadow-xl shadow-emerald-500/20 active:scale-95 transition-all tracking-widest uppercase flex items-center justify-center gap-2"
-          >
-            <Trophy className="w-4.5 h-4.5" /> LUYỆN TẬP
-          </button>
+            {/* Dropdown Menu */}
+            {showFlashcardMenu && (
+              <>
+                <div className="fixed inset-0 z-[135]" onClick={() => setShowFlashcardMenu(false)} />
+                <div className="absolute bottom-full mb-3 right-0 w-64 bg-white/95 backdrop-blur-md border border-slate-100/80 rounded-2xl shadow-2xl p-2 z-[140] flex flex-col gap-1 animate-in slide-in-from-bottom-2 duration-200">
+                  <span className="px-3 py-1.5 text-[9px] font-black text-slate-400 uppercase tracking-wider border-b border-slate-100/50 text-left">Chế độ Flashcard</span>
+                  <button
+                    onClick={() => {
+                      localStorage.setItem('quiz_learning_mode', 'fsrs')
+                      navigate(`/flashcard/${id}/play?mode=fsrs`)
+                    }}
+                    className="px-3 py-2.5 text-xs font-bold text-slate-700 hover:bg-indigo-50 hover:text-indigo-600 rounded-xl transition-all text-left flex items-center gap-2"
+                  >
+                    🧠 Spaced Repetition (FSRS)
+                  </button>
+                  <button
+                    onClick={() => {
+                      localStorage.setItem('quiz_learning_mode', 'flip')
+                      navigate(`/flashcard/${id}/play?mode=flip`)
+                    }}
+                    className="px-3 py-2.5 text-xs font-bold text-slate-700 hover:bg-indigo-50 hover:text-indigo-600 rounded-xl transition-all text-left flex items-center gap-2"
+                  >
+                    🔄 Flip Card (Lật thẻ)
+                  </button>
+                  <button
+                    onClick={() => {
+                      localStorage.setItem('quiz_learning_mode', 'review')
+                      navigate(`/flashcard/${id}/play?mode=review`)
+                    }}
+                    className="px-3 py-2.5 text-xs font-bold text-slate-700 hover:bg-indigo-50 hover:text-indigo-600 rounded-xl transition-all text-left flex items-center gap-2"
+                  >
+                    📚 Review Only (Chỉ ôn tập)
+                  </button>
+                  <button
+                    onClick={() => {
+                      localStorage.setItem('quiz_learning_mode', 'new')
+                      navigate(`/flashcard/${id}/play?mode=new`)
+                    }}
+                    className="px-3 py-2.5 text-xs font-bold text-slate-700 hover:bg-indigo-50 hover:text-indigo-600 rounded-xl transition-all text-left flex items-center gap-2"
+                  >
+                    ✨ Learn New (Chỉ học mới)
+                  </button>
+                  <button
+                    onClick={() => {
+                      localStorage.setItem('quiz_learning_mode', 'roadmap')
+                      navigate(`/flashcard/${id}/play?mode=roadmap`)
+                    }}
+                    className="px-3 py-2.5 text-xs font-bold text-slate-700 hover:bg-indigo-50 hover:text-indigo-600 rounded-xl transition-all text-left flex items-center gap-2"
+                  >
+                    🗺️ Roadmap Mode (Tiến trình)
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+
+          {/* LUYỆN TẬP BUTTON WITH DROPDOWN */}
+          <div className="flex-1 flex relative">
+            <button 
+              onClick={() => {
+                const savedSub = localStorage.getItem('vocab_practice_submode') || 'mcq'
+                navigate(`/practice/${id}/${savedSub}`)
+              }}
+              className="flex-1 py-5 bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs md:text-sm rounded-l-2xl shadow-xl shadow-emerald-500/20 active:scale-95 transition-all tracking-widest uppercase flex items-center justify-center gap-2"
+            >
+              <Trophy className="w-4.5 h-4.5" /> LUYỆN TẬP
+            </button>
+            <button
+              onClick={(e) => {
+                e.stopPropagation()
+                setShowPracticeMenu(!showPracticeMenu)
+                setShowFlashcardMenu(false)
+              }}
+              className="px-3 md:px-4 bg-emerald-600 hover:bg-emerald-700 border-l border-emerald-500/50 text-white rounded-r-2xl active:scale-95 transition-all flex items-center justify-center"
+              title="Chọn chế độ luyện tập"
+            >
+              <ChevronDown className="w-4 h-4" />
+            </button>
+
+            {/* Dropdown Menu */}
+            {showPracticeMenu && (
+              <>
+                <div className="fixed inset-0 z-[135]" onClick={() => setShowPracticeMenu(false)} />
+                <div className="absolute bottom-full mb-3 right-0 w-64 bg-white/95 backdrop-blur-md border border-slate-100/80 rounded-2xl shadow-2xl p-2 z-[140] flex flex-col gap-1 animate-in slide-in-from-bottom-2 duration-200">
+                  <span className="px-3 py-1.5 text-[9px] font-black text-slate-400 uppercase tracking-wider border-b border-slate-100/50 text-left">Chế độ Luyện tập</span>
+                  <button
+                    onClick={() => {
+                      localStorage.setItem('vocab_practice_submode', 'mcq')
+                      navigate(`/practice/${id}/mcq`)
+                    }}
+                    className="px-3 py-2.5 text-xs font-bold text-slate-700 hover:bg-emerald-50 hover:text-emerald-600 rounded-xl transition-all text-left flex items-center gap-2"
+                  >
+                    🎯 Trắc nghiệm (MCQ)
+                  </button>
+                  <button
+                    onClick={() => {
+                      localStorage.setItem('vocab_practice_submode', 'typing')
+                      navigate(`/practice/${id}/typing`)
+                    }}
+                    className="px-3 py-2.5 text-xs font-bold text-slate-700 hover:bg-emerald-50 hover:text-emerald-600 rounded-xl transition-all text-left flex items-center gap-2"
+                  >
+                    ⌨️ Gõ từ vựng (Typing)
+                  </button>
+                  <button
+                    onClick={() => {
+                      localStorage.setItem('vocab_practice_submode', 'listening')
+                      navigate(`/practice/${id}/listening`)
+                    }}
+                    className="px-3 py-2.5 text-xs font-bold text-slate-700 hover:bg-emerald-50 hover:text-emerald-600 rounded-xl transition-all text-left flex items-center gap-2"
+                  >
+                    🎧 Luyện nghe (Listening)
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
         </div>
       </div>
       
