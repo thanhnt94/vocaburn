@@ -106,14 +106,14 @@ export const FlashcardEditModal: React.FC<FlashcardEditModalProps> = ({
     if (col === 'ai_explanation') return formData.ai_explanation || '';
     if (col === 'hint') return formData.hint || '';
     if (col === 'mnemonic') return formData.mnemonic || '';
-    if (col === 'image') return formData.image || '';
-    if (col === 'audio') return formData.audio || '';
-    if (col === 'front_img') return formData.front_img || '';
-    if (col === 'back_img') return formData.back_img || '';
-    if (col === 'front_audio_url') return formData.front_audio_url || '';
-    if (col === 'back_audio_url') return formData.back_audio_url || '';
-    if (col === 'front_audio_content') return formData.front_audio_content || '';
-    if (col === 'back_audio_content') return formData.back_audio_content || '';
+    if (col === 'image') return formData.image || formData.others?.image || '';
+    if (col === 'audio') return formData.audio || formData.others?.audio || '';
+    if (col === 'front_img') return formData.front_img || formData.others?.front_img || '';
+    if (col === 'back_img') return formData.back_img || formData.others?.back_img || '';
+    if (col === 'front_audio_url') return formData.front_audio_url || formData.others?.front_audio_url || '';
+    if (col === 'back_audio_url') return formData.back_audio_url || formData.others?.back_audio_url || '';
+    if (col === 'front_audio_content') return formData.front_audio_content || formData.others?.front_audio_content || '';
+    if (col === 'back_audio_content') return formData.back_audio_content || formData.others?.back_audio_content || '';
     return formData.others?.[col] || '';
   };
 
@@ -130,21 +130,53 @@ export const FlashcardEditModal: React.FC<FlashcardEditModalProps> = ({
     } else if (col === 'mnemonic') {
       setFormData({ ...formData, mnemonic: val });
     } else if (col === 'image') {
-      setFormData({ ...formData, image: val });
+      setFormData({ 
+        ...formData, 
+        image: val, 
+        others: formData.others ? { ...formData.others, image: val } : { image: val } 
+      });
     } else if (col === 'audio') {
-      setFormData({ ...formData, audio: val });
+      setFormData({ 
+        ...formData, 
+        audio: val, 
+        others: formData.others ? { ...formData.others, audio: val } : { audio: val } 
+      });
     } else if (col === 'front_img') {
-      setFormData({ ...formData, front_img: val });
+      setFormData({ 
+        ...formData, 
+        front_img: val, 
+        others: formData.others ? { ...formData.others, front_img: val } : { front_img: val } 
+      });
     } else if (col === 'back_img') {
-      setFormData({ ...formData, back_img: val });
+      setFormData({ 
+        ...formData, 
+        back_img: val, 
+        others: formData.others ? { ...formData.others, back_img: val } : { back_img: val } 
+      });
     } else if (col === 'front_audio_url') {
-      setFormData({ ...formData, front_audio_url: val });
+      setFormData({ 
+        ...formData, 
+        front_audio_url: val, 
+        others: formData.others ? { ...formData.others, front_audio_url: val } : { front_audio_url: val } 
+      });
     } else if (col === 'back_audio_url') {
-      setFormData({ ...formData, back_audio_url: val });
+      setFormData({ 
+        ...formData, 
+        back_audio_url: val, 
+        others: formData.others ? { ...formData.others, back_audio_url: val } : { back_audio_url: val } 
+      });
     } else if (col === 'front_audio_content') {
-      setFormData({ ...formData, front_audio_content: val });
+      setFormData({ 
+        ...formData, 
+        front_audio_content: val, 
+        others: formData.others ? { ...formData.others, front_audio_content: val } : { front_audio_content: val } 
+      });
     } else if (col === 'back_audio_content') {
-      setFormData({ ...formData, back_audio_content: val });
+      setFormData({ 
+        ...formData, 
+        back_audio_content: val, 
+        others: formData.others ? { ...formData.others, back_audio_content: val } : { back_audio_content: val } 
+      });
     } else {
       setFormData({
         ...formData,
