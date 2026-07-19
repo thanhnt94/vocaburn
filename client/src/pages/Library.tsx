@@ -529,21 +529,32 @@ export default function Library() {
                                <div className="flex items-center gap-1 bg-slate-50 px-1 py-0.5 rounded border border-slate-100">
                                   <BrainCircuit className="w-2.5 h-2.5 text-slate-455" />
                                   <span className="text-[7.5px] font-black text-slate-500 uppercase">{quiz.questions_count} Cards</span>
-                               </div>
+                                </div>
                                {quiz.tags?.[0] && <span className="text-[7.5px] font-black text-indigo-500 uppercase tracking-widest truncate max-w-[50px]">#{quiz.tags[0]}</span>}
+                               {activeTab === 'discover' && (
+                                 <button 
+                                   onClick={(e) => {
+                                     e.stopPropagation()
+                                     enrollMutation.mutate(quiz.id)
+                                   }}
+                                   className="px-1.5 py-0.5 bg-indigo-50 text-indigo-600 border border-indigo-100 rounded text-[7.5px] font-black uppercase tracking-wider flex items-center gap-0.5"
+                                 >
+                                   <Plus className="w-2 h-2" /> Đăng ký
+                                 </button>
+                               )}
                             </div>
                          </div>
                       </div>
                       
-                      {/* Right Side: Stacked Action Buttons (Học, Luyện, Archive) in narrow column layout */}
-                      <div className="flex items-center gap-1.5 flex-shrink-0">
+                      {/* Right Side: Stacked Action Buttons (Học on top, Luyện on bottom) */}
+                      <div className="flex flex-col gap-1 flex-shrink-0">
                          <button 
                             onClick={() => {
                                setSelectedStudyQuiz(quiz)
                                setStudyModalTab('flashcard')
                                setIsStudyModalOpen(true)
                             }}
-                            className="w-8.5 h-8.5 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-650 hover:from-indigo-600 hover:to-purple-700 text-white flex items-center justify-center shadow-md shadow-indigo-100 active:scale-90 transition-all"
+                            className="w-8.5 h-8.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white flex items-center justify-center active:scale-90 transition-all"
                             title="Học tập"
                          >
                             <Brain className="w-4 h-4" />
@@ -554,29 +565,11 @@ export default function Library() {
                                setStudyModalTab('practice')
                                setIsStudyModalOpen(true)
                             }}
-                            className="w-8.5 h-8.5 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-650 hover:from-emerald-600 hover:to-teal-700 text-white flex items-center justify-center shadow-md shadow-emerald-100 active:scale-90 transition-all"
+                            className="w-8.5 h-8.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white flex items-center justify-center active:scale-90 transition-all"
                             title="Luyện tập"
                          >
                             <Trophy className="w-4 h-4" />
                          </button>
-                         
-                         {activeTab === 'discover' ? (
-                           <button 
-                             onClick={() => enrollMutation.mutate(quiz.id)} 
-                             className="w-8.5 h-8.5 rounded-xl bg-slate-900 text-white flex items-center justify-center active:scale-90 shadow-sm"
-                             title="Đăng ký học"
-                           >
-                             <Plus className="w-4 h-4" />
-                           </button>
-                         ) : (
-                           <button 
-                             onClick={() => archiveMutation.mutate(quiz.id)} 
-                             className="w-8.5 h-8.5 rounded-xl bg-slate-50 text-slate-400 border border-slate-200/50 flex items-center justify-center active:scale-90"
-                             title={activeTab === 'archived' ? 'Khôi phục' : 'Lưu trữ'}
-                           >
-                             {activeTab === 'archived' ? <RotateCcw className="w-3.5 h-3.5" /> : <Archive className="w-3.5 h-3.5" />}
-                           </button>
-                         )}
                       </div>
                    </div>
                  </motion.div>
