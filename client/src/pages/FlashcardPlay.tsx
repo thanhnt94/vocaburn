@@ -4691,17 +4691,8 @@ export default function FlashcardPlay() {
                 <Settings className="w-5.5 h-5.5 text-indigo-600" />
               </button>
 
-              {/* Audio play button */}
               {(() => {
                 if (!currentQuestion) return null;
-                
-                const hasAudioOrScript = mainTab === 'practice'
-                  ? (!!currentQuestion.audio || !!currentQuestion.front_audio_url || !!currentQuestion.others?.front_audio_url || !!currentQuestion.front_audio_content?.trim() || !!currentQuestion.others?.front_audio_content?.trim())
-                  : (!isFlipped 
-                    ? (!!currentQuestion.audio || !!currentQuestion.front_audio_url || !!currentQuestion.others?.front_audio_url || !!currentQuestion.front_audio_content?.trim() || !!currentQuestion.others?.front_audio_content?.trim())
-                    : (!!currentQuestion.back_audio_url || !!currentQuestion.others?.back_audio_url || !!currentQuestion.back_audio_content?.trim() || !!currentQuestion.others?.back_audio_content?.trim()));
-                  
-                if (!hasAudioOrScript) return null;
                 
                 return (
                   <button

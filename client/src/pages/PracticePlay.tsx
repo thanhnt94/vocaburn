@@ -286,30 +286,45 @@ export default function PracticePlay() {
       ? (currentQuestion.audio || currentQuestion.front_audio_url || currentQuestion.others?.front_audio_url)
       : (currentQuestion.back_audio_url || currentQuestion.others?.back_audio_url);
 
-    const script = face === 'front'
+    let script = face === 'front'
       ? (currentQuestion.front_audio_content || currentQuestion.others?.front_audio_content)
       : (currentQuestion.back_audio_content || currentQuestion.others?.back_audio_content);
 
-    // Lazily generate audio if it is not yet created on backend, but ONLY if script is present
+    // Fallback to front content or back explanation if audio script content is not specified
+    if (!script || !script.trim()) {
+      if (face === 'front') {
+        script = currentQuestion.content;
+      } else {
+        script = currentQuestion.explanation;
+      }
+    }
+
+    // Lazily generate audio if it is not yet created on backend, but ONLY if script is present and has a configured script
     if (!audioUrl && currentQuestion.id && script && script.trim()) {
-      try {
-        console.log(`[CLIENT TTS] Audio file missing. Requesting generation for question ${currentQuestion.id} (${face})...`);
-        const res = await axios.get(`/api/v1/deck/generate-audio/${currentQuestion.id}?face=${face}`);
-        if (currentQuestionIdRef.current !== targetQuestionId) {
-          console.log(`[CLIENT TTS] Question changed during audio generation. Aborting playback.`);
-          return;
-        }
-        audioUrl = res.data.url;
-        if (audioUrl) {
-          if (face === 'front') {
-            currentQuestion.audio = audioUrl;
-          } else {
-            if (!currentQuestion.others) currentQuestion.others = {};
-            currentQuestion.others.back_audio_url = audioUrl;
+      const hasConfiguredScript = face === 'front' 
+        ? !!(currentQuestion.front_audio_content || currentQuestion.others?.front_audio_content)
+        : !!(currentQuestion.back_audio_content || currentQuestion.others?.back_audio_content);
+
+      if (hasConfiguredScript) {
+        try {
+          console.log(`[CLIENT TTS] Audio file missing. Requesting generation for question ${currentQuestion.id} (${face})...`);
+          const res = await axios.get(`/api/v1/deck/generate-audio/${currentQuestion.id}?face=${face}`);
+          if (currentQuestionIdRef.current !== targetQuestionId) {
+            console.log(`[CLIENT TTS] Question changed during audio generation. Aborting playback.`);
+            return;
           }
+          audioUrl = res.data.url;
+          if (audioUrl) {
+            if (face === 'front') {
+              currentQuestion.audio = audioUrl;
+            } else {
+              if (!currentQuestion.others) currentQuestion.others = {};
+              currentQuestion.others.back_audio_url = audioUrl;
+            }
+          }
+        } catch (err: any) {
+          console.error(`[TTS SERVER ERROR] Backend failed to synthesize ${face} audio file for question ${currentQuestion.id}. Status:`, err.response?.status, 'Message:', err.response?.data || err.message);
         }
-      } catch (err: any) {
-        console.error(`[TTS SERVER ERROR] Backend failed to synthesize ${face} audio file for question ${currentQuestion.id}. Status:`, err.response?.status, 'Message:', err.response?.data || err.message);
       }
     }
 
@@ -4748,21 +4763,12 @@ export default function PracticePlay() {
               <Settings className="w-5.5 h-5.5 text-indigo-600" />
             </button>
 
-              {/* Audio play button */}
               {(() => {
                 if (!currentQuestion) return null;
 
                 if (mainTab === 'practice' && practiceSubMode !== 'listening' && !showFeedback) {
                   return null;
                 }
-
-                const hasAudioOrScript = mainTab === 'practice'
-                  ? (!!currentQuestion.audio || !!currentQuestion.front_audio_url || !!currentQuestion.others?.front_audio_url || !!currentQuestion.front_audio_content?.trim() || !!currentQuestion.others?.front_audio_content?.trim())
-                  : (!isFlipped
-                    ? (!!currentQuestion.audio || !!currentQuestion.front_audio_url || !!currentQuestion.others?.front_audio_url || !!currentQuestion.front_audio_content?.trim() || !!currentQuestion.others?.front_audio_content?.trim())
-                    : (!!currentQuestion.back_audio_url || !!currentQuestion.others?.back_audio_url || !!currentQuestion.back_audio_content?.trim() || !!currentQuestion.others?.back_audio_content?.trim()));
-
-                if (!hasAudioOrScript) return null;
 
                 return (
                   <button
