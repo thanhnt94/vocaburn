@@ -52,9 +52,9 @@ export default function Layout() {
   const navItems = [
     { label: 'Home', path: '/', icon: Compass },
     { label: 'Library', path: '/library', icon: BookOpen },
-    { label: 'Quick Play', path: '/flashcard/quick/play', icon: Sparkles },
     { label: 'Stats', path: '/stats', icon: BarChart3 },
     { label: 'Studio', path: '/manage', icon: FolderKanban },
+    { label: 'Quick Play', path: '/flashcard/quick/play', icon: Sparkles },
     { label: 'Settings', path: '/profile', icon: User },
   ]
 
