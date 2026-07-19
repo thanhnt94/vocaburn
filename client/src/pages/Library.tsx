@@ -501,12 +501,13 @@ export default function Library() {
             <AnimatePresence mode="popLayout">
                {filteredData.map((quiz, idx) => (
                  <motion.div key={quiz.id} layout initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: idx * 0.01 }}>
-                   <div className="bg-white rounded-[1.75rem] border border-slate-200/60 p-4 shadow-sm active:scale-[0.98] transition-all relative overflow-hidden flex flex-col gap-3">
+                    <div className="bg-white rounded-[1.75rem] border border-slate-200/60 p-4 shadow-sm active:scale-[0.98] transition-all relative overflow-hidden flex items-center justify-between gap-3">
+                      {/* Left Side: Clickable Cover, Title, Info */}
                       <div 
                         onClick={() => navigate(`/flashcard/${quiz.id}`)}
-                        className="flex items-center gap-4 text-left cursor-pointer"
+                        className="flex-1 min-w-0 flex items-center gap-3.5 text-left cursor-pointer"
                       >
-                         <div className="w-14 h-14 rounded-2xl flex-shrink-0 overflow-hidden shadow-md transition-all relative">
+                         <div className="w-13 h-13 rounded-2xl flex-shrink-0 overflow-hidden shadow-md transition-all relative">
                             {quiz.cover_image ? (
                               <img src={quiz.cover_image} alt="" className="w-full h-full object-cover" />
                             ) : (
@@ -518,68 +519,64 @@ export default function Library() {
                                  idx % 5 === 3 ? "bg-gradient-to-br from-blue-400 to-cyan-500" :
                                  "bg-gradient-to-br from-amber-400 to-yellow-500"
                               )}>
-                                 <LayoutGrid className="w-6 h-6" />
+                                 <LayoutGrid className="w-5.5 h-5.5" />
                               </div>
                             )}
                          </div>
                          <div className="flex-1 min-w-0">
-                            <h3 className="text-[13px] font-black text-slate-800 leading-tight mb-1 truncate">{quiz.title}</h3>
-                            <div className="flex flex-col gap-1 mt-0.5">
-                                <div className="flex items-center gap-2">
-                                   <div className="flex items-center gap-1 bg-slate-50 px-1.5 py-0.5 rounded border border-slate-100">
-                                      <BrainCircuit className="w-2.5 h-2.5 text-slate-400" />
-                                      <span className="text-[8px] font-black text-slate-500 uppercase">{quiz.questions_count} Flashcards</span>
-                                   </div>
-                                   {quiz.tags?.[0] && <span className="text-[8px] font-black text-indigo-500 uppercase tracking-widest">#{quiz.tags[0]}</span>}
-                                </div>
+                            <h3 className="text-[12px] font-black text-slate-800 leading-tight mb-1 truncate">{quiz.title}</h3>
+                            <div className="flex items-center gap-1.5 mt-0.5">
+                               <div className="flex items-center gap-1 bg-slate-50 px-1 py-0.5 rounded border border-slate-100">
+                                  <BrainCircuit className="w-2.5 h-2.5 text-slate-455" />
+                                  <span className="text-[7.5px] font-black text-slate-500 uppercase">{quiz.questions_count} Cards</span>
+                               </div>
+                               {quiz.tags?.[0] && <span className="text-[7.5px] font-black text-indigo-500 uppercase tracking-widest truncate max-w-[50px]">#{quiz.tags[0]}</span>}
                             </div>
                          </div>
                       </div>
                       
-                      <div className="pt-2 border-t border-slate-100 flex items-center justify-between gap-2">
-                         <div className="flex gap-1.5">
-                            {activeTab === 'discover' ? (
-                              <button 
-                                onClick={() => enrollMutation.mutate(quiz.id)} 
-                                className="h-8 px-4 rounded-xl bg-indigo-600 text-white flex items-center justify-center shadow-sm active:scale-95 text-[9px] font-black uppercase tracking-wider"
-                                title="Đăng ký học"
-                              >
-                                Đăng ký
-                              </button>
-                            ) : (
-                              <button 
-                                onClick={() => archiveMutation.mutate(quiz.id)} 
-                                className="w-8 h-8 rounded-full bg-slate-50 text-slate-400 border border-slate-200/50 flex items-center justify-center active:scale-95"
-                                title={activeTab === 'archived' ? 'Khôi phục' : 'Lưu trữ'}
-                              >
-                                {activeTab === 'archived' ? <RotateCcw className="w-3.5 h-3.5" /> : <Archive className="w-3.5 h-3.5" />}
-                              </button>
-                            )}
-                         </div>
-                         <div className="flex gap-1.5">
-                            <button 
-                               onClick={() => {
-                                  setSelectedStudyQuiz(quiz)
-                                  setStudyModalTab('flashcard')
-                                  setIsStudyModalOpen(true)
-                               }}
-                               className="px-3.5 py-2 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-650 text-white flex items-center gap-1 text-[9px] font-black uppercase tracking-wider shadow-sm active:scale-95"
-                            >
-                               <Brain className="w-3.5 h-3.5" />
-                               <span>Học</span>
-                            </button>
-                            <button 
-                               onClick={() => {
-                                  setSelectedStudyQuiz(quiz)
-                                  setStudyModalTab('practice')
-                                  setIsStudyModalOpen(true)
-                               }}
-                               className="px-3.5 py-2 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-650 text-white flex items-center gap-1 text-[9px] font-black uppercase tracking-wider shadow-sm active:scale-95"
-                            >
-                               <Trophy className="w-3.5 h-3.5" />
-                               <span>Luyện</span>
-                            </button>
-                         </div>
+                      {/* Right Side: Stacked Action Buttons (Học, Luyện, Archive) in narrow column layout */}
+                      <div className="flex items-center gap-1.5 flex-shrink-0">
+                         <button 
+                            onClick={() => {
+                               setSelectedStudyQuiz(quiz)
+                               setStudyModalTab('flashcard')
+                               setIsStudyModalOpen(true)
+                            }}
+                            className="w-8.5 h-8.5 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-650 hover:from-indigo-600 hover:to-purple-700 text-white flex items-center justify-center shadow-md shadow-indigo-100 active:scale-90 transition-all"
+                            title="Học tập"
+                         >
+                            <Brain className="w-4 h-4" />
+                         </button>
+                         <button 
+                            onClick={() => {
+                               setSelectedStudyQuiz(quiz)
+                               setStudyModalTab('practice')
+                               setIsStudyModalOpen(true)
+                            }}
+                            className="w-8.5 h-8.5 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-650 hover:from-emerald-600 hover:to-teal-700 text-white flex items-center justify-center shadow-md shadow-emerald-100 active:scale-90 transition-all"
+                            title="Luyện tập"
+                         >
+                            <Trophy className="w-4 h-4" />
+                         </button>
+                         
+                         {activeTab === 'discover' ? (
+                           <button 
+                             onClick={() => enrollMutation.mutate(quiz.id)} 
+                             className="w-8.5 h-8.5 rounded-xl bg-slate-900 text-white flex items-center justify-center active:scale-90 shadow-sm"
+                             title="Đăng ký học"
+                           >
+                             <Plus className="w-4 h-4" />
+                           </button>
+                         ) : (
+                           <button 
+                             onClick={() => archiveMutation.mutate(quiz.id)} 
+                             className="w-8.5 h-8.5 rounded-xl bg-slate-50 text-slate-400 border border-slate-200/50 flex items-center justify-center active:scale-90"
+                             title={activeTab === 'archived' ? 'Khôi phục' : 'Lưu trữ'}
+                           >
+                             {activeTab === 'archived' ? <RotateCcw className="w-3.5 h-3.5" /> : <Archive className="w-3.5 h-3.5" />}
+                           </button>
+                         )}
                       </div>
                    </div>
                  </motion.div>
