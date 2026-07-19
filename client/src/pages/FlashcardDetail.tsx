@@ -914,7 +914,7 @@ export default function QuizDetail() {
                         <div key={tab.id} className="p-3.5 rounded-xl bg-slate-50/40 border border-slate-100 text-left">
                           <span className="text-[8px] font-black text-indigo-500 uppercase tracking-widest block mb-1.5">{tab.title}</span>
                           <div 
-                            className="text-xs font-semibold text-slate-700 leading-relaxed pr-1"
+                            className="text-xs font-semibold text-slate-700 leading-relaxed pr-1 whitespace-pre-wrap"
                             dangerouslySetInnerHTML={{ __html: parseBBCodeToHtml(tab.content) }}
                           />
                         </div>
