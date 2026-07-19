@@ -453,21 +453,13 @@ export default function Library() {
 
                            <div className="mt-5 pt-3.5 border-t border-slate-100 flex items-center justify-between relative z-10">
                               <div className="flex items-center gap-2">
-                                  {activeTab === 'discover' ? (
+                                  {activeTab === 'discover' && (
                                     <button 
                                       onClick={() => enrollMutation.mutate(quiz.id)} 
                                       className="h-8 px-3.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl flex items-center justify-center transition-all shadow-md shadow-indigo-100 text-[9px] font-black uppercase tracking-wider active:scale-95 hover:scale-102"
                                       title="Đăng ký học bộ này"
                                     >
                                       Đăng ký
-                                    </button>
-                                  ) : (
-                                    <button 
-                                      onClick={() => archiveMutation.mutate(quiz.id)} 
-                                      className="w-8 h-8 bg-slate-50 text-slate-400 hover:bg-slate-100 border border-slate-200/50 rounded-full flex items-center justify-center transition-all shadow-sm active:scale-95 hover:scale-105"
-                                      title={activeTab === 'archived' ? 'Khôi phục bộ thẻ' : 'Lưu trữ bộ thẻ'}
-                                    >
-                                      {activeTab === 'archived' ? <RotateCcw className="w-3.5 h-3.5" /> : <Archive className="w-3.5 h-3.5" />}
                                     </button>
                                   )}
                               </div>
