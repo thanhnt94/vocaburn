@@ -182,6 +182,9 @@ export const QuestionMapGrid: React.FC<QuestionMapGridProps> = ({
                     borderColor: '#cbd5e1'
                   }
                   fsrsClass = "shadow-sm animate-in zoom-in-95 duration-200 font-bold text-slate-800 border-slate-300"
+                } else if (selectedOptIdx === -2) {
+                  fsrsClass = "border-purple-200 bg-purple-50 text-purple-700 hover:bg-purple-100/60 font-bold shadow-sm animate-in zoom-in-95 duration-200"
+                  fsrsStyle = {}
                 } else {
                   const box = q.box_level || 1
                   if (box === 5) {
@@ -194,6 +197,9 @@ export const QuestionMapGrid: React.FC<QuestionMapGridProps> = ({
                     fsrsClass = "border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-100/60"
                   }
                 }
+              } else if (selectedOptIdx === -2) {
+                fsrsClass = "border-purple-200 bg-purple-50 text-purple-700 hover:bg-purple-100/60 font-bold shadow-sm animate-in zoom-in-95 duration-200"
+                fsrsStyle = {}
               }
 
               return (
@@ -222,14 +228,16 @@ export const QuestionMapGrid: React.FC<QuestionMapGridProps> = ({
                       "text-[6px] font-black tracking-tighter opacity-90 mt-0.5 uppercase z-10 relative",
                       isPractice
                         ? (selectedOptIdx === q.practice?.correct_index ? "text-emerald-600" : "text-rose-600")
-                        : (selectedOptIdx === 0 ? "text-rose-600" :
+                        : (selectedOptIdx === -2 ? "text-purple-600" :
+                           selectedOptIdx === 0 ? "text-rose-600" :
                            selectedOptIdx === 1 ? "text-amber-600" :
                            selectedOptIdx === 2 ? "text-indigo-600" :
                            "text-emerald-600")
                     )}>
                       {isPractice
                         ? (selectedOptIdx === q.practice?.correct_index ? "CORRECT" : "WRONG")
-                        : (selectedOptIdx === 0 ? "AGAIN" : selectedOptIdx === 1 ? "HARD" : selectedOptIdx === 2 ? "GOOD" : "EASY")}
+                        : (selectedOptIdx === -2 ? "FLIP" :
+                           selectedOptIdx === 0 ? "AGAIN" : selectedOptIdx === 1 ? "HARD" : selectedOptIdx === 2 ? "GOOD" : "EASY")}
                     </span>
                   )}
                 </button>

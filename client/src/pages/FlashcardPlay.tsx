@@ -2197,7 +2197,7 @@ export default function FlashcardPlay() {
         const prevRatings = Array.isArray(sessionAnswers[currentIndex]) 
           ? (sessionAnswers[currentIndex] as number[]) 
           : (typeof sessionAnswers[currentIndex] === 'number' ? [sessionAnswers[currentIndex] as number] : [])
-        const newRatings = [...prevRatings, 2] // index 2 (rating 3)
+        const newRatings = [...prevRatings, -2] // index -2 (studied but not evaluated/rated in flip mode)
         const newAnswers = { ...sessionAnswers, [currentIndex]: newRatings }
         setSessionAnswers(newAnswers)
 
@@ -3142,9 +3142,11 @@ export default function FlashcardPlay() {
     const hardCount = finalRatings.filter(val => val === 1).length
     const goodCount = finalRatings.filter(val => val === 2).length
     const easyCount = finalRatings.filter(val => val === 3).length
+    const flipCount = finalRatings.filter(val => val === -2).length
     
     const correctCount = hardCount + goodCount + easyCount
-    const accuracy = answeredCount > 0 ? Math.round((correctCount / answeredCount) * 100) : 0
+    const evaluatedCount = answeredCount - flipCount
+    const accuracy = evaluatedCount > 0 ? Math.round((correctCount / evaluatedCount) * 100) : 0
 
     return (
       <div className="bg-slate-50/80 rounded-[1.5rem] p-4 mb-4 border border-slate-100">
@@ -4076,9 +4078,10 @@ export default function FlashcardPlay() {
                             const ratingVal = Array.isArray(optIdx) 
                               ? optIdx[optIdx.length - 1] 
                               : (typeof optIdx === 'number' ? optIdx : 0);
+                            if (ratingVal === -2) return false;
                             return q.options && q.options.length > 0
                               ? q.options[ratingVal]?.is_correct
-                              : ratingVal > 1; // 1 (Again) is Wrong, 2/3/4 are Correct
+                              : ratingVal > 0; // 0 (Again) is Wrong, 1/2/3 are Correct
                           }).length
                         )}
                       </span>
@@ -4094,15 +4097,16 @@ export default function FlashcardPlay() {
                             return ansIdx === q.practice.correct_index;
                           }).length
                         ) : (
-                          Object.keys(sessionAnswers).length - Object.entries(sessionAnswers).filter(([idx, optIdx]) => {
+                          Object.entries(sessionAnswers).filter(([idx, optIdx]) => {
                             const q = session.questions[Number(idx)];
                             if (!q) return false;
                             const ratingVal = Array.isArray(optIdx) 
                               ? optIdx[optIdx.length - 1] 
                               : (typeof optIdx === 'number' ? optIdx : 0);
+                            if (ratingVal === -2) return false;
                             return q.options && q.options.length > 0
-                              ? q.options[ratingVal]?.is_correct
-                              : ratingVal > 1;
+                              ? !q.options[ratingVal]?.is_correct
+                              : ratingVal === 0; // 0 (Again) is Wrong
                           }).length
                         )}
                       </span>
