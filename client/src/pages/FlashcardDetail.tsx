@@ -925,7 +925,36 @@ export default function QuizDetail() {
                     <StickyNote className="w-4 h-4" />
                   </div>
                   <div>
-                    <h3 className="text-xs font-black text-slate-900 uppercase tracking-widest leading-none">Learning Insights</h3>
+                    <div className="flex items-center gap-1.5">
+                      <h3 className="text-xs font-black text-slate-900 uppercase tracking-widest leading-none">Learning Insights</h3>
+                      <div className="flex items-center gap-0.5 ml-1 bg-slate-100 p-0.5 rounded-lg border border-slate-200/50">
+                        {(() => {
+                          const idx = allQuestions.findIndex(q => q.id === selectedCard.id)
+                          const hasPrev = idx > 0
+                          const hasNext = idx !== -1 && idx < allQuestions.length - 1
+                          return (
+                            <>
+                              <button
+                                disabled={!hasPrev}
+                                onClick={() => hasPrev && setSelectedCard(allQuestions[idx - 1])}
+                                className="w-5 h-5 flex items-center justify-center rounded bg-white text-slate-500 hover:text-indigo-650 disabled:opacity-30 disabled:hover:text-slate-500 transition-all border border-slate-200/40 active:scale-90"
+                                title="Thẻ trước đó"
+                              >
+                                <ChevronLeft className="w-3 h-3" />
+                              </button>
+                              <button
+                                disabled={!hasNext}
+                                onClick={() => hasNext && setSelectedCard(allQuestions[idx + 1])}
+                                className="w-5 h-5 flex items-center justify-center rounded bg-white text-slate-500 hover:text-indigo-650 disabled:opacity-30 disabled:hover:text-slate-500 transition-all border border-slate-200/40 active:scale-90"
+                                title="Thẻ tiếp theo"
+                              >
+                                <ChevronDown className="w-3 h-3 rotate-270" style={{ transform: 'rotate(-90deg)' }} />
+                              </button>
+                            </>
+                          )
+                        })()}
+                      </div>
+                    </div>
                     <p className="text-[9px] font-bold text-slate-400 mt-1">Details for Card #{selectedCard.orig_index}</p>
                   </div>
                 </div>
