@@ -7,6 +7,7 @@ import axios from 'axios'
 import { cn } from '@/lib/utils'
 import { useAppStore } from '@/store/useAppStore'
 import { parseBBCodeToHtml } from '@/lib/text'
+import { FlashcardEditModal } from '@/components/FlashcardEditModal'
 
 interface Question {
   id: number
@@ -58,6 +59,11 @@ export default function QuizDetail() {
   const [isEditingCardNote, setIsEditingCardNote] = useState(false)
   const [isSavingCardNote, setIsSavingCardNote] = useState(false)
   const [cardModalTab, setCardModalTab] = useState<'content' | 'stats'>('content')
+  
+  // Inline card editing states
+  const [editCardFormData, setEditCardFormData] = useState<any>(null)
+  const [isEditingCard, setIsEditingCard] = useState(false)
+  const [isSavingCardEdit, setIsSavingCardEdit] = useState(false)
 
   const quickAddFrontRef = useRef<HTMLInputElement>(null)
 
@@ -117,6 +123,68 @@ export default function QuizDetail() {
       alert("Failed to save note.")
     } finally {
       setIsSavingCardNote(false)
+    }
+  }
+
+  const handleSaveInlineCardEdit = async (updatedCardData: any) => {
+    if (!selectedCard || !updatedCardData) return
+    setIsSavingCardEdit(true)
+    try {
+      const finalOthers = { ...updatedCardData.others }
+      const systemFields = ['front_img', 'back_img', 'front_audio_url', 'back_audio_url', 'front_audio_content', 'back_audio_content']
+      systemFields.forEach(f => delete finalOthers[f])
+      
+      if (finalOthers.other_content) {
+        try {
+          finalOthers.other_content = typeof finalOthers.other_content === 'string'
+            ? JSON.parse(finalOthers.other_content)
+            : finalOthers.other_content
+        } catch (je) {}
+      }
+
+      const updatedOptions = (updatedCardData.options || []).map((opt: any) => {
+        if (opt.is_correct && updatedCardData.explanation) {
+          return { ...opt, content: updatedCardData.explanation }
+        }
+        return opt
+      })
+
+      const payload = {
+        content: updatedCardData.content,
+        explanation: updatedCardData.explanation,
+        ai_explanation: updatedCardData.ai_explanation,
+        image: updatedCardData.image || null,
+        audio: updatedCardData.audio || null,
+        front_img: updatedCardData.front_img || '',
+        back_img: updatedCardData.back_img || '',
+        front_audio_url: updatedCardData.front_audio_url || '',
+        back_audio_url: updatedCardData.back_audio_url || '',
+        front_audio_content: updatedCardData.front_audio_content || '',
+        back_audio_content: updatedCardData.back_audio_content || '',
+        others: finalOthers,
+        options: updatedOptions
+      }
+
+      await axios.patch(`/api/v1/deck/question/${selectedCard.id}`, payload)
+      
+      // Update locally rendered selected card
+      setSelectedCard((prev: any) => ({
+        ...prev,
+        ...payload,
+        options: updatedOptions
+      }))
+      
+      // Invalidate queries so lists refresh
+      queryClient.invalidateQueries({ queryKey: ['quiz-questions', id] })
+      queryClient.invalidateQueries({ queryKey: ['quiz', id] })
+      
+      setIsEditingCard(false)
+      setEditCardFormData(null)
+    } catch (e) {
+      console.error(e)
+      alert("Failed to save card edits.")
+    } finally {
+      setIsSavingCardEdit(false)
     }
   }
 
@@ -865,12 +933,24 @@ export default function QuizDetail() {
                 <div className="flex items-center gap-2">
                   {canEdit && (
                     <button
-                      onClick={() => navigate(`/manage/edit/${id}/flashcards?search=${encodeURIComponent(selectedCard.content)}`)}
+                      onClick={() => {
+                        setEditCardFormData({
+                          id: selectedCard.id,
+                          content: selectedCard.content || '',
+                          explanation: selectedCard.explanation || selectedCard.ai_explanation || '',
+                          ai_explanation: selectedCard.ai_explanation || '',
+                          hint: selectedCard.hint || '',
+                          mnemonic: selectedCard.mnemonic || '',
+                          options: selectedCard.options || [],
+                          others: selectedCard.others || {}
+                        })
+                        setIsEditingCard(true)
+                      }}
                       className="h-8 px-2.5 bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-600 text-[10px] font-black uppercase tracking-wider rounded-lg flex items-center gap-1 active:scale-95 transition-all"
-                      title="Edit Card in Studio"
+                      title="Sửa thẻ trực tiếp"
                     >
                       <Edit2 className="w-3.5 h-3.5" />
-                      <span>Edit</span>
+                      <span>Sửa thẻ</span>
                     </button>
                   )}
                   <button 
@@ -1352,6 +1432,16 @@ export default function QuizDetail() {
           </motion.div>
         </div>
       )}
+      <FlashcardEditModal
+        isOpen={isEditingCard}
+        onClose={() => {
+          setIsEditingCard(false)
+          setEditCardFormData(null)
+        }}
+        flashcard={editCardFormData}
+        onSave={handleSaveInlineCardEdit}
+        isSaving={isSavingCardEdit}
+      />
     </div>
   )
 }
