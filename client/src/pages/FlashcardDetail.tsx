@@ -1,7 +1,7 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
 import { useQuery, useInfiniteQuery, useQueryClient } from '@tanstack/react-query'
-import { ChevronLeft, Award, BookOpen, Search, StickyNote, BarChart2, Settings, Edit2, X, Save, Brain, HelpCircle, Plus, Sparkles, Trophy, Layers, RotateCcw, Compass, Flame, Target, ChevronDown } from 'lucide-react'
+import { ChevronLeft, Award, BookOpen, Search, StickyNote, BarChart2, Settings, Edit2, X, Save, Brain, HelpCircle, Plus, Sparkles, Trophy, Layers, RotateCcw, Compass, Flame, Target, ChevronDown, ChevronUp, Pencil } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import axios from 'axios'
 import { cn } from '@/lib/utils'
@@ -41,6 +41,12 @@ export default function QuizDetail() {
   const [showFlashcardMenu, setShowFlashcardMenu] = useState(false)
   const [showPracticeMenu, setShowPracticeMenu] = useState(false)
 
+  // Bottom bar mode: 'learn' (default) or 'creator' (quick add + search)
+  const [bottomBarMode, setBottomBarMode] = useState<'learn' | 'creator'>('learn')
+  const [isSearchPanelOpen, setIsSearchPanelOpen] = useState(false)
+  const [isProgressExpanded, setIsProgressExpanded] = useState(false)
+
+  const quickAddFrontRef = useRef<HTMLInputElement>(null)
 
   const handleQuickAddCard = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -56,6 +62,8 @@ export default function QuizDetail() {
       setQuickAddBack('')
       queryClient.invalidateQueries({ queryKey: ['quiz-questions', id] })
       queryClient.invalidateQueries({ queryKey: ['quiz', id] })
+      // Focus front input for rapid adding
+      quickAddFrontRef.current?.focus()
     } catch (err) {
       alert('Failed to add card')
     } finally {
@@ -206,698 +214,622 @@ export default function QuizDetail() {
 
   return (
     <div className="min-h-screen bg-[#F8FAFC]">
-      {/* Mobile Header */}
-      <nav className="fixed top-0 left-0 right-0 z-[120] bg-white/80 backdrop-blur-2xl border-b border-slate-100 px-4 py-3 flex items-center gap-4">
-        <button onClick={() => navigate(-1)} className="w-10 h-10 flex-shrink-0 flex items-center justify-center bg-white border border-slate-100 rounded-xl text-indigo-600 shadow-sm active:scale-90 transition-all">
-          <ChevronLeft className="w-6 h-6" />
+      {/* ═══════════════ COMPACT NAV HEADER ═══════════════ */}
+      <nav className="fixed top-0 left-0 right-0 z-[120] bg-white/80 backdrop-blur-2xl border-b border-slate-100 px-4 py-3 flex items-center gap-3">
+        <button onClick={() => navigate(-1)} className="w-9 h-9 flex-shrink-0 flex items-center justify-center bg-white border border-slate-100 rounded-xl text-indigo-600 shadow-sm active:scale-90 transition-all">
+          <ChevronLeft className="w-5 h-5" />
         </button>
-        <div className="flex-1 min-w-0">
-          <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">DECK DETAIL</p>
-          <h2 className="text-sm font-black text-slate-900 truncate tracking-tight">{quiz?.title}</h2>
-        </div>
-        {canEdit && (
-          <button 
-            onClick={() => {
-              setEditFormData({ ...quiz, tags: quiz.tags?.join(', ') })
-              setEditTab('props')
-              setIsEditModalOpen(true)
-            }}
-            className="w-10 h-10 flex-shrink-0 flex items-center justify-center bg-white border border-slate-100 rounded-xl text-slate-400 hover:text-indigo-600 transition-all active:scale-90"
-          >
-            <Settings className="w-5 h-5" />
-          </button>
-        )}
-      </nav>
 
-      <div className="pt-20 md:pt-12 pb-40">
-        {/* Quiz Header */}
-        <div className="px-6 max-w-5xl mx-auto mb-10">
-          <div className="bg-white rounded-[2.5rem] p-8 md:p-12 shadow-sm border border-slate-100 flex flex-col md:flex-row gap-8 items-center md:items-start relative overflow-hidden">
-            <div className="absolute top-0 right-0 p-12 opacity-[0.03]"><Award className="w-48 h-48" /></div>
-            
-            <div className="w-20 h-20 md:w-28 md:h-28 rounded-3xl bg-gradient-to-br from-indigo-50 to-white border border-indigo-100 flex items-center justify-center flex-shrink-0 relative z-10 shadow-sm">
-              <BookOpen className="w-10 h-10 text-indigo-600" />
+        {/* Compact Title + Badge */}
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2">
+            <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-indigo-50 to-white border border-indigo-100/60 flex items-center justify-center flex-shrink-0">
+              <BookOpen className="w-3.5 h-3.5 text-indigo-600" />
             </div>
-            
-            <div className="flex-1 text-center md:text-left relative z-10">
-              <div className="flex flex-wrap items-center justify-center md:justify-start gap-3 mb-3">
-                <span className="px-2.5 py-1 rounded-lg bg-emerald-50 text-emerald-600 text-[9px] font-black uppercase tracking-widest">
-                  {quiz?.questions_count || 0} QUESTIONS
-                </span>
-                <span className="px-2.5 py-1 rounded-lg bg-slate-50 text-slate-400 text-[9px] font-black uppercase tracking-widest">
-                  PRACTICE
-                </span>
-              </div>
-              <h1 className="text-3xl md:text-5xl font-black text-slate-900 mb-3 tracking-tighter">{quiz?.title}</h1>
-              <p className="text-slate-400 font-medium text-base leading-relaxed max-w-2xl">{quiz?.description || "Smart gamified quiz learning platform."}</p>
-              
-              {/* Quick Management Buttons */}
-              {canEdit && (
-                <div className="flex flex-wrap items-center justify-center md:justify-start gap-2.5 mt-5">
-                  <Link
-                    to={`/manage/edit/${id}/flashcards`}
-                    className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-[10px] font-black uppercase tracking-wider rounded-xl shadow-md shadow-indigo-150/15 flex items-center gap-1.5 active:scale-95 transition-all"
-                  >
-                    <Layers className="w-3.5 h-3.5" />
-                    Manage Cards
-                  </Link>
-                  <button
-                    onClick={() => {
-                      setEditFormData({ ...quiz, tags: quiz.tags?.join(', ') })
-                      setEditTab('props')
-                      setIsEditModalOpen(true)
-                    }}
-                    className="px-4 py-2 bg-white hover:bg-slate-50 text-slate-600 border border-slate-100 hover:border-slate-200 text-[10px] font-black uppercase tracking-wider rounded-xl shadow-sm flex items-center gap-1.5 active:scale-95 transition-all"
-                  >
-                    <Settings className="w-3.5 h-3.5" />
-                    Deck Settings
-                  </button>
-                </div>
-              )}
-            </div>
+            <h1 className="text-sm font-black text-slate-900 truncate tracking-tight">{quiz?.title}</h1>
+            <span className="px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-600 text-[8px] font-black uppercase tracking-widest flex-shrink-0">
+              {quiz?.questions_count || 0}
+            </span>
           </div>
         </div>
 
-        {/* Roadmap Widget */}
-        {roadmapStatus && (
-          <div className="px-6 max-w-5xl mx-auto mb-8 animate-in fade-in slide-in-from-bottom-4 duration-300">
-            <div className="bg-white rounded-[2.5rem] p-6 md:p-8 shadow-sm border border-slate-100 relative overflow-hidden text-left">
-              <div className="flex items-center justify-between gap-4 mb-6">
-                <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-xl bg-indigo-50 flex items-center justify-center text-indigo-650">
-                    <Compass className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <h3 className="text-xs md:text-sm font-black text-slate-900 uppercase tracking-widest leading-none">Lộ trình học tập</h3>
-                    <p className="text-[9px] font-bold text-slate-400 mt-1">Mục tiêu học tập phân bổ theo ngày</p>
-                  </div>
-                </div>
+        {/* Inline Action Buttons */}
+        <div className="flex items-center gap-1.5 flex-shrink-0">
+          {canEdit && (
+            <>
+              <Link
+                to={`/manage/edit/${id}/flashcards`}
+                className="h-8 px-3 bg-indigo-50 hover:bg-indigo-100 text-indigo-600 text-[9px] font-black uppercase tracking-wider rounded-lg flex items-center gap-1 active:scale-95 transition-all"
+              >
+                <Layers className="w-3 h-3" />
+                <span className="hidden sm:inline">Manage</span>
+              </Link>
+              <button 
+                onClick={() => {
+                  setEditFormData({ ...quiz, tags: quiz.tags?.join(', ') })
+                  setEditTab('props')
+                  setIsEditModalOpen(true)
+                }}
+                className="w-8 h-8 flex items-center justify-center bg-white border border-slate-100 rounded-lg text-slate-400 hover:text-indigo-600 transition-all active:scale-90"
+              >
+                <Settings className="w-4 h-4" />
+              </button>
+            </>
+          )}
+        </div>
+      </nav>
 
-                {roadmapStatus.roadmap_active && (
+      <div className="pt-16 pb-28">
+        {/* ═══════════════ DESCRIPTION LINE (if exists) ═══════════════ */}
+        {quiz?.description && (
+          <div className="px-4 max-w-5xl mx-auto mt-2 mb-3">
+            <p className="text-xs text-slate-400 font-medium leading-relaxed line-clamp-2 pl-1">{quiz.description}</p>
+          </div>
+        )}
+
+        {/* ═══════════════ UNIFIED LEARNING PROGRESS BLOCK ═══════════════ */}
+        <div className="px-4 max-w-5xl mx-auto mb-5 animate-in fade-in slide-in-from-bottom-4 duration-300">
+          <div className="bg-white rounded-2xl p-4 md:p-5 shadow-sm border border-slate-100 relative overflow-hidden">
+            {/* Section Header */}
+            <div className="flex items-center justify-between gap-3 mb-4">
+              <div className="flex items-center gap-2">
+                <div className="w-7 h-7 rounded-lg bg-indigo-50 flex items-center justify-center text-indigo-600">
+                  <Award className="w-4 h-4" />
+                </div>
+                <h3 className="text-[10px] font-black text-slate-900 uppercase tracking-widest leading-none">Learning Progress</h3>
+              </div>
+              <div className="flex items-center gap-1.5">
+                {roadmapStatus?.roadmap_active && (
                   <button
                     onClick={() => setIsRoadmapSettingsOpen(true)}
-                    className="w-8 h-8 rounded-lg bg-white border border-slate-150 flex items-center justify-center text-slate-450 hover:text-indigo-600 transition-all active:scale-90"
-                    title="Cấu hình lộ trình"
+                    className="w-7 h-7 rounded-lg bg-white border border-slate-150 flex items-center justify-center text-slate-400 hover:text-indigo-600 transition-all active:scale-90"
+                    title="Roadmap Settings"
                   >
-                    <Settings className="w-4 h-4" />
+                    <Settings className="w-3.5 h-3.5" />
                   </button>
                 )}
+                <button
+                  onClick={() => setIsProgressExpanded(!isProgressExpanded)}
+                  className="w-7 h-7 rounded-lg bg-white border border-slate-150 flex items-center justify-center text-slate-400 hover:text-indigo-600 transition-all active:scale-90"
+                  title={isProgressExpanded ? "Collapse" : "Expand details"}
+                >
+                  {isProgressExpanded ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+                </button>
               </div>
+            </div>
 
-              {!roadmapStatus.roadmap_active ? (
-                <div className="p-6 md:p-8 rounded-[1.75rem] bg-indigo-50/40 border border-indigo-100/50 flex flex-col md:flex-row items-center justify-between gap-6">
-                  <div className="flex-1 text-center md:text-left">
-                    <span className="text-[10px] font-black text-indigo-600 uppercase tracking-widest block mb-1">Tính năng thông minh</span>
-                    <h4 className="text-base font-black text-slate-800 leading-snug">Chưa kích hoạt Lộ trình học</h4>
-                    <p className="text-xs text-slate-500 font-medium mt-1 max-w-xl">Hệ thống sẽ tự động tính toán số thẻ học mới và ôn tập mỗi ngày dựa theo tốc độ mong muốn để bạn hoàn thành đúng hạn.</p>
-                  </div>
+            {/* ── Row 1: Mastery Progress Bar ── */}
+            {masteryData && masteryData.total > 0 && (
+              <div className="mb-4">
+                <div className="h-3 w-full bg-slate-100 rounded-full overflow-hidden flex border border-slate-50">
+                  <div className="h-full bg-slate-300 transition-all duration-500" style={{ width: `${(masteryData.new / masteryData.total) * 100}%` }} title={`New: ${masteryData.new}`} />
+                  <div className="h-full bg-rose-400 transition-all duration-500" style={{ width: `${(masteryData.learning / masteryData.total) * 100}%` }} title={`Learning: ${masteryData.learning}`} />
+                  <div className="h-full bg-amber-400 transition-all duration-500" style={{ width: `${(masteryData.familiar / masteryData.total) * 100}%` }} title={`Familiar: ${masteryData.familiar}`} />
+                  <div className="h-full bg-emerald-500 transition-all duration-500" style={{ width: `${(masteryData.mastered / masteryData.total) * 100}%` }} title={`Mastered: ${masteryData.mastered}`} />
+                </div>
+                <div className="flex items-center justify-between mt-2 gap-1 flex-wrap">
+                  <div className="flex items-center gap-1"><div className="w-2 h-2 bg-slate-300 rounded-full" /><span className="text-[8px] font-black text-slate-400 uppercase">{masteryData.new} New</span></div>
+                  <div className="flex items-center gap-1"><div className="w-2 h-2 bg-rose-400 rounded-full" /><span className="text-[8px] font-black text-slate-400 uppercase">{masteryData.learning} Learning</span></div>
+                  <div className="flex items-center gap-1"><div className="w-2 h-2 bg-amber-400 rounded-full" /><span className="text-[8px] font-black text-slate-400 uppercase">{masteryData.familiar} Familiar</span></div>
+                  <div className="flex items-center gap-1"><div className="w-2 h-2 bg-emerald-500 rounded-full" /><span className="text-[8px] font-black text-slate-400 uppercase">{masteryData.mastered} Mastered</span></div>
+                </div>
+              </div>
+            )}
 
-                  <div className="flex items-center gap-3 flex-shrink-0">
-                    <div className="flex flex-col gap-1 text-left">
-                      <span className="text-[8px] font-black text-slate-400 uppercase tracking-wider block">Học mới/ngày</span>
-                      <input
-                        type="number"
-                        min="1"
-                        value={dailyNewInput}
-                        onChange={(e) => setDailyNewInput(Math.max(1, parseInt(e.target.value) || 1))}
-                        className="w-16 h-8 px-2 bg-white border border-slate-200 rounded-lg text-xs font-bold text-center outline-none focus:border-indigo-500"
-                      />
-                    </div>
-                    <button
-                      onClick={() => handleSaveRoadmap(true)}
-                      disabled={isSavingRoadmapSettings}
-                      className="h-10 px-5 bg-indigo-600 hover:bg-indigo-750 text-white text-xs font-black uppercase tracking-wider rounded-xl shadow-md shadow-indigo-150 transition-all active:scale-95 disabled:opacity-50"
-                    >
-                      Kích hoạt
-                    </button>
+            {/* ── Row 2: Quick Stats Grid ── */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5">
+              {/* Total Progress */}
+              {roadmapStatus && (
+                <div className="p-3 rounded-xl bg-slate-50/80 border border-slate-100/60">
+                  <span className="text-[7px] font-black text-slate-400 uppercase tracking-wider block mb-1">Progress</span>
+                  <span className="text-sm font-black text-slate-800 leading-none">{roadmapStatus.learned_cards}/{roadmapStatus.total_cards}</span>
+                  <div className="w-full h-1.5 bg-slate-200 rounded-full overflow-hidden mt-1.5">
+                    <div className="h-full bg-gradient-to-r from-indigo-500 to-purple-500 rounded-full transition-all" style={{ width: `${roadmapStatus.total_cards > 0 ? Math.round((roadmapStatus.learned_cards / roadmapStatus.total_cards) * 100) : 0}%` }} />
                   </div>
                 </div>
-              ) : (
-                <div className="space-y-6">
-                  {/* Quotas grid */}
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    {/* Progress Card */}
-                    <div className="p-4 rounded-2xl bg-slate-50 border border-slate-100 flex flex-col justify-between">
-                      <div>
-                        <span className="text-[8px] font-black text-slate-400 uppercase tracking-wider block mb-1">TIẾN ĐỘ CHUNG</span>
-                        <h5 className="text-xl font-black text-slate-800 leading-none">
-                          {roadmapStatus.learned_cards} / {roadmapStatus.total_cards}
-                        </h5>
-                        <span className="text-[9px] font-bold text-slate-400 mt-1 block">từ đã học được lưu vào bộ nhớ</span>
-                      </div>
-                      <div className="w-full h-2 bg-slate-200 rounded-full overflow-hidden mt-3">
-                        <div
-                          className="h-full bg-gradient-to-r from-indigo-500 to-purple-500 rounded-full transition-all"
-                          style={{ width: `${roadmapStatus.total_cards > 0 ? Math.round((roadmapStatus.learned_cards / roadmapStatus.total_cards) * 100) : 0}%` }}
-                        />
-                      </div>
-                    </div>
+              )}
 
-                    {/* Streak & Est Date Card */}
-                    <div className="p-4 rounded-2xl bg-slate-50 border border-slate-100 flex flex-col justify-between">
-                      <div>
-                        <span className="text-[8px] font-black text-slate-400 uppercase tracking-wider block mb-1">DỰ KIẾN HOÀN THÀNH</span>
-                        <h5 className="text-base font-black text-slate-850 leading-none flex items-center gap-1.5">
-                          <Target className="w-4 h-4 text-emerald-500 animate-pulse" />
-                          {roadmapStatus.estimated_completion_date ? new Date(roadmapStatus.estimated_completion_date).toLocaleDateString('vi-VN') : 'N/A'}
-                        </h5>
-                        <span className="text-[9px] font-bold text-slate-400 mt-1 block">
-                          còn khoảng {roadmapStatus.days_left} ngày học đều đặn
-                        </span>
-                      </div>
-
-                      {roadmapStatus.streak > 0 ? (
-                        <div className="mt-3 flex items-center gap-1">
-                          <span className="text-[9px] font-black text-orange-650 bg-orange-50 px-2 py-0.5 rounded-lg flex items-center gap-0.5 shadow-sm">
-                            🔥 {roadmapStatus.streak} ngày liên tiếp
-                          </span>
-                        </div>
-                      ) : (
-                        <span className="text-[8px] font-bold text-slate-450 mt-3 block">Chưa có chuỗi streak học</span>
-                      )}
-                    </div>
-
-                    {/* Today Progress Map */}
-                    <div className="p-4 rounded-2xl bg-slate-50 border border-slate-100 flex flex-col justify-between">
-                      <span className="text-[8px] font-black text-slate-400 uppercase tracking-wider block mb-2">MỤC TIÊU HÔM NAY</span>
-                      <div className="space-y-2">
-                        {/* New cards target */}
-                        <div>
-                          <div className="flex items-center justify-between text-[9px] font-bold text-slate-500 mb-0.5">
-                            <span>Học mới:</span>
-                            <span className="font-black text-slate-700">{roadmapStatus.new_learned_today} / {roadmapStatus.new_target_today}</span>
-                          </div>
-                          <div className="w-full h-1.5 bg-slate-200 rounded-full overflow-hidden">
-                            <div
-                              className="h-full bg-gradient-to-r from-orange-400 to-rose-400 rounded-full transition-all"
-                              style={{ width: `${roadmapStatus.new_target_today > 0 ? Math.min(100, Math.round((roadmapStatus.new_learned_today / roadmapStatus.new_target_today) * 100)) : 0}%` }}
-                            />
-                          </div>
-                        </div>
-
-                        {/* Review cards target */}
-                        <div>
-                          <div className="flex items-center justify-between text-[9px] font-bold text-slate-500 mb-0.5">
-                            <span>Ôn tập:</span>
-                            <span className="font-black text-slate-700">{roadmapStatus.review_completed_today} / {roadmapStatus.review_due_today}</span>
-                          </div>
-                          <div className="w-full h-1.5 bg-slate-200 rounded-full overflow-hidden">
-                            <div
-                              className="h-full bg-gradient-to-r from-indigo-500 to-purple-500 rounded-full transition-all"
-                              style={{ width: `${roadmapStatus.review_due_today > 0 ? Math.min(100, Math.round((roadmapStatus.review_completed_today / roadmapStatus.review_due_today) * 100)) : 0}%` }}
-                            />
-                          </div>
-                        </div>
-                      </div>
-                    </div>
+              {/* Today's New */}
+              {roadmapStatus?.roadmap_active && (
+                <div className="p-3 rounded-xl bg-slate-50/80 border border-slate-100/60">
+                  <span className="text-[7px] font-black text-slate-400 uppercase tracking-wider block mb-1">New Today</span>
+                  <span className="text-sm font-black text-slate-800 leading-none">{roadmapStatus.new_learned_today}/{roadmapStatus.new_target_today}</span>
+                  <div className="w-full h-1.5 bg-slate-200 rounded-full overflow-hidden mt-1.5">
+                    <div className="h-full bg-gradient-to-r from-orange-400 to-rose-400 rounded-full transition-all" style={{ width: `${roadmapStatus.new_target_today > 0 ? Math.min(100, Math.round((roadmapStatus.new_learned_today / roadmapStatus.new_target_today) * 100)) : 0}%` }} />
                   </div>
+                </div>
+              )}
 
-                  {/* 7-day Activity Calendar */}
-                  {roadmapStatus.seven_days && roadmapStatus.seven_days.length > 0 && (
-                    <div className="pt-3 border-t border-slate-100">
-                      <span className="text-[8px] font-black text-slate-400 uppercase tracking-wider block mb-2">LỊCH SỬ CHINH PHỤC 7 NGÀY QUA</span>
-                      <div className="grid grid-cols-7 gap-2">
-                        {roadmapStatus.seven_days.map((day: any) => {
-                          const dateObj = new Date(day.date);
-                          const formattedDate = dateObj.toLocaleDateString('vi-VN', { day: 'numeric', month: 'numeric' });
-                          return (
-                            <div key={day.date} className="flex flex-col items-center gap-1.5 p-2 rounded-xl bg-slate-50/50 border border-slate-100/50">
-                              <span className="text-[7.5px] font-black text-slate-450 uppercase">{day.day_name}</span>
-                              <div className={cn(
-                                "w-7 h-7 rounded-full flex items-center justify-center shadow-sm transition-all duration-300",
-                                day.active
-                                  ? "bg-amber-500 text-white scale-105"
-                                  : "bg-slate-100 text-slate-300"
-                              )}>
-                                {day.active ? (
-                                  <Flame className="w-4.5 h-4.5 fill-white text-white" />
-                                ) : (
-                                  <span className="text-[8px] font-black text-slate-400">{dateObj.getDate()}</span>
-                                )}
-                              </div>
-                              <span className="text-[7.5px] font-bold text-slate-400 leading-none">{formattedDate}</span>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </div>
+              {/* Today's Review */}
+              {roadmapStatus?.roadmap_active && (
+                <div className="p-3 rounded-xl bg-slate-50/80 border border-slate-100/60">
+                  <span className="text-[7px] font-black text-slate-400 uppercase tracking-wider block mb-1">Review Today</span>
+                  <span className="text-sm font-black text-slate-800 leading-none">{roadmapStatus.review_completed_today}/{roadmapStatus.review_due_today}</span>
+                  <div className="w-full h-1.5 bg-slate-200 rounded-full overflow-hidden mt-1.5">
+                    <div className="h-full bg-gradient-to-r from-indigo-500 to-purple-500 rounded-full transition-all" style={{ width: `${roadmapStatus.review_due_today > 0 ? Math.min(100, Math.round((roadmapStatus.review_completed_today / roadmapStatus.review_due_today) * 100)) : 0}%` }} />
+                  </div>
+                </div>
+              )}
+
+              {/* Streak or Estimated */}
+              {roadmapStatus?.roadmap_active && (
+                <div className="p-3 rounded-xl bg-slate-50/80 border border-slate-100/60">
+                  <span className="text-[7px] font-black text-slate-400 uppercase tracking-wider block mb-1">Streak</span>
+                  <div className="flex items-center gap-1.5">
+                    {roadmapStatus.streak > 0 ? (
+                      <span className="text-sm font-black text-orange-600 leading-none flex items-center gap-1">
+                        🔥 {roadmapStatus.streak}d
+                      </span>
+                    ) : (
+                      <span className="text-sm font-black text-slate-300 leading-none">—</span>
+                    )}
+                  </div>
+                  {roadmapStatus.estimated_completion_date && (
+                    <span className="text-[7px] font-bold text-slate-400 mt-1 block flex items-center gap-0.5">
+                      <Target className="w-2.5 h-2.5 text-emerald-500 inline" />
+                      {new Date(roadmapStatus.estimated_completion_date).toLocaleDateString('vi-VN')}
+                    </span>
                   )}
                 </div>
               )}
             </div>
-          </div>
-        )}
 
-        {/* Roadmap Settings Modal */}
-        <AnimatePresence>
-          {isRoadmapSettingsOpen && (
-            <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4">
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                onClick={() => setIsRoadmapSettingsOpen(false)}
-                className="absolute inset-0 bg-slate-900/60 backdrop-blur-md"
-              />
-              <motion.div
-                initial={{ opacity: 0, scale: 0.9, y: 20 }}
-                animate={{ opacity: 1, scale: 1, y: 0 }}
-                exit={{ opacity: 0, scale: 0.9, y: 20 }}
-                className="relative w-full max-w-sm bg-white rounded-[2rem] p-6 shadow-2xl border border-slate-100/60 overflow-hidden text-slate-800"
-              >
-                <div className="flex items-center justify-between mb-6">
-                  <h3 className="text-base font-black text-slate-800 uppercase tracking-widest">🎯 Cài đặt lộ trình</h3>
-                  <button onClick={() => setIsRoadmapSettingsOpen(false)} className="w-8 h-8 rounded-full bg-slate-50 flex items-center justify-center text-slate-400 hover:text-rose-500 transition-all">
-                    <X className="w-4 h-4" />
-                  </button>
+            {/* ── Roadmap Not Active Banner ── */}
+            {roadmapStatus && !roadmapStatus.roadmap_active && (
+              <div className="mt-3 p-3 rounded-xl bg-indigo-50/50 border border-indigo-100/40 flex items-center justify-between gap-3">
+                <div className="flex-1 min-w-0">
+                  <span className="text-[8px] font-black text-indigo-600 uppercase tracking-widest block mb-0.5">Smart Roadmap</span>
+                  <p className="text-[10px] text-slate-500 font-medium leading-snug">Enable daily learning goals and spaced schedule.</p>
                 </div>
-                
-                <div className="space-y-4 mb-6 text-left">
-                  <div>
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-2">Số từ học mới mỗi ngày</label>
-                    <input
-                      type="number"
-                      min="1"
-                      value={dailyNewInput}
-                      onChange={(e) => setDailyNewInput(Math.max(1, parseInt(e.target.value) || 1))}
-                      className="w-full px-4 py-3 bg-slate-50 border border-slate-100 rounded-xl text-sm font-semibold outline-none focus:ring-4 focus:ring-indigo-500/5 focus:border-indigo-500 transition-all"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-2">Số thẻ ôn tập tối đa mỗi ngày</label>
-                    <input
-                      type="number"
-                      min="1"
-                      value={dailyReviewInput}
-                      onChange={(e) => setDailyReviewInput(Math.max(1, parseInt(e.target.value) || 1))}
-                      className="w-full px-4 py-3 bg-slate-50 border border-slate-100 rounded-xl text-sm font-semibold outline-none focus:ring-4 focus:ring-indigo-500/5 focus:border-indigo-500 transition-all"
-                    />
-                  </div>
-                </div>
-                
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => handleSaveRoadmap(false)}
-                    disabled={isSavingRoadmapSettings}
-                    className="flex-1 h-12 bg-rose-50 hover:bg-rose-100 text-rose-600 rounded-2xl font-black text-xs uppercase tracking-widest transition-all"
-                  >
-                    Tắt lộ trình
-                  </button>
+                <div className="flex items-center gap-2 flex-shrink-0">
+                  <input
+                    type="number" min="1" value={dailyNewInput}
+                    onChange={(e) => setDailyNewInput(Math.max(1, parseInt(e.target.value) || 1))}
+                    className="w-12 h-7 px-1.5 bg-white border border-slate-200 rounded-lg text-[10px] font-bold text-center outline-none focus:border-indigo-500"
+                  />
                   <button
                     onClick={() => handleSaveRoadmap(true)}
                     disabled={isSavingRoadmapSettings}
-                    className="flex-1 h-12 bg-indigo-650 hover:bg-indigo-755 text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-lg shadow-indigo-150 transition-all"
+                    className="h-7 px-3 bg-indigo-600 hover:bg-indigo-700 text-white text-[9px] font-black uppercase tracking-wider rounded-lg shadow-sm transition-all active:scale-95 disabled:opacity-50"
                   >
-                    Lưu cấu hình
+                    Activate
                   </button>
                 </div>
-              </motion.div>
-            </div>
-          )}
-        </AnimatePresence>
-
-        {/* Deck Mastery Distribution Widget */}
-        {masteryData && (
-          <div className="px-6 max-w-5xl mx-auto mb-8">
-            <div className="bg-white rounded-[2.5rem] p-6 md:p-8 shadow-sm border border-slate-100">
-              <div className="flex items-center gap-3 mb-6">
-                <div className="w-9 h-9 rounded-xl bg-indigo-50 flex items-center justify-center text-indigo-600">
-                  <Award className="w-5 h-5" />
-                </div>
-                <div>
-                  <h3 className="text-xs md:text-sm font-black text-slate-900 uppercase tracking-widest italic leading-none">Deck Mastery</h3>
-                  <p className="text-[9px] font-bold text-slate-400 mt-0.5">Leitner spaced repetition progress</p>
-                </div>
               </div>
+            )}
 
-              {/* Segmented Progress Bar */}
-              {masteryData.total > 0 ? (
-                <div>
-                  <div className="h-4 w-full bg-slate-100 rounded-full overflow-hidden flex mb-4 border border-slate-50">
-                    <div 
-                      className="h-full bg-slate-300 transition-all duration-500" 
-                      style={{ width: `${(masteryData.new / masteryData.total) * 100}%` }}
-                      title={`New: ${masteryData.new} cards`}
-                    />
-                    <div 
-                      className="h-full bg-rose-400 transition-all duration-500" 
-                      style={{ width: `${(masteryData.learning / masteryData.total) * 100}%` }}
-                      title={`Learning: ${masteryData.learning} cards`}
-                    />
-                    <div 
-                      className="h-full bg-amber-400 transition-all duration-500" 
-                      style={{ width: `${(masteryData.familiar / masteryData.total) * 100}%` }}
-                      title={`Familiar: ${masteryData.familiar} cards`}
-                    />
-                    <div 
-                      className="h-full bg-emerald-500 transition-all duration-500" 
-                      style={{ width: `${(masteryData.mastered / masteryData.total) * 100}%` }}
-                      title={`Mastered: ${masteryData.mastered} cards`}
-                    />
-                  </div>
-
-                  <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
-                    <div className="p-3 bg-slate-50 border border-slate-100 rounded-2xl flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <div className="w-2.5 h-2.5 bg-slate-300 rounded-full" />
-                        <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">NEW</span>
-                      </div>
-                      <span className="text-xs font-black text-slate-700">{masteryData.new}</span>
-                    </div>
-
-                    <div className="p-3 bg-rose-50/30 border border-rose-100/10 rounded-2xl flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <div className="w-2.5 h-2.5 bg-rose-400 rounded-full animate-pulse" />
-                        <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">LEARNING</span>
-                      </div>
-                      <span className="text-xs font-black text-rose-500">{masteryData.learning}</span>
-                    </div>
-
-                    <div className="p-3 bg-amber-50/30 border border-amber-100/10 rounded-2xl flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <div className="w-2.5 h-2.5 bg-amber-400 rounded-full" />
-                        <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">FAMILIAR</span>
-                      </div>
-                      <span className="text-xs font-black text-amber-500">{masteryData.familiar}</span>
-                    </div>
-
-                    <div className="p-3 bg-emerald-50/30 border border-emerald-100/10 rounded-2xl flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <div className="w-2.5 h-2.5 bg-emerald-500 rounded-full" />
-                        <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">MASTERED</span>
-                      </div>
-                      <span className="text-xs font-black text-emerald-600">{masteryData.mastered}</span>
-                    </div>
-
-                    <div className="p-3 bg-indigo-50/30 border border-indigo-100/10 rounded-2xl flex items-center justify-between col-span-2 sm:col-span-1">
-                      <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">TOTAL</span>
-                      <span className="text-xs font-black text-indigo-600">{masteryData.total}</span>
+            {/* ── Expanded: 7-day Calendar ── */}
+            <AnimatePresence>
+              {isProgressExpanded && roadmapStatus?.seven_days && roadmapStatus.seven_days.length > 0 && (
+                <motion.div
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: 'auto', opacity: 1 }}
+                  exit={{ height: 0, opacity: 0 }}
+                  transition={{ duration: 0.2 }}
+                  className="overflow-hidden"
+                >
+                  <div className="mt-4 pt-3 border-t border-slate-100">
+                    <span className="text-[8px] font-black text-slate-400 uppercase tracking-wider block mb-2">7-Day Activity</span>
+                    <div className="grid grid-cols-7 gap-1.5">
+                      {roadmapStatus.seven_days.map((day: any) => {
+                        const dateObj = new Date(day.date)
+                        const formattedDate = dateObj.toLocaleDateString('vi-VN', { day: 'numeric', month: 'numeric' })
+                        return (
+                          <div key={day.date} className="flex flex-col items-center gap-1 p-1.5 rounded-lg bg-slate-50/50">
+                            <span className="text-[7px] font-black text-slate-400 uppercase">{day.day_name}</span>
+                            <div className={cn(
+                              "w-6 h-6 rounded-full flex items-center justify-center transition-all duration-300",
+                              day.active
+                                ? "bg-amber-500 text-white scale-105"
+                                : "bg-slate-100 text-slate-300"
+                            )}>
+                              {day.active ? (
+                                <Flame className="w-3.5 h-3.5 fill-white text-white" />
+                              ) : (
+                                <span className="text-[7px] font-black text-slate-400">{dateObj.getDate()}</span>
+                              )}
+                            </div>
+                            <span className="text-[7px] font-bold text-slate-400 leading-none">{formattedDate}</span>
+                          </div>
+                        )
+                      })}
                     </div>
                   </div>
-                </div>
-              ) : (
-                <p className="text-[10px] font-medium text-slate-400">Add questions to this deck to display mastery level distribution.</p>
+                </motion.div>
               )}
-            </div>
+            </AnimatePresence>
           </div>
-        )}
+        </div>
 
-        {/* Tabs */}
-        <div className="px-6 max-w-5xl mx-auto">
-          <div className="flex items-center gap-10 border-b border-slate-100 mb-8 overflow-x-auto no-scrollbar">
+        {/* ═══════════════ TABS ═══════════════ */}
+        <div className="px-4 max-w-5xl mx-auto">
+          <div className="flex items-center gap-8 border-b border-slate-100 mb-5 overflow-x-auto no-scrollbar">
             {['list', 'stats'].map(tab => (
               <button 
                 key={tab}
                 onClick={() => setActiveTab(tab as any)} 
                 className={cn(
-                  "pb-4 text-[10px] font-black uppercase tracking-[0.2em] transition-all relative whitespace-nowrap",
+                  "pb-3 text-[9px] font-black uppercase tracking-[0.2em] transition-all relative whitespace-nowrap",
                   activeTab === tab ? 'text-indigo-600' : 'text-slate-400'
                 )}
               >
-                {tab === 'list' ? 'QUESTION LIST' : 'DETAILED STATISTICS'}
-                {activeTab === tab && <div className="absolute bottom-0 left-0 right-0 h-1 bg-indigo-600 rounded-t-full" />}
+                {tab === 'list' ? 'CARD LIST' : 'STATISTICS'}
+                {activeTab === tab && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-indigo-600 rounded-t-full" />}
               </button>
             ))}
           </div>
 
           {activeTab === 'list' ? (
             <div className="space-y-1">
-              {/* Quick Add Card Form for authorized users */}
-              {canEdit && (
-                <div className="bg-gradient-to-r from-indigo-50/40 to-pink-50/20 p-5 rounded-3xl border border-indigo-100/30 mb-6 text-left relative overflow-hidden">
-                  <div className="flex items-center gap-2 mb-3">
-                    <Sparkles className="w-4 h-4 text-indigo-500 animate-pulse" />
-                    <span className="text-[10px] font-black text-indigo-700 uppercase tracking-widest">Quick Add Card</span>
-                  </div>
-                  <form onSubmit={handleQuickAddCard} className="flex flex-col sm:flex-row gap-3 relative z-10">
-                    <input
-                      type="text"
-                      placeholder="Front side (e.g. Kanji, vocabulary, question)..."
-                      value={quickAddFront}
-                      onChange={(e) => setQuickAddFront(e.target.value)}
-                      className="flex-1 px-4 py-3 bg-white border border-slate-100 rounded-xl text-xs font-semibold focus:ring-4 focus:ring-indigo-500/5 outline-none shadow-sm focus:border-indigo-500 transition-all"
-                      required
-                    />
-                    <input
-                      type="text"
-                      placeholder="Back side (e.g. translation, meaning, explanation)..."
-                      value={quickAddBack}
-                      onChange={(e) => setQuickAddBack(e.target.value)}
-                      className="flex-1 px-4 py-3 bg-white border border-slate-100 rounded-xl text-xs font-semibold focus:ring-4 focus:ring-indigo-500/5 outline-none shadow-sm focus:border-indigo-500 transition-all"
-                      required
-                    />
-                    <button
-                      type="submit"
-                      disabled={isQuickAdding}
-                      className="px-6 py-3 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white text-[10px] font-black uppercase tracking-wider rounded-xl shadow-md active:scale-95 transition-all shrink-0 flex items-center justify-center gap-1.5"
-                    >
-                      {isQuickAdding ? (
-                        <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                      ) : (
-                        <Plus className="w-3.5 h-3.5" />
-                      )}
-                      Add Card
-                    </button>
-                  </form>
-                </div>
-              )}
-
-              <div className="relative mb-6">
-                <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-300" />
-                <input 
-                  type="text" 
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Search questions by content..." 
-                  className="w-full pl-12 pr-4 py-3 bg-white border border-slate-100 rounded-2xl text-xs focus:ring-2 focus:ring-indigo-500 outline-none shadow-sm transition-all" 
-                />
-              </div>
-
-              <div className="space-y-2">
+              {/* Question Items */}
+              <div className="space-y-1.5">
                 {allQuestions.map((q) => (
-                  <div key={q.id} className="group bg-white p-5 rounded-2xl border border-transparent hover:border-indigo-100 hover:bg-indigo-50/10 hover:shadow-sm transition-all">
-                    <div className="flex flex-col md:flex-row md:items-center gap-4">
-                      <div className="flex-shrink-0 min-w-[40px]">
-                        <span className="text-[10px] font-black text-slate-300 uppercase tracking-widest">#{q.orig_index}</span>
-                      </div>
+                  <div key={q.id} className="group bg-white p-3.5 md:p-4 rounded-xl border border-transparent hover:border-indigo-100 hover:bg-indigo-50/10 hover:shadow-sm transition-all">
+                    <div className="flex items-start gap-3">
+                      <span className="text-[9px] font-black text-slate-300 uppercase tracking-widest mt-1 flex-shrink-0 w-6 text-right">#{q.orig_index}</span>
                       <div className="flex-1 min-w-0 text-left">
                         <h3 
-                          className="text-sm font-bold text-slate-700 leading-relaxed md:line-clamp-2"
+                          className="text-xs font-bold text-slate-700 leading-relaxed md:line-clamp-2"
                           dangerouslySetInnerHTML={{ __html: parseBBCodeToHtml(q.content) }}
                         />
-                      </div>
-                      <div className="flex items-center gap-5 md:ml-auto flex-shrink-0 pt-2 md:pt-0">
-                        <StatItem label="ATTEMPTS" value={q.stats?.total || 0} color="slate" />
-                        <div className="w-px h-6 bg-slate-100" />
-                        <StatItem label="CORRECT" value={q.stats?.correct || 0} color="emerald" />
-                        <StatItem label="WRONG" value={q.stats?.wrong || 0} color="rose" />
                         {notes?.[q.id] && (
-                          <>
-                            <div className="w-px h-6 bg-slate-100" />
-                            <div className="flex items-center text-indigo-400" title={notes[q.id]}>
-                              <StickyNote className="w-4 h-4" />
-                            </div>
-                          </>
+                          <div className="mt-1.5 p-2 bg-indigo-50/50 rounded-lg border border-indigo-100/30">
+                            <p className="text-[9px] font-medium text-slate-500 italic line-clamp-1">{notes[q.id]}</p>
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-3 md:gap-4 flex-shrink-0">
+                        <StatItem label="ATT" value={q.stats?.total || 0} color="slate" />
+                        <StatItem label="OK" value={q.stats?.correct || 0} color="emerald" />
+                        <StatItem label="NG" value={q.stats?.wrong || 0} color="rose" />
+                        {notes?.[q.id] && (
+                          <div className="flex items-center text-indigo-400 md:hidden" title={notes[q.id]}>
+                            <StickyNote className="w-3 h-3" />
+                          </div>
                         )}
                       </div>
                     </div>
-                    {notes?.[q.id] && (
-                      <div className="mt-3 p-3 bg-indigo-50/50 rounded-xl border border-indigo-100/30">
-                        <p className="text-[10px] font-medium text-slate-500 italic line-clamp-2">{notes[q.id]}</p>
-                      </div>
-                    )}
                   </div>
                 ))}
               </div>
 
               {hasNextPage && (
-                <div className="mt-8 flex justify-center">
+                <div className="mt-6 flex justify-center">
                   <button 
                     onClick={() => fetchNextPage()} 
                     disabled={isFetchingNextPage}
-                    className="px-8 py-3 bg-white border border-slate-100 rounded-xl text-[10px] font-black text-slate-400 uppercase tracking-widest shadow-sm active:scale-95 disabled:opacity-50"
+                    className="px-6 py-2.5 bg-white border border-slate-100 rounded-xl text-[9px] font-black text-slate-400 uppercase tracking-widest shadow-sm active:scale-95 disabled:opacity-50"
                   >
                     {isFetchingNextPage ? 'LOADING...' : 'LOAD MORE'}
                   </button>
                 </div>
               )}
+
+              {allQuestions.length === 0 && (
+                <div className="py-12 text-center">
+                  <div className="w-14 h-14 bg-slate-50 rounded-2xl flex items-center justify-center mx-auto mb-4 text-slate-300">
+                    <BookOpen className="w-7 h-7" />
+                  </div>
+                  <p className="text-xs font-black text-slate-400 uppercase tracking-widest">No cards yet</p>
+                  <p className="text-[10px] text-slate-400 mt-1">Add cards using the + button below</p>
+                </div>
+              )}
             </div>
           ) : (
-            <div className="bg-white p-12 md:p-20 rounded-[3rem] text-center border border-slate-100 shadow-sm">
-              <div className="w-20 h-20 bg-indigo-50 rounded-3xl flex items-center justify-center mx-auto mb-8 text-indigo-600">
-                <BarChart2 className="w-10 h-10" />
+            <div className="bg-white p-10 md:p-16 rounded-2xl text-center border border-slate-100 shadow-sm">
+              <div className="w-14 h-14 bg-indigo-50 rounded-2xl flex items-center justify-center mx-auto mb-6 text-indigo-600">
+                <BarChart2 className="w-7 h-7" />
               </div>
-              <h3 className="text-2xl font-black text-slate-900 mb-4">In-Depth Analytics</h3>
-              <p className="text-slate-500 font-medium mb-10 max-w-md mx-auto">Detailed statistics and learning metrics will populate once you start practicing this deck.</p>
+              <h3 className="text-xl font-black text-slate-900 mb-3">In-Depth Analytics</h3>
+              <p className="text-slate-500 font-medium text-sm mb-8 max-w-md mx-auto">Detailed statistics and learning metrics will populate once you start practicing this deck.</p>
             </div>
           )}
         </div>
       </div>
 
-      {/* Action Bar */}
-      <div className="fixed bottom-0 left-0 right-0 p-4 md:p-8 bg-white/80 backdrop-blur-2xl border-t border-slate-100 z-[130] shadow-[0_-10px_40px_rgba(0,0,0,0.05)]">
-        <div className="max-w-5xl mx-auto flex flex-col sm:flex-row gap-3">
-          {/* Reload button commented out as requested */}
-          {/*
-          {sessionData && (Object.keys(sessionData.state || {}).length > 0 || sessionData.current_index > 0) && (
-            <button 
-              onClick={async () => {
-                if (window.confirm("Bạn có chắc chắn muốn làm mới/xoá tiến trình học hiện tại không?")) {
-                  await axios.delete(`/api/v1/deck/${id}/session`)
-                  queryClient.invalidateQueries({ queryKey: ['quiz-session', id] })
-                }
-              }}
-              className="w-14 h-14 bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-600 rounded-2xl flex items-center justify-center transition-all shrink-0 active:scale-95"
-              title="Làm mới tiến trình (Reset)"
+      {/* ═══════════════ FLOATING BOTTOM BAR ═══════════════ */}
+      <div className="fixed bottom-0 left-0 right-0 z-[130]">
+        {/* Creator Panel (Quick Add) - slides up above the bar */}
+        <AnimatePresence>
+          {bottomBarMode === 'creator' && !isSearchPanelOpen && canEdit && (
+            <motion.div
+              initial={{ y: 80, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              exit={{ y: 80, opacity: 0 }}
+              transition={{ type: "spring", damping: 25, stiffness: 220 }}
+              className="bg-white/95 backdrop-blur-xl border-t border-indigo-50/80 p-3 shadow-[0_-8px_20px_rgba(0,0,0,0.04)]"
             >
-              <RotateCcw className="w-5 h-5" />
-            </button>
-          )}
-          */}
-
-          {/* HỌC FLASHCARD BUTTON WITH DROPDOWN */}
-          <div className="w-full sm:flex-1 flex relative">
-            <button 
-              onClick={() => {
-                const savedMode = localStorage.getItem('quiz_learning_mode') || 'fsrs'
-                navigate(`/flashcard/${id}/play?mode=${savedMode}`)
-              }}
-              className="flex-1 py-4 sm:py-5 bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xs md:text-sm rounded-l-2xl shadow-xl shadow-indigo-500/20 active:scale-95 transition-all tracking-widest uppercase flex items-center justify-center gap-2"
-            >
-              <Brain className="w-4.5 h-4.5" /> HỌC FLASHCARD
-            </button>
-            <button
-              onClick={(e) => {
-                e.stopPropagation()
-                setShowFlashcardMenu(!showFlashcardMenu)
-                setShowPracticeMenu(false)
-              }}
-              className="px-3 md:px-4 bg-indigo-600 hover:bg-indigo-700 border-l border-indigo-500/50 text-white rounded-r-2xl active:scale-95 transition-all flex items-center justify-center"
-              title="Chọn chế độ học"
-            >
-              <ChevronDown className="w-4 h-4" />
-            </button>
-
-            {/* Dropdown Menu */}
-            {showFlashcardMenu && (
-              <>
-                <div className="fixed inset-0 z-[135]" onClick={() => setShowFlashcardMenu(false)} />
-                <div className="absolute bottom-full mb-3 left-0 right-0 sm:left-auto sm:right-0 sm:w-64 bg-white/95 backdrop-blur-md border border-slate-100/80 rounded-2xl shadow-2xl p-2 z-[140] flex flex-col gap-1 animate-in slide-in-from-bottom-2 duration-200">
-                  <span className="px-3 py-1.5 text-[9px] font-black text-slate-400 uppercase tracking-wider border-b border-slate-100/50 text-left">Chế độ Flashcard</span>
-                  <button
-                    onClick={() => {
-                      localStorage.setItem('quiz_learning_mode', 'fsrs')
-                      navigate(`/flashcard/${id}/play?mode=fsrs`)
-                    }}
-                    className="px-3 py-2.5 text-xs font-bold text-slate-700 hover:bg-indigo-50 hover:text-indigo-600 rounded-xl transition-all text-left flex items-center gap-2"
-                  >
-                    🧠 Spaced Repetition (FSRS)
-                  </button>
-                  <button
-                    onClick={() => {
-                      localStorage.setItem('quiz_learning_mode', 'flip')
-                      navigate(`/flashcard/${id}/play?mode=flip`)
-                    }}
-                    className="px-3 py-2.5 text-xs font-bold text-slate-700 hover:bg-indigo-50 hover:text-indigo-600 rounded-xl transition-all text-left flex items-center gap-2"
-                  >
-                    🔄 Flip Card (Lật thẻ)
-                  </button>
-                  <button
-                    onClick={() => {
-                      localStorage.setItem('quiz_learning_mode', 'review')
-                      navigate(`/flashcard/${id}/play?mode=review`)
-                    }}
-                    className="px-3 py-2.5 text-xs font-bold text-slate-700 hover:bg-indigo-50 hover:text-indigo-600 rounded-xl transition-all text-left flex items-center gap-2"
-                  >
-                    📚 Review Only (Chỉ ôn tập)
-                  </button>
-                  <button
-                    onClick={() => {
-                      localStorage.setItem('quiz_learning_mode', 'new')
-                      navigate(`/flashcard/${id}/play?mode=new`)
-                    }}
-                    className="px-3 py-2.5 text-xs font-bold text-slate-700 hover:bg-indigo-50 hover:text-indigo-600 rounded-xl transition-all text-left flex items-center gap-2"
-                  >
-                    ✨ Learn New (Chỉ học mới)
-                  </button>
-                  <button
-                    onClick={() => {
-                      localStorage.setItem('quiz_learning_mode', 'roadmap')
-                      navigate(`/flashcard/${id}/play?mode=roadmap`)
-                    }}
-                    className="px-3 py-2.5 text-xs font-bold text-slate-700 hover:bg-indigo-50 hover:text-indigo-600 rounded-xl transition-all text-left flex items-center gap-2"
-                  >
-                    🗺️ Roadmap Mode (Tiến trình)
-                  </button>
+              <form onSubmit={handleQuickAddCard} className="max-w-5xl mx-auto flex flex-col sm:flex-row items-end gap-2.5">
+                <div className="flex flex-1 gap-2.5 w-full">
+                  <div className="flex-1 space-y-1">
+                    <label className="text-[8px] font-black text-slate-400 uppercase tracking-widest ml-1">Front</label>
+                    <input
+                      ref={quickAddFrontRef}
+                      type="text"
+                      placeholder="Kanji, word, question..."
+                      value={quickAddFront}
+                      onChange={(e) => setQuickAddFront(e.target.value)}
+                      className="w-full h-9 bg-slate-50 border border-slate-200 focus:bg-white focus:border-indigo-500 rounded-xl px-3 text-xs font-bold text-slate-800 outline-none transition-all"
+                      required
+                    />
+                  </div>
+                  <div className="flex-1 space-y-1">
+                    <label className="text-[8px] font-black text-slate-400 uppercase tracking-widest ml-1">Back</label>
+                    <input
+                      type="text"
+                      placeholder="Translation, meaning..."
+                      value={quickAddBack}
+                      onChange={(e) => setQuickAddBack(e.target.value)}
+                      className="w-full h-9 bg-slate-50 border border-slate-200 focus:bg-white focus:border-indigo-500 rounded-xl px-3 text-xs font-bold text-slate-800 outline-none transition-all"
+                      required
+                    />
+                  </div>
                 </div>
+                <button
+                  type="submit"
+                  disabled={isQuickAdding}
+                  className="w-full sm:w-auto px-4 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white font-black text-[9px] uppercase tracking-wider rounded-xl shadow-md active:scale-95 transition-all flex items-center justify-center gap-1"
+                >
+                  {isQuickAdding ? (
+                    <span className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  ) : (
+                    <Plus className="w-3 h-3" />
+                  )}
+                  Add
+                </button>
+              </form>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Search Panel - slides up above the bar */}
+        <AnimatePresence>
+          {bottomBarMode === 'creator' && isSearchPanelOpen && (
+            <motion.div
+              initial={{ y: 80, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              exit={{ y: 80, opacity: 0 }}
+              transition={{ type: "spring", damping: 25, stiffness: 220 }}
+              className="bg-white/95 backdrop-blur-xl border-t border-indigo-50/80 p-3 shadow-[0_-8px_20px_rgba(0,0,0,0.04)]"
+            >
+              <div className="max-w-5xl mx-auto relative">
+                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-300" />
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Search cards by content..."
+                  className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all"
+                  autoFocus
+                />
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Main Bottom Bar */}
+        <div className="bg-white/90 backdrop-blur-2xl border-t border-slate-100 px-3 py-2.5 shadow-[0_-10px_40px_rgba(0,0,0,0.05)]">
+          <div className="max-w-5xl mx-auto flex items-center gap-2">
+            {bottomBarMode === 'learn' ? (
+              /* ── LEARN MODE ── */
+              <>
+                {/* Flashcard Button with Dropdown */}
+                <div className="flex-1 flex relative">
+                  <button 
+                    onClick={() => {
+                      const savedMode = localStorage.getItem('quiz_learning_mode') || 'fsrs'
+                      navigate(`/flashcard/${id}/play?mode=${savedMode}`)
+                    }}
+                    className="flex-1 py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-black text-[10px] md:text-xs rounded-l-xl shadow-lg shadow-indigo-500/15 active:scale-[0.97] transition-all tracking-widest uppercase flex items-center justify-center gap-1.5"
+                  >
+                    <Brain className="w-4 h-4" /> Flashcard
+                  </button>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      setShowFlashcardMenu(!showFlashcardMenu)
+                      setShowPracticeMenu(false)
+                    }}
+                    className="px-2.5 bg-indigo-600 hover:bg-indigo-700 border-l border-indigo-500/50 text-white rounded-r-xl active:scale-95 transition-all flex items-center justify-center"
+                  >
+                    <ChevronDown className="w-3.5 h-3.5" />
+                  </button>
+
+                  {/* Flashcard Dropdown */}
+                  {showFlashcardMenu && (
+                    <>
+                      <div className="fixed inset-0 z-[135]" onClick={() => setShowFlashcardMenu(false)} />
+                      <div className="absolute bottom-full mb-2 left-0 right-0 sm:left-auto sm:right-0 sm:w-60 bg-white/95 backdrop-blur-md border border-slate-100/80 rounded-xl shadow-2xl p-1.5 z-[140] flex flex-col gap-0.5 animate-in slide-in-from-bottom-2 duration-200">
+                        <span className="px-3 py-1.5 text-[8px] font-black text-slate-400 uppercase tracking-wider border-b border-slate-100/50 text-left">Flashcard Mode</span>
+                        {[
+                          { mode: 'fsrs', icon: '🧠', label: 'Spaced Repetition (FSRS)' },
+                          { mode: 'flip', icon: '🔄', label: 'Flip Card' },
+                          { mode: 'review', icon: '📚', label: 'Review Only' },
+                          { mode: 'new', icon: '✨', label: 'Learn New Only' },
+                          { mode: 'roadmap', icon: '🗺️', label: 'Roadmap Mode' },
+                        ].map(item => (
+                          <button
+                            key={item.mode}
+                            onClick={() => {
+                              localStorage.setItem('quiz_learning_mode', item.mode)
+                              navigate(`/flashcard/${id}/play?mode=${item.mode}`)
+                            }}
+                            className="px-3 py-2 text-[11px] font-bold text-slate-700 hover:bg-indigo-50 hover:text-indigo-600 rounded-lg transition-all text-left flex items-center gap-2"
+                          >
+                            {item.icon} {item.label}
+                          </button>
+                        ))}
+                      </div>
+                    </>
+                  )}
+                </div>
+
+                {/* Practice Button with Dropdown */}
+                <div className="flex-1 flex relative">
+                  <button 
+                    onClick={() => {
+                      const savedSub = localStorage.getItem('vocab_practice_submode') || 'mcq'
+                      navigate(`/practice/${id}/${savedSub}`)
+                    }}
+                    className="flex-1 py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-black text-[10px] md:text-xs rounded-l-xl shadow-lg shadow-emerald-500/15 active:scale-[0.97] transition-all tracking-widest uppercase flex items-center justify-center gap-1.5"
+                  >
+                    <Trophy className="w-4 h-4" /> Practice
+                  </button>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      setShowPracticeMenu(!showPracticeMenu)
+                      setShowFlashcardMenu(false)
+                    }}
+                    className="px-2.5 bg-emerald-600 hover:bg-emerald-700 border-l border-emerald-500/50 text-white rounded-r-xl active:scale-95 transition-all flex items-center justify-center"
+                  >
+                    <ChevronDown className="w-3.5 h-3.5" />
+                  </button>
+
+                  {/* Practice Dropdown */}
+                  {showPracticeMenu && (
+                    <>
+                      <div className="fixed inset-0 z-[135]" onClick={() => setShowPracticeMenu(false)} />
+                      <div className="absolute bottom-full mb-2 left-0 right-0 sm:left-auto sm:right-0 sm:w-60 bg-white/95 backdrop-blur-md border border-slate-100/80 rounded-xl shadow-2xl p-1.5 z-[140] flex flex-col gap-0.5 animate-in slide-in-from-bottom-2 duration-200">
+                        <span className="px-3 py-1.5 text-[8px] font-black text-slate-400 uppercase tracking-wider border-b border-slate-100/50 text-left">Practice Mode</span>
+                        {[
+                          { mode: 'mcq', icon: '🎯', label: 'Multiple Choice (MCQ)' },
+                          { mode: 'typing', icon: '⌨️', label: 'Typing Practice' },
+                          { mode: 'listening', icon: '🎧', label: 'Listening Practice' },
+                        ].map(item => (
+                          <button
+                            key={item.mode}
+                            onClick={() => {
+                              localStorage.setItem('vocab_practice_submode', item.mode)
+                              navigate(`/practice/${id}/${item.mode}`)
+                            }}
+                            className="px-3 py-2 text-[11px] font-bold text-slate-700 hover:bg-emerald-50 hover:text-emerald-600 rounded-lg transition-all text-left flex items-center gap-2"
+                          >
+                            {item.icon} {item.label}
+                          </button>
+                        ))}
+                      </div>
+                    </>
+                  )}
+                </div>
+              </>
+            ) : (
+              /* ── CREATOR MODE ── */
+              <>
+                <button
+                  onClick={() => setIsSearchPanelOpen(false)}
+                  className={cn(
+                    "flex-1 py-3 rounded-xl font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-1.5 transition-all active:scale-95",
+                    !isSearchPanelOpen
+                      ? "bg-indigo-600 text-white shadow-lg shadow-indigo-500/15"
+                      : "bg-slate-100 text-slate-500"
+                  )}
+                >
+                  <Plus className="w-3.5 h-3.5" /> Add Card
+                </button>
+                <button
+                  onClick={() => setIsSearchPanelOpen(true)}
+                  className={cn(
+                    "flex-1 py-3 rounded-xl font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-1.5 transition-all active:scale-95",
+                    isSearchPanelOpen
+                      ? "bg-indigo-600 text-white shadow-lg shadow-indigo-500/15"
+                      : "bg-slate-100 text-slate-500"
+                  )}
+                >
+                  <Search className="w-3.5 h-3.5" /> Search
+                </button>
               </>
             )}
-          </div>
 
-          {/* LUYỆN TẬP BUTTON WITH DROPDOWN */}
-          <div className="w-full sm:flex-1 flex relative">
-            <button 
-              onClick={() => {
-                const savedSub = localStorage.getItem('vocab_practice_submode') || 'mcq'
-                navigate(`/practice/${id}/${savedSub}`)
-              }}
-              className="flex-1 py-4 sm:py-5 bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs md:text-sm rounded-l-2xl shadow-xl shadow-emerald-500/20 active:scale-95 transition-all tracking-widest uppercase flex items-center justify-center gap-2"
-            >
-              <Trophy className="w-4.5 h-4.5" /> LUYỆN TẬP
-            </button>
-            <button
-              onClick={(e) => {
-                e.stopPropagation()
-                setShowPracticeMenu(!showPracticeMenu)
-                setShowFlashcardMenu(false)
-              }}
-              className="px-3 md:px-4 bg-emerald-600 hover:bg-emerald-700 border-l border-emerald-500/50 text-white rounded-r-2xl active:scale-95 transition-all flex items-center justify-center"
-              title="Chọn chế độ luyện tập"
-            >
-              <ChevronDown className="w-4 h-4" />
-            </button>
-
-            {/* Dropdown Menu */}
-            {showPracticeMenu && (
-              <>
-                <div className="fixed inset-0 z-[135]" onClick={() => setShowPracticeMenu(false)} />
-                <div className="absolute bottom-full mb-3 left-0 right-0 sm:left-auto sm:right-0 sm:w-64 bg-white/95 backdrop-blur-md border border-slate-100/80 rounded-2xl shadow-2xl p-2 z-[140] flex flex-col gap-1 animate-in slide-in-from-bottom-2 duration-200">
-                  <span className="px-3 py-1.5 text-[9px] font-black text-slate-400 uppercase tracking-wider border-b border-slate-100/50 text-left">Chế độ Luyện tập</span>
-                  <button
-                    onClick={() => {
-                      localStorage.setItem('vocab_practice_submode', 'mcq')
-                      navigate(`/practice/${id}/mcq`)
-                    }}
-                    className="px-3 py-2.5 text-xs font-bold text-slate-700 hover:bg-emerald-50 hover:text-emerald-600 rounded-xl transition-all text-left flex items-center gap-2"
-                  >
-                    🎯 Trắc nghiệm (MCQ)
-                  </button>
-                  <button
-                    onClick={() => {
-                      localStorage.setItem('vocab_practice_submode', 'typing')
-                      navigate(`/practice/${id}/typing`)
-                    }}
-                    className="px-3 py-2.5 text-xs font-bold text-slate-700 hover:bg-emerald-50 hover:text-emerald-600 rounded-xl transition-all text-left flex items-center gap-2"
-                  >
-                    ⌨️ Gõ từ vựng (Typing)
-                  </button>
-                  <button
-                    onClick={() => {
-                      localStorage.setItem('vocab_practice_submode', 'listening')
-                      navigate(`/practice/${id}/listening`)
-                    }}
-                    className="px-3 py-2.5 text-xs font-bold text-slate-700 hover:bg-emerald-50 hover:text-emerald-600 rounded-xl transition-all text-left flex items-center gap-2"
-                  >
-                    🎧 Luyện nghe (Listening)
-                  </button>
-                </div>
-              </>
+            {/* Toggle Button (only for creators) */}
+            {canEdit && (
+              <button
+                onClick={() => {
+                  setBottomBarMode(prev => prev === 'learn' ? 'creator' : 'learn')
+                  setShowFlashcardMenu(false)
+                  setShowPracticeMenu(false)
+                  setIsSearchPanelOpen(false)
+                }}
+                className={cn(
+                  "w-10 h-10 rounded-xl flex items-center justify-center transition-all active:scale-90 flex-shrink-0",
+                  bottomBarMode === 'creator'
+                    ? "bg-indigo-100 text-indigo-600 border border-indigo-200"
+                    : "bg-slate-50 text-slate-400 border border-slate-200 hover:text-indigo-600"
+                )}
+                title={bottomBarMode === 'learn' ? 'Creator Tools' : 'Back to Learn'}
+              >
+                {bottomBarMode === 'creator' ? <Brain className="w-4 h-4" /> : <Pencil className="w-4 h-4" />}
+              </button>
             )}
           </div>
         </div>
       </div>
+
+      {/* ═══════════════ ROADMAP SETTINGS MODAL ═══════════════ */}
+      <AnimatePresence>
+        {isRoadmapSettingsOpen && (
+          <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setIsRoadmapSettingsOpen(false)}
+              className="absolute inset-0 bg-slate-900/60 backdrop-blur-md"
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              className="relative w-full max-w-sm bg-white rounded-[2rem] p-6 shadow-2xl border border-slate-100/60 overflow-hidden text-slate-800"
+            >
+              <div className="flex items-center justify-between mb-6">
+                <h3 className="text-base font-black text-slate-800 uppercase tracking-widest">🎯 Roadmap Settings</h3>
+                <button onClick={() => setIsRoadmapSettingsOpen(false)} className="w-8 h-8 rounded-full bg-slate-50 flex items-center justify-center text-slate-400 hover:text-rose-500 transition-all">
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+              
+              <div className="space-y-4 mb-6 text-left">
+                <div>
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-2">New cards per day</label>
+                  <input
+                    type="number" min="1" value={dailyNewInput}
+                    onChange={(e) => setDailyNewInput(Math.max(1, parseInt(e.target.value) || 1))}
+                    className="w-full px-4 py-3 bg-slate-50 border border-slate-100 rounded-xl text-sm font-semibold outline-none focus:ring-4 focus:ring-indigo-500/5 focus:border-indigo-500 transition-all"
+                  />
+                </div>
+                <div>
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-2">Max review cards per day</label>
+                  <input
+                    type="number" min="1" value={dailyReviewInput}
+                    onChange={(e) => setDailyReviewInput(Math.max(1, parseInt(e.target.value) || 1))}
+                    className="w-full px-4 py-3 bg-slate-50 border border-slate-100 rounded-xl text-sm font-semibold outline-none focus:ring-4 focus:ring-indigo-500/5 focus:border-indigo-500 transition-all"
+                  />
+                </div>
+              </div>
+              
+              <div className="flex gap-2">
+                <button
+                  onClick={() => handleSaveRoadmap(false)}
+                  disabled={isSavingRoadmapSettings}
+                  className="flex-1 h-12 bg-rose-50 hover:bg-rose-100 text-rose-600 rounded-2xl font-black text-xs uppercase tracking-widest transition-all"
+                >
+                  Disable
+                </button>
+                <button
+                  onClick={() => handleSaveRoadmap(true)}
+                  disabled={isSavingRoadmapSettings}
+                  className="flex-1 h-12 bg-indigo-650 hover:bg-indigo-755 text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-lg shadow-indigo-150 transition-all"
+                >
+                  Save
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
       
-      {/* Edit Quiz Modal */}
+      {/* ═══════════════ EDIT QUIZ MODAL ═══════════════ */}
       <AnimatePresence>
         {isEditModalOpen && (
           <div className="fixed inset-0 z-[200] flex items-center justify-center p-6">
@@ -1119,7 +1051,7 @@ export default function QuizDetail() {
         )}
       </AnimatePresence>
 
-      {/* Help Modal */}
+      {/* ═══════════════ HELP MODAL ═══════════════ */}
       {showHelpModal && (
         <div className="fixed inset-0 z-[1000] flex items-center justify-center p-6">
           <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-md" onClick={() => setShowHelpModal(false)} />
@@ -1182,9 +1114,9 @@ function StatItem({ label, value, color }: { label: string, value: number, color
     rose: 'text-rose-500'
   }
   return (
-    <div className="flex flex-col items-center gap-1">
-      <span className="text-[9px] font-black text-slate-300 uppercase tracking-tighter">{label}</span>
-      <span className={cn("text-xs font-black", textColors[color])}>{value}</span>
+    <div className="flex flex-col items-center gap-0.5">
+      <span className="text-[7px] font-black text-slate-300 uppercase tracking-tighter">{label}</span>
+      <span className={cn("text-[10px] font-black", textColors[color])}>{value}</span>
     </div>
   )
 }
