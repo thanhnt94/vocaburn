@@ -183,7 +183,7 @@ export const QuestionMapGrid: React.FC<QuestionMapGridProps> = ({
                   }
                   fsrsClass = "shadow-sm animate-in zoom-in-95 duration-200 font-bold text-slate-800 border-slate-300"
                 } else if (selectedOptIdx === -2) {
-                  fsrsClass = "border-purple-200 bg-purple-50 text-purple-700 hover:bg-purple-100/60 font-bold shadow-sm animate-in zoom-in-95 duration-200"
+                  fsrsClass = "border-purple-300 bg-purple-100 text-purple-700 hover:bg-purple-200/60 font-bold shadow-sm animate-in zoom-in-95 duration-200"
                   fsrsStyle = {}
                 } else {
                   const box = q.box_level || 1
@@ -198,7 +198,7 @@ export const QuestionMapGrid: React.FC<QuestionMapGridProps> = ({
                   }
                 }
               } else if (selectedOptIdx === -2) {
-                fsrsClass = "border-purple-200 bg-purple-50 text-purple-700 hover:bg-purple-100/60 font-bold shadow-sm animate-in zoom-in-95 duration-200"
+                fsrsClass = "border-purple-300 bg-purple-100 text-purple-700 hover:bg-purple-200/60 font-bold shadow-sm animate-in zoom-in-95 duration-200"
                 fsrsStyle = {}
               }
 
