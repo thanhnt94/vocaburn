@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Search, Plus, Target, LayoutGrid, BarChart3, User, ChevronRight, Filter, Archive, RotateCcw, Users, Play, ChevronLeft, Info, Brain, Trophy, X, BrainCircuit, Zap, Settings, BookOpen, Sparkles } from 'lucide-react'
+import { Search, Plus, LayoutGrid, ChevronRight, Filter, Archive, RotateCcw, Users, Play, ChevronLeft, Brain, Trophy, X, BrainCircuit, Zap, BookOpen, Sparkles } from 'lucide-react'
 import { useAppStore } from '@/store/useAppStore'
 import { cn } from '@/lib/utils'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -26,23 +26,6 @@ interface DashboardData {
   stats_summary: { avg_accuracy: number, total_time_hours: number, total_questions: number }
 }
 
-interface ActiveGoal {
-  goal_id: number
-  deck_id: number
-  quiz_id: number
-  deck_title: string
-  quiz_title: string
-  cover_image: string | null
-  total_cards: number
-  total_questions: number
-  total_learned: number
-  daily_target: number
-  done_today: number
-  is_target_met: boolean
-  streak_count: number
-  days_remaining_est: number
-}
-
 export default function Library() {
   const [activeTab, setActiveTab] = useState<'my' | 'discover' | 'archived'>('my')
   const [searchQuery, setSearchQuery] = useState('')
@@ -51,9 +34,9 @@ export default function Library() {
   const [roomCode, setRoomCode] = useState('')
   const [isJoining, setIsJoining] = useState(false)
   
-  // Practice Popup State
-  const [selectedPracticeQuiz, setSelectedPracticeQuiz] = useState<Quiz | null>(null)
-  const [isPracticeModalOpen, setIsPracticeModalOpen] = useState(false)
+  // Unified Study Popup State
+  const [selectedStudyQuiz, setSelectedStudyQuiz] = useState<Quiz | null>(null)
+  const [isStudyModalOpen, setIsStudyModalOpen] = useState(false)
   
   // Pagination State
   const [currentPage, setCurrentPage] = useState(1)
@@ -114,11 +97,6 @@ export default function Library() {
   const enrollMutation = useMutation({
     mutationFn: (quizId: number) => axios.post(`/api/v1/deck/${quizId}/enroll`),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['dashboard'] })
-  })
-
-  const createRoomMutation = useMutation({
-    mutationFn: (quizId: number) => axios.post('/api/v1/deck/room/create', { deck_id: quizId, quiz_id: quizId }),
-    onSuccess: (res) => navigate(`/room/${res.data.room_code}`)
   })
 
   const handleJoinRoom = async () => {
@@ -214,7 +192,7 @@ export default function Library() {
             <div className="flex items-center gap-2">
                <Link 
                   to="/manage"
-                  className="w-10 h-10 rounded-xl bg-indigo-50 border border-indigo-100/50 flex items-center justify-center text-indigo-600 shadow-sm active:scale-90 transition-all font-black text-[10px]"
+                  className="w-10 h-10 rounded-xl bg-indigo-50 border border-indigo-100/50 flex items-center justify-center text-indigo-605 shadow-sm active:scale-90 transition-all"
                   title="Creator Studio"
                >
                   <Plus className="w-5 h-5" />
@@ -244,7 +222,7 @@ export default function Library() {
             <div className="flex items-center gap-2">
                <div className="flex-1 bg-slate-100/60 p-1 rounded-2xl flex items-center border border-slate-200/50">
                   {['my', 'discover', 'archived'].map((tab) => (
-                    <button key={tab} onClick={() => setActiveTab(tab as any)} className={cn("flex-1 py-2 rounded-xl text-[9px] font-black tracking-widest relative transition-all", activeTab === tab ? "text-indigo-600" : "text-slate-400")}>
+                    <button key={tab} onClick={() => setActiveTab(tab as any)} className="flex-1 py-2 rounded-xl text-[9px] font-black tracking-widest relative transition-all">
                       {activeTab === tab && <motion.div layoutId="tabMarkerMob" className="absolute inset-0 bg-white shadow-sm rounded-xl border border-slate-100" />}
                       <span className="relative z-10 uppercase">{tab === 'my' ? 'CỦA TÔI' : (tab === 'discover' ? 'KHÁM PHÁ' : 'ĐÃ LƯU')}</span>
                     </button>
@@ -408,109 +386,79 @@ export default function Library() {
                     {paginatedData.map((quiz, idx) => (
                       <motion.div key={quiz.id} layout initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95 }} transition={{ delay: idx * 0.02 }}>
                         
-                        <div className="group h-full flex flex-col justify-between bg-white rounded-[2rem] border border-slate-200/50 p-6.5 shadow-sm hover:shadow-xl hover:shadow-indigo-100/20 hover:-translate-y-1.5 transition-all relative overflow-hidden text-left">
+                        <div className="group h-full flex flex-col justify-between bg-white rounded-[2rem] border border-slate-200/50 p-6 shadow-sm hover:shadow-xl hover:shadow-indigo-100/20 hover:-translate-y-1 transition-all relative overflow-hidden text-left">
                            <div>
-                             <div className="flex items-start justify-between mb-5 mt-1">
-                                <Link to={`/flashcard/${quiz.id}`} className="block flex-shrink-0 transition-transform hover:scale-105" title="Vào Dashboard bộ thẻ">
-                                  <div className={cn(
-                                     "w-14 h-14 rounded-[1.25rem] overflow-hidden shadow-md transition-all",
-                                     !quiz.cover_image && (
-                                        idx % 5 === 0 ? "bg-gradient-to-br from-indigo-400 to-purple-500 shadow-indigo-100" :
-                                        idx % 5 === 1 ? "bg-gradient-to-br from-rose-400 to-orange-500 shadow-rose-100" :
-                                        idx % 5 === 2 ? "bg-gradient-to-br from-emerald-400 to-teal-500 shadow-emerald-100" :
-                                        idx % 5 === 3 ? "bg-gradient-to-br from-blue-400 to-cyan-500 shadow-blue-100" :
-                                        "bg-gradient-to-br from-amber-400 to-yellow-500 shadow-amber-100"
-                                     )
-                                  )}>
-                                     {quiz.cover_image ? (
-                                       <img src={quiz.cover_image} alt="" className="w-full h-full object-cover" />
-                                     ) : (
-                                       <div className="w-full h-full flex items-center justify-center text-white">
-                                         <LayoutGrid className="w-7 h-7" />
-                                       </div>
-                                     )}
-                                  </div>
-                                </Link>
-                                <div className="flex items-center gap-2">
-                                  {/* Single unified Dashboard button to enter the main study/stats console */}
-                                  <Link 
-                                     to={`/flashcard/${quiz.id}`}
-                                     className="px-3.5 py-1.5 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white flex items-center gap-1.5 shadow-md shadow-indigo-100 hover:scale-105 active:scale-95 transition-all text-xs font-black uppercase tracking-wider"
-                                     title="Vào Dashboard & Học tập"
-                                  >
-                                     <LayoutGrid className="w-3.5 h-3.5" />
-                                     <span>Học</span>
-                                  </Link>
-                                </div>
-                             </div>
+                              <div className="flex items-start justify-between mb-5 mt-1">
+                                 <Link to={`/flashcard/${quiz.id}`} className="block flex-shrink-0 transition-transform hover:scale-105" title="Vào Dashboard bộ thẻ">
+                                   <div className={cn(
+                                      "w-14 h-14 rounded-[1.25rem] overflow-hidden shadow-md transition-all",
+                                      !quiz.cover_image && (
+                                         idx % 5 === 0 ? "bg-gradient-to-br from-indigo-400 to-purple-500 shadow-indigo-100" :
+                                         idx % 5 === 1 ? "bg-gradient-to-br from-rose-400 to-orange-500 shadow-rose-100" :
+                                         idx % 5 === 2 ? "bg-gradient-to-br from-emerald-400 to-teal-500 shadow-emerald-100" :
+                                         idx % 5 === 3 ? "bg-gradient-to-br from-blue-400 to-cyan-500 shadow-blue-100" :
+                                         "bg-gradient-to-br from-amber-400 to-yellow-500 shadow-amber-100"
+                                      )
+                                   )}>
+                                      {quiz.cover_image ? (
+                                        <img src={quiz.cover_image} alt="" className="w-full h-full object-cover" />
+                                      ) : (
+                                        <div className="w-full h-full flex items-center justify-center text-white">
+                                          <LayoutGrid className="w-7 h-7" />
+                                        </div>
+                                      )}
+                                   </div>
+                                 </Link>
+                                 <div className="flex items-center gap-2">
+                                   <button 
+                                      onClick={() => {
+                                        setSelectedStudyQuiz(quiz)
+                                        setIsStudyModalOpen(true)
+                                      }}
+                                      className="px-4 py-2 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-650 hover:from-indigo-600 hover:to-purple-755 text-white flex items-center gap-1.5 shadow-md shadow-indigo-100/50 hover:scale-105 active:scale-95 transition-all text-xs font-black uppercase tracking-wider"
+                                   >
+                                      <Brain className="w-3.5 h-3.5" />
+                                      <span>Học</span>
+                                   </button>
+                                 </div>
+                              </div>
 
-                             <div className="flex-1">
-                                <Link to={`/flashcard/${quiz.id}`} className="block hover:underline" title="Vào Dashboard bộ thẻ">
-                                  <h3 className="text-lg font-black text-slate-800 hover:text-indigo-600 transition-colors leading-snug mb-2.5 truncate">{quiz.title}</h3>
-                                </Link>
-                                <div className="flex flex-wrap gap-1.5 mb-3.5">
-                                   {quiz.tags?.map(t => <span key={t} className="px-2 py-0.5 bg-slate-50 border border-slate-200/50 rounded-lg text-[9px] font-black text-slate-400 uppercase tracking-wider">#{t}</span>)}
-                                </div>
-                                <div className="flex flex-col gap-1.5">
-                                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
-                                    <BrainCircuit className="w-3.5 h-3.5 text-slate-400" />
-                                    {quiz.questions_count} Flashcards
-                                  </p>
-
-                                </div>
-                             </div>
+                              <div className="flex-grow">
+                                 <Link to={`/flashcard/${quiz.id}`} className="block hover:underline" title="Vào Dashboard bộ thẻ">
+                                   <h3 className="text-sm font-black text-slate-800 hover:text-indigo-600 transition-colors leading-tight mb-2 truncate">{quiz.title}</h3>
+                                 </Link>
+                                 <div className="flex flex-wrap gap-1 mb-3">
+                                    {quiz.tags?.map(t => <span key={t} className="px-2 py-0.5 bg-slate-50 border border-slate-200/50 rounded-lg text-[8px] font-black text-slate-400 uppercase tracking-wider">#{t}</span>)}
+                                 </div>
+                                 <div className="flex items-center gap-1.5">
+                                   <BrainCircuit className="w-3.5 h-3.5 text-slate-350" />
+                                   <span className="text-[10px] font-black text-slate-450 uppercase">{quiz.questions_count} Flashcards</span>
+                                 </div>
+                              </div>
                            </div>
 
-                           <div className="mt-8 pt-4 border-t border-slate-100 flex items-center justify-between relative z-10">
+                           <div className="mt-5 pt-3.5 border-t border-slate-100 flex items-center justify-between relative z-10">
                               <div className="flex items-center gap-2">
                                   {activeTab === 'discover' ? (
                                     <button 
                                       onClick={() => enrollMutation.mutate(quiz.id)} 
-                                      className="w-9 h-9 bg-indigo-600 hover:bg-indigo-700 text-white rounded-full flex items-center justify-center transition-all shadow-md shadow-indigo-100 active:scale-95 hover:scale-105"
+                                      className="h-8 px-3.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl flex items-center justify-center transition-all shadow-md shadow-indigo-100 text-[9px] font-black uppercase tracking-wider active:scale-95 hover:scale-102"
                                       title="Đăng ký học bộ này"
                                     >
-                                      <Plus className="w-4.5 h-4.5" />
+                                      Đăng ký
                                     </button>
                                   ) : (
-                                    <>
-                                      <button 
-                                        onClick={() => createRoomMutation.mutate(quiz.id)}
-                                        className="w-9 h-9 bg-indigo-50 text-indigo-600 hover:bg-indigo-100 border border-indigo-100/50 rounded-full flex items-center justify-center transition-all shadow-sm active:scale-95 hover:scale-105"
-                                        title="Tạo phòng Multiplayer Arena"
-                                      >
-                                        <Users className="w-4 h-4" />
-                                      </button>
-
-                                      <button 
-                                        onClick={() => archiveMutation.mutate(quiz.id)} 
-                                        className="w-9 h-9 bg-slate-50 text-slate-500 hover:bg-slate-100 border border-slate-200/50 rounded-full flex items-center justify-center transition-all shadow-sm active:scale-95 hover:scale-105"
-                                        title={activeTab === 'archived' ? 'Khôi phục bộ thẻ' : 'Lưu trữ bộ thẻ'}
-                                      >
-                                        {activeTab === 'archived' ? <RotateCcw className="w-4 h-4" /> : <Archive className="w-4 h-4" />}
-                                      </button>
-                                    </>
-                                  )}
-                                  {(quiz.is_creator || data?.user?.role === 'admin') && (
-                                    <>
-                                      <Link 
-                                        to={`/manage/edit/${quiz.id}/flashcards`} 
-                                        className="w-9 h-9 bg-indigo-50 hover:bg-indigo-100 text-indigo-600 border border-indigo-200/50 rounded-full flex items-center justify-center transition-all shadow-sm active:scale-95 hover:scale-105"
-                                        title="Quản lý thẻ"
-                                      >
-                                        <LayoutGrid className="w-4 h-4" />
-                                      </Link>
-                                      <Link 
-                                        to={`/manage/edit/${quiz.id}`} 
-                                        className="w-9 h-9 bg-slate-50 hover:bg-slate-100 text-slate-500 border border-slate-200/50 rounded-full flex items-center justify-center transition-all shadow-sm active:scale-95 hover:scale-105"
-                                        title="Cấu hình bộ thẻ"
-                                      >
-                                        <Settings className="w-4 h-4" />
-                                      </Link>
-                                    </>
+                                    <button 
+                                      onClick={() => archiveMutation.mutate(quiz.id)} 
+                                      className="w-8 h-8 bg-slate-50 text-slate-400 hover:bg-slate-100 border border-slate-200/50 rounded-full flex items-center justify-center transition-all shadow-sm active:scale-95 hover:scale-105"
+                                      title={activeTab === 'archived' ? 'Khôi phục bộ thẻ' : 'Lưu trữ bộ thẻ'}
+                                    >
+                                      {activeTab === 'archived' ? <RotateCcw className="w-3.5 h-3.5" /> : <Archive className="w-3.5 h-3.5" />}
+                                    </button>
                                   )}
                               </div>
                               <Link to={`/flashcard/${quiz.id}`} className="hover:translate-x-1 transition-transform" title="Vào Dashboard bộ thẻ">
-                                <ChevronRight className="w-5 h-5 text-slate-300 hover:text-indigo-600 transition-all" />
+                                <ChevronRight className="w-4 h-4 text-slate-300 hover:text-indigo-600 transition-all" />
                               </Link>
                            </div>
                         </div>
@@ -539,9 +487,12 @@ export default function Library() {
             <AnimatePresence mode="popLayout">
                {filteredData.map((quiz, idx) => (
                  <motion.div key={quiz.id} layout initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: idx * 0.01 }}>
-                   <div className="bg-white rounded-[1.75rem] border border-slate-200/60 p-4.5 shadow-sm active:scale-[0.97] transition-all relative overflow-hidden flex flex-col gap-3">
-                      <div className="flex items-center gap-4 text-left">
-                         <Link to={`/flashcard/${quiz.id}`} className="w-14 h-14 rounded-2xl flex-shrink-0 overflow-hidden shadow-md transition-all relative">
+                   <div className="bg-white rounded-[1.75rem] border border-slate-200/60 p-4 shadow-sm active:scale-[0.98] transition-all relative overflow-hidden flex flex-col gap-3">
+                      <div 
+                        onClick={() => navigate(`/flashcard/${quiz.id}`)}
+                        className="flex items-center gap-4 text-left cursor-pointer"
+                      >
+                         <div className="w-14 h-14 rounded-2xl flex-shrink-0 overflow-hidden shadow-md transition-all relative">
                             {quiz.cover_image ? (
                               <img src={quiz.cover_image} alt="" className="w-full h-full object-cover" />
                             ) : (
@@ -556,12 +507,10 @@ export default function Library() {
                                  <LayoutGrid className="w-6 h-6" />
                               </div>
                             )}
-                         </Link>
+                         </div>
                          <div className="flex-1 min-w-0">
-                            <Link to={`/flashcard/${quiz.id}`}>
-                               <h3 className="text-[13px] font-black text-slate-800 leading-tight mb-1 truncate">{quiz.title}</h3>
-                            </Link>
-                            <div className="flex flex-col gap-1.5 mt-0.5">
+                            <h3 className="text-[13px] font-black text-slate-800 leading-tight mb-1 truncate">{quiz.title}</h3>
+                            <div className="flex flex-col gap-1 mt-0.5">
                                 <div className="flex items-center gap-2">
                                    <div className="flex items-center gap-1 bg-slate-50 px-1.5 py-0.5 rounded border border-slate-100">
                                       <BrainCircuit className="w-2.5 h-2.5 text-slate-400" />
@@ -569,34 +518,7 @@ export default function Library() {
                                    </div>
                                    {quiz.tags?.[0] && <span className="text-[8px] font-black text-indigo-500 uppercase tracking-widest">#{quiz.tags[0]}</span>}
                                 </div>
-
-                             </div>
-                         </div>
-                         <div className="flex items-center gap-2">
-                            <Link 
-                              to={`/flashcard/${quiz.id}/play?mode=roadmap`} 
-                              className="w-9 h-9 rounded-xl bg-gradient-to-br from-orange-400 to-rose-500 hover:from-orange-500 hover:to-rose-600 text-white flex items-center justify-center shadow-md shadow-orange-100 active:scale-90 transition-all"
-                              title="Học lộ trình hàng ngày"
-                            >
-                               <Sparkles className="w-4 h-4" />
-                            </Link>
-                            <Link 
-                              to={`/flashcard/${quiz.id}/play?mode=fsrs`} 
-                              className="w-9 h-9 rounded-xl bg-indigo-600 text-white flex items-center justify-center shadow-md shadow-indigo-200 active:scale-90 transition-all"
-                              title="Ôn tập Spaced Repetition FSRS"
-                            >
-                               <Brain className="w-4 h-4" />
-                            </Link>
-                            <button 
-                              onClick={() => {
-                                 setSelectedPracticeQuiz(quiz)
-                                 setIsPracticeModalOpen(true)
-                              }}
-                              className="w-9 h-9 rounded-xl bg-emerald-600 text-white flex items-center justify-center shadow-md shadow-emerald-200 active:scale-90 transition-all"
-                              title="Thực hành ôn tập"
-                            >
-                              <Trophy className="w-4 h-4" />
-                            </button>
+                            </div>
                          </div>
                       </div>
                       
@@ -605,56 +527,32 @@ export default function Library() {
                             {activeTab === 'discover' ? (
                               <button 
                                 onClick={() => enrollMutation.mutate(quiz.id)} 
-                                className="w-8 h-8 rounded-full bg-indigo-600 text-white flex items-center justify-center shadow-sm active:scale-95"
+                                className="h-8 px-4 rounded-xl bg-indigo-600 text-white flex items-center justify-center shadow-sm active:scale-95 text-[9px] font-black uppercase tracking-wider"
                                 title="Đăng ký học"
                               >
-                                <Plus className="w-3.5 h-3.5" />
+                                Đăng ký
                               </button>
                             ) : (
-                              <>
-                                 <button 
-                                   onClick={() => createRoomMutation.mutate(quiz.id)} 
-                                   className="w-8 h-8 rounded-full bg-indigo-50 text-indigo-600 border border-indigo-100/50 flex items-center justify-center active:scale-95"
-                                   title="Tạo phòng Arena"
-                                 >
-                                   <Users className="w-3.5 h-3.5" />
-                                 </button>
-                                 <button 
-                                   onClick={() => archiveMutation.mutate(quiz.id)} 
-                                   className="w-8 h-8 rounded-full bg-slate-50 text-slate-400 border border-slate-200/50 flex items-center justify-center active:scale-95"
-                                   title={activeTab === 'archived' ? 'Khôi phục' : 'Lưu trữ'}
-                                 >
-                                   {activeTab === 'archived' ? <RotateCcw className="w-3.5 h-3.5" /> : <Archive className="w-3.5 h-3.5" />}
-                                 </button>
-                              </>
+                              <button 
+                                onClick={() => archiveMutation.mutate(quiz.id)} 
+                                className="w-8 h-8 rounded-full bg-slate-50 text-slate-400 border border-slate-200/50 flex items-center justify-center active:scale-95"
+                                title={activeTab === 'archived' ? 'Khôi phục' : 'Lưu trữ'}
+                              >
+                                {activeTab === 'archived' ? <RotateCcw className="w-3.5 h-3.5" /> : <Archive className="w-3.5 h-3.5" />}
+                              </button>
                             )}
                          </div>
                          <div className="flex gap-1.5">
-                           {(quiz.is_creator || data?.user?.role === 'admin') && (
-                             <>
-                               <Link 
-                                 to={`/manage/edit/${quiz.id}/flashcards`} 
-                                 className="w-8 h-8 rounded-full bg-indigo-50 text-indigo-600 border border-indigo-100/50 flex items-center justify-center active:scale-95"
-                                 title="Quản lý thẻ"
-                               >
-                                 <LayoutGrid className="w-3.5 h-3.5" />
-                               </Link>
-                               <Link 
-                                 to={`/manage/edit/${quiz.id}`} 
-                                 className="w-8 h-8 rounded-full bg-slate-50 text-slate-500 border border-slate-200/50 flex items-center justify-center active:scale-95"
-                                 title="Cấu hình bộ thẻ"
-                               >
-                                 <Settings className="w-3.5 h-3.5" />
-                               </Link>
-                             </>
-                           )}
-                           <Link 
-                              to={`/flashcard/${quiz.id}`} 
-                              className="w-8 h-8 rounded-full bg-white text-slate-600 border border-slate-200/50 flex items-center justify-center active:scale-95"
-                              title="Chi tiết"
+                           <button 
+                              onClick={() => {
+                                 setSelectedStudyQuiz(quiz)
+                                 setIsStudyModalOpen(true)
+                              }}
+                              className="px-4 py-2 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 text-white flex items-center gap-1 text-[9px] font-black uppercase tracking-wider shadow-sm active:scale-95"
                            >
-                              <Info className="w-3.5 h-3.5" />
-                           </Link>
+                              <Brain className="w-3 h-3" />
+                              <span>Học</span>
+                           </button>
                          </div>
                       </div>
                    </div>
@@ -712,100 +610,107 @@ export default function Library() {
             </motion.div>
           </div>
         )}
+      </AnimatePresence>
 
-        {/* PRACTICE MODE SELECTOR POPUP MODAL */}
-        {isPracticeModalOpen && selectedPracticeQuiz && (
-          <div className="fixed inset-0 z-[1000] flex items-center justify-center p-6">
+      {/* UNIFIED STUDY MODE SELECTOR POPUP MODAL */}
+      <AnimatePresence>
+        {isStudyModalOpen && selectedStudyQuiz && (
+          <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4 sm:p-6">
             <motion.div 
               initial={{ opacity: 0 }} 
               animate={{ opacity: 1 }} 
               exit={{ opacity: 0 }}
-              onClick={() => setIsPracticeModalOpen(false)}
-              className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm"
+              onClick={() => setIsStudyModalOpen(false)}
+              className="absolute inset-0 bg-slate-900/60 backdrop-blur-md"
             />
             <motion.div 
-              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              initial={{ opacity: 0, scale: 0.95, y: 15 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.9, y: 20 }}
-              className="w-full max-w-md bg-white rounded-[2.5rem] shadow-2xl relative z-10 p-8 border border-slate-100 text-left overflow-hidden"
+              exit={{ opacity: 0, scale: 0.95, y: 15 }}
+              className="w-full max-w-xl bg-white rounded-[2.5rem] shadow-2xl relative z-10 p-6 sm:p-8 border border-slate-100 text-left overflow-hidden flex flex-col max-h-[90vh]"
             >
-              <div className="absolute -top-12 -right-12 w-32 h-32 rounded-full bg-emerald-100/40 blur-2xl pointer-events-none" />
+              <div className="absolute -top-12 -right-12 w-32 h-32 rounded-full bg-indigo-100/40 blur-2xl pointer-events-none" />
               
-              <div className="flex items-center justify-between mb-5 relative z-10">
+              <div className="flex items-center justify-between mb-5 relative z-10 flex-shrink-0">
                 <div className="flex items-center gap-2">
-                  <div className="w-10 h-10 rounded-2xl bg-emerald-50 border border-emerald-100 flex items-center justify-center text-emerald-600">
-                    <Trophy className="w-5 h-5" />
+                  <div className="w-10 h-10 rounded-2xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600">
+                    <Brain className="w-5 h-5 animate-pulse" />
                   </div>
                   <div>
-                    <h3 className="text-xs font-black text-slate-800 uppercase tracking-widest leading-none mb-1">Practice Mode</h3>
-                    <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Chọn chế độ luyện tập</p>
+                    <h3 className="text-xs font-black text-slate-800 uppercase tracking-widest leading-none mb-1">Study Console</h3>
+                    <p className="text-[9px] text-slate-400 font-black uppercase tracking-wider">Chọn phương pháp học tập</p>
                   </div>
                 </div>
-                <button onClick={() => setIsPracticeModalOpen(false)} className="w-8 h-8 rounded-full bg-slate-50 border border-slate-200/50 flex items-center justify-center text-slate-400 hover:text-rose-500 transition-all">
+                <button onClick={() => setIsStudyModalOpen(false)} className="w-8 h-8 rounded-full bg-slate-50 border border-slate-200/50 flex items-center justify-center text-slate-400 hover:text-rose-500 transition-all">
                    <X className="w-4 h-4" />
                 </button>
               </div>
 
-              <div className="space-y-4 relative z-10">
-                <div className="bg-slate-50/60 rounded-2xl p-4 border border-slate-100 mb-2">
-                  <h4 className="text-xs font-black text-indigo-600 leading-snug line-clamp-1">{selectedPracticeQuiz.title}</h4>
-                  <p className="text-[9px] text-slate-400 uppercase tracking-wider font-black mt-0.5 flex items-center gap-1">
-                    <BrainCircuit className="w-3 h-3 text-slate-400" />
-                    {selectedPracticeQuiz.questions_count} câu hỏi có sẵn
-                  </p>
+              <div className="bg-slate-50/60 rounded-2xl p-4 border border-slate-100 mb-4 flex-shrink-0">
+                <h4 className="text-xs font-black text-indigo-600 leading-snug line-clamp-1">{selectedStudyQuiz.title}</h4>
+                <p className="text-[9px] text-slate-400 uppercase tracking-wider font-black mt-0.5 flex items-center gap-1">
+                  <BrainCircuit className="w-3 h-3 text-slate-350" />
+                  {selectedStudyQuiz.questions_count} câu hỏi trong bộ thẻ
+                </p>
+              </div>
+
+              <div className="flex-1 overflow-y-auto pr-1 space-y-5 custom-scrollbar min-h-0">
+                {/* ── FLASHCARD MODES ── */}
+                <div className="space-y-2.5">
+                  <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest block ml-2">Flashcard Modes</span>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    {[
+                      { mode: 'fsrs', icon: '🧠', title: 'FSRS Spaced Repetition', desc: 'Học lặp lại ngắt quãng thông minh' },
+                      { mode: 'roadmap', icon: '🗺️', title: 'Roadmap Mode', desc: 'Học theo lộ trình mục tiêu mỗi ngày' },
+                      { mode: 'flip', icon: '🔄', title: 'Flip Card', desc: 'Lật thẻ ghi nhớ phản xạ tự do' },
+                      { mode: 'review', icon: '📚', title: 'Review Only', desc: 'Chỉ ôn tập lại các thẻ cũ' },
+                      { mode: 'new', icon: '✨', title: 'New Only', desc: 'Chỉ học các thẻ mới chưa biết' },
+                    ].map(item => (
+                      <button
+                        key={item.mode}
+                        onClick={() => {
+                          setIsStudyModalOpen(false)
+                          localStorage.setItem('quiz_learning_mode', item.mode)
+                          navigate(`/flashcard/${selectedStudyQuiz.id}/play?mode=${item.mode}`)
+                        }}
+                        className="group flex items-start gap-3 p-3.5 rounded-2xl border border-slate-150/70 bg-white hover:border-indigo-500 hover:bg-indigo-50/10 active:scale-[0.98] transition-all text-left shadow-sm"
+                      >
+                        <span className="text-xl bg-slate-50 p-2 rounded-xl group-hover:scale-110 transition-all flex-shrink-0">{item.icon}</span>
+                        <div className="min-w-0">
+                          <span className="text-[10px] font-black text-slate-800 uppercase tracking-wider block mb-0.5 group-hover:text-indigo-600 transition-colors truncate">{item.title}</span>
+                          <span className="text-[8px] font-semibold text-slate-400 block leading-snug line-clamp-1">{item.desc}</span>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
                 </div>
 
-                <div className="grid grid-cols-1 gap-3">
-                  <button
-                    onClick={() => {
-                      setIsPracticeModalOpen(false)
-                      navigate(`/practice/${selectedPracticeQuiz.id}/mcq`)
-                    }}
-                    className="group w-full flex items-center gap-4 p-4 rounded-[1.75rem] border border-slate-200/60 bg-white hover:border-emerald-500 hover:bg-emerald-50/10 active:scale-[0.98] transition-all text-left shadow-sm"
-                  >
-                    <div className="w-12 h-12 rounded-2xl bg-indigo-50 border border-indigo-100/50 flex items-center justify-center text-indigo-600 group-hover:bg-indigo-600 group-hover:text-white transition-all flex-shrink-0">
-                      <LayoutGrid className="w-5 h-5" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <span className="text-[11px] font-black text-slate-800 uppercase tracking-wider block mb-0.5 group-hover:text-indigo-600 transition-colors">Trắc nghiệm (MCQ)</span>
-                      <span className="text-[9px] font-medium text-slate-400 block line-clamp-1">Luyện tập phản xạ nhanh với 4 lựa chọn có sẵn</span>
-                    </div>
-                    <ChevronRight className="w-4 h-4 text-slate-300 group-hover:text-emerald-500 group-hover:translate-x-1 transition-all flex-shrink-0" />
-                  </button>
-
-                  <button
-                    onClick={() => {
-                      setIsPracticeModalOpen(false)
-                      navigate(`/practice/${selectedPracticeQuiz.id}/typing`)
-                    }}
-                    className="group w-full flex items-center gap-4 p-4 rounded-[1.75rem] border border-slate-200/60 bg-white hover:border-emerald-500 hover:bg-emerald-50/10 active:scale-[0.98] transition-all text-left shadow-sm"
-                  >
-                    <div className="w-12 h-12 rounded-2xl bg-rose-50 border border-rose-100/50 flex items-center justify-center text-rose-600 group-hover:bg-rose-600 group-hover:text-white transition-all flex-shrink-0">
-                      <Zap className="w-5 h-5" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <span className="text-[11px] font-black text-slate-800 uppercase tracking-wider block mb-0.5 group-hover:text-rose-600 transition-colors">Gõ từ vựng (Typing)</span>
-                      <span className="text-[9px] font-medium text-slate-400 block line-clamp-1">Gõ trực tiếp ký tự Kanji, Hiragana hoặc Romaji để ghi nhớ sâu</span>
-                    </div>
-                    <ChevronRight className="w-4 h-4 text-slate-300 group-hover:text-emerald-500 group-hover:translate-x-1 transition-all flex-shrink-0" />
-                  </button>
-
-                  <button
-                    onClick={() => {
-                      setIsPracticeModalOpen(false)
-                      navigate(`/practice/${selectedPracticeQuiz.id}/listening`)
-                    }}
-                    className="group w-full flex items-center gap-4 p-4 rounded-[1.75rem] border border-slate-200/60 bg-white hover:border-emerald-500 hover:bg-emerald-50/10 active:scale-[0.98] transition-all text-left shadow-sm"
-                  >
-                    <div className="w-12 h-12 rounded-2xl bg-amber-50 border border-amber-100/50 flex items-center justify-center text-amber-600 group-hover:bg-amber-600 group-hover:text-white transition-all flex-shrink-0">
-                      <Play className="w-5 h-5 fill-amber-600 group-hover:fill-white" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <span className="text-[11px] font-black text-slate-800 uppercase tracking-wider block mb-0.5 group-hover:text-amber-600 transition-colors">Luyện nghe (Listening)</span>
-                      <span className="text-[9px] font-medium text-slate-400 block line-clamp-1">Nghe phát âm chuẩn và chọn đáp án đúng cực nhạy</span>
-                    </div>
-                    <ChevronRight className="w-4 h-4 text-slate-300 group-hover:text-emerald-500 group-hover:translate-x-1 transition-all flex-shrink-0" />
-                  </button>
+                {/* ── PRACTICE MODES ── */}
+                <div className="space-y-2.5">
+                  <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest block ml-2">Practice Modes</span>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                    {[
+                      { mode: 'mcq', icon: '🎯', title: 'MCQ Test', desc: 'Trắc nghiệm phản xạ 4 đáp án', color: 'indigo' },
+                      { mode: 'typing', icon: '⌨️', title: 'Typing Test', desc: 'Gõ từ vựng nhớ chi tiết', color: 'rose' },
+                      { mode: 'listening', icon: '🎧', title: 'Listening Test', desc: 'Nghe audio chọn đáp án', color: 'amber' },
+                    ].map(item => (
+                      <button
+                        key={item.mode}
+                        onClick={() => {
+                          setIsStudyModalOpen(false)
+                          localStorage.setItem('vocab_practice_submode', item.mode)
+                          navigate(`/practice/${selectedStudyQuiz.id}/${item.mode}`)
+                        }}
+                        className="group flex flex-col items-center p-3.5 rounded-2xl border border-slate-150/70 bg-white hover:border-emerald-500 hover:bg-emerald-50/10 active:scale-[0.98] transition-all text-center shadow-sm"
+                      >
+                        <span className="text-xl bg-slate-50 p-2 rounded-xl group-hover:scale-110 transition-all mb-2 flex-shrink-0">{item.icon}</span>
+                        <div className="w-full">
+                          <span className="text-[10px] font-black text-slate-800 uppercase tracking-wider block mb-0.5 group-hover:text-emerald-600 transition-colors truncate">{item.title}</span>
+                          <span className="text-[8px] font-semibold text-slate-400 block leading-snug leading-snug line-clamp-2">{item.desc}</span>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
                 </div>
               </div>
             </motion.div>
