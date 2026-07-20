@@ -173,7 +173,9 @@ export function useFlashcardAudio(currentQuestion: any, practiceSettings?: any) 
           if (audioUrl) {
             if (face === 'front') {
               currentQuestion.audio = audioUrl;
+              currentQuestion.front_audio_url = audioUrl;
             } else {
+              currentQuestion.back_audio_url = audioUrl;
               if (!currentQuestion.others) currentQuestion.others = {};
               currentQuestion.others.back_audio_url = audioUrl;
             }

@@ -486,8 +486,11 @@ export const FlashcardEditModal: React.FC<FlashcardEditModalProps> = ({
       let updatedFormData = { ...currentCard }
       if (face === 'front') {
         updatedFormData.audio = newUrl
+        updatedFormData.front_audio_url = newUrl
       } else {
-        updatedFormData.others = { ...updatedFormData.others, back_audio_url: newUrl }
+        updatedFormData.back_audio_url = newUrl
+        if (!updatedFormData.others) updatedFormData.others = {}
+        updatedFormData.others.back_audio_url = newUrl
       }
       setFormData(updatedFormData)
 

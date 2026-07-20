@@ -413,6 +413,7 @@ async def get_deck_cards(deck_id: int, request: Request, page: int = 1, size: in
             "front_audio_content": c.front_audio_content,
             "back_audio_content": c.back_audio_content,
             "front_audio_url": c.front_audio_url,
+            "audio": c.front_audio_url,
             "back_audio_url": c.back_audio_url,
             "front_img": c.front_img,
             "back_img": c.back_img,
@@ -706,8 +707,12 @@ async def update_card(card_id: int, data: dict, db: AsyncSession = Depends(get_d
     if "explanation" in data: card.explanation = data["explanation"]
     if "front_audio_content" in data: card.front_audio_content = data["front_audio_content"]
     if "back_audio_content" in data: card.back_audio_content = data["back_audio_content"]
-    if "front_audio_url" in data: card.front_audio_url = data["front_audio_url"]
-    if "audio" in data: card.audio = data["audio"]
+    if "front_audio_url" in data and data["front_audio_url"]:
+        card.front_audio_url = data["front_audio_url"]
+    elif "audio" in data and data["audio"]:
+        card.audio = data["audio"]
+    elif "front_audio_url" in data or "audio" in data:
+        card.front_audio_url = data.get("front_audio_url") or data.get("audio")
     if "back_audio_url" in data: card.back_audio_url = data["back_audio_url"]
     if "front_img" in data: card.front_img = data["front_img"]
     if "back_img" in data: card.back_img = data["back_img"]
