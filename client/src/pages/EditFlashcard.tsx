@@ -557,17 +557,17 @@ const EditFlashcard = () => {
 
       <div className="max-w-[1400px] mx-auto px-4 pt-[68px] md:pt-0 mt-6 md:mt-10">
         {/* Mobile Tab Switcher */}
-        <div className="flex items-center bg-white border border-slate-100 p-1.5 rounded-2xl mb-8 md:hidden shadow-sm overflow-x-auto">
+        <div className="grid grid-cols-4 gap-1 bg-white border border-slate-100 p-1.5 rounded-2xl mb-8 md:hidden shadow-sm">
            {['basic', 'columns', 'modes', 'practice', 'ai', 'audio', 'collaboration', 'excel'].map(tab => (
              <button 
                key={tab}
                onClick={() => setActiveTab(tab as any)}
                className={cn(
-                 "flex-1 py-3 px-2 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all whitespace-nowrap",
+                 "py-2.5 px-1 rounded-xl text-[8px] font-black uppercase tracking-wider transition-all text-center",
                  activeTab === tab ? "bg-slate-900 text-white shadow-md" : "text-slate-400"
                )}
              >
-               {tab === 'basic' ? 'Identity' : tab === 'columns' ? 'Cột dữ liệu' : tab === 'modes' ? 'Chế độ học' : tab === 'practice' ? 'Practice' : tab === 'ai' ? 'AI Engine' : tab === 'audio' ? 'Audio Pairs' : tab === 'collaboration' ? 'Rights' : 'Excel'}
+               {tab === 'basic' ? 'Basic' : tab === 'columns' ? 'Cột' : tab === 'modes' ? 'Modes' : tab === 'practice' ? 'Practice' : tab === 'ai' ? 'AI' : tab === 'audio' ? 'Audio' : tab === 'collaboration' ? 'Rights' : 'Excel'}
              </button>
            ))}
         </div>

@@ -376,16 +376,13 @@ export default function QuizDetail() {
                 <Layers className="w-3 h-3" />
                 <span className="hidden sm:inline">Manage</span>
               </Link>
-              <button 
-                onClick={() => {
-                  setEditFormData({ ...quiz, tags: quiz.tags?.join(', ') })
-                  setEditTab('props')
-                  setIsEditModalOpen(true)
-                }}
+              <Link 
+                to={`/manage/edit/${id}`}
                 className="w-8 h-8 flex items-center justify-center bg-white border border-slate-100 rounded-lg text-slate-400 hover:text-indigo-600 transition-all active:scale-90"
+                title="Edit Collection"
               >
                 <Settings className="w-4 h-4" />
-              </button>
+              </Link>
             </>
           )}
         </div>
