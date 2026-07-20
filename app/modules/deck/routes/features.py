@@ -702,9 +702,51 @@ async def generate_single_card_audio_helper(c, face: str, force: bool, db: Async
     # Fallback to local generation if centralized TTS failed or wasn't active
     if not success:
         try:
+            # Retrieve mapped lang from pair if custom
+            target_lang = None
+            if is_custom and 'deck' in locals() and deck and deck.practice_settings and isinstance(deck.practice_settings, dict):
+                pairs = deck.practice_settings.get("audio_pairs", [])
+                pair = next((p for p in pairs if p.get("text_col") == face), None)
+                if pair:
+                    target_lang = pair.get("lang")
+
             from app.modules.deck.services.audio_generator import AudioGenerator
-            logger.info(f"[TTS LOCAL] Generating TTS locally using edge-tts/gTTS for text: '{text[:30]}...'")
-            success = await AudioGenerator.generate_tts(text, physical_path)
+            logger.info(f"[TTS LOCAL] Generating TTS locally using edge-tts/gTTS for text: '{text[:30]}...' with lang: {target_lang}")
+            
+            # Pass target_lang to centralized TTS request
+            if sso_config.is_enabled and sso_config.server_url:
+                try:
+                    import httpx
+                    async with httpx.AsyncClient() as client:
+                        response = await client.post(
+                             f"{sso_config.server_url.rstrip('/')}/api/tts/generate",
+                             json={"text": text, "lang": target_lang},
+                             timeout=20.0
+                        )
+                        if response.status_code == 200:
+                            data = response.json()
+                            filename_tts = data.get("filename") or os.path.basename(data.get("url"))
+                            central_ref = f"central-tts://{filename_tts}"
+                            if not is_custom:
+                                if face == "front":
+                                    c.audio = central_ref
+                                else:
+                                    c.back_audio_url = central_ref
+                            else:
+                                if target_url_col:
+                                    if not c.others:
+                                        c.others = {}
+                                    c.others[target_url_col] = central_ref
+                            from sqlalchemy.orm.attributes import flag_modified
+                            if is_custom:
+                                flag_modified(c, "others")
+                            await db.commit()
+                            resolved_url = f"{sso_config.server_url.rstrip('/')}/static/uploads/tts/{filename_tts}"
+                            return resolved_url
+                except Exception as sso_retry_err:
+                    logger.warning(f"[TTS CENTRAL RETRY WARNING] Centralized retry failed: {sso_retry_err}")
+
+            success = await AudioGenerator.generate_tts(text, physical_path, target_lang)
         except Exception as e:
             import traceback
             logger.error(f"Failed to generate audio locally: {e}\n{traceback.format_exc()}")

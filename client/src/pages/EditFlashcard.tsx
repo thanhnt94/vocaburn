@@ -1337,7 +1337,7 @@ const EditFlashcard = () => {
                                 <div className="space-y-3.5">
                                    {(practiceSettings.audio_pairs || []).map((pair: any, index: number) => (
                                       <div key={index} className="flex items-start gap-3 bg-slate-50/50 border border-slate-200/60 p-4 rounded-2xl relative">
-                                         <div className="flex-grow grid grid-cols-1 sm:grid-cols-3 gap-3">
+                                         <div className="flex-grow grid grid-cols-1 sm:grid-cols-4 gap-3">
                                             <div className="space-y-1">
                                                <label className="text-[8px] font-black text-slate-400 uppercase tracking-wider">Cột nội dung chính</label>
                                                <select
@@ -1389,6 +1389,26 @@ const EditFlashcard = () => {
                                                   {availableColumns.map(col => (
                                                      <option key={col} value={col}>{col.toUpperCase()}</option>
                                                   ))}
+                                               </select>
+                                            </div>
+
+                                            <div className="space-y-1">
+                                               <label className="text-[8px] font-black text-slate-400 uppercase tracking-wider">Ngôn ngữ đọc</label>
+                                               <select
+                                                  value={pair.lang || 'multi'}
+                                                  onChange={(e) => {
+                                                     const newPairs = [...(practiceSettings.audio_pairs || [])];
+                                                     newPairs[index] = { ...newPairs[index], lang: e.target.value };
+                                                     setPracticeSettings({ ...practiceSettings, audio_pairs: newPairs });
+                                                  }}
+                                                  className="w-full bg-white border border-slate-200 rounded-xl px-3 h-10 text-xs font-bold text-slate-700 outline-none"
+                                               >
+                                                  <option value="multi">Tự động (Multi-lang)</option>
+                                                  <option value="en">English (Mỹ)</option>
+                                                  <option value="ja">Japanese (Nhật)</option>
+                                                  <option value="vi">Vietnamese (Việt)</option>
+                                                  <option value="zh">Chinese (Trung)</option>
+                                                  <option value="ko">Korean (Hàn)</option>
                                                </select>
                                             </div>
                                          </div>

@@ -69,7 +69,7 @@ class AudioGenerator:
         return segments
 
     @classmethod
-    async def generate_tts(cls, text: str, output_path: str) -> bool:
+    async def generate_tts(cls, text: str, output_path: str, lang: str = None) -> bool:
         """
         Generates premium TTS audio file using Microsoft Edge TTS as primary,
         falling back to Google TTS (gTTS) if Edge TTS fails or voice is unsupported.
@@ -85,7 +85,11 @@ class AudioGenerator:
                     current_path += os.pathsep + p
             os.environ["PATH"] = current_path
 
-            segments = cls.parse_segments(text)
+            if lang and lang != 'multi':
+                segments = [{'text': text.strip(), 'lang': lang.strip().lower()}]
+            else:
+                segments = cls.parse_segments(text)
+                
             if not segments:
                 return False
                 

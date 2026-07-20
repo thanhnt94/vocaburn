@@ -99,12 +99,32 @@ export function useFlashcardAudio(currentQuestion: any, practiceSettings?: any) 
       audio.play().catch(err => {
         console.warn(`[TTS FALLBACK WARNING] Playback of custom audio file failed:`, err.message);
         if (script && script.trim()) {
-          speakMultiLanguage(script);
+          if (pair && pair.lang && pair.lang !== 'multi') {
+            const u = new SpeechSynthesisUtterance(script);
+            const langMap: Record<string, string> = {
+              'ja': 'ja-JP', 'vi': 'vi-VN', 'en': 'en-US', 'zh': 'zh-CN', 'ko': 'ko-KR'
+            };
+            u.lang = langMap[pair.lang] || pair.lang;
+            u.rate = 0.85;
+            window.speechSynthesis.speak(u);
+          } else {
+            speakMultiLanguage(script);
+          }
         }
       });
     } else if (script && script.trim()) {
       console.warn(`[TTS FALLBACK] Resorting directly to browser Web Speech API for custom column: "${script}"`);
-      speakMultiLanguage(script);
+      if (pair && pair.lang && pair.lang !== 'multi') {
+        const u = new SpeechSynthesisUtterance(script);
+        const langMap: Record<string, string> = {
+          'ja': 'ja-JP', 'vi': 'vi-VN', 'en': 'en-US', 'zh': 'zh-CN', 'ko': 'ko-KR'
+        };
+        u.lang = langMap[pair.lang] || pair.lang;
+        u.rate = 0.85;
+        window.speechSynthesis.speak(u);
+      } else {
+        speakMultiLanguage(script);
+      }
     }
   };
 
