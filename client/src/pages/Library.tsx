@@ -412,28 +412,44 @@ export default function Library() {
                                    </div>
                                  </Link>
                                  <div className="flex items-center gap-1.5">
-                                   <button 
-                                      onClick={() => {
-                                        setSelectedStudyQuiz(quiz)
-                                        setStudyModalTab('flashcard')
-                                        setIsStudyModalOpen(true)
-                                      }}
-                                      className="px-3.5 py-2 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 hover:from-indigo-650 hover:to-purple-700 text-white flex items-center gap-1 shadow-md shadow-indigo-100 hover:scale-105 active:scale-95 transition-all text-[10px] font-black uppercase tracking-wider"
-                                   >
-                                      <Brain className="w-3.5 h-3.5" />
-                                      <span>Học</span>
-                                   </button>
-                                   <button 
-                                      onClick={() => {
-                                        setSelectedStudyQuiz(quiz)
-                                        setStudyModalTab('practice')
-                                        setIsStudyModalOpen(true)
-                                      }}
-                                      className="px-3.5 py-2 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white flex items-center gap-1 shadow-md shadow-emerald-100 hover:scale-105 active:scale-95 transition-all text-[10px] font-black uppercase tracking-wider"
-                                   >
-                                      <Trophy className="w-3.5 h-3.5" />
-                                      <span>Luyện</span>
-                                   </button>
+                                    {(() => {
+                                      const disabledModes = (quiz as any).practice_settings?.disabled_modes || [];
+                                      const studyKeys = ['fsrs', 'roadmap', 'flip', 'review', 'new'];
+                                      const practiceKeys = ['mcq', 'typing', 'listening'];
+                                      const hasStudy = studyKeys.some(k => !disabledModes.includes(k));
+                                      const hasPractice = practiceKeys.some(k => !disabledModes.includes(k));
+
+                                      return (
+                                        <>
+                                          {hasStudy && (
+                                            <button 
+                                               onClick={() => {
+                                                 setSelectedStudyQuiz(quiz)
+                                                 setStudyModalTab('flashcard')
+                                                 setIsStudyModalOpen(true)
+                                               }}
+                                               className="px-3.5 py-2 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 hover:from-indigo-650 hover:to-purple-700 text-white flex items-center gap-1 shadow-md shadow-indigo-100 hover:scale-105 active:scale-95 transition-all text-[10px] font-black uppercase tracking-wider"
+                                            >
+                                               <Brain className="w-3.5 h-3.5" />
+                                               <span>Học</span>
+                                            </button>
+                                          )}
+                                          {hasPractice && (
+                                            <button 
+                                               onClick={() => {
+                                                 setSelectedStudyQuiz(quiz)
+                                                 setStudyModalTab('practice')
+                                                 setIsStudyModalOpen(true)
+                                               }}
+                                               className="px-3.5 py-2 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white flex items-center gap-1 shadow-md shadow-emerald-100 hover:scale-105 active:scale-95 transition-all text-[10px] font-black uppercase tracking-wider"
+                                            >
+                                               <Trophy className="w-3.5 h-3.5" />
+                                               <span>Luyện</span>
+                                            </button>
+                                          )}
+                                        </>
+                                      );
+                                    })()}
                                  </div>
                               </div>
 
@@ -540,28 +556,44 @@ export default function Library() {
                       
                       {/* Right Side: Stacked Action Buttons (Học on top, Luyện on bottom) */}
                       <div className="flex flex-col gap-1 flex-shrink-0">
-                         <button 
-                            onClick={() => {
-                               setSelectedStudyQuiz(quiz)
-                               setStudyModalTab('flashcard')
-                               setIsStudyModalOpen(true)
-                            }}
-                            className="w-8.5 h-8.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white flex items-center justify-center active:scale-90 transition-all"
-                            title="Học tập"
-                         >
-                            <Brain className="w-4 h-4" />
-                         </button>
-                         <button 
-                            onClick={() => {
-                               setSelectedStudyQuiz(quiz)
-                               setStudyModalTab('practice')
-                               setIsStudyModalOpen(true)
-                            }}
-                            className="w-8.5 h-8.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white flex items-center justify-center active:scale-90 transition-all"
-                            title="Luyện tập"
-                         >
-                            <Trophy className="w-4 h-4" />
-                         </button>
+                         {(() => {
+                            const disabledModes = (quiz as any).practice_settings?.disabled_modes || [];
+                            const studyKeys = ['fsrs', 'roadmap', 'flip', 'review', 'new'];
+                            const practiceKeys = ['mcq', 'typing', 'listening'];
+                            const hasStudy = studyKeys.some(k => !disabledModes.includes(k));
+                            const hasPractice = practiceKeys.some(k => !disabledModes.includes(k));
+
+                            return (
+                               <>
+                                  {hasStudy && (
+                                     <button 
+                                        onClick={() => {
+                                           setSelectedStudyQuiz(quiz)
+                                           setStudyModalTab('flashcard')
+                                           setIsStudyModalOpen(true)
+                                        }}
+                                        className="w-8.5 h-8.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white flex items-center justify-center active:scale-90 transition-all"
+                                        title="Học tập"
+                                     >
+                                        <Brain className="w-4 h-4" />
+                                     </button>
+                                  )}
+                                  {hasPractice && (
+                                     <button 
+                                        onClick={() => {
+                                           setSelectedStudyQuiz(quiz)
+                                           setStudyModalTab('practice')
+                                           setIsStudyModalOpen(true)
+                                        }}
+                                        className="w-8.5 h-8.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white flex items-center justify-center active:scale-90 transition-all"
+                                        title="Luyện tập"
+                                     >
+                                        <Trophy className="w-4 h-4" />
+                                     </button>
+                                  )}
+                               </>
+                            );
+                         })()}
                       </div>
                    </div>
                  </motion.div>
@@ -695,7 +727,10 @@ export default function Library() {
                         { mode: 'flip', icon: '🔄', title: 'Flip Card', desc: 'Lật thẻ ghi nhớ phản xạ tự do' },
                         { mode: 'review', icon: '📚', title: 'Review Only', desc: 'Chỉ ôn tập lại các thẻ cũ' },
                         { mode: 'new', icon: '✨', title: 'New Only', desc: 'Chỉ học các thẻ mới chưa biết' },
-                      ].map(item => (
+                      ].filter(item => {
+                        const disabled = (selectedStudyQuiz as any).practice_settings?.disabled_modes || [];
+                        return !disabled.includes(item.mode);
+                      }).map(item => (
                         <button
                           key={item.mode}
                           onClick={() => {
@@ -724,7 +759,10 @@ export default function Library() {
                         { mode: 'mcq', icon: '🎯', title: 'MCQ Test', desc: 'Trắc nghiệm phản xạ 4 đáp án' },
                         { mode: 'typing', icon: '⌨️', title: 'Typing Test', desc: 'Gõ từ vựng nhớ chi tiết' },
                         { mode: 'listening', icon: '🎧', title: 'Listening Test', desc: 'Nghe audio chọn đáp án' },
-                      ].map(item => (
+                      ].filter(item => {
+                        const disabled = (selectedStudyQuiz as any).practice_settings?.disabled_modes || [];
+                        return !disabled.includes(item.mode);
+                      }).map(item => (
                         <button
                           key={item.mode}
                           onClick={() => {

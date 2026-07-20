@@ -50,7 +50,7 @@ const EditFlashcards = () => {
   const [isScrolled, setIsScrolled] = useState(false)
   const [isQuickAddOpen, setIsQuickAddOpen] = useState(true)
   const [isConfigModalOpen, setIsConfigModalOpen] = useState(false)
-  const [configTab, setConfigTab] = useState<'display' | 'filter' | 'manage'>('display')
+  const [configTab, setConfigTab] = useState<'display' | 'filter' | 'manage' | 'settings'>('display')
   const [sortBy, setSortBy] = useState<string>('id_asc')
   const [filterType, setFilterType] = useState<string>('all')
   const [filterCol, setFilterCol] = useState<string>('')
@@ -1252,6 +1252,18 @@ orange	quả cam"
                 >
                   Quản lý cột
                 </button>
+                <button
+                  type="button"
+                  onClick={() => setConfigTab('settings')}
+                  className={cn(
+                    "flex-1 py-2 text-center text-[10px] font-black uppercase tracking-wider rounded-lg transition-all",
+                    configTab === 'settings' 
+                      ? "bg-white text-indigo-600 shadow-sm" 
+                      : "text-slate-500 hover:text-slate-800"
+                  )}
+                >
+                  Cài đặt học
+                </button>
               </div>
 
               {/* Tab Contents */}
@@ -1493,6 +1505,108 @@ orange	quả cam"
                         >
                           Thêm
                         </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {configTab === 'settings' && (
+                  <div className="space-y-4 animate-in fade-in duration-200">
+                    <div>
+                      <span className="text-[10px] font-black text-slate-800 uppercase tracking-wider block mb-2">Chế độ học (Flashcard Modes)</span>
+                      <div className="space-y-2">
+                        {[
+                          { key: 'fsrs', title: 'FSRS Spaced Repetition', desc: 'Học lặp lại ngắt quãng thông minh' },
+                          { key: 'roadmap', title: 'Roadmap Mode', desc: 'Học theo lộ trình mục tiêu mỗi ngày' },
+                          { key: 'flip', title: 'Flip Card', desc: 'Lật thẻ ghi nhớ phản xạ tự do' },
+                          { key: 'review', title: 'Review Only', desc: 'Chỉ ôn tập lại các thẻ cũ' },
+                          { key: 'new', title: 'New Only', desc: 'Chỉ học các thẻ mới chưa biết' }
+                        ].map(mode => {
+                          const isEnabled = practiceSettings.disabled_modes ? !practiceSettings.disabled_modes.includes(mode.key) : true;
+                          return (
+                            <div key={mode.key} className="flex items-center justify-between p-3 bg-slate-50/50 border border-slate-200 rounded-2xl">
+                              <div>
+                                <span className="text-[10px] font-black text-slate-700 uppercase tracking-wider block">{mode.title}</span>
+                                <span className="text-[8px] font-semibold text-slate-400 block leading-snug">{mode.desc}</span>
+                              </div>
+                              <button
+                                type="button"
+                                onClick={async () => {
+                                  let currentDisabled = practiceSettings.disabled_modes ? [...practiceSettings.disabled_modes] : [];
+                                  if (currentDisabled.includes(mode.key)) {
+                                    currentDisabled = currentDisabled.filter(k => k !== mode.key);
+                                  } else {
+                                    currentDisabled.push(mode.key);
+                                  }
+                                  const updated = { ...practiceSettings, disabled_modes: currentDisabled };
+                                  setPracticeSettings(updated);
+                                  await axios.post(`/api/v1/deck/${id}/practice-settings`, {
+                                    settings: updated,
+                                    is_creator: true
+                                  });
+                                  setToastMessage("Cập nhật chế độ học thành công!");
+                                  setTimeout(() => setToastMessage(null), 3000);
+                                }}
+                                className={cn(
+                                  "px-3 py-1.5 rounded-xl text-[9px] font-black uppercase transition-all border",
+                                  isEnabled
+                                    ? "bg-indigo-50 border-indigo-200 text-indigo-700 shadow-sm"
+                                    : "bg-slate-50 border-slate-200 text-slate-400 hover:bg-slate-100"
+                                )}
+                              >
+                                {isEnabled ? "Bật" : "Tắt"}
+                              </button>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    <div className="pt-3 border-t border-slate-50">
+                      <span className="text-[10px] font-black text-slate-800 uppercase tracking-wider block mb-2">Chế độ luyện tập (Practice Modes)</span>
+                      <div className="space-y-2">
+                        {[
+                          { key: 'mcq', title: 'MCQ Test', desc: 'Trắc nghiệm phản xạ 4 đáp án' },
+                          { key: 'typing', title: 'Typing Test', desc: 'Gõ từ vựng nhớ chi tiết' },
+                          { key: 'listening', title: 'Listening Test', desc: 'Nghe audio chọn đáp án' }
+                        ].map(mode => {
+                          const isEnabled = practiceSettings.disabled_modes ? !practiceSettings.disabled_modes.includes(mode.key) : true;
+                          return (
+                            <div key={mode.key} className="flex items-center justify-between p-3 bg-slate-50/50 border border-slate-200 rounded-2xl">
+                              <div>
+                                <span className="text-[10px] font-black text-slate-700 uppercase tracking-wider block">{mode.title}</span>
+                                <span className="text-[8px] font-semibold text-slate-400 block leading-snug">{mode.desc}</span>
+                              </div>
+                              <button
+                                type="button"
+                                onClick={async () => {
+                                  let currentDisabled = practiceSettings.disabled_modes ? [...practiceSettings.disabled_modes] : [];
+                                  if (currentDisabled.includes(mode.key)) {
+                                    currentDisabled = currentDisabled.filter(k => k !== mode.key);
+                                  } else {
+                                    currentDisabled.push(mode.key);
+                                  }
+                                  const updated = { ...practiceSettings, disabled_modes: currentDisabled };
+                                  setPracticeSettings(updated);
+                                  await axios.post(`/api/v1/deck/${id}/practice-settings`, {
+                                    settings: updated,
+                                    is_creator: true
+                                  });
+                                  setToastMessage("Cập nhật chế độ luyện tập thành công!");
+                                  setTimeout(() => setToastMessage(null), 3000);
+                                }}
+                                className={cn(
+                                  "px-3 py-1.5 rounded-xl text-[9px] font-black uppercase transition-all border",
+                                  isEnabled
+                                    ? "bg-emerald-50 border-emerald-200 text-emerald-700 shadow-sm"
+                                    : "bg-slate-50 border-slate-200 text-slate-400 hover:bg-slate-100"
+                                )}
+                              >
+                                {isEnabled ? "Bật" : "Tắt"}
+                              </button>
+                            </div>
+                          );
+                        })}
                       </div>
                     </div>
                   </div>
