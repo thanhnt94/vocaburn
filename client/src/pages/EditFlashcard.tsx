@@ -32,7 +32,8 @@ import {
   Layers,
   Lock,
   Globe,
-  Play
+  Play,
+  Volume2
 } from 'lucide-react'
 import axios from 'axios'
 import { cn } from '@/lib/utils'
@@ -65,7 +66,7 @@ const EditFlashcard = () => {
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
-  const [activeTab, setActiveTab] = useState<'basic' | 'columns' | 'ai' | 'collaboration' | 'practice' | 'excel' | 'modes'>('basic')
+  const [activeTab, setActiveTab] = useState<'basic' | 'columns' | 'ai' | 'collaboration' | 'practice' | 'excel' | 'modes' | 'audio'>('basic')
 
   // Excel Import/Export State
   const [excelFile, setExcelFile] = useState<File | null>(null)
@@ -557,7 +558,7 @@ const EditFlashcard = () => {
       <div className="max-w-[1400px] mx-auto px-4 pt-[68px] md:pt-0 mt-6 md:mt-10">
         {/* Mobile Tab Switcher */}
         <div className="flex items-center bg-white border border-slate-100 p-1.5 rounded-2xl mb-8 md:hidden shadow-sm overflow-x-auto">
-           {['basic', 'columns', 'modes', 'practice', 'ai', 'collaboration', 'excel'].map(tab => (
+           {['basic', 'columns', 'modes', 'practice', 'ai', 'audio', 'collaboration', 'excel'].map(tab => (
              <button 
                key={tab}
                onClick={() => setActiveTab(tab as any)}
@@ -566,7 +567,7 @@ const EditFlashcard = () => {
                  activeTab === tab ? "bg-slate-900 text-white shadow-md" : "text-slate-400"
                )}
              >
-               {tab === 'basic' ? 'Identity' : tab === 'columns' ? 'Cột dữ liệu' : tab === 'modes' ? 'Chế độ học' : tab === 'practice' ? 'Practice' : tab === 'ai' ? 'AI Engine' : tab === 'collaboration' ? 'Rights' : 'Excel'}
+               {tab === 'basic' ? 'Identity' : tab === 'columns' ? 'Cột dữ liệu' : tab === 'modes' ? 'Chế độ học' : tab === 'practice' ? 'Practice' : tab === 'ai' ? 'AI Engine' : tab === 'audio' ? 'Audio Pairs' : tab === 'collaboration' ? 'Rights' : 'Excel'}
              </button>
            ))}
         </div>
@@ -579,6 +580,7 @@ const EditFlashcard = () => {
               <NavButton active={activeTab === 'modes'} onClick={() => setActiveTab('modes')} icon={Play} title="Study Modes" sub="Bật/tắt Học & Luyện tập" />
               <NavButton active={activeTab === 'practice'} onClick={() => setActiveTab('practice')} icon={Zap} title="Practice Defaults" sub="MCQ, Typing, Listening" />
               <NavButton active={activeTab === 'ai'} onClick={() => setActiveTab('ai')} icon={Brain} title="AI Intelligence" sub="System Prompts & Rules" />
+              <NavButton active={activeTab === 'audio'} onClick={() => setActiveTab('audio')} icon={Volume2} title="Audio Pairs" sub="Cấu hình cặp đọc" />
               <NavButton active={activeTab === 'collaboration'} onClick={() => setActiveTab('collaboration')} icon={Users} title="Collaboration" sub="Editors & Ownership" />
               <NavButton active={activeTab === 'excel'} onClick={() => setActiveTab('excel')} icon={FileSpreadsheet} title="Excel Tools" sub="Import & Export" />
 
@@ -1294,8 +1296,138 @@ const EditFlashcard = () => {
                     </motion.div>
                  )}
 
+                 {/* Audio Settings */}
+                 {activeTab === 'audio' && (
+                    <motion.div key="audio" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="space-y-6">
+                       <div className="bg-white rounded-[2.5rem] p-6 md:p-10 border border-slate-100 shadow-xl space-y-6">
+                          <div className="flex items-center gap-4">
+                             <div className="w-10 h-10 bg-indigo-50 rounded-xl flex items-center justify-center text-indigo-650">
+                                <Volume2 className="w-5 h-5" />
+                             </div>
+                             <div>
+                                <h2 className="text-lg font-black text-slate-800 uppercase italic">Audio Pairs Configuration</h2>
+                                <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Cấu hình ánh xạ phát âm giữa nội dung và tệp âm thanh</p>
+                             </div>
+                          </div>
 
-                 {activeTab === 'ai' && (
+                          <div className="space-y-4 pt-2">
+                             <div>
+                                <span className="text-[10px] font-black text-slate-800 uppercase tracking-wider block mb-3">Cặp mặc định hệ thống (Không thể thay đổi)</span>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                   {[
+                                      { text: 'Mặt trước (FRONT)', script: 'front_audio_content', url: 'front_audio_url' },
+                                      { text: 'Mặt sau (BACK)', script: 'back_audio_content', url: 'back_audio_url' }
+                                   ].map((pair, idx) => (
+                                      <div key={idx} className="p-4 bg-slate-55 border border-slate-200/50 rounded-2xl space-y-2">
+                                         <div className="flex items-center justify-between">
+                                            <span className="text-[10px] font-black text-indigo-600 uppercase">{pair.text}</span>
+                                            <span className="px-2 py-0.5 bg-slate-200/50 rounded-lg text-[8px] font-black text-slate-450 uppercase">Mặc định</span>
+                                         </div>
+                                         <div className="text-[9px] font-semibold text-slate-400 space-y-1">
+                                            <div>🗣️ Script: <span className="font-bold text-slate-600">{pair.script}</span></div>
+                                            <div>🔗 Audio URL: <span className="font-bold text-slate-600">{pair.url}</span></div>
+                                         </div>
+                                      </div>
+                                   ))}
+                                </div>
+                             </div>
+
+                             <div className="pt-4 border-t border-slate-100">
+                                <span className="text-[10px] font-black text-slate-800 uppercase tracking-wider block mb-3">Cặp đọc tùy chỉnh</span>
+                                <div className="space-y-3.5">
+                                   {(practiceSettings.audio_pairs || []).map((pair: any, index: number) => (
+                                      <div key={index} className="flex items-start gap-3 bg-slate-50/50 border border-slate-200/60 p-4 rounded-2xl relative">
+                                         <div className="flex-grow grid grid-cols-1 sm:grid-cols-3 gap-3">
+                                            <div className="space-y-1">
+                                               <label className="text-[8px] font-black text-slate-400 uppercase tracking-wider">Cột nội dung chính</label>
+                                               <select
+                                                  value={pair.text_col || ''}
+                                                  onChange={(e) => {
+                                                     const newPairs = [...(practiceSettings.audio_pairs || [])];
+                                                     newPairs[index] = { ...newPairs[index], text_col: e.target.value };
+                                                     setPracticeSettings({ ...practiceSettings, audio_pairs: newPairs });
+                                                  }}
+                                                  className="w-full bg-white border border-slate-200 rounded-xl px-3 h-10 text-xs font-bold text-slate-700 outline-none"
+                                               >
+                                                  <option value="">-- Chọn cột --</option>
+                                                  {availableColumns.map(col => (
+                                                     <option key={col} value={col}>{col.toUpperCase()}</option>
+                                                  ))}
+                                               </select>
+                                            </div>
+
+                                            <div className="space-y-1">
+                                               <label className="text-[8px] font-black text-slate-400 uppercase tracking-wider">Cột kịch bản đọc (TTS)</label>
+                                               <select
+                                                  value={pair.audio_content_col || ''}
+                                                  onChange={(e) => {
+                                                     const newPairs = [...(practiceSettings.audio_pairs || [])];
+                                                     newPairs[index] = { ...newPairs[index], audio_content_col: e.target.value };
+                                                     setPracticeSettings({ ...practiceSettings, audio_pairs: newPairs });
+                                                  }}
+                                                  className="w-full bg-white border border-slate-200 rounded-xl px-3 h-10 text-xs font-bold text-slate-700 outline-none"
+                                               >
+                                                  <option value="">-- Chọn cột --</option>
+                                                  {availableColumns.map(col => (
+                                                     <option key={col} value={col}>{col.toUpperCase()}</option>
+                                                  ))}
+                                               </select>
+                                            </div>
+
+                                            <div className="space-y-1">
+                                               <label className="text-[8px] font-black text-slate-400 uppercase tracking-wider">Cột đường dẫn âm thanh (Audio URL)</label>
+                                               <select
+                                                  value={pair.audio_url_col || ''}
+                                                  onChange={(e) => {
+                                                     const newPairs = [...(practiceSettings.audio_pairs || [])];
+                                                     newPairs[index] = { ...newPairs[index], audio_url_col: e.target.value };
+                                                     setPracticeSettings({ ...practiceSettings, audio_pairs: newPairs });
+                                                  }}
+                                                  className="w-full bg-white border border-slate-200 rounded-xl px-3 h-10 text-xs font-bold text-slate-700 outline-none"
+                                               >
+                                                  <option value="">-- Chọn cột --</option>
+                                                  {availableColumns.map(col => (
+                                                     <option key={col} value={col}>{col.toUpperCase()}</option>
+                                                  ))}
+                                               </select>
+                                            </div>
+                                         </div>
+
+                                         <button
+                                            type="button"
+                                            onClick={() => {
+                                               const newPairs = (practiceSettings.audio_pairs || []).filter((_: any, idx: number) => idx !== index);
+                                               setPracticeSettings({ ...practiceSettings, audio_pairs: newPairs });
+                                            }}
+                                            className="w-9 h-9 rounded-xl bg-white hover:bg-rose-50 text-slate-400 hover:text-rose-500 border border-slate-200/80 flex items-center justify-center transition-all mt-5 shrink-0 active:scale-95 shadow-sm"
+                                         >
+                                            <Trash2 className="w-4 h-4" />
+                                         </button>
+                                      </div>
+                                   ))}
+
+                                   {(practiceSettings.audio_pairs || []).length === 0 && (
+                                      <p className="text-[10px] font-bold text-slate-400 italic py-2">Chưa cấu hình cặp đọc tùy chỉnh nào.</p>
+                                   )}
+
+                                   <button
+                                      type="button"
+                                      onClick={() => {
+                                         const newPairs = [...(practiceSettings.audio_pairs || []), { text_col: '', audio_content_col: '', audio_url_col: '' }];
+                                         setPracticeSettings({ ...practiceSettings, audio_pairs: newPairs });
+                                      }}
+                                      className="py-2.5 px-4 border border-dashed border-indigo-200 hover:border-indigo-400 rounded-xl text-indigo-600 text-[10px] font-black uppercase tracking-wider flex items-center gap-1.5 transition-all w-fit bg-indigo-50/20 active:scale-95"
+                                   >
+                                      <Plus className="w-3.5 h-3.5" /> Thêm cặp đọc tùy chỉnh
+                                   </button>
+                                </div>
+                             </div>
+                          </div>
+                       </div>
+                    </motion.div>
+                 )}
+
+                  {activeTab === 'ai' && (
                     <motion.div key="ai" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="space-y-6">
                        <div className="bg-slate-900 rounded-[2.5rem] p-6 md:p-10 border border-slate-800 shadow-2xl space-y-6">
                          <div className="flex items-center justify-between mb-2">

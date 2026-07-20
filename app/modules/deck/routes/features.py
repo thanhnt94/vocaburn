@@ -576,20 +576,43 @@ async def import_text_update(request: Request, deck_id: int, data: dict, db: Asy
         return JSONResponse(status_code=500, content={"error": str(e)})
 
 async def generate_single_card_audio_helper(c, face: str, force: bool, db: AsyncSession) -> Optional[str]:
-    # Select text based on face - strictly require front_audio_content / back_audio_content
+    # Select text based on face
     text = ""
-    if face == "front":
-        text = c.front_audio_content or (c.others.get("front_audio_content") if c.others else None)
+    target_url_col = ""
+    is_custom = face not in ("front", "back")
+
+    if not is_custom:
+        if face == "front":
+            text = c.front_audio_content or (c.others.get("front_audio_content") if c.others else None)
+        else:
+            text = c.back_audio_content or (c.others.get("back_audio_content") if c.others else None)
     else:
-        text = c.back_audio_content or (c.others.get("back_audio_content") if c.others else None)
-            
-    if not text or not text.strip():
+        # Load deck to check practice_settings mapping
+        from app.modules.deck.models import FlashcardDeck
+        deck_res = await db.execute(select(FlashcardDeck).where(FlashcardDeck.id == c.deck_id))
+        deck = deck_res.scalar_one_or_none()
+        if deck and deck.practice_settings and isinstance(deck.practice_settings, dict):
+            pairs = deck.practice_settings.get("audio_pairs", [])
+            pair = next((p for p in pairs if p.get("text_col") == face), None)
+            if pair:
+                content_col = pair.get("audio_content_col")
+                target_url_col = pair.get("audio_url_col")
+                if content_col:
+                    text = c.others.get(content_col) if c.others else None
+
+    if not text or not str(text).strip():
         return None
+    text = str(text).strip()
         
     # Determine physical path and absolute URL based on requested deck_id and card_id
     from app.core.config import settings
     folder_path = os.path.join(settings.VOCABURN_STORAGE_DIR, str(c.deck_id), "audio")
-    filename = f"{c.id}_front.mp3" if face == "front" else f"{c.id}_back.mp3"
+    
+    if not is_custom:
+        filename = f"{c.id}_front.mp3" if face == "front" else f"{c.id}_back.mp3"
+    else:
+        filename = f"{c.id}_{face}.mp3"
+        
     physical_path = os.path.join(folder_path, filename)
     
     # Construct relative URL
@@ -599,15 +622,26 @@ async def generate_single_card_audio_helper(c, face: str, force: bool, db: Async
     if os.path.exists(physical_path) and not force:
         # File is on disk, just make sure database is synchronized
         db_updated = False
-        if face == "front":
-            if c.audio != url:
-                c.audio = url
-                db_updated = True
+        if not is_custom:
+            if face == "front":
+                if c.audio != url:
+                    c.audio = url
+                    db_updated = True
+            else:
+                if c.back_audio_url != url:
+                    c.back_audio_url = url
+                    db_updated = True
         else:
-            if c.back_audio_url != url:
-                c.back_audio_url = url
-                db_updated = True
+            if target_url_col:
+                if not c.others:
+                    c.others = {}
+                if c.others.get(target_url_col) != url:
+                    c.others[target_url_col] = url
+                    db_updated = True
         if db_updated:
+            from sqlalchemy.orm.attributes import flag_modified
+            if is_custom:
+                flag_modified(c, "others")
             await db.commit()
         return url
     
@@ -630,25 +664,34 @@ async def generate_single_card_audio_helper(c, face: str, force: bool, db: Async
             logger.info(f"[TTS CENTRAL] SSO is enabled. Requesting centralized TTS from {sso_config.server_url} for text: '{text[:30]}...'")
             async with httpx.AsyncClient() as client:
                 response = await client.post(
-                    f"{sso_config.server_url.rstrip('/')}/api/tts/generate",
-                    json={"text": text},
-                    timeout=20.0
+                     f"{sso_config.server_url.rstrip('/')}/api/tts/generate",
+                     json={"text": text},
+                     timeout=20.0
                 )
                 if response.status_code == 200:
                     data = response.json()
-                    filename = data.get("filename") or os.path.basename(data.get("url"))
-                    central_ref = f"central-tts://{filename}"
+                    filename_tts = data.get("filename") or os.path.basename(data.get("url"))
+                    central_ref = f"central-tts://{filename_tts}"
                     
                     # Save back to database
-                    if face == "front":
-                        c.audio = central_ref
+                    if not is_custom:
+                        if face == "front":
+                            c.audio = central_ref
+                        else:
+                            c.back_audio_url = central_ref
                     else:
-                        c.back_audio_url = central_ref
+                        if target_url_col:
+                            if not c.others:
+                                c.others = {}
+                            c.others[target_url_col] = central_ref
                         
+                    from sqlalchemy.orm.attributes import flag_modified
+                    if is_custom:
+                        flag_modified(c, "others")
                     await db.commit()
                     
                     # Return the fully resolved URL for immediate UI play/preview
-                    resolved_url = f"{sso_config.server_url.rstrip('/')}/static/uploads/tts/{filename}"
+                    resolved_url = f"{sso_config.server_url.rstrip('/')}/static/uploads/tts/{filename_tts}"
                     logger.info(f"[TTS CENTRAL SUCCESS] Stored logical reference {central_ref} in card {c.id}")
                     return resolved_url
                 else:
@@ -671,11 +714,20 @@ async def generate_single_card_audio_helper(c, face: str, force: bool, db: Async
         return None
         
     # Save back to database
-    if face == "front":
-        c.audio = url
+    if not is_custom:
+        if face == "front":
+            c.audio = url
+        else:
+            c.back_audio_url = url
     else:
-        c.back_audio_url = url
+        if target_url_col:
+            if not c.others:
+                c.others = {}
+            c.others[target_url_col] = url
         
+    from sqlalchemy.orm.attributes import flag_modified
+    if is_custom:
+        flag_modified(c, "others")
     await db.commit()
     return url
 
