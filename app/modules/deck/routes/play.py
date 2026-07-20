@@ -1243,7 +1243,7 @@ async def get_quick_play_data(request: Request, db: AsyncSession = Depends(get_d
             },
             "options": [],
             "image": fix_static_urls(c.back_img),
-            "audio": fix_static_urls(c.back_audio_url),
+            "audio": fix_static_urls(c.front_audio_url),
             "others": fix_static_urls(c.others)
         })
         
@@ -1309,7 +1309,7 @@ async def get_deck_play_data(request: Request, deck_id: int, mode: Optional[str]
             "front_img": c.front_img,
             "back_img": c.back_img,
             "image": fix_static_urls(c.back_img),
-            "audio": fix_static_urls(c.back_audio_url),
+            "audio": fix_static_urls(c.front_audio_url),
             "others": fix_static_urls(c.others)
         } for c in deck.cards]
         
@@ -1459,7 +1459,7 @@ async def get_deck_play_data(request: Request, deck_id: int, mode: Optional[str]
                 "fsrs": None,
                 "options": [],
                 "image": fix_static_urls(c.back_img),
-                "audio": fix_static_urls(c.back_audio_url),
+                "audio": fix_static_urls(c.front_audio_url),
                 "others": fix_static_urls(c.others)
             })
     else:
@@ -1521,7 +1521,7 @@ async def get_deck_play_data(request: Request, deck_id: int, mode: Optional[str]
                 },
                 "options": [],
                 "image": fix_static_urls(c.back_img),
-                "audio": fix_static_urls(c.back_audio_url),
+                "audio": fix_static_urls(c.front_audio_url),
                 "others": fix_static_urls(c.others)
             })
         
