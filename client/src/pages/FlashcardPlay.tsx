@@ -1629,6 +1629,8 @@ export default function FlashcardPlay() {
           }
         })
 
+        // Disable mastery level-up celebration overlay to keep study flow clean
+        /*
         if (masteryUpdate.level_up && masteryUpdate.new_level > masteryUpdate.old_level) {
           confetti({ zIndex: 9999,
             particleCount: 50,
@@ -1648,6 +1650,7 @@ export default function FlashcardPlay() {
             setActiveMasteryUpgrade(null)
           }, 3000)
         }
+        */
       }
 
       // Real-time Achievement Badge Unlock
