@@ -31,7 +31,8 @@ import {
   GripVertical,
   Layers,
   Lock,
-  Globe
+  Globe,
+  Play
 } from 'lucide-react'
 import axios from 'axios'
 import { cn } from '@/lib/utils'
@@ -64,7 +65,7 @@ const EditFlashcard = () => {
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
-  const [activeTab, setActiveTab] = useState<'basic' | 'columns' | 'ai' | 'collaboration' | 'practice' | 'excel'>('basic')
+  const [activeTab, setActiveTab] = useState<'basic' | 'columns' | 'ai' | 'collaboration' | 'practice' | 'excel' | 'modes'>('basic')
 
   // Excel Import/Export State
   const [excelFile, setExcelFile] = useState<File | null>(null)
@@ -556,7 +557,7 @@ const EditFlashcard = () => {
       <div className="max-w-[1400px] mx-auto px-4 pt-[68px] md:pt-0 mt-6 md:mt-10">
         {/* Mobile Tab Switcher */}
         <div className="flex items-center bg-white border border-slate-100 p-1.5 rounded-2xl mb-8 md:hidden shadow-sm overflow-x-auto">
-           {['basic', 'columns', 'practice', 'ai', 'collaboration', 'excel'].map(tab => (
+           {['basic', 'columns', 'modes', 'practice', 'ai', 'collaboration', 'excel'].map(tab => (
              <button 
                key={tab}
                onClick={() => setActiveTab(tab as any)}
@@ -565,7 +566,7 @@ const EditFlashcard = () => {
                  activeTab === tab ? "bg-slate-900 text-white shadow-md" : "text-slate-400"
                )}
              >
-               {tab === 'basic' ? 'Identity' : tab === 'columns' ? 'Cột dữ liệu' : tab === 'practice' ? 'Practice' : tab === 'ai' ? 'AI Engine' : tab === 'collaboration' ? 'Rights' : 'Excel'}
+               {tab === 'basic' ? 'Identity' : tab === 'columns' ? 'Cột dữ liệu' : tab === 'modes' ? 'Chế độ học' : tab === 'practice' ? 'Practice' : tab === 'ai' ? 'AI Engine' : tab === 'collaboration' ? 'Rights' : 'Excel'}
              </button>
            ))}
         </div>
@@ -575,6 +576,7 @@ const EditFlashcard = () => {
            <aside className="hidden md:flex flex-col gap-3">
               <NavButton active={activeTab === 'basic'} onClick={() => setActiveTab('basic')} icon={SettingsIcon} title="Basic Info" sub="Title, Cover, Tags" />
               <NavButton active={activeTab === 'columns'} onClick={() => setActiveTab('columns')} icon={Layers} title="Column Manager" sub="Custom Columns & Fields" />
+              <NavButton active={activeTab === 'modes'} onClick={() => setActiveTab('modes')} icon={Play} title="Study Modes" sub="Bật/tắt Học & Luyện tập" />
               <NavButton active={activeTab === 'practice'} onClick={() => setActiveTab('practice')} icon={Zap} title="Practice Defaults" sub="MCQ, Typing, Listening" />
               <NavButton active={activeTab === 'ai'} onClick={() => setActiveTab('ai')} icon={Brain} title="AI Intelligence" sub="System Prompts & Rules" />
               <NavButton active={activeTab === 'collaboration'} onClick={() => setActiveTab('collaboration')} icon={Users} title="Collaboration" sub="Editors & Ownership" />
@@ -878,6 +880,112 @@ const EditFlashcard = () => {
                                 </div>
                              </div>
                           </div>
+                        </div>
+                     </motion.div>
+                  )}
+
+                  {activeTab === 'modes' && (
+                     <motion.div key="modes" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="space-y-6">
+                        <div className="bg-white rounded-[2.5rem] p-6 md:p-10 border border-slate-100 shadow-xl space-y-6">
+                           <div className="flex items-center gap-4">
+                              <div className="w-10 h-10 bg-indigo-50 rounded-xl flex items-center justify-center text-indigo-650">
+                                 <Play className="w-5 h-5" />
+                              </div>
+                              <div>
+                                 <h2 className="text-lg font-black text-slate-800 uppercase italic">Study Modes Settings</h2>
+                                 <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Cấu hình bật/tắt các chế độ Học & Luyện tập của bộ thẻ này</p>
+                              </div>
+                           </div>
+
+                           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4">
+                              <div className="space-y-4">
+                                 <h3 className="text-xs font-black text-slate-700 uppercase tracking-wider pb-2 border-b border-slate-100 flex items-center gap-2">
+                                    <span className="w-2 h-2 rounded-full bg-indigo-500"></span> Chế độ Học (Flashcard)
+                                 </h3>
+                                 <div className="space-y-2.5">
+                                    {[
+                                       { key: 'fsrs', title: 'FSRS Spaced Repetition', desc: 'Học lặp lại ngắt quãng thông minh FSRS' },
+                                       { key: 'roadmap', title: 'Roadmap Mode', desc: 'Học theo lộ trình mục tiêu mỗi ngày' },
+                                       { key: 'flip', title: 'Flip Card', desc: 'Lật thẻ ghi nhớ phản xạ tự do' },
+                                       { key: 'review', title: 'Review Only', desc: 'Chỉ ôn tập lại các thẻ cũ' },
+                                       { key: 'new', title: 'New Only', desc: 'Chỉ học các thẻ mới chưa biết' }
+                                    ].map(mode => {
+                                       const isEnabled = practiceSettings.disabled_modes ? !practiceSettings.disabled_modes.includes(mode.key) : true;
+                                       return (
+                                          <div key={mode.key} className="flex items-center justify-between p-3.5 bg-slate-50/50 border border-slate-200/60 rounded-2xl">
+                                             <div className="min-w-0 pr-2">
+                                                <span className="text-[11px] font-black text-slate-750 uppercase tracking-wider block">{mode.title}</span>
+                                                <span className="text-[9px] font-semibold text-slate-400 block leading-snug truncate">{mode.desc}</span>
+                                             </div>
+                                             <button
+                                                type="button"
+                                                onClick={() => {
+                                                   let currentDisabled = practiceSettings.disabled_modes ? [...practiceSettings.disabled_modes] : [];
+                                                   if (currentDisabled.includes(mode.key)) {
+                                                      currentDisabled = currentDisabled.filter(k => k !== mode.key);
+                                                   } else {
+                                                      currentDisabled.push(mode.key);
+                                                   }
+                                                   setPracticeSettings({ ...practiceSettings, disabled_modes: currentDisabled });
+                                                }}
+                                                className={cn(
+                                                   "px-3.5 py-2 rounded-xl text-[9px] font-black uppercase tracking-wider transition-all border shrink-0",
+                                                   isEnabled
+                                                      ? "bg-indigo-50 border-indigo-200 text-indigo-700 shadow-sm"
+                                                      : "bg-slate-100 border-slate-200 text-slate-400 hover:bg-slate-200"
+                                                )}
+                                             >
+                                                {isEnabled ? "Đang bật" : "Đã tắt"}
+                                             </button>
+                                          </div>
+                                       );
+                                    })}
+                                 </div>
+                              </div>
+
+                              <div className="space-y-4">
+                                 <h3 className="text-xs font-black text-slate-700 uppercase tracking-wider pb-2 border-b border-slate-100 flex items-center gap-2">
+                                    <span className="w-2 h-2 rounded-full bg-emerald-500"></span> Chế độ Luyện (Practice)
+                                 </h3>
+                                 <div className="space-y-2.5">
+                                    {[
+                                       { key: 'mcq', title: 'MCQ Test', desc: 'Trắc nghiệm phản xạ 4 đáp án' },
+                                       { key: 'typing', title: 'Typing Test', desc: 'Gõ từ vựng nhớ chi tiết' },
+                                       { key: 'listening', title: 'Listening Test', desc: 'Nghe audio chọn đáp án' }
+                                    ].map(mode => {
+                                       const isEnabled = practiceSettings.disabled_modes ? !practiceSettings.disabled_modes.includes(mode.key) : true;
+                                       return (
+                                          <div key={mode.key} className="flex items-center justify-between p-3.5 bg-slate-50/50 border border-slate-200/60 rounded-2xl">
+                                             <div className="min-w-0 pr-2">
+                                                <span className="text-[11px] font-black text-slate-750 uppercase tracking-wider block">{mode.title}</span>
+                                                <span className="text-[9px] font-semibold text-slate-400 block leading-snug truncate">{mode.desc}</span>
+                                             </div>
+                                             <button
+                                                type="button"
+                                                onClick={() => {
+                                                   let currentDisabled = practiceSettings.disabled_modes ? [...practiceSettings.disabled_modes] : [];
+                                                   if (currentDisabled.includes(mode.key)) {
+                                                      currentDisabled = currentDisabled.filter(k => k !== mode.key);
+                                                   } else {
+                                                      currentDisabled.push(mode.key);
+                                                   }
+                                                   setPracticeSettings({ ...practiceSettings, disabled_modes: currentDisabled });
+                                                }}
+                                                className={cn(
+                                                   "px-3.5 py-2 rounded-xl text-[9px] font-black uppercase tracking-wider transition-all border shrink-0",
+                                                   isEnabled
+                                                      ? "bg-emerald-50 border-emerald-200 text-emerald-700 shadow-sm"
+                                                      : "bg-slate-100 border-slate-200 text-slate-400 hover:bg-slate-200"
+                                                )}
+                                             >
+                                                {isEnabled ? "Đang bật" : "Đã tắt"}
+                                             </button>
+                                          </div>
+                                       );
+                                    })}
+                                 </div>
+                              </div>
+                           </div>
                         </div>
                      </motion.div>
                   )}
