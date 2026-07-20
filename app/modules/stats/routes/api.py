@@ -69,18 +69,18 @@ async def get_dashboard_data(request: Request, only_created: bool = False, db: A
         created_decks_data = []
         for row in res_b.all():
             q, count = row
-        deck_dict = {
-            "id": q.id,
-            "title": q.title,
-            "description": q.description,
-            "cover_image": q.cover_image,
-            "questions_count": count or 0,
-            "cards_count": count or 0,  # compatibility
-            "tags": [t.name for t in q.tags],
-            "is_creator": q.creator_id == user_id_int,
-            "is_public": q.is_public,
-            "practice_settings": q.practice_settings or {}
-        }
+            deck_dict = {
+                "id": q.id,
+                "title": q.title,
+                "description": q.description,
+                "cover_image": q.cover_image,
+                "questions_count": count or 0,
+                "cards_count": count or 0,  # compatibility
+                "tags": [t.name for t in q.tags],
+                "is_creator": q.creator_id == user_id_int,
+                "is_public": q.is_public,
+                "practice_settings": q.practice_settings or {}
+            }
             created_decks_data.append(deck_dict)
         return {
             "created_decks": created_decks_data,
