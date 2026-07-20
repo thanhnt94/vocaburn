@@ -677,8 +677,12 @@ export default function Library() {
                     <Brain className="w-5 h-5 animate-pulse" />
                   </div>
                   <div>
-                    <h3 className="text-xs font-black text-slate-800 uppercase tracking-widest leading-none mb-1">Study Console</h3>
-                    <p className="text-[9px] text-slate-400 font-black uppercase tracking-wider">Chọn phương pháp học tập</p>
+                    <h3 className="text-xs font-black text-slate-800 uppercase tracking-widest leading-none mb-1">
+                      {studyModalTab === 'flashcard' ? 'Study Console' : 'Practice Console'}
+                    </h3>
+                    <p className="text-[9px] text-slate-400 font-black uppercase tracking-wider">
+                      {studyModalTab === 'flashcard' ? 'Chọn phương pháp học tập' : 'Chọn chế độ luyện tập'}
+                    </p>
                   </div>
                 </div>
                 <button onClick={() => setIsStudyModalOpen(false)} className="w-8 h-8 rounded-full bg-slate-50 border border-slate-200/50 flex items-center justify-center text-slate-400 hover:text-rose-500 transition-all">
@@ -695,27 +699,7 @@ export default function Library() {
               </div>
 
               <div className="flex-1 overflow-y-auto pr-1 space-y-5 custom-scrollbar min-h-0">
-                {/* Tab selector inside modal */}
-                <div className="flex bg-slate-100 p-1 rounded-xl border border-slate-200/50">
-                  <button 
-                    onClick={() => setStudyModalTab('flashcard')}
-                    className={cn(
-                      "flex-1 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all", 
-                      studyModalTab === 'flashcard' ? "bg-white text-indigo-650 shadow-sm" : "text-slate-450 hover:text-slate-600"
-                    )}
-                  >
-                    Flashcard Modes
-                  </button>
-                  <button 
-                    onClick={() => setStudyModalTab('practice')}
-                    className={cn(
-                      "flex-1 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all", 
-                      studyModalTab === 'practice' ? "bg-white text-emerald-650 shadow-sm" : "text-slate-450 hover:text-slate-600"
-                    )}
-                  >
-                    Practice Modes
-                  </button>
-                </div>
+
 
                 {/* ── FLASHCARD MODES ── */}
                 {studyModalTab === 'flashcard' && (
