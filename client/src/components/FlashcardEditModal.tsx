@@ -245,7 +245,11 @@ export const FlashcardEditModal: React.FC<FlashcardEditModalProps> = ({
   }, [allColumns]);
 
   const audioGroups = useMemo(() => {
-    const frontGroup = audioCols.filter(col => col.toLowerCase().includes('front') || (!col.toLowerCase().includes('back') && !col.toLowerCase().includes('content') && col.toLowerCase().includes('url')));
+    const frontGroup = audioCols.filter(col => {
+      const lower = col.toLowerCase();
+      // If it explicitly says 'back', it belongs to back. Otherwise, if it has 'front' or is a generic audio field, it goes to front.
+      return !lower.includes('back');
+    });
     const backGroup = audioCols.filter(col => col.toLowerCase().includes('back'));
     
     const sortGroup = (group: string[]) => {
@@ -449,6 +453,10 @@ export const FlashcardEditModal: React.FC<FlashcardEditModalProps> = ({
         }
       } else {
         // Save existing card to database
+        const finalOthers = { ...currentCard.others }
+        const systemFields = ['front_img', 'back_img', 'front_audio_url', 'back_audio_url', 'front_audio_content', 'back_audio_content']
+        systemFields.forEach(f => delete finalOthers[f])
+
         const payload = {
           content: currentCard.content,
           explanation: currentCard.explanation,
@@ -457,7 +465,13 @@ export const FlashcardEditModal: React.FC<FlashcardEditModalProps> = ({
           mnemonic: currentCard.mnemonic || null,
           image: currentCard.image || null,
           audio: currentCard.audio || null,
-          others: currentCard.others || {},
+          front_img: currentCard.front_img || '',
+          back_img: currentCard.back_img || '',
+          front_audio_url: currentCard.front_audio_url || '',
+          back_audio_url: currentCard.back_audio_url || '',
+          front_audio_content: currentCard.front_audio_content || '',
+          back_audio_content: currentCard.back_audio_content || '',
+          others: finalOthers,
           options: updatedOptions
         }
         await axios.patch(`/api/v1/deck/question/${currentCard.id}`, payload)

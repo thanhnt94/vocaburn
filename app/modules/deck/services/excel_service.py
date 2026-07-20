@@ -212,9 +212,13 @@ class ExcelDeckService:
                     has_options = True
                     break
 
-            # Collect all columns into others dict for full compatibility
+            # Collect all columns into others dict for full compatibility (excluding standard columns)
             others_dict = {}
             for col in df_data.columns:
+                if col in ("front", "back", "content", "explanation", "ai_explanation", 
+                           "front_img", "back_img", "front_audio_url", "back_audio_url", 
+                           "front_audio_content", "back_audio_content", "image", "audio"):
+                    continue
                 val = get_val(col)
                 if val and val.lower() != "nan":
                     others_dict[col] = val
@@ -238,6 +242,11 @@ class ExcelDeckService:
             others_dict["back_audio_url"] = get_val("back_audio_url")
             others_dict["front_audio_content"] = get_val("front_audio_content")
             others_dict["back_audio_content"] = get_val("back_audio_content")
+
+            # Remove empty keys to avoid popping empty strings over existing values
+            for k in ["front_img", "back_img", "front_audio_url", "back_audio_url", "front_audio_content", "back_audio_content"]:
+                if k in others_dict and not others_dict[k]:
+                    del others_dict[k]
 
             # Get ID if present
             id_val = get_val("item_id")
