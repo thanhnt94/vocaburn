@@ -118,6 +118,44 @@ async def get_practice_settings(request: Request, deck_id: int, db: AsyncSession
 
 @router.post("/{deck_id}/practice-settings")
 async def save_practice_settings(request: Request, deck_id: int, payload: dict, db: AsyncSession = Depends(get_db)):
+    is_creator = payload.get("is_creator", False)
+    settings = payload.get("settings")
+    if is_creator and settings:
+        front_cfg = settings.get("front_audio_config") or {}
+        back_cfg = settings.get("back_audio_config") or {}
+        custom_pairs = settings.get("audio_pairs") or []
+        
+        # Check front_audio_config
+        front_url_col = front_cfg.get("audio_url_col")
+        front_content_col = front_cfg.get("audio_content_col")
+        if front_url_col:
+            if front_url_col == front_content_col:
+                return JSONResponse(status_code=400, content={"error": "Mặt trước: Cột đường dẫn âm thanh không được trùng với cột kịch bản đọc."})
+            if front_url_col in ("front", "back"):
+                return JSONResponse(status_code=400, content={"error": "Mặt trước: Cột đường dẫn âm thanh không được trùng với cột nội dung chính (front/back)."})
+                
+        # Check back_audio_config
+        back_url_col = back_cfg.get("audio_url_col")
+        back_content_col = back_cfg.get("audio_content_col")
+        if back_url_col:
+            if back_url_col == back_content_col:
+                return JSONResponse(status_code=400, content={"error": "Mặt sau: Cột đường dẫn âm thanh không được trùng với cột kịch bản đọc."})
+            if back_url_col in ("front", "back"):
+                return JSONResponse(status_code=400, content={"error": "Mặt sau: Cột đường dẫn âm thanh không được trùng với cột nội dung chính (front/back)."})
+                
+        # Check custom pairs
+        for c_idx, pair in enumerate(custom_pairs):
+            pair_url_col = pair.get("audio_url_col")
+            pair_content_col = pair.get("audio_content_col")
+            pair_text_col = pair.get("text_col")
+            if pair_url_col:
+                if pair_url_col == pair_content_col:
+                    return JSONResponse(status_code=400, content={"error": f"Cặp custom #{c_idx+1}: Cột đường dẫn âm thanh không được trùng với cột kịch bản đọc."})
+                if pair_url_col == pair_text_col:
+                    return JSONResponse(status_code=400, content={"error": f"Cặp custom #{c_idx+1}: Cột đường dẫn âm thanh không được trùng với cột nội dung chính."})
+                if pair_url_col in ("front", "back"):
+                    return JSONResponse(status_code=400, content={"error": f"Cặp custom #{c_idx+1}: Cột đường dẫn âm thanh không được trùng với cột nội dung chính (front/back)."})
+
     user_id = int(request.cookies.get("user_id", 1))
     is_creator = payload.get("is_creator", False)
     settings = payload.get("settings")

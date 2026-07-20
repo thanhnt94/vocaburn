@@ -455,6 +455,59 @@ const EditFlashcard = () => {
   }, [userSearch])
 
   const handleSaveMetadata = async () => {
+    // Validate practice settings column mappings
+    if (practiceSettings) {
+       const frontCfg = practiceSettings.front_audio_config || {};
+       if (frontCfg.audio_url_col) {
+          if (frontCfg.audio_url_col === frontCfg.audio_content_col) {
+             setError("Mặt trước: Cột đường dẫn âm thanh không được trùng với cột kịch bản đọc.");
+             setIsSaving(false);
+             return;
+          }
+          if (frontCfg.audio_url_col === 'front' || frontCfg.audio_url_col === 'back') {
+             setError("Mặt trước: Cột đường dẫn âm thanh không được trùng với cột nội dung chính (front/back).");
+             setIsSaving(false);
+             return;
+          }
+       }
+       
+       const backCfg = practiceSettings.back_audio_config || {};
+       if (backCfg.audio_url_col) {
+          if (backCfg.audio_url_col === backCfg.audio_content_col) {
+             setError("Mặt sau: Cột đường dẫn âm thanh không được trùng với cột kịch bản đọc.");
+             setIsSaving(false);
+             return;
+          }
+          if (backCfg.audio_url_col === 'front' || backCfg.audio_url_col === 'back') {
+             setError("Mặt sau: Cột đường dẫn âm thanh không được trùng với cột nội dung chính (front/back).");
+             setIsSaving(false);
+             return;
+          }
+       }
+
+       const customPairs = practiceSettings.audio_pairs || [];
+       for (let i = 0; i < customPairs.length; i++) {
+          const pair = customPairs[i];
+          if (pair.audio_url_col) {
+             if (pair.audio_url_col === pair.audio_content_col) {
+                setError(`Cặp custom #${i + 1}: Cột đường dẫn âm thanh không được trùng với cột kịch bản đọc.`);
+                setIsSaving(false);
+                return;
+             }
+             if (pair.audio_url_col === pair.text_col) {
+                setError(`Cặp custom #${i + 1}: Cột đường dẫn âm thanh không được trùng với cột nội dung chính.`);
+                setIsSaving(false);
+                return;
+             }
+             if (pair.audio_url_col === 'front' || pair.audio_url_col === 'back') {
+                setError(`Cặp custom #${i + 1}: Cột đường dẫn âm thanh không được trùng với cột nội dung chính (front/back).`);
+                setIsSaving(false);
+                return;
+             }
+          }
+       }
+    }
+
     setIsSaving(true)
     setError(null)
     try {
@@ -1311,27 +1364,84 @@ const EditFlashcard = () => {
                           </div>
 
                           <div className="space-y-4 pt-2">
-                             <div>
-                                <span className="text-[10px] font-black text-slate-800 uppercase tracking-wider block mb-3">Cặp mặc định hệ thống (Không thể thay đổi)</span>
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                   {[
-                                      { text: 'Mặt trước (FRONT)', script: 'front_audio_content', url: 'front_audio_url' },
-                                      { text: 'Mặt sau (BACK)', script: 'back_audio_content', url: 'back_audio_url' }
-                                   ].map((pair, idx) => (
-                                      <div key={idx} className="p-4 bg-slate-55 border border-slate-200/50 rounded-2xl space-y-2">
-                                         <div className="flex items-center justify-between">
-                                            <span className="text-[10px] font-black text-indigo-600 uppercase">{pair.text}</span>
-                                            <span className="px-2 py-0.5 bg-slate-200/50 rounded-lg text-[8px] font-black text-slate-450 uppercase">Mặc định</span>
-                                         </div>
-                                         <div className="text-[9px] font-semibold text-slate-400 space-y-1">
-                                            <div>🗣️ Script: <span className="font-bold text-slate-600">{pair.script}</span></div>
-                                            <div>🔗 Audio URL: <span className="font-bold text-slate-600">{pair.url}</span></div>
-                                         </div>
-                                      </div>
-                                   ))}
-                                </div>
-                             </div>
-
+                              <div>
+                                 <span className="text-[10px] font-black text-slate-800 uppercase tracking-wider block mb-3">Cặp mặc định hệ thống (Có thể tùy chỉnh cột phát âm)</span>
+                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                    {[
+                                       { label: 'Mặt trước (FRONT)', key: 'front_audio_config', defScript: 'front_audio_content', defUrl: 'front_audio_url', mainCol: 'front' },
+                                       { label: 'Mặt sau (BACK)', key: 'back_audio_config', defScript: 'back_audio_content', defUrl: 'back_audio_url', mainCol: 'back' }
+                                    ].map((cfg) => {
+                                       const configVal = practiceSettings[cfg.key] || { audio_content_col: cfg.defScript, audio_url_col: cfg.defUrl, lang: 'multi' };
+                                       return (
+                                          <div key={cfg.key} className="p-4 bg-slate-50 border border-slate-200/60 rounded-2xl space-y-3 shadow-sm text-left">
+                                             <div className="flex items-center justify-between">
+                                                <span className="text-[10px] font-black text-indigo-650 uppercase">{cfg.label}</span>
+                                                <span className="px-2 py-0.5 bg-indigo-50 rounded-lg text-[8px] font-black text-indigo-600 uppercase">Hệ thống</span>
+                                             </div>
+                                             <div className="grid grid-cols-1 gap-2.5">
+                                                <div className="space-y-1">
+                                                   <label className="text-[8px] font-black text-slate-400 uppercase tracking-wider">Cột kịch bản đọc (TTS)</label>
+                                                   <select
+                                                      value={configVal.audio_content_col}
+                                                      onChange={(e) => {
+                                                         setPracticeSettings({
+                                                            ...practiceSettings,
+                                                            [cfg.key]: { ...configVal, audio_content_col: e.target.value }
+                                                         });
+                                                      }}
+                                                      className="w-full bg-white border border-slate-200 rounded-xl px-3 h-10 text-xs font-bold text-slate-700 outline-none focus:border-indigo-500"
+                                                   >
+                                                      <option value="">Không dùng kịch bản (Đọc thẳng nội dung mặt)</option>
+                                                      {availableColumns.map(col => (
+                                                         <option key={col} value={col}>{col.toUpperCase()}</option>
+                                                      ))}
+                                                   </select>
+                                                </div>
+                                                <div className="space-y-1">
+                                                   <label className="text-[8px] font-black text-slate-400 uppercase tracking-wider">Cột đường dẫn âm thanh (Audio URL)</label>
+                                                   <select
+                                                      value={configVal.audio_url_col}
+                                                      onChange={(e) => {
+                                                         setPracticeSettings({
+                                                            ...practiceSettings,
+                                                            [cfg.key]: { ...configVal, audio_url_col: e.target.value }
+                                                         });
+                                                      }}
+                                                      className="w-full bg-white border border-slate-200 rounded-xl px-3 h-10 text-xs font-bold text-slate-700 outline-none focus:border-indigo-500"
+                                                   >
+                                                      <option value="">Không lưu tệp / Đọc trực tiếp client</option>
+                                                       {availableColumns
+                                                          .filter(col => col !== configVal.audio_content_col && col !== cfg.mainCol)
+                                                          .map(col => (
+                                                             <option key={col} value={col}>{col.toUpperCase()}</option>
+                                                          ))}</select>
+                                                </div>
+                                                <div className="space-y-1">
+                                                   <label className="text-[8px] font-black text-slate-400 uppercase tracking-wider">Ngôn ngữ đọc</label>
+                                                   <select
+                                                      value={configVal.lang || 'multi'}
+                                                      onChange={(e) => {
+                                                         setPracticeSettings({
+                                                            ...practiceSettings,
+                                                            [cfg.key]: { ...configVal, lang: e.target.value }
+                                                         });
+                                                      }}
+                                                      className="w-full bg-white border border-slate-200 rounded-xl px-3 h-10 text-xs font-bold text-slate-700 outline-none focus:border-indigo-500"
+                                                   >
+                                                      <option value="multi">Tự động (Multi-lang)</option>
+                                                      <option value="en">English (Mỹ)</option>
+                                                      <option value="ja">Japanese (Nhật)</option>
+                                                      <option value="vi">Vietnamese (Việt)</option>
+                                                      <option value="zh">Chinese (Trung)</option>
+                                                      <option value="ko">Korean (Hàn)</option>
+                                                   </select>
+                                                </div>
+                                             </div>
+                                          </div>
+                                       );
+                                    })}
+                                 </div>
+                              </div>
                              <div className="pt-4 border-t border-slate-100">
                                 <span className="text-[10px] font-black text-slate-800 uppercase tracking-wider block mb-3">Cặp đọc tùy chỉnh</span>
                                 <div className="space-y-3.5">

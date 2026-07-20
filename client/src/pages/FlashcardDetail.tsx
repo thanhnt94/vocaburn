@@ -959,21 +959,9 @@ export default function QuizDetail() {
                 <div className="flex items-center gap-2">
                   {canEdit && (
                     <button
-                      onClick={() => {
-                        setEditCardFormData({
-                          id: selectedCard.id,
-                          content: selectedCard.content || '',
-                          explanation: selectedCard.explanation || selectedCard.ai_explanation || '',
-                          ai_explanation: selectedCard.ai_explanation || '',
-                          hint: selectedCard.hint || '',
-                          mnemonic: selectedCard.mnemonic || '',
-                          options: selectedCard.options || [],
-                          others: selectedCard.others || {}
-                        })
-                        setIsEditingCard(true)
-                      }}
+                      onClick={() => navigate(`/manage/edit/${id}`)}
                       className="h-8 px-2.5 bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-600 text-[10px] font-black uppercase tracking-wider rounded-lg flex items-center gap-1 active:scale-95 transition-all"
-                      title="Sửa thẻ trực tiếp"
+                      title="Sửa thẻ"
                     >
                       <Edit2 className="w-3.5 h-3.5" />
                       <span>Sửa thẻ</span>
