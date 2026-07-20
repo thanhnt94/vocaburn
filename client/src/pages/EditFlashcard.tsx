@@ -1386,9 +1386,11 @@ const EditFlashcard = () => {
                                                   className="w-full bg-white border border-slate-200 rounded-xl px-3 h-10 text-xs font-bold text-slate-700 outline-none"
                                                >
                                                   <option value="">-- Chọn cột --</option>
-                                                  {availableColumns.map(col => (
-                                                     <option key={col} value={col}>{col.toUpperCase()}</option>
-                                                  ))}
+                                                  {availableColumns
+                                                     .filter(col => col !== pair.text_col && col !== pair.audio_content_col)
+                                                     .map(col => (
+                                                        <option key={col} value={col}>{col.toUpperCase()}</option>
+                                                     ))}
                                                </select>
                                             </div>
 
