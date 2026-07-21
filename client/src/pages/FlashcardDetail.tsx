@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
 import { useQuery, useInfiniteQuery, useQueryClient } from '@tanstack/react-query'
-import { ChevronLeft, Award, BookOpen, Search, StickyNote, BarChart2, Settings, Edit2, X, Save, Brain, HelpCircle, Plus, Sparkles, Trophy, Layers, RotateCcw, Compass, Flame, Target, ChevronDown, ChevronUp, Pencil } from 'lucide-react'
+import { ChevronLeft, Award, BookOpen, Search, StickyNote, BarChart2, Settings, Edit2, X, Save, Brain, HelpCircle, Plus, Sparkles, Trophy, Layers, RotateCcw, Compass, Flame, Target, ChevronDown, ChevronUp, Pencil, Calendar } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import axios from 'axios'
 import { cn } from '@/lib/utils'
@@ -1152,19 +1152,78 @@ export default function QuizDetail() {
                 </button>
               </div>
               
-              <div className="space-y-4 mb-6 text-left">
-                <div>
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-2">Số thẻ mới mỗi ngày (New cards per day)</label>
-                  <input
-                    type="number" min="1" value={dailyNewInput}
-                    onChange={(e) => setDailyNewInput(Math.max(1, parseInt(e.target.value) || 1))}
-                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200/80 rounded-2xl text-base font-black text-slate-900 outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-600 transition-all"
-                  />
-                  <p className="text-[9px] font-bold text-slate-400 mt-1.5 leading-relaxed">
-                    Mục tiêu lộ trình sẽ ưu tiên học đủ số từ mới này mỗi ngày cùng toàn bộ các thẻ đến hạn ôn tập (FSRS).
-                  </p>
-                </div>
-              </div>
+              {/* Live Completion Calculation */}
+              {(() => {
+                const totalCards = roadmapStatus?.total_cards || quiz?.questions_count || 0;
+                const learnedCards = roadmapStatus?.learned_cards || 0;
+                const remainingCards = Math.max(0, totalCards - learnedCards);
+                const daysNeeded = dailyNewInput > 0 ? Math.ceil(remainingCards / dailyNewInput) : 0;
+                
+                const estDate = new Date();
+                estDate.setDate(estDate.getDate() + daysNeeded);
+                const formattedEstDate = daysNeeded > 0 
+                  ? estDate.toLocaleDateString("vi-VN", { day: "2-digit", month: "2-digit", year: "numeric" })
+                  : "Hoàn thành hôm nay!";
+
+                return (
+                  <div className="space-y-5 mb-6 text-left">
+                    <div>
+                      <div className="flex items-center justify-between mb-2">
+                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">Số thẻ mới mỗi ngày</label>
+                        <span className="text-xs font-black text-indigo-600 bg-indigo-50 px-2.5 py-0.5 rounded-full">{dailyNewInput} thẻ/ngày</span>
+                      </div>
+
+                      {/* Number Input */}
+                      <input
+                        type="number" min="1" max="200" value={dailyNewInput}
+                        onChange={(e) => setDailyNewInput(Math.max(1, parseInt(e.target.value) || 1))}
+                        className="w-full px-4 py-3 bg-slate-50 border border-slate-200/80 rounded-2xl text-base font-black text-slate-900 outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-600 transition-all mb-3"
+                      />
+
+                      {/* Interactive Range Slider */}
+                      <input 
+                        type="range" min="5" max="100" step="5" 
+                        value={Math.min(100, Math.max(5, dailyNewInput))}
+                        onChange={(e) => setDailyNewInput(parseInt(e.target.value) || 5)}
+                        className="w-full accent-indigo-600 cursor-pointer h-2 bg-slate-100 rounded-lg mb-3"
+                      />
+
+                      {/* Quick Select Presets */}
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        {[5, 10, 15, 20, 30, 50].map((val) => (
+                          <button
+                            key={val}
+                            type="button"
+                            onClick={() => setDailyNewInput(val)}
+                            className={cn(
+                              "px-2.5 py-1 rounded-xl text-[9px] font-black transition-all cursor-pointer border",
+                              dailyNewInput === val 
+                                ? "bg-indigo-600 text-white border-indigo-600 shadow-sm" 
+                                : "bg-slate-50 text-slate-500 border-slate-200/60 hover:bg-slate-100"
+                            )}
+                          >
+                            {val}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Dynamic Completion Date Card */}
+                    <div className="p-4 rounded-2xl bg-gradient-to-br from-indigo-50/80 to-purple-50/40 border border-indigo-100/80 shadow-sm">
+                      <div className="flex items-center gap-2 mb-1">
+                        <Calendar className="w-3.5 h-3.5 text-indigo-600" />
+                        <span className="text-[9px] font-black text-indigo-600 uppercase tracking-widest">Dự kiến hoàn thành bộ thẻ</span>
+                      </div>
+                      <div className="text-base font-black text-slate-900 tracking-tight">
+                        {daysNeeded > 0 ? `Ngày ${formattedEstDate}` : 'Đã học hết từ mới!'}
+                      </div>
+                      <p className="text-[9px] font-bold text-slate-400 mt-1">
+                        {daysNeeded > 0 ? `Cần ~${daysNeeded} ngày nữa cho ${remainingCards} thẻ chưa học` : 'Bạn chỉ cần duy trì ôn tập hàng ngày.'}
+                      </p>
+                    </div>
+                  </div>
+                )
+              })()}
               
               <div className="flex gap-3">
                 <button
