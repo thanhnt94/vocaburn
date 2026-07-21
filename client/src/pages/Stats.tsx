@@ -69,9 +69,18 @@ interface ForecastResponse {
 }
 
 // ─── FSRS Review Forecast ──────────────────────────────────────────────────────
-function ReviewForecastWidget({ data }: { data: ForecastResponse | undefined }) {
-  const [viewMode, setViewMode] = useState<'hourly' | 'daily' | 'weekly'>('daily')
-  const daysRange = 14
+function ReviewForecastWidget({ data, activePeriod }: { data: ForecastResponse | undefined, activePeriod?: 'day' | 'week' | 'month' | 'year' | 'all' }) {
+  const [viewModeOverride, setViewModeOverride] = useState<'hourly' | 'daily' | 'weekly' | null>(null)
+  
+  const viewMode = useMemo(() => {
+    if (viewModeOverride) return viewModeOverride
+    if (activePeriod === 'day') return 'hourly'
+    if (activePeriod === 'year' || activePeriod === 'all') return 'weekly'
+    return 'daily'
+  }, [viewModeOverride, activePeriod])
+
+  const setViewMode = (mode: 'hourly' | 'daily' | 'weekly') => setViewModeOverride(mode)
+  const daysRange = activePeriod === 'month' ? 30 : activePeriod === 'week' ? 7 : 14
 
   const chartData = useMemo<any[]>(() => {
     if (!data) return []
@@ -254,7 +263,7 @@ interface WeeklyReport {
 
 export default function Stats() {
   const [activeTab, setActiveTab] = useState<'personal' | 'community'>('personal')
-  const [personalPeriod, setPersonalPeriod] = useState<'day' | 'week' | 'month' | 'year'>('week')
+  const [personalPeriod, setPersonalPeriod] = useState<'day' | 'week' | 'month' | 'year' | 'all'>('week')
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({
     week: true, // default first section expanded
     charts: false,
@@ -418,21 +427,30 @@ export default function Stats() {
 
   const { personal, global } = data
 
+  const filteredDailyActivity = useMemo(() => {
+    if (!personal?.daily_activity) return []
+    if (personalPeriod === 'day') return personal.daily_activity.slice(-1)
+    if (personalPeriod === 'week') return personal.daily_activity.slice(-7)
+    if (personalPeriod === 'month') return personal.daily_activity.slice(-30)
+    if (personalPeriod === 'year') return personal.daily_activity.slice(-365)
+    return personal.daily_activity
+  }, [personal, personalPeriod])
+
   const charts = [
     {
       title: "Question Flow",
-      subtitle: "Questions answered per day",
+      subtitle: `Questions answered (${personalPeriod === 'day' ? 'Today' : personalPeriod === 'week' ? 'Last 7 Days' : personalPeriod === 'month' ? 'Last 30 Days' : personalPeriod === 'year' ? 'This Year' : 'All Time'})`,
       icon: Activity,
-      data: personal.daily_activity,
+      data: filteredDailyActivity,
       key: "attempted",
       color: "#4f46e5",
       type: "area"
     },
     {
       title: "Focus Time",
-      subtitle: "Active minutes per day",
+      subtitle: `Active minutes (${personalPeriod === 'day' ? 'Today' : personalPeriod === 'week' ? 'Last 7 Days' : personalPeriod === 'month' ? 'Last 30 Days' : personalPeriod === 'year' ? 'This Year' : 'All Time'})`,
       icon: Timer,
-      data: personal.daily_activity,
+      data: filteredDailyActivity,
       key: "time_minutes",
       color: "#10b981",
       type: "area"
@@ -543,34 +561,56 @@ export default function Stats() {
                  exit={{ opacity: 0, y: -15 }}
                  className="space-y-6"
                >
-                  {/* Personal Header & Flexible Period Selector */}
-                  <div className="bg-white rounded-[2.5rem] border border-slate-100 p-6 md:p-8 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
-                     <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-2xl bg-indigo-50 flex items-center justify-center text-indigo-600">
-                           <TargetIcon className="w-5 h-5" />
+                  {/* Sticky Header Bar with Period Selector & Compact Metrics on Scroll */}
+                  <div className="sticky top-0 z-[110] bg-white/95 backdrop-blur-2xl rounded-[2rem] border border-slate-200/80 p-4 shadow-md transition-all space-y-3">
+                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                        <div className="flex items-center gap-3">
+                           <div className="w-9 h-9 rounded-2xl bg-indigo-600 text-white flex items-center justify-center shadow-md shadow-indigo-200">
+                              <TargetIcon className="w-4.5 h-4.5" />
+                           </div>
+                           <div>
+                              <h2 className="text-xs md:text-sm font-black text-slate-900 uppercase tracking-widest italic leading-none">Tiến độ & Hiệu suất cá nhân</h2>
+                              <p className="text-[8.5px] font-bold text-slate-400 mt-0.5 uppercase tracking-wider">Chọn mốc thời gian để đồng bộ toàn bộ chỉ số</p>
+                           </div>
                         </div>
-                        <div>
-                           <h2 className="text-xs md:text-sm font-black text-slate-900 uppercase tracking-widest italic leading-none">Tiến độ & Hiệu suất cá nhân</h2>
-                           <p className="text-[9px] font-bold text-slate-400 mt-1 uppercase tracking-wider">Tổng quan chỉ số học tập chi tiết của bạn</p>
+
+                        {/* Flexible Time Period Selector with 'TẤT CẢ' (ALL-TIME) */}
+                        <div className="flex bg-slate-100/80 p-1 rounded-2xl border border-slate-200/60 overflow-x-auto no-scrollbar shrink-0">
+                           {(['day', 'week', 'month', 'year', 'all'] as const).map((period) => (
+                              <button
+                                 key={period}
+                                 onClick={() => setPersonalPeriod(period)}
+                                 className={cn(
+                                    "px-3 py-1.5 rounded-xl text-[8.5px] md:text-[9px] font-black uppercase tracking-widest transition-all cursor-pointer whitespace-nowrap",
+                                    personalPeriod === period 
+                                      ? "bg-indigo-600 text-white shadow-md shadow-indigo-500/20" 
+                                      : "text-slate-500 hover:text-slate-900"
+                                 )}
+                              >
+                                 {period === 'day' ? 'Hôm nay' : period === 'week' ? 'Tuần này' : period === 'month' ? 'Tháng này' : period === 'year' ? 'Năm nay' : 'Tất cả'}
+                              </button>
+                           ))}
                         </div>
                      </div>
 
-                     {/* Flexible Time Period Selector */}
-                     <div className="flex bg-slate-50 p-1 rounded-2xl border border-slate-100 shrink-0">
-                        {(['day', 'week', 'month', 'year'] as const).map((period) => (
-                           <button
-                              key={period}
-                              onClick={() => setPersonalPeriod(period)}
-                              className={cn(
-                                 "px-3.5 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all cursor-pointer",
-                                 personalPeriod === period 
-                                   ? "bg-indigo-600 text-white shadow-md shadow-indigo-500/20" 
-                                   : "text-slate-400 hover:text-slate-700"
-                              )}
-                           >
-                              {period === 'day' ? 'Hôm nay' : period === 'week' ? 'Tuần này' : period === 'month' ? 'Tháng này' : 'Năm nay'}
-                           </button>
-                        ))}
+                     {/* Compact Summary Strip inside Sticky Header */}
+                     <div className="grid grid-cols-4 gap-2 pt-2 border-t border-slate-100/80 text-center">
+                        <div className="bg-indigo-50/60 p-1.5 rounded-xl border border-indigo-100/50">
+                           <span className="text-[7.5px] font-black text-slate-400 uppercase tracking-wider block">Chính xác</span>
+                           <span className="text-xs font-black text-indigo-600">{personal.summary.global_accuracy}%</span>
+                        </div>
+                        <div className="bg-emerald-50/60 p-1.5 rounded-xl border border-emerald-100/50">
+                           <span className="text-[7.5px] font-black text-slate-400 uppercase tracking-wider block">Thời gian</span>
+                           <span className="text-xs font-black text-emerald-600">{personal.summary.total_time_hours}h</span>
+                        </div>
+                        <div className="bg-amber-50/60 p-1.5 rounded-xl border border-amber-100/50">
+                           <span className="text-[7.5px] font-black text-slate-400 uppercase tracking-wider block">Đã học</span>
+                           <span className="text-xs font-black text-amber-600">{personal.summary.total_questions.toLocaleString()}</span>
+                        </div>
+                        <div className="bg-rose-50/60 p-1.5 rounded-xl border border-rose-100/50">
+                           <span className="text-[7.5px] font-black text-slate-400 uppercase tracking-wider block">Đúng</span>
+                           <span className="text-xs font-black text-rose-600">{personal.summary.total_correct.toLocaleString()}</span>
+                        </div>
                      </div>
                   </div>
 
@@ -672,7 +712,7 @@ export default function Stats() {
                   {/* Section: Study Charts */}
                   <CollapsibleSection id="charts" title="Biểu đồ tiến độ chi tiết" icon={TrendingUp}>
                     <div className="space-y-6">
-                      <ReviewForecastWidget data={forecastData} />
+                      <ReviewForecastWidget data={forecastData} activePeriod={personalPeriod} />
                       <DailyComparisonChart data={dailyComparisonData} allTimeAvg={dailyComparisonAvg} isLoading={isDailyComparisonLoading} />
 
                       {/* CHART CAROUSEL */}
