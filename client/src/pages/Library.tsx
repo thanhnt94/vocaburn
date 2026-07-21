@@ -473,17 +473,47 @@ export default function Library() {
 
       </div>
 
-      {/* THUMB-FRIENDLY FLOATING CONTROL BAR (Mobile Search & Tabs at Bottom) */}
-      <div className="fixed bottom-[68px] left-3 right-3 z-[140] md:hidden bg-white/95 backdrop-blur-2xl p-2.5 rounded-3xl border border-slate-200/80 shadow-[0_8px_30px_rgba(0,0,0,0.12)] space-y-2">
+      {/* THUMB-FRIENDLY FLOATING CONTROL BAR (Mobile Quick-Resume, Search & Tabs) */}
+      <div className="fixed bottom-[68px] left-3 right-3 z-[140] md:hidden bg-white/95 backdrop-blur-2xl p-2.5 rounded-3xl border border-slate-200/80 shadow-[0_8px_30px_rgba(0,0,0,0.14)] space-y-2">
+         {/* Quick Resume Strip for Top 3 Recent Decks */}
+         {filteredData.length > 0 && (
+           <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-0.5 pt-0.5 border-b border-slate-100">
+             <span className="text-[7.5px] font-black uppercase text-amber-500 tracking-wider flex-shrink-0 flex items-center gap-0.5 pl-0.5">
+               <Zap className="w-2.5 h-2.5 fill-amber-400" /> Vừa học:
+             </span>
+             {filteredData.slice(0, 3).map((quiz, i) => (
+               <button
+                 key={`quick-recent-${quiz.id}`}
+                 onClick={() => {
+                   setSelectedStudyQuiz(quiz)
+                   setStudyModalTab('flashcard')
+                   setIsStudyModalOpen(true)
+                 }}
+                 className={cn(
+                   "flex-shrink-0 px-2.5 py-1 rounded-xl text-[8px] font-black flex items-center gap-1 border transition-all active:scale-95 shadow-sm",
+                   i === 0 
+                     ? "bg-gradient-to-r from-orange-500 to-amber-500 text-white border-orange-400/80"
+                     : i === 1 
+                     ? "bg-gradient-to-r from-indigo-600 to-purple-600 text-white border-indigo-500/80" 
+                     : "bg-slate-800 text-white border-slate-700"
+                 )}
+               >
+                 <span className="truncate max-w-[85px]">{quiz.title}</span>
+                 <Brain className="w-2.5 h-2.5 flex-shrink-0 opacity-90" />
+               </button>
+             ))}
+           </div>
+         )}
+
          {/* Search Input */}
          <div className="relative">
-            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
             <input 
               type="text" 
               placeholder="Tìm kiếm bộ thẻ..." 
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full h-9 bg-slate-50 border border-slate-200/80 rounded-2xl pl-9 pr-8 text-xs font-semibold outline-none focus:bg-white focus:ring-2 focus:ring-indigo-500/20 transition-all"
+              className="w-full h-8.5 bg-slate-50 border border-slate-200/80 rounded-2xl pl-9 pr-8 text-xs font-semibold outline-none focus:bg-white focus:ring-2 focus:ring-indigo-500/20 transition-all"
             />
             {searchQuery && (
               <button onClick={() => setSearchQuery('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
@@ -495,7 +525,7 @@ export default function Library() {
          {/* Tabs Selector */}
          <div className="bg-slate-100/80 p-0.5 rounded-2xl flex items-center border border-slate-200/40">
             {['my', 'discover', 'archived'].map((tab) => (
-              <button key={tab} onClick={() => setActiveTab(tab as any)} className="flex-1 py-1.5 rounded-xl text-[8.5px] font-black tracking-widest relative transition-all">
+              <button key={tab} onClick={() => setActiveTab(tab as any)} className="flex-1 py-1 rounded-xl text-[8.5px] font-black tracking-widest relative transition-all">
                 {activeTab === tab && <motion.div layoutId="tabMarkerMob" className="absolute inset-0 bg-white shadow-sm rounded-xl border border-slate-150" />}
                 <span className={cn("relative z-10 uppercase", activeTab === tab ? "text-indigo-600 font-black" : "text-slate-500")}>
                   {tab === 'my' ? 'CỦA TÔI' : (tab === 'discover' ? 'KHÁM PHÁ' : 'ĐÃ LƯU')}
@@ -518,7 +548,27 @@ export default function Library() {
             <AnimatePresence mode="popLayout">
                {filteredData.slice(0, mobileVisibleCount).map((quiz, idx) => (
                  <motion.div key={quiz.id} layout initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: idx * 0.01 }}>
-                    <div className="bg-white rounded-[1.75rem] border border-slate-200/60 p-4 shadow-sm active:scale-[0.98] transition-all relative overflow-hidden flex items-center justify-between gap-3">
+                    <div className={cn(
+                      "rounded-[1.75rem] p-4 shadow-sm active:scale-[0.98] transition-all relative overflow-hidden flex items-center justify-between gap-3 border",
+                      idx === 0 
+                        ? "bg-gradient-to-r from-orange-50/70 via-white to-white border-orange-200/90 shadow-orange-500/5"
+                        : idx === 1 
+                        ? "bg-gradient-to-r from-indigo-50/50 via-white to-white border-indigo-200/80"
+                        : idx === 2 
+                        ? "bg-gradient-to-r from-teal-50/40 via-white to-white border-teal-200/70"
+                        : "bg-white border-slate-200/60"
+                    )}>
+                      {/* Top 3 Recent Badges */}
+                      {idx < 3 && (
+                        <div className={cn(
+                          "absolute top-0 right-0 px-2.5 py-0.5 rounded-bl-xl text-[7px] font-black uppercase tracking-wider flex items-center gap-0.5 shadow-xs",
+                          idx === 0 ? "bg-gradient-to-r from-orange-500 to-amber-500 text-white" :
+                          idx === 1 ? "bg-indigo-600 text-white" :
+                          "bg-teal-600 text-white"
+                        )}>
+                          {idx === 0 ? '🔥 GẦN ĐÂY #1' : idx === 1 ? '⭐ GẦN ĐÂY #2' : '✨ GẦN ĐÂY #3'}
+                        </div>
+                      )}
                       {/* Left Side: Clickable Cover, Title, Info */}
                       <div 
                         onClick={() => navigate(`/flashcard/${quiz.id}`)}
