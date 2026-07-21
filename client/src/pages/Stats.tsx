@@ -421,6 +421,59 @@ export default function Stats() {
     return dailyAct
   }, [data, personalPeriod])
 
+  const periodSummary = useMemo(() => {
+    if (personalPeriod === 'all' && data?.personal?.summary) {
+      return {
+        total_questions: data.personal.summary.total_questions,
+        total_correct: data.personal.summary.total_correct,
+        total_time_hours: data.personal.summary.total_time_hours,
+        total_time_minutes: Math.round(data.personal.summary.total_time_hours * 60),
+        global_accuracy: data.personal.summary.global_accuracy,
+        best_day: weeklyReport?.best_day || 'N/A'
+      }
+    }
+
+    if (!filteredDailyActivity || filteredDailyActivity.length === 0) {
+      return {
+        total_questions: data?.personal?.summary?.total_questions || 0,
+        total_correct: data?.personal?.summary?.total_correct || 0,
+        total_time_hours: data?.personal?.summary?.total_time_hours || 0,
+        total_time_minutes: Math.round((data?.personal?.summary?.total_time_hours || 0) * 60),
+        global_accuracy: data?.personal?.summary?.global_accuracy || 0,
+        best_day: weeklyReport?.best_day || 'N/A'
+      }
+    }
+
+    const total_questions = filteredDailyActivity.reduce((acc, c) => acc + (c.attempted || 0), 0)
+    const total_correct = filteredDailyActivity.reduce((acc, c) => acc + (c.correct || 0), 0)
+    const total_time_minutes = Math.round(filteredDailyActivity.reduce((acc, c) => acc + (c.time_minutes || 0), 0))
+    const total_time_hours = (total_time_minutes / 60).toFixed(1)
+    const global_accuracy = total_questions > 0 ? Math.round((total_correct / total_questions) * 1000) / 10 : 0
+
+    let bestDayObj = filteredDailyActivity[0]
+    filteredDailyActivity.forEach(day => {
+      if ((day.correct || 0) > (bestDayObj?.correct || 0)) {
+        bestDayObj = day
+      }
+    })
+
+    let best_day = 'N/A'
+    if (bestDayObj?.date) {
+      const d = new Date(bestDayObj.date)
+      const dayNames = ['Chủ Nhật', 'Thứ Hai', 'Thứ Ba', 'Thứ Tư', 'Thứ Năm', 'Thứ Sáu', 'Thứ Bảy']
+      best_day = dayNames[d.getDay()] || bestDayObj.date
+    }
+
+    return {
+      total_questions,
+      total_correct,
+      total_time_hours,
+      total_time_minutes,
+      global_accuracy,
+      best_day
+    }
+  }, [filteredDailyActivity, data, weeklyReport, personalPeriod])
+
 
 
   const currentLeaderboard = leaderboardData?.[activeLeaderboardTab] || { list: [], user_rank: -1, user_value: 0 }
@@ -611,19 +664,19 @@ export default function Stats() {
                      <div className="grid grid-cols-4 gap-2 pt-2 border-t border-slate-100/80 text-center">
                         <div className="bg-indigo-50/60 p-1.5 rounded-xl border border-indigo-100/50">
                            <span className="text-[7.5px] font-black text-slate-400 uppercase tracking-wider block">Chính xác</span>
-                           <span className="text-xs font-black text-indigo-600">{personal.summary.global_accuracy}%</span>
+                           <span className="text-xs font-black text-indigo-600">{periodSummary.global_accuracy}%</span>
                         </div>
                         <div className="bg-emerald-50/60 p-1.5 rounded-xl border border-emerald-100/50">
                            <span className="text-[7.5px] font-black text-slate-400 uppercase tracking-wider block">Thời gian</span>
-                           <span className="text-xs font-black text-emerald-600">{personal.summary.total_time_hours}h</span>
+                           <span className="text-xs font-black text-emerald-600">{periodSummary.total_time_hours}h</span>
                         </div>
                         <div className="bg-amber-50/60 p-1.5 rounded-xl border border-amber-100/50">
                            <span className="text-[7.5px] font-black text-slate-400 uppercase tracking-wider block">Đã học</span>
-                           <span className="text-xs font-black text-amber-600">{personal.summary.total_questions.toLocaleString()}</span>
+                           <span className="text-xs font-black text-amber-600">{periodSummary.total_questions.toLocaleString()}</span>
                         </div>
                         <div className="bg-rose-50/60 p-1.5 rounded-xl border border-rose-100/50">
                            <span className="text-[7.5px] font-black text-slate-400 uppercase tracking-wider block">Đúng</span>
-                           <span className="text-xs font-black text-rose-600">{personal.summary.total_correct.toLocaleString()}</span>
+                           <span className="text-xs font-black text-rose-600">{periodSummary.total_correct.toLocaleString()}</span>
                         </div>
                      </div>
                   </div>
@@ -632,7 +685,7 @@ export default function Stats() {
                   <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6">
                      <MetricCard 
                        label="Accurate Rate" 
-                       value={`${personal.summary.global_accuracy}%`} 
+                       value={`${periodSummary.global_accuracy}%`} 
                        sub="Tỷ lệ chính xác"
                        icon={TargetIcon}
                        color="text-indigo-600"
@@ -640,7 +693,7 @@ export default function Stats() {
                      />
                      <MetricCard 
                        label="Study Duration" 
-                       value={`${personal.summary.total_time_hours}h`} 
+                       value={`${periodSummary.total_time_hours}h`} 
                        sub="Tổng thời gian học"
                        icon={Clock}
                        color="text-emerald-600"
@@ -648,7 +701,7 @@ export default function Stats() {
                      />
                      <MetricCard 
                        label="Attempted Cards" 
-                       value={personal.summary.total_questions.toLocaleString()} 
+                       value={periodSummary.total_questions.toLocaleString()} 
                        sub="Số câu/thẻ đã ôn"
                        icon={Layers}
                        color="text-amber-600"
@@ -656,7 +709,7 @@ export default function Stats() {
                      />
                      <MetricCard 
                        label="Correct Score" 
-                       value={personal.summary.total_correct.toLocaleString()} 
+                       value={periodSummary.total_correct.toLocaleString()} 
                        sub="Số câu trả lời đúng"
                        icon={Zap}
                        color="text-rose-600"
@@ -665,63 +718,55 @@ export default function Stats() {
                   </div>
 
                   {/* Period Progress Overview Snapshot */}
-                  {weeklyReport && (
-                    <div className="bg-white rounded-[2.5rem] border border-slate-100 p-6 md:p-8 shadow-sm">
-                      <div className="flex items-center gap-3 mb-6">
-                        <div className="w-9 h-9 rounded-xl bg-indigo-50 flex items-center justify-center text-indigo-600">
-                          <Calendar className="w-4.5 h-4.5" />
-                        </div>
-                        <div>
-                          <h3 className="text-xs md:text-sm font-black text-slate-900 uppercase tracking-widest italic leading-none">
-                            Báo cáo tiến độ ({personalPeriod === 'day' ? 'Hôm nay' : personalPeriod === 'week' ? 'Tuần này' : personalPeriod === 'month' ? 'Tháng này' : 'Năm nay'})
-                          </h3>
-                          <p className="text-[9px] font-bold text-slate-400 mt-0.5">Thống kê khối lượng & tốc độ ghi nhớ</p>
+                  <div className="bg-white rounded-[2.5rem] border border-slate-100 p-6 md:p-8 shadow-sm">
+                    <div className="flex items-center gap-3 mb-6">
+                      <div className="w-9 h-9 rounded-xl bg-indigo-50 flex items-center justify-center text-indigo-600">
+                        <Calendar className="w-4.5 h-4.5" />
+                      </div>
+                      <div>
+                        <h3 className="text-xs md:text-sm font-black text-slate-900 uppercase tracking-widest italic leading-none">
+                          Báo cáo tiến độ ({personalPeriod === 'day' ? 'Hôm nay' : personalPeriod === 'week' ? 'Tuần này' : personalPeriod === 'month' ? 'Tháng này' : personalPeriod === 'year' ? 'Năm nay' : 'Tất cả'})
+                        </h3>
+                        <p className="text-[9px] font-bold text-slate-400 mt-0.5">Thống kê khối lượng & tốc độ ghi nhớ</p>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                      <div className="p-4 bg-slate-50 border border-slate-100 rounded-2xl">
+                        <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block">Khối lượng bài làm</span>
+                        <div className="flex items-baseline gap-1.5 mt-1">
+                          <span className="text-2xl font-black text-slate-900">{periodSummary.total_questions.toLocaleString()}</span>
+                          <span className="text-[8px] font-black px-1.5 py-0.5 rounded-full bg-emerald-50 text-emerald-600">
+                            Thẻ
+                          </span>
                         </div>
                       </div>
 
-                      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                        <div className="p-4 bg-slate-50 border border-slate-100 rounded-2xl">
-                          <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block">Khối lượng bài làm</span>
-                          <div className="flex items-baseline gap-1.5 mt-1">
-                            <span className="text-2xl font-black text-slate-900">{weeklyReport.current_week.questions}</span>
-                            <span className={cn(
-                              "text-[8px] font-black px-1.5 py-0.5 rounded-full",
-                              weeklyReport.deltas.questions_change_pct >= 0 ? "bg-emerald-50 text-emerald-600" : "bg-rose-50 text-rose-600"
-                            )}>
-                              {weeklyReport.deltas.questions_change_pct >= 0 ? '+' : ''}{weeklyReport.deltas.questions_change_pct}%
-                            </span>
-                          </div>
+                      <div className="p-4 bg-slate-50 border border-slate-100 rounded-2xl">
+                        <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block">Độ chính xác</span>
+                        <div className="flex items-baseline gap-1.5 mt-1">
+                          <span className="text-2xl font-black text-slate-900">{periodSummary.global_accuracy}%</span>
+                          <span className="text-[8px] font-black px-1.5 py-0.5 rounded-full bg-indigo-50 text-indigo-600">
+                            Chính xác
+                          </span>
                         </div>
+                      </div>
 
-                        <div className="p-4 bg-slate-50 border border-slate-100 rounded-2xl">
-                          <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block">Độ chính xác</span>
-                          <div className="flex items-baseline gap-1.5 mt-1">
-                            <span className="text-2xl font-black text-slate-900">{weeklyReport.current_week.accuracy}%</span>
-                            <span className={cn(
-                              "text-[8px] font-black px-1.5 py-0.5 rounded-full",
-                              weeklyReport.deltas.accuracy_change >= 0 ? "bg-emerald-50 text-emerald-600" : "bg-rose-50 text-rose-600"
-                            )}>
-                              {weeklyReport.deltas.accuracy_change >= 0 ? '+' : ''}{weeklyReport.deltas.accuracy_change}%
-                            </span>
-                          </div>
+                      <div className="p-4 bg-slate-50 border border-slate-100 rounded-2xl">
+                        <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block">Thời gian tập trung</span>
+                        <div className="text-2xl font-black text-emerald-600 mt-1">
+                          {periodSummary.total_time_minutes} phút
                         </div>
+                      </div>
 
-                        <div className="p-4 bg-slate-50 border border-slate-100 rounded-2xl">
-                          <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block">Thời gian tập trung</span>
-                          <div className="text-2xl font-black text-emerald-600 mt-1">
-                            {weeklyReport.current_week.time_minutes} phút
-                          </div>
-                        </div>
-
-                        <div className="p-4 bg-slate-50 border border-slate-100 rounded-2xl">
-                          <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block">Ngày đạt đỉnh</span>
-                          <div className="text-2xl font-black text-indigo-600 mt-1 truncate">
-                            {weeklyReport.best_day}
-                          </div>
+                      <div className="p-4 bg-slate-50 border border-slate-100 rounded-2xl">
+                        <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block">Ngày đạt đỉnh</span>
+                        <div className="text-2xl font-black text-indigo-600 mt-1 truncate">
+                          {periodSummary.best_day}
                         </div>
                       </div>
                     </div>
-                  )}
+                  </div>
 
                   {/* Section: Study Charts */}
                   <CollapsibleSection id="charts" title="Biểu đồ tiến độ chi tiết" icon={TrendingUp} isOpen={!!expandedSections["charts"]} onToggle={() => setExpandedSections(prev => ({ ...prev, charts: !prev["charts"] }))}>
