@@ -45,6 +45,8 @@ export default function QuizDetail() {
   const [dailyReviewInput, setDailyReviewInput] = useState(50)
   const [isSavingRoadmapSettings, setIsSavingRoadmapSettings] = useState(false)
   const [isRoadmapSettingsOpen, setIsRoadmapSettingsOpen] = useState(false)
+  const [isResetModalOpen, setIsResetModalOpen] = useState(false)
+  const [isResettingProgress, setIsResettingProgress] = useState(false)
   const [showFlashcardMenu, setShowFlashcardMenu] = useState(false)
   const [showPracticeMenu, setShowPracticeMenu] = useState(false)
 
@@ -286,6 +288,24 @@ export default function QuizDetail() {
     }
   }, [roadmapStatus])
 
+  const handleResetProgress = async () => {
+    setIsResettingProgress(true)
+    try {
+      await axios.post(`/api/v1/deck/${id}/reset-progress`)
+      queryClient.invalidateQueries({ queryKey: ['quiz-roadmap-status', id] })
+      queryClient.invalidateQueries({ queryKey: ['quiz-mastery', id] })
+      queryClient.invalidateQueries({ queryKey: ['quiz-questions', id] })
+      queryClient.invalidateQueries({ queryKey: ['quiz-session', id] })
+      refetchRoadmapStatus()
+      setIsResetModalOpen(false)
+    } catch (e) {
+      console.error("Error resetting deck progress", e)
+      alert("Không thể đặt lại tiến độ. Vui lòng thử lại!")
+    } finally {
+      setIsResettingProgress(false)
+    }
+  }
+
   const handleSaveRoadmap = async (active: boolean) => {
     setIsSavingRoadmapSettings(true)
     try {
@@ -408,6 +428,13 @@ export default function QuizDetail() {
                 <h3 className="text-[10px] font-black text-slate-900 uppercase tracking-widest leading-none">Learning Progress</h3>
               </div>
               <div className="flex items-center gap-1.5">
+                <button
+                  onClick={() => setIsResetModalOpen(true)}
+                  className="w-7 h-7 rounded-lg bg-white border border-slate-150 flex items-center justify-center text-slate-400 hover:text-rose-600 hover:border-rose-200 hover:bg-rose-50 transition-all active:scale-90"
+                  title="Đặt lại tiến độ học (Reset Progress)"
+                >
+                  <RotateCcw className="w-3.5 h-3.5" />
+                </button>
                 {roadmapStatus?.roadmap_active && (
                   <button
                     onClick={() => setIsRoadmapSettingsOpen(true)}
@@ -1246,6 +1273,86 @@ export default function QuizDetail() {
         )}
       </AnimatePresence>
       
+      {/* ═══════════════ RESET PROGRESS CONFIRMATION MODAL ═══════════════ */}
+      <AnimatePresence>
+        {isResetModalOpen && (
+          <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => !isResettingProgress && setIsResetModalOpen(false)}
+              className="absolute inset-0 bg-slate-900/60 backdrop-blur-md"
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              className="relative w-full max-w-sm bg-white rounded-[2rem] p-6 shadow-2xl border border-slate-100/60 overflow-hidden text-slate-800"
+            >
+              <div className="flex items-center justify-between mb-5">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-9 h-9 rounded-xl bg-rose-50 border border-rose-100 flex items-center justify-center text-rose-600">
+                    <RotateCcw className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-black text-slate-900 uppercase tracking-widest leading-none">Đặt Lại Tiến Độ</h3>
+                    <p className="text-[9px] font-bold text-slate-400 mt-1">Reset Deck Progress</p>
+                  </div>
+                </div>
+                <button 
+                  onClick={() => setIsResetModalOpen(false)} 
+                  disabled={isResettingProgress}
+                  className="w-8 h-8 rounded-full bg-slate-50 flex items-center justify-center text-slate-400 hover:text-rose-500 transition-all cursor-pointer"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              <div className="space-y-3 mb-6 text-left">
+                <div className="p-3.5 rounded-2xl bg-amber-50/60 border border-amber-200/50 space-y-2">
+                  <p className="text-xs font-bold text-amber-900 leading-relaxed">
+                    Bạn có chắc chắn muốn làm sạch tiến độ để học lại bộ thẻ này từ đầu?
+                  </p>
+                </div>
+
+                <div className="p-3 rounded-xl bg-slate-50 border border-slate-100 space-y-2 text-[10px] font-semibold text-slate-600">
+                  <div className="flex items-start gap-2">
+                    <span className="text-indigo-600">✨</span>
+                    <span><strong>Tất cả {roadmapStatus?.total_cards || 0} thẻ</strong> sẽ trở thành "Từ Mới" để bắt đầu lại từ đầu.</span>
+                  </div>
+                  <div className="flex items-start gap-2">
+                    <span className="text-amber-500">🧹</span>
+                    <span><strong>Lịch sử ghi nhớ FSRS & Tỷ lệ đúng/sai</strong> riêng của bộ thẻ này sẽ được xoá trắng.</span>
+                  </div>
+                  <div className="flex items-start gap-2">
+                    <span className="text-emerald-500">🏆</span>
+                    <span><strong>Tổng điểm XP & Level cá nhân ĐƯỢC GIỮ NGUYÊN</strong> (không bị trừ điểm tích lũy).</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setIsResetModalOpen(false)}
+                  disabled={isResettingProgress}
+                  className="flex-1 h-12 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-2xl font-black text-xs uppercase tracking-widest transition-all cursor-pointer"
+                >
+                  Hủy
+                </button>
+                <button
+                  onClick={handleResetProgress}
+                  disabled={isResettingProgress}
+                  className="flex-1 h-12 bg-rose-600 hover:bg-rose-700 text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-md shadow-rose-500/20 transition-all cursor-pointer disabled:opacity-50"
+                >
+                  {isResettingProgress ? 'Đang Reset...' : 'Xác Nhận Reset'}
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
       {/* ═══════════════ EDIT QUIZ MODAL ═══════════════ */}
       <AnimatePresence>
         {isEditModalOpen && (

@@ -2564,3 +2564,59 @@ async def get_deck_roadmap_status(request: Request, deck_id: int, db: AsyncSessi
     status = await get_deck_roadmap_status_helper(db, user_id, deck_id, settings)
     return status
 
+
+
+@router.post("/{deck_id}/reset-progress")
+async def reset_deck_progress(request: Request, deck_id: int, db: AsyncSession = Depends(get_db)):
+    user_id = int(request.cookies.get("user_id", 1))
+    
+    deck = await DeckService.get_deck_by_id(db, deck_id)
+    if not deck:
+        return JSONResponse(status_code=404, content={"error": "Deck not found"})
+        
+    from app.modules.deck.models import Flashcard, UserCardMastery, UserPracticeStats, DeckSession, DeckAttempt, UserAnswer
+    from sqlalchemy import delete
+    
+    # 1. Get all card_ids for this deck
+    card_ids_res = await db.execute(select(Flashcard.id).where(Flashcard.deck_id == deck_id))
+    card_ids = list(card_ids_res.scalars().all())
+    
+    if card_ids:
+        # 2. Delete UserCardMastery for this user & cards in deck
+        await db.execute(
+            delete(UserCardMastery).where(
+                UserCardMastery.user_id == user_id,
+                UserCardMastery.card_id.in_(card_ids)
+            )
+        )
+        
+        # 3. Delete UserPracticeStats for this user & cards in deck
+        await db.execute(
+            delete(UserPracticeStats).where(
+                UserPracticeStats.user_id == user_id,
+                UserPracticeStats.card_id.in_(card_ids)
+            )
+        )
+        
+        # 4. Delete DeckAttempt and UserAnswer for this user & deck
+        attempt_ids_res = await db.execute(
+            select(DeckAttempt.id).where(
+                DeckAttempt.user_id == user_id,
+                DeckAttempt.deck_id == deck_id
+            )
+        )
+        attempt_ids = list(attempt_ids_res.scalars().all())
+        if attempt_ids:
+            await db.execute(delete(UserAnswer).where(UserAnswer.attempt_id.in_(attempt_ids)))
+            await db.execute(delete(DeckAttempt).where(DeckAttempt.id.in_(attempt_ids)))
+            
+    # 5. Delete DeckSession for this user & deck
+    await db.execute(
+        delete(DeckSession).where(
+            DeckSession.user_id == user_id,
+            DeckSession.deck_id == deck_id
+        )
+    )
+    
+    await db.commit()
+    return {"status": "ok", "message": "Deck progress reset successfully"}
