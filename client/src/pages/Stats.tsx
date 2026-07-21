@@ -261,6 +261,65 @@ interface WeeklyReport {
   ai_insights: string[]
 }
 
+// Helper CollapsibleSection component (Moved outside Stats component to prevent React Error #310)
+function CollapsibleSection({ 
+  id, 
+  title, 
+  icon: Icon, 
+  isOpen, 
+  onToggle, 
+  children 
+}: { 
+  id: string, 
+  title: string, 
+  icon: any, 
+  isOpen: boolean, 
+  onToggle: () => void, 
+  children: React.ReactNode 
+}) {
+  return (
+    <div className="bg-white rounded-[2.5rem] border border-slate-100 p-1 shadow-sm overflow-hidden transition-all duration-300">
+      <button
+        onClick={onToggle}
+        className="w-full flex items-center justify-between p-6 md:p-8 cursor-pointer select-none text-left"
+      >
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-indigo-50 flex items-center justify-center text-indigo-600">
+            <Icon className="w-5 h-5" />
+          </div>
+          <div>
+            <h3 className="text-sm font-black text-slate-900 uppercase tracking-widest italic">{title}</h3>
+            <p className="text-[9px] font-bold text-slate-400 mt-0.5">
+              {isOpen ? 'Ấn để thu gọn' : 'Ấn để mở rộng chi tiết'}
+            </p>
+          </div>
+        </div>
+        <motion.div
+          animate={{ rotate: isOpen ? 180 : 0 }}
+          transition={{ duration: 0.2 }}
+          className="text-slate-400"
+        >
+          <ChevronRight className="w-5 h-5" />
+        </motion.div>
+      </button>
+      <AnimatePresence initial={false}>
+        {isOpen && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.3, ease: 'easeInOut' }}
+          >
+            <div className="p-5 md:p-8 pt-0 border-t border-slate-50 space-y-6">
+              {children}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  )
+}
+
 export default function Stats() {
   const [activeTab, setActiveTab] = useState<'personal' | 'community'>('personal')
   const [personalPeriod, setPersonalPeriod] = useState<'day' | 'week' | 'month' | 'year' | 'all'>('week')
@@ -274,52 +333,6 @@ export default function Stats() {
   const [hoveredDay, setHoveredDay] = useState<{ dateStr: string, count: number, x: number, y: number } | null>(null)
   const [activeLeaderboardTab, setActiveLeaderboardTab] = useState<'xp' | 'streak' | 'questions' | 'accuracy'>('xp')
   const [leaderboardTimeFilter, setLeaderboardTimeFilter] = useState<'today' | 'week' | 'month' | 'all_time'>('all_time')
-
-  // Helper CollapsibleSection component
-  const CollapsibleSection = ({ id, title, icon: Icon, children }: { id: string, title: string, icon: any, children: React.ReactNode }) => {
-    const isOpen = !!expandedSections[id]
-    return (
-      <div className="bg-white rounded-[2.5rem] border border-slate-100 p-1 shadow-sm overflow-hidden transition-all duration-300">
-        <button
-          onClick={() => setExpandedSections(prev => ({ ...prev, [id]: !prev[id] }))}
-          className="w-full flex items-center justify-between p-6 md:p-8 cursor-pointer select-none text-left"
-        >
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-indigo-50 flex items-center justify-center text-indigo-600">
-              <Icon className="w-5 h-5" />
-            </div>
-            <div>
-              <h3 className="text-sm font-black text-slate-900 uppercase tracking-widest italic">{title}</h3>
-              <p className="text-[9px] font-bold text-slate-400 mt-0.5">
-                {isOpen ? 'Ấn để thu gọn' : 'Ấn để mở rộng chi tiết'}
-              </p>
-            </div>
-          </div>
-          <motion.div
-            animate={{ rotate: isOpen ? 180 : 0 }}
-            transition={{ duration: 0.2 }}
-            className="text-slate-400"
-          >
-            <ChevronRight className="w-5 h-5" />
-          </motion.div>
-        </button>
-        <AnimatePresence initial={false}>
-          {isOpen && (
-            <motion.div
-              initial={{ height: 0, opacity: 0 }}
-              animate={{ height: 'auto', opacity: 1 }}
-              exit={{ height: 0, opacity: 0 }}
-              transition={{ duration: 0.3, ease: 'easeInOut' }}
-            >
-              <div className="p-5 md:p-8 pt-0 border-t border-slate-50 space-y-6">
-                {children}
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </div>
-    )
-  }
   
   const { data, isLoading } = useQuery<StatsData>({
     queryKey: ['detailed-stats'],
@@ -710,7 +723,7 @@ export default function Stats() {
                   )}
 
                   {/* Section: Study Charts */}
-                  <CollapsibleSection id="charts" title="Biểu đồ tiến độ chi tiết" icon={TrendingUp}>
+                  <CollapsibleSection id="charts" title="Biểu đồ tiến độ chi tiết" icon={TrendingUp} isOpen={!!expandedSections["charts"]} onToggle={() => setExpandedSections(prev => ({ ...prev, charts: !prev["charts"] }))}>
                     <div className="space-y-6">
                       <ReviewForecastWidget data={forecastData} activePeriod={personalPeriod} />
                       <DailyComparisonChart data={dailyComparisonData} allTimeAvg={dailyComparisonAvg} isLoading={isDailyComparisonLoading} />
@@ -857,7 +870,7 @@ export default function Stats() {
                   </CollapsibleSection>
 
                   {/* Section: Mastery Calendar & Memory */}
-                  <CollapsibleSection id="memory" title="Ghi nhận & Trí nhớ" icon={Activity}>
+                  <CollapsibleSection id="memory" title="Ghi nhận & Trí nhớ" icon={Activity} isOpen={!!expandedSections["memory"]} onToggle={() => setExpandedSections(prev => ({ ...prev, memory: !prev["memory"] }))}>
                     <div className="space-y-6">
                       {/* Streak Heatmap Calendar */}
                       <div className="bg-slate-50 rounded-[2rem] border border-slate-100 p-6 md:p-10 shadow-sm relative overflow-hidden">
@@ -1125,7 +1138,7 @@ export default function Stats() {
                   </CollapsibleSection>
 
                   {/* Section: Practice Results */}
-                  <CollapsibleSection id="practice" title="Kết quả luyện tập" icon={BookOpen}>
+                  <CollapsibleSection id="practice" title="Kết quả luyện tập" icon={BookOpen} isOpen={!!expandedSections["practice"]} onToggle={() => setExpandedSections(prev => ({ ...prev, practice: !prev["practice"] }))}>
                     <div className="space-y-6">
                       {/* Practice Submode Stats */}
                       {practiceStats && (
