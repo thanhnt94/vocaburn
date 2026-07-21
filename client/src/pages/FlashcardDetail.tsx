@@ -717,7 +717,7 @@ export default function QuizDetail() {
 
         {/* Search Panel - slides up above the bar */}
         <AnimatePresence>
-          {bottomBarMode === 'creator' && isSearchPanelOpen && (
+          {isSearchPanelOpen && (
             <motion.div
               initial={{ y: 80, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
@@ -743,7 +743,7 @@ export default function QuizDetail() {
         {/* Main Bottom Bar */}
         <div className="bg-white/90 backdrop-blur-2xl border-t border-slate-100 px-3 py-2.5 shadow-[0_-10px_40px_rgba(0,0,0,0.05)]">
           <div className="max-w-5xl mx-auto flex items-center gap-2">
-            {bottomBarMode === 'learn' ? (
+            {bottomBarMode === 'learn' && !isSearchPanelOpen ? (
               /* ── LEARN MODE ── */
               <>
                 {/* Flashcard Button with Dropdown */}
@@ -874,8 +874,8 @@ export default function QuizDetail() {
               </>
             )}
 
-            {/* Toggle Button (only for creators) */}
-            {canEdit && (
+            {/* Toggle Button (Creator Tools for editors, Search for normal users) */}
+            {canEdit ? (
               <button
                 onClick={() => {
                   setBottomBarMode(prev => prev === 'learn' ? 'creator' : 'learn')
@@ -892,6 +892,23 @@ export default function QuizDetail() {
                 title={bottomBarMode === 'learn' ? 'Creator Tools' : 'Back to Learn'}
               >
                 {bottomBarMode === 'creator' ? <Brain className="w-4 h-4" /> : <Pencil className="w-4 h-4" />}
+              </button>
+            ) : (
+              <button
+                onClick={() => {
+                  setIsSearchPanelOpen(prev => !prev)
+                  setShowFlashcardMenu(false)
+                  setShowPracticeMenu(false)
+                }}
+                className={cn(
+                  "w-10 h-10 rounded-xl flex items-center justify-center transition-all active:scale-90 flex-shrink-0",
+                  isSearchPanelOpen
+                    ? "bg-indigo-100 text-indigo-600 border border-indigo-200"
+                    : "bg-slate-50 text-slate-400 border border-slate-200 hover:text-indigo-600"
+                )}
+                title={isSearchPanelOpen ? 'Close Search' : 'Search Cards'}
+              >
+                <Search className="w-4 h-4" />
               </button>
             )}
           </div>

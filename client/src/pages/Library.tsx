@@ -43,6 +43,7 @@ export default function Library() {
   // Pagination State
   const [currentPage, setCurrentPage] = useState(1)
   const itemsPerPage = 8 
+  const [mobileVisibleCount, setMobileVisibleCount] = useState(8) 
 
   const { setUser, setGamify } = useAppStore()
   const queryClient = useQueryClient()
@@ -89,6 +90,7 @@ export default function Library() {
 
   useEffect(() => {
     setCurrentPage(1)
+    setMobileVisibleCount(8)
   }, [activeTab, searchQuery, activeTag])
 
   const archiveMutation = useMutation({
@@ -179,57 +181,32 @@ export default function Library() {
       <div className="absolute top-[20%] left-[-10%] w-[40vw] h-[40vw] rounded-full bg-indigo-200/10 blur-[130px] pointer-events-none" />
       <div className="absolute bottom-[20%] right-[-10%] w-[40vw] h-[40vw] rounded-full bg-pink-200/10 blur-[130px] pointer-events-none" />
 
-      {/* MOBILE HEADER */}
-      <div className="fixed top-0 left-0 right-0 z-[150] bg-white/80 backdrop-blur-xl border-b border-slate-100 md:hidden flex-shrink-0">
-         <div className="px-4 py-4 flex items-center justify-between gap-4">
-             <div className="flex items-center gap-3">
-                <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-orange-500 to-rose-500 flex items-center justify-center text-white shadow-lg shadow-orange-500/20 flex-shrink-0">
-                   <BookOpen className="w-6 h-6 animate-pulse" />
+      {/* COMPACT MOBILE HEADER (Top) */}
+      <div className="fixed top-0 left-0 right-0 z-[150] bg-white/90 backdrop-blur-xl border-b border-slate-100 md:hidden">
+         <div className="px-4 py-3 flex items-center justify-between gap-3">
+             <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-orange-500 to-rose-500 flex items-center justify-center text-white shadow-md shadow-orange-500/15 flex-shrink-0">
+                   <BookOpen className="w-5 h-5" />
                 </div>
                <div>
-                  <h1 className="text-[13px] font-black text-slate-800 leading-none mb-1">Thư viện bài học 📚</h1>
-                  <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest leading-none">Tìm kiếm & Khám phá</span>
+                  <h1 className="text-[12px] font-black text-slate-800 leading-none">Thư viện bài học 📚</h1>
+                  <span className="text-[7.5px] font-black text-slate-400 uppercase tracking-widest leading-none">Vocaburn Library</span>
                </div>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5">
                <Link 
                   to="/manage"
-                  className="w-10 h-10 rounded-xl bg-indigo-50 border border-indigo-100/50 flex items-center justify-center text-indigo-605 shadow-sm active:scale-90 transition-all"
+                  className="w-8.5 h-8.5 rounded-xl bg-indigo-50 border border-indigo-100/60 flex items-center justify-center text-indigo-600 shadow-sm active:scale-90 transition-all"
                   title="Creator Studio"
                >
-                  <Plus className="w-5 h-5" />
+                  <Plus className="w-4.5 h-4.5" />
                </Link>
                <button 
                   onClick={() => setIsJoinModalOpen(true)}
-                  className="w-10 h-10 rounded-xl bg-slate-50 border border-slate-200/60 flex items-center justify-center text-slate-600 shadow-sm active:scale-90 transition-all"
+                  className="w-8.5 h-8.5 rounded-xl bg-slate-50 border border-slate-200/60 flex items-center justify-center text-slate-600 shadow-sm active:scale-90 transition-all"
                >
-                  <Users className="w-5 h-5" />
+                  <Users className="w-4.5 h-4.5" />
                </button>
-            </div>
-         </div>
-
-         {/* Search & Tabs Mixed Row */}
-         <div className="px-4 pb-4 space-y-3">
-            <div className="relative">
-               <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-               <input 
-                 type="text" 
-                 placeholder="Tìm kiếm bộ thẻ..." 
-                 value={searchQuery}
-                 onChange={(e) => setSearchQuery(e.target.value)}
-                 className="w-full h-11 bg-slate-50 border border-slate-200 rounded-2xl pl-10 pr-4 text-xs font-semibold outline-none focus:bg-white focus:ring-4 focus:ring-indigo-500/5 transition-all shadow-inner"
-               />
-            </div>
-            
-            <div className="flex items-center gap-2">
-               <div className="flex-1 bg-slate-100/60 p-1 rounded-2xl flex items-center border border-slate-200/50">
-                  {['my', 'discover', 'archived'].map((tab) => (
-                    <button key={tab} onClick={() => setActiveTab(tab as any)} className="flex-1 py-2 rounded-xl text-[9px] font-black tracking-widest relative transition-all">
-                      {activeTab === tab && <motion.div layoutId="tabMarkerMob" className="absolute inset-0 bg-white shadow-sm rounded-xl border border-slate-100" />}
-                      <span className="relative z-10 uppercase">{tab === 'my' ? 'CỦA TÔI' : (tab === 'discover' ? 'KHÁM PHÁ' : 'ĐÃ LƯU')}</span>
-                    </button>
-                  ))}
-               </div>
             </div>
          </div>
       </div>
@@ -496,8 +473,40 @@ export default function Library() {
 
       </div>
 
+      {/* THUMB-FRIENDLY FLOATING CONTROL BAR (Mobile Search & Tabs at Bottom) */}
+      <div className="fixed bottom-[68px] left-3 right-3 z-[140] md:hidden bg-white/95 backdrop-blur-2xl p-2.5 rounded-3xl border border-slate-200/80 shadow-[0_8px_30px_rgba(0,0,0,0.12)] space-y-2">
+         {/* Search Input */}
+         <div className="relative">
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+            <input 
+              type="text" 
+              placeholder="Tìm kiếm bộ thẻ..." 
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full h-9 bg-slate-50 border border-slate-200/80 rounded-2xl pl-9 pr-8 text-xs font-semibold outline-none focus:bg-white focus:ring-2 focus:ring-indigo-500/20 transition-all"
+            />
+            {searchQuery && (
+              <button onClick={() => setSearchQuery('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
+                <X className="w-3.5 h-3.5" />
+              </button>
+            )}
+         </div>
+
+         {/* Tabs Selector */}
+         <div className="bg-slate-100/80 p-0.5 rounded-2xl flex items-center border border-slate-200/40">
+            {['my', 'discover', 'archived'].map((tab) => (
+              <button key={tab} onClick={() => setActiveTab(tab as any)} className="flex-1 py-1.5 rounded-xl text-[8.5px] font-black tracking-widest relative transition-all">
+                {activeTab === tab && <motion.div layoutId="tabMarkerMob" className="absolute inset-0 bg-white shadow-sm rounded-xl border border-slate-150" />}
+                <span className={cn("relative z-10 uppercase", activeTab === tab ? "text-indigo-600 font-black" : "text-slate-500")}>
+                  {tab === 'my' ? 'CỦA TÔI' : (tab === 'discover' ? 'KHÁM PHÁ' : 'ĐÃ LƯU')}
+                </span>
+              </button>
+            ))}
+         </div>
+      </div>
+
       {/* MOBILE FEED CONTENT */}
-      <div className="md:hidden px-4 w-full pt-[190px] flex-grow space-y-4 pb-20">
+      <div className="md:hidden px-4 w-full pt-16 flex-grow space-y-4 pb-48">
         {filteredData.length === 0 ? (
           <div className="w-full bg-white border border-slate-200 rounded-3xl p-12 text-center flex flex-col items-center justify-center shadow-sm">
             <span className="text-4xl mb-4">🔍</span>
@@ -505,9 +514,9 @@ export default function Library() {
             <p className="text-xs text-slate-400">Hãy thử từ khóa khác hoặc thay đổi bộ lọc.</p>
           </div>
         ) : (
-          <div className="flex flex-col gap-4">
+          <div className="flex flex-col gap-3.5">
             <AnimatePresence mode="popLayout">
-               {filteredData.map((quiz, idx) => (
+               {filteredData.slice(0, mobileVisibleCount).map((quiz, idx) => (
                  <motion.div key={quiz.id} layout initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: idx * 0.01 }}>
                     <div className="bg-white rounded-[1.75rem] border border-slate-200/60 p-4 shadow-sm active:scale-[0.98] transition-all relative overflow-hidden flex items-center justify-between gap-3">
                       {/* Left Side: Clickable Cover, Title, Info */}
