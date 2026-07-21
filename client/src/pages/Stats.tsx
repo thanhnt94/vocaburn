@@ -253,7 +253,8 @@ interface WeeklyReport {
 }
 
 export default function Stats() {
-  const [activeTab, setActiveTab] = useState<'overview' | 'personal' | 'community'>('overview')
+  const [activeTab, setActiveTab] = useState<'personal' | 'community'>('personal')
+  const [personalPeriod, setPersonalPeriod] = useState<'day' | 'week' | 'month' | 'year'>('week')
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({
     week: true, // default first section expanded
     charts: false,
@@ -500,31 +501,22 @@ export default function Stats() {
       <div className="fixed bottom-[48px] left-0 right-0 z-[100] bg-[#F8FAFC]/90 backdrop-blur-xl border-t border-slate-100 px-4 py-3 md:relative md:bottom-auto md:top-auto md:left-auto md:right-auto md:border-t-0 md:py-0 md:bg-transparent md:backdrop-blur-none">
          <div className="flex bg-slate-100/50 p-1 rounded-xl border border-slate-100 w-full sm:w-fit max-w-7xl mx-auto">
             <button 
-               onClick={() => setActiveTab('overview')}
+               onClick={() => setActiveTab('personal')}
                className={cn(
-                 "flex-1 sm:flex-none px-4 py-1.5 rounded-lg text-[8px] md:text-[9px] font-black uppercase tracking-widest transition-all text-center cursor-pointer",
-                 activeTab === 'overview' ? "bg-white text-indigo-600 shadow-sm border border-slate-100" : "text-slate-400"
+                 "flex-1 sm:flex-none px-5 py-2 rounded-lg text-[9px] md:text-[10px] font-black uppercase tracking-widest transition-all text-center cursor-pointer",
+                 activeTab === 'personal' ? "bg-white text-indigo-600 shadow-sm border border-slate-100 font-black" : "text-slate-400 hover:text-slate-600"
                )}
             >
-               Overview
+               CÁ NHÂN (PERSONAL)
             </button>
             <button 
                onClick={() => setActiveTab('community')}
                className={cn(
-                 "flex-1 sm:flex-none px-4 py-1.5 rounded-lg text-[8px] md:text-[9px] font-black uppercase tracking-widest transition-all text-center cursor-pointer",
-                 activeTab === 'community' ? "bg-white text-indigo-600 shadow-sm border border-slate-100" : "text-slate-400"
+                 "flex-1 sm:flex-none px-5 py-2 rounded-lg text-[9px] md:text-[10px] font-black uppercase tracking-widest transition-all text-center cursor-pointer",
+                 activeTab === 'community' ? "bg-white text-indigo-600 shadow-sm border border-slate-100 font-black" : "text-slate-400 hover:text-slate-600"
                )}
             >
-               Community
-            </button>
-            <button 
-               onClick={() => setActiveTab('personal')}
-               className={cn(
-                 "flex-1 sm:flex-none px-4 py-1.5 rounded-lg text-[8px] md:text-[9px] font-black uppercase tracking-widest transition-all text-center cursor-pointer",
-                 activeTab === 'personal' ? "bg-white text-indigo-600 shadow-sm border border-slate-100" : "text-slate-400"
-               )}
-            >
-               Personal
+               CỘNG ĐỒNG (COMMUNITY)
             </button>
          </div>
       </div>
@@ -543,128 +535,6 @@ export default function Stats() {
          </div>
 
          <AnimatePresence mode="wait">
-            {activeTab === 'overview' && (
-               <motion.div 
-                 key="overview"
-                 initial={{ opacity: 0, y: 15 }}
-                 animate={{ opacity: 1, y: 0 }}
-                 exit={{ opacity: 0, y: -15 }}
-                 className="space-y-6"
-               >
-                  {/* Personal Metrics */}
-                  <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6">
-                     <MetricCard 
-                       label="Accuracy" 
-                       value={`${personal.summary.global_accuracy}%`} 
-                       sub="Accuracy Rate"
-                       icon={TargetIcon}
-                       color="text-indigo-600"
-                       bg="bg-indigo-50"
-                     />
-                     <MetricCard 
-                       label="Time" 
-                       value={`${personal.summary.total_time_hours}h`} 
-                       sub="Study Duration"
-                       icon={Clock}
-                       color="text-emerald-600"
-                       bg="bg-emerald-50"
-                     />
-                     <MetricCard 
-                       label="Questions" 
-                       value={personal.summary.total_questions} 
-                       sub="Total Questions"
-                       icon={Layers}
-                       color="text-amber-600"
-                       bg="bg-amber-50"
-                     />
-                     <MetricCard 
-                       label="Score" 
-                       value={personal.summary.total_correct} 
-                       sub="Correct Answers"
-                       icon={Zap}
-                       color="text-rose-600"
-                       bg="bg-rose-50"
-                     />
-                  </div>
-
-                  {/* Weekly Snapshot & AI Coach strategy */}
-                  {weeklyReport && (
-                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                      {/* Compact Weekly report */}
-                      <div className="bg-white rounded-[2.5rem] border border-slate-100 p-6 md:p-8 shadow-sm flex flex-col justify-between">
-                        <div>
-                          <div className="flex items-center gap-3 mb-4">
-                            <div className="w-9 h-9 rounded-xl bg-indigo-50 flex items-center justify-center text-indigo-600">
-                              <Calendar className="w-4 h-4" />
-                            </div>
-                            <div>
-                              <h3 className="text-xs font-black text-slate-900 uppercase tracking-widest italic leading-none">Weekly Snapshot</h3>
-                              <p className="text-[9px] font-bold text-slate-400 mt-0.5">Hiệu suất học tập 7 ngày qua</p>
-                            </div>
-                          </div>
-
-                          <div className="grid grid-cols-2 gap-3">
-                            <div className="p-3 bg-slate-50 border border-slate-100 rounded-2xl">
-                              <span className="text-[8px] font-black text-slate-400 uppercase tracking-wider block">Bài làm</span>
-                              <div className="flex items-baseline gap-1 mt-0.5">
-                                <span className="text-sm font-black text-slate-900">{weeklyReport.current_week.questions}</span>
-                                <span className={cn(
-                                  "text-[7px] font-black px-1 rounded-full",
-                                  weeklyReport.deltas.questions_change_pct >= 0 ? "bg-emerald-50 text-emerald-600" : "bg-rose-50 text-rose-600"
-                                )}>
-                                  {weeklyReport.deltas.questions_change_pct >= 0 ? '+' : ''}{weeklyReport.deltas.questions_change_pct}%
-                                </span>
-                              </div>
-                            </div>
-                            <div className="p-3 bg-slate-50 border border-slate-100 rounded-2xl">
-                              <span className="text-[8px] font-black text-slate-400 tracking-wider block">Chính xác</span>
-                              <div className="flex items-baseline gap-1 mt-0.5">
-                                <span className="text-sm font-black text-slate-900">{weeklyReport.current_week.accuracy}%</span>
-                                <span className={cn(
-                                  "text-[7px] font-black px-1 rounded-full",
-                                  weeklyReport.deltas.accuracy_change >= 0 ? "bg-emerald-50 text-emerald-600" : "bg-rose-50 text-rose-600"
-                                )}>
-                                  {weeklyReport.deltas.accuracy_change >= 0 ? '+' : ''}{weeklyReport.deltas.accuracy_change}%
-                                </span>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-
-                        <div className="mt-3 pt-3 border-t border-slate-50 flex items-center justify-between text-[9px] font-black text-slate-450 uppercase">
-                          <span>Focus: <strong>{weeklyReport.current_week.time_minutes} phút</strong></span>
-                          <span>Đỉnh: <strong>{weeklyReport.best_day}</strong></span>
-                        </div>
-                      </div>
-
-                      {/* AI Strategy Coach (Short Insights) */}
-                      <div className="lg:col-span-2 bg-gradient-to-tr from-indigo-50/40 to-purple-50/40 border border-indigo-100/30 rounded-[2.5rem] p-6 md:p-8 shadow-sm flex flex-col justify-between relative overflow-hidden">
-                        <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-200/10 rounded-full blur-2xl -z-10" />
-                        <div>
-                          <div className="flex items-center gap-3 mb-3">
-                            <div className="w-8 h-8 rounded-xl bg-indigo-600 flex items-center justify-center text-white">
-                              <Sparkles className="w-4 h-4" />
-                            </div>
-                            <div>
-                              <h3 className="text-xs font-black text-slate-900 uppercase tracking-widest italic leading-none">AI Study Coach</h3>
-                              <p className="text-[8px] font-bold text-indigo-600 uppercase tracking-widest mt-0.5">Gợi ý chiến lược học tập</p>
-                            </div>
-                          </div>
-                          <div className="space-y-2 mt-3">
-                            {weeklyReport.ai_insights.slice(0, 2).map((insight, idx) => (
-                              <div key={idx} className="flex gap-2.5 bg-white/70 p-3 rounded-xl border border-white/50 shadow-sm text-[11px] font-semibold text-slate-700">
-                                <div className="w-1.5 h-1.5 rounded-full bg-indigo-500 mt-1.5 shrink-0" />
-                                <p className="leading-normal">{insight}</p>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-               </motion.div>
-            )}
-
             {activeTab === 'personal' && (
                <motion.div 
                  key="personal"
@@ -673,99 +543,134 @@ export default function Stats() {
                  exit={{ opacity: 0, y: -15 }}
                  className="space-y-6"
                >
-                  {/* Section 1: Weekly Progress */}
-                  <CollapsibleSection id="week" title="Tiến độ tuần" icon={Calendar}>
-                    {weeklyReport && (
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        {/* Weekly Report details */}
-                        <div className="bg-slate-50 border border-slate-100 rounded-3xl p-6">
-                          <h4 className="text-xs font-black text-slate-800 uppercase tracking-wider mb-4">Weekly Performance</h4>
-                          <div className="grid grid-cols-2 gap-4">
-                            <div className="p-4 bg-white border border-slate-100 rounded-2xl">
-                              <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Completed</span>
-                              <div className="flex items-baseline gap-2 mt-1">
-                                <span className="text-xl font-black text-slate-900 leading-none">
-                                  {weeklyReport.current_week.questions}
-                                </span>
-                                <span className={cn(
-                                  "text-[8px] font-black px-1.5 py-0.5 rounded-full flex items-center leading-none",
-                                  weeklyReport.deltas.questions_change_pct >= 0 
-                                    ? "bg-emerald-50 text-emerald-600" 
-                                    : "bg-rose-50 text-rose-600"
-                                )}>
-                                  {weeklyReport.deltas.questions_change_pct >= 0 ? '+' : ''}
-                                  {weeklyReport.deltas.questions_change_pct}%
-                                </span>
-                              </div>
-                              <p className="text-[7px] font-medium text-slate-400 mt-1.5 uppercase">vs prior week</p>
-                            </div>
+                  {/* Personal Header & Flexible Period Selector */}
+                  <div className="bg-white rounded-[2.5rem] border border-slate-100 p-6 md:p-8 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
+                     <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-2xl bg-indigo-50 flex items-center justify-center text-indigo-600">
+                           <TargetIcon className="w-5 h-5" />
+                        </div>
+                        <div>
+                           <h2 className="text-xs md:text-sm font-black text-slate-900 uppercase tracking-widest italic leading-none">Tiến độ & Hiệu suất cá nhân</h2>
+                           <p className="text-[9px] font-bold text-slate-400 mt-1 uppercase tracking-wider">Tổng quan chỉ số học tập chi tiết của bạn</p>
+                        </div>
+                     </div>
 
-                            <div className="p-4 bg-white border border-slate-100 rounded-2xl">
-                              <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Accuracy</span>
-                              <div className="flex items-baseline gap-2 mt-1">
-                                <span className="text-xl font-black text-slate-900 leading-none">
-                                  {weeklyReport.current_week.accuracy}%
-                                </span>
-                                <span className={cn(
-                                  "text-[8px] font-black px-1.5 py-0.5 rounded-full flex items-center leading-none",
-                                  weeklyReport.deltas.accuracy_change >= 0 
-                                    ? "bg-emerald-50 text-emerald-600" 
-                                    : "bg-rose-50 text-rose-600"
-                                )}>
-                                  {weeklyReport.deltas.accuracy_change >= 0 ? '+' : ''}
-                                  {weeklyReport.deltas.accuracy_change}%
-                                </span>
-                              </div>
-                              <p className="text-[7px] font-medium text-slate-400 mt-1.5 uppercase">vs prior week</p>
-                            </div>
+                     {/* Flexible Time Period Selector */}
+                     <div className="flex bg-slate-50 p-1 rounded-2xl border border-slate-100 shrink-0">
+                        {(['day', 'week', 'month', 'year'] as const).map((period) => (
+                           <button
+                              key={period}
+                              onClick={() => setPersonalPeriod(period)}
+                              className={cn(
+                                 "px-3.5 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all cursor-pointer",
+                                 personalPeriod === period 
+                                   ? "bg-indigo-600 text-white shadow-md shadow-indigo-500/20" 
+                                   : "text-slate-400 hover:text-slate-700"
+                              )}
+                           >
+                              {period === 'day' ? 'Hôm nay' : period === 'week' ? 'Tuần này' : period === 'month' ? 'Tháng này' : 'Năm nay'}
+                           </button>
+                        ))}
+                     </div>
+                  </div>
 
-                            <div className="p-4 bg-white border border-slate-100 rounded-2xl">
-                              <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Focus Duration</span>
-                              <div className="text-xl font-black text-slate-900 mt-1 leading-none">
-                                {weeklyReport.current_week.time_minutes}m
-                              </div>
-                              <p className="text-[7px] font-medium text-slate-400 mt-1.5 uppercase">Total study time</p>
-                            </div>
+                  {/* Top Personal Metric Cards */}
+                  <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6">
+                     <MetricCard 
+                       label="Accurate Rate" 
+                       value={`${personal.summary.global_accuracy}%`} 
+                       sub="Tỷ lệ chính xác"
+                       icon={TargetIcon}
+                       color="text-indigo-600"
+                       bg="bg-indigo-50"
+                     />
+                     <MetricCard 
+                       label="Study Duration" 
+                       value={`${personal.summary.total_time_hours}h`} 
+                       sub="Tổng thời gian học"
+                       icon={Clock}
+                       color="text-emerald-600"
+                       bg="bg-emerald-50"
+                     />
+                     <MetricCard 
+                       label="Attempted Cards" 
+                       value={personal.summary.total_questions.toLocaleString()} 
+                       sub="Số câu/thẻ đã ôn"
+                       icon={Layers}
+                       color="text-amber-600"
+                       bg="bg-amber-50"
+                     />
+                     <MetricCard 
+                       label="Correct Score" 
+                       value={personal.summary.total_correct.toLocaleString()} 
+                       sub="Số câu trả lời đúng"
+                       icon={Zap}
+                       color="text-rose-600"
+                       bg="bg-rose-50"
+                     />
+                  </div>
 
-                            <div className="p-4 bg-white border border-slate-100 rounded-2xl">
-                              <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Peak Day</span>
-                              <div className="text-xl font-black text-indigo-600 mt-1 leading-none truncate">
-                                {weeklyReport.best_day}
-                              </div>
-                              <p className="text-[7px] font-medium text-slate-400 mt-1.5 uppercase">Most active day</p>
-                            </div>
+                  {/* Period Progress Overview Snapshot */}
+                  {weeklyReport && (
+                    <div className="bg-white rounded-[2.5rem] border border-slate-100 p-6 md:p-8 shadow-sm">
+                      <div className="flex items-center gap-3 mb-6">
+                        <div className="w-9 h-9 rounded-xl bg-indigo-50 flex items-center justify-center text-indigo-600">
+                          <Calendar className="w-4.5 h-4.5" />
+                        </div>
+                        <div>
+                          <h3 className="text-xs md:text-sm font-black text-slate-900 uppercase tracking-widest italic leading-none">
+                            Báo cáo tiến độ ({personalPeriod === 'day' ? 'Hôm nay' : personalPeriod === 'week' ? 'Tuần này' : personalPeriod === 'month' ? 'Tháng này' : 'Năm nay'})
+                          </h3>
+                          <p className="text-[9px] font-bold text-slate-400 mt-0.5">Thống kê khối lượng & tốc độ ghi nhớ</p>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                        <div className="p-4 bg-slate-50 border border-slate-100 rounded-2xl">
+                          <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block">Khối lượng bài làm</span>
+                          <div className="flex items-baseline gap-1.5 mt-1">
+                            <span className="text-2xl font-black text-slate-900">{weeklyReport.current_week.questions}</span>
+                            <span className={cn(
+                              "text-[8px] font-black px-1.5 py-0.5 rounded-full",
+                              weeklyReport.deltas.questions_change_pct >= 0 ? "bg-emerald-50 text-emerald-600" : "bg-rose-50 text-rose-600"
+                            )}>
+                              {weeklyReport.deltas.questions_change_pct >= 0 ? '+' : ''}{weeklyReport.deltas.questions_change_pct}%
+                            </span>
                           </div>
                         </div>
 
-                        {/* AI coach Insights */}
-                        <div className="bg-gradient-to-tr from-indigo-50/20 to-purple-50/20 border border-indigo-100/30 rounded-3xl p-6 flex flex-col justify-between">
-                          <div>
-                            <div className="flex items-center gap-3 mb-4">
-                              <div className="w-9 h-9 rounded-xl bg-indigo-600 flex items-center justify-center text-white shadow-lg shadow-indigo-200">
-                                <Sparkles className="w-4.5 h-4.5 animate-pulse" />
-                              </div>
-                              <div>
-                                <h3 className="text-xs md:text-sm font-black text-slate-900 uppercase tracking-widest italic leading-none">AI Study Coach</h3>
-                                <p className="text-[9px] font-bold text-indigo-600 mt-0.5 uppercase tracking-widest">Personalized Strategy</p>
-                              </div>
-                            </div>
-                            
-                            <div className="space-y-3 mt-4">
-                              {weeklyReport.ai_insights.map((insight, idx) => (
-                                <div key={idx} className="flex gap-3 bg-white/90 p-4 rounded-2xl border border-slate-100 shadow-sm">
-                                  <div className="w-2 h-2 rounded-full bg-indigo-500 mt-1.5 shrink-0" />
-                                  <p className="text-xs font-semibold text-slate-700 leading-relaxed">{insight}</p>
-                                </div>
-                              ))}
-                            </div>
+                        <div className="p-4 bg-slate-50 border border-slate-100 rounded-2xl">
+                          <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block">Độ chính xác</span>
+                          <div className="flex items-baseline gap-1.5 mt-1">
+                            <span className="text-2xl font-black text-slate-900">{weeklyReport.current_week.accuracy}%</span>
+                            <span className={cn(
+                              "text-[8px] font-black px-1.5 py-0.5 rounded-full",
+                              weeklyReport.deltas.accuracy_change >= 0 ? "bg-emerald-50 text-emerald-600" : "bg-rose-50 text-rose-600"
+                            )}>
+                              {weeklyReport.deltas.accuracy_change >= 0 ? '+' : ''}{weeklyReport.deltas.accuracy_change}%
+                            </span>
+                          </div>
+                        </div>
+
+                        <div className="p-4 bg-slate-50 border border-slate-100 rounded-2xl">
+                          <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block">Thời gian tập trung</span>
+                          <div className="text-2xl font-black text-emerald-600 mt-1">
+                            {weeklyReport.current_week.time_minutes} phút
+                          </div>
+                        </div>
+
+                        <div className="p-4 bg-slate-50 border border-slate-100 rounded-2xl">
+                          <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block">Ngày đạt đỉnh</span>
+                          <div className="text-2xl font-black text-indigo-600 mt-1 truncate">
+                            {weeklyReport.best_day}
                           </div>
                         </div>
                       </div>
-                    )}
-                  </CollapsibleSection>
+                    </div>
+                  )}
 
-                  {/* Section 2: Study Charts */}
-                  <CollapsibleSection id="charts" title="Biểu đồ học tập" icon={TrendingUp}>
+                  {/* Section: Study Charts */}
+                  <CollapsibleSection id="charts" title="Biểu đồ tiến độ chi tiết" icon={TrendingUp}>
                     <div className="space-y-6">
                       <ReviewForecastWidget data={forecastData} />
                       <DailyComparisonChart data={dailyComparisonData} allTimeAvg={dailyComparisonAvg} isLoading={isDailyComparisonLoading} />
@@ -911,7 +816,7 @@ export default function Stats() {
                     </div>
                   </CollapsibleSection>
 
-                  {/* Section 3: Mastery Calendar & Memory */}
+                  {/* Section: Mastery Calendar & Memory */}
                   <CollapsibleSection id="memory" title="Ghi nhận & Trí nhớ" icon={Activity}>
                     <div className="space-y-6">
                       {/* Streak Heatmap Calendar */}
@@ -1179,7 +1084,7 @@ export default function Stats() {
                     </div>
                   </CollapsibleSection>
 
-                  {/* Section 4: Practice Results */}
+                  {/* Section: Practice Results */}
                   <CollapsibleSection id="practice" title="Kết quả luyện tập" icon={BookOpen}>
                     <div className="space-y-6">
                       {/* Practice Submode Stats */}
@@ -1350,22 +1255,198 @@ export default function Stats() {
                     </div>
                   </CollapsibleSection>
                </motion.div>
-             )}
+            )}
 
-             {activeTab === 'community' && (
-                <motion.div 
-                  key="community"
-                  initial={{ opacity: 0, x: 20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: -20 }}
-                  className="space-y-6"
-                >
-                  {/* Global Metrics */}
+            {activeTab === 'community' && (
+               <motion.div 
+                 key="community"
+                 initial={{ opacity: 0, x: 20 }}
+                 animate={{ opacity: 1, x: 0 }}
+                 exit={{ opacity: 0, x: -20 }}
+                 className="space-y-6"
+               >
+                  {/* Leaderboard FIRST */}
+                  <div className="bg-white rounded-[2.5rem] border border-slate-100 p-6 md:p-8 shadow-sm flex flex-col justify-between overflow-hidden relative">
+                     {/* Leaderboard Header */}
+                     <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+                        <div className="flex items-center gap-3">
+                           <div className="w-9 h-9 rounded-xl bg-indigo-50 flex items-center justify-center text-indigo-600">
+                              <Trophy className="w-4.5 h-4.5" />
+                           </div>
+                           <div>
+                              <h3 className="text-xs md:text-sm font-black text-slate-900 uppercase tracking-widest italic leading-none">Bảng Vinh Danh Thành Viên</h3>
+                              <p className="text-[9px] font-bold text-slate-400 mt-0.5">Đua top học tập, nâng cao trình độ</p>
+                           </div>
+                        </div>
+
+                        <div className="flex flex-col sm:flex-row gap-2 shrink-0">
+                          {/* Time Filter switcher */}
+                          <div className="flex bg-slate-50 p-1 rounded-xl border border-slate-100 overflow-x-auto no-scrollbar max-w-full">
+                             {(['today', 'week', 'month', 'all_time'] as const).map((filter) => (
+                                <button
+                                   key={filter}
+                                   onClick={() => setLeaderboardTimeFilter(filter)}
+                                   className={cn(
+                                      "px-3 py-1 rounded-lg text-[8px] font-black uppercase tracking-widest transition-all whitespace-nowrap cursor-pointer",
+                                      leaderboardTimeFilter === filter ? "bg-slate-900 text-white shadow-sm" : "text-slate-400"
+                                   )}
+                                >
+                                   {filter === 'today' ? 'Hôm nay' : filter === 'week' ? 'Tuần này' : filter === 'month' ? 'Tháng này' : 'Tất cả'}
+                                </button>
+                             ))}
+                          </div>
+
+                          {/* Leaderboard Tab switcher */}
+                          <div className="flex bg-slate-50 p-1 rounded-xl border border-slate-100 overflow-x-auto no-scrollbar max-w-full">
+                             {(['xp', 'streak', 'questions', 'accuracy'] as const).map((tab) => (
+                                <button
+                                   key={tab}
+                                   onClick={() => setActiveLeaderboardTab(tab)}
+                                   className={cn(
+                                      "px-3 py-1 rounded-lg text-[8px] font-black uppercase tracking-widest transition-all whitespace-nowrap cursor-pointer",
+                                      activeLeaderboardTab === tab ? "bg-white text-indigo-650 shadow-sm border border-slate-100/50" : "text-slate-400"
+                                   )}
+                                >
+                                   {tab === 'xp' ? 'XP' : tab === 'streak' ? 'Streak' : tab === 'questions' ? 'Questions' : 'Accuracy'}
+                                </button>
+                             ))}
+                          </div>
+                        </div>
+                     </div>
+
+                     {isLeaderboardLoading ? (
+                        <div className="py-20 text-center flex flex-col items-center justify-center gap-3">
+                           <Zap className="w-8 h-8 text-indigo-500 animate-pulse" />
+                           <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Đang tải bảng xếp hạng...</span>
+                        </div>
+                     ) : (
+                        <>
+                           {/* Podium Top 3 */}
+                           {topThree.length > 0 && (
+                              <div className="flex items-end justify-center gap-2 md:gap-6 py-6 md:py-10 border-b border-slate-50 bg-gradient-to-b from-indigo-50/10 to-transparent rounded-3xl mb-4 px-2">
+                                 {(() => {
+                                    const topThreePositions = [
+                                       { item: topThree[1], index: 1, pos: 2, height: 'h-24 md:h-28', color: 'from-slate-100 to-slate-200 border-slate-300', text: 'text-slate-500', bg: 'bg-slate-100' },
+                                       { item: topThree[0], index: 0, pos: 1, height: 'h-32 md:h-36', color: 'from-amber-100 to-amber-200 border-amber-300', text: 'text-amber-600', bg: 'bg-amber-100' },
+                                       { item: topThree[2], index: 2, pos: 3, height: 'h-20 md:h-24', color: 'from-orange-100 to-orange-200 border-orange-300', text: 'text-orange-700', bg: 'bg-orange-100' }
+                                    ].filter(p => p.item)
+
+                                    return topThreePositions.map((pod) => {
+                                       const user = pod.item
+                                       const initial = (user.full_name || user.username || '?').charAt(0).toUpperCase()
+                                       return (
+                                          <div key={user.user_id} className="flex flex-col items-center w-24 md:w-32 shrink-0">
+                                             <div className="relative mb-2">
+                                                {pod.pos === 1 && (
+                                                   <Crown className="w-5 h-5 text-amber-500 absolute -top-4.5 left-1/2 -translate-x-1/2 drop-shadow-sm animate-bounce" />
+                                                )}
+                                                <div className={cn(
+                                                   "w-12 h-12 md:w-16 md:h-16 rounded-full border-2 flex items-center justify-center text-sm md:text-lg font-black bg-white shadow-md relative",
+                                                   pod.pos === 1 ? "border-amber-400 ring-4 ring-amber-50" : pod.pos === 2 ? "border-slate-300" : "border-orange-300"
+                                                )}>
+                                                   {initial}
+                                                   <div className={cn(
+                                                      "absolute -bottom-1 -right-1 w-5 h-5 md:w-6 md:h-6 rounded-full border flex items-center justify-center text-[9px] md:text-[10px] font-black text-white shadow-sm",
+                                                      pod.pos === 1 ? "bg-amber-500 border-amber-400" : pod.pos === 2 ? "bg-slate-400 border-slate-300" : "bg-orange-500 border-orange-400"
+                                                   )}>
+                                                      {pod.pos}
+                                                   </div>
+                                                </div>
+                                             </div>
+
+                                             <div className="text-center w-full px-1">
+                                                <div className="text-[10px] font-black text-slate-900 truncate leading-tight">{user.full_name}</div>
+                                                <div className="text-[8px] font-black text-slate-400 uppercase mt-0.5 tracking-wider">Lv.{user.level}</div>
+                                             </div>
+
+                                             <div className={cn(
+                                                "w-full mt-3 rounded-t-2xl flex flex-col justify-end items-center pb-2 bg-gradient-to-t shadow-sm",
+                                                pod.height, pod.color
+                                             )}>
+                                                <span className={cn("text-[9px] md:text-[10px] font-black tracking-tighter leading-none mb-1", pod.text)}>
+                                                   {activeLeaderboardTab === 'xp' ? `${user.value.toLocaleString()}` : activeLeaderboardTab === 'streak' ? `${user.value} ngày` : activeLeaderboardTab === 'questions' ? `${user.value.toLocaleString()}` : `${user.value}%`}
+                                                </span>
+                                                <span className="text-[7px] font-bold text-slate-400 uppercase tracking-widest leading-none">
+                                                   {activeLeaderboardTab === 'xp' ? 'XP' : activeLeaderboardTab === 'streak' ? 'Streak' : activeLeaderboardTab === 'questions' ? 'câu' : 'Chính xác'}
+                                                </span>
+                                             </div>
+                                          </div>
+                                       )
+                                    })
+                                 })()}
+                              </div>
+                           )}
+
+                           {/* List Ranks 4+ */}
+                           <div className="space-y-2 max-h-[300px] overflow-y-auto pr-1 no-scrollbar">
+                              {remainingUsers.length === 0 && topThree.length === 0 ? (
+                                 <div className="py-10 text-center text-slate-300 font-bold text-xs">
+                                    Chưa có dữ liệu xếp hạng nào.
+                                 </div>
+                              ) : remainingUsers.length === 0 ? (
+                                 <div className="py-4 text-center text-[9px] font-black text-slate-300 uppercase tracking-widest">
+                                    Đã hiển thị hết danh sách
+                                 </div>
+                              ) : (
+                                 remainingUsers.map((user: any) => {
+                                    const initial = (user.full_name || user.username || '?').charAt(0).toUpperCase()
+                                    return (
+                                       <div key={user.user_id} className="flex items-center gap-3 p-3 rounded-2xl bg-slate-50 border border-slate-100 hover:border-indigo-100 transition-all hover:scale-[1.005]">
+                                          <div className="w-6 text-[10px] font-black text-slate-400 text-center">
+                                             #{user.rank}
+                                          </div>
+                                          <div className="w-8 h-8 rounded-xl bg-white border border-slate-200 flex items-center justify-center text-xs font-black text-slate-700 shrink-0">
+                                             {initial}
+                                          </div>
+                                          <div className="flex-1 min-w-0">
+                                             <h4 className="text-[11px] font-black text-slate-900 truncate uppercase">{user.full_name}</h4>
+                                             <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Cấp độ {user.level}</p>
+                                          </div>
+                                          <div className="text-right shrink-0">
+                                             <div className="text-[11px] font-black text-indigo-600 tracking-tighter">
+                                                {activeLeaderboardTab === 'xp' ? `${user.value.toLocaleString()} XP` : activeLeaderboardTab === 'streak' ? `${user.value} ngày` : activeLeaderboardTab === 'questions' ? `${user.value.toLocaleString()} câu` : `${user.value}%`}
+                                             </div>
+                                          </div>
+                                       </div>
+                                    )
+                                 })
+                              )}
+                           </div>
+
+                           {/* Current User rank banner */}
+                           {currentLeaderboard.user_rank !== -1 && (
+                              <div className="mt-4 p-4 bg-indigo-600 rounded-3xl border border-indigo-500 shadow-lg shadow-indigo-600/20 text-white flex items-center justify-between gap-4">
+                                 <div className="flex items-center gap-3 min-w-0">
+                                    <div className="w-8 h-8 rounded-xl bg-white/10 flex items-center justify-center text-white shrink-0">
+                                       <Trophy className="w-4 h-4 text-amber-300" />
+                                    </div>
+                                    <div className="min-w-0">
+                                       <p className="text-[9px] font-black uppercase tracking-widest text-indigo-200">Xếp hạng của bạn</p>
+                                       <h4 className="text-[11px] font-black truncate uppercase leading-tight">
+                                          Bạn đang đứng thứ <span className="text-amber-300">#{currentLeaderboard.user_rank}</span>
+                                       </h4>
+                                    </div>
+                                 </div>
+                                 <div className="text-right shrink-0">
+                                    <div className="text-[11px] font-black text-amber-300 tracking-tighter leading-none">
+                                       {activeLeaderboardTab === 'xp' ? `${currentLeaderboard.user_value.toLocaleString()} XP` : activeLeaderboardTab === 'streak' ? `${currentLeaderboard.user_value} ngày` : activeLeaderboardTab === 'questions' ? `${currentLeaderboard.user_value.toLocaleString()} câu` : `${currentLeaderboard.user_value}%`}
+                                    </div>
+                                    <span className="text-[7px] font-bold uppercase tracking-wider text-indigo-200 mt-0.5 block">
+                                       {activeLeaderboardTab === 'xp' ? 'Tích lũy' : activeLeaderboardTab === 'streak' ? 'Liên tục' : activeLeaderboardTab === 'questions' ? 'Đã làm' : 'Độ chính xác'}
+                                    </span>
+                                 </div>
+                              </div>
+                           )}
+                        </>
+                     )}
+                  </div>
+
+                  {/* Global Metrics & Platform Ecosystem Below Leaderboard */}
                   <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6">
                      <MetricCard 
                        label="Total Users" 
                        value={global.total_users} 
-                       sub="Active Users"
+                       sub="Thành viên nền tảng"
                        icon={Users}
                        color="text-indigo-600"
                        bg="bg-indigo-50"
@@ -1373,7 +1454,7 @@ export default function Stats() {
                      <MetricCard 
                        label="Total Quizzes" 
                        value={global.total_quizzes} 
-                       sub="Quiz Decks"
+                       sub="Bộ thẻ công khai"
                        icon={BookOpen}
                        color="text-emerald-600"
                        bg="bg-emerald-50"
@@ -1381,7 +1462,7 @@ export default function Stats() {
                      <MetricCard 
                        label="Total Items" 
                        value={global.total_questions} 
-                       sub="Total Questions"
+                       sub="Tổng thẻ/câu hỏi"
                        icon={Layers}
                        color="text-amber-600"
                        bg="bg-amber-50"
@@ -1389,227 +1470,39 @@ export default function Stats() {
                      <MetricCard 
                        label="Platform Acc" 
                        value={`${global.platform_accuracy}%`} 
-                       sub="Platform Accuracy"
+                       sub="Độ chính xác toàn sàn"
                        icon={Globe}
                        color="text-rose-600"
                        bg="bg-rose-50"
                      />
                   </div>
 
-                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                       {/* Leaderboard Column */}
-                       <div className="lg:col-span-2 space-y-6">
-                          <div className="bg-white rounded-[2.5rem] border border-slate-100 p-6 md:p-8 shadow-sm flex flex-col justify-between overflow-hidden relative">
-                             {/* Header */}
-                             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
-                                <div className="flex items-center gap-3">
-                                   <div className="w-9 h-9 rounded-xl bg-indigo-50 flex items-center justify-center text-indigo-600">
-                                      <Trophy className="w-4.5 h-4.5" />
-                                   </div>
-                                   <div>
-                                      <h3 className="text-xs md:text-sm font-black text-slate-900 uppercase tracking-widest italic leading-none">Bảng Vinh Danh Thành Viên</h3>
-                                      <p className="text-[9px] font-bold text-slate-400 mt-0.5">Đua top học tập, nâng cao trình độ</p>
-                                   </div>
-                                </div>
-
-                                <div className="flex flex-col sm:flex-row gap-2 shrink-0">
-                                  {/* Time Filter switcher */}
-                                  <div className="flex bg-slate-50 p-1 rounded-xl border border-slate-100 overflow-x-auto no-scrollbar max-w-full">
-                                     {(['today', 'week', 'month', 'all_time'] as const).map((filter) => (
-                                        <button
-                                           key={filter}
-                                           onClick={() => setLeaderboardTimeFilter(filter)}
-                                           className={cn(
-                                              "px-3 py-1 rounded-lg text-[8px] font-black uppercase tracking-widest transition-all whitespace-nowrap cursor-pointer",
-                                              leaderboardTimeFilter === filter ? "bg-slate-900 text-white shadow-sm" : "text-slate-400"
-                                           )}
-                                        >
-                                           {filter === 'today' ? 'Hôm nay' : filter === 'week' ? 'Tuần này' : filter === 'month' ? 'Tháng này' : 'Tất cả'}
-                                        </button>
-                                     ))}
-                                  </div>
-
-                                  {/* Leaderboard Tab switcher */}
-                                  <div className="flex bg-slate-50 p-1 rounded-xl border border-slate-100 overflow-x-auto no-scrollbar max-w-full">
-                                     {(['xp', 'streak', 'questions', 'accuracy'] as const).map((tab) => (
-                                        <button
-                                           key={tab}
-                                           onClick={() => setActiveLeaderboardTab(tab)}
-                                           className={cn(
-                                              "px-3 py-1 rounded-lg text-[8px] font-black uppercase tracking-widest transition-all whitespace-nowrap cursor-pointer",
-                                              activeLeaderboardTab === tab ? "bg-white text-indigo-650 shadow-sm border border-slate-100/50" : "text-slate-400"
-                                           )}
-                                        >
-                                           {tab === 'xp' ? 'XP' : tab === 'streak' ? 'Streak' : tab === 'questions' ? 'Questions' : 'Accuracy'}
-                                        </button>
-                                     ))}
-                                  </div>
-                                </div>
-                             </div>
-
-                             {isLeaderboardLoading ? (
-                                <div className="py-20 text-center flex flex-col items-center justify-center gap-3">
-                                   <Zap className="w-8 h-8 text-indigo-500 animate-pulse" />
-                                   <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Đang tải bảng xếp hạng...</span>
-                                </div>
-                             ) : (
-                                <>
-                                   {/* Podium Top 3 */}
-                                   {topThree.length > 0 && (
-                                      <div className="flex items-end justify-center gap-2 md:gap-6 py-6 md:py-10 border-b border-slate-50 bg-gradient-to-b from-indigo-50/10 to-transparent rounded-3xl mb-4 px-2">
-                                         {(() => {
-                                            const topThreePositions = [
-                                               { item: topThree[1], index: 1, pos: 2, height: 'h-24 md:h-28', color: 'from-slate-100 to-slate-200 border-slate-300', text: 'text-slate-500', bg: 'bg-slate-100' }, // 2nd place
-                                               { item: topThree[0], index: 0, pos: 1, height: 'h-32 md:h-36', color: 'from-amber-100 to-amber-200 border-amber-300', text: 'text-amber-600', bg: 'bg-amber-100' }, // 1st place
-                                               { item: topThree[2], index: 2, pos: 3, height: 'h-20 md:h-24', color: 'from-orange-100 to-orange-200 border-orange-300', text: 'text-orange-700', bg: 'bg-orange-100' }  // 3rd place
-                                            ].filter(p => p.item)
-
-                                            return topThreePositions.map((pod) => {
-                                               const user = pod.item
-                                               const initial = (user.full_name || user.username || '?').charAt(0).toUpperCase()
-                                               return (
-                                                  <div key={user.user_id} className="flex flex-col items-center w-24 md:w-32 shrink-0">
-                                                     {/* Avatar & Badge */}
-                                                     <div className="relative mb-2">
-                                                        {pod.pos === 1 && (
-                                                           <Crown className="w-5 h-5 text-amber-500 absolute -top-4.5 left-1/2 -translate-x-1/2 drop-shadow-sm animate-bounce" />
-                                                        )}
-                                                        <div className={cn(
-                                                           "w-12 h-12 md:w-16 md:h-16 rounded-full border-2 flex items-center justify-center text-sm md:text-lg font-black bg-white shadow-md relative",
-                                                           pod.pos === 1 ? "border-amber-400 ring-4 ring-amber-50" : pod.pos === 2 ? "border-slate-300" : "border-orange-300"
-                                                        )}>
-                                                           {initial}
-                                                           {/* Rank Badge */}
-                                                           <div className={cn(
-                                                              "absolute -bottom-1 -right-1 w-5 h-5 md:w-6 md:h-6 rounded-full border flex items-center justify-center text-[9px] md:text-[10px] font-black text-white shadow-sm",
-                                                              pod.pos === 1 ? "bg-amber-500 border-amber-400" : pod.pos === 2 ? "bg-slate-400 border-slate-300" : "bg-orange-500 border-orange-400"
-                                                           )}>
-                                                              {pod.pos}
-                                                           </div>
-                                                        </div>
-                                                     </div>
-
-                                                     {/* User Details */}
-                                                     <div className="text-center w-full px-1">
-                                                        <div className="text-[10px] font-black text-slate-900 truncate leading-tight">{user.full_name}</div>
-                                                        <div className="text-[8px] font-black text-slate-400 uppercase mt-0.5 tracking-wider">Lv.{user.level}</div>
-                                                     </div>
-
-                                                     {/* Podium pillar */}
-                                                     <div className={cn(
-                                                        "w-full mt-3 rounded-t-2xl flex flex-col justify-end items-center pb-2 bg-gradient-to-t shadow-sm",
-                                                        pod.height, pod.color
-                                                     )}>
-                                                        <span className={cn("text-[9px] md:text-[10px] font-black tracking-tighter leading-none mb-1", pod.text)}>
-                                                           {activeLeaderboardTab === 'xp' ? `${user.value.toLocaleString()}` : activeLeaderboardTab === 'streak' ? `${user.value} ngày` : activeLeaderboardTab === 'questions' ? `${user.value.toLocaleString()}` : `${user.value}%`}
-                                                        </span>
-                                                        <span className="text-[7px] font-bold text-slate-400 uppercase tracking-widest leading-none">
-                                                           {activeLeaderboardTab === 'xp' ? 'XP' : activeLeaderboardTab === 'streak' ? 'Streak' : activeLeaderboardTab === 'questions' ? 'câu' : 'Chính xác'}
-                                                        </span>
-                                                     </div>
-                                                  </div>
-                                               )
-                                            })
-                                         })()}
-                                      </div>
-                                   )}
-
-                                   {/* List Ranks 4+ */}
-                                   <div className="space-y-2 max-h-[300px] overflow-y-auto pr-1 no-scrollbar">
-                                      {remainingUsers.length === 0 && topThree.length === 0 ? (
-                                         <div className="py-10 text-center text-slate-300 font-bold text-xs">
-                                            Chưa có dữ liệu xếp hạng nào.
-                                         </div>
-                                      ) : remainingUsers.length === 0 ? (
-                                         <div className="py-4 text-center text-[9px] font-black text-slate-300 uppercase tracking-widest">
-                                            Đã hiển thị hết danh sách
-                                         </div>
-                                      ) : (
-                                         remainingUsers.map((user: any) => {
-                                            const initial = (user.full_name || user.username || '?').charAt(0).toUpperCase()
-                                            return (
-                                               <div key={user.user_id} className="flex items-center gap-3 p-3 rounded-2xl bg-slate-50 border border-slate-100 hover:border-indigo-100 transition-all hover:scale-[1.005]">
-                                                  <div className="w-6 text-[10px] font-black text-slate-400 text-center">
-                                                     #{user.rank}
-                                                  </div>
-                                                  <div className="w-8 h-8 rounded-xl bg-white border border-slate-200 flex items-center justify-center text-xs font-black text-slate-700 shrink-0">
-                                                     {initial}
-                                                  </div>
-                                                  <div className="flex-1 min-w-0">
-                                                     <h4 className="text-[11px] font-black text-slate-900 truncate uppercase">{user.full_name}</h4>
-                                                     <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Cấp độ {user.level}</p>
-                                                  </div>
-                                                  <div className="text-right shrink-0">
-                                                     <div className="text-[11px] font-black text-indigo-600 tracking-tighter">
-                                                        {activeLeaderboardTab === 'xp' ? `${user.value.toLocaleString()} XP` : activeLeaderboardTab === 'streak' ? `${user.value} ngày` : activeLeaderboardTab === 'questions' ? `${user.value.toLocaleString()} câu` : `${user.value}%`}
-                                                     </div>
-                                                  </div>
-                                               </div>
-                                            )
-                                         })
-                                      )}
-                                   </div>
-
-                                   {/* Current User rank banner */}
-                                   {currentLeaderboard.user_rank !== -1 && (
-                                      <div className="mt-4 p-4 bg-indigo-600 rounded-3xl border border-indigo-500 shadow-lg shadow-indigo-600/20 text-white flex items-center justify-between gap-4">
-                                         <div className="flex items-center gap-3 min-w-0">
-                                            <div className="w-8 h-8 rounded-xl bg-white/10 flex items-center justify-center text-white shrink-0">
-                                               <Trophy className="w-4 h-4 text-amber-300" />
-                                            </div>
-                                            <div className="min-w-0">
-                                               <p className="text-[9px] font-black uppercase tracking-widest text-indigo-200">Xếp hạng của bạn</p>
-                                               <h4 className="text-[11px] font-black truncate uppercase leading-tight">
-                                                  Bạn đang đứng thứ <span className="text-amber-300">#{currentLeaderboard.user_rank}</span>
-                                               </h4>
-                                            </div>
-                                         </div>
-                                         <div className="text-right shrink-0">
-                                            <div className="text-[11px] font-black text-amber-300 tracking-tighter leading-none">
-                                               {activeLeaderboardTab === 'xp' ? `${currentLeaderboard.user_value.toLocaleString()} XP` : activeLeaderboardTab === 'streak' ? `${currentLeaderboard.user_value} ngày` : activeLeaderboardTab === 'questions' ? `${currentLeaderboard.user_value.toLocaleString()} câu` : `${currentLeaderboard.user_value}%`}
-                                            </div>
-                                            <span className="text-[7px] font-bold uppercase tracking-wider text-indigo-200 mt-0.5 block">
-                                               {activeLeaderboardTab === 'xp' ? 'Tích lũy' : activeLeaderboardTab === 'streak' ? 'Liên tục' : activeLeaderboardTab === 'questions' ? 'Đã làm' : 'Độ chính xác'}
-                                            </span>
-                                         </div>
-                                      </div>
-                                   )}
-                                </>
-                             )}
-                          </div>
-                       </div>
-
-                       {/* Global details & platform health column */}
-                       <div className="space-y-6">
-                          <div className="bg-white rounded-[2.5rem] border border-slate-100 p-8 shadow-sm text-center h-full flex flex-col justify-between">
-                             <div className="space-y-6">
-                                <div className="w-16 h-16 bg-indigo-50 rounded-[2rem] flex items-center justify-center text-indigo-600 mx-auto shadow-lg shadow-indigo-100">
-                                   <Globe className="w-8 h-8" />
-                                </div>
-                                <h3 className="text-sm font-black text-slate-900 uppercase italic tracking-tight">Hệ sinh thái học tập</h3>
-                                <p className="text-[11px] font-medium text-slate-400 leading-relaxed">
-                                   Hệ sinh thái Vocaburn đang phát triển không ngừng. Trung bình, mỗi câu hỏi được giải trong <strong>{global.avg_time_per_question} giây</strong> với tỷ lệ chính xác toàn nền tảng là <strong>{global.platform_accuracy}%</strong>.
-                                </p>
-                             </div>
-                             
-                             <div className="grid grid-cols-1 gap-3 pt-6 mt-6 border-t border-slate-50">
-                                <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100 flex items-center justify-between">
-                                   <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Thời gian TB</span>
-                                   <p className="text-xs font-black text-slate-900">{global.avg_time_per_question} giây/câu</p>
-                                </div>
-                                <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100 flex items-center justify-between">
-                                   <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Trạng thái</span>
-                                   <p className="text-xs font-black text-emerald-600 uppercase tracking-wider">Ổn định</p>
-                                </div>
-                                <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100 flex items-center justify-between">
-                                   <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Tổng câu hỏi</span>
-                                   <p className="text-xs font-black text-indigo-600">{global.total_questions.toLocaleString()}</p>
-                                </div>
-                             </div>
-                          </div>
-                       </div>
-                    </div>
-                 </motion.div>
+                  {/* Global Ecosystem Health */}
+                  <div className="bg-white rounded-[2.5rem] border border-slate-100 p-6 md:p-8 shadow-sm flex flex-col md:flex-row items-center justify-between gap-6">
+                     <div className="flex items-center gap-4">
+                        <div className="w-14 h-14 bg-indigo-50 rounded-[1.5rem] flex items-center justify-center text-indigo-600 shrink-0 shadow-inner">
+                           <Globe className="w-7 h-7" />
+                        </div>
+                        <div>
+                           <h3 className="text-sm font-black text-slate-900 uppercase italic tracking-tight">Thống kê toàn bộ website</h3>
+                           <p className="text-[11px] font-medium text-slate-400 mt-1 leading-relaxed">
+                              Trung bình mỗi câu hỏi trên hệ thống được xử lý trong <strong>{global.avg_time_per_question} giây</strong> với tỷ lệ chính xác toàn hệ thống là <strong>{global.platform_accuracy}%</strong>.
+                           </p>
+                        </div>
+                     </div>
+                     
+                     <div className="flex items-center gap-3 shrink-0 w-full md:w-auto">
+                        <div className="px-4 py-2.5 bg-slate-50 rounded-2xl border border-slate-100 text-center flex-1 md:flex-initial">
+                           <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest block">Tốc độ TB</span>
+                           <span className="text-xs font-black text-slate-900">{global.avg_time_per_question}s / câu</span>
+                        </div>
+                        <div className="px-4 py-2.5 bg-emerald-50 rounded-2xl border border-emerald-100 text-center flex-1 md:flex-initial">
+                           <span className="text-[8px] font-black text-emerald-600 uppercase tracking-widest block">Hệ thống</span>
+                           <span className="text-xs font-black text-emerald-600 uppercase">Hoạt động tốt</span>
+                        </div>
+                     </div>
+                  </div>
+               </motion.div>
             )}
          </AnimatePresence>
       </div>
