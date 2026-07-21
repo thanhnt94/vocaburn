@@ -1154,37 +1154,32 @@ export default function QuizDetail() {
               
               <div className="space-y-4 mb-6 text-left">
                 <div>
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-2">New cards per day</label>
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-2">Số thẻ mới mỗi ngày (New cards per day)</label>
                   <input
                     type="number" min="1" value={dailyNewInput}
                     onChange={(e) => setDailyNewInput(Math.max(1, parseInt(e.target.value) || 1))}
-                    className="w-full px-4 py-3 bg-slate-50 border border-slate-100 rounded-xl text-sm font-semibold outline-none focus:ring-4 focus:ring-indigo-500/5 focus:border-indigo-500 transition-all"
+                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200/80 rounded-2xl text-base font-black text-slate-900 outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-600 transition-all"
                   />
-                </div>
-                <div>
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-2">Max review cards per day</label>
-                  <input
-                    type="number" min="1" value={dailyReviewInput}
-                    onChange={(e) => setDailyReviewInput(Math.max(1, parseInt(e.target.value) || 1))}
-                    className="w-full px-4 py-3 bg-slate-50 border border-slate-100 rounded-xl text-sm font-semibold outline-none focus:ring-4 focus:ring-indigo-500/5 focus:border-indigo-500 transition-all"
-                  />
+                  <p className="text-[9px] font-bold text-slate-400 mt-1.5 leading-relaxed">
+                    Mục tiêu lộ trình sẽ ưu tiên học đủ số từ mới này mỗi ngày cùng toàn bộ các thẻ đến hạn ôn tập (FSRS).
+                  </p>
                 </div>
               </div>
               
-              <div className="flex gap-2">
+              <div className="flex gap-3">
                 <button
                   onClick={() => handleSaveRoadmap(false)}
                   disabled={isSavingRoadmapSettings}
-                  className="flex-1 h-12 bg-rose-50 hover:bg-rose-100 text-rose-600 rounded-2xl font-black text-xs uppercase tracking-widest transition-all"
+                  className="flex-1 h-12 bg-rose-50 hover:bg-rose-100 text-rose-600 rounded-2xl font-black text-xs uppercase tracking-widest transition-all border border-rose-100 cursor-pointer"
                 >
-                  Disable
+                  {isSavingRoadmapSettings ? 'Đang lưu...' : 'Tắt Roadmap'}
                 </button>
                 <button
                   onClick={() => handleSaveRoadmap(true)}
                   disabled={isSavingRoadmapSettings}
-                  className="flex-1 h-12 bg-indigo-650 hover:bg-indigo-755 text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-lg shadow-indigo-150 transition-all"
+                  className="flex-1 h-12 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-md shadow-indigo-500/20 transition-all cursor-pointer"
                 >
-                  Save
+                  {isSavingRoadmapSettings ? 'Đang lưu...' : 'Kích Hoạt'}
                 </button>
               </div>
             </motion.div>
