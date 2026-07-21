@@ -959,7 +959,10 @@ export default function QuizDetail() {
                 <div className="flex items-center gap-2">
                   {canEdit && (
                     <button
-                      onClick={() => setIsEditingCard(true)}
+                      onClick={() => {
+                      setEditCardFormData(selectedCard)
+                      setIsEditingCard(true)
+                    }}
                       className="h-8 px-2.5 bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-600 text-[10px] font-black uppercase tracking-wider rounded-lg flex items-center gap-1 active:scale-95 transition-all"
                       title="Sửa thẻ"
                     >

@@ -35,7 +35,8 @@ interface FlashcardEditModalProps {
 
 // Known structured keys that are displayed in dedicated fields
 const STRUCTURED_KEYS = new Set([
-  'back_img', 'back_audio_url',
+  'front_img', 'back_img',
+  'front_audio_url', 'back_audio_url',
   'front_audio_content', 'back_audio_content',
   'other_content',
   // Legacy keys from imports that shouldn't clutter the JSON editor
@@ -197,6 +198,13 @@ export const FlashcardEditModal: React.FC<FlashcardEditModalProps> = ({
     if (formData.hint !== undefined || availableColumns.includes('hint')) cols.add('hint');
     if (formData.mnemonic !== undefined || availableColumns.includes('mnemonic')) cols.add('mnemonic');
     
+    cols.add('front_img');
+    cols.add('back_img');
+    cols.add('front_audio_url');
+    cols.add('back_audio_url');
+    cols.add('front_audio_content');
+    cols.add('back_audio_content');
+
     availableColumns.forEach(c => {
       if (c !== 'front' && c !== 'back') {
         cols.add(c);
@@ -303,10 +311,12 @@ export const FlashcardEditModal: React.FC<FlashcardEditModalProps> = ({
         setFormData({
           ...unresolvedCard,
           others: {
-            back_img: '',
-            back_audio_url: '',
-            front_audio_content: '',
-            back_audio_content: '',
+            front_img: unresolvedCard.front_img || parsedOthers.front_img || '',
+            back_img: unresolvedCard.back_img || parsedOthers.back_img || '',
+            front_audio_url: unresolvedCard.front_audio_url || parsedOthers.front_audio_url || '',
+            back_audio_url: unresolvedCard.back_audio_url || parsedOthers.back_audio_url || '',
+            front_audio_content: unresolvedCard.front_audio_content || parsedOthers.front_audio_content || '',
+            back_audio_content: unresolvedCard.back_audio_content || parsedOthers.back_audio_content || '',
             ...parsedOthers
           }
         });
@@ -353,10 +363,12 @@ export const FlashcardEditModal: React.FC<FlashcardEditModalProps> = ({
       parsedOthers = unresolveDict(parsedOthers);
 
       const merged = {
-        back_img: '',
-        back_audio_url: '',
-        front_audio_content: '',
-        back_audio_content: '',
+        front_img: unresolvedCard.front_img || parsedOthers.front_img || '',
+        back_img: unresolvedCard.back_img || parsedOthers.back_img || '',
+        front_audio_url: unresolvedCard.front_audio_url || parsedOthers.front_audio_url || '',
+        back_audio_url: unresolvedCard.back_audio_url || parsedOthers.back_audio_url || '',
+        front_audio_content: unresolvedCard.front_audio_content || parsedOthers.front_audio_content || '',
+        back_audio_content: unresolvedCard.back_audio_content || parsedOthers.back_audio_content || '',
         ...parsedOthers
       }
 
