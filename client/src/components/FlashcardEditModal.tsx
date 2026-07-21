@@ -113,8 +113,12 @@ export const FlashcardEditModal: React.FC<FlashcardEditModalProps> = ({
     if (col === 'back_img') return formData.back_img || formData.others?.back_img || '';
     if (col === 'front_audio_url') return formData.front_audio_url || formData.others?.front_audio_url || '';
     if (col === 'back_audio_url') return formData.back_audio_url || formData.others?.back_audio_url || '';
-    if (col === 'front_audio_content') return formData.front_audio_content || formData.others?.front_audio_content || '';
-    if (col === 'back_audio_content') return formData.back_audio_content || formData.others?.back_audio_content || '';
+    if (col === 'front_audio_content') {
+      return formData.front_audio_content || formData.others?.front_audio_content || formData.others?.['front audio content'] || formData.others?.['văn bản audio mặt trước'] || '';
+    }
+    if (col === 'back_audio_content') {
+      return formData.back_audio_content || formData.others?.back_audio_content || formData.others?.['back audio content'] || formData.others?.['văn bản audio mặt sau'] || '';
+    }
     return formData.others?.[col] || '';
   };
 
