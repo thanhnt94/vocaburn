@@ -411,6 +411,16 @@ export default function Stats() {
     }
   })
 
+  const filteredDailyActivity = useMemo(() => {
+    const dailyAct = data?.personal?.daily_activity
+    if (!dailyAct) return []
+    if (personalPeriod === 'day') return dailyAct.slice(-1)
+    if (personalPeriod === 'week') return dailyAct.slice(-7)
+    if (personalPeriod === 'month') return dailyAct.slice(-30)
+    if (personalPeriod === 'year') return dailyAct.slice(-365)
+    return dailyAct
+  }, [data, personalPeriod])
+
 
 
   const currentLeaderboard = leaderboardData?.[activeLeaderboardTab] || { list: [], user_rank: -1, user_value: 0 }
@@ -439,15 +449,6 @@ export default function Stats() {
   }
 
   const { personal, global } = data
-
-  const filteredDailyActivity = useMemo(() => {
-    if (!personal?.daily_activity) return []
-    if (personalPeriod === 'day') return personal.daily_activity.slice(-1)
-    if (personalPeriod === 'week') return personal.daily_activity.slice(-7)
-    if (personalPeriod === 'month') return personal.daily_activity.slice(-30)
-    if (personalPeriod === 'year') return personal.daily_activity.slice(-365)
-    return personal.daily_activity
-  }, [personal, personalPeriod])
 
   const charts = [
     {
