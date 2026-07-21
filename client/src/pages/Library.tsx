@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Search, Plus, LayoutGrid, ChevronRight, Filter, Archive, RotateCcw, Users, Play, ChevronLeft, Brain, Trophy, X, BrainCircuit, Zap, BookOpen, Sparkles } from 'lucide-react'
+import { Search, Plus, LayoutGrid, ChevronRight, ChevronUp, Filter, Archive, RotateCcw, Users, Play, ChevronLeft, Brain, Trophy, X, BrainCircuit, Zap, BookOpen, Sparkles } from 'lucide-react'
 import { useAppStore } from '@/store/useAppStore'
 import { cn } from '@/lib/utils'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -43,7 +43,8 @@ export default function Library() {
   // Pagination State
   const [currentPage, setCurrentPage] = useState(1)
   const itemsPerPage = 8 
-  const [mobileVisibleCount, setMobileVisibleCount] = useState(8) 
+  const [mobileVisibleCount, setMobileVisibleCount] = useState(8)
+  const [isRecentDrawerOpen, setIsRecentDrawerOpen] = useState(false) 
 
   const { setUser, setGamify } = useAppStore()
   const queryClient = useQueryClient()
@@ -473,35 +474,90 @@ export default function Library() {
 
       </div>
 
-      {/* THUMB-FRIENDLY FLOATING CONTROL BAR (Mobile Quick-Resume, Search & Tabs) */}
+      {/* THUMB-FRIENDLY FLOATING CONTROL BAR (Mobile Search, Tabs & Pull-up Drawer for 3 Recent Decks) */}
       <div className="fixed bottom-[68px] left-3 right-3 z-[140] md:hidden bg-white/95 backdrop-blur-2xl p-2.5 rounded-3xl border border-slate-200/80 shadow-[0_8px_30px_rgba(0,0,0,0.14)] space-y-2">
-         {/* Quick Resume Strip for Top 3 Recent Decks */}
+         {/* Pull-up Button for 3 Recent Decks */}
          {filteredData.length > 0 && (
-           <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-0.5 pt-0.5 border-b border-slate-100">
-             <span className="text-[7.5px] font-black uppercase text-amber-500 tracking-wider flex-shrink-0 flex items-center gap-0.5 pl-0.5">
-               <Zap className="w-2.5 h-2.5 fill-amber-400" /> Vừa học:
-             </span>
-             {filteredData.slice(0, 3).map((quiz, i) => (
-               <button
-                 key={`quick-recent-${quiz.id}`}
-                 onClick={() => {
-                   setSelectedStudyQuiz(quiz)
-                   setStudyModalTab('flashcard')
-                   setIsStudyModalOpen(true)
-                 }}
-                 className={cn(
-                   "flex-shrink-0 px-2.5 py-1 rounded-xl text-[8px] font-black flex items-center gap-1 border transition-all active:scale-95 shadow-sm",
-                   i === 0 
-                     ? "bg-gradient-to-r from-orange-500 to-amber-500 text-white border-orange-400/80"
-                     : i === 1 
-                     ? "bg-gradient-to-r from-indigo-600 to-purple-600 text-white border-indigo-500/80" 
-                     : "bg-slate-800 text-white border-slate-700"
-                 )}
-               >
-                 <span className="truncate max-w-[85px]">{quiz.title}</span>
-                 <Brain className="w-2.5 h-2.5 flex-shrink-0 opacity-90" />
-               </button>
-             ))}
+           <div>
+             <button
+               onClick={() => setIsRecentDrawerOpen(prev => !prev)}
+               className={cn(
+                 "w-full py-1.5 px-3 rounded-2xl flex items-center justify-between text-[9px] font-black uppercase tracking-wider transition-all border shadow-xs active:scale-98",
+                 isRecentDrawerOpen
+                   ? "bg-gradient-to-r from-orange-500 to-amber-500 text-white border-orange-400 shadow-md"
+                   : "bg-amber-50/80 text-amber-900 border-amber-200/60 hover:bg-amber-100/80"
+               )}
+             >
+               <div className="flex items-center gap-1.5">
+                 <Zap className={cn("w-3.5 h-3.5", isRecentDrawerOpen ? "fill-white" : "text-amber-500 fill-amber-400 animate-pulse")} />
+                 <span>⚡ 3 BỘ THẺ VỪA HỌC GẦN ĐÂY</span>
+               </div>
+               <ChevronUp className={cn("w-3.5 h-3.5 transition-transform duration-300", isRecentDrawerOpen && "rotate-180")} />
+             </button>
+
+             {/* Expanded Drawer showing 3 Recent Decks Large & Clear */}
+             <AnimatePresence>
+               {isRecentDrawerOpen && (
+                 <motion.div
+                   initial={{ opacity: 0, height: 0 }}
+                   animate={{ opacity: 1, height: 'auto' }}
+                   exit={{ opacity: 0, height: 0 }}
+                   className="overflow-hidden pt-2 space-y-2"
+                 >
+                   {filteredData.slice(0, 3).map((quiz, idx) => (
+                     <div key={`drawer-recent-${quiz.id}`} className="bg-slate-50/90 border border-slate-200/80 rounded-2xl p-2.5 flex items-center justify-between gap-2.5">
+                       <div 
+                         onClick={() => {
+                           setIsRecentDrawerOpen(false)
+                           navigate(`/flashcard/${quiz.id}`)
+                         }}
+                         className="flex-1 min-w-0 flex items-center gap-2.5 cursor-pointer"
+                       >
+                         <div className={cn(
+                           "w-9 h-9 rounded-xl flex-shrink-0 flex items-center justify-center text-white font-bold text-xs shadow-sm overflow-hidden",
+                           idx === 0 ? "bg-gradient-to-br from-orange-400 to-rose-500" :
+                           idx === 1 ? "bg-gradient-to-br from-indigo-500 to-purple-600" :
+                           "bg-gradient-to-br from-emerald-400 to-teal-500"
+                         )}>
+                           {quiz.cover_image ? (
+                             <img src={quiz.cover_image} alt="" className="w-full h-full object-cover" />
+                           ) : (
+                             <LayoutGrid className="w-4 h-4" />
+                           )}
+                         </div>
+                         <div className="flex-1 min-w-0 text-left">
+                           <h4 className="text-[11px] font-black text-slate-800 leading-tight truncate">{quiz.title}</h4>
+                           <span className="text-[7.5px] font-black text-slate-400 uppercase">{quiz.questions_count} Cards</span>
+                         </div>
+                       </div>
+                       
+                       <div className="flex items-center gap-1 flex-shrink-0">
+                         <button
+                           onClick={() => {
+                             setSelectedStudyQuiz(quiz)
+                             setStudyModalTab('flashcard')
+                             setIsStudyModalOpen(true)
+                           }}
+                           className="px-2.5 py-1.5 bg-indigo-600 text-white rounded-xl text-[8.5px] font-black uppercase tracking-wider flex items-center gap-1 active:scale-90 shadow-xs"
+                         >
+                           <Brain className="w-3 h-3" /> Học
+                         </button>
+                         <button
+                           onClick={() => {
+                             setSelectedStudyQuiz(quiz)
+                             setStudyModalTab('practice')
+                             setIsStudyModalOpen(true)
+                           }}
+                           className="px-2.5 py-1.5 bg-emerald-600 text-white rounded-xl text-[8.5px] font-black uppercase tracking-wider flex items-center gap-1 active:scale-90 shadow-xs"
+                         >
+                           <Trophy className="w-3 h-3" /> Luyện
+                         </button>
+                       </div>
+                     </div>
+                   ))}
+                 </motion.div>
+               )}
+             </AnimatePresence>
            </div>
          )}
 
@@ -548,27 +604,7 @@ export default function Library() {
             <AnimatePresence mode="popLayout">
                {filteredData.slice(0, mobileVisibleCount).map((quiz, idx) => (
                  <motion.div key={quiz.id} layout initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: idx * 0.01 }}>
-                    <div className={cn(
-                      "rounded-[1.75rem] p-4 shadow-sm active:scale-[0.98] transition-all relative overflow-hidden flex items-center justify-between gap-3 border",
-                      idx === 0 
-                        ? "bg-gradient-to-r from-orange-50/70 via-white to-white border-orange-200/90 shadow-orange-500/5"
-                        : idx === 1 
-                        ? "bg-gradient-to-r from-indigo-50/50 via-white to-white border-indigo-200/80"
-                        : idx === 2 
-                        ? "bg-gradient-to-r from-teal-50/40 via-white to-white border-teal-200/70"
-                        : "bg-white border-slate-200/60"
-                    )}>
-                      {/* Top 3 Recent Badges */}
-                      {idx < 3 && (
-                        <div className={cn(
-                          "absolute top-0 right-0 px-2.5 py-0.5 rounded-bl-xl text-[7px] font-black uppercase tracking-wider flex items-center gap-0.5 shadow-xs",
-                          idx === 0 ? "bg-gradient-to-r from-orange-500 to-amber-500 text-white" :
-                          idx === 1 ? "bg-indigo-600 text-white" :
-                          "bg-teal-600 text-white"
-                        )}>
-                          {idx === 0 ? '🔥 GẦN ĐÂY #1' : idx === 1 ? '⭐ GẦN ĐÂY #2' : '✨ GẦN ĐÂY #3'}
-                        </div>
-                      )}
+                    <div className="bg-white rounded-[1.75rem] border border-slate-200/60 p-4 shadow-sm active:scale-[0.98] transition-all relative overflow-hidden flex items-center justify-between gap-3">
                       {/* Left Side: Clickable Cover, Title, Info */}
                       <div 
                         onClick={() => navigate(`/flashcard/${quiz.id}`)}
