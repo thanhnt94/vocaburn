@@ -1,15 +1,26 @@
-def check_has_mcq_setup(practice_settings):
+def get_enabled_practice_modes(practice_settings):
     if not practice_settings or not isinstance(practice_settings, dict):
-        return False
+        return []
     try:
-        creator_migrated = migrate_practice_settings(practice_settings)
-        mcq_setts = creator_migrated.get("mcq", {})
-        active_pairs = mcq_setts.get("active_pairs", [])
-        if not active_pairs:
-            active_pairs = practice_settings.get("active_pairs", [])
-        return bool(active_pairs and len(active_pairs) > 0)
+        migrated = migrate_practice_settings(practice_settings)
+        enabled = []
+        for mode_key in ("mcq", "typing", "listening"):
+            m = migrated.get(mode_key, {})
+            if isinstance(m, dict):
+                if m.get("enabled") is False:
+                    continue
+                pairs = m.get("active_pairs", [])
+                if isinstance(pairs, list) and len(pairs) > 0:
+                    enabled.append(mode_key)
+        return enabled
     except Exception:
-        return False
+        return []
+
+def check_has_practice_setup(practice_settings):
+    return len(get_enabled_practice_modes(practice_settings)) > 0
+
+def check_has_mcq_setup(practice_settings):
+    return "mcq" in get_enabled_practice_modes(practice_settings)
 
 from fastapi import APIRouter, UploadFile, File, Depends, Request, BackgroundTasks
 from typing import Optional
@@ -1552,9 +1563,11 @@ async def get_deck_play_data(request: Request, deck_id: int, mode: Optional[str]
         "user_today_xp": user_today_xp,
         "user_today_time": user_today_time,
         "user_all_time_time": user_all_time_time,
+        "enabled_practice_modes": get_enabled_practice_modes(deck.practice_settings),
+        "has_practice_setup": check_has_practice_setup(deck.practice_settings),
         "has_mcq_setup": check_has_mcq_setup(deck.practice_settings),
         "practice_needs_setup": practice_needs_setup,
-        "practice_disabled": not check_has_mcq_setup(deck.practice_settings),
+        "practice_disabled": not check_has_practice_setup(deck.practice_settings),
         "cards": cards_list,
         "questions": cards_list, # compatibility
         "practice_settings": deck.practice_settings,

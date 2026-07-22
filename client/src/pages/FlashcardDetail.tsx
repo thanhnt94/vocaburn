@@ -848,8 +848,8 @@ export default function QuizDetail() {
                   )}
                 </div>
 
-                {/* Practice Button with Dropdown (only rendered if MCQ is setup for deck) */}
-                {(quiz?.has_mcq_setup !== false && !quiz?.practice_disabled) && (
+                {/* Practice Button with Dropdown (rendered if at least 1 of 3 practice modes is setup) */}
+                {((quiz?.enabled_practice_modes ? quiz.enabled_practice_modes.length > 0 : (quiz?.has_practice_setup !== false && quiz?.has_mcq_setup !== false)) && !quiz?.practice_disabled) && (
                 <div className="flex-1 flex relative">
                   <button 
                     onClick={() => {
@@ -881,7 +881,12 @@ export default function QuizDetail() {
                           { mode: 'mcq', icon: '🎯', label: 'Multiple Choice (MCQ)' },
                           { mode: 'typing', icon: '⌨️', label: 'Typing Practice' },
                           { mode: 'listening', icon: '🎧', label: 'Listening Practice' },
-                        ].map(item => (
+                        ].filter(item => {
+                          if (quiz?.enabled_practice_modes && Array.isArray(quiz.enabled_practice_modes)) {
+                            return quiz.enabled_practice_modes.includes(item.mode);
+                          }
+                          return true;
+                        }).map(item => (
                           <button
                             key={item.mode}
                             onClick={() => {
