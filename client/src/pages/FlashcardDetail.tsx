@@ -438,6 +438,14 @@ export default function QuizDetail() {
                 >
                   <RotateCcw className="w-3.5 h-3.5" />
                 </button>
+                <button
+                  onClick={() => navigate(`/flashcard/${id}/roadmap`)}
+                  className="px-2.5 py-1 rounded-lg bg-indigo-50 border border-indigo-100 flex items-center gap-1 text-[10px] font-black text-indigo-600 hover:bg-indigo-100 transition-all active:scale-95 cursor-pointer"
+                  title="Mở Trang Lộ Trình Bộ Thẻ"
+                >
+                  <Compass className="w-3.5 h-3.5" />
+                  <span>Trang Lộ Trình 🗺️</span>
+                </button>
                 {roadmapStatus?.roadmap_active && (
                   <button
                     onClick={() => setIsRoadmapSettingsOpen(true)}

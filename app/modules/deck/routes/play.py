@@ -2528,6 +2528,27 @@ async def get_deck_roadmap_status_helper(db: AsyncSession, user_id: int, deck_id
             "active": d in active_dates
         })
     
+    stage_1_done = new_learned_today >= roadmap_daily_new
+    stage_2_done = review_completed_today >= review_due_today or review_due_today == 0
+    stage_3_done = today_test_passed
+
+    if not stage_1_done:
+        current_stage = 1
+        next_action_url = f"/flashcard/{deck_id}/play?mode=roadmap"
+        next_action_label = "Học từ mới"
+    elif not stage_2_done:
+        current_stage = 2
+        next_action_url = f"/flashcard/{deck_id}/play?mode=roadmap"
+        next_action_label = "Ôn tập FSRS"
+    elif not stage_3_done:
+        current_stage = 3
+        next_action_url = f"/practice/{deck_id}/roadmap_test"
+        next_action_label = "Làm bài kiểm tra"
+    else:
+        current_stage = 4
+        next_action_url = f"/flashcard/{deck_id}/roadmap"
+        next_action_label = "Đã xong lộ trình hôm nay"
+
     return {
         "roadmap_active": roadmap_active,
         "roadmap_daily_new": roadmap_daily_new,
@@ -2535,6 +2556,12 @@ async def get_deck_roadmap_status_helper(db: AsyncSession, user_id: int, deck_id
         "roadmap_pass_threshold": roadmap_pass_threshold,
         "retention_rate": retention_rate,
         "today_test_passed": today_test_passed,
+        "stage_1_done": stage_1_done,
+        "stage_2_done": stage_2_done,
+        "stage_3_done": stage_3_done,
+        "current_stage": current_stage,
+        "next_action_url": next_action_url,
+        "next_action_label": next_action_label,
         "total_cards": total_cards,
         "learned_cards": learned_cards,
         "unlearned_cards": unlearned_cards,

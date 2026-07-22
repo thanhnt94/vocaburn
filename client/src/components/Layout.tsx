@@ -12,27 +12,9 @@ export default function Layout() {
   const navigate = useNavigate()
 
   const handleNavClick = (e: React.MouseEvent, path: string, label: string) => {
-    if (label === 'Quick Play') {
+    if (label === 'Roadmap') {
       e.preventDefault()
-      const lastId = localStorage.getItem('vocaburn_last_deck_id')
-      if (lastId) {
-        navigate(`/flashcard/${lastId}/play`)
-        return
-      }
-      
-      const firstGoalDeckId = data?.active_goals?.[0]?.deck_id
-      if (firstGoalDeckId) {
-        navigate(`/flashcard/${firstGoalDeckId}/play`)
-        return
-      }
-
-      const firstMyDeckId = data?.my_quizzes?.[0]?.id || data?.my_decks?.[0]?.id
-      if (firstMyDeckId) {
-        navigate(`/flashcard/${firstMyDeckId}/play`)
-        return
-      }
-
-      navigate('/library')
+      navigate('/roadmap')
     }
   }
 
@@ -54,7 +36,7 @@ export default function Layout() {
     { label: 'Library', path: '/library', icon: BookOpen },
     { label: 'Stats', path: '/stats', icon: BarChart3 },
     { label: 'Studio', path: '/manage', icon: FolderKanban },
-    { label: 'Quick Play', path: '/flashcard/quick/play', icon: Sparkles },
+    { label: 'Roadmap', path: '/roadmap', icon: Compass },
     { label: 'Settings', path: '/profile', icon: User },
   ]
 

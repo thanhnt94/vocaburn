@@ -22,6 +22,8 @@ const EditFlashcard = lazy(() => import('./pages/EditFlashcard'))
 const EditFlashcards = lazy(() => import('./pages/EditFlashcards'))
 const FlashcardRoom = lazy(() => import('./pages/FlashcardRoom'))
 const RoomJoin = lazy(() => import('./pages/RoomJoin'))
+const RoadmapHub = lazy(() => import('./pages/RoadmapHub'))
+const DeckRoadmap = lazy(() => import('./pages/DeckRoadmap'))
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -80,6 +82,7 @@ function AppContent() {
             <Route path="/manage/import" element={isLoggedIn ? <ImportFlashcard /> : <Navigate to="/login" replace />} />
             <Route path="/manage/edit/:id" element={isLoggedIn ? <EditFlashcard /> : <Navigate to="/login" replace />} />
             <Route path="/manage/edit/:id/flashcards" element={isLoggedIn ? <EditFlashcards /> : <Navigate to="/login" replace />} />
+            <Route path="/roadmap" element={isLoggedIn ? <RoadmapHub /> : <Navigate to="/login" replace />} />
             <Route path="/room/join" element={isLoggedIn ? <RoomJoin /> : <Navigate to="/login" replace />} />
             
             {/* Admin Control Panel */}
@@ -88,6 +91,7 @@ function AppContent() {
 
           {/* Fullscreen Protected Views */}
           <Route path="/flashcard/:id" element={isLoggedIn ? <FlashcardDetail /> : <Navigate to="/login" replace />} />
+          <Route path="/flashcard/:id/roadmap" element={isLoggedIn ? <DeckRoadmap /> : <Navigate to="/login" replace />} />
           <Route path="/flashcard/:id/play" element={isLoggedIn ? <FlashcardPlay /> : <Navigate to="/login" replace />} />
           <Route path="/practice/:id/:subMode?" element={isLoggedIn ? <PracticePlay /> : <Navigate to="/login" replace />} />
           <Route path="/room/:code" element={isLoggedIn ? <FlashcardRoom /> : <Navigate to="/login" replace />} />
