@@ -2681,12 +2681,16 @@ async def reset_deck_progress(request: Request, deck_id: int, db: AsyncSession =
 async def get_roadmap_test_questions(request: Request, deck_id: int, db: AsyncSession = Depends(get_db)):
     user_id = int(request.cookies.get("user_id", 1))
     
-    deck = await DeckService.get_deck_by_id(db, deck_id)
-    if not deck or not deck.cards:
-        return JSONResponse(status_code=404, content={"error": "Deck or cards not found"})
-        
     from app.modules.deck.models import Flashcard, UserCardMastery, UserAnswer, DeckAttempt
     import random
+
+    # Load all cards for deck cleanly via async query
+    all_cards_res = await db.execute(
+        select(Flashcard).where(Flashcard.deck_id == deck_id)
+    )
+    all_cards = list(all_cards_res.scalars().all())
+    if not all_cards:
+        return JSONResponse(status_code=404, content={"error": "Deck or cards not found"})
 
     today_start = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
     yesterday_utc = datetime.utcnow() - timedelta(days=1)
@@ -2732,40 +2736,41 @@ async def get_roadmap_test_questions(request: Request, deck_id: int, db: AsyncSe
     )
     prev_cards = list(prev_cards_res.scalars().all())
 
-    all_cards = list(deck.cards)
-    
+    max_target_count = 50
     selected_cards = []
-    # Always include all overdue cards (> 1 day overdue)
     selected_ids = set()
+
+    # Always include all overdue cards (> 1 day overdue)
     for c in overdue_cards:
-        if c.id not in selected_ids:
+        if c.id not in selected_ids and len(selected_cards) < max_target_count:
             selected_cards.append(c)
             selected_ids.add(c.id)
 
     # Add today's learned cards
     for c in today_cards:
-        if c.id not in selected_ids:
+        if c.id not in selected_ids and len(selected_cards) < max_target_count:
             selected_cards.append(c)
             selected_ids.add(c.id)
 
     # Add previous cards
     for c in prev_cards:
-        if c.id not in selected_ids:
+        if c.id not in selected_ids and len(selected_cards) < max_target_count:
             selected_cards.append(c)
             selected_ids.add(c.id)
 
-    # Fill up with remaining cards from deck if < 15
-    if len(selected_cards) < 15:
-        for c in all_cards:
-            if c.id not in selected_ids:
+    # Fill remaining from deck if < 50
+    if len(selected_cards) < max_target_count:
+        remaining = [c for c in all_cards if c.id not in selected_ids]
+        random.shuffle(remaining)
+        for c in remaining:
+            if len(selected_cards) < max_target_count:
                 selected_cards.append(c)
                 selected_ids.add(c.id)
-            if len(selected_cards) >= 15:
+            else:
                 break
 
-    # Shuffle selected cards pool
+    # Shuffle question sequence
     random.shuffle(selected_cards)
-    selected_cards = selected_cards[:max(15, len(overdue_cards))]
 
     choices_pool = list({c.explanation or c.content for c in all_cards if c.explanation or c.content})
 
@@ -2774,12 +2779,8 @@ async def get_roadmap_test_questions(request: Request, deck_id: int, db: AsyncSe
         front_text = card.content or ""
         back_text = card.explanation or front_text
         
-        has_audio = bool(card.front_audio_url or card.back_audio_url)
-        modes = ["mcq", "typing"]
-        if has_audio:
-            modes.append("listening")
-        
-        chosen_mode = random.choice(modes)
+        # 100% MCQ Trắc nghiệm mode
+        chosen_mode = "mcq"
 
         distractors = [c for c in choices_pool if c != back_text]
         random.shuffle(distractors)
@@ -2799,8 +2800,8 @@ async def get_roadmap_test_questions(request: Request, deck_id: int, db: AsyncSe
             "options": options_list,
             "front_audio_url": card.front_audio_url,
             "back_audio_url": card.back_audio_url,
-            "question_type": chosen_mode,
-            "practice_submode": chosen_mode,
+            "question_type": "mcq",
+            "practice_submode": "mcq",
             "practice": {
                 "question": front_text,
                 "choices": [o["content"] for o in options_list],
