@@ -2722,7 +2722,7 @@ async def reset_deck_progress(request: Request, deck_id: int, db: AsyncSession =
 async def get_roadmap_test_questions(request: Request, deck_id: int, db: AsyncSession = Depends(get_db)):
     user_id = int(request.cookies.get("user_id", 1))
     
-    from app.modules.deck.models import Flashcard, FlashcardDeck, UserDeckSettings, UserCardMastery, UserAnswer, DeckAttempt
+    from app.modules.deck.models import Flashcard, FlashcardDeck, UserDeckSettings, UserCardMastery, UserAnswer, DeckAttempt, DeckSession
     import random
 
     # Load deck
@@ -2732,6 +2732,38 @@ async def get_roadmap_test_questions(request: Request, deck_id: int, db: AsyncSe
         return JSONResponse(status_code=404, content={"error": "Deck not found"})
 
     deck_title = deck.title
+    today_str = datetime.utcnow().strftime("%Y-%m-%d")
+
+    # Check for existing active DeckSession for roadmap_test
+    session_res = await db.execute(
+        select(DeckSession).where(
+            DeckSession.deck_id == deck_id,
+            DeckSession.user_id == user_id
+        )
+    )
+    existing_session = session_res.scalar_one_or_none()
+
+    if existing_session and existing_session.mode == "roadmap_test" and existing_session.state_json:
+        try:
+            saved_state = json.loads(existing_session.state_json)
+            if (
+                isinstance(saved_state, dict)
+                and saved_state.get("questions")
+                and isinstance(saved_state.get("questions"), list)
+                and len(saved_state.get("questions")) > 0
+                and not saved_state.get("completed", False)
+                and saved_state.get("created_date") == today_str
+            ):
+                return {
+                    "id": deck.id,
+                    "title": deck.title,
+                    "questions": saved_state["questions"],
+                    "current_index": existing_session.current_index or 0,
+                    "saved_answers": saved_state.get("practiceAnswers", {}),
+                    "restored": True
+                }
+        except Exception:
+            pass
 
     # Load all cards for deck cleanly via async query
     all_cards_res = await db.execute(

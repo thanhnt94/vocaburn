@@ -1189,7 +1189,17 @@ export default function PracticePlay() {
       setPracticeDisabled(!!quizRes.data.practice_disabled)
 
       if (isPractice) {
-        if (currentIndex < 0) {
+        if (subMode === 'roadmap_test') {
+          const restoredIdx = (quizRes.data.current_index !== undefined && quizRes.data.current_index >= 0) ? quizRes.data.current_index : 0;
+          setCurrentIndex(restoredIdx);
+          if (quizRes.data.saved_answers) {
+            const parsedAns: Record<number, number> = {};
+            Object.entries(quizRes.data.saved_answers).forEach(([k, v]) => {
+              parsedAns[Number(k)] = Number(v);
+            });
+            setPracticeAnswers(parsedAns);
+          }
+        } else if (currentIndex < 0) {
           const allIndices = questions.map((q: any, i: number) => q.is_ignored ? -1 : i).filter((i: number) => i !== -1);
           const learnedIndices = questions.map((q: any, i: number) => (!q.is_ignored && (q.stats?.total || 0) > 0) ? i : -1).filter((i: number) => i !== -1);
           const activeIndices = (practiceRange === 'learned' && learnedIndices.length > 0) ? learnedIndices : allIndices;
@@ -1541,7 +1551,21 @@ export default function PracticePlay() {
   ) => {
     try {
       const isPractice = mainTab === 'practice';
-      if (isPractice) return; // Completely skip saving to the FSRS session on the server in Practice mode
+      if (isPractice && practiceSubMode !== 'roadmap_test') return; // Skip saving non-roadmap practice sessions
+      
+      const payloadMode = practiceSubMode === 'roadmap_test' ? 'roadmap_test' : 'sequential';
+      await axios.post(`/api/v1/deck/${id}/session`, {
+        mode: payloadMode,
+        current_index: newIndex,
+        state: {
+          sessionAnswers: isPractice ? sessionAnswers : newAnswers,
+          practiceAnswers: isPractice ? newAnswers : practiceAnswers,
+          questions: session?.questions || [],
+          created_date: new Date().toISOString().slice(0, 10),
+          completed: false
+        }
+      });
+      return;
       await axios.post(`/api/v1/deck/${id}/session`, {
         mode: "sequential",
         current_index: newIndex,
@@ -3831,30 +3855,54 @@ export default function PracticePlay() {
 
       {/* Dynamic Mode Switcher Bar */}
       <div className="flex-shrink-0 bg-white/80 backdrop-blur-md border-b border-slate-100/50 px-4 lg:px-8 py-1.5 md:py-2 flex items-center justify-between gap-2 md:gap-3 z-50 w-full shadow-sm">
-        {subMode === 'roadmap_test' ? (
-          <div className="flex items-center justify-between w-full">
-            <div className="flex items-center gap-2">
-              <Target className="w-5 h-5 text-purple-600 animate-pulse" />
-              <span className="text-xs md:text-sm font-black text-purple-900 tracking-wider uppercase">
-                BÀI KIỂM TRA ROADMAP 🎯
-              </span>
-            </div>
+        {subMode === 'roadmap_test' ? (() => {
+          const totalQ = session?.questions?.length || 50;
+          const answeredCount = Object.keys(practiceAnswers).length;
+          const correctCount = Object.entries(practiceAnswers).filter(([idxStr, ansIdx]) => {
+            const q = session?.questions?.[Number(idxStr)];
+            if (!q || !q.practice) return false;
+            return Number(ansIdx) === q.practice.correct_index;
+          }).length;
+          const accuracyPercent = answeredCount > 0 ? Math.round((correctCount / answeredCount) * 100) : 0;
+          const progressPercent = totalQ > 0 ? Math.round((answeredCount / totalQ) * 100) : 0;
 
-            <div className="flex items-center gap-3">
-              <div className="text-right">
-                <span className="text-[11px] md:text-xs font-black text-slate-700">
-                  Câu {currentIndex + 1} / {session?.questions?.length || 50}
+          return (
+            <div className="flex items-center justify-between w-full">
+              <div className="flex items-center gap-2">
+                <Target className="w-5 h-5 text-purple-600 animate-pulse" />
+                <span className="text-xs md:text-sm font-black text-purple-900 tracking-wider uppercase">
+                  BÀI KIỂM TRA ROADMAP 🎯
                 </span>
-                <div className="w-28 xs:w-36 md:w-48 bg-slate-100 rounded-full h-2 overflow-hidden border border-slate-200/50 mt-0.5">
-                  <div
-                    className="bg-gradient-to-r from-indigo-500 to-purple-600 h-full rounded-full transition-all duration-300"
-                    style={{ width: `${Math.min(100, Math.round(((currentIndex + 1) / (session?.questions?.length || 50)) * 100))}%` }}
-                  />
+              </div>
+
+              <div className="flex items-center gap-3 sm:gap-6">
+                {/* Accuracy Badge */}
+                <div className="flex flex-col items-end">
+                  <span className="text-[8px] md:text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none">Chính xác</span>
+                  <span className={cn(
+                    "text-xs md:text-sm font-black leading-tight",
+                    accuracyPercent >= 80 ? "text-emerald-600" : (accuracyPercent >= 60 ? "text-amber-600" : "text-rose-600")
+                  )}>
+                    {answeredCount > 0 ? `${accuracyPercent}% (${correctCount}/${answeredCount})` : '—'}
+                  </span>
+                </div>
+
+                {/* Question & Progress Bar */}
+                <div className="text-right">
+                  <span className="text-[11px] md:text-xs font-black text-slate-700">
+                    Câu {currentIndex + 1} / {totalQ} <span className="text-slate-400 text-[10px] font-bold">({progressPercent}% xong)</span>
+                  </span>
+                  <div className="w-24 xs:w-32 md:w-44 bg-slate-100 rounded-full h-2 overflow-hidden border border-slate-200/50 mt-0.5">
+                    <div
+                      className="bg-gradient-to-r from-indigo-500 to-purple-600 h-full rounded-full transition-all duration-300"
+                      style={{ width: `${Math.min(100, Math.round(((currentIndex + 1) / totalQ) * 100))}%` }}
+                    />
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
-        ) : (
+          );
+        })() : (
           <>
             {/* Left Side: Branding */}
             <div className="flex items-center gap-2">
