@@ -2529,8 +2529,7 @@ async def get_deck_roadmap_status_helper(db: AsyncSession, user_id: int, deck_id
         })
     
     stage_1_done = new_learned_today >= roadmap_daily_new
-    stage_2_done = review_completed_today >= review_due_today or review_due_today == 0
-    stage_3_done = today_test_passed
+    stage_2_done = today_test_passed
 
     if not stage_1_done:
         current_stage = 1
@@ -2538,14 +2537,10 @@ async def get_deck_roadmap_status_helper(db: AsyncSession, user_id: int, deck_id
         next_action_label = "Học từ mới"
     elif not stage_2_done:
         current_stage = 2
-        next_action_url = f"/flashcard/{deck_id}/play?mode=roadmap"
-        next_action_label = "Ôn tập FSRS"
-    elif not stage_3_done:
-        current_stage = 3
         next_action_url = f"/practice/{deck_id}/roadmap_test"
         next_action_label = "Làm bài kiểm tra"
     else:
-        current_stage = 4
+        current_stage = 3
         next_action_url = f"/flashcard/{deck_id}/roadmap"
         next_action_label = "Đã xong lộ trình hôm nay"
 
@@ -2558,7 +2553,6 @@ async def get_deck_roadmap_status_helper(db: AsyncSession, user_id: int, deck_id
         "today_test_passed": today_test_passed,
         "stage_1_done": stage_1_done,
         "stage_2_done": stage_2_done,
-        "stage_3_done": stage_3_done,
         "current_stage": current_stage,
         "next_action_url": next_action_url,
         "next_action_label": next_action_label,
@@ -2695,15 +2689,28 @@ async def get_roadmap_test_questions(request: Request, deck_id: int, db: AsyncSe
     import random
 
     today_start = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
+    yesterday_utc = datetime.utcnow() - timedelta(days=1)
     
+    # 1. Cards overdue by > 1 day (quá hạn 1 ngày chưa ôn)
+    overdue_res = await db.execute(
+        select(Flashcard)
+        .join(UserCardMastery, Flashcard.id == UserCardMastery.card_id)
+        .where(
+            Flashcard.deck_id == deck_id,
+            UserCardMastery.user_id == user_id,
+            UserCardMastery.due <= yesterday_utc
+        )
+    )
+    overdue_cards = list(overdue_res.scalars().all())
+
+    # 2. Cards learned today
     min_answer_sub = select(
         UserAnswer.card_id,
         func.min(UserAnswer.created_at).label("min_created")
     ).join(DeckAttempt, UserAnswer.attempt_id == DeckAttempt.id)\
     .where(DeckAttempt.user_id == user_id)\
     .group_by(UserAnswer.card_id).subquery()
-    
-    # Cards learned today
+
     today_cards_res = await db.execute(
         select(Flashcard)
         .join(min_answer_sub, Flashcard.id == min_answer_sub.c.card_id)
@@ -2714,7 +2721,7 @@ async def get_roadmap_test_questions(request: Request, deck_id: int, db: AsyncSe
     )
     today_cards = list(today_cards_res.scalars().all())
     
-    # Previously learned cards
+    # 3. Previously learned cards
     prev_cards_res = await db.execute(
         select(Flashcard)
         .join(min_answer_sub, Flashcard.id == min_answer_sub.c.card_id)
@@ -2725,31 +2732,41 @@ async def get_roadmap_test_questions(request: Request, deck_id: int, db: AsyncSe
     )
     prev_cards = list(prev_cards_res.scalars().all())
 
-    # Fallback to all cards in deck if no specific history
     all_cards = list(deck.cards)
     
-    target_count = 15
-    num_new = min(len(today_cards), int(round(target_count * 0.7)))
-    num_prev = target_count - num_new
-
     selected_cards = []
-    if today_cards:
-        random.shuffle(today_cards)
-        selected_cards.extend(today_cards[:num_new])
-        
-    if prev_cards and num_prev > 0:
-        random.shuffle(prev_cards)
-        selected_cards.extend(prev_cards[:num_prev])
+    # Always include all overdue cards (> 1 day overdue)
+    selected_ids = set()
+    for c in overdue_cards:
+        if c.id not in selected_ids:
+            selected_cards.append(c)
+            selected_ids.add(c.id)
 
-    # Fill remaining from all_cards if necessary
-    if len(selected_cards) < target_count:
-        existing_ids = {c.id for c in selected_cards}
-        remaining = [c for c in all_cards if c.id not in existing_ids]
-        random.shuffle(remaining)
-        needed = target_count - len(selected_cards)
-        selected_cards.extend(remaining[:needed])
+    # Add today's learned cards
+    for c in today_cards:
+        if c.id not in selected_ids:
+            selected_cards.append(c)
+            selected_ids.add(c.id)
 
-    # Build choices pool from all cards for distractor options
+    # Add previous cards
+    for c in prev_cards:
+        if c.id not in selected_ids:
+            selected_cards.append(c)
+            selected_ids.add(c.id)
+
+    # Fill up with remaining cards from deck if < 15
+    if len(selected_cards) < 15:
+        for c in all_cards:
+            if c.id not in selected_ids:
+                selected_cards.append(c)
+                selected_ids.add(c.id)
+            if len(selected_cards) >= 15:
+                break
+
+    # Shuffle selected cards pool
+    random.shuffle(selected_cards)
+    selected_cards = selected_cards[:max(15, len(overdue_cards))]
+
     choices_pool = list({c.explanation or c.content for c in all_cards if c.explanation or c.content})
 
     formatted_questions = []
@@ -2757,7 +2774,6 @@ async def get_roadmap_test_questions(request: Request, deck_id: int, db: AsyncSe
         front_text = card.content or ""
         back_text = card.explanation or front_text
         
-        # Decide question mode: mcq, typing, or listening
         has_audio = bool(card.front_audio_url or card.back_audio_url)
         modes = ["mcq", "typing"]
         if has_audio:
@@ -2765,7 +2781,6 @@ async def get_roadmap_test_questions(request: Request, deck_id: int, db: AsyncSe
         
         chosen_mode = random.choice(modes)
 
-        # Generate distractors for MCQ
         distractors = [c for c in choices_pool if c != back_text]
         random.shuffle(distractors)
         opts = [back_text] + distractors[:3]
@@ -2785,7 +2800,15 @@ async def get_roadmap_test_questions(request: Request, deck_id: int, db: AsyncSe
             "front_audio_url": card.front_audio_url,
             "back_audio_url": card.back_audio_url,
             "question_type": chosen_mode,
-            "practice_submode": chosen_mode
+            "practice_submode": chosen_mode,
+            "practice": {
+                "question": front_text,
+                "choices": [o["content"] for o in options_list],
+                "correct_index": next((i for i, o in enumerate(options_list) if o["is_correct"]), 0),
+                "correct_answer": back_text,
+                "question_key": "front",
+                "answer_key": "back"
+            }
         })
 
     return {

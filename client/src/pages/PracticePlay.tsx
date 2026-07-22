@@ -577,7 +577,12 @@ export default function PracticePlay() {
     const qObj = session.questions[idx];
     if (!qObj) return;
 
-    const subMode = customSubMode || practiceSubMode;
+    if (qObj.practice && typeof qObj.practice === 'object' && qObj.practice.question && qObj.practice.correct_answer) {
+      setCurrentPracticeData(qObj.practice);
+      return;
+    }
+
+    const subMode = customSubMode || (practiceSubMode === 'roadmap_test' ? (qObj.practice_submode || qObj.question_type || 'mcq') : practiceSubMode);
 
     // Pick a random pair from setupPairs
     const activePair = setupPairs && setupPairs.length > 0

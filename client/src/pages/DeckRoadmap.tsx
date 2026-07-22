@@ -120,7 +120,7 @@ export default function DeckRoadmap() {
               {deckTitle}
             </h1>
             <p className="text-slate-300 text-xs font-semibold max-w-xl leading-relaxed">
-              Chuỗi hành trình 3 bước thông minh giúp bạn tiếp thu từ mới nhanh chóng, ôn tập ngắt quãng FSRS và đánh giá khả năng ghi nhớ dài hạn.
+              Hành trình 2 bước thông minh giúp bạn tiếp thu từ mới nhanh chóng, ôn tập ngắt quãng FSRS và đánh giá khả năng ghi nhớ dài hạn.
             </p>
           </div>
 
@@ -141,10 +141,10 @@ export default function DeckRoadmap() {
       <div className="mb-8">
         <h2 className="text-sm font-black text-slate-800 uppercase tracking-widest mb-4 flex items-center gap-2">
           <Layers className="w-4 h-4 text-indigo-600" />
-          Hành Trình Học Tập 3 Bước Hôm Nay
+          Hành Trình Học Tập 2 Bước Hôm Nay
         </h2>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* Stage 1: Flashcard Learn */}
           <div className={cn("bg-white rounded-3xl p-6 border shadow-sm relative overflow-hidden transition-all", s.stage_1_done ? "border-emerald-200" : (s.current_stage === 1 ? "border-indigo-500 ring-4 ring-indigo-500/10" : "border-slate-100"))}>
             <div className="flex items-center justify-between mb-4">
@@ -159,7 +159,7 @@ export default function DeckRoadmap() {
               🎴
             </div>
             <h3 className="text-base font-black text-slate-900 mb-1">1. Học Từ Mới</h3>
-            <p className="text-xs font-semibold text-slate-500 mb-4">Lật thẻ Flashcard để tiếp thu số từ mới đã đề ra trong ngày.</p>
+            <p className="text-xs font-semibold text-slate-500 mb-4">Lật thẻ Flashcard để tiếp thu đủ chỉ tiêu số từ mới trong ngày.</p>
             <div className="flex items-center justify-between text-xs font-black pt-3 border-t border-slate-100">
               <span className="text-slate-400">Tiến độ hôm nay:</span>
               <span className="text-orange-600">{s.new_learned_today || 0} / {s.new_target_today || 10} từ</span>
@@ -172,48 +172,21 @@ export default function DeckRoadmap() {
             </button>
           </div>
 
-          {/* Stage 2: FSRS Review */}
+          {/* Stage 2: Roadmap Mixed Test */}
           <div className={cn("bg-white rounded-3xl p-6 border shadow-sm relative overflow-hidden transition-all", s.stage_2_done ? "border-emerald-200" : (s.current_stage === 2 ? "border-indigo-500 ring-4 ring-indigo-500/10" : "border-slate-100"))}>
             <div className="flex items-center justify-between mb-4">
               <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Bước 2</span>
               {s.stage_2_done ? (
-                <span className="px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-600 text-[10px] font-black uppercase">✓ Đã Hoàn Thành</span>
-              ) : (
-                <span className="px-2.5 py-0.5 rounded-full bg-indigo-50 text-indigo-600 text-[10px] font-black uppercase">Cần Ôn Tập</span>
-              )}
-            </div>
-            <div className="w-12 h-12 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center text-xl font-black mb-3">
-              🧠
-            </div>
-            <h3 className="text-base font-black text-slate-900 mb-1">2. Ôn Tập FSRS</h3>
-            <p className="text-xs font-semibold text-slate-500 mb-4">Lặp lại ngắt quãng thuật toán FSRS cho các từ đến hạn ôn tập.</p>
-            <div className="flex items-center justify-between text-xs font-black pt-3 border-t border-slate-100">
-              <span className="text-slate-400">Đã hoàn thành:</span>
-              <span className="text-indigo-600">{s.review_completed_today || 0} / {s.review_due_today || 0} thẻ</span>
-            </div>
-            <button
-              onClick={() => navigate(`/flashcard/${id}/play?mode=roadmap`)}
-              className="w-full mt-4 py-3 bg-slate-900 hover:bg-slate-800 text-white rounded-xl font-black text-xs uppercase tracking-wider transition-all"
-            >
-              Vào Ôn Tập FSRS 🔄
-            </button>
-          </div>
-
-          {/* Stage 3: Roadmap Mixed Test */}
-          <div className={cn("bg-white rounded-3xl p-6 border shadow-sm relative overflow-hidden transition-all", s.stage_3_done ? "border-emerald-200" : (s.current_stage === 3 ? "border-indigo-500 ring-4 ring-indigo-500/10" : "border-slate-100"))}>
-            <div className="flex items-center justify-between mb-4">
-              <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Bước 3</span>
-              {s.stage_3_done ? (
                 <span className="px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-600 text-[10px] font-black uppercase">🏆 Đã Đạt Streak</span>
               ) : (
-                <span className="px-2.5 py-0.5 rounded-full bg-amber-50 text-amber-600 text-[10px] font-black uppercase">Bài Test Quyết Định</span>
+                <span className="px-2.5 py-0.5 rounded-full bg-amber-50 text-amber-600 text-[10px] font-black uppercase">Bài Test Ôn Tập & Đánh Giá</span>
               )}
             </div>
             <div className="w-12 h-12 rounded-2xl bg-purple-50 text-purple-600 flex items-center justify-center text-xl font-black mb-3">
               🎯
             </div>
-            <h3 className="text-base font-black text-slate-900 mb-1">3. Bài Kiểm Tra Roadmap</h3>
-            <p className="text-xs font-semibold text-slate-500 mb-4">Bài test 15 câu (MCQ + Typing + Listening). Đạt ≥{s.roadmap_pass_threshold || 80}% để giữ Streak.</p>
+            <h3 className="text-base font-black text-slate-900 mb-1">2. Bài Kiểm Tra Roadmap</h3>
+            <p className="text-xs font-semibold text-slate-500 mb-4">Ôn tập từ mới hôm nay + từ cũ + từ quá hạn &gt;1 ngày. Đạt ≥{s.roadmap_pass_threshold || 80}% để giữ Streak.</p>
             <div className="flex items-center justify-between text-xs font-black pt-3 border-t border-slate-100">
               <span className="text-slate-400">Ngưỡng đỗ bài test:</span>
               <span className="text-emerald-600">≥ {s.roadmap_pass_threshold || 80}%</span>

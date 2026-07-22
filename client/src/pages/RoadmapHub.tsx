@@ -146,7 +146,7 @@ export default function RoadmapHub() {
           <div className="grid grid-cols-1 gap-4">
             {decks.map((item) => {
               const s = item.status || {}
-              const isAllDone = s.stage_3_done
+              const isAllDone = s.stage_2_done
 
               return (
                 <motion.div
@@ -179,16 +179,13 @@ export default function RoadmapHub() {
                         )}
                       </div>
 
-                      {/* 3-Stage Progress Pills */}
+                      {/* 2-Stage Progress Pills */}
                       <div className="flex items-center gap-2 mt-2 flex-wrap">
                         <div className={cn("px-3 py-1 rounded-xl text-[10px] font-bold flex items-center gap-1 border", s.stage_1_done ? "bg-emerald-50 text-emerald-700 border-emerald-200" : "bg-slate-50 text-slate-500 border-slate-200")}>
-                          {s.stage_1_done ? '✓' : '1.'} Từ mới ({s.new_learned_today}/{s.new_target_today})
+                          {s.stage_1_done ? '✓' : '1.'} Học từ mới ({s.new_learned_today}/{s.new_target_today})
                         </div>
-                        <div className={cn("px-3 py-1 rounded-xl text-[10px] font-bold flex items-center gap-1 border", s.stage_2_done ? "bg-emerald-50 text-emerald-700 border-emerald-200" : "bg-slate-50 text-slate-500 border-slate-200")}>
-                          {s.stage_2_done ? '✓' : '2.'} Ôn tập ({s.review_completed_today}/{s.review_due_today})
-                        </div>
-                        <div className={cn("px-3 py-1 rounded-xl text-[10px] font-bold flex items-center gap-1 border", s.stage_3_done ? "bg-emerald-50 text-emerald-700 border-emerald-200" : "bg-indigo-50 text-indigo-700 border-indigo-200")}>
-                          {s.stage_3_done ? '✓' : '3.'} Test (≥{s.roadmap_pass_threshold || 80}%)
+                        <div className={cn("px-3 py-1 rounded-xl text-[10px] font-bold flex items-center gap-1 border", s.stage_2_done ? "bg-emerald-50 text-emerald-700 border-emerald-200" : "bg-indigo-50 text-indigo-700 border-indigo-200")}>
+                          {s.stage_2_done ? '✓' : '2.'} Bài Test Roadmap (≥{s.roadmap_pass_threshold || 80}%)
                         </div>
                       </div>
 
