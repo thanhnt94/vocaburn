@@ -172,32 +172,51 @@ export default function DeckRoadmap() {
             </button>
           </div>
 
-          {/* Stage 2: Roadmap Mixed Test */}
-          <div className={cn("bg-white rounded-3xl p-6 border shadow-sm relative overflow-hidden transition-all", s.stage_2_done ? "border-emerald-200" : (s.current_stage === 2 ? "border-indigo-500 ring-4 ring-indigo-500/10" : "border-slate-100"))}>
-            <div className="flex items-center justify-between mb-4">
-              <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Bước 2</span>
-              {s.stage_2_done ? (
-                <span className="px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-600 text-[10px] font-black uppercase">🏆 Đã Đạt Streak</span>
-              ) : (
-                <span className="px-2.5 py-0.5 rounded-full bg-amber-50 text-amber-600 text-[10px] font-black uppercase">Bài Test Ôn Tập & Đánh Giá</span>
-              )}
+          {/* Stage 2: Roadmap Mixed Test (Only if MCQ is enabled and setup for deck) */}
+          {s.has_mcq_setup !== false ? (
+            <div className={cn("bg-white rounded-3xl p-6 border shadow-sm relative overflow-hidden transition-all", s.stage_2_done ? "border-emerald-200" : (s.current_stage === 2 ? "border-indigo-500 ring-4 ring-indigo-500/10" : "border-slate-100"))}>
+              <div className="flex items-center justify-between mb-4">
+                <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Bước 2</span>
+                {s.stage_2_done ? (
+                  <span className="px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-600 text-[10px] font-black uppercase">🏆 Đã Đạt Streak</span>
+                ) : (
+                  <span className="px-2.5 py-0.5 rounded-full bg-amber-50 text-amber-600 text-[10px] font-black uppercase">Bài Test Ôn Tập & Đánh Giá</span>
+                )}
+              </div>
+              <div className="w-12 h-12 rounded-2xl bg-purple-50 text-purple-600 flex items-center justify-center text-xl font-black mb-3">
+                🎯
+              </div>
+              <h3 className="text-base font-black text-slate-900 mb-1">2. Bài Kiểm Tra Roadmap</h3>
+              <p className="text-xs font-semibold text-slate-500 mb-4">Ôn tập từ mới hôm nay + từ cũ + từ quá hạn &gt;1 ngày. Đạt ≥{s.roadmap_pass_threshold || 80}% để giữ Streak.</p>
+              <div className="flex items-center justify-between text-xs font-black pt-3 border-t border-slate-100">
+                <span className="text-slate-400">Ngưỡng đỗ bài test:</span>
+                <span className="text-emerald-600">≥ {s.roadmap_pass_threshold || 80}%</span>
+              </div>
+              <button
+                onClick={() => navigate(`/practice/${id}/roadmap_test`)}
+                className="w-full mt-4 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white rounded-xl font-black text-xs uppercase tracking-wider shadow-md shadow-indigo-200 transition-all cursor-pointer"
+              >
+                Vào Làm Bài Test 🎯
+              </button>
             </div>
-            <div className="w-12 h-12 rounded-2xl bg-purple-50 text-purple-600 flex items-center justify-center text-xl font-black mb-3">
-              🎯
+          ) : (
+            <div className="bg-slate-50/80 rounded-3xl p-6 border border-slate-200/60 flex flex-col justify-between">
+              <div>
+                <div className="flex items-center justify-between mb-4">
+                  <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Chưa Bật Trắc Nghiệm</span>
+                  <span className="px-2.5 py-0.5 rounded-full bg-slate-200 text-slate-600 text-[10px] font-black uppercase">Chưa Setup</span>
+                </div>
+                <div className="w-12 h-12 rounded-2xl bg-slate-200/60 text-slate-400 flex items-center justify-center text-xl font-black mb-3">
+                  🔒
+                </div>
+                <h3 className="text-base font-black text-slate-700 mb-1">2. Bài Kiểm Tra MCQ (Tắt)</h3>
+                <p className="text-xs font-semibold text-slate-400 mb-4">Tác giả bộ thẻ chưa cấu hình/bật chế độ trắc nghiệm (MCQ). Lộ trình hiện tại hoàn tất ngay sau khi bạn hoàn thành 100% mục tiêu Học từ mới Flashcard.</p>
+              </div>
+              <div className="pt-3 border-t border-slate-200/40">
+                <span className="text-[11px] font-bold text-slate-400 italic">Lộ trình 1 bước duy nhất: Học từ mới</span>
+              </div>
             </div>
-            <h3 className="text-base font-black text-slate-900 mb-1">2. Bài Kiểm Tra Roadmap</h3>
-            <p className="text-xs font-semibold text-slate-500 mb-4">Ôn tập từ mới hôm nay + từ cũ + từ quá hạn &gt;1 ngày. Đạt ≥{s.roadmap_pass_threshold || 80}% để giữ Streak.</p>
-            <div className="flex items-center justify-between text-xs font-black pt-3 border-t border-slate-100">
-              <span className="text-slate-400">Ngưỡng đỗ bài test:</span>
-              <span className="text-emerald-600">≥ {s.roadmap_pass_threshold || 80}%</span>
-            </div>
-            <button
-              onClick={() => navigate(`/practice/${id}/roadmap_test`)}
-              className="w-full mt-4 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white rounded-xl font-black text-xs uppercase tracking-wider shadow-md shadow-indigo-200 transition-all cursor-pointer"
-            >
-              Vào Làm Bài Test 🎯
-            </button>
-          </div>
+          )}
         </div>
       </div>
 

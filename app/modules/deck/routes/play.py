@@ -1,3 +1,16 @@
+def check_has_mcq_setup(practice_settings):
+    if not practice_settings or not isinstance(practice_settings, dict):
+        return False
+    try:
+        creator_migrated = migrate_practice_settings(practice_settings)
+        mcq_setts = creator_migrated.get("mcq", {})
+        active_pairs = mcq_setts.get("active_pairs", [])
+        if not active_pairs:
+            active_pairs = practice_settings.get("active_pairs", [])
+        return bool(active_pairs and len(active_pairs) > 0)
+    except Exception:
+        return False
+
 from fastapi import APIRouter, UploadFile, File, Depends, Request, BackgroundTasks
 from typing import Optional
 import logging
@@ -1539,8 +1552,9 @@ async def get_deck_play_data(request: Request, deck_id: int, mode: Optional[str]
         "user_today_xp": user_today_xp,
         "user_today_time": user_today_time,
         "user_all_time_time": user_all_time_time,
+        "has_mcq_setup": check_has_mcq_setup(deck.practice_settings),
         "practice_needs_setup": practice_needs_setup,
-        "practice_disabled": practice_disabled,
+        "practice_disabled": not check_has_mcq_setup(deck.practice_settings),
         "cards": cards_list,
         "questions": cards_list, # compatibility
         "practice_settings": deck.practice_settings,
@@ -2528,23 +2542,37 @@ async def get_deck_roadmap_status_helper(db: AsyncSession, user_id: int, deck_id
             "active": d in active_dates
         })
     
+    has_mcq_setup = check_has_mcq_setup(deck.practice_settings)
     stage_1_done = new_learned_today >= roadmap_daily_new
-    stage_2_done = today_test_passed
 
-    if not stage_1_done:
-        current_stage = 1
-        next_action_url = f"/flashcard/{deck_id}/play?mode=roadmap"
-        next_action_label = "Học từ mới"
-    elif not stage_2_done:
-        current_stage = 2
-        next_action_url = f"/practice/{deck_id}/roadmap_test"
-        next_action_label = "Làm bài kiểm tra"
+    if not has_mcq_setup:
+        stage_2_done = True
+        if not stage_1_done:
+            current_stage = 1
+            next_action_url = f"/flashcard/{deck_id}/play?mode=roadmap"
+            next_action_label = "Học từ mới"
+        else:
+            current_stage = 3
+            next_action_url = f"/flashcard/{deck_id}/roadmap"
+            next_action_label = "Đã xong lộ trình hôm nay"
     else:
-        current_stage = 3
-        next_action_url = f"/flashcard/{deck_id}/roadmap"
-        next_action_label = "Đã xong lộ trình hôm nay"
+        stage_2_done = today_test_passed
+        if not stage_1_done:
+            current_stage = 1
+            next_action_url = f"/flashcard/{deck_id}/play?mode=roadmap"
+            next_action_label = "Học từ mới"
+        elif not stage_2_done:
+            current_stage = 2
+            next_action_url = f"/practice/{deck_id}/roadmap_test"
+            next_action_label = "Làm bài kiểm tra"
+        else:
+            current_stage = 3
+            next_action_url = f"/flashcard/{deck_id}/roadmap"
+            next_action_label = "Đã xong lộ trình hôm nay"
 
     return {
+        "has_mcq_setup": has_mcq_setup,
+        "has_stage_2": has_mcq_setup,
         "roadmap_active": roadmap_active,
         "roadmap_daily_new": roadmap_daily_new,
         "roadmap_daily_review_max": roadmap_daily_review_max,

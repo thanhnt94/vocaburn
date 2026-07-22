@@ -848,7 +848,8 @@ export default function QuizDetail() {
                   )}
                 </div>
 
-                {/* Practice Button with Dropdown */}
+                {/* Practice Button with Dropdown (only rendered if MCQ is setup for deck) */}
+                {(quiz?.has_mcq_setup !== false && !quiz?.practice_disabled) && (
                 <div className="flex-1 flex relative">
                   <button 
                     onClick={() => {
@@ -896,6 +897,7 @@ export default function QuizDetail() {
                     </>
                   )}
                 </div>
+                )}
               </>
             ) : (
               /* ── CREATOR MODE ── */
