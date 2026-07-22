@@ -3671,7 +3671,7 @@ export default function PracticePlay() {
           </button>
           <div className="flex flex-col min-w-0">
             <h1 className="text-xs md:text-sm font-extrabold text-slate-800 tracking-tight break-words line-clamp-2 leading-snug" title={session.title}>
-              {session.title}
+              {subMode === 'roadmap_test' ? `🎯 Bài Kiểm Tra Roadmap - ${session.title}` : session.title}
             </h1>
           </div>
         </div>
@@ -3702,24 +3702,26 @@ export default function PracticePlay() {
             </div>
           </div>
       
-          {/* Item 2: Cards left to study/review */}
-          <div className="flex items-center bg-white/90 border border-slate-200/30 rounded-lg p-0.5 pr-1 md:pr-1.5 shadow-sm min-w-[52px] xs:min-w-[56px] md:min-w-[66px]" title="Số thẻ ôn tập/học còn lại">
+          {/* Item 2: Cards left / Question count */}
+          <div className="flex items-center bg-white/90 border border-slate-200/30 rounded-lg p-0.5 pr-1 md:pr-1.5 shadow-sm min-w-[52px] xs:min-w-[56px] md:min-w-[66px]" title={subMode === 'roadmap_test' ? "Câu hỏi hiện tại / Tổng số câu" : "Số thẻ ôn tập/học còn lại"}>
             <div className="w-4 h-4 md:w-5 md:h-5 flex items-center justify-center bg-rose-50 text-rose-600 rounded mr-0.5 md:mr-1 flex-shrink-0">
-              <Brain className="w-2.5 h-2.5 md:w-3 md:h-3" />
+              {subMode === 'roadmap_test' ? <Target className="w-2.5 h-2.5 md:w-3 md:h-3 text-purple-600" /> : <Brain className="w-2.5 h-2.5 md:w-3 md:h-3" />}
             </div>
             <div className="flex flex-col min-w-0">
-              <span className="text-[5.5px] md:text-[6.5px] text-slate-400 font-extrabold uppercase tracking-wider leading-none">Left</span>
+              <span className="text-[5.5px] md:text-[6.5px] text-slate-400 font-extrabold uppercase tracking-wider leading-none">
+                {subMode === 'roadmap_test' ? 'CÂU' : 'Left'}
+              </span>
               <div className="h-2.5 md:h-3 overflow-hidden relative min-w-[15px]">
                 <AnimatePresence mode="popLayout" initial={false}>
                   <motion.span
-                    key={session?.questions ? Math.max(0, session.questions.length - currentIndex) : 0}
+                    key={subMode === 'roadmap_test' ? `${currentIndex + 1}/${session?.questions?.length || 50}` : (session?.questions ? Math.max(0, session.questions.length - currentIndex) : 0)}
                     initial={{ y: 8, opacity: 0 }}
                     animate={{ y: 0, opacity: 1 }}
                     exit={{ y: -8, opacity: 0 }}
                     transition={{ type: "spring", stiffness: 350, damping: 18 }}
                     className="text-[7.5px] md:text-[8.5px] font-black text-slate-700 leading-none block truncate"
                   >
-                    {session?.questions ? Math.max(0, session.questions.length - currentIndex) : 0}
+                    {subMode === 'roadmap_test' ? `${currentIndex + 1}/${session?.questions?.length || 50}` : (session?.questions ? Math.max(0, session.questions.length - currentIndex) : 0)}
                   </motion.span>
                 </AnimatePresence>
               </div>
