@@ -5342,23 +5342,32 @@ export default function FlashcardPlay() {
                 <Trophy className="w-10 h-10 text-white fill-white" />
               </div>
 
-              <h3 className="text-2xl font-black text-slate-800 mb-2 uppercase tracking-tight">Hoàn thành lộ trình ngày! 🎉</h3>
+              <h3 className="text-2xl font-black text-slate-800 mb-2 uppercase tracking-tight">Đã học xong từ mới! 🎯</h3>
               <p className="text-slate-500 font-bold text-sm leading-relaxed mb-6">
-                Tuyệt vời! Bạn đã xuất sắc hoàn thành tất cả các thẻ học mới và ôn tập theo lộ trình hôm nay.
+                Xuất sắc! Hãy thực hiện **Bài Kiểm Tra Roadmap** (Đạt ≥{roadmapStatus.roadmap_pass_threshold || 80}%) để đánh giá khả năng ghi nhớ & giữ Streak ngày!
               </p>
 
-              <div className="grid grid-cols-2 gap-4 bg-slate-50 p-4 rounded-3xl border border-slate-100 mb-8">
+              <div className="grid grid-cols-2 gap-4 bg-slate-50 p-4 rounded-3xl border border-slate-100 mb-6">
                 <div className="text-center border-r border-slate-200/60">
-                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Đã Học Mới</span>
-                  <span className="text-xl font-black text-orange-600">+{roadmapStatus.new_learned_today} từ</span>
+                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Mục tiêu từ mới</span>
+                  <span className="text-xl font-black text-orange-600">{roadmapStatus.new_learned_today}/{roadmapStatus.new_target_today} từ</span>
                 </div>
                 <div className="text-center">
-                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Đã Ôn Tập</span>
-                  <span className="text-xl font-black text-indigo-600">+{roadmapStatus.review_completed_today} thẻ</span>
+                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Ngưỡng điểm đỗ</span>
+                  <span className="text-xl font-black text-emerald-600">≥ {roadmapStatus.roadmap_pass_threshold || 80}%</span>
                 </div>
               </div>
 
               <div className="flex flex-col gap-3">
+                <button
+                  onClick={() => {
+                    setShowRoadmapCompleteModal(false);
+                    navigate(`/practice/${id}/roadmap_test`);
+                  }}
+                  className="py-4 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-black text-xs uppercase tracking-widest rounded-2xl shadow-lg shadow-indigo-200 active:scale-95 transition-all flex items-center justify-center gap-2 cursor-pointer"
+                >
+                  <Target className="w-4 h-4" /> BẮT ĐẦU BÀI KIỂM TRA 🎯
+                </button>
                 <button
                   onClick={async () => {
                     try {
@@ -5376,18 +5385,9 @@ export default function FlashcardPlay() {
                       console.error("Failed to update daily new cards limit:", e);
                     }
                   }}
-                  className="py-4 bg-gradient-to-r from-orange-500 to-rose-500 hover:from-orange-600 hover:to-rose-600 text-white font-black text-xs uppercase tracking-widest rounded-2xl shadow-lg shadow-orange-100 active:scale-95 transition-all"
+                  className="py-3.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-black text-xs uppercase tracking-widest rounded-2xl active:scale-95 transition-all cursor-pointer"
                 >
                   HỌC THÊM 5 TỪ MỚI 🚀
-                </button>
-                <button
-                  onClick={() => {
-                    setShowRoadmapCompleteModal(false);
-                    navigate('/');
-                  }}
-                  className="py-4 bg-slate-900 hover:bg-slate-800 text-white font-black text-xs uppercase tracking-widest rounded-2xl shadow-lg active:scale-95 transition-all"
-                >
-                  TRỞ VỀ TRANG CHỦ 🏠
                 </button>
               </div>
             </motion.div>

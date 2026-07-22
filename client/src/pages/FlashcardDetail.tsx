@@ -42,6 +42,7 @@ export default function QuizDetail() {
   const [collaborators, setCollaborators] = useState<any[]>([])
 
   const [dailyNewInput, setDailyNewInput] = useState(10)
+  const [passThresholdInput, setPassThresholdInput] = useState(80)
   const [dailyReviewInput, setDailyReviewInput] = useState(50)
   const [isSavingRoadmapSettings, setIsSavingRoadmapSettings] = useState(false)
   const [isRoadmapSettingsOpen, setIsRoadmapSettingsOpen] = useState(false)
@@ -285,6 +286,7 @@ export default function QuizDetail() {
     if (roadmapStatus) {
       setDailyNewInput(roadmapStatus.roadmap_daily_new || 10)
       setDailyReviewInput(roadmapStatus.roadmap_daily_review_max || 50)
+      setPassThresholdInput(roadmapStatus.roadmap_pass_threshold || 80)
     }
   }, [roadmapStatus])
 
@@ -313,7 +315,8 @@ export default function QuizDetail() {
         settings: {
           roadmap_active: active,
           roadmap_daily_new: dailyNewInput,
-          roadmap_daily_review_max: dailyReviewInput
+          roadmap_daily_review_max: dailyReviewInput,
+          roadmap_pass_threshold: passThresholdInput
         },
         is_creator: false
       })
@@ -473,7 +476,7 @@ export default function QuizDetail() {
             )}
 
             {/* ── Row 2: Quick Stats Grid ── */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5">
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-2.5">
               {/* Total Progress */}
               {roadmapStatus && (
                 <div className="p-3 rounded-xl bg-slate-50/80 border border-slate-100/60">
@@ -504,6 +507,19 @@ export default function QuizDetail() {
                   <div className="w-full h-1.5 bg-slate-200 rounded-full overflow-hidden mt-1.5">
                     <div className="h-full bg-gradient-to-r from-indigo-500 to-purple-500 rounded-full transition-all" style={{ width: `${roadmapStatus.review_due_today > 0 ? Math.min(100, Math.round((roadmapStatus.review_completed_today / roadmapStatus.review_due_today) * 100)) : 0}%` }} />
                   </div>
+                </div>
+              )}
+
+              {/* Retention Rate */}
+              {roadmapStatus?.roadmap_active && (
+                <div className="p-3 rounded-xl bg-indigo-50/50 border border-indigo-100/60">
+                  <span className="text-[7px] font-black text-indigo-500 uppercase tracking-wider block mb-1">Retention Rate</span>
+                  <span className="text-sm font-black text-indigo-700 leading-none">
+                    {roadmapStatus.retention_rate > 0 ? `${roadmapStatus.retention_rate}%` : '—'}
+                  </span>
+                  <p className="text-[7px] font-bold text-slate-400 mt-1 truncate">
+                    {roadmapStatus.retention_rate >= 80 ? '🧠 Ghi nhớ tốt' : (roadmapStatus.retention_rate > 0 ? '📚 Cần rèn luyện' : 'Chưa có bài test')}
+                  </p>
                 </div>
               )}
 
@@ -1233,6 +1249,23 @@ export default function QuizDetail() {
                           </button>
                         ))}
                       </div>
+                    </div>
+
+                    {/* Pass Threshold Setting */}
+                    <div className="pt-2 border-t border-slate-100">
+                      <div className="flex items-center justify-between mb-2">
+                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">Ngưỡng điểm đỗ bài test</label>
+                        <span className="text-xs font-black text-emerald-600 bg-emerald-50 px-2.5 py-0.5 rounded-full">≥ {passThresholdInput}%</span>
+                      </div>
+                      <input 
+                        type="range" min="50" max="100" step="5" 
+                        value={passThresholdInput}
+                        onChange={(e) => setPassThresholdInput(parseInt(e.target.value) || 80)}
+                        className="w-full accent-emerald-600 cursor-pointer h-2 bg-slate-100 rounded-lg mb-1"
+                      />
+                      <p className="text-[9px] font-bold text-slate-400 leading-relaxed">
+                        Cần đạt tối thiểu {passThresholdInput}% điểm bài kiểm tra để duy trì Streak học tập mỗi ngày.
+                      </p>
                     </div>
 
                     {/* Dynamic Completion Date Card */}

@@ -2379,6 +2379,7 @@ async def get_deck_roadmap_status_helper(db: AsyncSession, user_id: int, deck_id
     roadmap_active = settings.get("roadmap_active", False)
     roadmap_daily_new = int(settings.get("roadmap_daily_new", 10))
     roadmap_daily_review_max = int(settings.get("roadmap_daily_review_max", 50))
+    roadmap_pass_threshold = int(settings.get("roadmap_pass_threshold", 80))
     
     from app.modules.deck.models import Flashcard, UserCardMastery, UserAnswer, DeckAttempt
     total_cards = await db.scalar(
@@ -2444,6 +2445,36 @@ async def get_deck_roadmap_status_helper(db: AsyncSession, user_id: int, deck_id
         )
     ) or 0
 
+    # Calculate Retention Rate from recent roadmap test attempts
+    test_attempts_res = await db.execute(
+        select(DeckAttempt.score)
+        .where(
+            DeckAttempt.user_id == user_id,
+            DeckAttempt.deck_id == deck_id,
+            DeckAttempt.mode == "roadmap_test"
+        )
+        .order_by(DeckAttempt.started_at.desc())
+        .limit(10)
+    )
+    test_scores = test_attempts_res.scalars().all()
+    if test_scores:
+        retention_rate = int(round(sum(test_scores) / len(test_scores)))
+    else:
+        retention_rate = 0
+
+    # Check if user passed today's roadmap test
+    today_passed_res = await db.execute(
+        select(DeckAttempt.id)
+        .where(
+            DeckAttempt.user_id == user_id,
+            DeckAttempt.deck_id == deck_id,
+            DeckAttempt.mode == "roadmap_test",
+            DeckAttempt.score >= roadmap_pass_threshold,
+            DeckAttempt.started_at >= today_start
+        )
+    )
+    today_test_passed = today_passed_res.scalar_one_or_none() is not None
+
     # Calculate streak and 7-day activity map
     active_dates_res = await db.execute(
         select(func.date(UserAnswer.created_at))
@@ -2501,6 +2532,9 @@ async def get_deck_roadmap_status_helper(db: AsyncSession, user_id: int, deck_id
         "roadmap_active": roadmap_active,
         "roadmap_daily_new": roadmap_daily_new,
         "roadmap_daily_review_max": roadmap_daily_review_max,
+        "roadmap_pass_threshold": roadmap_pass_threshold,
+        "retention_rate": retention_rate,
+        "today_test_passed": today_test_passed,
         "total_cards": total_cards,
         "learned_cards": learned_cards,
         "unlearned_cards": unlearned_cards,
@@ -2620,3 +2654,220 @@ async def reset_deck_progress(request: Request, deck_id: int, db: AsyncSession =
     
     await db.commit()
     return {"status": "ok", "message": "Deck progress reset successfully"}
+
+
+@router.get("/{deck_id}/roadmap-test-questions")
+async def get_roadmap_test_questions(request: Request, deck_id: int, db: AsyncSession = Depends(get_db)):
+    user_id = int(request.cookies.get("user_id", 1))
+    
+    deck = await DeckService.get_deck_by_id(db, deck_id)
+    if not deck or not deck.cards:
+        return JSONResponse(status_code=404, content={"error": "Deck or cards not found"})
+        
+    from app.modules.deck.models import Flashcard, UserCardMastery, UserAnswer, DeckAttempt
+    import random
+
+    today_start = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
+    
+    min_answer_sub = select(
+        UserAnswer.card_id,
+        func.min(UserAnswer.created_at).label("min_created")
+    ).join(DeckAttempt, UserAnswer.attempt_id == DeckAttempt.id)\
+    .where(DeckAttempt.user_id == user_id)\
+    .group_by(UserAnswer.card_id).subquery()
+    
+    # Cards learned today
+    today_cards_res = await db.execute(
+        select(Flashcard)
+        .join(min_answer_sub, Flashcard.id == min_answer_sub.c.card_id)
+        .where(
+            Flashcard.deck_id == deck_id,
+            min_answer_sub.c.min_created >= today_start
+        )
+    )
+    today_cards = list(today_cards_res.scalars().all())
+    
+    # Previously learned cards
+    prev_cards_res = await db.execute(
+        select(Flashcard)
+        .join(min_answer_sub, Flashcard.id == min_answer_sub.c.card_id)
+        .where(
+            Flashcard.deck_id == deck_id,
+            min_answer_sub.c.min_created < today_start
+        )
+    )
+    prev_cards = list(prev_cards_res.scalars().all())
+
+    # Fallback to all cards in deck if no specific history
+    all_cards = list(deck.cards)
+    
+    target_count = 15
+    num_new = min(len(today_cards), int(round(target_count * 0.7)))
+    num_prev = target_count - num_new
+
+    selected_cards = []
+    if today_cards:
+        random.shuffle(today_cards)
+        selected_cards.extend(today_cards[:num_new])
+        
+    if prev_cards and num_prev > 0:
+        random.shuffle(prev_cards)
+        selected_cards.extend(prev_cards[:num_prev])
+
+    # Fill remaining from all_cards if necessary
+    if len(selected_cards) < target_count:
+        existing_ids = {c.id for c in selected_cards}
+        remaining = [c for c in all_cards if c.id not in existing_ids]
+        random.shuffle(remaining)
+        needed = target_count - len(selected_cards)
+        selected_cards.extend(remaining[:needed])
+
+    # Build choices pool from all cards for distractor options
+    choices_pool = list({c.explanation or c.content for c in all_cards if c.explanation or c.content})
+
+    formatted_questions = []
+    for idx, card in enumerate(selected_cards, start=1):
+        front_text = card.content or ""
+        back_text = card.explanation or front_text
+        
+        # Decide question mode: mcq, typing, or listening
+        has_audio = bool(card.front_audio_url or card.back_audio_url)
+        modes = ["mcq", "typing"]
+        if has_audio:
+            modes.append("listening")
+        
+        chosen_mode = random.choice(modes)
+
+        # Generate distractors for MCQ
+        distractors = [c for c in choices_pool if c != back_text]
+        random.shuffle(distractors)
+        opts = [back_text] + distractors[:3]
+        random.shuffle(opts)
+        
+        options_list = [
+            {"id": i + 1, "content": opt, "is_correct": opt == back_text}
+            for i, opt in enumerate(opts)
+        ]
+
+        formatted_questions.append({
+            "id": card.id,
+            "orig_index": idx,
+            "content": front_text,
+            "explanation": back_text,
+            "options": options_list,
+            "front_audio_url": card.front_audio_url,
+            "back_audio_url": card.back_audio_url,
+            "question_type": chosen_mode,
+            "practice_submode": chosen_mode
+        })
+
+    return {
+        "questions": formatted_questions,
+        "total": len(formatted_questions)
+    }
+
+
+@router.post("/{deck_id}/roadmap-test-submit")
+async def submit_roadmap_test(request: Request, deck_id: int, payload: dict, db: AsyncSession = Depends(get_db)):
+    user_id = int(request.cookies.get("user_id", 1))
+    answers = payload.get("answers", [])
+    
+    deck = await DeckService.get_deck_by_id(db, deck_id)
+    if not deck:
+        return JSONResponse(status_code=404, content={"error": "Deck not found"})
+        
+    from app.modules.deck.models import Flashcard, UserCardMastery, DeckAttempt, UserAnswer, UserDeckSettings
+    from app.modules.deck.services.fsrs_engine import fsrs_engine
+
+    user_sett_res = await db.execute(
+        select(UserDeckSettings).where(
+            UserDeckSettings.user_id == user_id,
+            UserDeckSettings.deck_id == deck_id
+        )
+    )
+    user_sett = user_sett_res.scalar_one_or_none()
+    settings = user_sett.settings if (user_sett and user_sett.settings) else {}
+    pass_threshold = int(settings.get("roadmap_pass_threshold", 80))
+
+    correct_count = sum(1 for a in answers if a.get("is_correct", False))
+    total_count = len(answers)
+    score_percentage = int(round((correct_count / total_count * 100))) if total_count > 0 else 0
+
+    # 1. Save DeckAttempt
+    attempt = DeckAttempt(
+        user_id=user_id,
+        deck_id=deck_id,
+        mode="roadmap_test",
+        score=score_percentage,
+        total_cards=total_count,
+        completed_at=datetime.utcnow()
+    )
+    db.add(attempt)
+    await db.flush()
+
+    # 2. Process FSRS & UserAnswer for each card
+    for ans in answers:
+        card_id = ans.get("card_id")
+        is_correct = ans.get("is_correct", False)
+        active_time = float(ans.get("active_time", 2.0))
+        
+        user_ans = UserAnswer(
+            attempt_id=attempt.id,
+            card_id=card_id,
+            is_correct=is_correct,
+            active_time=active_time,
+            rating=3 if is_correct else 1
+        )
+        db.add(user_ans)
+
+        # Update UserCardMastery FSRS state
+        mastery_res = await db.execute(
+            select(UserCardMastery).where(
+                UserCardMastery.user_id == user_id,
+                UserCardMastery.card_id == card_id
+            )
+        )
+        mastery = mastery_res.scalar_one_or_none()
+        if not mastery:
+            mastery = UserCardMastery(user_id=user_id, card_id=card_id)
+            db.add(mastery)
+
+        # FSRS Rating: 3=Good if correct, 1=Again if incorrect
+        rating = 3 if is_correct else 1
+        new_mastery_data = fsrs_engine.review_card(
+            rating=rating,
+            stability=mastery.stability,
+            difficulty=mastery.difficulty,
+            state=mastery.state,
+            step=mastery.step,
+            last_review=mastery.last_review
+        )
+        mastery.stability = new_mastery_data["stability"]
+        mastery.difficulty = new_mastery_data["difficulty"]
+        mastery.state = new_mastery_data["state"]
+        mastery.step = new_mastery_data["step"]
+        mastery.due = new_mastery_data["due"]
+        mastery.last_review = datetime.utcnow()
+        if is_correct:
+            mastery.consecutive_correct = (mastery.consecutive_correct or 0) + 1
+            if mastery.box_level < 5:
+                mastery.box_level += 1
+        else:
+            mastery.consecutive_correct = 0
+            mastery.box_level = 1
+
+    await db.commit()
+
+    passed = score_percentage >= pass_threshold
+    status = await get_deck_roadmap_status_helper(db, user_id, deck_id, settings)
+
+    return {
+        "status": "ok",
+        "score": score_percentage,
+        "correct_count": correct_count,
+        "total_count": total_count,
+        "passed": passed,
+        "pass_threshold": pass_threshold,
+        "retention_rate": status.get("retention_rate", 0),
+        "streak": status.get("streak", 0)
+    }
