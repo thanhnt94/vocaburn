@@ -3827,149 +3827,167 @@ export default function PracticePlay() {
       </header>
 
       {/* Dynamic Mode Switcher Bar */}
-      <div className="flex-shrink-0 bg-white/80 backdrop-blur-md border-b border-slate-100/50 px-4 lg:px-8 py-1.5 md:py-2 flex flex-col md:flex-row items-center justify-between gap-2 md:gap-3 z-50 w-full shadow-sm">
-        {/* Left Side: Branding */}
-        <div className="flex items-center gap-2">
-          <Trophy className="w-4 h-4 text-amber-500 animate-bounce" />
-          <span className="text-xs font-black text-slate-700 tracking-wider uppercase">Luyện tập (Practice Mode)</span>
-        </div>
-
-        {/* Right Side: Sub-mode Selector for Practice Tab */}
-        {!practiceNeedsSetup && !practiceDisabled && (
-          <div
-            className="flex items-center gap-2.5 overflow-x-auto w-full md:w-auto scrollbar-none [&::-webkit-scrollbar]:hidden py-0.5 justify-center flex-nowrap"
-            style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
-          >
-            {/* Mode Range Selector (Tất cả vs Đã học) */}
-            <div className="flex bg-slate-100/60 p-0.5 rounded-xl border border-slate-200/30 shadow-inner flex-shrink-0">
-              <button
-                onClick={() => {
-                  setPracticeRange('all');
-                  localStorage.setItem('vocab_practice_range', 'all');
-                }}
-                className={cn(
-                  "px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-wider transition-all duration-200 flex items-center gap-1.5",
-                  practiceRange === 'all'
-                    ? "bg-white text-indigo-600 shadow-sm border border-slate-200/10"
-                    : "text-slate-500 hover:text-slate-700"
-                )}
-                title="Random (All)"
-              >
-                <Shuffle className="w-3.5 h-3.5" />
-                <span className="hidden md:inline">Random (All)</span>
-              </button>
-
-              <button
-                onClick={() => {
-                  const learnedIndices = session?.questions?.map((q: any, i: number) => (q.stats?.total || 0) > 0 ? i : -1).filter((i: number) => i !== -1) || [];
-                  if (learnedIndices.length === 0) {
-                    setLearningModeAlert({
-                      visible: true,
-                      message: "You haven't learned any cards in this deck yet! Automatically switching to 'Random (All)' mode.",
-                      type: 'warning'
-                    });
-                    setTimeout(() => {
-                      setLearningModeAlert(prev => prev ? { ...prev, visible: false } : null);
-                    }, 4500);
-                    return;
-                  }
-                  setPracticeRange('learned');
-                  localStorage.setItem('vocab_practice_range', 'learned');
-
-                  // If current card is not in learned pool, jump to first learned card
-                  if (!learnedIndices.includes(currentIndex)) {
-                    navigateToQuestion(learnedIndices[0]);
-                  }
-                }}
-                className={cn(
-                  "px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-wider transition-all duration-200 flex items-center gap-1.5",
-                  practiceRange === 'learned'
-                    ? "bg-gradient-to-r from-indigo-500 to-purple-600 text-white shadow-sm"
-                    : "text-slate-500 hover:text-slate-700"
-                )}
-                title="Practice (Learned)"
-              >
-                <ListOrdered className="w-3.5 h-3.5" />
-                <span className="hidden md:inline">Practice (Learned)</span>
-              </button>
+      <div className="flex-shrink-0 bg-white/80 backdrop-blur-md border-b border-slate-100/50 px-4 lg:px-8 py-1.5 md:py-2 flex items-center justify-between gap-2 md:gap-3 z-50 w-full shadow-sm">
+        {subMode === 'roadmap_test' ? (
+          <div className="flex items-center justify-between w-full">
+            <div className="flex items-center gap-2">
+              <Target className="w-5 h-5 text-purple-600 animate-pulse" />
+              <span className="text-xs md:text-sm font-black text-purple-900 tracking-wider uppercase">
+                BÀI KIỂM TRA ROADMAP 🎯
+              </span>
             </div>
 
-            <div className="w-px h-6 bg-slate-200 flex-shrink-0" />
-
-            <div className="flex bg-slate-100/60 p-0.5 rounded-xl border border-slate-200/30 flex-shrink-0">
-              <button
-                onClick={() => {
-                  setPracticeAnswers({});
-                  setSelectedOption(null);
-                  setShowFeedback(false);
-                  navigate(`/practice/${id}/mcq`, { replace: true });
-                  fetchSession('practice', 'mcq');
-                }}
-                className={cn(
-                  "px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-wider transition-all duration-200 flex items-center gap-1.5",
-                  practiceSubMode === 'mcq'
-                    ? "bg-white text-indigo-600 shadow-sm border border-slate-200/10"
-                    : "text-slate-500 hover:text-slate-700"
-                )}
-                title="MCQ"
-              >
-                <HelpCircle className="w-3.5 h-3.5" />
-                <span className="hidden md:inline">MCQ</span>
-              </button>
-
-              <button
-                onClick={() => {
-                  setPracticeAnswers({});
-                  setSelectedOption(null);
-                  setShowFeedback(false);
-                  navigate(`/practice/${id}/typing`, { replace: true });
-                  fetchSession('practice', 'typing');
-                }}
-                className={cn(
-                  "px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-wider transition-all duration-200 flex items-center gap-1.5",
-                  practiceSubMode === 'typing'
-                    ? "bg-white text-indigo-600 shadow-sm border border-slate-200/10"
-                    : "text-slate-500 hover:text-slate-700"
-                )}
-                title="Typing"
-              >
-                <Keyboard className="w-3.5 h-3.5" />
-                <span className="hidden md:inline">Typing</span>
-              </button>
-
-              <button
-                onClick={() => {
-                  setPracticeAnswers({});
-                  setSelectedOption(null);
-                  setShowFeedback(false);
-                  navigate(`/practice/${id}/listening`, { replace: true });
-                  fetchSession('practice', 'listening');
-                }}
-                className={cn(
-                  "px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-wider transition-all duration-200 flex items-center gap-1.5",
-                  practiceSubMode === 'listening'
-                    ? "bg-white text-indigo-600 shadow-sm border border-slate-200/10"
-                    : "text-slate-500 hover:text-slate-700"
-                )}
-                title="Listening"
-              >
-                <Volume2 className="w-3.5 h-3.5" />
-                <span className="hidden md:inline">Listening</span>
-              </button>
+            <div className="flex items-center gap-3">
+              <div className="text-right">
+                <span className="text-[11px] md:text-xs font-black text-slate-700">
+                  Câu {currentIndex + 1} / {session?.questions?.length || 50}
+                </span>
+                <div className="w-28 xs:w-36 md:w-48 bg-slate-100 rounded-full h-2 overflow-hidden border border-slate-200/50 mt-0.5">
+                  <div
+                    className="bg-gradient-to-r from-indigo-500 to-purple-600 h-full rounded-full transition-all duration-300"
+                    style={{ width: `${Math.min(100, Math.round(((currentIndex + 1) / (session?.questions?.length || 50)) * 100))}%` }}
+                  />
+                </div>
+              </div>
             </div>
-
-            <button
-              onClick={() => navigate(`/practice/${id}/setting`)}
-              className="w-7 h-7 flex-shrink-0 flex items-center justify-center rounded-lg bg-slate-50 border border-slate-200 text-slate-500 hover:bg-indigo-50 hover:text-indigo-600 hover:border-indigo-200 active:scale-95 transition-all shadow-sm"
-              title="Cấu hình cặp cột Hỏi-Đáp"
-            >
-              <Sliders className="w-3.5 h-3.5" />
-            </button>
           </div>
+        ) : (
+          <>
+            {/* Left Side: Branding */}
+            <div className="flex items-center gap-2">
+              <Trophy className="w-4 h-4 text-amber-500 animate-bounce" />
+              <span className="text-xs font-black text-slate-700 tracking-wider uppercase">Luyện tập (Practice Mode)</span>
+            </div>
+
+            {/* Right Side: Sub-mode Selector for Practice Tab */}
+            {!practiceNeedsSetup && !practiceDisabled && (
+              <div
+                className="flex items-center gap-2.5 overflow-x-auto w-full md:w-auto scrollbar-none [&::-webkit-scrollbar]:hidden py-0.5 justify-center flex-nowrap"
+                style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+              >
+                {/* Mode Range Selector (Tất cả vs Đã học) */}
+                <div className="flex bg-slate-100/60 p-0.5 rounded-xl border border-slate-200/30 shadow-inner flex-shrink-0">
+                  <button
+                    onClick={() => {
+                      setPracticeRange('all');
+                      localStorage.setItem('vocab_practice_range', 'all');
+                    }}
+                    className={cn(
+                      "px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-wider transition-all duration-200 flex items-center gap-1.5",
+                      practiceRange === 'all'
+                        ? "bg-white text-indigo-600 shadow-sm border border-slate-200/10"
+                        : "text-slate-500 hover:text-slate-700"
+                    )}
+                    title="Random (All)"
+                  >
+                    <Shuffle className="w-3.5 h-3.5" />
+                    <span className="hidden md:inline">Random (All)</span>
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      const learnedIndices = session?.questions?.map((q: any, i: number) => (q.stats?.total || 0) > 0 ? i : -1).filter((i: number) => i !== -1) || [];
+                      if (learnedIndices.length === 0) {
+                        setLearningModeAlert({
+                          visible: true,
+                          message: "You haven't learned any cards in this deck yet! Automatically switching to 'Random (All)' mode.",
+                          type: 'warning'
+                        });
+                        setTimeout(() => {
+                          setLearningModeAlert(prev => prev ? { ...prev, visible: false } : null);
+                        }, 4500);
+                        return;
+                      }
+                      setPracticeRange('learned');
+                      localStorage.setItem('vocab_practice_range', 'learned');
+
+                      if (!learnedIndices.includes(currentIndex)) {
+                        navigateToQuestion(learnedIndices[0]);
+                      }
+                    }}
+                    className={cn(
+                      "px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-wider transition-all duration-200 flex items-center gap-1.5",
+                      practiceRange === 'learned'
+                        ? "bg-gradient-to-r from-indigo-500 to-purple-600 text-white shadow-sm"
+                        : "text-slate-500 hover:text-slate-700"
+                    )}
+                    title="Practice (Learned)"
+                  >
+                    <ListOrdered className="w-3.5 h-3.5" />
+                    <span className="hidden md:inline">Practice (Learned)</span>
+                  </button>
+                </div>
+
+                <div className="w-px h-6 bg-slate-200 flex-shrink-0" />
+
+                <div className="flex bg-slate-100/60 p-0.5 rounded-xl border border-slate-200/30 flex-shrink-0">
+                  <button
+                    onClick={() => {
+                      setPracticeAnswers({});
+                      setSelectedOption(null);
+                      setShowFeedback(false);
+                      navigate(`/practice/${id}/mcq`, { replace: true });
+                      fetchSession('practice', 'mcq');
+                    }}
+                    className={cn(
+                      "px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-wider transition-all duration-200 flex items-center gap-1.5",
+                      practiceSubMode === 'mcq'
+                        ? "bg-white text-indigo-600 shadow-sm border border-slate-200/10"
+                        : "text-slate-500 hover:text-slate-700"
+                    )}
+                    title="MCQ"
+                  >
+                    <HelpCircle className="w-3.5 h-3.5" />
+                    <span className="hidden md:inline">MCQ</span>
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      setPracticeAnswers({});
+                      setSelectedOption(null);
+                      setShowFeedback(false);
+                      navigate(`/practice/${id}/typing`, { replace: true });
+                      fetchSession('practice', 'typing');
+                    }}
+                    className={cn(
+                      "px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-wider transition-all duration-200 flex items-center gap-1.5",
+                      practiceSubMode === 'typing'
+                        ? "bg-white text-indigo-600 shadow-sm border border-slate-200/10"
+                        : "text-slate-500 hover:text-slate-700"
+                    )}
+                    title="Typing"
+                  >
+                    <Keyboard className="w-3.5 h-3.5" />
+                    <span className="hidden md:inline">Typing</span>
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      setPracticeAnswers({});
+                      setSelectedOption(null);
+                      setShowFeedback(false);
+                      navigate(`/practice/${id}/listening`, { replace: true });
+                      fetchSession('practice', 'listening');
+                    }}
+                    className={cn(
+                      "px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-wider transition-all duration-200 flex items-center gap-1.5",
+                      practiceSubMode === 'listening'
+                        ? "bg-white text-indigo-600 shadow-sm border border-slate-200/10"
+                        : "text-slate-500 hover:text-slate-700"
+                    )}
+                    title="Listening"
+                  >
+                    <Volume2 className="w-3.5 h-3.5" />
+                    <span className="hidden md:inline">Listening</span>
+                  </button>
+                </div>
+              </div>
+            )}
+          </>
         )}
       </div>
 
-      <main className="flex-1 flex w-full max-w-none justify-center gap-4 lg:gap-8 px-2 lg:px-6 xl:px-10 md:py-3 py-2 overflow-hidden">
+<main className="flex-1 flex w-full max-w-none justify-center gap-4 lg:gap-8 px-2 lg:px-6 xl:px-10 md:py-3 py-2 overflow-hidden">
         <aside className="hidden xl:flex w-[340px] 2xl:w-[440px] flex-shrink-0 flex-col overflow-hidden bg-white border border-slate-100 rounded-[2.5rem] shadow-sm">
           {showFeedback ? (
             <FeedbackArea

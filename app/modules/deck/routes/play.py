@@ -2681,8 +2681,16 @@ async def reset_deck_progress(request: Request, deck_id: int, db: AsyncSession =
 async def get_roadmap_test_questions(request: Request, deck_id: int, db: AsyncSession = Depends(get_db)):
     user_id = int(request.cookies.get("user_id", 1))
     
-    from app.modules.deck.models import Flashcard, UserCardMastery, UserAnswer, DeckAttempt
+    from app.modules.deck.models import Flashcard, FlashcardDeck, UserDeckSettings, UserCardMastery, UserAnswer, DeckAttempt
     import random
+
+    # Load deck
+    deck_res = await db.execute(select(FlashcardDeck).where(FlashcardDeck.id == deck_id))
+    deck = deck_res.scalar_one_or_none()
+    if not deck:
+        return JSONResponse(status_code=404, content={"error": "Deck not found"})
+
+    deck_title = deck.title
 
     # Load all cards for deck cleanly via async query
     all_cards_res = await db.execute(
@@ -2690,7 +2698,43 @@ async def get_roadmap_test_questions(request: Request, deck_id: int, db: AsyncSe
     )
     all_cards = list(all_cards_res.scalars().all())
     if not all_cards:
-        return JSONResponse(status_code=404, content={"error": "Deck or cards not found"})
+        return JSONResponse(status_code=404, content={"error": "No cards in deck"})
+
+    # Load deck practice QA pair settings
+    user_sett_res = await db.execute(
+        select(UserDeckSettings).where(
+            UserDeckSettings.user_id == user_id,
+            UserDeckSettings.deck_id == deck_id
+        )
+    )
+    user_sett = user_sett_res.scalar_one_or_none()
+    settings = user_sett.settings if (user_sett and user_sett.settings) else {}
+    migrated = migrate_practice_settings(settings)
+    mcq_setts = migrated.get("mcq", {})
+    active_pairs = mcq_setts.get("active_pairs", [])
+
+    if not active_pairs and deck.practice_settings and isinstance(deck.practice_settings, dict):
+        creator_migrated = migrate_practice_settings(deck.practice_settings)
+        active_pairs = creator_migrated.get("mcq", {}).get("active_pairs", [])
+
+    if not active_pairs:
+        active_pairs = [{"q": "front", "a": "back"}]
+
+    def extract_card_val(card, key):
+        if not key or key in ("front", "content"):
+            return (card.content or "").strip()
+        if card.others and isinstance(card.others, dict):
+            val = card.others.get(key)
+            if val and str(val).strip():
+                return str(val).strip()
+        if key in ("back", "explanation"):
+            if card.explanation:
+                return card.explanation.strip()
+        if hasattr(card, key):
+            val = getattr(card, key)
+            if val and str(val).strip():
+                return str(val).strip()
+        return (card.explanation or card.content or "").strip()
 
     today_start = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
     yesterday_utc = datetime.utcnow() - timedelta(days=1)
@@ -2740,25 +2784,21 @@ async def get_roadmap_test_questions(request: Request, deck_id: int, db: AsyncSe
     selected_cards = []
     selected_ids = set()
 
-    # Always include all overdue cards (> 1 day overdue)
     for c in overdue_cards:
         if c.id not in selected_ids and len(selected_cards) < max_target_count:
             selected_cards.append(c)
             selected_ids.add(c.id)
 
-    # Add today's learned cards
     for c in today_cards:
         if c.id not in selected_ids and len(selected_cards) < max_target_count:
             selected_cards.append(c)
             selected_ids.add(c.id)
 
-    # Add previous cards
     for c in prev_cards:
         if c.id not in selected_ids and len(selected_cards) < max_target_count:
             selected_cards.append(c)
             selected_ids.add(c.id)
 
-    # Fill remaining from deck if < 50
     if len(selected_cards) < max_target_count:
         remaining = [c for c in all_cards if c.id not in selected_ids]
         random.shuffle(remaining)
@@ -2769,19 +2809,18 @@ async def get_roadmap_test_questions(request: Request, deck_id: int, db: AsyncSe
             else:
                 break
 
-    # Shuffle question sequence
     random.shuffle(selected_cards)
-
-    choices_pool = list({c.explanation or c.content for c in all_cards if c.explanation or c.content})
 
     formatted_questions = []
     for idx, card in enumerate(selected_cards, start=1):
-        front_text = card.content or ""
-        back_text = card.explanation or front_text
-        
-        # 100% MCQ Trắc nghiệm mode
-        chosen_mode = "mcq"
+        pair = random.choice(active_pairs)
+        q_key = pair.get("q", "front")
+        a_key = pair.get("a", "back")
 
+        front_text = extract_card_val(card, q_key)
+        back_text = extract_card_val(card, a_key)
+
+        choices_pool = list({extract_card_val(c, a_key) for c in all_cards if extract_card_val(c, a_key)})
         distractors = [c for c in choices_pool if c != back_text]
         random.shuffle(distractors)
         opts = [back_text] + distractors[:3]
@@ -2807,118 +2846,13 @@ async def get_roadmap_test_questions(request: Request, deck_id: int, db: AsyncSe
                 "choices": [o["content"] for o in options_list],
                 "correct_index": next((i for i, o in enumerate(options_list) if o["is_correct"]), 0),
                 "correct_answer": back_text,
-                "question_key": "front",
-                "answer_key": "back"
+                "question_key": q_key,
+                "answer_key": a_key
             }
         })
 
     return {
+        "title": deck_title,
         "questions": formatted_questions,
         "total": len(formatted_questions)
-    }
-
-
-@router.post("/{deck_id}/roadmap-test-submit")
-async def submit_roadmap_test(request: Request, deck_id: int, payload: dict, db: AsyncSession = Depends(get_db)):
-    user_id = int(request.cookies.get("user_id", 1))
-    answers = payload.get("answers", [])
-    
-    deck = await DeckService.get_deck_by_id(db, deck_id)
-    if not deck:
-        return JSONResponse(status_code=404, content={"error": "Deck not found"})
-        
-    from app.modules.deck.models import Flashcard, UserCardMastery, DeckAttempt, UserAnswer, UserDeckSettings
-    from app.modules.deck.services.fsrs_engine import fsrs_engine
-
-    user_sett_res = await db.execute(
-        select(UserDeckSettings).where(
-            UserDeckSettings.user_id == user_id,
-            UserDeckSettings.deck_id == deck_id
-        )
-    )
-    user_sett = user_sett_res.scalar_one_or_none()
-    settings = user_sett.settings if (user_sett and user_sett.settings) else {}
-    pass_threshold = int(settings.get("roadmap_pass_threshold", 80))
-
-    correct_count = sum(1 for a in answers if a.get("is_correct", False))
-    total_count = len(answers)
-    score_percentage = int(round((correct_count / total_count * 100))) if total_count > 0 else 0
-
-    # 1. Save DeckAttempt
-    attempt = DeckAttempt(
-        user_id=user_id,
-        deck_id=deck_id,
-        mode="roadmap_test",
-        score=score_percentage,
-        total_cards=total_count,
-        completed_at=datetime.utcnow()
-    )
-    db.add(attempt)
-    await db.flush()
-
-    # 2. Process FSRS & UserAnswer for each card
-    for ans in answers:
-        card_id = ans.get("card_id")
-        is_correct = ans.get("is_correct", False)
-        active_time = float(ans.get("active_time", 2.0))
-        
-        user_ans = UserAnswer(
-            attempt_id=attempt.id,
-            card_id=card_id,
-            is_correct=is_correct,
-            active_time=active_time,
-            rating=3 if is_correct else 1
-        )
-        db.add(user_ans)
-
-        # Update UserCardMastery FSRS state
-        mastery_res = await db.execute(
-            select(UserCardMastery).where(
-                UserCardMastery.user_id == user_id,
-                UserCardMastery.card_id == card_id
-            )
-        )
-        mastery = mastery_res.scalar_one_or_none()
-        if not mastery:
-            mastery = UserCardMastery(user_id=user_id, card_id=card_id)
-            db.add(mastery)
-
-        # FSRS Rating: 3=Good if correct, 1=Again if incorrect
-        rating = 3 if is_correct else 1
-        new_mastery_data = fsrs_engine.review_card(
-            rating=rating,
-            stability=mastery.stability,
-            difficulty=mastery.difficulty,
-            state=mastery.state,
-            step=mastery.step,
-            last_review=mastery.last_review
-        )
-        mastery.stability = new_mastery_data["stability"]
-        mastery.difficulty = new_mastery_data["difficulty"]
-        mastery.state = new_mastery_data["state"]
-        mastery.step = new_mastery_data["step"]
-        mastery.due = new_mastery_data["due"]
-        mastery.last_review = datetime.utcnow()
-        if is_correct:
-            mastery.consecutive_correct = (mastery.consecutive_correct or 0) + 1
-            if mastery.box_level < 5:
-                mastery.box_level += 1
-        else:
-            mastery.consecutive_correct = 0
-            mastery.box_level = 1
-
-    await db.commit()
-
-    passed = score_percentage >= pass_threshold
-    status = await get_deck_roadmap_status_helper(db, user_id, deck_id, settings)
-
-    return {
-        "status": "ok",
-        "score": score_percentage,
-        "correct_count": correct_count,
-        "total_count": total_count,
-        "passed": passed,
-        "pass_threshold": pass_threshold,
-        "retention_rate": status.get("retention_rate", 0),
-        "streak": status.get("streak", 0)
     }
