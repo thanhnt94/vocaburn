@@ -2700,39 +2700,46 @@ async def get_roadmap_test_questions(request: Request, deck_id: int, db: AsyncSe
     if not all_cards:
         return JSONResponse(status_code=404, content={"error": "No cards in deck"})
 
-    # Load deck practice QA pair settings
-    user_sett_res = await db.execute(
-        select(UserDeckSettings).where(
-            UserDeckSettings.user_id == user_id,
-            UserDeckSettings.deck_id == deck_id
-        )
-    )
-    user_sett = user_sett_res.scalar_one_or_none()
-    settings = user_sett.settings if (user_sett and user_sett.settings) else {}
-    migrated = migrate_practice_settings(settings)
-    mcq_setts = migrated.get("mcq", {})
-    active_pairs = mcq_setts.get("active_pairs", [])
-
-    if not active_pairs and deck.practice_settings and isinstance(deck.practice_settings, dict):
+    # Priority 1 for Roadmap Test: DECK CREATOR PRACTICE SETTINGS (cấu hình gốc của bộ thẻ)
+    active_pairs = []
+    if deck.practice_settings and isinstance(deck.practice_settings, dict):
         creator_migrated = migrate_practice_settings(deck.practice_settings)
         active_pairs = creator_migrated.get("mcq", {}).get("active_pairs", [])
+        if not active_pairs:
+            active_pairs = deck.practice_settings.get("active_pairs", [])
+
+    # Priority 2: User custom settings if creator settings are empty
+    if not active_pairs:
+        user_sett_res = await db.execute(
+            select(UserDeckSettings).where(
+                UserDeckSettings.user_id == user_id,
+                UserDeckSettings.deck_id == deck_id
+            )
+        )
+        user_sett = user_sett_res.scalar_one_or_none()
+        settings = user_sett.settings if (user_sett and user_sett.settings) else {}
+        migrated = migrate_practice_settings(settings)
+        mcq_setts = migrated.get("mcq", {})
+        active_pairs = mcq_setts.get("active_pairs", [])
 
     if not active_pairs:
         active_pairs = [{"q": "front", "a": "back"}]
 
     def extract_card_val(card, key):
-        if not key or key in ("front", "content"):
+        if not key:
             return (card.content or "").strip()
-        if card.others and isinstance(card.others, dict):
+        # 1. Check card.others dict FIRST for custom column keys (e.g. kanji, meaning, hiragana, etc.)
+        if card.others and isinstance(card.others, dict) and key in card.others:
             val = card.others.get(key)
-            if val and str(val).strip():
+            if val is not None and str(val).strip():
                 return str(val).strip()
+        if key in ("front", "content"):
+            return (card.content or "").strip()
         if key in ("back", "explanation"):
-            if card.explanation:
-                return card.explanation.strip()
+            return (card.explanation or "").strip()
         if hasattr(card, key):
             val = getattr(card, key)
-            if val and str(val).strip():
+            if val is not None and str(val).strip():
                 return str(val).strip()
         return (card.explanation or card.content or "").strip()
 
@@ -2853,6 +2860,7 @@ async def get_roadmap_test_questions(request: Request, deck_id: int, db: AsyncSe
 
     return {
         "title": deck_title,
+        "deck_title": deck_title,
         "questions": formatted_questions,
         "total": len(formatted_questions)
     }

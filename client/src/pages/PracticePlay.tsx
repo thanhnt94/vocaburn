@@ -3670,8 +3670,11 @@ export default function PracticePlay() {
             <X className="w-4.5 h-4.5" />
           </button>
           <div className="flex flex-col min-w-0">
-            <h1 className="text-xs md:text-sm font-extrabold text-slate-800 tracking-tight break-words line-clamp-2 leading-snug" title={session.title}>
-              {subMode === 'roadmap_test' ? `🎯 Bài Kiểm Tra Roadmap - ${session.title}` : session.title}
+            <h1 className="text-xs md:text-sm font-extrabold text-slate-800 tracking-tight break-words line-clamp-2 leading-snug" title={session?.title || session?.deck_title || ''}>
+              {(() => {
+                const dt = session?.title || session?.deck_title || session?.quiz_title || '';
+                return subMode === 'roadmap_test' ? `🎯 Bài Kiểm Tra Roadmap${dt ? ` - ${dt}` : ''}` : (dt || 'Luyện tập');
+              })()}
             </h1>
           </div>
         </div>
@@ -4815,16 +4818,18 @@ export default function PracticePlay() {
             {activeBottomTab === 'flashcard' && !isFeedbackOpen && (
               <div className="w-full flex items-center gap-1.5 sm:gap-3 px-3 sm:px-4 pt-1 pb-2">
             {/* Settings Button */}
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                setIsSettingsModalOpen(true);
-              }}
-              className="w-12 h-12 flex-shrink-0 flex items-center justify-center bg-indigo-50 border border-indigo-200 text-indigo-600 rounded-2xl shadow-sm active:scale-95 hover:bg-indigo-100 hover:border-indigo-300 transition-all"
-              title="Cấu hình học tập"
-            >
-              <Settings className="w-5.5 h-5.5 text-indigo-600" />
-            </button>
+            {subMode !== 'roadmap_test' && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setIsSettingsModalOpen(true);
+                }}
+                className="w-12 h-12 flex-shrink-0 flex items-center justify-center bg-indigo-50 border border-indigo-200 text-indigo-600 rounded-2xl shadow-sm active:scale-95 hover:bg-indigo-100 hover:border-indigo-300 transition-all"
+                title="Cấu hình học tập"
+              >
+                <Settings className="w-5.5 h-5.5 text-indigo-600" />
+              </button>
+            )}
 
               {(() => {
                 if (!currentQuestion) return null;
