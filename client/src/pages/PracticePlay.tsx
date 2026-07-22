@@ -3164,7 +3164,7 @@ export default function PracticePlay() {
         </div>
 
         <div className="w-full max-w-3xl mx-auto pt-6 border-t border-slate-100">
-          {['mcq', 'listening'].includes(practiceSubMode) && choices && (
+          {['mcq', 'listening', 'roadmap_test'].includes(practiceSubMode) && choices && (
             <div className="grid grid-cols-1 gap-2 md:gap-3.5 mb-2 md:mb-4">
               {choices.map((choice: string, idx: number) => {
                 const isSelected = selectedOption === idx;
