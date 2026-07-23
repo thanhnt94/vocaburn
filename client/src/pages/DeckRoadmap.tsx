@@ -45,12 +45,23 @@ export default function DeckRoadmap() {
 
   const queryClient = useQueryClient()
   const handleSaveRoadmapSettings = async (active = true, overrideType?: 'completion' | 'accumulation') => {
+    const targetType = overrideType || roadmapTypeInput;
+    if (status?.roadmap_type && status.roadmap_type !== targetType) {
+      const confirmSwitch = window.confirm(
+        `⚠️ CẢNH BÁO CHUYỂN CHẾ ĐỘ LỘ TRÌNH\n\n` +
+        `Bạn đang chuyển loại lộ trình từ "${status.roadmap_type === 'accumulation' ? 'Tích lũy' : 'Hoàn thành'}" sang "${targetType === 'accumulation' ? 'Tích lũy' : 'Hoàn thành'}".\n\n` +
+        `Việc chuyển đổi này sẽ RESET lại các chỉ số tiến độ và Streak cũ của lộ trình này để bắt đầu lại từ đầu.\n\n` +
+        `Bạn có chắc chắn muốn chuyển đổi không?`
+      );
+      if (!confirmSwitch) return;
+    }
+
     try {
       setIsSavingSettings(true)
       await axios.post(`/api/v1/deck/${id}/practice-settings`, {
         settings: {
           roadmap_active: active,
-          roadmap_type: overrideType || roadmapTypeInput,
+          roadmap_type: targetType,
           roadmap_daily_new: dailyNewInput,
           roadmap_pass_threshold: passThresholdInput
         },
@@ -343,25 +354,31 @@ export default function DeckRoadmap() {
               </p>
             </div>
 
-            {/* Completion estimate */}
-            {s.roadmap_type === 'accumulation' ? (
+            {/* Completion estimate - Reacts dynamically to selected radio button! */}
+            {roadmapTypeInput === 'accumulation' ? (
               <div className="p-4 bg-amber-50/60 rounded-2xl border border-amber-200/60">
                 <div className="text-[10px] font-black text-amber-700 uppercase tracking-widest mb-1">📈 Lộ Trình Tích Lũy Vô Tận</div>
                 <div className="text-sm font-black text-amber-950">
                   Đã tích lũy: {s.total_cards || 0} thẻ vựng trong bộ
                 </div>
                 <div className="text-[10px] font-semibold text-amber-700/80 mt-0.5">
-                  Mỗi ngày nhập thêm chỉ tiêu {s.roadmap_daily_new} từ mới để duy trì Streak.
+                  Không có ngày hoàn thành. Mỗi ngày nhập thêm chỉ tiêu {dailyNewInput} từ mới và học để duy trì Streak.
                 </div>
               </div>
             ) : (
               <div className="p-4 bg-indigo-50/60 rounded-2xl border border-indigo-100">
                 <div className="text-[10px] font-black text-indigo-500 uppercase tracking-widest mb-1">Dự kiến hoàn thành toàn bộ</div>
                 <div className="text-base font-black text-indigo-950">
-                  📅 {s.estimated_completion_date || 'Hoàn thành hôm nay!'}
+                  📅 {(() => {
+                    const unlearned = s.unlearned_cards || 0;
+                    const days = dailyNewInput > 0 ? Math.ceil(unlearned / dailyNewInput) : 0;
+                    const targetDate = new Date();
+                    targetDate.setDate(targetDate.getDate() + days);
+                    return days === 0 ? 'Hoàn thành hôm nay!' : targetDate.toISOString().split('T')[0];
+                  })()}
                 </div>
                 <div className="text-[10px] font-semibold text-slate-500 mt-0.5">
-                  Còn khoảng ~{s.days_left || 0} ngày nữa cho {s.unlearned_cards || 0} thẻ chưa học
+                  Còn khoảng ~{dailyNewInput > 0 ? Math.ceil((s.unlearned_cards || 0) / dailyNewInput) : 0} ngày nữa cho {s.unlearned_cards || 0} thẻ chưa học
                 </div>
               </div>
             )}

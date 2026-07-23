@@ -211,10 +211,28 @@ async def save_practice_settings(request: Request, deck_id: int, payload: dict, 
             merged = {}
             if isinstance(user_sett.settings, dict):
                 merged.update(user_sett.settings)
+            
+            old_type = merged.get("roadmap_type")
+            new_type = settings.get("roadmap_type") if isinstance(settings, dict) else None
+            
             if isinstance(settings, dict):
                 merged.update(settings)
             user_sett.settings = merged
             flag_modified(user_sett, "settings")
+            
+            # If user switched roadmap_type (e.g. from completion to accumulation or vice versa), reset roadmap progress!
+            if old_type and new_type and old_type != new_type:
+                from app.modules.deck.models import Flashcard, UserCardMastery, DeckAttempt, UserAnswer
+                from sqlalchemy import delete
+                card_ids_res = await db.execute(select(Flashcard.id).where(Flashcard.deck_id == deck_id))
+                card_ids = list(card_ids_res.scalars().all())
+                if card_ids:
+                    await db.execute(delete(UserCardMastery).where(UserCardMastery.user_id == user_id, UserCardMastery.card_id.in_(card_ids)))
+                    attempt_ids_res = await db.execute(select(DeckAttempt.id).where(DeckAttempt.user_id == user_id, DeckAttempt.deck_id == deck_id))
+                    attempt_ids = list(attempt_ids_res.scalars().all())
+                    if attempt_ids:
+                        await db.execute(delete(UserAnswer).where(UserAnswer.attempt_id.in_(attempt_ids)))
+                        await db.execute(delete(DeckAttempt).where(DeckAttempt.id.in_(attempt_ids)))
             
     await db.commit()
     return {"status": "ok"}
