@@ -345,19 +345,14 @@ function MiniHeatmap({ data }: { data: HeatmapDay[] }) {
 }
 
 // ─── Leaderboard Widget ────────────────────────────────────────────────────────
-function LeaderboardWidget({ data, activeFilter, onFilterChange }: { 
-  data: { 
-    leaderboard: any[], 
-    current_user_rank: number | null,
-    time_leaderboard?: any[],
-    current_user_time_rank?: number | null,
-    cards_leaderboard?: any[],
-    current_user_cards_rank?: number | null,
-    new_cards_leaderboard?: any[],
-    current_user_new_cards_rank?: number | null
-  },
-  activeFilter: string,
-  onFilterChange: (f: string) => void
+function LeaderboardWidget({ 
+  data, 
+  activeFilter, 
+  onFilterChange 
+}: { 
+  data: any, 
+  activeFilter: string, 
+  onFilterChange: (f: any) => void 
 }) {
   const [activeTab, setActiveTab] = useState<'xp' | 'time' | 'new_cards' | 'cards'>('xp')
 
@@ -467,7 +462,7 @@ function LeaderboardWidget({ data, activeFilter, onFilterChange }: {
       </div>
 
       <div className="flex flex-col gap-1.5">
-        {currentList.map((entry, index) => {
+        {currentList.map((entry: any, index: number) => {
           const isOutOfTop5 = (entry as any).out_of_top_5 || (entry as any).out_of_top_10
           
           return (
@@ -1159,7 +1154,8 @@ export default function Dashboard() {
   const [isJoinModalOpen, setIsJoinModalOpen] = useState(false)
   const [roomCode, setRoomCode] = useState('')
   const [isJoining, setIsJoining] = useState(false)
-  const [timeFilter, setTimeFilter] = useState('all_time')
+  const [mobileRoadmapIdx, setMobileRoadmapIdx] = useState(0)
+  const [timeFilter, setTimeFilter] = useState<'all' | 'month' | 'week'>('week')
   const carouselRef = useRef<HTMLDivElement>(null)
   const scrollCarousel = (direction: 'left' | 'right') => {
     if (carouselRef.current) {
@@ -1585,15 +1581,10 @@ export default function Dashboard() {
       {/* MOBILE FEED */}
       <div className="md:hidden px-4 w-full pt-[60px] flex-grow space-y-4 overflow-y-auto pb-28 scrollbar-none text-left bg-gradient-to-b from-slate-50/60 via-indigo-50/10 to-slate-50/80">
 
-        {/* ── Circular Daily Goal Widget ── */}
+        {/* ── Mobile Unified Roadmap Progress Card with Navigation Controls ── */}
         {(() => {
-          const hasRoadmaps = roadmapDecks && roadmapDecks.length > 0;
-          const fsrsDueCount = todayReview?.due_cards_count || 0;
-          const estMinutes = todayReview?.estimated_minutes || 0;
-          const streakAtRisk = todayReview?.streak_at_risk || 0;
-
-          // If no active roadmap decks and no FSRS cards due
-          if (!hasRoadmaps && fsrsDueCount === 0) {
+          const hasRoadmapDecks = roadmapDecks && roadmapDecks.length > 0;
+          if (!hasRoadmapDecks) {
             return (
               <div className="bg-white rounded-[2rem] p-6 text-center border border-slate-100 shadow-sm flex flex-col items-center justify-center">
                 <div className="w-12 h-12 rounded-full bg-slate-50 flex items-center justify-center mb-3">
@@ -1613,176 +1604,128 @@ export default function Dashboard() {
             );
           }
 
-          // Case: User has NO active roadmap goals, but has FSRS cards to review!
-          if (!hasRoadmaps && fsrsDueCount > 0) {
-            return (
-              <div className="bg-white rounded-[2rem] p-5 border border-slate-100 shadow-sm flex items-center gap-4 relative overflow-hidden">
-                <div className="absolute right-[-10%] top-[-20%] w-24 h-24 rounded-full bg-indigo-50/10 blur-xl pointer-events-none" />
-                
-                <div className="w-12 h-12 rounded-2xl bg-indigo-50 flex items-center justify-center text-indigo-600 flex-shrink-0 border border-indigo-100/50">
-                  <Brain className="w-6 h-6 text-indigo-600 animate-pulse" />
-                </div>
+          const currentIdx = Math.min(mobileRoadmapIdx, roadmapDecks.length - 1);
+          const currentDeck = roadmapDecks[currentIdx];
+          const status = currentDeck?.status || {};
 
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-1.5 mb-1">
-                    <span className="text-[8.5px] font-bold px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-650 border border-indigo-100/30">
-                      ⚡ Chế độ FSRS
-                    </span>
-                    {estMinutes > 0 && (
-                      <span className="text-[8.5px] font-medium px-2 py-0.5 rounded-full bg-slate-100 text-slate-500">
-                        ⏱️ ~{estMinutes}m
-                      </span>
-                    )}
-                  </div>
-                  <h2 className="text-[13px] font-black text-slate-800 leading-snug">Bạn có thẻ đến hạn ôn tập FSRS</h2>
-                  <p className="text-[10px] font-bold text-rose-500 mt-0.5">Số thẻ cần ôn tập: {fsrsDueCount} thẻ</p>
-                </div>
-              </div>
-            );
-          }
+          const newTarget = status.new_target_today || 0;
+          const newLearned = status.new_learned_today || 0;
+          const reviewDue = status.review_due_today || 0;
+          const reviewDone = status.review_completed_today || 0;
 
-          // Case: User has active roadmap goals! Show the circular progress widget tracking today's progress.
-          const totalNew = roadmapDecks?.reduce((sum: number, d: any) => sum + (d.status?.new_target_today || 0), 0) || 0;
-          const totalNewDone = roadmapDecks?.reduce((sum: number, d: any) => sum + (d.status?.new_learned_today || 0), 0) || 0;
-          const totalReview = roadmapDecks?.reduce((sum: number, d: any) => sum + (d.status?.review_due_today || 0), 0) || 0;
-          const totalReviewDone = roadmapDecks?.reduce((sum: number, d: any) => sum + (d.status?.review_completed_today || 0), 0) || 0;
+          const totalTasks = newTarget + reviewDue;
+          const totalDone = newLearned + reviewDone;
+          const percentComplete = totalTasks > 0 ? Math.min(100, Math.round((totalDone / totalTasks) * 100)) : 100;
+          const isStage1Done = status.stage_1_done;
+          const isStage2Done = status.stage_2_done;
+          const nextActionUrl = status.next_action_url;
 
-          const totalTasks = totalNew + totalReview;
-          const totalDone = totalNewDone + totalReviewDone;
-          const percentComplete = totalTasks > 0 
-            ? Math.min(100, Math.round((totalDone / totalTasks) * 100)) 
-            : 100;
-          const allFinished = totalTasks > 0 && totalDone >= totalTasks;
-
-          const radius = 32;
-          const strokeWidth = 6;
+          const radius = 30;
+          const strokeWidth = 5.5;
           const circumference = 2 * Math.PI * radius;
           const strokeDashoffset = circumference - (circumference * percentComplete) / 100;
 
           return (
-            <div className="bg-white rounded-[2rem] p-5 border border-slate-100 shadow-sm flex items-center gap-5 relative overflow-hidden">
-              <div className="absolute right-[-10%] top-[-20%] w-24 h-24 rounded-full bg-indigo-50/15 blur-xl pointer-events-none" />
-              
-              {/* SVG Circular Progress */}
-              <div className="relative w-20 h-20 flex-shrink-0 flex items-center justify-center">
-                <svg className="w-full h-full transform -rotate-90">
-                  <circle
-                    cx="40"
-                    cy="40"
-                    r={radius}
-                    fill="transparent"
-                    stroke="#f1f5f9"
-                    strokeWidth={strokeWidth}
-                  />
-                  <circle
-                    cx="40"
-                    cy="40"
-                    r={radius}
-                    fill="transparent"
-                    stroke="#6366f1"
-                    strokeWidth={strokeWidth}
-                    strokeDasharray={circumference}
-                    strokeDashoffset={strokeDashoffset}
-                    strokeLinecap="round"
-                    className="transition-all duration-500"
-                  />
-                </svg>
-                <div className="absolute flex flex-col items-center justify-center text-center">
-                  <span className="text-xs font-black text-slate-800">{percentComplete}%</span>
-                  <span className="text-[7.5px] font-bold text-slate-400 uppercase tracking-wider">Tiến độ</span>
-                </div>
-              </div>
+            <div className="bg-white rounded-[2rem] p-5 border border-slate-100 shadow-sm relative overflow-hidden space-y-4">
+              <div className="absolute right-[-10%] top-[-20%] w-24 h-24 rounded-full bg-indigo-50/20 blur-xl pointer-events-none" />
 
-              {/* Goal Info */}
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-1.5 mb-1">
-                  <span className="text-[8.5px] font-bold px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-600 border border-indigo-100/50">
-                    🎯 Hôm nay
+              {/* Header with Navigation Controls */}
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[8.5px] font-black uppercase tracking-widest px-2.5 py-0.5 rounded-full bg-indigo-50 text-indigo-600 border border-indigo-100/50">
+                    🎯 Tiến độ Lộ trình
                   </span>
-                  {estMinutes > 0 && (
-                    <span className="text-[8.5px] font-medium px-2 py-0.5 rounded-full bg-slate-100 text-slate-500">
-                      ⏱️ {estMinutes}m
-                    </span>
-                  )}
-                  {streakAtRisk && (
-                    <span className="text-[8.5px] font-bold px-2 py-0.5 rounded-full bg-rose-50 text-rose-500 animate-pulse border border-rose-100/30">
-                      🔥 Sắp mất streak
+                  {roadmapDecks.length > 1 && (
+                    <span className="text-[9px] font-bold text-slate-400">
+                      ({currentIdx + 1}/{roadmapDecks.length})
                     </span>
                   )}
                 </div>
-                
-                <h2 className="text-[13px] font-black text-slate-800 leading-snug tracking-tight">
-                  {allFinished ? "Tất cả mục tiêu đã hoàn thành! 🎉" : "Tiến độ học tập theo lộ trình"}
-                </h2>
-                
-                <div className="flex items-center gap-3 text-[10px] text-slate-400 font-bold mt-1.5">
-                  <span>Học mới: <span className="text-indigo-650 font-black">{totalNewDone}/{totalNew}</span></span>
-                  <span className="text-slate-200">·</span>
-                  <span>Ôn tập: <span className="text-indigo-650 font-black">{totalReviewDone}/{totalReview}</span></span>
-                </div>
-              </div>
-            </div>
-          );
-        })()}
 
-        {/* ── Active Deck Quick-Resume Banner ── */}
-        {(() => {
-          const activeDeck = activeDecks?.[0];
-          if (!activeDeck) return null;
-
-          return (
-            <div className="bg-gradient-to-br from-indigo-900 via-slate-900 to-indigo-950 border border-indigo-500/25 rounded-[2.25rem] p-5 text-white shadow-lg shadow-indigo-950/20 relative overflow-hidden">
-              <div className="absolute right-[-10%] top-[-20%] w-28 h-28 rounded-full bg-white/10 blur-xl pointer-events-none" />
-              <div className="absolute left-[-10%] bottom-[-20%] w-20 h-20 rounded-full bg-white/10 blur-xl pointer-events-none" />
-              
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-[8.5px] font-black uppercase tracking-widest text-indigo-200 bg-white/10 px-2.5 py-0.5 rounded-full">
-                  🔥 Học tiếp
-                </span>
-                {activeDeck.has_due && (
-                  <span className="text-[8.5px] font-black uppercase tracking-widest text-amber-300 bg-amber-400/10 px-2.5 py-0.5 rounded-full animate-pulse border border-amber-400/20">
-                    Hôm nay: {activeDeck.new_remaining > 0 ? `${activeDeck.new_remaining} mới` : ''}{activeDeck.new_remaining > 0 && activeDeck.review_remaining > 0 ? ', ' : ''}{activeDeck.review_remaining > 0 ? `${activeDeck.review_remaining} ôn` : ''}
-                  </span>
+                {roadmapDecks.length > 1 && (
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      onClick={() => setMobileRoadmapIdx(prev => Math.max(0, prev - 1))}
+                      disabled={currentIdx === 0}
+                      className="w-7 h-7 rounded-full bg-slate-50 border border-slate-200 flex items-center justify-center text-xs font-black text-slate-600 shadow-sm active:scale-90 transition-all disabled:opacity-30 disabled:pointer-events-none"
+                    >
+                      ❮
+                    </button>
+                    <button
+                      onClick={() => setMobileRoadmapIdx(prev => Math.min(roadmapDecks.length - 1, prev + 1))}
+                      disabled={currentIdx === roadmapDecks.length - 1}
+                      className="w-7 h-7 rounded-full bg-slate-50 border border-slate-200 flex items-center justify-center text-xs font-black text-slate-600 shadow-sm active:scale-90 transition-all disabled:opacity-30 disabled:pointer-events-none"
+                    >
+                      ❯
+                    </button>
+                  </div>
                 )}
               </div>
 
-              <div className="flex items-center gap-4 mt-3">
-                <div className="w-12 h-12 rounded-2xl bg-white/15 backdrop-blur-md flex items-center justify-center text-2xl border border-white/10 flex-shrink-0 overflow-hidden">
-                  {activeDeck.cover_image ? (
-                    <img src={activeDeck.cover_image} alt="" className="w-full h-full object-cover" />
-                  ) : (
-                    <span>📘</span>
-                  )}
+              {/* Progress & Deck Info */}
+              <div className="flex items-center gap-4">
+                {/* SVG Circular Progress */}
+                <div className="relative w-16 h-16 flex-shrink-0 flex items-center justify-center">
+                  <svg className="w-full h-full transform -rotate-90">
+                    <circle cx="32" cy="32" r={radius} fill="transparent" stroke="#f1f5f9" strokeWidth={strokeWidth} />
+                    <circle
+                      cx="32"
+                      cy="32"
+                      r={radius}
+                      fill="transparent"
+                      stroke="#6366f1"
+                      strokeWidth={strokeWidth}
+                      strokeDasharray={circumference}
+                      strokeDashoffset={strokeDashoffset}
+                      strokeLinecap="round"
+                      className="transition-all duration-500"
+                    />
+                  </svg>
+                  <div className="absolute flex flex-col items-center justify-center text-center">
+                    <span className="text-[11px] font-black text-slate-800">{percentComplete}%</span>
+                  </div>
                 </div>
-                
+
                 <div className="flex-1 min-w-0">
-                  <h3 className="text-sm font-black truncate leading-tight">{activeDeck.title}</h3>
-                  <p className="text-[10px] text-indigo-100 font-bold mt-1">
-                    Tiến độ: {activeDeck.learned_cards}/{activeDeck.total_cards} thẻ ({activeDeck.total_pct}%)
-                  </p>
+                  <h3 className="text-xs font-black text-slate-800 truncate leading-snug">
+                    {currentDeck?.title}
+                  </h3>
+                  <div className="flex items-center gap-2 text-[10px] text-slate-500 font-bold mt-1">
+                    <span>Học mới: <span className="text-indigo-600 font-black">{newLearned}/{newTarget}</span></span>
+                    <span className="text-slate-300">·</span>
+                    <span>Ôn tập: <span className="text-indigo-600 font-black">{reviewDone}/{reviewDue}</span></span>
+                  </div>
+
+                  <div className="flex items-center gap-1.5 mt-2">
+                    <span className={`text-[8px] font-black px-2 py-0.5 rounded-full ${isStage1Done ? 'bg-emerald-50 text-emerald-600 border border-emerald-200' : 'bg-amber-50 text-amber-600 border border-amber-200'}`}>
+                      {isStage1Done ? '✓ Bước 1: Đạt chỉ tiêu' : '• Bước 1: Học từ mới'}
+                    </span>
+                    {status.has_stage_2 && (
+                      <span className={`text-[8px] font-black px-2 py-0.5 rounded-full ${isStage2Done ? 'bg-emerald-50 text-emerald-600 border border-emerald-200' : isStage1Done ? 'bg-indigo-50 text-indigo-600 border border-indigo-200' : 'bg-slate-50 text-slate-400'}`}>
+                        {isStage2Done ? '✓ Bước 2: Đã đạt bài test' : '• Bước 2: Bài test'}
+                      </span>
+                    )}
+                  </div>
                 </div>
               </div>
 
-              {/* Progress bar */}
-              <div className="h-1.5 bg-white/15 rounded-full overflow-hidden mt-4 mb-4">
-                <div 
-                  className="h-full bg-white rounded-full transition-all" 
-                  style={{ width: `${activeDeck.total_pct}%` }} 
-                />
-              </div>
-
+              {/* Quick Start Button */}
               <button
                 onClick={() => {
-                  if (todayReview?.due_cards_count > 0 && todayReview?.decks_summary?.[0]?.deck_id === activeDeck.deck_id) {
-                    navigate(`/flashcard/${activeDeck.deck_id}/play?mode=fsrs`);
+                  if (nextActionUrl) {
+                    navigate(nextActionUrl);
                   } else {
-                    navigate(`/flashcard/${activeDeck.deck_id}/play?mode=${activeDeck.has_due ? 'roadmap' : 'fsrs'}`);
+                    navigate(`/flashcard/${currentDeck.deck_id}`);
                   }
                 }}
-                className="w-full h-11 bg-white hover:bg-slate-50 text-indigo-700 font-black text-[11px] rounded-xl active:scale-[0.98] transition-all flex items-center justify-center gap-1.5 shadow-sm"
+                className="w-full h-11 bg-indigo-600 hover:bg-indigo-700 active:scale-[0.98] text-white font-black text-xs rounded-xl transition-all flex items-center justify-center gap-2 shadow-md shadow-indigo-200"
               >
-                <Play className="w-3 h-3 fill-current" />
-                HỌC TIẾP NGAY
+                <Play className="w-3.5 h-3.5 fill-current" />
+                {isStage2Done
+                  ? 'HOÀN THÀNH LỘ TRÌNH HÔM NAY (XEM LẠI)'
+                  : isStage1Done
+                  ? 'BẮT ĐẦU BÀI TEST LỘ TRÌNH'
+                  : 'BẮT ĐẦU HỌC TỪ MỚI'}
               </button>
             </div>
           );

@@ -3900,7 +3900,7 @@ export default function PracticePlay() {
                   <div className="w-24 xs:w-32 md:w-44 bg-slate-100 rounded-full h-2 overflow-hidden border border-slate-200/50 mt-0.5">
                     <div
                       className="bg-gradient-to-r from-indigo-500 to-purple-600 h-full rounded-full transition-all duration-300"
-                      style={{ width: `${Math.min(100, Math.round(((currentIndex + 1) / totalQ) * 100))}%` }}
+                      style={{ width: `${Math.min(100, progressPercent)}%` }}
                     />
                   </div>
                 </div>
