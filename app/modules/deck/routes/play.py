@@ -3001,9 +3001,95 @@ async def get_roadmap_test_questions(request: Request, deck_id: int, db: AsyncSe
             }
         })
 
+    # Save generated unique roadmap test session to DB for resuming later
+    if existing_session:
+        existing_session.mode = "roadmap_test"
+        existing_session.current_index = 0
+        existing_session.state_json = json.dumps({
+            "questions": formatted_questions,
+            "practiceAnswers": {},
+            "created_date": today_str,
+            "completed": False
+        })
+    else:
+        new_session = DeckSession(
+            deck_id=deck_id,
+            user_id=user_id,
+            mode="roadmap_test",
+            current_index=0,
+            state_json=json.dumps({
+                "questions": formatted_questions,
+                "practiceAnswers": {},
+                "created_date": today_str,
+                "completed": False
+            })
+        )
+        db.add(new_session)
+    
+    await db.commit()
+
     return {
         "title": deck_title,
         "deck_title": deck_title,
         "questions": formatted_questions,
         "total": len(formatted_questions)
+    }
+
+
+@router.post("/{deck_id}/roadmap-test-submit")
+async def submit_roadmap_test(request: Request, deck_id: int, data: dict, db: AsyncSession = Depends(get_db)):
+    user_id = int(request.cookies.get("user_id", 1))
+    from app.modules.deck.models import DeckSession, DeckAttempt, UserAnswer
+    from sqlalchemy import delete
+    
+    answers = data.get("answers", [])
+    total_questions = len(answers)
+    correct_count = sum(1 for a in answers if a.get("is_correct"))
+    score_percentage = (correct_count / total_questions * 100.0) if total_questions > 0 else 0.0
+    passed = score_percentage >= 60.0
+
+    # 1. Record DeckAttempt
+    attempt = DeckAttempt(
+        user_id=user_id,
+        deck_id=deck_id,
+        mode="roadmap_test",
+        total_questions=total_questions,
+        correct_count=correct_count,
+        score=score_percentage,
+        time_spent_seconds=data.get("time_spent_seconds", 0)
+    )
+    db.add(attempt)
+    await db.flush()
+
+    # 2. Record UserAnswers
+    for ans in answers:
+        card_id = ans.get("card_id")
+        if card_id:
+            user_ans = UserAnswer(
+                attempt_id=attempt.id,
+                card_id=card_id,
+                is_correct=ans.get("is_correct", False),
+                user_response=ans.get("user_response", ""),
+                active_time_seconds=ans.get("active_time", 2.0)
+            )
+            db.add(user_ans)
+
+    # 3. Clean up DeckSession upon completion so a new test can be generated next time
+    await db.execute(
+        delete(DeckSession).where(
+            DeckSession.deck_id == deck_id,
+            DeckSession.user_id == user_id,
+            DeckSession.mode == "roadmap_test"
+        )
+    )
+
+    await db.commit()
+
+    return {
+        "status": "ok",
+        "passed": passed,
+        "score": round(score_percentage, 1),
+        "correct_count": correct_count,
+        "total_questions": total_questions,
+        "message": "Bài kiểm tra hoàn thành xuất sắc!" if passed else "Bạn chưa đạt điểm đỗ (60%), hãy luyện tập thêm nhé!"
     }
