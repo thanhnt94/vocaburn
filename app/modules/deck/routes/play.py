@@ -2615,23 +2615,45 @@ async def get_deck_roadmap_status_helper(db: AsyncSession, user_id: int, deck_id
 async def get_roadmap_decks(request: Request, db: AsyncSession = Depends(get_db)):
     user_id = int(request.cookies.get("user_id", 1))
     
+    from app.modules.deck.models import FlashcardDeck, UserCardMastery, Flashcard
+    
+    # 1. Fetch user's explicit settings
     user_setts_res = await db.execute(
         select(UserDeckSettings).where(UserDeckSettings.user_id == user_id)
     )
-    user_setts = user_setts_res.scalars().all()
+    user_setts_map = {sett.deck_id: (sett.settings or {}) for sett in user_setts_res.scalars().all()}
     
+    # 2. Fetch all decks where user has active mastery / answers OR explicit settings
+    user_deck_ids_res = await db.execute(
+        select(Flashcard.deck_id)
+        .join(UserCardMastery, Flashcard.id == UserCardMastery.card_id)
+        .where(UserCardMastery.user_id == user_id)
+        .distinct()
+    )
+    mastery_deck_ids = set(user_deck_ids_res.scalars().all())
+    all_candidate_deck_ids = list(mastery_deck_ids.union(set(user_setts_map.keys())))
+
     active_roadmaps = []
-    from app.modules.deck.models import FlashcardDeck
-    for sett in user_setts:
-        s_dict = sett.settings or {}
-        if s_dict.get("roadmap_active", False):
-            deck_res = await db.execute(select(FlashcardDeck).where(FlashcardDeck.id == sett.deck_id))
-            deck = deck_res.scalar_one_or_none()
-            if deck:
-                status = await get_deck_roadmap_status_helper(db, user_id, deck.id, s_dict)
-                # Resolve cover image url
-                from .media_resolver import get_sso_server_url, resolve_central_url
-                sso_url = await get_sso_server_url(db)
+    if all_candidate_deck_ids:
+        decks_res = await db.execute(
+            select(FlashcardDeck).where(FlashcardDeck.id.in_(all_candidate_deck_ids))
+        )
+        decks = decks_res.scalars().all()
+        
+        from .media_resolver import get_sso_server_url, resolve_central_url
+        sso_url = await get_sso_server_url(db)
+
+        for deck in decks:
+            u_sett = user_setts_map.get(deck.id, {})
+            # Roadmap is active if user_settings has roadmap_active OR creator practice_settings has roadmap_active
+            creator_sett = deck.practice_settings if isinstance(deck.practice_settings, dict) else {}
+            
+            # Default to active if user studied this deck or creator set roadmap_active
+            is_active = u_sett.get("roadmap_active", creator_sett.get("roadmap_active", True if u_sett else False))
+            
+            if is_active:
+                merged_settings = {**creator_sett, **u_sett, "roadmap_active": True}
+                status = await get_deck_roadmap_status_helper(db, user_id, deck.id, merged_settings)
                 cover_image = resolve_central_url(deck.cover_image, sso_url) if deck.cover_image else None
                 active_roadmaps.append({
                     "deck_id": deck.id,
@@ -2640,7 +2662,7 @@ async def get_roadmap_decks(request: Request, db: AsyncSession = Depends(get_db)
                     "cover_image": cover_image,
                     "status": status
                 })
-                
+
     return {"decks": active_roadmaps}
 
 
@@ -2733,6 +2755,26 @@ async def get_roadmap_test_questions(request: Request, deck_id: int, db: AsyncSe
 
     deck_title = deck.title
     today_str = datetime.utcnow().strftime("%Y-%m-%d")
+
+    # Gate check: Step 1 (Học từ mới) MUST be completed today before entering Stage 2 Test
+    user_sett_res = await db.execute(
+        select(UserDeckSettings).where(
+            UserDeckSettings.user_id == user_id,
+            UserDeckSettings.deck_id == deck_id
+        )
+    )
+    user_sett = user_sett_res.scalar_one_or_none()
+    settings = user_sett.settings if (user_sett and user_sett.settings) else {}
+    status_info = await get_deck_roadmap_status_helper(db, user_id, deck_id, settings)
+    
+    if not status_info.get("stage_1_done"):
+        return JSONResponse(
+            status_code=400,
+            content={
+                "error": "stage_1_not_done",
+                "message": "Bạn chưa hoàn thành chỉ tiêu học từ mới hôm nay (Bước 1)! Hãy hoàn thành Bước 1 trước khi làm Bài kiểm tra Roadmap."
+            }
+        )
 
     # Check for existing active DeckSession for roadmap_test
     session_res = await db.execute(

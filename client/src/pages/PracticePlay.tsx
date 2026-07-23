@@ -1328,7 +1328,12 @@ export default function PracticePlay() {
           }
         }
       }
-    } catch (e) {
+    } catch (e: any) {
+      if (e?.response?.data?.error === 'stage_1_not_done') {
+        alert(e.response.data.message || "Bạn chưa hoàn thành Bước 1 học từ mới!");
+        navigate(`/flashcard/${id}/roadmap`);
+        return;
+      }
       navigate('/')
     }
   }

@@ -193,10 +193,23 @@ export default function DeckRoadmap() {
                 <span className="text-emerald-600">≥ {s.roadmap_pass_threshold || 80}%</span>
               </div>
               <button
-                onClick={() => navigate(`/practice/${id}/roadmap_test`)}
-                className="w-full mt-4 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white rounded-xl font-black text-xs uppercase tracking-wider shadow-md shadow-indigo-200 transition-all cursor-pointer"
+                onClick={() => {
+                  if (!s.stage_1_done) {
+                    alert("Bạn chưa hoàn thành Bước 1 (Học từ mới)! Vui lòng lật thẻ học hết số từ chỉ tiêu hôm nay trước khi vào làm Bài kiểm tra Roadmap.");
+                    return;
+                  }
+                  navigate(`/practice/${id}/roadmap_test`);
+                }}
+                disabled={!s.stage_1_done}
+                className={cn(
+                  "w-full mt-4 py-3 text-white rounded-xl font-black text-xs uppercase tracking-wider transition-all cursor-pointer",
+                  s.stage_1_done
+                    ? "bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 shadow-md shadow-indigo-200"
+                    : "bg-slate-300 text-slate-500 cursor-not-allowed opacity-70"
+                )}
+                title={!s.stage_1_done ? "Hoàn thành Bước 1 để mở khóa Bài kiểm tra" : "Vào làm bài kiểm tra"}
               >
-                Vào Làm Bài Test 🎯
+                {!s.stage_1_done ? "🔒 Cần Hoàn Thành Bước 1 Trực Tiếp" : "Vào Làm Bài Test 🎯"}
               </button>
             </div>
           ) : (
