@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { ChevronLeft, Compass, Target, Flame, Brain, Play, CheckCircle2, Circle, Clock, ArrowRight, Settings, RotateCcw, Sparkles, BookOpen, Layers, Lock, ShieldCheck } from 'lucide-react'
 import { motion } from 'framer-motion'
 import axios from 'axios'
@@ -41,6 +41,7 @@ export default function DeckRoadmap() {
     }
   }, [status])
 
+  const queryClient = useQueryClient()
   const handleSaveRoadmapSettings = async (active = true) => {
     try {
       setIsSavingSettings(true)
@@ -53,6 +54,8 @@ export default function DeckRoadmap() {
         is_creator: false
       })
       await refetch()
+      queryClient.invalidateQueries({ queryKey: ['roadmapDecks'] })
+      queryClient.invalidateQueries({ queryKey: ['roadmap-global-decks'] })
     } catch (e) {
       console.error("Failed to save roadmap settings:", e)
     } finally {
