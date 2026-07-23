@@ -2446,7 +2446,7 @@ async def get_deck_roadmap_status_helper(db: AsyncSession, user_id: int, deck_id
         select(func.count(Flashcard.id))
         .where(
             Flashcard.deck_id == deck_id,
-            Flashcard.created_at >= today_start
+            func.coalesce(Flashcard.created_at, datetime.utcnow()) >= today_start
         )
     ) or 0
 

@@ -46,6 +46,7 @@ class Flashcard(Base):
     question_type = Column(String(50), default="flashcard")
     explanation = Column(Text, nullable=True)
     others = Column(JSON, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=True)
     
     deck = relationship("FlashcardDeck", back_populates="cards")
     contributions = relationship("CardContribution", back_populates="card", cascade="all, delete-orphan")
