@@ -179,17 +179,31 @@ export default function DeckRoadmap() {
             <div className="w-12 h-12 rounded-2xl bg-orange-50 text-orange-600 flex items-center justify-center text-xl font-black mb-3">
               🎴
             </div>
-            <h3 className="text-base font-black text-slate-900 mb-1">1. Học Từ Mới</h3>
-            <p className="text-xs font-semibold text-slate-500 mb-4">Lật thẻ Flashcard để tiếp thu đủ chỉ tiêu số từ mới trong ngày.</p>
-            <div className="flex items-center justify-between text-xs font-black pt-3 border-t border-slate-100">
-              <span className="text-slate-400">Tiến độ hôm nay:</span>
-              <span className="text-orange-600">{s.new_learned_today || 0} / {s.new_target_today || 10} từ</span>
+            <h3 className="text-base font-black text-slate-900 mb-1">1. Học Từ Mới & Ôn Tập</h3>
+            <p className="text-xs font-semibold text-slate-500 mb-4">Lật thẻ Flashcard để tiếp thu đủ chỉ tiêu số từ mới trong ngày, rồi ôn tập các từ đến hạn.</p>
+            <div className="flex flex-col gap-1.5 pt-3 border-t border-slate-100">
+              <div className="flex items-center justify-between text-xs font-black">
+                <span className="text-slate-400">Từ mới hôm nay:</span>
+                <span className={s.stage_1_done ? "text-emerald-600" : "text-orange-600"}>{s.new_learned_today || 0} / {s.new_target_today || 10} từ {s.stage_1_done ? '✓' : ''}</span>
+              </div>
+              <div className="flex items-center justify-between text-xs font-black">
+                <span className="text-slate-400">Ôn tập hôm nay:</span>
+                <span className={s.review_completed_today >= s.review_due_today ? "text-emerald-600" : "text-indigo-600"}>{s.review_completed_today || 0} / {s.review_due_today || 0} thẻ {s.review_completed_today >= s.review_due_today && s.review_due_today > 0 ? '✓' : ''}</span>
+              </div>
             </div>
             <button
-              onClick={() => navigate(`/flashcard/${id}/play?mode=roadmap`)}
+              onClick={() => {
+                if (!s.stage_1_done) {
+                  navigate(`/flashcard/${id}/play?mode=roadmap`)
+                } else if (s.review_due_today > 0 && s.review_completed_today < s.review_due_today) {
+                  navigate(`/flashcard/${id}/play?mode=review`)
+                } else {
+                  navigate(`/flashcard/${id}/play?mode=roadmap`)
+                }
+              }}
               className="w-full mt-4 py-3 bg-slate-900 hover:bg-slate-800 text-white rounded-xl font-black text-xs uppercase tracking-wider transition-all"
             >
-              Vào Học Từ Mới 🚀
+              {!s.stage_1_done ? 'Vào Học Từ Mới 🚀' : (s.review_due_today > 0 && s.review_completed_today < s.review_due_today ? `Ôn Tập (${s.review_due_today - s.review_completed_today} thẻ) 📚` : 'Hoàn Thành ✓')}
             </button>
           </div>
 

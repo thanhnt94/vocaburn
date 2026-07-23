@@ -2586,6 +2586,10 @@ async def get_deck_roadmap_status_helper(db: AsyncSession, user_id: int, deck_id
             current_stage = 1
             next_action_url = f"/flashcard/{deck_id}/play?mode=roadmap"
             next_action_label = "Học từ mới"
+        elif review_due_today > 0 and review_completed_today < review_due_today:
+            current_stage = 1
+            next_action_url = f"/flashcard/{deck_id}/play?mode=review"
+            next_action_label = "Ôn tập"
         else:
             current_stage = 3
             next_action_url = f"/flashcard/{deck_id}/roadmap"
@@ -2596,6 +2600,10 @@ async def get_deck_roadmap_status_helper(db: AsyncSession, user_id: int, deck_id
             current_stage = 1
             next_action_url = f"/flashcard/{deck_id}/play?mode=roadmap"
             next_action_label = "Học từ mới"
+        elif review_due_today > 0 and review_completed_today < review_due_today:
+            current_stage = 1
+            next_action_url = f"/flashcard/{deck_id}/play?mode=review"
+            next_action_label = "Ôn tập"
         elif not stage_2_done:
             current_stage = 2
             next_action_url = f"/practice/{deck_id}/roadmap_test"
