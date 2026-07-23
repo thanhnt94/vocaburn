@@ -105,15 +105,19 @@ export default function DeckRoadmap() {
               <span className="px-3 py-1 rounded-full bg-indigo-500/30 text-indigo-200 text-[10px] font-black uppercase tracking-widest border border-indigo-400/30">
                 Lộ Trình Học Tập Cá Nhân
               </span>
-              {s.roadmap_active ? (
-                <span className="px-3 py-1 rounded-full bg-emerald-500/30 text-emerald-300 text-[10px] font-black uppercase tracking-widest border border-emerald-400/30">
-                  ✓ Đã Kích Hoạt
-                </span>
-              ) : (
-                <span className="px-3 py-1 rounded-full bg-slate-500/30 text-slate-300 text-[10px] font-black uppercase tracking-widest border border-slate-400/30">
-                  Tắt Lộ Trình
-                </span>
-              )}
+              <button
+                onClick={() => handleSaveRoadmapSettings(!s.roadmap_active)}
+                disabled={isSavingSettings}
+                className={cn(
+                  "px-3.5 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border transition-all cursor-pointer shadow-sm active:scale-95",
+                  s.roadmap_active
+                    ? "bg-emerald-500/30 text-emerald-300 border-emerald-400/40 hover:bg-emerald-500/50"
+                    : "bg-slate-700/60 text-slate-300 border-slate-500/50 hover:bg-slate-700"
+                )}
+                title="Bấm để bật/tắt Lộ trình cho bộ thẻ này"
+              >
+                {s.roadmap_active ? "✓ Đã Kích Hoạt (Bấm để Tắt)" : "🚫 Đã Tắt Lộ Trình (Bấm để Bật)"}
+              </button>
             </div>
 
             <h1 className="text-2xl md:text-3xl font-black tracking-tight text-white mb-2">
@@ -244,9 +248,15 @@ export default function DeckRoadmap() {
             </h3>
             <button
               onClick={() => handleSaveRoadmapSettings(!s.roadmap_active)}
-              className={cn("px-3 py-1 rounded-xl text-xs font-black transition-all cursor-pointer", s.roadmap_active ? "bg-rose-50 text-rose-600 hover:bg-rose-100" : "bg-emerald-50 text-emerald-600 hover:bg-emerald-100")}
+              disabled={isSavingSettings}
+              className={cn(
+                "px-3.5 py-1.5 rounded-xl text-xs font-black transition-all cursor-pointer shadow-sm border active:scale-95",
+                s.roadmap_active
+                  ? "bg-rose-50 text-rose-600 border-rose-200 hover:bg-rose-100"
+                  : "bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100"
+              )}
             >
-              {s.roadmap_active ? 'Tắt Lộ Trình' : 'Kích Hoạt Lộ Trình'}
+              {s.roadmap_active ? '🚫 Tắt Lộ Trình Này' : '⚡ Kích Hoạt Lộ Trình'}
             </button>
           </div>
 
@@ -306,7 +316,7 @@ export default function DeckRoadmap() {
             </div>
 
             <button
-              onClick={() => handleSaveRoadmapSettings(true)}
+              onClick={() => handleSaveRoadmapSettings(s.roadmap_active !== false)}
               disabled={isSavingSettings}
               className="w-full py-3.5 bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xs uppercase tracking-widest rounded-2xl shadow-lg shadow-indigo-200 transition-all cursor-pointer"
             >
