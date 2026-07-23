@@ -3149,11 +3149,11 @@ export default function PracticePlay() {
     }
 
     return (
-      <div className="flex-1 bg-white md:rounded-[2rem] rounded-[1.25rem] border border-slate-100 md:p-6 md:pt-4 p-4 pt-3 flex flex-col justify-between shadow-2xl shadow-indigo-100/40 min-h-0 overflow-y-auto">
+      <div className="flex-1 bg-white md:rounded-[2rem] rounded-[1.25rem] border border-slate-100 md:p-6 md:pt-4 p-4 pt-3 flex flex-col justify-end gap-4 md:gap-6 shadow-2xl shadow-indigo-100/40 min-h-0 overflow-y-auto">
 
         {/* Premium Question Card container for better space usage and rich aesthetics */}
-        <div className="w-full max-w-3xl mx-auto py-1 text-center animate-in fade-in slide-in-from-top-3 duration-500">
-          <div className="w-full bg-white border-2 border-indigo-100/80 rounded-[2rem] p-5 md:p-6 shadow-sm flex flex-col items-center justify-center text-center gap-4 relative overflow-hidden mb-1">
+        <div className="w-full max-w-3xl mx-auto py-1 text-center animate-in fade-in slide-in-from-top-3 duration-500 my-auto">
+          <div className="w-full bg-white border-2 border-indigo-100/80 rounded-[2rem] p-5 md:p-6 shadow-sm flex flex-col items-center justify-center text-center gap-4 relative overflow-hidden">
             <div className="absolute top-[-10%] left-[-10%] w-[30%] h-[30%] rounded-full bg-indigo-50/20 blur-2xl pointer-events-none" />
             <div className="absolute bottom-[-10%] right-[-10%] w-[30%] h-[30%] rounded-full bg-pink-50/20 blur-2xl pointer-events-none" />
             {showImages && currentQuestion.image && practiceSubMode !== 'listening' && (
@@ -3192,7 +3192,7 @@ export default function PracticePlay() {
           </div>
         </div>
 
-        <div className="w-full max-w-3xl mx-auto pt-6 border-t border-slate-100">
+        <div className="w-full max-w-3xl mx-auto pt-4 md:pt-6 border-t border-slate-100">
           {['mcq', 'listening', 'roadmap_test'].includes(practiceSubMode) && choices && (
             <div className="grid grid-cols-1 gap-2 md:gap-3.5 mb-2 md:mb-4">
               {choices.map((choice: string, idx: number) => {
