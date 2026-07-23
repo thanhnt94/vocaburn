@@ -2408,6 +2408,7 @@ async def get_deck_roadmap_status_helper(db: AsyncSession, user_id: int, deck_id
     deck_practice_settings = deck_obj.practice_settings if (deck_obj and isinstance(deck_obj.practice_settings, dict)) else {}
 
     roadmap_active = settings.get("roadmap_active", False)
+    roadmap_type = settings.get("roadmap_type", "completion") # "completion" or "accumulation"
     roadmap_daily_new = int(settings.get("roadmap_daily_new", 10))
     roadmap_daily_review_max = int(settings.get("roadmap_daily_review_max", 50))
     roadmap_pass_threshold = int(settings.get("roadmap_pass_threshold", 80))
@@ -2431,11 +2432,24 @@ async def get_deck_roadmap_status_helper(db: AsyncSession, user_id: int, deck_id
     unlearned_cards = max(0, total_cards - learned_cards)
     
     import math
-    days_left = math.ceil(unlearned_cards / roadmap_daily_new) if roadmap_daily_new > 0 else 0
-    estimated_completion_date = (datetime.utcnow() + timedelta(days=days_left)).strftime("%Y-%m-%d")
+    if roadmap_type == "accumulation":
+        days_left = 0
+        estimated_completion_date = None
+    else:
+        days_left = math.ceil(unlearned_cards / roadmap_daily_new) if roadmap_daily_new > 0 else 0
+        estimated_completion_date = (datetime.utcnow() + timedelta(days=days_left)).strftime("%Y-%m-%d")
     
     today_start = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
     
+    # Cards created today in this deck (for accumulation mode)
+    created_today_count = await db.scalar(
+        select(func.count(Flashcard.id))
+        .where(
+            Flashcard.deck_id == deck_id,
+            Flashcard.created_at >= today_start
+        )
+    ) or 0
+
     min_answer_sub = select(
         UserAnswer.card_id,
         func.min(UserAnswer.created_at).label("min_created")
@@ -2560,7 +2574,11 @@ async def get_deck_roadmap_status_helper(db: AsyncSession, user_id: int, deck_id
         })
     
     has_mcq_setup = check_has_mcq_setup(deck_practice_settings)
-    stage_1_done = new_learned_today >= roadmap_daily_new
+    if roadmap_type == "accumulation":
+        # For accumulation roadmap: User must add at least roadmap_daily_new cards today AND learn them all
+        stage_1_done = (created_today_count >= roadmap_daily_new) and (new_learned_today >= created_today_count)
+    else:
+        stage_1_done = new_learned_today >= roadmap_daily_new
 
     if not has_mcq_setup:
         stage_2_done = True
@@ -2591,6 +2609,8 @@ async def get_deck_roadmap_status_helper(db: AsyncSession, user_id: int, deck_id
         "has_mcq_setup": has_mcq_setup,
         "has_stage_2": has_mcq_setup,
         "roadmap_active": roadmap_active,
+        "roadmap_type": roadmap_type,
+        "created_today_count": created_today_count,
         "roadmap_daily_new": roadmap_daily_new,
         "roadmap_daily_review_max": roadmap_daily_review_max,
         "roadmap_pass_threshold": roadmap_pass_threshold,

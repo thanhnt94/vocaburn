@@ -12,6 +12,7 @@ export default function DeckRoadmap() {
 
   const [dailyNewInput, setDailyNewInput] = useState(10)
   const [passThresholdInput, setPassThresholdInput] = useState(80)
+  const [roadmapTypeInput, setRoadmapTypeInput] = useState<'completion' | 'accumulation'>('completion')
   const [isSavingSettings, setIsSavingSettings] = useState(false)
 
   // Fetch deck roadmap status
@@ -38,16 +39,18 @@ export default function DeckRoadmap() {
     if (status) {
       setDailyNewInput(status.roadmap_daily_new || 10)
       setPassThresholdInput(status.roadmap_pass_threshold || 80)
+      setRoadmapTypeInput(status.roadmap_type || 'completion')
     }
   }, [status])
 
   const queryClient = useQueryClient()
-  const handleSaveRoadmapSettings = async (active = true) => {
+  const handleSaveRoadmapSettings = async (active = true, overrideType?: 'completion' | 'accumulation') => {
     try {
       setIsSavingSettings(true)
       await axios.post(`/api/v1/deck/${id}/practice-settings`, {
         settings: {
           roadmap_active: active,
+          roadmap_type: overrideType || roadmapTypeInput,
           roadmap_daily_new: dailyNewInput,
           roadmap_pass_threshold: passThresholdInput
         },
@@ -264,6 +267,39 @@ export default function DeckRoadmap() {
           </div>
 
           <div className="space-y-6">
+            {/* Roadmap Type Selector */}
+            <div>
+              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-2">Loại Lộ Trình Học</label>
+              <div className="grid grid-cols-2 gap-3">
+                <button
+                  type="button"
+                  onClick={() => setRoadmapTypeInput('completion')}
+                  className={cn(
+                    "p-3 rounded-2xl border text-left transition-all cursor-pointer",
+                    roadmapTypeInput === 'completion'
+                      ? "bg-indigo-50/80 border-indigo-300 text-indigo-950 shadow-sm"
+                      : "bg-slate-50 border-slate-200 text-slate-500 hover:bg-slate-100"
+                  )}
+                >
+                  <span className="text-xs font-black block">📘 Hoàn Thành</span>
+                  <span className="text-[9px] font-semibold text-slate-400 mt-0.5 block leading-tight">Có số thẻ cố định, dự tính ngày hoàn thành.</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setRoadmapTypeInput('accumulation')}
+                  className={cn(
+                    "p-3 rounded-2xl border text-left transition-all cursor-pointer",
+                    roadmapTypeInput === 'accumulation'
+                      ? "bg-amber-50/80 border-amber-300 text-amber-950 shadow-sm"
+                      : "bg-slate-50 border-slate-200 text-slate-500 hover:bg-slate-100"
+                  )}
+                >
+                  <span className="text-xs font-black block">📈 Tích Lũy</span>
+                  <span className="text-[9px] font-semibold text-slate-400 mt-0.5 block leading-tight">Nhập thêm thẻ mỗi ngày, không ngày kết thúc.</span>
+                </button>
+              </div>
+            </div>
+
             {/* Target New Cards Input */}
             <div>
               <div className="flex items-center justify-between mb-2">
@@ -308,15 +344,27 @@ export default function DeckRoadmap() {
             </div>
 
             {/* Completion estimate */}
-            <div className="p-4 bg-indigo-50/60 rounded-2xl border border-indigo-100">
-              <div className="text-[10px] font-black text-indigo-500 uppercase tracking-widest mb-1">Dự kiến hoàn thành toàn bộ</div>
-              <div className="text-base font-black text-indigo-950">
-                📅 {s.estimated_completion_date || 'Hoàn thành hôm nay!'}
+            {s.roadmap_type === 'accumulation' ? (
+              <div className="p-4 bg-amber-50/60 rounded-2xl border border-amber-200/60">
+                <div className="text-[10px] font-black text-amber-700 uppercase tracking-widest mb-1">📈 Lộ Trình Tích Lũy Vô Tận</div>
+                <div className="text-sm font-black text-amber-950">
+                  Đã tích lũy: {s.total_cards || 0} thẻ vựng trong bộ
+                </div>
+                <div className="text-[10px] font-semibold text-amber-700/80 mt-0.5">
+                  Mỗi ngày nhập thêm chỉ tiêu {s.roadmap_daily_new} từ mới để duy trì Streak.
+                </div>
               </div>
-              <div className="text-[10px] font-semibold text-slate-500 mt-0.5">
-                Còn khoảng ~{s.days_left || 0} ngày nữa cho {s.unlearned_cards || 0} thẻ chưa học
+            ) : (
+              <div className="p-4 bg-indigo-50/60 rounded-2xl border border-indigo-100">
+                <div className="text-[10px] font-black text-indigo-500 uppercase tracking-widest mb-1">Dự kiến hoàn thành toàn bộ</div>
+                <div className="text-base font-black text-indigo-950">
+                  📅 {s.estimated_completion_date || 'Hoàn thành hôm nay!'}
+                </div>
+                <div className="text-[10px] font-semibold text-slate-500 mt-0.5">
+                  Còn khoảng ~{s.days_left || 0} ngày nữa cho {s.unlearned_cards || 0} thẻ chưa học
+                </div>
               </div>
-            </div>
+            )}
 
             <button
               onClick={() => handleSaveRoadmapSettings(s.roadmap_active !== false)}

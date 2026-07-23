@@ -44,6 +44,7 @@ export default function QuizDetail() {
   const [dailyNewInput, setDailyNewInput] = useState(10)
   const [passThresholdInput, setPassThresholdInput] = useState(80)
   const [dailyReviewInput, setDailyReviewInput] = useState(50)
+  const [roadmapTypeInput, setRoadmapTypeInput] = useState<'completion' | 'accumulation'>('completion')
   const [isSavingRoadmapSettings, setIsSavingRoadmapSettings] = useState(false)
   const [isRoadmapSettingsOpen, setIsRoadmapSettingsOpen] = useState(false)
   const [isResetModalOpen, setIsResetModalOpen] = useState(false)
@@ -287,6 +288,7 @@ export default function QuizDetail() {
       setDailyNewInput(roadmapStatus.roadmap_daily_new || 10)
       setDailyReviewInput(roadmapStatus.roadmap_daily_review_max || 50)
       setPassThresholdInput(roadmapStatus.roadmap_pass_threshold || 80)
+      setRoadmapTypeInput(roadmapStatus.roadmap_type || 'completion')
     }
   }, [roadmapStatus])
 
@@ -308,12 +310,13 @@ export default function QuizDetail() {
     }
   }
 
-  const handleSaveRoadmap = async (active: boolean) => {
+  const handleSaveRoadmap = async (active: boolean, overrideType?: 'completion' | 'accumulation') => {
     setIsSavingRoadmapSettings(true)
     try {
       await axios.post(`/api/v1/deck/${id}/practice-settings`, {
         settings: {
           roadmap_active: active,
+          roadmap_type: overrideType || roadmapTypeInput,
           roadmap_daily_new: dailyNewInput,
           roadmap_daily_review_max: dailyReviewInput,
           roadmap_pass_threshold: passThresholdInput
@@ -321,6 +324,8 @@ export default function QuizDetail() {
         is_creator: false
       })
       refetchRoadmapStatus()
+      queryClient.invalidateQueries({ queryKey: ['roadmapDecks'] })
+      queryClient.invalidateQueries({ queryKey: ['roadmap-global-decks'] })
       setIsRoadmapSettingsOpen(false)
     } catch (e) {
       console.error("Error updating roadmap settings", e)
