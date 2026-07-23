@@ -504,10 +504,10 @@ export default function QuizDetail() {
               {/* Today's New */}
               {roadmapStatus?.roadmap_active && (
                 <div className="p-3 rounded-xl bg-slate-50/80 border border-slate-100/60">
-                  <span className="text-[7px] font-black text-slate-400 uppercase tracking-wider block mb-1">New Today</span>
-                  <span className="text-sm font-black text-slate-800 leading-none">{roadmapStatus.new_learned_today}/{roadmapStatus.new_target_today}</span>
+                  <span className="text-[7px] font-black text-slate-400 uppercase tracking-wider block mb-1">{roadmapStatus.roadmap_type === 'accumulation' ? 'Nhập & Học' : 'New Today'}</span>
+                  <span className="text-sm font-black text-slate-800 leading-none">{roadmapStatus.roadmap_type === 'accumulation' ? roadmapStatus.created_today_count : roadmapStatus.new_learned_today}/{roadmapStatus.new_target_today}</span>
                   <div className="w-full h-1.5 bg-slate-200 rounded-full overflow-hidden mt-1.5">
-                    <div className="h-full bg-gradient-to-r from-orange-400 to-rose-400 rounded-full transition-all" style={{ width: `${roadmapStatus.new_target_today > 0 ? Math.min(100, Math.round((roadmapStatus.new_learned_today / roadmapStatus.new_target_today) * 100)) : 0}%` }} />
+                    <div className="h-full bg-gradient-to-r from-orange-400 to-rose-400 rounded-full transition-all" style={{ width: `${roadmapStatus.new_target_today > 0 ? Math.min(100, Math.round(((roadmapStatus.roadmap_type === 'accumulation' ? roadmapStatus.created_today_count : roadmapStatus.new_learned_today) / roadmapStatus.new_target_today) * 100)) : 0}%` }} />
                   </div>
                 </div>
               )}
@@ -549,15 +549,56 @@ export default function QuizDetail() {
                       <span className="text-sm font-black text-slate-300 leading-none">—</span>
                     )}
                   </div>
-                  {roadmapStatus.estimated_completion_date && (
+                  {roadmapStatus.roadmap_type === 'accumulation' ? (
+                    <span className="text-[7px] font-bold text-amber-600 mt-1 block">📈 Tích lũy vô tận</span>
+                  ) : roadmapStatus.estimated_completion_date ? (
                     <span className="text-[7px] font-bold text-slate-400 mt-1 block flex items-center gap-0.5">
                       <Target className="w-2.5 h-2.5 text-emerald-500 inline" />
                       {new Date(roadmapStatus.estimated_completion_date).toLocaleDateString('vi-VN')}
                     </span>
-                  )}
+                  ) : null}
                 </div>
               )}
             </div>
+
+            {/* ── Roadmap Stage Progress (Inline) ── */}
+            {roadmapStatus?.roadmap_active && (
+              <div className="mt-3 p-3 rounded-xl bg-gradient-to-r from-slate-50 to-indigo-50/30 border border-slate-100/60">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-[8px] font-black uppercase tracking-widest" style={{ color: roadmapStatus.roadmap_type === 'accumulation' ? '#b45309' : '#4f46e5' }}>
+                    {roadmapStatus.roadmap_type === 'accumulation' ? '📈 Lộ trình tích lũy' : '📘 Lộ trình hoàn thành'} — Hôm nay
+                  </span>
+                  {roadmapStatus.stage_2_done ? (
+                    <span className="px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-600 text-[8px] font-black border border-emerald-100">✓ Xong</span>
+                  ) : (
+                    <span className="px-2 py-0.5 rounded-full bg-amber-50 text-amber-600 text-[8px] font-black border border-amber-100">Đang thực hiện</span>
+                  )}
+                </div>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <div className={cn("px-2.5 py-1 rounded-lg text-[9px] font-bold flex items-center gap-1 border", roadmapStatus.stage_1_done ? "bg-emerald-50 text-emerald-700 border-emerald-200" : "bg-white text-slate-500 border-slate-200")}>
+                    {roadmapStatus.stage_1_done ? '✓' : '1.'} {roadmapStatus.roadmap_type === 'accumulation' ? `Nhập & học (${roadmapStatus.created_today_count || 0}/${roadmapStatus.new_target_today})` : `Học từ mới (${roadmapStatus.new_learned_today}/${roadmapStatus.new_target_today})`}
+                  </div>
+                  {roadmapStatus.has_stage_2 !== false && (
+                    <div className={cn("px-2.5 py-1 rounded-lg text-[9px] font-bold flex items-center gap-1 border", roadmapStatus.stage_2_done ? "bg-emerald-50 text-emerald-700 border-emerald-200" : "bg-white text-indigo-600 border-indigo-200")}>
+                      {roadmapStatus.stage_2_done ? '✓' : '2.'} Bài Test (≥{roadmapStatus.roadmap_pass_threshold || 80}%)
+                    </div>
+                  )}
+                  <button
+                    onClick={() => navigate(roadmapStatus.next_action_url || `/flashcard/${id}/roadmap`)}
+                    className={cn(
+                      "ml-auto px-3 py-1 rounded-lg text-[9px] font-black uppercase tracking-wider transition-all active:scale-95 cursor-pointer",
+                      roadmapStatus.stage_2_done
+                        ? "bg-emerald-600 text-white"
+                        : roadmapStatus.roadmap_type === 'accumulation'
+                          ? "bg-amber-600 text-white"
+                          : "bg-indigo-600 text-white"
+                    )}
+                  >
+                    {roadmapStatus.next_action_label || 'Tiếp tục'} →
+                  </button>
+                </div>
+              </div>
+            )}
 
             {/* ── Roadmap Not Active Banner ── */}
             {roadmapStatus && !roadmapStatus.roadmap_active && (
@@ -852,6 +893,26 @@ export default function QuizDetail() {
                     </>
                   )}
                 </div>
+
+                {/* Roadmap Smart Button (only when roadmap is active) */}
+                {roadmapStatus?.roadmap_active && (
+                  <div className="flex-1 flex">
+                    <button
+                      onClick={() => navigate(roadmapStatus.next_action_url || `/flashcard/${id}/roadmap`)}
+                      className={cn(
+                        "flex-1 py-3 font-black text-[10px] md:text-xs rounded-xl shadow-lg active:scale-[0.97] transition-all tracking-widest uppercase flex items-center justify-center gap-1.5",
+                        roadmapStatus.stage_2_done
+                          ? "bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-500/15"
+                          : roadmapStatus.roadmap_type === 'accumulation'
+                            ? "bg-amber-600 hover:bg-amber-700 text-white shadow-amber-500/15"
+                            : "bg-gradient-to-r from-indigo-600 via-purple-600 to-rose-500 hover:from-indigo-700 hover:to-rose-600 text-white shadow-indigo-500/15"
+                      )}
+                    >
+                      <Compass className="w-4 h-4" />
+                      {roadmapStatus.stage_2_done ? '✓ Xong Hôm Nay' : (roadmapStatus.next_action_label || 'Roadmap')}
+                    </button>
+                  </div>
+                )}
 
                 {/* Practice Button with Dropdown (rendered if at least 1 of 3 practice modes is setup) */}
                 {((quiz?.enabled_practice_modes ? quiz.enabled_practice_modes.length > 0 : (quiz?.has_practice_setup !== false && quiz?.has_mcq_setup !== false)) && !quiz?.practice_disabled) && (
