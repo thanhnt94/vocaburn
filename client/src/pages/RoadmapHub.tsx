@@ -147,6 +147,7 @@ export default function RoadmapHub() {
             {decks.map((item) => {
               const s = item.status || {}
               const isAllDone = s.stage_2_done
+              const isAccumulation = s.roadmap_type === 'accumulation'
 
               return (
                 <motion.div
@@ -157,24 +158,39 @@ export default function RoadmapHub() {
                 >
                   <div className="flex items-start gap-4 flex-1 min-w-0">
                     {/* Cover image or fallback */}
-                    <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-indigo-50 to-purple-50 border border-slate-100 flex items-center justify-center flex-shrink-0 overflow-hidden">
+                    <div className={cn(
+                      "w-16 h-16 rounded-2xl border flex items-center justify-center flex-shrink-0 overflow-hidden",
+                      isAccumulation
+                        ? "bg-gradient-to-br from-amber-50 to-orange-50 border-amber-100"
+                        : "bg-gradient-to-br from-indigo-50 to-purple-50 border-slate-100"
+                    )}>
                       {item.cover_image ? (
                         <img src={item.cover_image} alt={item.title} className="w-full h-full object-cover" />
                       ) : (
-                        <BookOpen className="w-7 h-7 text-indigo-600" />
+                        <BookOpen className={cn("w-7 h-7", isAccumulation ? "text-amber-600" : "text-indigo-600")} />
                       )}
                     </div>
 
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-1">
+                      <div className="flex items-center gap-2 mb-1 flex-wrap">
                         <h3 className="text-base font-black text-slate-900 truncate tracking-tight">{item.title}</h3>
+                        {/* Roadmap Type Badge */}
+                        <span className={cn(
+                          "px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider flex-shrink-0 border",
+                          isAccumulation
+                            ? "bg-amber-50 text-amber-700 border-amber-200"
+                            : "bg-indigo-50 text-indigo-700 border-indigo-200"
+                        )}>
+                          {isAccumulation ? '📈 Tích Lũy' : '📘 Hoàn Thành'}
+                        </span>
+                        {/* Status Badge */}
                         {isAllDone ? (
                           <span className="px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-600 text-[9px] font-black uppercase tracking-wider flex-shrink-0 border border-emerald-100">
-                            ✓ Hoàn thành hôm nay
+                            ✓ Xong hôm nay
                           </span>
                         ) : (
-                          <span className="px-2.5 py-0.5 rounded-full bg-amber-50 text-amber-600 text-[9px] font-black uppercase tracking-wider flex-shrink-0 border border-amber-100">
-                            Chưa hoàn thành
+                          <span className="px-2.5 py-0.5 rounded-full bg-rose-50 text-rose-600 text-[9px] font-black uppercase tracking-wider flex-shrink-0 border border-rose-100">
+                            Chưa xong
                           </span>
                         )}
                       </div>
@@ -182,17 +198,26 @@ export default function RoadmapHub() {
                       {/* 2-Stage Progress Pills */}
                       <div className="flex items-center gap-2 mt-2 flex-wrap">
                         <div className={cn("px-3 py-1 rounded-xl text-[10px] font-bold flex items-center gap-1 border", s.stage_1_done ? "bg-emerald-50 text-emerald-700 border-emerald-200" : "bg-slate-50 text-slate-500 border-slate-200")}>
-                          {s.stage_1_done ? '✓' : '1.'} Học từ mới ({s.new_learned_today}/{s.new_target_today})
+                          {s.stage_1_done ? '✓' : '1.'} {isAccumulation ? `Nhập & học thẻ mới (${s.created_today_count || 0}/${s.new_target_today})` : `Học từ mới (${s.new_learned_today}/${s.new_target_today})`}
                         </div>
-                        <div className={cn("px-3 py-1 rounded-xl text-[10px] font-bold flex items-center gap-1 border", s.stage_2_done ? "bg-emerald-50 text-emerald-700 border-emerald-200" : "bg-indigo-50 text-indigo-700 border-indigo-200")}>
-                          {s.stage_2_done ? '✓' : '2.'} Bài Test Roadmap (≥{s.roadmap_pass_threshold || 80}%)
-                        </div>
+                        {s.has_stage_2 !== false && (
+                          <div className={cn("px-3 py-1 rounded-xl text-[10px] font-bold flex items-center gap-1 border", s.stage_2_done ? "bg-emerald-50 text-emerald-700 border-emerald-200" : "bg-indigo-50 text-indigo-700 border-indigo-200")}>
+                            {s.stage_2_done ? '✓' : '2.'} Bài Test (≥{s.roadmap_pass_threshold || 80}%)
+                          </div>
+                        )}
                       </div>
 
-                      <div className="flex items-center gap-4 mt-3 text-[10px] font-bold text-slate-400">
+                      <div className="flex items-center gap-4 mt-3 text-[10px] font-bold text-slate-400 flex-wrap">
                         <span>🔥 Streak: <strong className="text-orange-600">{s.streak || 0}d</strong></span>
                         <span>🧠 Retention: <strong className="text-indigo-600">{s.retention_rate || 0}%</strong></span>
-                        <span>📅 Dự kiến xong: <strong className="text-slate-600">{s.estimated_completion_date || '—'}</strong></span>
+                        {isAccumulation ? (
+                          <span>📦 Tổng thẻ: <strong className="text-amber-700">{s.total_cards || 0}</strong></span>
+                        ) : (
+                          <span>📅 Dự kiến xong: <strong className="text-slate-600">{s.estimated_completion_date || '—'}</strong></span>
+                        )}
+                        {!isAccumulation && (
+                          <span>📚 Còn lại: <strong className="text-slate-600">{s.unlearned_cards || 0} thẻ</strong></span>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -203,7 +228,7 @@ export default function RoadmapHub() {
                       to={`/flashcard/${item.deck_id}/roadmap`}
                       className="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-black text-xs uppercase tracking-wider transition-all"
                     >
-                      Trang Lộ Trình 🗺️
+                      Cài Đặt 🗺️
                     </Link>
 
                     <button
@@ -212,7 +237,9 @@ export default function RoadmapHub() {
                         "px-5 py-2.5 rounded-xl font-black text-xs uppercase tracking-wider shadow-md transition-all flex items-center gap-1.5 cursor-pointer",
                         isAllDone
                           ? "bg-slate-900 text-white hover:bg-slate-800"
-                          : "bg-indigo-600 hover:bg-indigo-700 text-white shadow-indigo-200"
+                          : isAccumulation
+                            ? "bg-amber-600 hover:bg-amber-700 text-white shadow-amber-200"
+                            : "bg-indigo-600 hover:bg-indigo-700 text-white shadow-indigo-200"
                       )}
                     >
                       <span>{s.next_action_label || 'Tiếp Tục'}</span>

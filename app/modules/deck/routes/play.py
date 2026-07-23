@@ -2639,28 +2639,27 @@ async def get_deck_roadmap_status_helper(db: AsyncSession, user_id: int, deck_id
 async def get_roadmap_decks(request: Request, db: AsyncSession = Depends(get_db)):
     user_id = int(request.cookies.get("user_id", 1))
     
-    from app.modules.deck.models import FlashcardDeck, UserCardMastery, Flashcard
+    from app.modules.deck.models import FlashcardDeck
     
-    # 1. Fetch user's explicit settings
+    # STRICT: Only show decks where user has EXPLICITLY set roadmap_active=True in their UserDeckSettings
     user_setts_res = await db.execute(
         select(UserDeckSettings).where(UserDeckSettings.user_id == user_id)
     )
-    user_setts_map = {sett.deck_id: (sett.settings or {}) for sett in user_setts_res.scalars().all()}
     
-    # 2. Fetch all decks where user has active mastery / answers OR explicit settings
-    user_deck_ids_res = await db.execute(
-        select(Flashcard.deck_id)
-        .join(UserCardMastery, Flashcard.id == UserCardMastery.card_id)
-        .where(UserCardMastery.user_id == user_id)
-        .distinct()
-    )
-    mastery_deck_ids = set(user_deck_ids_res.scalars().all())
-    all_candidate_deck_ids = list(mastery_deck_ids.union(set(user_setts_map.keys())))
-
     active_roadmaps = []
-    if all_candidate_deck_ids:
+    active_deck_ids = []
+    user_setts_map = {}
+    
+    for sett in user_setts_res.scalars().all():
+        s = sett.settings or {}
+        user_setts_map[sett.deck_id] = s
+        # Only include if roadmap_active is EXPLICITLY True — no fallbacks
+        if s.get("roadmap_active") is True:
+            active_deck_ids.append(sett.deck_id)
+    
+    if active_deck_ids:
         decks_res = await db.execute(
-            select(FlashcardDeck).where(FlashcardDeck.id.in_(all_candidate_deck_ids))
+            select(FlashcardDeck).where(FlashcardDeck.id.in_(active_deck_ids))
         )
         decks = decks_res.scalars().all()
         
@@ -2669,23 +2668,17 @@ async def get_roadmap_decks(request: Request, db: AsyncSession = Depends(get_db)
 
         for deck in decks:
             u_sett = user_setts_map.get(deck.id, {})
-            # Roadmap is active if user_settings has roadmap_active OR creator practice_settings has roadmap_active
             creator_sett = deck.practice_settings if isinstance(deck.practice_settings, dict) else {}
-            
-            # Default to active if user studied this deck or creator set roadmap_active
-            is_active = u_sett.get("roadmap_active", creator_sett.get("roadmap_active", True if u_sett else False))
-            
-            if is_active:
-                merged_settings = {**creator_sett, **u_sett, "roadmap_active": True}
-                status = await get_deck_roadmap_status_helper(db, user_id, deck.id, merged_settings)
-                cover_image = resolve_central_url(deck.cover_image, sso_url) if deck.cover_image else None
-                active_roadmaps.append({
-                    "deck_id": deck.id,
-                    "title": deck.title,
-                    "description": deck.description,
-                    "cover_image": cover_image,
-                    "status": status
-                })
+            merged_settings = {**creator_sett, **u_sett, "roadmap_active": True}
+            status = await get_deck_roadmap_status_helper(db, user_id, deck.id, merged_settings)
+            cover_image = resolve_central_url(deck.cover_image, sso_url) if deck.cover_image else None
+            active_roadmaps.append({
+                "deck_id": deck.id,
+                "title": deck.title,
+                "description": deck.description,
+                "cover_image": cover_image,
+                "status": status
+            })
 
     return {"decks": active_roadmaps}
 
