@@ -3858,8 +3858,9 @@ export default function PracticePlay() {
         </button>
       </header>
 
-      {/* Dynamic Mode Switcher Bar */}
-      <div className="flex-shrink-0 bg-white/80 backdrop-blur-md border-b border-slate-100/50 px-4 lg:px-8 py-1.5 md:py-2 flex items-center justify-between gap-2 md:gap-3 z-50 w-full shadow-sm">
+      {/* Dynamic Mode Switcher Bar (Only rendered for standard practice mode, hidden in roadmap_test) */}
+      {subMode !== 'roadmap_test' && (
+        <div className="flex-shrink-0 bg-white/80 backdrop-blur-md border-b border-slate-100/50 px-4 lg:px-8 py-1.5 md:py-2 flex items-center justify-between gap-2 md:gap-3 z-50 w-full shadow-sm">
         {subMode === 'roadmap_test' ? (() => {
           const totalQ = session?.questions?.length || 50;
           const answeredCount = Object.keys(practiceAnswers).length;
@@ -4042,6 +4043,7 @@ export default function PracticePlay() {
           </>
         )}
       </div>
+      )}
 
 <main className="flex-1 flex w-full max-w-none justify-center gap-4 lg:gap-8 px-2 lg:px-6 xl:px-10 md:py-3 py-2 overflow-hidden">
         <aside className="hidden xl:flex w-[340px] 2xl:w-[440px] flex-shrink-0 flex-col overflow-hidden bg-white border border-slate-100 rounded-[2.5rem] shadow-sm">
