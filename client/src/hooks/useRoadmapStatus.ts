@@ -60,6 +60,16 @@ export function useRoadmapStatus(deckId: string | number | undefined) {
   useEffect(() => {
     if (!status || !status.roadmap_active || !status.pipeline || status.pipeline.length === 0) return
 
+    // Do NOT show banner if user is ALREADY on next_action_url
+    if (status.next_action_url) {
+      const currentPath = window.location.pathname
+      const targetPath = status.next_action_url.split('?')[0]
+      if (currentPath === targetPath || (targetPath.length > 1 && currentPath.endsWith(targetPath))) {
+        setShowBanner(false)
+        return
+      }
+    }
+
     // Find the latest completed step
     let completedStep: PipelineStepStatus | null = null
     if (status.current_step_index > 0) {
