@@ -3,6 +3,7 @@ import { cn } from '@/lib/utils'
 import { LayoutGrid, BookOpen, Brain, Trophy, Flame, Star, EyeOff, ChevronDown } from 'lucide-react'
 
 interface Question {
+  options?: any[]
   stats?: {
     total?: number
     again_count?: number
@@ -131,75 +132,39 @@ export const QuestionMapGrid: React.FC<QuestionMapGridProps> = ({
                     return attemptedRatings.length > 0 ? attemptedRatings[attemptedRatings.length - 1] : null
                   })()
 
+              const isCorrectAnswer = (() => {
+                if (selectedOptIdx === undefined || selectedOptIdx === null) return false;
+                if (q.practice?.correct_index !== undefined && q.practice.correct_index !== null) {
+                  return Number(selectedOptIdx) === Number(q.practice.correct_index);
+                }
+                if (q.options && Array.isArray(q.options) && q.options.length > 0) {
+                  const chosen = q.options.find((o: any) => o.id === selectedOptIdx) || q.options[selectedOptIdx];
+                  if (chosen && chosen.is_correct !== undefined) return chosen.is_correct;
+                }
+                return Number(selectedOptIdx) === 3;
+              })();
+
               const isActive = currentIndex === i
 
-              let fsrsClass = "border-slate-100 hover:border-indigo-200 bg-white text-slate-500 hover:bg-slate-50/50 font-bold"
+              let fsrsClass = "border-slate-200 bg-white text-slate-700 hover:border-indigo-300 hover:bg-slate-50 font-bold"
               let fsrsStyle: any = {}
 
-              const stats = q.stats || { total: 0, again_count: 0, hard_count: 0, good_count: 0, easy_count: 0 }
-              const totalReviews = stats.total || 0
-
               if (q.is_ignored) {
-                fsrsClass = "border-slate-300 bg-slate-200 text-slate-400 opacity-60 hover:opacity-100 font-bold cursor-not-allowed"
-                fsrsStyle = {}
-              } else if (q.is_starred) {
-                fsrsClass = "border-amber-300 bg-amber-50 text-amber-700 hover:bg-amber-100/60 font-bold shadow-sm"
-                fsrsStyle = {}
-              } else if (totalReviews > 0) {
-                const again = stats.again_count || 0
-                const hard = stats.hard_count || 0
-                const good = stats.good_count || 0
-                const easy = stats.easy_count || 0
-                const total = again + hard + good + easy
-
-                if (total > 0) {
-                  const segments: string[] = []
-                  let currentPct = 0
-                  if (again > 0) {
-                    const nextPct = currentPct + (again / total) * 100
-                    segments.push(`#ffe4e6 ${currentPct.toFixed(1)}%, #ffe4e6 ${nextPct.toFixed(1)}%`)
-                    currentPct = nextPct
-                  }
-                  if (hard > 0) {
-                    const nextPct = currentPct + (hard / total) * 100
-                    segments.push(`#fef3c7 ${currentPct.toFixed(1)}%, #fef3c7 ${nextPct.toFixed(1)}%`)
-                    currentPct = nextPct
-                  }
-                  if (good > 0) {
-                    const nextPct = currentPct + (good / total) * 100
-                    segments.push(`#e0e7ff ${currentPct.toFixed(1)}%, #e0e7ff ${nextPct.toFixed(1)}%`)
-                    currentPct = nextPct
-                  }
-                  if (easy > 0) {
-                    const nextPct = currentPct + (easy / total) * 100
-                    segments.push(`#d1fae5 ${currentPct.toFixed(1)}%, #d1fae5 ${nextPct.toFixed(1)}%`)
-                    currentPct = nextPct
-                  }
-
-                  fsrsStyle = {
-                    background: `linear-gradient(to top, ${segments.join(', ')})`,
-                    color: '#1e293b',
-                    borderColor: '#cbd5e1'
-                  }
-                  fsrsClass = "shadow-sm animate-in zoom-in-95 duration-200 font-bold text-slate-800 border-slate-300"
-                } else if (selectedOptIdx === -2) {
-                  fsrsClass = "border-purple-300 bg-purple-100 text-purple-700 hover:bg-purple-200/60 font-bold shadow-sm animate-in zoom-in-95 duration-200"
-                  fsrsStyle = {}
-                } else {
-                  const box = q.box_level || 1
-                  if (box === 5) {
-                    fsrsClass = "border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100/60"
-                  } else if (box === 4) {
-                    fsrsClass = "border-indigo-200 bg-indigo-50 text-indigo-700 hover:bg-indigo-100/60"
-                  } else if (box === 3 || box === 2) {
-                    fsrsClass = "border-amber-200 bg-amber-50/70 text-amber-700 hover:bg-amber-100/60"
+                fsrsClass = "border-slate-300 bg-slate-200 text-slate-400 opacity-60 font-bold cursor-not-allowed"
+              } else if (hasAttemptedThisSession) {
+                if (isPractice) {
+                  if (isCorrectAnswer) {
+                    fsrsClass = "bg-emerald-500 border-emerald-600 text-white font-black shadow-md shadow-emerald-200/50"
                   } else {
-                    fsrsClass = "border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-100/60"
+                    fsrsClass = "bg-rose-500 border-rose-600 text-white font-black shadow-md shadow-rose-200/50"
                   }
+                } else {
+                  fsrsClass = "bg-indigo-500 border-indigo-600 text-white font-black shadow-md shadow-indigo-200/50"
                 }
-              } else if (selectedOptIdx === -2) {
-                fsrsClass = "border-purple-300 bg-purple-100 text-purple-700 hover:bg-purple-200/60 font-bold shadow-sm animate-in zoom-in-95 duration-200"
-                fsrsStyle = {}
+              } else if (q.is_starred) {
+                fsrsClass = "border-amber-300 bg-amber-50 text-amber-700 font-bold shadow-sm"
+              } else {
+                fsrsClass = "border-slate-200 bg-white text-slate-700 hover:border-indigo-300 hover:bg-slate-50 font-bold shadow-xs"
               }
 
               return (
@@ -222,20 +187,11 @@ export const QuestionMapGrid: React.FC<QuestionMapGridProps> = ({
                   {q.is_starred && (
                     <span className="absolute top-0.5 right-1 text-[8px] text-amber-500 font-bold z-20">★</span>
                   )}
-                  <span className={cn("relative z-10 text-[12px] text-slate-800")}>{i + 1}</span>
+                  <span className={cn("relative z-10 text-[12px] font-black", hasAttemptedThisSession ? "text-white" : "text-slate-800")}>{i + 1}</span>
                   {hasAttemptedThisSession && (
-                    <span className={cn(
-                      "text-[6px] font-black tracking-tighter opacity-90 mt-0.5 uppercase z-10 relative",
-                      isPractice
-                        ? (selectedOptIdx === q.practice?.correct_index ? "text-emerald-600" : "text-rose-600")
-                        : (selectedOptIdx === -2 ? "text-purple-600" :
-                           selectedOptIdx === 0 ? "text-rose-600" :
-                           selectedOptIdx === 1 ? "text-amber-600" :
-                           selectedOptIdx === 2 ? "text-indigo-600" :
-                           "text-emerald-600")
-                    )}>
+                    <span className="text-[6px] font-black tracking-tighter opacity-90 mt-0.5 uppercase z-10 relative text-white">
                       {isPractice
-                        ? (selectedOptIdx === q.practice?.correct_index ? "CORRECT" : "WRONG")
+                        ? (isCorrectAnswer ? "CORRECT" : "WRONG")
                         : (selectedOptIdx === -2 ? "FLIP" :
                            selectedOptIdx === 0 ? "AGAIN" : selectedOptIdx === 1 ? "HARD" : selectedOptIdx === 2 ? "GOOD" : "EASY")}
                     </span>
