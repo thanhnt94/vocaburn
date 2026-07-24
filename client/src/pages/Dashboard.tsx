@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { Brain, Trophy, ChevronRight, LayoutGrid, Users, Zap, Flame, BrainCircuit, X, Play, Crown, Medal, Star, CheckCircle2, Circle, Swords, Settings, Target, RefreshCw, User, BookOpen, Sparkles, TrendingUp, Clock, Layers, Compass } from 'lucide-react'
+import { Brain, Trophy, ChevronRight, LayoutGrid, Users, Zap, Flame, BrainCircuit, X, Play, Crown, Medal, Star, CheckCircle2, Circle, Swords, Settings, Target, RefreshCw, User, BookOpen, Sparkles, TrendingUp, Clock, Layers, Compass, ArrowRight } from 'lucide-react'
 import { useAppStore } from '@/store/useAppStore'
 import { cn } from '@/lib/utils'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -718,62 +718,125 @@ function TodayFocusWidget({
                     <div className="h-full bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 rounded-full transition-all duration-700 ease-out" style={{ width: `${totalLearnedPct}%` }} />
                   </div>
 
-                  {/* Daily Quota Pills */}
-                  <div className="grid grid-cols-2 gap-3 mt-1">
-                    <div className="bg-orange-50/30 rounded-2xl p-3 border border-orange-100/30 flex items-center justify-between gap-1.5 transition-colors hover:bg-orange-50/50">
-                      <div className="min-w-0">
-                        <span className="text-[8px] font-black text-orange-600/70 uppercase tracking-widest block">Từ mới</span>
-                        <span className="text-[12px] font-black text-slate-800 mt-1 block leading-none">
-                          {status.new_learned_today} <span className="text-slate-400 font-bold">/ {status.new_target_today}</span>
-                        </span>
-                      </div>
-                      <div className="relative w-8 h-8 shrink-0 flex items-center justify-center bg-white rounded-xl shadow-sm border border-orange-100/20">
-                        <Sparkles className="w-4 h-4 text-orange-500" />
+                  {/* Pipeline Steps Tracker */}
+                  {status.pipeline && status.pipeline.length > 0 ? (
+                    <div className="flex flex-col gap-2 mt-1">
+                      <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block">
+                        Các bước trong Lộ trình:
+                      </span>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        {status.pipeline.map((step: any, sIdx: number) => {
+                          const isDone = step.done
+                          const isCurrent = sIdx === status.current_step_index && !status.all_done
+
+                          return (
+                            <div
+                              key={sIdx}
+                              onClick={() => {
+                                if (step.url) navigate(step.url)
+                              }}
+                              className={cn(
+                                "p-2.5 rounded-xl border flex items-center justify-between gap-2 transition-all cursor-pointer",
+                                isDone
+                                  ? "bg-emerald-50/50 border-emerald-200/60 text-emerald-800 hover:bg-emerald-50"
+                                  : isCurrent
+                                  ? "bg-indigo-50/80 border-indigo-300 text-indigo-900 shadow-sm ring-2 ring-indigo-500/20"
+                                  : "bg-slate-50/50 border-slate-200/60 text-slate-500 hover:bg-slate-100/50"
+                              )}
+                            >
+                              <div className="flex items-center gap-2 min-w-0">
+                                <div className={cn(
+                                  "w-6 h-6 rounded-lg text-[10px] font-black flex items-center justify-center shrink-0",
+                                  isDone ? "bg-emerald-500 text-white" : isCurrent ? "bg-indigo-600 text-white animate-pulse" : "bg-slate-200 text-slate-600"
+                                )}>
+                                  {isDone ? '✓' : sIdx + 1}
+                                </div>
+                                <div className="min-w-0">
+                                  <span className="text-[10px] font-black uppercase tracking-tight block truncate">
+                                    {step.label}
+                                  </span>
+                                  {step.type === 'new_cards' && step.daily_count && (
+                                    <span className="text-[9px] font-medium text-slate-400 block">
+                                      {step.progress?.learned || 0} / {step.daily_count} từ
+                                    </span>
+                                  )}
+                                  {(step.type === 'mcq' || step.type === 'typing') && (
+                                    <span className="text-[9px] font-medium text-slate-400 block">
+                                      Yêu cầu: {step.pass_threshold || 80}% điểm
+                                    </span>
+                                  )}
+                                  {step.type === 'fsrs_review' && (
+                                    <span className="text-[9px] font-medium text-slate-400 block">
+                                      {status.review_completed_today || 0} / {status.review_due_today || 0} thẻ
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                              {isDone ? (
+                                <span className="text-[9px] font-black text-emerald-600 uppercase">Hoàn thành</span>
+                              ) : isCurrent ? (
+                                <span className="text-[9px] font-black text-indigo-600 uppercase animate-pulse">Đang làm</span>
+                              ) : (
+                                <span className="text-[9px] font-bold text-slate-400 uppercase">Chờ</span>
+                              )}
+                            </div>
+                          )
+                        })}
                       </div>
                     </div>
-
-                    <div className="bg-indigo-50/30 rounded-2xl p-3 border border-indigo-100/30 flex items-center justify-between gap-1.5 transition-colors hover:bg-indigo-50/50">
-                      <div className="min-w-0">
-                        <span className="text-[8px] font-black text-indigo-650/70 uppercase tracking-widest block">Ôn tập</span>
-                        <span className="text-[12px] font-black text-slate-800 mt-1 block leading-none">
-                          {status.review_completed_today} <span className="text-slate-400 font-bold">/ {status.review_due_today}</span>
-                        </span>
+                  ) : (
+                    /* Fallback for classic view */
+                    <div className="grid grid-cols-2 gap-3 mt-1">
+                      <div className="bg-orange-50/30 rounded-2xl p-3 border border-orange-100/30 flex items-center justify-between gap-1.5 transition-colors hover:bg-orange-50/50">
+                        <div className="min-w-0">
+                          <span className="text-[8px] font-black text-orange-600/70 uppercase tracking-widest block">Từ mới</span>
+                          <span className="text-[12px] font-black text-slate-800 mt-1 block leading-none">
+                            {status?.new_learned_today || 0} <span className="text-slate-400 font-bold">/ {status?.new_target_today || 0}</span>
+                          </span>
+                        </div>
+                        <div className="relative w-8 h-8 shrink-0 flex items-center justify-center bg-white rounded-xl shadow-sm border border-orange-100/20">
+                          <Sparkles className="w-4 h-4 text-orange-500" />
+                        </div>
                       </div>
-                      <div className="relative w-8 h-8 shrink-0 flex items-center justify-center bg-white rounded-xl shadow-sm border border-indigo-100/20">
-                        <Brain className="w-4 h-4 text-indigo-500" />
+
+                      <div className="bg-indigo-50/30 rounded-2xl p-3 border border-indigo-100/30 flex items-center justify-between gap-1.5 transition-colors hover:bg-indigo-50/50">
+                        <div className="min-w-0">
+                          <span className="text-[8px] font-black text-indigo-650/70 uppercase tracking-widest block">Ôn tập</span>
+                          <span className="text-[12px] font-black text-slate-800 mt-1 block leading-none">
+                            {status?.review_completed_today || 0} <span className="text-slate-400 font-bold">/ {status?.review_due_today || 0}</span>
+                          </span>
+                        </div>
+                        <div className="relative w-8 h-8 shrink-0 flex items-center justify-center bg-white rounded-xl shadow-sm border border-indigo-100/20">
+                          <Brain className="w-4 h-4 text-indigo-500" />
+                        </div>
                       </div>
                     </div>
-                  </div>
+                  )}
 
-                  {/* Action buttons list */}
+                  {/* Smart Next Action button & Quick Settings */}
                   <div className="flex items-center gap-2 mt-2 pt-4 border-t border-slate-100">
                     <motion.button
                       whileTap={{ scale: 0.96 }}
-                      onClick={() => navigate(`/flashcard/${deck.deck_id}/play?mode=roadmap`)}
-                      className="flex-1 h-9 rounded-xl bg-gradient-to-r from-orange-500 to-rose-500 hover:from-orange-600 hover:to-rose-600 text-white text-[9px] font-black uppercase tracking-widest flex items-center justify-center gap-1 shadow-md shadow-orange-100/50 border-b-2 border-rose-700 transition-all cursor-pointer"
+                      onClick={() => navigate(status.next_action_url || `/flashcard/${deck.deck_id}/play?mode=roadmap`)}
+                      className={cn(
+                        "flex-1 h-10 rounded-xl font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-1.5 shadow-md transition-all cursor-pointer",
+                        status.all_done
+                          ? "bg-slate-900 hover:bg-slate-800 text-white shadow-slate-200"
+                          : "bg-gradient-to-r from-indigo-600 via-purple-600 to-rose-500 hover:from-indigo-700 hover:to-rose-600 text-white shadow-indigo-100 border-b-2 border-rose-700"
+                      )}
                     >
-                      <Sparkles className="w-3.5 h-3.5" />
-                      Học lộ trình
+                      <Sparkles className="w-4 h-4" />
+                      <span>{status.all_done ? '✓ Đã Xong Lộ Trình Hôm Nay 🎉' : (status.next_action_label ? `Sang ${status.next_action_label}` : 'Học Lộ Trình')}</span>
+                      <ArrowRight className="w-3.5 h-3.5" />
                     </motion.button>
                     
                     <motion.button
                       whileTap={{ scale: 0.93 }}
-                      onClick={() => navigate(`/flashcard/${deck.deck_id}/play?mode=fsrs`)}
-                      className="h-9 px-3 rounded-xl bg-indigo-50 hover:bg-indigo-100/80 border border-indigo-150/40 text-indigo-650 text-[9px] font-black uppercase tracking-wider flex items-center justify-center gap-1 transition-all cursor-pointer"
-                      title="Học FSRS"
+                      onClick={() => navigate(`/deck/${deck.deck_id}/roadmap`)}
+                      className="h-10 px-3.5 rounded-xl bg-slate-100 hover:bg-slate-200 border border-slate-200/80 text-slate-700 text-[9px] font-black uppercase tracking-wider flex items-center justify-center gap-1 transition-all cursor-pointer"
+                      title="Cấu hình Lộ trình học"
                     >
-                      <Brain className="w-3.5 h-3.5" />
-                    </motion.button>
-
-                    <motion.button
-                      whileTap={{ scale: 0.93 }}
-                      onClick={() => {
-                        onStartPractice({ id: deck.deck_id, title: deck.title, questions_count: status.total_cards });
-                      }}
-                      className="h-9 px-3 rounded-xl bg-emerald-50 hover:bg-emerald-100/80 border border-emerald-150/40 text-emerald-655 text-[9px] font-black uppercase tracking-wider flex items-center justify-center gap-1 transition-all cursor-pointer"
-                      title="Luyện tập tự do"
-                    >
-                      <Trophy className="w-3.5 h-3.5" />
+                      <Settings className="w-4 h-4" />
                     </motion.button>
                   </div>
                 </div>
