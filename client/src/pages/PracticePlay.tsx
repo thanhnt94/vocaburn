@@ -459,6 +459,20 @@ export default function PracticePlay() {
   const [practiceAnswers, setPracticeAnswers] = useState<Record<number, number>>({})
   const [isEditingPrompt, setIsEditingPrompt] = useState(false)
   const [promptInput, setPromptInput] = useState('')
+  const [isRoadmapTestFinished, setIsRoadmapTestFinished] = useState(false)
+  const [roadmapSubmitResult, setRoadmapSubmitResult] = useState<any>(null)
+  const [isSubmittingTest, setIsSubmittingTest] = useState(false)
+
+  const handleResetRoadmapTest = async () => {
+    setIsRoadmapTestFinished(false);
+    setRoadmapSubmitResult(null);
+    setPracticeAnswers({});
+    setPracticeTotalAnswered(0);
+    setPracticeCorrectCount(0);
+    setCurrentIndex(0);
+    localStorage.removeItem(`vocab_roadmap_session_${id}`);
+    await fetchSession();
+  };
   const [activeMilestone, setActiveMilestone] = useState<{
     type: 'streak_10' | 'halfway' | 'mastery' | 'goal_met'
     title: string
@@ -2464,11 +2478,60 @@ export default function PracticePlay() {
     saveSession(isPractice ? customPracticeAnswers : sessionAnswers, idx)
   }
 
-  const handleNext = () => {
+  const handleNext = async () => {
     if (!session || !session.questions) return
 
     const questions = session.questions
     const total = questions.length
+
+    if (isRoadmapTestMode) {
+      if (currentIndex < total - 1) {
+        navigateToQuestion(currentIndex + 1);
+        return;
+      }
+
+      setIsSubmittingTest(true);
+      try {
+        const answersPayload = questions.map((q: any, qIdx: number) => {
+          const chosenOptId = practiceAnswers[qIdx];
+          const isCorrect = (() => {
+            if (chosenOptId === undefined || chosenOptId === null) return false;
+            if (q.practice?.correct_index !== undefined && q.practice.correct_index !== null) {
+              return Number(chosenOptId) === Number(q.practice.correct_index);
+            }
+            if (q.options && Array.isArray(q.options) && q.options.length > 0) {
+              const chosen = q.options.find((o: any) => o.id === chosenOptId) || q.options[chosenOptId];
+              if (chosen && chosen.is_correct !== undefined) return chosen.is_correct;
+            }
+            return Number(chosenOptId) === 3;
+          })();
+          return {
+            card_id: q.id,
+            is_correct: isCorrect,
+            user_response: String(chosenOptId ?? ""),
+            active_time: 2.0
+          };
+        });
+
+        const res = await axios.post(`/api/v1/deck/${id}/roadmap-test-submit`, {
+          answers: answersPayload,
+          time_spent_seconds: sessionStudyTime
+        });
+
+        setRoadmapSubmitResult(res.data);
+        setIsRoadmapTestFinished(true);
+
+        if (res.data?.passed) {
+          confetti({ zIndex: 9999, particleCount: 150, spread: 80, origin: { y: 0.5 } });
+        }
+      } catch (e) {
+        console.error("Failed to submit roadmap test", e);
+        setIsRoadmapTestFinished(true);
+      } finally {
+        setIsSubmittingTest(false);
+      }
+      return;
+    }
 
     const getNextPracticeIndex = (currentIdx: number, range: 'all' | 'learned', totalQuestions: any[]): number => {
       const allIndices = totalQuestions.map((q, i) => q.is_ignored ? -1 : i).filter(i => i !== -1);
@@ -3568,7 +3631,96 @@ export default function PracticePlay() {
     );
   }
 
+  const renderRoadmapTestSummary = () => {
+    const totalQ = session?.questions?.length || 50;
+    const correctCount = practiceCorrectCount;
+    const scorePercent = roadmapSubmitResult?.score !== undefined 
+      ? Math.round(roadmapSubmitResult.score)
+      : (totalQ > 0 ? Math.round((correctCount / totalQ) * 100) : 0);
+    const isPassed = roadmapSubmitResult?.passed !== undefined ? roadmapSubmitResult.passed : scorePercent >= 80;
 
+    return (
+      <div className="flex-1 bg-white md:rounded-[2rem] rounded-[1.25rem] border border-slate-100 p-6 md:p-10 flex flex-col items-center justify-center text-center gap-6 shadow-2xl shadow-indigo-100/40 min-h-[480px]">
+        {/* Icon Badge */}
+        <div className={cn(
+          "w-20 h-20 rounded-3xl flex items-center justify-center shadow-xl border animate-in zoom-in-75 duration-500",
+          isPassed
+            ? "bg-gradient-to-tr from-emerald-400 to-teal-500 text-white border-emerald-300 shadow-emerald-200"
+            : "bg-gradient-to-tr from-amber-400 to-orange-500 text-white border-amber-300 shadow-amber-200"
+        )}>
+          {isPassed ? <Trophy className="w-10 h-10 animate-bounce" /> : <RefreshCw className="w-10 h-10 animate-spin" />}
+        </div>
+
+        {/* Title & Subtitle */}
+        <div className="space-y-2 max-w-md">
+          <h2 className="text-2xl md:text-3xl font-black text-slate-800 tracking-tight">
+            {isPassed ? "🎉 XUẤT SẮC! ĐẠT MỤC TIÊU ROADMAP" : "🎯 CHƯA ĐẠT CHỈ TIÊU (80%)"}
+          </h2>
+          <p className="text-xs md:text-sm font-medium text-slate-500 leading-relaxed">
+            {isPassed
+              ? "Chúc mừng bạn đã hoàn thành bài kiểm tra với kết quả ấn tượng!"
+              : "Bạn đạt kết quả dưới chỉ tiêu 80%. Đừng lo lắng, hãy làm lại bài test khác nhé!"}
+          </p>
+        </div>
+
+        {/* Score Grid */}
+        <div className="grid grid-cols-3 gap-3 w-full max-w-md my-2">
+          <div className="bg-slate-50 p-3.5 rounded-2xl border border-slate-100 text-center">
+            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">Điểm số</span>
+            <span className={cn(
+              "text-2xl font-black block mt-0.5",
+              isPassed ? "text-emerald-600" : "text-amber-600"
+            )}>
+              {scorePercent}%
+            </span>
+          </div>
+
+          <div className="bg-slate-50 p-3.5 rounded-2xl border border-slate-100 text-center">
+            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">Số câu đúng</span>
+            <span className="text-2xl font-black text-emerald-600 block mt-0.5">
+              {correctCount}/{totalQ}
+            </span>
+          </div>
+
+          <div className="bg-slate-50 p-3.5 rounded-2xl border border-slate-100 text-center">
+            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">Mục tiêu</span>
+            <span className="text-2xl font-black text-indigo-600 block mt-0.5">
+              ≥80%
+            </span>
+          </div>
+        </div>
+
+        {/* Action Buttons */}
+        <div className="w-full max-w-md space-y-3 pt-2">
+          {!isPassed ? (
+            <button
+              onClick={handleResetRoadmapTest}
+              className="w-full py-4 px-6 bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-white font-black text-sm uppercase tracking-wider rounded-2xl shadow-lg shadow-orange-200 active:scale-[0.98] transition-all flex items-center justify-center gap-2"
+            >
+              <RefreshCw className="w-4.5 h-4.5" />
+              <span>🔄 Làm lại bài test khác</span>
+            </button>
+          ) : (
+            roadmapStatus?.next_action_url ? (
+              <button
+                onClick={() => navigate(roadmapStatus.next_action_url)}
+                className="w-full py-4 px-6 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white font-black text-sm uppercase tracking-wider rounded-2xl shadow-lg shadow-emerald-200 active:scale-[0.98] transition-all flex items-center justify-center gap-2"
+              >
+                <span>{roadmapStatus.next_action_label || '🚀 Sang Bước Tiếp Theo ➔'}</span>
+              </button>
+            ) : (
+              <button
+                onClick={() => navigate(`/flashcard/${id}`)}
+                className="w-full py-4 px-6 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-black text-sm uppercase tracking-wider rounded-2xl shadow-lg shadow-indigo-200 active:scale-[0.98] transition-all flex items-center justify-center gap-2"
+              >
+                <span>🏆 Hoàn thành Lộ Trình Hôm Nay 🎉 ➔ Về Dashboard</span>
+              </button>
+            )
+          )}
+        </div>
+      </div>
+    );
+  };
 
   if (!session || currentIndex < 0) return <SessionLoadingScreen />
 
@@ -4544,7 +4696,11 @@ export default function PracticePlay() {
                     resetPracticeSettings={resetPracticeSettings}
                   />
                 ) : mainTab === 'practice' ? (
-                  renderPracticeScreen()
+                  isRoadmapTestFinished ? (
+                    renderRoadmapTestSummary()
+                  ) : (
+                    renderPracticeScreen()
+                  )
                 ) : (
                   <div className="perspective-1000 w-full h-full flex-1 relative min-h-0">
                     <div
