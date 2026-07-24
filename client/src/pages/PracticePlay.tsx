@@ -2105,13 +2105,13 @@ export default function PracticePlay() {
     const newAnswers = { ...practiceAnswers, [currentIndex]: choiceIdx };
     setPracticeAnswers(newAnswers);
 
+    const totalQ = session?.questions?.length || 50;
     const isRoadmapMode = subMode === 'roadmap_test' || subMode === 'roadmap_mcq' || subMode === 'roadmap_typing' || (typeof subMode === 'string' && subMode.startsWith('roadmap_'));
     if (isRoadmapMode) {
+      const answeredKeysCount = Object.keys(newAnswers).length;
       const savedState = {
         currentIndex,
         practiceAnswers: newAnswers,
-        practiceTotalAnswered: updatedTotalAnswered,
-        practiceCorrectCount: updatedCorrectCount,
         timestamp: Date.now()
       };
       localStorage.setItem(`vocab_roadmap_session_${id}`, JSON.stringify(savedState));
@@ -2119,6 +2119,12 @@ export default function PracticePlay() {
         current_index: currentIndex,
         practiceAnswers: newAnswers
       }).catch(() => {});
+
+      if (answeredKeysCount >= totalQ) {
+        setTimeout(() => {
+          handleNext();
+        }, 1200);
+      }
     }
 
     let updatedXP = sessionXP;
@@ -3945,7 +3951,28 @@ export default function PracticePlay() {
         {/* Live Dashboard HUD */}
         {isRoadmapTestMode ? (() => {
           const totalQ = session?.questions?.length || 50;
-          const accuracyPercent = practiceTotalAnswered > 0 ? Math.round((practiceCorrectCount / practiceTotalAnswered) * 100) : 0;
+          const answeredCount = Math.min(Object.keys(practiceAnswers).length, totalQ);
+          const correctCount = session?.questions
+            ? Object.entries(practiceAnswers).reduce((acc, [qIdx, chosenOptId]) => {
+                const q = session.questions[Number(qIdx)];
+                if (!q) return acc;
+                const isCorr = (() => {
+                  if (chosenOptId === undefined || chosenOptId === null) return false;
+                  if (q.practice?.correct_index !== undefined && q.practice.correct_index !== null) {
+                    return Number(chosenOptId) === Number(q.practice.correct_index);
+                  }
+                  if (q.options && Array.isArray(q.options) && q.options.length > 0) {
+                    const chosen = q.options.find((o: any) => o.id === chosenOptId) || q.options[chosenOptId];
+                    if (chosen && chosen.is_correct !== undefined) return chosen.is_correct;
+                  }
+                  return Number(chosenOptId) === 3;
+                })();
+                return acc + (isCorr ? 1 : 0);
+              }, 0)
+            : practiceCorrectCount;
+
+          const accuracyPercent = totalQ > 0 ? Math.round((correctCount / totalQ) * 100) : 0;
+
           return (
             <div className="bg-slate-100/50 border border-slate-200/40 rounded-xl p-0.5 flex items-center gap-1 shadow-inner flex-shrink-0">
               {/* Item 1: Progress (Đã làm) */}
@@ -3954,7 +3981,7 @@ export default function PracticePlay() {
                 <div className="flex flex-col">
                   <span className="text-[6px] text-slate-400 font-extrabold uppercase tracking-wider leading-none">Đã Làm</span>
                   <span className="text-[9px] font-black text-slate-800 leading-none mt-0.5">
-                    {practiceTotalAnswered}/{totalQ}
+                    {answeredCount}/{totalQ}
                   </span>
                 </div>
               </div>
