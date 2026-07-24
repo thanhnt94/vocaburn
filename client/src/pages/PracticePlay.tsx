@@ -3641,7 +3641,7 @@ export default function PracticePlay() {
   }
 
   const renderRoadmapTestSummary = () => {
-    const totalQ = session?.questions?.length || 50;
+    const totalQ = session?.questions?.length || 15;
     const correctCount = practiceCorrectCount;
     const scorePercent = roadmapSubmitResult?.score !== undefined 
       ? Math.round(roadmapSubmitResult.score)
@@ -3953,7 +3953,7 @@ export default function PracticePlay() {
       
         {/* Live Dashboard HUD */}
         {isRoadmapTestMode ? (() => {
-          const totalQ = session?.questions?.length || 50;
+          const totalQ = session?.questions?.length || 15;
           const answeredCount = isRoadmapTestFinished ? totalQ : Math.min(Object.keys(practiceAnswers).length, totalQ);
           const correctCount = session?.questions
             ? Object.entries(practiceAnswers).reduce((acc, [qIdx, chosenOptId]) => {

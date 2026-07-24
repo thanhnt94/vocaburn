@@ -2967,9 +2967,24 @@ async def get_roadmap_test_questions(request: Request, deck_id: int, db: AsyncSe
             min_answer_sub.c.min_created < today_start
         )
     )
-    prev_cards = list(prev_cards_res.scalars().all())
+    target_count_from_pipeline = 15
+    pipeline_steps = status_info.get("pipeline", [])
+    current_step_idx = status_info.get("current_step_index", 0)
+    
+    if pipeline_steps and current_step_idx < len(pipeline_steps):
+        curr_step = pipeline_steps[current_step_idx]
+        if curr_step.get("question_count"):
+            try:
+                target_count_from_pipeline = int(curr_step["question_count"])
+            except (ValueError, TypeError):
+                pass
+    elif settings.get("roadmap_test_question_count"):
+        try:
+            target_count_from_pipeline = int(settings["roadmap_test_question_count"])
+        except (ValueError, TypeError):
+            pass
 
-    max_target_count = 50
+    max_target_count = max(1, min(target_count_from_pipeline, len(all_cards)))
     selected_cards = []
     selected_ids = set()
 
