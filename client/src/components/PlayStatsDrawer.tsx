@@ -242,15 +242,17 @@ export const PlayStatsDrawer: React.FC<PlayStatsDrawerProps> = ({
                  {/* Daily Goal Card */}
                  {activeMode !== 'review' && (
                    <div className="bg-white p-5 rounded-[2rem] border border-slate-100 shadow-sm space-y-4">
-                     <div className="flex items-center gap-2.5">
-                       <div className="w-8 h-8 rounded-xl bg-indigo-50 flex items-center justify-center text-indigo-500">
-                         <Target className="w-4.5 h-4.5" />
-                       </div>
-                       <div>
-                         <h4 className="text-xs font-black text-slate-700">Deck Goal</h4>
-                         <p className="text-[10px] text-slate-400 font-medium">Daily Practice</p>
-                       </div>
-                     </div>
+                     <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2.5">
+                          <div className="w-8 h-8 rounded-xl bg-indigo-50 flex items-center justify-center text-indigo-600 font-black">
+                            🗺️
+                          </div>
+                          <div>
+                            <h4 className="text-xs font-black text-slate-800">Lộ Trình Roadmap</h4>
+                            <p className="text-[10px] text-slate-400 font-semibold">Cá nhân hóa</p>
+                          </div>
+                        </div>
+                      </div>
                      {activeGoal ? (
                        <div className="space-y-3">
                          <div className="flex justify-between items-end">

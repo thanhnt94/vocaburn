@@ -528,6 +528,17 @@ export default function PracticePlay() {
   })
 
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false)
+  const [roadmapStatus, setRoadmapStatus] = useState<any>(null)
+  const fetchRoadmapStatus = async () => {
+    try {
+      const res = await axios.get(`/api/v1/deck/${id}/roadmap-status`)
+      setRoadmapStatus(res.data)
+      return res.data
+    } catch (err) {
+      console.error("Failed to fetch roadmap status:", err)
+      return null
+    }
+  }
   const activeBottomTab = isMapOpen ? 'map' : (isStatsOpen ? 'stats' : 'flashcard')
 
   const {
@@ -1101,6 +1112,7 @@ export default function PracticePlay() {
     try {
       const modeParam = activeTab === 'practice' ? `?mode=${subMode}` : ''
       const isPractice = activeTab === 'practice'
+      fetchRoadmapStatus()
 
       // Practice: only fetch play-data + practice-settings in parallel. No goals. No session restore.
       // FSRS: fetch play-data + goals + session in parallel.
@@ -4105,49 +4117,70 @@ export default function PracticePlay() {
               </div>
               
               <div className="flex-1 flex flex-col p-5 gap-4 overflow-y-auto">
-                {/* 1. Daily Goal Card */}
-                {activeMode !== 'review' && (
+                {/* 1. Roadmap Pipeline Progress Card */}
+                {roadmapStatus && roadmapStatus.roadmap_active ? (
                   <div className="bg-white p-5 rounded-[2rem] border border-slate-100 shadow-sm space-y-4">
-                    <div className="flex items-center gap-2.5">
-                      <div className="w-8 h-8 rounded-xl bg-indigo-50 flex items-center justify-center text-indigo-500">
-                        <Target className="w-4.5 h-4.5" />
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-8 h-8 rounded-xl bg-indigo-50 flex items-center justify-center text-indigo-600 font-black">
+                          🗺️
+                        </div>
+                        <div>
+                          <h4 className="text-xs font-black text-slate-800">Lộ Trình Roadmap</h4>
+                          <p className="text-[10px] text-slate-400 font-semibold">
+                            {roadmapStatus.all_done ? '✅ Đã Xong Hôm Nay' : `Bước ${roadmapStatus.current_step_index + 1}/${roadmapStatus.pipeline?.length || 1}`}
+                          </p>
+                        </div>
                       </div>
-                      <div>
-                        <h4 className="text-xs font-black text-slate-700">Deck Goal</h4>
-                        <p className="text-[10px] text-slate-400 font-medium">Daily Practice</p>
-                      </div>
+                      <span className={cn(
+                        "text-[10px] font-black px-2.5 py-0.5 rounded-full uppercase tracking-wider",
+                        roadmapStatus.all_done ? "bg-emerald-100 text-emerald-700" : "bg-indigo-100 text-indigo-700"
+                      )}>
+                        {roadmapStatus.all_done ? 'Hoàn Thành' : 'Đang Học'}
+                      </span>
                     </div>
 
-                    {activeGoal ? (
-                      <div className="space-y-3">
-                        <div className="flex justify-between items-end">
-                          <span className="text-2xl font-black text-slate-800">
-                            {activeGoal.done_today} <span className="text-xs text-slate-400 font-bold">/ {activeGoal.daily_target} cards</span>
-                          </span>
-                          <span className="text-xs font-black text-indigo-600">
-                            {Math.round((activeGoal.done_today / activeGoal.daily_target) * 100)}%
-                          </span>
-                        </div>
-                        <div className="w-full h-2.5 bg-slate-100 rounded-full overflow-hidden">
-                          <div 
-                            className="h-full bg-gradient-to-r from-indigo-500 to-purple-500 rounded-full transition-all duration-500"
-                            style={{ width: `${Math.min(100, Math.round((activeGoal.done_today / activeGoal.daily_target) * 100))}%` }}
-                          />
-                        </div>
-                        <p className="text-[11px] text-slate-500 leading-relaxed font-semibold">
-                          {activeGoal.is_target_met 
-                            ? "🎉 Awesome! You've met your daily goal. Keep pushing your limits!"
-                            : `🎯 You need to study ${activeGoal.daily_target - activeGoal.done_today} more new cards to complete your daily goal!`
-                          }
-                        </p>
+                    <div className="space-y-2">
+                      {roadmapStatus.pipeline?.map((st: any, sIdx: number) => {
+                        const isCurrent = sIdx === roadmapStatus.current_step_index && !roadmapStatus.all_done
+                        return (
+                          <div
+                            key={sIdx}
+                            className={cn(
+                              "p-2.5 rounded-2xl border text-xs font-bold flex items-center justify-between transition-all",
+                              st.done ? "bg-emerald-50/60 border-emerald-200 text-emerald-800" :
+                              isCurrent ? "bg-indigo-50 border-indigo-300 text-indigo-900 ring-2 ring-indigo-500/20" :
+                              "bg-slate-50 border-slate-100 text-slate-400 opacity-60"
+                            )}
+                          >
+                            <div className="flex items-center gap-2">
+                              <span className="text-[10px] font-black">
+                                {st.done ? '✓' : `${sIdx + 1}.`}
+                              </span>
+                              <span>{st.label}</span>
+                            </div>
+
+                            <div className="text-[10px] font-black">
+                              {st.type === 'new_cards' && `${st.progress?.learned || 0}/${st.daily_count} từ`}
+                              {st.type === 'fsrs_review' && `${st.progress?.reviewed_today || 0}/${st.progress?.due_count || 0} thẻ`}
+                              {(st.type === 'mcq' || st.type === 'typing') && `${st.progress?.best_score || 0}/${st.pass_threshold}%`}
+                            </div>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="bg-white p-5 rounded-[2rem] border border-slate-100 shadow-sm">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-8 h-8 rounded-xl bg-slate-100 flex items-center justify-center text-slate-500 font-black">
+                        📚
                       </div>
-                    ) : (
-                      <div className="py-1">
-                        <p className="text-[11px] text-slate-400 leading-relaxed font-medium">
-                          You haven't set a daily goal for this deck yet. Set a goal on the home page to maintain your daily habit! 💡
-                        </p>
+                      <div>
+                        <h4 className="text-xs font-black text-slate-700">Chế Độ Tự Do</h4>
+                        <p className="text-[10px] text-slate-400 font-medium">Bật Lộ trình để tạo pipeline</p>
                       </div>
-                    )}
+                    </div>
                   </div>
                 )}
 
