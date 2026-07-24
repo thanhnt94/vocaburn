@@ -3951,7 +3951,7 @@ export default function PracticePlay() {
         {/* Live Dashboard HUD */}
         {isRoadmapTestMode ? (() => {
           const totalQ = session?.questions?.length || 50;
-          const answeredCount = Math.min(Object.keys(practiceAnswers).length, totalQ);
+          const answeredCount = isRoadmapTestFinished ? totalQ : Math.min(Object.keys(practiceAnswers).length, totalQ);
           const correctCount = session?.questions
             ? Object.entries(practiceAnswers).reduce((acc, [qIdx, chosenOptId]) => {
                 const q = session.questions[Number(qIdx)];
@@ -5186,7 +5186,7 @@ export default function PracticePlay() {
         </aside>
       </main>
 
-      {(mainTab !== 'practice' || (mainTab === 'practice' && !practiceNeedsSetup)) && (
+      {!isRoadmapTestFinished && (mainTab !== 'practice' || (mainTab === 'practice' && !practiceNeedsSetup)) && (
         <footer className="relative w-full flex-shrink-0 bg-white/95 backdrop-blur-2xl border-t border-slate-100/80 px-0 pt-0 pb-0 z-[300] shadow-[0_-4px_24px_rgba(99,102,241,0.06)]">
           <div className="max-w-2xl mx-auto w-full flex flex-col">
             {activeBottomTab === 'flashcard' && !isFeedbackOpen && (
