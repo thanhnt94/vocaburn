@@ -2651,6 +2651,14 @@ async def get_deck_roadmap_status_helper(db: AsyncSession, user_id: int, deck_id
         next_action_url = f"/flashcard/{deck_id}/roadmap"
         next_action_label = "Chưa thiết lập lộ trình"
 
+    new_cards_step = next((st for st in pipeline_processed if st.get("type") == "new_cards"), None)
+    stage_1_done = new_cards_step["done"] if new_cards_step else True
+    roadmap_daily_new = new_cards_step.get("daily_count", 10) if new_cards_step else 10
+
+    test_step = next((st for st in pipeline_processed if st.get("type") in ("mcq", "typing")), None)
+    stage_2_done = test_step["done"] if test_step else False
+    roadmap_pass_threshold = test_step.get("pass_threshold", 80) if test_step else 80
+
     return {
         "roadmap_active": roadmap_active,
         "pipeline": pipeline_processed,
@@ -2658,6 +2666,14 @@ async def get_deck_roadmap_status_helper(db: AsyncSession, user_id: int, deck_id
         "all_done": all_done,
         "next_action_url": next_action_url,
         "next_action_label": next_action_label,
+        "stage_1_done": stage_1_done,
+        "stage_2_done": stage_2_done,
+        "new_learned_today": new_learned_today,
+        "new_target_today": roadmap_daily_new,
+        "review_completed_today": review_completed_today,
+        "review_due_today": review_due_today,
+        "roadmap_daily_new": roadmap_daily_new,
+        "roadmap_pass_threshold": roadmap_pass_threshold,
         "total_cards": total_cards,
         "learned_cards": learned_cards,
         "unlearned_cards": unlearned_cards,

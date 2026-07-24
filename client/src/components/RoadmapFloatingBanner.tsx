@@ -36,7 +36,7 @@ export const RoadmapFloatingBanner: React.FC<RoadmapFloatingBannerProps> = ({
         animate={{ opacity: 1, y: 0, scale: 1 }}
         exit={{ opacity: 0, y: 30, scale: 0.9 }}
         transition={{ type: 'spring', stiffness: 400, damping: 25 }}
-        className="fixed bottom-6 right-6 z-50 max-w-sm w-full mx-4 sm:mx-0"
+        className="fixed bottom-6 right-6 z-[999] max-w-sm w-full mx-4 sm:mx-0"
       >
         <div className="relative overflow-hidden bg-slate-900/95 backdrop-blur-xl border border-indigo-500/30 text-white rounded-3xl p-5 shadow-2xl shadow-indigo-500/20 ring-1 ring-white/10">
           {/* Subtle animated gradient accent background */}

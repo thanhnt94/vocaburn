@@ -46,29 +46,32 @@ export function useRoadmapStatus(deckId: string | number | undefined) {
     staleTime: 5000,
   })
 
-  // Detect when a step was just completed
-  useEffect(() => {
-    if (!status || !status.roadmap_active) return
+  const userDismissedRef = useRef(false)
 
-    const prev = prevStatusRef.current
-    if (prev && prev.roadmap_active) {
-      // Check if current_step_index advanced or if all_done turned true from false
-      if (
-        (status.current_step_index > prev.current_step_index) ||
-        (!prev.all_done && status.all_done)
-      ) {
-        const completedIdx = prev.current_step_index
-        const completedStep = prev.pipeline?.[completedIdx] || status.pipeline?.[completedIdx]
-        if (completedStep) {
-          setJustCompletedStep(completedStep)
-          setShowBanner(true)
-        }
-      }
+  // Detect completed step and show floating banner
+  useEffect(() => {
+    if (!status || !status.roadmap_active || !status.pipeline || status.pipeline.length === 0) return
+
+    // Find the latest completed step
+    let completedStep: PipelineStepStatus | null = null
+    if (status.current_step_index > 0) {
+      completedStep = status.pipeline[status.current_step_index - 1] || null
+    } else if (status.all_done) {
+      completedStep = status.pipeline[status.pipeline.length - 1] || null
+    } else if (status.pipeline[0]?.done) {
+      completedStep = status.pipeline[0]
     }
+
+    if (completedStep && !userDismissedRef.current) {
+      setJustCompletedStep(completedStep)
+      setShowBanner(true)
+    }
+
     prevStatusRef.current = status
   }, [status])
 
   const dismissBanner = useCallback(() => {
+    userDismissedRef.current = true
     setShowBanner(false)
   }, [])
 
