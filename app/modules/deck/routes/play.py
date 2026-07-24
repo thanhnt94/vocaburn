@@ -3080,22 +3080,22 @@ async def submit_roadmap_test(request: Request, deck_id: int, data: dict, db: As
     user_id = int(request.cookies.get("user_id", 1))
     from app.modules.deck.models import DeckSession, DeckAttempt, UserAnswer
     from sqlalchemy import delete
+    from datetime import datetime
     
     answers = data.get("answers", [])
     total_questions = len(answers)
     correct_count = sum(1 for a in answers if a.get("is_correct"))
     score_percentage = (correct_count / total_questions * 100.0) if total_questions > 0 else 0.0
-    passed = score_percentage >= 60.0
+    passed = score_percentage >= 80.0
 
     # 1. Record DeckAttempt
     attempt = DeckAttempt(
         user_id=user_id,
         deck_id=deck_id,
         mode="roadmap_test",
-        total_questions=total_questions,
-        correct_count=correct_count,
-        score=score_percentage,
-        time_spent_seconds=data.get("time_spent_seconds", 0)
+        total_cards=total_questions,
+        score=int(round(score_percentage)),
+        completed_at=datetime.utcnow()
     )
     db.add(attempt)
     await db.flush()
@@ -3108,8 +3108,7 @@ async def submit_roadmap_test(request: Request, deck_id: int, data: dict, db: As
                 attempt_id=attempt.id,
                 card_id=card_id,
                 is_correct=ans.get("is_correct", False),
-                user_response=ans.get("user_response", ""),
-                active_time_seconds=ans.get("active_time", 2.0)
+                active_time=ans.get("active_time", 2.0)
             )
             db.add(user_ans)
 
@@ -3118,7 +3117,7 @@ async def submit_roadmap_test(request: Request, deck_id: int, data: dict, db: As
         delete(DeckSession).where(
             DeckSession.deck_id == deck_id,
             DeckSession.user_id == user_id,
-            DeckSession.mode == "roadmap_test"
+            DeckSession.mode.startswith("roadmap")
         )
     )
 
@@ -3130,8 +3129,25 @@ async def submit_roadmap_test(request: Request, deck_id: int, data: dict, db: As
         "score": round(score_percentage, 1),
         "correct_count": correct_count,
         "total_questions": total_questions,
-        "message": "Bài kiểm tra hoàn thành xuất sắc!" if passed else "Bạn chưa đạt điểm đỗ (60%), hãy luyện tập thêm nhé!"
+        "message": "Bài kiểm tra hoàn thành xuất sắc!" if passed else "Bạn chưa đạt điểm đỗ (80%), hãy luyện tập thêm nhé!"
     }
+
+
+@router.post("/{deck_id}/roadmap-test-reset")
+async def reset_roadmap_test(request: Request, deck_id: int, db: AsyncSession = Depends(get_db)):
+    user_id = int(request.cookies.get("user_id", 1))
+    from app.modules.deck.models import DeckSession
+    from sqlalchemy import delete
+
+    await db.execute(
+        delete(DeckSession).where(
+            DeckSession.deck_id == deck_id,
+            DeckSession.user_id == user_id,
+            DeckSession.mode.startswith("roadmap")
+        )
+    )
+    await db.commit()
+    return {"status": "ok"}
 
 
 @router.post("/{deck_id}/roadmap-test-save-progress")

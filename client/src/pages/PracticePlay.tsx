@@ -471,6 +471,9 @@ export default function PracticePlay() {
     setPracticeCorrectCount(0);
     setCurrentIndex(0);
     localStorage.removeItem(`vocab_roadmap_session_${id}`);
+    try {
+      await axios.post(`/api/v1/deck/${id}/roadmap-test-reset`);
+    } catch (e) {}
     await fetchSession();
   };
   const [activeMilestone, setActiveMilestone] = useState<{
