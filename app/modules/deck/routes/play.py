@@ -1655,6 +1655,7 @@ async def get_next_card(request: Request, deck_id: int, data: dict, db: AsyncSes
             )
         )
         user_sett = user_sett_res.scalar_one_or_none()
+        settings = user_sett.settings if (user_sett and user_sett.settings) else {}
         pipeline = settings.get("pipeline") or []
         roadmap_daily_new = 10
         for st in pipeline:
