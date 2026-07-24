@@ -2852,7 +2852,7 @@ async def get_roadmap_test_questions(request: Request, deck_id: int, db: AsyncSe
     )
     existing_session = session_res.scalar_one_or_none()
 
-    if existing_session and existing_session.mode == "roadmap_test" and existing_session.state_json:
+    if existing_session and (existing_session.mode == "roadmap_test" or (existing_session.mode and existing_session.mode.startswith("roadmap"))) and existing_session.state_json:
         try:
             saved_state = json.loads(existing_session.state_json)
             if (
@@ -3132,3 +3132,34 @@ async def submit_roadmap_test(request: Request, deck_id: int, data: dict, db: As
         "total_questions": total_questions,
         "message": "Bài kiểm tra hoàn thành xuất sắc!" if passed else "Bạn chưa đạt điểm đỗ (60%), hãy luyện tập thêm nhé!"
     }
+
+
+@router.post("/{deck_id}/roadmap-test-save-progress")
+async def save_roadmap_test_progress(request: Request, deck_id: int, data: dict, db: AsyncSession = Depends(get_db)):
+    user_id = int(request.cookies.get("user_id", 1))
+    from app.modules.deck.models import DeckSession
+
+    session_res = await db.execute(
+        select(DeckSession).where(
+            DeckSession.deck_id == deck_id,
+            DeckSession.user_id == user_id
+        )
+    )
+    existing_session = session_res.scalar_one_or_none()
+
+    if existing_session and existing_session.state_json:
+        try:
+            saved_state = json.loads(existing_session.state_json)
+            if isinstance(saved_state, dict):
+                current_idx = data.get("current_index", existing_session.current_index or 0)
+                answers = data.get("practiceAnswers") or data.get("saved_answers") or {}
+                
+                existing_session.current_index = current_idx
+                saved_state["practiceAnswers"] = answers
+                existing_session.state_json = json.dumps(saved_state)
+                await db.commit()
+                return {"status": "ok", "message": "Progress saved successfully"}
+        except Exception as e:
+            pass
+
+    return {"status": "ok", "message": "No active session to save"}

@@ -1118,10 +1118,12 @@ export default function PracticePlay() {
       const isPractice = activeTab === 'practice'
       fetchRoadmapStatus()
 
+      const isRoadmapTestMode = subMode === 'roadmap_test' || subMode === 'roadmap_mcq' || subMode === 'roadmap_typing' || (typeof subMode === 'string' && subMode.startsWith('roadmap_'))
+
       // Practice: only fetch play-data + practice-settings in parallel. No goals. No session restore.
       // FSRS: fetch play-data + goals + session in parallel.
       const fetchPromises: Promise<any>[] = [
-        (subMode === 'roadmap_test' ? axios.get(`/api/v1/deck/${id}/roadmap-test-questions`) : axios.get(`/api/v1/deck/${id}/play-data${modeParam}`))
+        (isRoadmapTestMode ? axios.get(`/api/v1/deck/${id}/roadmap-test-questions`) : axios.get(`/api/v1/deck/${id}/play-data${modeParam}`))
       ]
 
       if (isPractice) {
@@ -1205,16 +1207,54 @@ export default function PracticePlay() {
       setPracticeDisabled(!!quizRes.data.practice_disabled)
 
       if (isPractice) {
-        if (subMode === 'roadmap_test') {
-          const restoredIdx = (quizRes.data.current_index !== undefined && quizRes.data.current_index >= 0) ? quizRes.data.current_index : 0;
-          setCurrentIndex(restoredIdx);
+        if (isRoadmapTestMode) {
+          let restoredIdx = (quizRes.data.current_index !== undefined && quizRes.data.current_index >= 0) ? quizRes.data.current_index : 0;
+          let parsedAns: Record<number, number> = {};
+          let totalAnswered = 0;
+          let correctCount = 0;
+
           if (quizRes.data.saved_answers) {
-            const parsedAns: Record<number, number> = {};
             Object.entries(quizRes.data.saved_answers).forEach(([k, v]) => {
-              parsedAns[Number(k)] = Number(v);
+              const qIdx = Number(k);
+              const chosenOptId = Number(v);
+              parsedAns[qIdx] = chosenOptId;
+              totalAnswered += 1;
+              const q = questions[qIdx];
+              if (q && q.options) {
+                const chosenOpt = q.options.find((o: any) => o.id === chosenOptId);
+                if (chosenOpt && chosenOpt.is_correct) {
+                  correctCount += 1;
+                }
+              } else if (chosenOptId === 3) {
+                correctCount += 1;
+              }
             });
-            setPracticeAnswers(parsedAns);
           }
+
+          // Hydrate local storage session backup
+          const localSavedStr = localStorage.getItem(`vocab_roadmap_session_${id}`);
+          if (localSavedStr) {
+            try {
+              const localSaved = JSON.parse(localSavedStr);
+              if (localSaved && localSaved.practiceAnswers) {
+                parsedAns = { ...localSaved.practiceAnswers, ...parsedAns };
+                if (localSaved.practiceTotalAnswered !== undefined) {
+                  totalAnswered = Math.max(totalAnswered, localSaved.practiceTotalAnswered);
+                }
+                if (localSaved.practiceCorrectCount !== undefined) {
+                  correctCount = Math.max(correctCount, localSaved.practiceCorrectCount);
+                }
+                if (localSaved.currentIndex !== undefined && restoredIdx === 0) {
+                  restoredIdx = localSaved.currentIndex;
+                }
+              }
+            } catch (e) {}
+          }
+
+          setCurrentIndex(restoredIdx);
+          setPracticeAnswers(parsedAns);
+          setPracticeTotalAnswered(totalAnswered);
+          setPracticeCorrectCount(correctCount);
         } else if (currentIndex < 0) {
           const allIndices = questions.map((q: any, i: number) => q.is_ignored ? -1 : i).filter((i: number) => i !== -1);
           const learnedIndices = questions.map((q: any, i: number) => (!q.is_ignored && (q.stats?.total || 0) > 0) ? i : -1).filter((i: number) => i !== -1);
@@ -2049,6 +2089,22 @@ export default function PracticePlay() {
 
     const newAnswers = { ...practiceAnswers, [currentIndex]: choiceIdx };
     setPracticeAnswers(newAnswers);
+
+    const isRoadmapMode = subMode === 'roadmap_test' || subMode === 'roadmap_mcq' || subMode === 'roadmap_typing' || (typeof subMode === 'string' && subMode.startsWith('roadmap_'));
+    if (isRoadmapMode) {
+      const savedState = {
+        currentIndex,
+        practiceAnswers: newAnswers,
+        practiceTotalAnswered: updatedTotalAnswered,
+        practiceCorrectCount: updatedCorrectCount,
+        timestamp: Date.now()
+      };
+      localStorage.setItem(`vocab_roadmap_session_${id}`, JSON.stringify(savedState));
+      axios.post(`/api/v1/deck/${id}/roadmap-test-save-progress`, {
+        current_index: currentIndex,
+        practiceAnswers: newAnswers
+      }).catch(() => {});
+    }
 
     let updatedXP = sessionXP;
     let updatedStreak = streak;
