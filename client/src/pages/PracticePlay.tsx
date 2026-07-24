@@ -262,6 +262,7 @@ const SessionLoadingScreen = () => {
 
 export default function PracticePlay() {
   const { id, subMode } = useParams()
+  const isRoadmapTestMode = subMode === 'roadmap_test' || subMode === 'roadmap_mcq' || subMode === 'roadmap_typing' || (typeof subMode === 'string' && subMode.startsWith('roadmap_'))
   const navigate = useNavigate()
   const { user, gamify, setUser, setGamify, addXp } = useAppStore()
 
@@ -3789,158 +3790,191 @@ export default function PracticePlay() {
           </div>
         </div>
       
-        {/* Live Dashboard HUD - Clean Light Ticker Style */}
-        <div className="bg-slate-100/50 border border-slate-200/40 rounded-xl p-0.5 flex items-center gap-0.5 md:gap-1.5 shadow-[inset_0_1px_2px_rgba(0,0,0,0.02)] flex-shrink-0 mr-0.5 md:mr-0">
-          {/* Item 1: Daily Goal progress */}
-          <div className="flex items-center bg-white/90 border border-slate-200/30 rounded-lg p-0.5 pr-1 md:pr-1.5 shadow-sm min-w-[52px] xs:min-w-[56px] md:min-w-[66px]" title="Mục tiêu ôn tập hàng ngày">
-            <div className="w-4 h-4 md:w-5 md:h-5 flex items-center justify-center bg-indigo-50 text-indigo-600 rounded mr-0.5 md:mr-1 flex-shrink-0">
-              <Target className="w-2.5 h-2.5 md:w-3 md:h-3" />
-            </div>
-            <div className="flex flex-col min-w-0">
-              <span className="text-[5.5px] md:text-[6.5px] text-slate-400 font-extrabold uppercase tracking-wider leading-none">Goal</span>
-              <div className="h-2.5 md:h-3 overflow-hidden relative min-w-[20px]">
-                <AnimatePresence mode="popLayout" initial={false}>
-                  <motion.span
-                    key={activeGoal ? `${activeGoal.done_today}/${activeGoal.daily_target}` : 'none'}
-                    initial={{ y: 8, opacity: 0 }}
-                    animate={{ y: 0, opacity: 1 }}
-                    exit={{ y: -8, opacity: 0 }}
-                    transition={{ type: "spring", stiffness: 350, damping: 18 }}
-                    className="text-[7.5px] md:text-[8.5px] font-black text-slate-700 leading-none block truncate"
-                  >
-                    {activeGoal ? `${activeGoal.done_today}/${activeGoal.daily_target}` : '--'}
-                  </motion.span>
-                </AnimatePresence>
+        {/* Live Dashboard HUD */}
+        {isRoadmapTestMode ? (() => {
+          const totalQ = session?.questions?.length || 50;
+          const accuracyPercent = practiceTotalAnswered > 0 ? Math.round((practiceCorrectCount / practiceTotalAnswered) * 100) : 0;
+          return (
+            <div className="bg-slate-100/50 border border-slate-200/40 rounded-xl p-0.5 flex items-center gap-1 shadow-inner flex-shrink-0">
+              {/* Item 1: Progress (Đã làm) */}
+              <div className="flex items-center bg-white/90 border border-slate-200/30 rounded-lg p-0.5 px-2 shadow-sm" title="Số câu đã hoàn thành">
+                <Brain className="w-3.5 h-3.5 text-purple-600 mr-1" />
+                <div className="flex flex-col">
+                  <span className="text-[6px] text-slate-400 font-extrabold uppercase tracking-wider leading-none">Đã Làm</span>
+                  <span className="text-[9px] font-black text-slate-800 leading-none mt-0.5">
+                    {practiceTotalAnswered}/{totalQ}
+                  </span>
+                </div>
               </div>
-            </div>
-          </div>
-      
-          {/* Item 2: Cards left / Question count */}
-          <div className="flex items-center bg-white/90 border border-slate-200/30 rounded-lg p-0.5 pr-1 md:pr-1.5 shadow-sm min-w-[52px] xs:min-w-[56px] md:min-w-[66px]" title={subMode === 'roadmap_test' ? "Câu hỏi hiện tại / Tổng số câu" : "Số thẻ ôn tập/học còn lại"}>
-            <div className="w-4 h-4 md:w-5 md:h-5 flex items-center justify-center bg-rose-50 text-rose-600 rounded mr-0.5 md:mr-1 flex-shrink-0">
-              {subMode === 'roadmap_test' ? <Target className="w-2.5 h-2.5 md:w-3 md:h-3 text-purple-600" /> : <Brain className="w-2.5 h-2.5 md:w-3 md:h-3" />}
-            </div>
-            <div className="flex flex-col min-w-0">
-              <span className="text-[5.5px] md:text-[6.5px] text-slate-400 font-extrabold uppercase tracking-wider leading-none">
-                {subMode === 'roadmap_test' ? 'CÂU' : 'Left'}
-              </span>
-              <div className="h-2.5 md:h-3 overflow-hidden relative min-w-[15px]">
-                <AnimatePresence mode="popLayout" initial={false}>
-                  <motion.span
-                    key={subMode === 'roadmap_test' ? `${currentIndex + 1}/${session?.questions?.length || 50}` : (session?.questions ? Math.max(0, session.questions.length - currentIndex) : 0)}
-                    initial={{ y: 8, opacity: 0 }}
-                    animate={{ y: 0, opacity: 1 }}
-                    exit={{ y: -8, opacity: 0 }}
-                    transition={{ type: "spring", stiffness: 350, damping: 18 }}
-                    className="text-[7.5px] md:text-[8.5px] font-black text-slate-700 leading-none block truncate"
-                  >
-                    {subMode === 'roadmap_test' ? `${currentIndex + 1}/${session?.questions?.length || 50}` : (session?.questions ? Math.max(0, session.questions.length - currentIndex) : 0)}
-                  </motion.span>
-                </AnimatePresence>
-              </div>
-            </div>
-          </div>
-      
-          {/* Item 3: Timer */}
-          <div 
-            onClick={toggleTimeMode}
-            className="flex items-center bg-white/90 border border-slate-200/30 rounded-lg p-0.5 pr-1 md:pr-1.5 shadow-sm min-w-[52px] xs:min-w-[56px] md:min-w-[66px] cursor-pointer active:scale-95 transition-all select-none hover:bg-slate-50" 
-            title={
-              timeMode === 'card' 
-                ? "Thời gian học thẻ này - Click để chuyển sang thời gian ngày"
-                : timeMode === 'today'
-                  ? "Thời gian học trong ngày - Click để chuyển sang tổng thời gian"
-                  : "Tổng thời gian học toàn bộ - Click để chuyển sang thời gian thẻ này"
-            }
-          >
-            <div className="w-4 h-4 md:w-5 md:h-5 flex items-center justify-center bg-emerald-50 text-emerald-600 rounded mr-0.5 md:mr-1 flex-shrink-0">
-              <Clock className="w-2.5 h-2.5 md:w-3 md:h-3" />
-            </div>
-            <div className="flex flex-col min-w-0">
-              <span className="text-[5.5px] md:text-[6.5px] text-slate-400 font-extrabold uppercase tracking-wider leading-none">
-                {timeMode === 'card' ? 'Time' : timeMode === 'today' ? 'Today' : 'Total'}
-              </span>
-              <div className="h-2.5 md:h-3 overflow-hidden relative min-w-[15px]">
-                <AnimatePresence mode="popLayout" initial={false}>
-                  <motion.span
-                    key={
-                      timeMode === 'card' 
-                        ? timeLeft 
-                        : timeMode === 'today' 
-                          ? formatHeaderTime(initialTodayTime + sessionStudyTime) 
-                          : formatHeaderTime(initialAllTimeTime + sessionStudyTime)
-                    }
-                    initial={{ y: 8, opacity: 0 }}
-                    animate={{ y: 0, opacity: 1 }}
-                    exit={{ y: -8, opacity: 0 }}
-                    transition={{ type: "spring", stiffness: 350, damping: 18 }}
-                    className="text-[7.5px] md:text-[8.5px] font-black text-slate-700 leading-none block truncate"
-                  >
-                    {
-                      timeMode === 'card' 
-                        ? `${timeLeft}s` 
-                        : timeMode === 'today' 
-                          ? formatHeaderTime(initialTodayTime + sessionStudyTime) 
-                          : formatHeaderTime(initialAllTimeTime + sessionStudyTime)
-                    }
-                  </motion.span>
-                </AnimatePresence>
-              </div>
-            </div>
-          </div>
-      
-          {/* Item 4: Current user score */}
-          <div 
-            onClick={toggleScoreMode}
-            className="flex items-center bg-white/90 border border-slate-200/30 rounded-lg p-0.5 pr-1 md:pr-1.5 shadow-sm min-w-[52px] xs:min-w-[56px] md:min-w-[66px] cursor-pointer active:scale-95 transition-all select-none hover:bg-slate-50" 
-            title={
-              scoreMode === 'all' 
-                ? "Điểm số toàn bộ (XP) - Click để chuyển sang điểm ngày"
-                : "Điểm số trong ngày (XP) - Click để chuyển sang toàn bộ điểm"
-            }
-          >
-            <div className="w-4 h-4 md:w-5 md:h-5 flex items-center justify-center bg-amber-50 text-amber-600 rounded mr-0.5 md:mr-1 flex-shrink-0">
-              <Trophy className="w-2.5 h-2.5 md:w-3 md:h-3" />
-            </div>
-            <div className="flex flex-col min-w-0">
-              <span className="text-[5.5px] md:text-[6.5px] text-slate-400 font-extrabold uppercase tracking-wider leading-none">
-                {scoreMode === 'all' ? 'Score' : 'Today'}
-              </span>
-              <div className="h-2.5 md:h-3 overflow-hidden relative min-w-[25px]">
-                <AnimatePresence mode="popLayout" initial={false}>
-                  <motion.span
-                    key={scoreMode === 'all' ? gamify.xp : initialTodayXP + sessionXP}
-                    initial={{ y: 8, opacity: 0 }}
-                    animate={{ y: 0, opacity: 1 }}
-                    exit={{ y: -8, opacity: 0 }}
-                    transition={{ type: "spring", stiffness: 350, damping: 18 }}
-                    className="text-[7.5px] md:text-[8.5px] font-black text-slate-700 leading-none block truncate"
-                  >
-                    {
-                      scoreMode === 'all' 
-                        ? gamify.xp.toLocaleString() 
-                        : (initialTodayXP + sessionXP).toLocaleString()
-                    }
-                  </motion.span>
-                </AnimatePresence>
-              </div>
-            </div>
-          </div>
 
-        </div>
+              {/* Item 2: Accuracy % */}
+              <div className="flex items-center bg-white/90 border border-slate-200/30 rounded-lg p-0.5 px-2 shadow-sm" title="Tỷ lệ trả lời chính xác">
+                <Target className="w-3.5 h-3.5 text-emerald-600 mr-1" />
+                <div className="flex flex-col">
+                  <span className="text-[6px] text-slate-400 font-extrabold uppercase tracking-wider leading-none">Chính Xác</span>
+                  <span className={cn(
+                    "text-[9px] font-black leading-none mt-0.5",
+                    accuracyPercent >= 80 ? "text-emerald-600" : accuracyPercent >= 60 ? "text-amber-600" : "text-rose-600"
+                  )}>
+                    {accuracyPercent}% <span className="text-[7px] text-slate-400 font-normal">(≥80%)</span>
+                  </span>
+                </div>
+              </div>
 
-        {/* Quick Add Button */}
-        <button
-          onClick={handleCreateNewCard}
-          className="w-8.5 h-8.5 ml-1.5 md:ml-2.5 flex items-center justify-center bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl shadow-md active:scale-90 transition-all flex-shrink-0"
-          title="Thêm thẻ nhanh"
-        >
-          <Plus className="w-4.5 h-4.5" />
-        </button>
+              {/* Item 3: Timer */}
+              <div className="flex items-center bg-white/90 border border-slate-200/30 rounded-lg p-0.5 px-2 shadow-sm" title="Thời gian làm bài">
+                <Clock className="w-3.5 h-3.5 text-indigo-600 mr-1" />
+                <div className="flex flex-col">
+                  <span className="text-[6px] text-slate-400 font-extrabold uppercase tracking-wider leading-none">Time</span>
+                  <span className="text-[9px] font-black text-slate-800 leading-none mt-0.5">
+                    {timeLeft}s
+                  </span>
+                </div>
+              </div>
+            </div>
+          );
+        })() : (
+          <div className="bg-slate-100/50 border border-slate-200/40 rounded-xl p-0.5 flex items-center gap-0.5 md:gap-1.5 shadow-[inset_0_1px_2px_rgba(0,0,0,0.02)] flex-shrink-0 mr-0.5 md:mr-0">
+            {/* Item 1: Daily Goal progress */}
+            <div className="flex items-center bg-white/90 border border-slate-200/30 rounded-lg p-0.5 pr-1 md:pr-1.5 shadow-sm min-w-[52px] xs:min-w-[56px] md:min-w-[66px]" title="Mục tiêu ôn tập hàng ngày">
+              <div className="w-4 h-4 md:w-5 md:h-5 flex items-center justify-center bg-indigo-50 text-indigo-600 rounded mr-0.5 md:mr-1 flex-shrink-0">
+                <Target className="w-2.5 h-2.5 md:w-3 md:h-3" />
+              </div>
+              <div className="flex flex-col min-w-0">
+                <span className="text-[5.5px] md:text-[6.5px] text-slate-400 font-extrabold uppercase tracking-wider leading-none">Goal</span>
+                <div className="h-2.5 md:h-3 overflow-hidden relative min-w-[20px]">
+                  <AnimatePresence mode="popLayout" initial={false}>
+                    <motion.span
+                      key={activeGoal ? `${activeGoal.done_today}/${activeGoal.daily_target}` : 'none'}
+                      initial={{ y: 8, opacity: 0 }}
+                      animate={{ y: 0, opacity: 1 }}
+                      exit={{ y: -8, opacity: 0 }}
+                      transition={{ type: "spring", stiffness: 350, damping: 18 }}
+                      className="text-[7.5px] md:text-[8.5px] font-black text-slate-700 leading-none block truncate"
+                    >
+                      {activeGoal ? `${activeGoal.done_today}/${activeGoal.daily_target}` : '--'}
+                    </motion.span>
+                  </AnimatePresence>
+                </div>
+              </div>
+            </div>
+        
+            {/* Item 2: Cards left / Question count */}
+            <div className="flex items-center bg-white/90 border border-slate-200/30 rounded-lg p-0.5 pr-1 md:pr-1.5 shadow-sm min-w-[52px] xs:min-w-[56px] md:min-w-[66px]" title="Số thẻ ôn tập/học còn lại">
+              <div className="w-4 h-4 md:w-5 md:h-5 flex items-center justify-center bg-rose-50 text-rose-600 rounded mr-0.5 md:mr-1 flex-shrink-0">
+                <Brain className="w-2.5 h-2.5 md:w-3 md:h-3" />
+              </div>
+              <div className="flex flex-col min-w-0">
+                <span className="text-[5.5px] md:text-[6.5px] text-slate-400 font-extrabold uppercase tracking-wider leading-none">Left</span>
+                <div className="h-2.5 md:h-3 overflow-hidden relative min-w-[15px]">
+                  <AnimatePresence mode="popLayout" initial={false}>
+                    <motion.span
+                      key={session?.questions ? Math.max(0, session.questions.length - currentIndex) : 0}
+                      initial={{ y: 8, opacity: 0 }}
+                      animate={{ y: 0, opacity: 1 }}
+                      exit={{ y: -8, opacity: 0 }}
+                      transition={{ type: "spring", stiffness: 350, damping: 18 }}
+                      className="text-[7.5px] md:text-[8.5px] font-black text-slate-700 leading-none block truncate"
+                    >
+                      {session?.questions ? Math.max(0, session.questions.length - currentIndex) : 0}
+                    </motion.span>
+                  </AnimatePresence>
+                </div>
+              </div>
+            </div>
+        
+            {/* Item 3: Timer */}
+            <div 
+              onClick={toggleTimeMode}
+              className="flex items-center bg-white/90 border border-slate-200/30 rounded-lg p-0.5 pr-1 md:pr-1.5 shadow-sm min-w-[52px] xs:min-w-[56px] md:min-w-[66px] cursor-pointer active:scale-95 transition-all select-none hover:bg-slate-50" 
+              title="Thời gian học"
+            >
+              <div className="w-4 h-4 md:w-5 md:h-5 flex items-center justify-center bg-emerald-50 text-emerald-600 rounded mr-0.5 md:mr-1 flex-shrink-0">
+                <Clock className="w-2.5 h-2.5 md:w-3 md:h-3" />
+              </div>
+              <div className="flex flex-col min-w-0">
+                <span className="text-[5.5px] md:text-[6.5px] text-slate-400 font-extrabold uppercase tracking-wider leading-none">
+                  {timeMode === 'card' ? 'Time' : timeMode === 'today' ? 'Today' : 'Total'}
+                </span>
+                <div className="h-2.5 md:h-3 overflow-hidden relative min-w-[15px]">
+                  <AnimatePresence mode="popLayout" initial={false}>
+                    <motion.span
+                      key={
+                        timeMode === 'card' 
+                          ? timeLeft 
+                          : timeMode === 'today' 
+                            ? formatHeaderTime(initialTodayTime + sessionStudyTime) 
+                            : formatHeaderTime(initialAllTimeTime + sessionStudyTime)
+                      }
+                      initial={{ y: 8, opacity: 0 }}
+                      animate={{ y: 0, opacity: 1 }}
+                      exit={{ y: -8, opacity: 0 }}
+                      transition={{ type: "spring", stiffness: 350, damping: 18 }}
+                      className="text-[7.5px] md:text-[8.5px] font-black text-slate-700 leading-none block truncate"
+                    >
+                      {
+                        timeMode === 'card' 
+                          ? `${timeLeft}s` 
+                          : timeMode === 'today' 
+                            ? formatHeaderTime(initialTodayTime + sessionStudyTime) 
+                            : formatHeaderTime(initialAllTimeTime + sessionStudyTime)
+                      }
+                    </motion.span>
+                  </AnimatePresence>
+                </div>
+              </div>
+            </div>
+        
+            {/* Item 4: Current user score */}
+            <div 
+              onClick={toggleScoreMode}
+              className="flex items-center bg-white/90 border border-slate-200/30 rounded-lg p-0.5 pr-1 md:pr-1.5 shadow-sm min-w-[52px] xs:min-w-[56px] md:min-w-[66px] cursor-pointer active:scale-95 transition-all select-none hover:bg-slate-50" 
+              title="Điểm XP"
+            >
+              <div className="w-4 h-4 md:w-5 md:h-5 flex items-center justify-center bg-amber-50 text-amber-600 rounded mr-0.5 md:mr-1 flex-shrink-0">
+                <Trophy className="w-2.5 h-2.5 md:w-3 md:h-3" />
+              </div>
+              <div className="flex flex-col min-w-0">
+                <span className="text-[5.5px] md:text-[6.5px] text-slate-400 font-extrabold uppercase tracking-wider leading-none">
+                  {scoreMode === 'all' ? 'Score' : 'Today'}
+                </span>
+                <div className="h-2.5 md:h-3 overflow-hidden relative min-w-[25px]">
+                  <AnimatePresence mode="popLayout" initial={false}>
+                    <motion.span
+                      key={scoreMode === 'all' ? gamify.xp : initialTodayXP + sessionXP}
+                      initial={{ y: 8, opacity: 0 }}
+                      animate={{ y: 0, opacity: 1 }}
+                      exit={{ y: -8, opacity: 0 }}
+                      transition={{ type: "spring", stiffness: 350, damping: 18 }}
+                      className="text-[7.5px] md:text-[8.5px] font-black text-slate-700 leading-none block truncate"
+                    >
+                      {
+                        scoreMode === 'all' 
+                          ? gamify.xp.toLocaleString() 
+                          : (initialTodayXP + sessionXP).toLocaleString()
+                      }
+                    </motion.span>
+                  </AnimatePresence>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Quick Add Button (Hidden in Roadmap mode) */}
+        {!isRoadmapTestMode && (
+          <button
+            onClick={handleCreateNewCard}
+            className="w-8.5 h-8.5 ml-1.5 md:ml-2.5 flex items-center justify-center bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl shadow-md active:scale-90 transition-all flex-shrink-0"
+            title="Thêm thẻ nhanh"
+          >
+            <Plus className="w-4.5 h-4.5" />
+          </button>
+        )}
       </header>
 
-      {/* Dynamic Mode Switcher Bar (Only rendered for standard practice mode, hidden in roadmap_test) */}
-      {subMode !== 'roadmap_test' && (
+      {/* Dynamic Mode Switcher Bar (Hidden completely in Roadmap mode) */}
+      {!isRoadmapTestMode && (
         <div className="flex-shrink-0 bg-white/80 backdrop-blur-md border-b border-slate-100/50 px-4 lg:px-8 py-1.5 md:py-2 flex items-center justify-between gap-2 md:gap-3 z-50 w-full shadow-sm">
         {subMode === 'roadmap_test' ? (() => {
           const totalQ = session?.questions?.length || 50;
@@ -4974,8 +5008,8 @@ export default function PracticePlay() {
           <div className="max-w-2xl mx-auto w-full flex flex-col">
             {activeBottomTab === 'flashcard' && !isFeedbackOpen && (
               <div className="w-full flex items-center gap-1.5 sm:gap-3 px-3 sm:px-4 pt-1 pb-2">
-            {/* Settings Button */}
-            {subMode !== 'roadmap_test' && (
+            {/* Settings Button (Hidden in Roadmap mode) */}
+            {!isRoadmapTestMode && (
               <button
                 onClick={(e) => {
                   e.stopPropagation();
@@ -5052,14 +5086,16 @@ export default function PracticePlay() {
                   </button>
                 ) : (
                   <div className="flex-1 flex gap-2 h-12">
-                    <button
-                      onClick={handleNext}
-                      className="flex-1 h-12 bg-slate-50 border border-slate-200 text-slate-500 hover:bg-slate-100 font-black text-xs rounded-2xl flex items-center justify-center gap-1.5 uppercase tracking-widest active:scale-[0.98] transition-all"
-                    >
-                      Skip <ChevronRight className="w-4 h-4" />
-                    </button>
-                    <div className="flex-[2] h-12 bg-slate-100 text-slate-400 font-black text-xs rounded-2xl flex items-center justify-center uppercase tracking-widest pointer-events-none select-none">
-                      Waiting...
+                    {!isRoadmapTestMode && (
+                      <button
+                        onClick={handleNext}
+                        className="flex-1 h-12 bg-slate-50 border border-slate-200 text-slate-500 hover:bg-slate-100 font-black text-xs rounded-2xl flex items-center justify-center gap-1.5 uppercase tracking-widest active:scale-[0.98] transition-all"
+                      >
+                        Skip <ChevronRight className="w-4 h-4" />
+                      </button>
+                    )}
+                    <div className="flex-[2] h-12 bg-slate-100/70 border border-slate-200/50 text-slate-400 font-extrabold text-xs rounded-2xl flex items-center justify-center uppercase tracking-widest pointer-events-none select-none">
+                      {isRoadmapTestMode ? "Chọn 1 đáp án bên trên 🎯" : "Waiting..."}
                     </div>
                   </div>
                 )

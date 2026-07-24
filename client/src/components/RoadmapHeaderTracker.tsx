@@ -62,11 +62,11 @@ export const RoadmapHeaderTracker: React.FC<RoadmapHeaderTrackerProps> = ({
                 <span>{step.label}</span>
 
                 {/* Progress details if present */}
-                {step.progress && (
-                  <span className="opacity-80 text-[9px]">
-                    {step.type === 'new_cards' && `(${step.progress.learned}/${step.daily_count || 10})`}
-                    {step.type === 'mcq' && step.progress.best_score > 0 && `(${step.progress.best_score}%)`}
-                    {step.type === 'typing' && step.progress.best_score > 0 && `(${step.progress.best_score}%)`}
+                {!isDone && (
+                  <span className="opacity-90 text-[9px] font-black">
+                    {(step.type === 'mcq' || step.type === 'typing') && `(Mục tiêu ≥${step.pass_threshold || 80}%)`}
+                    {step.type === 'new_cards' && `(${step.progress?.learned || 0}/${step.daily_count || 10})`}
+                    {step.type === 'fsrs_review' && `(${step.progress?.reviewed_today || 0}/${step.progress?.due_count || 0})`}
                   </span>
                 )}
               </Link>
