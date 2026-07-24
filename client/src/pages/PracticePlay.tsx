@@ -23,6 +23,9 @@ import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts'
 import { usePlaySettings } from '@/hooks/usePlaySettings'
 import { PlaySessionSummary } from '@/components/PlaySessionSummary'
 import { PlayStatsDrawer } from '@/components/PlayStatsDrawer'
+import { useRoadmapStatus } from '@/hooks/useRoadmapStatus'
+import { RoadmapFloatingBanner } from '@/components/RoadmapFloatingBanner'
+import { RoadmapHeaderTracker } from '@/components/RoadmapHeaderTracker'
 
 interface Option {
   id: number
@@ -528,17 +531,18 @@ export default function PracticePlay() {
   })
 
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false)
-  const [roadmapStatus, setRoadmapStatus] = useState<any>(null)
-  const fetchRoadmapStatus = async () => {
-    try {
-      const res = await axios.get(`/api/v1/deck/${id}/roadmap-status`)
-      setRoadmapStatus(res.data)
-      return res.data
-    } catch (err) {
-      console.error("Failed to fetch roadmap status:", err)
-      return null
-    }
-  }
+  const {
+    status: roadmapStatus,
+    refetchRoadmap,
+    showBanner,
+    dismissBanner,
+    justCompletedStep,
+    isRoadmapActive,
+    isAllDone: isRoadmapAllDone,
+    nextActionUrl,
+    nextActionLabel
+  } = useRoadmapStatus(id)
+  const fetchRoadmapStatus = () => refetchRoadmap()
   const activeBottomTab = isMapOpen ? 'map' : (isStatsOpen ? 'stats' : 'flashcard')
 
   const {
@@ -3717,6 +3721,15 @@ export default function PracticePlay() {
                 return subMode === 'roadmap_test' ? `🎯 Bài Kiểm Tra Roadmap${dt ? ` - ${dt}` : ''}` : (dt || 'Luyện tập');
               })()}
             </h1>
+            {isRoadmapActive && roadmapStatus?.pipeline && (
+              <RoadmapHeaderTracker
+                pipeline={roadmapStatus.pipeline}
+                currentStepIndex={roadmapStatus.current_step_index}
+                allDone={isRoadmapAllDone}
+                deckId={id || ''}
+                className="mt-0.5"
+              />
+            )}
           </div>
         </div>
       
@@ -6413,6 +6426,18 @@ export default function PracticePlay() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Floating Roadmap Step Completion Banner */}
+      <RoadmapFloatingBanner
+        show={showBanner}
+        onClose={dismissBanner}
+        completedStep={justCompletedStep}
+        nextActionUrl={nextActionUrl}
+        nextActionLabel={nextActionLabel}
+        currentStepIndex={(roadmapStatus?.current_step_index || 0) + 1}
+        totalSteps={roadmapStatus?.pipeline?.length || 1}
+        allDone={isRoadmapAllDone}
+      />
     </div>
   )
 }

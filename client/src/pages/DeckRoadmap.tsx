@@ -113,6 +113,8 @@ export default function DeckRoadmap() {
       await refetch()
       queryClient.invalidateQueries({ queryKey: ['roadmapDecks'] })
       queryClient.invalidateQueries({ queryKey: ['roadmap-global-decks'] })
+      queryClient.invalidateQueries({ queryKey: ['deck-roadmap-status', Number(id)] })
+      queryClient.invalidateQueries({ queryKey: ['deck-roadmap-status', id] })
       setIsEditingPipeline(false)
     } catch (e) {
       console.error('Failed to save pipeline settings:', e)

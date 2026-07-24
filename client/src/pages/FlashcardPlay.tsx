@@ -30,6 +30,9 @@ import { PlaySettingsModal } from '@/components/PlaySettingsModal'
 import { PlaySessionSummary } from '@/components/PlaySessionSummary'
 import { PlayStatsDrawer } from '@/components/PlayStatsDrawer'
 import { BadgeUnlockOverlay } from '@/components/BadgeUnlockOverlay'
+import { useRoadmapStatus } from '@/hooks/useRoadmapStatus'
+import { RoadmapFloatingBanner } from '@/components/RoadmapFloatingBanner'
+import { RoadmapHeaderTracker } from '@/components/RoadmapHeaderTracker'
 
 
 interface Option {
@@ -353,6 +356,18 @@ export default function FlashcardPlay() {
   const { id, mode, subMode } = useParams()
   const navigate = useNavigate()
   const { user, gamify, setUser, setGamify, addXp } = useAppStore()
+
+  const {
+    status: roadmapStatus,
+    refetchRoadmap,
+    showBanner,
+    dismissBanner,
+    justCompletedStep,
+    isRoadmapActive,
+    isAllDone: isRoadmapAllDone,
+    nextActionUrl,
+    nextActionLabel
+  } = useRoadmapStatus(id)
   
   const [session, setSession] = useState<any>(null)
   const [currentIndex, setCurrentIndex] = useState(-1)
@@ -601,19 +616,9 @@ export default function FlashcardPlay() {
     return localStorage.getItem('quiz_learning_mode') || 'fsrs';
   })
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
-  const [roadmapStatus, setRoadmapStatus] = useState<any>(null);
   const [showRoadmapCompleteModal, setShowRoadmapCompleteModal] = useState<boolean>(false);
 
-  const fetchRoadmapStatus = async () => {
-    try {
-      const res = await axios.get(`/api/v1/deck/${id}/roadmap-status`);
-      setRoadmapStatus(res.data);
-      return res.data;
-    } catch (err) {
-      console.error("Failed to fetch roadmap status:", err);
-      return null;
-    }
-  };
+  const fetchRoadmapStatus = () => refetchRoadmap();
 
   const activeBottomTab = isMapOpen ? 'map' : (isStatsOpen ? 'stats' : 'flashcard');
 
@@ -1538,10 +1543,13 @@ export default function FlashcardPlay() {
         }
       }
       if (activeMode === 'roadmap') {
-        fetchRoadmapStatus().then(updated => {
-          if (updated) {
-            const newDone = updated.new_learned_today >= updated.new_target_today;
-            const reviewDone = updated.review_completed_today >= updated.review_due_today || updated.review_due_today === 0;
+        fetchRoadmapStatus().then(res => {
+          const updated = res?.data;
+          if (updated && updated.pipeline) {
+            const newStep = updated.pipeline.find((s: any) => s.type === 'new_cards');
+            const revStep = updated.pipeline.find((s: any) => s.type === 'fsrs_review');
+            const newDone = newStep ? newStep.done : true;
+            const reviewDone = revStep ? revStep.done : true;
             if (newDone && reviewDone) {
               setShowRoadmapCompleteModal(true);
             }
@@ -3625,7 +3633,10 @@ export default function FlashcardPlay() {
                   <span className="text-[5.5px] md:text-[6.5px] text-slate-400 font-extrabold uppercase tracking-wider leading-none">New</span>
                   <div className="h-2.5 md:h-3 overflow-hidden relative min-w-[20px]">
                     <span className="text-[7.5px] md:text-[8.5px] font-black text-slate-700 leading-none block truncate">
-                      {roadmapStatus.new_learned_today}/{roadmapStatus.new_target_today}
+                      {(() => {
+                        const s = roadmapStatus?.pipeline?.find((st: any) => st.type === 'new_cards');
+                        return `${s?.progress?.learned || 0}/${s?.daily_count || 10}`;
+                      })()}
                     </span>
                   </div>
                 </div>
@@ -3640,7 +3651,10 @@ export default function FlashcardPlay() {
                   <span className="text-[5.5px] md:text-[6.5px] text-slate-400 font-extrabold uppercase tracking-wider leading-none">Due</span>
                   <div className="h-2.5 md:h-3 overflow-hidden relative min-w-[15px]">
                     <span className="text-[7.5px] md:text-[8.5px] font-black text-slate-700 leading-none block truncate">
-                      {roadmapStatus.review_completed_today}/{roadmapStatus.review_due_today}
+                      {(() => {
+                        const s = roadmapStatus?.pipeline?.find((st: any) => st.type === 'fsrs_review');
+                        return `${s?.progress?.reviewed_today || 0}/${s?.progress?.due_count || 0}`;
+                      })()}
                     </span>
                   </div>
                 </div>
@@ -5357,17 +5371,31 @@ export default function FlashcardPlay() {
 
               <h3 className="text-2xl font-black text-slate-800 mb-2 uppercase tracking-tight">Đã học xong từ mới! 🎯</h3>
               <p className="text-slate-500 font-bold text-sm leading-relaxed mb-6">
-                Xuất sắc! Hãy thực hiện **Bài Kiểm Tra Roadmap** (Đạt ≥{roadmapStatus.roadmap_pass_threshold || 80}%) để đánh giá khả năng ghi nhớ & giữ Streak ngày!
+                {(() => {
+                  const testStep = roadmapStatus?.pipeline?.find((s: any) => s.type === 'mcq' || s.type === 'typing');
+                  const thresh = testStep?.pass_threshold || 80;
+                  return `Xuất sắc! Hãy thực hiện **Bài Kiểm Tra Roadmap** (Đạt ≥${thresh}%) để đánh giá khả năng ghi nhớ & giữ Streak ngày!`;
+                })()}
               </p>
 
               <div className="grid grid-cols-2 gap-4 bg-slate-50 p-4 rounded-3xl border border-slate-100 mb-6">
                 <div className="text-center border-r border-slate-200/60">
                   <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Mục tiêu từ mới</span>
-                  <span className="text-xl font-black text-orange-600">{roadmapStatus.new_learned_today}/{roadmapStatus.new_target_today} từ</span>
+                  <span className="text-xl font-black text-orange-600">
+                    {(() => {
+                      const newStep = roadmapStatus?.pipeline?.find((s: any) => s.type === 'new_cards');
+                      return `${newStep?.progress?.learned || 0}/${newStep?.daily_count || 10}`;
+                    })()} từ
+                  </span>
                 </div>
                 <div className="text-center">
                   <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Ngưỡng điểm đỗ</span>
-                  <span className="text-xl font-black text-emerald-600">≥ {roadmapStatus.roadmap_pass_threshold || 80}%</span>
+                  <span className="text-xl font-black text-emerald-600">
+                    ≥ {(() => {
+                      const testStep = roadmapStatus?.pipeline?.find((s: any) => s.type === 'mcq' || s.type === 'typing');
+                      return testStep?.pass_threshold || 80;
+                    })()}%
+                  </span>
                 </div>
               </div>
 
@@ -5384,16 +5412,18 @@ export default function FlashcardPlay() {
                 <button
                   onClick={async () => {
                     try {
-                      const nextNewTarget = roadmapStatus.roadmap_daily_new + 5;
+                      const newStep = roadmapStatus?.pipeline?.find((s: any) => s.type === 'new_cards');
+                      const currentDaily = newStep?.daily_count || 10;
+                      const updatedPipeline = (roadmapStatus?.pipeline || []).map((st: any) => 
+                        st.type === 'new_cards' ? { ...st, daily_count: currentDaily + 5 } : st
+                      );
                       await axios.post(`/api/v1/deck/${id}/practice-settings`, {
-                        settings: { roadmap_daily_new: nextNewTarget },
+                        settings: { pipeline: updatedPipeline },
                         is_creator: false
                       });
-                      const updated = await fetchRoadmapStatus();
+                      await fetchRoadmapStatus();
                       setShowRoadmapCompleteModal(false);
-                      if (updated) {
-                        handleNext();
-                      }
+                      handleNext();
                     } catch (e) {
                       console.error("Failed to update daily new cards limit:", e);
                     }
@@ -5407,6 +5437,18 @@ export default function FlashcardPlay() {
           </div>
         )}
       </AnimatePresence>
+
+      {/* Floating Roadmap Step Completion Banner */}
+      <RoadmapFloatingBanner
+        show={showBanner}
+        onClose={dismissBanner}
+        completedStep={justCompletedStep}
+        nextActionUrl={nextActionUrl}
+        nextActionLabel={nextActionLabel}
+        currentStepIndex={(roadmapStatus?.current_step_index || 0) + 1}
+        totalSteps={roadmapStatus?.pipeline?.length || 1}
+        allDone={isRoadmapAllDone}
+      />
     </div>
   )
 }
