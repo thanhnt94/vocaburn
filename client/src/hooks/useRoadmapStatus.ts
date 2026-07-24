@@ -21,6 +21,14 @@ export interface RoadmapStatusData {
   all_done: boolean
   next_action_url: string
   next_action_label: string
+  stage_1_done?: boolean
+  stage_2_done?: boolean
+  new_learned_today?: number
+  new_target_today?: number
+  review_completed_today?: number
+  review_due_today?: number
+  roadmap_daily_new?: number
+  roadmap_pass_threshold?: number
   streak?: number
   retention_rate?: number
   unlearned_cards?: number
