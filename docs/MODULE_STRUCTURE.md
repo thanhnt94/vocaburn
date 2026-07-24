@@ -1,80 +1,112 @@
 # 📁 Cấu trúc Module Vocaburn (Module Structure)
 
-Dự án Vocaburn được thiết kế theo kiến trúc **Modular Monolith**. Mã nguồn backend (FastAPI) nằm trong thư mục `app/` và được chia tách rõ ràng thành các tầng cấu hình hệ thống (Core) và các miền nghiệp vụ riêng biệt (Modules).
+Dự án Vocaburn được thiết kế theo kiến trúc **Modular Monolith (Hexagonal Style)**. Hệ thống chia làm 2 phần chính: Mã nguồn Backend (FastAPI) nằm trong thư mục `app/` và Mã nguồn Frontend Client (React SPA) nằm trong thư mục `client/`.
 
 ---
 
-## 1. Cấu trúc Tổng quan Thư mục Backend
+## 1. Cấu trúc Tổng quan Thư mục Backend (`app/`)
 
 ```
 Vocaburn (Backend)
 ├── app/
-│   ├── core/                   # Cấu hình dùng chung toàn hệ thống
-│   │   ├── config.py           # Khai báo cấu hình từ biến môi trường (.env)
+│   ├── core/                   # Tầng cấu hình dùng chung toàn hệ thống
+│   │   ├── config.py           # Khai báo cấu hình biến môi trường (.env)
 │   │   ├── db.py               # Thiết lập kết nối SQLite & AsyncSession
-│   │   └── init_db.py          # Script khởi tạo cơ sở dữ liệu & nạp dữ liệu mẫu (seed)
+│   │   └── init_db.py          # Script khởi tạo cơ sở dữ liệu & nạp dữ liệu mẫu
 │   │
-│   ├── modules/                # Các module nghiệp vụ tự đóng gói độc lập
+│   ├── modules/                # 8 Module nghiệp vụ tự đóng gói độc lập
 │   │   ├── admin/              # Dashboard quản lý cấu hình hệ thống & nhật ký admin
 │   │   ├── ai/                 # Tích hợp Gemini AI giải thích từ vựng & ngữ pháp
 │   │   ├── auth/               # Xác thực người dùng, băm mật khẩu & quản lý phiên local
-│   │   ├── deck/               # Quản lý bộ Flashcard, lượt học, chấm điểm & FSRS
+│   │   ├── deck/               # Quản lý bộ Flashcard, lượt học, chấm điểm & FSRS v6
 │   │   ├── gamification/       # Quản lý XP, Cấp độ, Chuỗi ngày (Streak) & Huy hiệu (Badge)
-│   │   ├── notification/       # Quản lý thông báo đẩy & gửi thông báo qua Telegram
+│   │   ├── notification/       # Quản lý thông báo đẩy & gửi thông báo qua Telegram Bot
 │   │   ├── sso_module/         # Quản lý SSO Client, callback xác thực & Handshake DB
 │   │   └── stats/              # Ghi nhận & phân tích thống kê tiến trình học tập hàng ngày
 │   │
+│   ├── static/                 # Thư mục chứa tài nguyên tĩnh & Frontend Dist (`static/dist`)
 │   └── main.py                 # Router trung tâm, CORS, Middleware & Khởi chạy ứng dụng
 ```
 
 ---
 
-## 2. Chi tiết Chức năng từng Module Nghiệp vụ (`app/modules/`)
+## 2. Chi tiết 8 Module Nghiệp vụ Backend (`app/modules/`)
 
-Mỗi module trong `app/modules/` là một đơn vị độc lập chứa đầy đủ: Models (SQLAlchemy), Schemas (Pydantic), Services (Business Logic) và Routes (API Endpoints).
+Mỗi module trong `app/modules/` là một đơn vị cô lập chứa đầy đủ: Models (SQLAlchemy), Schemas (Pydantic), Services (Business Logic) và Routes (API Endpoints).
 
-### 2.1. Module `deck` (Quản lý Học tập & Flashcard)
-*Đây là trái tim của hệ thống Vocaburn.*
-- **Quản lý học liệu**: Định nghĩa và cấu trúc hóa các bộ Flashcard, danh mục (categories), thẻ nhãn dán (tags) và chia sẻ cộng tác (collaborators).
-- **Import từ file Excel**: Cung cấp service phân tích file Excel mẫu (`excel_service.py`) để người dùng tải lên hàng loạt thẻ từ vựng một cách nhanh chóng.
-- **Hệ thống lặp khoảng cách (Spaced Repetition)**:
-  - Tích hợp hệ thống Leitner truyền thống chuyển thẻ qua 5 hộp dựa trên kết quả trả lời đúng/sai liên tiếp.
-  - Tích hợp chuẩn **FSRS v6 (Free Spaced Repetition Scheduler)** nâng cao để tối ưu hóa thời gian hiển thị lại dựa trên độ ổn định bộ nhớ (`stability`) và độ khó của thẻ (`difficulty`).
-- **Phục vụ luyện tập**: Tích hợp các Engine tùy chọn hình thức kiểm tra như trắc nghiệm (MCQ) và gõ từ vựng (Typing).
+### 2.1. Module `deck` (Quản lý Học tập, Flashcard & FSRS v6)
+*Đây là trái tim nghiệp vụ của Vocaburn.*
+- **Quản lý bộ thẻ (Decks & Flashcards)**: Định nghĩa cấu trúc các bộ thẻ (`flashcard_decks`), thẻ từ vựng (`flashcards`), danh mục (`categories`), thẻ nhãn dán (`tags`) và cài đặt lộ trình cá nhân (`user_deck_settings`).
+- **Import dữ liệu từ file Excel**: Service `excel_service.py` hỗ trợ tải lên hàng loạt thẻ từ vựng qua mẫu tệp Excel chuẩn.
+- **Tạo phát âm tự động**: Service `audio_generator.py` hỗ trợ chuyển đổi văn bản thành âm thanh và lưu trữ tại `/uploads/audio`.
+- **Hệ thống Lặp khoảng cách (Spaced Repetition)**:
+  - Tích hợp chuẩn **FSRS v6 (Free Spaced Repetition Scheduler)** cập nhật chính xác `stability`, `difficulty`, `state` (New, Learning, Review, Relearning) dựa trên 4 mức phản hồi (`Again`, `Hard`, `Good`, `Easy`).
+  - Hỗ trợ chế độ Leitner 5 hộp truyền thống dự phòng.
+- **Phục vụ luyện tập đa dạng**:
+  - Service `mcq_engine.py`: Sinh ngẫu nhiên lựa chọn cho bài kiểm tra Trắc nghiệm (MCQ).
+  - Service `typing_engine.py`: Đánh giá phản hồi bài kiểm tra Gõ từ vựng (Typing).
+  - Room & Collaboration (`room.py`): Cho phép thi đấu/luyện tập bộ thẻ theo phòng đa người chơi.
 
 ### 2.2. Module `sso_module` (Single Sign-On & Kết nối Ecosystem)
-- Cung cấp API cấu hình SSO cục bộ và liên lạc đồng bộ với CentralAuth.
-- Xử lý endpoint callback `/auth-center/callback` nhận mã xác thực từ CentralAuth, kiểm tra chéo và đồng bộ/tạo tài khoản cục bộ tương ứng.
-- Cung cấp endpoint handshake `/api/admin/sso/handshake` phục vụ việc đồng bộ cơ sở dữ liệu động từ xa.
+- Quản lý cấu hình SSO Client và giao tiếp với máy chủ CentralAuth (cổng `5000`).
+- Xử lý endpoint callback `/auth-center/callback` trao đổi mã OAuth2 code lấy thông tin người dùng, tự động tạo/đồng bộ tài khoản cục bộ qua `sso_id`.
+- Endpoint Handshake `POST /api/admin/sso/handshake`: Phục vụ tính năng tìm kiếm và đồng bộ đường dẫn Cơ sở dữ liệu động từ Admin Hub của CentralAuth.
+- Quản lý ký và xác minh an toàn cookie `user_id` qua `cookie_signer.py`.
 
 ### 2.3. Module `ai` (Trợ lý Học tập Gemini AI)
-- Tận dụng Google Gemini API để tự động sinh ra giải thích từ vựng/ngữ pháp chuyên sâu (`ai_explanation`).
-- Có cơ chế hàng đợi bất đồng bộ (Background Tasks) để tạo giải thích từ vựng dưới dạng mã HTML sạch, tự động loại bỏ định dạng markdown thô và hỗ trợ thẻ phát âm tiếng Nhật `<ruby>`.
+- Tận dụng Google Gemini API để sinh tự động giải thích từ vựng/ngữ pháp chuyên sâu (`ai_explanation`).
+- Hàng đợi bất đồng bộ (Background Tasks) chuyển đổi kết quả trả về thành mã HTML sạch, tự động loại bỏ định dạng markdown thô và thêm thẻ đọc phát âm tiếng Nhật `<ruby>`.
 
-### 2.4. Module `gamification` (Điểm số & Thành tựu)
-- Quản lý điểm kinh nghiệm (XP) cho mọi hành động học tập (+10 XP khi trả lời đúng, +2 XP khi sai để khuyến khích nỗ lực).
-- Kiểm tra điều kiện mở khóa huy hiệu (`badges`) như trả lời nhanh (Speed Demon), chuỗi trả lời đúng (Perfect Score), v.v. và trao thưởng XP.
+### 2.4. Module `gamification` (Điểm số, Streak & Huy hiệu)
+- Quản lý điểm kinh nghiệm (XP): cộng +10 XP khi trả lời đúng, +2 XP khi trả lời sai.
+- Quản lý chuỗi ngày học liên tục toàn cầu (`streak_count`).
+- Tự động kiểm tra và mở khóa các huy hiệu thành tựu (`badges`) dựa trên tiêu chí XP, Streak, Accuracy và Speed.
 
-### 2.5. Module `stats` (Thống kê & Tiến độ)
-- Ghi nhận lịch sử hoạt động học tập hàng ngày của người dùng (`questions_attempted`, `correct_answers`, `total_time_seconds`, `accuracy`).
-- Cung cấp dữ liệu trực quan cho biểu đồ tiến độ học tập ở trang tổng quan (Dashboard).
+### 2.5. Module `stats` (Thống kê Tiến độ)
+- Ghi nhận chi tiết lịch sử học tập hàng ngày (`questions_attempted`, `correct_answers`, `total_time_seconds`, `accuracy`).
+- Cung cấp dữ liệu báo cáo thống kê cho trang Dashboard và biểu đồ phân tích cá nhân.
 
-### 2.6. Module `auth` (Quản lý tài khoản cục bộ)
-- Cung cấp khả năng đăng nhập, đăng ký và thiết lập mật khẩu cục bộ khi chạy Vocaburn ở chế độ độc lập (Stand-alone mode - tắt SSO).
-- Chịu trách nhiệm mã hóa và xác minh mật khẩu bằng cơ chế Werkzeug tương thích toàn hệ thống Ecosystem.
+### 2.6. Module `auth` (Quản lý Tài khoản Cục bộ)
+- Quản lý đăng nhập, đăng ký và khôi phục mật khẩu cục bộ khi chạy Vocaburn ở chế độ Stand-alone (tắt SSO).
+- Mã hóa mật khẩu an toàn theo cơ chế băm tương thích toàn bộ hệ sinh thái Ecosystem.
 
 ### 2.7. Module `notification` (Thông báo & Nhắc nhở)
-- Hỗ trợ thông báo đẩy trực tiếp trên trình duyệt Web (Push API/Web Push).
-- Tích hợp cấu hình liên kết Telegram Bot giúp gửi thông báo nhắc nhở học tập hàng ngày và thông báo bảo vệ chuỗi ngày học (Streak Guard).
+- Hỗ trợ gửi thông báo đẩy trình duyệt Web Push.
+- Service `reminder_scheduler.py` & `bot_service.py`: Tích hợp Telegram Bot gửi tin nhắn nhắc nhở học tập hàng ngày và thông báo bảo vệ chuỗi ngày học (Streak Guard).
+
+### 2.8. Module `admin` (Quản trị Hệ thống)
+- Dashboard quản trị cấu hình hệ thống, quản lý tài khoản người dùng, xem nhật ký truy cập và thiết lập thông số toàn cục.
 
 ---
 
-## 3. Cấu trúc Frontend (React Client SPA)
+## 3. Cấu trúc Frontend Client (`client/`)
 
-Mã nguồn frontend của Vocaburn nằm trong thư mục `client/` được xây dựng bằng Vite, React 19 và TailwindCSS v4:
-- `client/src/components/`: Chứa các component UI dùng chung và tái sử dụng (Button, Card, Modal, Cyberpunk-glassmorphic layouts).
-- `client/src/pages/`: Chứa các màn hình chính tương ứng với Router phía Client:
-  - `Dashboard`: Bảng điều khiển chính hiển thị tiến độ học tập, chuỗi streak và danh sách bộ Flashcard.
-  - `DeckDetail` / `EditFlashcards`: Xem chi tiết bộ Flashcard và chỉnh sửa từ vựng.
-  - `StudySession`: Màn hình luyện tập Flashcard hỗ trợ Leitner và hiển thị khoảng thời gian ôn tập tiếp theo.
-- `client/src/store/`: Quản lý trạng thái toàn cục của ứng dụng bằng **Zustand** (`useAppStore.ts` quản lý dữ liệu học tập và `useAuthStore.ts` quản lý phiên đăng nhập/SSO).
+Mã nguồn Frontend nằm trong thư mục `client/` được xây dựng bằng Vite, React 19, TypeScript và TailwindCSS v4:
+
+```
+client/src/
+├── components/                 # UI components dùng chung (Card, Modal, Drawer, Buttons)
+├── hooks/                      # Custom React hooks (useAudio, useDebounce, useHotkeys)
+├── lib/                        # Axios client instance, API helper functions
+├── store/                      # Quản lý state toàn cục bằng Zustand
+│   ├── useAppStore.ts          # State tiến độ học tập, bộ thẻ, theme
+│   └── useAuthStore.ts         # State phiên đăng nhập, thông tin User, cấu hình SSO
+├── pages/                      # 19 Màn hình chính của ứng dụng
+│   ├── Dashboard.tsx           # Bảng điều khiển chính, lộ trình học, streak & thống kê
+│   ├── FlashcardPlay.tsx       # Màn hình học Flashcard FSRS v6 (giao diện 3D flip card, full-height)
+│   ├── PracticePlay.tsx        # Màn hình luyện tập đa chế độ (Flashcard, MCQ, Typing)
+│   ├── EditFlashcards.tsx      # Quản lý danh sách thẻ trong bộ
+│   ├── EditFlashcard.tsx       # Tạo/Chỉnh sửa chi tiết một thẻ từ vựng
+│   ├── FlashcardDetail.tsx     # Chi tiết bộ thẻ & thông số FSRS
+│   ├── DeckRoadmap.tsx         # Thiết lập lộ trình mục tiêu học tập hàng ngày
+│   ├── RoadmapHub.tsx          # Trung tâm tổng hợp lộ trình bộ thẻ
+│   ├── ImportFlashcard.tsx     # Import bộ thẻ từ file Excel
+│   ├── Library.tsx / Manage... # Thư viện bộ thẻ cá nhân & cộng đồng
+│   ├── FlashcardRoom.tsx / RoomJoin.tsx # Phòng luyện tập nhóm
+│   ├── Stats.tsx / Profile.tsx # Báo cáo thống kê & Trang cá nhân
+│   ├── Admin.tsx / Settings.tsx# Trang quản trị & Cấu hình ứng dụng
+│   └── Landing.tsx / Login.tsx # Trang giới thiệu & Đăng nhập
+├── App.tsx                     # React Router setup & Protected Route Guard
+├── main.tsx                    # React Root Mounting Point
+└── index.css                   # Global Styles & Custom 3D CSS Classes (.perspective-1000...)
+```

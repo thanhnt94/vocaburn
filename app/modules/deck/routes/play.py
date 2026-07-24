@@ -1655,8 +1655,12 @@ async def get_next_card(request: Request, deck_id: int, data: dict, db: AsyncSes
             )
         )
         user_sett = user_sett_res.scalar_one_or_none()
-        settings = user_sett.settings if (user_sett and user_sett.settings) else {}
-        roadmap_daily_new = int(settings.get("roadmap_daily_new", 10))
+        pipeline = settings.get("pipeline") or []
+        roadmap_daily_new = 10
+        for st in pipeline:
+            if st.get("type") == "new_cards":
+                roadmap_daily_new = int(st.get("daily_count", 10))
+                break
 
         today_start = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
         from app.modules.deck.models import UserAnswer, DeckAttempt
@@ -2403,22 +2407,18 @@ async def update_contribution_status(
 
 
 async def get_deck_roadmap_status_helper(db: AsyncSession, user_id: int, deck_id: int, settings: dict) -> dict:
-    from app.modules.deck.models import FlashcardDeck
+    from app.modules.deck.models import FlashcardDeck, Flashcard, UserCardMastery, UserAnswer, DeckAttempt
     deck_obj = await db.get(FlashcardDeck, deck_id)
     deck_practice_settings = deck_obj.practice_settings if (deck_obj and isinstance(deck_obj.practice_settings, dict)) else {}
 
-    roadmap_active = settings.get("roadmap_active", False)
-    roadmap_type = settings.get("roadmap_type", "completion") # "completion" or "accumulation"
-    roadmap_daily_new = int(settings.get("roadmap_daily_new", 10))
-    roadmap_daily_review_max = int(settings.get("roadmap_daily_review_max", 50))
-    roadmap_pass_threshold = int(settings.get("roadmap_pass_threshold", 80))
+    raw_pipeline = settings.get("pipeline")
+    roadmap_active = settings.get("roadmap_active", False) and isinstance(raw_pipeline, list) and len(raw_pipeline) > 0
+    pipeline_input = raw_pipeline if isinstance(raw_pipeline, list) else []
     
-    from app.modules.deck.models import Flashcard, UserCardMastery, UserAnswer, DeckAttempt
     total_cards = await db.scalar(
         select(func.count(Flashcard.id)).where(Flashcard.deck_id == deck_id)
     ) or 0
     
-    # We count studied cards as those with state > 0 in mastery
     learned_cards = await db.scalar(
         select(func.count(UserCardMastery.id))
         .join(Flashcard, UserCardMastery.card_id == Flashcard.id)
@@ -2430,32 +2430,14 @@ async def get_deck_roadmap_status_helper(db: AsyncSession, user_id: int, deck_id
     ) or 0
     
     unlearned_cards = max(0, total_cards - learned_cards)
-    
-    import math
-    if roadmap_type == "accumulation":
-        days_left = 0
-        estimated_completion_date = None
-    else:
-        days_left = math.ceil(unlearned_cards / roadmap_daily_new) if roadmap_daily_new > 0 else 0
-        estimated_completion_date = (datetime.utcnow() + timedelta(days=days_left)).strftime("%Y-%m-%d")
-    
     today_start = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
     
-    # Cards created today in this deck (for accumulation mode)
-    created_today_count = await db.scalar(
-        select(func.count(Flashcard.id))
-        .where(
-            Flashcard.deck_id == deck_id,
-            func.coalesce(Flashcard.created_at, datetime.utcnow()) >= today_start
-        )
-    ) or 0
-
     min_answer_sub = select(
         UserAnswer.card_id,
         func.min(UserAnswer.created_at).label("min_created")
     ).join(DeckAttempt, UserAnswer.attempt_id == DeckAttempt.id)\
-    .where(DeckAttempt.user_id == user_id)\
-    .group_by(UserAnswer.card_id).subquery()
+     .where(DeckAttempt.user_id == user_id)\
+     .group_by(UserAnswer.card_id).subquery()
     
     new_learned_today = await db.scalar(
         select(func.count(min_answer_sub.c.card_id))
@@ -2490,37 +2472,21 @@ async def get_deck_roadmap_status_helper(db: AsyncSession, user_id: int, deck_id
         )
     ) or 0
 
-    # Calculate Retention Rate from recent roadmap test attempts
+    # Calculate Retention Rate from recent test attempts (roadmap_test, roadmap_mcq, roadmap_typing)
     test_attempts_res = await db.execute(
         select(DeckAttempt.score)
         .where(
             DeckAttempt.user_id == user_id,
             DeckAttempt.deck_id == deck_id,
-            DeckAttempt.mode == "roadmap_test"
+            DeckAttempt.mode.in_(["roadmap_test", "roadmap_mcq", "roadmap_typing"])
         )
         .order_by(DeckAttempt.started_at.desc())
         .limit(10)
     )
     test_scores = test_attempts_res.scalars().all()
-    if test_scores:
-        retention_rate = int(round(sum(test_scores) / len(test_scores)))
-    else:
-        retention_rate = 0
+    retention_rate = int(round(sum(test_scores) / len(test_scores))) if test_scores else 0
 
-    # Check if user passed today's roadmap test
-    today_passed_res = await db.execute(
-        select(DeckAttempt.id)
-        .where(
-            DeckAttempt.user_id == user_id,
-            DeckAttempt.deck_id == deck_id,
-            DeckAttempt.mode == "roadmap_test",
-            DeckAttempt.score >= roadmap_pass_threshold,
-            DeckAttempt.started_at >= today_start
-        )
-    )
-    today_test_passed = today_passed_res.scalar_one_or_none() is not None
-
-    # Calculate streak and 7-day activity map
+    # Calculate streak & 7 days
     active_dates_res = await db.execute(
         select(func.date(UserAnswer.created_at))
         .join(DeckAttempt, UserAnswer.attempt_id == DeckAttempt.id)
@@ -2572,64 +2538,123 @@ async def get_deck_roadmap_status_helper(db: AsyncSession, user_id: int, deck_id
             "day_name": d.strftime("%a"),
             "active": d in active_dates
         })
-    
-    has_mcq_setup = check_has_mcq_setup(deck_practice_settings)
-    if roadmap_type == "accumulation":
-        # For accumulation roadmap: User must add at least roadmap_daily_new cards today AND learn them all
-        stage_1_done = (created_today_count >= roadmap_daily_new) and (new_learned_today >= created_today_count)
-    else:
-        stage_1_done = new_learned_today >= roadmap_daily_new
 
-    if not has_mcq_setup:
-        stage_2_done = True
-        if not stage_1_done:
-            current_stage = 1
-            next_action_url = f"/flashcard/{deck_id}/play?mode=roadmap"
-            next_action_label = "Học từ mới"
-        elif review_due_today > 0 and review_completed_today < review_due_today:
-            # No MCQ test → review is the next activity after learning new words
-            current_stage = 1
-            next_action_url = f"/flashcard/{deck_id}/play?mode=review"
-            next_action_label = "Ôn tập"
-        else:
-            current_stage = 3
-            next_action_url = f"/flashcard/{deck_id}/roadmap"
-            next_action_label = "Đã xong lộ trình hôm nay"
+    # Process pipeline steps
+    pipeline_processed = []
+    first_incomplete_idx = None
+    daily_new_target = 0
+
+    for idx, st in enumerate(pipeline_input):
+        stype = st.get("type")
+        step_data = {
+            "type": stype,
+            "done": False,
+            "progress": {},
+            "url": "",
+            "label": ""
+        }
+
+        if stype == "new_cards":
+            daily_count = int(st.get("daily_count", 10))
+            daily_new_target = daily_count
+            is_done = new_learned_today >= daily_count
+            step_data.update({
+                "daily_count": daily_count,
+                "done": is_done,
+                "progress": {"learned": new_learned_today, "target": daily_count},
+                "url": f"/flashcard/{deck_id}/play?mode=roadmap",
+                "label": "Học từ mới"
+            })
+        elif stype == "fsrs_review":
+            overdue_hours = int(st.get("overdue_hours", 24))
+            is_done = (review_due_today == 0) or (review_completed_today >= review_due_today)
+            step_data.update({
+                "overdue_hours": overdue_hours,
+                "done": is_done,
+                "progress": {"due_count": review_due_today, "reviewed_today": review_completed_today},
+                "url": f"/flashcard/{deck_id}/play?mode=review",
+                "label": "Ôn tập FSRS"
+            })
+        elif stype == "mcq":
+            q_count = int(st.get("question_count", 15))
+            threshold = int(st.get("pass_threshold", 80))
+            mcq_res = await db.execute(
+                select(DeckAttempt.score)
+                .where(
+                    DeckAttempt.user_id == user_id,
+                    DeckAttempt.deck_id == deck_id,
+                    DeckAttempt.mode == "roadmap_mcq",
+                    DeckAttempt.started_at >= today_start
+                )
+            )
+            mcq_scores = mcq_res.scalars().all()
+            best_score = max(mcq_scores) if mcq_scores else 0
+            is_done = any(s >= threshold for s in mcq_scores)
+            step_data.update({
+                "question_count": q_count,
+                "pass_threshold": threshold,
+                "done": is_done,
+                "progress": {"best_score": best_score, "attempts_today": len(mcq_scores), "target_score": threshold},
+                "url": f"/practice/{deck_id}/roadmap_mcq",
+                "label": "Trắc nghiệm MCQ"
+            })
+        elif stype == "typing":
+            q_count = int(st.get("question_count", 10))
+            threshold = int(st.get("pass_threshold", 70))
+            typing_res = await db.execute(
+                select(DeckAttempt.score)
+                .where(
+                    DeckAttempt.user_id == user_id,
+                    DeckAttempt.deck_id == deck_id,
+                    DeckAttempt.mode == "roadmap_typing",
+                    DeckAttempt.started_at >= today_start
+                )
+            )
+            typing_scores = typing_res.scalars().all()
+            best_score = max(typing_scores) if typing_scores else 0
+            is_done = any(s >= threshold for s in typing_scores)
+            step_data.update({
+                "question_count": q_count,
+                "pass_threshold": threshold,
+                "done": is_done,
+                "progress": {"best_score": best_score, "attempts_today": len(typing_scores), "target_score": threshold},
+                "url": f"/practice/{deck_id}/roadmap_typing",
+                "label": "Gõ từ vựng"
+            })
+
+        pipeline_processed.append(step_data)
+        if not step_data["done"] and first_incomplete_idx is None:
+            first_incomplete_idx = idx
+
+    import math
+    if daily_new_target > 0:
+        days_left = math.ceil(unlearned_cards / daily_new_target)
+        estimated_completion_date = (datetime.utcnow() + timedelta(days=days_left)).strftime("%Y-%m-%d")
     else:
-        stage_2_done = today_test_passed
-        if not stage_1_done:
-            current_stage = 1
-            next_action_url = f"/flashcard/{deck_id}/play?mode=roadmap"
-            next_action_label = "Học từ mới"
-        elif not stage_2_done:
-            # Test takes priority over review
-            current_stage = 2
-            next_action_url = f"/practice/{deck_id}/roadmap_test"
-            next_action_label = "Làm bài kiểm tra"
-        elif review_due_today > 0 and review_completed_today < review_due_today:
-            # Both stages done → review is bonus activity
-            current_stage = 3
-            next_action_url = f"/flashcard/{deck_id}/play?mode=review"
-            next_action_label = "Ôn tập"
-        else:
-            current_stage = 3
-            next_action_url = f"/flashcard/{deck_id}/roadmap"
-            next_action_label = "Đã xong lộ trình hôm nay"
+        days_left = 0
+        estimated_completion_date = None
+
+    if len(pipeline_processed) > 0 and first_incomplete_idx is None:
+        all_done = True
+        current_step_index = len(pipeline_processed)
+        next_action_url = f"/flashcard/{deck_id}/roadmap"
+        next_action_label = "Đã xong lộ trình hôm nay"
+    elif len(pipeline_processed) > 0:
+        all_done = False
+        current_step_index = first_incomplete_idx
+        next_action_url = pipeline_processed[first_incomplete_idx]["url"]
+        next_action_label = pipeline_processed[first_incomplete_idx]["label"]
+    else:
+        all_done = False
+        current_step_index = 0
+        next_action_url = f"/flashcard/{deck_id}/roadmap"
+        next_action_label = "Chưa thiết lập lộ trình"
 
     return {
-        "has_mcq_setup": has_mcq_setup,
-        "has_stage_2": has_mcq_setup,
         "roadmap_active": roadmap_active,
-        "roadmap_type": roadmap_type,
-        "created_today_count": created_today_count,
-        "roadmap_daily_new": roadmap_daily_new,
-        "roadmap_daily_review_max": roadmap_daily_review_max,
-        "roadmap_pass_threshold": roadmap_pass_threshold,
-        "retention_rate": retention_rate,
-        "today_test_passed": today_test_passed,
-        "stage_1_done": stage_1_done,
-        "stage_2_done": stage_2_done,
-        "current_stage": current_stage,
+        "pipeline": pipeline_processed,
+        "current_step_index": current_step_index,
+        "all_done": all_done,
         "next_action_url": next_action_url,
         "next_action_label": next_action_label,
         "total_cards": total_cards,
@@ -2637,10 +2662,7 @@ async def get_deck_roadmap_status_helper(db: AsyncSession, user_id: int, deck_id
         "unlearned_cards": unlearned_cards,
         "days_left": days_left,
         "estimated_completion_date": estimated_completion_date,
-        "new_learned_today": new_learned_today,
-        "new_target_today": roadmap_daily_new,
-        "review_completed_today": review_completed_today,
-        "review_due_today": review_due_today,
+        "retention_rate": retention_rate,
         "streak": streak,
         "seven_days": seven_days
     }

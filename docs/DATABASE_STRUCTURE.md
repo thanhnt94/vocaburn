@@ -1,154 +1,150 @@
 # 🗄️ Cấu trúc Cơ sở Dữ liệu Vocaburn (Database Structure)
 
-Hệ thống cơ sở dữ liệu của Vocaburn được xây dựng dựa trên **SQLite** ở môi trường phát triển (chạy tối ưu hóa qua chế độ Write-Ahead Logging - WAL). Định nghĩa bảng và mối quan hệ được quản lý bởi **SQLAlchemy Object-Relational Mapper (ORM)** và **Alembic Migrations**.
+Hệ thống Cơ sở Dữ liệu của Vocaburn được xây dựng dựa trên **SQLite** ở môi trường phát triển (tối ưu hóa ghi đồng thời với chế độ Write-Ahead Logging - WAL). Quản lý cấu trúc bảng và di cư dữ liệu được thực hiện qua **SQLAlchemy Async ORM** và **Alembic Migrations**.
 
-- **Đường dẫn tệp cơ sở dữ liệu**: `Storage/database/Vocaburn.db` (nằm ngoài thư mục code dự án để dễ dàng sao lưu và đồng bộ).
+- **Đường dẫn tệp cơ sở dữ liệu mặc định**: `Storage/database/Vocaburn.db` (nằm tại thư mục Storage chung của Ecosystem để dễ dàng đồng bộ và sao lưu).
 
 ---
 
-## 1. Các bảng Quản lý Tài khoản & Phân quyền
+## 1. Các bảng Quản lý Tài khoản & Phân quyền (`app/modules/auth/models.py`)
 
 ### `users`
-Bảng chứa thông tin người dùng được đồng bộ từ CentralAuth hoặc tạo cục bộ.
+Bảng chứa thông tin tài khoản người dùng (đồng bộ từ CentralAuth hoặc tạo cục bộ).
 - `id` (INTEGER, Khóa chính): ID định danh tự tăng.
 - `username` (VARCHAR(255), UNIQUE, INDEX): Tên đăng nhập.
 - `email` (VARCHAR(255), UNIQUE, INDEX): Địa chỉ email.
-- `hashed_password` (VARCHAR(255), NULL): Mật khẩu băm (có thể null nếu chỉ đăng nhập qua SSO).
+- `hashed_password` (VARCHAR(255), NULL): Mật khẩu băm (null nếu đăng nhập thuần qua SSO).
 - `full_name` (VARCHAR(255)): Họ và tên hiển thị.
-- `role` (VARCHAR(50), default: 'user'): Vai trò ('admin' hoặc 'user').
-- `is_active` (BOOLEAN, default: True): Trạng thái hoạt động.
-- `sso_id` (VARCHAR(255), UNIQUE, INDEX, NULL): ID định danh liên kết tài khoản từ CentralAuth.
+- `role` (VARCHAR(50), default: 'user'): Vai trò người dùng (`admin` hoặc `user`).
+- `is_active` (BOOLEAN, default: True): Trạng thái tài khoản.
+- `sso_id` (VARCHAR(255), UNIQUE, INDEX, NULL): ID liên kết tài khoản từ CentralAuth.
 - `created_at` (DATETIME): Thời điểm tạo tài khoản.
 
 ---
 
-## 2. Các bảng Quản lý Danh mục & Học liệu (Flashcards & Decks)
+## 2. Các bảng Quản lý Danh mục & Học liệu (`app/modules/deck/models.py`)
 
 ### `categories`
 - `id` (INTEGER, Khóa chính).
-- `name` (VARCHAR(255), UNIQUE, INDEX): Tên danh mục (Ví dụ: JLPT N1, Tiếng Anh giao tiếp).
-- `description` (TEXT, NULL): Mô tả chi tiết danh mục.
+- `name` (VARCHAR(255), UNIQUE, INDEX): Tên danh mục (Ví dụ: JLPT N1, Tiếng Anh Giao Tiếp).
+- `description` (TEXT, NULL): Mô tả chi tiết.
 - `created_at` (DATETIME).
 
-### `flashcard_decks`
+### `flashcard_decks` (Mô hình Bộ Flashcard)
 - `id` (INTEGER, Khóa chính).
-- `title` (VARCHAR(255), INDEX): Tiêu đề của bộ Flashcard.
+- `title` (VARCHAR(255), INDEX): Tiêu đề bộ thẻ.
 - `description` (TEXT, NULL): Mô tả chi tiết.
-- `category_id` (INTEGER, Khóa ngoại liên kết `categories.id`).
-- `creator_id` (INTEGER, NULL): ID của người tạo/tải bộ thẻ lên.
-- `instruction` (TEXT, NULL): Chỉ dẫn học tập chung của bộ thẻ.
-- `cover_image` (VARCHAR(512), NULL): URL ảnh bìa của bộ thẻ.
+- `category_id` (INTEGER, Khóa ngoại `categories.id`).
+- `creator_id` (INTEGER, NULL, Khóa ngoại `users.id`): Người tạo bộ thẻ.
+- `instruction` (TEXT, NULL): Hướng dẫn học chung của bộ thẻ.
+- `cover_image` (VARCHAR(512), NULL): URL ảnh bìa bộ thẻ.
 - `time_limit` (INTEGER, default: 0): Giới hạn thời gian học (phút), 0 là không giới hạn.
 - `is_active` (BOOLEAN, default: True).
 - `is_public` (BOOLEAN, default: True).
-- `practice_settings` (JSON, NULL): Cấu hình mặc định cho chế độ luyện tập.
+- `practice_settings` (JSON, NULL): Cấu hình mặc định cho các chế độ luyện tập.
 - `created_at` (DATETIME).
 
-### `flashcards` (Tên bảng vật lý: `flashcards`, khóa ngoại liên kết qua cột `quiz_id`)
+### `flashcards` (Bảng chứa Thẻ Từ vựng - Cột liên kết `quiz_id`)
 - `id` (INTEGER, Khóa chính).
-- `quiz_id` (INTEGER, Khóa ngoại liên kết `flashcard_decks.id`).
-- `content` (TEXT): Nội dung chính của thẻ (từ vựng, câu hỏi, ví dụ).
-- `front_audio_content` (TEXT, NULL) / `back_audio_content` (TEXT, NULL): Văn bản để phát âm mặt trước/mặt sau.
-- `front_audio_url` (VARCHAR(512), NULL) / `back_audio_url` (VARCHAR(512), NULL): URL file âm thanh lưu trữ.
-- `front_img` (VARCHAR(512), NULL) / `back_img` (VARCHAR(512), NULL): URL ảnh minh họa mặt trước/mặt sau.
-- `question_type` (VARCHAR(50), default: 'flashcard'): Loại câu hỏi (Ví dụ: flashcard, mcq, typing).
-- `explanation` (TEXT, NULL): Giải thích chi tiết (có hỗ trợ HTML và thẻ `<ruby>` sinh bởi Gemini AI).
-- `others` (JSON, NULL): Các thông tin tùy biến bổ sung khác.
+- `quiz_id` (INTEGER, Khóa ngoại `flashcard_decks.id`): ID bộ thẻ sở hữu.
+- `content` (TEXT): Nội dung chính mặt trước thẻ (từ vựng, thuật ngữ, câu hỏi).
+- `front_audio_content` (TEXT, NULL) / `back_audio_content` (TEXT, NULL): Văn bản dùng để đọc phát âm mặt trước/sau.
+- `front_audio_url` (VARCHAR(512), NULL) / `back_audio_url` (VARCHAR(512), NULL): URL tệp âm thanh lưu trữ.
+- `front_img` (VARCHAR(512), NULL) / `back_img` (VARCHAR(512), NULL): URL ảnh minh họa mặt trước/sau.
+- `question_type` (VARCHAR(50), default: 'flashcard'): Loại câu hỏi (`flashcard`, `mcq`, `typing`).
+- `explanation` (TEXT, NULL): Giải thích chi tiết (hỗ trợ HTML và thẻ phát âm `<ruby>` tạo bởi Gemini AI).
+- `others` (JSON, NULL): Chứa tùy chọn bổ sung (ví dụ: các đáp án nhiễu MCQ).
 
 ### `tags` / `deck_tags`
-Bảng quản lý nhãn dán cho các bộ Flashcard.
 - `tags`: `id` (Khóa chính), `name` (VARCHAR(50), UNIQUE), `created_at`.
-- `deck_tags` (Bảng liên kết nhiều-nhiều): `quiz_id` (Khóa ngoại `flashcard_decks.id`), `tag_id` (Khóa ngoại `tags.id`).
+- `deck_tags`: Bảng liên kết nhiều-nhiều giữa `flashcard_decks.id` (`quiz_id`) và `tags.id`.
 
 ---
 
-## 3. Các bảng Ghi nhận Lịch sử & Tiến trình Học tập
+## 3. Các bảng Lịch sử & Thuật toán FSRS v6 (`app/modules/deck/models.py`)
 
 ### `deck_attempts`
-Bảng ghi nhận mỗi lượt bắt đầu luyện tập một bộ Flashcard của người dùng.
+Bảng ghi nhận từng lượt học/luyện tập một bộ thẻ của người dùng.
 - `id` (INTEGER, Khóa chính).
 - `user_id` (INTEGER, Khóa ngoại `users.id`).
 - `quiz_id` (INTEGER, Khóa ngoại `flashcard_decks.id`).
-- `mode` (VARCHAR(50)): Chế độ chơi (sequential, random, mastery).
+- `mode` (VARCHAR(50)): Chế độ học (`sequential`, `random`, `fsrs`, `mastery`).
 - `score` (INTEGER, default: 0).
-- `total_questions` (INTEGER, default: 0): Tổng số thẻ trong lượt.
+- `total_questions` (INTEGER, default: 0): Số thẻ trong lượt học.
 - `is_archived` (BOOLEAN, default: False).
 - `started_at` (DATETIME).
 - `completed_at` (DATETIME, NULL).
 
-### `card_answers` (Tên bảng vật lý: `card_answers`)
-Bảng lưu trữ kết quả trả lời cho từng thẻ flashcard trong một lượt học cụ thể.
+### `card_answers`
+Bảng ghi nhận kết quả phản hồi cho từng thẻ trong lượt học.
 - `id` (INTEGER, Khóa chính).
 - `attempt_id` (INTEGER, Khóa ngoại `deck_attempts.id`).
 - `question_id` (INTEGER, Khóa ngoại `flashcards.id`).
 - `is_correct` (BOOLEAN, default: False).
-- `active_time` (FLOAT, default: 0.0): Thời gian trả lời (giây).
+- `active_time` (FLOAT, default: 0.0): Thời gian phản hồi (giây).
 - `rating` (INTEGER, NULL): Đánh giá FSRS (1=Again, 2=Hard, 3=Good, 4=Easy).
 - `created_at` (DATETIME).
 
-### `user_card_mastery`
-Bảng lưu trữ chỉ số ghi nhớ của người dùng đối với từng thẻ riêng biệt theo thuật toán lặp khoảng cách (Leitner và FSRS v6).
+### `user_card_mastery` (Chỉ số Bộ nhớ FSRS v6 & Leitner)
+Bảng lưu trữ trạng thái và khoảng thời gian ôn tập riêng cho từng cặp Người dùng - Thẻ từ vựng.
 - `id` (INTEGER, Khóa chính).
 - `user_id` (INTEGER, Khóa ngoại `users.id`).
 - `question_id` (INTEGER, Khóa ngoại `flashcards.id`).
-- `is_ignored` (BOOLEAN, default: False): Người dùng chọn bỏ qua thẻ này.
-- `box_level` (INTEGER, default: 1): Cấp độ hộp Leitner (từ 1 đến 5).
-- `consecutive_correct` (INTEGER, default: 0): Số lần trả lời đúng liên tiếp.
+- `is_ignored` (BOOLEAN, default: False): Đánh dấu thẻ bị bỏ qua.
+- `box_level` (INTEGER, default: 1): Cấp độ hộp Leitner (1 đến 5).
+- `consecutive_correct` (INTEGER, default: 0): Chuỗi đúng liên tiếp.
 - `last_answered` (DATETIME).
-- **FSRS v6 Attributes**:
-  - `stability` (FLOAT, NULL): Độ ổn định bộ nhớ.
-  - `difficulty` (FLOAT, NULL): Độ khó của thẻ đối với người dùng.
+- **Thuộc tính FSRS v6 Core**:
+  - `stability` (FLOAT, NULL): Độ ổn định bộ nhớ (Memory Stability - thời gian ước tính giữ lại ký ức).
+  - `difficulty` (FLOAT, NULL): Độ khó của thẻ đối với người dùng (Card Difficulty từ 1.0 - 10.0).
   - `state` (INTEGER, default: 0): Trạng thái FSRS (0=New, 1=Learning, 2=Review, 3=Relearning).
-  - `step` (INTEGER, default: 0): Bước học tập.
-  - `due` (DATETIME, INDEX): Thời hạn ôn tập tiếp theo.
-  - `last_review` (DATETIME, NULL): Lần ôn tập cuối cùng.
+  - `step` (INTEGER, default: 0): Bước học tập FSRS hiện tại.
+  - `due` (DATETIME, INDEX): Thời điểm chính xác cần hiển thị ôn tập lại.
+  - `last_review` (DATETIME, NULL): Lần ôn tập gần nhất.
 
 ---
 
-## 4. Các bảng Quản lý Lộ trình & Cấu hình bộ thẻ (Roadmap & Settings)
-
-Hệ thống Mục tiêu Học tập cũ (`user_deck_goals`) đã được gỡ bỏ và thay thế hoàn toàn bằng hệ thống quản lý theo Lộ trình (Roadmap). Các mục tiêu học và giới hạn hàng ngày được lưu trữ tập trung dưới dạng cấu hình JSON.
+## 4. Các bảng Thiết lập Lộ trình & Cấu hình (`app/modules/deck/models.py`)
 
 ### `user_deck_settings`
-Bảng lưu trữ cấu hình lộ trình học tập và tùy chọn luyện tập của người dùng riêng cho từng bộ thẻ.
+Lưu trữ thiết lập lộ trình học tập (Roadmap) và tùy chọn cá nhân cho từng bộ thẻ.
 - `id` (INTEGER, Khóa chính).
 - `user_id` (INTEGER, Khóa ngoại `users.id`, INDEX).
 - `deck_id` (INTEGER, Khóa ngoại `flashcard_decks.id`, INDEX).
-- `settings` (JSON, default: '{}'): Chứa cấu hình lộ trình:
-  - `roadmap_active` (BOOLEAN): Trạng thái kích hoạt lộ trình học tập của bộ thẻ này.
-  - `roadmap_daily_new` (INTEGER): Chỉ tiêu số lượng thẻ mới cần học mỗi ngày (mặc định: 10).
-  - `roadmap_daily_review_max` (INTEGER): Giới hạn số lượng thẻ tối đa cần ôn tập mỗi ngày (mặc định: 50).
+- `settings` (JSON, default: '{}'): Cấu hình Lộ trình dạng JSON:
+  - `roadmap_active` (BOOLEAN): Trạng thái bật/tắt lộ trình cho bộ thẻ.
+  - `roadmap_daily_new` (INTEGER): Chỉ tiêu số thẻ mới cần học mỗi ngày (mặc định: 10).
+  - `roadmap_daily_review_max` (INTEGER): Giới hạn số thẻ tối đa cần ôn tập mỗi ngày (mặc định: 50).
 - `created_at` (DATETIME).
 
 ---
 
-## 5. Các bảng Game hóa (Gamification)
+## 5. Các bảng Gamification & Thống kê (`app/modules/gamification/models.py`, `app/modules/stats/models.py`)
 
 ### `user_gamification`
-- `user_id` (INTEGER, Khóa chính): Khớp với `users.id`.
-- `xp` (INTEGER, default: 0): Tổng điểm kinh nghiệm.
-- `level` (INTEGER, default: 1): Cấp độ hiện tại.
-- `streak_count` (INTEGER, default: 0): Chuỗi ngày học liên tục toàn cầu.
-- `last_activity` (DATETIME): Hoạt động cuối cùng.
+- `user_id` (INTEGER, Khóa chính, Khóa ngoại `users.id`).
+- `xp` (INTEGER, default: 0): Tổng điểm kinh nghiệm tích lũy.
+- `level` (INTEGER, default: 1): Cấp độ người dùng.
+- `streak_count` (INTEGER, default: 0): Chuỗi ngày học liên tục.
+- `last_activity` (DATETIME): Thời điểm hoạt động gần nhất.
 - `badges` (JSON, default: '[]'): Danh sách ID các huy hiệu đã mở khóa.
 
 ### `badges`
-- `id` (VARCHAR(50), Khóa chính): Định danh huy hiệu (Ví dụ: `speed_demon`, `perfect_score`).
-- `name` (VARCHAR(100)): Tên hiển thị của huy hiệu.
-- `description` (VARCHAR(255)): Yêu cầu mở khóa.
-- `icon` (VARCHAR(50)): Tên icon Lucide hiển thị.
-- `criteria_type` (VARCHAR(50)): Loại tiêu chí xét thưởng (`xp`, `streak`, `accuracy`, `speed`).
-- `criteria_value` (INTEGER): Giá trị ngưỡng cần đạt để mở khóa.
+- `id` (VARCHAR(50), Khóa chính): Định danh huy hiệu (`speed_demon`, `perfect_score`, `streak_master`...).
+- `name` (VARCHAR(100)): Tên hiển thị huy hiệu.
+- `description` (VARCHAR(255)): Yêu cầu điều kiện đạt.
+- `icon` (VARCHAR(50)): Tên biểu tượng hiển thị Lucide.
+- `criteria_type` (VARCHAR(50)): Loại tiêu chí (`xp`, `streak`, `accuracy`, `speed`).
+- `criteria_value` (INTEGER): Giá trị ngưỡng đạt.
 
 ---
 
-## 6. Các bảng Cấu hình Hệ thống & SSO
+## 6. Các bảng Cấu hình SSO (`app/modules/sso_module/models.py`)
 
 ### `sso_settings`
-Bảng quản lý cấu hình kết nối Single Sign-On của Vocaburn tới CentralAuth.
 - `id` (INTEGER, Khóa chính).
-- `is_enabled` (BOOLEAN, default: False): Trạng thái kích hoạt SSO.
+- `is_enabled` (BOOLEAN, default: False): Kích hoạt/Tắt SSO CentralAuth.
 - `server_url` (VARCHAR(255), NULL): URL máy chủ CentralAuth (mặc định: `http://localhost:5000`).
-- `client_id` (VARCHAR(100), NULL): ID client của Vocaburn (mặc định: `vocaburn-v1`).
-- `client_secret` (VARCHAR(255), NULL): Mã bảo mật client.
-- `redirect_uri` (VARCHAR(255), NULL): URI callback nhận kết quả xác thực.
+- `client_id` (VARCHAR(100), NULL): Client ID đăng ký (mặc định: `vocaburn-v1`).
+- `client_secret` (VARCHAR(255), NULL): Mã bí mật Client.
+- `redirect_uri` (VARCHAR(255), NULL): Callback URI.

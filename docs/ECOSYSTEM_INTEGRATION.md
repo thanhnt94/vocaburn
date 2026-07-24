@@ -1,42 +1,41 @@
 # 🔌 Kết nối với Hệ thống Ecosystem (Ecosystem Integration)
 
-Dự án Vocaburn hoạt động như một ứng dụng vệ tinh trong hệ sinh thái của chúng ta. Nó liên kết trực tiếp với **CentralAuth** (hệ thống xác thực tập trung) để cung cấp trải nghiệm Single Sign-On (SSO) mượt mà cho người dùng.
+Dự án **Vocaburn** hoạt động như một ứng dụng vệ tinh trong Hệ sinh thái Ecosystem. Ứng dụng liên kết trực tiếp với **CentralAuth** (Hệ thống Xác thực Tập trung) để cung cấp trải nghiệm Single Sign-On (SSO) mượt mà cho người dùng.
 
 ---
 
-## 1. Bản đồ Phân bổ Cổng và Dịch vụ (Ports & Services)
+## 1. Bản đồ Cổng & Phân bổ Dịch vụ (Ports & Services)
 
-Trong môi trường Ecosystem chạy đa dịch vụ:
-- **CentralAuth**: Cổng `5000` (Quản lý tài khoản, phân quyền, SSO Provider).
-- **Vocaburn**: Cổng `5090` (FastAPI backend + React SPA frontend).
-- **SQLite Database**: Cơ sở dữ liệu SQLite của Vocaburn nằm tập trung tại `Ecosystem/Storage/database/Vocaburn.db`.
+- **CentralAuth**: Cổng **5000** (Quản lý tài khoản toàn hệ thống, phân quyền, SSO Provider).
+- **Vocaburn**: Cổng **5090** (FastAPI backend + React SPA frontend).
+- **SQLite Database**: Cơ sở dữ liệu của Vocaburn được lưu trữ tập trung tại `Ecosystem/Storage/database/Vocaburn.db`.
 
 ---
 
-## 2. Luồng đăng nhập một lần (Single Sign-On Flow)
+## 2. Luồng Đăng nhập Tự động (Single Sign-On Flow)
 
-Vocaburn sử dụng luồng Authorization Code Flow định hướng hoàn toàn bởi React Client (Client-Side Auto-Redirect Flow):
+Vocaburn sử dụng luồng Authorization Code Flow định hướng hoàn toàn từ React Client:
 
 1. **Auto-Redirect**:
-   - Khi người dùng truy cập màn hình `/login` của Vocaburn, React component LoginPage sẽ gọi API `GET /api/v1/auth/config`.
-   - Nếu SSO được kích hoạt (`sso_enabled: true`) và người dùng không sử dụng đường link dự phòng (backdoor), ứng dụng sẽ chuyển hướng trình duyệt của người dùng đến CentralAuth thông qua `jump_url`:
+   - Khi truy cập `/login`, React component `Login.tsx` gọi API `GET /api/v1/auth/config`.
+   - Nếu SSO được bật (`sso_enabled: true`) và không có tham số dự phòng (`backdoor`), ứng dụng tự động chuyển hướng trình duyệt đến CentralAuth qua URL:
      ```
      http://localhost:5000/api/auth/jump/vocaburn-v1
      ```
 2. **Xử lý Callback**:
-   - Sau khi CentralAuth xác thực thành công, nó sẽ redirect người dùng trở lại Vocaburn kèm mã code:
+   - Sau khi xác thực, CentralAuth redirect về Vocaburn:
      ```
      /auth-center/callback?code=xxx
      ```
-   - API Endpoint `/auth-center/callback` tại backend Vocaburn nhận mã code, gọi API backchannel đến CentralAuth để hoán đổi code lấy dữ liệu người dùng (`id`, `username`, `email`, `password_hash`).
-   - Nếu người dùng chưa tồn tại trong local database của Vocaburn, tài khoản mới sẽ tự động được tạo và liên kết qua trường `sso_id`.
-   - Backend Vocaburn thiết lập cookie `user_id` (HttpOnly) và chuyển hướng người dùng về trang chủ `/`.
+   - API Endpoint `/auth-center/callback` tại backend Vocaburn tiếp nhận `code`, trao đổi qua backchannel với CentralAuth để lấy thông tin tài khoản (`id`, `username`, `email`).
+   - Tự động tạo/đồng bộ tài khoản trong local DB qua trường `sso_id`.
+   - Gán Cookie `user_id` (HttpOnly, đã qua mã hóa `cookie_signer.py`) và chuyển hướng về trang chính `/`.
 
 ---
 
-## 3. Đồng bộ hóa Database động (Dynamic DB Discovery Handshake)
+## 3. Đồng bộ hóa Database Động (Dynamic DB Discovery Handshake)
 
-Để phục vụ tính năng **Đồng bộ hóa tài khoản** hoặc **Kiểm tra trạng thái liên kết (Pairing)** từ Admin Hub của CentralAuth mà không cần cấu hình cứng vị trí file database trên máy chủ, Vocaburn cung cấp một endpoint handshake bảo mật:
+Để phục vụ Admin Hub của CentralAuth tự động phát hiện đường dẫn cơ sở dữ liệu của Vocaburn mà không cần cấu hình cứng trên máy chủ:
 
 - **Endpoint**: `POST /api/admin/sso/handshake`
 - **Request Body**:
@@ -46,7 +45,7 @@ Vocaburn sử dụng luồng Authorization Code Flow định hướng hoàn toà
     "client_secret": "vocaburn_secret_123"
   }
   ```
-- **Xử lý**: Backend kiểm tra trùng khớp `client_id` và `client_secret` với cấu hình trong DB hoặc biến môi trường. Nếu hợp lệ, trả về đường dẫn cơ sở dữ liệu tuyệt đối của file `Vocaburn.db` trên hệ thống file của máy chủ:
+- **Phản hồi**: Kiểm tra `client_id` & `client_secret`. Nếu hợp lệ, trả về đường dẫn tệp cơ sở dữ liệu tuyệt đối:
   ```json
   {
     "success": true,
@@ -56,24 +55,8 @@ Vocaburn sử dụng luồng Authorization Code Flow định hướng hoàn toà
 
 ---
 
-## 4. Luồng Đăng xuất Toàn cầu (Global SSO Logout Flow)
+## 4. Cổng Dự phòng Quản trị (Admin Backdoor Bypass)
 
-Khi người dùng thực hiện đăng xuất khỏi Vocaburn:
-1. Gửi yêu cầu `POST` tới `/api/auth/logout`.
-2. Backend Vocaburn xóa cookie xác thực local (`user_id`).
-3. Nếu SSO được kích hoạt, backend trả về URL đăng xuất của CentralAuth:
-   ```json
-   {
-     "status": "success",
-     "redirect_url": "http://localhost:5000/auth/logout?client_id=vocaburn-v1"
-   }
-   ```
-4. React Client nhận phản hồi và thiết lập `window.location.href = redirect_url` để xóa bỏ hoàn toàn phiên đăng nhập trên hệ thống CentralAuth.
-
----
-
-## 5. Cổng dự phòng Admin (Admin Backdoor Bypass)
-
-Khi cần thực hiện cấu hình hoặc sửa lỗi hệ thống trong trường hợp CentralAuth không khả dụng:
+Trong trường hợp máy chủ CentralAuth gặp sự cố hoặc cần truy cập quản trị local:
 - **Đường dẫn Backdoor**: Truy cập `http://localhost:5090/login?backdoor=1` (hoặc `?fallback=1`).
-- **Chính sách**: Form đăng nhập cục bộ (Local Login) sẽ xuất hiện. Tuy nhiên, để đảm bảo an toàn, **chỉ tài khoản quản trị viên** (`role = 'admin'` hoặc `is_admin = True` nội bộ) mới được phép đăng nhập trực tiếp qua form này khi SSO đang bật. Tài khoản người dùng thông thường sẽ bị backend chặn với mã lỗi `403 Forbidden`.
+- **Chính sách An ninh**: Màn hình đăng nhập thủ công sẽ hiển thị. Tuy nhiên, **chỉ tài khoản quản trị viên** (`role = 'admin'`) mới được phép đăng nhập trực tiếp qua form khi SSO đang bật. Tài khoản người dùng thông thường sẽ bị chặn với lỗi `403 Forbidden`.

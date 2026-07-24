@@ -202,37 +202,23 @@ async def save_practice_settings(request: Request, deck_id: int, payload: dict, 
         user_sett = user_sett_res.scalar_one_or_none()
         from sqlalchemy.orm.attributes import flag_modified
         if not user_sett:
-            user_sett = UserDeckSettings(user_id=user_id, deck_id=deck_id, settings=settings)
+            cleaned_settings = dict(settings) if isinstance(settings, dict) else {}
+            # Clean legacy fields if present
+            for old_k in ("roadmap_type", "roadmap_daily_new", "roadmap_daily_review_max", "roadmap_pass_threshold"):
+                cleaned_settings.pop(old_k, None)
+            user_sett = UserDeckSettings(user_id=user_id, deck_id=deck_id, settings=cleaned_settings)
             db.add(user_sett)
         elif not settings:
             user_sett.settings = {}
             flag_modified(user_sett, "settings")
         else:
-            merged = {}
-            if isinstance(user_sett.settings, dict):
-                merged.update(user_sett.settings)
-            
-            old_type = merged.get("roadmap_type")
-            new_type = settings.get("roadmap_type") if isinstance(settings, dict) else None
-            
+            merged = dict(user_sett.settings) if isinstance(user_sett.settings, dict) else {}
             if isinstance(settings, dict):
                 merged.update(settings)
+            for old_k in ("roadmap_type", "roadmap_daily_new", "roadmap_daily_review_max", "roadmap_pass_threshold"):
+                merged.pop(old_k, None)
             user_sett.settings = merged
             flag_modified(user_sett, "settings")
-            
-            # If user switched roadmap_type (e.g. from completion to accumulation or vice versa), reset roadmap progress!
-            if old_type and new_type and old_type != new_type:
-                from app.modules.deck.models import Flashcard, UserCardMastery, DeckAttempt, UserAnswer
-                from sqlalchemy import delete
-                card_ids_res = await db.execute(select(Flashcard.id).where(Flashcard.deck_id == deck_id))
-                card_ids = list(card_ids_res.scalars().all())
-                if card_ids:
-                    await db.execute(delete(UserCardMastery).where(UserCardMastery.user_id == user_id, UserCardMastery.card_id.in_(card_ids)))
-                    attempt_ids_res = await db.execute(select(DeckAttempt.id).where(DeckAttempt.user_id == user_id, DeckAttempt.deck_id == deck_id))
-                    attempt_ids = list(attempt_ids_res.scalars().all())
-                    if attempt_ids:
-                        await db.execute(delete(UserAnswer).where(UserAnswer.attempt_id.in_(attempt_ids)))
-                        await db.execute(delete(DeckAttempt).where(DeckAttempt.id.in_(attempt_ids)))
             
     await db.commit()
     return {"status": "ok"}

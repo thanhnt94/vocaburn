@@ -1,19 +1,68 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { ChevronLeft, Compass, Target, Flame, Brain, Play, CheckCircle2, Circle, Clock, ArrowRight, Settings, RotateCcw, Sparkles, BookOpen, Layers, Lock, ShieldCheck } from 'lucide-react'
-import { motion } from 'framer-motion'
+import { 
+  ChevronLeft, Compass, Target, Flame, Brain, Play, CheckCircle2, Circle, Clock, 
+  ArrowRight, Settings, RotateCcw, Sparkles, BookOpen, Layers, Lock, ShieldCheck,
+  Plus, Trash2, ArrowUp, ArrowDown, Check, Trophy
+} from 'lucide-react'
+import { motion, AnimatePresence } from 'framer-motion'
 import axios from 'axios'
 import { cn } from '@/lib/utils'
+
+export type StepType = 'new_cards' | 'fsrs_review' | 'mcq' | 'typing'
+
+export interface PipelineStep {
+  type: StepType
+  daily_count?: number
+  overdue_hours?: number
+  question_count?: number
+  pass_threshold?: number
+}
+
+const STEP_META: Record<StepType, { title: string; icon: string; bg: string; color: string; desc: string }> = {
+  new_cards: {
+    title: 'Học Từ Mới',
+    icon: '🎴',
+    bg: 'bg-orange-50',
+    color: 'text-orange-600',
+    desc: 'Lật thẻ Flashcard để nạp từ mới'
+  },
+  fsrs_review: {
+    title: 'Ôn Tập FSRS',
+    icon: '🔄',
+    bg: 'bg-indigo-50',
+    color: 'text-indigo-600',
+    desc: 'Ôn tập thẻ đến hạn theo thuật toán FSRS v6'
+  },
+  mcq: {
+    title: 'Trắc Nghiệm MCQ',
+    icon: '🎯',
+    bg: 'bg-purple-50',
+    color: 'text-purple-600',
+    desc: 'Bài test trắc nghiệm chọn đáp án đúng'
+  },
+  typing: {
+    title: 'Gõ Từ Vựng',
+    icon: '⌨️',
+    bg: 'bg-emerald-50',
+    color: 'text-emerald-600',
+    desc: 'Bài test gõ chính xác từ vựng'
+  }
+}
 
 export default function DeckRoadmap() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
+  const queryClient = useQueryClient()
 
-  const [dailyNewInput, setDailyNewInput] = useState(10)
-  const [passThresholdInput, setPassThresholdInput] = useState(80)
-  const [roadmapTypeInput, setRoadmapTypeInput] = useState<'completion' | 'accumulation'>('completion')
+  const [pipeline, setPipeline] = useState<PipelineStep[]>([
+    { type: 'new_cards', daily_count: 10 },
+    { type: 'mcq', question_count: 15, pass_threshold: 80 },
+    { type: 'fsrs_review', overdue_hours: 24 }
+  ])
   const [isSavingSettings, setIsSavingSettings] = useState(false)
+  const [isEditingPipeline, setIsEditingPipeline] = useState(false)
 
   // Fetch deck roadmap status
   const { data: status, isLoading: isStatusLoading, refetch } = useQuery({
@@ -25,7 +74,7 @@ export default function DeckRoadmap() {
     enabled: Boolean(id)
   })
 
-  // Fetch deck basic details
+  // Fetch deck session & enabled practice modes
   const { data: deckData } = useQuery({
     queryKey: ['deck-detail-basic', id],
     queryFn: async () => {
@@ -36,45 +85,69 @@ export default function DeckRoadmap() {
   })
 
   useEffect(() => {
-    if (status) {
-      setDailyNewInput(status.roadmap_daily_new || 10)
-      setPassThresholdInput(status.roadmap_pass_threshold || 80)
-      setRoadmapTypeInput(status.roadmap_type || 'completion')
+    if (status && Array.isArray(status.pipeline) && status.pipeline.length > 0) {
+      setPipeline(
+        status.pipeline.map((st: any) => ({
+          type: st.type,
+          daily_count: st.daily_count,
+          overdue_hours: st.overdue_hours,
+          question_count: st.question_count,
+          pass_threshold: st.pass_threshold
+        }))
+      )
     }
   }, [status])
 
-  const queryClient = useQueryClient()
-  const handleSaveRoadmapSettings = async (active = true, overrideType?: 'completion' | 'accumulation') => {
-    const targetType = overrideType || roadmapTypeInput;
-    if (status?.roadmap_type && status.roadmap_type !== targetType) {
-      const confirmSwitch = window.confirm(
-        `⚠️ CẢNH BÁO CHUYỂN CHẾ ĐỘ LỘ TRÌNH\n\n` +
-        `Bạn đang chuyển loại lộ trình từ "${status.roadmap_type === 'accumulation' ? 'Tích lũy' : 'Hoàn thành'}" sang "${targetType === 'accumulation' ? 'Tích lũy' : 'Hoàn thành'}".\n\n` +
-        `Việc chuyển đổi này sẽ RESET lại các chỉ số tiến độ và Streak cũ của lộ trình này để bắt đầu lại từ đầu.\n\n` +
-        `Bạn có chắc chắn muốn chuyển đổi không?`
-      );
-      if (!confirmSwitch) return;
-    }
+  const enabledModes: string[] = deckData?.enabled_practice_modes || ['mcq', 'typing']
 
+  const handleSavePipeline = async (active = true) => {
     try {
       setIsSavingSettings(true)
       await axios.post(`/api/v1/deck/${id}/practice-settings`, {
         settings: {
           roadmap_active: active,
-          roadmap_type: targetType,
-          roadmap_daily_new: dailyNewInput,
-          roadmap_pass_threshold: passThresholdInput
+          pipeline: pipeline
         },
         is_creator: false
       })
       await refetch()
       queryClient.invalidateQueries({ queryKey: ['roadmapDecks'] })
       queryClient.invalidateQueries({ queryKey: ['roadmap-global-decks'] })
+      setIsEditingPipeline(false)
     } catch (e) {
-      console.error("Failed to save roadmap settings:", e)
+      console.error('Failed to save pipeline settings:', e)
     } finally {
       setIsSavingSettings(false)
     }
+  }
+
+  const addStep = (type: StepType) => {
+    let newStep: PipelineStep = { type }
+    if (type === 'new_cards') newStep.daily_count = 10
+    else if (type === 'fsrs_review') newStep.overdue_hours = 24
+    else if (type === 'mcq') { newStep.question_count = 15; newStep.pass_threshold = 80 }
+    else if (type === 'typing') { newStep.question_count = 10; newStep.pass_threshold = 70 }
+
+    setPipeline([...pipeline, newStep])
+  }
+
+  const removeStep = (index: number) => {
+    setPipeline(pipeline.filter((_, i) => i !== index))
+  }
+
+  const moveStep = (index: number, direction: 'up' | 'down') => {
+    const targetIdx = direction === 'up' ? index - 1 : index + 1
+    if (targetIdx < 0 || targetIdx >= pipeline.length) return
+    const updated = [...pipeline]
+    const [moved] = updated.splice(index, 1)
+    updated.splice(targetIdx, 0, moved)
+    setPipeline(updated)
+  }
+
+  const updateStepConfig = (index: number, field: string, value: number) => {
+    const updated = [...pipeline]
+    updated[index] = { ...updated[index], [field]: value }
+    setPipeline(updated)
   }
 
   if (isStatusLoading) {
@@ -82,7 +155,7 @@ export default function DeckRoadmap() {
       <div className="min-h-screen bg-[#F8FAFC] flex items-center justify-center">
         <div className="text-center">
           <div className="w-10 h-10 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
-          <p className="text-xs font-bold text-slate-400">Đang tải trung tâm lộ trình bộ thẻ...</p>
+          <p className="text-xs font-bold text-slate-400">Đang tải lộ trình bộ thẻ...</p>
         </div>
       </div>
     )
@@ -90,6 +163,7 @@ export default function DeckRoadmap() {
 
   const s = status || {}
   const deckTitle = deckData?.title || `Bộ Thẻ #${id}`
+  const processedPipeline = s.pipeline || []
 
   return (
     <div className="min-h-screen bg-[#F8FAFC] pt-6 pb-28 px-4 md:px-8 max-w-5xl mx-auto">
@@ -120,10 +194,10 @@ export default function DeckRoadmap() {
           <div>
             <div className="flex items-center gap-2 mb-2">
               <span className="px-3 py-1 rounded-full bg-indigo-500/30 text-indigo-200 text-[10px] font-black uppercase tracking-widest border border-indigo-400/30">
-                Lộ Trình Học Tập Cá Nhân
+                Custom Roadmap Pipeline V2
               </span>
               <button
-                onClick={() => handleSaveRoadmapSettings(!s.roadmap_active)}
+                onClick={() => handleSavePipeline(!s.roadmap_active)}
                 disabled={isSavingSettings}
                 className={cn(
                   "px-3.5 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border transition-all cursor-pointer shadow-sm active:scale-95",
@@ -141,278 +215,327 @@ export default function DeckRoadmap() {
               {deckTitle}
             </h1>
             <p className="text-slate-300 text-xs font-semibold max-w-xl leading-relaxed">
-              Hành trình 2 bước thông minh giúp bạn tiếp thu từ mới nhanh chóng, ôn tập ngắt quãng FSRS và đánh giá khả năng ghi nhớ dài hạn.
+              Dây chuyền luyện tập tuần tự tự xây dựng. Chỉ cần bấm 1 nút để tự động hoàn thành các bước trong ngày.
             </p>
           </div>
 
           {/* Header Action Button */}
-          {s.roadmap_active && (
+          {s.roadmap_active && !s.all_done && (
             <button
               onClick={() => navigate(s.next_action_url || `/flashcard/${id}/play?mode=roadmap`)}
               className="px-6 py-4 bg-gradient-to-r from-orange-500 to-rose-500 hover:from-orange-600 hover:to-rose-600 text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl shadow-orange-500/20 active:scale-95 transition-all flex items-center justify-center gap-2 cursor-pointer whitespace-nowrap"
             >
               <Play className="w-4 h-4 fill-white" />
-              <span>{s.next_action_label || 'Học Bước Tiếp Theo'} 🚀</span>
+              <span>{s.next_action_label || 'Bắt Đầu Học'} 🚀</span>
             </button>
+          )}
+
+          {s.roadmap_active && s.all_done && (
+            <div className="px-6 py-4 bg-emerald-500/20 border border-emerald-400/40 text-emerald-300 rounded-2xl font-black text-xs uppercase tracking-widest flex items-center gap-2">
+              <CheckCircle2 className="w-5 h-5 text-emerald-400" />
+              <span>Đã Hoàn Thành Ngày 🎉</span>
+            </div>
           )}
         </div>
       </div>
 
-      {/* ── 3-Stage Visual Journey ── */}
-      <div className="mb-8">
-        <h2 className="text-sm font-black text-slate-800 uppercase tracking-widest mb-4 flex items-center gap-2">
-          <Layers className="w-4 h-4 text-indigo-600" />
-          Hành Trình Học Tập 2 Bước Hôm Nay
-        </h2>
+      {/* ── Completion Banner (if all steps done) ── */}
+      {s.roadmap_active && s.all_done && (
+        <motion.div 
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="mb-8 p-6 bg-gradient-to-r from-emerald-500 to-teal-600 rounded-3xl text-white shadow-lg flex flex-col md:flex-row items-center justify-between gap-4"
+        >
+          <div className="flex items-center gap-4">
+            <div className="w-14 h-14 rounded-2xl bg-white/20 flex items-center justify-center text-3xl">
+              🏆
+            </div>
+            <div>
+              <h3 className="text-lg font-black">Chúc mừng! Bạn đã xong lộ trình hôm nay!</h3>
+              <p className="text-xs text-emerald-100 font-semibold">Tất cả các bước trong pipeline đã được hoàn thành xuất sắc.</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-3">
+            <span className="text-xs font-black bg-white/20 px-4 py-2 rounded-xl">
+              🔥 Streak: {s.streak || 1} ngày
+            </span>
+          </div>
+        </motion.div>
+      )}
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* Stage 1: Flashcard Learn */}
-          <div className={cn("bg-white rounded-3xl p-6 border shadow-sm relative overflow-hidden transition-all", s.stage_1_done ? "border-emerald-200" : (s.current_stage === 1 ? "border-indigo-500 ring-4 ring-indigo-500/10" : "border-slate-100"))}>
-            <div className="flex items-center justify-between mb-4">
-              <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Bước 1</span>
-              {s.stage_1_done ? (
-                <span className="px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-600 text-[10px] font-black uppercase">✓ Đã Hoàn Thành</span>
-              ) : (
-                <span className="px-2.5 py-0.5 rounded-full bg-indigo-50 text-indigo-600 text-[10px] font-black uppercase">Cần Thực Hiện</span>
-              )}
-            </div>
-            <div className="w-12 h-12 rounded-2xl bg-orange-50 text-orange-600 flex items-center justify-center text-xl font-black mb-3">
-              🎴
-            </div>
-            <h3 className="text-base font-black text-slate-900 mb-1">1. Học Từ Mới & Ôn Tập</h3>
-            <p className="text-xs font-semibold text-slate-500 mb-4">Lật thẻ Flashcard để tiếp thu đủ chỉ tiêu số từ mới trong ngày, rồi ôn tập các từ đến hạn.</p>
-            <div className="flex flex-col gap-1.5 pt-3 border-t border-slate-100">
-              <div className="flex items-center justify-between text-xs font-black">
-                <span className="text-slate-400">Từ mới hôm nay:</span>
-                <span className={s.stage_1_done ? "text-emerald-600" : "text-orange-600"}>{s.new_learned_today || 0} / {s.new_target_today || 10} từ {s.stage_1_done ? '✓' : ''}</span>
-              </div>
-              <div className="flex items-center justify-between text-xs font-black">
-                <span className="text-slate-400">Ôn tập hôm nay:</span>
-                <span className={s.review_completed_today >= s.review_due_today ? "text-emerald-600" : "text-indigo-600"}>{s.review_completed_today || 0} / {s.review_due_today || 0} thẻ {s.review_completed_today >= s.review_due_today && s.review_due_today > 0 ? '✓' : ''}</span>
-              </div>
-            </div>
+      {/* ── Daily Progress Pipeline (Timeline) ── */}
+      <div className="mb-8">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-sm font-black text-slate-800 uppercase tracking-widest flex items-center gap-2">
+            <Layers className="w-4 h-4 text-indigo-600" />
+            Tiến Độ Lộ Trình Hôm Nay ({s.current_step_index || 0}/{processedPipeline.length} Bước)
+          </h2>
+          
+          <button
+            onClick={() => setIsEditingPipeline(!isEditingPipeline)}
+            className="text-xs font-black text-indigo-600 hover:text-indigo-800 flex items-center gap-1.5 cursor-pointer bg-indigo-50 border border-indigo-200 px-3 py-1.5 rounded-xl transition-all"
+          >
+            <Settings className="w-3.5 h-3.5" />
+            <span>{isEditingPipeline ? 'Ẩn Trình Tùy Chỉnh' : 'Chỉnh Sửa Pipeline'}</span>
+          </button>
+        </div>
+
+        {/* Dynamic Pipeline Steps Timeline */}
+        {processedPipeline.length === 0 ? (
+          <div className="bg-white rounded-3xl p-8 border border-slate-200 text-center">
+            <p className="text-xs font-bold text-slate-400 mb-3">Chưa có bước nào trong pipeline lộ trình của bạn.</p>
             <button
-              onClick={() => {
-                if (!s.stage_1_done) {
-                  navigate(`/flashcard/${id}/play?mode=roadmap`)
-                } else if (s.review_due_today > 0 && s.review_completed_today < s.review_due_today) {
-                  navigate(`/flashcard/${id}/play?mode=review`)
-                } else {
-                  navigate(`/flashcard/${id}/play?mode=roadmap`)
-                }
-              }}
-              className="w-full mt-4 py-3 bg-slate-900 hover:bg-slate-800 text-white rounded-xl font-black text-xs uppercase tracking-wider transition-all"
+              onClick={() => setIsEditingPipeline(true)}
+              className="px-4 py-2 bg-indigo-600 text-white rounded-xl text-xs font-black"
             >
-              {!s.stage_1_done ? 'Vào Học Từ Mới 🚀' : (s.review_due_today > 0 && s.review_completed_today < s.review_due_today ? `Ôn Tập (${s.review_due_today - s.review_completed_today} thẻ) 📚` : 'Hoàn Thành ✓')}
+              Thêm Bước Đầu Tiên ➕
             </button>
           </div>
+        ) : (
+          <div className="space-y-4">
+            {processedPipeline.map((step: any, idx: number) => {
+              const meta = STEP_META[step.type as StepType] || STEP_META.new_cards
+              const isCurrent = s.roadmap_active && idx === s.current_step_index && !s.all_done
+              const isDone = step.done
+              const isLocked = s.roadmap_active && idx > s.current_step_index && !s.all_done
 
-          {/* Stage 2: Roadmap Mixed Test (Only if MCQ is enabled and setup for deck) */}
-          {s.has_mcq_setup !== false ? (
-            <div className={cn("bg-white rounded-3xl p-6 border shadow-sm relative overflow-hidden transition-all", s.stage_2_done ? "border-emerald-200" : (s.current_stage === 2 ? "border-indigo-500 ring-4 ring-indigo-500/10" : "border-slate-100"))}>
-              <div className="flex items-center justify-between mb-4">
-                <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Bước 2</span>
-                {s.stage_2_done ? (
-                  <span className="px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-600 text-[10px] font-black uppercase">🏆 Đã Đạt Streak</span>
-                ) : (
-                  <span className="px-2.5 py-0.5 rounded-full bg-amber-50 text-amber-600 text-[10px] font-black uppercase">Bài Test Ôn Tập & Đánh Giá</span>
-                )}
+              return (
+                <div
+                  key={idx}
+                  className={cn(
+                    "bg-white rounded-3xl p-5 border shadow-xs transition-all relative overflow-hidden flex flex-col md:flex-row md:items-center justify-between gap-4",
+                    isDone ? "border-emerald-200 bg-emerald-50/10" :
+                    isCurrent ? "border-indigo-500 ring-4 ring-indigo-500/10" :
+                    isLocked ? "border-slate-100 opacity-60" : "border-slate-100"
+                  )}
+                >
+                  <div className="flex items-center gap-4">
+                    <div className={cn("w-10 h-10 rounded-2xl flex items-center justify-center text-lg font-black shrink-0", meta.bg, meta.color)}>
+                      {meta.icon}
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+                          Bước {idx + 1}
+                        </span>
+                        {isDone && <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 text-[9px] font-black">✓ Hoàn thành</span>}
+                        {isCurrent && <span className="px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-700 text-[9px] font-black animate-pulse">▶ Bước Hiện Tại</span>}
+                        {isLocked && <span className="px-2 py-0.5 rounded-full bg-slate-100 text-slate-500 text-[9px] font-black">🔒 Chưa mở khóa</span>}
+                      </div>
+                      <h3 className="text-sm font-black text-slate-900">{meta.title}</h3>
+                      <p className="text-xs text-slate-500 font-semibold">{meta.desc}</p>
+                    </div>
+                  </div>
+
+                  {/* Step Progress Stats & Action Button */}
+                  <div className="flex items-center justify-between md:justify-end gap-4 pt-3 md:pt-0 border-t md:border-t-0 border-slate-100">
+                    <div className="text-right">
+                      {step.type === 'new_cards' && (
+                        <div className="text-xs font-black text-slate-700">
+                          {step.progress?.learned || 0} / {step.daily_count || 10} từ mới
+                        </div>
+                      )}
+                      {step.type === 'fsrs_review' && (
+                        <div className="text-xs font-black text-slate-700">
+                          {step.progress?.reviewed_today || 0} / {step.progress?.due_count || 0} thẻ ôn tập
+                        </div>
+                      )}
+                      {(step.type === 'mcq' || step.type === 'typing') && (
+                        <div className="text-xs font-black text-slate-700">
+                          Điểm cao nhất: <span className={isDone ? "text-emerald-600" : "text-amber-600"}>{step.progress?.best_score || 0}%</span> / {step.pass_threshold}%
+                        </div>
+                      )}
+                    </div>
+
+                    <button
+                      onClick={() => navigate(step.url)}
+                      disabled={isLocked}
+                      className={cn(
+                        "px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition-all cursor-pointer",
+                        isDone ? "bg-slate-100 text-slate-600 hover:bg-slate-200" :
+                        isCurrent ? "bg-indigo-600 text-white hover:bg-indigo-700 shadow-md shadow-indigo-200" :
+                        "bg-slate-100 text-slate-400 cursor-not-allowed"
+                      )}
+                    >
+                      {isDone ? 'Luyện Lại' : isCurrent ? 'Thực Hiện 🚀' : 'Khóa 🔒'}
+                    </button>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        )}
+      </div>
+
+      {/* ── Pipeline Builder Panel (Inline Editor) ── */}
+      <AnimatePresence>
+        {isEditingPipeline && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            className="mb-8 bg-white rounded-3xl p-6 border-2 border-indigo-500 shadow-lg"
+          >
+            <div className="flex items-center justify-between mb-6">
+              <div>
+                <h3 className="text-base font-black text-slate-900">🛠️ Trình Tùy Chỉnh Pipeline Lộ Trình</h3>
+                <p className="text-xs font-semibold text-slate-500">Thêm, xóa và sắp xếp thứ tự các bước theo phong cách học cá nhân của bạn.</p>
               </div>
-              <div className="w-12 h-12 rounded-2xl bg-purple-50 text-purple-600 flex items-center justify-center text-xl font-black mb-3">
-                🎯
-              </div>
-              <h3 className="text-base font-black text-slate-900 mb-1">2. Bài Kiểm Tra Roadmap</h3>
-              <p className="text-xs font-semibold text-slate-500 mb-4">Ôn tập từ mới hôm nay + từ cũ + từ quá hạn &gt;1 ngày. Đạt ≥{s.roadmap_pass_threshold || 80}% để giữ Streak.</p>
-              <div className="flex items-center justify-between text-xs font-black pt-3 border-t border-slate-100">
-                <span className="text-slate-400">Ngưỡng đỗ bài test:</span>
-                <span className="text-emerald-600">≥ {s.roadmap_pass_threshold || 80}%</span>
-              </div>
+
               <button
-                onClick={() => {
-                  if (!s.stage_1_done) {
-                    alert("Bạn chưa hoàn thành Bước 1 (Học từ mới)! Vui lòng lật thẻ học hết số từ chỉ tiêu hôm nay trước khi vào làm Bài kiểm tra Roadmap.");
-                    return;
-                  }
-                  navigate(`/practice/${id}/roadmap_test`);
-                }}
-                disabled={!s.stage_1_done}
-                className={cn(
-                  "w-full mt-4 py-3 text-white rounded-xl font-black text-xs uppercase tracking-wider transition-all cursor-pointer",
-                  s.stage_1_done
-                    ? "bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 shadow-md shadow-indigo-200"
-                    : "bg-slate-300 text-slate-500 cursor-not-allowed opacity-70"
-                )}
-                title={!s.stage_1_done ? "Hoàn thành Bước 1 để mở khóa Bài kiểm tra" : "Vào làm bài kiểm tra"}
+                onClick={() => handleSavePipeline(true)}
+                disabled={isSavingSettings}
+                className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xs uppercase tracking-widest rounded-xl shadow-md cursor-pointer transition-all"
               >
-                {!s.stage_1_done ? "🔒 Cần Hoàn Thành Bước 1 Trực Tiếp" : "Vào Làm Bài Test 🎯"}
+                {isSavingSettings ? 'Đang Lưu...' : 'Lưu Pipeline 💾'}
               </button>
             </div>
-          ) : (
-            <div className="bg-slate-50/80 rounded-3xl p-6 border border-slate-200/60 flex flex-col justify-between">
-              <div>
-                <div className="flex items-center justify-between mb-4">
-                  <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Chưa Bật Trắc Nghiệm</span>
-                  <span className="px-2.5 py-0.5 rounded-full bg-slate-200 text-slate-600 text-[10px] font-black uppercase">Chưa Setup</span>
-                </div>
-                <div className="w-12 h-12 rounded-2xl bg-slate-200/60 text-slate-400 flex items-center justify-center text-xl font-black mb-3">
-                  🔒
-                </div>
-                <h3 className="text-base font-black text-slate-700 mb-1">2. Bài Kiểm Tra MCQ (Tắt)</h3>
-                <p className="text-xs font-semibold text-slate-400 mb-4">Tác giả bộ thẻ chưa cấu hình/bật chế độ trắc nghiệm (MCQ). Lộ trình hiện tại hoàn tất ngay sau khi bạn hoàn thành 100% mục tiêu Học từ mới Flashcard.</p>
-              </div>
-              <div className="pt-3 border-t border-slate-200/40">
-                <span className="text-[11px] font-bold text-slate-400 italic">Lộ trình 1 bước duy nhất: Học từ mới</span>
-              </div>
+
+            {/* Steps Re-orderable List */}
+            <div className="space-y-3 mb-6">
+              {pipeline.map((st, idx) => {
+                const meta = STEP_META[st.type] || STEP_META.new_cards
+                return (
+                  <div key={idx} className="p-4 bg-slate-50 rounded-2xl border border-slate-200 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                    <div className="flex items-center gap-3">
+                      <span className="w-6 h-6 rounded-lg bg-slate-200 text-slate-700 text-xs font-black flex items-center justify-center">
+                        {idx + 1}
+                      </span>
+                      <span className="text-lg">{meta.icon}</span>
+                      <span className="text-xs font-black text-slate-800">{meta.title}</span>
+                    </div>
+
+                    {/* Step Controls */}
+                    <div className="flex items-center gap-4 flex-wrap">
+                      {st.type === 'new_cards' && (
+                        <div className="flex items-center gap-2">
+                          <span className="text-[10px] font-black text-slate-400">Từ mới/ngày:</span>
+                          <input
+                            type="number" min="5" max="100" step="5"
+                            value={st.daily_count || 10}
+                            onChange={(e) => updateStepConfig(idx, 'daily_count', parseInt(e.target.value) || 10)}
+                            className="w-16 px-2 py-1 bg-white border border-slate-300 rounded-lg text-xs font-black text-center"
+                          />
+                        </div>
+                      )}
+
+                      {st.type === 'fsrs_review' && (
+                        <div className="flex items-center gap-2">
+                          <span className="text-[10px] font-black text-slate-400">Quá hạn (h):</span>
+                          <input
+                            type="number" min="1" max="168"
+                            value={st.overdue_hours || 24}
+                            onChange={(e) => updateStepConfig(idx, 'overdue_hours', parseInt(e.target.value) || 24)}
+                            className="w-16 px-2 py-1 bg-white border border-slate-300 rounded-lg text-xs font-black text-center"
+                          />
+                        </div>
+                      )}
+
+                      {(st.type === 'mcq' || st.type === 'typing') && (
+                        <div className="flex items-center gap-3">
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-[10px] font-black text-slate-400">Số câu:</span>
+                            <input
+                              type="number" min="5" max="50"
+                              value={st.question_count || 15}
+                              onChange={(e) => updateStepConfig(idx, 'question_count', parseInt(e.target.value) || 15)}
+                              className="w-14 px-2 py-1 bg-white border border-slate-300 rounded-lg text-xs font-black text-center"
+                            />
+                          </div>
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-[10px] font-black text-slate-400">Ngưỡng đỗ:</span>
+                            <input
+                              type="number" min="50" max="100" step="5"
+                              value={st.pass_threshold || 80}
+                              onChange={(e) => updateStepConfig(idx, 'pass_threshold', parseInt(e.target.value) || 80)}
+                              className="w-14 px-2 py-1 bg-white border border-slate-300 rounded-lg text-xs font-black text-center"
+                            />
+                            <span className="text-xs font-black text-slate-500">%</span>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Move & Delete buttons */}
+                      <div className="flex items-center gap-1 border-l border-slate-200 pl-3">
+                        <button
+                          onClick={() => moveStep(idx, 'up')}
+                          disabled={idx === 0}
+                          className="p-1.5 rounded-lg bg-white border border-slate-200 text-slate-600 hover:bg-slate-100 disabled:opacity-30 cursor-pointer"
+                        >
+                          <ArrowUp className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          onClick={() => moveStep(idx, 'down')}
+                          disabled={idx === pipeline.length - 1}
+                          className="p-1.5 rounded-lg bg-white border border-slate-200 text-slate-600 hover:bg-slate-100 disabled:opacity-30 cursor-pointer"
+                        >
+                          <ArrowDown className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          onClick={() => removeStep(idx)}
+                          className="p-1.5 rounded-lg bg-rose-50 border border-rose-200 text-rose-600 hover:bg-rose-100 cursor-pointer"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )
+              })}
             </div>
-          )}
-        </div>
-      </div>
 
-      {/* ── Settings & Retention Analytics Grid ── */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* Settings Card */}
-        <div className="bg-white rounded-3xl p-6 border border-slate-100 shadow-sm">
-          <div className="flex items-center justify-between mb-6">
-            <h3 className="text-sm font-black text-slate-800 uppercase tracking-widest flex items-center gap-2">
-              <Settings className="w-4 h-4 text-indigo-600" />
-              Cài Đặt Mục Tiêu Lộ Trình
-            </h3>
-            <button
-              onClick={() => handleSaveRoadmapSettings(!s.roadmap_active)}
-              disabled={isSavingSettings}
-              className={cn(
-                "px-3.5 py-1.5 rounded-xl text-xs font-black transition-all cursor-pointer shadow-sm border active:scale-95",
-                s.roadmap_active
-                  ? "bg-rose-50 text-rose-600 border-rose-200 hover:bg-rose-100"
-                  : "bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100"
-              )}
-            >
-              {s.roadmap_active ? '🚫 Tắt Lộ Trình Này' : '⚡ Kích Hoạt Lộ Trình'}
-            </button>
-          </div>
-
-          <div className="space-y-6">
-            {/* Roadmap Type Selector */}
+            {/* Add Step Controls */}
             <div>
-              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-2">Loại Lộ Trình Học</label>
-              <div className="grid grid-cols-2 gap-3">
+              <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-2">Thêm Bước Mới Vào Pipeline</span>
+              <div className="flex items-center gap-2 flex-wrap">
                 <button
-                  type="button"
-                  onClick={() => setRoadmapTypeInput('completion')}
-                  className={cn(
-                    "p-3 rounded-2xl border text-left transition-all cursor-pointer",
-                    roadmapTypeInput === 'completion'
-                      ? "bg-indigo-50/80 border-indigo-300 text-indigo-950 shadow-sm"
-                      : "bg-slate-50 border-slate-200 text-slate-500 hover:bg-slate-100"
-                  )}
+                  onClick={() => addStep('new_cards')}
+                  className="px-3.5 py-2 rounded-xl bg-orange-50 text-orange-700 border border-orange-200 text-xs font-black flex items-center gap-1.5 hover:bg-orange-100 cursor-pointer"
                 >
-                  <span className="text-xs font-black block">📘 Hoàn Thành</span>
-                  <span className="text-[9px] font-semibold text-slate-400 mt-0.5 block leading-tight">Có số thẻ cố định, dự tính ngày hoàn thành.</span>
+                  <Plus className="w-3.5 h-3.5" />
+                  <span>🎴 Học Từ Mới</span>
                 </button>
-                <button
-                  type="button"
-                  onClick={() => setRoadmapTypeInput('accumulation')}
-                  className={cn(
-                    "p-3 rounded-2xl border text-left transition-all cursor-pointer",
-                    roadmapTypeInput === 'accumulation'
-                      ? "bg-amber-50/80 border-amber-300 text-amber-950 shadow-sm"
-                      : "bg-slate-50 border-slate-200 text-slate-500 hover:bg-slate-100"
-                  )}
-                >
-                  <span className="text-xs font-black block">📈 Tích Lũy</span>
-                  <span className="text-[9px] font-semibold text-slate-400 mt-0.5 block leading-tight">Nhập thêm thẻ mỗi ngày, không ngày kết thúc.</span>
-                </button>
-              </div>
-            </div>
 
-            {/* Target New Cards Input */}
-            <div>
-              <div className="flex items-center justify-between mb-2">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Số thẻ mới mỗi ngày</label>
-                <span className="text-xs font-black text-indigo-600 bg-indigo-50 px-3 py-0.5 rounded-full">{dailyNewInput} thẻ/ngày</span>
-              </div>
-              <input
-                type="range" min="5" max="100" step="5"
-                value={dailyNewInput}
-                onChange={(e) => setDailyNewInput(parseInt(e.target.value) || 10)}
-                className="w-full accent-indigo-600 cursor-pointer h-2 bg-slate-100 rounded-lg mb-2"
-              />
-              <div className="flex gap-1.5 flex-wrap">
-                {[5, 10, 15, 20, 30, 50].map((val) => (
+                <button
+                  onClick={() => addStep('fsrs_review')}
+                  className="px-3.5 py-2 rounded-xl bg-indigo-50 text-indigo-700 border border-indigo-200 text-xs font-black flex items-center gap-1.5 hover:bg-indigo-100 cursor-pointer"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  <span>🔄 Ôn Tập FSRS</span>
+                </button>
+
+                {enabledModes.includes('mcq') && (
                   <button
-                    key={val}
-                    type="button"
-                    onClick={() => setDailyNewInput(val)}
-                    className={cn("px-3 py-1 rounded-xl text-[10px] font-black cursor-pointer border", dailyNewInput === val ? "bg-indigo-600 text-white border-indigo-600" : "bg-slate-50 text-slate-600 border-slate-200")}
+                    onClick={() => addStep('mcq')}
+                    className="px-3.5 py-2 rounded-xl bg-purple-50 text-purple-700 border border-purple-200 text-xs font-black flex items-center gap-1.5 hover:bg-purple-100 cursor-pointer"
                   >
-                    {val}
+                    <Plus className="w-3.5 h-3.5" />
+                    <span>🎯 Trắc Nghiệm MCQ</span>
                   </button>
-                ))}
+                )}
+
+                {enabledModes.includes('typing') && (
+                  <button
+                    onClick={() => addStep('typing')}
+                    className="px-3.5 py-2 rounded-xl bg-emerald-50 text-emerald-700 border border-emerald-200 text-xs font-black flex items-center gap-1.5 hover:bg-emerald-100 cursor-pointer"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    <span>⌨️ Gõ Từ Vựng</span>
+                  </button>
+                )}
               </div>
             </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
-            {/* Pass Threshold Input */}
-            <div className="pt-4 border-t border-slate-100">
-              <div className="flex items-center justify-between mb-2">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Ngưỡng điểm đỗ bài test</label>
-                <span className="text-xs font-black text-emerald-600 bg-emerald-50 px-3 py-0.5 rounded-full">≥ {passThresholdInput}%</span>
-              </div>
-              <input
-                type="range" min="50" max="100" step="5"
-                value={passThresholdInput}
-                onChange={(e) => setPassThresholdInput(parseInt(e.target.value) || 80)}
-                className="w-full accent-emerald-600 cursor-pointer h-2 bg-slate-100 rounded-lg mb-2"
-              />
-              <p className="text-[10px] font-bold text-slate-400 leading-relaxed">
-                Cần đạt tối thiểu {passThresholdInput}% điểm bài test để tính Streak hôm nay.
-              </p>
-            </div>
-
-            {/* Completion estimate - Reacts dynamically to selected radio button! */}
-            {roadmapTypeInput === 'accumulation' ? (
-              <div className="p-4 bg-amber-50/60 rounded-2xl border border-amber-200/60">
-                <div className="text-[10px] font-black text-amber-700 uppercase tracking-widest mb-1">📈 Lộ Trình Tích Lũy Vô Tận</div>
-                <div className="text-sm font-black text-amber-950">
-                  Đã tích lũy: {s.total_cards || 0} thẻ vựng trong bộ
-                </div>
-                <div className="text-[10px] font-semibold text-amber-700/80 mt-0.5">
-                  Không có ngày hoàn thành. Mỗi ngày nhập thêm chỉ tiêu {dailyNewInput} từ mới và học để duy trì Streak.
-                </div>
-              </div>
-            ) : (
-              <div className="p-4 bg-indigo-50/60 rounded-2xl border border-indigo-100">
-                <div className="text-[10px] font-black text-indigo-500 uppercase tracking-widest mb-1">Dự kiến hoàn thành toàn bộ</div>
-                <div className="text-base font-black text-indigo-950">
-                  📅 {(() => {
-                    const unlearned = s.unlearned_cards || 0;
-                    const days = dailyNewInput > 0 ? Math.ceil(unlearned / dailyNewInput) : 0;
-                    const targetDate = new Date();
-                    targetDate.setDate(targetDate.getDate() + days);
-                    return days === 0 ? 'Hoàn thành hôm nay!' : targetDate.toISOString().split('T')[0];
-                  })()}
-                </div>
-                <div className="text-[10px] font-semibold text-slate-500 mt-0.5">
-                  Còn khoảng ~{dailyNewInput > 0 ? Math.ceil((s.unlearned_cards || 0) / dailyNewInput) : 0} ngày nữa cho {s.unlearned_cards || 0} thẻ chưa học
-                </div>
-              </div>
-            )}
-
-            <button
-              onClick={() => handleSaveRoadmapSettings(s.roadmap_active !== false)}
-              disabled={isSavingSettings}
-              className="w-full py-3.5 bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xs uppercase tracking-widest rounded-2xl shadow-lg shadow-indigo-200 transition-all cursor-pointer"
-            >
-              {isSavingSettings ? 'Đang Lưu...' : 'Lưu Thay Đổi Cài Đặt 💾'}
-            </button>
-          </div>
-        </div>
-
-        {/* Retention Analytics Card */}
+      {/* ── Retention & Activity Analytics Grid ── */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div className="bg-white rounded-3xl p-6 border border-slate-100 shadow-sm flex flex-col justify-between">
           <div>
             <h3 className="text-sm font-black text-slate-800 uppercase tracking-widest flex items-center gap-2 mb-6">
               <Brain className="w-4 h-4 text-emerald-600" />
-              Chỉ Số Khả Năng Ghi Nhớ (Retention Rate)
+              Chỉ Số Ghi Nhớ (Retention Rate)
             </h3>
 
             <div className="grid grid-cols-2 gap-4 mb-6">
@@ -428,24 +551,40 @@ export default function DeckRoadmap() {
                 <span className="text-[9px] font-bold text-slate-400 block mt-1">Đã đỗ bài test</span>
               </div>
             </div>
+          </div>
 
-            {/* 7-Day activity heatmap */}
-            <div className="p-4 bg-slate-50/70 rounded-2xl border border-slate-100">
-              <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-3">Lịch Hoạt Động 7 Ngày Qua</span>
-              <div className="grid grid-cols-7 gap-2">
-                {s.seven_days?.map((day: any, idx: number) => (
-                  <div key={idx} className="flex flex-col items-center gap-1">
-                    <div className={cn("w-8 h-8 rounded-xl flex items-center justify-center text-xs font-black transition-all", day.active ? "bg-emerald-500 text-white shadow-sm" : "bg-slate-200 text-slate-400")}>
-                      {day.active ? '✓' : '•'}
-                    </div>
-                    <span className="text-[9px] font-bold text-slate-400">{day.day_name}</span>
+          <div className="p-4 bg-indigo-50/60 rounded-2xl border border-indigo-100">
+            <div className="text-[10px] font-black text-indigo-500 uppercase tracking-widest mb-1">Dự kiến hoàn thành bộ thẻ</div>
+            <div className="text-base font-black text-indigo-950">
+              📅 {s.estimated_completion_date || 'Hoàn thành hôm nay!'}
+            </div>
+            <div className="text-[10px] font-semibold text-slate-500 mt-0.5">
+              Còn ~{s.days_left || 0} ngày cho {s.unlearned_cards || 0} thẻ chưa học
+            </div>
+          </div>
+        </div>
+
+        {/* 7-Day Activity Map */}
+        <div className="bg-white rounded-3xl p-6 border border-slate-100 shadow-sm flex flex-col justify-between">
+          <div>
+            <h3 className="text-sm font-black text-slate-800 uppercase tracking-widest flex items-center gap-2 mb-6">
+              <Flame className="w-4 h-4 text-orange-500" />
+              Lịch Hoạt Động 7 Ngày Qua
+            </h3>
+
+            <div className="grid grid-cols-7 gap-2 mb-6">
+              {s.seven_days?.map((day: any, idx: number) => (
+                <div key={idx} className="flex flex-col items-center gap-1">
+                  <div className={cn("w-9 h-9 rounded-2xl flex items-center justify-center text-xs font-black transition-all", day.active ? "bg-emerald-500 text-white shadow-sm" : "bg-slate-100 text-slate-400")}>
+                    {day.active ? '✓' : '•'}
                   </div>
-                ))}
-              </div>
+                  <span className="text-[9px] font-bold text-slate-400">{day.day_name}</span>
+                </div>
+              ))}
             </div>
           </div>
 
-          <div className="mt-6 pt-4 border-t border-slate-100 text-center">
+          <div className="pt-4 border-t border-slate-100 text-center">
             <Link
               to={`/flashcard/${id}`}
               className="text-xs font-bold text-slate-500 hover:text-slate-900 transition-colors"

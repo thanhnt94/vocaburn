@@ -18,8 +18,8 @@ export default function RoadmapHub() {
   })
 
   const decks: any[] = data?.decks || []
-  const completedTodayCount = decks.filter(d => d.status?.stage_3_done).length
-  const nextIncompleteDeck = decks.find(d => !d.status?.stage_3_done)
+  const completedTodayCount = decks.filter(d => d.status?.all_done).length
+  const nextIncompleteDeck = decks.find(d => !d.status?.all_done)
 
   const handleQuickContinue = () => {
     if (nextIncompleteDeck && nextIncompleteDeck.status?.next_action_url) {
@@ -46,7 +46,7 @@ export default function RoadmapHub() {
             Lộ Trình Học Tập Hàng Ngày 🗺️
           </h1>
           <p className="text-xs font-semibold text-slate-500 mt-1">
-            Theo dõi tiến độ, hoàn thành bài kiểm tra và duy trì chuỗi Streak học tập mỗi ngày.
+            Theo dõi tiến độ pipeline tùy biến, hoàn thành bài kiểm tra và duy trì chuỗi Streak mỗi ngày.
           </p>
         </div>
 
@@ -69,7 +69,7 @@ export default function RoadmapHub() {
             <span className="text-[10px] font-black uppercase tracking-widest text-indigo-200 block mb-1">Tiến Độ Hôm Nay</span>
             <div className="text-3xl font-black">{completedTodayCount} / {decks.length}</div>
             <p className="text-[11px] font-medium text-indigo-100 mt-1">
-              {completedTodayCount === decks.length && decks.length > 0 ? '🎉 Hoàn thành xuất sắc tất cả!' : 'Đã đạt chỉ tiêu bài test hôm nay'}
+              {completedTodayCount === decks.length && decks.length > 0 ? '🎉 Hoàn thành xuất sắc tất cả!' : 'Đã đạt chỉ tiêu pipeline hôm nay'}
             </p>
           </div>
           <div className="w-14 h-14 bg-white/10 backdrop-blur rounded-2xl flex items-center justify-center text-2xl font-black border border-white/20">
@@ -101,7 +101,7 @@ export default function RoadmapHub() {
               🔥 {Math.max(0, ...decks.map(d => d.status?.streak || 0))}d
             </div>
             <p className="text-[11px] font-bold text-slate-400 mt-1">
-              Duy trì đỗ bài test hàng ngày
+              Duy trì bài test hàng ngày
             </p>
           </div>
           <div className="w-14 h-14 bg-orange-50 rounded-2xl flex items-center justify-center text-orange-500">
@@ -133,7 +133,7 @@ export default function RoadmapHub() {
             </div>
             <h3 className="text-lg font-black text-slate-800 mb-2">Chưa Có Lộ Trình Nào Đưa Vào</h3>
             <p className="text-slate-500 font-medium text-xs max-w-md mx-auto mb-6 leading-relaxed">
-              Bạn chưa kích hoạt Lộ Trình cho bộ thẻ nào. Hãy chọn bộ thẻ từ thư viện để bắt đầu hành trình học 3 bước thông minh.
+              Bạn chưa kích hoạt Lộ Trình cho bộ thẻ nào. Hãy chọn bộ thẻ từ thư viện để thiết lập pipeline luyện tập tự động.
             </p>
             <Link
               to="/library"
@@ -146,8 +146,8 @@ export default function RoadmapHub() {
           <div className="grid grid-cols-1 gap-4">
             {decks.map((item) => {
               const s = item.status || {}
-              const isAllDone = s.stage_2_done
-              const isAccumulation = s.roadmap_type === 'accumulation'
+              const isAllDone = s.all_done
+              const pipeline: any[] = s.pipeline || []
 
               return (
                 <motion.div
@@ -157,32 +157,18 @@ export default function RoadmapHub() {
                   className="bg-white rounded-3xl p-5 border border-slate-100/80 shadow-sm hover:shadow-md transition-all flex flex-col md:flex-row md:items-center justify-between gap-5"
                 >
                   <div className="flex items-start gap-4 flex-1 min-w-0">
-                    {/* Cover image or fallback */}
-                    <div className={cn(
-                      "w-16 h-16 rounded-2xl border flex items-center justify-center flex-shrink-0 overflow-hidden",
-                      isAccumulation
-                        ? "bg-gradient-to-br from-amber-50 to-orange-50 border-amber-100"
-                        : "bg-gradient-to-br from-indigo-50 to-purple-50 border-slate-100"
-                    )}>
+                    <div className="w-16 h-16 rounded-2xl border bg-gradient-to-br from-indigo-50 to-purple-50 border-slate-100 flex items-center justify-center flex-shrink-0 overflow-hidden">
                       {item.cover_image ? (
                         <img src={item.cover_image} alt={item.title} className="w-full h-full object-cover" />
                       ) : (
-                        <BookOpen className={cn("w-7 h-7", isAccumulation ? "text-amber-600" : "text-indigo-600")} />
+                        <BookOpen className="w-7 h-7 text-indigo-600" />
                       )}
                     </div>
 
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-1 flex-wrap">
                         <h3 className="text-base font-black text-slate-900 truncate tracking-tight">{item.title}</h3>
-                        {/* Roadmap Type Badge */}
-                        <span className={cn(
-                          "px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider flex-shrink-0 border",
-                          isAccumulation
-                            ? "bg-amber-50 text-amber-700 border-amber-200"
-                            : "bg-indigo-50 text-indigo-700 border-indigo-200"
-                        )}>
-                          {isAccumulation ? '📈 Tích Lũy' : '📘 Hoàn Thành'}
-                        </span>
+                        
                         {/* Status Badge */}
                         {isAllDone ? (
                           <span className="px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-600 text-[9px] font-black uppercase tracking-wider flex-shrink-0 border border-emerald-100">
@@ -190,34 +176,33 @@ export default function RoadmapHub() {
                           </span>
                         ) : (
                           <span className="px-2.5 py-0.5 rounded-full bg-rose-50 text-rose-600 text-[9px] font-black uppercase tracking-wider flex-shrink-0 border border-rose-100">
-                            Chưa xong
+                            Bước {s.current_step_index + 1}/{pipeline.length}
                           </span>
                         )}
                       </div>
 
-                      {/* 2-Stage Progress Pills */}
+                      {/* Pipeline Progress Steps */}
                       <div className="flex items-center gap-2 mt-2 flex-wrap">
-                        <div className={cn("px-3 py-1 rounded-xl text-[10px] font-bold flex items-center gap-1 border", s.stage_1_done ? "bg-emerald-50 text-emerald-700 border-emerald-200" : "bg-slate-50 text-slate-500 border-slate-200")}>
-                          {s.stage_1_done ? '✓' : '1.'} {isAccumulation ? `Nhập & học thẻ mới (${s.created_today_count || 0}/${s.new_target_today})` : `Học từ mới (${s.new_learned_today}/${s.new_target_today})`}
-                        </div>
-                        {s.has_stage_2 !== false && (
-                          <div className={cn("px-3 py-1 rounded-xl text-[10px] font-bold flex items-center gap-1 border", s.stage_2_done ? "bg-emerald-50 text-emerald-700 border-emerald-200" : "bg-indigo-50 text-indigo-700 border-indigo-200")}>
-                            {s.stage_2_done ? '✓' : '2.'} Bài Test (≥{s.roadmap_pass_threshold || 80}%)
+                        {pipeline.map((step: any, idx: number) => (
+                          <div
+                            key={idx}
+                            className={cn(
+                              "px-3 py-1 rounded-xl text-[10px] font-bold flex items-center gap-1 border",
+                              step.done ? "bg-emerald-50 text-emerald-700 border-emerald-200" :
+                              idx === s.current_step_index ? "bg-indigo-50 text-indigo-700 border-indigo-200 animate-pulse" :
+                              "bg-slate-50 text-slate-400 border-slate-200"
+                            )}
+                          >
+                            {step.done ? '✓' : `${idx + 1}.`} {step.label}
                           </div>
-                        )}
+                        ))}
                       </div>
 
                       <div className="flex items-center gap-4 mt-3 text-[10px] font-bold text-slate-400 flex-wrap">
                         <span>🔥 Streak: <strong className="text-orange-600">{s.streak || 0}d</strong></span>
                         <span>🧠 Retention: <strong className="text-indigo-600">{s.retention_rate || 0}%</strong></span>
-                        {isAccumulation ? (
-                          <span>📦 Tổng thẻ: <strong className="text-amber-700">{s.total_cards || 0}</strong></span>
-                        ) : (
-                          <span>📅 Dự kiến xong: <strong className="text-slate-600">{s.estimated_completion_date || '—'}</strong></span>
-                        )}
-                        {!isAccumulation && (
-                          <span>📚 Còn lại: <strong className="text-slate-600">{s.unlearned_cards || 0} thẻ</strong></span>
-                        )}
+                        <span>📅 Dự kiến xong: <strong className="text-slate-600">{s.estimated_completion_date || '—'}</strong></span>
+                        <span>📚 Còn lại: <strong className="text-slate-600">{s.unlearned_cards || 0} thẻ</strong></span>
                       </div>
                     </div>
                   </div>
@@ -237,9 +222,7 @@ export default function RoadmapHub() {
                         "px-5 py-2.5 rounded-xl font-black text-xs uppercase tracking-wider shadow-md transition-all flex items-center gap-1.5 cursor-pointer",
                         isAllDone
                           ? "bg-slate-900 text-white hover:bg-slate-800"
-                          : isAccumulation
-                            ? "bg-amber-600 hover:bg-amber-700 text-white shadow-amber-200"
-                            : "bg-indigo-600 hover:bg-indigo-700 text-white shadow-indigo-200"
+                          : "bg-indigo-600 hover:bg-indigo-700 text-white shadow-indigo-200"
                       )}
                     >
                       <span>{s.next_action_label || 'Tiếp Tục'}</span>
