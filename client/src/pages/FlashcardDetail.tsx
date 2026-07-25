@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
 import { useQuery, useInfiniteQuery, useQueryClient } from '@tanstack/react-query'
-import { ChevronLeft, Award, BookOpen, Search, StickyNote, BarChart2, Settings, Edit2, X, Save, Brain, HelpCircle, Plus, Sparkles, Trophy, Layers, RotateCcw, Compass, Flame, Target, ChevronDown, ChevronUp, Pencil, Calendar, ArrowRight } from 'lucide-react'
+import { ChevronLeft, Award, BookOpen, Search, StickyNote, BarChart2, Settings, Edit2, X, Save, Brain, HelpCircle, Plus, Sparkles, Trophy, Layers, RotateCcw, Compass, Flame, Target, ChevronDown, ChevronUp, Pencil, Calendar, ArrowRight, Sliders, LayoutGrid } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import axios from 'axios'
 import { cn } from '@/lib/utils'
@@ -863,10 +863,10 @@ export default function QuizDetail() {
 
                       <button
                         onClick={() => setShowClassicOverride(true)}
-                        className="h-11 px-3 bg-slate-100 hover:bg-slate-200 border border-slate-200/80 text-slate-700 text-[10px] font-black uppercase tracking-wider rounded-2xl flex items-center justify-center gap-1 transition-all active:scale-95 cursor-pointer shadow-sm shrink-0"
-                        title="Chuyển sang chế độ tự do ôn tập (Flashcard & Practice)"
+                        className="w-11 h-11 bg-slate-100 hover:bg-slate-200 border border-slate-200/80 text-slate-600 rounded-2xl flex items-center justify-center transition-all active:scale-90 cursor-pointer shadow-sm shrink-0"
+                        title="Đổi sang chế độ tự do ôn tập (Flashcard & Practice)"
                       >
-                        <span>↔️ Tự do</span>
+                        <Sliders className="w-4 h-4" />
                       </button>
                     </div>
                   );
@@ -985,11 +985,10 @@ export default function QuizDetail() {
                     {isRoadmapPending && (
                       <button
                         onClick={() => setShowClassicOverride(false)}
-                        className="h-11 px-3 bg-orange-50 hover:bg-orange-100 border border-orange-200 text-orange-600 text-[10px] font-black uppercase tracking-wider rounded-xl flex items-center justify-center gap-1 transition-all active:scale-95 cursor-pointer shadow-sm shrink-0"
+                        className="w-11 h-11 bg-orange-50 hover:bg-orange-100 border border-orange-200 text-orange-600 rounded-2xl flex items-center justify-center transition-all active:scale-90 cursor-pointer shadow-sm shrink-0"
                         title="Quay lại nút Học Lộ Trình"
                       >
-                        <Compass className="w-3.5 h-3.5" />
-                        <span>🎯 Lộ trình</span>
+                        <Compass className="w-4 h-4 text-orange-600" />
                       </button>
                     )}
                   </>
