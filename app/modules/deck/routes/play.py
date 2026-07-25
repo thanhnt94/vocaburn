@@ -1697,7 +1697,13 @@ async def get_next_card(request: Request, deck_id: int, data: dict, db: AsyncSes
                 else:
                     return {"next_index": new_cards[0], "phase": "new"}
 
-        now_utc = datetime.utcnow()
+        fsrs_overdue_hours = 24
+        for st in pipeline:
+            if st.get("type") == "fsrs_review":
+                fsrs_overdue_hours = int(st.get("overdue_hours", 24))
+                break
+
+        cutoff_time = datetime.utcnow() - timedelta(hours=fsrs_overdue_hours)
         due_cards = []
         for idx, c in enumerate(deck.cards):
             if idx in ignored_indexes:
@@ -1705,7 +1711,7 @@ async def get_next_card(request: Request, deck_id: int, data: dict, db: AsyncSes
             m = mastery_map.get(c.id)
             if not m or m.state == 0 or m.stability is None:
                 continue
-            is_due = (m.due - timedelta(seconds=30)) <= now_utc
+            is_due = m.due <= cutoff_time
             if is_due and idx not in answered_indexes:
                 due_cards.append({"idx": idx, "stability": m.stability or 0.0})
 
@@ -2462,6 +2468,14 @@ async def get_deck_roadmap_status_helper(db: AsyncSession, user_id: int, deck_id
         )
     ) or 0
     
+    fsrs_overdue_hours = 24
+    for st in pipeline_input:
+        if st.get("type") == "fsrs_review":
+            fsrs_overdue_hours = int(st.get("overdue_hours", 24))
+            break
+
+    cutoff_time = datetime.utcnow() - timedelta(hours=fsrs_overdue_hours)
+
     review_due_today = await db.scalar(
         select(func.count(UserCardMastery.id))
         .join(Flashcard, UserCardMastery.card_id == Flashcard.id)
@@ -2469,7 +2483,7 @@ async def get_deck_roadmap_status_helper(db: AsyncSession, user_id: int, deck_id
             Flashcard.deck_id == deck_id,
             UserCardMastery.user_id == user_id,
             UserCardMastery.state > 0,
-            UserCardMastery.due <= datetime.utcnow()
+            UserCardMastery.due <= cutoff_time
         )
     ) or 0
 
