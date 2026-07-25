@@ -23,8 +23,8 @@ interface PlaySettingsModalProps {
   setIsQuitModalOpen: (open: boolean) => void;
   quickLearnEnabled?: boolean;
   setQuickLearnEnabled?: (enabled: boolean) => void;
-  showImages: boolean;
-  setShowImages: (enabled: boolean) => void;
+  showImages: any;
+  setShowImages: (mode: any) => void;
   showFsrs?: boolean;
   setShowFsrs?: (enabled: boolean) => void;
   randomEnabled?: boolean;
@@ -59,6 +59,9 @@ export const PlaySettingsModal: React.FC<PlaySettingsModalProps> = ({
 }) => {
   const navigate = useNavigate()
   const { id } = useParams<{ id: string }>()
+
+  const isFrontImgOn = showImages === 'always' || showImages === 'front' || showImages === true || showImages === 'true';
+  const isBackImgOn = showImages === 'always' || showImages === 'back' || showImages === true || showImages === 'true';
 
   return (
     <AnimatePresence>
@@ -214,10 +217,56 @@ export const PlaySettingsModal: React.FC<PlaySettingsModalProps> = ({
                 </div>
               </div>
 
-              {/* 3. Hiển thị & Hiệu ứng */}
+              {/* 3. Hiển thị hình ảnh */}
               <div>
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-2">Hiển thị & Hiệu ứng</label>
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5 bg-slate-50 p-1.5 rounded-2xl border border-slate-100">
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-2">Hiển thị hình ảnh</label>
+                <div className="grid grid-cols-2 gap-2 bg-slate-50 p-1.5 rounded-2xl border border-slate-100">
+                  {/* Front Image Toggle */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const nextState = isFrontImgOn 
+                        ? (isBackImgOn ? 'back' : 'none') 
+                        : (isBackImgOn ? 'always' : 'front');
+                      setShowImages(nextState);
+                    }}
+                    className={cn(
+                      "flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl text-xs font-extrabold transition-all active:scale-95 cursor-pointer",
+                      isFrontImgOn 
+                        ? "bg-white text-indigo-600 shadow-sm border border-slate-100 ring-1 ring-indigo-500/20" 
+                        : "text-slate-500 hover:bg-white/60"
+                    )}
+                  >
+                    <Image className={cn("w-4 h-4", isFrontImgOn ? "text-indigo-600" : "text-slate-400")} />
+                    <span>Mặt trước</span>
+                  </button>
+
+                  {/* Back Image Toggle */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const nextState = isBackImgOn 
+                        ? (isFrontImgOn ? 'front' : 'none') 
+                        : (isFrontImgOn ? 'always' : 'back');
+                      setShowImages(nextState);
+                    }}
+                    className={cn(
+                      "flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl text-xs font-extrabold transition-all active:scale-95 cursor-pointer",
+                      isBackImgOn 
+                        ? "bg-white text-indigo-600 shadow-sm border border-slate-100 ring-1 ring-indigo-500/20" 
+                        : "text-slate-500 hover:bg-white/60"
+                    )}
+                  >
+                    <Image className={cn("w-4 h-4", isBackImgOn ? "text-indigo-600" : "text-slate-400")} />
+                    <span>Mặt sau</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* 4. Hiệu ứng & Tính năng bổ trợ */}
+              <div>
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-2">Hiệu ứng & Bổ trợ</label>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5 bg-slate-50 p-1.5 rounded-2xl border border-slate-100">
                   {/* Effect Sound */}
                   <button
                     type="button"
@@ -246,21 +295,6 @@ export const PlaySettingsModal: React.FC<PlaySettingsModalProps> = ({
                   >
                     <Zap className={cn("w-4 h-4", hapticEnabled ? "text-indigo-500" : "text-slate-400")} />
                     <span className="truncate w-full text-center text-[9px] font-extrabold">Rung Haptic</span>
-                  </button>
-
-                  {/* Show Images Toggle */}
-                  <button
-                    type="button"
-                    onClick={() => setShowImages(!showImages)}
-                    className={cn(
-                      "flex flex-col items-center justify-center gap-1 py-2 px-1 rounded-xl text-[10px] font-bold transition-all active:scale-95 cursor-pointer",
-                      showImages 
-                        ? "bg-white text-indigo-600 shadow-sm border border-slate-100 ring-1 ring-indigo-500/20" 
-                        : "text-slate-500 hover:bg-white/60"
-                    )}
-                  >
-                    <Image className={cn("w-4 h-4", showImages ? "text-indigo-500" : "text-slate-400")} />
-                    <span className="truncate w-full text-center text-[9px] font-extrabold">Hiện hình ảnh</span>
                   </button>
 
                   {/* Quick Learn */}
@@ -299,7 +333,7 @@ export const PlaySettingsModal: React.FC<PlaySettingsModalProps> = ({
                 </div>
               </div>
 
-              {/* 4. Thao tác thẻ học */}
+              {/* 5. Thao tác thẻ học */}
               <div className="pt-2 border-t border-slate-100 space-y-1.5">
                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block text-center">Thao tác thẻ học</label>
                 <div className="flex items-center justify-center gap-3">
@@ -360,7 +394,7 @@ export const PlaySettingsModal: React.FC<PlaySettingsModalProps> = ({
                 </div>
               </div>
 
-              {/* 5. Quản lý bộ thẻ */}
+              {/* 6. Quản lý bộ thẻ */}
               {id && (
                 <div className="pt-2 border-t border-slate-100 space-y-1.5">
                   <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block text-center">Quản lý bộ thẻ</label>

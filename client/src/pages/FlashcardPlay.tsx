@@ -4239,7 +4239,7 @@ export default function FlashcardPlay() {
 
                     {/* Word / Question Content */}
                     <div className="flex-1 flex flex-col items-center justify-center text-center gap-6 overflow-y-auto custom-scrollbar my-2 py-2">
-                      {showImages && (currentQuestion?.front_img || currentQuestion?.others?.front_img) && (
+                      {(showImages as any === 'always' || showImages as any === 'front' || showImages as any === true || showImages as any === 'true') && (currentQuestion?.front_img || currentQuestion?.others?.front_img) && (
                         <img 
                           src={currentQuestion.front_img || currentQuestion.others?.front_img || undefined} 
                           alt="Front Visual" 
@@ -4335,7 +4335,7 @@ export default function FlashcardPlay() {
                         </div>
                       )}
 
-                      {showImages && (currentQuestion?.back_img || currentQuestion?.others?.back_img) && (
+                      {(showImages as any === 'always' || showImages as any === 'back' || showImages as any === true || showImages as any === 'true') && (currentQuestion?.back_img || currentQuestion?.others?.back_img) && (
                         <div className="space-y-2 flex justify-center">
                           <img 
                             src={currentQuestion.back_img || currentQuestion.others?.back_img || undefined} 

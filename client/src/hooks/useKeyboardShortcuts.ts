@@ -19,8 +19,8 @@ interface KeyboardShortcutsParams {
   handleReviewRating: (rating: number) => void;
   setIsFlipped: (flipped: boolean) => void;
   setShowFeedback: (show: boolean) => void;
-  showImages: boolean;
-  setShowImages: (show: boolean) => void;
+  showImages: any;
+  setShowImages: (mode: any) => void;
   activeMode?: string;
 }
 
@@ -94,7 +94,7 @@ export function useKeyboardShortcuts(params: KeyboardShortcutsParams) {
       // Handle toggle images (key 'i')
       if (key === 'i') {
         e.preventDefault();
-        setShowImages(!showImages);
+        setShowImages(showImages === 'none' ? 'always' : 'none');
         return;
       }
 

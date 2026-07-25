@@ -1028,7 +1028,7 @@ export default function PracticePlay() {
       // Handle toggle images (key 'i')
       if (key === 'i') {
         e.preventDefault();
-        setShowImages(!showImages);
+        setShowImages(showImages === 'none' ? 'always' : 'none');
         return;
       }
 
@@ -4772,7 +4772,7 @@ export default function PracticePlay() {
 
                         {/* Word / Question Content */}
                         <div className="flex-1 flex flex-col items-center justify-center text-center gap-6 overflow-y-auto custom-scrollbar my-2 py-2">
-                          {showImages && (currentQuestion?.front_img || currentQuestion?.others?.front_img) && (
+                          {(showImages as any === 'always' || showImages as any === 'front' || showImages as any === true || showImages as any === 'true') && (currentQuestion?.front_img || currentQuestion?.others?.front_img) && (
                             <img
                               src={currentQuestion.front_img || currentQuestion.others?.front_img || undefined}
                               alt="Front Visual"
@@ -4862,7 +4862,7 @@ export default function PracticePlay() {
                             </div>
                           )}
 
-                          {showImages && (currentQuestion?.back_img || currentQuestion?.others?.back_img) && (
+                          {(showImages as any === 'always' || showImages as any === 'back' || showImages as any === true || showImages as any === 'true') && (currentQuestion?.back_img || currentQuestion?.others?.back_img) && (
                             <div className="space-y-2 flex justify-center">
                               <img
                                 src={currentQuestion.back_img || currentQuestion.others?.back_img || undefined}
@@ -6050,10 +6050,10 @@ export default function PracticePlay() {
 
                     {/* Show Images Toggle */}
                     <button
-                      onClick={() => setShowImages(!showImages)}
+                      onClick={() => setShowImages(showImages === 'none' ? 'always' : 'none')}
                       className={cn(
                         "flex flex-col items-center justify-center gap-1.5 py-2 px-1 rounded-xl text-[10px] font-bold transition-all active:scale-95",
-                        showImages 
+                        showImages !== 'none' 
                           ? "bg-white text-indigo-600 shadow-sm border border-slate-100" 
                           : "text-slate-500 hover:bg-white/50"
                       )}
