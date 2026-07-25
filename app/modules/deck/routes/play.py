@@ -2600,8 +2600,8 @@ async def get_deck_roadmap_status_helper(db: AsyncSession, user_id: int, deck_id
                 .where(
                     DeckAttempt.user_id == user_id,
                     DeckAttempt.deck_id == deck_id,
-                    DeckAttempt.mode == "roadmap_mcq",
-                    DeckAttempt.started_at >= today_start
+                    DeckAttempt.mode.in_(["roadmap_mcq", "roadmap_test", "mcq"]),
+                    func.coalesce(DeckAttempt.completed_at, DeckAttempt.started_at) >= today_start
                 )
             )
             mcq_scores = mcq_res.scalars().all()
@@ -2623,8 +2623,8 @@ async def get_deck_roadmap_status_helper(db: AsyncSession, user_id: int, deck_id
                 .where(
                     DeckAttempt.user_id == user_id,
                     DeckAttempt.deck_id == deck_id,
-                    DeckAttempt.mode == "roadmap_typing",
-                    DeckAttempt.started_at >= today_start
+                    DeckAttempt.mode.in_(["roadmap_typing", "typing"]),
+                    func.coalesce(DeckAttempt.completed_at, DeckAttempt.started_at) >= today_start
                 )
             )
             typing_scores = typing_res.scalars().all()
@@ -3120,14 +3120,16 @@ async def submit_roadmap_test(request: Request, deck_id: int, data: dict, db: As
     score_percentage = (correct_count / total_questions * 100.0) if total_questions > 0 else 0.0
     passed = score_percentage >= 80.0
 
+    now_utc = datetime.utcnow()
     # 1. Record DeckAttempt
     attempt = DeckAttempt(
         user_id=user_id,
         deck_id=deck_id,
-        mode="roadmap_test",
+        mode="roadmap_mcq",
         total_cards=total_questions,
         score=int(round(score_percentage)),
-        completed_at=datetime.utcnow()
+        started_at=now_utc,
+        completed_at=now_utc
     )
     db.add(attempt)
     await db.flush()

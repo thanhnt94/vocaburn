@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
+import { useQueryClient } from '@tanstack/react-query'
 import confetti from 'canvas-confetti'
 import { useParams, useNavigate } from 'react-router-dom'
 import { ChevronLeft, ChevronRight, ChevronDown, MessageSquare, Play, Volume2, Maximize2, Hash, Minimize2, Check, X, RotateCcw, AlertCircle, LayoutGrid, Timer, Flame, Trophy, Sparkles, Lightbulb, StickyNote, Target, CheckCircle2, XCircle, Clock, BookOpen, Copy, Edit3, Brain, FileText, HelpCircle, Sliders, ListOrdered, Shuffle, Eye, EyeOff, TrendingUp, Award, Lock, Keyboard, VolumeX, Settings, RefreshCw, Undo2, LogOut, Zap, Music, Image, Plus, Star } from 'lucide-react'
@@ -264,6 +265,7 @@ export default function PracticePlay() {
   const { id, subMode } = useParams()
   const isRoadmapTestMode = subMode === 'roadmap_test' || subMode === 'roadmap_mcq' || subMode === 'roadmap_typing' || (typeof subMode === 'string' && subMode.startsWith('roadmap_'))
   const navigate = useNavigate()
+  const queryClient = useQueryClient()
   const { user, gamify, setUser, setGamify, addXp } = useAppStore()
 
   useEffect(() => {
@@ -2530,6 +2532,13 @@ export default function PracticePlay() {
         setRoadmapSubmitResult(res.data);
         setIsRoadmapTestFinished(true);
 
+        // Invalidate & refetch roadmap queries to update UI header and step progress
+        await queryClient.invalidateQueries({ queryKey: ['deck-roadmap-status'] });
+        await queryClient.invalidateQueries({ queryKey: ['quiz-roadmap-status'] });
+        await queryClient.invalidateQueries({ queryKey: ['roadmapDecks'] });
+        await queryClient.invalidateQueries({ queryKey: ['roadmap-global-decks'] });
+        refetchRoadmap();
+
         if (res.data?.passed) {
           confetti({ zIndex: 9999, particleCount: 150, spread: 80, origin: { y: 0.5 } });
         }
@@ -3710,19 +3719,20 @@ export default function PracticePlay() {
               <span>🔄 Làm lại bài test khác</span>
             </button>
           ) : (
-            roadmapStatus?.next_action_url ? (
+            (roadmapStatus?.all_done || !roadmapStatus?.next_action_url || roadmapStatus?.next_action_url.includes('/roadmap')) ? (
               <button
-                onClick={() => navigate(roadmapStatus.next_action_url)}
-                className="w-full py-4 px-6 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white font-black text-sm uppercase tracking-wider rounded-2xl shadow-lg shadow-emerald-200 active:scale-[0.98] transition-all flex items-center justify-center gap-2"
+                onClick={() => navigate('/')}
+                className="w-full py-4 px-6 bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-600 hover:from-emerald-600 hover:to-teal-700 text-white font-black text-sm uppercase tracking-wider rounded-2xl shadow-xl shadow-emerald-500/20 active:scale-[0.98] transition-all flex items-center justify-center gap-2 cursor-pointer"
               >
-                <span>{roadmapStatus.next_action_label || '🚀 Sang Bước Tiếp Theo ➔'}</span>
+                <Trophy className="w-5 h-5 fill-current" />
+                <span>🎉 HOÀN THÀNH LỘ TRÌNH HÔM NAY ➔ VỀ DASHBOARD</span>
               </button>
             ) : (
               <button
-                onClick={() => navigate(`/flashcard/${id}`)}
-                className="w-full py-4 px-6 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-black text-sm uppercase tracking-wider rounded-2xl shadow-lg shadow-indigo-200 active:scale-[0.98] transition-all flex items-center justify-center gap-2"
+                onClick={() => navigate(roadmapStatus.next_action_url)}
+                className="w-full py-4 px-6 bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-700 hover:from-indigo-700 hover:to-purple-800 text-white font-black text-sm uppercase tracking-wider rounded-2xl shadow-xl shadow-indigo-500/20 active:scale-[0.98] transition-all flex items-center justify-center gap-2 cursor-pointer"
               >
-                <span>🏆 Hoàn thành Lộ Trình Hôm Nay 🎉 ➔ Về Dashboard</span>
+                <span>{roadmapStatus.next_action_label ? `🚀 SANG BƯỚC: ${roadmapStatus.next_action_label} ➔` : '🚀 SANG BƯỚC TIẾP THEO ➔'}</span>
               </button>
             )
           )}
