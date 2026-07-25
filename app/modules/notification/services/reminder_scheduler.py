@@ -36,7 +36,7 @@ async def _get_active_configs(db) -> list:
                             rc["local_user_id"] = user.id
                             resolved.append(rc)
                     return resolved
-                logger.error(f"[Scheduler] CentralAuth config fetch returned {response.status_code}: {response.text}")
+                logger.warning(f"[Scheduler] CentralAuth config fetch returned status {response.status_code}, fallback to local configs.")
     except Exception as sso_err:
         logger.warning(f"[Scheduler] Failed to fetch configs from CentralAuth, falling back to local: {sso_err}")
 
