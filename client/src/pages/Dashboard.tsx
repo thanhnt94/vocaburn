@@ -645,202 +645,137 @@ function TodayFocusWidget({
 
   return (
     <div className={cn(
-      "rounded-[2rem] p-5 md:p-8 text-left mb-6 flex-shrink-0 transition-all duration-700 bg-white shadow-sm border border-slate-100",
+      "rounded-[2rem] p-5 md:p-6 text-left mb-2 flex-shrink-0 transition-all duration-700 bg-white shadow-sm border border-slate-100",
       hasRoadmaps ? "shadow-[0_20px_50px_rgba(99,102,241,0.02)]" : ""
     )}>
-      <div className="flex items-center justify-between mb-5 relative z-10">
-        <div>
-          <span className="text-[9px] font-black uppercase tracking-widest px-2.5 py-1 rounded-xl text-indigo-600 bg-indigo-50 inline-block">
-            🎯 LỘ TRÌNH HỌC HÔM NAY
-          </span>
-          <h3 className="text-sm font-black text-slate-800 uppercase tracking-tight mt-2 font-bold">Mục tiêu học tập hàng ngày</h3>
-        </div>
-      </div>
-
       {!hasRoadmaps ? (
-        <div className="text-center py-12 bg-slate-50/50 rounded-[2rem] border border-dashed border-slate-200/80">
-          <div className="w-14 h-14 rounded-full bg-indigo-50 flex items-center justify-center mx-auto mb-4 text-indigo-500 shadow-inner">
-            <Compass className="w-7 h-7 animate-pulse" />
+        <div className="text-center py-10 bg-slate-50/50 rounded-[2rem] border border-dashed border-slate-200/80">
+          <div className="w-12 h-12 rounded-full bg-indigo-50 flex items-center justify-center mx-auto mb-3 text-indigo-500 shadow-inner">
+            <Compass className="w-6 h-6 animate-pulse" />
           </div>
           <span className="text-xs font-black text-slate-700 block uppercase tracking-wider">Bạn chưa kích hoạt Lộ trình học nào.</span>
           <p className="text-[10px] text-slate-400 mt-2 max-w-xs mx-auto font-bold uppercase tracking-wider leading-relaxed">Hãy chọn một bộ thẻ từ thư viện và bật "Lộ trình học" để hệ thống tự động thiết lập mục tiêu hàng ngày cho bạn.</p>
           <motion.button
             whileTap={{ scale: 0.95 }}
             onClick={() => navigate('/library')}
-            className="mt-5 px-5 py-2.5 bg-indigo-600 hover:bg-indigo-750 text-white text-[10px] font-black uppercase tracking-widest rounded-xl shadow-md shadow-indigo-100 transition-all cursor-pointer"
+            className="mt-4 px-5 py-2.5 bg-indigo-600 hover:bg-indigo-750 text-white text-[10px] font-black uppercase tracking-widest rounded-xl shadow-md shadow-indigo-100 transition-all cursor-pointer"
           >
             📚 Đi tới Thư viện
           </motion.button>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 xl:grid-cols-2 gap-5">
           {roadmapDecks.map((deck) => {
             const status = deck.status || {};
-            const totalLearnedPct = status.total_cards > 0 ? Math.min(100, Math.round((status.learned_cards / status.total_cards) * 100)) : 0;
-            const streak = status.streak || 0;
-            
+            const newTarget = status.new_target_today || 0;
+            const newLearned = status.new_learned_today || 0;
+            const reviewDue = status.review_due_today || 0;
+            const reviewDone = status.review_completed_today || 0;
+
+            const totalTasks = newTarget + reviewDue;
+            const totalDone = newLearned + reviewDone;
+            const percentComplete = totalTasks > 0 ? Math.min(100, Math.round((totalDone / totalTasks) * 100)) : (status.all_done ? 100 : 0);
+            const isStage1Done = status.stage_1_done;
+            const isStage2Done = status.stage_2_done;
+            const nextActionUrl = status.next_action_url;
+            const streak = status.streak || deck.streak || 0;
+
+            const radius = 28;
+            const strokeWidth = 5;
+            const circumference = 2 * Math.PI * radius;
+            const strokeDashoffset = circumference - (circumference * percentComplete) / 100;
+
             return (
-              <div key={deck.deck_id} className="group relative rounded-[2rem] border border-slate-100/80 bg-white hover:shadow-[0_15px_40px_rgba(99,102,241,0.06)] transition-all duration-300 flex flex-col overflow-hidden shadow-sm">
-                
-                {/* Visual Header / Cover Image Banner */}
-                <div className="relative h-32 w-full bg-slate-100 overflow-hidden shrink-0 flex items-center justify-center">
-                  {deck.cover_image ? (
-                    <img src={deck.cover_image} alt={deck.title} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
-                  ) : (
-                    <div className="w-full h-full bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 flex items-center justify-center" />
-                  )}
-                  {/* Subtle Gradient Overlay */}
-                  <div className="absolute inset-0 bg-gradient-to-t from-slate-950/70 via-slate-950/20 to-transparent" />
-                  
-                  {/* Title & Floating Elements inside Image */}
-                  <div className="absolute bottom-3.5 left-4 right-4 flex items-end justify-between gap-3 text-white">
-                    <h4 className="text-[12px] sm:text-xs font-black uppercase tracking-wider truncate leading-tight drop-shadow-md">{deck.title}</h4>
+              <div key={deck.deck_id} className="bg-white rounded-[2rem] p-5 border border-slate-100 shadow-sm relative overflow-hidden flex flex-col justify-between space-y-4 hover:shadow-md transition-all">
+                <div className="space-y-3.5">
+                  {/* Header Badge */}
+                  <div className="flex items-center justify-between">
+                    <span className="text-[9px] font-black uppercase tracking-widest px-3 py-1 rounded-full bg-orange-50 text-orange-600 border border-orange-100/60 flex items-center gap-1.5 shadow-2xs">
+                      🎯 TIẾN ĐỘ LỘ TRÌNH
+                    </span>
                     {streak > 0 && (
-                      <span className="text-[8px] font-black text-orange-600 bg-white/95 px-2 py-1 rounded-lg flex items-center gap-0.5 shrink-0 shadow-sm leading-none uppercase tracking-wider">
-                        🔥 {streak} ngày
+                      <span className="text-[9px] font-black text-orange-600 bg-orange-50 px-2.5 py-0.5 rounded-full border border-orange-100/60 flex items-center gap-1">
+                        🔥 {streak}d
                       </span>
                     )}
                   </div>
-                </div>
 
-                {/* Progress / stats bar */}
-                <div className="p-4 flex flex-col gap-4">
-                  <div className="flex items-center justify-between gap-2 text-[8px] font-black text-slate-400 uppercase tracking-widest">
-                    <span>Đã học {status.learned_cards}/{status.total_cards} ({totalLearnedPct}%)</span>
-                    {status.estimated_completion_date && (
-                      <span className="text-emerald-600 bg-emerald-50/80 px-2 py-0.5 rounded-md flex items-center gap-0.5 normal-case font-bold border border-emerald-100/50">
-                        🎯 Kết thúc: {new Date(status.estimated_completion_date).toLocaleDateString('vi-VN')}
-                      </span>
-                    )}
-                  </div>
-                  
-                  <div className="w-full h-2 bg-slate-100/80 rounded-full overflow-hidden shrink-0 p-[1px]">
-                    <div className="h-full bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 rounded-full transition-all duration-700 ease-out" style={{ width: `${totalLearnedPct}%` }} />
-                  </div>
-
-                  {/* Pipeline Steps Tracker */}
-                  {status.pipeline && status.pipeline.length > 0 ? (
-                    <div className="flex flex-col gap-2 mt-1">
-                      <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block">
-                        Các bước trong Lộ trình:
-                      </span>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                        {status.pipeline.map((step: any, sIdx: number) => {
-                          const isDone = step.done
-                          const isCurrent = sIdx === status.current_step_index && !status.all_done
-
-                          return (
-                            <div
-                              key={sIdx}
-                              onClick={() => {
-                                if (step.url) navigate(step.url)
-                              }}
-                              className={cn(
-                                "p-2.5 rounded-xl border flex items-center justify-between gap-2 transition-all cursor-pointer",
-                                isDone
-                                  ? "bg-emerald-50/50 border-emerald-200/60 text-emerald-800 hover:bg-emerald-50"
-                                  : isCurrent
-                                  ? "bg-indigo-50/80 border-indigo-300 text-indigo-900 shadow-sm ring-2 ring-indigo-500/20"
-                                  : "bg-slate-50/50 border-slate-200/60 text-slate-500 hover:bg-slate-100/50"
-                              )}
-                            >
-                              <div className="flex items-center gap-2 min-w-0">
-                                <div className={cn(
-                                  "w-6 h-6 rounded-lg text-[10px] font-black flex items-center justify-center shrink-0",
-                                  isDone ? "bg-emerald-500 text-white" : isCurrent ? "bg-indigo-600 text-white animate-pulse" : "bg-slate-200 text-slate-600"
-                                )}>
-                                  {isDone ? '✓' : sIdx + 1}
-                                </div>
-                                <div className="min-w-0">
-                                  <span className="text-[10px] font-black uppercase tracking-tight block truncate">
-                                    {step.label}
-                                  </span>
-                                  {step.type === 'new_cards' && step.daily_count && (
-                                    <span className="text-[9px] font-medium text-slate-400 block">
-                                      {step.progress?.learned || 0} / {step.daily_count} từ
-                                    </span>
-                                  )}
-                                  {(step.type === 'mcq' || step.type === 'typing') && (
-                                    <span className="text-[9px] font-medium text-slate-400 block">
-                                      Yêu cầu: {step.pass_threshold || 80}% điểm
-                                    </span>
-                                  )}
-                                  {step.type === 'fsrs_review' && (
-                                    <span className="text-[9px] font-medium text-slate-400 block">
-                                      {status.review_completed_today || 0} / {status.review_due_today || 0} thẻ
-                                    </span>
-                                  )}
-                                </div>
-                              </div>
-                              {isDone ? (
-                                <span className="text-[9px] font-black text-emerald-600 uppercase">Hoàn thành</span>
-                              ) : isCurrent ? (
-                                <span className="text-[9px] font-black text-indigo-600 uppercase animate-pulse">Đang làm</span>
-                              ) : (
-                                <span className="text-[9px] font-bold text-slate-400 uppercase">Chờ</span>
-                              )}
-                            </div>
-                          )
-                        })}
+                  {/* Circle Ring & Deck Stats */}
+                  <div className="flex items-center gap-4">
+                    {/* SVG Circle Progress */}
+                    <div className="relative w-16 h-16 shrink-0 flex items-center justify-center">
+                      <svg className="w-full h-full transform -rotate-90">
+                        <circle cx="32" cy="32" r={radius} fill="transparent" stroke="#f1f5f9" strokeWidth={strokeWidth} />
+                        <circle
+                          cx="32"
+                          cy="32"
+                          r={radius}
+                          fill="transparent"
+                          stroke="#6366f1"
+                          strokeWidth={strokeWidth}
+                          strokeDasharray={circumference}
+                          strokeDashoffset={strokeDashoffset}
+                          strokeLinecap="round"
+                          className="transition-all duration-700 ease-out"
+                        />
+                      </svg>
+                      <div className="absolute flex flex-col items-center justify-center text-center">
+                        <span className="text-xs font-black text-slate-800 tracking-tight">{percentComplete}%</span>
                       </div>
                     </div>
-                  ) : (
-                    /* Fallback for classic view */
-                    <div className="grid grid-cols-2 gap-3 mt-1">
-                      <div className="bg-orange-50/30 rounded-2xl p-3 border border-orange-100/30 flex items-center justify-between gap-1.5 transition-colors hover:bg-orange-50/50">
-                        <div className="min-w-0">
-                          <span className="text-[8px] font-black text-orange-600/70 uppercase tracking-widest block">Từ mới</span>
-                          <span className="text-[12px] font-black text-slate-800 mt-1 block leading-none">
-                            {status?.new_learned_today || 0} <span className="text-slate-400 font-bold">/ {status?.new_target_today || 0}</span>
-                          </span>
-                        </div>
-                        <div className="relative w-8 h-8 shrink-0 flex items-center justify-center bg-white rounded-xl shadow-sm border border-orange-100/20">
-                          <Sparkles className="w-4 h-4 text-orange-500" />
-                        </div>
+
+                    {/* Deck Title & Details */}
+                    <div className="flex-1 min-w-0">
+                      <h3 className="text-xs md:text-sm font-black text-slate-900 truncate leading-snug">
+                        {deck.title}
+                      </h3>
+                      <div className="flex items-center gap-2 text-[11px] text-slate-500 font-bold mt-1 flex-wrap">
+                        <span>Học mới: <span className="text-orange-600 font-black">{newLearned}/{newTarget}</span></span>
+                        <span className="text-slate-300">·</span>
+                        <span>Ôn tập: <span className="text-orange-600 font-black">{reviewDone}/{reviewDue}</span></span>
                       </div>
 
-                      <div className="bg-indigo-50/30 rounded-2xl p-3 border border-indigo-100/30 flex items-center justify-between gap-1.5 transition-colors hover:bg-indigo-50/50">
-                        <div className="min-w-0">
-                          <span className="text-[8px] font-black text-indigo-650/70 uppercase tracking-widest block">Ôn tập</span>
-                          <span className="text-[12px] font-black text-slate-800 mt-1 block leading-none">
-                            {status?.review_completed_today || 0} <span className="text-slate-400 font-bold">/ {status?.review_due_today || 0}</span>
+                      {/* Step Badges */}
+                      <div className="flex items-center gap-1.5 mt-2 flex-wrap">
+                        <span className={cn(
+                          "text-[8.5px] font-black px-2.5 py-0.5 rounded-full flex items-center gap-1",
+                          isStage1Done ? "bg-emerald-50 text-emerald-600 border border-emerald-200" : "bg-indigo-50 text-indigo-600 border border-indigo-200"
+                        )}>
+                          {isStage1Done ? "✓ Bước 1: Đạt chỉ tiêu" : "• Bước 1: Học từ mới"}
+                        </span>
+                        {status.has_stage_2 && (
+                          <span className={cn(
+                            "text-[8.5px] font-black px-2.5 py-0.5 rounded-full flex items-center gap-1",
+                            isStage2Done ? "bg-emerald-50 text-emerald-600 border border-emerald-200" : isStage1Done ? "bg-indigo-50 text-indigo-600 border border-indigo-200" : "bg-slate-50 text-slate-400"
+                          )}>
+                            {isStage2Done ? "✓ Bước 2: Đã đạt bài test" : "• Bước 2: Bài test"}
                           </span>
-                        </div>
-                        <div className="relative w-8 h-8 shrink-0 flex items-center justify-center bg-white rounded-xl shadow-sm border border-indigo-100/20">
-                          <Brain className="w-4 h-4 text-indigo-500" />
-                        </div>
+                        )}
                       </div>
                     </div>
-                  )}
-
-                  {/* Smart Next Action button & Quick Settings */}
-                  <div className="flex items-center gap-2 mt-2 pt-4 border-t border-slate-100">
-                    <motion.button
-                      whileTap={{ scale: 0.96 }}
-                      onClick={() => navigate(status.next_action_url || `/flashcard/${deck.deck_id}/play?mode=roadmap`)}
-                      className={cn(
-                        "flex-1 h-10 rounded-xl font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-1.5 shadow-md transition-all cursor-pointer",
-                        status.all_done
-                          ? "bg-slate-900 hover:bg-slate-800 text-white shadow-slate-200"
-                          : "bg-gradient-to-r from-indigo-600 via-purple-600 to-rose-500 hover:from-indigo-700 hover:to-rose-600 text-white shadow-indigo-100 border-b-2 border-rose-700"
-                      )}
-                    >
-                      <Sparkles className="w-4 h-4" />
-                      <span>{status.all_done ? '✓ Đã Xong Lộ Trình Hôm Nay 🎉' : (status.next_action_label ? `Sang ${status.next_action_label}` : 'Học Lộ Trình')}</span>
-                      <ArrowRight className="w-3.5 h-3.5" />
-                    </motion.button>
-                    
-                    <motion.button
-                      whileTap={{ scale: 0.93 }}
-                      onClick={() => navigate(`/deck/${deck.deck_id}/roadmap`)}
-                      className="h-10 px-3.5 rounded-xl bg-slate-100 hover:bg-slate-200 border border-slate-200/80 text-slate-700 text-[9px] font-black uppercase tracking-wider flex items-center justify-center gap-1 transition-all cursor-pointer"
-                      title="Cấu hình Lộ trình học"
-                    >
-                      <Settings className="w-4 h-4" />
-                    </motion.button>
                   </div>
                 </div>
 
+                {/* Large Action CTA Button */}
+                <button
+                  onClick={() => {
+                    if (nextActionUrl) {
+                      navigate(nextActionUrl);
+                    } else {
+                      navigate(`/flashcard/${deck.deck_id}`);
+                    }
+                  }}
+                  className="w-full py-3 px-5 bg-gradient-to-r from-orange-500 via-orange-600 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-black text-xs uppercase tracking-widest rounded-2xl shadow-lg shadow-orange-500/20 active:scale-[0.98] transition-all flex items-center justify-center gap-2 cursor-pointer mt-1"
+                >
+                  <Play className="w-4 h-4 fill-current shrink-0" />
+                  <span className="truncate">
+                    {status.all_done
+                      ? '✓ HOÀN THÀNH LỘ TRÌNH HÔM NAY'
+                      : isStage1Done
+                      ? 'BẮT ĐẦU BÀI TEST LỘ TRÌNH'
+                      : 'BẮT ĐẦU HỌC LỘ TRÌNH'}
+                  </span>
+                </button>
               </div>
             );
           })}
