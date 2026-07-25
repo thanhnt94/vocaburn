@@ -1703,7 +1703,8 @@ async def get_next_card(request: Request, deck_id: int, data: dict, db: AsyncSes
                 fsrs_overdue_hours = int(st.get("overdue_hours", 24))
                 break
 
-        cutoff_time = datetime.utcnow() - timedelta(hours=fsrs_overdue_hours)
+        tomorrow_start = today_start + timedelta(days=1)
+        cutoff_time = tomorrow_start - timedelta(hours=fsrs_overdue_hours)
         due_cards = []
         for idx, c in enumerate(deck.cards):
             if idx in ignored_indexes:
@@ -2474,7 +2475,8 @@ async def get_deck_roadmap_status_helper(db: AsyncSession, user_id: int, deck_id
             fsrs_overdue_hours = int(st.get("overdue_hours", 24))
             break
 
-    cutoff_time = datetime.utcnow() - timedelta(hours=fsrs_overdue_hours)
+    tomorrow_start = today_start + timedelta(days=1)
+    cutoff_time = tomorrow_start - timedelta(hours=fsrs_overdue_hours)
 
     review_due_today = await db.scalar(
         select(func.count(UserCardMastery.id))
