@@ -2983,6 +2983,7 @@ async def get_roadmap_test_questions(request: Request, deck_id: int, db: AsyncSe
             min_answer_sub.c.min_created < today_start
         )
     )
+    prev_cards = list(prev_cards_res.scalars().all())
     target_count_from_pipeline = 15
     pipeline_steps = status_info.get("pipeline", [])
     current_step_idx = status_info.get("current_step_index", 0)
