@@ -3405,14 +3405,7 @@ export default function PracticePlay() {
           <div className="w-full bg-white border-2 border-indigo-100/80 rounded-[2rem] p-5 md:p-6 shadow-sm flex flex-col items-center justify-center text-center gap-4 relative overflow-hidden">
             <div className="absolute top-[-10%] left-[-10%] w-[30%] h-[30%] rounded-full bg-indigo-50/20 blur-2xl pointer-events-none" />
             <div className="absolute bottom-[-10%] right-[-10%] w-[30%] h-[30%] rounded-full bg-pink-50/20 blur-2xl pointer-events-none" />
-            {showImages && currentQuestion.image && practiceSubMode !== 'listening' && (
-              <img
-                src={currentQuestion.image}
-                alt="Question"
-                className="max-h-32 object-contain rounded-xl mb-2 border border-slate-100 shadow-sm bg-white p-1 cursor-zoom-in hover:opacity-95 transition-opacity"
-                onClick={() => setZoomedImage(currentQuestion.image || null)}
-              />
-            )}
+            {/* Image removed from question card for MCQ/Practice modes as requested */}
             {practiceSubMode === 'listening' ? (
               <div className="flex flex-col items-center gap-3">
                 <div

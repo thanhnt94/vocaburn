@@ -108,6 +108,7 @@ class AudioGenerator:
                     continue
                     
                 lang = seg['lang']
+                primary_lang = lang.split('-')[0].lower() if '-' in lang else lang.lower()
                 
                 # Create Temp File
                 fd, temp_path = tempfile.mkstemp(suffix=f"_{i}.mp3")
@@ -115,11 +116,11 @@ class AudioGenerator:
                 
                 # Try Edge TTS first (Primary)
                 success_edge = False
-                voice_edge = cls.EDGE_VOICES.get(lang)
+                voice_edge = cls.EDGE_VOICES.get(primary_lang)
                 
                 edge_err = None
                 if voice_edge:
-                    print(f"\n[TTS GENERATOR] [TRY EDGE] Attempting Microsoft Edge TTS for lang '{lang}' using voice '{voice_edge}'...")
+                    print(f"\n[TTS GENERATOR] [TRY EDGE] Attempting Microsoft Edge TTS for lang '{lang}' (primary: '{primary_lang}') using voice '{voice_edge}'...")
                     try:
                         communicate = edge_tts.Communicate(seg_text, voice_edge)
                         await communicate.save(temp_path)
@@ -133,15 +134,15 @@ class AudioGenerator:
                         print(msg)
                         logger.error(msg)
                 else:
-                    print(f"\n[TTS GENERATOR] No specific Edge TTS voice mapped for lang '{lang}' (supported keys: {list(cls.EDGE_VOICES.keys())})")
+                    print(f"\n[TTS GENERATOR] No specific Edge TTS voice mapped for lang '{lang}' (primary: '{primary_lang}') (supported keys: {list(cls.EDGE_VOICES.keys())})")
                 
                 # Fallback to gTTS if Edge TTS failed or lang not supported
                 if not success_edge:
-                    print(f"[TTS GENERATOR] [TRY GTTS] Falling back to Google TTS (gTTS) for lang '{lang}'...")
+                    print(f"[TTS GENERATOR] [TRY GTTS] Falling back to Google TTS (gTTS) for lang '{lang}' (primary: '{primary_lang}')...")
                     try:
                         # run gtts in thread since it's synchronous/blocking
                         def run_gtts():
-                            tts = gTTS(text=seg_text, lang=lang)
+                            tts = gTTS(text=seg_text, lang=primary_lang)
                             tts.save(temp_path)
                         await asyncio.to_thread(run_gtts)
                         log_msg = f"[TTS GENERATOR] [SUCCESS GTTS] Google TTS generated successfully. Lang: '{lang}' | Segment: '{seg_text[:40]}...'"
