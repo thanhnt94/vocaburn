@@ -133,62 +133,52 @@ export function useFlashcardAudio(currentQuestion: any, practiceSettings?: any) 
       }
     }
 
-    // Lazily generate audio if it is not yet created on backend, but ONLY if script is present
+    // Lazily generate audio if it is not yet created on backend
     if (!audioUrl && currentQuestion.id && script && script.trim()) {
-      // If we are using the fallback raw text content, we might not want to save a permanent TTS file 
-      // unless it was explicitly configured. But if there is a configured script, do backend TTS:
-      const hasConfiguredScript = face === 'front' 
-        ? !!(currentQuestion.front_audio_content || currentQuestion.others?.front_audio_content)
-        : !!(currentQuestion.back_audio_content || currentQuestion.others?.back_audio_content);
-
-      if (hasConfiguredScript) {
-        try {
-          console.log(`[CLIENT TTS] Audio file missing. Requesting generation for question ${currentQuestion.id} (${face})...`);
-          const res = await axios.get(`/api/v1/deck/generate-audio/${currentQuestion.id}?face=${face}`);
-          if (currentQuestionIdRef.current !== targetQuestionId) {
-            console.log(`[CLIENT TTS] Question changed during audio generation. Aborting playback.`);
-            return;
-          }
-          audioUrl = res.data.url;
-          if (audioUrl) {
-            if (face === 'front') {
-              currentQuestion.audio = audioUrl;
-              currentQuestion.front_audio_url = audioUrl;
-            } else {
-              currentQuestion.back_audio_url = audioUrl;
-              if (!currentQuestion.others) currentQuestion.others = {};
-              currentQuestion.others.back_audio_url = audioUrl;
-            }
-          }
-        } catch (err: any) {
-          console.error(`[TTS SERVER ERROR] Backend failed to synthesize ${face} audio file for question ${currentQuestion.id}. Status:`, err.response?.status, 'Message:', err.response?.data || err.message);
+      try {
+        console.log(`[CLIENT TTS] Audio file missing. Requesting generation for question ${currentQuestion.id} (${face})...`);
+        const res = await axios.get(`/api/v1/deck/generate-audio/${currentQuestion.id}?face=${face}`);
+        if (currentQuestionIdRef.current !== targetQuestionId) {
+          console.log(`[CLIENT TTS] Question changed during audio generation. Aborting playback.`);
+          return;
         }
+        audioUrl = res.data.url;
+        if (audioUrl) {
+          if (face === 'front') {
+            currentQuestion.audio = audioUrl;
+            currentQuestion.front_audio_url = audioUrl;
+          } else {
+            currentQuestion.back_audio_url = audioUrl;
+            if (!currentQuestion.others) currentQuestion.others = {};
+            currentQuestion.others.back_audio_url = audioUrl;
+          }
+        }
+      } catch (err: any) {
+        console.error(`[TTS SERVER ERROR] Backend failed to synthesize ${face} audio file for question ${currentQuestion.id}. Status:`, err.response?.status, 'Message:', err.response?.data || err.message);
       }
     }
 
     if (audioUrl) {
       const cacheBustedUrl = `${audioUrl}${audioUrl.includes('?') ? '&' : '?'}t=${Date.now()}`;
-      console.log(`[TTS PLAYBACK] Playing generated server audio: ${cacheBustedUrl}`);
+      console.log(`[TTS PLAYBACK] Playing Edge TTS server audio: ${cacheBustedUrl}`);
       const audio = new Audio(cacheBustedUrl);
       activeAudioRef.current = audio;
       audio.play().catch(err => {
         console.warn(`[TTS FALLBACK WARNING] Playback of generated audio file ${cacheBustedUrl} failed. Error:`, err.message);
         
-        // Block Web Speech fallback queue buildup if blocked by browser autoplay/interaction policy
         const isAutoplayBlock = err.name === 'NotAllowedError' || err.message?.includes('interact') || err.message?.includes('autoplay');
         if (isAutoplayBlock) {
-          console.warn(`[TTS AUTOPLAY BLOCK] Playback blocked by browser autoplay policy. Skipping Web Speech fallback to prevent late voice overlapping.`);
+          console.warn(`[TTS AUTOPLAY BLOCK] Playback blocked by browser autoplay policy.`);
           return;
         }
 
         if (script && script.trim()) {
-          console.warn(`[TTS FALLBACK] Resorting to browser's client-side speech synthesis (Web Speech API) for: "${script}"`);
-          speakMultiLanguage(script);
+          speakWithEdgeTTS(script);
         }
       });
     } else if (script && script.trim()) {
-      console.warn(`[TTS FALLBACK] No server-generated audio URL available. Resorting directly to browser client-side Web Speech API for: "${script}"`);
-      speakMultiLanguage(script);
+      console.log(`[TTS EDGE STREAM] Streaming Edge TTS for: "${script}"`);
+      speakWithEdgeTTS(script);
     }
   };
 
