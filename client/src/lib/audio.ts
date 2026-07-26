@@ -99,6 +99,31 @@ export const speakSequentially = (segments: { text: string; langCode: string }[]
   speakNext();
 };
 
+export const speakWithEdgeTTS = async (text: string, lang?: string) => {
+  if (!text || !text.trim()) return;
+  const clean = stripTagsAndBBCode(text);
+  if (!clean) return;
+
+  try {
+    const res = await fetch(`/api/v1/deck/tts/stream?text=${encodeURIComponent(clean)}&lang=${encodeURIComponent(lang || 'multi')}`);
+    if (res.ok) {
+      const data = await res.json();
+      if (data.url) {
+        const audio = new Audio(`${data.url}?t=${Date.now()}`);
+        audio.play().catch(e => {
+          console.warn('[EDGE TTS AUTOPLAY BLOCKED]', e);
+          speakMultiLanguage(text);
+        });
+        return;
+      }
+    }
+  } catch (err) {
+    console.warn('[EDGE TTS STREAM ERROR, FALLING BACK TO WEB SPEECH]', err);
+  }
+
+  // Fallback to client browser webSpeech
+  speakMultiLanguage(text);
+};
 
 export const speakMultiLanguage = (text: string) => {
   if (!('speechSynthesis' in window)) return;

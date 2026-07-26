@@ -644,8 +644,14 @@ async def generate_single_card_audio_helper(c, face: str, force: bool, db: Async
             if pair:
                 content_col = pair.get("audio_content_col")
                 target_url_col = pair.get("audio_url_col")
-                if content_col:
-                    text = c.others.get(content_col) if c.others else None
+                if content_col and c.others:
+                    text = c.others.get(content_col)
+                if not text and c.others:
+                    text = c.others.get(face)
+                if not text:
+                    text = getattr(c, face, None)
+            elif c.others:
+                text = c.others.get(face)
 
     if not text or not str(text).strip():
         return None
@@ -832,6 +838,31 @@ async def generate_card_audio(card_id: int, request: Request, face: str = "front
     if not url:
         return JSONResponse(status_code=500, content={"error": "Failed to generate audio"})
         
+    return {"url": url}
+
+import hashlib
+
+@router.get("/tts/stream")
+async def stream_dynamic_tts(text: str, lang: Optional[str] = None):
+    if not text or not text.strip():
+        return JSONResponse(status_code=400, content={"error": "Text is required"})
+        
+    cleaned_text = text.strip()
+    target_lang = lang.strip().lower() if lang and lang.strip() else "multi"
+    
+    hash_key = hashlib.md5(f"{cleaned_text}_{target_lang}".encode("utf-8")).hexdigest()
+    from app.core.config import settings
+    tts_dir = os.path.join(settings.VOCABURN_STORAGE_DIR, "tts_cache")
+    os.makedirs(tts_dir, exist_ok=True)
+    physical_path = os.path.join(tts_dir, f"{hash_key}.mp3")
+    url = f"/uploads/tts_cache/{hash_key}.mp3"
+    
+    if not os.path.exists(physical_path):
+        from app.modules.deck.services.audio_generator import AudioGenerator
+        success = await AudioGenerator.generate_tts(cleaned_text, physical_path, target_lang)
+        if not success:
+            return JSONResponse(status_code=500, content={"error": "Failed to synthesize TTS"})
+            
     return {"url": url}
 
 async def _bulk_generate_deck_audio_task(

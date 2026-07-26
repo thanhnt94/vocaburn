@@ -1,6 +1,6 @@
 import { useState, useRef } from 'react';
 import axios from 'axios';
-import { speakMultiLanguage } from '@/lib/audio';
+import { speakMultiLanguage, speakWithEdgeTTS } from '@/lib/audio';
 
 export type AutoPlayMode = 'always' | 'front' | 'back' | 'none';
 
@@ -72,17 +72,17 @@ export function useFlashcardAudio(currentQuestion: any, practiceSettings?: any) 
       script = currentQuestion[columnKey] || currentQuestion.others?.[columnKey] || '';
     }
 
-    // Lazily generate audio if it is not yet created on backend, but ONLY if custom script is configured
-    if (!audioUrl && currentQuestion.id && script && script.trim() && pair && pair.audio_content_col) {
+    // Lazily generate audio if it is not yet created on backend, or if audio_url_col is empty
+    if (!audioUrl && currentQuestion.id && script && script.trim()) {
       try {
-        console.log(`[CLIENT TTS] Custom Audio file missing. Requesting generation for question ${currentQuestion.id} (${columnKey})...`);
+        console.log(`[CLIENT TTS] Requesting Edge TTS audio generation for question ${currentQuestion.id} (${columnKey})...`);
         const res = await axios.get(`/api/v1/deck/generate-audio/${currentQuestion.id}?face=${columnKey}`);
         if (currentQuestionIdRef.current !== targetQuestionId) {
           console.log(`[CLIENT TTS] Question changed. Aborting playback.`);
           return;
         }
         audioUrl = res.data.url;
-        if (audioUrl && pair.audio_url_col) {
+        if (audioUrl && pair && pair.audio_url_col) {
           if (!currentQuestion.others) currentQuestion.others = {};
           currentQuestion.others[pair.audio_url_col] = audioUrl;
         }
@@ -93,38 +93,18 @@ export function useFlashcardAudio(currentQuestion: any, practiceSettings?: any) 
 
     if (audioUrl) {
       const cacheBustedUrl = `${audioUrl}${audioUrl.includes('?') ? '&' : '?'}t=${Date.now()}`;
-      console.log(`[TTS PLAYBACK] Playing custom audio: ${cacheBustedUrl}`);
+      console.log(`[TTS PLAYBACK] Playing Edge TTS audio: ${cacheBustedUrl}`);
       const audio = new Audio(cacheBustedUrl);
       activeAudioRef.current = audio;
       audio.play().catch(err => {
-        console.warn(`[TTS FALLBACK WARNING] Playback of custom audio file failed:`, err.message);
+        console.warn(`[TTS FALLBACK WARNING] Playback of Edge TTS audio file failed:`, err.message);
         if (script && script.trim()) {
-          if (pair && pair.lang && pair.lang !== 'multi') {
-            const u = new SpeechSynthesisUtterance(script);
-            const langMap: Record<string, string> = {
-              'ja': 'ja-JP', 'vi': 'vi-VN', 'en': 'en-US', 'zh': 'zh-CN', 'ko': 'ko-KR'
-            };
-            u.lang = langMap[pair.lang] || pair.lang;
-            u.rate = 0.85;
-            window.speechSynthesis.speak(u);
-          } else {
-            speakMultiLanguage(script);
-          }
+          speakWithEdgeTTS(script, pair?.lang);
         }
       });
     } else if (script && script.trim()) {
-      console.warn(`[TTS FALLBACK] Resorting directly to browser Web Speech API for custom column: "${script}"`);
-      if (pair && pair.lang && pair.lang !== 'multi') {
-        const u = new SpeechSynthesisUtterance(script);
-        const langMap: Record<string, string> = {
-          'ja': 'ja-JP', 'vi': 'vi-VN', 'en': 'en-US', 'zh': 'zh-CN', 'ko': 'ko-KR'
-        };
-        u.lang = langMap[pair.lang] || pair.lang;
-        u.rate = 0.85;
-        window.speechSynthesis.speak(u);
-      } else {
-        speakMultiLanguage(script);
-      }
+      console.log(`[TTS EDGE STREAM] Streaming Edge TTS dynamically for custom column: "${script}"`);
+      speakWithEdgeTTS(script, pair?.lang);
     }
   };
 
