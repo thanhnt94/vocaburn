@@ -609,7 +609,7 @@ export default function FlashcardPlay() {
   const [activeMode, setActiveMode] = useState<string>(() => {
     const searchParams = new URLSearchParams(window.location.search);
     const urlMode = searchParams.get('mode');
-    if (urlMode === 'new' || urlMode === 'fsrs' || urlMode === 'roadmap') {
+    if (urlMode === 'new' || urlMode === 'fsrs' || urlMode === 'roadmap' || urlMode === 'review') {
       localStorage.setItem('quiz_learning_mode', urlMode);
       return urlMode;
     }
@@ -970,7 +970,7 @@ export default function FlashcardPlay() {
         if (uSet.learning_mode !== undefined) {
           const searchParams = new URLSearchParams(window.location.search);
           const urlMode = searchParams.get('mode');
-          const finalMode = (urlMode === 'new' || urlMode === 'fsrs') ? urlMode : uSet.learning_mode;
+          const finalMode = (urlMode === 'new' || urlMode === 'fsrs' || urlMode === 'roadmap' || urlMode === 'review') ? urlMode : uSet.learning_mode;
           setActiveMode(finalMode);
           localStorage.setItem('quiz_learning_mode', finalMode);
         }
@@ -1052,10 +1052,13 @@ export default function FlashcardPlay() {
           }
         }
         
-        // Adjust initial index based on smart learning mode if we are starting a fresh/unanswered question
+        // Adjust initial index based on smart learning mode if we are starting a fresh/unanswered question or explicit mode
         const initIndex = async () => {
-          if (restoredAnswers[curIdx] === undefined) {
-            const savedMode = localStorage.getItem('quiz_learning_mode') || 'fsrs'
+          const searchParams = new URLSearchParams(window.location.search);
+          const urlMode = searchParams.get('mode');
+          const savedMode = urlMode || localStorage.getItem('quiz_learning_mode') || 'fsrs';
+
+          if (urlMode === 'roadmap' || urlMode === 'new' || urlMode === 'review' || restoredAnswers[curIdx] === undefined) {
             const answeredIndexes = Object.keys(restoredAnswers).map(Number)
             try {
               const res = await axios.post(`/api/v1/deck/${id}/next-card`, {
@@ -1064,7 +1067,9 @@ export default function FlashcardPlay() {
                 current_index: curIdx,
                 random_enabled: localStorage.getItem('vocaburn_random_enabled') === 'true'
               })
-              curIdx = res.data.next_index
+              if (res.data && res.data.next_index !== undefined) {
+                curIdx = res.data.next_index
+              }
             } catch (err) {
               console.error("Failed to fetch initial next card from backend", err)
             }
