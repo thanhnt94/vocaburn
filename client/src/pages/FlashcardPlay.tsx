@@ -3654,7 +3654,7 @@ export default function FlashcardPlay() {
                 if (isNew) {
                   progressText = `${currentStep.progress?.learned || 0}/${currentStep.daily_count || 10}`;
                 } else if (isReview) {
-                  progressText = `${currentStep.progress?.reviewed_today || 0}/${currentStep.progress?.due_count || 0}`;
+                  progressText = `Còn ${currentStep.progress?.due_count || 0} thẻ`;
                 }
 
                 return (
@@ -3918,7 +3918,7 @@ export default function FlashcardPlay() {
 
                             <div className="text-[10px] font-black">
                               {st.type === 'new_cards' && `${st.progress?.learned || 0}/${st.daily_count} từ`}
-                              {st.type === 'fsrs_review' && `${st.progress?.reviewed_today || 0}/${st.progress?.due_count || 0} thẻ`}
+                              {st.type === 'fsrs_review' && `Còn ${st.progress?.due_count || 0} thẻ`}
                               {(st.type === 'mcq' || st.type === 'typing') && `${st.progress?.best_score || 0}/${st.pass_threshold}%`}
                             </div>
                           </div>

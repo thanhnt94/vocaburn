@@ -4590,7 +4590,7 @@ export default function PracticePlay() {
 
                             <div className="text-[10px] font-black">
                               {st.type === 'new_cards' && `${st.progress?.learned || 0}/${st.daily_count} từ`}
-                              {st.type === 'fsrs_review' && `${st.progress?.reviewed_today || 0}/${st.progress?.due_count || 0} thẻ`}
+                              {st.type === 'fsrs_review' && `Còn ${st.progress?.due_count || 0} thẻ`}
                               {(st.type === 'mcq' || st.type === 'typing') && `${st.progress?.best_score || 0}/${st.pass_threshold}%`}
                             </div>
                           </div>
