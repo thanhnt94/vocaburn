@@ -108,10 +108,20 @@ async def get_practice_settings(request: Request, deck_id: int, db: AsyncSession
             available_cols.add(col)
             
     creator_settings = migrate_practice_settings(deck.practice_settings)
+    user_settings = migrate_practice_settings(user_sett.settings) if user_sett else {}
     
+    # User settings contain personal roadmap pipeline & roadmap_active toggle,
+    # while MCQ, Typing, Listening Q&A pairs are strictly locked to creator defaults.
+    merged_user_settings = {
+        **user_settings,
+        "mcq": creator_settings.get("mcq", {}),
+        "typing": creator_settings.get("typing", {}),
+        "listening": creator_settings.get("listening", {})
+    }
+
     return {
         "creator_settings": creator_settings,
-        "user_settings": creator_settings,
+        "user_settings": merged_user_settings,
         "available_columns": sorted(list(available_cols)),
         "deck_name": deck.title
     }
@@ -192,8 +202,28 @@ async def save_practice_settings(request: Request, deck_id: int, payload: dict, 
             deck.practice_settings = merged
         flag_modified(deck, "practice_settings")
     else:
-        # Non-creators cannot save custom practice overrides; system strictly follows creator defaults
-        return {"status": "ok", "message": "Using creator default practice settings"}
+        # Save user settings for roadmap pipeline, roadmap_active, and user preferences
+        user_sett_res = await db.execute(
+            select(UserDeckSettings).where(
+                UserDeckSettings.user_id == user_id,
+                UserDeckSettings.deck_id == deck_id
+            )
+        )
+        user_sett = user_sett_res.scalar_one_or_none()
+        from sqlalchemy.orm.attributes import flag_modified
+        if not user_sett:
+            cleaned_settings = dict(settings) if isinstance(settings, dict) else {}
+            user_sett = UserDeckSettings(user_id=user_id, deck_id=deck_id, settings=cleaned_settings)
+            db.add(user_sett)
+        elif not settings:
+            user_sett.settings = {}
+            flag_modified(user_sett, "settings")
+        else:
+            merged = dict(user_sett.settings) if isinstance(user_sett.settings, dict) else {}
+            if isinstance(settings, dict):
+                merged.update(settings)
+            user_sett.settings = merged
+            flag_modified(user_sett, "settings")
             
     await db.commit()
     return {"status": "ok"}
