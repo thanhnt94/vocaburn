@@ -608,23 +608,56 @@ export default function PracticePlay() {
 
   const getVal = (item: any, key: string): string => {
     if (!item) return "";
-    if (key === 'front' || key === 'content') {
-      const val = item.content || (item.others && item.others.front);
+    const keyStr = String(key || "").trim();
+    const keyLower = keyStr.toLowerCase();
+
+    // 1. Front / Content check
+    if (keyLower === 'front' || keyLower === 'content') {
+      const val = item.content || item.front || (item.others && (item.others.front || item.others.content));
       if (val) return String(val).trim();
     }
-    if (key === 'back' || key === 'explanation') {
+
+    // 2. Back / Explanation check
+    if (keyLower === 'back' || keyLower === 'explanation') {
       let val = "";
       if (item.options && item.options.length > 0) {
         const correctOpt = item.options.find((o: any) => o.is_correct);
         if (correctOpt) val = correctOpt.content;
       }
-      if (!val) val = item.explanation || (item.others && item.others.back);
+      if (!val) val = item.explanation || item.back || (item.others && (item.others.back || item.others.explanation));
       if (val) return String(val).trim();
     }
-    const val = item[key] !== undefined && item[key] !== null
-      ? item[key]
-      : (item.others && typeof item.others === 'object' ? item.others[key] : "");
-    return String(val ?? "").trim();
+
+    // 3. Direct property on item
+    if (item[keyStr] !== undefined && item[keyStr] !== null && String(item[keyStr]).trim()) {
+      return String(item[keyStr]).trim();
+    }
+
+    // 4. Case-insensitive key match in item.others
+    if (item.others && typeof item.others === 'object') {
+      if (item.others[keyStr] !== undefined && item.others[keyStr] !== null && String(item.others[keyStr]).trim()) {
+        return String(item.others[keyStr]).trim();
+      }
+      for (const [k, v] of Object.entries(item.others)) {
+        if (k.toLowerCase() === keyLower && v !== undefined && v !== null && String(v).trim()) {
+          return String(v).trim();
+        }
+      }
+    }
+
+    // 5. Fallback for custom "nghĩa" / "meaning" / "dịch" / "back" keys to item.explanation
+    if (keyLower.includes('nghĩa') || keyLower.includes('mean') || keyLower.includes('back') || keyLower.includes('dịch')) {
+      const val = item.explanation || item.back || (item.others && (item.others.back || item.others.explanation || item.others.nghĩa || item.others.Nghĩa));
+      if (val) return String(val).trim();
+    }
+
+    // 6. Fallback for custom "front" / "kanji" / "gốc" / "từ" keys to item.content
+    if (keyLower.includes('front') || keyLower.includes('kanji') || keyLower.includes('gốc') || keyLower.includes('từ')) {
+      const val = item.content || item.front || (item.others && (item.others.front || item.others.content || item.others.kanji || item.others.Kanji));
+      if (val) return String(val).trim();
+    }
+
+    return "";
   };
 
   const getOppositeTextFromCard = (card: any, displayedText: string, qKey?: string, aKey?: string): string => {
@@ -6364,21 +6397,21 @@ export default function PracticePlay() {
                 </span>
               </div>
 
-              {/* Choice Definition */}
+              {/* Choice Content */}
               <div className="text-sm font-extrabold text-slate-700 bg-slate-50 border border-slate-200/60 rounded-2xl px-4 py-3 mb-3 w-full text-center">
-                <span className="text-slate-400 font-medium mr-1.5">Nghĩa hiển thị:</span>
+                <span className="text-slate-400 font-medium mr-1.5">Nội dung lựa chọn:</span>
                 <span dangerouslySetInnerHTML={{ __html: parseBBCodeToHtml(previewChoiceModal.choiceText) }} />
               </div>
 
-              {/* Original Word / Kanji */}
+              {/* Opposite Side Content */}
               <div className="w-full p-4 rounded-3xl bg-indigo-50/50 border border-indigo-100 flex flex-col items-center justify-center gap-2 my-2">
-                <span className="text-[9px] font-black text-indigo-400 uppercase tracking-widest">Từ vựng tương ứng (Kanji / Từ gốc)</span>
+                <span className="text-[9px] font-black text-indigo-400 uppercase tracking-widest">Nội dung đối diện tương ứng</span>
                 <div className="flex items-center justify-center gap-3">
                   <h3 className="text-2xl sm:text-3xl font-black text-slate-800 tracking-tight">
                     <span dangerouslySetInnerHTML={{ __html: parseBBCodeToHtml(previewChoiceModal.wordText) }} />
                   </h3>
                   <button
-                    onClick={() => speakMultiLanguage(previewChoiceModal.wordText)}
+                    onClick={() => speakMultiLanguage(previewChoiceModal.audioText || previewChoiceModal.wordText || previewChoiceModal.choiceText)}
                     className="w-10 h-10 rounded-2xl bg-indigo-600 text-white flex items-center justify-center shadow-md hover:bg-indigo-700 active:scale-90 transition-all shrink-0"
                     title="Nghe phát âm"
                   >
