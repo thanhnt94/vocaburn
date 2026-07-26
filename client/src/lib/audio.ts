@@ -125,6 +125,53 @@ export const speakWithEdgeTTS = async (text: string, lang?: string) => {
   speakMultiLanguage(text);
 };
 
+export const speakWithEdgeTTSPromise = (text: string, lang?: string): Promise<void> => {
+  return new Promise(async (resolve) => {
+    if (!text || !text.trim()) return resolve();
+    const clean = stripTagsAndBBCode(text);
+    if (!clean) return resolve();
+
+    try {
+      const res = await fetch(`/api/v1/deck/tts/stream?text=${encodeURIComponent(clean)}&lang=${encodeURIComponent(lang || 'multi')}`);
+      if (res.ok) {
+        const data = await res.json();
+        if (data.url) {
+          const audio = new Audio(`${data.url}?t=${Date.now()}`);
+          audio.onended = () => resolve();
+          audio.onerror = () => {
+            speakMultiLanguage(text);
+            resolve();
+          };
+          audio.play().catch(e => {
+            console.warn('[EDGE TTS AUTOPLAY BLOCKED]', e);
+            speakMultiLanguage(text);
+            resolve();
+          });
+          return;
+        }
+      }
+    } catch (err) {
+      console.warn('[EDGE TTS STREAM ERROR, FALLING BACK TO WEB SPEECH]', err);
+    }
+
+    speakMultiLanguage(text);
+    resolve();
+  });
+};
+
+export const speakEdgeTTSSequentially = async (segments: { text: string; langCode: string }[], delayMs = 1000) => {
+  for (let i = 0; i < segments.length; i++) {
+    const seg = segments[i];
+    if (!seg.text) continue;
+    
+    await speakWithEdgeTTSPromise(seg.text, seg.langCode);
+    
+    if (i < segments.length - 1) {
+      await new Promise(resolve => setTimeout(resolve, delayMs));
+    }
+  }
+};
+
 export const speakMultiLanguage = (text: string) => {
   if (!('speechSynthesis' in window)) return;
   window.speechSynthesis.cancel();

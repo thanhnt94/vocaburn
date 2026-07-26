@@ -3078,17 +3078,30 @@ async def get_roadmap_test_questions(request: Request, deck_id: int, db: AsyncSe
                 "text": a_val,
                 "q_text": q_val,
                 "front": c_front,
-                "back": c_back
+                "back": c_back,
+                "card": {
+                    "id": c_item.id,
+                    "content": c_item.content,
+                    "explanation": c_item.explanation,
+                    "others": fix_static_urls(c_item.others),
+                    "front_audio_url": fix_static_urls(c_item.front_audio_url),
+                    "back_audio_url": fix_static_urls(c_item.back_audio_url),
+                    "front_img": fix_static_urls(c_item.front_img),
+                    "back_img": fix_static_urls(c_item.back_img)
+                }
             })
 
         formatted_questions.append({
             "id": card.id,
             "orig_index": idx,
-            "content": front_text,
-            "explanation": back_text,
+            "content": card.content,
+            "explanation": card.explanation,
             "options": options_list,
-            "front_audio_url": card.front_audio_url,
-            "back_audio_url": card.back_audio_url,
+            "front_audio_url": fix_static_urls(card.front_audio_url),
+            "back_audio_url": fix_static_urls(card.back_audio_url),
+            "others": fix_static_urls(card.others),
+            "image": fix_static_urls(card.back_img),
+            "audio": fix_static_urls(card.front_audio_url),
             "question_type": "mcq",
             "practice_submode": "mcq",
             "practice": {

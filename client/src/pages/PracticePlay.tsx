@@ -11,7 +11,7 @@ import remarkGfm from 'remark-gfm'
 import rehypeRaw from 'rehype-raw'
 import { cn } from '@/lib/utils'
 import { useAppStore } from '@/store/useAppStore'
-import { playCorrectSound, playIncorrectSound, speakMultiLanguage, stripTagsAndBBCode, speakSequentially, speakWithEdgeTTS } from '@/lib/audio'
+import { playCorrectSound, playIncorrectSound, speakMultiLanguage, stripTagsAndBBCode, speakSequentially, speakWithEdgeTTS, speakEdgeTTSSequentially } from '@/lib/audio'
 import { parseBBCodeToHtml, stripBBCode, isJapanese, getJpPattern, extractTokens, tokensOverlapHigh } from '@/lib/text'
 import { selectDistractors } from '@/lib/distractor'
 import { TypewriterText } from '@/components/TypewriterText'
@@ -366,11 +366,18 @@ export default function PracticePlay() {
     if (!currentPracticeData) return;
     const qText = currentPracticeData.question || '';
     const aText = currentPracticeData.correct_answer || '';
+    const qKey = currentPracticeData.question_key || 'front';
+    const aKey = currentPracticeData.answer_key || 'back';
 
     const containsJp = (str: string) => /[\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FAF]/.test(str);
     const containsVi = (str: string) => /[àáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđ]/i.test(str);
 
     const detectLang = (str: string) => containsJp(str) ? 'ja-JP' : (containsVi(str) ? 'vi-VN' : 'en-US');
+
+    // Look up audio pair configs to find explicit language for qKey and aKey
+    const pairs = session?.practice_settings?.audio_pairs || session?.creator_settings?.audio_pairs || [];
+    const qPair = pairs.find((p: any) => p.text_col === qKey);
+    const aPair = pairs.find((p: any) => p.text_col === aKey);
 
     // Stop any ongoing audio
     if (activeAudioRef.current) {
@@ -379,11 +386,12 @@ export default function PracticePlay() {
     }
     window.speechSynthesis.cancel();
 
-    // Use Web Speech API directly for speed in practice mode
     const segments: { text: string; langCode: string }[] = [];
-    if (qText) segments.push({ text: qText, langCode: detectLang(qText) });
-    if (aText) segments.push({ text: aText, langCode: detectLang(aText) });
-    speakSequentially(segments, 500);
+    if (qText) segments.push({ text: qText, langCode: qPair?.lang || detectLang(qText) });
+    if (aText) segments.push({ text: aText, langCode: aPair?.lang || detectLang(aText) });
+    
+    // Use Edge TTS sequentially
+    speakEdgeTTSSequentially(segments, 500);
   };
 
   const [session, setSession] = useState<any>(null)
