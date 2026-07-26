@@ -356,7 +356,7 @@ export default function QuizDetail() {
   })
 
   const allQuestions = questionsData?.pages.flatMap(p => p.questions) || []
-  const canEdit = quiz?.creator_id === user?.id || user?.id === 1 || quiz?.is_collaborator
+  const canEdit = quiz?.creator_id === user?.id || user?.id === 1 || quiz?.is_collaborator || user?.role === 'admin'
 
   // Parse insight columns dynamic tabs (like in FeedbackArea)
   const fullCardTabs = selectedCard ? [
@@ -1649,7 +1649,7 @@ export default function QuizDetail() {
                                 <p className="text-[9px] text-slate-400 font-medium">{c.full_name}</p>
                               </div>
                             </div>
-                            {(quiz?.creator_id === user?.id || user?.id === 1) && (
+                            {(quiz?.creator_id === user?.id || user?.id === 1 || user?.role === 'admin') && (
                               <button 
                                 onClick={() => removeCollaborator(c.id)}
                                 className="p-2 text-slate-300 hover:text-rose-500 transition-all"

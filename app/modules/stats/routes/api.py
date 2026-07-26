@@ -77,7 +77,7 @@ async def get_dashboard_data(request: Request, only_created: bool = False, db: A
                 "questions_count": count or 0,
                 "cards_count": count or 0,  # compatibility
                 "tags": [t.name for t in q.tags],
-                "is_creator": q.creator_id == user_id_int,
+                "is_creator": (q.creator_id == user_id_int or user.role == "admin" or getattr(user, "is_admin", False) or user_id_int == 1),
                 "is_public": q.is_public,
                 "practice_settings": q.practice_settings or {}
             }

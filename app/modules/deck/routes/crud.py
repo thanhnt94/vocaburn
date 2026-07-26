@@ -522,7 +522,7 @@ async def update_deck(request: Request, deck_id: int, data: dict, db: AsyncSessi
     from app.modules.auth.models import User as UserDB
     user_res = await db.execute(select(UserDB).where(UserDB.id == user_id))
     user_obj = user_res.scalar_one_or_none()
-    is_admin = user_obj and user_obj.role == "admin"
+    is_admin = user_obj and (user_obj.role == "admin" or getattr(user_obj, "is_admin", False))
     
     if deck.creator_id != user_id and user_id != 1 and not is_admin:
         collab_res = await db.execute(select(DeckCollaborator).where(DeckCollaborator.deck_id == deck_id, DeckCollaborator.user_id == user_id))
@@ -631,7 +631,7 @@ async def create_card(request: Request, deck_id: int, data: dict, db: AsyncSessi
     
     user_res = await db.execute(select(UserDB).where(UserDB.id == user_id))
     user_obj = user_res.scalar_one_or_none()
-    is_admin = user_obj and user_obj.role == "admin"
+    is_admin = user_obj and (user_obj.role == "admin" or getattr(user_obj, "is_admin", False))
     
     if not (is_owner or is_collaborator or user_id == 1 or is_admin):
         return JSONResponse(status_code=403, content={"error": "No permission to add cards to this deck"})
