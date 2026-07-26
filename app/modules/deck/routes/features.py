@@ -199,7 +199,6 @@ async def save_practice_settings(request: Request, deck_id: int, payload: dict, 
                 merged.update(deck.practice_settings)
             if isinstance(settings, dict):
                 merged.update(settings)
-            deck.practice_settings = merged
         flag_modified(deck, "practice_settings")
     else:
         # Save user settings for roadmap pipeline, roadmap_active, and user preferences
@@ -226,6 +225,33 @@ async def save_practice_settings(request: Request, deck_id: int, payload: dict, 
             flag_modified(user_sett, "settings")
             
     await db.commit()
+    
+    # Reset today's roadmap activity if pipeline changed
+    if settings and "pipeline" in settings:
+        today_start = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
+        from app.modules.deck.models import DeckAttempt, DeckSession
+        from sqlalchemy import delete
+        
+        # 1. Delete today's test attempts to reset MCQ/Typing scores
+        await db.execute(
+            delete(DeckAttempt).where(
+                DeckAttempt.user_id == user_id,
+                DeckAttempt.deck_id == deck_id,
+                DeckAttempt.mode.in_(["roadmap_mcq", "roadmap_test", "mcq", "roadmap_typing", "typing"]),
+                func.coalesce(DeckAttempt.completed_at, DeckAttempt.started_at) >= today_start
+            )
+        )
+        
+        # 2. Delete active roadmap session state
+        await db.execute(
+            delete(DeckSession).where(
+                DeckSession.user_id == user_id,
+                DeckSession.deck_id == deck_id,
+                DeckSession.mode.in_(["roadmap_test", "roadmap_mcq", "roadmap_typing"])
+            )
+        )
+        await db.commit()
+
     return {"status": "ok"}
 
 def fix_static_urls(val):

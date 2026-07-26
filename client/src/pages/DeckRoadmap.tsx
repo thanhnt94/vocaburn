@@ -274,7 +274,14 @@ export default function DeckRoadmap() {
           </h2>
           
           <button
-            onClick={() => setIsEditingPipeline(!isEditingPipeline)}
+            onClick={() => {
+              if (!isEditingPipeline) {
+                if (!window.confirm("Lưu ý: Nếu bạn thay đổi và lưu Pipeline, toàn bộ tiến trình lộ trình của ngày hôm nay sẽ bị xoá để bắt đầu lại.\n\nBạn có chắc chắn muốn chỉnh sửa?")) {
+                  return;
+                }
+              }
+              setIsEditingPipeline(!isEditingPipeline);
+            }}
             className="text-xs font-black text-indigo-600 hover:text-indigo-800 flex items-center gap-1.5 cursor-pointer bg-indigo-50 border border-indigo-200 px-3 py-1.5 rounded-xl transition-all"
           >
             <Settings className="w-3.5 h-3.5" />

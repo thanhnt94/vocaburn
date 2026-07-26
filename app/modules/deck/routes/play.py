@@ -3021,15 +3021,7 @@ async def get_roadmap_test_questions(request: Request, deck_id: int, db: AsyncSe
             selected_cards.append(c)
             selected_ids.add(c.id)
 
-    if len(selected_cards) < max_target_count:
-        remaining = [c for c in all_cards if c.id not in selected_ids]
-        random.shuffle(remaining)
-        for c in remaining:
-            if len(selected_cards) < max_target_count:
-                selected_cards.append(c)
-                selected_ids.add(c.id)
-            else:
-                break
+    # Removed padding with unlearned cards. Only test on cards that the user has learned/seen.
 
     random.shuffle(selected_cards)
 
