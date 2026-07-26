@@ -1437,12 +1437,7 @@ async def get_deck_play_data(request: Request, deck_id: int, mode: Optional[str]
     num_choices = 4
     
     if is_practice:
-        raw_settings = None
-        if user_sett and user_sett.settings:
-            raw_settings = user_sett.settings
-        elif deck.practice_settings:
-            raw_settings = deck.practice_settings
-            
+        raw_settings = deck.practice_settings
         settings = migrate_practice_settings(raw_settings)
         mode_settings = settings.get(mode, {})
         
