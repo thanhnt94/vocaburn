@@ -42,6 +42,7 @@ export default function QuizDetail() {
   const [isQuickAdding, setIsQuickAdding] = useState(false)
   const [isPasteModalOpen, setIsPasteModalOpen] = useState(false)
   const [pasteText, setPasteText] = useState('')
+  const [availableColumns, setAvailableColumns] = useState<string[]>(['front', 'back'])
   const [collaborators, setCollaborators] = useState<any[]>([])
 
   const [dailyNewInput, setDailyNewInput] = useState(10)
@@ -196,6 +197,18 @@ export default function QuizDetail() {
     }
   }
 
+  // Map column name to the corresponding API field key
+  const SYSTEM_FIELD_MAP: Record<string, string> = {
+    front: 'content',
+    back: 'explanation',
+    front_audio_content: 'front_audio_content',
+    back_audio_content: 'back_audio_content',
+    front_audio_url: 'front_audio_url',
+    back_audio_url: 'back_audio_url',
+    front_img: 'front_img',
+    back_img: 'back_img',
+  }
+
   const handlePasteExcel = async () => {
     if (!pasteText.trim()) return;
     setIsQuickAdding(true);
@@ -243,26 +256,25 @@ export default function QuizDetail() {
         parsedRows.push(currentRow)
       }
 
+      const cols = availableColumns
       const cardsToAdd: any[] = []
       parsedRows.forEach(parts => {
         if (parts.length === 0 || (parts.length === 1 && !parts[0].trim())) return
         
-        const front = parts[0] ? parts[0].trim() : ''
-        const back = parts[1] ? parts[1].trim() : ''
+        const card: any = { content: '', explanation: '', others: {}, options: [] }
+        cols.forEach((colName, idx) => {
+          const val = (parts[idx] || '').trim()
+          if (!val) return
+          const sysField = SYSTEM_FIELD_MAP[colName]
+          if (sysField) {
+            card[sysField] = val
+          } else {
+            card.others[colName] = val
+          }
+        })
         
-        if (front) {
-          cardsToAdd.push({
-            content: front,
-            explanation: back,
-            front_audio_content: '',
-            back_audio_content: '',
-            front_audio_url: '',
-            back_audio_url: '',
-            front_img: '',
-            back_img: '',
-            others: {},
-            options: []
-          })
+        if (card.content) {
+          cardsToAdd.push(card)
         }
       })
       
@@ -296,6 +308,17 @@ export default function QuizDetail() {
       navigate('/manage', { replace: true })
     }
   }, [id, navigate])
+
+  // Fetch available columns for paste import
+  useEffect(() => {
+    const fetchCols = async () => {
+      try {
+        const res = await axios.get(`/api/v1/deck/${id}/practice-settings`)
+        setAvailableColumns(res.data.available_columns || ['front', 'back'])
+      } catch (e) {}
+    }
+    if (id && id !== 'import') fetchCols()
+  }, [id])
 
   useEffect(() => {
     if (isEditModalOpen && editTab === 'collabs') {
@@ -879,9 +902,9 @@ export default function QuizDetail() {
               transition={{ type: "spring", damping: 25, stiffness: 220 }}
               className="bg-white/95 backdrop-blur-xl border-t border-indigo-50/80 p-3 shadow-[0_-8px_20px_rgba(0,0,0,0.04)]"
             >
-              <form onSubmit={handleQuickAddCard} className="max-w-5xl mx-auto flex flex-col sm:flex-row items-end gap-2.5">
-                <div className="flex flex-1 gap-2.5 w-full">
-                  <div className="flex-1 space-y-1">
+              <form onSubmit={handleQuickAddCard} className="max-w-5xl mx-auto flex items-end gap-2">
+                <div className="flex flex-1 gap-2 min-w-0">
+                  <div className="flex-1 space-y-0.5 min-w-0">
                     <label className="text-[8px] font-black text-slate-400 uppercase tracking-widest ml-1">Front</label>
                     <input
                       ref={quickAddFrontRef}
@@ -893,7 +916,7 @@ export default function QuizDetail() {
                       required
                     />
                   </div>
-                  <div className="flex-1 space-y-1">
+                  <div className="flex-1 space-y-0.5 min-w-0">
                     <label className="text-[8px] font-black text-slate-400 uppercase tracking-widest ml-1">Back</label>
                     <input
                       type="text"
@@ -905,29 +928,18 @@ export default function QuizDetail() {
                     />
                   </div>
                 </div>
-                <div className="flex gap-2 w-full sm:w-auto">
-                  <button
-                    type="submit"
-                    disabled={isQuickAdding}
-                    className="flex-1 sm:flex-none px-5 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white font-black text-[9px] uppercase tracking-wider rounded-xl shadow-md active:scale-95 transition-all flex items-center justify-center gap-1.5"
-                  >
-                    {isQuickAdding ? (
-                      <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                    ) : (
-                      <Save className="w-3.5 h-3.5" />
-                    )}
-                    Save
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setIsPasteModalOpen(true)}
-                    className="flex-1 sm:flex-none px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-600 font-black text-[9px] uppercase tracking-wider rounded-xl shadow-sm active:scale-95 transition-all flex items-center justify-center gap-1.5"
-                    title="Paste from Excel/Quizlet"
-                  >
-                    <ClipboardPaste className="w-3.5 h-3.5" />
-                    Paste
-                  </button>
-                </div>
+                <button
+                  type="submit"
+                  disabled={isQuickAdding}
+                  className="w-9 h-9 shrink-0 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white rounded-xl shadow-md active:scale-90 transition-all flex items-center justify-center"
+                  title="Thêm thẻ (Enter)"
+                >
+                  {isQuickAdding ? (
+                    <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  ) : (
+                    <Plus className="w-4 h-4" />
+                  )}
+                </button>
               </form>
             </motion.div>
           )}
@@ -1127,6 +1139,13 @@ export default function QuizDetail() {
                   )}
                 >
                   <Plus className="w-3.5 h-3.5" /> Add Card
+                </button>
+                <button
+                  onClick={() => setIsPasteModalOpen(true)}
+                  className="w-11 h-11 shrink-0 bg-slate-100 hover:bg-slate-200 text-slate-500 rounded-xl flex items-center justify-center transition-all active:scale-90"
+                  title="Paste import"
+                >
+                  <ClipboardPaste className="w-4 h-4" />
                 </button>
                 <button
                   onClick={() => setIsSearchPanelOpen(true)}
@@ -1714,33 +1733,40 @@ export default function QuizDetail() {
               exit={{ opacity: 0, scale: 0.95, y: 10 }}
               className="relative w-full max-w-2xl bg-white rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[85vh]"
             >
-              <div className="p-6 border-b border-slate-100 flex items-start justify-between bg-slate-50/50">
+              <div className="p-5 border-b border-slate-100 flex items-start justify-between bg-slate-50/50">
                 <div>
-                  <h3 className="text-lg font-black text-slate-900 flex items-center gap-2">
-                    <ClipboardPaste className="w-5 h-5 text-indigo-500" />
-                    Import from Word, Excel, Quizlet
+                  <h3 className="text-base font-black text-slate-900 flex items-center gap-2">
+                    <ClipboardPaste className="w-4.5 h-4.5 text-indigo-500" />
+                    Import nhanh
                   </h3>
-                  <p className="text-xs text-slate-500 mt-1 font-medium">Copy and paste your data here. Separate words and definitions with a tab.</p>
+                  <p className="text-[11px] text-slate-500 mt-0.5 font-medium">Paste từ Excel, Google Sheets hoặc Quizlet. Mỗi cột cách nhau bởi Tab.</p>
                 </div>
                 <button
                   onClick={() => setIsPasteModalOpen(false)}
-                  className="w-8 h-8 flex items-center justify-center bg-white border border-slate-200 text-slate-400 hover:text-slate-600 rounded-full transition-colors shrink-0"
+                  className="w-7 h-7 flex items-center justify-center bg-white border border-slate-200 text-slate-400 hover:text-slate-600 rounded-full transition-colors shrink-0"
                 >
-                  <X className="w-4 h-4" />
+                  <X className="w-3.5 h-3.5" />
                 </button>
               </div>
 
-              <div className="p-6 overflow-y-auto bg-slate-50/30">
-                <div className="flex items-center gap-4 mb-3 px-2">
-                   <div className="flex-1 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b-2 border-slate-200 pb-1.5">Mặt trước (Front)</div>
-                   <div className="w-6 text-center text-slate-300 text-[9px] font-bold uppercase tracking-wider">Tab</div>
-                   <div className="flex-1 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b-2 border-slate-200 pb-1.5">Mặt sau (Back)</div>
+              <div className="px-5 pt-4 pb-2 bg-slate-50/50 border-b border-slate-100">
+                <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2">Thứ tự cột</p>
+                <div className="flex flex-wrap gap-1">
+                  {availableColumns.map((col, idx) => (
+                    <span key={col} className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-white border border-slate-200 text-[10px] font-bold text-slate-600">
+                      <span className="text-[9px] font-black text-indigo-400">{idx + 1}</span>
+                      {col}
+                    </span>
+                  ))}
                 </div>
+              </div>
+
+              <div className="p-5 overflow-y-auto">
                 <textarea
                   value={pasteText}
                   onChange={(e) => setPasteText(e.target.value)}
-                  placeholder="Word 1&#9;Definition 1&#10;Word 2&#9;Definition 2&#10;Word 3&#9;Definition 3"
-                  className="w-full h-48 p-4 text-sm font-medium text-slate-700 bg-white border-2 border-slate-200 rounded-2xl focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 outline-none transition-all resize-none font-mono placeholder:text-slate-300"
+                  placeholder={availableColumns.slice(0, 3).map((c, i) => `Value${i+1}_${c}`).join('\t') + '\n...'}
+                  className="w-full h-44 p-3.5 text-sm font-medium text-slate-700 bg-white border-2 border-slate-200 rounded-2xl focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 outline-none transition-all resize-none font-mono placeholder:text-slate-300"
                 />
               </div>
 
