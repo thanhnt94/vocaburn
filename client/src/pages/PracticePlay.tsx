@@ -3408,74 +3408,39 @@ export default function PracticePlay() {
                       if (!answered) {
                         handleMCQAnswer(idx);
                       } else {
-                        // choices_data[idx] stores: { text: answer_key_val, q_text: question_key_val, front, back, id }
                         let choiceObj: any = null;
                         if (currentPracticeData?.choices_data && currentPracticeData.choices_data[idx]) {
                           choiceObj = currentPracticeData.choices_data[idx];
                         }
 
                         let qData: any = null;
-                        if (choice_item_ids && session?.questions) {
+                        if (choice_item_ids && session?.questions && choice_item_ids[idx] !== undefined) {
                           const selectedId = choice_item_ids[idx];
-                          qData = session.questions.find((q: any) => q.id === selectedId);
+                          qData = session.questions.find((q: any) => String(q.id) === String(selectedId));
                         }
 
                         const choiceText = choice;
                         const qKey = currentPracticeData?.question_key || 'front';
                         const aKey = currentPracticeData?.answer_key || 'back';
 
-                        // DEBUG: log all values to find why q_text = choiceText
-                        console.log('=== CHOICE CLICK DEBUG ===');
-                        console.log('choiceText:', choiceText);
-                        console.log('qKey:', qKey, 'aKey:', aKey);
-                        console.log('choiceObj:', JSON.stringify(choiceObj, null, 2));
-                        console.log('choiceObj?.q_text:', choiceObj?.q_text);
-                        console.log('choiceObj?.front:', choiceObj?.front);
-                        console.log('choiceObj?.back:', choiceObj?.back);
-                        if (qData) {
-                          console.log('qData.content:', qData.content);
-                          console.log('qData.explanation:', qData.explanation);
-                          console.log('qData.others:', JSON.stringify(qData.others, null, 2));
-                          console.log('getVal(qData, qKey):', getVal(qData, qKey));
-                          console.log('getVal(qData, aKey):', getVal(qData, aKey));
-                          console.log('getVal(qData, front):', getVal(qData, 'front'));
-                          console.log('getVal(qData, back):', getVal(qData, 'back'));
-                        } else {
-                          console.log('qData: NULL');
+                        // Extract value from the question column (qKey) for this choice card
+                        let wordText = "";
+                        if (choiceObj && choiceObj.q_text) {
+                          wordText = choiceObj.q_text;
                         }
-
-                        let wordText = choiceObj?.q_text || "";
-
-                        if (!wordText || wordText === choiceText) {
-                          if (qData) {
-                            wordText = getVal(qData, qKey);
-                          }
+                        if (!wordText && qData) {
+                          wordText = getVal(qData, qKey);
                         }
-                        if (!wordText || wordText === choiceText) {
-                          if (qData) {
-                            const valFront = getVal(qData, 'front');
-                            const valBack = getVal(qData, 'back');
-                            if (valFront && valFront !== choiceText) wordText = valFront;
-                            else if (valBack && valBack !== choiceText) wordText = valBack;
-                          }
+                        if (!wordText && qData) {
+                          const vFront = getVal(qData, 'front');
+                          const vBack = getVal(qData, 'back');
+                          wordText = (vFront && vFront !== choiceText) ? vFront : (vBack || choiceText);
                         }
                         if (!wordText) wordText = choiceText;
 
-                        console.log('FINAL wordText:', wordText);
-
-                        // DEBUG: build debug string to show in modal
-                        const debugInfo = [
-                          `qKey=${qKey}, aKey=${aKey}`,
-                          `choiceObj.q_text=${choiceObj?.q_text || 'NULL'}`,
-                          `choiceObj.front=${choiceObj?.front || 'NULL'}`,
-                          `choiceObj.back=${choiceObj?.back || 'NULL'}`,
-                          qData ? `qData.content=${qData.content || 'NULL'}` : 'qData=NULL',
-                          qData ? `qData.explanation=${(qData.explanation || 'NULL').substring(0, 30)}` : '',
-                          qData ? `qData.others keys=${qData.others ? Object.keys(qData.others).join(',') : 'NULL'}` : '',
-                          qData?.others ? Object.entries(qData.others).filter(([k,v]) => typeof v === 'string' && v).map(([k,v]) => `others.${k}=${String(v).substring(0,20)}`).join(' | ') : ''
-                        ].filter(Boolean).join('\n');
-
-                        const explanation = debugInfo;
+                        const explanation = qData
+                          ? (qData.explanation || getVal(qData, 'explanation') || getVal(qData, aKey) || "Không có thông tin mô tả thêm.")
+                          : (choiceObj?.back || "Không có thông tin mô tả thêm.");
 
                         setPreviewChoiceModal({
                           choiceIdx: idx,
