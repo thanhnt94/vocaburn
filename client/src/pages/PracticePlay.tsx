@@ -580,6 +580,7 @@ export default function PracticePlay() {
   // Practice stats tracking
   const [practiceTotalAnswered, setPracticeTotalAnswered] = useState(0)
   const [practiceCorrectCount, setPracticeCorrectCount] = useState(0)
+  const [previewChoiceModal, setPreviewChoiceModal] = useState<{ choiceIdx: number; choiceText: string; wordText: string; explanation: string; audioText: string } | null>(null)
 
   // Sync practiceSubMode from URL params
   useEffect(() => {
@@ -3306,8 +3307,8 @@ export default function PracticePlay() {
       <div className="flex-1 bg-white md:rounded-[2rem] rounded-[1.25rem] border border-slate-100 md:p-6 md:pt-4 p-4 pt-3 flex flex-col justify-end gap-4 md:gap-6 shadow-2xl shadow-indigo-100/40 min-h-0 overflow-y-auto">
 
         {/* Premium Question Card container for better space usage and rich aesthetics */}
-        <div className="w-full max-w-3xl mx-auto py-1 text-center animate-in fade-in slide-in-from-top-3 duration-500 my-auto">
-          <div className="w-full bg-white border-2 border-indigo-100/80 rounded-[2rem] p-5 md:p-6 shadow-sm flex flex-col items-center justify-center text-center gap-4 relative overflow-hidden">
+        <div className="w-full max-w-3xl mx-auto py-1 text-center animate-in fade-in slide-in-from-top-3 duration-500 my-auto min-h-0 flex flex-col">
+          <div className="w-full bg-white border-2 border-indigo-100/80 rounded-[2rem] p-5 md:p-6 shadow-sm flex flex-col items-center justify-center text-center gap-4 relative max-h-[35vh] md:max-h-[42vh] overflow-y-auto custom-scrollbar">
             <div className="absolute top-[-10%] left-[-10%] w-[30%] h-[30%] rounded-full bg-indigo-50/20 blur-2xl pointer-events-none" />
             <div className="absolute bottom-[-10%] right-[-10%] w-[30%] h-[30%] rounded-full bg-pink-50/20 blur-2xl pointer-events-none" />
             {showImages && currentQuestion.image && practiceSubMode !== 'listening' && (
@@ -3372,15 +3373,22 @@ export default function PracticePlay() {
                       if (!answered) {
                         handleMCQAnswer(idx);
                       } else {
+                        let qData: any = null;
                         if (choice_item_ids && session?.questions) {
                           const selectedId = choice_item_ids[idx];
-                          const qData = session.questions.find((q: any) => q.id === selectedId);
-                          if (qData) {
-                            setSelectedChoiceData(qData);
-                            setActiveFeedbackTab('card');
-                            setIsFeedbackOpen(true);
-                          }
+                          qData = session.questions.find((q: any) => q.id === selectedId);
                         }
+                        const choiceText = choice;
+                        const wordText = qData ? (qData.content || qData.others?.front || qData.front || choiceText) : choiceText;
+                        const explanation = qData ? (qData.explanation || qData.others?.back || qData.back || "Không có thông tin mô tả thêm.") : "Không có thông tin mô tả thêm.";
+
+                        setPreviewChoiceModal({
+                          choiceIdx: idx,
+                          choiceText,
+                          wordText,
+                          explanation,
+                          audioText: wordText
+                        });
                       }
                     }}
                     className={cn(
@@ -6240,6 +6248,83 @@ export default function PracticePlay() {
           </div>
         )}
       </AnimatePresence>
+
+      {/* Choice Preview Modal when clicking options post-answer */}
+      <AnimatePresence>
+        {previewChoiceModal && (
+          <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setPreviewChoiceModal(null)}
+              className="absolute inset-0 bg-slate-900/60 backdrop-blur-md"
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              className="relative w-full max-w-md bg-white rounded-[2.5rem] p-6 sm:p-8 shadow-2xl border border-slate-100 flex flex-col items-center text-center overflow-hidden z-10"
+            >
+              <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-indigo-500 via-purple-500 to-indigo-500" />
+              
+              <button
+                onClick={() => setPreviewChoiceModal(null)}
+                className="absolute top-4 right-4 w-9 h-9 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-500 font-bold transition-all"
+              >
+                ✕
+              </button>
+
+              <div className="flex items-center gap-2 mb-3">
+                <span className="text-[10px] font-black uppercase tracking-widest text-indigo-600 bg-indigo-50 border border-indigo-100 px-3 py-1 rounded-xl">
+                  Lựa chọn #{previewChoiceModal.choiceIdx + 1}
+                </span>
+              </div>
+
+              {/* Choice Definition */}
+              <div className="text-sm font-extrabold text-slate-700 bg-slate-50 border border-slate-200/60 rounded-2xl px-4 py-3 mb-3 w-full text-center">
+                <span className="text-slate-400 font-medium mr-1.5">Nghĩa hiển thị:</span>
+                <span dangerouslySetInnerHTML={{ __html: parseBBCodeToHtml(previewChoiceModal.choiceText) }} />
+              </div>
+
+              {/* Original Word / Kanji */}
+              <div className="w-full p-4 rounded-3xl bg-indigo-50/50 border border-indigo-100 flex flex-col items-center justify-center gap-2 my-2">
+                <span className="text-[9px] font-black text-indigo-400 uppercase tracking-widest">Từ vựng tương ứng (Kanji / Từ gốc)</span>
+                <div className="flex items-center justify-center gap-3">
+                  <h3 className="text-2xl sm:text-3xl font-black text-slate-800 tracking-tight">
+                    <span dangerouslySetInnerHTML={{ __html: parseBBCodeToHtml(previewChoiceModal.wordText) }} />
+                  </h3>
+                  <button
+                    onClick={() => speakMultiLanguage(previewChoiceModal.wordText)}
+                    className="w-10 h-10 rounded-2xl bg-indigo-600 text-white flex items-center justify-center shadow-md hover:bg-indigo-700 active:scale-90 transition-all shrink-0"
+                    title="Nghe phát âm"
+                  >
+                    <Volume2 className="w-5 h-5 animate-pulse" />
+                  </button>
+                </div>
+              </div>
+
+              {/* Detailed Explanation */}
+              {previewChoiceModal.explanation && (
+                <div className="w-full text-left bg-slate-50/80 border border-slate-100 rounded-2xl p-4 my-2 max-h-48 overflow-y-auto custom-scrollbar">
+                  <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block mb-1">Mô tả / Giải thích</span>
+                  <div className="text-xs font-semibold text-slate-700 leading-relaxed whitespace-pre-wrap">
+                    <span dangerouslySetInnerHTML={{ __html: parseBBCodeToHtml(previewChoiceModal.explanation) }} />
+                  </div>
+                </div>
+              )}
+
+              <button
+                onClick={() => setPreviewChoiceModal(null)}
+                className="mt-4 w-full py-3.5 bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-black text-xs uppercase tracking-widest rounded-2xl shadow-lg shadow-indigo-200 active:scale-95 transition-all hover:shadow-indigo-300"
+              >
+                Đồng ý / Đóng
+              </button>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
       {/* Edit Question Modal */}
       <AnimatePresence>
         {isEditModalOpen && editFormData && (
