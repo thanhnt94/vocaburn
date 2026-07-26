@@ -2586,7 +2586,7 @@ async def get_deck_roadmap_status_helper(db: AsyncSession, user_id: int, deck_id
                 "overdue_hours": overdue_hours,
                 "done": is_done,
                 "progress": {"due_count": review_due_today, "reviewed_today": review_completed_today},
-                "url": f"/flashcard/{deck_id}/play?mode=review",
+                "url": f"/flashcard/{deck_id}/play?mode=fsrs",
                 "label": "Ôn tập FSRS"
             })
         elif stype == "mcq":
