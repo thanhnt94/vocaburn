@@ -3310,8 +3310,8 @@ export default function PracticePlay() {
       <div className="flex-1 bg-white md:rounded-[2rem] rounded-[1.25rem] border border-slate-100 md:p-6 md:pt-4 p-4 pt-3 flex flex-col justify-end gap-4 md:gap-6 shadow-2xl shadow-indigo-100/40 min-h-0 overflow-y-auto">
 
         {/* Premium Question Card container for better space usage and rich aesthetics */}
-        <div className="w-full max-w-3xl mx-auto py-1 text-center animate-in fade-in slide-in-from-top-3 duration-500 my-auto min-h-0 flex flex-col">
-          <div className="w-full bg-white border-2 border-indigo-100/80 rounded-[2rem] p-5 md:p-6 shadow-sm flex flex-col items-center justify-center text-center gap-4 relative max-h-[35vh] md:max-h-[42vh] overflow-y-auto custom-scrollbar">
+        <div className="w-full max-w-3xl mx-auto py-1 text-center animate-in fade-in slide-in-from-top-3 duration-500 my-auto shrink-0">
+          <div className="w-full bg-white border-2 border-indigo-100/80 rounded-[2rem] p-5 md:p-6 shadow-sm flex flex-col items-center justify-center text-center gap-4 relative overflow-hidden">
             <div className="absolute top-[-10%] left-[-10%] w-[30%] h-[30%] rounded-full bg-indigo-50/20 blur-2xl pointer-events-none" />
             <div className="absolute bottom-[-10%] right-[-10%] w-[30%] h-[30%] rounded-full bg-pink-50/20 blur-2xl pointer-events-none" />
             {showImages && currentQuestion.image && practiceSubMode !== 'listening' && (
