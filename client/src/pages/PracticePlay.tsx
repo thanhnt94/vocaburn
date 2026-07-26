@@ -609,31 +609,17 @@ export default function PracticePlay() {
   const getVal = (item: any, key: string): string => {
     if (!item) return "";
     const keyStr = String(key || "").trim();
+    if (!keyStr) return "";
+
     const keyLower = keyStr.toLowerCase();
 
-    // 1. Front / Content check
-    if (keyLower === 'front' || keyLower === 'content') {
-      const val = item.content || item.front || (item.others && (item.others.front || item.others.content));
-      if (val) return String(val).trim();
-    }
-
-    // 2. Back / Explanation check
-    if (keyLower === 'back' || keyLower === 'explanation') {
-      let val = "";
-      if (item.options && item.options.length > 0) {
-        const correctOpt = item.options.find((o: any) => o.is_correct);
-        if (correctOpt) val = correctOpt.content;
-      }
-      if (!val) val = item.explanation || item.back || (item.others && (item.others.back || item.others.explanation));
-      if (val) return String(val).trim();
-    }
-
-    // 3. Direct property on item
+    // 1. Direct property match on item (e.g. item.front, item.back, item.content, item.explanation)
     if (item[keyStr] !== undefined && item[keyStr] !== null && String(item[keyStr]).trim()) {
       return String(item[keyStr]).trim();
     }
 
-    // 4. Case-insensitive key match in item.others
+    // 2. Exact or case-insensitive match in item.others FIRST!
+    // This ensures custom column values (like item.others["nghĩa"] = "Nuôi dưỡng") take top priority!
     if (item.others && typeof item.others === 'object') {
       if (item.others[keyStr] !== undefined && item.others[keyStr] !== null && String(item.others[keyStr]).trim()) {
         return String(item.others[keyStr]).trim();
@@ -645,15 +631,20 @@ export default function PracticePlay() {
       }
     }
 
-    // 5. Fallback for custom "nghĩa" / "meaning" / "dịch" / "back" keys to item.explanation
-    if (keyLower.includes('nghĩa') || keyLower.includes('mean') || keyLower.includes('back') || keyLower.includes('dịch')) {
-      const val = item.explanation || item.back || (item.others && (item.others.back || item.others.explanation || item.others.nghĩa || item.others.Nghĩa));
+    // 3. Standard alias mapping: front / content / kanji
+    if (keyLower === 'front' || keyLower === 'content' || keyLower.includes('kanji') || keyLower.includes('gốc') || keyLower.includes('từ')) {
+      const val = item.content || item.front || (item.others && (item.others.front || item.others.content || item.others.kanji || item.others.Kanji || item.others['từ vựng']));
       if (val) return String(val).trim();
     }
 
-    // 6. Fallback for custom "front" / "kanji" / "gốc" / "từ" keys to item.content
-    if (keyLower.includes('front') || keyLower.includes('kanji') || keyLower.includes('gốc') || keyLower.includes('từ')) {
-      const val = item.content || item.front || (item.others && (item.others.front || item.others.content || item.others.kanji || item.others.Kanji));
+    // 4. Standard alias mapping: back / explanation / nghĩa / meaning
+    if (keyLower === 'back' || keyLower === 'explanation' || keyLower.includes('nghĩa') || keyLower.includes('mean')) {
+      let val = "";
+      if (item.options && item.options.length > 0) {
+        const correctOpt = item.options.find((o: any) => o.is_correct);
+        if (correctOpt) val = correctOpt.content;
+      }
+      if (!val) val = item.explanation || item.back || (item.others && (item.others.back || item.others.explanation || item.others.nghĩa || item.others.Nghĩa));
       if (val) return String(val).trim();
     }
 
@@ -661,11 +652,9 @@ export default function PracticePlay() {
   };
 
   const getOppositeTextFromCard = (card: any, displayedText: string, qKey?: string, aKey?: string): string => {
-    if (!card) return "(Chưa bổ sung nghĩa/từ gốc)";
+    if (!card) return displayedText;
 
     const targetNorm = String(displayedText || "").trim().toLowerCase();
-    if (!targetNorm) return displayedText;
-
     const candidates: string[] = [];
 
     const addCandidate = (val: any) => {
@@ -677,15 +666,15 @@ export default function PracticePlay() {
       }
     };
 
+    // 1. Try specified column keys (qKey / aKey)
     if (qKey) addCandidate(getVal(card, qKey));
     if (aKey) addCandidate(getVal(card, aKey));
 
-    addCandidate(card.content);
-    addCandidate(card.explanation);
-    addCandidate(card.front);
-    addCandidate(card.back);
-
+    // 2. Try explicit custom fields in others (nghĩa, kanji, từ vựng, back, front, meaning)
     if (card.others && typeof card.others === 'object') {
+      addCandidate(card.others['nghĩa'] || card.others['Nghĩa'] || card.others['NGHĨA']);
+      addCandidate(card.others['từ vựng'] || card.others['kanji'] || card.others['Kanji'] || card.others['front']);
+      addCandidate(card.others['cách đọc'] || card.others['hán việt']);
       for (const [k, v] of Object.entries(card.others)) {
         if (typeof v === 'string' && k !== 'id' && k !== 'image' && k !== 'audio' && k !== 'front_audio_url' && k !== 'back_audio_url') {
           addCandidate(v);
@@ -693,17 +682,19 @@ export default function PracticePlay() {
       }
     }
 
+    // 3. Main content / explanation / front / back
+    addCandidate(card.content);
+    addCandidate(card.front);
+    addCandidate(card.explanation);
+    addCandidate(card.back);
+
     if (card.options && Array.isArray(card.options)) {
       for (const opt of card.options) {
         if (opt && opt.content) addCandidate(opt.content);
       }
     }
 
-    if (card.hint) addCandidate(card.hint);
-    if (card.note) addCandidate(card.note);
-    if (card.ai_explanation) addCandidate(card.ai_explanation);
-
-    return candidates.length > 0 ? candidates[0] : "(Chưa bổ sung nghĩa/từ gốc)";
+    return candidates.length > 0 ? candidates[0] : displayedText;
   };
 
   // ── Client-side Dynamic Practice Generator ──
