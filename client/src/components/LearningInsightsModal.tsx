@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { StickyNote, ChevronLeft, ChevronDown, Edit2, X, Volume2 } from 'lucide-react'
 import axios from 'axios'
 import { cn } from '@/lib/utils'
+import { speakWithEdgeTTS } from '@/lib/audio'
 
 // Helper to parse BBCode to HTML
 const parseBBCodeToHtml = (text: string): string => {
@@ -28,27 +29,26 @@ const parseBBCodeToHtml = (text: string): string => {
   return html;
 };
 
-// Audio TTS helper
-const speakMultiLanguage = (text: string) => {
-  if (!text || typeof window === 'undefined' || !('speechSynthesis' in window)) return;
-  
-  window.speechSynthesis.cancel();
-  
+// Audio Edge TTS helper
+const handlePlayTabAudio = async (cardId: number | undefined, tabId: string, text: string) => {
+  if (!text || typeof window === 'undefined') return;
   const cleanText = text.replace(/<[^>]*>/g, '').replace(/\[.*?\]/g, '').trim();
   if (!cleanText) return;
 
-  const utterance = new SpeechSynthesisUtterance(cleanText);
-
-  // Detect language
-  const hasJapanese = /[\u3040-\u30ff\u3400-\u4dbf\u4e00-\u9fff]/.test(cleanText);
-  if (hasJapanese) {
-    utterance.lang = 'ja-JP';
-  } else {
-    utterance.lang = 'vi-VN';
+  if (cardId) {
+    try {
+      console.log(`[INSIGHTS TTS] Requesting Edge TTS for card ${cardId} (${tabId})...`);
+      const res = await axios.get(`/api/v1/deck/generate-audio/${cardId}?face=${encodeURIComponent(tabId)}`);
+      if (res.data?.url) {
+        const audio = new Audio(`${res.data.url}?t=${Date.now()}`);
+        audio.play().catch(() => speakWithEdgeTTS(cleanText));
+        return;
+      }
+    } catch (e) {
+      console.warn(`[INSIGHTS TTS SERVER ERROR] Falling back to Edge TTS stream.`);
+    }
   }
-  
-  utterance.rate = 0.95;
-  window.speechSynthesis.speak(utterance);
+  speakWithEdgeTTS(cleanText);
 };
 
 export interface LearningInsightsModalProps {
@@ -152,9 +152,20 @@ export default function LearningInsightsModal({
     });
   }
 
-  // Extract from others dict
-  if (card.others && typeof card.others === 'object') {
-    Object.entries(card.others).forEach(([key, value]) => {
+  // Extract from others dict safely
+  let othersObj: Record<string, any> = {};
+  if (card.others) {
+    if (typeof card.others === 'string') {
+      try {
+        othersObj = JSON.parse(card.others);
+      } catch (e) {}
+    } else if (typeof card.others === 'object') {
+      othersObj = card.others;
+    }
+  }
+
+  if (othersObj && typeof othersObj === 'object') {
+    Object.entries(othersObj).forEach(([key, value]) => {
       if (
         key !== 'ai_responses' &&
         key !== 'id' &&
@@ -249,21 +260,21 @@ export default function LearningInsightsModal({
                   className="h-8 px-2.5 bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-600 text-[10px] font-black uppercase tracking-wider rounded-lg flex items-center gap-1 active:scale-95 transition-all"
                   title="Sửa thẻ"
                 >
-                  <Edit2 className="w-3.5 h-3.5" />
-                  <span className="hidden sm:inline">Sửa thẻ</span>
+                  <Edit2 className="w-3 h-3 text-slate-500" />
+                  <span>Sửa thẻ</span>
                 </button>
               )}
               <button
                 onClick={onClose}
-                className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-500 font-bold transition-all active:scale-90"
+                className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 flex items-center justify-center transition-all active:scale-90"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
           </div>
 
-          {/* Sub tabs: Insights vs Card Stats */}
-          <div className="flex border-b border-slate-100 flex-shrink-0 my-3 bg-slate-50/70 p-1 rounded-xl">
+          {/* Tab Navigation */}
+          <div className="flex items-center p-1 bg-slate-100/80 rounded-xl mt-4 flex-shrink-0 gap-1 border border-slate-200/40">
             <button
               onClick={() => setCardModalTab('content')}
               className={cn(
@@ -285,7 +296,7 @@ export default function LearningInsightsModal({
           </div>
 
           {/* Modal Body Area */}
-          <div className="flex-1 overflow-y-auto pr-1 custom-scrollbar min-h-0 space-y-3.5 py-1">
+          <div className="flex-1 overflow-y-auto pr-1 custom-scrollbar min-h-0 space-y-3.5 py-1 mt-4">
             {cardModalTab === 'content' ? (
               <>
                 {/* Insights list */}
@@ -295,7 +306,7 @@ export default function LearningInsightsModal({
                       <div className="flex items-center justify-between mb-1.5">
                         <span className="text-[8px] font-black text-indigo-500 uppercase tracking-widest block">{tab.title}</span>
                         <button
-                          onClick={() => speakMultiLanguage(tab.content)}
+                          onClick={() => handlePlayTabAudio(card?.id, tab.id, tab.content)}
                           className="w-7 h-7 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-600 flex items-center justify-center transition-all active:scale-90 shrink-0"
                           title="Nghe phát âm"
                         >

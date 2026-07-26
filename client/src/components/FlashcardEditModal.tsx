@@ -74,7 +74,7 @@ const resolveUrl = (url: string | null | undefined): string => {
 };
 
 const unresolveDict = (obj: any) => {
-  if (!obj) return obj;
+  if (!obj || typeof obj !== 'object') return {};
   const resObj = { ...obj };
   const fields = ['front_img', 'back_img', 'front_audio_url', 'back_audio_url', 'audio'];
   fields.forEach(f => {

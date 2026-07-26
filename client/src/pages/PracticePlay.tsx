@@ -773,6 +773,7 @@ export default function PracticePlay() {
               front: d_front,
               back: d_back,
               id: other.id,
+              card: other,
               type: (other.others && typeof other.others === 'object' ? (other.others.type || other.others.pos || '') : '')
             });
           }
@@ -785,6 +786,7 @@ export default function PracticePlay() {
         front: item_front,
         back: item_back,
         id: qObj.id,
+        card: qObj,
         type: (qObj.others && typeof qObj.others === 'object' ? (qObj.others.type || qObj.others.pos || '') : '')
       };
 
@@ -3489,7 +3491,7 @@ export default function PracticePlay() {
                           }
                         }
 
-                        const targetCard = qData || choiceObj;
+                        const targetCard = choiceObj?.card || qData || choiceObj;
                         if (targetCard) {
                           setPreviewInsightCard(targetCard);
                         } else {
