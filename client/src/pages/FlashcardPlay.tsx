@@ -1018,7 +1018,7 @@ export default function FlashcardPlay() {
 
       if (!isPractice) {
         setTimeout(() => {
-          axios.get('/api/v1/deck/goals').then(goalsRes => {
+          axios.get('/api/v1/deck/goals/active').then(goalsRes => {
             const activeGoalData = goalsRes.data?.find((g: any) => g.deck_id === Number(id) || g.quiz_id === Number(id));
             if (activeGoalData) {
               setActiveGoal(activeGoalData);
@@ -1556,7 +1556,7 @@ export default function FlashcardPlay() {
           });
         }
       }
-      if (activeMode === 'roadmap') {
+      if (activeMode === 'roadmap' || activeMode === 'fsrs') {
         fetchRoadmapStatus().then(res => {
           const updated = res?.data;
           if (updated && updated.pipeline) {
@@ -1564,7 +1564,7 @@ export default function FlashcardPlay() {
             const revStep = updated.pipeline.find((s: any) => s.type === 'fsrs_review');
             const newDone = newStep ? newStep.done : true;
             const reviewDone = revStep ? revStep.done : true;
-            if (newDone && reviewDone) {
+            if (newDone && reviewDone && activeMode === 'roadmap') {
               setShowRoadmapCompleteModal(true);
             }
           }
