@@ -2895,6 +2895,7 @@ async def get_roadmap_test_questions(request: Request, deck_id: int, db: AsyncSe
 
     # Priority 1 for Roadmap Test: DECK CREATOR PRACTICE SETTINGS (cấu hình gốc của bộ thẻ)
     active_pairs = []
+    creator_migrated = {}
     if deck.practice_settings and isinstance(deck.practice_settings, dict):
         creator_migrated = migrate_practice_settings(deck.practice_settings)
         active_pairs = creator_migrated.get("mcq", {}).get("active_pairs", [])
@@ -2902,16 +2903,17 @@ async def get_roadmap_test_questions(request: Request, deck_id: int, db: AsyncSe
             active_pairs = deck.practice_settings.get("active_pairs", [])
 
     # Priority 2: User custom settings if creator settings are empty
-    if not active_pairs:
-        user_sett_res = await db.execute(
-            select(UserDeckSettings).where(
-                UserDeckSettings.user_id == user_id,
-                UserDeckSettings.deck_id == deck_id
-            )
+    user_sett_res = await db.execute(
+        select(UserDeckSettings).where(
+            UserDeckSettings.user_id == user_id,
+            UserDeckSettings.deck_id == deck_id
         )
-        user_sett = user_sett_res.scalar_one_or_none()
-        settings = user_sett.settings if (user_sett and user_sett.settings) else {}
-        migrated = migrate_practice_settings(settings)
+    )
+    user_sett = user_sett_res.scalar_one_or_none()
+    settings = user_sett.settings if (user_sett and user_sett.settings) else {}
+    migrated = migrate_practice_settings(settings)
+    
+    if not active_pairs:
         mcq_setts = migrated.get("mcq", {})
         active_pairs = mcq_setts.get("active_pairs", [])
 
@@ -3147,7 +3149,9 @@ async def get_roadmap_test_questions(request: Request, deck_id: int, db: AsyncSe
         "title": deck_title,
         "deck_title": deck_title,
         "questions": formatted_questions,
-        "total": len(formatted_questions)
+        "total": len(formatted_questions),
+        "practice_settings": migrated,
+        "creator_settings": creator_migrated
     }
 
 
