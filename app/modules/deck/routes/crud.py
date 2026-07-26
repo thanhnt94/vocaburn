@@ -568,11 +568,16 @@ async def add_collaborator(request: Request, deck_id: int, data: dict, db: Async
     target_user_id = data.get("user_id")
     
     from app.modules.deck.models import FlashcardDeck, DeckCollaborator
+    from app.modules.auth.models import User as UserDB
     deck_res = await db.execute(select(FlashcardDeck).where(FlashcardDeck.id == deck_id))
     deck = deck_res.scalar_one_or_none()
     
-    if not deck or (deck.creator_id != user_id and user_id != 1):
-        return JSONResponse(status_code=403, content={"error": "Only creator can add collaborators"})
+    user_res = await db.execute(select(UserDB).where(UserDB.id == user_id))
+    user_obj = user_res.scalar_one_or_none()
+    is_admin = user_obj and (user_obj.role == "admin" or getattr(user_obj, "is_admin", False))
+    
+    if not deck or (deck.creator_id != user_id and user_id != 1 and not is_admin):
+        return JSONResponse(status_code=403, content={"error": "Only creator or admin can add collaborators"})
         
     existing = await db.execute(select(DeckCollaborator).where(DeckCollaborator.deck_id == deck_id, DeckCollaborator.user_id == target_user_id))
     if existing.scalar():
@@ -588,11 +593,16 @@ async def remove_collaborator(request: Request, deck_id: int, collab_user_id: in
     user_id = int(request.cookies.get("user_id", 1))
     
     from app.modules.deck.models import FlashcardDeck, DeckCollaborator
+    from app.modules.auth.models import User as UserDB
     deck_res = await db.execute(select(FlashcardDeck).where(FlashcardDeck.id == deck_id))
     deck = deck_res.scalar_one_or_none()
     
-    if not deck or (deck.creator_id != user_id and user_id != 1):
-        return JSONResponse(status_code=403, content={"error": "Only creator can remove collaborators"})
+    user_res = await db.execute(select(UserDB).where(UserDB.id == user_id))
+    user_obj = user_res.scalar_one_or_none()
+    is_admin = user_obj and (user_obj.role == "admin" or getattr(user_obj, "is_admin", False))
+    
+    if not deck or (deck.creator_id != user_id and user_id != 1 and not is_admin):
+        return JSONResponse(status_code=403, content={"error": "Only creator or admin can remove collaborators"})
         
     await db.execute(delete(DeckCollaborator).where(DeckCollaborator.deck_id == deck_id, DeckCollaborator.user_id == collab_user_id))
     await db.commit()
@@ -604,11 +614,16 @@ async def transfer_ownership(request: Request, deck_id: int, data: dict, db: Asy
     target_user_id = data.get("user_id")
     
     from app.modules.deck.models import FlashcardDeck
+    from app.modules.auth.models import User as UserDB
     deck_res = await db.execute(select(FlashcardDeck).where(FlashcardDeck.id == deck_id))
     deck = deck_res.scalar_one_or_none()
     
-    if not deck or (deck.creator_id != user_id and user_id != 1):
-        return JSONResponse(status_code=403, content={"error": "Only current creator can transfer ownership"})
+    user_res = await db.execute(select(UserDB).where(UserDB.id == user_id))
+    user_obj = user_res.scalar_one_or_none()
+    is_admin = user_obj and (user_obj.role == "admin" or getattr(user_obj, "is_admin", False))
+    
+    if not deck or (deck.creator_id != user_id and user_id != 1 and not is_admin):
+        return JSONResponse(status_code=403, content={"error": "Only current creator or admin can transfer ownership"})
         
     deck.creator_id = target_user_id
     await db.commit()
