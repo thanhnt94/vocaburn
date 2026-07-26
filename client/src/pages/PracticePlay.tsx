@@ -606,6 +606,27 @@ export default function PracticePlay() {
     }
   }, [practiceSubMode, modeSettings])
 
+  const getVal = (item: any, key: string): string => {
+    if (!item) return "";
+    if (key === 'front' || key === 'content') {
+      const val = item.content || (item.others && item.others.front);
+      if (val) return String(val).trim();
+    }
+    if (key === 'back' || key === 'explanation') {
+      let val = "";
+      if (item.options && item.options.length > 0) {
+        const correctOpt = item.options.find((o: any) => o.is_correct);
+        if (correctOpt) val = correctOpt.content;
+      }
+      if (!val) val = item.explanation || (item.others && item.others.back);
+      if (val) return String(val).trim();
+    }
+    const val = item[key] !== undefined && item[key] !== null
+      ? item[key]
+      : (item.others && typeof item.others === 'object' ? item.others[key] : "");
+    return String(val ?? "").trim();
+  };
+
   // ── Client-side Dynamic Practice Generator ──
 
   const generatePracticeQuestion = (idx: number, customSubMode?: string) => {
@@ -628,27 +649,6 @@ export default function PracticePlay() {
     const question_key = activePair.q;
     const answer_key = activePair.a;
     const num_choices = setupNumChoices || 4;
-
-    const getVal = (item: any, key: string): string => {
-      if (!item) return "";
-      if (key === 'front' || key === 'content') {
-        const val = item.content || (item.others && item.others.front);
-        if (val) return String(val).trim();
-      }
-      if (key === 'back' || key === 'explanation') {
-        let val = "";
-        if (item.options && item.options.length > 0) {
-          const correctOpt = item.options.find((o: any) => o.is_correct);
-          if (correctOpt) val = correctOpt.content;
-        }
-        if (!val) val = item.explanation || (item.others && item.others.back);
-        if (val) return String(val).trim();
-      }
-      const val = item[key] !== undefined && item[key] !== null
-        ? item[key]
-        : (item.others && typeof item.others === 'object' ? item.others[key] : "");
-      return String(val ?? "").trim();
-    };
 
     const questionText = getVal(qObj, question_key);
     const correctAns = getVal(qObj, answer_key);
@@ -682,11 +682,13 @@ export default function PracticePlay() {
         if (distractor_pool.length >= 20) break;
         if (other.id !== qObj.id) {
           const d_val = getVal(other, answer_key);
+          const d_q_val = getVal(other, question_key);
           const d_front = getVal(other, 'front');
           const d_back = getVal(other, 'back');
           if (d_val && d_val.toLowerCase() !== 'nan') {
             distractor_pool.push({
               text: d_val,
+              q_text: d_q_val,
               front: d_front,
               back: d_back,
               id: other.id,
@@ -726,6 +728,7 @@ export default function PracticePlay() {
         question: questionText,
         choices,
         choice_item_ids,
+        choices_data,
         correct_index: correct_index !== -1 ? correct_index : 0,
         correct_answer: correctAns,
         question_key,
@@ -3374,13 +3377,48 @@ export default function PracticePlay() {
                         handleMCQAnswer(idx);
                       } else {
                         let qData: any = null;
+                        let choiceObj: any = null;
+
+                        if (currentPracticeData?.choices_data && currentPracticeData.choices_data[idx]) {
+                          choiceObj = currentPracticeData.choices_data[idx];
+                        }
+
                         if (choice_item_ids && session?.questions) {
                           const selectedId = choice_item_ids[idx];
                           qData = session.questions.find((q: any) => q.id === selectedId);
                         }
+
                         const choiceText = choice;
-                        const wordText = qData ? (qData.content || qData.others?.front || qData.front || choiceText) : choiceText;
-                        const explanation = qData ? (qData.explanation || qData.others?.back || qData.back || "Không có thông tin mô tả thêm.") : "Không có thông tin mô tả thêm.";
+                        const qKey = currentPracticeData?.question_key || 'front';
+                        const aKey = currentPracticeData?.answer_key || 'back';
+
+                        let wordText = "";
+
+                        if (choiceObj && choiceObj.q_text && choiceObj.q_text !== choiceText) {
+                          wordText = choiceObj.q_text;
+                        } else if (qData) {
+                          const valQ = getVal(qData, qKey);
+                          const valA = getVal(qData, aKey);
+
+                          if (valQ && valQ !== choiceText) {
+                            wordText = valQ;
+                          } else if (valA && valA !== choiceText) {
+                            wordText = valA;
+                          } else {
+                            wordText = getVal(qData, 'front') || getVal(qData, 'back') || choiceText;
+                          }
+                        }
+
+                        if (!wordText || wordText === choiceText) {
+                          if (choiceObj) {
+                            if (choiceObj.front && choiceObj.front !== choiceText) wordText = choiceObj.front;
+                            else if (choiceObj.back && choiceObj.back !== choiceText) wordText = choiceObj.back;
+                          }
+                        }
+
+                        if (!wordText) wordText = choiceText;
+
+                        const explanation = qData ? (qData.explanation || qData.others?.back || qData.back || "Không có thông tin mô tả thêm.") : (choiceObj?.back || "Không có thông tin mô tả thêm.");
 
                         setPreviewChoiceModal({
                           choiceIdx: idx,
