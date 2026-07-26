@@ -1069,13 +1069,15 @@ def migrate_practice_settings(settings: Optional[dict]) -> dict:
         return {}
     if any(k in settings for k in ("mcq", "typing", "listening")):
         return settings
+    
     active_pairs = settings.get("active_pairs", [])
     num_choices = settings.get("num_choices", 4)
-    return {
-        "mcq": {"active_pairs": active_pairs, "num_choices": num_choices},
-        "typing": {"active_pairs": active_pairs},
-        "listening": {"active_pairs": active_pairs, "num_choices": num_choices}
-    }
+    
+    new_settings = dict(settings)
+    new_settings["mcq"] = {"active_pairs": active_pairs, "num_choices": num_choices}
+    new_settings["typing"] = {"active_pairs": active_pairs}
+    new_settings["listening"] = {"active_pairs": active_pairs, "num_choices": num_choices}
+    return new_settings
 
 @router.get("/quick-play-data")
 async def get_quick_play_data(request: Request, db: AsyncSession = Depends(get_db)):

@@ -181,6 +181,10 @@ export default function LearningInsightsModal({
         key !== 'audio' &&
         key !== 'front_audio_url' &&
         key !== 'back_audio_url' &&
+        key !== 'front_audio_content' &&
+        key !== 'back_audio_content' &&
+        key !== 'front audio content' &&
+        key !== 'back audio content' &&
         value
       ) {
         fullCardTabs.push({
