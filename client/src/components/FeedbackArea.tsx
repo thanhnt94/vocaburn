@@ -72,8 +72,13 @@ interface FeedbackAreaProps {
 
 const getQuestionField = (question: any, key: string, useAiResponse: boolean = false): string => {
   if (!question || !question.others) return '';
+  let othersObj = question.others;
+  if (typeof othersObj === 'string') {
+    try { othersObj = JSON.parse(othersObj); } catch (e) {}
+  }
+  if (!othersObj || typeof othersObj !== 'object') return '';
   
-  const targetObj = useAiResponse ? question.others.ai_responses : question.others;
+  const targetObj = useAiResponse ? othersObj.ai_responses : othersObj;
   if (!targetObj) return '';
   
   if (targetObj[key]) return targetObj[key];
@@ -159,8 +164,12 @@ export const FeedbackArea: React.FC<FeedbackAreaProps> = ({
       { id: 'front', title: 'Mặt trước (Front)', column: 'front' },
       { id: 'back', title: 'Mặt sau (Back)', column: 'back' }
     ]
-    if (currentQuestion?.others) {
-      Object.keys(currentQuestion.others).forEach((key) => {
+    let othersObj = currentQuestion?.others;
+    if (typeof othersObj === 'string') {
+      try { othersObj = JSON.parse(othersObj); } catch (e) {}
+    }
+    if (othersObj && typeof othersObj === 'object') {
+      Object.keys(othersObj).forEach((key) => {
         if (key !== 'ai_responses' && key !== 'id' && key !== 'created_at' && key !== 'updated_at') {
           if (key !== 'front' && key !== 'back' && !tabs.some(t => t.id === key)) {
             tabs.push({
