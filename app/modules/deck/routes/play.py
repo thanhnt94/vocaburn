@@ -2880,6 +2880,10 @@ async def get_roadmap_test_questions(request: Request, deck_id: int, db: AsyncSe
                     "questions": saved_state["questions"],
                     "current_index": existing_session.current_index or 0,
                     "saved_answers": saved_state.get("practiceAnswers", {}),
+                    "practiceTotalAnswered": saved_state.get("practiceTotalAnswered", 0),
+                    "practiceCorrectCount": saved_state.get("practiceCorrectCount", 0),
+                    "sessionXP": saved_state.get("sessionXP", 0),
+                    "streak": saved_state.get("streak", 0),
                     "restored": True
                 }
         except Exception:
@@ -3254,6 +3258,16 @@ async def save_roadmap_test_progress(request: Request, deck_id: int, data: dict,
                 
                 existing_session.current_index = current_idx
                 saved_state["practiceAnswers"] = answers
+                
+                if "practiceTotalAnswered" in data:
+                    saved_state["practiceTotalAnswered"] = data["practiceTotalAnswered"]
+                if "practiceCorrectCount" in data:
+                    saved_state["practiceCorrectCount"] = data["practiceCorrectCount"]
+                if "sessionXP" in data:
+                    saved_state["sessionXP"] = data["sessionXP"]
+                if "streak" in data:
+                    saved_state["streak"] = data["streak"]
+                    
                 existing_session.state_json = json.dumps(saved_state)
                 await db.commit()
                 return {"status": "ok", "message": "Progress saved successfully"}

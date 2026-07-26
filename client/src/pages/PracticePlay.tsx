@@ -1325,23 +1325,33 @@ export default function PracticePlay() {
         if (isRoadmapTestMode) {
           let restoredIdx = (quizRes.data.current_index !== undefined && quizRes.data.current_index >= 0) ? quizRes.data.current_index : 0;
           let parsedAns: Record<number, number> = {};
-          let totalAnswered = 0;
-          let correctCount = 0;
+          let totalAnswered = quizRes.data.practiceTotalAnswered || 0;
+          let correctCount = quizRes.data.practiceCorrectCount || 0;
+          
+          if (quizRes.data.sessionXP !== undefined) {
+             setSessionXP(quizRes.data.sessionXP);
+          }
+          if (quizRes.data.streak !== undefined) {
+             setStreak(quizRes.data.streak);
+          }
 
           if (quizRes.data.saved_answers) {
             Object.entries(quizRes.data.saved_answers).forEach(([k, v]) => {
               const qIdx = Number(k);
               const chosenOptId = Number(v);
               parsedAns[qIdx] = chosenOptId;
-              totalAnswered += 1;
-              const q = questions[qIdx];
-              if (q && q.options) {
-                const chosenOpt = q.options.find((o: any) => o.id === chosenOptId);
-                if (chosenOpt && chosenOpt.is_correct) {
+              
+              if (quizRes.data.practiceTotalAnswered === undefined) {
+                totalAnswered += 1;
+                const q = questions[qIdx];
+                if (q && q.options) {
+                  const chosenOpt = q.options.find((o: any) => o.id === chosenOptId);
+                  if (chosenOpt && chosenOpt.is_correct) {
+                    correctCount += 1;
+                  }
+                } else if (chosenOptId === 3) {
                   correctCount += 1;
                 }
-              } else if (chosenOptId === 3) {
-                correctCount += 1;
               }
             });
           }
@@ -1358,6 +1368,12 @@ export default function PracticePlay() {
                 }
                 if (localSaved.practiceCorrectCount !== undefined) {
                   correctCount = Math.max(correctCount, localSaved.practiceCorrectCount);
+                }
+                if (localSaved.sessionXP !== undefined) {
+                  setSessionXP(localSaved.sessionXP);
+                }
+                if (localSaved.streak !== undefined) {
+                  setStreak(localSaved.streak);
                 }
                 if (localSaved.currentIndex !== undefined && restoredIdx === 0) {
                   restoredIdx = localSaved.currentIndex;
@@ -2212,12 +2228,20 @@ export default function PracticePlay() {
       const savedState = {
         currentIndex,
         practiceAnswers: newAnswers,
+        practiceTotalAnswered: updatedTotalAnswered,
+        practiceCorrectCount: updatedCorrectCount,
+        sessionXP: sessionXP,
+        streak: streak,
         timestamp: Date.now()
       };
       localStorage.setItem(`vocab_roadmap_session_${id}`, JSON.stringify(savedState));
       axios.post(`/api/v1/deck/${id}/roadmap-test-save-progress`, {
         current_index: currentIndex,
-        practiceAnswers: newAnswers
+        practiceAnswers: newAnswers,
+        practiceTotalAnswered: updatedTotalAnswered,
+        practiceCorrectCount: updatedCorrectCount,
+        sessionXP: sessionXP,
+        streak: streak
       }).catch(() => {});
 
       if (answeredKeysCount >= totalQ) {
