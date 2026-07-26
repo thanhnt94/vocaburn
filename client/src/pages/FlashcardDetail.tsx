@@ -570,21 +570,32 @@ export default function QuizDetail() {
                   <span className="text-[8px] font-black uppercase tracking-widest" style={{ color: roadmapStatus.roadmap_type === 'accumulation' ? '#b45309' : '#4f46e5' }}>
                     {roadmapStatus.roadmap_type === 'accumulation' ? '📈 Lộ trình tích lũy' : '📘 Lộ trình hoàn thành'} — Hôm nay
                   </span>
-                  {roadmapStatus.stage_2_done ? (
+                  {roadmapStatus.all_done ? (
                     <span className="px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-600 text-[8px] font-black border border-emerald-100">✓ Xong</span>
                   ) : (
                     <span className="px-2 py-0.5 rounded-full bg-amber-50 text-amber-600 text-[8px] font-black border border-amber-100">Đang thực hiện</span>
                   )}
                 </div>
                 <div className="flex items-center gap-2 flex-wrap">
-                  <div className={cn("px-2.5 py-1 rounded-lg text-[9px] font-bold flex items-center gap-1 border", roadmapStatus.stage_1_done ? "bg-emerald-50 text-emerald-700 border-emerald-200" : "bg-white text-slate-500 border-slate-200")}>
-                    {roadmapStatus.stage_1_done ? '✓' : '1.'} {roadmapStatus.roadmap_type === 'accumulation' ? `Nhập & học (${roadmapStatus.created_today_count || 0}/${roadmapStatus.new_target_today})` : `Học từ mới (${roadmapStatus.new_learned_today}/${roadmapStatus.new_target_today})`}
-                  </div>
-                  {roadmapStatus.has_stage_2 !== false && (
-                    <div className={cn("px-2.5 py-1 rounded-lg text-[9px] font-bold flex items-center gap-1 border", roadmapStatus.stage_2_done ? "bg-emerald-50 text-emerald-700 border-emerald-200" : "bg-white text-indigo-600 border-indigo-200")}>
-                      {roadmapStatus.stage_2_done ? '✓' : '2.'} Bài Test (≥{roadmapStatus.roadmap_pass_threshold || 80}%)
-                    </div>
-                  )}
+                  {roadmapStatus.pipeline?.map((step: any, index: number) => {
+                    let progressText = "";
+                    if (step.type === 'new_cards') {
+                      progressText = roadmapStatus.roadmap_type === 'accumulation' 
+                        ? `(${roadmapStatus.created_today_count || 0}/${step.progress?.target || 0})` 
+                        : `(${step.progress?.learned || 0}/${step.progress?.target || 0})`;
+                    } else if (step.type === 'fsrs_review') {
+                      progressText = `(${step.progress?.reviewed_today || 0}/${step.progress?.due_count || 0})`;
+                    } else if (step.type === 'mcq' || step.type === 'typing') {
+                      progressText = `(≥${step.progress?.target_score || 0}%)`;
+                    }
+
+                    return (
+                      <div key={index} className={cn("px-2.5 py-1 rounded-lg text-[9px] font-bold flex items-center gap-1 border", step.done ? "bg-emerald-50 text-emerald-700 border-emerald-200" : "bg-white text-slate-500 border-slate-200")}>
+                        {step.done ? '✓' : `${index + 1}.`} 
+                        {roadmapStatus.roadmap_type === 'accumulation' && step.type === 'new_cards' ? 'Nhập & học' : step.label} {progressText}
+                      </div>
+                    );
+                  })}
                   <button
                     onClick={() => navigate(roadmapStatus.next_action_url || `/flashcard/${id}/roadmap`)}
                     className={cn(

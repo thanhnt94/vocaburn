@@ -1666,7 +1666,10 @@ async def get_next_card(request: Request, deck_id: int, data: dict, db: AsyncSes
             UserAnswer.card_id,
             func.min(UserAnswer.created_at).label("min_created")
         ).join(DeckAttempt, UserAnswer.attempt_id == DeckAttempt.id)\
-         .where(DeckAttempt.user_id == user_id)\
+         .where(
+             DeckAttempt.user_id == user_id,
+             DeckAttempt.mode.in_(["sequential", "roadmap"])
+         )\
          .group_by(UserAnswer.card_id).subquery()
 
         new_learned_today = await db.scalar(
@@ -2441,7 +2444,10 @@ async def get_deck_roadmap_status_helper(db: AsyncSession, user_id: int, deck_id
         UserAnswer.card_id,
         func.min(UserAnswer.created_at).label("min_created")
     ).join(DeckAttempt, UserAnswer.attempt_id == DeckAttempt.id)\
-     .where(DeckAttempt.user_id == user_id)\
+     .where(
+         DeckAttempt.user_id == user_id,
+         DeckAttempt.mode.in_(["sequential", "roadmap"])
+     )\
      .group_by(UserAnswer.card_id).subquery()
     
     new_learned_today = await db.scalar(
@@ -2962,8 +2968,11 @@ async def get_roadmap_test_questions(request: Request, deck_id: int, db: AsyncSe
         UserAnswer.card_id,
         func.min(UserAnswer.created_at).label("min_created")
     ).join(DeckAttempt, UserAnswer.attempt_id == DeckAttempt.id)\
-    .where(DeckAttempt.user_id == user_id)\
-    .group_by(UserAnswer.card_id).subquery()
+     .where(
+         DeckAttempt.user_id == user_id,
+         DeckAttempt.mode.in_(["sequential", "roadmap"])
+     )\
+     .group_by(UserAnswer.card_id).subquery()
 
     today_cards_res = await db.execute(
         select(Flashcard)
