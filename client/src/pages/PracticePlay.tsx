@@ -627,6 +627,38 @@ export default function PracticePlay() {
     return String(val ?? "").trim();
   };
 
+  const getOppositeWord = (card: any, displayedChoiceText: string): string => {
+    if (!card) return displayedChoiceText;
+
+    const choiceNorm = String(displayedChoiceText || "").trim().toLowerCase();
+    const c_content = String(card.content || card.front || "").trim();
+    const c_explanation = String(card.explanation || card.back || "").trim();
+
+    if (c_explanation && c_explanation.toLowerCase() === choiceNorm) {
+      if (c_content && c_content.toLowerCase() !== choiceNorm) return c_content;
+    }
+
+    if (c_content && c_content.toLowerCase() === choiceNorm) {
+      if (c_explanation && c_explanation.toLowerCase() !== choiceNorm) return c_explanation;
+    }
+
+    if (card.others && typeof card.others === 'object') {
+      for (const [k, v] of Object.entries(card.others)) {
+        if (typeof v === 'string' && v.trim()) {
+          const vTrimmed = v.trim();
+          if (vTrimmed.toLowerCase() !== choiceNorm && k !== 'id' && k !== 'image' && k !== 'audio') {
+            return vTrimmed;
+          }
+        }
+      }
+    }
+
+    if (c_content && c_content.toLowerCase() !== choiceNorm) return c_content;
+    if (c_explanation && c_explanation.toLowerCase() !== choiceNorm) return c_explanation;
+
+    return displayedChoiceText;
+  };
+
   // ── Client-side Dynamic Practice Generator ──
 
   const generatePracticeQuestion = (idx: number, customSubMode?: string) => {
@@ -3389,35 +3421,8 @@ export default function PracticePlay() {
                         }
 
                         const choiceText = choice;
-                        const qKey = currentPracticeData?.question_key || 'front';
-                        const aKey = currentPracticeData?.answer_key || 'back';
-
-                        let wordText = "";
-
-                        if (choiceObj && choiceObj.q_text && choiceObj.q_text !== choiceText) {
-                          wordText = choiceObj.q_text;
-                        } else if (qData) {
-                          const valQ = getVal(qData, qKey);
-                          const valA = getVal(qData, aKey);
-
-                          if (valQ && valQ !== choiceText) {
-                            wordText = valQ;
-                          } else if (valA && valA !== choiceText) {
-                            wordText = valA;
-                          } else {
-                            wordText = getVal(qData, 'front') || getVal(qData, 'back') || choiceText;
-                          }
-                        }
-
-                        if (!wordText || wordText === choiceText) {
-                          if (choiceObj) {
-                            if (choiceObj.front && choiceObj.front !== choiceText) wordText = choiceObj.front;
-                            else if (choiceObj.back && choiceObj.back !== choiceText) wordText = choiceObj.back;
-                          }
-                        }
-
-                        if (!wordText) wordText = choiceText;
-
+                        const targetCard = qData || choiceObj;
+                        const wordText = getOppositeWord(targetCard, choiceText);
                         const explanation = qData ? (qData.explanation || qData.others?.back || qData.back || "Không có thông tin mô tả thêm.") : (choiceObj?.back || "Không có thông tin mô tả thêm.");
 
                         setPreviewChoiceModal({
