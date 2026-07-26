@@ -628,7 +628,7 @@ export default function PracticePlay() {
   };
 
   const getOppositeTextFromCard = (card: any, displayedText: string, qKey?: string, aKey?: string): string => {
-    if (!card) return displayedText;
+    if (!card) return "(Chưa bổ sung nghĩa/từ gốc)";
 
     const targetNorm = String(displayedText || "").trim().toLowerCase();
     if (!targetNorm) return displayedText;
@@ -666,7 +666,11 @@ export default function PracticePlay() {
       }
     }
 
-    return candidates.length > 0 ? candidates[0] : displayedText;
+    if (card.hint) addCandidate(card.hint);
+    if (card.note) addCandidate(card.note);
+    if (card.ai_explanation) addCandidate(card.ai_explanation);
+
+    return candidates.length > 0 ? candidates[0] : "(Chưa bổ sung nghĩa/từ gốc)";
   };
 
   // ── Client-side Dynamic Practice Generator ──
