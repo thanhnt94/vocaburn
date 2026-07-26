@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { StickyNote, ChevronLeft, ChevronDown, Edit2, X, Volume2 } from 'lucide-react'
+import { StickyNote, ChevronLeft, ChevronRight, ChevronDown, Edit2, X, Volume2 } from 'lucide-react'
 import axios from 'axios'
 import { cn } from '@/lib/utils'
 import { speakWithEdgeTTS } from '@/lib/audio'
@@ -244,42 +244,12 @@ export default function LearningInsightsModal({
               <div>
                 <div className="flex items-center gap-1.5">
                   <h3 className="text-xs sm:text-sm font-black text-slate-900 uppercase tracking-widest leading-none">Learning Insights</h3>
-                  {allQuestions.length > 1 && (
-                    <div className="flex items-center gap-0.5 ml-1 bg-slate-100 p-0.5 rounded-lg border border-slate-200/50">
-                      <button
-                        disabled={!hasPrev}
-                        onClick={() => hasPrev && onSelectCard && onSelectCard(allQuestions[idx - 1])}
-                        className="w-5 h-5 flex items-center justify-center rounded bg-white text-slate-500 hover:text-indigo-600 disabled:opacity-30 disabled:hover:text-slate-500 transition-all border border-slate-200/40 active:scale-90"
-                        title="Thẻ trước đó"
-                      >
-                        <ChevronLeft className="w-3 h-3" />
-                      </button>
-                      <button
-                        disabled={!hasNext}
-                        onClick={() => hasNext && onSelectCard && onSelectCard(allQuestions[idx + 1])}
-                        className="w-5 h-5 flex items-center justify-center rounded bg-white text-slate-500 hover:text-indigo-600 disabled:opacity-30 disabled:hover:text-slate-500 transition-all border border-slate-200/40 active:scale-90"
-                        title="Thẻ tiếp theo"
-                      >
-                        <ChevronDown className="w-3 h-3 -rotate-90" />
-                      </button>
-                    </div>
-                  )}
                 </div>
                 <p className="text-[9px] font-bold text-slate-400 mt-1">Details for Card #{displayIndex}</p>
               </div>
             </div>
 
             <div className="flex items-center gap-2">
-              {canEdit && onEditCard && (
-                <button
-                  onClick={() => onEditCard(card)}
-                  className="h-8 px-2.5 bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-600 text-[10px] font-black uppercase tracking-wider rounded-lg flex items-center gap-1 active:scale-95 transition-all"
-                  title="Sửa thẻ"
-                >
-                  <Edit2 className="w-3 h-3 text-slate-500" />
-                  <span>Sửa thẻ</span>
-                </button>
-              )}
               <button
                 onClick={onClose}
                 className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 flex items-center justify-center transition-all active:scale-90"
@@ -289,30 +259,8 @@ export default function LearningInsightsModal({
             </div>
           </div>
 
-          {/* Tab Navigation */}
-          <div className="flex items-center p-1 bg-slate-100/80 rounded-xl mt-4 flex-shrink-0 gap-1 border border-slate-200/40">
-            <button
-              onClick={() => setCardModalTab('content')}
-              className={cn(
-                "flex-1 py-2 text-[10px] font-black uppercase tracking-wider rounded-lg transition-all",
-                cardModalTab === 'content' ? "bg-white text-indigo-600 shadow-sm border border-slate-200/60" : "text-slate-400 hover:text-slate-600"
-              )}
-            >
-              📖 INSIGHTS CONTENT
-            </button>
-            <button
-              onClick={() => setCardModalTab('stats')}
-              className={cn(
-                "flex-1 py-2 text-[10px] font-black uppercase tracking-wider rounded-lg transition-all",
-                cardModalTab === 'stats' ? "bg-white text-indigo-600 shadow-sm border border-slate-200/60" : "text-slate-400 hover:text-slate-600"
-              )}
-            >
-              📊 CARD STATISTICS
-            </button>
-          </div>
-
           {/* Modal Body Area */}
-          <div className="flex-1 overflow-y-auto pr-1 custom-scrollbar min-h-0 space-y-3.5 py-1 mt-4">
+          <div className="flex-1 overflow-y-auto px-4 sm:px-6 custom-scrollbar min-h-0 py-4 mt-2">
             {cardModalTab === 'content' ? (
               <>
                 {/* Insights list */}
@@ -424,6 +372,65 @@ export default function LearningInsightsModal({
                 </div>
               </div>
             )}
+          </div>
+
+          {/* Footer (Mobile friendly) */}
+          <div className="p-4 sm:p-5 border-t border-slate-100 bg-slate-50/80 backdrop-blur-sm flex-shrink-0 flex flex-col gap-4">
+            {/* Tab Navigation */}
+            <div className="flex items-center p-1 bg-white rounded-xl border border-slate-200/60 shadow-sm">
+              <button
+                onClick={() => setCardModalTab('content')}
+                className={cn(
+                  "flex-1 py-3 text-[10px] font-black uppercase tracking-wider rounded-lg transition-all",
+                  cardModalTab === 'content' ? "bg-indigo-50 text-indigo-600 shadow-sm border border-indigo-100" : "text-slate-400 hover:text-slate-600"
+                )}
+              >
+                📖 INSIGHTS
+              </button>
+              <button
+                onClick={() => setCardModalTab('stats')}
+                className={cn(
+                  "flex-1 py-3 text-[10px] font-black uppercase tracking-wider rounded-lg transition-all",
+                  cardModalTab === 'stats' ? "bg-indigo-50 text-indigo-600 shadow-sm border border-indigo-100" : "text-slate-400 hover:text-slate-600"
+                )}
+              >
+                📊 STATS
+              </button>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex items-center justify-between">
+              {canEdit && onEditCard ? (
+                <button
+                  onClick={() => onEditCard(card)}
+                  className="h-10 px-4 bg-white hover:bg-slate-50 border border-slate-200 text-slate-600 text-[10px] font-black uppercase tracking-wider rounded-xl flex items-center gap-2 shadow-sm active:scale-95 transition-all"
+                >
+                  <Edit2 className="w-4 h-4 text-slate-500" />
+                  <span>Sửa thẻ</span>
+                </button>
+              ) : (
+                <div />
+              )}
+
+              {allQuestions.length > 1 && (
+                <div className="flex items-center gap-1 bg-white p-1 rounded-xl border border-slate-200 shadow-sm">
+                  <button
+                    disabled={!hasPrev}
+                    onClick={() => hasPrev && onSelectCard && onSelectCard(allQuestions[idx - 1])}
+                    className="w-12 h-10 flex items-center justify-center rounded-lg bg-slate-50 text-slate-600 hover:text-indigo-600 hover:bg-indigo-50 disabled:opacity-30 disabled:hover:text-slate-600 transition-all active:scale-90"
+                  >
+                    <ChevronLeft className="w-5 h-5" />
+                  </button>
+                  <button
+                    disabled={!hasNext}
+                    onClick={() => hasNext && onSelectCard && onSelectCard(allQuestions[idx + 1])}
+                    className="w-12 h-10 flex items-center justify-center rounded-lg bg-slate-50 text-slate-600 hover:text-indigo-600 hover:bg-indigo-50 disabled:opacity-30 disabled:hover:text-slate-600 transition-all active:scale-90"
+                  >
+                    <ChevronRight className="w-5 h-5" />
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
         </motion.div>
       </div>
