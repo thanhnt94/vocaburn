@@ -3041,16 +3041,50 @@ async def get_roadmap_test_questions(request: Request, deck_id: int, db: AsyncSe
         front_text = extract_card_val(card, q_key)
         back_text = extract_card_val(card, a_key)
 
-        choices_pool = list({extract_card_val(c, a_key) for c in all_cards if extract_card_val(c, a_key)})
-        distractors = [c for c in choices_pool if c != back_text]
-        random.shuffle(distractors)
-        opts = [back_text] + distractors[:3]
-        random.shuffle(opts)
-        
-        options_list = [
-            {"id": i + 1, "content": opt, "is_correct": opt == back_text}
-            for i, opt in enumerate(opts)
-        ]
+        # Build candidate distractor cards from all_cards
+        other_cards = [c for c in all_cards if c.id != card.id]
+        random.shuffle(other_cards)
+
+        seen_a_vals = {back_text.lower()}
+        selected_distractor_cards = []
+
+        for oc in other_cards:
+            a_val = extract_card_val(oc, a_key)
+            if a_val and a_val.lower() not in seen_a_vals:
+                seen_a_vals.add(a_val.lower())
+                selected_distractor_cards.append(oc)
+                if len(selected_distractor_cards) >= 3:
+                    break
+
+        # Assemble 4 choice option card objects (1 correct card + up to 3 distractor cards)
+        choice_cards = [card] + selected_distractor_cards
+        random.shuffle(choice_cards)
+
+        options_list = []
+        choice_item_ids = []
+        choices_data = []
+
+        for i, c_item in enumerate(choice_cards):
+            q_val = extract_card_val(c_item, q_key)
+            a_val = extract_card_val(c_item, a_key)
+            c_front = (c_item.content or "").strip()
+            c_back = (c_item.explanation or "").strip()
+            is_correct = (c_item.id == card.id)
+
+            options_list.append({
+                "id": i + 1,
+                "content": a_val,
+                "is_correct": is_correct,
+                "card_id": c_item.id
+            })
+            choice_item_ids.append(c_item.id)
+            choices_data.append({
+                "id": c_item.id,
+                "text": a_val,
+                "q_text": q_val,
+                "front": c_front,
+                "back": c_back
+            })
 
         formatted_questions.append({
             "id": card.id,
@@ -3065,6 +3099,8 @@ async def get_roadmap_test_questions(request: Request, deck_id: int, db: AsyncSe
             "practice": {
                 "question": front_text,
                 "choices": [o["content"] for o in options_list],
+                "choice_item_ids": choice_item_ids,
+                "choices_data": choices_data,
                 "correct_index": next((i for i, o in enumerate(options_list) if o["is_correct"]), 0),
                 "correct_answer": back_text,
                 "question_key": q_key,
