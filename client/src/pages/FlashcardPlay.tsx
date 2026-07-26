@@ -776,7 +776,8 @@ export default function FlashcardPlay() {
   })()
 
   const dueCardsCount = useMemo(() => {
-    if (!session || !session.questions || activeMode !== 'fsrs') return 0;
+    const isFsrsMode = activeMode === 'fsrs' || (activeMode === 'roadmap' && roadmapStatus?.pipeline?.[roadmapStatus?.current_step_index || 0]?.type === 'fsrs_review');
+    if (!session || !session.questions || !isFsrsMode) return 0;
     const now = currentTime.getTime();
     return session.questions.filter((q: any, idx: number) => {
       if (q.is_ignored) return false;
@@ -789,7 +790,7 @@ export default function FlashcardPlay() {
       if (hasAnswered && !isDue) return false;
       return isDue;
     }).length;
-  }, [session, activeMode, currentTime, sessionAnswers]);
+  }, [session, activeMode, currentTime, sessionAnswers, roadmapStatus]);
 
   const hasRated = activelyRatedCurrentCard || (sessionAnswers[currentIndex] !== undefined && !isCardUnlocked)
 
@@ -3638,41 +3639,49 @@ export default function FlashcardPlay() {
         <div className="bg-slate-100/50 border border-slate-200/40 rounded-xl p-0.5 flex items-center gap-0.5 md:gap-1.5 shadow-[inset_0_1px_2px_rgba(0,0,0,0.02)] flex-shrink-0 mr-0.5 md:mr-0">
           {activeMode === 'roadmap' && roadmapStatus ? (
             <>
-              {/* Item 1: Roadmap New Progress */}
-              <div className="flex items-center bg-white/90 border border-slate-200/30 rounded-lg p-0.5 pr-1 md:pr-1.5 shadow-sm min-w-[52px] xs:min-w-[56px] md:min-w-[66px]" title="Mục tiêu từ mới hàng ngày">
-                <div className="w-4 h-4 md:w-5 md:h-5 flex items-center justify-center bg-orange-50 text-orange-600 rounded mr-0.5 md:mr-1 flex-shrink-0">
-                  <Sparkles className="w-2.5 h-2.5 md:w-3 md:h-3" />
-                </div>
-                <div className="flex flex-col min-w-0">
-                  <span className="text-[5.5px] md:text-[6.5px] text-slate-400 font-extrabold uppercase tracking-wider leading-none">New</span>
-                  <div className="h-2.5 md:h-3 overflow-hidden relative min-w-[20px]">
-                    <span className="text-[7.5px] md:text-[8.5px] font-black text-slate-700 leading-none block truncate">
-                      {(() => {
-                        const s = roadmapStatus?.pipeline?.find((st: any) => st.type === 'new_cards');
-                        return `${s?.progress?.learned || 0}/${s?.daily_count || 10}`;
-                      })()}
-                    </span>
-                  </div>
-                </div>
-              </div>
+              {(() => {
+                const currentStep = roadmapStatus?.pipeline?.[roadmapStatus?.current_step_index || 0];
+                if (!currentStep) return null;
+                
+                const isNew = currentStep.type === 'new_cards';
+                const isReview = currentStep.type === 'fsrs_review';
+                const Icon = isNew ? Sparkles : Brain;
+                const iconColorClass = isNew ? 'bg-orange-50 text-orange-600' : 'bg-indigo-50 text-indigo-600';
+                const label = isNew ? 'New' : (isReview ? 'Due' : 'Task');
+                const title = currentStep.label || (isNew ? 'Mục tiêu từ mới hàng ngày' : 'Thẻ cần ôn tập hôm nay');
+                
+                let progressText = '--/--';
+                if (isNew) {
+                  progressText = `${currentStep.progress?.learned || 0}/${currentStep.daily_count || 10}`;
+                } else if (isReview) {
+                  progressText = `${currentStep.progress?.reviewed_today || 0}/${currentStep.progress?.due_count || 0}`;
+                }
 
-              {/* Item 2: Roadmap Review Progress */}
-              <div className="flex items-center bg-white/90 border border-slate-200/30 rounded-lg p-0.5 pr-1 md:pr-1.5 shadow-sm min-w-[52px] xs:min-w-[56px] md:min-w-[66px]" title="Thẻ cần ôn tập hôm nay">
-                <div className="w-4 h-4 md:w-5 md:h-5 flex items-center justify-center bg-indigo-50 text-indigo-600 rounded mr-0.5 md:mr-1 flex-shrink-0">
-                  <Brain className="w-2.5 h-2.5 md:w-3 md:h-3" />
-                </div>
-                <div className="flex flex-col min-w-0">
-                  <span className="text-[5.5px] md:text-[6.5px] text-slate-400 font-extrabold uppercase tracking-wider leading-none">Due</span>
-                  <div className="h-2.5 md:h-3 overflow-hidden relative min-w-[15px]">
-                    <span className="text-[7.5px] md:text-[8.5px] font-black text-slate-700 leading-none block truncate">
-                      {(() => {
-                        const s = roadmapStatus?.pipeline?.find((st: any) => st.type === 'fsrs_review');
-                        return `${s?.progress?.reviewed_today || 0}/${s?.progress?.due_count || 0}`;
-                      })()}
-                    </span>
+                return (
+                  <div className="flex items-center bg-white/90 border border-slate-200/30 rounded-lg p-0.5 pr-1 md:pr-1.5 shadow-sm min-w-[52px] xs:min-w-[56px] md:min-w-[66px]" title={title}>
+                    <div className={`w-4 h-4 md:w-5 md:h-5 flex items-center justify-center rounded mr-0.5 md:mr-1 flex-shrink-0 ${iconColorClass}`}>
+                      <Icon className="w-2.5 h-2.5 md:w-3 md:h-3" />
+                    </div>
+                    <div className="flex flex-col min-w-0">
+                      <span className="text-[5.5px] md:text-[6.5px] text-slate-400 font-extrabold uppercase tracking-wider leading-none">{label} Goal</span>
+                      <div className="h-2.5 md:h-3 overflow-hidden relative min-w-[20px]">
+                        <AnimatePresence mode="popLayout" initial={false}>
+                          <motion.span
+                            key={progressText}
+                            initial={{ y: 8, opacity: 0 }}
+                            animate={{ y: 0, opacity: 1 }}
+                            exit={{ y: -8, opacity: 0 }}
+                            transition={{ type: "spring", stiffness: 350, damping: 18 }}
+                            className="text-[7.5px] md:text-[8.5px] font-black text-slate-700 leading-none block truncate"
+                          >
+                            {progressText}
+                          </motion.span>
+                        </AnimatePresence>
+                      </div>
+                    </div>
                   </div>
-                </div>
-              </div>
+                );
+              })()}
             </>
           ) : (
             <>
