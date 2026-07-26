@@ -136,22 +136,6 @@ export default function LearningInsightsModal({
     });
   }
 
-  if (card.front_audio_content) {
-    fullCardTabs.push({
-      id: 'front_audio_content',
-      title: 'FRONT AUDIO CONTENT',
-      content: card.front_audio_content
-    });
-  }
-
-  if (card.back_audio_content) {
-    fullCardTabs.push({
-      id: 'back_audio_content',
-      title: 'BACK AUDIO CONTENT',
-      content: card.back_audio_content
-    });
-  }
-
   // Extract from others dict safely
   let othersObj: Record<string, any> = {};
   if (card.others) {
@@ -162,6 +146,24 @@ export default function LearningInsightsModal({
     } else if (typeof card.others === 'object') {
       othersObj = card.others;
     }
+  }
+
+  const frontAudioContent = card.front_audio_content || othersObj.front_audio_content || othersObj['front audio content'];
+  if (frontAudioContent) {
+    fullCardTabs.push({
+      id: 'front_audio_content',
+      title: 'FRONT AUDIO CONTENT',
+      content: frontAudioContent
+    });
+  }
+
+  const backAudioContent = card.back_audio_content || othersObj.back_audio_content || othersObj['back audio content'];
+  if (backAudioContent) {
+    fullCardTabs.push({
+      id: 'back_audio_content',
+      title: 'BACK AUDIO CONTENT',
+      content: backAudioContent
+    });
   }
 
   if (othersObj && typeof othersObj === 'object') {

@@ -3491,7 +3491,10 @@ export default function PracticePlay() {
                           }
                         }
 
-                        const targetCard = choiceObj?.card || qData || choiceObj;
+                        const cardIdFromChoice = choice_item_ids?.[idx] || choiceObj?.card?.id || choiceObj?.id;
+                        let rawCardFromSession = session?.questions?.find((q: any) => String(q.id) === String(cardIdFromChoice));
+                        
+                        const targetCard = rawCardFromSession || qData || choiceObj?.card || choiceObj;
                         if (targetCard) {
                           setPreviewInsightCard(targetCard);
                         } else {
