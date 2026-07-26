@@ -18,6 +18,7 @@ import { TypewriterText } from '@/components/TypewriterText'
 import { FeedbackArea } from '@/components/FeedbackArea'
 import { PracticeSetupScreen } from '@/components/PracticeSetupScreen'
 import { QuestionMapGrid } from '@/components/QuestionMapGrid'
+import LearningInsightsModal from '@/components/LearningInsightsModal'
 import { MilestoneCelebration } from '@/components/MilestoneCelebration'
 import DailyComparisonChart from '@/components/DailyComparisonChart'
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts'
@@ -581,6 +582,7 @@ export default function PracticePlay() {
   const [practiceTotalAnswered, setPracticeTotalAnswered] = useState(0)
   const [practiceCorrectCount, setPracticeCorrectCount] = useState(0)
   const [previewChoiceModal, setPreviewChoiceModal] = useState<{ choiceIdx: number; choiceText: string; wordText: string; explanation: string; audioText: string } | null>(null)
+  const [previewInsightCard, setPreviewInsightCard] = useState<any | null>(null)
 
   // Sync practiceSubMode from URL params
   useEffect(() => {
@@ -3483,19 +3485,17 @@ export default function PracticePlay() {
                         }
 
                         const targetCard = qData || choiceObj;
-                        const wordText = getOppositeTextFromCard(targetCard, choiceText, qKey, aKey);
-
-                        const explanation = qData
-                          ? (qData.explanation || getVal(qData, 'explanation') || getVal(qData, aKey) || "Không có thông tin mô tả thêm.")
-                          : (choiceObj?.back || "Không có thông tin mô tả thêm.");
-
-                        setPreviewChoiceModal({
-                          choiceIdx: idx,
-                          choiceText,
-                          wordText,
-                          explanation,
-                          audioText: wordText
-                        });
+                        if (targetCard) {
+                          setPreviewInsightCard(targetCard);
+                        } else {
+                          const wordText = getOppositeTextFromCard(null, choiceText, qKey, aKey);
+                          setPreviewInsightCard({
+                            content: choiceText,
+                            explanation: wordText,
+                            front: choiceText,
+                            back: wordText
+                          });
+                        }
                       }
                     }}
                     className={cn(
@@ -6357,80 +6357,18 @@ export default function PracticePlay() {
       </AnimatePresence>
 
       {/* Choice Preview Modal when clicking options post-answer */}
-      <AnimatePresence>
-        {previewChoiceModal && (
-          <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4">
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setPreviewChoiceModal(null)}
-              className="absolute inset-0 bg-slate-900/60 backdrop-blur-md"
-            />
-            <motion.div
-              initial={{ opacity: 0, scale: 0.9, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.9, y: 20 }}
-              className="relative w-full max-w-md bg-white rounded-[2.5rem] p-6 sm:p-8 shadow-2xl border border-slate-100 flex flex-col items-center text-center overflow-hidden z-10"
-            >
-              <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-indigo-500 via-purple-500 to-indigo-500" />
-              
-              <button
-                onClick={() => setPreviewChoiceModal(null)}
-                className="absolute top-4 right-4 w-9 h-9 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-500 font-bold transition-all"
-              >
-                ✕
-              </button>
-
-              <div className="flex items-center gap-2 mb-3">
-                <span className="text-[10px] font-black uppercase tracking-widest text-indigo-600 bg-indigo-50 border border-indigo-100 px-3 py-1 rounded-xl">
-                  Lựa chọn #{previewChoiceModal.choiceIdx + 1}
-                </span>
-              </div>
-
-              {/* Choice Content */}
-              <div className="text-sm font-extrabold text-slate-700 bg-slate-50 border border-slate-200/60 rounded-2xl px-4 py-3 mb-3 w-full text-center">
-                <span className="text-slate-400 font-medium mr-1.5">Nội dung lựa chọn:</span>
-                <span dangerouslySetInnerHTML={{ __html: parseBBCodeToHtml(previewChoiceModal.choiceText) }} />
-              </div>
-
-              {/* Opposite Side Content */}
-              <div className="w-full p-4 rounded-3xl bg-indigo-50/50 border border-indigo-100 flex flex-col items-center justify-center gap-2 my-2">
-                <span className="text-[9px] font-black text-indigo-400 uppercase tracking-widest">Nội dung đối diện tương ứng</span>
-                <div className="flex items-center justify-center gap-3">
-                  <h3 className="text-2xl sm:text-3xl font-black text-slate-800 tracking-tight">
-                    <span dangerouslySetInnerHTML={{ __html: parseBBCodeToHtml(previewChoiceModal.wordText) }} />
-                  </h3>
-                  <button
-                    onClick={() => speakMultiLanguage(previewChoiceModal.audioText || previewChoiceModal.wordText || previewChoiceModal.choiceText)}
-                    className="w-10 h-10 rounded-2xl bg-indigo-600 text-white flex items-center justify-center shadow-md hover:bg-indigo-700 active:scale-90 transition-all shrink-0"
-                    title="Nghe phát âm"
-                  >
-                    <Volume2 className="w-5 h-5 animate-pulse" />
-                  </button>
-                </div>
-              </div>
-
-              {/* Detailed Explanation */}
-              {previewChoiceModal.explanation && (
-                <div className="w-full text-left bg-slate-50/80 border border-slate-100 rounded-2xl p-4 my-2 max-h-48 overflow-y-auto custom-scrollbar">
-                  <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block mb-1">Mô tả / Giải thích</span>
-                  <div className="text-xs font-semibold text-slate-700 leading-relaxed whitespace-pre-wrap">
-                    <span dangerouslySetInnerHTML={{ __html: parseBBCodeToHtml(previewChoiceModal.explanation) }} />
-                  </div>
-                </div>
-              )}
-
-              <button
-                onClick={() => setPreviewChoiceModal(null)}
-                className="mt-4 w-full py-3.5 bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-black text-xs uppercase tracking-widest rounded-2xl shadow-lg shadow-indigo-200 active:scale-95 transition-all hover:shadow-indigo-300"
-              >
-                Đồng ý / Đóng
-              </button>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
+      {/* Learning Insights Modal when clicking MCQ options */}
+      <LearningInsightsModal
+        card={previewInsightCard}
+        onClose={() => setPreviewInsightCard(null)}
+        allQuestions={session?.questions || []}
+        onSelectCard={(c) => setPreviewInsightCard(c)}
+        canEdit={canEdit}
+        onEditCard={(c) => {
+          setEditFormData(c)
+          setIsEditModalOpen(true)
+        }}
+      />
 
       {/* Edit Question Modal */}
       <AnimatePresence>

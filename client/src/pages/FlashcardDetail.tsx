@@ -8,6 +8,7 @@ import { cn } from '@/lib/utils'
 import { useAppStore } from '@/store/useAppStore'
 import { parseBBCodeToHtml } from '@/lib/text'
 import { FlashcardEditModal } from '@/components/FlashcardEditModal'
+import LearningInsightsModal from '@/components/LearningInsightsModal'
 
 interface Question {
   id: number
@@ -1064,217 +1065,17 @@ export default function QuizDetail() {
       </div>
 
       {/* ═══════════════ CARD INSIGHTS & STATS POPUP MODAL ═══════════════ */}
-      <AnimatePresence>
-        {selectedCard && (
-          <div className="fixed inset-0 z-[250] flex items-center justify-center p-4">
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setSelectedCard(null)}
-              className="absolute inset-0 bg-slate-900/60 backdrop-blur-md"
-            />
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95, y: 15 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 15 }}
-              className="relative w-full max-w-xl bg-white rounded-3xl p-5 shadow-2xl border border-slate-100/60 overflow-hidden flex flex-col max-h-[85vh] text-slate-800"
-            >
-              {/* Modal Header */}
-              <div className="flex items-center justify-between pb-3 border-b border-slate-100 flex-shrink-0">
-                <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-lg bg-indigo-50 flex items-center justify-center text-indigo-600">
-                    <StickyNote className="w-4 h-4" />
-                  </div>
-                  <div>
-                    <div className="flex items-center gap-1.5">
-                      <h3 className="text-xs font-black text-slate-900 uppercase tracking-widest leading-none">Learning Insights</h3>
-                      <div className="flex items-center gap-0.5 ml-1 bg-slate-100 p-0.5 rounded-lg border border-slate-200/50">
-                        {(() => {
-                          const idx = allQuestions.findIndex(q => q.id === selectedCard.id)
-                          const hasPrev = idx > 0
-                          const hasNext = idx !== -1 && idx < allQuestions.length - 1
-                          return (
-                            <>
-                              <button
-                                disabled={!hasPrev}
-                                onClick={() => hasPrev && setSelectedCard(allQuestions[idx - 1])}
-                                className="w-5 h-5 flex items-center justify-center rounded bg-white text-slate-500 hover:text-indigo-650 disabled:opacity-30 disabled:hover:text-slate-500 transition-all border border-slate-200/40 active:scale-90"
-                                title="Thẻ trước đó"
-                              >
-                                <ChevronLeft className="w-3 h-3" />
-                              </button>
-                              <button
-                                disabled={!hasNext}
-                                onClick={() => hasNext && setSelectedCard(allQuestions[idx + 1])}
-                                className="w-5 h-5 flex items-center justify-center rounded bg-white text-slate-500 hover:text-indigo-650 disabled:opacity-30 disabled:hover:text-slate-500 transition-all border border-slate-200/40 active:scale-90"
-                                title="Thẻ tiếp theo"
-                              >
-                                <ChevronDown className="w-3 h-3 rotate-270" style={{ transform: 'rotate(-90deg)' }} />
-                              </button>
-                            </>
-                          )
-                        })()}
-                      </div>
-                    </div>
-                    <p className="text-[9px] font-bold text-slate-400 mt-1">Details for Card #{selectedCard.orig_index}</p>
-                  </div>
-                </div>
-                
-                <div className="flex items-center gap-2">
-                  {canEdit && (
-                    <button
-                      onClick={() => {
-                      setEditCardFormData(selectedCard)
-                      setIsEditingCard(true)
-                    }}
-                      className="h-8 px-2.5 bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-600 text-[10px] font-black uppercase tracking-wider rounded-lg flex items-center gap-1 active:scale-95 transition-all"
-                      title="Sửa thẻ"
-                    >
-                      <Edit2 className="w-3.5 h-3.5" />
-                      <span>Sửa thẻ</span>
-                    </button>
-                  )}
-                  <button 
-                    onClick={() => setSelectedCard(null)}
-                    className="w-8 h-8 rounded-full bg-slate-50 flex items-center justify-center text-slate-400 hover:text-rose-500 transition-all"
-                  >
-                    <X className="w-4 h-4" />
-                  </button>
-                </div>
-              </div>
-
-              {/* Sub tabs: Insights vs Card Stats */}
-              <div className="flex border-b border-slate-100 flex-shrink-0 my-3 bg-slate-50/50 p-1 rounded-xl">
-                <button
-                  onClick={() => setCardModalTab('content')}
-                  className={cn(
-                    "flex-1 py-2 text-[10px] font-black uppercase tracking-wider rounded-lg transition-all",
-                    cardModalTab === 'content' ? "bg-white text-indigo-600 shadow-sm border border-slate-150/40" : "text-slate-400 hover:text-slate-600"
-                  )}
-                >
-                  📖 Insights Content
-                </button>
-                <button
-                  onClick={() => setCardModalTab('stats')}
-                  className={cn(
-                    "flex-1 py-2 text-[10px] font-black uppercase tracking-wider rounded-lg transition-all",
-                    cardModalTab === 'stats' ? "bg-white text-indigo-600 shadow-sm border border-slate-150/40" : "text-slate-400 hover:text-slate-600"
-                  )}
-                >
-                  📊 Card Statistics
-                </button>
-              </div>
-
-              {/* Modal Body Area */}
-              <div className="flex-1 overflow-y-auto pr-1 custom-scrollbar min-h-0 space-y-4 py-2">
-                {cardModalTab === 'content' ? (
-                  <>
-                    {/* Insights list */}
-                    <div className="space-y-3.5">
-                      {fullCardTabs.map((tab) => (
-                        <div key={tab.id} className="p-3.5 rounded-xl bg-slate-50/40 border border-slate-100 text-left">
-                          <span className="text-[8px] font-black text-indigo-500 uppercase tracking-widest block mb-1.5">{tab.title}</span>
-                          <div 
-                            className="text-xs font-semibold text-slate-700 leading-relaxed pr-1 whitespace-pre-wrap"
-                            dangerouslySetInnerHTML={{ __html: parseBBCodeToHtml(tab.content) }}
-                          />
-                        </div>
-                      ))}
-                    </div>
-
-                    {/* Personal Note Box */}
-                    <div className="p-3.5 rounded-xl bg-slate-50/40 border border-slate-100 text-left space-y-2 mt-4">
-                      <div className="flex items-center justify-between">
-                        <span className="text-[8px] font-black text-indigo-500 uppercase tracking-widest block">Personal Note</span>
-                        <button
-                          onClick={() => {
-                            if (isEditingCardNote) {
-                              handleSaveCardNote()
-                            } else {
-                              setIsEditingCardNote(true)
-                            }
-                          }}
-                          disabled={isSavingCardNote}
-                          className="text-[9px] font-black text-indigo-600 uppercase tracking-wider bg-indigo-50 hover:bg-indigo-100 px-2 py-1 rounded-md transition-all active:scale-95"
-                        >
-                          {isSavingCardNote ? 'Saving...' : (isEditingCardNote ? 'Save' : 'Edit Note')}
-                        </button>
-                      </div>
-
-                      {isEditingCardNote ? (
-                        <textarea
-                          value={selectedCardNote}
-                          onChange={(e) => setSelectedCardNote(e.target.value)}
-                          placeholder="Type personal notes or mnemonic tricks for this card..."
-                          className="w-full h-24 bg-white border border-slate-200 rounded-lg p-2.5 text-xs font-semibold text-slate-700 outline-none focus:border-indigo-500 transition-all resize-none"
-                        />
-                      ) : (
-                        <p className="text-xs font-semibold text-slate-600 leading-relaxed italic">
-                          {selectedCardNote || 'No personal note for this card yet.'}
-                        </p>
-                      )}
-                    </div>
-                  </>
-                ) : (
-                  /* Stats tab view */
-                  <div className="space-y-4 py-2">
-                    <div className="grid grid-cols-3 gap-3">
-                      <div className="p-3 rounded-xl bg-slate-50 text-center border border-slate-100">
-                        <span className="text-[8px] font-black text-slate-400 uppercase tracking-wider block mb-1">Total Attempts</span>
-                        <span className="text-lg font-black text-slate-800">{selectedCard.stats?.total || 0}</span>
-                      </div>
-                      <div className="p-3 rounded-xl bg-emerald-50/50 text-center border border-emerald-100/50">
-                        <span className="text-[8px] font-black text-emerald-600 uppercase tracking-wider block mb-1">Correct</span>
-                        <span className="text-lg font-black text-emerald-600">{selectedCard.stats?.correct || 0}</span>
-                      </div>
-                      <div className="p-3 rounded-xl bg-rose-50/50 text-center border border-rose-100/50">
-                        <span className="text-[8px] font-black text-rose-600 uppercase tracking-wider block mb-1">Wrong</span>
-                        <span className="text-lg font-black text-rose-600">{selectedCard.stats?.wrong || 0}</span>
-                      </div>
-                    </div>
-
-                    {/* Success rate calculation */}
-                    <div className="p-4 rounded-xl bg-slate-50/80 border border-slate-100">
-                      <div className="flex items-center justify-between text-xs font-bold text-slate-600 mb-1">
-                        <span>Accuracy Rate</span>
-                        <span className="font-black text-slate-850">
-                          {selectedCard.stats?.total > 0 
-                            ? `${Math.round((selectedCard.stats.correct / selectedCard.stats.total) * 100)}%` 
-                            : 'N/A'}
-                        </span>
-                      </div>
-                      <div className="w-full h-2 bg-slate-200 rounded-full overflow-hidden">
-                        <div 
-                          className="h-full bg-gradient-to-r from-emerald-400 to-emerald-500 rounded-full transition-all"
-                          style={{ 
-                            width: selectedCard.stats?.total > 0 
-                              ? `${(selectedCard.stats.correct / selectedCard.stats.total) * 100}%` 
-                              : '0%' 
-                          }}
-                        />
-                      </div>
-                    </div>
-
-                    <div className="p-4 rounded-xl bg-indigo-50/20 border border-indigo-100/50 text-left">
-                      <span className="text-[8px] font-black text-indigo-600 uppercase tracking-widest block mb-2">Practice Insights</span>
-                      <ul className="text-xs font-semibold text-slate-600 space-y-2 list-disc list-inside">
-                        {selectedCard.stats?.total > 10 && (selectedCard.stats.correct / selectedCard.stats.total) > 0.8 && (
-                          <li className="text-emerald-600">🔥 You have mastered this card! You answer correctly almost every time.</li>
-                        )}
-                        {selectedCard.stats?.wrong > selectedCard.stats?.correct && (
-                          <li className="text-rose-600">⚠️ Hard card detected. Review this more often using Flashcard Play mode.</li>
-                        )}
-                        <li>Keep practicing to update spaced repetition intervals.</li>
-                      </ul>
-                    </div>
-                  </div>
-                )}
-              </div>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
+      <LearningInsightsModal
+        card={selectedCard}
+        onClose={() => setSelectedCard(null)}
+        allQuestions={allQuestions}
+        onSelectCard={(c) => setSelectedCard(c)}
+        canEdit={canEdit}
+        onEditCard={(c) => {
+          setEditCardFormData(c)
+          setIsEditingCard(true)
+        }}
+      />
 
       {/* ═══════════════ ROADMAP SETTINGS MODAL ═══════════════ */}
       <AnimatePresence>
