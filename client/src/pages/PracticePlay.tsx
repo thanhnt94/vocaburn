@@ -3408,22 +3408,48 @@ export default function PracticePlay() {
                       if (!answered) {
                         handleMCQAnswer(idx);
                       } else {
-                        let qData: any = null;
+                        // choices_data[idx] stores: { text: answer_key_val, q_text: question_key_val, front, back, id }
+                        // The choice button displays answer_key value (text), so opposite = question_key value (q_text)
                         let choiceObj: any = null;
-
                         if (currentPracticeData?.choices_data && currentPracticeData.choices_data[idx]) {
                           choiceObj = currentPracticeData.choices_data[idx];
                         }
 
+                        let qData: any = null;
                         if (choice_item_ids && session?.questions) {
                           const selectedId = choice_item_ids[idx];
                           qData = session.questions.find((q: any) => q.id === selectedId);
                         }
 
-                        const choiceText = choice;
-                        const targetCard = qData || choiceObj;
-                        const wordText = getOppositeWord(targetCard, choiceText);
-                        const explanation = qData ? (qData.explanation || qData.others?.back || qData.back || "Không có thông tin mô tả thêm.") : (choiceObj?.back || "Không có thông tin mô tả thêm.");
+                        const choiceText = choice; // This is the answer_key column value displayed on the button
+                        const qKey = currentPracticeData?.question_key || 'front';
+                        const aKey = currentPracticeData?.answer_key || 'back';
+
+                        // wordText = the OPPOSITE column value
+                        // choices_data stores q_text = getVal(card, question_key), which is exactly the opposite column
+                        let wordText = choiceObj?.q_text || "";
+
+                        // Fallback: if q_text is empty or same as choiceText, use getVal on qData
+                        if (!wordText || wordText === choiceText) {
+                          if (qData) {
+                            wordText = getVal(qData, qKey);
+                          }
+                        }
+                        // Second fallback: try opposite column directly
+                        if (!wordText || wordText === choiceText) {
+                          if (qData) {
+                            const valFront = getVal(qData, 'front');
+                            const valBack = getVal(qData, 'back');
+                            if (valFront && valFront !== choiceText) wordText = valFront;
+                            else if (valBack && valBack !== choiceText) wordText = valBack;
+                          }
+                        }
+                        if (!wordText) wordText = choiceText;
+
+                        // explanation: use the answer_key column or explanation field
+                        const explanation = qData
+                          ? (getVal(qData, aKey) || qData.explanation || "Không có thông tin mô tả thêm.")
+                          : (choiceObj?.back || "Không có thông tin mô tả thêm.");
 
                         setPreviewChoiceModal({
                           choiceIdx: idx,
