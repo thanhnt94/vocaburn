@@ -2454,15 +2454,13 @@ async def get_deck_roadmap_status_helper(db: AsyncSession, user_id: int, deck_id
     ) or 0
     
     review_completed_today = await db.scalar(
-        select(func.count(func.distinct(UserAnswer.card_id)))
-        .join(DeckAttempt, UserAnswer.attempt_id == DeckAttempt.id)
-        .join(Flashcard, UserAnswer.card_id == Flashcard.id)
-        .join(min_answer_sub, UserAnswer.card_id == min_answer_sub.c.card_id)
+        select(func.count(UserCardMastery.id))
+        .join(Flashcard, UserCardMastery.card_id == Flashcard.id)
         .where(
-            DeckAttempt.user_id == user_id,
             Flashcard.deck_id == deck_id,
-            UserAnswer.created_at >= today_start,
-            min_answer_sub.c.min_created < today_start
+            UserCardMastery.user_id == user_id,
+            UserCardMastery.last_review >= today_start,
+            UserCardMastery.state > 0
         )
     ) or 0
     
