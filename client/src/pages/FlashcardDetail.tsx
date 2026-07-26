@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
 import { useQuery, useInfiniteQuery, useQueryClient } from '@tanstack/react-query'
-import { ChevronLeft, Award, BookOpen, Search, StickyNote, BarChart2, Settings, Edit2, X, Save, Brain, HelpCircle, Plus, Sparkles, Trophy, Layers, RotateCcw, Compass, Flame, Target, ChevronDown, ChevronUp, Pencil, Calendar, ArrowRight, Sliders, LayoutGrid } from 'lucide-react'
+import { ChevronLeft, Award, BookOpen, Search, StickyNote, BarChart2, Settings, Edit2, X, Save, Brain, HelpCircle, Plus, Sparkles, Trophy, Layers, RotateCcw, Compass, Flame, Target, ChevronDown, ChevronUp, Pencil, Calendar, ArrowRight, Sliders, LayoutGrid, ClipboardPaste } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import axios from 'axios'
 import { cn } from '@/lib/utils'
@@ -40,6 +40,8 @@ export default function QuizDetail() {
   const [quickAddFront, setQuickAddFront] = useState('')
   const [quickAddBack, setQuickAddBack] = useState('')
   const [isQuickAdding, setIsQuickAdding] = useState(false)
+  const [isPasteModalOpen, setIsPasteModalOpen] = useState(false)
+  const [pasteText, setPasteText] = useState('')
   const [collaborators, setCollaborators] = useState<any[]>([])
 
   const [dailyNewInput, setDailyNewInput] = useState(10)
@@ -191,6 +193,101 @@ export default function QuizDetail() {
       alert("Failed to save card edits.")
     } finally {
       setIsSavingCardEdit(false)
+    }
+  }
+
+  const handlePasteExcel = async () => {
+    if (!pasteText.trim()) return;
+    setIsQuickAdding(true);
+    try {
+      const parsedRows: string[][] = []
+      let currentRow: string[] = []
+      let currentField = ''
+      let inQuotes = false
+      
+      const text = pasteText
+      for (let i = 0; i < text.length; i++) {
+        const char = text[i]
+        const nextChar = text[i + 1]
+        
+        if (inQuotes) {
+          if (char === '"') {
+            if (nextChar === '"') {
+              currentField += '"'
+              i++
+            } else {
+              inQuotes = false
+            }
+          } else {
+            currentField += char
+          }
+        } else {
+          if (char === '"') {
+            inQuotes = true
+          } else if (char === '\t') {
+            currentRow.push(currentField)
+            currentField = ''
+          } else if (char === '\r') {
+          } else if (char === '\n') {
+            currentRow.push(currentField)
+            parsedRows.push(currentRow)
+            currentRow = []
+            currentField = ''
+          } else {
+            currentField += char
+          }
+        }
+      }
+      if (currentField || currentRow.length > 0) {
+        currentRow.push(currentField)
+        parsedRows.push(currentRow)
+      }
+
+      const cardsToAdd: any[] = []
+      parsedRows.forEach(parts => {
+        if (parts.length === 0 || (parts.length === 1 && !parts[0].trim())) return
+        
+        const front = parts[0] ? parts[0].trim() : ''
+        const back = parts[1] ? parts[1].trim() : ''
+        
+        if (front) {
+          cardsToAdd.push({
+            content: front,
+            explanation: back,
+            front_audio_content: '',
+            back_audio_content: '',
+            front_audio_url: '',
+            back_audio_url: '',
+            front_img: '',
+            back_img: '',
+            others: {},
+            options: []
+          })
+        }
+      })
+      
+      if (cardsToAdd.length === 0) {
+        setIsPasteModalOpen(false)
+        setIsQuickAdding(false)
+        return
+      }
+      
+      await Promise.all(cardsToAdd.map(card => {
+        return axios.post(`/api/v1/deck/${id}/flashcard`, card)
+      }))
+      
+      queryClient.invalidateQueries({ queryKey: ['quiz-questions', id] })
+      queryClient.invalidateQueries({ queryKey: ['quiz', id] })
+      queryClient.invalidateQueries({ queryKey: ['quiz-roadmap-status', id] })
+      queryClient.invalidateQueries({ queryKey: ['quiz-stats-overview', id] })
+      
+      setPasteText('')
+      setIsPasteModalOpen(false)
+    } catch (err) {
+      console.error("Paste import failed:", err)
+      alert("Lỗi khi dán và import dữ liệu")
+    } finally {
+      setIsQuickAdding(false)
     }
   }
 
@@ -808,18 +905,28 @@ export default function QuizDetail() {
                     />
                   </div>
                 </div>
-                <button
-                  type="submit"
-                  disabled={isQuickAdding}
-                  className="w-full sm:w-auto px-4 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white font-black text-[9px] uppercase tracking-wider rounded-xl shadow-md active:scale-95 transition-all flex items-center justify-center gap-1"
-                >
-                  {isQuickAdding ? (
-                    <span className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                  ) : (
-                    <Plus className="w-3 h-3" />
-                  )}
-                  Add
-                </button>
+                <div className="flex gap-2 w-full sm:w-auto">
+                  <button
+                    type="submit"
+                    disabled={isQuickAdding}
+                    className="flex-1 sm:flex-none px-4 py-2 bg-orange-600 hover:bg-orange-700 disabled:opacity-50 text-white font-black text-[9px] uppercase tracking-wider rounded-xl shadow-md active:scale-95 transition-all flex items-center justify-center gap-1"
+                  >
+                    {isQuickAdding ? (
+                      <span className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    ) : (
+                      <Plus className="w-3 h-3" />
+                    )}
+                    Add
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setIsPasteModalOpen(true)}
+                    className="flex-1 sm:flex-none px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-600 font-black text-[9px] uppercase tracking-wider rounded-xl shadow-sm active:scale-95 transition-all flex items-center justify-center gap-1"
+                  >
+                    <ClipboardPaste className="w-3 h-3" />
+                    Paste
+                  </button>
+                </div>
               </form>
             </motion.div>
           )}
@@ -1588,6 +1695,73 @@ export default function QuizDetail() {
         onSave={handleSaveInlineCardEdit}
         isSaving={isSavingCardEdit}
       />
+
+      {/* Excel Paste Modal */}
+      <AnimatePresence>
+        {isPasteModalOpen && (
+          <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setIsPasteModalOpen(false)}
+              className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm"
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 10 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 10 }}
+              className="relative w-full max-w-2xl bg-white rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[85vh]"
+            >
+              <div className="p-6 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+                <div>
+                  <h3 className="text-lg font-black text-slate-900 flex items-center gap-2">
+                    <ClipboardPaste className="w-5 h-5 text-indigo-500" />
+                    Quick Copy-Paste
+                  </h3>
+                  <p className="text-xs text-slate-500 mt-1 font-medium">Copy data from Excel/Sheets (Front \t Back) and paste below.</p>
+                </div>
+                <button
+                  onClick={() => setIsPasteModalOpen(false)}
+                  className="w-8 h-8 flex items-center justify-center bg-white border border-slate-200 text-slate-400 hover:text-slate-600 rounded-full transition-colors"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              <div className="p-6 overflow-y-auto">
+                <textarea
+                  value={pasteText}
+                  onChange={(e) => setPasteText(e.target.value)}
+                  placeholder="Paste your data here..."
+                  className="w-full h-64 p-4 text-sm font-medium text-slate-700 bg-slate-50 border-2 border-slate-200 rounded-2xl focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 outline-none transition-all resize-none"
+                />
+              </div>
+
+              <div className="p-6 border-t border-slate-100 bg-slate-50/50 flex justify-end gap-3">
+                <button
+                  onClick={() => { setIsPasteModalOpen(false); setPasteText(''); }}
+                  className="px-6 py-2.5 rounded-xl font-bold text-xs text-slate-500 hover:text-slate-700 hover:bg-slate-100 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handlePasteExcel}
+                  disabled={isQuickAdding || !pasteText.trim()}
+                  className="px-6 py-2.5 rounded-xl font-black text-xs text-white bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg shadow-indigo-500/25 flex items-center gap-2"
+                >
+                  {isQuickAdding ? (
+                    <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  ) : (
+                    <Save className="w-4 h-4" />
+                  )}
+                  Import Cards
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   )
 }
