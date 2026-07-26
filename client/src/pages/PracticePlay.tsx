@@ -627,36 +627,46 @@ export default function PracticePlay() {
     return String(val ?? "").trim();
   };
 
-  const getOppositeWord = (card: any, displayedChoiceText: string): string => {
-    if (!card) return displayedChoiceText;
+  const getOppositeTextFromCard = (card: any, displayedText: string, qKey?: string, aKey?: string): string => {
+    if (!card) return displayedText;
 
-    const choiceNorm = String(displayedChoiceText || "").trim().toLowerCase();
-    const c_content = String(card.content || card.front || "").trim();
-    const c_explanation = String(card.explanation || card.back || "").trim();
+    const targetNorm = String(displayedText || "").trim().toLowerCase();
+    if (!targetNorm) return displayedText;
 
-    if (c_explanation && c_explanation.toLowerCase() === choiceNorm) {
-      if (c_content && c_content.toLowerCase() !== choiceNorm) return c_content;
-    }
+    const candidates: string[] = [];
 
-    if (c_content && c_content.toLowerCase() === choiceNorm) {
-      if (c_explanation && c_explanation.toLowerCase() !== choiceNorm) return c_explanation;
-    }
+    const addCandidate = (val: any) => {
+      if (val !== undefined && val !== null) {
+        const s = String(val).trim();
+        if (s && s.toLowerCase() !== targetNorm && !candidates.includes(s)) {
+          candidates.push(s);
+        }
+      }
+    };
+
+    if (qKey) addCandidate(getVal(card, qKey));
+    if (aKey) addCandidate(getVal(card, aKey));
+
+    addCandidate(card.content);
+    addCandidate(card.explanation);
+    addCandidate(card.front);
+    addCandidate(card.back);
 
     if (card.others && typeof card.others === 'object') {
       for (const [k, v] of Object.entries(card.others)) {
-        if (typeof v === 'string' && v.trim()) {
-          const vTrimmed = v.trim();
-          if (vTrimmed.toLowerCase() !== choiceNorm && k !== 'id' && k !== 'image' && k !== 'audio') {
-            return vTrimmed;
-          }
+        if (typeof v === 'string' && k !== 'id' && k !== 'image' && k !== 'audio' && k !== 'front_audio_url' && k !== 'back_audio_url') {
+          addCandidate(v);
         }
       }
     }
 
-    if (c_content && c_content.toLowerCase() !== choiceNorm) return c_content;
-    if (c_explanation && c_explanation.toLowerCase() !== choiceNorm) return c_explanation;
+    if (card.options && Array.isArray(card.options)) {
+      for (const opt of card.options) {
+        if (opt && opt.content) addCandidate(opt.content);
+      }
+    }
 
-    return displayedChoiceText;
+    return candidates.length > 0 ? candidates[0] : displayedText;
   };
 
   // ── Client-side Dynamic Practice Generator ──
@@ -3444,38 +3454,8 @@ export default function PracticePlay() {
                           }
                         }
 
-                        // Step 3: Extract the OPPOSITE column value (wordText)
-                        let wordText = "";
-
-                        if (qData) {
-                          const valQ = getVal(qData, qKey);
-                          const valA = getVal(qData, aKey);
-                          const valFront = getVal(qData, 'front') || qData.content || "";
-                          const valBack = getVal(qData, 'back') || qData.explanation || "";
-
-                          // If choiceText matches answer column, opposite is question column (valQ / valFront)
-                          if (valA && valA.toLowerCase() === choiceNorm) {
-                            wordText = (valQ && valQ.toLowerCase() !== choiceNorm) ? valQ : valFront;
-                          } else if (valBack && valBack.toLowerCase() === choiceNorm) {
-                            wordText = (valFront && valFront.toLowerCase() !== choiceNorm) ? valFront : valQ;
-                          } else if (valQ && valQ.toLowerCase() === choiceNorm) {
-                            // If choiceText matches question column, opposite is answer column (valA / valBack)
-                            wordText = (valA && valA.toLowerCase() !== choiceNorm) ? valA : valBack;
-                          } else if (valFront && valFront.toLowerCase() === choiceNorm) {
-                            wordText = (valBack && valBack.toLowerCase() !== choiceNorm) ? valBack : valA;
-                          } else {
-                            // Fallback: pick whichever column is different from choiceText
-                            if (valFront && valFront.toLowerCase() !== choiceNorm) wordText = valFront;
-                            else if (valQ && valQ.toLowerCase() !== choiceNorm) wordText = valQ;
-                            else if (valBack && valBack.toLowerCase() !== choiceNorm) wordText = valBack;
-                          }
-                        }
-
-                        if (!wordText && choiceObj && choiceObj.q_text && choiceObj.q_text.toLowerCase() !== choiceNorm) {
-                          wordText = choiceObj.q_text;
-                        }
-
-                        if (!wordText) wordText = choiceText;
+                        const targetCard = qData || choiceObj;
+                        const wordText = getOppositeTextFromCard(targetCard, choiceText, qKey, aKey);
 
                         const explanation = qData
                           ? (qData.explanation || getVal(qData, 'explanation') || getVal(qData, aKey) || "Không có thông tin mô tả thêm.")
