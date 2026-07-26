@@ -278,9 +278,10 @@ export default function PracticePlay() {
   const activeAudioRef = useRef<HTMLAudioElement | null>(null)
   const currentQuestionIdRef = useRef<number | null>(null)
 
-  const playCardAudio = async (face: 'front' | 'back') => {
+  const playCardAudio = async (face: string) => {
     if (!currentQuestion) return;
     const targetQuestionId = currentQuestion.id;
+    currentQuestionIdRef.current = targetQuestionId;
     
     // Stop any existing audio or speech synthesis
     if (activeAudioRef.current) {
@@ -289,28 +290,40 @@ export default function PracticePlay() {
     }
     window.speechSynthesis.cancel();
 
-    let audioUrl = face === 'front'
-      ? (currentQuestion.audio || currentQuestion.front_audio_url || currentQuestion.others?.front_audio_url)
-      : (currentQuestion.back_audio_url || currentQuestion.others?.back_audio_url);
+    // Check custom audio pairs in session/deck settings for language & script column
+    const qAny = currentQuestion as any;
+    const pairs = session?.practice_settings?.audio_pairs || session?.creator_settings?.audio_pairs || [];
+    const pair = pairs.find((p: any) => p.text_col === face);
 
-    let script = face === 'front'
-      ? (currentQuestion.front_audio_content || currentQuestion.others?.front_audio_content)
-      : (currentQuestion.back_audio_content || currentQuestion.others?.back_audio_content);
+    let audioUrl = '';
+    let script = '';
 
-    // Fallback to front content or back explanation if audio script content is not specified
-    if (!script || !script.trim()) {
-      if (face === 'front') {
-        script = currentQuestion.content;
-      } else {
-        script = currentQuestion.explanation;
+    if (face === 'front') {
+      audioUrl = qAny.audio || qAny.front_audio_url || qAny.others?.front_audio_url || '';
+      script = qAny.front_audio_content || qAny.others?.front_audio_content || qAny.content || '';
+    } else if (face === 'back') {
+      audioUrl = qAny.back_audio_url || qAny.others?.back_audio_url || '';
+      script = qAny.back_audio_content || qAny.others?.back_audio_content || qAny.explanation || '';
+    } else {
+      if (pair) {
+        const urlCol = pair.audio_url_col;
+        const contentCol = pair.audio_content_col;
+        if (urlCol) audioUrl = qAny[urlCol] || qAny.others?.[urlCol] || '';
+        if (contentCol) script = qAny[contentCol] || qAny.others?.[contentCol] || '';
+      }
+      if (!script || !script.trim()) {
+        script = qAny[face] || qAny.others?.[face] || '';
+      }
+      if (!audioUrl && pair && pair.audio_url_col) {
+        audioUrl = qAny[pair.audio_url_col] || qAny.others?.[pair.audio_url_col] || '';
       }
     }
 
     // Lazily generate audio if it is not yet created on backend
     if (!audioUrl && currentQuestion.id && script && script.trim()) {
       try {
-        console.log(`[CLIENT TTS] Audio file missing. Requesting generation for question ${currentQuestion.id} (${face})...`);
-        const res = await axios.get(`/api/v1/deck/generate-audio/${currentQuestion.id}?face=${face}`);
+        console.log(`[CLIENT TTS] Audio file missing. Requesting Edge TTS generation for question ${currentQuestion.id} (${face})...`);
+        const res = await axios.get(`/api/v1/deck/generate-audio/${currentQuestion.id}?face=${encodeURIComponent(face)}`);
         if (currentQuestionIdRef.current !== targetQuestionId) {
           console.log(`[CLIENT TTS] Question changed during audio generation. Aborting playback.`);
           return;
@@ -319,13 +332,16 @@ export default function PracticePlay() {
         if (audioUrl) {
           if (face === 'front') {
             currentQuestion.audio = audioUrl;
-          } else {
+          } else if (face === 'back') {
             if (!currentQuestion.others) currentQuestion.others = {};
             currentQuestion.others.back_audio_url = audioUrl;
+          } else if (pair && pair.audio_url_col) {
+            if (!currentQuestion.others) currentQuestion.others = {};
+            currentQuestion.others[pair.audio_url_col] = audioUrl;
           }
         }
       } catch (err: any) {
-        console.error(`[TTS SERVER ERROR] Backend failed to synthesize ${face} audio file for question ${currentQuestion.id}. Status:`, err.response?.status, 'Message:', err.response?.data || err.message);
+        console.error(`[TTS SERVER ERROR] Backend failed to synthesize ${face} audio file for question ${currentQuestion.id}:`, err.message);
       }
     }
 
@@ -337,12 +353,12 @@ export default function PracticePlay() {
       audio.play().catch(err => {
         console.warn(`[TTS FALLBACK WARNING] Playback of generated audio file ${cacheBustedUrl} failed. Error:`, err.message);
         if (script && script.trim()) {
-          speakWithEdgeTTS(script);
+          speakWithEdgeTTS(script, pair?.lang);
         }
       });
     } else if (script && script.trim()) {
-      console.log(`[TTS EDGE STREAM] Streaming Edge TTS for: "${script}"`);
-      speakWithEdgeTTS(script);
+      console.log(`[TTS EDGE STREAM] Streaming Edge TTS for face ${face}: "${script}"`);
+      speakWithEdgeTTS(script, pair?.lang);
     }
   };
 
@@ -1185,8 +1201,8 @@ export default function PracticePlay() {
 
   useEffect(() => {
     if (mainTab === 'practice' && practiceSubMode === 'listening' && currentPracticeData) {
-      const { question } = currentPracticeData;
-      speakMultiLanguage(question);
+      const { question_key: qKey } = currentPracticeData;
+      playCardAudio(qKey || 'front');
     }
   }, [currentIndex, mainTab, practiceSubMode, currentPracticeData])
 
@@ -3391,12 +3407,8 @@ export default function PracticePlay() {
               <div className="flex flex-col items-center gap-3">
                 <div
                   onClick={() => {
-                    const { question: qText, question_key: qKey } = practiceData!;
-                    if (qKey === 'front') {
-                      playCardAudio('front');
-                    } else {
-                      speakMultiLanguage(qText);
-                    }
+                    const { question_key: qKey } = practiceData!;
+                    playCardAudio(qKey || 'front');
                   }}
                   className="relative w-20 h-20 rounded-full bg-white border border-indigo-100 flex items-center justify-center shadow-lg shadow-indigo-100/50 hover:bg-indigo-50 active:scale-95 transition-all cursor-pointer group"
                   title="Nhấn để nghe lại"
