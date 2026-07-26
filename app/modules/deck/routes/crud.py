@@ -563,8 +563,14 @@ async def get_collaborators(deck_id: int, db: AsyncSession = Depends(get_db)):
     return [{"id": u.id, "username": u.username, "full_name": u.full_name} for u in collabs]
 
 @router.post("/{deck_id}/collaborators")
-async def add_collaborator(request: Request, deck_id: int, data: dict, db: AsyncSession = Depends(get_db)):
+async def add_collaborator(request: Request, deck_id: int, db: AsyncSession = Depends(get_db)):
     user_id = int(request.cookies.get("user_id", 1))
+    
+    try:
+        data = await request.json()
+    except Exception:
+        data = {}
+        
     target_user_id = data.get("user_id")
     
     from app.modules.deck.models import FlashcardDeck, DeckCollaborator

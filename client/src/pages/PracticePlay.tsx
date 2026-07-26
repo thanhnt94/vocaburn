@@ -6386,6 +6386,7 @@ export default function PracticePlay() {
           setEditFormData(c)
           setIsEditModalOpen(true)
         }}
+        insightsColumns={session?.practice_settings?.insights_columns || session?.creator_settings?.insights_columns}
       />
 
       {/* Edit Question Modal */}

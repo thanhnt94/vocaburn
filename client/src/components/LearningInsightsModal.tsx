@@ -58,6 +58,7 @@ export interface LearningInsightsModalProps {
   onSelectCard?: (card: any) => void;
   canEdit?: boolean;
   onEditCard?: (card: any) => void;
+  insightsColumns?: string[];
 }
 
 export default function LearningInsightsModal({
@@ -66,7 +67,8 @@ export default function LearningInsightsModal({
   allQuestions = [],
   onSelectCard,
   canEdit = false,
-  onEditCard
+  onEditCard,
+  insightsColumns
 }: LearningInsightsModalProps) {
   const [cardModalTab, setCardModalTab] = useState<'content' | 'stats'>('content');
   const [cardNote, setCardNote] = useState<string>('');
@@ -198,6 +200,14 @@ export default function LearningInsightsModal({
     fullCardTabs.push({ id: 'hint', title: 'HINT', content: card.hint });
   }
 
+  // Reorder and filter using insightsColumns if provided
+  let displayTabs = fullCardTabs;
+  if (insightsColumns && insightsColumns.length > 0) {
+    displayTabs = insightsColumns
+      .map(colId => fullCardTabs.find(tab => tab.id === colId))
+      .filter((tab): tab is { id: string; title: string; content: string } => tab !== undefined);
+  }
+
   // Navigation indexes
   const idx = allQuestions.findIndex(q => String(q.id) === String(card.id));
   const hasPrev = idx > 0;
@@ -302,8 +312,8 @@ export default function LearningInsightsModal({
             {cardModalTab === 'content' ? (
               <>
                 {/* Insights list */}
-                <div className="space-y-3.5">
-                  {fullCardTabs.map((tab) => (
+                <div className="space-y-4">
+                  {displayTabs.map((tab) => (
                     <div key={tab.id} className="p-4 rounded-2xl bg-slate-50/70 border border-slate-150/60 text-left relative group">
                       <div className="flex items-center justify-between mb-1.5">
                         <span className="text-[8px] font-black text-indigo-500 uppercase tracking-widest block">{tab.title}</span>

@@ -371,6 +371,7 @@ const EditFlashcard = () => {
   const [renamingColumn, setRenamingColumn] = useState('')
   const [newRenamedName, setNewRenamedName] = useState('')
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null)
+  const [insightsDraggedIndex, setInsightsDraggedIndex] = useState<number | null>(null)
   const [practiceSettings, setPracticeSettings] = useState<any>({
     mcq: { active_pairs: [{ q: 'front', a: 'back' }], num_choices: 4 },
     typing: { active_pairs: [{ q: 'front', a: 'back' }] },
@@ -1040,7 +1041,125 @@ const EditFlashcard = () => {
                                     })}
                                  </div>
                               </div>
-                           </div>
+                              
+                              <div className="p-6 bg-slate-50 border border-slate-100 rounded-2xl space-y-4">
+                                <div className="flex items-center justify-between">
+                                   <div>
+                                      <h3 className="text-xs font-black text-slate-800 uppercase tracking-wider">
+                                         Learning Insights Columns
+                                      </h3>
+                                      <p className="text-[10px] text-slate-400 font-bold mt-0.5">Cấu hình ẩn/hiện và thứ tự hiển thị cột trong popup Insights</p>
+                                   </div>
+                                   <button
+                                      type="button"
+                                      onClick={async () => {
+                                         if (!confirm("Khôi phục hiển thị tất cả các cột mặc định?")) return;
+                                         try {
+                                            await axios.post(`/api/v1/deck/${id}/practice-settings`, {
+                                               settings: { ...practiceSettings, insights_columns: null },
+                                               is_creator: true
+                                            });
+                                            const sRes = await axios.get(`/api/v1/deck/${id}/practice-settings`);
+                                            setPracticeSettings(sRes.data.creator_settings || {});
+                                         } catch (err) {
+                                            alert("Lỗi khi lưu cài đặt");
+                                         }
+                                      }}
+                                      className="px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-[9px] font-black text-slate-600 hover:bg-slate-50 transition-all uppercase"
+                                   >
+                                      Reset Default
+                                   </button>
+                                </div>
+                                <div className="flex flex-col gap-2 pt-2">
+                                   {(() => {
+                                      const defaultCols = ['front', 'back', 'front_audio_content', 'back_audio_content', ...customColumns];
+                                      const currentInsights = practiceSettings.insights_columns || defaultCols;
+                                      
+                                      const hiddenCols = defaultCols.filter(c => !currentInsights.includes(c));
+                                      const orderedCols = [...currentInsights, ...hiddenCols];
+
+                                      return orderedCols.map((col, idx) => {
+                                         const isVisible = currentInsights.includes(col);
+                                         const label = col === 'front' ? 'MẶT TRƯỚC (FRONT)' : col === 'back' ? 'MẶT SAU (BACK)' : col === 'front_audio_content' ? 'FRONT AUDIO CONTENT' : col === 'back_audio_content' ? 'BACK AUDIO CONTENT' : col.toUpperCase();
+                                         return (
+                                            <div 
+                                               key={col}
+                                               draggable={isVisible}
+                                               onDragStart={(e) => { if (isVisible) setInsightsDraggedIndex(idx) }}
+                                               onDragOver={(e) => e.preventDefault()}
+                                               onDragEnter={() => {
+                                                  if (!isVisible || insightsDraggedIndex === null || insightsDraggedIndex === idx) return;
+                                                  const nextInsights = [...currentInsights];
+                                                  const draggedItem = nextInsights[insightsDraggedIndex];
+                                                  nextInsights.splice(insightsDraggedIndex, 1);
+                                                  nextInsights.splice(idx, 0, draggedItem);
+                                                  setInsightsDraggedIndex(idx);
+                                                  setPracticeSettings({ ...practiceSettings, insights_columns: nextInsights });
+                                               }}
+                                               onDragEnd={async () => {
+                                                  setInsightsDraggedIndex(null);
+                                                  try {
+                                                     await axios.post(`/api/v1/deck/${id}/practice-settings`, {
+                                                        settings: { ...practiceSettings, insights_columns: practiceSettings.insights_columns },
+                                                        is_creator: true
+                                                     });
+                                                  } catch (err) {
+                                                     console.error("Lỗi đồng bộ thứ tự cột Insights", err);
+                                                  }
+                                               }}
+                                               className={cn(
+                                                  "px-4 py-3 rounded-xl border flex items-center justify-between text-xs font-bold transition-all",
+                                                  isVisible 
+                                                     ? "bg-white border-slate-200 cursor-move" 
+                                                     : "bg-slate-100 border-slate-200 opacity-60",
+                                                  insightsDraggedIndex === idx ? "opacity-30 border-dashed border-indigo-400 scale-[0.98]" : ""
+                                               )}
+                                            >
+                                               <div className="flex items-center gap-3">
+                                                  <div className={cn("transition-colors", isVisible ? "text-slate-400 hover:text-indigo-500" : "text-slate-300")}>
+                                                     <GripVertical className="w-4 h-4" />
+                                                  </div>
+                                                  <span className="text-[11px] font-black uppercase text-slate-700 tracking-widest">{label}</span>
+                                               </div>
+                                               <button
+                                                  type="button"
+                                                  onClick={async () => {
+                                                     let nextInsights = [...currentInsights];
+                                                     if (isVisible) {
+                                                        nextInsights = nextInsights.filter(c => c !== col);
+                                                     } else {
+                                                        nextInsights.push(col);
+                                                     }
+                                                     
+                                                     const nextSettings = { ...practiceSettings, insights_columns: nextInsights };
+                                                     setPracticeSettings(nextSettings);
+                                                     
+                                                     try {
+                                                        await axios.post(`/api/v1/deck/${id}/practice-settings`, {
+                                                           settings: nextSettings,
+                                                           is_creator: true
+                                                        });
+                                                     } catch (err) {
+                                                        console.error("Lỗi đồng bộ cột Insights", err);
+                                                     }
+                                                  }}
+                                                  className={cn(
+                                                     "w-10 h-5 rounded-full flex items-center p-0.5 transition-colors",
+                                                     isVisible ? "bg-emerald-500" : "bg-slate-300"
+                                                  )}
+                                               >
+                                                  <div className={cn(
+                                                     "w-4 h-4 bg-white rounded-full shadow-sm transition-transform",
+                                                     isVisible ? "translate-x-5" : "translate-x-0"
+                                                  )} />
+                                               </button>
+                                            </div>
+                                         );
+                                      });
+                                   })()}
+                                </div>
+                             </div>
+                          </div>
                         </div>
                      </motion.div>
                   )}

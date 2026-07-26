@@ -1075,6 +1075,7 @@ export default function QuizDetail() {
           setEditCardFormData(c)
           setIsEditingCard(true)
         }}
+        insightsColumns={quiz?.practice_settings?.insights_columns || quiz?.creator_settings?.insights_columns}
       />
 
       {/* ═══════════════ ROADMAP SETTINGS MODAL ═══════════════ */}
