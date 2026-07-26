@@ -1016,117 +1016,119 @@ export default function FlashcardPlay() {
 
       // Leaderboard is fetched via dynamic useEffect depending on time filter
 
-      setTimeout(() => {
-        axios.get('/api/v1/stats/daily-comparison').then(res => {
-          setDailyComparisonData(res.data?.days || [])
-          setDailyComparisonAvg(res.data?.all_time_avg || null)
-          setIsDailyComparisonLoading(false)
-        }).catch(e => {
-          console.error("Failed to load daily comparison", e)
-          setIsDailyComparisonLoading(false)
-        })
-      }, 2500)
-
       if (!isPractice) {
         setTimeout(() => {
           axios.get(`/api/v1/deck/${id}/session`).then(sessionRes => {
+            let restoredAnswers: Record<number, any> = {};
+            let restoredPractice: Record<number, any> = {};
+            let curIdx = 0;
+
             if (sessionRes.data) {
-        const restoredAnswers = sessionRes.data.state?.sessionAnswers || {}
-        setSessionAnswers(restoredAnswers)
-        const restoredPractice = sessionRes.data.state?.practiceAnswers || {}
-        setPracticeAnswers(restoredPractice)
-        
-        if (sessionRes.data.state?.practiceTotalAnswered !== undefined) {
-          setPracticeTotalAnswered(sessionRes.data.state.practiceTotalAnswered)
-        }
-        if (sessionRes.data.state?.practiceCorrectCount !== undefined) {
-          setPracticeCorrectCount(sessionRes.data.state.practiceCorrectCount)
-        }
-        
-        let curIdx = sessionRes.data.current_index || 0
-        
-        if ((activeTab as string) === 'practice' && practiceRange === 'learned') {
-          const learnedIndices = questions.map((q: any, i: number) => (q.stats?.total || 0) > 0 ? i : -1).filter((i: number) => i !== -1);
-          if (learnedIndices.length > 0 && !learnedIndices.includes(curIdx)) {
-            curIdx = learnedIndices[0];
-          }
-        }
-        
-        // Adjust initial index based on smart learning mode if we are starting a fresh/unanswered question or explicit mode
-        const initIndex = async () => {
-          const searchParams = new URLSearchParams(window.location.search);
-          const urlMode = searchParams.get('mode');
-          const savedMode = urlMode || localStorage.getItem('quiz_learning_mode') || 'fsrs';
+              restoredAnswers = sessionRes.data.state?.sessionAnswers || {};
+              setSessionAnswers(restoredAnswers);
+              restoredPractice = sessionRes.data.state?.practiceAnswers || {};
+              setPracticeAnswers(restoredPractice);
 
-          if (urlMode === 'roadmap' || urlMode === 'new' || urlMode === 'review' || restoredAnswers[curIdx] === undefined) {
-            const answeredIndexes = Object.keys(restoredAnswers).map(Number)
-            try {
-              const res = await axios.post(`/api/v1/deck/${id}/next-card`, {
-                mode: savedMode,
-                answered_indexes: answeredIndexes,
-                current_index: curIdx,
-                random_enabled: localStorage.getItem('vocaburn_random_enabled') === 'true'
-              })
+              if (sessionRes.data.state?.practiceTotalAnswered !== undefined) {
+                setPracticeTotalAnswered(sessionRes.data.state.practiceTotalAnswered);
+              }
+              if (sessionRes.data.state?.practiceCorrectCount !== undefined) {
+                setPracticeCorrectCount(sessionRes.data.state.practiceCorrectCount);
+              }
+              if (sessionRes.data.current_index !== undefined) {
+                curIdx = sessionRes.data.current_index;
+              }
+
+              if (sessionRes.data.state?.sessionXP) {
+                const todayStr = new Date().toISOString().slice(0, 10);
+                const sessionDate = sessionRes.data.state?.session_date;
+                if (sessionDate === todayStr) {
+                  setSessionXP(sessionRes.data.state.sessionXP);
+                }
+              }
+              if (sessionRes.data.state?.streak) {
+                setStreak(sessionRes.data.state.streak);
+              }
+            }
+
+            if ((activeTab as string) === 'practice' && practiceRange === 'learned') {
+              const learnedIndices = questions.map((q: any, i: number) => (q.stats?.total || 0) > 0 ? i : -1).filter((i: number) => i !== -1);
+              if (learnedIndices.length > 0 && !learnedIndices.includes(curIdx)) {
+                curIdx = learnedIndices[0];
+              }
+            }
+
+            // Adjust initial index based on smart learning mode
+            const initIndex = async () => {
+              const searchParams = new URLSearchParams(window.location.search);
+              const urlMode = searchParams.get('mode');
+              const savedMode = urlMode || localStorage.getItem('quiz_learning_mode') || 'fsrs';
+
+              if (urlMode === 'roadmap' || urlMode === 'new' || urlMode === 'review' || restoredAnswers[curIdx] === undefined) {
+                const answeredIndexes = Object.keys(restoredAnswers).map(Number);
+                try {
+                  const res = await axios.post(`/api/v1/deck/${id}/next-card`, {
+                    mode: savedMode,
+                    answered_indexes: answeredIndexes,
+                    current_index: curIdx,
+                    random_enabled: localStorage.getItem('vocaburn_random_enabled') === 'true'
+                  });
+                  if (res.data && res.data.next_index !== undefined) {
+                    curIdx = res.data.next_index;
+                  }
+                } catch (err) {
+                  console.error("Failed to fetch initial next card from backend", err);
+                }
+              }
+
+              setCurrentIndex(curIdx);
+
+              const isPractice = (activeTab as string) === 'practice';
+              const activeRestored = isPractice ? restoredPractice : restoredAnswers;
+
+              if (isPractice) {
+                if (activeRestored[curIdx] !== undefined) {
+                  setSelectedOption(activeRestored[curIdx]);
+                  setShowFeedback(true);
+                  if (subMode === 'typing') {
+                    setTypingFeedback({ checked: true, isCorrect: activeRestored[curIdx] === 3 });
+                  }
+                } else {
+                  setSelectedOption(null);
+                  setShowFeedback(false);
+                  setTypingFeedback(null);
+                }
+              } else {
+                if (typeof activeRestored[curIdx] === 'number') {
+                  setSelectedOption(activeRestored[curIdx]);
+                  setShowFeedback(true);
+                } else {
+                  setSelectedOption(null);
+                  setShowFeedback(false);
+                }
+              }
+            };
+
+            initIndex();
+          }).catch(e => {
+            console.error("Failed to load session, running fallback initIndex:", e);
+            const searchParams = new URLSearchParams(window.location.search);
+            const urlMode = searchParams.get('mode');
+            const savedMode = urlMode || localStorage.getItem('quiz_learning_mode') || 'fsrs';
+            axios.post(`/api/v1/deck/${id}/next-card`, {
+              mode: savedMode,
+              answered_indexes: [],
+              current_index: 0,
+              random_enabled: localStorage.getItem('vocaburn_random_enabled') === 'true'
+            }).then(res => {
               if (res.data && res.data.next_index !== undefined) {
-                curIdx = res.data.next_index
+                setCurrentIndex(res.data.next_index);
               }
-            } catch (err) {
-              console.error("Failed to fetch initial next card from backend", err)
-            }
-          }
-          
-          setCurrentIndex(curIdx)
-          
-          // Update local state to reflect which questions are answered in this session
-          // but DO NOT manually increment stats, as the backend quiz play-data already includes them.
-          const isPractice = (activeTab as string) === 'practice';
-          const activeRestored = isPractice ? restoredPractice : restoredAnswers;
-          
-          if (isPractice) {
-            if (activeRestored[curIdx] !== undefined) {
-              setSelectedOption(activeRestored[curIdx]);
-              setShowFeedback(true);
-              if (subMode === 'typing') {
-                setTypingFeedback({ checked: true, isCorrect: activeRestored[curIdx] === 3 });
-              }
-            } else {
-              setSelectedOption(null);
-              setShowFeedback(false);
-              setTypingFeedback(null);
-            }
-          } else {
-            if (typeof activeRestored[curIdx] === 'number') {
-              setSelectedOption(activeRestored[curIdx]);
-              setShowFeedback(true);
-            } else {
-              setSelectedOption(null);
-              setShowFeedback(false);
-            }
-          }
-        }
-        
-        initIndex()
-
-        if (sessionRes.data.state?.sessionXP) {
-          const todayStr = new Date().toISOString().slice(0, 10)
-          const sessionDate = sessionRes.data.state?.session_date
-          // Only restore sessionXP if the session was saved today — otherwise reset to 0
-          if (sessionDate === todayStr) {
-            setSessionXP(sessionRes.data.state.sessionXP)
-          }
-          // else: sessionXP stays at 0 (default), old session's XP is already counted in initialTodayXP
-        }
-        if (sessionRes.data.state?.streak) {
-          setStreak(sessionRes.data.state.streak)
-        }
-      } else {
-        if (currentIndex < 0) setCurrentIndex(0)
-      }
-    }).catch(e => {
-      console.error("Failed to load session", e)
-      if (currentIndex < 0) setCurrentIndex(0)
-    })
-        }, 1000)
+            }).catch(err => {
+              if (currentIndex < 0) setCurrentIndex(0);
+            });
+          });
+        }, 0);
       }
     } catch (e) {
       console.error("Failed to load deck data:", e)

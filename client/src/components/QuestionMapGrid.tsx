@@ -12,6 +12,12 @@ interface Question {
     easy_count?: number
   }
   box_level?: number
+  fsrs?: {
+    state?: number
+    stability?: number | null
+    difficulty?: number | null
+    due?: string | null
+  }
   practice?: {
     correct_index?: number
   }
@@ -149,6 +155,9 @@ export const QuestionMapGrid: React.FC<QuestionMapGridProps> = ({
               let fsrsClass = "border-slate-200 bg-white text-slate-700 hover:border-indigo-300 hover:bg-slate-50 font-bold"
               let fsrsStyle: any = {}
 
+              const isHistoricalMastered = q.box_level === 5 || q.fsrs?.state === 2;
+              const isHistoricalLearning = (q.stats?.total || 0) > 0 || (q.fsrs?.state && q.fsrs.state > 0) || (q.box_level && q.box_level > 1);
+
               if (q.is_ignored) {
                 fsrsClass = "border-slate-300 bg-slate-200 text-slate-400 opacity-60 font-bold cursor-not-allowed"
               } else if (hasAttemptedThisSession) {
@@ -163,6 +172,10 @@ export const QuestionMapGrid: React.FC<QuestionMapGridProps> = ({
                 }
               } else if (q.is_starred) {
                 fsrsClass = "border-amber-300 bg-amber-50 text-amber-700 font-bold shadow-sm"
+              } else if (isHistoricalMastered) {
+                fsrsClass = "border-emerald-300 bg-emerald-50/90 text-emerald-800 font-black shadow-2xs"
+              } else if (isHistoricalLearning) {
+                fsrsClass = "border-indigo-200 bg-indigo-50/80 text-indigo-800 font-black shadow-2xs"
               } else {
                 fsrsClass = "border-slate-200 bg-white text-slate-700 hover:border-indigo-300 hover:bg-slate-50 font-bold shadow-xs"
               }
@@ -187,15 +200,28 @@ export const QuestionMapGrid: React.FC<QuestionMapGridProps> = ({
                   {q.is_starred && (
                     <span className="absolute top-0.5 right-1 text-[8px] text-amber-500 font-bold z-20">★</span>
                   )}
-                  <span className={cn("relative z-10 text-[12px] font-black", hasAttemptedThisSession ? "text-white" : "text-slate-800")}>{i + 1}</span>
-                  {hasAttemptedThisSession && (
-                    <span className="text-[6px] font-black tracking-tighter opacity-90 mt-0.5 uppercase z-10 relative text-white">
+                  <span className={cn(
+                    "relative z-10 text-[11px] font-black leading-none",
+                    hasAttemptedThisSession ? "text-white" : (isHistoricalMastered ? "text-emerald-900" : isHistoricalLearning ? "text-indigo-900" : "text-slate-800")
+                  )}>
+                    {i + 1}
+                  </span>
+                  {hasAttemptedThisSession ? (
+                    <span className="text-[5.5px] font-black tracking-tighter opacity-90 mt-0.5 uppercase z-10 relative text-white leading-none">
                       {isPractice
                         ? (isCorrectAnswer ? "CORRECT" : "WRONG")
                         : (selectedOptIdx === -2 ? "FLIP" :
                            selectedOptIdx === 0 ? "AGAIN" : selectedOptIdx === 1 ? "HARD" : selectedOptIdx === 2 ? "GOOD" : "EASY")}
                     </span>
-                  )}
+                  ) : isHistoricalMastered ? (
+                    <span className="text-[5.5px] font-black tracking-tighter text-emerald-700 mt-0.5 uppercase z-10 relative leading-none">
+                      THUỘC
+                    </span>
+                  ) : isHistoricalLearning ? (
+                    <span className="text-[5.5px] font-black tracking-tighter text-indigo-600 mt-0.5 uppercase z-10 relative leading-none">
+                      ĐANG HỌC
+                    </span>
+                  ) : null}
                 </button>
               )
             })}
