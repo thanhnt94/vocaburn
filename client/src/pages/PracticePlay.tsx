@@ -3413,29 +3413,68 @@ export default function PracticePlay() {
                           choiceObj = currentPracticeData.choices_data[idx];
                         }
 
+                        const choiceText = choice;
+                        const choiceNorm = String(choiceText || "").trim().toLowerCase();
+                        const qKey = currentPracticeData?.question_key || 'front';
+                        const aKey = currentPracticeData?.answer_key || 'back';
+
+                        // Step 1: Try finding card by choice_item_ids[idx]
                         let qData: any = null;
                         if (choice_item_ids && session?.questions && choice_item_ids[idx] !== undefined) {
                           const selectedId = choice_item_ids[idx];
                           qData = session.questions.find((q: any) => String(q.id) === String(selectedId));
                         }
 
-                        const choiceText = choice;
-                        const qKey = currentPracticeData?.question_key || 'front';
-                        const aKey = currentPracticeData?.answer_key || 'back';
+                        // Step 2: Fallback lookup in session.questions matching choiceText in aKey/back/front columns
+                        if (!qData && session?.questions && session.questions.length > 0) {
+                          // Try matching answer column (aKey / back / explanation)
+                          qData = session.questions.find((q: any) => {
+                            const valA = getVal(q, aKey).toLowerCase();
+                            const valBack = (getVal(q, 'back') || q.explanation || "").toLowerCase();
+                            return (valA && valA === choiceNorm) || (valBack && valBack === choiceNorm);
+                          });
 
-                        // Extract value from the question column (qKey) for this choice card
+                          // If not found in answer column, try matching question column (qKey / front / content)
+                          if (!qData) {
+                            qData = session.questions.find((q: any) => {
+                              const valQ = getVal(q, qKey).toLowerCase();
+                              const valFront = (getVal(q, 'front') || q.content || "").toLowerCase();
+                              return (valQ && valQ === choiceNorm) || (valFront && valFront === choiceNorm);
+                            });
+                          }
+                        }
+
+                        // Step 3: Extract the OPPOSITE column value (wordText)
                         let wordText = "";
-                        if (choiceObj && choiceObj.q_text) {
+
+                        if (qData) {
+                          const valQ = getVal(qData, qKey);
+                          const valA = getVal(qData, aKey);
+                          const valFront = getVal(qData, 'front') || qData.content || "";
+                          const valBack = getVal(qData, 'back') || qData.explanation || "";
+
+                          // If choiceText matches answer column, opposite is question column (valQ / valFront)
+                          if (valA && valA.toLowerCase() === choiceNorm) {
+                            wordText = (valQ && valQ.toLowerCase() !== choiceNorm) ? valQ : valFront;
+                          } else if (valBack && valBack.toLowerCase() === choiceNorm) {
+                            wordText = (valFront && valFront.toLowerCase() !== choiceNorm) ? valFront : valQ;
+                          } else if (valQ && valQ.toLowerCase() === choiceNorm) {
+                            // If choiceText matches question column, opposite is answer column (valA / valBack)
+                            wordText = (valA && valA.toLowerCase() !== choiceNorm) ? valA : valBack;
+                          } else if (valFront && valFront.toLowerCase() === choiceNorm) {
+                            wordText = (valBack && valBack.toLowerCase() !== choiceNorm) ? valBack : valA;
+                          } else {
+                            // Fallback: pick whichever column is different from choiceText
+                            if (valFront && valFront.toLowerCase() !== choiceNorm) wordText = valFront;
+                            else if (valQ && valQ.toLowerCase() !== choiceNorm) wordText = valQ;
+                            else if (valBack && valBack.toLowerCase() !== choiceNorm) wordText = valBack;
+                          }
+                        }
+
+                        if (!wordText && choiceObj && choiceObj.q_text && choiceObj.q_text.toLowerCase() !== choiceNorm) {
                           wordText = choiceObj.q_text;
                         }
-                        if (!wordText && qData) {
-                          wordText = getVal(qData, qKey);
-                        }
-                        if (!wordText && qData) {
-                          const vFront = getVal(qData, 'front');
-                          const vBack = getVal(qData, 'back');
-                          wordText = (vFront && vFront !== choiceText) ? vFront : (vBack || choiceText);
-                        }
+
                         if (!wordText) wordText = choiceText;
 
                         const explanation = qData
