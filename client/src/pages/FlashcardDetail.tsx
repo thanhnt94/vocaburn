@@ -704,7 +704,7 @@ export default function QuizDetail() {
                         ? `(${roadmapStatus.created_today_count || 0}/${step.progress?.target || 0})` 
                         : `(${step.progress?.learned || 0}/${step.progress?.target || 0})`;
                     } else if (step.type === 'fsrs_review') {
-                      progressText = `(${step.progress?.reviewed_today || 0}/${step.progress?.due_count || 0})`;
+                      progressText = `(Còn: ${step.done ? 0 : (step.progress?.due_count || 0)})`;
                     } else if (step.type === 'mcq' || step.type === 'typing') {
                       progressText = `(≥${step.progress?.target_score || 0}%)`;
                     }

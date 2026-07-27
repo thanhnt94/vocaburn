@@ -346,7 +346,7 @@ export default function DeckRoadmap() {
                       )}
                       {step.type === 'fsrs_review' && (
                         <div className="text-xs font-black text-slate-700">
-                          {step.progress?.reviewed_today || 0} / {step.progress?.due_count || 0} thẻ ôn tập
+                          Còn lại: {step.done ? 0 : (step.progress?.due_count || 0)} thẻ ôn tập
                         </div>
                       )}
                       {(step.type === 'mcq' || step.type === 'typing') && (
