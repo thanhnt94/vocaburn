@@ -2463,14 +2463,20 @@ async def get_deck_roadmap_status_helper(db: AsyncSession, user_id: int, deck_id
         )
     ) or 0
     
+    from sqlalchemy import or_
     review_completed_today = await db.scalar(
         select(func.count(UserCardMastery.id))
         .join(Flashcard, UserCardMastery.card_id == Flashcard.id)
+        .outerjoin(min_answer_sub, UserCardMastery.card_id == min_answer_sub.c.card_id)
         .where(
             Flashcard.deck_id == deck_id,
             UserCardMastery.user_id == user_id,
             UserCardMastery.last_review >= today_start,
-            UserCardMastery.state > 0
+            UserCardMastery.state > 0,
+            or_(
+                min_answer_sub.c.min_created == None,
+                min_answer_sub.c.min_created < today_start
+            )
         )
     ) or 0
     
