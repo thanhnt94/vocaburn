@@ -2251,7 +2251,7 @@ export default function PracticePlay() {
 
       if (answeredKeysCount >= totalQ) {
         setTimeout(() => {
-          handleNext();
+          handleNext(newAnswers);
         }, 1200);
       }
     }
@@ -2491,7 +2491,7 @@ export default function PracticePlay() {
 
       if (answeredKeysCount >= totalQ) {
         setTimeout(() => {
-          handleNext();
+          handleNext(newAnswers);
         }, 1200);
       }
     }
@@ -2643,11 +2643,12 @@ export default function PracticePlay() {
     saveSession(isPractice ? customPracticeAnswers : sessionAnswers, idx)
   }
 
-  const handleNext = async () => {
+  const handleNext = async (customAnswers?: Record<number, number>) => {
     if (!session || !session.questions) return
 
     const questions = session.questions
     const total = questions.length
+    const activeAnswers = customAnswers || practiceAnswers
 
     if (isRoadmapTestMode) {
       if (currentIndex < total - 1) {
@@ -2658,7 +2659,7 @@ export default function PracticePlay() {
       setIsSubmittingTest(true);
       try {
         const answersPayload = questions.map((q: any, qIdx: number) => {
-          const chosenOptId = practiceAnswers[qIdx];
+          const chosenOptId = activeAnswers[qIdx];
           const isCorrect = (() => {
             if (chosenOptId === undefined || chosenOptId === null) return false;
             if (q.practice?.correct_index !== undefined && q.practice.correct_index !== null) {
@@ -5461,7 +5462,7 @@ export default function PracticePlay() {
               {mainTab === 'practice' ? (
                 practiceAnswers[currentIndex] !== undefined ? (
                   <button
-                    onClick={handleNext}
+                    onClick={() => handleNext()}
                     className="flex-1 h-12 bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-600 text-white font-black text-xs rounded-2xl shadow-lg shadow-emerald-300/50 flex items-center justify-center gap-2.5 uppercase tracking-widest active:scale-[0.98] transition-all hover:shadow-emerald-400/60 hover:shadow-xl"
                   >
                     Continue <ChevronRight className="w-4 h-4" />
@@ -5470,7 +5471,7 @@ export default function PracticePlay() {
                   <div className="flex-1 flex gap-2 h-12">
                     {!isRoadmapTestMode && (
                       <button
-                        onClick={handleNext}
+                        onClick={() => handleNext()}
                         className="flex-1 h-12 bg-slate-50 border border-slate-200 text-slate-500 hover:bg-slate-100 font-black text-xs rounded-2xl flex items-center justify-center gap-1.5 uppercase tracking-widest active:scale-[0.98] transition-all"
                       >
                         Skip <ChevronRight className="w-4 h-4" />
@@ -5510,7 +5511,7 @@ export default function PracticePlay() {
                       <RefreshCw className="w-5 h-5 text-indigo-600 animate-[spin_4s_linear_infinite]" />
                     </button>
                     <button
-                      onClick={handleNext}
+                      onClick={() => handleNext()}
                       className="flex-1 h-12 bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-600 text-white font-black text-xs rounded-2xl shadow-lg shadow-emerald-300/50 flex items-center justify-center gap-2.5 uppercase tracking-widest active:scale-[0.98] transition-all hover:shadow-emerald-400/60 hover:shadow-xl"
                     >
                       NEXT CARD <ChevronRight className="w-4 h-4" />

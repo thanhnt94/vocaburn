@@ -48,9 +48,9 @@ async def get_dashboard_data(request: Request, only_created: bool = False, db: A
         raise HTTPException(status_code=401, detail="Unauthorized")
     user_id_int = user.id
     
-    from sqlalchemy import func, case
+    from sqlalchemy import func, case, or_
     from sqlalchemy.orm import selectinload
-    from app.modules.deck.models import FlashcardDeck, DeckAttempt, Flashcard, UserAnswer
+    from app.modules.deck.models import FlashcardDeck, DeckAttempt, Flashcard, UserAnswer, DeckCollaborator
     from app.modules.gamification.interface import GamificationInterface
     from app.modules.notification.interface import NotificationInterface
 
@@ -100,17 +100,26 @@ async def get_dashboard_data(request: Request, only_created: bool = False, db: A
         DeckAttempt.deck_id
     ).subquery()
 
+    collab_sub = select(DeckCollaborator.deck_id).where(DeckCollaborator.user_id == user_id_int)
+
     query_a = select(
         FlashcardDeck,
         select(func.count(Flashcard.id)).where(Flashcard.deck_id == FlashcardDeck.id).scalar_subquery().label("c_count"),
         subq.c.is_archived,
         subq.c.last_studied_at
-    ).join(
+    ).outerjoin(
         subq, FlashcardDeck.id == subq.c.deck_id
     ).options(
         selectinload(FlashcardDeck.tags)
+    ).where(
+        or_(
+            subq.c.deck_id.is_not(None),
+            FlashcardDeck.creator_id == user_id_int,
+            FlashcardDeck.id.in_(collab_sub)
+        )
     ).order_by(
-        subq.c.last_studied_at.desc()
+        subq.c.last_studied_at.desc().nulls_last(),
+        FlashcardDeck.created_at.desc()
     )
 
     # Query C: Discover Decks (exclude attempted/created, limit 12, order by created_at desc)
