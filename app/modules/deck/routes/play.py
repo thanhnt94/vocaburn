@@ -2980,7 +2980,7 @@ async def get_roadmap_test_questions(request: Request, deck_id: int, db: AsyncSe
     ).join(DeckAttempt, UserAnswer.attempt_id == DeckAttempt.id)\
      .where(
          DeckAttempt.user_id == user_id,
-         DeckAttempt.mode.in_(["sequential", "roadmap"])
+         DeckAttempt.mode.in_(["sequential", "roadmap", "play", "fsrs", "new", "review"])
      )\
      .group_by(UserAnswer.card_id).subquery()
 
