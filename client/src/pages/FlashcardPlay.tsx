@@ -1522,7 +1522,8 @@ export default function FlashcardPlay() {
         time_spent: timeTaken,
         local_date: new Date().toISOString().slice(0, 10),
         session_streak: updatedStreak,
-        is_first_ever: isFirstEver
+        is_first_ever: isFirstEver,
+        mode: activeMode
       })
       
       // If undo was triggered while waiting for this API response, skip all state updates

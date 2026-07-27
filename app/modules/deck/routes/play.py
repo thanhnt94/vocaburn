@@ -242,7 +242,11 @@ async def record_answer(request: Request, data: dict, db: AsyncSession = Depends
     is_originally_new = False
 
     if card:
-        attempt_mode = "practice" if is_practice else "play"
+        mode_val = data.get("mode")
+        if is_practice:
+            attempt_mode = "practice"
+        else:
+            attempt_mode = mode_val if mode_val in ["roadmap", "sequential", "play", "fsrs", "new", "review"] else "play"
         attempt_res = await db.execute(
             select(DeckAttempt)
             .filter(
@@ -1668,7 +1672,7 @@ async def get_next_card(request: Request, deck_id: int, data: dict, db: AsyncSes
         ).join(DeckAttempt, UserAnswer.attempt_id == DeckAttempt.id)\
          .where(
              DeckAttempt.user_id == user_id,
-             DeckAttempt.mode.in_(["sequential", "roadmap"])
+             DeckAttempt.mode.in_(["sequential", "roadmap", "play", "fsrs", "new", "review"])
          )\
          .group_by(UserAnswer.card_id).subquery()
 
@@ -2446,7 +2450,7 @@ async def get_deck_roadmap_status_helper(db: AsyncSession, user_id: int, deck_id
     ).join(DeckAttempt, UserAnswer.attempt_id == DeckAttempt.id)\
      .where(
          DeckAttempt.user_id == user_id,
-         DeckAttempt.mode.in_(["sequential", "roadmap"])
+         DeckAttempt.mode.in_(["sequential", "roadmap", "play", "fsrs", "new", "review"])
      )\
      .group_by(UserAnswer.card_id).subquery()
     
