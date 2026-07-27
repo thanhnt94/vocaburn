@@ -1356,30 +1356,34 @@ export default function PracticePlay() {
             });
           }
 
-          // Hydrate local storage session backup
+          // Hydrate local storage session backup only if the backend also restored the session
           const localSavedStr = localStorage.getItem(`vocab_roadmap_session_${id}`);
           if (localSavedStr) {
-            try {
-              const localSaved = JSON.parse(localSavedStr);
-              if (localSaved && localSaved.practiceAnswers) {
-                parsedAns = { ...localSaved.practiceAnswers, ...parsedAns };
-                if (localSaved.practiceTotalAnswered !== undefined) {
-                  totalAnswered = Math.max(totalAnswered, localSaved.practiceTotalAnswered);
+            if (quizRes.data.restored) {
+              try {
+                const localSaved = JSON.parse(localSavedStr);
+                if (localSaved && localSaved.practiceAnswers) {
+                  parsedAns = { ...localSaved.practiceAnswers, ...parsedAns };
+                  if (localSaved.practiceTotalAnswered !== undefined) {
+                    totalAnswered = Math.max(totalAnswered, localSaved.practiceTotalAnswered);
+                  }
+                  if (localSaved.practiceCorrectCount !== undefined) {
+                    correctCount = Math.max(correctCount, localSaved.practiceCorrectCount);
+                  }
+                  if (localSaved.sessionXP !== undefined) {
+                    setSessionXP(localSaved.sessionXP);
+                  }
+                  if (localSaved.streak !== undefined) {
+                    setStreak(localSaved.streak);
+                  }
+                  if (localSaved.currentIndex !== undefined && restoredIdx === 0) {
+                    restoredIdx = localSaved.currentIndex;
+                  }
                 }
-                if (localSaved.practiceCorrectCount !== undefined) {
-                  correctCount = Math.max(correctCount, localSaved.practiceCorrectCount);
-                }
-                if (localSaved.sessionXP !== undefined) {
-                  setSessionXP(localSaved.sessionXP);
-                }
-                if (localSaved.streak !== undefined) {
-                  setStreak(localSaved.streak);
-                }
-                if (localSaved.currentIndex !== undefined && restoredIdx === 0) {
-                  restoredIdx = localSaved.currentIndex;
-                }
-              }
-            } catch (e) {}
+              } catch (e) {}
+            } else {
+              localStorage.removeItem(`vocab_roadmap_session_${id}`);
+            }
           }
 
           setCurrentIndex(restoredIdx);
@@ -1918,6 +1922,7 @@ export default function PracticePlay() {
               setIsSubmittingRoadmapTest(true);
               axios.post(`/api/v1/deck/${id}/roadmap-test-submit`, { answers: testAnswers })
                 .then(res => {
+                  localStorage.removeItem(`vocab_roadmap_session_${id}`);
                   setRoadmapTestResult(res.data);
                   setIsSessionSummaryOpen(true);
                 })
@@ -2461,6 +2466,36 @@ export default function PracticePlay() {
 
     saveSession(newAnswers, currentIndex, updatedXP, updatedStreak, updatedTotalAnswered, updatedCorrectCount);
 
+    const totalQ = session?.questions?.length || 50;
+    const isRoadmapMode = subMode === 'roadmap_test' || subMode === 'roadmap_mcq' || subMode === 'roadmap_typing' || (typeof subMode === 'string' && subMode.startsWith('roadmap_'));
+    if (isRoadmapMode) {
+      const answeredKeysCount = Object.keys(newAnswers).length;
+      const savedState = {
+        currentIndex,
+        practiceAnswers: newAnswers,
+        practiceTotalAnswered: updatedTotalAnswered,
+        practiceCorrectCount: updatedCorrectCount,
+        sessionXP: sessionXP,
+        streak: streak,
+        timestamp: Date.now()
+      };
+      localStorage.setItem(`vocab_roadmap_session_${id}`, JSON.stringify(savedState));
+      axios.post(`/api/v1/deck/${id}/roadmap-test-save-progress`, {
+        current_index: currentIndex,
+        practiceAnswers: newAnswers,
+        practiceTotalAnswered: updatedTotalAnswered,
+        practiceCorrectCount: updatedCorrectCount,
+        sessionXP: sessionXP,
+        streak: streak
+      }).catch(() => {});
+
+      if (answeredKeysCount >= totalQ) {
+        setTimeout(() => {
+          handleNext();
+        }, 1200);
+      }
+    }
+
     try {
       const res = await axios.post('/api/v1/deck/record_answer', {
         question_id: currentQuestion.id,
@@ -2648,6 +2683,7 @@ export default function PracticePlay() {
           time_spent_seconds: sessionStudyTime
         });
 
+        localStorage.removeItem(`vocab_roadmap_session_${id}`);
         setRoadmapSubmitResult(res.data);
         setIsRoadmapTestFinished(true);
 
