@@ -4,6 +4,14 @@ Tài liệu này lưu lại lịch sử thay đổi cấu trúc, tính năng, v�
 
 ---
 
+### [2026-07-28]
+#### Chuẩn hóa và Đồng bộ Tài liệu
+- **Cập nhật `docs/API_REFERENCE.md`**:
+  - Khắc phục lỗi viết sai tiền tố URL từ `/quiz/` thành `/deck/` để khớp hoàn toàn với mã nguồn backend FastAPI.
+  - Bổ sung đầy đủ tất cả endpoint về Multiplayer Room, tương tác thẻ (Notes, Star, Ignore), đóng góp ý kiến bình luận (Card Contributions), thống kê học tập chuyên sâu, và hệ thống thông báo đẩy (Web Push/Telegram Bot).
+- **Cập nhật `docs/DATABASE_STRUCTURE.md`**:
+  - Bổ sung chi tiết schema của 12 bảng cơ sở dữ liệu thực tế đang chạy bao gồm: phòng chơi multiplayer, phiên học dở dang, ghi chú cá nhân, cộng tác viên, mục tiêu lộ trình hàng ngày (Roadmap), thống kê chế độ luyện tập nâng cao và luồng bình luận đóng góp của người học.
+
 ### [2026-07-24]
 #### Tái cấu trúc & Chuẩn hóa Hệ thống Tài liệu (.md)
 - **Chuẩn hóa `README.md` Thư mục Gốc**:

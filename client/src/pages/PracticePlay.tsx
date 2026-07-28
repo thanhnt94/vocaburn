@@ -262,6 +262,15 @@ const SessionLoadingScreen = () => {
   );
 };
 
+const getBaseMode = (mode: string | undefined): string => {
+  if (!mode) return 'mcq';
+  if (mode === 'roadmap_test') return 'mcq';
+  if (mode.startsWith('roadmap_')) {
+    return mode.replace('roadmap_', '');
+  }
+  return mode;
+};
+
 export default function PracticePlay() {
   const { id, subMode } = useParams()
   const isRoadmapTestMode = subMode === 'roadmap_test' || subMode === 'roadmap_mcq' || subMode === 'roadmap_typing' || (typeof subMode === 'string' && subMode.startsWith('roadmap_'))
@@ -549,7 +558,8 @@ export default function PracticePlay() {
   // ── Multi-Modal Practice State Hooks ──
   const mainTab = 'practice' as 'fsrs' | 'practice'
   const setMainTab = (tab: 'fsrs' | 'practice') => { }
-  const [practiceSubMode, setPracticeSubMode] = useState<'mcq' | 'typing' | 'listening' | 'roadmap_test'>(() => (localStorage.getItem('vocab_practice_submode') as 'mcq' | 'typing' | 'listening') || 'mcq')
+  const [practiceSubMode, setPracticeSubMode] = useState<string>(() => localStorage.getItem('vocab_practice_submode') || 'mcq')
+  const baseMode = getBaseMode(practiceSubMode)
   const [practiceRange, setPracticeRange] = useState<'all' | 'learned'>(() => (localStorage.getItem('vocab_practice_range') as 'all' | 'learned') || 'all')
   const [practiceNeedsSetup, setPracticeNeedsSetup] = useState(false)
   const [practiceDisabled, setPracticeDisabled] = useState(false)
@@ -603,7 +613,7 @@ export default function PracticePlay() {
 
   // Sync practiceSubMode from URL params
   useEffect(() => {
-    if (subMode === 'mcq' || subMode === 'typing' || subMode === 'listening' || subMode === 'roadmap_test') {
+    if (subMode === 'mcq' || subMode === 'typing' || subMode === 'listening' || subMode === 'roadmap_test' || subMode === 'roadmap_mcq' || subMode === 'roadmap_typing' || (typeof subMode === 'string' && subMode.startsWith('roadmap_'))) {
       setPracticeSubMode(subMode)
       localStorage.setItem('vocab_practice_submode', subMode)
     }
@@ -619,11 +629,11 @@ export default function PracticePlay() {
 
   // Sync setup screen fields when practiceSubMode or modeSettings change
   useEffect(() => {
-    if (modeSettings && modeSettings[practiceSubMode]) {
-      setSetupPairs(modeSettings[practiceSubMode].active_pairs || [{ q: 'front', a: 'back' }])
-      setSetupNumChoices(modeSettings[practiceSubMode].num_choices || 4)
+    if (modeSettings && modeSettings[baseMode]) {
+      setSetupPairs(modeSettings[baseMode].active_pairs || [{ q: 'front', a: 'back' }])
+      setSetupNumChoices(modeSettings[baseMode].num_choices || 4)
     }
-  }, [practiceSubMode, modeSettings])
+  }, [baseMode, modeSettings])
 
   const getVal = (item: any, key: string): string => {
     if (!item) return "";
@@ -728,7 +738,7 @@ export default function PracticePlay() {
       return;
     }
 
-    const subMode = customSubMode || (practiceSubMode === 'roadmap_test' ? (qObj.practice_submode || qObj.question_type || 'mcq') : practiceSubMode);
+    const subMode = getBaseMode(customSubMode || (practiceSubMode === 'roadmap_test' ? (qObj.practice_submode || qObj.question_type || 'mcq') : practiceSubMode));
 
     // Pick a random pair from setupPairs
     const activePair = setupPairs && setupPairs.length > 0
@@ -1064,8 +1074,8 @@ export default function PracticePlay() {
 
 
   useEffect(() => {
-    fetchSession()
-  }, [id])
+    fetchSession(mainTab, subMode || practiceSubMode)
+  }, [id, subMode])
 
   // Tự động đóng toàn bộ các popup/toast khi người dùng click mở bất kỳ khung thông tin hoặc modal phụ nào
   useEffect(() => {
@@ -4912,7 +4922,7 @@ export default function PracticePlay() {
                   renderPracticeLockScreen()
                 ) : mainTab === 'practice' && (practiceNeedsSetup || subMode === 'setting') ? (
                   <PracticeSetupScreen
-                    practiceSubMode={practiceSubMode === 'roadmap_test' ? 'mcq' : practiceSubMode}
+                    practiceSubMode={baseMode as any}
                     setupPairs={setupPairs}
                     setSetupPairs={setSetupPairs}
                     availableColumns={availableColumns}
