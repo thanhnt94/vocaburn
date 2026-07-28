@@ -4077,7 +4077,7 @@ export default function PracticePlay() {
         )}
       </AnimatePresence>
 
-      <header className="sticky top-0 flex-shrink-0 z-[120] bg-white/95 backdrop-blur-2xl border-b border-slate-100/80 pl-3 pr-1 md:px-4 py-1.5 flex items-center justify-between shadow-[0_1px_20px_rgba(99,102,241,0.04)]">
+      <header className="sticky top-0 flex-shrink-0 z-[120] bg-white/95 backdrop-blur-2xl border-b border-slate-100/80 pl-3 pr-1 md:px-4 py-1.5 flex flex-wrap md:flex-nowrap items-center justify-between gap-y-1 shadow-[0_1px_20px_rgba(99,102,241,0.04)]">
         <div className="flex items-center gap-2 font-sans min-w-0 flex-1 mr-2 md:mr-4">
           <button 
             onClick={() => navigate('/')} 
@@ -4087,10 +4087,10 @@ export default function PracticePlay() {
             <X className="w-4.5 h-4.5" />
           </button>
           <div className="flex flex-col min-w-0">
-            <h1 className="text-xs md:text-sm font-extrabold text-slate-800 tracking-tight break-words line-clamp-2 leading-snug" title={session?.title || session?.deck_title || ''}>
+            <h1 className="text-xs md:text-sm font-extrabold text-slate-800 tracking-tight truncate md:break-words md:line-clamp-2 leading-snug" title={session?.title || session?.deck_title || ''}>
               {(() => {
                 const dt = session?.title || session?.deck_title || session?.quiz_title || '';
-                return subMode === 'roadmap_test' ? `🎯 Bài Kiểm Tra Roadmap${dt ? ` - ${dt}` : ''}` : (dt || 'Luyện tập');
+                return isRoadmapTestMode ? `🎯 Bài Kiểm Tra Roadmap${dt ? ` - ${dt}` : ''}` : (dt || 'Luyện tập');
               })()}
             </h1>
             {isRoadmapActive && roadmapStatus?.pipeline && (
