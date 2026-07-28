@@ -1113,7 +1113,7 @@ export default function PracticePlay() {
       if (activeElement) {
         const tagName = activeElement.tagName.toLowerCase();
         if (tagName === 'input' || tagName === 'textarea' || activeElement.getAttribute('contenteditable') === 'true') {
-          if (e.key === 'Enter' && mainTab === 'practice' && practiceSubMode === 'typing') {
+          if (e.key === 'Enter' && mainTab === 'practice' && baseMode === 'typing') {
             e.preventDefault();
             if (showFeedback) {
               handleNext();
@@ -1140,7 +1140,7 @@ export default function PracticePlay() {
 
       // Practice Mode Hotkeys
       if (mainTab === 'practice') {
-        if (['mcq', 'listening'].includes(practiceSubMode)) {
+        if (['mcq', 'listening'].includes(baseMode)) {
           if (e.key === 'Enter' || key === 'n') {
             if (showFeedback) {
               e.preventDefault();
@@ -1154,7 +1154,7 @@ export default function PracticePlay() {
               handleMCQAnswer(keyNum - 1);
             }
           }
-        } else if (practiceSubMode === 'typing') {
+        } else if (baseMode === 'typing') {
           if (e.key === 'Enter' || key === 'n') {
             if (showFeedback) {
               e.preventDefault();
@@ -1219,7 +1219,7 @@ export default function PracticePlay() {
   }, [currentIndex, currentQuestion])
 
   useEffect(() => {
-    if (mainTab === 'practice' && practiceSubMode === 'listening' && currentPracticeData) {
+    if (mainTab === 'practice' && baseMode === 'listening' && currentPracticeData) {
       const { question_key: qKey } = currentPracticeData;
       playCardAudio(qKey || 'front');
     }
@@ -2564,7 +2564,7 @@ export default function PracticePlay() {
       if (prevAns !== undefined) {
         setSelectedOption(prevAns)
         setShowFeedback(true)
-        if (practiceSubMode === 'typing') {
+        if (baseMode === 'typing') {
           setTypingFeedback({ checked: true, isCorrect: prevAns === 3 })
         }
       } else {
@@ -3424,7 +3424,7 @@ export default function PracticePlay() {
             <div className="absolute top-[-10%] left-[-10%] w-[30%] h-[30%] rounded-full bg-indigo-50/20 blur-2xl pointer-events-none" />
             <div className="absolute bottom-[-10%] right-[-10%] w-[30%] h-[30%] rounded-full bg-pink-50/20 blur-2xl pointer-events-none" />
             {/* Image removed from question card for MCQ/Practice modes as requested */}
-            {practiceSubMode === 'listening' ? (
+            {baseMode === 'listening' ? (
               <div className="flex flex-col items-center gap-3">
                 <div
                   onClick={() => {
@@ -3449,7 +3449,7 @@ export default function PracticePlay() {
         </div>
 
         <div className="w-full max-w-3xl mx-auto pt-4 md:pt-6 border-t border-slate-100">
-          {['mcq', 'listening', 'roadmap_test'].includes(practiceSubMode) && choices && (
+          {['mcq', 'listening'].includes(baseMode) && choices && (
             <div className="grid grid-cols-1 gap-2 md:gap-3.5 mb-2 md:mb-4">
               {choices.map((choice: string, idx: number) => {
                 const isSelected = selectedOption === idx;
@@ -3556,7 +3556,7 @@ export default function PracticePlay() {
             </div>
           )}
 
-          {practiceSubMode === 'typing' && (
+          {baseMode === 'typing' && (
             <div className="space-y-4 mb-4">
               {!answered ? (
                 <div className="flex gap-2">
@@ -3620,7 +3620,7 @@ export default function PracticePlay() {
       const correctCount = Object.entries(practiceAnswers).filter(([idx, ansIdx]) => {
         const q = session?.questions?.[Number(idx)];
         if (!q || !q.practice) return false;
-        if (practiceSubMode === 'typing') {
+        if (baseMode === 'typing') {
           return ansIdx === 3;
         }
         return ansIdx === q.practice.correct_index;
@@ -4439,7 +4439,7 @@ export default function PracticePlay() {
                     }}
                     className={cn(
                       "px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-wider transition-all duration-200 flex items-center gap-1.5",
-                      practiceSubMode === 'mcq'
+                      baseMode === 'mcq'
                         ? "bg-white text-indigo-600 shadow-sm border border-slate-200/10"
                         : "text-slate-500 hover:text-slate-700"
                     )}
@@ -4459,7 +4459,7 @@ export default function PracticePlay() {
                     }}
                     className={cn(
                       "px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-wider transition-all duration-200 flex items-center gap-1.5",
-                      practiceSubMode === 'typing'
+                      baseMode === 'typing'
                         ? "bg-white text-indigo-600 shadow-sm border border-slate-200/10"
                         : "text-slate-500 hover:text-slate-700"
                     )}
@@ -4479,7 +4479,7 @@ export default function PracticePlay() {
                     }}
                     className={cn(
                       "px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-wider transition-all duration-200 flex items-center gap-1.5",
-                      practiceSubMode === 'listening'
+                      baseMode === 'listening'
                         ? "bg-white text-indigo-600 shadow-sm border border-slate-200/10"
                         : "text-slate-500 hover:text-slate-700"
                     )}
@@ -4804,7 +4804,7 @@ export default function PracticePlay() {
                           Object.entries(practiceAnswers).filter(([idx, ansIdx]) => {
                             const q = session?.questions?.[Number(idx)];
                             if (!q || !q.practice) return false;
-                            if (practiceSubMode === 'typing') return ansIdx === 3;
+                            if (baseMode === 'typing') return ansIdx === 3;
                             return ansIdx === q.practice.correct_index;
                           }).length
                         ) : (
@@ -4828,7 +4828,7 @@ export default function PracticePlay() {
                           Object.keys(practiceAnswers).length - Object.entries(practiceAnswers).filter(([idx, ansIdx]) => {
                             const q = session?.questions?.[Number(idx)];
                             if (!q || !q.practice) return false;
-                            if (practiceSubMode === 'typing') return ansIdx === 3;
+                            if (baseMode === 'typing') return ansIdx === 3;
                             return ansIdx === q.practice.correct_index;
                           }).length
                         ) : (
