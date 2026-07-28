@@ -499,7 +499,6 @@ export default function PracticePlay() {
     setPracticeTotalAnswered(0);
     setPracticeCorrectCount(0);
     setCurrentIndex(0);
-    localStorage.removeItem(`vocab_roadmap_session_${id}`);
     try {
       await axios.post(`/api/v1/deck/${id}/roadmap-test-reset`);
     } catch (e) {}
@@ -1366,36 +1365,6 @@ export default function PracticePlay() {
             });
           }
 
-          // Hydrate local storage session backup only if the backend also restored the session
-          const localSavedStr = localStorage.getItem(`vocab_roadmap_session_${id}`);
-          if (localSavedStr) {
-            if (quizRes.data.restored) {
-              try {
-                const localSaved = JSON.parse(localSavedStr);
-                if (localSaved && localSaved.practiceAnswers) {
-                  parsedAns = { ...localSaved.practiceAnswers, ...parsedAns };
-                  if (localSaved.practiceTotalAnswered !== undefined) {
-                    totalAnswered = Math.max(totalAnswered, localSaved.practiceTotalAnswered);
-                  }
-                  if (localSaved.practiceCorrectCount !== undefined) {
-                    correctCount = Math.max(correctCount, localSaved.practiceCorrectCount);
-                  }
-                  if (localSaved.sessionXP !== undefined) {
-                    setSessionXP(localSaved.sessionXP);
-                  }
-                  if (localSaved.streak !== undefined) {
-                    setStreak(localSaved.streak);
-                  }
-                  if (localSaved.currentIndex !== undefined && restoredIdx === 0) {
-                    restoredIdx = localSaved.currentIndex;
-                  }
-                }
-              } catch (e) {}
-            } else {
-              localStorage.removeItem(`vocab_roadmap_session_${id}`);
-            }
-          }
-
           setCurrentIndex(restoredIdx);
           setPracticeAnswers(parsedAns);
           setPracticeTotalAnswered(totalAnswered);
@@ -1757,9 +1726,9 @@ export default function PracticePlay() {
   ) => {
     try {
       const isPractice = mainTab === 'practice';
-      if (isPractice && practiceSubMode !== 'roadmap_test') return; // Skip saving non-roadmap practice sessions
+      if (isPractice && !isRoadmapTestMode) return; // Skip saving non-roadmap practice sessions
       
-      const payloadMode = practiceSubMode === 'roadmap_test' ? 'roadmap_test' : 'sequential';
+      const payloadMode = isRoadmapTestMode ? practiceSubMode : 'sequential';
       await axios.post(`/api/v1/deck/${id}/session`, {
         mode: payloadMode,
         current_index: newIndex,
@@ -1932,7 +1901,6 @@ export default function PracticePlay() {
               setIsSubmittingRoadmapTest(true);
               axios.post(`/api/v1/deck/${id}/roadmap-test-submit`, { answers: testAnswers })
                 .then(res => {
-                  localStorage.removeItem(`vocab_roadmap_session_${id}`);
                   setRoadmapTestResult(res.data);
                   setIsSessionSummaryOpen(true);
                 })
@@ -2240,16 +2208,6 @@ export default function PracticePlay() {
     const isRoadmapMode = subMode === 'roadmap_test' || subMode === 'roadmap_mcq' || subMode === 'roadmap_typing' || (typeof subMode === 'string' && subMode.startsWith('roadmap_'));
     if (isRoadmapMode) {
       const answeredKeysCount = Object.keys(newAnswers).length;
-      const savedState = {
-        currentIndex,
-        practiceAnswers: newAnswers,
-        practiceTotalAnswered: updatedTotalAnswered,
-        practiceCorrectCount: updatedCorrectCount,
-        sessionXP: sessionXP,
-        streak: streak,
-        timestamp: Date.now()
-      };
-      localStorage.setItem(`vocab_roadmap_session_${id}`, JSON.stringify(savedState));
       axios.post(`/api/v1/deck/${id}/roadmap-test-save-progress`, {
         current_index: currentIndex,
         practiceAnswers: newAnswers,
@@ -2480,16 +2438,6 @@ export default function PracticePlay() {
     const isRoadmapMode = subMode === 'roadmap_test' || subMode === 'roadmap_mcq' || subMode === 'roadmap_typing' || (typeof subMode === 'string' && subMode.startsWith('roadmap_'));
     if (isRoadmapMode) {
       const answeredKeysCount = Object.keys(newAnswers).length;
-      const savedState = {
-        currentIndex,
-        practiceAnswers: newAnswers,
-        practiceTotalAnswered: updatedTotalAnswered,
-        practiceCorrectCount: updatedCorrectCount,
-        sessionXP: sessionXP,
-        streak: streak,
-        timestamp: Date.now()
-      };
-      localStorage.setItem(`vocab_roadmap_session_${id}`, JSON.stringify(savedState));
       axios.post(`/api/v1/deck/${id}/roadmap-test-save-progress`, {
         current_index: currentIndex,
         practiceAnswers: newAnswers,
@@ -2694,7 +2642,6 @@ export default function PracticePlay() {
           time_spent_seconds: sessionStudyTime
         });
 
-        localStorage.removeItem(`vocab_roadmap_session_${id}`);
         setRoadmapSubmitResult(res.data);
         setIsRoadmapTestFinished(true);
 
