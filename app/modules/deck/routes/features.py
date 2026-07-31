@@ -654,16 +654,30 @@ async def generate_single_card_audio_helper(c, face: str, force: bool, db: Async
     target_url_col = ""
     is_custom = face not in ("front", "back")
 
+    from app.modules.deck.models import FlashcardDeck
+    deck_res = await db.execute(select(FlashcardDeck).where(FlashcardDeck.id == c.deck_id))
+    deck = deck_res.scalar_one_or_none()
+
+    target_lang = None
+    if deck and deck.practice_settings and isinstance(deck.practice_settings, dict):
+        ps = deck.practice_settings
+        if not is_custom:
+            cfg_key = "front_audio_config" if face == "front" else "back_audio_config"
+            cfg = ps.get(cfg_key, {})
+            if isinstance(cfg, dict):
+                target_lang = cfg.get("lang")
+        else:
+            pairs = ps.get("audio_pairs", [])
+            pair = next((p for p in pairs if p.get("text_col") == face), None)
+            if pair:
+                target_lang = pair.get("lang")
+
     if not is_custom:
         if face == "front":
             text = c.front_audio_content or (c.others.get("front_audio_content") if c.others else None)
         else:
             text = c.back_audio_content or (c.others.get("back_audio_content") if c.others else None)
     else:
-        # Load deck to check practice_settings mapping
-        from app.modules.deck.models import FlashcardDeck
-        deck_res = await db.execute(select(FlashcardDeck).where(FlashcardDeck.id == c.deck_id))
-        deck = deck_res.scalar_one_or_none()
         if deck and deck.practice_settings and isinstance(deck.practice_settings, dict):
             pairs = deck.practice_settings.get("audio_pairs", [])
             pair = next((p for p in pairs if p.get("text_col") == face), None)
@@ -744,7 +758,7 @@ async def generate_single_card_audio_helper(c, face: str, force: bool, db: Async
             async with httpx.AsyncClient() as client:
                 response = await client.post(
                      f"{sso_config.server_url.rstrip('/')}/api/tts/generate",
-                     json={"text": text},
+                     json={"text": text, "lang": target_lang},
                      timeout=20.0
                 )
                 if response.status_code == 200:
@@ -781,14 +795,6 @@ async def generate_single_card_audio_helper(c, face: str, force: bool, db: Async
     # Fallback to local generation if centralized TTS failed or wasn't active
     if not success:
         try:
-            # Retrieve mapped lang from pair if custom
-            target_lang = None
-            if is_custom and 'deck' in locals() and deck and deck.practice_settings and isinstance(deck.practice_settings, dict):
-                pairs = deck.practice_settings.get("audio_pairs", [])
-                pair = next((p for p in pairs if p.get("text_col") == face), None)
-                if pair:
-                    target_lang = pair.get("lang")
-
             from app.modules.deck.services.audio_generator import AudioGenerator
             logger.info(f"[TTS LOCAL] Generating TTS locally using edge-tts/gTTS for text: '{text[:30]}...' with lang: {target_lang}")
             
@@ -922,6 +928,27 @@ async def _bulk_generate_deck_audio_task(
         callback_base = settings.APP_BASE_URL if settings.APP_BASE_URL else base_url
         callback_url = f"{callback_base.rstrip('/')}/api/v1/deck/tts-callback"
 
+        from app.modules.deck.models import FlashcardDeck
+        deck_res = await db.execute(select(FlashcardDeck).where(FlashcardDeck.id == deck_id))
+        deck = deck_res.scalar_one_or_none()
+
+        bulk_lang = None
+        if deck and deck.practice_settings and isinstance(deck.practice_settings, dict):
+            ps = deck.practice_settings
+            if target_field == "front_audio_url":
+                cfg = ps.get("front_audio_config", {})
+                if isinstance(cfg, dict):
+                    bulk_lang = cfg.get("lang")
+            elif target_field == "back_audio_url":
+                cfg = ps.get("back_audio_config", {})
+                if isinstance(cfg, dict):
+                    bulk_lang = cfg.get("lang")
+            else:
+                pairs = ps.get("audio_pairs", [])
+                pair = next((p for p in pairs if p.get("audio_url_col") == target_field or p.get("text_col") == target_field), None)
+                if pair:
+                    bulk_lang = pair.get("lang")
+
         for c in cards:
             await db.refresh(c)
             
@@ -952,7 +979,7 @@ async def _bulk_generate_deck_audio_task(
                 has_audio = bool(c.others and c.others.get(target_field))
                 
             if force or not has_audio:
-                tasks_to_submit.append({
+                task_item = {
                     "satellite_source": "vocaburn",
                     "prompt": text,
                     "callback_url": callback_url,
@@ -963,7 +990,10 @@ async def _bulk_generate_deck_audio_task(
                         "deck_id": deck_id
                     }),
                     "max_retries": 3
-                })
+                }
+                if bulk_lang:
+                    task_item["lang"] = bulk_lang
+                tasks_to_submit.append(task_item)
 
         if not tasks_to_submit:
             logger.info(f"[BULK TTS] All cards in deck {deck_id} are already fully synchronized.")
