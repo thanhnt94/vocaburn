@@ -10,7 +10,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import axios from 'axios'
 import { cn } from '@/lib/utils'
 
-export type StepType = 'new_cards' | 'fsrs_review' | 'mcq' | 'typing'
+export type StepType = 'new_cards' | 'fsrs_review' | 'mcq' | 'typing' | 'study_time'
 
 export interface PipelineStep {
   type: StepType
@@ -18,6 +18,7 @@ export interface PipelineStep {
   overdue_hours?: number
   question_count?: number
   pass_threshold?: number
+  target_minutes?: number
 }
 
 const STEP_META: Record<StepType, { title: string; icon: string; bg: string; color: string; desc: string }> = {
@@ -48,6 +49,13 @@ const STEP_META: Record<StepType, { title: string; icon: string; bg: string; col
     bg: 'bg-emerald-50',
     color: 'text-emerald-600',
     desc: 'Bài test gõ chính xác từ vựng'
+  },
+  study_time: {
+    title: 'Thời Gian Học',
+    icon: '⏱️',
+    bg: 'bg-blue-50',
+    color: 'text-blue-600',
+    desc: 'Tích lũy tổng thời gian học và làm bài trong ngày'
   }
 }
 
@@ -59,7 +67,8 @@ export default function DeckRoadmap() {
   const [pipeline, setPipeline] = useState<PipelineStep[]>([
     { type: 'new_cards', daily_count: 10 },
     { type: 'mcq', question_count: 15, pass_threshold: 80 },
-    { type: 'fsrs_review', overdue_hours: 24 }
+    { type: 'fsrs_review', overdue_hours: 24 },
+    { type: 'study_time', target_minutes: 10 }
   ])
   const [isSavingSettings, setIsSavingSettings] = useState(false)
   const [isEditingPipeline, setIsEditingPipeline] = useState(false)
@@ -92,7 +101,8 @@ export default function DeckRoadmap() {
           daily_count: st.daily_count,
           overdue_hours: st.overdue_hours,
           question_count: st.question_count,
-          pass_threshold: st.pass_threshold
+          pass_threshold: st.pass_threshold,
+          target_minutes: st.target_minutes
         }))
       )
     }
@@ -107,7 +117,8 @@ export default function DeckRoadmap() {
         daily_count: st.daily_count,
         overdue_hours: st.overdue_hours,
         question_count: st.question_count,
-        pass_threshold: st.pass_threshold
+        pass_threshold: st.pass_threshold,
+        target_minutes: st.target_minutes
       }))
 
       const hasChanged = JSON.stringify(pipeline) !== JSON.stringify(originalPipeline)
@@ -144,6 +155,7 @@ export default function DeckRoadmap() {
     else if (type === 'fsrs_review') newStep.overdue_hours = 24
     else if (type === 'mcq') { newStep.question_count = 15; newStep.pass_threshold = 80 }
     else if (type === 'typing') { newStep.question_count = 10; newStep.pass_threshold = 70 }
+    else if (type === 'study_time') { newStep.target_minutes = 10 }
 
     setPipeline([...pipeline, newStep])
   }
@@ -364,6 +376,11 @@ export default function DeckRoadmap() {
                           Điểm cao nhất: <span className={isDone ? "text-emerald-600" : "text-amber-600"}>{step.progress?.best_score || 0}%</span> / {step.pass_threshold}%
                         </div>
                       )}
+                      {step.type === 'study_time' && (
+                        <div className="text-xs font-black text-slate-700">
+                          Đã học: <span className={isDone ? "text-emerald-600" : "text-blue-600"}>{step.progress?.studied_minutes || 0}</span> / {step.target_minutes || 10} phút
+                        </div>
+                      )}
                     </div>
 
                     <button
@@ -450,6 +467,18 @@ export default function DeckRoadmap() {
                         </div>
                       )}
 
+                      {st.type === 'study_time' && (
+                        <div className="flex items-center gap-2">
+                          <span className="text-[10px] font-black text-slate-400">Mục tiêu (phút):</span>
+                          <input
+                            type="number" min="1" max="180" step="1"
+                            value={st.target_minutes || 10}
+                            onChange={(e) => updateStepConfig(idx, 'target_minutes', parseInt(e.target.value) || 10)}
+                            className="w-16 px-2 py-1 bg-white border border-slate-300 rounded-lg text-xs font-black text-center"
+                          />
+                        </div>
+                      )}
+
                       {(st.type === 'mcq' || st.type === 'typing') && (
                         <div className="flex items-center gap-3">
                           <div className="flex items-center gap-1.5">
@@ -521,6 +550,14 @@ export default function DeckRoadmap() {
                 >
                   <Plus className="w-3.5 h-3.5" />
                   <span>🔄 Ôn Tập FSRS</span>
+                </button>
+
+                <button
+                  onClick={() => addStep('study_time')}
+                  className="px-3.5 py-2 rounded-xl bg-blue-50 text-blue-700 border border-blue-200 text-xs font-black flex items-center gap-1.5 hover:bg-blue-100 cursor-pointer"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  <span>⏱️ Thời Gian Học</span>
                 </button>
 
                 {enabledModes.includes('mcq') && (

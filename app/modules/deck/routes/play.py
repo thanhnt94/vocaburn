@@ -2500,6 +2500,19 @@ async def get_deck_roadmap_status_helper(db: AsyncSession, user_id: int, deck_id
         )
     ) or 0
 
+    # Calculate today's total active study time in minutes for this deck
+    today_time_seconds = await db.scalar(
+        select(func.sum(UserAnswer.active_time))
+        .join(Flashcard, UserAnswer.card_id == Flashcard.id)
+        .join(DeckAttempt, UserAnswer.attempt_id == DeckAttempt.id)
+        .where(
+            Flashcard.deck_id == deck_id,
+            DeckAttempt.user_id == user_id,
+            UserAnswer.created_at >= today_start
+        )
+    ) or 0.0
+    today_studied_minutes = round(float(today_time_seconds) / 60.0, 1)
+
     # Calculate Retention Rate from recent test attempts (roadmap_test, roadmap_mcq, roadmap_typing)
     test_attempts_res = await db.execute(
         select(DeckAttempt.score)
@@ -2648,6 +2661,16 @@ async def get_deck_roadmap_status_helper(db: AsyncSession, user_id: int, deck_id
                 "progress": {"best_score": best_score, "attempts_today": len(typing_scores), "target_score": threshold},
                 "url": f"/practice/{deck_id}/roadmap_typing",
                 "label": "Gõ từ vựng"
+            })
+        elif stype == "study_time":
+            target_mins = int(st.get("target_minutes", 10))
+            is_done = today_studied_minutes >= target_mins
+            step_data.update({
+                "target_minutes": target_mins,
+                "done": is_done,
+                "progress": {"studied_minutes": today_studied_minutes, "target_minutes": target_mins},
+                "url": f"/flashcard/{deck_id}/play?mode=roadmap",
+                "label": f"Thời gian học ({target_mins} phút)"
             })
 
         pipeline_processed.append(step_data)

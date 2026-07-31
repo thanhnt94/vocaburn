@@ -3,7 +3,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import axios from 'axios'
 
 export interface PipelineStepStatus {
-  type: 'new_cards' | 'fsrs_review' | 'mcq' | 'typing'
+  type: 'new_cards' | 'fsrs_review' | 'mcq' | 'typing' | 'study_time'
   done: boolean
   label: string
   url: string
@@ -12,6 +12,7 @@ export interface PipelineStepStatus {
   overdue_hours?: number
   question_count?: number
   pass_threshold?: number
+  target_minutes?: number
 }
 
 export interface RoadmapStatusData {
