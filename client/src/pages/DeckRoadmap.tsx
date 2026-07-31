@@ -102,6 +102,21 @@ export default function DeckRoadmap() {
 
   const handleSavePipeline = async (active = true) => {
     try {
+      const originalPipeline = (status?.pipeline || []).map((st: any) => ({
+        type: st.type,
+        daily_count: st.daily_count,
+        overdue_hours: st.overdue_hours,
+        question_count: st.question_count,
+        pass_threshold: st.pass_threshold
+      }))
+
+      const hasChanged = JSON.stringify(pipeline) !== JSON.stringify(originalPipeline)
+      if (hasChanged) {
+        if (!window.confirm("Lưu ý: Bạn đã thay đổi cấu hình Pipeline. Khi lưu lại, toàn bộ tiến trình lộ trình hôm nay sẽ được làm mới để áp dụng cấu hình mới.\n\nBạn có chắc chắn muốn lưu không?")) {
+          return
+        }
+      }
+
       setIsSavingSettings(true)
       await axios.post(`/api/v1/deck/${id}/practice-settings`, {
         settings: {
@@ -275,11 +290,6 @@ export default function DeckRoadmap() {
           
           <button
             onClick={() => {
-              if (!isEditingPipeline) {
-                if (!window.confirm("Lưu ý: Nếu bạn thay đổi và lưu Pipeline, toàn bộ tiến trình lộ trình của ngày hôm nay sẽ bị xoá để bắt đầu lại.\n\nBạn có chắc chắn muốn chỉnh sửa?")) {
-                  return;
-                }
-              }
               setIsEditingPipeline(!isEditingPipeline);
             }}
             className="text-xs font-black text-indigo-600 hover:text-indigo-800 flex items-center gap-1.5 cursor-pointer bg-indigo-50 border border-indigo-200 px-3 py-1.5 rounded-xl transition-all"
