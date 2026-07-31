@@ -107,6 +107,12 @@ class AudioGenerator:
                 if not seg_text.strip():
                     continue
                     
+                # Clean furigana / bracket annotations e.g. 変更[へんこう] -> 変更 or [ja:text] multi-lang format exception
+                clean_seg_text = re.sub(r'\[(?![a-z]{2,3}(?:-[a-zA-Z0-9]+)?:)[^\]]+\]', '', seg_text).strip()
+                if not clean_seg_text:
+                    clean_seg_text = seg_text.strip()
+                seg_text = clean_seg_text
+
                 lang = seg['lang']
                 primary_lang = lang.split('-')[0].lower() if '-' in lang else lang.lower()
                 
