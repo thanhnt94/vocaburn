@@ -281,7 +281,10 @@ export default function DeckRoadmap() {
             </div>
             <div>
               <h3 className="text-lg font-black">Chúc mừng! Bạn đã xong lộ trình hôm nay!</h3>
-              <p className="text-xs text-emerald-100 font-semibold">Tất cả các bước trong pipeline đã được hoàn thành xuất sắc.</p>
+              <p className="text-xs text-emerald-100 font-semibold">
+                Tất cả các bước trong pipeline đã được hoàn thành xuất sắc
+                {s.completion_time_today && ` vào lúc ${s.completion_time_today}`}.
+              </p>
             </div>
           </div>
           <div className="flex items-center gap-3">
@@ -586,19 +589,64 @@ export default function DeckRoadmap() {
       </AnimatePresence>
 
       {/* ── Retention & Activity Analytics Grid ── */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        {/* Card 1: Today's Monitor & Log Breakdown */}
+        <div className="bg-white rounded-3xl p-6 border border-slate-100 shadow-sm flex flex-col justify-between">
+          <div>
+            <h3 className="text-sm font-black text-slate-800 uppercase tracking-widest flex items-center gap-2 mb-4">
+              <Clock className="w-4 h-4 text-blue-600" />
+              Nhật Ký Học Hôm Nay
+            </h3>
+
+            <div className="p-4 bg-blue-50/50 rounded-2xl border border-blue-100 mb-4">
+              <div className="flex items-center justify-between mb-1">
+                <span className="text-[10px] font-black text-blue-600 uppercase tracking-widest">Tổng thời gian tích lũy</span>
+                {s.completion_time_today && (
+                  <span className="text-[9px] font-black text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
+                    Xong lúc {s.completion_time_today}
+                  </span>
+                )}
+              </div>
+              <div className="text-2xl font-black text-slate-900">
+                ⏱️ {s.today_total_study_minutes || 0} <span className="text-xs font-bold text-slate-500">phút học thực tế</span>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Chi tiết hoạt động</div>
+              <div className="flex items-center justify-between text-xs p-2.5 bg-slate-50 rounded-xl">
+                <span className="font-semibold text-slate-600">🎴 Từ mới nạp thêm</span>
+                <span className="font-black text-slate-800">{s.today_activity?.new_learned || 0} từ</span>
+              </div>
+              <div className="flex items-center justify-between text-xs p-2.5 bg-slate-50 rounded-xl">
+                <span className="font-semibold text-slate-600">🔄 Thẻ ôn tập hoàn thành</span>
+                <span className="font-black text-slate-800">{s.today_activity?.reviewed || 0} thẻ</span>
+              </div>
+              <div className="flex items-center justify-between text-xs p-2.5 bg-slate-50 rounded-xl">
+                <span className="font-semibold text-slate-600">🎯 Lượt test MCQ / Gõ</span>
+                <span className="font-black text-slate-800">{(s.today_activity?.mcq_attempts || 0) + (s.today_activity?.typing_attempts || 0)} lượt</span>
+              </div>
+              <div className="flex items-center justify-between text-xs p-2.5 bg-slate-50 rounded-xl">
+                <span className="font-semibold text-slate-600">📝 Tổng số lượt trả lời</span>
+                <span className="font-black text-slate-800">{s.today_activity?.answers_count || 0} lượt</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Card 2: Retention Rate */}
         <div className="bg-white rounded-3xl p-6 border border-slate-100 shadow-sm flex flex-col justify-between">
           <div>
             <h3 className="text-sm font-black text-slate-800 uppercase tracking-widest flex items-center gap-2 mb-6">
               <Brain className="w-4 h-4 text-emerald-600" />
-              Chỉ Số Ghi Nhớ (Retention Rate)
+              Chỉ Số Ghi Nhớ (Retention)
             </h3>
 
             <div className="grid grid-cols-2 gap-4 mb-6">
               <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100 text-center">
-                <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block mb-1">Tỷ Lệ Đúng Trung Bình</span>
+                <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block mb-1">Tỷ Lệ Đúng</span>
                 <span className="text-3xl font-black text-indigo-600">{s.retention_rate || 0}%</span>
-                <span className="text-[9px] font-bold text-slate-400 block mt-1">10 bài test gần nhất</span>
+                <span className="text-[9px] font-bold text-slate-400 block mt-1">10 test gần nhất</span>
               </div>
 
               <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100 text-center">
@@ -620,7 +668,7 @@ export default function DeckRoadmap() {
           </div>
         </div>
 
-        {/* 7-Day Activity Map */}
+        {/* Card 3: 7-Day Activity Map */}
         <div className="bg-white rounded-3xl p-6 border border-slate-100 shadow-sm flex flex-col justify-between">
           <div>
             <h3 className="text-sm font-black text-slate-800 uppercase tracking-widest flex items-center gap-2 mb-6">

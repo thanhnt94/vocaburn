@@ -34,6 +34,15 @@ export interface RoadmapStatusData {
   retention_rate?: number
   unlearned_cards?: number
   estimated_completion_date?: string
+  today_total_study_minutes?: number
+  completion_time_today?: string
+  today_activity?: {
+    new_learned?: number
+    reviewed?: number
+    answers_count?: number
+    mcq_attempts?: number
+    typing_attempts?: number
+  }
 }
 
 export function useRoadmapStatus(deckId: string | number | undefined) {

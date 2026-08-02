@@ -2513,6 +2513,49 @@ async def get_deck_roadmap_status_helper(db: AsyncSession, user_id: int, deck_id
     ) or 0.0
     today_studied_minutes = round(float(today_time_seconds) / 60.0, 1)
 
+    # Detailed activity breakdown today for this deck
+    answers_count_today = await db.scalar(
+        select(func.count(UserAnswer.id))
+        .join(Flashcard, UserAnswer.card_id == Flashcard.id)
+        .join(DeckAttempt, UserAnswer.attempt_id == DeckAttempt.id)
+        .where(
+            Flashcard.deck_id == deck_id,
+            DeckAttempt.user_id == user_id,
+            UserAnswer.created_at >= today_start
+        )
+    ) or 0
+
+    mcq_attempts_count_today = await db.scalar(
+        select(func.count(DeckAttempt.id))
+        .where(
+            DeckAttempt.user_id == user_id,
+            DeckAttempt.deck_id == deck_id,
+            DeckAttempt.mode.in_(["roadmap_mcq", "mcq"]),
+            func.coalesce(DeckAttempt.completed_at, DeckAttempt.started_at) >= today_start
+        )
+    ) or 0
+
+    typing_attempts_count_today = await db.scalar(
+        select(func.count(DeckAttempt.id))
+        .where(
+            DeckAttempt.user_id == user_id,
+            DeckAttempt.deck_id == deck_id,
+            DeckAttempt.mode.in_(["roadmap_typing", "typing"]),
+            func.coalesce(DeckAttempt.completed_at, DeckAttempt.started_at) >= today_start
+        )
+    ) or 0
+
+    # Determine latest activity / completion time today
+    latest_activity_dt = await db.scalar(
+        select(func.max(func.coalesce(DeckAttempt.completed_at, DeckAttempt.started_at)))
+        .where(
+            DeckAttempt.user_id == user_id,
+            DeckAttempt.deck_id == deck_id,
+            func.coalesce(DeckAttempt.completed_at, DeckAttempt.started_at) >= today_start
+        )
+    )
+    completion_time_today = latest_activity_dt.strftime("%H:%M:%S") if latest_activity_dt else None
+
     # Calculate Retention Rate from recent test attempts (roadmap_test, roadmap_mcq, roadmap_typing)
     test_attempts_res = await db.execute(
         select(DeckAttempt.score)
@@ -2731,7 +2774,16 @@ async def get_deck_roadmap_status_helper(db: AsyncSession, user_id: int, deck_id
         "estimated_completion_date": estimated_completion_date,
         "retention_rate": retention_rate,
         "streak": streak,
-        "seven_days": seven_days
+        "seven_days": seven_days,
+        "today_total_study_minutes": today_studied_minutes,
+        "completion_time_today": completion_time_today,
+        "today_activity": {
+            "new_learned": new_learned_today,
+            "reviewed": review_completed_today,
+            "answers_count": answers_count_today,
+            "mcq_attempts": mcq_attempts_count_today,
+            "typing_attempts": typing_attempts_count_today
+        }
     }
 
 
