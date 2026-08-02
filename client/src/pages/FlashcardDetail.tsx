@@ -262,8 +262,10 @@ export default function QuizDetail() {
         if (parts.length === 0 || (parts.length === 1 && !parts[0].trim())) return
         
         const card: any = { content: '', explanation: '', others: {}, options: [] }
-        cols.forEach((colName, idx) => {
-          const val = (parts[idx] || '').trim()
+        parts.forEach((cellVal, idx) => {
+          const colName = cols[idx]
+          if (!colName) return
+          const val = cellVal ? cellVal.trim() : ''
           if (!val) return
           const sysField = SYSTEM_FIELD_MAP[colName]
           if (sysField) {

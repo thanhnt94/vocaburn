@@ -201,19 +201,14 @@ const EditFlashcard = () => {
       
       row.forEach((cellVal, colIdx) => {
         const targetCol = colOrder[colIdx]
+        if (!targetCol) return
+        const val = cellVal.trim()
         if (targetCol === 'front') {
-          cardObj.content = cellVal.trim()
+          cardObj.content = val
         } else if (targetCol === 'back') {
-          cardObj.explanation = cellVal.trim()
-        } else if (targetCol) {
-          cardObj.others[targetCol] = cellVal.trim()
-        }
-      })
-      
-      // Initialize missing custom columns with empty string
-      colOrder.filter(c => c !== 'front' && c !== 'back').forEach((c: string) => {
-        if (cardObj.others[c] === undefined) {
-          cardObj.others[c] = ''
+          cardObj.explanation = val
+        } else {
+          cardObj.others[targetCol] = val
         }
       })
       

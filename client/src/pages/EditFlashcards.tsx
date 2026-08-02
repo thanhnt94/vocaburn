@@ -533,16 +533,18 @@ const EditFlashcards = () => {
           options: []
         }
         
-        visibleCols.forEach((col, index) => {
-          const val = parts[index] ? parts[index].trim() : ''
+        parts.forEach((cellVal, index) => {
+          const col = visibleCols[index]
+          if (!col) return
+          const val = cellVal ? cellVal.trim() : ''
           if (col === 'front') {
             cardData.content = val
           } else if (col === 'back') {
             cardData.explanation = val
           } else if (['front_audio_content', 'back_audio_content', 'front_audio_url', 'back_audio_url', 'front_img', 'back_img'].includes(col)) {
-            cardData[col] = val
+            if (val) cardData[col] = val
           } else {
-            cardData.others[col] = val
+            if (val) cardData.others[col] = val
           }
         })
         
