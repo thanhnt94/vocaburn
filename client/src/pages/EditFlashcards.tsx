@@ -32,6 +32,8 @@ import {
 import axios from 'axios'
 import { cn } from '@/lib/utils'
 
+const SYSTEM_DEFAULTS = ['front', 'back', 'front_audio_content', 'back_audio_content', 'front_audio_url', 'back_audio_url', 'front_img', 'back_img']
+
 const EditFlashcards = () => {
   const { id } = useParams()
   const navigate = useNavigate()
@@ -69,7 +71,7 @@ const EditFlashcards = () => {
   const [availableColumns, setAvailableColumns] = useState<string[]>([])
   
   const [quickAddValues, setQuickAddValues] = useState<Record<string, string>>({})
-  const [visibleCols, setVisibleCols] = useState<string[]>(['front', 'back'])
+  const [visibleCols, setVisibleCols] = useState<string[]>([])
 
   const shouldScrollToBottomRef = React.useRef(false)
 
@@ -83,20 +85,6 @@ const EditFlashcards = () => {
     })
     return counts
   }, [flashcards])
-
-  useEffect(() => {
-    if (availableColumns.length > 0) {
-      const defaultCols = []
-      if (availableColumns.includes('front')) defaultCols.push('front')
-      if (availableColumns.includes('back')) defaultCols.push('back')
-      
-      if (defaultCols.length === 0) {
-        defaultCols.push(availableColumns[0])
-        if (availableColumns[1]) defaultCols.push(availableColumns[1])
-      }
-      setVisibleCols(defaultCols)
-    }
-  }, [availableColumns])
 
   useEffect(() => {
     const handleScroll = () => {
@@ -113,9 +101,32 @@ const EditFlashcards = () => {
     const fetchSettings = async () => {
       try {
         const res = await axios.get(`/api/v1/deck/${id}/practice-settings`)
-        setAvailableColumns(res.data.available_columns || ['front', 'back'])
-        setPracticeSettings(res.data.creator_settings || {})
+        const availCols: string[] = res.data.available_columns || ['front', 'back']
+        const creatorSettings = res.data.creator_settings || {}
+        setAvailableColumns(availCols)
+        setPracticeSettings(creatorSettings)
         if (res.data.deck_name) setDeckName(res.data.deck_name)
+
+        const loadedOrder: string[] = creatorSettings.column_order || []
+        const loadedCustom: string[] = creatorSettings.custom_columns || []
+        const availNonDefault = availCols.filter(c => !SYSTEM_DEFAULTS.includes(c))
+        const mergedCustom = Array.from(new Set([...loadedCustom, ...availNonDefault]))
+
+        const allDeckCols = Array.from(new Set([...SYSTEM_DEFAULTS, ...mergedCustom, ...availCols]))
+
+        let effectiveOrder: string[] = []
+        if (Array.isArray(loadedOrder) && loadedOrder.length > 0) {
+          effectiveOrder = loadedOrder.filter(c => allDeckCols.includes(c))
+          allDeckCols.forEach(c => {
+            if (!effectiveOrder.includes(c)) effectiveOrder.push(c)
+          })
+        } else {
+          const customOnly = mergedCustom.filter(c => !SYSTEM_DEFAULTS.includes(c))
+          const otherExtra = availCols.filter(c => !SYSTEM_DEFAULTS.includes(c) && !customOnly.includes(c))
+          effectiveOrder = Array.from(new Set([...SYSTEM_DEFAULTS, ...customOnly, ...otherExtra]))
+        }
+
+        setVisibleCols(effectiveOrder)
       } catch (e) {
         console.error("Failed to fetch deck practice settings", e)
       }
