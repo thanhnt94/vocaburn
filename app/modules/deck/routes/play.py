@@ -22,7 +22,7 @@ def check_has_practice_setup(practice_settings):
 def check_has_mcq_setup(practice_settings):
     return "mcq" in get_enabled_practice_modes(practice_settings)
 
-from fastapi import APIRouter, UploadFile, File, Depends, Request, BackgroundTasks
+from fastapi import APIRouter, UploadFile, File, Depends, Request, BackgroundTasks, Query
 from typing import Optional
 import logging
 
