@@ -722,11 +722,13 @@ export default function DeckRoadmap() {
                           className={cn(
                             "aspect-square rounded-lg flex items-center justify-center text-[10px] font-black transition-all cursor-pointer relative",
                             day.active
-                              ? day.completion_percent >= 100
-                                ? "bg-emerald-500/30 text-emerald-300 hover:bg-emerald-500/40"
-                                : day.completion_percent >= 50
-                                  ? "bg-indigo-500/25 text-indigo-300 hover:bg-indigo-500/35"
-                                  : "bg-indigo-500/10 text-indigo-400 hover:bg-indigo-500/20"
+                              ? day.completion_percent >= 150
+                                ? "bg-emerald-600/70 text-emerald-200 hover:bg-emerald-600/80 shadow-[0_0_8px_rgba(5,150,105,0.3)] ring-1 ring-emerald-500/50"
+                                : day.completion_percent >= 100
+                                  ? "bg-emerald-500/30 text-emerald-300 hover:bg-emerald-500/40"
+                                  : day.completion_percent >= 50
+                                    ? "bg-indigo-500/25 text-indigo-300 hover:bg-indigo-500/35"
+                                    : "bg-indigo-500/10 text-indigo-400 hover:bg-indigo-500/20"
                               : "bg-white/[0.02] text-slate-600 hover:bg-white/[0.06]",
                             isSelected && "ring-2 ring-indigo-400 ring-offset-1 ring-offset-[#0B0F1A]",
                             isToday && "border border-indigo-500/40"
@@ -757,6 +759,10 @@ export default function DeckRoadmap() {
                   <div className="flex items-center gap-1.5">
                     <div className="w-3 h-3 rounded bg-emerald-500/30" />
                     <span className="text-[9px] font-bold text-slate-600">Hoàn thành</span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <div className="w-3 h-3 rounded bg-emerald-600/70 ring-1 ring-emerald-500/50" />
+                    <span className="text-[9px] font-bold text-emerald-600/80">Vượt chỉ tiêu</span>
                   </div>
                   {calendarData && (
                     <span className="text-[10px] font-bold text-slate-500 ml-2">

@@ -2964,9 +2964,14 @@ async def get_deck_roadmap_calendar(request: Request, deck_id: int, month: str =
         completion_percent = 0
         if is_active:
             if day_date < date.today():
-                completion_percent = 100
+                if study_minutes >= 20:
+                    completion_percent = 150
+                else:
+                    completion_percent = 100
             else:
-                if study_minutes >= 10:
+                if study_minutes >= 20:
+                    completion_percent = 150
+                elif study_minutes >= 10:
                     completion_percent = 100
                 elif study_minutes >= 5:
                     completion_percent = 75
