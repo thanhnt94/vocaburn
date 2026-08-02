@@ -608,7 +608,11 @@ export default function DeckRoadmap() {
                             )}
                             {step.type === 'fsrs_review' && (
                               <div className="text-xs font-black text-slate-300">
-                                Còn: {step.done ? 0 : (step.progress?.due_count || 0)} <span className="text-slate-500">thẻ ôn tập</span>
+                                {step.done ? (
+                                  <>Đã ôn: <span className="text-emerald-400">{step.progress?.reviewed_today || 0}</span> <span className="text-slate-500">thẻ</span></>
+                                ) : (
+                                  <>Còn: {step.progress?.due_count || 0} <span className="text-slate-500">thẻ (đã ôn {step.progress?.reviewed_today || 0})</span></>
+                                )}
                               </div>
                             )}
                             {(step.type === 'mcq' || step.type === 'typing') && (
