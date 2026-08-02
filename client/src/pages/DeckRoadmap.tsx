@@ -346,29 +346,49 @@ export default function DeckRoadmap() {
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
             <div className="flex-1">
               <div className="flex items-center gap-2 mb-3">
-                <span className="px-3 py-1 rounded-full bg-indigo-500/20 text-indigo-300 text-[10px] font-black uppercase tracking-widest border border-indigo-400/20">
-                  Roadmap Pipeline V3
-                </span>
-                <button
-                  onClick={() => handleSavePipeline(!s.roadmap_active)}
-                  disabled={isSavingSettings}
-                  className={cn(
-                    "px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border transition-all cursor-pointer active:scale-95",
-                    s.roadmap_active
-                      ? "bg-emerald-500/20 text-emerald-300 border-emerald-400/30 hover:bg-emerald-500/30"
-                      : "bg-slate-700/40 text-slate-400 border-slate-500/30 hover:bg-slate-700/60"
-                  )}
-                >
-                  {s.roadmap_active ? "✓ Đang Hoạt Động" : "🚫 Đã Tắt"}
-                </button>
+                {s.roadmap_active && (
+                  <button
+                    onClick={() => handleSavePipeline(false)}
+                    disabled={isSavingSettings}
+                    className="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border transition-all cursor-pointer active:scale-95 bg-emerald-500/20 text-emerald-300 border-emerald-400/30 hover:bg-emerald-500/30"
+                  >
+                    ✓ Đang Hoạt Động
+                  </button>
+                )}
+                {!s.roadmap_active && (
+                  <button
+                    onClick={() => handleSavePipeline(true)}
+                    disabled={isSavingSettings}
+                    className="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border transition-all cursor-pointer active:scale-95 bg-slate-700/40 text-slate-400 border-slate-500/30 hover:bg-slate-700/60"
+                  >
+                    🚫 Đã Tắt
+                  </button>
+                )}
               </div>
 
               <h1 className="text-2xl md:text-3xl font-black tracking-tight text-white mb-2">
-                {deckTitle}
+                {status?.deck_title || deckTitle}
               </h1>
-              <p className="text-slate-400 text-xs font-medium max-w-xl leading-relaxed">
+              <p className="text-slate-400 text-xs font-medium max-w-xl leading-relaxed mb-4">
                 Dây chuyền luyện tập tuần tự — tự động theo dõi và đánh giá tiến độ mỗi ngày.
               </p>
+
+              <div className="flex items-center gap-6">
+                <div>
+                  <div className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-0.5">Chuỗi Streak</div>
+                  <div className="text-sm font-black text-white flex items-center gap-1.5">
+                    <span className="text-orange-500">🔥</span>
+                    {s.streak || 0} ngày
+                  </div>
+                </div>
+                <div className="w-px h-8 bg-white/10" />
+                <div>
+                  <div className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-0.5">Tiến độ thẻ</div>
+                  <div className="text-sm font-black text-white">
+                    <span className="text-indigo-400">{s.learned_cards || 0}</span> <span className="text-slate-500">/ {s.total_cards || 0}</span>
+                  </div>
+                </div>
+              </div>
             </div>
 
             {/* Progress Ring + Action Button */}

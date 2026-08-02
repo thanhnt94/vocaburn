@@ -2789,6 +2789,7 @@ async def get_deck_roadmap_status_helper(db: AsyncSession, user_id: int, deck_id
     roadmap_pass_threshold = test_step.get("pass_threshold", 80) if test_step else 80
 
     return {
+        "deck_title": deck_obj.title if deck_obj else None,
         "roadmap_active": roadmap_active,
         "pipeline": pipeline_processed,
         "current_step_index": current_step_index,
