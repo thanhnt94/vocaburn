@@ -2418,7 +2418,7 @@ async def update_contribution_status(
     return {"status": "success", "new_status": contrib.status}
 
 
-async def get_deck_roadmap_status_helper(db: AsyncSession, user_id: int, deck_id: int, settings: dict) -> dict:
+async def get_deck_roadmap_status_helper(db: AsyncSession, user_id: int, deck_id: int, settings: dict, target_date_str: Optional[str] = None) -> dict:
     from app.modules.deck.models import FlashcardDeck, Flashcard, UserCardMastery, UserAnswer, DeckAttempt
     deck_obj = await db.get(FlashcardDeck, deck_id)
     deck_practice_settings = deck_obj.practice_settings if (deck_obj and isinstance(deck_obj.practice_settings, dict)) else {}
@@ -2442,6 +2442,17 @@ async def get_deck_roadmap_status_helper(db: AsyncSession, user_id: int, deck_id
     ) or 0
     
     unlearned_cards = max(0, total_cards - learned_cards)
+
+    if target_date_str:
+        try:
+            target_dt = datetime.strptime(target_date_str, "%Y-%m-%d")
+        except Exception:
+            target_dt = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
+    else:
+        target_dt = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
+
+    day_start = target_dt
+    day_end = target_dt + timedelta(days=1)
     today_start = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
     
     min_answer_sub = select(
@@ -2459,7 +2470,8 @@ async def get_deck_roadmap_status_helper(db: AsyncSession, user_id: int, deck_id
         .join(Flashcard, min_answer_sub.c.card_id == Flashcard.id)
         .where(
             Flashcard.deck_id == deck_id,
-            min_answer_sub.c.min_created >= today_start
+            min_answer_sub.c.min_created >= day_start,
+            min_answer_sub.c.min_created < day_end
         )
     ) or 0
     
@@ -2471,11 +2483,12 @@ async def get_deck_roadmap_status_helper(db: AsyncSession, user_id: int, deck_id
         .where(
             Flashcard.deck_id == deck_id,
             UserCardMastery.user_id == user_id,
-            UserCardMastery.last_review >= today_start,
+            UserCardMastery.last_review >= day_start,
+            UserCardMastery.last_review < day_end,
             UserCardMastery.state > 0,
             or_(
                 min_answer_sub.c.min_created == None,
-                min_answer_sub.c.min_created < today_start
+                min_answer_sub.c.min_created < day_start
             )
         )
     ) or 0
@@ -2500,7 +2513,7 @@ async def get_deck_roadmap_status_helper(db: AsyncSession, user_id: int, deck_id
         )
     ) or 0
 
-    # Calculate today's total active study time in minutes for this deck
+    # Calculate target day's total active study time in minutes for this deck
     today_time_seconds = await db.scalar(
         select(func.sum(UserAnswer.active_time))
         .join(Flashcard, UserAnswer.card_id == Flashcard.id)
@@ -2508,12 +2521,13 @@ async def get_deck_roadmap_status_helper(db: AsyncSession, user_id: int, deck_id
         .where(
             Flashcard.deck_id == deck_id,
             DeckAttempt.user_id == user_id,
-            UserAnswer.created_at >= today_start
+            UserAnswer.created_at >= day_start,
+            UserAnswer.created_at < day_end
         )
     ) or 0.0
     today_studied_minutes = round(float(today_time_seconds) / 60.0, 1)
 
-    # Detailed activity breakdown today for this deck
+    # Detailed activity breakdown for target day for this deck
     answers_count_today = await db.scalar(
         select(func.count(UserAnswer.id))
         .join(Flashcard, UserAnswer.card_id == Flashcard.id)
@@ -2521,7 +2535,8 @@ async def get_deck_roadmap_status_helper(db: AsyncSession, user_id: int, deck_id
         .where(
             Flashcard.deck_id == deck_id,
             DeckAttempt.user_id == user_id,
-            UserAnswer.created_at >= today_start
+            UserAnswer.created_at >= day_start,
+            UserAnswer.created_at < day_end
         )
     ) or 0
 
@@ -2531,7 +2546,8 @@ async def get_deck_roadmap_status_helper(db: AsyncSession, user_id: int, deck_id
             DeckAttempt.user_id == user_id,
             DeckAttempt.deck_id == deck_id,
             DeckAttempt.mode.in_(["roadmap_mcq", "mcq"]),
-            func.coalesce(DeckAttempt.completed_at, DeckAttempt.started_at) >= today_start
+            func.coalesce(DeckAttempt.completed_at, DeckAttempt.started_at) >= day_start,
+            func.coalesce(DeckAttempt.completed_at, DeckAttempt.started_at) < day_end
         )
     ) or 0
 
@@ -2541,17 +2557,19 @@ async def get_deck_roadmap_status_helper(db: AsyncSession, user_id: int, deck_id
             DeckAttempt.user_id == user_id,
             DeckAttempt.deck_id == deck_id,
             DeckAttempt.mode.in_(["roadmap_typing", "typing"]),
-            func.coalesce(DeckAttempt.completed_at, DeckAttempt.started_at) >= today_start
+            func.coalesce(DeckAttempt.completed_at, DeckAttempt.started_at) >= day_start,
+            func.coalesce(DeckAttempt.completed_at, DeckAttempt.started_at) < day_end
         )
     ) or 0
 
-    # Determine latest activity / completion time today
+    # Determine latest activity / completion time for target day
     latest_activity_dt = await db.scalar(
         select(func.max(func.coalesce(DeckAttempt.completed_at, DeckAttempt.started_at)))
         .where(
             DeckAttempt.user_id == user_id,
             DeckAttempt.deck_id == deck_id,
-            func.coalesce(DeckAttempt.completed_at, DeckAttempt.started_at) >= today_start
+            func.coalesce(DeckAttempt.completed_at, DeckAttempt.started_at) >= day_start,
+            func.coalesce(DeckAttempt.completed_at, DeckAttempt.started_at) < day_end
         )
     )
     completion_time_today = latest_activity_dt.strftime("%H:%M:%S") if latest_activity_dt else None
@@ -2836,7 +2854,7 @@ async def get_roadmap_decks(request: Request, db: AsyncSession = Depends(get_db)
 
 
 @router.get("/{deck_id}/roadmap-status")
-async def get_deck_roadmap_status(request: Request, deck_id: int, db: AsyncSession = Depends(get_db)):
+async def get_deck_roadmap_status(request: Request, deck_id: int, target_date: Optional[str] = Query(None), db: AsyncSession = Depends(get_db)):
     user_id = int(request.cookies.get("user_id", 1))
     
     user_sett_res = await db.execute(
@@ -2848,7 +2866,7 @@ async def get_deck_roadmap_status(request: Request, deck_id: int, db: AsyncSessi
     user_sett = user_sett_res.scalar_one_or_none()
     settings = user_sett.settings if (user_sett and user_sett.settings) else {}
     
-    status = await get_deck_roadmap_status_helper(db, user_id, deck_id, settings)
+    status = await get_deck_roadmap_status_helper(db, user_id, deck_id, settings, target_date_str=target_date)
     return status
 
 

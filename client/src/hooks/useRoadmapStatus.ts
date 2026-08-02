@@ -45,7 +45,7 @@ export interface RoadmapStatusData {
   }
 }
 
-export function useRoadmapStatus(deckId: string | number | undefined) {
+export function useRoadmapStatus(deckId: string | number | undefined, targetDate?: string | null) {
   const queryClient = useQueryClient()
   const numericId = deckId ? Number(deckId) : undefined
   
@@ -54,10 +54,13 @@ export function useRoadmapStatus(deckId: string | number | undefined) {
   const prevStatusRef = useRef<RoadmapStatusData | null>(null)
 
   const { data: status, isLoading, refetch } = useQuery<RoadmapStatusData>({
-    queryKey: ['deck-roadmap-status', numericId],
+    queryKey: ['deck-roadmap-status', numericId, targetDate || 'today'],
     queryFn: async () => {
       if (!numericId) return null
-      const res = await axios.get(`/api/v1/deck/${numericId}/roadmap-status`)
+      const url = targetDate 
+        ? `/api/v1/deck/${numericId}/roadmap-status?target_date=${targetDate}`
+        : `/api/v1/deck/${numericId}/roadmap-status`
+      const res = await axios.get(url)
       return res.data
     },
     enabled: Boolean(numericId),

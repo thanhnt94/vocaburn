@@ -70,14 +70,18 @@ export default function DeckRoadmap() {
     { type: 'fsrs_review', overdue_hours: 24 },
     { type: 'study_time', target_minutes: 10 }
   ])
+  const [selectedDate, setSelectedDate] = useState<string | null>(null)
   const [isSavingSettings, setIsSavingSettings] = useState(false)
   const [isEditingPipeline, setIsEditingPipeline] = useState(false)
 
   // Fetch deck roadmap status
   const { data: status, isLoading: isStatusLoading, refetch } = useQuery({
-    queryKey: ['deck-roadmap-status', id],
+    queryKey: ['deck-roadmap-status', id, selectedDate || 'today'],
     queryFn: async () => {
-      const res = await axios.get(`/api/v1/deck/${id}/roadmap-status`)
+      const url = selectedDate 
+        ? `/api/v1/deck/${id}/roadmap-status?target_date=${selectedDate}`
+        : `/api/v1/deck/${id}/roadmap-status`
+      const res = await axios.get(url)
       return res.data
     },
     enabled: Boolean(id)
@@ -590,13 +594,23 @@ export default function DeckRoadmap() {
 
       {/* ── Retention & Activity Analytics Grid ── */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {/* Card 1: Today's Monitor & Log Breakdown */}
+        {/* Card 1: Today's / Selected Day's Monitor & Log Breakdown */}
         <div className="bg-white rounded-3xl p-6 border border-slate-100 shadow-sm flex flex-col justify-between">
           <div>
-            <h3 className="text-sm font-black text-slate-800 uppercase tracking-widest flex items-center gap-2 mb-4">
-              <Clock className="w-4 h-4 text-blue-600" />
-              Nhật Ký Học Hôm Nay
-            </h3>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-sm font-black text-slate-800 uppercase tracking-widest flex items-center gap-2">
+                <Clock className="w-4 h-4 text-blue-600" />
+                {selectedDate ? `Nhật Ký (${selectedDate})` : 'Nhật Ký Học Hôm Nay'}
+              </h3>
+              {selectedDate && (
+                <button
+                  onClick={() => setSelectedDate(null)}
+                  className="text-[10px] font-black text-indigo-600 hover:underline bg-indigo-50 px-2 py-1 rounded-lg cursor-pointer"
+                >
+                  Hôm nay 🔄
+                </button>
+              )}
+            </div>
 
             <div className="p-4 bg-blue-50/50 rounded-2xl border border-blue-100 mb-4">
               <div className="flex items-center justify-between mb-1">
@@ -668,24 +682,40 @@ export default function DeckRoadmap() {
           </div>
         </div>
 
-        {/* Card 3: 7-Day Activity Map */}
+        {/* Card 3: Interactive 7-Day Activity Map */}
         <div className="bg-white rounded-3xl p-6 border border-slate-100 shadow-sm flex flex-col justify-between">
           <div>
-            <h3 className="text-sm font-black text-slate-800 uppercase tracking-widest flex items-center gap-2 mb-6">
+            <h3 className="text-sm font-black text-slate-800 uppercase tracking-widest flex items-center gap-2 mb-4">
               <Flame className="w-4 h-4 text-orange-500" />
               Lịch Hoạt Động 7 Ngày Qua
             </h3>
 
-            <div className="grid grid-cols-7 gap-2 mb-6">
-              {s.seven_days?.map((day: any, idx: number) => (
-                <div key={idx} className="flex flex-col items-center gap-1">
-                  <div className={cn("w-9 h-9 rounded-2xl flex items-center justify-center text-xs font-black transition-all", day.active ? "bg-emerald-500 text-white shadow-sm" : "bg-slate-100 text-slate-400")}>
-                    {day.active ? '✓' : '•'}
-                  </div>
-                  <span className="text-[9px] font-bold text-slate-400">{day.day_name}</span>
-                </div>
-              ))}
+            <div className="grid grid-cols-7 gap-2 mb-4">
+              {s.seven_days?.map((day: any, idx: number) => {
+                const isSelected = selectedDate === day.date
+                return (
+                  <button
+                    key={idx}
+                    onClick={() => setSelectedDate(day.date)}
+                    className="flex flex-col items-center gap-1 cursor-pointer group"
+                    title={`Bấm để xem nhật ký ngày ${day.date}`}
+                  >
+                    <div className={cn(
+                      "w-9 h-9 rounded-2xl flex items-center justify-center text-xs font-black transition-all",
+                      day.active ? "bg-emerald-500 text-white shadow-sm" : "bg-slate-100 text-slate-400 group-hover:bg-slate-200",
+                      isSelected && "ring-2 ring-indigo-600 ring-offset-2 scale-105"
+                    )}>
+                      {day.active ? '✓' : '•'}
+                    </div>
+                    <span className={cn("text-[9px] font-bold", isSelected ? "text-indigo-600 font-black underline" : "text-slate-400")}>{day.day_name}</span>
+                  </button>
+                )
+              })}
             </div>
+
+            <p className="text-[10px] font-semibold text-slate-400 text-center">
+              💡 Bấm vào từng ngày ở trên để xem nhật ký học tập chi tiết của ngày đó.
+            </p>
           </div>
 
           <div className="pt-4 border-t border-slate-100 text-center">
