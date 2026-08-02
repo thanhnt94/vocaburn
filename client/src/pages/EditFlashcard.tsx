@@ -606,6 +606,17 @@ const EditFlashcard = () => {
     }
   }
 
+  const autoSavePracticeSettings = async (updatedSettings: any) => {
+    try {
+      await axios.post(`/api/v1/deck/${id}/practice-settings`, {
+        settings: updatedSettings,
+        is_creator: true
+      })
+    } catch (err) {
+      console.error("Auto save failed", err)
+    }
+  }
+
   const removeCollaborator = async (userId: number) => {
     if (!confirm("Remove this collaborator?")) return
     try {
@@ -1593,10 +1604,12 @@ const EditFlashcard = () => {
                                                    <select
                                                       value={configVal.audio_content_col}
                                                       onChange={(e) => {
-                                                         setPracticeSettings({
+                                                         const updated = {
                                                             ...practiceSettings,
                                                             [cfg.key]: { ...configVal, audio_content_col: e.target.value }
-                                                         });
+                                                         };
+                                                         setPracticeSettings(updated);
+                                                         autoSavePracticeSettings(updated);
                                                       }}
                                                       className="w-full bg-white border border-slate-200 rounded-xl px-3 h-10 text-xs font-bold text-slate-700 outline-none focus:border-indigo-500"
                                                    >
@@ -1611,10 +1624,12 @@ const EditFlashcard = () => {
                                                    <select
                                                       value={configVal.audio_url_col}
                                                       onChange={(e) => {
-                                                         setPracticeSettings({
+                                                         const updated = {
                                                             ...practiceSettings,
                                                             [cfg.key]: { ...configVal, audio_url_col: e.target.value }
-                                                         });
+                                                         };
+                                                         setPracticeSettings(updated);
+                                                         autoSavePracticeSettings(updated);
                                                       }}
                                                       className="w-full bg-white border border-slate-200 rounded-xl px-3 h-10 text-xs font-bold text-slate-700 outline-none focus:border-indigo-500"
                                                    >
@@ -1630,10 +1645,12 @@ const EditFlashcard = () => {
                                                    <select
                                                       value={configVal.lang || 'multi'}
                                                       onChange={(e) => {
-                                                         setPracticeSettings({
+                                                         const updated = {
                                                             ...practiceSettings,
                                                             [cfg.key]: { ...configVal, lang: e.target.value }
-                                                         });
+                                                         };
+                                                         setPracticeSettings(updated);
+                                                         autoSavePracticeSettings(updated);
                                                       }}
                                                       className="w-full bg-white border border-slate-200 rounded-xl px-3 h-10 text-xs font-bold text-slate-700 outline-none focus:border-indigo-500"
                                                    >
@@ -1665,7 +1682,9 @@ const EditFlashcard = () => {
                                                   onChange={(e) => {
                                                      const newPairs = [...(practiceSettings.audio_pairs || [])];
                                                      newPairs[index] = { ...newPairs[index], text_col: e.target.value };
-                                                     setPracticeSettings({ ...practiceSettings, audio_pairs: newPairs });
+                                                     const updated = { ...practiceSettings, audio_pairs: newPairs };
+                                                     setPracticeSettings(updated);
+                                                     autoSavePracticeSettings(updated);
                                                   }}
                                                   className="w-full bg-white border border-slate-200 rounded-xl px-3 h-10 text-xs font-bold text-slate-700 outline-none"
                                                >
@@ -1683,7 +1702,9 @@ const EditFlashcard = () => {
                                                   onChange={(e) => {
                                                      const newPairs = [...(practiceSettings.audio_pairs || [])];
                                                      newPairs[index] = { ...newPairs[index], audio_content_col: e.target.value };
-                                                     setPracticeSettings({ ...practiceSettings, audio_pairs: newPairs });
+                                                     const updated = { ...practiceSettings, audio_pairs: newPairs };
+                                                     setPracticeSettings(updated);
+                                                     autoSavePracticeSettings(updated);
                                                   }}
                                                   className="w-full bg-white border border-slate-200 rounded-xl px-3 h-10 text-xs font-bold text-slate-700 outline-none"
                                                >
@@ -1701,7 +1722,9 @@ const EditFlashcard = () => {
                                                   onChange={(e) => {
                                                      const newPairs = [...(practiceSettings.audio_pairs || [])];
                                                      newPairs[index] = { ...newPairs[index], audio_url_col: e.target.value };
-                                                     setPracticeSettings({ ...practiceSettings, audio_pairs: newPairs });
+                                                     const updated = { ...practiceSettings, audio_pairs: newPairs };
+                                                     setPracticeSettings(updated);
+                                                     autoSavePracticeSettings(updated);
                                                   }}
                                                   className="w-full bg-white border border-slate-200 rounded-xl px-3 h-10 text-xs font-bold text-slate-700 outline-none"
                                                >
@@ -1721,7 +1744,9 @@ const EditFlashcard = () => {
                                                   onChange={(e) => {
                                                      const newPairs = [...(practiceSettings.audio_pairs || [])];
                                                      newPairs[index] = { ...newPairs[index], lang: e.target.value };
-                                                     setPracticeSettings({ ...practiceSettings, audio_pairs: newPairs });
+                                                     const updated = { ...practiceSettings, audio_pairs: newPairs };
+                                                     setPracticeSettings(updated);
+                                                     autoSavePracticeSettings(updated);
                                                   }}
                                                   className="w-full bg-white border border-slate-200 rounded-xl px-3 h-10 text-xs font-bold text-slate-700 outline-none"
                                                >

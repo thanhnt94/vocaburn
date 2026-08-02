@@ -859,11 +859,28 @@ async def generate_single_card_audio_helper(c, face: str, force: bool, db: Async
             if pair:
                 target_lang = pair.get("lang")
 
+    if target_lang == "none":
+        return None
+
     if not is_custom:
-        if face == "front":
-            text = c.front_audio_content or (c.others.get("front_audio_content") if c.others else None)
-        else:
-            text = c.back_audio_content or (c.others.get("back_audio_content") if c.others else None)
+        content_col = None
+        if deck and deck.practice_settings and isinstance(deck.practice_settings, dict):
+            cfg_key = "front_audio_config" if face == "front" else "back_audio_config"
+            cfg = deck.practice_settings.get(cfg_key, {})
+            if isinstance(cfg, dict):
+                content_col = cfg.get("audio_content_col")
+                
+        if content_col:
+            if hasattr(c, content_col):
+                text = getattr(c, content_col)
+            elif c.others:
+                text = c.others.get(content_col)
+                
+        if not text:
+            if face == "front":
+                text = c.front_audio_content or (c.others.get("front_audio_content") if c.others else None) or c.content
+            else:
+                text = c.back_audio_content or (c.others.get("back_audio_content") if c.others else None) or c.explanation
     else:
         if deck and deck.practice_settings and isinstance(deck.practice_settings, dict):
             pairs = deck.practice_settings.get("audio_pairs", [])
