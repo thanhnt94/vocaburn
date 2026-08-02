@@ -2903,6 +2903,27 @@ async def get_deck_roadmap_calendar(request: Request, deck_id: int, month: str =
     
     _, days_in_month = cal_mod.monthrange(year, month_num)
     
+    from app.modules.deck.models import UserDeckGoal, UserGlobalGoal
+    goal_res = await db.execute(
+        select(UserDeckGoal).where(
+            UserDeckGoal.user_id == user_id,
+            UserDeckGoal.deck_id == deck_id
+        )
+    )
+    deck_goal = goal_res.scalar_one_or_none()
+    
+    if deck_goal:
+        daily_card_target = deck_goal.daily_card_target
+    else:
+        global_goal_res = await db.execute(
+            select(UserGlobalGoal).where(UserGlobalGoal.user_id == user_id)
+        )
+        global_goal = global_goal_res.scalar_one_or_none()
+        daily_card_target = global_goal.daily_card_target if global_goal else 20
+        
+    if not daily_card_target or daily_card_target <= 0:
+        daily_card_target = 20
+    
     # Get user's roadmap pipeline settings for this deck
     user_sett_res = await db.execute(
         select(UserDeckSettings).where(
@@ -2959,19 +2980,19 @@ async def get_deck_roadmap_calendar(request: Request, deck_id: int, month: str =
         is_active = info["answer_count"] > 0
         study_minutes = round(info["study_seconds"] / 60.0, 1)
         
-        # Estimate completion percent based on activity level
-        # Simple heuristic: if active and study_minutes > 0, estimate based on answers vs typical pipeline
+        # Estimate completion percent based on dynamic goal
         completion_percent = 0
         if is_active:
+            answer_count = info["answer_count"]
             if day_date < date.today():
-                if study_minutes >= 20:
+                if answer_count > daily_card_target:
                     completion_percent = 150
                 else:
                     completion_percent = 100
             else:
-                if study_minutes >= 20:
+                if answer_count > daily_card_target:
                     completion_percent = 150
-                elif study_minutes >= 10:
+                elif answer_count == daily_card_target or study_minutes >= 10:
                     completion_percent = 100
                 elif study_minutes >= 5:
                     completion_percent = 75
