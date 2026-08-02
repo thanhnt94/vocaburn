@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { 
   Save, 
@@ -61,14 +61,27 @@ const removeVietnameseTones = (str: string) => {
 
 const SYSTEM_DEFAULTS = ['front', 'back', 'front_audio_content', 'back_audio_content', 'front_audio_url', 'back_audio_url', 'front_img', 'back_img']
 
+type TabType = 'basic' | 'columns' | 'ai' | 'collaboration' | 'practice' | 'excel' | 'modes' | 'audio'
+const VALID_TABS: TabType[] = ['basic', 'columns', 'ai', 'collaboration', 'practice', 'excel', 'modes', 'audio']
+
 const EditFlashcard = () => {
   const { id } = useParams()
   const navigate = useNavigate()
+  const [searchParams, setSearchParams] = useSearchParams()
+  const currentTabParam = searchParams.get('tab')
+
+  const activeTab: TabType = (currentTabParam && VALID_TABS.includes(currentTabParam as TabType))
+    ? (currentTabParam as TabType)
+    : 'basic'
+
+  const setActiveTab = (tab: TabType) => {
+    setSearchParams({ tab }, { replace: true })
+  }
+
   const [isSaving, setIsSaving] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
-  const [activeTab, setActiveTab] = useState<'basic' | 'columns' | 'ai' | 'collaboration' | 'practice' | 'excel' | 'modes' | 'audio'>('basic')
 
   // Excel Import/Export State
   const [excelFile, setExcelFile] = useState<File | null>(null)
