@@ -2686,7 +2686,8 @@ async def get_deck_roadmap_status_helper(db: AsyncSession, user_id: int, deck_id
                     DeckAttempt.user_id == user_id,
                     DeckAttempt.deck_id == deck_id,
                     DeckAttempt.mode.in_(["roadmap_mcq", "roadmap_test", "mcq"]),
-                    func.coalesce(DeckAttempt.completed_at, DeckAttempt.started_at) >= today_start
+                    func.coalesce(DeckAttempt.completed_at, DeckAttempt.started_at) >= day_start,
+                    func.coalesce(DeckAttempt.completed_at, DeckAttempt.started_at) < day_end
                 )
             )
             mcq_scores = mcq_res.scalars().all()
@@ -2709,7 +2710,8 @@ async def get_deck_roadmap_status_helper(db: AsyncSession, user_id: int, deck_id
                     DeckAttempt.user_id == user_id,
                     DeckAttempt.deck_id == deck_id,
                     DeckAttempt.mode.in_(["roadmap_typing", "typing"]),
-                    func.coalesce(DeckAttempt.completed_at, DeckAttempt.started_at) >= today_start
+                    func.coalesce(DeckAttempt.completed_at, DeckAttempt.started_at) >= day_start,
+                    func.coalesce(DeckAttempt.completed_at, DeckAttempt.started_at) < day_end
                 )
             )
             typing_scores = typing_res.scalars().all()
@@ -2737,6 +2739,22 @@ async def get_deck_roadmap_status_helper(db: AsyncSession, user_id: int, deck_id
         pipeline_processed.append(step_data)
         if not step_data["done"] and first_incomplete_idx is None:
             first_incomplete_idx = idx
+
+    # If it's a historical date and it was an active date, force 100% completion
+    target_date_obj = day_start.date()
+    today_date_obj = datetime.utcnow().date()
+    is_historical = target_date_obj < today_date_obj
+    
+    if is_historical and target_date_obj in active_dates:
+        for st in pipeline_processed:
+            st["done"] = True
+            if "progress" in st and "target" in st["progress"]:
+                st["progress"]["learned"] = st["progress"]["target"]
+            elif "progress" in st and "target_score" in st["progress"]:
+                st["progress"]["best_score"] = st["progress"]["target_score"]
+            elif "progress" in st and "target_minutes" in st["progress"]:
+                st["progress"]["studied_minutes"] = st["progress"]["target_minutes"]
+        first_incomplete_idx = None
 
     import math
     if daily_new_target > 0:
@@ -2944,16 +2962,17 @@ async def get_deck_roadmap_calendar(request: Request, deck_id: int, month: str =
         # Simple heuristic: if active and study_minutes > 0, estimate based on answers vs typical pipeline
         completion_percent = 0
         if is_active:
-            # Compute actual completion if it's today or a recent date, using the roadmap helper
-            # For historical dates, use a heuristic based on study time and answers
-            if study_minutes >= 10:
+            if day_date < date.today():
                 completion_percent = 100
-            elif study_minutes >= 5:
-                completion_percent = 75
-            elif study_minutes >= 2:
-                completion_percent = 50
             else:
-                completion_percent = 25
+                if study_minutes >= 10:
+                    completion_percent = 100
+                elif study_minutes >= 5:
+                    completion_percent = 75
+                elif study_minutes >= 2:
+                    completion_percent = 50
+                else:
+                    completion_percent = 25
         
         days.append({
             "date": day_str,
