@@ -760,3 +760,54 @@ async def delete_card(card_id: int, db: AsyncSession = Depends(get_db)):
     await db.execute(delete(Flashcard).where(Flashcard.id == card_id))
     await db.commit()
     return {"status": "ok"}
+
+@router.delete("/{deck_id}/flashcards/duplicates")
+async def delete_duplicates(request: Request, deck_id: int, db: AsyncSession = Depends(get_db)):
+    user_id_cookie = request.cookies.get("user_id", "1")
+    user_id = int(user_id_cookie)
+    
+    from app.modules.deck.models import FlashcardDeck, Flashcard, UserCardMastery, UserPracticeStats, UserCardNote, UserAnswer
+    from app.modules.auth.models import User as UserDB
+    
+    deck_res = await db.execute(select(FlashcardDeck).where(FlashcardDeck.id == deck_id))
+    deck = deck_res.scalar_one_or_none()
+    if not deck:
+        return JSONResponse(status_code=404, content={"error": "Deck not found"})
+        
+    user_res = await db.execute(select(UserDB).where(UserDB.id == user_id))
+    user_obj = user_res.scalar_one_or_none()
+    is_admin = user_obj and getattr(user_obj, "role", "") == "admin"
+    
+    if deck.creator_id != user_id and not is_admin:
+        return JSONResponse(status_code=403, content={"error": "Not authorized"})
+        
+    cards_res = await db.execute(
+        select(Flashcard).where(Flashcard.deck_id == deck_id).order_by(Flashcard.id.asc())
+    )
+    cards = cards_res.scalars().all()
+    
+    seen = set()
+    duplicates = []
+    for card in cards:
+        text = (card.content or "").strip().lower()
+        if not text:
+            continue
+        if text in seen:
+            duplicates.append(card.id)
+        else:
+            seen.add(text)
+            
+    if not duplicates:
+        return {"status": "ok", "deleted_count": 0}
+        
+    # Delete related data first
+    await db.execute(delete(UserCardMastery).where(UserCardMastery.card_id.in_(duplicates)))
+    await db.execute(delete(UserPracticeStats).where(UserPracticeStats.card_id.in_(duplicates)))
+    await db.execute(delete(UserCardNote).where(UserCardNote.card_id.in_(duplicates)))
+    await db.execute(delete(UserAnswer).where(UserAnswer.card_id.in_(duplicates)))
+    await db.execute(delete(Flashcard).where(Flashcard.id.in_(duplicates)))
+    
+    # Update deck item count if possible, but it's okay it can recount later
+    await db.commit()
+    
+    return {"status": "ok", "deleted_count": len(duplicates)}

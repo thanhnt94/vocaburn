@@ -56,6 +56,7 @@ const EditFlashcards = () => {
   const [sortBy, setSortBy] = useState<string>('id_asc')
   const [filterType, setFilterType] = useState<string>('all')
   const [filterCol, setFilterCol] = useState<string>('')
+  const [isDeletingDuplicates, setIsDeletingDuplicates] = useState(false)
   const [toastMessage, setToastMessage] = useState<string | null>(null)
   const [isPasteModalOpen, setIsPasteModalOpen] = useState(false)
   const [pasteText, setPasteText] = useState('')
@@ -641,6 +642,25 @@ const EditFlashcards = () => {
     }
   }
 
+  const handleDeleteDuplicates = async () => {
+    if (!window.confirm(`Bạn có chắc chắn muốn xóa TẤT CẢ các thẻ trùng lặp (chỉ giữ lại thẻ đầu tiên) trong bộ bài này? Hành động này không thể hoàn tác.`)) return
+    
+    setIsDeletingDuplicates(true)
+    try {
+      const res = await axios.delete(`/api/v1/deck/${id}/flashcards/duplicates`)
+      const count = res.data.deleted_count || 0
+      setToastMessage(`Đã xóa thành công ${count} thẻ trùng lặp!`)
+      setTimeout(() => setToastMessage(null), 3000)
+      if (count > 0) {
+        fetchFlashcards()
+      }
+    } catch (err: any) {
+      alert(err.response?.data?.error || "Lỗi khi xóa thẻ trùng lặp")
+    } finally {
+      setIsDeletingDuplicates(false)
+    }
+  }
+
   return (
     <div className={cn("min-h-screen bg-[#F8FAFC]", isQuickAddOpen ? "pb-[230px] md:pb-[180px]" : "pb-[64px] md:pb-[56px]")}>
       {/* Fixed Header on Mobile, Sticky on Desktop */}
@@ -708,6 +728,20 @@ const EditFlashcards = () => {
                    <span className="text-[7px] font-black text-slate-400 uppercase">AI</span>
                 </div>
              </div>
+             <button 
+                onClick={handleDeleteDuplicates}
+                disabled={isDeletingDuplicates}
+                className="h-8 px-2.5 bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 text-[10px] font-black rounded-lg flex items-center gap-1 shadow-sm active:scale-95 transition-all uppercase tracking-wider shrink-0 disabled:opacity-50"
+                title="Xóa thẻ trùng lặp"
+             >
+                {isDeletingDuplicates ? (
+                   <Zap className="w-3.5 h-3.5 animate-pulse" />
+                ) : (
+                   <Trash2 className="w-3.5 h-3.5" />
+                )}
+                <span className="hidden xs:inline">Xóa trùng lặp</span>
+             </button>
+
              <button 
                 onClick={() => setIsPasteModalOpen(true)}
                 className="h-8 px-2.5 bg-slate-900 hover:bg-slate-800 text-white text-[10px] font-black rounded-lg flex items-center gap-1 shadow-md active:scale-95 transition-all uppercase tracking-wider shrink-0"
