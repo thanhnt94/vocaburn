@@ -288,7 +288,7 @@ export default function DeckRoadmap() {
   }
 
   const s = status || {}
-  const deckTitle = deckData?.title || `Bộ Thẻ #${id}`
+  const deckTitle = deckData?.deck?.title || deckData?.title || `Bộ Thẻ #${id}`
   const processedPipeline = s.pipeline || []
 
   // Calendar helpers
@@ -422,19 +422,24 @@ export default function DeckRoadmap() {
       {/* ═══════════ TAB BAR ═══════════ */}
       <div className="sticky top-0 z-30 bg-[#0B0F1A]/80 backdrop-blur-xl border-b border-white/5">
         <div className="max-w-6xl mx-auto px-4 md:px-8">
-          <div className="flex gap-1 py-2 overflow-x-auto scrollbar-hide">
+          <div className="flex flex-wrap gap-2 py-3">
             {TABS.map(tab => {
               const Icon = tab.icon
               const isActive = activeTab === tab.id
               return (
                 <button
                   key={tab.id}
-                  onClick={() => setActiveTab(tab.id)}
+                  onClick={() => {
+                    setActiveTab(tab.id)
+                    if (tab.id === 'today') {
+                      setSelectedDate(null)
+                    }
+                  }}
                   className={cn(
-                    "flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all whitespace-nowrap cursor-pointer",
+                    "flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition-all cursor-pointer",
                     isActive
                       ? "bg-gradient-to-r from-indigo-500/20 to-purple-500/20 text-white border border-indigo-400/30"
-                      : "text-slate-500 hover:text-slate-300 hover:bg-white/5"
+                      : "text-slate-500 hover:text-slate-300 hover:bg-white/5 border border-transparent"
                   )}
                 >
                   <Icon className="w-4 h-4" />
@@ -458,6 +463,25 @@ export default function DeckRoadmap() {
               exit={{ opacity: 0, y: -12 }}
               transition={{ duration: 0.2 }}
             >
+              {/* Historical Date Notice */}
+              {selectedDate && selectedDate !== new Date().toISOString().split('T')[0] && (
+                <div className="mb-6 p-4 bg-amber-500/10 border border-amber-500/20 rounded-xl flex items-center justify-between gap-4">
+                  <div className="flex items-center gap-3">
+                    <History className="w-5 h-5 text-amber-500" />
+                    <div>
+                      <h3 className="text-sm font-bold text-amber-500">Dữ liệu quá khứ</h3>
+                      <p className="text-xs text-amber-500/80">Bạn đang xem tiến độ của ngày <strong>{selectedDate}</strong>.</p>
+                    </div>
+                  </div>
+                  <button 
+                    onClick={() => setSelectedDate(null)}
+                    className="px-3 py-1.5 bg-amber-500/20 text-amber-400 hover:bg-amber-500/30 rounded-lg text-xs font-black transition"
+                  >
+                    Về hôm nay
+                  </button>
+                </div>
+              )}
+
               {/* Completion Banner */}
               {s.roadmap_active && s.all_done && (
                 <motion.div 
@@ -648,46 +672,48 @@ export default function DeckRoadmap() {
                 </div>
 
                 {/* Day of week headers */}
-                <div className="grid grid-cols-7 gap-1.5 mb-2">
-                  {['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'].map(d => (
-                    <div key={d} className="text-center text-[9px] font-black text-slate-600 uppercase tracking-widest py-1">{d}</div>
-                  ))}
-                </div>
+                <div className="max-w-md mx-auto">
+                  <div className="grid grid-cols-7 gap-1.5 mb-2">
+                    {['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'].map(d => (
+                      <div key={d} className="text-center text-[9px] font-black text-slate-600 uppercase tracking-widest py-1">{d}</div>
+                    ))}
+                  </div>
 
-                {/* Calendar Grid */}
-                <div className="grid grid-cols-7 gap-1.5">
-                  {/* Empty cells for offset */}
-                  {calendarDays.length > 0 && Array.from({ length: calendarDays[0]?.day_of_week || 0 }).map((_, i) => (
-                    <div key={`empty-${i}`} className="aspect-square" />
-                  ))}
-                  {calendarDays.map((day: any) => {
-                    const isSelected = selectedDate === day.date
-                    const isToday = day.date === new Date().toISOString().split('T')[0]
-                    return (
-                      <button
-                        key={day.date}
-                        onClick={() => {
-                          setSelectedDate(day.date)
-                          setActiveTab('today')
-                        }}
-                        className={cn(
-                          "aspect-square rounded-lg flex items-center justify-center text-[10px] font-black transition-all cursor-pointer relative",
-                          day.active
-                            ? day.completion_percent >= 100
-                              ? "bg-emerald-500/30 text-emerald-300 hover:bg-emerald-500/40"
-                              : day.completion_percent >= 50
-                                ? "bg-indigo-500/25 text-indigo-300 hover:bg-indigo-500/35"
-                                : "bg-indigo-500/10 text-indigo-400 hover:bg-indigo-500/20"
-                            : "bg-white/[0.02] text-slate-600 hover:bg-white/[0.06]",
-                          isSelected && "ring-2 ring-indigo-400 ring-offset-1 ring-offset-[#0B0F1A]",
-                          isToday && "border border-indigo-500/40"
-                        )}
-                        title={`${day.date}: ${day.study_minutes} phút, ${day.answer_count} câu trả lời`}
-                      >
-                        {parseInt(day.date.split('-')[2])}
-                      </button>
-                    )
-                  })}
+                  {/* Calendar Grid */}
+                  <div className="grid grid-cols-7 gap-1.5">
+                    {/* Empty cells for offset */}
+                    {calendarDays.length > 0 && Array.from({ length: calendarDays[0]?.day_of_week || 0 }).map((_, i) => (
+                      <div key={`empty-${i}`} className="aspect-square" />
+                    ))}
+                    {calendarDays.map((day: any) => {
+                      const isSelected = selectedDate === day.date
+                      const isToday = day.date === new Date().toISOString().split('T')[0]
+                      return (
+                        <button
+                          key={day.date}
+                          onClick={() => {
+                            setSelectedDate(day.date)
+                            setActiveTab('today')
+                          }}
+                          className={cn(
+                            "aspect-square rounded-lg flex items-center justify-center text-[10px] font-black transition-all cursor-pointer relative",
+                            day.active
+                              ? day.completion_percent >= 100
+                                ? "bg-emerald-500/30 text-emerald-300 hover:bg-emerald-500/40"
+                                : day.completion_percent >= 50
+                                  ? "bg-indigo-500/25 text-indigo-300 hover:bg-indigo-500/35"
+                                  : "bg-indigo-500/10 text-indigo-400 hover:bg-indigo-500/20"
+                              : "bg-white/[0.02] text-slate-600 hover:bg-white/[0.06]",
+                            isSelected && "ring-2 ring-indigo-400 ring-offset-1 ring-offset-[#0B0F1A]",
+                            isToday && "border border-indigo-500/40"
+                          )}
+                          title={`${day.date}: ${day.study_minutes} phút, ${day.answer_count} câu trả lời`}
+                        >
+                          {parseInt(day.date.split('-')[2])}
+                        </button>
+                      )
+                    })}
+                  </div>
                 </div>
 
                 {/* Legend */}
