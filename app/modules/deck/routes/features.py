@@ -119,10 +119,30 @@ async def get_practice_settings(request: Request, deck_id: int, db: AsyncSession
         "listening": creator_settings.get("listening", {})
     }
 
+    SYSTEM_DEFAULTS = [
+        "front", "back", 
+        "front_audio_content", "back_audio_content", 
+        "front_audio_url", "back_audio_url", 
+        "front_img", "back_img"
+    ]
+    
+    saved_order = creator_settings.get("column_order", [])
+    if saved_order and isinstance(saved_order, list):
+        ordered_cols = [c for c in saved_order if c in available_cols]
+        for c in available_cols:
+            if c not in ordered_cols:
+                ordered_cols.append(c)
+    else:
+        ordered_cols = [c for c in SYSTEM_DEFAULTS if c in available_cols]
+        for c in available_cols:
+            if c not in ordered_cols:
+                ordered_cols.append(c)
+
     return {
         "creator_settings": creator_settings,
         "user_settings": merged_user_settings,
-        "available_columns": sorted(list(available_cols)),
+        "available_columns": ordered_cols,
+        "column_order": ordered_cols,
         "deck_name": deck.title
     }
 

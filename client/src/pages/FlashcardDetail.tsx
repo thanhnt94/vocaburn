@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
 import { useQuery, useInfiniteQuery, useQueryClient } from '@tanstack/react-query'
 import { ChevronLeft, Award, BookOpen, Search, StickyNote, BarChart2, Settings, Edit2, X, Save, Brain, HelpCircle, Plus, Sparkles, Trophy, Layers, RotateCcw, Compass, Flame, Target, ChevronDown, ChevronUp, Pencil, Calendar, ArrowRight, Sliders, LayoutGrid, ClipboardPaste } from 'lucide-react'
@@ -1733,61 +1733,65 @@ export default function QuizDetail() {
               exit={{ opacity: 0, scale: 0.95, y: 10 }}
               className="relative w-full max-w-2xl bg-white rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[85vh]"
             >
-              <div className="p-5 border-b border-slate-100 flex items-start justify-between bg-slate-50/50">
+              <div className="flex items-center gap-3 border-b border-slate-100 pb-3">
+                <div className="w-10 h-10 rounded-xl bg-slate-900 flex items-center justify-center text-white shrink-0">
+                  <ClipboardPaste className="w-5 h-5" />
+                </div>
                 <div>
-                  <h3 className="text-base font-black text-slate-900 flex items-center gap-2">
-                    <ClipboardPaste className="w-4.5 h-4.5 text-indigo-500" />
-                    Import nhanh
-                  </h3>
-                  <p className="text-[11px] text-slate-500 mt-0.5 font-medium">Paste từ Excel, Google Sheets hoặc Quizlet. Mỗi cột cách nhau bởi Tab.</p>
+                  <h3 className="text-xs font-black text-slate-800 uppercase tracking-wider">Dán nhanh từ Excel</h3>
+                  <p className="text-[9px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">Sao chép các ô từ Excel/Sheets rồi dán vào đây</p>
                 </div>
                 <button
                   onClick={() => setIsPasteModalOpen(false)}
-                  className="w-7 h-7 flex items-center justify-center bg-white border border-slate-200 text-slate-400 hover:text-slate-600 rounded-full transition-colors shrink-0"
+                  className="ml-auto w-8 h-8 rounded-full bg-slate-50 flex items-center justify-center text-slate-400 hover:text-slate-900 transition-all"
                 >
-                  <X className="w-3.5 h-3.5" />
+                  <X className="w-4 h-4" />
                 </button>
               </div>
 
-              <div className="px-5 pt-4 pb-2 bg-slate-50/50 border-b border-slate-100">
-                <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2">Thứ tự cột</p>
-                <div className="flex flex-wrap gap-1">
+              <div className="space-y-2 bg-indigo-50/40 p-4 rounded-2xl border border-indigo-50/50">
+                <span className="text-[9px] font-black text-indigo-600 uppercase tracking-wider block mb-1">Thứ tự các cột cần dán (Cực kì quan trọng):</span>
+                <div className="flex flex-wrap items-center gap-1.5">
                   {availableColumns.map((col, idx) => (
-                    <span key={col} className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-white border border-slate-200 text-[10px] font-bold text-slate-600">
-                      <span className="text-[9px] font-black text-indigo-400">{idx + 1}</span>
-                      {col}
-                    </span>
+                    <React.Fragment key={col}>
+                      {idx > 0 && <span className="text-slate-300 text-[9px]">→</span>}
+                      <span className="px-2 py-0.5 bg-white border border-indigo-100 rounded-lg text-[9px] font-black text-indigo-600 uppercase">
+                        {col}
+                      </span>
+                    </React.Fragment>
                   ))}
                 </div>
+                <p className="text-[8px] font-medium text-slate-400 uppercase tracking-wider mt-1.5 italic">
+                  * Hệ thống sẽ tự động ghép các ô theo đúng thứ tự cột bộ thẻ đã thiết lập. Chỉ thêm mới (không ghi đè).
+                </p>
               </div>
 
-              <div className="p-5 overflow-y-auto">
-                <textarea
-                  value={pasteText}
-                  onChange={(e) => setPasteText(e.target.value)}
-                  placeholder={availableColumns.slice(0, 3).map((c, i) => `Value${i+1}_${c}`).join('\t') + '\n...'}
-                  className="w-full h-44 p-3.5 text-sm font-medium text-slate-700 bg-white border-2 border-slate-200 rounded-2xl focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 outline-none transition-all resize-none font-mono placeholder:text-slate-300"
-                />
-              </div>
+              <textarea
+                rows={8}
+                value={pasteText}
+                onChange={(e) => setPasteText(e.target.value)}
+                placeholder={`Ví dụ dán từ Excel (các cột cách nhau bởi phím Tab):\napple\tquả táo\norange\tquả cam`}
+                className="w-full p-4 bg-slate-50 border border-slate-200 focus:bg-white focus:border-indigo-500 rounded-2xl text-xs font-semibold text-slate-700 outline-none transition-all resize-none font-mono"
+              />
 
-              <div className="p-6 border-t border-slate-100 bg-slate-50/50 flex justify-end gap-3">
+              <div className="flex justify-end gap-3 pt-2">
                 <button
                   onClick={() => { setIsPasteModalOpen(false); setPasteText(''); }}
-                  className="px-6 py-2.5 rounded-xl font-bold text-xs text-slate-500 hover:text-slate-700 hover:bg-slate-100 transition-colors"
+                  className="px-5 py-2.5 rounded-xl font-black text-[10px] text-slate-500 hover:bg-slate-100 transition-all uppercase tracking-wider"
                 >
-                  Cancel
+                  Hủy
                 </button>
                 <button
                   onClick={handlePasteExcel}
                   disabled={isQuickAdding || !pasteText.trim()}
-                  className="px-6 py-2.5 rounded-xl font-black text-xs text-white bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg shadow-indigo-500/25 flex items-center gap-2"
+                  className="px-6 py-2.5 rounded-xl font-black text-[10px] uppercase tracking-wider text-white bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg shadow-indigo-500/20 flex items-center gap-2 cursor-pointer"
                 >
                   {isQuickAdding ? (
                     <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                   ) : (
-                    <Save className="w-4 h-4" />
+                    <Save className="w-3.5 h-3.5" />
                   )}
-                  Import Cards
+                  Phân Tích & Thêm Mới
                 </button>
               </div>
             </motion.div>
