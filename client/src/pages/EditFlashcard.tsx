@@ -638,9 +638,9 @@ const EditFlashcard = () => {
   return (
     <div className="min-h-screen bg-[#F8FAFC] pb-10">
       {/* Fixed Header on Mobile, Sticky on Desktop */}
-      <div className="fixed top-0 left-0 right-0 z-[100] bg-white/80 backdrop-blur-xl border-b border-slate-100 px-4 py-3 shadow-sm w-full md:sticky md:top-0">
-        <div className="max-w-[1400px] mx-auto flex items-center justify-between gap-3">
-          <div className="flex items-center gap-2.5 min-w-0">
+      <div className="fixed top-0 left-0 right-0 z-[100] bg-white/80 backdrop-blur-xl border-b border-slate-100 px-3 sm:px-4 py-3 shadow-sm w-full md:sticky md:top-0">
+        <div className="max-w-[1400px] mx-auto flex items-center justify-between gap-2 sm:gap-3">
+          <div className="flex items-center gap-2 sm:gap-2.5 min-w-0 flex-1">
             <button 
               onClick={() => navigate('/manage')}
               className="w-8 h-8 bg-slate-50 rounded-lg flex items-center justify-center text-slate-400 active:scale-95 transition-all border border-slate-100 shrink-0"
@@ -648,20 +648,21 @@ const EditFlashcard = () => {
               <ChevronLeft className="w-4 h-4" />
             </button>
             <div className="flex flex-col min-w-0">
-              <h1 className="text-[11px] md:text-sm font-black text-slate-900 uppercase tracking-tight italic truncate leading-none mb-1">Edit Collection</h1>
+              <h1 className="text-[10px] sm:text-xs md:text-sm font-black text-slate-900 uppercase tracking-tight italic truncate leading-none">Edit Collection</h1>
               <p className="hidden md:block text-[8px] font-black text-slate-400 uppercase tracking-widest mt-0.5">Refine Identity & AI Rules</p>
             </div>
           </div>
 
-          <div className="flex items-center gap-2 shrink-0">
+          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
             <button 
               type="button"
               onClick={() => navigate(`/manage/edit/${id}/flashcards`)}
-              className="flex items-center gap-1.5 px-3 py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-[9px] md:text-[10px] font-black rounded-lg transition-all border border-indigo-200/80 uppercase tracking-wider active:scale-95 shrink-0 cursor-pointer shadow-2xs"
+              className="flex items-center gap-1.5 px-2.5 sm:px-3 py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-[9px] md:text-[10px] font-black rounded-lg transition-all border border-indigo-200/80 uppercase tracking-wider active:scale-95 shrink-0 cursor-pointer shadow-2xs"
               title="Chuyển sang Quản lý thẻ"
             >
               <LayoutGrid className="w-3.5 h-3.5 text-indigo-600 shrink-0" />
-              <span>Quản lý thẻ</span>
+              <span className="hidden sm:inline">Quản lý thẻ</span>
+              <span className="sm:hidden text-[9px]">Thẻ</span>
             </button>
 
             <button 
@@ -669,7 +670,7 @@ const EditFlashcard = () => {
               onClick={handleSaveMetadata}
               disabled={isSaving || success}
               className={cn(
-                "flex items-center gap-1.5 px-4 py-2 text-white text-[9px] md:text-[10px] font-black rounded-lg transition-all shadow-lg uppercase tracking-widest active:scale-95 shrink-0 cursor-pointer",
+                "flex items-center gap-1.5 px-3.5 sm:px-4 py-2 text-white text-[9px] md:text-[10px] font-black rounded-lg transition-all shadow-lg uppercase tracking-widest active:scale-95 shrink-0 cursor-pointer",
                 success ? "bg-emerald-500 shadow-emerald-100" : "bg-indigo-600 hover:bg-indigo-700 shadow-indigo-100"
               )}
             >
