@@ -379,6 +379,25 @@ const EditFlashcard = () => {
     audio_pairs: [],
     ai_prompts: []
   })
+
+  const syncAndSaveColumnOrder = async (newOrder: string[], newCustom: string[]) => {
+    setColumnOrder(newOrder)
+    setCustomColumns(newCustom)
+    const updatedSettings = {
+      ...practiceSettings,
+      custom_columns: newCustom,
+      column_order: newOrder
+    }
+    setPracticeSettings(updatedSettings)
+    try {
+      await axios.post(`/api/v1/deck/${id}/practice-settings`, {
+        settings: updatedSettings,
+        is_creator: true
+      })
+    } catch (err) {
+      console.error("Lỗi đồng bộ thứ tự cột", err)
+    }
+  }
   
   // Collaboration State
   const [collaborators, setCollaborators] = useState<any[]>([])
@@ -466,12 +485,12 @@ const EditFlashcard = () => {
         const res = await axios.get(`/api/v1/deck/users/search?q=${userSearch}`)
         setSearchResults(res.data)
       } catch (err) {
-        console.error(err)
+        console.error("Lỗi tìm kiếm người dùng", err)
       } finally {
         setIsSearching(false)
       }
     }
-    const timer = setTimeout(searchUsers, 500)
+    const timer = setTimeout(searchUsers, 300)
     return () => clearTimeout(timer)
   }, [userSearch])
 
@@ -541,11 +560,17 @@ const EditFlashcard = () => {
         tags: formData.tags.split(',').map(t => t.trim()).filter(Boolean)
       })
       
-      // Save default practice settings for this deck
+      // Save default practice settings for this deck (include latest custom_columns and column_order)
+      const finalPracticeSettings = {
+        ...practiceSettings,
+        custom_columns: customColumns,
+        column_order: columnOrder
+      }
       await axios.post(`/api/v1/deck/${id}/practice-settings`, {
-        settings: practiceSettings,
+        settings: finalPracticeSettings,
         is_creator: true
       })
+      setPracticeSettings(finalPracticeSettings)
       
       setSuccess(true)
       setTimeout(() => setSuccess(false), 3000)
@@ -819,14 +844,7 @@ const EditFlashcard = () => {
                                             }}
                                             onDragEnd={async () => {
                                                setDraggedIndex(null);
-                                               try {
-                                                  await axios.post(`/api/v1/deck/${id}/practice-settings`, {
-                                                     settings: { ...practiceSettings, custom_columns: customColumns, column_order: columnOrder },
-                                                     is_creator: true
-                                                  });
-                                               } catch (err) {
-                                                  console.error("Lỗi đồng bộ thứ tự cột", err);
-                                               }
+                                               await syncAndSaveColumnOrder(columnOrder, customColumns);
                                             }}
                                             className={cn(
                                                "px-3.5 py-2.5 rounded-2xl border flex items-center gap-2.5 text-xs font-bold transition-all cursor-move select-none shadow-xs",
@@ -860,15 +878,7 @@ const EditFlashcard = () => {
                                                      const nextOrder = [...columnOrder];
                                                      const item = nextOrder.splice(idx, 1)[0];
                                                      nextOrder.splice(idx - 1, 0, item);
-                                                     setColumnOrder(nextOrder);
-                                                     try {
-                                                        await axios.post(`/api/v1/deck/${id}/practice-settings`, {
-                                                           settings: { ...practiceSettings, custom_columns: customColumns, column_order: nextOrder },
-                                                           is_creator: true
-                                                        });
-                                                     } catch (err) {
-                                                        console.error(err);
-                                                     }
+                                                     await syncAndSaveColumnOrder(nextOrder, customColumns);
                                                   }}
                                                   className="w-5 h-5 rounded-md bg-white border border-slate-200 text-slate-600 hover:bg-slate-100 disabled:opacity-20 flex items-center justify-center cursor-pointer"
                                                   title="Di chuyển sang trái"
@@ -885,15 +895,7 @@ const EditFlashcard = () => {
                                                      const nextOrder = [...columnOrder];
                                                      const item = nextOrder.splice(idx, 1)[0];
                                                      nextOrder.splice(idx + 1, 0, item);
-                                                     setColumnOrder(nextOrder);
-                                                     try {
-                                                        await axios.post(`/api/v1/deck/${id}/practice-settings`, {
-                                                           settings: { ...practiceSettings, custom_columns: customColumns, column_order: nextOrder },
-                                                           is_creator: true
-                                                        });
-                                                     } catch (err) {
-                                                        console.error(err);
-                                                     }
+                                                     await syncAndSaveColumnOrder(nextOrder, customColumns);
                                                   }}
                                                   className="w-5 h-5 rounded-md bg-white border border-slate-200 text-slate-600 hover:bg-slate-100 disabled:opacity-20 flex items-center justify-center cursor-pointer"
                                                   title="Di chuyển sang phải"
@@ -925,12 +927,7 @@ const EditFlashcard = () => {
                                                               });
                                                               const nextCustom = customColumns.filter(c => c !== col);
                                                               const nextOrder = columnOrder.filter(c => c !== col);
-                                                              setCustomColumns(nextCustom);
-                                                              setColumnOrder(nextOrder);
-                                                              await axios.post(`/api/v1/deck/${id}/practice-settings`, {
-                                                                 settings: { ...practiceSettings, custom_columns: nextCustom, column_order: nextOrder },
-                                                                 is_creator: true
-                                                              });
+                                                              await syncAndSaveColumnOrder(nextOrder, nextCustom);
                                                               alert("Xóa cột thành công!");
                                                            } catch (err) {
                                                               alert("Lỗi khi xóa cột");
@@ -972,17 +969,8 @@ const EditFlashcard = () => {
                                             }
                                             const nextCustom = [...customColumns, name];
                                             const nextOrder = [...columnOrder, name];
-                                            setCustomColumns(nextCustom);
-                                            setColumnOrder(nextOrder);
                                             setNewColName('');
-                                            try {
-                                               await axios.post(`/api/v1/deck/${id}/practice-settings`, {
-                                                  settings: { ...practiceSettings, custom_columns: nextCustom, column_order: nextOrder },
-                                                  is_creator: true
-                                               });
-                                            } catch (err) {
-                                               alert("Lỗi khi thêm cột mới");
-                                            }
+                                            await syncAndSaveColumnOrder(nextOrder, nextCustom);
                                          }
                                       }}
                                       className="flex-1 h-12 px-4 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-800 outline-none focus:ring-4 focus:ring-indigo-500/5 focus:border-indigo-500 transition-all"
@@ -998,18 +986,8 @@ const EditFlashcard = () => {
                                          }
                                          const nextCustom = [...customColumns, name];
                                          const nextOrder = [...columnOrder, name];
-                                         setCustomColumns(nextCustom);
-                                         setColumnOrder(nextOrder);
                                          setNewColName('');
-                                         
-                                         try {
-                                            await axios.post(`/api/v1/deck/${id}/practice-settings`, {
-                                               settings: { ...practiceSettings, custom_columns: nextCustom, column_order: nextOrder },
-                                               is_creator: true
-                                            });
-                                         } catch (err) {
-                                            alert("Lỗi khi thêm cột mới");
-                                         }
+                                         await syncAndSaveColumnOrder(nextOrder, nextCustom);
                                       }}
                                       className="h-12 px-6 bg-indigo-600 text-white rounded-xl text-[10px] font-black uppercase tracking-wider shadow-lg shadow-indigo-100 hover:bg-indigo-700 active:scale-95 transition-all flex items-center gap-1.5 cursor-pointer"
                                    >

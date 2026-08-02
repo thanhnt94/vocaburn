@@ -219,7 +219,9 @@ async def save_practice_settings(request: Request, deck_id: int, payload: dict, 
                 merged.update(deck.practice_settings)
             if isinstance(settings, dict):
                 merged.update(settings)
+            deck.practice_settings = merged
         flag_modified(deck, "practice_settings")
+        await db.commit()
     else:
         # Save user settings for roadmap pipeline, roadmap_active, and user preferences
         user_sett_res = await db.execute(
