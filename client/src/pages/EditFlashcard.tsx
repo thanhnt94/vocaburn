@@ -653,36 +653,52 @@ const EditFlashcard = () => {
             </div>
           </div>
 
-          <button 
-            onClick={handleSaveMetadata}
-            disabled={isSaving || success}
-            className={cn(
-              "flex items-center gap-1.5 px-4 py-2 text-white text-[9px] md:text-[10px] font-black rounded-lg transition-all shadow-lg uppercase tracking-widest active:scale-95 shrink-0",
-              success ? "bg-emerald-500 shadow-emerald-100" : "bg-indigo-600 hover:bg-indigo-700 shadow-indigo-100"
-            )}
-          >
-            {isSaving ? <Zap className="w-3 h-3 animate-spin" /> : success ? <CheckCircle2 className="w-3 h-3" /> : <Save className="w-3 h-3" />}
-            <span>{isSaving ? "Saving..." : success ? "Saved" : "Save"}</span>
-          </button>
+          <div className="flex items-center gap-2 shrink-0">
+            <button 
+              type="button"
+              onClick={() => navigate(`/manage/edit/${id}/flashcards`)}
+              className="flex items-center gap-1.5 px-3 py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-[9px] md:text-[10px] font-black rounded-lg transition-all border border-indigo-200/80 uppercase tracking-wider active:scale-95 shrink-0 cursor-pointer shadow-2xs"
+              title="Chuyển sang Quản lý thẻ"
+            >
+              <LayoutGrid className="w-3.5 h-3.5 text-indigo-600 shrink-0" />
+              <span>Quản lý thẻ</span>
+            </button>
+
+            <button 
+              type="button"
+              onClick={handleSaveMetadata}
+              disabled={isSaving || success}
+              className={cn(
+                "flex items-center gap-1.5 px-4 py-2 text-white text-[9px] md:text-[10px] font-black rounded-lg transition-all shadow-lg uppercase tracking-widest active:scale-95 shrink-0 cursor-pointer",
+                success ? "bg-emerald-500 shadow-emerald-100" : "bg-indigo-600 hover:bg-indigo-700 shadow-indigo-100"
+              )}
+            >
+              {isSaving ? <Zap className="w-3 h-3 animate-spin" /> : success ? <CheckCircle2 className="w-3 h-3" /> : <Save className="w-3 h-3" />}
+              <span>{isSaving ? "Saving..." : success ? "Saved" : "Save"}</span>
+            </button>
+          </div>
         </div>
       </div>
 
-      <div className="max-w-[1400px] mx-auto px-4 pt-[68px] md:pt-0 mt-6 md:mt-10">
-        {/* Mobile Tab Switcher */}
-        <div className="grid grid-cols-4 gap-1 bg-white border border-slate-100 p-1.5 rounded-2xl mb-8 md:hidden shadow-sm">
-           {['basic', 'columns', 'modes', 'practice', 'ai', 'audio', 'collaboration', 'excel'].map(tab => (
-             <button 
-               key={tab}
-               onClick={() => setActiveTab(tab as any)}
-               className={cn(
-                 "py-2.5 px-1 rounded-xl text-[8px] font-black uppercase tracking-wider transition-all text-center",
-                 activeTab === tab ? "bg-slate-900 text-white shadow-md" : "text-slate-400"
-               )}
-             >
-               {tab === 'basic' ? 'Basic' : tab === 'columns' ? 'Cột' : tab === 'modes' ? 'Modes' : tab === 'practice' ? 'Practice' : tab === 'ai' ? 'AI' : tab === 'audio' ? 'Audio' : tab === 'collaboration' ? 'Rights' : 'Excel'}
-             </button>
-           ))}
-        </div>
+      {/* Fixed Mobile Bottom Tab Navigation */}
+      <div className="fixed bottom-0 left-0 right-0 z-[90] bg-white/95 backdrop-blur-xl border-t border-slate-200/80 p-1.5 md:hidden shadow-[0_-4px_20px_rgba(0,0,0,0.06)]">
+         <div className="grid grid-cols-4 gap-1 max-w-md mx-auto">
+            {['basic', 'columns', 'modes', 'practice', 'ai', 'audio', 'collaboration', 'excel'].map(tab => (
+              <button 
+                key={tab}
+                onClick={() => setActiveTab(tab as any)}
+                className={cn(
+                  "py-2 px-1 rounded-xl text-[8.5px] font-black uppercase tracking-wider transition-all text-center active:scale-95",
+                  activeTab === tab ? "bg-slate-900 text-white shadow-md" : "text-slate-500 hover:text-slate-800 hover:bg-slate-100/50"
+                )}
+              >
+                {tab === 'basic' ? 'Basic' : tab === 'columns' ? 'Cột' : tab === 'modes' ? 'Modes' : tab === 'practice' ? 'Practice' : tab === 'ai' ? 'AI' : tab === 'audio' ? 'Audio' : tab === 'collaboration' ? 'Rights' : 'Excel'}
+              </button>
+            ))}
+         </div>
+      </div>
+
+      <div className="max-w-[1400px] mx-auto px-4 pt-[68px] md:pt-0 mt-4 md:mt-10 pb-28 md:pb-12">
 
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
            {/* Navigation Aside (Desktop) */}
