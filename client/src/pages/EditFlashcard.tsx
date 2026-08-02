@@ -1638,6 +1638,7 @@ const EditFlashcard = () => {
                                                       className="w-full bg-white border border-slate-200 rounded-xl px-3 h-10 text-xs font-bold text-slate-700 outline-none focus:border-indigo-500"
                                                    >
                                                       <option value="multi">Tự động (Multi-lang)</option>
+                                                      <option value="none">Không đọc (Disable Audio)</option>
                                                       <option value="en">English (Mỹ)</option>
                                                       <option value="ja">Japanese (Nhật)</option>
                                                       <option value="vi">Vietnamese (Việt)</option>
@@ -1725,6 +1726,7 @@ const EditFlashcard = () => {
                                                   className="w-full bg-white border border-slate-200 rounded-xl px-3 h-10 text-xs font-bold text-slate-700 outline-none"
                                                >
                                                   <option value="multi">Tự động (Multi-lang)</option>
+                                                  <option value="none">Không đọc (Disable Audio)</option>
                                                   <option value="en">English (Mỹ)</option>
                                                   <option value="ja">Japanese (Nhật)</option>
                                                   <option value="vi">Vietnamese (Việt)</option>

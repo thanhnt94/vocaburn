@@ -32,8 +32,21 @@ export function useFlashcardAudio(currentQuestion: any, practiceSettings?: any) 
     }
   };
 
+  const isAudioEnabled = (face: 'front' | 'back' | string) => {
+    if (face === 'front') return practiceSettings?.front_audio_config?.lang !== 'none';
+    if (face === 'back') return practiceSettings?.back_audio_config?.lang !== 'none';
+    const pairs = practiceSettings?.audio_pairs || [];
+    const pair = pairs.find((p: any) => p.text_col === face);
+    if (pair && pair.lang === 'none') return false;
+    return true;
+  };
+
   const playColumnAudio = async (columnKey: string) => {
     if (!currentQuestion) return;
+    if (!isAudioEnabled(columnKey)) {
+      console.log(`[CLIENT TTS] Audio is disabled for ${columnKey}`);
+      return;
+    }
     const targetQuestionId = currentQuestion.id;
     currentQuestionIdRef.current = targetQuestionId;
 
@@ -110,6 +123,10 @@ export function useFlashcardAudio(currentQuestion: any, practiceSettings?: any) 
 
   const playCardAudio = async (face: 'front' | 'back') => {
     if (!currentQuestion) return;
+    if (!isAudioEnabled(face)) {
+      console.log(`[CLIENT TTS] Audio is disabled for ${face}`);
+      return;
+    }
     const targetQuestionId = currentQuestion.id;
     currentQuestionIdRef.current = targetQuestionId;
 
@@ -188,6 +205,7 @@ export function useFlashcardAudio(currentQuestion: any, practiceSettings?: any) 
     playCardAudio,
     playColumnAudio,
     stopAudio,
+    isAudioEnabled,
     activeAudioRef
   };
 }

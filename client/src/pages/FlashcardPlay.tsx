@@ -470,13 +470,7 @@ export default function FlashcardPlay() {
   const setMainTab = (tab: 'fsrs' | 'practice') => {}
 
   // --- Custom Hooks ---
-  const {
-    autoPlayAudio,
-    setAutoPlayAudio,
-    playCardAudio,
-    stopAudio,
-    activeAudioRef
-  } = useFlashcardAudio(currentQuestion)
+
 
   const {
     streak,
@@ -530,6 +524,15 @@ export default function FlashcardPlay() {
     generatePracticeQuestion,
     resetPractice
   } = usePracticeMode(session, currentIndex, mainTab)
+
+  const {
+    autoPlayAudio,
+    setAutoPlayAudio,
+    playCardAudio,
+    stopAudio,
+    activeAudioRef,
+    isAudioEnabled
+  } = useFlashcardAudio(currentQuestion, modeSettings)
 
   const [initialTotalXP, setInitialTotalXP] = useState(0)
   const timeLeftRef = useRef(0)
@@ -4747,6 +4750,17 @@ export default function FlashcardPlay() {
 
               {(() => {
                 if (!currentQuestion) return null;
+                
+                const face = isFlipped ? 'back' : 'front';
+                let enabled = true;
+                if (mainTab === 'practice' && currentPracticeData) {
+                  const { question_key } = currentPracticeData;
+                  enabled = isAudioEnabled(question_key);
+                } else {
+                  enabled = isAudioEnabled(face);
+                }
+                
+                if (!enabled) return null;
                 
                 return (
                   <button
