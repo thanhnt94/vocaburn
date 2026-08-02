@@ -1397,8 +1397,7 @@ export default function Dashboard() {
 
           <button
             onClick={() => {
-              const first = decks_summary?.[0]
-              if (first) navigate(`/flashcard/${first.deck_id}/play`)
+              navigate(`/flashcard/quick/play`)
             }}
             className="w-full sm:w-auto h-9 px-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-[10px] font-black uppercase tracking-wider shadow-md active:scale-95 transition-all flex items-center justify-center gap-1.5 self-start sm:self-center flex-shrink-0"
           >
@@ -1695,8 +1694,8 @@ export default function Dashboard() {
                   </div>
 
                   <div className="flex items-center gap-1.5 mt-2">
-                    <span className={`text-[8px] font-black px-2 py-0.5 rounded-full ${isStage1Done ? 'bg-emerald-50 text-emerald-600 border border-emerald-200' : 'bg-amber-50 text-amber-600 border border-amber-200'}`}>
-                      {isStage1Done ? '✓ Bước 1: Đạt chỉ tiêu' : '• Bước 1: Học từ mới'}
+                    <span className={`text-[8px] font-black px-2 py-0.5 rounded-full ${(newLearned > newTarget && newTarget > 0) ? 'bg-emerald-600 text-white border border-emerald-700 shadow-sm' : isStage1Done ? 'bg-emerald-50 text-emerald-600 border border-emerald-200' : 'bg-amber-50 text-amber-600 border border-amber-200'}`}>
+                      {(newLearned > newTarget && newTarget > 0) ? '🚀 Bước 1: Vượt mục tiêu' : isStage1Done ? '✓ Bước 1: Đạt chỉ tiêu' : '• Bước 1: Học từ mới'}
                     </span>
                     {status.has_stage_2 && (
                       <span className={`text-[8px] font-black px-2 py-0.5 rounded-full ${isStage2Done ? 'bg-emerald-50 text-emerald-600 border border-emerald-200' : isStage1Done ? 'bg-indigo-50 text-indigo-600 border border-indigo-200' : 'bg-slate-50 text-slate-400'}`}>

@@ -175,6 +175,15 @@ export function useFlashcardAudio(currentQuestion: any, practiceSettings?: any) 
       }
     }
 
+    let lang = 'multi';
+    if (practiceSettings) {
+      if (face === 'front' && practiceSettings.front_audio_config?.lang) {
+        lang = practiceSettings.front_audio_config.lang;
+      } else if (face === 'back' && practiceSettings.back_audio_config?.lang) {
+        lang = practiceSettings.back_audio_config.lang;
+      }
+    }
+
     if (audioUrl) {
       const cacheBustedUrl = `${audioUrl}${audioUrl.includes('?') ? '&' : '?'}t=${Date.now()}`;
       console.log(`[TTS PLAYBACK] Playing Edge TTS server audio: ${cacheBustedUrl}`);
@@ -190,12 +199,12 @@ export function useFlashcardAudio(currentQuestion: any, practiceSettings?: any) 
         }
 
         if (script && script.trim()) {
-          speakWithEdgeTTS(script);
+          speakWithEdgeTTS(script, lang);
         }
       });
     } else if (script && script.trim()) {
       console.log(`[TTS EDGE STREAM] Streaming Edge TTS for: "${script}"`);
-      speakWithEdgeTTS(script);
+      speakWithEdgeTTS(script, lang);
     }
   };
 
