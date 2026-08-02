@@ -2870,6 +2870,136 @@ async def get_deck_roadmap_status(request: Request, deck_id: int, target_date: O
     return status
 
 
+@router.get("/{deck_id}/roadmap-calendar")
+async def get_deck_roadmap_calendar(request: Request, deck_id: int, month: str = Query(...), db: AsyncSession = Depends(get_db)):
+    """Get calendar heatmap data for a month. month format: YYYY-MM"""
+    user_id = int(request.cookies.get("user_id", 1))
+    from app.modules.deck.models import Flashcard, DeckAttempt, UserAnswer
+    import calendar as cal_mod
+    
+    try:
+        year, month_num = int(month.split("-")[0]), int(month.split("-")[1])
+    except Exception:
+        return JSONResponse(status_code=400, content={"error": "Invalid month format. Use YYYY-MM."})
+    
+    _, days_in_month = cal_mod.monthrange(year, month_num)
+    
+    # Get user's roadmap pipeline settings for this deck
+    user_sett_res = await db.execute(
+        select(UserDeckSettings).where(
+            UserDeckSettings.user_id == user_id,
+            UserDeckSettings.deck_id == deck_id
+        )
+    )
+    user_sett = user_sett_res.scalar_one_or_none()
+    settings = user_sett.settings if (user_sett and user_sett.settings) else {}
+    pipeline = settings.get("pipeline", [])
+    total_steps = len(pipeline) if pipeline else 1
+    
+    # Get all active dates in this month for this deck
+    month_start = datetime(year, month_num, 1)
+    month_end = datetime(year, month_num, days_in_month, 23, 59, 59)
+    
+    # Get study minutes per day
+    daily_study_res = await db.execute(
+        select(
+            func.date(UserAnswer.created_at).label("day"),
+            func.sum(UserAnswer.active_time).label("total_time"),
+            func.count(UserAnswer.id).label("answer_count")
+        )
+        .join(Flashcard, UserAnswer.card_id == Flashcard.id)
+        .join(DeckAttempt, UserAnswer.attempt_id == DeckAttempt.id)
+        .where(
+            Flashcard.deck_id == deck_id,
+            DeckAttempt.user_id == user_id,
+            UserAnswer.created_at >= month_start,
+            UserAnswer.created_at <= month_end
+        )
+        .group_by(func.date(UserAnswer.created_at))
+    )
+    daily_data = {}
+    for row in daily_study_res.all():
+        day_val = row[0]
+        if isinstance(day_val, str):
+            day_key = day_val
+        elif isinstance(day_val, (datetime, date)):
+            day_key = day_val.strftime("%Y-%m-%d") if isinstance(day_val, datetime) else day_val.isoformat()
+        else:
+            continue
+        daily_data[day_key] = {
+            "study_seconds": float(row[1] or 0),
+            "answer_count": int(row[2] or 0)
+        }
+    
+    # Build days array
+    days = []
+    for d in range(1, days_in_month + 1):
+        day_date = date(year, month_num, d)
+        day_str = day_date.isoformat()
+        info = daily_data.get(day_str, {"study_seconds": 0, "answer_count": 0})
+        is_active = info["answer_count"] > 0
+        study_minutes = round(info["study_seconds"] / 60.0, 1)
+        
+        # Estimate completion percent based on activity level
+        # Simple heuristic: if active and study_minutes > 0, estimate based on answers vs typical pipeline
+        completion_percent = 0
+        if is_active:
+            # Compute actual completion if it's today or a recent date, using the roadmap helper
+            # For historical dates, use a heuristic based on study time and answers
+            if study_minutes >= 10:
+                completion_percent = 100
+            elif study_minutes >= 5:
+                completion_percent = 75
+            elif study_minutes >= 2:
+                completion_percent = 50
+            else:
+                completion_percent = 25
+        
+        days.append({
+            "date": day_str,
+            "day_of_week": day_date.weekday(),  # 0=Monday
+            "active": is_active,
+            "completion_percent": completion_percent,
+            "study_minutes": study_minutes,
+            "answer_count": info["answer_count"]
+        })
+    
+    return {
+        "month": month,
+        "days": days,
+        "total_active_days": sum(1 for d in days if d["active"]),
+        "total_study_minutes": round(sum(d["study_minutes"] for d in days), 1)
+    }
+
+
+@router.get("/{deck_id}/roadmap-pipeline-history")
+async def get_pipeline_history(request: Request, deck_id: int, db: AsyncSession = Depends(get_db)):
+    """Get pipeline change history for a deck."""
+    user_id = int(request.cookies.get("user_id", 1))
+    from app.modules.deck.models import RoadmapPipelineHistory
+    
+    history_res = await db.execute(
+        select(RoadmapPipelineHistory).where(
+            RoadmapPipelineHistory.user_id == user_id,
+            RoadmapPipelineHistory.deck_id == deck_id
+        ).order_by(RoadmapPipelineHistory.changed_at.desc())
+    )
+    history_items = history_res.scalars().all()
+    
+    result = []
+    for item in history_items:
+        result.append({
+            "id": item.id,
+            "pipeline_json": item.pipeline_json,
+            "changed_at": item.changed_at.isoformat() if item.changed_at else None,
+            "change_type": item.change_type,
+            "change_summary": item.change_summary,
+            "effective_from": item.effective_from.isoformat() if item.effective_from else None,
+            "effective_until": item.effective_until.isoformat() if item.effective_until else None
+        })
+    
+    return {"history": result}
+
 
 @router.post("/{deck_id}/reset-progress")
 async def reset_deck_progress(request: Request, deck_id: int, db: AsyncSession = Depends(get_db)):

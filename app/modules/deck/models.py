@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Boolean, ForeignKey, Text, JSON, DateTime, Float, UniqueConstraint
+from sqlalchemy import Column, Integer, String, Boolean, ForeignKey, Text, JSON, DateTime, Float, UniqueConstraint, Date
 from sqlalchemy.orm import relationship, backref
 from datetime import datetime
 from app.core.db import Base
@@ -288,3 +288,16 @@ class ContributionLike(Base):
     contribution_id = Column(Integer, ForeignKey('card_contributions.id', ondelete='CASCADE'), primary_key=True)
 
 
+class RoadmapPipelineHistory(Base):
+    __tablename__ = "roadmap_pipeline_history"
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), index=True)
+    deck_id = Column(Integer, ForeignKey("flashcard_decks.id"), index=True)
+    pipeline_json = Column(JSON, nullable=False)
+    changed_at = Column(DateTime, default=datetime.utcnow)
+    change_type = Column(String(20))  # "initial" | "upgrade" | "downgrade" | "reorder"
+    change_summary = Column(Text, nullable=True)
+    effective_from = Column(Date, nullable=False)
+    effective_until = Column(Date, nullable=True)  # NULL = currently active
+
+    deck = relationship("FlashcardDeck")

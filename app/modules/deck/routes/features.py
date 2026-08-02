@@ -248,33 +248,198 @@ async def save_practice_settings(request: Request, deck_id: int, payload: dict, 
             
     await db.commit()
     
-    # Reset today's roadmap activity if pipeline changed
-    if settings and "pipeline" in settings:
-        today_start = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
-        from app.modules.deck.models import DeckAttempt, DeckSession
+    # Smart diff pipeline comparison + history recording
+    if settings and "pipeline" in settings and not is_creator:
+        from app.modules.deck.models import DeckAttempt, DeckSession, RoadmapPipelineHistory
         from sqlalchemy import delete
         
-        # 1. Delete today's test attempts to reset MCQ/Typing scores
-        await db.execute(
-            delete(DeckAttempt).where(
-                DeckAttempt.user_id == user_id,
-                DeckAttempt.deck_id == deck_id,
-                DeckAttempt.mode.in_(["roadmap_mcq", "roadmap_test", "mcq", "roadmap_typing", "typing"]),
-                func.coalesce(DeckAttempt.completed_at, DeckAttempt.started_at) >= today_start
-            )
-        )
+        new_pipeline = settings.get("pipeline", [])
         
-        # 2. Delete active roadmap session state
-        await db.execute(
-            delete(DeckSession).where(
-                DeckSession.user_id == user_id,
-                DeckSession.deck_id == deck_id,
-                DeckSession.mode.in_(["roadmap_test", "roadmap_mcq", "roadmap_typing"])
-            )
+        # Get old pipeline from previous settings
+        old_settings = {}
+        if user_sett and isinstance(user_sett.settings, dict):
+            old_settings = user_sett.settings
+        old_pipeline = old_settings.get("pipeline", [])
+        
+        # Compare pipelines to determine change_type
+        change_type = _compare_pipelines(old_pipeline, new_pipeline)
+        
+        # Generate Vietnamese summary
+        change_summary = _generate_change_summary(old_pipeline, new_pipeline, change_type)
+        
+        today_date = datetime.utcnow().date()
+        
+        # Close previous active history entry
+        prev_active_res = await db.execute(
+            select(RoadmapPipelineHistory).where(
+                RoadmapPipelineHistory.user_id == user_id,
+                RoadmapPipelineHistory.deck_id == deck_id,
+                RoadmapPipelineHistory.effective_until == None
+            ).order_by(RoadmapPipelineHistory.changed_at.desc()).limit(1)
         )
+        prev_active = prev_active_res.scalar_one_or_none()
+        if prev_active:
+            prev_active.effective_until = today_date
+            from sqlalchemy.orm.attributes import flag_modified
+            flag_modified(prev_active, "effective_until")
+        
+        # Determine effective_from based on change_type
+        if change_type == "downgrade":
+            effective_from = today_date
+        else:
+            # Upgrade/reorder: apply from tomorrow
+            effective_from = today_date + timedelta(days=1) if old_pipeline else today_date
+        
+        # Record history entry
+        history_entry = RoadmapPipelineHistory(
+            user_id=user_id,
+            deck_id=deck_id,
+            pipeline_json=new_pipeline,
+            change_type=change_type,
+            change_summary=change_summary,
+            effective_from=effective_from,
+            effective_until=None
+        )
+        db.add(history_entry)
+        
+        # Only reset today's progress on DOWNGRADE
+        if change_type == "downgrade":
+            today_start = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
+            
+            # 1. Delete today's test attempts to reset MCQ/Typing scores
+            await db.execute(
+                delete(DeckAttempt).where(
+                    DeckAttempt.user_id == user_id,
+                    DeckAttempt.deck_id == deck_id,
+                    DeckAttempt.mode.in_(["roadmap_mcq", "roadmap_test", "mcq", "roadmap_typing", "typing"]),
+                    func.coalesce(DeckAttempt.completed_at, DeckAttempt.started_at) >= today_start
+                )
+            )
+            
+            # 2. Delete active roadmap session state
+            await db.execute(
+                delete(DeckSession).where(
+                    DeckSession.user_id == user_id,
+                    DeckSession.deck_id == deck_id,
+                    DeckSession.mode.in_(["roadmap_test", "roadmap_mcq", "roadmap_typing"])
+                )
+            )
+        
         await db.commit()
 
     return {"status": "ok"}
+
+
+def _compare_pipelines(old_pipeline: list, new_pipeline: list) -> str:
+    """Compare old vs new pipeline. Returns 'initial', 'upgrade', 'downgrade', or 'reorder'."""
+    if not old_pipeline:
+        return "initial"
+    
+    old_types = [s.get("type") for s in old_pipeline]
+    new_types = [s.get("type") for s in new_pipeline]
+    
+    # Check if any steps were removed → downgrade
+    old_type_counts = {}
+    for t in old_types:
+        old_type_counts[t] = old_type_counts.get(t, 0) + 1
+    new_type_counts = {}
+    for t in new_types:
+        new_type_counts[t] = new_type_counts.get(t, 0) + 1
+    
+    for t, count in old_type_counts.items():
+        if new_type_counts.get(t, 0) < count:
+            return "downgrade"
+    
+    # Check if any thresholds/counts were lowered → downgrade
+    NUMERIC_FIELDS = ["daily_count", "question_count", "pass_threshold", "target_minutes", "overdue_hours"]
+    for i, old_step in enumerate(old_pipeline):
+        # Find matching step by type in new pipeline
+        matching_new = [s for s in new_pipeline if s.get("type") == old_step.get("type")]
+        if not matching_new:
+            return "downgrade"  # step type removed
+        # Compare with first matching (order might have changed)
+        new_step = matching_new[0]
+        for field in NUMERIC_FIELDS:
+            old_val = old_step.get(field)
+            new_val = new_step.get(field)
+            if old_val is not None and new_val is not None:
+                if int(new_val) < int(old_val):
+                    return "downgrade"
+    
+    # Check if steps were added or thresholds raised → upgrade
+    for t, count in new_type_counts.items():
+        if count > old_type_counts.get(t, 0):
+            return "upgrade"
+    
+    for i, new_step in enumerate(new_pipeline):
+        matching_old = [s for s in old_pipeline if s.get("type") == new_step.get("type")]
+        if not matching_old:
+            return "upgrade"
+        old_step = matching_old[0]
+        for field in NUMERIC_FIELDS:
+            old_val = old_step.get(field)
+            new_val = new_step.get(field)
+            if old_val is not None and new_val is not None:
+                if int(new_val) > int(old_val):
+                    return "upgrade"
+    
+    # Only order changed
+    if old_types != new_types:
+        return "reorder"
+    
+    return "reorder"
+
+
+def _generate_change_summary(old_pipeline: list, new_pipeline: list, change_type: str) -> str:
+    """Generate a Vietnamese summary of pipeline changes."""
+    STEP_NAMES = {
+        "new_cards": "Học Từ Mới",
+        "fsrs_review": "Ôn Tập FSRS",
+        "mcq": "Trắc Nghiệm MCQ",
+        "typing": "Gõ Từ Vựng",
+        "study_time": "Thời Gian Học"
+    }
+    
+    if change_type == "initial":
+        steps = [STEP_NAMES.get(s.get("type"), s.get("type", "?")) for s in new_pipeline]
+        return f"Thiết lập lộ trình ban đầu: {', '.join(steps)}"
+    
+    changes = []
+    old_types = {s.get("type") for s in old_pipeline}
+    new_types = {s.get("type") for s in new_pipeline}
+    
+    # Added steps
+    added = new_types - old_types
+    for t in added:
+        changes.append(f"+ Thêm bước: {STEP_NAMES.get(t, t)}")
+    
+    # Removed steps
+    removed = old_types - new_types
+    for t in removed:
+        changes.append(f"- Xóa bước: {STEP_NAMES.get(t, t)}")
+    
+    # Changed params
+    NUMERIC_FIELDS = {"daily_count": "Từ mới/ngày", "question_count": "Số câu", "pass_threshold": "Ngưỡng đỗ", "target_minutes": "Phút mục tiêu", "overdue_hours": "Giờ quá hạn"}
+    for old_step in old_pipeline:
+        stype = old_step.get("type")
+        if stype in removed:
+            continue
+        matching = [s for s in new_pipeline if s.get("type") == stype]
+        if not matching:
+            continue
+        new_step = matching[0]
+        for field, label in NUMERIC_FIELDS.items():
+            old_val = old_step.get(field)
+            new_val = new_step.get(field)
+            if old_val is not None and new_val is not None and int(old_val) != int(new_val):
+                arrow = "↑" if int(new_val) > int(old_val) else "↓"
+                changes.append(f"{arrow} {STEP_NAMES.get(stype, stype)}: {label} {old_val} → {new_val}")
+    
+    if not changes:
+        changes.append("Thay đổi thứ tự các bước")
+    
+    return "; ".join(changes)
+
 
 def fix_static_urls(val):
     if not val:

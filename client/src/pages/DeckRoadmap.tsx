@@ -1,10 +1,11 @@
-import { useState, useEffect } from 'react'
-import { useParams, useNavigate, Link } from 'react-router-dom'
+import { useState, useEffect, useMemo } from 'react'
+import { useParams, useNavigate, Link, useSearchParams } from 'react-router-dom'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { 
   ChevronLeft, Compass, Target, Flame, Brain, Play, CheckCircle2, Circle, Clock, 
   ArrowRight, Settings, RotateCcw, Sparkles, BookOpen, Layers, Lock, ShieldCheck,
-  Plus, Trash2, ArrowUp, ArrowDown, Check, Trophy
+  Plus, Trash2, ArrowUp, ArrowDown, Check, Trophy, Calendar, BarChart3, History,
+  Zap, ChevronRight, TrendingUp, TrendingDown, ArrowLeftRight, Star
 } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import axios from 'axios'
@@ -21,48 +22,68 @@ export interface PipelineStep {
   target_minutes?: number
 }
 
-const STEP_META: Record<StepType, { title: string; icon: string; bg: string; color: string; desc: string }> = {
+const STEP_META: Record<StepType, { title: string; icon: string; gradient: string; color: string; desc: string; ring: string }> = {
   new_cards: {
     title: 'Học Từ Mới',
     icon: '🎴',
-    bg: 'bg-orange-50',
-    color: 'text-orange-600',
-    desc: 'Lật thẻ Flashcard để nạp từ mới'
+    gradient: 'from-orange-500 to-amber-500',
+    color: 'text-orange-500',
+    desc: 'Lật thẻ Flashcard để nạp từ mới',
+    ring: 'ring-orange-500/20'
   },
   fsrs_review: {
     title: 'Ôn Tập FSRS',
     icon: '🔄',
-    bg: 'bg-indigo-50',
-    color: 'text-indigo-600',
-    desc: 'Ôn tập thẻ đến hạn theo thuật toán FSRS v6'
+    gradient: 'from-indigo-500 to-blue-500',
+    color: 'text-indigo-500',
+    desc: 'Ôn tập thẻ đến hạn theo thuật toán FSRS v6',
+    ring: 'ring-indigo-500/20'
   },
   mcq: {
     title: 'Trắc Nghiệm MCQ',
     icon: '🎯',
-    bg: 'bg-purple-50',
-    color: 'text-purple-600',
-    desc: 'Bài test trắc nghiệm chọn đáp án đúng'
+    gradient: 'from-purple-500 to-fuchsia-500',
+    color: 'text-purple-500',
+    desc: 'Bài test trắc nghiệm chọn đáp án đúng',
+    ring: 'ring-purple-500/20'
   },
   typing: {
     title: 'Gõ Từ Vựng',
     icon: '⌨️',
-    bg: 'bg-emerald-50',
-    color: 'text-emerald-600',
-    desc: 'Bài test gõ chính xác từ vựng'
+    gradient: 'from-emerald-500 to-teal-500',
+    color: 'text-emerald-500',
+    desc: 'Bài test gõ chính xác từ vựng',
+    ring: 'ring-emerald-500/20'
   },
   study_time: {
     title: 'Thời Gian Học',
     icon: '⏱️',
-    bg: 'bg-blue-50',
-    color: 'text-blue-600',
-    desc: 'Tích lũy tổng thời gian học và làm bài trong ngày'
+    gradient: 'from-blue-500 to-cyan-500',
+    color: 'text-blue-500',
+    desc: 'Tích lũy tổng thời gian học trong ngày',
+    ring: 'ring-blue-500/20'
   }
 }
+
+const TABS = [
+  { id: 'today', label: 'Hôm Nay', icon: Zap },
+  { id: 'history', label: 'Lịch Sử', icon: History },
+  { id: 'config', label: 'Cấu Hình', icon: Settings },
+  { id: 'stats', label: 'Thống Kê', icon: BarChart3 },
+] as const
+
+type TabId = typeof TABS[number]['id']
 
 export default function DeckRoadmap() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const queryClient = useQueryClient()
+  const [searchParams, setSearchParams] = useSearchParams()
+
+  const activeTab = (searchParams.get('tab') as TabId) || 'today'
+  const setActiveTab = (tab: TabId) => {
+    setSearchParams({ tab }, { replace: true })
+  }
 
   const [pipeline, setPipeline] = useState<PipelineStep[]>([
     { type: 'new_cards', daily_count: 10 },
@@ -72,7 +93,10 @@ export default function DeckRoadmap() {
   ])
   const [selectedDate, setSelectedDate] = useState<string | null>(null)
   const [isSavingSettings, setIsSavingSettings] = useState(false)
-  const [isEditingPipeline, setIsEditingPipeline] = useState(false)
+  const [calendarMonth, setCalendarMonth] = useState(() => {
+    const now = new Date()
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
+  })
 
   // Fetch deck roadmap status
   const { data: status, isLoading: isStatusLoading, refetch } = useQuery({
@@ -95,6 +119,26 @@ export default function DeckRoadmap() {
       return res.data
     },
     enabled: Boolean(id)
+  })
+
+  // Fetch calendar heatmap
+  const { data: calendarData } = useQuery({
+    queryKey: ['deck-roadmap-calendar', id, calendarMonth],
+    queryFn: async () => {
+      const res = await axios.get(`/api/v1/deck/${id}/roadmap-calendar?month=${calendarMonth}`)
+      return res.data
+    },
+    enabled: Boolean(id) && activeTab === 'history'
+  })
+
+  // Fetch pipeline history
+  const { data: historyData } = useQuery({
+    queryKey: ['deck-roadmap-pipeline-history', id],
+    queryFn: async () => {
+      const res = await axios.get(`/api/v1/deck/${id}/roadmap-pipeline-history`)
+      return res.data
+    },
+    enabled: Boolean(id) && activeTab === 'history'
   })
 
   useEffect(() => {
@@ -127,8 +171,16 @@ export default function DeckRoadmap() {
 
       const hasChanged = JSON.stringify(pipeline) !== JSON.stringify(originalPipeline)
       if (hasChanged) {
-        if (!window.confirm("Lưu ý: Bạn đã thay đổi cấu hình Pipeline. Khi lưu lại, toàn bộ tiến trình lộ trình hôm nay sẽ được làm mới để áp dụng cấu hình mới.\n\nBạn có chắc chắn muốn lưu không?")) {
-          return
+        // Smart diff check
+        const changeType = detectChangeType(originalPipeline, pipeline)
+        if (changeType === 'downgrade') {
+          if (!window.confirm("⚠️ Hạ cấp Pipeline!\n\nBạn đang giảm mục tiêu hoặc xóa bước. Tiến độ lộ trình hôm nay sẽ được RESET.\n\nBạn có chắc chắn muốn lưu không?")) {
+            return
+          }
+        } else if (changeType === 'upgrade') {
+          if (!window.confirm("✅ Nâng cấp Pipeline!\n\nBạn đang thêm bước hoặc tăng mục tiêu. Tiến độ hiện tại được GIỮ NGUYÊN, pipeline mới áp dụng từ ngày mai.\n\nBạn có muốn lưu không?")) {
+            return
+          }
         }
       }
 
@@ -145,12 +197,54 @@ export default function DeckRoadmap() {
       queryClient.invalidateQueries({ queryKey: ['roadmap-global-decks'] })
       queryClient.invalidateQueries({ queryKey: ['deck-roadmap-status', Number(id)] })
       queryClient.invalidateQueries({ queryKey: ['deck-roadmap-status', id] })
-      setIsEditingPipeline(false)
+      queryClient.invalidateQueries({ queryKey: ['deck-roadmap-pipeline-history', id] })
     } catch (e) {
       console.error('Failed to save pipeline settings:', e)
     } finally {
       setIsSavingSettings(false)
     }
+  }
+
+  const detectChangeType = (oldP: PipelineStep[], newP: PipelineStep[]): string => {
+    if (!oldP || oldP.length === 0) return 'initial'
+    const oldTypes = oldP.map(s => s.type)
+    const newTypes = newP.map(s => s.type)
+    
+    // Check removals
+    const oldCounts: Record<string, number> = {}
+    oldTypes.forEach(t => oldCounts[t] = (oldCounts[t] || 0) + 1)
+    const newCounts: Record<string, number> = {}
+    newTypes.forEach(t => newCounts[t] = (newCounts[t] || 0) + 1)
+    
+    for (const [t, c] of Object.entries(oldCounts)) {
+      if ((newCounts[t] || 0) < c) return 'downgrade'
+    }
+    
+    const fields = ['daily_count', 'question_count', 'pass_threshold', 'target_minutes', 'overdue_hours'] as const
+    for (const os of oldP) {
+      const ns = newP.find(s => s.type === os.type)
+      if (!ns) return 'downgrade'
+      for (const f of fields) {
+        const ov = os[f as keyof PipelineStep] as number | undefined
+        const nv = ns[f as keyof PipelineStep] as number | undefined
+        if (ov != null && nv != null && nv < ov) return 'downgrade'
+      }
+    }
+    
+    for (const [t, c] of Object.entries(newCounts)) {
+      if (c > (oldCounts[t] || 0)) return 'upgrade'
+    }
+    for (const ns of newP) {
+      const os = oldP.find(s => s.type === ns.type)
+      if (!os) return 'upgrade'
+      for (const f of fields) {
+        const ov = os[f as keyof PipelineStep] as number | undefined
+        const nv = ns[f as keyof PipelineStep] as number | undefined
+        if (ov != null && nv != null && nv > ov) return 'upgrade'
+      }
+    }
+    
+    return 'reorder'
   }
 
   const addStep = (type: StepType) => {
@@ -160,7 +254,6 @@ export default function DeckRoadmap() {
     else if (type === 'mcq') { newStep.question_count = 15; newStep.pass_threshold = 80 }
     else if (type === 'typing') { newStep.question_count = 10; newStep.pass_threshold = 70 }
     else if (type === 'study_time') { newStep.target_minutes = 10 }
-
     setPipeline([...pipeline, newStep])
   }
 
@@ -185,9 +278,9 @@ export default function DeckRoadmap() {
 
   if (isStatusLoading) {
     return (
-      <div className="min-h-screen bg-[#F8FAFC] flex items-center justify-center">
+      <div className="min-h-screen bg-[#0B0F1A] flex items-center justify-center">
         <div className="text-center">
-          <div className="w-10 h-10 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
+          <div className="w-12 h-12 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
           <p className="text-xs font-bold text-slate-400">Đang tải lộ trình bộ thẻ...</p>
         </div>
       </div>
@@ -198,535 +291,797 @@ export default function DeckRoadmap() {
   const deckTitle = deckData?.title || `Bộ Thẻ #${id}`
   const processedPipeline = s.pipeline || []
 
+  // Calendar helpers
+  const calendarDays = calendarData?.days || []
+  const calendarMonthDate = new Date(calendarMonth + '-01')
+  const calendarMonthLabel = calendarMonthDate.toLocaleDateString('vi-VN', { month: 'long', year: 'numeric' })
+  
+  const prevMonth = () => {
+    const d = new Date(calendarMonth + '-01')
+    d.setMonth(d.getMonth() - 1)
+    setCalendarMonth(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`)
+  }
+  const nextMonth = () => {
+    const d = new Date(calendarMonth + '-01')
+    d.setMonth(d.getMonth() + 1)
+    setCalendarMonth(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`)
+  }
+
+  const pipelineHistory = historyData?.history || []
+
+  // Progress percentage for the ring
+  const completedSteps = processedPipeline.filter((st: any) => st.done).length
+  const totalSteps = processedPipeline.length || 1
+  const progressPercent = Math.round((completedSteps / totalSteps) * 100)
+
   return (
-    <div className="min-h-screen bg-[#F8FAFC] pt-6 pb-28 px-4 md:px-8 max-w-5xl mx-auto">
-      {/* Top Navigation */}
-      <div className="flex items-center justify-between mb-6">
-        <button
-          onClick={() => navigate(`/flashcard/${id}`)}
-          className="flex items-center gap-1.5 text-xs font-black text-slate-500 hover:text-slate-900 transition-colors cursor-pointer bg-white border border-slate-200/70 px-3.5 py-2 rounded-xl shadow-xs"
-        >
-          <ChevronLeft className="w-4 h-4" />
-          <span>Về Màn Chi Tiết Bộ Thẻ</span>
-        </button>
-
-        <Link
-          to="/roadmap"
-          className="flex items-center gap-1.5 text-xs font-black text-indigo-600 hover:underline"
-        >
-          <Compass className="w-4 h-4" />
-          <span>Tất Cả Lộ Trình</span>
-        </Link>
-      </div>
-
-      {/* Header Banner */}
-      <div className="bg-gradient-to-r from-slate-900 via-indigo-950 to-purple-950 rounded-3xl p-6 md:p-8 text-white shadow-xl mb-8 relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-80 h-80 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
+    <div className="min-h-screen bg-[#0B0F1A] pb-28">
+      {/* ═══════════ HERO HEADER ═══════════ */}
+      <div className="relative overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-br from-indigo-950 via-purple-950 to-slate-950" />
+        <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-indigo-500/5 rounded-full blur-[120px] pointer-events-none" />
+        <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-purple-500/5 rounded-full blur-[100px] pointer-events-none" />
         
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 relative z-10">
-          <div>
-            <div className="flex items-center gap-2 mb-2">
-              <span className="px-3 py-1 rounded-full bg-indigo-500/30 text-indigo-200 text-[10px] font-black uppercase tracking-widest border border-indigo-400/30">
-                Custom Roadmap Pipeline V2
-              </span>
-              <button
-                onClick={() => handleSavePipeline(!s.roadmap_active)}
-                disabled={isSavingSettings}
-                className={cn(
-                  "px-3.5 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border transition-all cursor-pointer shadow-sm active:scale-95",
-                  s.roadmap_active
-                    ? "bg-emerald-500/30 text-emerald-300 border-emerald-400/40 hover:bg-emerald-500/50"
-                    : "bg-slate-700/60 text-slate-300 border-slate-500/50 hover:bg-slate-700"
-                )}
-                title="Bấm để bật/tắt Lộ trình cho bộ thẻ này"
-              >
-                {s.roadmap_active ? "✓ Đã Kích Hoạt (Bấm để Tắt)" : "🚫 Đã Tắt Lộ Trình (Bấm để Bật)"}
-              </button>
-            </div>
-
-            <h1 className="text-2xl md:text-3xl font-black tracking-tight text-white mb-2">
-              {deckTitle}
-            </h1>
-            <p className="text-slate-300 text-xs font-semibold max-w-xl leading-relaxed">
-              Dây chuyền luyện tập tuần tự tự xây dựng. Chỉ cần bấm 1 nút để tự động hoàn thành các bước trong ngày.
-            </p>
-          </div>
-
-          {/* Header Action Button */}
-          {s.roadmap_active && !s.all_done && (
+        <div className="relative z-10 px-4 md:px-8 pt-6 pb-8 max-w-6xl mx-auto">
+          {/* Top Nav */}
+          <div className="flex items-center justify-between mb-6">
             <button
-              onClick={() => navigate(s.next_action_url || `/flashcard/${id}/play?mode=roadmap`)}
-              className="px-6 py-4 bg-gradient-to-r from-orange-500 to-rose-500 hover:from-orange-600 hover:to-rose-600 text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl shadow-orange-500/20 active:scale-95 transition-all flex items-center justify-center gap-2 cursor-pointer whitespace-nowrap"
+              onClick={() => navigate(`/flashcard/${id}`)}
+              className="flex items-center gap-1.5 text-xs font-bold text-slate-400 hover:text-white transition-colors cursor-pointer bg-white/5 backdrop-blur border border-white/10 px-3.5 py-2 rounded-xl"
             >
-              <Play className="w-4 h-4 fill-white" />
-              <span>{s.next_action_label || 'Bắt Đầu Học'} 🚀</span>
+              <ChevronLeft className="w-4 h-4" />
+              <span>Về Bộ Thẻ</span>
             </button>
-          )}
 
-          {s.roadmap_active && s.all_done && (
-            <div className="px-6 py-4 bg-emerald-500/20 border border-emerald-400/40 text-emerald-300 rounded-2xl font-black text-xs uppercase tracking-widest flex items-center gap-2">
-              <CheckCircle2 className="w-5 h-5 text-emerald-400" />
-              <span>Đã Hoàn Thành Ngày 🎉</span>
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* ── Completion Banner (if all steps done) ── */}
-      {s.roadmap_active && s.all_done && (
-        <motion.div 
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-          className="mb-8 p-6 bg-gradient-to-r from-emerald-500 to-teal-600 rounded-3xl text-white shadow-lg flex flex-col md:flex-row items-center justify-between gap-4"
-        >
-          <div className="flex items-center gap-4">
-            <div className="w-14 h-14 rounded-2xl bg-white/20 flex items-center justify-center text-3xl">
-              🏆
-            </div>
-            <div>
-              <h3 className="text-lg font-black">Chúc mừng! Bạn đã xong lộ trình hôm nay!</h3>
-              <p className="text-xs text-emerald-100 font-semibold">
-                Tất cả các bước trong pipeline đã được hoàn thành xuất sắc
-                {s.completion_time_today && ` vào lúc ${s.completion_time_today}`}.
-              </p>
-            </div>
-          </div>
-          <div className="flex items-center gap-3">
-            <span className="text-xs font-black bg-white/20 px-4 py-2 rounded-xl">
-              🔥 Streak: {s.streak || 1} ngày
-            </span>
-          </div>
-        </motion.div>
-      )}
-
-      {/* ── Daily Progress Pipeline (Timeline) ── */}
-      <div className="mb-8">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-sm font-black text-slate-800 uppercase tracking-widest flex items-center gap-2">
-            <Layers className="w-4 h-4 text-indigo-600" />
-            Tiến Độ Lộ Trình Hôm Nay ({s.current_step_index || 0}/{processedPipeline.length} Bước)
-          </h2>
-          
-          <button
-            onClick={() => {
-              setIsEditingPipeline(!isEditingPipeline);
-            }}
-            className="text-xs font-black text-indigo-600 hover:text-indigo-800 flex items-center gap-1.5 cursor-pointer bg-indigo-50 border border-indigo-200 px-3 py-1.5 rounded-xl transition-all"
-          >
-            <Settings className="w-3.5 h-3.5" />
-            <span>{isEditingPipeline ? 'Ẩn Trình Tùy Chỉnh' : 'Chỉnh Sửa Pipeline'}</span>
-          </button>
-        </div>
-
-        {/* Dynamic Pipeline Steps Timeline */}
-        {processedPipeline.length === 0 ? (
-          <div className="bg-white rounded-3xl p-8 border border-slate-200 text-center">
-            <p className="text-xs font-bold text-slate-400 mb-3">Chưa có bước nào trong pipeline lộ trình của bạn.</p>
-            <button
-              onClick={() => setIsEditingPipeline(true)}
-              className="px-4 py-2 bg-indigo-600 text-white rounded-xl text-xs font-black"
+            <Link
+              to="/roadmap"
+              className="flex items-center gap-1.5 text-xs font-bold text-indigo-300 hover:text-white transition-colors"
             >
-              Thêm Bước Đầu Tiên ➕
-            </button>
+              <Compass className="w-4 h-4" />
+              <span>Tất Cả Lộ Trình</span>
+            </Link>
           </div>
-        ) : (
-          <div className="space-y-4">
-            {processedPipeline.map((step: any, idx: number) => {
-              const meta = STEP_META[step.type as StepType] || STEP_META.new_cards
-              const isCurrent = s.roadmap_active && idx === s.current_step_index && !s.all_done
-              const isDone = step.done
-              const isLocked = s.roadmap_active && idx > s.current_step_index && !s.all_done
 
-              return (
-                <div
-                  key={idx}
+          {/* Hero Content */}
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+            <div className="flex-1">
+              <div className="flex items-center gap-2 mb-3">
+                <span className="px-3 py-1 rounded-full bg-indigo-500/20 text-indigo-300 text-[10px] font-black uppercase tracking-widest border border-indigo-400/20">
+                  Roadmap Pipeline V3
+                </span>
+                <button
+                  onClick={() => handleSavePipeline(!s.roadmap_active)}
+                  disabled={isSavingSettings}
                   className={cn(
-                    "bg-white rounded-3xl p-5 border shadow-xs transition-all relative overflow-hidden flex flex-col md:flex-row md:items-center justify-between gap-4",
-                    isDone ? "border-emerald-200 bg-emerald-50/10" :
-                    isCurrent ? "border-indigo-500 ring-4 ring-indigo-500/10" :
-                    isLocked ? "border-slate-100 opacity-60" : "border-slate-100"
+                    "px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border transition-all cursor-pointer active:scale-95",
+                    s.roadmap_active
+                      ? "bg-emerald-500/20 text-emerald-300 border-emerald-400/30 hover:bg-emerald-500/30"
+                      : "bg-slate-700/40 text-slate-400 border-slate-500/30 hover:bg-slate-700/60"
                   )}
                 >
-                  <div className="flex items-center gap-4">
-                    <div className={cn("w-10 h-10 rounded-2xl flex items-center justify-center text-lg font-black shrink-0", meta.bg, meta.color)}>
-                      {meta.icon}
-                    </div>
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">
-                          Bước {idx + 1}
-                        </span>
-                        {isDone && <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 text-[9px] font-black">✓ Hoàn thành</span>}
-                        {isCurrent && <span className="px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-700 text-[9px] font-black animate-pulse">▶ Bước Hiện Tại</span>}
-                        {isLocked && <span className="px-2 py-0.5 rounded-full bg-slate-100 text-slate-500 text-[9px] font-black">🔒 Chưa mở khóa</span>}
-                      </div>
-                      <h3 className="text-sm font-black text-slate-900">{meta.title}</h3>
-                      <p className="text-xs text-slate-500 font-semibold">{meta.desc}</p>
-                    </div>
-                  </div>
+                  {s.roadmap_active ? "✓ Đang Hoạt Động" : "🚫 Đã Tắt"}
+                </button>
+              </div>
 
-                  {/* Step Progress Stats & Action Button */}
-                  <div className="flex items-center justify-between md:justify-end gap-4 pt-3 md:pt-0 border-t md:border-t-0 border-slate-100">
-                    <div className="text-right">
-                      {step.type === 'new_cards' && (
-                        <div className="text-xs font-black text-slate-700">
-                          {step.progress?.learned || 0} / {step.daily_count || 10} từ mới
-                        </div>
-                      )}
-                      {step.type === 'fsrs_review' && (
-                        <div className="text-xs font-black text-slate-700">
-                          Còn lại: {step.done ? 0 : (step.progress?.due_count || 0)} thẻ ôn tập
-                        </div>
-                      )}
-                      {(step.type === 'mcq' || step.type === 'typing') && (
-                        <div className="text-xs font-black text-slate-700">
-                          Điểm cao nhất: <span className={isDone ? "text-emerald-600" : "text-amber-600"}>{step.progress?.best_score || 0}%</span> / {step.pass_threshold}%
-                        </div>
-                      )}
-                      {step.type === 'study_time' && (
-                        <div className="text-xs font-black text-slate-700">
-                          Đã học: <span className={isDone ? "text-emerald-600" : "text-blue-600"}>{step.progress?.studied_minutes || 0}</span> / {step.target_minutes || 10} phút
-                        </div>
-                      )}
-                    </div>
+              <h1 className="text-2xl md:text-3xl font-black tracking-tight text-white mb-2">
+                {deckTitle}
+              </h1>
+              <p className="text-slate-400 text-xs font-medium max-w-xl leading-relaxed">
+                Dây chuyền luyện tập tuần tự — tự động theo dõi và đánh giá tiến độ mỗi ngày.
+              </p>
+            </div>
 
-                    <button
-                      onClick={() => navigate(step.url)}
-                      disabled={isLocked}
-                      className={cn(
-                        "px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition-all cursor-pointer",
-                        isDone ? "bg-slate-100 text-slate-600 hover:bg-slate-200" :
-                        isCurrent ? "bg-indigo-600 text-white hover:bg-indigo-700 shadow-md shadow-indigo-200" :
-                        "bg-slate-100 text-slate-400 cursor-not-allowed"
-                      )}
-                    >
-                      {isDone ? 'Luyện Lại' : isCurrent ? 'Thực Hiện 🚀' : 'Khóa 🔒'}
-                    </button>
-                  </div>
+            {/* Progress Ring + Action Button */}
+            <div className="flex items-center gap-5">
+              {/* Progress Ring */}
+              <div className="relative w-20 h-20 hidden md:flex">
+                <svg className="w-20 h-20 -rotate-90" viewBox="0 0 80 80">
+                  <circle cx="40" cy="40" r="34" fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth="6" />
+                  <circle 
+                    cx="40" cy="40" r="34" fill="none" 
+                    stroke="url(#progressGrad)" strokeWidth="6" 
+                    strokeLinecap="round"
+                    strokeDasharray={`${2 * Math.PI * 34}`}
+                    strokeDashoffset={`${2 * Math.PI * 34 * (1 - progressPercent / 100)}`}
+                    className="transition-all duration-700"
+                  />
+                  <defs>
+                    <linearGradient id="progressGrad" x1="0" y1="0" x2="1" y2="1">
+                      <stop offset="0%" stopColor="#818cf8" />
+                      <stop offset="100%" stopColor="#a78bfa" />
+                    </linearGradient>
+                  </defs>
+                </svg>
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <span className="text-lg font-black text-white">{progressPercent}%</span>
                 </div>
+              </div>
+
+              {/* CTA Button */}
+              {s.roadmap_active && !s.all_done && (
+                <button
+                  onClick={() => navigate(s.next_action_url || `/flashcard/${id}/play?mode=roadmap`)}
+                  className="px-6 py-4 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 hover:from-indigo-600 hover:to-pink-600 text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-2xl shadow-purple-500/20 active:scale-95 transition-all flex items-center justify-center gap-2 cursor-pointer whitespace-nowrap"
+                >
+                  <Play className="w-4 h-4 fill-white" />
+                  <span>{s.next_action_label || 'Bắt Đầu Học'} 🚀</span>
+                </button>
+              )}
+
+              {s.roadmap_active && s.all_done && (
+                <div className="px-6 py-4 bg-emerald-500/15 border border-emerald-400/30 text-emerald-300 rounded-2xl font-black text-xs uppercase tracking-widest flex items-center gap-2">
+                  <CheckCircle2 className="w-5 h-5 text-emerald-400" />
+                  <span>Đã Hoàn Thành 🎉</span>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* ═══════════ TAB BAR ═══════════ */}
+      <div className="sticky top-0 z-30 bg-[#0B0F1A]/80 backdrop-blur-xl border-b border-white/5">
+        <div className="max-w-6xl mx-auto px-4 md:px-8">
+          <div className="flex gap-1 py-2 overflow-x-auto scrollbar-hide">
+            {TABS.map(tab => {
+              const Icon = tab.icon
+              const isActive = activeTab === tab.id
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  className={cn(
+                    "flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all whitespace-nowrap cursor-pointer",
+                    isActive
+                      ? "bg-gradient-to-r from-indigo-500/20 to-purple-500/20 text-white border border-indigo-400/30"
+                      : "text-slate-500 hover:text-slate-300 hover:bg-white/5"
+                  )}
+                >
+                  <Icon className="w-4 h-4" />
+                  <span>{tab.label}</span>
+                </button>
               )
             })}
           </div>
-        )}
+        </div>
       </div>
 
-      {/* ── Pipeline Builder Panel (Inline Editor) ── */}
-      <AnimatePresence>
-        {isEditingPipeline && (
-          <motion.div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: 'auto' }}
-            exit={{ opacity: 0, height: 0 }}
-            className="mb-8 bg-white rounded-3xl p-6 border-2 border-indigo-500 shadow-lg"
-          >
-            <div className="flex items-center justify-between mb-6">
-              <div>
-                <h3 className="text-base font-black text-slate-900">🛠️ Trình Tùy Chỉnh Pipeline Lộ Trình</h3>
-                <p className="text-xs font-semibold text-slate-500">Thêm, xóa và sắp xếp thứ tự các bước theo phong cách học cá nhân của bạn.</p>
+      {/* ═══════════ TAB CONTENT ═══════════ */}
+      <div className="max-w-6xl mx-auto px-4 md:px-8 pt-6">
+        <AnimatePresence mode="wait">
+          {/* ─── TAB 1: HÔM NAY ─── */}
+          {activeTab === 'today' && (
+            <motion.div
+              key="today"
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -12 }}
+              transition={{ duration: 0.2 }}
+            >
+              {/* Completion Banner */}
+              {s.roadmap_active && s.all_done && (
+                <motion.div 
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  className="mb-6 p-6 bg-gradient-to-r from-emerald-500/10 to-teal-500/10 rounded-2xl border border-emerald-500/20 backdrop-blur flex flex-col md:flex-row items-center justify-between gap-4"
+                >
+                  <div className="flex items-center gap-4">
+                    <div className="w-14 h-14 rounded-2xl bg-emerald-500/20 flex items-center justify-center text-3xl">
+                      🏆
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-black text-emerald-300">Chúc mừng! Lộ trình hôm nay đã hoàn thành!</h3>
+                      <p className="text-xs text-emerald-400/70 font-medium">
+                        Tất cả các bước đã được hoàn thành xuất sắc
+                        {s.completion_time_today && ` vào lúc ${s.completion_time_today}`}.
+                      </p>
+                    </div>
+                  </div>
+                  <span className="text-xs font-black bg-emerald-500/20 text-emerald-300 px-4 py-2 rounded-xl border border-emerald-400/20">
+                    🔥 Streak: {s.streak || 1} ngày
+                  </span>
+                </motion.div>
+              )}
+
+              {/* Quick Stats Row */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+                <div className="bg-white/[0.03] backdrop-blur border border-white/[0.06] rounded-2xl p-4">
+                  <div className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">Tiến độ</div>
+                  <div className="text-2xl font-black text-white">{completedSteps}/{totalSteps}</div>
+                  <div className="text-[10px] font-medium text-slate-500">bước hoàn thành</div>
+                </div>
+                <div className="bg-white/[0.03] backdrop-blur border border-white/[0.06] rounded-2xl p-4">
+                  <div className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">Thời gian</div>
+                  <div className="text-2xl font-black text-white">{s.today_total_study_minutes || 0}<span className="text-sm text-slate-500 ml-1">phút</span></div>
+                  <div className="text-[10px] font-medium text-slate-500">học thực tế hôm nay</div>
+                </div>
+                <div className="bg-white/[0.03] backdrop-blur border border-white/[0.06] rounded-2xl p-4">
+                  <div className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">Streak</div>
+                  <div className="text-2xl font-black text-orange-400">🔥 {s.streak || 0}</div>
+                  <div className="text-[10px] font-medium text-slate-500">ngày liên tiếp</div>
+                </div>
+                <div className="bg-white/[0.03] backdrop-blur border border-white/[0.06] rounded-2xl p-4">
+                  <div className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">Từ mới</div>
+                  <div className="text-2xl font-black text-white">{s.today_activity?.new_learned || 0}</div>
+                  <div className="text-[10px] font-medium text-slate-500">từ nạp hôm nay</div>
+                </div>
               </div>
 
-              <button
-                onClick={() => handleSavePipeline(true)}
-                disabled={isSavingSettings}
-                className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xs uppercase tracking-widest rounded-xl shadow-md cursor-pointer transition-all"
-              >
-                {isSavingSettings ? 'Đang Lưu...' : 'Lưu Pipeline 💾'}
-              </button>
-            </div>
+              {/* Pipeline Timeline */}
+              <h2 className="text-sm font-black text-white uppercase tracking-widest flex items-center gap-2 mb-4">
+                <Layers className="w-4 h-4 text-indigo-400" />
+                Pipeline Hôm Nay
+              </h2>
 
-            {/* Steps Re-orderable List */}
-            <div className="space-y-3 mb-6">
-              {pipeline.map((st, idx) => {
-                const meta = STEP_META[st.type] || STEP_META.new_cards
-                return (
-                  <div key={idx} className="p-4 bg-slate-50 rounded-2xl border border-slate-200 flex flex-col md:flex-row md:items-center justify-between gap-4">
-                    <div className="flex items-center gap-3">
-                      <span className="w-6 h-6 rounded-lg bg-slate-200 text-slate-700 text-xs font-black flex items-center justify-center">
-                        {idx + 1}
-                      </span>
-                      <span className="text-lg">{meta.icon}</span>
-                      <span className="text-xs font-black text-slate-800">{meta.title}</span>
+              {processedPipeline.length === 0 ? (
+                <div className="bg-white/[0.03] rounded-2xl p-8 border border-white/[0.06] text-center">
+                  <p className="text-xs font-bold text-slate-500 mb-3">Chưa có bước nào trong pipeline.</p>
+                  <button
+                    onClick={() => setActiveTab('config')}
+                    className="px-4 py-2 bg-indigo-500 text-white rounded-xl text-xs font-black cursor-pointer"
+                  >
+                    Thiết Lập Pipeline ➕
+                  </button>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {processedPipeline.map((step: any, idx: number) => {
+                    const meta = STEP_META[step.type as StepType] || STEP_META.new_cards
+                    const isCurrent = s.roadmap_active && idx === s.current_step_index && !s.all_done
+                    const isDone = step.done
+                    const isLocked = s.roadmap_active && idx > s.current_step_index && !s.all_done
+
+                    return (
+                      <motion.div
+                        key={idx}
+                        initial={{ opacity: 0, x: -20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: idx * 0.08 }}
+                        className={cn(
+                          "bg-white/[0.03] backdrop-blur rounded-2xl p-5 border transition-all relative overflow-hidden flex flex-col md:flex-row md:items-center justify-between gap-4",
+                          isDone ? "border-emerald-500/20" :
+                          isCurrent ? "border-indigo-500/40 ring-2 ring-indigo-500/10" :
+                          isLocked ? "border-white/[0.04] opacity-50" : "border-white/[0.06]"
+                        )}
+                      >
+                        {/* Left glow for current */}
+                        {isCurrent && (
+                          <div className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-indigo-400 to-purple-500 rounded-full" />
+                        )}
+                        {isDone && (
+                          <div className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-emerald-400 to-teal-500 rounded-full" />
+                        )}
+
+                        <div className="flex items-center gap-4">
+                          <div className={cn(
+                            "w-11 h-11 rounded-2xl flex items-center justify-center text-lg font-black shrink-0",
+                            isDone ? "bg-emerald-500/15" :
+                            isCurrent ? `bg-gradient-to-br ${meta.gradient} shadow-lg` :
+                            "bg-white/[0.06]"
+                          )}>
+                            {isDone ? <Check className="w-5 h-5 text-emerald-400" /> : <span>{meta.icon}</span>}
+                          </div>
+                          <div>
+                            <div className="flex items-center gap-2 mb-0.5">
+                              <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">
+                                Bước {idx + 1}
+                              </span>
+                              {isDone && <span className="px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 text-[9px] font-black">✓ Hoàn thành</span>}
+                              {isCurrent && <span className="px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 text-[9px] font-black animate-pulse">▶ Đang thực hiện</span>}
+                              {isLocked && <span className="px-2 py-0.5 rounded-full bg-white/5 text-slate-500 text-[9px] font-black">🔒 Chưa mở</span>}
+                            </div>
+                            <h3 className="text-sm font-black text-white">{meta.title}</h3>
+                            <p className="text-xs text-slate-500 font-medium">{meta.desc}</p>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center justify-between md:justify-end gap-4 pt-3 md:pt-0 border-t md:border-t-0 border-white/[0.04]">
+                          <div className="text-right">
+                            {step.type === 'new_cards' && (
+                              <div className="text-xs font-black text-slate-300">
+                                {step.progress?.learned || 0} / {step.daily_count || 10} <span className="text-slate-500">từ mới</span>
+                              </div>
+                            )}
+                            {step.type === 'fsrs_review' && (
+                              <div className="text-xs font-black text-slate-300">
+                                Còn: {step.done ? 0 : (step.progress?.due_count || 0)} <span className="text-slate-500">thẻ ôn tập</span>
+                              </div>
+                            )}
+                            {(step.type === 'mcq' || step.type === 'typing') && (
+                              <div className="text-xs font-black text-slate-300">
+                                Điểm: <span className={isDone ? "text-emerald-400" : "text-amber-400"}>{step.progress?.best_score || 0}%</span> / {step.pass_threshold}%
+                              </div>
+                            )}
+                            {step.type === 'study_time' && (
+                              <div className="text-xs font-black text-slate-300">
+                                <span className={isDone ? "text-emerald-400" : "text-blue-400"}>{step.progress?.studied_minutes || 0}</span> / {step.target_minutes || 10} <span className="text-slate-500">phút</span>
+                              </div>
+                            )}
+                          </div>
+
+                          <button
+                            onClick={() => navigate(step.url)}
+                            disabled={isLocked}
+                            className={cn(
+                              "px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition-all cursor-pointer",
+                              isDone ? "bg-white/[0.06] text-slate-400 hover:bg-white/10" :
+                              isCurrent ? "bg-gradient-to-r from-indigo-500 to-purple-500 text-white shadow-lg shadow-indigo-500/20" :
+                              "bg-white/[0.04] text-slate-600 cursor-not-allowed"
+                            )}
+                          >
+                            {isDone ? 'Luyện Lại' : isCurrent ? 'Thực Hiện 🚀' : 'Khóa 🔒'}
+                          </button>
+                        </div>
+                      </motion.div>
+                    )
+                  })}
+                </div>
+              )}
+            </motion.div>
+          )}
+
+          {/* ─── TAB 2: LỊCH SỬ ─── */}
+          {activeTab === 'history' && (
+            <motion.div
+              key="history"
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -12 }}
+              transition={{ duration: 0.2 }}
+            >
+              {/* Calendar Heatmap */}
+              <div className="bg-white/[0.03] backdrop-blur rounded-2xl p-6 border border-white/[0.06] mb-6">
+                <div className="flex items-center justify-between mb-5">
+                  <h3 className="text-sm font-black text-white uppercase tracking-widest flex items-center gap-2">
+                    <Calendar className="w-4 h-4 text-indigo-400" />
+                    Lịch Hoạt Động
+                  </h3>
+                  <div className="flex items-center gap-2">
+                    <button onClick={prevMonth} className="p-1.5 rounded-lg bg-white/5 text-slate-400 hover:text-white hover:bg-white/10 transition cursor-pointer">
+                      <ChevronLeft className="w-4 h-4" />
+                    </button>
+                    <span className="text-xs font-black text-slate-300 min-w-[120px] text-center capitalize">{calendarMonthLabel}</span>
+                    <button onClick={nextMonth} className="p-1.5 rounded-lg bg-white/5 text-slate-400 hover:text-white hover:bg-white/10 transition cursor-pointer">
+                      <ChevronRight className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+
+                {/* Day of week headers */}
+                <div className="grid grid-cols-7 gap-1.5 mb-2">
+                  {['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'].map(d => (
+                    <div key={d} className="text-center text-[9px] font-black text-slate-600 uppercase tracking-widest py-1">{d}</div>
+                  ))}
+                </div>
+
+                {/* Calendar Grid */}
+                <div className="grid grid-cols-7 gap-1.5">
+                  {/* Empty cells for offset */}
+                  {calendarDays.length > 0 && Array.from({ length: calendarDays[0]?.day_of_week || 0 }).map((_, i) => (
+                    <div key={`empty-${i}`} className="aspect-square" />
+                  ))}
+                  {calendarDays.map((day: any) => {
+                    const isSelected = selectedDate === day.date
+                    const isToday = day.date === new Date().toISOString().split('T')[0]
+                    return (
+                      <button
+                        key={day.date}
+                        onClick={() => {
+                          setSelectedDate(day.date)
+                          setActiveTab('today')
+                        }}
+                        className={cn(
+                          "aspect-square rounded-lg flex items-center justify-center text-[10px] font-black transition-all cursor-pointer relative",
+                          day.active
+                            ? day.completion_percent >= 100
+                              ? "bg-emerald-500/30 text-emerald-300 hover:bg-emerald-500/40"
+                              : day.completion_percent >= 50
+                                ? "bg-indigo-500/25 text-indigo-300 hover:bg-indigo-500/35"
+                                : "bg-indigo-500/10 text-indigo-400 hover:bg-indigo-500/20"
+                            : "bg-white/[0.02] text-slate-600 hover:bg-white/[0.06]",
+                          isSelected && "ring-2 ring-indigo-400 ring-offset-1 ring-offset-[#0B0F1A]",
+                          isToday && "border border-indigo-500/40"
+                        )}
+                        title={`${day.date}: ${day.study_minutes} phút, ${day.answer_count} câu trả lời`}
+                      >
+                        {parseInt(day.date.split('-')[2])}
+                      </button>
+                    )
+                  })}
+                </div>
+
+                {/* Legend */}
+                <div className="flex items-center justify-center gap-4 mt-4 pt-3 border-t border-white/[0.04]">
+                  <div className="flex items-center gap-1.5">
+                    <div className="w-3 h-3 rounded bg-white/[0.02] border border-white/5" />
+                    <span className="text-[9px] font-bold text-slate-600">Nghỉ</span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <div className="w-3 h-3 rounded bg-indigo-500/10" />
+                    <span className="text-[9px] font-bold text-slate-600">Ít</span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <div className="w-3 h-3 rounded bg-indigo-500/25" />
+                    <span className="text-[9px] font-bold text-slate-600">Trung bình</span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <div className="w-3 h-3 rounded bg-emerald-500/30" />
+                    <span className="text-[9px] font-bold text-slate-600">Hoàn thành</span>
+                  </div>
+                  {calendarData && (
+                    <span className="text-[10px] font-bold text-slate-500 ml-2">
+                      {calendarData.total_active_days} ngày · {calendarData.total_study_minutes} phút
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              {/* Pipeline Changelog */}
+              <div className="bg-white/[0.03] backdrop-blur rounded-2xl p-6 border border-white/[0.06]">
+                <h3 className="text-sm font-black text-white uppercase tracking-widest flex items-center gap-2 mb-5">
+                  <History className="w-4 h-4 text-purple-400" />
+                  Lịch Sử Thay Đổi Pipeline
+                </h3>
+
+                {pipelineHistory.length === 0 ? (
+                  <p className="text-xs font-medium text-slate-500 text-center py-6">Chưa có lịch sử thay đổi pipeline nào.</p>
+                ) : (
+                  <div className="relative">
+                    {/* Vertical timeline line */}
+                    <div className="absolute left-[18px] top-3 bottom-3 w-px bg-gradient-to-b from-indigo-500/30 via-purple-500/20 to-transparent" />
+                    
+                    <div className="space-y-4">
+                      {pipelineHistory.map((item: any, idx: number) => (
+                        <motion.div
+                          key={item.id}
+                          initial={{ opacity: 0, x: -10 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          transition={{ delay: idx * 0.05 }}
+                          className="relative pl-10"
+                        >
+                          {/* Timeline dot */}
+                          <div className={cn(
+                            "absolute left-2.5 top-3 w-3.5 h-3.5 rounded-full border-2 z-10",
+                            item.change_type === 'upgrade' ? "bg-emerald-500/30 border-emerald-500" :
+                            item.change_type === 'downgrade' ? "bg-rose-500/30 border-rose-500" :
+                            item.change_type === 'initial' ? "bg-indigo-500/30 border-indigo-500" :
+                            "bg-amber-500/30 border-amber-500"
+                          )} />
+                          
+                          <div className="bg-white/[0.02] rounded-xl p-4 border border-white/[0.05]">
+                            <div className="flex items-center gap-2 mb-2">
+                              <span className={cn(
+                                "px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-wider",
+                                item.change_type === 'upgrade' ? "bg-emerald-500/15 text-emerald-400" :
+                                item.change_type === 'downgrade' ? "bg-rose-500/15 text-rose-400" :
+                                item.change_type === 'initial' ? "bg-indigo-500/15 text-indigo-400" :
+                                "bg-amber-500/15 text-amber-400"
+                              )}>
+                                {item.change_type === 'upgrade' ? '↑ Nâng cấp' :
+                                 item.change_type === 'downgrade' ? '↓ Hạ cấp' :
+                                 item.change_type === 'initial' ? '★ Khởi tạo' :
+                                 '↔ Sắp xếp'}
+                              </span>
+                              <span className="text-[10px] font-medium text-slate-500">
+                                {item.changed_at ? new Date(item.changed_at).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : ''}
+                              </span>
+                            </div>
+                            <p className="text-xs font-medium text-slate-400 mb-1">{item.change_summary}</p>
+                            <div className="text-[10px] font-bold text-slate-600">
+                              📅 {item.effective_from} → {item.effective_until || 'Đang áp dụng'}
+                            </div>
+                          </div>
+                        </motion.div>
+                      ))}
                     </div>
+                  </div>
+                )}
+              </div>
+            </motion.div>
+          )}
 
-                    {/* Step Controls */}
-                    <div className="flex items-center gap-4 flex-wrap">
-                      {st.type === 'new_cards' && (
-                        <div className="flex items-center gap-2">
-                          <span className="text-[10px] font-black text-slate-400">Từ mới/ngày:</span>
-                          <input
-                            type="number" min="5" max="100" step="5"
-                            value={st.daily_count || 10}
-                            onChange={(e) => updateStepConfig(idx, 'daily_count', parseInt(e.target.value) || 10)}
-                            className="w-16 px-2 py-1 bg-white border border-slate-300 rounded-lg text-xs font-black text-center"
-                          />
-                        </div>
-                      )}
+          {/* ─── TAB 3: CẤU HÌNH ─── */}
+          {activeTab === 'config' && (
+            <motion.div
+              key="config"
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -12 }}
+              transition={{ duration: 0.2 }}
+            >
+              <div className="bg-white/[0.03] backdrop-blur rounded-2xl p-6 border border-white/[0.06]">
+                <div className="flex items-center justify-between mb-6">
+                  <div>
+                    <h3 className="text-base font-black text-white flex items-center gap-2">
+                      <Settings className="w-5 h-5 text-indigo-400" />
+                      Trình Tùy Chỉnh Pipeline
+                    </h3>
+                    <p className="text-xs font-medium text-slate-500 mt-1">Thêm, xóa và sắp xếp thứ tự các bước theo phong cách học cá nhân.</p>
+                  </div>
 
-                      {st.type === 'fsrs_review' && (
-                        <div className="flex items-center gap-2">
-                          <span className="text-[10px] font-black text-slate-400">Quá hạn (h):</span>
-                          <input
-                            type="number" min="1" max="168"
-                            value={st.overdue_hours || 24}
-                            onChange={(e) => updateStepConfig(idx, 'overdue_hours', parseInt(e.target.value) || 24)}
-                            className="w-16 px-2 py-1 bg-white border border-slate-300 rounded-lg text-xs font-black text-center"
-                          />
-                        </div>
-                      )}
+                  <button
+                    onClick={() => handleSavePipeline(true)}
+                    disabled={isSavingSettings}
+                    className="px-5 py-2.5 bg-gradient-to-r from-indigo-500 to-purple-500 hover:from-indigo-600 hover:to-purple-600 text-white font-black text-xs uppercase tracking-widest rounded-xl shadow-lg shadow-indigo-500/20 cursor-pointer transition-all active:scale-95"
+                  >
+                    {isSavingSettings ? 'Đang Lưu...' : 'Lưu Pipeline 💾'}
+                  </button>
+                </div>
 
-                      {st.type === 'study_time' && (
-                        <div className="flex items-center gap-2">
-                          <span className="text-[10px] font-black text-slate-400">Mục tiêu (phút):</span>
-                          <input
-                            type="number" min="1" max="180" step="1"
-                            value={st.target_minutes || 10}
-                            onChange={(e) => updateStepConfig(idx, 'target_minutes', parseInt(e.target.value) || 10)}
-                            className="w-16 px-2 py-1 bg-white border border-slate-300 rounded-lg text-xs font-black text-center"
-                          />
-                        </div>
-                      )}
-
-                      {(st.type === 'mcq' || st.type === 'typing') && (
+                {/* Steps */}
+                <div className="space-y-3 mb-6">
+                  {pipeline.map((st, idx) => {
+                    const meta = STEP_META[st.type] || STEP_META.new_cards
+                    return (
+                      <div key={idx} className="p-4 bg-white/[0.02] rounded-xl border border-white/[0.06] flex flex-col md:flex-row md:items-center justify-between gap-4">
                         <div className="flex items-center gap-3">
-                          <div className="flex items-center gap-1.5">
-                            <span className="text-[10px] font-black text-slate-400">Số câu:</span>
-                            <input
-                              type="number" min="5" max="50"
-                              value={st.question_count || 15}
-                              onChange={(e) => updateStepConfig(idx, 'question_count', parseInt(e.target.value) || 15)}
-                              className="w-14 px-2 py-1 bg-white border border-slate-300 rounded-lg text-xs font-black text-center"
-                            />
-                          </div>
-                          <div className="flex items-center gap-1.5">
-                            <span className="text-[10px] font-black text-slate-400">Ngưỡng đỗ:</span>
-                            <input
-                              type="number" min="50" max="100" step="5"
-                              value={st.pass_threshold || 80}
-                              onChange={(e) => updateStepConfig(idx, 'pass_threshold', parseInt(e.target.value) || 80)}
-                              className="w-14 px-2 py-1 bg-white border border-slate-300 rounded-lg text-xs font-black text-center"
-                            />
-                            <span className="text-xs font-black text-slate-500">%</span>
+                          <span className="w-7 h-7 rounded-lg bg-white/[0.06] text-slate-300 text-xs font-black flex items-center justify-center">
+                            {idx + 1}
+                          </span>
+                          <span className="text-lg">{meta.icon}</span>
+                          <span className="text-xs font-black text-white">{meta.title}</span>
+                        </div>
+
+                        <div className="flex items-center gap-4 flex-wrap">
+                          {st.type === 'new_cards' && (
+                            <div className="flex items-center gap-2">
+                              <span className="text-[10px] font-black text-slate-500">Từ mới/ngày:</span>
+                              <input
+                                type="number" min="5" max="100" step="5"
+                                value={st.daily_count || 10}
+                                onChange={(e) => updateStepConfig(idx, 'daily_count', parseInt(e.target.value) || 10)}
+                                className="w-16 px-2 py-1 bg-white/[0.06] border border-white/10 rounded-lg text-xs font-black text-white text-center focus:ring-2 focus:ring-indigo-500/30 outline-none"
+                              />
+                            </div>
+                          )}
+
+                          {st.type === 'fsrs_review' && (
+                            <div className="flex items-center gap-2">
+                              <span className="text-[10px] font-black text-slate-500">Quá hạn (h):</span>
+                              <input
+                                type="number" min="1" max="168"
+                                value={st.overdue_hours || 24}
+                                onChange={(e) => updateStepConfig(idx, 'overdue_hours', parseInt(e.target.value) || 24)}
+                                className="w-16 px-2 py-1 bg-white/[0.06] border border-white/10 rounded-lg text-xs font-black text-white text-center focus:ring-2 focus:ring-indigo-500/30 outline-none"
+                              />
+                            </div>
+                          )}
+
+                          {st.type === 'study_time' && (
+                            <div className="flex items-center gap-2">
+                              <span className="text-[10px] font-black text-slate-500">Mục tiêu (phút):</span>
+                              <input
+                                type="number" min="1" max="180" step="1"
+                                value={st.target_minutes || 10}
+                                onChange={(e) => updateStepConfig(idx, 'target_minutes', parseInt(e.target.value) || 10)}
+                                className="w-16 px-2 py-1 bg-white/[0.06] border border-white/10 rounded-lg text-xs font-black text-white text-center focus:ring-2 focus:ring-indigo-500/30 outline-none"
+                              />
+                            </div>
+                          )}
+
+                          {(st.type === 'mcq' || st.type === 'typing') && (
+                            <div className="flex items-center gap-3">
+                              <div className="flex items-center gap-1.5">
+                                <span className="text-[10px] font-black text-slate-500">Số câu:</span>
+                                <input
+                                  type="number" min="5" max="50"
+                                  value={st.question_count || 15}
+                                  onChange={(e) => updateStepConfig(idx, 'question_count', parseInt(e.target.value) || 15)}
+                                  className="w-14 px-2 py-1 bg-white/[0.06] border border-white/10 rounded-lg text-xs font-black text-white text-center focus:ring-2 focus:ring-indigo-500/30 outline-none"
+                                />
+                              </div>
+                              <div className="flex items-center gap-1.5">
+                                <span className="text-[10px] font-black text-slate-500">Ngưỡng:</span>
+                                <input
+                                  type="number" min="50" max="100" step="5"
+                                  value={st.pass_threshold || 80}
+                                  onChange={(e) => updateStepConfig(idx, 'pass_threshold', parseInt(e.target.value) || 80)}
+                                  className="w-14 px-2 py-1 bg-white/[0.06] border border-white/10 rounded-lg text-xs font-black text-white text-center focus:ring-2 focus:ring-indigo-500/30 outline-none"
+                                />
+                                <span className="text-xs font-black text-slate-500">%</span>
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Move & Delete */}
+                          <div className="flex items-center gap-1 border-l border-white/[0.06] pl-3">
+                            <button
+                              onClick={() => moveStep(idx, 'up')}
+                              disabled={idx === 0}
+                              className="p-1.5 rounded-lg bg-white/[0.04] border border-white/[0.06] text-slate-400 hover:text-white hover:bg-white/10 disabled:opacity-20 cursor-pointer transition"
+                            >
+                              <ArrowUp className="w-3.5 h-3.5" />
+                            </button>
+                            <button
+                              onClick={() => moveStep(idx, 'down')}
+                              disabled={idx === pipeline.length - 1}
+                              className="p-1.5 rounded-lg bg-white/[0.04] border border-white/[0.06] text-slate-400 hover:text-white hover:bg-white/10 disabled:opacity-20 cursor-pointer transition"
+                            >
+                              <ArrowDown className="w-3.5 h-3.5" />
+                            </button>
+                            <button
+                              onClick={() => removeStep(idx)}
+                              className="p-1.5 rounded-lg bg-rose-500/10 border border-rose-500/20 text-rose-400 hover:bg-rose-500/20 cursor-pointer transition"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
                           </div>
                         </div>
-                      )}
+                      </div>
+                    )
+                  })}
+                </div>
 
-                      {/* Move & Delete buttons */}
-                      <div className="flex items-center gap-1 border-l border-slate-200 pl-3">
-                        <button
-                          onClick={() => moveStep(idx, 'up')}
-                          disabled={idx === 0}
-                          className="p-1.5 rounded-lg bg-white border border-slate-200 text-slate-600 hover:bg-slate-100 disabled:opacity-30 cursor-pointer"
-                        >
-                          <ArrowUp className="w-3.5 h-3.5" />
-                        </button>
-                        <button
-                          onClick={() => moveStep(idx, 'down')}
-                          disabled={idx === pipeline.length - 1}
-                          className="p-1.5 rounded-lg bg-white border border-slate-200 text-slate-600 hover:bg-slate-100 disabled:opacity-30 cursor-pointer"
-                        >
-                          <ArrowDown className="w-3.5 h-3.5" />
-                        </button>
-                        <button
-                          onClick={() => removeStep(idx)}
-                          className="p-1.5 rounded-lg bg-rose-50 border border-rose-200 text-rose-600 hover:bg-rose-100 cursor-pointer"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
+                {/* Add Step */}
+                <div>
+                  <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest block mb-3">Thêm Bước Mới</span>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    {[
+                      { type: 'new_cards' as StepType, emoji: '🎴', label: 'Học Từ Mới', color: 'orange' },
+                      { type: 'fsrs_review' as StepType, emoji: '🔄', label: 'Ôn Tập FSRS', color: 'indigo' },
+                      { type: 'study_time' as StepType, emoji: '⏱️', label: 'Thời Gian Học', color: 'blue' },
+                    ].map(item => (
+                      <button
+                        key={item.type}
+                        onClick={() => addStep(item.type)}
+                        className={cn(
+                          "px-3.5 py-2 rounded-xl border text-xs font-black flex items-center gap-1.5 cursor-pointer transition-all hover:scale-[1.02]",
+                          `bg-${item.color}-500/10 text-${item.color}-400 border-${item.color}-500/20 hover:bg-${item.color}-500/20`
+                        )}
+                        style={{
+                          background: `rgba(var(--color-${item.color}), 0.1)`,
+                        }}
+                      >
+                        <Plus className="w-3.5 h-3.5" />
+                        <span>{item.emoji} {item.label}</span>
+                      </button>
+                    ))}
+
+                    {enabledModes.includes('mcq') && (
+                      <button
+                        onClick={() => addStep('mcq')}
+                        className="px-3.5 py-2 rounded-xl bg-purple-500/10 text-purple-400 border border-purple-500/20 text-xs font-black flex items-center gap-1.5 hover:bg-purple-500/20 cursor-pointer transition-all"
+                      >
+                        <Plus className="w-3.5 h-3.5" />
+                        <span>🎯 Trắc Nghiệm MCQ</span>
+                      </button>
+                    )}
+
+                    {enabledModes.includes('typing') && (
+                      <button
+                        onClick={() => addStep('typing')}
+                        className="px-3.5 py-2 rounded-xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-xs font-black flex items-center gap-1.5 hover:bg-emerald-500/20 cursor-pointer transition-all"
+                      >
+                        <Plus className="w-3.5 h-3.5" />
+                        <span>⌨️ Gõ Từ Vựng</span>
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          )}
+
+          {/* ─── TAB 4: THỐNG KÊ ─── */}
+          {activeTab === 'stats' && (
+            <motion.div
+              key="stats"
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -12 }}
+              transition={{ duration: 0.2 }}
+            >
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Retention Rate */}
+                <div className="bg-white/[0.03] backdrop-blur rounded-2xl p-6 border border-white/[0.06]">
+                  <h3 className="text-sm font-black text-white uppercase tracking-widest flex items-center gap-2 mb-6">
+                    <Brain className="w-4 h-4 text-emerald-400" />
+                    Chỉ Số Ghi Nhớ
+                  </h3>
+                  <div className="flex items-center justify-center mb-6">
+                    <div className="relative w-32 h-32">
+                      <svg className="w-32 h-32 -rotate-90" viewBox="0 0 120 120">
+                        <circle cx="60" cy="60" r="50" fill="none" stroke="rgba(255,255,255,0.04)" strokeWidth="10" />
+                        <circle 
+                          cx="60" cy="60" r="50" fill="none" 
+                          stroke="url(#retentionGrad)" strokeWidth="10" 
+                          strokeLinecap="round"
+                          strokeDasharray={`${2 * Math.PI * 50}`}
+                          strokeDashoffset={`${2 * Math.PI * 50 * (1 - (s.retention_rate || 0) / 100)}`}
+                          className="transition-all duration-1000"
+                        />
+                        <defs>
+                          <linearGradient id="retentionGrad" x1="0" y1="0" x2="1" y2="1">
+                            <stop offset="0%" stopColor="#34d399" />
+                            <stop offset="100%" stopColor="#2dd4bf" />
+                          </linearGradient>
+                        </defs>
+                      </svg>
+                      <div className="absolute inset-0 flex flex-col items-center justify-center">
+                        <span className="text-3xl font-black text-white">{s.retention_rate || 0}%</span>
+                        <span className="text-[9px] font-bold text-slate-500">Retention</span>
                       </div>
                     </div>
                   </div>
-                )
-              })}
-            </div>
+                  <p className="text-[10px] font-medium text-slate-500 text-center">Tỷ lệ đúng trung bình từ 10 bài test gần nhất</p>
+                </div>
 
-            {/* Add Step Controls */}
-            <div>
-              <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-2">Thêm Bước Mới Vào Pipeline</span>
-              <div className="flex items-center gap-2 flex-wrap">
-                <button
-                  onClick={() => addStep('new_cards')}
-                  className="px-3.5 py-2 rounded-xl bg-orange-50 text-orange-700 border border-orange-200 text-xs font-black flex items-center gap-1.5 hover:bg-orange-100 cursor-pointer"
-                >
-                  <Plus className="w-3.5 h-3.5" />
-                  <span>🎴 Học Từ Mới</span>
-                </button>
+                {/* Streak & Progress */}
+                <div className="bg-white/[0.03] backdrop-blur rounded-2xl p-6 border border-white/[0.06]">
+                  <h3 className="text-sm font-black text-white uppercase tracking-widest flex items-center gap-2 mb-6">
+                    <Flame className="w-4 h-4 text-orange-400" />
+                    Chuỗi & Tiến Độ
+                  </h3>
 
-                <button
-                  onClick={() => addStep('fsrs_review')}
-                  className="px-3.5 py-2 rounded-xl bg-indigo-50 text-indigo-700 border border-indigo-200 text-xs font-black flex items-center gap-1.5 hover:bg-indigo-100 cursor-pointer"
-                >
-                  <Plus className="w-3.5 h-3.5" />
-                  <span>🔄 Ôn Tập FSRS</span>
-                </button>
-
-                <button
-                  onClick={() => addStep('study_time')}
-                  className="px-3.5 py-2 rounded-xl bg-blue-50 text-blue-700 border border-blue-200 text-xs font-black flex items-center gap-1.5 hover:bg-blue-100 cursor-pointer"
-                >
-                  <Plus className="w-3.5 h-3.5" />
-                  <span>⏱️ Thời Gian Học</span>
-                </button>
-
-                {enabledModes.includes('mcq') && (
-                  <button
-                    onClick={() => addStep('mcq')}
-                    className="px-3.5 py-2 rounded-xl bg-purple-50 text-purple-700 border border-purple-200 text-xs font-black flex items-center gap-1.5 hover:bg-purple-100 cursor-pointer"
-                  >
-                    <Plus className="w-3.5 h-3.5" />
-                    <span>🎯 Trắc Nghiệm MCQ</span>
-                  </button>
-                )}
-
-                {enabledModes.includes('typing') && (
-                  <button
-                    onClick={() => addStep('typing')}
-                    className="px-3.5 py-2 rounded-xl bg-emerald-50 text-emerald-700 border border-emerald-200 text-xs font-black flex items-center gap-1.5 hover:bg-emerald-100 cursor-pointer"
-                  >
-                    <Plus className="w-3.5 h-3.5" />
-                    <span>⌨️ Gõ Từ Vựng</span>
-                  </button>
-                )}
-              </div>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* ── Retention & Activity Analytics Grid ── */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {/* Card 1: Today's / Selected Day's Monitor & Log Breakdown */}
-        <div className="bg-white rounded-3xl p-6 border border-slate-100 shadow-sm flex flex-col justify-between">
-          <div>
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-sm font-black text-slate-800 uppercase tracking-widest flex items-center gap-2">
-                <Clock className="w-4 h-4 text-blue-600" />
-                {selectedDate ? `Nhật Ký (${selectedDate})` : 'Nhật Ký Học Hôm Nay'}
-              </h3>
-              {selectedDate && (
-                <button
-                  onClick={() => setSelectedDate(null)}
-                  className="text-[10px] font-black text-indigo-600 hover:underline bg-indigo-50 px-2 py-1 rounded-lg cursor-pointer"
-                >
-                  Hôm nay 🔄
-                </button>
-              )}
-            </div>
-
-            <div className="p-4 bg-blue-50/50 rounded-2xl border border-blue-100 mb-4">
-              <div className="flex items-center justify-between mb-1">
-                <span className="text-[10px] font-black text-blue-600 uppercase tracking-widest">Tổng thời gian tích lũy</span>
-                {s.completion_time_today && (
-                  <span className="text-[9px] font-black text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
-                    Xong lúc {s.completion_time_today}
-                  </span>
-                )}
-              </div>
-              <div className="text-2xl font-black text-slate-900">
-                ⏱️ {s.today_total_study_minutes || 0} <span className="text-xs font-bold text-slate-500">phút học thực tế</span>
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Chi tiết hoạt động</div>
-              <div className="flex items-center justify-between text-xs p-2.5 bg-slate-50 rounded-xl">
-                <span className="font-semibold text-slate-600">🎴 Từ mới nạp thêm</span>
-                <span className="font-black text-slate-800">{s.today_activity?.new_learned || 0} từ</span>
-              </div>
-              <div className="flex items-center justify-between text-xs p-2.5 bg-slate-50 rounded-xl">
-                <span className="font-semibold text-slate-600">🔄 Thẻ ôn tập hoàn thành</span>
-                <span className="font-black text-slate-800">{s.today_activity?.reviewed || 0} thẻ</span>
-              </div>
-              <div className="flex items-center justify-between text-xs p-2.5 bg-slate-50 rounded-xl">
-                <span className="font-semibold text-slate-600">🎯 Lượt test MCQ / Gõ</span>
-                <span className="font-black text-slate-800">{(s.today_activity?.mcq_attempts || 0) + (s.today_activity?.typing_attempts || 0)} lượt</span>
-              </div>
-              <div className="flex items-center justify-between text-xs p-2.5 bg-slate-50 rounded-xl">
-                <span className="font-semibold text-slate-600">📝 Tổng số lượt trả lời</span>
-                <span className="font-black text-slate-800">{s.today_activity?.answers_count || 0} lượt</span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Card 2: Retention Rate */}
-        <div className="bg-white rounded-3xl p-6 border border-slate-100 shadow-sm flex flex-col justify-between">
-          <div>
-            <h3 className="text-sm font-black text-slate-800 uppercase tracking-widest flex items-center gap-2 mb-6">
-              <Brain className="w-4 h-4 text-emerald-600" />
-              Chỉ Số Ghi Nhớ (Retention)
-            </h3>
-
-            <div className="grid grid-cols-2 gap-4 mb-6">
-              <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100 text-center">
-                <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block mb-1">Tỷ Lệ Đúng</span>
-                <span className="text-3xl font-black text-indigo-600">{s.retention_rate || 0}%</span>
-                <span className="text-[9px] font-bold text-slate-400 block mt-1">10 test gần nhất</span>
-              </div>
-
-              <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100 text-center">
-                <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block mb-1">Chuỗi Streak</span>
-                <span className="text-3xl font-black text-orange-600">🔥 {s.streak || 0}d</span>
-                <span className="text-[9px] font-bold text-slate-400 block mt-1">Đã đỗ bài test</span>
-              </div>
-            </div>
-          </div>
-
-          <div className="p-4 bg-indigo-50/60 rounded-2xl border border-indigo-100">
-            <div className="text-[10px] font-black text-indigo-500 uppercase tracking-widest mb-1">Dự kiến hoàn thành bộ thẻ</div>
-            <div className="text-base font-black text-indigo-950">
-              📅 {s.estimated_completion_date || 'Hoàn thành hôm nay!'}
-            </div>
-            <div className="text-[10px] font-semibold text-slate-500 mt-0.5">
-              Còn ~{s.days_left || 0} ngày cho {s.unlearned_cards || 0} thẻ chưa học
-            </div>
-          </div>
-        </div>
-
-        {/* Card 3: Interactive 7-Day Activity Map */}
-        <div className="bg-white rounded-3xl p-6 border border-slate-100 shadow-sm flex flex-col justify-between">
-          <div>
-            <h3 className="text-sm font-black text-slate-800 uppercase tracking-widest flex items-center gap-2 mb-4">
-              <Flame className="w-4 h-4 text-orange-500" />
-              Lịch Hoạt Động 7 Ngày Qua
-            </h3>
-
-            <div className="grid grid-cols-7 gap-2 mb-4">
-              {s.seven_days?.map((day: any, idx: number) => {
-                const isSelected = selectedDate === day.date
-                return (
-                  <button
-                    key={idx}
-                    onClick={() => setSelectedDate(day.date)}
-                    className="flex flex-col items-center gap-1 cursor-pointer group"
-                    title={`Bấm để xem nhật ký ngày ${day.date}`}
-                  >
-                    <div className={cn(
-                      "w-9 h-9 rounded-2xl flex items-center justify-center text-xs font-black transition-all",
-                      day.active ? "bg-emerald-500 text-white shadow-sm" : "bg-slate-100 text-slate-400 group-hover:bg-slate-200",
-                      isSelected && "ring-2 ring-indigo-600 ring-offset-2 scale-105"
-                    )}>
-                      {day.active ? '✓' : '•'}
+                  <div className="grid grid-cols-2 gap-4 mb-6">
+                    <div className="p-4 bg-white/[0.02] rounded-xl border border-white/[0.04] text-center">
+                      <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest block mb-1">Streak</span>
+                      <span className="text-3xl font-black text-orange-400">🔥 {s.streak || 0}</span>
+                      <span className="text-[9px] font-bold text-slate-500 block mt-1">ngày liên tiếp</span>
                     </div>
-                    <span className={cn("text-[9px] font-bold", isSelected ? "text-indigo-600 font-black underline" : "text-slate-400")}>{day.day_name}</span>
-                  </button>
-                )
-              })}
-            </div>
+                    <div className="p-4 bg-white/[0.02] rounded-xl border border-white/[0.04] text-center">
+                      <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest block mb-1">Đã học</span>
+                      <span className="text-3xl font-black text-indigo-400">{s.learned_cards || 0}</span>
+                      <span className="text-[9px] font-bold text-slate-500 block mt-1">/ {s.total_cards || 0} thẻ</span>
+                    </div>
+                  </div>
 
-            <p className="text-[10px] font-semibold text-slate-400 text-center">
-              💡 Bấm vào từng ngày ở trên để xem nhật ký học tập chi tiết của ngày đó.
-            </p>
-          </div>
+                  {/* Progress bar */}
+                  <div className="mb-4">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Tiến độ bộ thẻ</span>
+                      <span className="text-xs font-black text-slate-300">
+                        {s.total_cards ? Math.round(((s.learned_cards || 0) / s.total_cards) * 100) : 0}%
+                      </span>
+                    </div>
+                    <div className="h-2.5 bg-white/[0.04] rounded-full overflow-hidden">
+                      <motion.div
+                        initial={{ width: 0 }}
+                        animate={{ width: `${s.total_cards ? Math.round(((s.learned_cards || 0) / s.total_cards) * 100) : 0}%` }}
+                        transition={{ duration: 1, ease: "easeOut" }}
+                        className="h-full bg-gradient-to-r from-indigo-500 to-purple-500 rounded-full"
+                      />
+                    </div>
+                  </div>
 
-          <div className="pt-4 border-t border-slate-100 text-center">
-            <Link
-              to={`/flashcard/${id}`}
-              className="text-xs font-bold text-slate-500 hover:text-slate-900 transition-colors"
-            >
-              Về Trang Chi Tiết Bộ Thẻ 📚
-            </Link>
-          </div>
-        </div>
+                  {/* Estimated completion */}
+                  <div className="p-4 bg-indigo-500/[0.06] rounded-xl border border-indigo-500/10">
+                    <div className="text-[10px] font-black text-indigo-400 uppercase tracking-widest mb-1">Dự kiến hoàn thành</div>
+                    <div className="text-sm font-black text-white">
+                      📅 {s.estimated_completion_date || 'Đã hoàn thành!'}
+                    </div>
+                    <div className="text-[10px] font-medium text-slate-500 mt-0.5">
+                      Còn ~{s.days_left || 0} ngày cho {s.unlearned_cards || 0} thẻ chưa học
+                    </div>
+                  </div>
+                </div>
+
+                {/* Today's Activity Detail */}
+                <div className="bg-white/[0.03] backdrop-blur rounded-2xl p-6 border border-white/[0.06] md:col-span-2">
+                  <h3 className="text-sm font-black text-white uppercase tracking-widest flex items-center gap-2 mb-4">
+                    <Clock className="w-4 h-4 text-blue-400" />
+                    Chi Tiết Hoạt Động Hôm Nay
+                  </h3>
+                  <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+                    {[
+                      { label: 'Từ mới nạp', value: s.today_activity?.new_learned || 0, unit: 'từ', emoji: '🎴' },
+                      { label: 'Thẻ ôn tập', value: s.today_activity?.reviewed || 0, unit: 'thẻ', emoji: '🔄' },
+                      { label: 'Lượt test MCQ', value: s.today_activity?.mcq_attempts || 0, unit: 'lượt', emoji: '🎯' },
+                      { label: 'Lượt gõ từ', value: s.today_activity?.typing_attempts || 0, unit: 'lượt', emoji: '⌨️' },
+                      { label: 'Tổng trả lời', value: s.today_activity?.answers_count || 0, unit: 'lượt', emoji: '📝' },
+                    ].map(item => (
+                      <div key={item.label} className="p-3 bg-white/[0.02] rounded-xl border border-white/[0.04] text-center">
+                        <div className="text-lg mb-1">{item.emoji}</div>
+                        <div className="text-xl font-black text-white">{item.value}</div>
+                        <div className="text-[9px] font-bold text-slate-500">{item.label}</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
     </div>
   )
