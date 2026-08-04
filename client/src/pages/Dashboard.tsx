@@ -1577,99 +1577,70 @@ export default function Dashboard() {
       </div>
 
       {/* MOBILE FEED — Full-screen Card Swiper */}
-      <div className="md:hidden flex flex-col bg-slate-900 fixed inset-0 top-0 bottom-[60px] z-[100] overflow-hidden text-slate-800">
+      <div className="md:hidden flex flex-col bg-gradient-to-br from-indigo-600 via-purple-600 to-fuchsia-600 fixed inset-0 top-0 bottom-[60px] z-[100] overflow-hidden">
         
-        {/* TOP STATUS BAR OVERLAY */}
-        <div className="flex items-center justify-between px-4 py-2.5 bg-slate-900 text-white flex-shrink-0 z-10 border-b border-white/10">
-          <Link to="/" className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-orange-500 to-rose-500 flex items-center justify-center text-white shadow-md shadow-orange-500/20">
-              <BookOpen className="w-4.5 h-4.5" />
+        {/* Mobile Header - transparent */}
+        <div className="flex items-center justify-between px-4 py-2.5 flex-shrink-0 z-10">
+          <Link to="/" className="flex items-center gap-1.5">
+            <div className="w-8 h-8 rounded-xl bg-white/20 backdrop-blur-md flex items-center justify-center text-white border border-white/20 shadow-sm">
+              <BookOpen className="w-4 h-4" />
             </div>
-            <span className="text-sm font-black text-white tracking-tight uppercase">
-              Voca<span className="text-orange-500">burn</span>
+            <span className="text-[14px] font-black text-white tracking-tight">
+              Voca<span className="text-orange-300">burn</span>
             </span>
           </Link>
           <div className="flex items-center gap-2">
-            <span className="flex items-center gap-1 px-2.5 py-1 bg-white/10 border border-white/15 rounded-full text-[10px] font-bold text-amber-300">
-              <Trophy className="w-3 h-3 text-amber-400" />
-              Lvl {data.gamify?.level}
+            <span className="flex items-center gap-0.5 px-2.5 py-1 bg-white/15 backdrop-blur-sm border border-white/20 rounded-full text-[10px] font-bold text-white">
+              Lv {data.gamify?.level}
             </span>
-            <span className="flex items-center gap-1 px-2.5 py-1 bg-orange-500/20 border border-orange-500/30 rounded-full text-[10px] font-bold text-orange-400">
+            <span className="flex items-center gap-1 px-2.5 py-1 bg-white/15 backdrop-blur-sm border border-white/20 rounded-full text-[10px] font-bold text-white">
               <Flame className="w-3.5 h-3.5 fill-orange-400 text-orange-400" />
               {data.gamify?.streak}d
             </span>
-            <Link to="/profile" className="w-8 h-8 rounded-full bg-white/10 border border-white/15 flex items-center justify-center text-white active:scale-95 transition-all">
+            <Link to="/profile" className="w-8 h-8 rounded-full bg-white/15 backdrop-blur-sm border border-white/20 flex items-center justify-center text-white active:scale-95 transition-all">
               <User className="w-4 h-4" />
             </Link>
           </div>
         </div>
 
-        {/* TOP SEGMENTED TAB NAVIGATOR (Pro App Header Nav) */}
-        <div className="bg-slate-900 px-3 py-2 flex items-center gap-1 overflow-x-auto [&::-webkit-scrollbar]:hidden flex-shrink-0 border-b border-white/5">
-          {[
-            { id: 0, label: 'Lộ trình', icon: Target },
-            { id: 1, label: 'Bộ thẻ', icon: BookOpen },
-            { id: 2, label: 'Thống kê', icon: TrendingUp },
-            { id: 3, label: 'Xếp hạng', icon: Trophy }
-          ].map((tab) => {
-            const Icon = tab.icon;
-            const isActive = currentSlide === tab.id;
-            return (
-              <button
-                key={tab.id}
-                onClick={() => setCurrentSlide(tab.id)}
-                className={cn(
-                  "flex-1 min-w-[75px] py-1.5 px-2 rounded-xl text-[11px] font-black tracking-tight flex items-center justify-center gap-1.5 transition-all cursor-pointer",
-                  isActive
-                    ? "bg-white text-indigo-950 shadow-md shadow-black/20"
-                    : "text-slate-400 hover:text-white hover:bg-white/5"
-                )}
-              >
-                <Icon className={cn("w-3.5 h-3.5", isActive ? "text-indigo-600" : "text-slate-400")} />
-                <span>{tab.label}</span>
-              </button>
-            )
-          })}
-        </div>
-
-        {/* MAIN SWIPER DISPLAY AREA */}
-        <div className="flex-1 bg-slate-100 overflow-hidden relative">
+        {/* WHITE CARD — fills remaining space with rich content */}
+        <div className="flex-1 mx-3 mb-2 bg-gradient-to-b from-slate-50/80 via-white to-indigo-50/30 rounded-3xl shadow-2xl overflow-hidden relative border border-white/60">
           <AnimatePresence mode="wait">
             
-            {/* ═══ SLIDE 1: LỘ TRÌNH (Pro Card Layout) ═══ */}
+            {/* ═══ SLIDE 1: LỘ TRÌNH ═══ */}
             {currentSlide === 0 && (
               <motion.div 
                 key="slide0"
-                initial={{ opacity: 0, scale: 0.98 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.98 }}
+                initial={{ opacity: 0, x: 50 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -50 }}
                 transition={{ duration: 0.2, ease: "easeInOut" }}
-                className="absolute inset-0 flex flex-col p-3 overflow-hidden"
+                className="absolute inset-0 flex flex-col"
               >
                 {(() => {
                   const hasRoadmapDecks = roadmapDecks && roadmapDecks.length > 0;
                   
                   if (!hasRoadmapDecks) {
                     return (
-                      <div className="flex-1 bg-white rounded-2xl p-6 flex flex-col items-center justify-center text-center shadow-sm border border-slate-200/80">
-                        <div className="w-16 h-16 rounded-2xl bg-indigo-50 flex items-center justify-center mb-4 border border-indigo-100">
-                          <Compass className="w-8 h-8 text-indigo-500 animate-pulse" />
+                      <div className="flex-1 flex flex-col items-center justify-center p-6 text-center">
+                        <div className="w-20 h-20 rounded-3xl bg-indigo-50 flex items-center justify-center mb-4 shadow-inner border border-indigo-100">
+                          <Compass className="w-10 h-10 text-indigo-500 animate-pulse" />
                         </div>
-                        <h3 className="text-base font-black text-slate-800 mb-1">Chưa có lộ trình học</h3>
-                        <p className="text-xs text-slate-500 leading-relaxed max-w-[240px] mx-auto mb-6">
-                          Hãy chọn một bộ thẻ từ thư viện và bật "Lộ trình học" để bắt đầu mục tiêu hàng ngày.
+                        <h3 className="text-base font-black text-slate-800 mb-2">Chưa có lộ trình học</h3>
+                        <p className="text-xs text-slate-500 leading-relaxed max-w-[260px] mx-auto mb-6">
+                          Hãy chọn một bộ thẻ từ thư viện và bật "Lộ trình học" để kích hoạt lộ trình hằng ngày.
                         </p>
                         <button
                           onClick={() => navigate('/library')}
-                          className="w-full max-w-[240px] h-12 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-black uppercase tracking-wider transition-all active:scale-[0.98] shadow-md shadow-indigo-200"
+                          className="w-full max-w-[260px] h-13 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl text-xs font-black uppercase tracking-wider transition-all active:scale-[0.98] shadow-lg shadow-indigo-200"
                         >
-                          Khám phá Thư viện →
+                          Đi tới Thư viện →
                         </button>
                       </div>
                     );
                   }
 
-                  const renderRoadmapDeck = (deck: any, deckIdx: number, totalDecks: number) => {
+                  const renderDeckCard = (deck: any, deckIdx: number, totalDecks: number) => {
                     const st = deck?.status || {};
                     const nT = st.new_target_today || 0;
                     const nL = st.new_learned_today || 0;
@@ -1682,122 +1653,116 @@ export default function Dashboard() {
                     const s2 = st.stage_2_done;
                     const nUrl = st.next_action_url;
 
-                    const newPct = nT > 0 ? Math.min(100, Math.round((nL / nT) * 100)) : 100;
-                    const revPct = rD > 0 ? Math.min(100, Math.round((rDn / rD) * 100)) : 100;
+                    const radius = 38; 
+                    const strokeWidth = 6;
+                    const circ = 2 * Math.PI * radius;
+                    const off = circ - (circ * pct) / 100;
 
                     return (
-                      <div key={deck.deck_id} className="h-full w-full snap-center flex-shrink-0 flex flex-col justify-between gap-3 overflow-y-auto [&::-webkit-scrollbar]:hidden pb-1">
+                      <div key={deck.deck_id} className="h-full w-full snap-center flex-shrink-0 flex flex-col justify-between p-5 relative overflow-y-auto [&::-webkit-scrollbar]:hidden">
                         
-                        {/* HERO BANNER CARD */}
-                        <div className="bg-gradient-to-br from-indigo-600 via-indigo-700 to-purple-800 text-white rounded-2xl p-4 shadow-lg shadow-indigo-500/15 relative overflow-hidden flex-shrink-0">
-                          {/* Background Glow Overlay */}
-                          <div className="absolute -right-8 -bottom-8 w-32 h-32 rounded-full bg-white/10 blur-xl pointer-events-none" />
-                          <div className="absolute right-3 top-3 opacity-15 pointer-events-none">
-                            <Sparkles className="w-20 h-20 text-white" />
-                          </div>
-
-                          <div className="flex items-center justify-between mb-3 relative z-10">
-                            <span className="px-2.5 py-0.5 bg-white/20 backdrop-blur-md rounded-full text-[10px] font-black uppercase tracking-wider text-white border border-white/20 flex items-center gap-1">
-                              <Target className="w-3 h-3 text-orange-300" />
-                              {totalDecks > 1 ? `Bộ thẻ ${deckIdx + 1}/${totalDecks}` : 'Mục tiêu hôm nay'}
+                        {/* Top Header Row inside Card */}
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <span className="px-3 py-1 bg-indigo-600 text-white rounded-full text-[10px] font-black uppercase tracking-wider shadow-sm flex items-center gap-1">
+                              <Target className="w-3 h-3" /> Lộ trình
                             </span>
-                            <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider ${
-                              (nL > nT && nT > 0) ? 'bg-emerald-400 text-slate-950' : s1 ? 'bg-amber-300 text-slate-950' : 'bg-white/20 text-white'
-                            }`}>
-                              {(nL > nT && nT > 0) ? '🚀 Vượt chỉ tiêu' : s1 ? '✓ Đã xong bài' : '• Đang tiến hành'}
-                            </span>
+                            {totalDecks > 1 && (
+                              <span className="px-2.5 py-1 bg-slate-100 text-slate-600 rounded-full text-[10px] font-bold">
+                                {deckIdx + 1}/{totalDecks}
+                              </span>
+                            )}
                           </div>
-
-                          <h2 className="text-lg font-black text-white leading-tight mb-2 relative z-10 line-clamp-2">
-                            {deck.title}
-                          </h2>
-
-                          <div className="flex items-center justify-between text-xs text-indigo-100 font-bold relative z-10 pt-1 border-t border-white/10">
-                            <span>Tiến độ chung: <strong className="text-white font-black">{pct}%</strong></span>
-                            <span>{tD}/{tT} thẻ hoàn thành</span>
-                          </div>
-
-                          {/* Progress Bar inside Banner */}
-                          <div className="h-2 bg-black/20 rounded-full overflow-hidden mt-2 relative z-10">
-                            <div className="h-full bg-gradient-to-r from-orange-400 to-amber-300 rounded-full transition-all duration-500" style={{ width: `${pct}%` }} />
-                          </div>
+                          <span className={`text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-full ${
+                            (nL > nT && nT > 0) ? 'bg-emerald-100 text-emerald-700' : s1 ? 'bg-indigo-100 text-indigo-700' : 'bg-amber-100 text-amber-700'
+                          }`}>
+                            {(nL > nT && nT > 0) ? '🚀 Vượt chỉ tiêu' : s1 ? '✓ Đạt chỉ tiêu' : '• Đang tiến hành'}
+                          </span>
                         </div>
 
-                        {/* STATS & STAGES BREAKDOWN GRID */}
-                        <div className="grid grid-cols-2 gap-2.5 flex-shrink-0">
+                        {/* Middle Content Section - Rich Layout */}
+                        <div className="flex flex-col items-center text-center my-auto py-2">
                           
-                          {/* Stage 1 Card */}
-                          <div className="bg-white rounded-2xl p-3.5 border border-slate-200/80 shadow-sm flex flex-col justify-between">
-                            <div className="flex items-center justify-between mb-2">
-                              <div className="w-7 h-7 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold">
-                                <Sparkles className="w-3.5 h-3.5" />
-                              </div>
-                              <span className="text-[10px] font-black text-indigo-600">{newPct}%</span>
-                            </div>
-                            <div>
-                              <span className="text-[10px] font-bold text-slate-400 uppercase block">1. Học từ mới</span>
-                              <span className="text-sm font-black text-slate-800">{nL} / {nT} <span className="text-[10px] text-slate-400 font-normal">thẻ</span></span>
-                            </div>
-                            <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden mt-2">
-                              <div className="h-full bg-indigo-600 rounded-full transition-all" style={{ width: `${newPct}%` }} />
+                          {/* Circular Chart with Center Icon */}
+                          <div className="relative w-24 h-24 flex items-center justify-center my-2">
+                            <svg className="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
+                              <circle cx="50" cy="50" r={radius} fill="transparent" stroke="#e2e8f0" strokeWidth={strokeWidth} />
+                              <circle 
+                                cx="50" 
+                                cy="50" 
+                                r={radius} 
+                                fill="transparent" 
+                                stroke="#6366f1" 
+                                strokeWidth={strokeWidth} 
+                                strokeDasharray={circ} 
+                                strokeDashoffset={off} 
+                                strokeLinecap="round" 
+                                className="transition-all duration-700" 
+                              />
+                            </svg>
+                            <div className="absolute flex flex-col items-center justify-center">
+                              <span className="text-xl font-black text-slate-800">{pct}%</span>
+                              <span className="text-[8px] font-bold text-slate-400 uppercase tracking-widest">Tiến độ</span>
                             </div>
                           </div>
 
-                          {/* Stage 2 Card */}
-                          <div className="bg-white rounded-2xl p-3.5 border border-slate-200/80 shadow-sm flex flex-col justify-between">
-                            <div className="flex items-center justify-between mb-2">
-                              <div className="w-7 h-7 rounded-xl bg-orange-50 text-orange-600 flex items-center justify-center font-bold">
-                                <RefreshCw className="w-3.5 h-3.5" />
+                          {/* Deck Title */}
+                          <h3 className="text-base font-black text-slate-800 leading-snug line-clamp-2 px-2 mb-1">
+                            {deck.title}
+                          </h3>
+                          <p className="text-[11px] font-medium text-slate-400 mb-3">
+                            Mục tiêu hôm nay: <span className="font-bold text-slate-700">{tT} thẻ</span>
+                          </p>
+
+                          {/* Detail Breakdown Boxes (Fills empty space with rich info) */}
+                          <div className="grid grid-cols-2 gap-2.5 w-full max-w-[320px] mb-3">
+                            <div className="bg-indigo-50/60 border border-indigo-100 rounded-2xl p-2.5 text-left flex items-center gap-2.5">
+                              <div className="w-8 h-8 rounded-xl bg-indigo-500 text-white flex items-center justify-center text-xs font-bold flex-shrink-0 shadow-sm">
+                                <Sparkles className="w-4 h-4" />
                               </div>
-                              <span className="text-[10px] font-black text-orange-600">{revPct}%</span>
+                              <div className="min-w-0">
+                                <span className="text-[9px] font-bold text-slate-400 uppercase block">Học từ mới</span>
+                                <span className="text-xs font-black text-indigo-700">{nL}/{nT} thẻ</span>
+                              </div>
                             </div>
-                            <div>
-                              <span className="text-[10px] font-bold text-slate-400 uppercase block">2. Ôn tập FSRS</span>
-                              <span className="text-sm font-black text-slate-800">{rDn} / {rD} <span className="text-[10px] text-slate-400 font-normal">thẻ</span></span>
+
+                            <div className="bg-orange-50/60 border border-orange-100 rounded-2xl p-2.5 text-left flex items-center gap-2.5">
+                              <div className="w-8 h-8 rounded-xl bg-orange-500 text-white flex items-center justify-center text-xs font-bold flex-shrink-0 shadow-sm">
+                                <RefreshCw className="w-4 h-4" />
+                              </div>
+                              <div className="min-w-0">
+                                <span className="text-[9px] font-bold text-slate-400 uppercase block">Ôn tập FSRS</span>
+                                <span className="text-xs font-black text-orange-700">{rDn}/{rD} thẻ</span>
+                              </div>
                             </div>
-                            <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden mt-2">
-                              <div className="h-full bg-orange-500 rounded-full transition-all" style={{ width: `${revPct}%` }} />
-                            </div>
+                          </div>
+
+                          {/* Quick Info Badges Row */}
+                          <div className="flex items-center justify-center gap-2 w-full max-w-[320px] mb-1 text-[10px] font-bold text-slate-500">
+                            <span className="flex items-center gap-1 bg-slate-100 px-2.5 py-1 rounded-lg">
+                              <Layers className="w-3 h-3 text-slate-400" /> Tổng {deck.total_cards || 0} thẻ
+                            </span>
+                            <span className="flex items-center gap-1 bg-slate-100 px-2.5 py-1 rounded-lg">
+                              <Clock className="w-3 h-3 text-slate-400" /> ~10-15 phút
+                            </span>
                           </div>
 
                         </div>
 
-                        {/* EXTRA INFO WIDGET (Fills card space nicely) */}
-                        <div className="bg-white rounded-2xl p-3 border border-slate-200/80 shadow-sm flex items-center justify-between flex-shrink-0">
-                          <div className="flex items-center gap-2 text-xs font-bold text-slate-600">
-                            <div className="w-7 h-7 rounded-xl bg-slate-100 flex items-center justify-center text-slate-500">
-                              <Layers className="w-3.5 h-3.5" />
-                            </div>
-                            <div>
-                              <span className="text-[9px] font-bold text-slate-400 uppercase block leading-none">Bộ thẻ</span>
-                              <span className="text-xs font-black text-slate-800 leading-tight">{deck.total_cards || 0} thẻ trong bộ</span>
-                            </div>
-                          </div>
-                          <div className="flex items-center gap-2 text-xs font-bold text-slate-600">
-                            <div className="w-7 h-7 rounded-xl bg-slate-100 flex items-center justify-center text-slate-500">
-                              <Clock className="w-3.5 h-3.5" />
-                            </div>
-                            <div>
-                              <span className="text-[9px] font-bold text-slate-400 uppercase block leading-none">Dự kiến</span>
-                              <span className="text-xs font-black text-slate-800 leading-tight">~10-15 phút</span>
-                            </div>
-                          </div>
-                        </div>
-
-                        {/* CTA BUTTON */}
-                        <div className="pt-1 flex flex-col items-center gap-1.5 flex-shrink-0">
+                        {/* Bottom CTA Action Button */}
+                        <div className="w-full flex flex-col items-center gap-1 mt-auto pt-2">
                           <button
                             onClick={() => { if (nUrl) navigate(nUrl); else navigate(`/flashcard/${deck.deck_id}`); }}
-                            className="w-full h-13 bg-gradient-to-r from-orange-500 via-rose-500 to-pink-500 hover:opacity-95 active:scale-[0.98] text-white font-black text-xs uppercase tracking-widest rounded-xl transition-all flex items-center justify-center gap-2 shadow-md shadow-orange-500/20"
+                            className="w-full max-w-[320px] h-13 bg-gradient-to-r from-orange-500 via-rose-500 to-pink-500 active:scale-[0.98] text-white font-black text-xs uppercase tracking-widest rounded-2xl transition-all flex items-center justify-center gap-2 shadow-lg shadow-orange-500/25"
                           >
                             <Play className="w-4 h-4 fill-current" />
                             {s2 ? 'XEM LẠI BÀI HỌC' : s1 ? 'LÀM BÀI TEST NGAY' : 'BẮT ĐẦU HỌC NGAY'}
                           </button>
 
                           {totalDecks > 1 && deckIdx < totalDecks - 1 && (
-                            <div className="flex items-center gap-1 text-[10px] font-bold text-indigo-600 animate-bounce">
+                            <div className="flex items-center gap-1 text-[10px] font-bold text-indigo-500 animate-bounce pt-1">
                               <ChevronRight className="w-3 h-3 rotate-90" />
-                              <span>Vuốt xuống để xem bộ tiếp theo</span>
+                              <span>Vuốt xuống để xem bộ thẻ tiếp theo</span>
                             </div>
                           )}
                         </div>
@@ -1809,12 +1774,12 @@ export default function Dashboard() {
                   if (roadmapDecks.length > 1) {
                     return (
                       <div className="flex-1 overflow-y-auto snap-y snap-mandatory [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
-                        {roadmapDecks.map((deck: any, idx: number) => renderRoadmapDeck(deck, idx, roadmapDecks.length))}
+                        {roadmapDecks.map((deck: any, idx: number) => renderDeckCard(deck, idx, roadmapDecks.length))}
                       </div>
                     );
                   }
 
-                  return renderRoadmapDeck(roadmapDecks[0], 0, 1);
+                  return renderDeckCard(roadmapDecks[0], 0, 1);
                 })()}
               </motion.div>
             )}
@@ -1823,50 +1788,52 @@ export default function Dashboard() {
             {currentSlide === 1 && (
               <motion.div 
                 key="slide1"
-                initial={{ opacity: 0, scale: 0.98 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.98 }}
+                initial={{ opacity: 0, x: 50 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -50 }}
                 transition={{ duration: 0.2, ease: "easeInOut" }}
-                className="absolute inset-0 flex flex-col p-3 overflow-hidden"
+                className="absolute inset-0 flex flex-col"
               >
-                <div className="bg-white rounded-2xl p-3.5 mb-2.5 border border-slate-200/80 shadow-sm flex items-center justify-between flex-shrink-0">
+                <div className="px-5 pt-4 pb-2 flex items-center justify-between border-b border-slate-100 bg-white/50 backdrop-blur-sm">
                   <div className="flex items-center gap-2">
                     <BookOpen className="w-4 h-4 text-indigo-600" />
-                    <h3 className="text-xs font-black text-slate-800 uppercase tracking-wider">Các Bộ Thẻ Đang Học</h3>
+                    <h3 className="text-xs font-black text-slate-800 uppercase tracking-widest">Các Bộ Thẻ Đang Học</h3>
                   </div>
-                  <span className="text-[10px] font-black text-indigo-600 bg-indigo-50 px-2.5 py-0.5 rounded-full border border-indigo-100">
+                  <span className="text-[10px] font-bold text-slate-400 bg-slate-100 px-2 py-0.5 rounded-full">
                     {activeDecks?.length || 0} bộ
                   </span>
                 </div>
 
-                <div className="flex-1 overflow-y-auto [&::-webkit-scrollbar]:hidden flex flex-col gap-2">
+                <div className="flex-1 overflow-y-auto px-4 py-3 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
                   {activeDecks && activeDecks.length > 0 ? (
-                    activeDecks.map((deck: any) => (
-                      <div
-                        key={deck.deck_id}
-                        onClick={() => navigate(`/flashcard/${deck.deck_id}`)}
-                        className="bg-white rounded-2xl border border-slate-200/80 p-3.5 shadow-sm hover:shadow-md cursor-pointer active:scale-[0.98] transition-all flex items-center gap-3.5 group"
-                      >
-                        <div className="w-11 h-11 rounded-xl bg-slate-100 flex items-center justify-center text-lg overflow-hidden border border-slate-200/60 shadow-inner flex-shrink-0">
-                          {deck.cover_image ? <img src={deck.cover_image} alt="" className="w-full h-full object-cover" /> : <span>📘</span>}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <h4 className="text-xs font-black text-slate-800 truncate group-hover:text-indigo-600 transition-colors">{deck.title}</h4>
-                          <div className="flex items-center justify-between mt-1">
-                            <span className="text-[10px] font-bold text-slate-400">{deck.learned_cards}/{deck.total_cards} thẻ</span>
-                            <span className="text-[10px] font-black text-indigo-600">{deck.total_pct}%</span>
+                    <div className="flex flex-col gap-2.5">
+                      {activeDecks.map((deck: any) => (
+                        <div
+                          key={deck.deck_id}
+                          onClick={() => navigate(`/flashcard/${deck.deck_id}`)}
+                          className="bg-white rounded-2xl border border-slate-100 p-3.5 shadow-sm hover:shadow-md cursor-pointer active:scale-[0.98] transition-all w-full flex items-center gap-3.5 group"
+                        >
+                          <div className="w-11 h-11 rounded-xl bg-gradient-to-tr from-indigo-50 to-purple-50 flex items-center justify-center text-lg overflow-hidden border border-indigo-100/60 shadow-inner flex-shrink-0">
+                            {deck.cover_image ? <img src={deck.cover_image} alt="" className="w-full h-full object-cover" /> : <span>📘</span>}
                           </div>
-                          <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden mt-1.5">
-                            <div className="h-full bg-indigo-600 rounded-full transition-all" style={{ width: `${deck.total_pct}%` }} />
+                          <div className="flex-1 min-w-0">
+                            <h4 className="text-xs font-black text-slate-800 truncate group-hover:text-indigo-600 transition-colors">{deck.title}</h4>
+                            <div className="flex items-center gap-2 mt-1">
+                              <span className="text-[10px] font-bold text-slate-400">{deck.learned_cards}/{deck.total_cards} thẻ</span>
+                              <span className="text-[10px] font-black text-indigo-600">{deck.total_pct}%</span>
+                            </div>
+                            <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden mt-1.5">
+                              <div className="h-full bg-indigo-500 rounded-full transition-all" style={{ width: `${deck.total_pct}%` }} />
+                            </div>
+                          </div>
+                          <div className="w-7 h-7 rounded-full bg-slate-50 border border-slate-100 flex items-center justify-center text-slate-400 group-hover:text-orange-500 group-hover:bg-orange-50 transition-all flex-shrink-0">
+                            <ChevronRight className="w-4 h-4" />
                           </div>
                         </div>
-                        <div className="w-7 h-7 rounded-xl bg-slate-50 flex items-center justify-center text-slate-400 group-hover:text-orange-500 group-hover:bg-orange-50 transition-all flex-shrink-0">
-                          <ChevronRight className="w-4 h-4" />
-                        </div>
-                      </div>
-                    ))
+                      ))}
+                    </div>
                   ) : (
-                    <div className="flex-1 bg-white rounded-2xl flex flex-col items-center justify-center p-6 text-center border border-slate-200/80">
+                    <div className="flex-1 flex flex-col items-center justify-center p-6 text-center">
                       <span className="text-slate-400 text-xs font-bold">Chưa có bộ thẻ nào</span>
                     </div>
                   )}
@@ -1878,22 +1845,24 @@ export default function Dashboard() {
             {currentSlide === 2 && (
               <motion.div 
                 key="slide2"
-                initial={{ opacity: 0, scale: 0.98 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.98 }}
+                initial={{ opacity: 0, x: 50 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -50 }}
                 transition={{ duration: 0.2, ease: "easeInOut" }}
-                className="absolute inset-0 flex flex-col p-3 overflow-hidden"
+                className="absolute inset-0 flex flex-col"
               >
-                <div className="bg-white rounded-2xl p-3.5 mb-2.5 border border-slate-200/80 shadow-sm flex items-center justify-between flex-shrink-0">
+                <div className="px-5 pt-4 pb-2 flex items-center justify-between border-b border-slate-100 bg-white/50 backdrop-blur-sm">
                   <div className="flex items-center gap-2">
                     <TrendingUp className="w-4 h-4 text-indigo-600" />
-                    <h3 className="text-xs font-black text-slate-800 uppercase tracking-wider">Thống Kê & Phân Tích</h3>
+                    <h3 className="text-xs font-black text-slate-800 uppercase tracking-widest">Thống Kê & Phân Tích</h3>
                   </div>
                 </div>
-                <div className="flex-1 overflow-y-auto [&::-webkit-scrollbar]:hidden flex flex-col gap-3">
-                  {heatmapData && heatmapData.length > 0 && <MiniHeatmap data={heatmapData} />}
-                  <ReviewForecastWidget data={forecastData} />
-                  <DailyComparisonChart data={dailyComparisonData} allTimeAvg={dailyComparisonAvg} isLoading={isDailyComparisonLoading} />
+                <div className="flex-1 overflow-y-auto px-3.5 py-3 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+                  <div className="flex flex-col gap-3">
+                    {heatmapData && heatmapData.length > 0 && <MiniHeatmap data={heatmapData} />}
+                    <ReviewForecastWidget data={forecastData} />
+                    <DailyComparisonChart data={dailyComparisonData} allTimeAvg={dailyComparisonAvg} isLoading={isDailyComparisonLoading} />
+                  </div>
                 </div>
               </motion.div>
             )}
@@ -1902,23 +1871,25 @@ export default function Dashboard() {
             {currentSlide === 3 && (
               <motion.div 
                 key="slide3"
-                initial={{ opacity: 0, scale: 0.98 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.98 }}
+                initial={{ opacity: 0, x: 50 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -50 }}
                 transition={{ duration: 0.2, ease: "easeInOut" }}
-                className="absolute inset-0 flex flex-col p-3 overflow-hidden"
+                className="absolute inset-0 flex flex-col"
               >
-                <div className="bg-white rounded-2xl p-3.5 mb-2.5 border border-slate-200/80 shadow-sm flex items-center justify-between flex-shrink-0">
+                <div className="px-5 pt-4 pb-2 flex items-center justify-between border-b border-slate-100 bg-white/50 backdrop-blur-sm">
                   <div className="flex items-center gap-2">
                     <Trophy className="w-4 h-4 text-amber-500" />
-                    <h3 className="text-xs font-black text-slate-800 uppercase tracking-wider">Bảng Xếp Hạng</h3>
+                    <h3 className="text-xs font-black text-slate-800 uppercase tracking-widest">Bảng Xếp Hạng</h3>
                   </div>
                 </div>
-                <div className="flex-1 overflow-y-auto [&::-webkit-scrollbar]:hidden flex flex-col gap-3">
-                  {leaderboardData && leaderboardData.leaderboard?.length > 0 && (
-                    <LeaderboardWidget data={leaderboardData} activeFilter={timeFilter} onFilterChange={setTimeFilter} />
-                  )}
-                  {badgesProgress && <BadgeProgressWidget data={badgesProgress} />}
+                <div className="flex-1 overflow-y-auto px-3.5 py-3 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+                  <div className="flex flex-col gap-3">
+                    {leaderboardData && leaderboardData.leaderboard?.length > 0 && (
+                      <LeaderboardWidget data={leaderboardData} activeFilter={timeFilter} onFilterChange={setTimeFilter} />
+                    )}
+                    {badgesProgress && <BadgeProgressWidget data={badgesProgress} />}
+                  </div>
                 </div>
               </motion.div>
             )}
@@ -1926,41 +1897,40 @@ export default function Dashboard() {
           </AnimatePresence>
         </div>
 
-        {/* BOTTOM QUICK PREV / NEXT BAR */}
-        <div className="bg-slate-900 px-4 py-2 flex items-center justify-between flex-shrink-0 border-t border-white/10">
-          <button 
-            onClick={() => setCurrentSlide(prev => Math.max(0, prev - 1))}
-            disabled={currentSlide === 0}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/15 text-white text-xs font-bold disabled:opacity-20 active:scale-95 transition-all cursor-pointer"
-          >
-            <ChevronRight className="w-4 h-4 rotate-180" />
-            <span>Trước</span>
-          </button>
+        {/* NAVIGATION CONTROLS BAR */}
+        <div className="flex items-center justify-center gap-3 pb-2 flex-shrink-0">
+          <div className="flex items-center justify-center gap-3">
+            <button 
+              onClick={() => setCurrentSlide(prev => Math.max(0, prev - 1))}
+              disabled={currentSlide === 0}
+              className="w-9 h-9 rounded-full bg-white/20 border border-white/30 flex items-center justify-center text-white shadow-md disabled:opacity-20 active:scale-90 transition-all cursor-pointer"
+            >
+              <ChevronRight className="w-4 h-4 rotate-180" />
+            </button>
 
-          {/* Dots Indicator */}
-          <div className="flex items-center gap-1.5">
-            {[0, 1, 2, 3].map(idx => (
-              <button
-                key={idx}
-                onClick={() => setCurrentSlide(idx)}
-                className={cn(
-                  "h-1.5 transition-all duration-300 rounded-full cursor-pointer",
-                  currentSlide === idx 
-                    ? "w-5 bg-orange-400" 
-                    : "w-1.5 bg-white/30"
-                )}
-              />
-            ))}
+            <div className="flex items-center gap-1.5">
+              {[0, 1, 2, 3].map(idx => (
+                <button
+                  key={idx}
+                  onClick={() => setCurrentSlide(idx)}
+                  className={cn(
+                    "h-2 transition-all duration-300 rounded-full cursor-pointer",
+                    currentSlide === idx 
+                      ? "w-6 bg-white shadow-[0_0_8px_rgba(255,255,255,0.7)]" 
+                      : "w-2 bg-white/30 hover:bg-white/50"
+                  )}
+                />
+              ))}
+            </div>
+
+            <button 
+              onClick={() => setCurrentSlide(prev => Math.min(3, prev + 1))}
+              disabled={currentSlide === 3}
+              className="w-9 h-9 rounded-full bg-white/90 border border-white flex items-center justify-center text-slate-800 shadow-md disabled:opacity-20 active:scale-90 transition-all cursor-pointer"
+            >
+              <ChevronRight className="w-4 h-4" />
+            </button>
           </div>
-
-          <button 
-            onClick={() => setCurrentSlide(prev => Math.min(3, prev + 1))}
-            disabled={currentSlide === 3}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-orange-500 hover:bg-orange-600 text-white text-xs font-bold disabled:opacity-20 active:scale-95 transition-all cursor-pointer shadow-sm shadow-orange-500/20"
-          >
-            <span>Tiếp</span>
-            <ChevronRight className="w-4 h-4" />
-          </button>
         </div>
 
       </div>
