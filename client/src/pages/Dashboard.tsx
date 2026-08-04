@@ -1603,11 +1603,11 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* WHITE FLOATING CARD — Fills screen with clean layout */}
+        {/* WHITE FLOATING CARD — Fills screen cleanly */}
         <div className="flex-1 mx-3 mb-2 bg-white rounded-3xl shadow-2xl overflow-hidden relative border border-white/60 flex flex-col">
           <AnimatePresence mode="wait">
             
-            {/* ═══ SLIDE 1: LỘ TRÌNH HỌC (3 BƯỚC SÁT ĐÁY) ═══ */}
+            {/* ═══ SLIDE 1: LỘ TRÌNH HỌC (HERO PROGRESS & 3 BƯỚC) ═══ */}
             {currentSlide === 0 && (
               <motion.div 
                 key="slide0"
@@ -1657,8 +1657,8 @@ export default function Dashboard() {
                     const newPct = nT > 0 ? Math.min(100, Math.round((nL / nT) * 100)) : 100;
                     const revPct = rD > 0 ? Math.min(100, Math.round((rDn / rD) * 100)) : 100;
 
-                    const radius = 28;
-                    const strokeWidth = 5;
+                    const radius = 40;
+                    const strokeWidth = 6.5;
                     const circ = 2 * Math.PI * radius;
                     const off = circ - (circ * pct) / 100;
 
@@ -1685,25 +1685,22 @@ export default function Dashboard() {
                           </div>
                         </div>
 
-                        {/* CARD BODY CONTENT */}
-                        <div className="flex-1 flex flex-col justify-between p-4 overflow-y-auto [&::-webkit-scrollbar]:hidden bg-slate-50/30 gap-3">
+                        {/* CARD BODY CONTENT — EVENLY DISTRIBUTED TO FILL SPACE */}
+                        <div className="flex-1 flex flex-col justify-between p-4 overflow-y-auto [&::-webkit-scrollbar]:hidden bg-gradient-to-b from-white via-indigo-50/10 to-slate-50/30 gap-3">
                           
-                          {/* CLEAN WHITE DECK HEADER CARD WITH PROGRESS RING */}
-                          <div className="bg-white rounded-2xl p-3.5 border border-slate-200/70 shadow-sm flex items-center justify-between flex-shrink-0">
-                            <div className="flex items-center gap-3 min-w-0 flex-1">
-                              <div className="w-11 h-11 rounded-xl bg-gradient-to-tr from-indigo-500 to-purple-600 flex items-center justify-center text-white text-lg overflow-hidden shadow-sm flex-shrink-0">
-                                {deck.cover_image ? <img src={deck.cover_image} alt="" className="w-full h-full object-cover" /> : <span>📘</span>}
+                          {/* HERO TOP AREA WITH BIG PROGRESS RING */}
+                          <div className="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-sm flex flex-col items-center justify-center text-center gap-2.5">
+                            
+                            {/* Deck Title */}
+                            <div className="flex items-center gap-2 max-w-full">
+                              <div className="w-7 h-7 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center text-sm font-bold shrink-0">
+                                📘
                               </div>
-                              <div className="min-w-0 flex-1">
-                                <h4 className="text-xs font-black text-slate-800 truncate">{deck.title}</h4>
-                                <p className="text-[10px] font-bold text-slate-400 mt-0.5">
-                                  Mục tiêu: <span className="text-indigo-600 font-black">{tT} thẻ</span> ({tD}/{tT} đã làm)
-                                </p>
-                              </div>
+                              <h4 className="text-sm font-black text-slate-800 truncate">{deck.title}</h4>
                             </div>
 
-                            {/* CIRCULAR PROGRESS RING */}
-                            <div className="relative w-16 h-16 flex items-center justify-center flex-shrink-0 ml-2">
+                            {/* BIG CIRCULAR PROGRESS RING */}
+                            <div className="relative w-28 h-28 flex items-center justify-center my-1">
                               <svg className="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
                                 <circle cx="50" cy="50" r={radius} fill="transparent" stroke="#f1f5f9" strokeWidth={strokeWidth} />
                                 <circle 
@@ -1720,14 +1717,20 @@ export default function Dashboard() {
                                 />
                               </svg>
                               <div className="absolute flex flex-col items-center justify-center text-center">
-                                <span className="text-xs font-black text-slate-800">{pct}%</span>
-                                <span className="text-[7px] font-bold text-slate-400 uppercase tracking-widest">Tiến độ</span>
+                                <span className="text-2xl font-black text-slate-900 leading-none">{pct}%</span>
+                                <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest mt-1">Tiến độ ngày</span>
                               </div>
                             </div>
+
+                            {/* Target Summary Pill */}
+                            <div className="flex items-center justify-center gap-2 px-3 py-1 bg-slate-100/80 rounded-full border border-slate-200/60 text-[10.5px] font-bold text-slate-600">
+                              <span>Mục tiêu hôm nay: <strong className="text-indigo-600 font-black">{tD}/{tT} thẻ</strong> ({nT} mới + {rD} ôn)</span>
+                            </div>
+
                           </div>
 
-                          {/* 3 STEPS ROADMAP LIST (Sát xuống dưới) */}
-                          <div className="flex flex-col gap-2 mt-auto">
+                          {/* 3 STEPS ROADMAP LIST (Phân bổ đều đẹp mắt) */}
+                          <div className="flex flex-col gap-2">
                             
                             {/* STEP 1: HỌC TỪ MỚI */}
                             <div className={`p-3 rounded-2xl border transition-all flex flex-col gap-1.5 ${
@@ -1799,7 +1802,7 @@ export default function Dashboard() {
 
                           </div>
 
-                          {/* CTA ACTION BUTTON (Cố định phía dưới) */}
+                          {/* CTA ACTION BUTTON */}
                           <div className="pt-1 flex flex-col items-center gap-1 flex-shrink-0">
                             <button
                               onClick={() => { if (nUrl) navigate(nUrl); else navigate(`/flashcard/${deck.deck_id}`); }}
