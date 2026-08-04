@@ -1579,7 +1579,7 @@ export default function Dashboard() {
       {/* MOBILE FEED — Full-screen Card Swiper */}
       <div className="md:hidden flex flex-col bg-gradient-to-br from-indigo-600 via-purple-600 to-fuchsia-600 fixed inset-0 top-0 bottom-[60px] z-[100] overflow-hidden">
         
-        {/* Mobile Header - transparent */}
+        {/* Mobile Top App Bar */}
         <div className="flex items-center justify-between px-4 py-2.5 flex-shrink-0 z-10">
           <Link to="/" className="flex items-center gap-1.5">
             <div className="w-8 h-8 rounded-xl bg-white/20 backdrop-blur-md flex items-center justify-center text-white border border-white/20 shadow-sm">
@@ -1603,11 +1603,11 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* WHITE CARD — fills remaining space with rich content */}
-        <div className="flex-1 mx-3 mb-2 bg-gradient-to-b from-slate-50/80 via-white to-indigo-50/30 rounded-3xl shadow-2xl overflow-hidden relative border border-white/60">
+        {/* WHITE FLOATING CARD — Fills screen with synchronized header */}
+        <div className="flex-1 mx-3 mb-2 bg-white rounded-3xl shadow-2xl overflow-hidden relative border border-white/60 flex flex-col">
           <AnimatePresence mode="wait">
             
-            {/* ═══ SLIDE 1: LỘ TRÌNH ═══ */}
+            {/* ═══ SLIDE 1: LỘ TRÌNH HỌC ═══ */}
             {currentSlide === 0 && (
               <motion.div 
                 key="slide0"
@@ -1623,7 +1623,7 @@ export default function Dashboard() {
                   if (!hasRoadmapDecks) {
                     return (
                       <div className="flex-1 flex flex-col items-center justify-center p-6 text-center">
-                        <div className="w-20 h-20 rounded-3xl bg-indigo-50 flex items-center justify-center mb-4 shadow-inner border border-indigo-100">
+                        <div className="w-20 h-20 rounded-3xl bg-indigo-50 flex items-center justify-center mb-4 border border-indigo-100 shadow-inner">
                           <Compass className="w-10 h-10 text-indigo-500 animate-pulse" />
                         </div>
                         <h3 className="text-base font-black text-slate-800 mb-2">Chưa có lộ trình học</h3>
@@ -1640,7 +1640,7 @@ export default function Dashboard() {
                     );
                   }
 
-                  const renderDeckCard = (deck: any, deckIdx: number, totalDecks: number) => {
+                  const renderRoadmapCard = (deck: any, deckIdx: number, totalDecks: number) => {
                     const st = deck?.status || {};
                     const nT = st.new_target_today || 0;
                     const nL = st.new_learned_today || 0;
@@ -1653,120 +1653,122 @@ export default function Dashboard() {
                     const s2 = st.stage_2_done;
                     const nUrl = st.next_action_url;
 
-                    const radius = 38; 
+                    const radius = 36;
                     const strokeWidth = 6;
                     const circ = 2 * Math.PI * radius;
                     const off = circ - (circ * pct) / 100;
 
                     return (
-                      <div key={deck.deck_id} className="h-full w-full snap-center flex-shrink-0 flex flex-col justify-between p-5 relative overflow-y-auto [&::-webkit-scrollbar]:hidden">
+                      <div key={deck.deck_id} className="h-full w-full snap-center flex-shrink-0 flex flex-col">
                         
-                        {/* Top Header Row inside Card */}
-                        <div className="flex items-center justify-between">
+                        {/* SYNCHRONIZED CARD HEADER */}
+                        <div className="px-5 py-3 flex items-center justify-between border-b border-slate-100 bg-white/90 backdrop-blur-md flex-shrink-0">
                           <div className="flex items-center gap-2">
-                            <span className="px-3 py-1 bg-indigo-600 text-white rounded-full text-[10px] font-black uppercase tracking-wider shadow-sm flex items-center gap-1">
-                              <Target className="w-3 h-3" /> Lộ trình
-                            </span>
-                            {totalDecks > 1 && (
-                              <span className="px-2.5 py-1 bg-slate-100 text-slate-600 rounded-full text-[10px] font-bold">
-                                {deckIdx + 1}/{totalDecks}
-                              </span>
-                            )}
+                            <Target className="w-4 h-4 text-orange-500" />
+                            <h3 className="text-xs font-black text-slate-800 uppercase tracking-widest">
+                              Lộ Trình Học
+                            </h3>
                           </div>
-                          <span className={`text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-full ${
-                            (nL > nT && nT > 0) ? 'bg-emerald-100 text-emerald-700' : s1 ? 'bg-indigo-100 text-indigo-700' : 'bg-amber-100 text-amber-700'
-                          }`}>
-                            {(nL > nT && nT > 0) ? '🚀 Vượt chỉ tiêu' : s1 ? '✓ Đạt chỉ tiêu' : '• Đang tiến hành'}
+                          <span className="text-[10px] font-bold text-slate-500 bg-slate-100 px-2.5 py-1 rounded-full border border-slate-200/50">
+                            {totalDecks > 1 ? `Bộ ${deckIdx + 1}/${totalDecks}` : (nL > nT && nT > 0 ? '🚀 Vượt chỉ tiêu' : s1 ? '✓ Đạt chỉ tiêu' : '• Đang học')}
                           </span>
                         </div>
 
-                        {/* Middle Content Section - Rich Layout */}
-                        <div className="flex flex-col items-center text-center my-auto py-2">
+                        {/* CARD BODY CONTENT */}
+                        <div className="flex-1 flex flex-col justify-between p-4 overflow-y-auto [&::-webkit-scrollbar]:hidden bg-gradient-to-b from-white via-indigo-50/20 to-slate-50/40">
                           
-                          {/* Circular Chart with Center Icon */}
-                          <div className="relative w-24 h-24 flex items-center justify-center my-2">
-                            <svg className="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
-                              <circle cx="50" cy="50" r={radius} fill="transparent" stroke="#e2e8f0" strokeWidth={strokeWidth} />
-                              <circle 
-                                cx="50" 
-                                cy="50" 
-                                r={radius} 
-                                fill="transparent" 
-                                stroke="#6366f1" 
-                                strokeWidth={strokeWidth} 
-                                strokeDasharray={circ} 
-                                strokeDashoffset={off} 
-                                strokeLinecap="round" 
-                                className="transition-all duration-700" 
-                              />
-                            </svg>
-                            <div className="absolute flex flex-col items-center justify-center">
-                              <span className="text-xl font-black text-slate-800">{pct}%</span>
-                              <span className="text-[8px] font-bold text-slate-400 uppercase tracking-widest">Tiến độ</span>
+                          {/* Deck Hero Info Card */}
+                          <div className="bg-white rounded-2xl p-3.5 border border-slate-200/80 shadow-sm flex items-center gap-3.5 flex-shrink-0">
+                            <div className="w-12 h-12 rounded-xl bg-gradient-to-tr from-indigo-500 to-purple-600 flex items-center justify-center text-white text-xl overflow-hidden shadow-md shadow-indigo-500/20 flex-shrink-0">
+                              {deck.cover_image ? <img src={deck.cover_image} alt="" className="w-full h-full object-cover" /> : <span>📘</span>}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <h4 className="text-sm font-black text-slate-800 truncate">{deck.title}</h4>
+                              <p className="text-[11px] font-medium text-slate-400 mt-0.5">
+                                Mục tiêu hôm nay: <span className="font-bold text-slate-700">{tT} thẻ</span>
+                              </p>
                             </div>
                           </div>
 
-                          {/* Deck Title */}
-                          <h3 className="text-base font-black text-slate-800 leading-snug line-clamp-2 px-2 mb-1">
-                            {deck.title}
-                          </h3>
-                          <p className="text-[11px] font-medium text-slate-400 mb-3">
-                            Mục tiêu hôm nay: <span className="font-bold text-slate-700">{tT} thẻ</span>
-                          </p>
-
-                          {/* Detail Breakdown Boxes (Fills empty space with rich info) */}
-                          <div className="grid grid-cols-2 gap-2.5 w-full max-w-[320px] mb-3">
-                            <div className="bg-indigo-50/60 border border-indigo-100 rounded-2xl p-2.5 text-left flex items-center gap-2.5">
-                              <div className="w-8 h-8 rounded-xl bg-indigo-500 text-white flex items-center justify-center text-xs font-bold flex-shrink-0 shadow-sm">
-                                <Sparkles className="w-4 h-4" />
+                          {/* Progress Circle & Stats Center */}
+                          <div className="flex flex-col items-center justify-center py-2 my-auto">
+                            
+                            <div className="relative w-24 h-24 flex items-center justify-center mb-3">
+                              <svg className="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
+                                <circle cx="50" cy="50" r={radius} fill="transparent" stroke="#e2e8f0" strokeWidth={strokeWidth} />
+                                <circle 
+                                  cx="50" 
+                                  cy="50" 
+                                  r={radius} 
+                                  fill="transparent" 
+                                  stroke="#6366f1" 
+                                  strokeWidth={strokeWidth} 
+                                  strokeDasharray={circ} 
+                                  strokeDashoffset={off} 
+                                  strokeLinecap="round" 
+                                  className="transition-all duration-700" 
+                                />
+                              </svg>
+                              <div className="absolute flex flex-col items-center justify-center text-center">
+                                <span className="text-xl font-black text-slate-800">{pct}%</span>
+                                <span className="text-[8px] font-bold text-slate-400 uppercase tracking-widest">Tiến độ</span>
                               </div>
-                              <div className="min-w-0">
-                                <span className="text-[9px] font-bold text-slate-400 uppercase block">Học từ mới</span>
-                                <span className="text-xs font-black text-indigo-700">{nL}/{nT} thẻ</span>
+                            </div>
+
+                            {/* Dual Stage Breakdown Cards */}
+                            <div className="grid grid-cols-2 gap-2.5 w-full">
+                              <div className="bg-white rounded-2xl p-3 border border-indigo-100 shadow-sm flex items-center gap-2.5">
+                                <div className="w-8 h-8 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center flex-shrink-0 font-bold">
+                                  <Sparkles className="w-4 h-4" />
+                                </div>
+                                <div className="min-w-0">
+                                  <span className="text-[9px] font-bold text-slate-400 uppercase block leading-none mb-1">Học mới</span>
+                                  <span className="text-xs font-black text-slate-800">{nL}/{nT} thẻ</span>
+                                </div>
+                              </div>
+
+                              <div className="bg-white rounded-2xl p-3 border border-orange-100 shadow-sm flex items-center gap-2.5">
+                                <div className="w-8 h-8 rounded-xl bg-orange-50 text-orange-600 flex items-center justify-center flex-shrink-0 font-bold">
+                                  <RefreshCw className="w-4 h-4" />
+                                </div>
+                                <div className="min-w-0">
+                                  <span className="text-[9px] font-bold text-slate-400 uppercase block leading-none mb-1">Ôn tập FSRS</span>
+                                  <span className="text-xs font-black text-slate-800">{rDn}/{rD} thẻ</span>
+                                </div>
                               </div>
                             </div>
 
-                            <div className="bg-orange-50/60 border border-orange-100 rounded-2xl p-2.5 text-left flex items-center gap-2.5">
-                              <div className="w-8 h-8 rounded-xl bg-orange-500 text-white flex items-center justify-center text-xs font-bold flex-shrink-0 shadow-sm">
-                                <RefreshCw className="w-4 h-4" />
-                              </div>
-                              <div className="min-w-0">
-                                <span className="text-[9px] font-bold text-slate-400 uppercase block">Ôn tập FSRS</span>
-                                <span className="text-xs font-black text-orange-700">{rDn}/{rD} thẻ</span>
-                              </div>
+                            {/* Quick Badges Row */}
+                            <div className="flex items-center justify-center gap-3 mt-3 text-[10px] font-bold text-slate-400">
+                              <span className="flex items-center gap-1 bg-slate-100/80 px-2.5 py-1 rounded-lg">
+                                <Layers className="w-3 h-3 text-slate-400" /> Tổng {deck.total_cards || 0} thẻ
+                              </span>
+                              <span className="flex items-center gap-1 bg-slate-100/80 px-2.5 py-1 rounded-lg">
+                                <Clock className="w-3 h-3 text-slate-400" /> ~10-15 phút
+                              </span>
                             </div>
+
                           </div>
 
-                          {/* Quick Info Badges Row */}
-                          <div className="flex items-center justify-center gap-2 w-full max-w-[320px] mb-1 text-[10px] font-bold text-slate-500">
-                            <span className="flex items-center gap-1 bg-slate-100 px-2.5 py-1 rounded-lg">
-                              <Layers className="w-3 h-3 text-slate-400" /> Tổng {deck.total_cards || 0} thẻ
-                            </span>
-                            <span className="flex items-center gap-1 bg-slate-100 px-2.5 py-1 rounded-lg">
-                              <Clock className="w-3 h-3 text-slate-400" /> ~10-15 phút
-                            </span>
+                          {/* CTA Button */}
+                          <div className="pt-2 flex flex-col items-center gap-1 flex-shrink-0">
+                            <button
+                              onClick={() => { if (nUrl) navigate(nUrl); else navigate(`/flashcard/${deck.deck_id}`); }}
+                              className="w-full h-13 bg-gradient-to-r from-orange-500 via-rose-500 to-pink-500 active:scale-[0.98] text-white font-black text-xs uppercase tracking-widest rounded-2xl transition-all flex items-center justify-center gap-2 shadow-lg shadow-orange-500/25"
+                            >
+                              <Play className="w-4 h-4 fill-current" />
+                              {s2 ? 'XEM LẠI BÀI HỌC' : s1 ? 'LÀM BÀI TEST NGAY' : 'BẮT ĐẦU HỌC NGAY'}
+                            </button>
+
+                            {totalDecks > 1 && deckIdx < totalDecks - 1 && (
+                              <div className="flex items-center gap-1 text-[10px] font-bold text-indigo-500 animate-bounce pt-1">
+                                <ChevronRight className="w-3 h-3 rotate-90" />
+                                <span>Vuốt xuống để xem bộ tiếp theo</span>
+                              </div>
+                            )}
                           </div>
 
                         </div>
-
-                        {/* Bottom CTA Action Button */}
-                        <div className="w-full flex flex-col items-center gap-1 mt-auto pt-2">
-                          <button
-                            onClick={() => { if (nUrl) navigate(nUrl); else navigate(`/flashcard/${deck.deck_id}`); }}
-                            className="w-full max-w-[320px] h-13 bg-gradient-to-r from-orange-500 via-rose-500 to-pink-500 active:scale-[0.98] text-white font-black text-xs uppercase tracking-widest rounded-2xl transition-all flex items-center justify-center gap-2 shadow-lg shadow-orange-500/25"
-                          >
-                            <Play className="w-4 h-4 fill-current" />
-                            {s2 ? 'XEM LẠI BÀI HỌC' : s1 ? 'LÀM BÀI TEST NGAY' : 'BẮT ĐẦU HỌC NGAY'}
-                          </button>
-
-                          {totalDecks > 1 && deckIdx < totalDecks - 1 && (
-                            <div className="flex items-center gap-1 text-[10px] font-bold text-indigo-500 animate-bounce pt-1">
-                              <ChevronRight className="w-3 h-3 rotate-90" />
-                              <span>Vuốt xuống để xem bộ thẻ tiếp theo</span>
-                            </div>
-                          )}
-                        </div>
-
                       </div>
                     );
                   };
@@ -1774,17 +1776,17 @@ export default function Dashboard() {
                   if (roadmapDecks.length > 1) {
                     return (
                       <div className="flex-1 overflow-y-auto snap-y snap-mandatory [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
-                        {roadmapDecks.map((deck: any, idx: number) => renderDeckCard(deck, idx, roadmapDecks.length))}
+                        {roadmapDecks.map((deck: any, idx: number) => renderRoadmapCard(deck, idx, roadmapDecks.length))}
                       </div>
                     );
                   }
 
-                  return renderDeckCard(roadmapDecks[0], 0, 1);
+                  return renderRoadmapCard(roadmapDecks[0], 0, 1);
                 })()}
               </motion.div>
             )}
 
-            {/* ═══ SLIDE 2: CÁC BỘ THẺ ═══ */}
+            {/* ═══ SLIDE 2: CÁC BỘ THẺ ĐANG HỌC ═══ */}
             {currentSlide === 1 && (
               <motion.div 
                 key="slide1"
@@ -1794,12 +1796,15 @@ export default function Dashboard() {
                 transition={{ duration: 0.2, ease: "easeInOut" }}
                 className="absolute inset-0 flex flex-col"
               >
-                <div className="px-5 pt-4 pb-2 flex items-center justify-between border-b border-slate-100 bg-white/50 backdrop-blur-sm">
+                {/* SYNCHRONIZED CARD HEADER */}
+                <div className="px-5 py-3.5 flex items-center justify-between border-b border-slate-100 bg-white/90 backdrop-blur-md flex-shrink-0">
                   <div className="flex items-center gap-2">
-                    <BookOpen className="w-4 h-4 text-indigo-600" />
-                    <h3 className="text-xs font-black text-slate-800 uppercase tracking-widest">Các Bộ Thẻ Đang Học</h3>
+                    <BookOpen className="w-4 h-4 text-orange-500" />
+                    <h3 className="text-xs font-black text-slate-800 uppercase tracking-widest">
+                      Các Bộ Thẻ Đang Học
+                    </h3>
                   </div>
-                  <span className="text-[10px] font-bold text-slate-400 bg-slate-100 px-2 py-0.5 rounded-full">
+                  <span className="text-[10px] font-bold text-slate-500 bg-slate-100 px-2.5 py-1 rounded-full border border-slate-200/50">
                     {activeDecks?.length || 0} bộ
                   </span>
                 </div>
@@ -1851,12 +1856,19 @@ export default function Dashboard() {
                 transition={{ duration: 0.2, ease: "easeInOut" }}
                 className="absolute inset-0 flex flex-col"
               >
-                <div className="px-5 pt-4 pb-2 flex items-center justify-between border-b border-slate-100 bg-white/50 backdrop-blur-sm">
+                {/* SYNCHRONIZED CARD HEADER */}
+                <div className="px-5 py-3.5 flex items-center justify-between border-b border-slate-100 bg-white/90 backdrop-blur-md flex-shrink-0">
                   <div className="flex items-center gap-2">
-                    <TrendingUp className="w-4 h-4 text-indigo-600" />
-                    <h3 className="text-xs font-black text-slate-800 uppercase tracking-widest">Thống Kê & Phân Tích</h3>
+                    <TrendingUp className="w-4 h-4 text-orange-500" />
+                    <h3 className="text-xs font-black text-slate-800 uppercase tracking-widest">
+                      Thống Kê & Phân Tích
+                    </h3>
                   </div>
+                  <span className="text-[10px] font-bold text-slate-500 bg-slate-100 px-2.5 py-1 rounded-full border border-slate-200/50">
+                    Chi tiết
+                  </span>
                 </div>
+
                 <div className="flex-1 overflow-y-auto px-3.5 py-3 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
                   <div className="flex flex-col gap-3">
                     {heatmapData && heatmapData.length > 0 && <MiniHeatmap data={heatmapData} />}
@@ -1877,12 +1889,19 @@ export default function Dashboard() {
                 transition={{ duration: 0.2, ease: "easeInOut" }}
                 className="absolute inset-0 flex flex-col"
               >
-                <div className="px-5 pt-4 pb-2 flex items-center justify-between border-b border-slate-100 bg-white/50 backdrop-blur-sm">
+                {/* SYNCHRONIZED CARD HEADER */}
+                <div className="px-5 py-3.5 flex items-center justify-between border-b border-slate-100 bg-white/90 backdrop-blur-md flex-shrink-0">
                   <div className="flex items-center gap-2">
                     <Trophy className="w-4 h-4 text-amber-500" />
-                    <h3 className="text-xs font-black text-slate-800 uppercase tracking-widest">Bảng Xếp Hạng</h3>
+                    <h3 className="text-xs font-black text-slate-800 uppercase tracking-widest">
+                      Bảng Xếp Hạng
+                    </h3>
                   </div>
+                  <span className="text-[10px] font-bold text-slate-500 bg-slate-100 px-2.5 py-1 rounded-full border border-slate-200/50">
+                    Tuần này
+                  </span>
                 </div>
+
                 <div className="flex-1 overflow-y-auto px-3.5 py-3 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
                   <div className="flex flex-col gap-3">
                     {leaderboardData && leaderboardData.leaderboard?.length > 0 && (
@@ -1897,40 +1916,36 @@ export default function Dashboard() {
           </AnimatePresence>
         </div>
 
-        {/* NAVIGATION CONTROLS BAR */}
-        <div className="flex items-center justify-center gap-3 pb-2 flex-shrink-0">
-          <div className="flex items-center justify-center gap-3">
-            <button 
-              onClick={() => setCurrentSlide(prev => Math.max(0, prev - 1))}
-              disabled={currentSlide === 0}
-              className="w-9 h-9 rounded-full bg-white/20 border border-white/30 flex items-center justify-center text-white shadow-md disabled:opacity-20 active:scale-90 transition-all cursor-pointer"
-            >
-              <ChevronRight className="w-4 h-4 rotate-180" />
-            </button>
-
-            <div className="flex items-center gap-1.5">
-              {[0, 1, 2, 3].map(idx => (
-                <button
-                  key={idx}
-                  onClick={() => setCurrentSlide(idx)}
-                  className={cn(
-                    "h-2 transition-all duration-300 rounded-full cursor-pointer",
-                    currentSlide === idx 
-                      ? "w-6 bg-white shadow-[0_0_8px_rgba(255,255,255,0.7)]" 
-                      : "w-2 bg-white/30 hover:bg-white/50"
-                  )}
-                />
-              ))}
-            </div>
-
-            <button 
-              onClick={() => setCurrentSlide(prev => Math.min(3, prev + 1))}
-              disabled={currentSlide === 3}
-              className="w-9 h-9 rounded-full bg-white/90 border border-white flex items-center justify-center text-slate-800 shadow-md disabled:opacity-20 active:scale-90 transition-all cursor-pointer"
-            >
-              <ChevronRight className="w-4 h-4" />
-            </button>
+        {/* BOTTOM NAVIGATION CONTROLS BAR */}
+        <div className="flex items-center justify-center gap-4 py-2 flex-shrink-0 z-10">
+          <button 
+            onClick={() => setCurrentSlide(prev => Math.max(0, prev - 1))}
+            disabled={currentSlide === 0}
+            className="w-10 h-10 rounded-full bg-white/20 border border-white/30 flex items-center justify-center text-white shadow-lg disabled:opacity-20 active:scale-90 transition-all cursor-pointer"
+          >
+            <ChevronRight className="w-5 h-5 rotate-180" />
+          </button>
+          <div className="flex items-center gap-2">
+            {[0, 1, 2, 3].map(idx => (
+              <button
+                key={idx}
+                onClick={() => setCurrentSlide(idx)}
+                className={cn(
+                  "h-2 transition-all duration-300 rounded-full cursor-pointer",
+                  currentSlide === idx 
+                    ? "w-7 bg-white shadow-[0_0_10px_rgba(255,255,255,0.6)]" 
+                    : "w-2 bg-white/35 hover:bg-white/55"
+                )}
+              />
+            ))}
           </div>
+          <button 
+            onClick={() => setCurrentSlide(prev => Math.min(3, prev + 1))}
+            disabled={currentSlide === 3}
+            className="w-10 h-10 rounded-full bg-white/90 border border-white flex items-center justify-center text-slate-800 shadow-lg disabled:opacity-20 active:scale-90 transition-all cursor-pointer"
+          >
+            <ChevronRight className="w-5 h-5" />
+          </button>
         </div>
 
       </div>
