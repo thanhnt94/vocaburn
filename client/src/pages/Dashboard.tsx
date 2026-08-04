@@ -1487,97 +1487,21 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* DESKTOP LAYOUT */}
-      <div className="hidden md:flex w-full h-full overflow-hidden px-8 py-6 gap-8">
 
-        {/* LEFT COLUMN: Sidebar */}
-        <aside className="w-80 flex-shrink-0 flex flex-col gap-5 h-full overflow-y-auto pr-2 pb-6 scrollbar-thin">
-
-          {/* User profile card */}
-          <div className="bg-white/40 backdrop-blur-md border border-white/40 rounded-[2rem] p-6 shadow-sm shadow-slate-100/40 flex flex-col gap-4 text-left relative overflow-hidden flex-shrink-0">
-            <div className="absolute -right-8 -top-8 w-24 h-24 rounded-full bg-indigo-50/40 blur-md pointer-events-none" />
-
-            <div className="flex items-center gap-3.5 z-10">
-              <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-indigo-500 via-purple-500 to-pink-500 flex items-center justify-center text-white shadow-md text-2xl shadow-indigo-100">
-                👋
-              </div>
-              <div>
-                <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none">Welcome back</span>
-                <h2 className="text-base font-black text-slate-800 leading-tight mt-0.5 truncate max-w-[170px]">
-                  {data.user?.username}
-                </h2>
-              </div>
-            </div>
-
-            <div className="flex flex-col gap-2 mt-1">
-              <div className="flex items-center justify-between p-3.5 bg-[#F8FAFC]/75 border-none rounded-2xl transition-colors hover:bg-[#F8FAFC]">
-                <div className="flex items-center gap-2">
-                  <Flame className="w-4 h-4 text-orange-500 animate-pulse" />
-                  <span className="text-[10px] font-black text-slate-500 uppercase tracking-wider">Streak</span>
-                </div>
-                <span className="text-xs font-black text-orange-655 bg-white px-3 py-1 rounded-xl shadow-sm border border-slate-100/50">{data.gamify?.streak} ngày 🔥</span>
-              </div>
-
-              <div className="flex items-center justify-between p-3.5 bg-[#F8FAFC]/75 border-none rounded-2xl transition-colors hover:bg-[#F8FAFC]">
-                <div className="flex items-center gap-2">
-                  <Zap className="w-4 h-4 text-indigo-500" />
-                  <span className="text-[10px] font-black text-slate-500 uppercase tracking-wider">Level</span>
-                </div>
-                <span className="text-xs font-black text-indigo-650 bg-white px-3 py-1 rounded-xl shadow-sm border border-slate-100/50">Lvl {data.gamify?.level} ⭐</span>
-              </div>
-
-              {/* XP progress to next level */}
-              <div className="px-1 mt-1.5">
-                <div className="flex justify-between text-[8px] font-black text-slate-400 mb-1.5">
-                  <span>{data.gamify?.xp} XP</span>
-                  <span>{(data.gamify?.level || 1) * 1000} XP next lv</span>
-                </div>
-                <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden">
-                  <div
-                    className="h-full bg-gradient-to-r from-indigo-500 to-purple-500 rounded-full transition-all"
-                    style={{ width: `${Math.min(100, ((data.gamify?.xp || 0) % 1000) / 10)}%` }}
-                  />
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Heatmap */}
-          {heatmapData && heatmapData.length > 0 && <MiniHeatmap data={heatmapData} />}
-
-          {/* Leaderboard */}
-          {leaderboardData && leaderboardData.leaderboard?.length > 0 && (
-            <LeaderboardWidget data={leaderboardData} activeFilter={timeFilter} onFilterChange={setTimeFilter} />
-          )}
-
-        </aside>
-
-        {/* MAIN FEED: Scrollable container */}
-        <section className="flex-1 h-full flex flex-col gap-5 overflow-y-auto pr-2 scrollbar-thin text-left pb-8">
-          
-          <TodayFocusWidget
-            roadmapDecks={roadmapDecks}
-            onStartPractice={(quiz) => {
-              setSelectedPracticeQuiz(quiz)
-              setIsPracticeModalOpen(true)
-            }}
-            navigate={navigate}
-          />
-
-          {/* Charts Side-by-Side Grid */}
-          <div className="grid grid-cols-1 xl:grid-cols-2 gap-5 w-full">
-            <ReviewForecastWidget data={forecastData} />
-            <DailyComparisonChart data={dailyComparisonData} allTimeAvg={dailyComparisonAvg} isLoading={isDailyComparisonLoading} />
-          </div>
-
-          {/* Badge Progress Roadmap Footer */}
-          {badgesProgress && <BadgeProgressWidget data={badgesProgress} />}
-        </section>
-      </div>
-
-      {/* MOBILE FEED */}
-      <div className="md:hidden px-4 w-full pt-[60px] flex-grow space-y-4 overflow-y-auto pb-28 scrollbar-none text-left bg-gradient-to-b from-slate-50/60 via-indigo-50/10 to-slate-50/80">
-
+      {/* ── UNIFIED FEED (Desktop Horizontal Swiper / Mobile Vertical) ── */}
+      <div 
+        className="w-full flex-grow text-left bg-gradient-to-b from-slate-50/60 via-indigo-50/10 to-slate-50/80 flex flex-col md:flex-row md:overflow-x-auto md:snap-x md:snap-mandatory md:overflow-y-hidden scrollbar-none pb-28 md:pb-0 pt-[60px] md:pt-0"
+        onWheel={(e) => {
+          if (window.innerWidth >= 768 && e.currentTarget) {
+            if (e.deltaY !== 0) {
+              e.preventDefault();
+              e.currentTarget.scrollLeft += e.deltaY;
+            }
+          }
+        }}
+      >
+        {/* SLIDE 1: TIẾN ĐỘ LỘ TRÌNH & ACTIVE DECKS */}
+        <div className="w-full md:min-w-[450px] md:w-[45vw] lg:w-[35vw] md:shrink-0 md:snap-center md:h-full md:overflow-y-auto p-4 md:p-8 flex flex-col gap-5 border-r border-slate-100/50">
         {/* ── Mobile Unified Roadmap Progress Card with Navigation Controls ── */}
         {(() => {
           const hasRoadmapDecks = roadmapDecks && roadmapDecks.length > 0;
@@ -1803,21 +1727,54 @@ export default function Dashboard() {
         )}
 
         {/* ── Heatmap & Leaderboard directly integrated underneath ── */}
-        {heatmapData && heatmapData.length > 0 && (
-          <div className="pt-2">
-            <MiniHeatmap data={heatmapData} />
-          </div>
-        )}
 
-        {leaderboardData && leaderboardData.leaderboard?.length > 0 && (
-          <div className="pt-1 pb-4">
+        </div>
+
+        {/* SLIDE 2: THỐNG KÊ (STATS & HEATMAP) */}
+        <div className="w-full md:min-w-[450px] md:w-[50vw] lg:w-[40vw] md:shrink-0 md:snap-center md:h-full md:overflow-y-auto p-4 md:p-8 flex flex-col gap-5 border-r border-slate-100/50">
+          {heatmapData && heatmapData.length > 0 && <MiniHeatmap data={heatmapData} />}
+          <div className="grid grid-cols-1 gap-5 w-full">
+            <ReviewForecastWidget data={forecastData} />
+            <DailyComparisonChart data={dailyComparisonData} allTimeAvg={dailyComparisonAvg} isLoading={isDailyComparisonLoading} />
+          </div>
+        </div>
+
+        {/* SLIDE 3: LEADERBOARD & BADGES & PROFILE */}
+        <div className="w-full md:min-w-[400px] md:w-[40vw] lg:w-[30vw] md:shrink-0 md:snap-center md:h-full md:overflow-y-auto p-4 md:p-8 flex flex-col gap-5">
+          {/* User profile card (Compact) */}
+          <div className="hidden md:flex bg-white/40 backdrop-blur-md border border-white/40 rounded-[2rem] p-6 shadow-sm shadow-slate-100/40 flex-col gap-4 text-left relative overflow-hidden flex-shrink-0">
+            <div className="absolute -right-8 -top-8 w-24 h-24 rounded-full bg-indigo-50/40 blur-md pointer-events-none" />
+            <div className="flex items-center gap-3.5 z-10">
+              <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-indigo-500 via-purple-500 to-pink-500 flex items-center justify-center text-white shadow-md text-2xl shadow-indigo-100">👋</div>
+              <div>
+                <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none">Welcome back</span>
+                <h2 className="text-base font-black text-slate-800 leading-tight mt-0.5 truncate max-w-[170px]">{data.user?.username}</h2>
+              </div>
+            </div>
+            <div className="flex flex-col gap-2 mt-1">
+              <div className="flex items-center justify-between p-3.5 bg-[#F8FAFC]/75 border-none rounded-2xl">
+                <div className="flex items-center gap-2">
+                  <Flame className="w-4 h-4 text-orange-500 animate-pulse" />
+                  <span className="text-[10px] font-black text-slate-500 uppercase tracking-wider">Streak</span>
+                </div>
+                <span className="text-xs font-black text-orange-655 bg-white px-3 py-1 rounded-xl shadow-sm border border-slate-100/50">{data.gamify?.streak} ngày 🔥</span>
+              </div>
+              <div className="flex items-center justify-between p-3.5 bg-[#F8FAFC]/75 border-none rounded-2xl">
+                <div className="flex items-center gap-2">
+                  <Zap className="w-4 h-4 text-indigo-500" />
+                  <span className="text-[10px] font-black text-slate-500 uppercase tracking-wider">Level</span>
+                </div>
+                <span className="text-xs font-black text-indigo-650 bg-white px-3 py-1 rounded-xl shadow-sm border border-slate-100/50">Lvl {data.gamify?.level} ⭐</span>
+              </div>
+            </div>
+          </div>
+
+          {leaderboardData && leaderboardData.leaderboard?.length > 0 && (
             <LeaderboardWidget data={leaderboardData} activeFilter={timeFilter} onFilterChange={setTimeFilter} />
-          </div>
-        )}
-
+          )}
+          {badgesProgress && <BadgeProgressWidget data={badgesProgress} />}
+        </div>
       </div>
-
-      {/* JOIN ROOM MODAL */}
       <AnimatePresence>
         {isJoinModalOpen && (
           <div className="fixed inset-0 z-[1000] flex items-center justify-center p-6">
