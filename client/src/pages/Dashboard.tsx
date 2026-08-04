@@ -1448,13 +1448,13 @@ export default function Dashboard() {
   )
 
   return (
-    <div className="flex flex-col bg-gradient-to-br from-indigo-500 via-purple-500 to-fuchsia-500 h-[calc(100vh-60px)] md:h-screen w-full relative overflow-hidden">
+    <div className="flex flex-col bg-gradient-to-br from-indigo-500 via-purple-500 to-fuchsia-500 h-[calc(100vh-60px)] md:h-[calc(100vh-80px)] w-full relative overflow-hidden">
       
-      {/* MOBILE HEADER */}
-      <div className="fixed top-0 left-0 right-0 z-[150] bg-transparent md:hidden flex-shrink-0 pointer-events-none pt-2">
-        <div className="px-4 py-2 flex items-center justify-between pointer-events-auto">
-          <Link to="/" className="flex items-center gap-1.5 flex-shrink-0">
-            <div className="w-8 h-8 rounded-xl bg-white/20 backdrop-blur-md flex items-center justify-center text-white shadow-sm border border-white/20">
+      {/* MOBILE HEADER - transparent overlay */}
+      <div className="fixed top-0 left-0 right-0 z-[150] md:hidden pointer-events-none">
+        <div className="px-4 py-3 flex items-center justify-between pointer-events-auto">
+          <Link to="/" className="flex items-center gap-1.5">
+            <div className="w-8 h-8 rounded-xl bg-white/20 backdrop-blur-md flex items-center justify-center text-white border border-white/20">
               <BookOpen className="w-4 h-4" />
             </div>
             <span className="text-[13px] font-black text-white tracking-tight">
@@ -1462,156 +1462,174 @@ export default function Dashboard() {
             </span>
           </Link>
           <div className="flex items-center gap-2">
-            <span className="flex items-center gap-0.5 px-2.5 py-1 bg-white/10 backdrop-blur-sm border border-white/20 rounded-full text-[10px] font-bold text-white">
+            <span className="flex items-center gap-0.5 px-2.5 py-1 bg-white/15 backdrop-blur-sm border border-white/20 rounded-full text-[10px] font-bold text-white">
               Lv {data.gamify?.level}
             </span>
-            <span className="flex items-center gap-1 px-2.5 py-1 bg-white/10 backdrop-blur-sm border border-white/20 rounded-full text-[10px] font-bold text-white">
+            <span className="flex items-center gap-1 px-2.5 py-1 bg-white/15 backdrop-blur-sm border border-white/20 rounded-full text-[10px] font-bold text-white">
               <Flame className="w-3.5 h-3.5 fill-orange-400 text-orange-400" />
               {data.gamify?.streak}d
             </span>
-            <Link to="/profile" className="w-8 h-8 rounded-full bg-white/10 backdrop-blur-sm border border-white/20 flex items-center justify-center text-white shadow-sm overflow-hidden active:scale-95 transition-all">
+            <Link to="/profile" className="w-8 h-8 rounded-full bg-white/15 backdrop-blur-sm border border-white/20 flex items-center justify-center text-white active:scale-95 transition-all">
               <User className="w-4 h-4" />
             </Link>
           </div>
         </div>
       </div>
 
-      {/* MAIN CAROUSEL CONTAINER */}
-      <div className="flex-1 w-full flex items-center justify-center relative px-4 md:px-12 pb-20 pt-16 md:py-16">
+      {/* MAIN CONTENT AREA */}
+      <div className="flex-1 flex flex-col pt-14 md:pt-4 pb-2 px-3 md:px-12 overflow-hidden">
         
-        {/* Navigation Buttons (Desktop) */}
-        <div className="hidden md:flex absolute top-1/2 left-4 md:left-8 -translate-y-1/2 z-[100]">
-          <button 
-            onClick={() => setCurrentSlide(prev => Math.max(0, prev - 1))}
-            disabled={currentSlide === 0}
-            className="w-12 h-12 rounded-full bg-white/20 backdrop-blur-xl border border-white/30 flex items-center justify-center text-white shadow-xl hover:bg-white/30 disabled:opacity-30 transition-all cursor-pointer"
-          >
-            <ChevronRight className="w-6 h-6 rotate-180" />
-          </button>
-        </div>
-        
-        <div className="hidden md:flex absolute top-1/2 right-4 md:right-8 -translate-y-1/2 z-[100]">
-          <button 
-            onClick={() => setCurrentSlide(prev => Math.min(3, prev + 1))}
-            disabled={currentSlide === 3}
-            className="w-12 h-12 rounded-full bg-white/20 backdrop-blur-xl border border-white/30 flex items-center justify-center text-white shadow-xl hover:bg-white/30 disabled:opacity-30 transition-all cursor-pointer"
-          >
-            <ChevronRight className="w-6 h-6" />
-          </button>
-        </div>
-
-        {/* SWIPER CONTENT */}
-        <div className="relative w-full max-w-[420px] md:max-w-[480px] h-full max-h-[700px] flex items-center justify-center">
+        {/* WHITE CARD — fills remaining space */}
+        <div className="bg-white rounded-3xl shadow-2xl flex-1 overflow-hidden relative">
           <AnimatePresence mode="wait">
             
-            {/* SLIDE 1: TIẾN ĐỘ LỘ TRÌNH */}
+            {/* ═══ SLIDE 1: LỘ TRÌNH ═══ */}
             {currentSlide === 0 && (
               <motion.div 
                 key="slide0"
-                initial={{ opacity: 0, x: 50, scale: 0.95 }}
-                animate={{ opacity: 1, x: 0, scale: 1 }}
-                exit={{ opacity: 0, x: -50, scale: 0.95 }}
-                transition={{ duration: 0.3 }}
-                className="w-full absolute"
+                initial={{ opacity: 0, x: 60 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -60 }}
+                transition={{ duration: 0.25, ease: "easeInOut" }}
+                className="absolute inset-0 flex flex-col"
               >
                 {(() => {
                   const hasRoadmapDecks = roadmapDecks && roadmapDecks.length > 0;
+                  
                   if (!hasRoadmapDecks) {
                     return (
-                      <div className="bg-white/95 backdrop-blur-2xl rounded-[2.5rem] p-8 text-center border border-white/60 shadow-2xl shadow-indigo-900/30 flex flex-col items-center justify-center">
-                        <div className="w-16 h-16 rounded-full bg-indigo-50 flex items-center justify-center mb-4">
-                          <Compass className="w-8 h-8 text-indigo-400" />
+                      <div className="flex-1 flex flex-col items-center justify-center p-8 text-center">
+                        <div className="w-20 h-20 rounded-2xl bg-indigo-50 flex items-center justify-center mb-6">
+                          <Compass className="w-10 h-10 text-indigo-400" />
                         </div>
-                        <h3 className="text-sm font-black text-slate-800 uppercase tracking-widest">Chưa có lộ trình</h3>
-                        <p className="text-xs text-slate-500 mt-3 leading-relaxed max-w-[260px] mx-auto">
-                          Hãy chọn một bộ thẻ từ thư viện và bật "Lộ trình học" để hệ thống thiết lập mục tiêu hàng ngày.
+                        <h3 className="text-base font-black text-slate-800 mb-2">Chưa có lộ trình</h3>
+                        <p className="text-sm text-slate-400 leading-relaxed max-w-[280px] mx-auto mb-8">
+                          Hãy chọn một bộ thẻ từ thư viện và bật "Lộ trình học" để hệ thống thiết lập mục tiêu hàng ngày cho bạn.
                         </p>
                         <button
                           onClick={() => navigate('/library')}
-                          className="mt-6 w-full h-12 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl text-xs font-black uppercase tracking-widest transition-all active:scale-[0.98] shadow-lg shadow-indigo-200"
+                          className="w-full max-w-[280px] h-14 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl text-sm font-black uppercase tracking-wider transition-all active:scale-[0.98] shadow-lg shadow-indigo-200"
                         >
-                          Đi tới Thư viện
+                          Đi tới Thư viện →
                         </button>
                       </div>
                     );
                   }
 
-                  const currentIdx = Math.min(mobileRoadmapIdx, roadmapDecks.length - 1);
-                  const currentDeck = roadmapDecks[currentIdx];
-                  const status = currentDeck?.status || {};
+                  // If multiple roadmap decks → vertical snap scroll
+                  if (roadmapDecks.length > 1) {
+                    return (
+                      <div className="flex-1 overflow-y-auto snap-y snap-mandatory [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+                        {roadmapDecks.map((deck: any, deckIdx: number) => {
+                          const status = deck?.status || {};
+                          const newTarget = status.new_target_today || 0;
+                          const newLearned = status.new_learned_today || 0;
+                          const reviewDue = status.review_due_today || 0;
+                          const reviewDone = status.review_completed_today || 0;
+                          const totalTasks = newTarget + reviewDue;
+                          const totalDone = newLearned + reviewDone;
+                          const pct = totalTasks > 0 ? Math.min(100, Math.round((totalDone / totalTasks) * 100)) : 100;
+                          const isS1Done = status.stage_1_done;
+                          const isS2Done = status.stage_2_done;
+                          const nextUrl = status.next_action_url;
+                          const r = 42; const sw = 7;
+                          const circ = 2 * Math.PI * r;
+                          const off = circ - (circ * pct) / 100;
 
+                          return (
+                            <div key={deck.deck_id} className="h-full w-full snap-center flex-shrink-0 flex flex-col items-center justify-center p-6 md:p-10 relative">
+                              {/* Deck counter */}
+                              <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-6">
+                                🎯 Lộ trình · {deckIdx + 1}/{roadmapDecks.length}
+                              </span>
+
+                              {/* Circle */}
+                              <div className="relative w-28 h-28 md:w-32 md:h-32 flex items-center justify-center mb-6">
+                                <svg className="w-full h-full transform -rotate-90">
+                                  <circle cx="50%" cy="50%" r={r} fill="transparent" stroke="#f1f5f9" strokeWidth={sw} />
+                                  <circle cx="50%" cy="50%" r={r} fill="transparent" stroke="#6366f1" strokeWidth={sw} strokeDasharray={circ} strokeDashoffset={off} strokeLinecap="round" className="transition-all duration-700" />
+                                </svg>
+                                <span className="absolute text-2xl md:text-3xl font-black text-slate-800">{pct}%</span>
+                              </div>
+
+                              {/* Info */}
+                              <h3 className="text-lg md:text-xl font-black text-slate-800 text-center mb-2 px-4 leading-tight">{deck.title}</h3>
+                              <div className="flex items-center gap-3 text-xs text-slate-500 font-bold mb-4">
+                                <span>Học mới: <span className="text-indigo-600 font-black">{newLearned}/{newTarget}</span></span>
+                                <span className="text-slate-200">·</span>
+                                <span>Ôn tập: <span className="text-indigo-600 font-black">{reviewDone}/{reviewDue}</span></span>
+                              </div>
+
+                              <span className={`text-[9px] font-black uppercase tracking-widest px-3 py-1 rounded-full mb-8 ${(newLearned > newTarget && newTarget > 0) ? 'bg-emerald-50 text-emerald-600 border border-emerald-200' : isS1Done ? 'bg-indigo-50 text-indigo-600 border border-indigo-200' : 'bg-amber-50 text-amber-600 border border-amber-200'}`}>
+                                {(newLearned > newTarget && newTarget > 0) ? '🚀 Vượt mục tiêu' : isS1Done ? '✓ Đạt chỉ tiêu' : '• Đang học'}
+                              </span>
+
+                              {/* CTA */}
+                              <button
+                                onClick={() => { if (nextUrl) navigate(nextUrl); else navigate(`/flashcard/${deck.deck_id}`); }}
+                                className="w-full max-w-[320px] h-14 bg-gradient-to-r from-orange-500 to-rose-500 hover:opacity-90 active:scale-[0.98] text-white font-black text-sm uppercase tracking-widest rounded-2xl transition-all flex items-center justify-center gap-2 shadow-lg shadow-orange-200"
+                              >
+                                <Play className="w-4 h-4 fill-current" />
+                                {isS2Done ? 'XEM LẠI' : isS1Done ? 'BÀI TEST' : 'BẮT ĐẦU'}
+                              </button>
+
+                              {/* Scroll hint */}
+                              {deckIdx === 0 && roadmapDecks.length > 1 && (
+                                <p className="absolute bottom-4 text-[10px] font-bold text-slate-300 animate-bounce">↕ Lướt để xem bộ thẻ khác</p>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    );
+                  }
+
+                  // Single roadmap deck
+                  const currentDeck = roadmapDecks[0];
+                  const status = currentDeck?.status || {};
                   const newTarget = status.new_target_today || 0;
                   const newLearned = status.new_learned_today || 0;
                   const reviewDue = status.review_due_today || 0;
                   const reviewDone = status.review_completed_today || 0;
-
                   const totalTasks = newTarget + reviewDue;
                   const totalDone = newLearned + reviewDone;
                   const percentComplete = totalTasks > 0 ? Math.min(100, Math.round((totalDone / totalTasks) * 100)) : 100;
                   const isStage1Done = status.stage_1_done;
                   const isStage2Done = status.stage_2_done;
                   const nextActionUrl = status.next_action_url;
-
-                  const radius = 35;
-                  const strokeWidth = 6;
+                  const radius = 42; const strokeWidth = 7;
                   const circumference = 2 * Math.PI * radius;
                   const strokeDashoffset = circumference - (circumference * percentComplete) / 100;
 
                   return (
-                    <div className="bg-white/95 backdrop-blur-2xl rounded-[2.5rem] p-7 border border-white/60 shadow-2xl shadow-indigo-900/30 relative overflow-hidden flex flex-col gap-6 w-full">
-                      <div className="flex items-center justify-between">
-                        <span className="text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-full bg-indigo-50 text-indigo-600 border border-indigo-100/50">
-                          🎯 Lộ Trình
-                        </span>
+                    <div className="flex-1 flex flex-col items-center justify-center p-6 md:p-10">
+                      <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-6">🎯 Lộ trình</span>
+
+                      <div className="relative w-28 h-28 md:w-32 md:h-32 flex items-center justify-center mb-6">
+                        <svg className="w-full h-full transform -rotate-90">
+                          <circle cx="50%" cy="50%" r={radius} fill="transparent" stroke="#f1f5f9" strokeWidth={strokeWidth} />
+                          <circle cx="50%" cy="50%" r={radius} fill="transparent" stroke="#6366f1" strokeWidth={strokeWidth} strokeDasharray={circumference} strokeDashoffset={strokeDashoffset} strokeLinecap="round" className="transition-all duration-700" />
+                        </svg>
+                        <span className="absolute text-2xl md:text-3xl font-black text-slate-800">{percentComplete}%</span>
                       </div>
 
-                      <div className="flex flex-col items-center gap-6 mt-2">
-                        <div className="relative w-24 h-24 flex-shrink-0 flex items-center justify-center">
-                          <svg className="w-full h-full transform -rotate-90">
-                            <circle cx="48" cy="48" r={radius} fill="transparent" stroke="#f1f5f9" strokeWidth={strokeWidth} />
-                            <circle
-                              cx="48"
-                              cy="48"
-                              r={radius}
-                              fill="transparent"
-                              stroke="#6366f1"
-                              strokeWidth={strokeWidth}
-                              strokeDasharray={circumference}
-                              strokeDashoffset={strokeDashoffset}
-                              strokeLinecap="round"
-                              className="transition-all duration-500"
-                            />
-                          </svg>
-                          <div className="absolute flex flex-col items-center justify-center text-center">
-                            <span className="text-xl font-black text-slate-800">{percentComplete}%</span>
-                          </div>
-                        </div>
-
-                        <div className="flex flex-col items-center text-center">
-                          <h3 className="text-lg font-black text-slate-800 leading-tight mb-2">
-                            {currentDeck?.title}
-                          </h3>
-                          <div className="flex items-center gap-3 text-xs text-slate-500 font-bold mb-3">
-                            <span>Học mới: <span className="text-indigo-600 font-black">{newLearned}/{newTarget}</span></span>
-                            <span className="text-slate-300">·</span>
-                            <span>Ôn tập: <span className="text-indigo-600 font-black">{reviewDone}/{reviewDue}</span></span>
-                          </div>
-                          
-                          <span className={`text-[9px] font-black uppercase tracking-widest px-3 py-1 rounded-full ${(newLearned > newTarget && newTarget > 0) ? 'bg-emerald-50 text-emerald-600' : isStage1Done ? 'bg-indigo-50 text-indigo-600' : 'bg-amber-50 text-amber-600'}`}>
-                            {(newLearned > newTarget && newTarget > 0) ? '🚀 Vượt mục tiêu' : isStage1Done ? '✓ Đạt chỉ tiêu' : '• Đang học'}
-                          </span>
-                        </div>
+                      <h3 className="text-lg md:text-xl font-black text-slate-800 text-center mb-2 px-4 leading-tight">{currentDeck?.title}</h3>
+                      <div className="flex items-center gap-3 text-xs text-slate-500 font-bold mb-4">
+                        <span>Học mới: <span className="text-indigo-600 font-black">{newLearned}/{newTarget}</span></span>
+                        <span className="text-slate-200">·</span>
+                        <span>Ôn tập: <span className="text-indigo-600 font-black">{reviewDone}/{reviewDue}</span></span>
                       </div>
+
+                      <span className={`text-[9px] font-black uppercase tracking-widest px-3 py-1 rounded-full mb-8 ${(newLearned > newTarget && newTarget > 0) ? 'bg-emerald-50 text-emerald-600 border border-emerald-200' : isStage1Done ? 'bg-indigo-50 text-indigo-600 border border-indigo-200' : 'bg-amber-50 text-amber-600 border border-amber-200'}`}>
+                        {(newLearned > newTarget && newTarget > 0) ? '🚀 Vượt mục tiêu' : isStage1Done ? '✓ Đạt chỉ tiêu' : '• Đang học'}
+                      </span>
 
                       <button
-                        onClick={() => {
-                          if (nextActionUrl) navigate(nextActionUrl);
-                          else navigate(`/flashcard/${currentDeck.deck_id}`);
-                        }}
-                        className="w-full h-14 bg-gradient-to-r from-indigo-600 to-indigo-500 hover:opacity-90 active:scale-[0.98] text-white font-black text-sm uppercase tracking-widest rounded-2xl transition-all flex items-center justify-center gap-2 shadow-xl shadow-indigo-200 mt-2"
+                        onClick={() => { if (nextActionUrl) navigate(nextActionUrl); else navigate(`/flashcard/${currentDeck.deck_id}`); }}
+                        className="w-full max-w-[320px] h-14 bg-gradient-to-r from-orange-500 to-rose-500 hover:opacity-90 active:scale-[0.98] text-white font-black text-sm uppercase tracking-widest rounded-2xl transition-all flex items-center justify-center gap-2 shadow-lg shadow-orange-200"
                       >
                         <Play className="w-4 h-4 fill-current" />
-                        {isStage2Done ? 'XEM LẠI' : 'BẮT ĐẦU'}
+                        {isStage2Done ? 'XEM LẠI' : isStage1Done ? 'BÀI TEST' : 'BẮT ĐẦU'}
                       </button>
                     </div>
                   );
@@ -1619,118 +1637,184 @@ export default function Dashboard() {
               </motion.div>
             )}
 
-            {/* SLIDE 2: CÁC BỘ THẺ */}
+            {/* ═══ SLIDE 2: CÁC BỘ THẺ ĐANG HỌC ═══ */}
             {currentSlide === 1 && (
               <motion.div 
                 key="slide1"
-                initial={{ opacity: 0, x: 50, scale: 0.95 }}
-                animate={{ opacity: 1, x: 0, scale: 1 }}
-                exit={{ opacity: 0, x: -50, scale: 0.95 }}
-                transition={{ duration: 0.3 }}
-                className="w-full absolute flex flex-col gap-4"
+                initial={{ opacity: 0, x: 60 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -60 }}
+                transition={{ duration: 0.25, ease: "easeInOut" }}
+                className="absolute inset-0 flex flex-col"
               >
-                <h3 className="text-center text-white/90 text-sm font-black uppercase tracking-widest mb-2 shadow-sm">Các Bộ Thẻ Đang Học</h3>
+                <div className="px-6 pt-6 pb-3">
+                  <h3 className="text-sm font-black text-slate-800 uppercase tracking-widest">📚 Các Bộ Thẻ Đang Học</h3>
+                </div>
                 
-                {activeDecks && activeDecks.length > 0 ? (
-                  <div className="flex flex-col gap-3 max-h-[60vh] overflow-y-auto scrollbar-none pb-4">
-                    {activeDecks.map((deck: any) => (
-                      <div
-                        key={deck.deck_id}
-                        onClick={() => navigate(`/flashcard/${deck.deck_id}`)}
-                        className="bg-white/95 backdrop-blur-xl rounded-[1.5rem] border border-white/60 p-4 shadow-xl shadow-indigo-900/20 cursor-pointer active:scale-95 transition-all w-full flex items-center justify-between"
-                      >
-                        <div className="flex items-center gap-4">
-                          <div className="w-12 h-12 rounded-xl bg-slate-50 flex items-center justify-center text-xl overflow-hidden border border-slate-100">
-                            {deck.cover_image ? <img src={deck.cover_image} className="w-full h-full object-cover" /> : <span>📘</span>}
+                <div className="flex-1 overflow-y-auto px-4 pb-4 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+                  {activeDecks && activeDecks.length > 0 ? (
+                    <div className="flex flex-col gap-3">
+                      {activeDecks.map((deck: any) => (
+                        <div
+                          key={deck.deck_id}
+                          onClick={() => navigate(`/flashcard/${deck.deck_id}`)}
+                          className="bg-gradient-to-r from-slate-50 to-indigo-50/30 rounded-2xl border border-slate-100 p-4 cursor-pointer active:scale-[0.98] transition-all w-full flex items-center gap-4"
+                        >
+                          <div className="w-12 h-12 rounded-xl bg-white flex items-center justify-center text-xl overflow-hidden border border-slate-100 shadow-sm flex-shrink-0">
+                            {deck.cover_image ? <img src={deck.cover_image} alt="" className="w-full h-full object-cover" /> : <span>📘</span>}
                           </div>
-                          <div className="flex flex-col text-left">
-                            <h4 className="text-sm font-bold text-slate-800 max-w-[180px] truncate">{deck.title}</h4>
-                            <span className="text-[10px] font-bold text-slate-400 mt-0.5">{deck.learned_cards}/{deck.total_cards} thẻ ({deck.total_pct}%)</span>
+                          <div className="flex-1 min-w-0">
+                            <h4 className="text-sm font-bold text-slate-800 truncate">{deck.title}</h4>
+                            <div className="flex items-center gap-2 mt-1">
+                              <span className="text-[10px] font-bold text-slate-400">{deck.learned_cards}/{deck.total_cards} thẻ ({deck.total_pct}%)</span>
+                            </div>
+                            <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden mt-2">
+                              <div className="h-full bg-indigo-500 rounded-full transition-all" style={{ width: `${deck.total_pct}%` }} />
+                            </div>
+                          </div>
+                          <div className="w-8 h-8 rounded-full bg-white border border-slate-100 flex items-center justify-center text-orange-500 flex-shrink-0">
+                            <ChevronRight className="w-4 h-4" />
                           </div>
                         </div>
-                        <div className="w-8 h-8 rounded-full bg-indigo-50 flex items-center justify-center text-indigo-600">
-                          <ChevronRight className="w-4 h-4" />
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="bg-white/95 backdrop-blur-xl rounded-[2.5rem] p-8 text-center border border-white/60 shadow-2xl flex flex-col items-center justify-center">
-                    <span className="text-slate-400 text-sm font-bold">Chưa có bộ thẻ nào</span>
-                  </div>
-                )}
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="flex-1 flex flex-col items-center justify-center p-8 text-center">
+                      <span className="text-slate-400 text-sm font-bold">Chưa có bộ thẻ nào</span>
+                    </div>
+                  )}
+                </div>
               </motion.div>
             )}
 
-            {/* SLIDE 3: THỐNG KÊ */}
+            {/* ═══ SLIDE 3: THỐNG KÊ ═══ */}
             {currentSlide === 2 && (
               <motion.div 
                 key="slide2"
-                initial={{ opacity: 0, x: 50, scale: 0.95 }}
-                animate={{ opacity: 1, x: 0, scale: 1 }}
-                exit={{ opacity: 0, x: -50, scale: 0.95 }}
-                transition={{ duration: 0.3 }}
-                className="w-full absolute flex flex-col gap-4 max-h-[60vh] overflow-y-auto scrollbar-none pb-4"
+                initial={{ opacity: 0, x: 60 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -60 }}
+                transition={{ duration: 0.25, ease: "easeInOut" }}
+                className="absolute inset-0 flex flex-col"
               >
-                {heatmapData && heatmapData.length > 0 && <MiniHeatmap data={heatmapData} />}
-                <ReviewForecastWidget data={forecastData} />
-                <DailyComparisonChart data={dailyComparisonData} allTimeAvg={dailyComparisonAvg} isLoading={isDailyComparisonLoading} />
+                <div className="px-6 pt-6 pb-3">
+                  <h3 className="text-sm font-black text-slate-800 uppercase tracking-widest">📊 Thống Kê</h3>
+                </div>
+                <div className="flex-1 overflow-y-auto px-4 pb-4 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+                  <div className="flex flex-col gap-4">
+                    {heatmapData && heatmapData.length > 0 && <MiniHeatmap data={heatmapData} />}
+                    <ReviewForecastWidget data={forecastData} />
+                    <DailyComparisonChart data={dailyComparisonData} allTimeAvg={dailyComparisonAvg} isLoading={isDailyComparisonLoading} />
+                  </div>
+                </div>
               </motion.div>
             )}
 
-            {/* SLIDE 4: LEADERBOARD */}
+            {/* ═══ SLIDE 4: LEADERBOARD & BADGES ═══ */}
             {currentSlide === 3 && (
               <motion.div 
                 key="slide3"
-                initial={{ opacity: 0, x: 50, scale: 0.95 }}
-                animate={{ opacity: 1, x: 0, scale: 1 }}
-                exit={{ opacity: 0, x: -50, scale: 0.95 }}
-                transition={{ duration: 0.3 }}
-                className="w-full absolute flex flex-col gap-4 max-h-[60vh] overflow-y-auto scrollbar-none pb-4"
+                initial={{ opacity: 0, x: 60 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -60 }}
+                transition={{ duration: 0.25, ease: "easeInOut" }}
+                className="absolute inset-0 flex flex-col"
               >
-                {leaderboardData && leaderboardData.leaderboard?.length > 0 && (
-                  <LeaderboardWidget data={leaderboardData} activeFilter={timeFilter} onFilterChange={setTimeFilter} />
-                )}
-                {badgesProgress && <BadgeProgressWidget data={badgesProgress} />}
+                <div className="px-6 pt-6 pb-3">
+                  <h3 className="text-sm font-black text-slate-800 uppercase tracking-widest">🏆 Bảng Xếp Hạng</h3>
+                </div>
+                <div className="flex-1 overflow-y-auto px-4 pb-4 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+                  <div className="flex flex-col gap-4">
+                    {leaderboardData && leaderboardData.leaderboard?.length > 0 && (
+                      <LeaderboardWidget data={leaderboardData} activeFilter={timeFilter} onFilterChange={setTimeFilter} />
+                    )}
+                    {badgesProgress && <BadgeProgressWidget data={badgesProgress} />}
+                  </div>
+                </div>
               </motion.div>
             )}
 
           </AnimatePresence>
         </div>
-        
+
+        {/* NAVIGATION BAR — below card */}
+        <div className="flex items-center justify-center gap-4 py-3 flex-shrink-0">
+          {/* Left Button (gray/light style) */}
+          <button 
+            onClick={() => setCurrentSlide(prev => Math.max(0, prev - 1))}
+            disabled={currentSlide === 0}
+            className="w-10 h-10 rounded-full bg-white/20 border border-white/30 flex items-center justify-center text-white shadow-lg disabled:opacity-30 active:scale-90 transition-all cursor-pointer"
+          >
+            <ChevronRight className="w-5 h-5 rotate-180" />
+          </button>
+
+          {/* Dot Indicators */}
+          <div className="flex items-center gap-2">
+            {[0, 1, 2, 3].map(idx => (
+              <button
+                key={idx}
+                onClick={() => setCurrentSlide(idx)}
+                className={cn(
+                  "h-2 transition-all duration-300 rounded-full cursor-pointer",
+                  currentSlide === idx 
+                    ? "w-7 bg-white shadow-[0_0_10px_rgba(255,255,255,0.6)]" 
+                    : "w-2 bg-white/35 hover:bg-white/55"
+                )}
+              />
+            ))}
+          </div>
+
+          {/* Right Button (dark/bold style) */}
+          <button 
+            onClick={() => setCurrentSlide(prev => Math.min(3, prev + 1))}
+            disabled={currentSlide === 3}
+            className="w-10 h-10 rounded-full bg-white/90 border border-white flex items-center justify-center text-slate-800 shadow-lg disabled:opacity-30 active:scale-90 transition-all cursor-pointer"
+          >
+            <ChevronRight className="w-5 h-5" />
+          </button>
+        </div>
+
       </div>
 
-      {/* BOTTOM DOT INDICATORS */}
-      <div className="absolute bottom-[20px] md:bottom-8 left-0 right-0 flex items-center justify-center gap-3 z-[150] pointer-events-auto">
-        {/* Mobile Swipe Left Button */}
-        <button 
-          onClick={() => setCurrentSlide(prev => Math.max(0, prev - 1))}
-          className="md:hidden w-8 h-8 rounded-full bg-white/20 backdrop-blur-sm border border-white/30 flex items-center justify-center text-white mr-2 active:scale-90 transition-all"
-        >
-          <ChevronRight className="w-4 h-4 rotate-180" />
-        </button>
-
-        {[0, 1, 2, 3].map(idx => (
-          <button
-            key={idx}
-            onClick={() => setCurrentSlide(idx)}
-            className={cn(
-              "h-2 transition-all duration-300 rounded-full cursor-pointer",
-              currentSlide === idx 
-                ? "w-6 bg-white shadow-[0_0_8px_rgba(255,255,255,0.8)]" 
-                : "w-2 bg-white/40 hover:bg-white/60"
-            )}
-          />
-        ))}
-
-        {/* Mobile Swipe Right Button */}
-        <button 
-          onClick={() => setCurrentSlide(prev => Math.min(3, prev + 1))}
-          className="md:hidden w-8 h-8 rounded-full bg-white/20 backdrop-blur-sm border border-white/30 flex items-center justify-center text-white ml-2 active:scale-90 transition-all"
-        >
-          <ChevronRight className="w-4 h-4" />
-        </button>
-      </div>
+      {/* Join Room Modal */}
+      <AnimatePresence>
+        {isJoinModalOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[200] flex items-center justify-center bg-black/40 backdrop-blur-sm"
+            onClick={() => setIsJoinModalOpen(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              onClick={(e) => e.stopPropagation()}
+              className="bg-white rounded-3xl p-6 w-[90%] max-w-sm shadow-2xl"
+            >
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-sm font-black text-slate-800 uppercase tracking-wider">Join Room</h3>
+                <button onClick={() => setIsJoinModalOpen(false)} className="text-slate-400 hover:text-slate-600"><X className="w-5 h-5" /></button>
+              </div>
+              <input
+                type="text"
+                value={roomCode}
+                onChange={(e) => setRoomCode(e.target.value.toUpperCase())}
+                placeholder="Enter room code..."
+                className="w-full h-12 px-4 rounded-xl border border-slate-200 text-sm font-bold text-slate-800 placeholder-slate-300 focus:outline-none focus:border-indigo-400 mb-4"
+              />
+              <button
+                onClick={handleJoinRoom}
+                disabled={isJoining || !roomCode}
+                className="w-full h-12 bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xs uppercase tracking-wider rounded-xl disabled:opacity-50 active:scale-95 transition-all"
+              >
+                {isJoining ? 'Joining...' : 'Join Room'}
+              </button>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
     </div>
   )
