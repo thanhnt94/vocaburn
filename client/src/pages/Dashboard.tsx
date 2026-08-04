@@ -1603,11 +1603,11 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* WHITE FLOATING CARD — Fills screen with synchronized header */}
+        {/* WHITE FLOATING CARD — Fills screen with clean layout */}
         <div className="flex-1 mx-3 mb-2 bg-white rounded-3xl shadow-2xl overflow-hidden relative border border-white/60 flex flex-col">
           <AnimatePresence mode="wait">
             
-            {/* ═══ SLIDE 1: LỘ TRÌNH HỌC ═══ */}
+            {/* ═══ SLIDE 1: LỘ TRÌNH HỌC (3 BƯỚC SÁT ĐÁY) ═══ */}
             {currentSlide === 0 && (
               <motion.div 
                 key="slide0"
@@ -1657,11 +1657,16 @@ export default function Dashboard() {
                     const newPct = nT > 0 ? Math.min(100, Math.round((nL / nT) * 100)) : 100;
                     const revPct = rD > 0 ? Math.min(100, Math.round((rDn / rD) * 100)) : 100;
 
+                    const radius = 28;
+                    const strokeWidth = 5;
+                    const circ = 2 * Math.PI * radius;
+                    const off = circ - (circ * pct) / 100;
+
                     return (
                       <div key={deck.deck_id} className="h-full w-full snap-center flex-shrink-0 flex flex-col">
                         
                         {/* SYNCHRONIZED CARD HEADER */}
-                        <div className="px-5 py-3 flex items-center justify-between border-b border-slate-100 bg-white/90 backdrop-blur-md flex-shrink-0">
+                        <div className="px-5 py-3 flex items-center justify-between border-b border-slate-100 bg-white flex-shrink-0">
                           <div className="flex items-center gap-2">
                             <Target className="w-4 h-4 text-orange-500" />
                             <h3 className="text-xs font-black text-slate-800 uppercase tracking-widest">
@@ -1681,37 +1686,52 @@ export default function Dashboard() {
                         </div>
 
                         {/* CARD BODY CONTENT */}
-                        <div className="flex-1 flex flex-col justify-between p-4 overflow-y-auto [&::-webkit-scrollbar]:hidden bg-gradient-to-b from-white via-indigo-50/20 to-slate-50/40 gap-3">
+                        <div className="flex-1 flex flex-col justify-between p-4 overflow-y-auto [&::-webkit-scrollbar]:hidden bg-slate-50/30 gap-3">
                           
-                          {/* HERO DECK BANNER WITH PROGRESS */}
-                          <div className="bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-700 text-white rounded-2xl p-3.5 shadow-md shadow-indigo-500/15 flex flex-col gap-2 flex-shrink-0">
-                            <div className="flex items-center gap-3">
-                              <div className="w-11 h-11 rounded-xl bg-white/20 backdrop-blur-sm border border-white/20 flex items-center justify-center text-white text-lg overflow-hidden flex-shrink-0">
+                          {/* CLEAN WHITE DECK HEADER CARD WITH PROGRESS RING */}
+                          <div className="bg-white rounded-2xl p-3.5 border border-slate-200/70 shadow-sm flex items-center justify-between flex-shrink-0">
+                            <div className="flex items-center gap-3 min-w-0 flex-1">
+                              <div className="w-11 h-11 rounded-xl bg-gradient-to-tr from-indigo-500 to-purple-600 flex items-center justify-center text-white text-lg overflow-hidden shadow-sm flex-shrink-0">
                                 {deck.cover_image ? <img src={deck.cover_image} alt="" className="w-full h-full object-cover" /> : <span>📘</span>}
                               </div>
-                              <div className="flex-1 min-w-0">
-                                <h4 className="text-xs font-black text-white truncate">{deck.title}</h4>
-                                <p className="text-[10px] font-bold text-indigo-100 mt-0.5">
-                                  Mục tiêu: <span className="text-amber-300 font-black">{tT} thẻ/ngày</span> ({tD}/{tT} đã xong)
+                              <div className="min-w-0 flex-1">
+                                <h4 className="text-xs font-black text-slate-800 truncate">{deck.title}</h4>
+                                <p className="text-[10px] font-bold text-slate-400 mt-0.5">
+                                  Mục tiêu: <span className="text-indigo-600 font-black">{tT} thẻ</span> ({tD}/{tT} đã làm)
                                 </p>
                               </div>
-                              <div className="text-right flex-shrink-0">
-                                <span className="text-lg font-black text-amber-300">{pct}%</span>
-                              </div>
                             </div>
-                            
-                            {/* OVERALL DECK PROGRESS BAR */}
-                            <div className="h-2 bg-black/20 rounded-full overflow-hidden w-full relative">
-                              <div className="h-full bg-gradient-to-r from-amber-300 to-orange-400 rounded-full transition-all duration-500" style={{ width: `${pct}%` }} />
+
+                            {/* CIRCULAR PROGRESS RING */}
+                            <div className="relative w-16 h-16 flex items-center justify-center flex-shrink-0 ml-2">
+                              <svg className="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
+                                <circle cx="50" cy="50" r={radius} fill="transparent" stroke="#f1f5f9" strokeWidth={strokeWidth} />
+                                <circle 
+                                  cx="50" 
+                                  cy="50" 
+                                  r={radius} 
+                                  fill="transparent" 
+                                  stroke="#6366f1" 
+                                  strokeWidth={strokeWidth} 
+                                  strokeDasharray={circ} 
+                                  strokeDashoffset={off} 
+                                  strokeLinecap="round" 
+                                  className="transition-all duration-700" 
+                                />
+                              </svg>
+                              <div className="absolute flex flex-col items-center justify-center text-center">
+                                <span className="text-xs font-black text-slate-800">{pct}%</span>
+                                <span className="text-[7px] font-bold text-slate-400 uppercase tracking-widest">Tiến độ</span>
+                              </div>
                             </div>
                           </div>
 
-                          {/* VISUAL STEP ROADMAP TIMELINE */}
-                          <div className="flex flex-col gap-2.5 my-auto">
+                          {/* 3 STEPS ROADMAP LIST (Sát xuống dưới) */}
+                          <div className="flex flex-col gap-2 mt-auto">
                             
-                            {/* STEP 1 CARD (Học & Ôn Tập Từ Vựng) */}
-                            <div className={`p-3.5 rounded-2xl border transition-all flex flex-col gap-2.5 ${
-                              s1 ? 'bg-emerald-50/60 border-emerald-200 text-emerald-950' : 'bg-white border-indigo-100 shadow-sm text-slate-800'
+                            {/* STEP 1: HỌC TỪ MỚI */}
+                            <div className={`p-3 rounded-2xl border transition-all flex flex-col gap-1.5 ${
+                              s1 ? 'bg-emerald-50/60 border-emerald-200 text-emerald-950' : 'bg-white border-slate-200/80 shadow-sm text-slate-800'
                             }`}>
                               <div className="flex items-center justify-between">
                                 <div className="flex items-center gap-2">
@@ -1720,91 +1740,66 @@ export default function Dashboard() {
                                   }`}>
                                     {s1 ? '✓' : '1'}
                                   </div>
-                                  <h5 className="text-xs font-black">Bước 1: Học từ mới & Ôn FSRS</h5>
+                                  <h5 className="text-xs font-black">Bước 1: Học từ mới</h5>
                                 </div>
-                                <span className={`text-[9px] font-black uppercase px-2.5 py-0.5 rounded-full ${
-                                  s1 ? 'bg-emerald-200/80 text-emerald-800' : 'bg-indigo-50 text-indigo-600'
-                                }`}>
-                                  {s1 ? '✓ Hoàn thành' : '• Đang học'}
+                                <span className="text-[10px] font-black text-indigo-600">
+                                  {nL} / {nT} thẻ ({newPct}%)
                                 </span>
                               </div>
-
-                              {/* VISUAL PROGRESS BARS INSIDE STEP 1 */}
-                              <div className="flex flex-col gap-2 pt-1 border-t border-slate-100">
-                                {/* New Cards Progress Bar */}
-                                <div>
-                                  <div className="flex items-center justify-between text-[10px] font-bold mb-1">
-                                    <span className="flex items-center gap-1 text-slate-600">
-                                      <Sparkles className="w-3 h-3 text-indigo-500" /> Học từ mới
-                                    </span>
-                                    <span className="text-indigo-600 font-black">{nL} / {nT} thẻ ({newPct}%)</span>
-                                  </div>
-                                  <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
-                                    <div className="h-full bg-indigo-500 rounded-full transition-all" style={{ width: `${newPct}%` }} />
-                                  </div>
-                                </div>
-
-                                {/* Review Cards Progress Bar */}
-                                <div>
-                                  <div className="flex items-center justify-between text-[10px] font-bold mb-1">
-                                    <span className="flex items-center gap-1 text-slate-600">
-                                      <RefreshCw className="w-3 h-3 text-orange-500" /> Ôn tập FSRS
-                                    </span>
-                                    <span className="text-orange-600 font-black">{rDn} / {rD} thẻ ({revPct}%)</span>
-                                  </div>
-                                  <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
-                                    <div className="h-full bg-orange-500 rounded-full transition-all" style={{ width: `${revPct}%` }} />
-                                  </div>
-                                </div>
+                              <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden w-full">
+                                <div className="h-full bg-indigo-500 rounded-full transition-all" style={{ width: `${newPct}%` }} />
                               </div>
                             </div>
 
-                            {/* TIMELINE CONNECTOR */}
-                            <div className="flex items-center justify-center -my-1">
-                              <div className={`w-0.5 h-3 ${s1 ? 'bg-emerald-400' : 'bg-slate-200'}`} />
+                            {/* STEP 2: TEST TRẮC NGHIỆM MCQ */}
+                            <div className={`p-3 rounded-2xl border transition-all flex items-center justify-between ${
+                              s2 ? 'bg-emerald-50/60 border-emerald-200 text-emerald-950' : s1 ? 'bg-amber-50/90 border-amber-300 text-amber-950 shadow-sm' : 'bg-slate-50 border-slate-200/60 text-slate-400'
+                            }`}>
+                              <div className="flex items-center gap-2 min-w-0">
+                                <div className={`w-6 h-6 rounded-lg flex items-center justify-center text-xs font-black shrink-0 ${
+                                  s2 ? 'bg-emerald-500 text-white' : s1 ? 'bg-amber-500 text-white' : 'bg-slate-200 text-slate-400'
+                                }`}>
+                                  {s2 ? '✓' : '2'}
+                                </div>
+                                <div className="min-w-0 text-left">
+                                  <h5 className="text-xs font-black truncate">Bước 2: Test trắc nghiệm MCQ</h5>
+                                  <p className="text-[9px] font-bold opacity-75 truncate">
+                                    {s2 ? 'Đã đạt test MCQ' : s1 ? '⚡ Mở khóa test MCQ' : '🔒 Khóa'}
+                                  </p>
+                                </div>
+                              </div>
+                              <span className={`text-[9px] font-black uppercase px-2 py-0.5 rounded-full shrink-0 ${
+                                s2 ? 'bg-emerald-200/80 text-emerald-800' : s1 ? 'bg-amber-200 text-amber-900' : 'bg-slate-200/60 text-slate-500'
+                              }`}>
+                                {s2 ? 'Đã Đạt' : s1 ? 'Làm ngay' : 'Khóa'}
+                              </span>
                             </div>
 
-                            {/* STEP 2 CARD (Test Trắc nghiệm MCQ) */}
-                            <div className={`p-3.5 rounded-2xl border transition-all flex flex-col gap-2 ${
-                              s2 ? 'bg-emerald-50/60 border-emerald-200 text-emerald-950' : s1 ? 'bg-amber-50/90 border-amber-300 text-amber-950 shadow-md animate-pulse' : 'bg-slate-50 border-slate-200/70 text-slate-400'
+                            {/* STEP 3: ÔN TẬP FSRS */}
+                            <div className={`p-3 rounded-2xl border transition-all flex flex-col gap-1.5 ${
+                              rD > 0 && rDn >= rD ? 'bg-emerald-50/60 border-emerald-200 text-emerald-950' : 'bg-white border-slate-200/80 shadow-sm text-slate-800'
                             }`}>
                               <div className="flex items-center justify-between">
                                 <div className="flex items-center gap-2">
                                   <div className={`w-6 h-6 rounded-lg flex items-center justify-center text-xs font-black ${
-                                    s2 ? 'bg-emerald-500 text-white' : s1 ? 'bg-amber-500 text-white' : 'bg-slate-200 text-slate-400'
+                                    rD > 0 && rDn >= rD ? 'bg-emerald-500 text-white' : 'bg-orange-500 text-white'
                                   }`}>
-                                    {s2 ? '✓' : '2'}
+                                    {rD > 0 && rDn >= rD ? '✓' : '3'}
                                   </div>
-                                  <h5 className="text-xs font-black">Bước 2: Test trắc nghiệm MCQ</h5>
+                                  <h5 className="text-xs font-black">Bước 3: Ôn tập FSRS</h5>
                                 </div>
-                                <span className={`text-[9px] font-black uppercase px-2.5 py-0.5 rounded-full ${
-                                  s2 ? 'bg-emerald-200/80 text-emerald-800' : s1 ? 'bg-amber-200 text-amber-900' : 'bg-slate-200/80 text-slate-500'
-                                }`}>
-                                  {s2 ? '✓ Đã Đạt' : s1 ? '⚡ Mở khóa' : '🔒 Khóa'}
+                                <span className="text-[10px] font-black text-orange-600">
+                                  {rDn} / {rD} thẻ ({revPct}%)
                                 </span>
                               </div>
-
-                              <p className="text-[10px] font-bold opacity-80 text-left">
-                                {s2 
-                                  ? '🎉 Bạn đã vượt qua bài test trắc nghiệm thành công!' 
-                                  : s1 
-                                  ? '🔥 Hãy làm bài test 10 câu trắc nghiệm để hoàn tất lộ trình!' 
-                                  : '🔒 Cần hoàn thành Bước 1 (Học & Ôn từ) để mở khóa bài test MCQ.'}
-                              </p>
-
-                              {/* STEP 2 PROGRESS BAR */}
-                              <div className="h-2 bg-slate-100 rounded-full overflow-hidden mt-1">
-                                <div 
-                                  className={`h-full rounded-full transition-all ${
-                                    s2 ? 'bg-emerald-500 w-full' : s1 ? 'bg-amber-500 w-1/2 animate-pulse' : 'bg-slate-200 w-0'
-                                  }`} 
-                                />
+                              <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden w-full">
+                                <div className="h-full bg-orange-500 rounded-full transition-all" style={{ width: `${revPct}%` }} />
                               </div>
                             </div>
 
                           </div>
 
-                          {/* CTA ACTION BUTTON */}
+                          {/* CTA ACTION BUTTON (Cố định phía dưới) */}
                           <div className="pt-1 flex flex-col items-center gap-1 flex-shrink-0">
                             <button
                               onClick={() => { if (nUrl) navigate(nUrl); else navigate(`/flashcard/${deck.deck_id}`); }}
@@ -1812,7 +1807,7 @@ export default function Dashboard() {
                             >
                               <Play className="w-4 h-4 fill-current" />
                               {st.all_done
-                                ? '✓ BẠN ĐÃ HOÀN THÀNH LỘ TRÌNH HÔM NAY'
+                                ? '✓ HOÀN THÀNH LỘ TRÌNH HÔM NAY'
                                 : s1
                                 ? '✍️ BẮT ĐẦU BÀI TEST MCQ (BƯỚC 2)'
                                 : '🚀 BẮT ĐẦU HỌC BƯỚC 1 NGAY'}
@@ -1821,7 +1816,7 @@ export default function Dashboard() {
                             {totalDecks > 1 && deckIdx < totalDecks - 1 && (
                               <div className="flex items-center gap-1 text-[10px] font-bold text-indigo-500 animate-bounce pt-1">
                                 <ChevronRight className="w-3 h-3 rotate-90" />
-                                <span>Vuốt xuống để xem bộ thẻ tiếp theo</span>
+                                <span>Vuốt xuống để xem bộ tiếp theo</span>
                               </div>
                             )}
                           </div>
