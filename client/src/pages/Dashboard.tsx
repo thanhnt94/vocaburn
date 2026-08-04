@@ -1576,10 +1576,10 @@ export default function Dashboard() {
       </div>
 
       {/* MOBILE FEED */}
-      <div className="md:hidden w-full flex-grow text-left bg-gradient-to-b from-slate-50/60 via-indigo-50/10 to-slate-50/80 flex flex-row overflow-x-auto snap-x snap-mandatory scrollbar-none pb-0 pt-[60px] h-[calc(100vh-80px)]">
+      <div className="md:hidden w-full flex-grow text-left bg-gradient-to-b from-slate-50/60 via-indigo-50/10 to-slate-50/80 flex flex-row overflow-x-auto snap-x snap-mandatory scrollbar-none [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] pb-0 pt-[60px] h-[calc(100vh-80px)]">
         
         {/* SLIDE 1: TIẾN ĐỘ LỘ TRÌNH */}
-        <div className="w-full flex-shrink-0 snap-center h-full overflow-y-auto px-4 py-6 flex flex-col gap-4">
+        <div className="w-full flex-shrink-0 snap-center h-full overflow-y-auto px-6 py-6 flex flex-col justify-center gap-4">
         {/* ── Mobile Unified Roadmap Progress Card with Navigation Controls ── */}
         {(() => {
           const hasRoadmapDecks = roadmapDecks && roadmapDecks.length > 0;
@@ -1625,7 +1625,7 @@ export default function Dashboard() {
           const strokeDashoffset = circumference - (circumference * percentComplete) / 100;
 
           return (
-            <div className="bg-white rounded-[2rem] p-5 border border-slate-100 shadow-sm relative overflow-hidden space-y-4">
+            <div className="bg-white/95 backdrop-blur-xl rounded-[2.5rem] p-6 border border-white/60 shadow-2xl shadow-indigo-100/40 relative overflow-hidden space-y-6 mx-auto w-full max-w-sm">
               <div className="absolute right-[-10%] top-[-20%] w-24 h-24 rounded-full bg-indigo-50/20 blur-xl pointer-events-none" />
 
               {/* Header with Navigation Controls */}
@@ -1734,7 +1734,7 @@ export default function Dashboard() {
         </div>
 
         {/* SLIDE 2: CÁC BỘ THẺ ĐANG HỌC */}
-        <div className="w-full flex-shrink-0 snap-center h-full overflow-y-auto px-4 py-6 flex flex-col gap-4">
+        <div className="w-full flex-shrink-0 snap-center h-full overflow-y-auto px-6 py-6 flex flex-col justify-center gap-4">
         {/* ── Horizontal Decks Carousel ── */}
         {activeDecks && activeDecks.length > 1 && (
           <div className="space-y-3 pt-1">
@@ -1813,14 +1813,14 @@ export default function Dashboard() {
         </div>
 
         {/* SLIDE 3: THỐNG KÊ (STATS & HEATMAP) */}
-        <div className="w-full flex-shrink-0 snap-center h-full overflow-y-auto px-4 py-6 flex flex-col gap-4">
+        <div className="w-full flex-shrink-0 snap-center h-full overflow-y-auto px-6 py-6 flex flex-col justify-center gap-4">
           {heatmapData && heatmapData.length > 0 && <MiniHeatmap data={heatmapData} />}
           <ReviewForecastWidget data={forecastData} />
           <DailyComparisonChart data={dailyComparisonData} allTimeAvg={dailyComparisonAvg} isLoading={isDailyComparisonLoading} />
         </div>
 
         {/* SLIDE 4: LEADERBOARD & BADGES */}
-        <div className="w-full flex-shrink-0 snap-center h-full overflow-y-auto px-4 py-6 flex flex-col gap-4">
+        <div className="w-full flex-shrink-0 snap-center h-full overflow-y-auto px-6 py-6 flex flex-col justify-center gap-4">
           {leaderboardData && leaderboardData.leaderboard?.length > 0 && (
             <LeaderboardWidget data={leaderboardData} activeFilter={timeFilter} onFilterChange={setTimeFilter} />
           )}
