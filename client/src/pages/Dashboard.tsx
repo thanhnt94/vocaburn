@@ -1648,13 +1648,15 @@ export default function Dashboard() {
                     const rDn = st.review_completed_today || 0;
                     const tT = nT + rD;
                     const tD = nL + rDn;
-                    const pct = tT > 0 ? Math.min(100, Math.round((tD / tT) * 100)) : 100;
+                    const pct = tT > 0 ? Math.min(100, Math.round((tD / tT) * 100)) : (st.all_done ? 100 : 0);
                     const s1 = st.stage_1_done;
                     const s2 = st.stage_2_done;
+                    const hasS2 = st.has_stage_2;
                     const nUrl = st.next_action_url;
+                    const streak = st.streak || deck.streak || data.gamify?.streak || 0;
 
-                    const radius = 36;
-                    const strokeWidth = 6;
+                    const radius = 34;
+                    const strokeWidth = 5.5;
                     const circ = 2 * Math.PI * radius;
                     const off = circ - (circ * pct) / 100;
 
@@ -1669,101 +1671,152 @@ export default function Dashboard() {
                               Lộ Trình Học
                             </h3>
                           </div>
-                          <span className="text-[10px] font-bold text-slate-500 bg-slate-100 px-2.5 py-1 rounded-full border border-slate-200/50">
-                            {totalDecks > 1 ? `Bộ ${deckIdx + 1}/${totalDecks}` : (nL > nT && nT > 0 ? '🚀 Vượt chỉ tiêu' : s1 ? '✓ Đạt chỉ tiêu' : '• Đang học')}
-                          </span>
+                          <div className="flex items-center gap-1.5">
+                            {streak > 0 && (
+                              <span className="text-[10px] font-black text-orange-600 bg-orange-50 border border-orange-100/80 px-2.5 py-0.5 rounded-full flex items-center gap-1">
+                                🔥 {streak}d streak
+                              </span>
+                            )}
+                            <span className="text-[10px] font-bold text-slate-500 bg-slate-100 px-2.5 py-0.5 rounded-full border border-slate-200/50">
+                              {totalDecks > 1 ? `${deckIdx + 1}/${totalDecks}` : (st.all_done ? '✓ Xong' : '• Đang học')}
+                            </span>
+                          </div>
                         </div>
 
                         {/* CARD BODY CONTENT */}
-                        <div className="flex-1 flex flex-col justify-between p-4 overflow-y-auto [&::-webkit-scrollbar]:hidden bg-gradient-to-b from-white via-indigo-50/20 to-slate-50/40">
+                        <div className="flex-1 flex flex-col justify-between p-4 overflow-y-auto [&::-webkit-scrollbar]:hidden bg-gradient-to-b from-white via-indigo-50/20 to-slate-50/40 gap-3">
                           
-                          {/* Deck Hero Info Card */}
-                          <div className="bg-white rounded-2xl p-3.5 border border-slate-200/80 shadow-sm flex items-center gap-3.5 flex-shrink-0">
-                            <div className="w-12 h-12 rounded-xl bg-gradient-to-tr from-indigo-500 to-purple-600 flex items-center justify-center text-white text-xl overflow-hidden shadow-md shadow-indigo-500/20 flex-shrink-0">
+                          {/* Deck Hero Info Banner */}
+                          <div className="bg-white rounded-2xl p-3 border border-slate-200/80 shadow-sm flex items-center gap-3 flex-shrink-0">
+                            <div className="w-11 h-11 rounded-xl bg-gradient-to-tr from-indigo-500 to-purple-600 flex items-center justify-center text-white text-lg overflow-hidden shadow-md shadow-indigo-500/20 flex-shrink-0">
                               {deck.cover_image ? <img src={deck.cover_image} alt="" className="w-full h-full object-cover" /> : <span>📘</span>}
                             </div>
                             <div className="flex-1 min-w-0">
-                              <h4 className="text-sm font-black text-slate-800 truncate">{deck.title}</h4>
-                              <p className="text-[11px] font-medium text-slate-400 mt-0.5">
-                                Mục tiêu hôm nay: <span className="font-bold text-slate-700">{tT} thẻ</span>
+                              <h4 className="text-xs font-black text-slate-800 truncate">{deck.title}</h4>
+                              <p className="text-[10px] font-bold text-slate-400 mt-0.5">
+                                Mục tiêu hôm nay: <span className="text-indigo-600 font-black">{tT} thẻ</span> ({tD}/{tT} đã làm)
                               </p>
                             </div>
                           </div>
 
-                          {/* Progress Circle & Stats Center */}
-                          <div className="flex flex-col items-center justify-center py-2 my-auto">
+                          {/* Progress Circle & Step Breakdown */}
+                          <div className="flex flex-col gap-2.5 my-auto">
                             
-                            <div className="relative w-24 h-24 flex items-center justify-center mb-3">
-                              <svg className="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
-                                <circle cx="50" cy="50" r={radius} fill="transparent" stroke="#e2e8f0" strokeWidth={strokeWidth} />
-                                <circle 
-                                  cx="50" 
-                                  cy="50" 
-                                  r={radius} 
-                                  fill="transparent" 
-                                  stroke="#6366f1" 
-                                  strokeWidth={strokeWidth} 
-                                  strokeDasharray={circ} 
-                                  strokeDashoffset={off} 
-                                  strokeLinecap="round" 
-                                  className="transition-all duration-700" 
-                                />
-                              </svg>
-                              <div className="absolute flex flex-col items-center justify-center text-center">
-                                <span className="text-xl font-black text-slate-800">{pct}%</span>
-                                <span className="text-[8px] font-bold text-slate-400 uppercase tracking-widest">Tiến độ</span>
+                            {/* Circle Chart + Quick Stats Header */}
+                            <div className="flex items-center justify-around bg-white rounded-2xl p-3 border border-slate-200/80 shadow-sm">
+                              <div className="relative w-20 h-20 flex items-center justify-center flex-shrink-0">
+                                <svg className="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
+                                  <circle cx="50" cy="50" r={radius} fill="transparent" stroke="#e2e8f0" strokeWidth={strokeWidth} />
+                                  <circle 
+                                    cx="50" 
+                                    cy="50" 
+                                    r={radius} 
+                                    fill="transparent" 
+                                    stroke="#6366f1" 
+                                    strokeWidth={strokeWidth} 
+                                    strokeDasharray={circ} 
+                                    strokeDashoffset={off} 
+                                    strokeLinecap="round" 
+                                    className="transition-all duration-700" 
+                                  />
+                                </svg>
+                                <div className="absolute flex flex-col items-center justify-center text-center">
+                                  <span className="text-lg font-black text-slate-800">{pct}%</span>
+                                  <span className="text-[7px] font-bold text-slate-400 uppercase tracking-widest">Tiến độ</span>
+                                </div>
+                              </div>
+
+                              <div className="flex flex-col gap-1.5 text-left">
+                                <div className="flex items-center gap-2 text-[10px] font-bold text-slate-600">
+                                  <div className="w-6 h-6 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center">
+                                    <Sparkles className="w-3.5 h-3.5" />
+                                  </div>
+                                  <span>Học mới: <strong className="text-indigo-600 font-black">{nL}/{nT}</strong></span>
+                                </div>
+                                <div className="flex items-center gap-2 text-[10px] font-bold text-slate-600">
+                                  <div className="w-6 h-6 rounded-lg bg-orange-50 text-orange-600 flex items-center justify-center">
+                                    <RefreshCw className="w-3.5 h-3.5" />
+                                  </div>
+                                  <span>Ôn FSRS: <strong className="text-orange-600 font-black">{rDn}/{rD}</strong></span>
+                                </div>
+                                <div className="flex items-center gap-2 text-[10px] font-bold text-slate-600">
+                                  <div className="w-6 h-6 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center">
+                                    <Layers className="w-3.5 h-3.5" />
+                                  </div>
+                                  <span>Tổng thẻ: <strong className="text-slate-800 font-black">{deck.total_cards || 0}</strong></span>
+                                </div>
                               </div>
                             </div>
 
-                            {/* Dual Stage Breakdown Cards */}
-                            <div className="grid grid-cols-2 gap-2.5 w-full">
-                              <div className="bg-white rounded-2xl p-3 border border-indigo-100 shadow-sm flex items-center gap-2.5">
-                                <div className="w-8 h-8 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center flex-shrink-0 font-bold">
-                                  <Sparkles className="w-4 h-4" />
+                            {/* DETAILED STEPS BREAKDOWN (Tách các Step rõ ràng) */}
+                            <div className="flex flex-col gap-2">
+                              {/* Step 1: Học từ mới & Ôn tập */}
+                              <div className={`p-3 rounded-2xl border transition-all flex items-center justify-between ${
+                                s1 ? 'bg-emerald-50/70 border-emerald-200/80 text-emerald-900' : 'bg-white border-indigo-100 shadow-sm text-slate-800'
+                              }`}>
+                                <div className="flex items-center gap-2.5 min-w-0">
+                                  <div className={`w-7 h-7 rounded-xl flex items-center justify-center text-xs font-bold shrink-0 ${
+                                    s1 ? 'bg-emerald-500 text-white' : 'bg-indigo-600 text-white'
+                                  }`}>
+                                    {s1 ? '✓' : '1'}
+                                  </div>
+                                  <div className="min-w-0 text-left">
+                                    <h5 className="text-xs font-black truncate">Bước 1: Học từ & Ôn tập FSRS</h5>
+                                    <p className="text-[9.5px] font-bold opacity-75 truncate">Học {nT} từ mới & Ôn {rD} từ cũ</p>
+                                  </div>
                                 </div>
-                                <div className="min-w-0">
-                                  <span className="text-[9px] font-bold text-slate-400 uppercase block leading-none mb-1">Học mới</span>
-                                  <span className="text-xs font-black text-slate-800">{nL}/{nT} thẻ</span>
-                                </div>
+                                <span className={`text-[9px] font-black uppercase px-2 py-0.5 rounded-full shrink-0 ${
+                                  s1 ? 'bg-emerald-200/60 text-emerald-800' : 'bg-indigo-50 text-indigo-600'
+                                }`}>
+                                  {s1 ? 'Hoàn thành' : 'Đang làm'}
+                                </span>
                               </div>
 
-                              <div className="bg-white rounded-2xl p-3 border border-orange-100 shadow-sm flex items-center gap-2.5">
-                                <div className="w-8 h-8 rounded-xl bg-orange-50 text-orange-600 flex items-center justify-center flex-shrink-0 font-bold">
-                                  <RefreshCw className="w-4 h-4" />
+                              {/* Step 2: Test Trắc nghiệm MCQ (Hiển thị rõ ràng nếu bộ thẻ có MCQ test) */}
+                              <div className={`p-3 rounded-2xl border transition-all flex items-center justify-between ${
+                                s2 ? 'bg-emerald-50/70 border-emerald-200/80 text-emerald-900' : s1 ? 'bg-amber-50/80 border-amber-200 text-amber-900 shadow-sm animate-pulse' : 'bg-slate-50 border-slate-200/60 text-slate-400'
+                              }`}>
+                                <div className="flex items-center gap-2.5 min-w-0">
+                                  <div className={`w-7 h-7 rounded-xl flex items-center justify-center text-xs font-bold shrink-0 ${
+                                    s2 ? 'bg-emerald-500 text-white' : s1 ? 'bg-amber-500 text-white' : 'bg-slate-200 text-slate-400'
+                                  }`}>
+                                    {s2 ? '✓' : '2'}
+                                  </div>
+                                  <div className="min-w-0 text-left">
+                                    <h5 className="text-xs font-black truncate">Bước 2: Test trắc nghiệm MCQ</h5>
+                                    <p className="text-[9.5px] font-bold opacity-75 truncate">
+                                      {s2 ? 'Đã vượt qua bài test MCQ' : s1 ? '⚡ Đã mở khóa - Hãy làm test ngay' : '🔒 Hoàn thành Bước 1 để mở khóa'}
+                                    </p>
+                                  </div>
                                 </div>
-                                <div className="min-w-0">
-                                  <span className="text-[9px] font-bold text-slate-400 uppercase block leading-none mb-1">Ôn tập FSRS</span>
-                                  <span className="text-xs font-black text-slate-800">{rDn}/{rD} thẻ</span>
-                                </div>
+                                <span className={`text-[9px] font-black uppercase px-2 py-0.5 rounded-full shrink-0 ${
+                                  s2 ? 'bg-emerald-200/60 text-emerald-800' : s1 ? 'bg-amber-200/80 text-amber-900' : 'bg-slate-200/60 text-slate-500'
+                                }`}>
+                                  {s2 ? 'Đã Đạt' : s1 ? 'Làm ngay' : 'Khóa'}
+                                </span>
                               </div>
-                            </div>
-
-                            {/* Quick Badges Row */}
-                            <div className="flex items-center justify-center gap-3 mt-3 text-[10px] font-bold text-slate-400">
-                              <span className="flex items-center gap-1 bg-slate-100/80 px-2.5 py-1 rounded-lg">
-                                <Layers className="w-3 h-3 text-slate-400" /> Tổng {deck.total_cards || 0} thẻ
-                              </span>
-                              <span className="flex items-center gap-1 bg-slate-100/80 px-2.5 py-1 rounded-lg">
-                                <Clock className="w-3 h-3 text-slate-400" /> ~10-15 phút
-                              </span>
                             </div>
 
                           </div>
 
-                          {/* CTA Button */}
-                          <div className="pt-2 flex flex-col items-center gap-1 flex-shrink-0">
+                          {/* CTA ACTION BUTTON */}
+                          <div className="pt-1 flex flex-col items-center gap-1 flex-shrink-0">
                             <button
                               onClick={() => { if (nUrl) navigate(nUrl); else navigate(`/flashcard/${deck.deck_id}`); }}
                               className="w-full h-13 bg-gradient-to-r from-orange-500 via-rose-500 to-pink-500 active:scale-[0.98] text-white font-black text-xs uppercase tracking-widest rounded-2xl transition-all flex items-center justify-center gap-2 shadow-lg shadow-orange-500/25"
                             >
                               <Play className="w-4 h-4 fill-current" />
-                              {s2 ? 'XEM LẠI BÀI HỌC' : s1 ? 'LÀM BÀI TEST NGAY' : 'BẮT ĐẦU HỌC NGAY'}
+                              {st.all_done
+                                ? '✓ BẠN ĐÃ HOÀN THÀNH LỘ TRÌNH HÔM NAY'
+                                : s1
+                                ? '✍️ BẮT ĐẦU BÀI TEST MCQ (BƯỚC 2)'
+                                : '🚀 BẮT ĐẦU HỌC BƯỚC 1 NGAY'}
                             </button>
 
                             {totalDecks > 1 && deckIdx < totalDecks - 1 && (
                               <div className="flex items-center gap-1 text-[10px] font-bold text-indigo-500 animate-bounce pt-1">
                                 <ChevronRight className="w-3 h-3 rotate-90" />
-                                <span>Vuốt xuống để xem bộ tiếp theo</span>
+                                <span>Vuốt xuống để xem bộ thẻ tiếp theo</span>
                               </div>
                             )}
                           </div>
