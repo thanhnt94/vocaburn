@@ -345,6 +345,7 @@ function MiniHeatmap({ data }: { data: HeatmapDay[] }) {
 }
 
 // ─── Leaderboard Widget ────────────────────────────────────────────────────────
+// ─── Ultra-Modern App Leaderboard Widget ───────────────────────────────────────
 function LeaderboardWidget({ 
   data, 
   activeFilter, 
@@ -356,24 +357,11 @@ function LeaderboardWidget({
 }) {
   const [activeTab, setActiveTab] = useState<'xp' | 'time' | 'new_cards' | 'cards'>('xp')
 
-  const rankIcons: Record<number, React.ReactNode> = {
-    1: <Crown className="w-4 h-4 text-amber-500" />,
-    2: <Medal className="w-4 h-4 text-slate-400" />,
-    3: <Medal className="w-4 h-4 text-amber-700" />,
-  }
-  const rankColors: Record<number, string> = {
-    1: 'from-amber-50 to-orange-50 border-amber-200/80',
-    2: 'from-slate-50 to-slate-50/80 border-slate-200/60',
-    3: 'from-amber-50/50 to-orange-50/30 border-amber-100/60',
-  }
-
   const formatTime = (seconds: number) => {
     if (seconds < 60) return `${seconds}s`
     const mins = Math.floor(seconds / 60)
     const hours = Math.floor(mins / 60)
-    if (hours > 0) {
-      return `${hours}h ${mins % 60}m`
-    }
+    if (hours > 0) return `${hours}h ${mins % 60}m`
     return `${mins}m`
   }
 
@@ -384,6 +372,7 @@ function LeaderboardWidget({
       : activeTab === 'new_cards' 
         ? (data.new_cards_leaderboard || []) 
         : (data.cards_leaderboard || [])
+
   const currentRank = activeTab === 'xp' 
     ? data.current_user_rank 
     : activeTab === 'time' 
@@ -393,66 +382,65 @@ function LeaderboardWidget({
         : data.current_user_cards_rank
 
   return (
-    <div className="bg-white border border-slate-200/60 rounded-[2rem] p-5 shadow-sm flex flex-col gap-4 text-left flex-shrink-0">
-      <div className="flex flex-col gap-3 pb-3 border-b border-slate-100">
+    <div className="bg-white border border-slate-100 rounded-[2.2rem] p-4 shadow-[0_8px_30px_rgb(0,0,0,0.04)] flex flex-col gap-4 text-left flex-shrink-0">
+      
+      {/* Header & Segmented Controls */}
+      <div className="flex flex-col gap-3 pb-3 border-b border-slate-100/80">
         <div className="flex items-center justify-between">
-          <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">🏆 Leaderboard</span>
-          
-          <div className="flex items-center bg-slate-100 rounded-lg p-0.5">
-            <button
-              onClick={() => setActiveTab('xp')}
-              className={cn(
-                "px-2 py-0.5 rounded-md text-[8px] font-black uppercase tracking-wider transition-all",
-                activeTab === 'xp' ? "bg-white text-indigo-600 shadow-sm" : "text-slate-400 hover:text-slate-600"
-              )}
-            >
-              XP
-            </button>
-            <button
-              onClick={() => setActiveTab('time')}
-              className={cn(
-                "px-2 py-0.5 rounded-md text-[8px] font-black uppercase tracking-wider transition-all",
-                activeTab === 'time' ? "bg-white text-indigo-600 shadow-sm" : "text-slate-400 hover:text-slate-600"
-              )}
-            >
-              Time
-            </button>
-            <button
-              onClick={() => setActiveTab('new_cards')}
-              className={cn(
-                "px-2 py-0.5 rounded-md text-[8px] font-black uppercase tracking-wider transition-all",
-                activeTab === 'new_cards' ? "bg-white text-indigo-600 shadow-sm" : "text-slate-400 hover:text-slate-600"
-              )}
-            >
-              New
-            </button>
-            <button
-              onClick={() => setActiveTab('cards')}
-              className={cn(
-                "px-2 py-0.5 rounded-md text-[8px] font-black uppercase tracking-wider transition-all",
-                activeTab === 'cards' ? "bg-white text-indigo-600 shadow-sm" : "text-slate-400 hover:text-slate-600"
-              )}
-            >
-              Reviews
-            </button>
+          <div className="flex items-center gap-2">
+            <div className="w-7 h-7 rounded-xl bg-gradient-to-tr from-amber-400 to-orange-500 flex items-center justify-center text-white shadow-sm shadow-orange-200">
+              <Trophy className="w-4 h-4" />
+            </div>
+            <h3 className="text-xs font-black text-slate-800 uppercase tracking-widest">
+              Bảng Xếp Hạng
+            </h3>
+          </div>
+
+          {/* Metric Switcher Segmented Control */}
+          <div className="flex items-center bg-slate-100/80 p-1 rounded-xl border border-slate-200/40">
+            {[
+              { id: 'xp', label: 'XP' },
+              { id: 'time', label: 'Thời gian' },
+              { id: 'new_cards', label: 'Từ mới' },
+              { id: 'cards', label: 'Ôn tập' }
+            ].map(tab => (
+              <button
+                key={tab.id}
+                onClick={() => {
+                  if (navigator.vibrate) navigator.vibrate(6);
+                  setActiveTab(tab.id as any);
+                }}
+                className={cn(
+                  "px-2 py-1 rounded-lg text-[9px] font-black transition-all cursor-pointer",
+                  activeTab === tab.id
+                    ? "bg-white text-indigo-600 shadow-2xs font-extrabold"
+                    : "text-slate-400 hover:text-slate-600"
+                )}
+              >
+                {tab.label}
+              </button>
+            ))}
           </div>
         </div>
 
-        {/* Time Filters */}
+        {/* Time Filters Pills */}
         <div className="flex items-center gap-1.5 self-start">
           {[
-            { id: 'today', label: 'Today' },
-            { id: 'week', label: 'This Week' },
-            { id: 'all_time', label: 'All Time' }
+            { id: 'today', label: 'Hôm nay' },
+            { id: 'week', label: 'Tuần này' },
+            { id: 'all_time', label: 'Tất cả' }
           ].map(filter => (
             <button
               key={filter.id}
-              onClick={() => onFilterChange(filter.id)}
+              onClick={() => {
+                if (navigator.vibrate) navigator.vibrate(6);
+                onFilterChange(filter.id);
+              }}
               className={cn(
-                "px-2.5 py-1 rounded-md text-[9px] font-black uppercase tracking-wider transition-all",
+                "px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider transition-all cursor-pointer",
                 activeFilter === filter.id
-                  ? "bg-indigo-600 text-white shadow-sm shadow-indigo-200"
-                  : "bg-slate-50 text-slate-500 hover:bg-slate-100 hover:text-slate-700"
+                  ? "bg-indigo-600 text-white shadow-xs shadow-indigo-200"
+                  : "bg-slate-100/70 text-slate-500 hover:bg-slate-200/60"
               )}
             >
               {filter.label}
@@ -461,107 +449,112 @@ function LeaderboardWidget({
         </div>
       </div>
 
-      <div className="flex flex-col gap-1.5">
+      {/* User Rank List (Podium Modern Cards) */}
+      <div className="flex flex-col gap-2">
         {currentList.map((entry: any, index: number) => {
-          const isOutOfTop5 = (entry as any).out_of_top_5 || (entry as any).out_of_top_10
-          
+          const isRank1 = entry.rank === 1;
+          const isRank2 = entry.rank === 2;
+          const isRank3 = entry.rank === 3;
+          const isCurrentUser = entry.is_current_user;
+
           return (
-            <React.Fragment key={entry.user_id}>
-              {isOutOfTop5 && index > 0 && (
-                <div className="flex justify-center py-1">
-                  <div className="flex gap-1">
-                    <span className="w-1.5 h-1.5 rounded-full bg-slate-200"></span>
-                    <span className="w-1.5 h-1.5 rounded-full bg-slate-200"></span>
-                    <span className="w-1.5 h-1.5 rounded-full bg-slate-200"></span>
-                  </div>
-                </div>
+            <div
+              key={entry.user_id}
+              className={cn(
+                'flex items-center gap-3 px-3.5 py-2.5 rounded-2xl border transition-all relative overflow-hidden',
+                isCurrentUser
+                  ? 'bg-gradient-to-r from-indigo-50/90 via-purple-50/60 to-indigo-50/90 border-indigo-300/80 shadow-md shadow-indigo-100/40 ring-1 ring-indigo-400/40'
+                  : isRank1
+                    ? 'bg-gradient-to-r from-amber-500/15 via-orange-500/10 to-amber-50/50 border-amber-300/70 shadow-2xs'
+                    : isRank2
+                      ? 'bg-gradient-to-r from-slate-100/80 via-slate-50 to-white border-slate-300/60'
+                      : isRank3
+                        ? 'bg-gradient-to-r from-amber-800/10 via-orange-950/5 to-white border-amber-600/30'
+                        : 'bg-white border-slate-100 hover:border-slate-200'
               )}
-              
-              <div
-                className={cn(
-                  'flex items-center gap-2.5 px-3 py-2 rounded-xl border bg-gradient-to-r transition-all',
-                  entry.is_current_user
-                    ? 'bg-indigo-50 border-indigo-200 ring-1 ring-indigo-300/50'
-                    : rankColors[entry.rank as number] || 'border-slate-100 bg-slate-50/50',
-                  isOutOfTop5 && 'border-dashed'
+            >
+              {/* Rank Icon Badge */}
+              <div className="w-7 h-7 rounded-xl flex items-center justify-center font-black shrink-0 text-xs">
+                {isRank1 ? (
+                  <span className="text-base">👑</span>
+                ) : isRank2 ? (
+                  <span className="text-base">🥈</span>
+                ) : isRank3 ? (
+                  <span className="text-base">🥉</span>
+                ) : (
+                  <span className="text-[11px] font-black text-slate-400">#{entry.rank}</span>
                 )}
-              >
-                <div className="w-6 flex items-center justify-center flex-shrink-0">
-                  {rankIcons[entry.rank as number] || (
-                    <span className="text-[9px] font-black text-slate-400">#{entry.rank}</span>
-                  )}
-                </div>
-
-                {/* Avatar */}
-                <div className={cn(
-                  'w-7 h-7 rounded-xl flex items-center justify-center text-[10px] font-black flex-shrink-0',
-                  entry.is_current_user
-                    ? 'bg-indigo-600 text-white'
-                    : entry.rank === 1
-                      ? 'bg-amber-500 text-white'
-                      : 'bg-slate-200 text-slate-600'
-                )}>
-                  {entry.username.slice(0, 2).toUpperCase()}
-                </div>
-
-                <div className="flex-1 min-w-0">
-                  <span className={cn(
-                    'text-[10px] font-black truncate block',
-                    entry.is_current_user ? 'text-indigo-700' : 'text-slate-700'
-                  )}>
-                    {entry.username} {entry.is_current_user && '(You)'}
-                  </span>
-                  {activeTab === 'xp' ? (
-                    <span className="text-[8px] font-bold text-slate-400 flex items-center gap-1">
-                      Lvl {entry.level} · 🔥 {entry.streak}d
-                    </span>
-                  ) : activeTab === 'time' ? (
-                    <span className="text-[8px] font-bold text-slate-400 flex items-center gap-1">
-                      Total study time
-                    </span>
-                  ) : activeTab === 'new_cards' ? (
-                    <span className="text-[8px] font-bold text-slate-400 flex items-center gap-1">
-                      Total new cards
-                    </span>
-                  ) : (
-                    <span className="text-[8px] font-bold text-slate-400 flex items-center gap-1">
-                      Total card reviews
-                    </span>
-                  )}
-                </div>
-
-                <div className="flex-shrink-0 text-right">
-                  <span className={cn(
-                    'text-[10px] font-black',
-                    entry.rank === 1 ? 'text-amber-600' : entry.is_current_user ? 'text-indigo-600' : 'text-slate-600'
-                  )}>
-                    {activeTab === 'xp' 
-                      ? entry.xp.toLocaleString() 
-                      : activeTab === 'time' 
-                        ? formatTime(entry.total_time || 0) 
-                        : activeTab === 'new_cards' 
-                          ? `${entry.new_cards || 0} cards` 
-                          : `${entry.total_cards || 0} reviews`}
-                  </span>
-                  <span className="text-[7px] font-black text-slate-400 block">
-                    {activeTab === 'xp' ? 'XP' : activeTab === 'time' ? 'STUDIED' : activeTab === 'new_cards' ? 'NEW' : 'REVIEWS'}
-                  </span>
-                </div>
               </div>
-            </React.Fragment>
-          )
+
+              {/* Avatar Circle */}
+              <div className={cn(
+                'w-9 h-9 rounded-2xl flex items-center justify-center text-xs font-black shrink-0 shadow-2xs',
+                isCurrentUser
+                  ? 'bg-gradient-to-tr from-indigo-600 to-purple-600 text-white'
+                  : isRank1
+                    ? 'bg-gradient-to-tr from-amber-400 to-orange-500 text-white'
+                    : isRank2
+                      ? 'bg-gradient-to-tr from-slate-400 to-slate-600 text-white'
+                      : isRank3
+                        ? 'bg-gradient-to-tr from-amber-700 to-amber-900 text-white'
+                        : 'bg-slate-100 text-slate-600'
+              )}>
+                {entry.username.slice(0, 2).toUpperCase()}
+              </div>
+
+              {/* User Details */}
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-1.5">
+                  <span className={cn(
+                    'text-xs font-black truncate',
+                    isCurrentUser ? 'text-indigo-900' : 'text-slate-800'
+                  )}>
+                    {entry.username}
+                  </span>
+                  {isCurrentUser && (
+                    <span className="text-[9px] font-black px-1.5 py-0.2 bg-indigo-600 text-white rounded-full uppercase tracking-wider">
+                      Bạn
+                    </span>
+                  )}
+                </div>
+                <span className="text-[10px] font-bold text-slate-400 flex items-center gap-1 mt-0.5">
+                  Lv {entry.level} · 🔥 {entry.streak}d streak
+                </span>
+              </div>
+
+              {/* Value Badge */}
+              <div className="shrink-0 text-right">
+                <span className={cn(
+                  'text-xs font-black block',
+                  isRank1 ? 'text-orange-600' : isCurrentUser ? 'text-indigo-600' : 'text-slate-800'
+                )}>
+                  {activeTab === 'xp' 
+                    ? entry.xp.toLocaleString() 
+                    : activeTab === 'time' 
+                      ? formatTime(entry.total_time || 0) 
+                      : activeTab === 'new_cards' 
+                        ? `${entry.new_cards || 0}` 
+                        : `${entry.total_cards || 0}`}
+                </span>
+                <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest">
+                  {activeTab === 'xp' ? 'XP' : activeTab === 'time' ? 'HỌC' : activeTab === 'new_cards' ? 'THẺ MỚI' : 'ÔN TẬP'}
+                </span>
+              </div>
+            </div>
+          );
         })}
+        
         {currentList.length === 0 && (
-          <div className="py-4 text-center text-[10px] font-black text-slate-400 uppercase tracking-widest">
-            No data available
+          <div className="py-6 text-center text-xs font-bold text-slate-400">
+            Chưa có dữ liệu xếp hạng
           </div>
         )}
       </div>
 
       {currentRank && (
-        <div className="pt-1 border-t border-slate-100 text-center mt-2">
-          <span className="text-[9px] font-black text-slate-400">
-            Your rank: <span className="text-indigo-600 font-extrabold">#{currentRank}</span> system-wide
+        <div className="pt-2 border-t border-slate-100 text-center">
+          <span className="text-[10px] font-bold text-slate-400">
+            Hạng hiện tại của bạn: <strong className="text-indigo-600 font-black">#{currentRank}</strong> toàn hệ thống
           </span>
         </div>
       )}
@@ -569,7 +562,7 @@ function LeaderboardWidget({
   )
 }
 
-// ─── Daily Challenges Widget ───────────────────────────────────────────────────
+// ─── Ultra-Modern Badge Achievements Widget ────────────────────────────────────
 interface BadgeProgress {
   id: string
   name: string
@@ -593,33 +586,43 @@ function BadgeProgressWidget({ data }: { data: BadgeProgress[] }) {
   }
 
   return (
-    <div className="bg-white border border-slate-200/60 rounded-[2rem] p-5 shadow-sm flex flex-col gap-3.5 text-left flex-shrink-0">
+    <div className="bg-white border border-slate-100 rounded-[2.2rem] p-4 shadow-[0_8px_30px_rgb(0,0,0,0.04)] flex flex-col gap-3.5 text-left flex-shrink-0">
       <div className="flex items-center justify-between pb-2 border-b border-slate-100">
-        <div>
-          <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 block">Achievements Roadmap</span>
-          <span className="text-[8px] font-black text-indigo-600 uppercase tracking-wider block mt-0.5">
-            🏆 Near Completion
-          </span>
+        <div className="flex items-center gap-2">
+          <div className="w-7 h-7 rounded-xl bg-gradient-to-tr from-amber-400 to-orange-500 flex items-center justify-center text-white shadow-sm shadow-orange-200">
+            <Trophy className="w-4 h-4" />
+          </div>
+          <div>
+            <span className="text-xs font-black text-slate-800 uppercase tracking-widest block">Thành Tích Đạt Được</span>
+            <span className="text-[9px] font-bold text-slate-400 block mt-0.5">Tiến trình huy hiệu của bạn</span>
+          </div>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+      <div className="flex flex-col gap-2.5">
         {data.map(badge => {
-          const IconComponent = iconsMap[badge.icon] || Trophy
+          const IconComponent = iconsMap[badge.icon] || Trophy;
+          const isComplete = badge.percentage >= 100;
+
           return (
-            <div key={badge.id} className="flex items-center gap-3 p-3.5 rounded-2xl border border-slate-100 bg-slate-50/30">
-              <div className="w-9 h-9 rounded-xl bg-indigo-50 border border-indigo-100/50 flex items-center justify-center text-indigo-600 flex-shrink-0">
+            <div key={badge.id} className="flex items-center gap-3 p-3 rounded-2xl border border-slate-100 bg-slate-50/40 hover:border-slate-200 transition-all">
+              <div className={cn(
+                "w-11 h-11 rounded-2xl flex items-center justify-center shrink-0 shadow-2xs",
+                isComplete 
+                  ? "bg-gradient-to-tr from-amber-400 via-orange-500 to-amber-500 text-white shadow-orange-200" 
+                  : "bg-indigo-50 border border-indigo-100 text-indigo-600"
+              )}>
                 <IconComponent className="w-5 h-5" />
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center justify-between gap-2">
-                  <span className="text-[10px] font-black text-slate-800 truncate">{badge.name}</span>
-                  <span className="text-[9px] font-black text-indigo-600">{badge.percentage}%</span>
+                  <span className="text-xs font-black text-slate-800 truncate">{badge.name}</span>
+                  <span className="text-[10px] font-black text-indigo-600">{badge.percentage}%</span>
                 </div>
-                <p className="text-[8px] font-medium text-slate-400 truncate mt-0.5">{badge.description}</p>
-                <div className="h-1 bg-slate-100 rounded-full mt-2 overflow-hidden w-full relative">
+                <p className="text-[10px] font-medium text-slate-400 truncate mt-0.5">{badge.description}</p>
+                <div className="h-2 bg-slate-200/60 rounded-full mt-2 overflow-hidden w-full relative">
                   <div
-                    className="h-full bg-gradient-to-r from-indigo-500 to-purple-500 rounded-full transition-all"
+                    className="h-full bg-gradient-to-r from-indigo-500 via-purple-500 to-orange-500 rounded-full transition-all duration-700"
                     style={{ width: `${badge.percentage}%` }}
                   />
                 </div>
@@ -631,7 +634,6 @@ function BadgeProgressWidget({ data }: { data: BadgeProgress[] }) {
     </div>
   )
 }
-
 function TodayFocusWidget({
   roadmapDecks,
   onStartPractice,
@@ -1576,9 +1578,9 @@ export default function Dashboard() {
         </section>
       </div>
 
-      {/* MOBILE FEED — Native App Experience */}
+      {/* MOBILE FEED — Modern iOS Native App Experience */}
       <div 
-        className="md:hidden flex flex-col bg-slate-100 fixed inset-0 top-0 bottom-[60px] z-[100] overflow-hidden select-none"
+        className="md:hidden flex flex-col bg-slate-100/90 fixed inset-0 top-0 bottom-[60px] z-[100] overflow-hidden select-none"
         onTouchStart={(e) => {
           (window as any)._touchStartX = e.touches[0].clientX;
           (window as any)._touchStartY = e.touches[0].clientY;
@@ -1602,13 +1604,11 @@ export default function Dashboard() {
           // Horizontal swipe between tabs
           if (Math.abs(diffX) > 60 && Math.abs(diffY) < 80) {
             if (diffX < 0) {
-              // Swipe Left -> Next tab
               if (currentSlide < 3) {
                 if (navigator.vibrate) navigator.vibrate(10);
                 setCurrentSlide(prev => prev + 1);
               }
             } else {
-              // Swipe Right -> Prev tab
               if (currentSlide > 0) {
                 if (navigator.vibrate) navigator.vibrate(10);
                 setCurrentSlide(prev => prev - 1);
@@ -1617,80 +1617,82 @@ export default function Dashboard() {
           }
         }}
       >
-        {/* Minimalist Native Top App Bar */}
-        <div className="flex items-center justify-between px-4 py-2 bg-white border-b border-slate-100 flex-shrink-0 z-20 shadow-2xs">
-          <Link to="/" className="flex items-center gap-1.5 active:opacity-80 transition-opacity">
-            <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-indigo-600 to-orange-500 flex items-center justify-center text-white shadow-sm shadow-indigo-100">
+        {/* Sleek Glassmorphic Top Status Bar */}
+        <div className="flex items-center justify-between px-4 py-2.5 bg-white/95 backdrop-blur-md border-b border-slate-100 flex-shrink-0 z-20 shadow-2xs">
+          <Link to="/" className="flex items-center gap-2 active:scale-95 transition-all">
+            <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-indigo-600 via-indigo-700 to-orange-500 flex items-center justify-center text-white shadow-md shadow-indigo-200">
               <BookOpen className="w-4.5 h-4.5" />
             </div>
-            <span className="text-[15px] font-black text-slate-800 tracking-tight">
+            <span className="text-[16px] font-black text-slate-800 tracking-tight">
               Voca<span className="text-orange-500">burn</span>
             </span>
           </Link>
           
           <div className="flex items-center gap-2">
-            <span className="flex items-center gap-1 px-3 py-1 bg-orange-50 border border-orange-100/80 rounded-full text-[11px] font-black text-orange-600 shadow-2xs">
-              <Flame className="w-3.5 h-3.5 fill-orange-500 text-orange-500 animate-bounce" />
+            <span className="flex items-center gap-1.5 px-3 py-1 bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-full text-[11px] font-black shadow-sm shadow-orange-200">
+              <Flame className="w-3.5 h-3.5 fill-white text-white animate-bounce" />
               {data?.gamify?.streak || 0}d streak
             </span>
 
             <Link 
               to="/profile" 
-              className="w-8 h-8 rounded-full bg-slate-100 border border-slate-200/60 flex items-center justify-center text-slate-600 active:scale-95 transition-all shadow-2xs"
+              className="w-8 h-8 rounded-full bg-slate-100 border border-slate-200/60 flex items-center justify-center text-slate-700 active:scale-95 transition-all ring-2 ring-indigo-500/20 shadow-2xs"
             >
               <User className="w-4 h-4" />
             </Link>
           </div>
         </div>
 
-        {/* TOP TAB HEADERS (Native App Style) */}
-        <div className="bg-white border-b border-slate-100 px-2 py-1.5 flex items-center justify-around flex-shrink-0 z-10">
-          {[
-            { id: 0, label: 'Lộ Trình', emoji: '🎯' },
-            { id: 1, label: 'Thẻ Học', emoji: '📚' },
-            { id: 2, label: 'Thống Kê', emoji: '📊' },
-            { id: 3, label: 'Xếp Hạng', emoji: '🏆' }
-          ].map(tab => {
-            const isActive = currentSlide === tab.id;
-            return (
-              <button
-                key={tab.id}
-                onClick={() => {
-                  if (navigator.vibrate) navigator.vibrate(8);
-                  setCurrentSlide(tab.id);
-                }}
-                className={cn(
-                  "flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-black transition-all cursor-pointer relative",
-                  isActive
-                    ? "bg-indigo-50 text-indigo-600 border border-indigo-100 shadow-2xs scale-[1.02]"
-                    : "text-slate-500 hover:text-slate-800"
-                )}
-              >
-                <span>{tab.emoji}</span>
-                <span>{tab.label}</span>
-                {isActive && (
-                  <motion.div 
-                    layoutId="activeTabPill"
-                    className="absolute inset-0 rounded-full bg-indigo-50 border border-indigo-100 -z-10"
-                    transition={{ type: "spring", stiffness: 400, damping: 30 }}
-                  />
-                )}
-              </button>
-            );
-          })}
+        {/* MODERN SEGMENTED TAB CONTROL */}
+        <div className="bg-white/80 backdrop-blur-md border-b border-slate-100 px-3 py-1.5 flex flex-shrink-0 z-10">
+          <div className="w-full bg-slate-100/90 p-1 rounded-2xl flex items-center justify-around border border-slate-200/50 shadow-inner">
+            {[
+              { id: 0, label: 'Lộ Trình', emoji: '🎯' },
+              { id: 1, label: 'Thẻ Học', emoji: '📚' },
+              { id: 2, label: 'Thống Kê', emoji: '📊' },
+              { id: 3, label: 'Xếp Hạng', emoji: '🏆' }
+            ].map(tab => {
+              const isActive = currentSlide === tab.id;
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => {
+                    if (navigator.vibrate) navigator.vibrate(8);
+                    setCurrentSlide(tab.id);
+                  }}
+                  className={cn(
+                    "flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-xl text-xs font-black transition-all cursor-pointer relative",
+                    isActive
+                      ? "text-indigo-600 font-extrabold shadow-sm"
+                      : "text-slate-500 hover:text-slate-800"
+                  )}
+                >
+                  <span className="text-xs">{tab.emoji}</span>
+                  <span>{tab.label}</span>
+                  {isActive && (
+                    <motion.div 
+                      layoutId="activeSegmentedPill"
+                      className="absolute inset-0 rounded-xl bg-white border border-slate-200/60 shadow-xs -z-10"
+                      transition={{ type: "spring", stiffness: 450, damping: 32 }}
+                    />
+                  )}
+                </button>
+              );
+            })}
+          </div>
         </div>
 
         {/* WHITE MAIN CONTAINER */}
         <div className="flex-1 bg-white rounded-t-3xl shadow-xl overflow-hidden relative border-t border-slate-100 flex flex-col">
           <AnimatePresence mode="wait">
             
-            {/* ═══ SLIDE 1: LỘ TRÌNH HỌC (MASCOT + HERO & 3 STEPS VERTICAL TIMELINE) ═══ */}
+            {/* ═══ SLIDE 1: LỘ TRÌNH HỌC (HERO CARD & 3 STEPS VERTICAL TIMELINE) ═══ */}
             {currentSlide === 0 && (
               <motion.div 
                 key="slide0"
-                initial={{ opacity: 0, x: 40 }}
+                initial={{ opacity: 0, x: 30 }}
                 animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -40 }}
+                exit={{ opacity: 0, x: -30 }}
                 transition={{ duration: 0.2, ease: "easeInOut" }}
                 className="absolute inset-0 flex flex-col"
               >
@@ -1765,38 +1767,43 @@ export default function Dashboard() {
                         {/* CARD BODY */}
                         <div className="flex-1 flex flex-col justify-between p-4 overflow-y-auto [&::-webkit-scrollbar]:hidden gap-3">
                           
-                          {/* HERO MASCOT + PROGRESS SECTION */}
-                          <div className="flex flex-col items-center text-center pt-1 pb-2">
+                          {/* HERO MASCOT + PROGRESS SECTION (Modern App Glass Card) */}
+                          <div className="bg-gradient-to-br from-indigo-50/90 via-purple-50/40 to-slate-50/30 rounded-[2rem] p-4 border border-indigo-100/60 shadow-[0_4px_20px_rgba(99,102,241,0.06)] relative overflow-hidden flex flex-col items-center text-center">
                             
+                            {/* Glow Accent */}
+                            <div className="absolute -right-8 -top-8 w-24 h-24 rounded-full bg-indigo-200/30 blur-xl pointer-events-none" />
+
                             {/* Mascot Image */}
                             <motion.img 
                               key={mascotImg}
-                              initial={{ scale: 0.8, opacity: 0 }}
+                              initial={{ scale: 0.85, opacity: 0 }}
                               animate={{ scale: 1, opacity: 1 }}
-                              transition={{ type: "spring", stiffness: 300, damping: 20 }}
+                              transition={{ type: "spring", stiffness: 320, damping: 22 }}
                               src={mascotImg} 
                               alt="Vocaburn Mascot" 
                               className="w-24 h-24 object-contain drop-shadow-md"
                             />
 
                             {/* Dynamic Greeting */}
-                            <p className="text-xs font-black text-slate-800 mt-2 max-w-[260px] leading-snug">
-                              {mascotText}
-                            </p>
+                            <div className="mt-1 px-3 py-1 bg-white/90 backdrop-blur-md rounded-full border border-indigo-100/80 shadow-2xs">
+                              <p className="text-xs font-black text-slate-800 leading-snug">
+                                {mascotText}
+                              </p>
+                            </div>
 
                             {/* Deck Title Badge */}
-                            <div className="flex items-center gap-1.5 bg-slate-100 px-3 py-1 rounded-full border border-slate-200/60 mt-2">
+                            <div className="flex items-center gap-1.5 bg-white/80 backdrop-blur-sm px-3 py-1 rounded-full border border-slate-200/60 mt-2.5 shadow-2xs">
                               <BookOpen className="w-3.5 h-3.5 text-indigo-600" />
-                              <span className="text-xs font-black text-slate-800 truncate max-w-[200px]">{deck.title}</span>
+                              <span className="text-xs font-black text-slate-800 truncate max-w-[220px]">{deck.title}</span>
                             </div>
 
                             {/* Linear Progress Bar */}
-                            <div className="w-full max-w-[300px] mt-3 bg-slate-50 p-2.5 rounded-2xl border border-slate-100">
+                            <div className="w-full mt-3 bg-white/90 backdrop-blur-sm p-3 rounded-2xl border border-indigo-100/80 shadow-2xs">
                               <div className="flex items-center justify-between text-[11px] font-black text-slate-700 mb-1.5">
                                 <span>Tiến độ tổng quan</span>
-                                <span className="text-indigo-600">{pct}% ({tD}/{tT} thẻ)</span>
+                                <span className="text-indigo-600 font-black">{pct}% ({tD}/{tT} thẻ)</span>
                               </div>
-                              <div className="h-2.5 bg-slate-200/70 rounded-full overflow-hidden w-full relative">
+                              <div className="h-2.5 bg-slate-100 rounded-full overflow-hidden w-full relative shadow-inner">
                                 <motion.div 
                                   className="h-full bg-gradient-to-r from-indigo-500 via-purple-500 to-orange-500 rounded-full"
                                   initial={{ width: 0 }}
@@ -1812,19 +1819,19 @@ export default function Dashboard() {
                           <div className="flex flex-col gap-0.5 relative pl-4 pr-1 mt-auto">
                             
                             {/* Vertical Line Connector */}
-                            <div className="absolute left-[27px] top-6 bottom-6 w-0.5 bg-slate-200 -z-10" />
+                            <div className="absolute left-[27px] top-6 bottom-6 w-0.5 bg-slate-200/80 -z-10" />
 
                             {/* STEP 1: HỌC TỪ MỚI */}
-                            <div className="flex items-start gap-3 py-2">
+                            <div className="flex items-start gap-3 py-1.5">
                               <div className={cn(
-                                "w-7 h-7 rounded-full flex items-center justify-center text-xs font-black flex-shrink-0 transition-all shadow-2xs mt-0.5",
+                                "w-7 h-7 rounded-full flex items-center justify-center text-xs font-black flex-shrink-0 transition-all shadow-2xs mt-0.5 ring-4 ring-white",
                                 s1 ? "bg-emerald-500 text-white shadow-emerald-200" : "bg-indigo-600 text-white shadow-indigo-200"
                               )}>
                                 {s1 ? '✓' : '1'}
                               </div>
                               <div className={cn(
                                 "flex-1 p-3 rounded-2xl border transition-all flex flex-col gap-1",
-                                s1 ? "bg-emerald-50/50 border-emerald-200" : "bg-white border-slate-200/80 shadow-2xs"
+                                s1 ? "bg-emerald-50/60 border-emerald-200" : "bg-white border-slate-100 shadow-[0_2px_12px_rgba(0,0,0,0.03)]"
                               )}>
                                 <div className="flex items-center justify-between">
                                   <h5 className="text-xs font-black text-slate-800">Bước 1: Học từ mới</h5>
@@ -1837,16 +1844,16 @@ export default function Dashboard() {
                             </div>
 
                             {/* STEP 2: TEST TRẮC NGHIỆM MCQ */}
-                            <div className="flex items-start gap-3 py-2">
+                            <div className="flex items-start gap-3 py-1.5">
                               <div className={cn(
-                                "w-7 h-7 rounded-full flex items-center justify-center text-xs font-black flex-shrink-0 transition-all shadow-2xs mt-0.5",
+                                "w-7 h-7 rounded-full flex items-center justify-center text-xs font-black flex-shrink-0 transition-all shadow-2xs mt-0.5 ring-4 ring-white",
                                 s2 ? "bg-emerald-500 text-white shadow-emerald-200" : s1 ? "bg-amber-500 text-white shadow-amber-200" : "bg-slate-300 text-white"
                               )}>
                                 {s2 ? '✓' : '2'}
                               </div>
                               <div className={cn(
                                 "flex-1 p-3 rounded-2xl border transition-all flex flex-col gap-1",
-                                s2 ? "bg-emerald-50/50 border-emerald-200" : s1 ? "bg-amber-50/70 border-amber-200 shadow-2xs" : "bg-slate-50/60 border-slate-200/60"
+                                s2 ? "bg-emerald-50/60 border-emerald-200" : s1 ? "bg-amber-50/80 border-amber-200/80 shadow-[0_2px_12px_rgba(245,158,11,0.06)]" : "bg-slate-50/60 border-slate-100"
                               )}>
                                 <div className="flex items-center justify-between">
                                   <h5 className="text-xs font-black text-slate-800">Bước 2: Test trắc nghiệm MCQ</h5>
@@ -1859,16 +1866,16 @@ export default function Dashboard() {
                             </div>
 
                             {/* STEP 3: ÔN TẬP FSRS */}
-                            <div className="flex items-start gap-3 py-2">
+                            <div className="flex items-start gap-3 py-1.5">
                               <div className={cn(
-                                "w-7 h-7 rounded-full flex items-center justify-center text-xs font-black flex-shrink-0 transition-all shadow-2xs mt-0.5",
+                                "w-7 h-7 rounded-full flex items-center justify-center text-xs font-black flex-shrink-0 transition-all shadow-2xs mt-0.5 ring-4 ring-white",
                                 rD > 0 && rDn >= rD ? "bg-emerald-500 text-white shadow-emerald-200" : "bg-orange-500 text-white shadow-orange-200"
                               )}>
                                 {rD > 0 && rDn >= rD ? '✓' : '3'}
                               </div>
                               <div className={cn(
                                 "flex-1 p-3 rounded-2xl border transition-all flex flex-col gap-1",
-                                rD > 0 && rDn >= rD ? "bg-emerald-50/50 border-emerald-200" : "bg-white border-slate-200/80 shadow-2xs"
+                                rD > 0 && rDn >= rD ? "bg-emerald-50/60 border-emerald-200" : "bg-white border-slate-100 shadow-[0_2px_12px_rgba(0,0,0,0.03)]"
                               )}>
                                 <div className="flex items-center justify-between">
                                   <h5 className="text-xs font-black text-slate-800">Bước 3: Ôn tập FSRS</h5>
@@ -1925,9 +1932,9 @@ export default function Dashboard() {
             {currentSlide === 1 && (
               <motion.div 
                 key="slide1"
-                initial={{ opacity: 0, x: 40 }}
+                initial={{ opacity: 0, x: 30 }}
                 animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -40 }}
+                exit={{ opacity: 0, x: -30 }}
                 transition={{ duration: 0.2, ease: "easeInOut" }}
                 className="absolute inset-0 flex flex-col"
               >
@@ -1941,7 +1948,7 @@ export default function Dashboard() {
                             if (navigator.vibrate) navigator.vibrate(8);
                             navigate(`/flashcard/${deck.deck_id}`);
                           }}
-                          className="bg-white rounded-2xl border border-slate-100 p-4 shadow-2xs hover:shadow-md cursor-pointer active:scale-[0.98] transition-all w-full flex items-center gap-4 group"
+                          className="bg-white rounded-2xl border border-slate-100 p-4 shadow-[0_4px_20px_rgba(0,0,0,0.03)] hover:shadow-md cursor-pointer active:scale-[0.98] transition-all w-full flex items-center gap-4 group"
                         >
                           <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-indigo-50 to-orange-50 flex items-center justify-center text-2xl overflow-hidden border border-indigo-100/60 shadow-inner flex-shrink-0">
                             {deck.cover_image ? <img src={deck.cover_image} alt="" className="w-full h-full object-cover" /> : <span>📘</span>}
@@ -1975,9 +1982,9 @@ export default function Dashboard() {
             {currentSlide === 2 && (
               <motion.div 
                 key="slide2"
-                initial={{ opacity: 0, x: 40 }}
+                initial={{ opacity: 0, x: 30 }}
                 animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -40 }}
+                exit={{ opacity: 0, x: -30 }}
                 transition={{ duration: 0.2, ease: "easeInOut" }}
                 className="absolute inset-0 flex flex-col"
               >
@@ -1995,9 +2002,9 @@ export default function Dashboard() {
             {currentSlide === 3 && (
               <motion.div 
                 key="slide3"
-                initial={{ opacity: 0, x: 40 }}
+                initial={{ opacity: 0, x: 30 }}
                 animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -40 }}
+                exit={{ opacity: 0, x: -30 }}
                 transition={{ duration: 0.2, ease: "easeInOut" }}
                 className="absolute inset-0 flex flex-col"
               >
