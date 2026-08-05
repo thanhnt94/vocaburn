@@ -60,6 +60,10 @@ app.mount("/static", StaticFiles(directory=os.path.join(BASE_DIR, "static")), na
 DIST_DIR = os.path.join(BASE_DIR, "static", "dist")
 if os.path.exists(DIST_DIR):
     app.mount("/static/dist", StaticFiles(directory=DIST_DIR), name="dist")
+    mascot_dir = os.path.join(DIST_DIR, "mascot")
+    if os.path.exists(mascot_dir):
+        app.mount("/mascot", StaticFiles(directory=mascot_dir), name="mascot")
+
 
 
 # CORS Setup
