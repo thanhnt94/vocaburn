@@ -1579,7 +1579,7 @@ export default function Dashboard() {
         </section>
       </div>
 
-      {/* MOBILE FEED — Luxury Minimalist (Integrated Hero & Unified Timeline) */}
+      {/* MOBILE FEED — Clean White Hero with Big Mascot & Unified Timeline */}
       <div 
         className="md:hidden flex flex-col bg-neutral-50 fixed inset-0 top-0 bottom-[60px] z-[100] overflow-hidden select-none"
         onTouchStart={(e) => {
@@ -1685,7 +1685,7 @@ export default function Dashboard() {
         <div className="flex-1 bg-neutral-50 overflow-hidden relative flex flex-col">
           <AnimatePresence mode="wait">
             
-            {/* ═══ SLIDE 1: LỘ TRÌNH HỌC (INTEGRATED HERO & UNIFIED TIMELINE CARD) ═══ */}
+            {/* ═══ SLIDE 1: LỘ TRÌNH HỌC (WHITE HERO CARD & BIG MASCOT) ═══ */}
             {currentSlide === 0 && (
               <motion.div 
                 key="slide0"
@@ -1766,15 +1766,14 @@ export default function Dashboard() {
                         {/* CARD BODY */}
                         <div className="flex-1 flex flex-col justify-between p-3.5 overflow-y-auto [&::-webkit-scrollbar]:hidden gap-3">
                           
-                          {/* HERO MASCOT BANNER CARD — VIBRANT & INTEGRATED */}
-                          <div className="flex-1 bg-gradient-to-br from-orange-500 via-orange-600 to-amber-500 rounded-[2rem] p-4 text-white shadow-md shadow-orange-500/20 relative overflow-hidden flex flex-col items-center justify-between text-center">
+                          {/* HERO MASCOT CARD — CLEAN WHITE, SPACIOUS, HUGE MASCOT */}
+                          <div className="flex-1 bg-white rounded-3xl p-5 border border-slate-100 shadow-[0_4px_25px_rgba(0,0,0,0.03)] relative overflow-hidden flex flex-col items-center justify-between text-center">
                             
-                            {/* Floating Ambient Effects */}
-                            <div className="absolute -right-10 -top-10 w-36 h-36 rounded-full bg-white/10 blur-xl pointer-events-none" />
-                            <div className="absolute -left-10 -bottom-10 w-36 h-36 rounded-full bg-amber-400/20 blur-xl pointer-events-none" />
+                            {/* Subtle Ambient Radial Glow */}
+                            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 rounded-full bg-orange-100/40 blur-3xl pointer-events-none -z-10" />
 
-                            {/* DYNAMIC SCALING MASCOT IMAGE */}
-                            <div className="flex-1 flex items-center justify-center w-full min-h-[140px] py-1">
+                            {/* HUGE MASCOT IMAGE */}
+                            <div className="flex-1 flex items-center justify-center w-full min-h-[180px] my-2">
                               <motion.img 
                                 key={mascotImg}
                                 initial={{ scale: 0.85, opacity: 0 }}
@@ -1782,30 +1781,30 @@ export default function Dashboard() {
                                 transition={{ duration: 0.3 }}
                                 src={mascotImg} 
                                 alt="Vocaburn Mascot" 
-                                className="h-full max-h-[190px] w-auto object-contain drop-shadow-lg"
+                                className="h-full max-h-[250px] w-auto object-contain drop-shadow-md"
                               />
                             </div>
 
-                            {/* Hero Text Info (Direct on gradient, zero nested pills) */}
-                            <div className="flex flex-col items-center gap-1 w-full max-w-[290px]">
-                              <h3 className="text-sm font-black tracking-tight text-white drop-shadow-xs leading-tight">
+                            {/* Prominent Slogan & Deck Info */}
+                            <div className="flex flex-col items-center gap-1.5 w-full max-w-[300px]">
+                              <h3 className="text-base font-black text-slate-800 tracking-tight leading-snug">
                                 {mascotText}
                               </h3>
-                              <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-white/20 backdrop-blur-md rounded-full text-[11px] font-bold text-white mt-0.5 border border-white/30 shadow-2xs">
-                                <BookOpen className="w-3.5 h-3.5" />
-                                <span className="truncate max-w-[200px]">{deck.title}</span>
+                              <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-slate-50 rounded-full text-xs font-bold text-slate-600 border border-slate-200/60 shadow-2xs">
+                                <BookOpen className="w-3.5 h-3.5 text-orange-500" />
+                                <span className="truncate max-w-[220px]">{deck.title}</span>
                               </div>
                             </div>
 
-                            {/* Integrated Progress Bar */}
-                            <div className="w-full max-w-[310px] mt-2.5 pt-2.5 border-t border-white/20 flex flex-col gap-1">
-                              <div className="flex items-center justify-between text-[11px] font-bold text-white">
+                            {/* Elegant Progress Bar */}
+                            <div className="w-full max-w-[310px] mt-3 pt-3 border-t border-slate-100 flex flex-col gap-1.5">
+                              <div className="flex items-center justify-between text-xs font-bold text-slate-700">
                                 <span>Tiến độ bài học</span>
-                                <span className="font-black text-amber-100">{pct}% ({tD}/{tT} thẻ)</span>
+                                <span className="font-black text-orange-600">{pct}% ({tD}/{tT} thẻ)</span>
                               </div>
-                              <div className="h-2 bg-black/20 rounded-full overflow-hidden w-full relative p-0.5 backdrop-blur-xs">
+                              <div className="h-2.5 bg-slate-100 rounded-full overflow-hidden w-full relative shadow-inner">
                                 <motion.div 
-                                  className="h-full bg-white rounded-full shadow-xs"
+                                  className="h-full bg-gradient-to-r from-orange-500 via-amber-500 to-orange-600 rounded-full"
                                   initial={{ width: 0 }}
                                   animate={{ width: `${pct}%` }}
                                   transition={{ duration: 0.8, ease: "easeOut" }}
@@ -1815,7 +1814,7 @@ export default function Dashboard() {
 
                           </div>
 
-                          {/* UNIFIED SINGLE CONTAINER 3-STEPS TIMELINE CARD (ZERO MISALIGNMENT) */}
+                          {/* UNIFIED SINGLE CONTAINER 3-STEPS TIMELINE CARD */}
                           <div className="bg-white border border-slate-100 rounded-3xl p-3.5 shadow-2xs flex flex-col gap-2 flex-shrink-0">
                             
                             {/* Step 1 */}
