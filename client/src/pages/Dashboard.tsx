@@ -1576,44 +1576,121 @@ export default function Dashboard() {
         </section>
       </div>
 
-      {/* MOBILE FEED — Full-screen Card Swiper */}
-      <div className="md:hidden flex flex-col bg-gradient-to-br from-indigo-600 via-purple-600 to-fuchsia-600 fixed inset-0 top-0 bottom-[60px] z-[100] overflow-hidden">
-        
-        {/* Mobile Top App Bar */}
-        <div className="flex items-center justify-between px-4 py-2.5 flex-shrink-0 z-10">
-          <Link to="/" className="flex items-center gap-1.5">
-            <div className="w-8 h-8 rounded-xl bg-white/20 backdrop-blur-md flex items-center justify-center text-white border border-white/20 shadow-sm">
-              <BookOpen className="w-4 h-4" />
+      {/* MOBILE FEED — Native App Experience */}
+      <div 
+        className="md:hidden flex flex-col bg-slate-100 fixed inset-0 top-0 bottom-[60px] z-[100] overflow-hidden select-none"
+        onTouchStart={(e) => {
+          (window as any)._touchStartX = e.touches[0].clientX;
+          (window as any)._touchStartY = e.touches[0].clientY;
+        }}
+        onTouchEnd={(e) => {
+          const startX = (window as any)._touchStartX;
+          const startY = (window as any)._touchStartY;
+          if (startX === undefined || startY === undefined) return;
+          const endX = e.changedTouches[0].clientX;
+          const endY = e.changedTouches[0].clientY;
+          const diffX = endX - startX;
+          const diffY = endY - startY;
+
+          // Pull to refresh detection (swipe down at top)
+          if (diffY > 120 && Math.abs(diffX) < 50) {
+            if (navigator.vibrate) navigator.vibrate(20);
+            queryClient.invalidateQueries();
+            return;
+          }
+
+          // Horizontal swipe between tabs
+          if (Math.abs(diffX) > 60 && Math.abs(diffY) < 80) {
+            if (diffX < 0) {
+              // Swipe Left -> Next tab
+              if (currentSlide < 3) {
+                if (navigator.vibrate) navigator.vibrate(10);
+                setCurrentSlide(prev => prev + 1);
+              }
+            } else {
+              // Swipe Right -> Prev tab
+              if (currentSlide > 0) {
+                if (navigator.vibrate) navigator.vibrate(10);
+                setCurrentSlide(prev => prev - 1);
+              }
+            }
+          }
+        }}
+      >
+        {/* Minimalist Native Top App Bar */}
+        <div className="flex items-center justify-between px-4 py-2 bg-white border-b border-slate-100 flex-shrink-0 z-20 shadow-2xs">
+          <Link to="/" className="flex items-center gap-1.5 active:opacity-80 transition-opacity">
+            <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-indigo-600 to-orange-500 flex items-center justify-center text-white shadow-sm shadow-indigo-100">
+              <BookOpen className="w-4.5 h-4.5" />
             </div>
-            <span className="text-[14px] font-black text-white tracking-tight">
-              Voca<span className="text-orange-300">burn</span>
+            <span className="text-[15px] font-black text-slate-800 tracking-tight">
+              Voca<span className="text-orange-500">burn</span>
             </span>
           </Link>
+          
           <div className="flex items-center gap-2">
-            <span className="flex items-center gap-0.5 px-2.5 py-1 bg-white/15 backdrop-blur-sm border border-white/20 rounded-full text-[10px] font-bold text-white">
-              Lv {data.gamify?.level}
+            <span className="flex items-center gap-1 px-3 py-1 bg-orange-50 border border-orange-100/80 rounded-full text-[11px] font-black text-orange-600 shadow-2xs">
+              <Flame className="w-3.5 h-3.5 fill-orange-500 text-orange-500 animate-bounce" />
+              {data?.gamify?.streak || 0}d streak
             </span>
-            <span className="flex items-center gap-1 px-2.5 py-1 bg-white/15 backdrop-blur-sm border border-white/20 rounded-full text-[10px] font-bold text-white">
-              <Flame className="w-3.5 h-3.5 fill-orange-400 text-orange-400" />
-              {data.gamify?.streak}d
-            </span>
-            <Link to="/profile" className="w-8 h-8 rounded-full bg-white/15 backdrop-blur-sm border border-white/20 flex items-center justify-center text-white active:scale-95 transition-all">
+
+            <Link 
+              to="/profile" 
+              className="w-8 h-8 rounded-full bg-slate-100 border border-slate-200/60 flex items-center justify-center text-slate-600 active:scale-95 transition-all shadow-2xs"
+            >
               <User className="w-4 h-4" />
             </Link>
           </div>
         </div>
 
-        {/* WHITE FLOATING CARD — Clean seamlessly integrated layout */}
-        <div className="flex-1 mx-3 mb-2 bg-white rounded-3xl shadow-2xl overflow-hidden relative border border-white/60 flex flex-col">
+        {/* TOP TAB HEADERS (Native App Style) */}
+        <div className="bg-white border-b border-slate-100 px-2 py-1.5 flex items-center justify-around flex-shrink-0 z-10">
+          {[
+            { id: 0, label: 'Lộ Trình', emoji: '🎯' },
+            { id: 1, label: 'Thẻ Học', emoji: '📚' },
+            { id: 2, label: 'Thống Kê', emoji: '📊' },
+            { id: 3, label: 'Xếp Hạng', emoji: '🏆' }
+          ].map(tab => {
+            const isActive = currentSlide === tab.id;
+            return (
+              <button
+                key={tab.id}
+                onClick={() => {
+                  if (navigator.vibrate) navigator.vibrate(8);
+                  setCurrentSlide(tab.id);
+                }}
+                className={cn(
+                  "flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-black transition-all cursor-pointer relative",
+                  isActive
+                    ? "bg-indigo-50 text-indigo-600 border border-indigo-100 shadow-2xs scale-[1.02]"
+                    : "text-slate-500 hover:text-slate-800"
+                )}
+              >
+                <span>{tab.emoji}</span>
+                <span>{tab.label}</span>
+                {isActive && (
+                  <motion.div 
+                    layoutId="activeTabPill"
+                    className="absolute inset-0 rounded-full bg-indigo-50 border border-indigo-100 -z-10"
+                    transition={{ type: "spring", stiffness: 400, damping: 30 }}
+                  />
+                )}
+              </button>
+            );
+          })}
+        </div>
+
+        {/* WHITE MAIN CONTAINER */}
+        <div className="flex-1 bg-white rounded-t-3xl shadow-xl overflow-hidden relative border-t border-slate-100 flex flex-col">
           <AnimatePresence mode="wait">
             
-            {/* ═══ SLIDE 1: LỘ TRÌNH HỌC (BORDERLESS HERO & 3 STEPS ANCHORED) ═══ */}
+            {/* ═══ SLIDE 1: LỘ TRÌNH HỌC (MASCOT + HERO & 3 STEPS VERTICAL TIMELINE) ═══ */}
             {currentSlide === 0 && (
               <motion.div 
                 key="slide0"
-                initial={{ opacity: 0, x: 50 }}
+                initial={{ opacity: 0, x: 40 }}
                 animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -50 }}
+                exit={{ opacity: 0, x: -40 }}
                 transition={{ duration: 0.2, ease: "easeInOut" }}
                 className="absolute inset-0 flex flex-col"
               >
@@ -1631,8 +1708,11 @@ export default function Dashboard() {
                           Hãy chọn một bộ thẻ từ thư viện và bật "Lộ trình học" để kích hoạt lộ trình hằng ngày.
                         </p>
                         <button
-                          onClick={() => navigate('/library')}
-                          className="w-full max-w-[260px] h-13 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl text-xs font-black uppercase tracking-wider transition-all active:scale-[0.98] shadow-lg shadow-indigo-200"
+                          onClick={() => {
+                            if (navigator.vibrate) navigator.vibrate(10);
+                            navigate('/library');
+                          }}
+                          className="w-full max-w-[260px] h-12 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-full text-xs font-black uppercase tracking-wider transition-all active:scale-[0.98] shadow-lg shadow-indigo-200"
                         >
                           Đi tới Thư viện →
                         </button>
@@ -1652,177 +1732,175 @@ export default function Dashboard() {
                     const s1 = st.stage_1_done;
                     const s2 = st.stage_2_done;
                     const nUrl = st.next_action_url;
-                    const streak = st.streak || deck.streak || data.gamify?.streak || 0;
 
                     const newPct = nT > 0 ? Math.min(100, Math.round((nL / nT) * 100)) : 100;
                     const revPct = rD > 0 ? Math.min(100, Math.round((rDn / rD) * 100)) : 100;
-                    const mcqTarget = 10; // Target MCQ questions
+                    const mcqTarget = 10;
                     const mcqDone = s2 ? 10 : 0;
                     const mcqPct = s2 ? 100 : 0;
 
-                    const radius = 38;
-                    const strokeWidth = 6.5;
-                    const circ = 2 * Math.PI * radius;
-                    const off = circ - (circ * pct) / 100;
+                    // Mascot selection
+                    let mascotImg = '/mascot/sleepy.png';
+                    let mascotText = 'Hôm nay bạn chưa học từ nào, bắt đầu thôi! 🚀';
+                    
+                    if (st.all_done || pct >= 100) {
+                      mascotImg = '/mascot/celebrating.png';
+                      mascotText = 'Xuất sắc! Bạn đã hoàn thành lộ trình hôm nay! 🎉';
+                    } else if (pct > 0 || nL > 0 || rDn > 0) {
+                      mascotImg = '/mascot/excited.png';
+                      mascotText = 'Đang bùng cháy! Tiếp tục giữ vững tiến độ nhé 🔥';
+                    }
 
                     return (
                       <div key={deck.deck_id} className="h-full w-full snap-center flex-shrink-0 flex flex-col">
                         
-                        {/* SYNCHRONIZED CARD HEADER */}
-                        <div className="px-5 py-3 flex items-center justify-between border-b border-slate-100 bg-white flex-shrink-0">
-                          <div className="flex items-center gap-2">
-                            <Target className="w-4 h-4 text-orange-500" />
-                            <h3 className="text-xs font-black text-slate-800 uppercase tracking-widest">
-                              Lộ Trình Học
-                            </h3>
+                        {/* DECK SELECTOR HEADER (If multiple decks) */}
+                        {totalDecks > 1 && (
+                          <div className="px-4 py-2 border-b border-slate-100 bg-slate-50/50 flex items-center justify-between flex-shrink-0 text-xs font-bold text-slate-500">
+                            <span>Bộ thẻ {deckIdx + 1}/{totalDecks}: <strong className="text-slate-800 font-black">{deck.title}</strong></span>
+                            <span className="text-[10px] text-indigo-600 font-black">Vuốt dọc để đổi ↕</span>
                           </div>
-                          <div className="flex items-center gap-1.5">
-                            {streak > 0 && (
-                              <span className="text-[10px] font-black text-orange-600 bg-orange-50 border border-orange-100/80 px-2.5 py-0.5 rounded-full flex items-center gap-1">
-                                🔥 {streak}d streak
-                              </span>
-                            )}
-                            <span className="text-[10px] font-bold text-slate-500 bg-slate-100 px-2.5 py-0.5 rounded-full border border-slate-200/50">
-                              {totalDecks > 1 ? `${deckIdx + 1}/${totalDecks}` : (st.all_done ? '✓ Xong' : '• Đang học')}
-                            </span>
-                          </div>
-                        </div>
+                        )}
 
-                        {/* CARD BODY CONTENT — BORDERLESS TOP & STEPS ANCHORED AT BOTTOM */}
-                        <div className="flex-1 flex flex-col justify-between p-4 overflow-y-auto [&::-webkit-scrollbar]:hidden bg-gradient-to-b from-white via-indigo-50/10 to-slate-50/20 gap-3">
+                        {/* CARD BODY */}
+                        <div className="flex-1 flex flex-col justify-between p-4 overflow-y-auto [&::-webkit-scrollbar]:hidden gap-3">
                           
-                          {/* TOP HERO AREA — NO INNER CARD BORDER! */}
-                          <div className="flex-1 flex flex-col items-center justify-center text-center py-2 gap-2 my-auto">
+                          {/* HERO MASCOT + PROGRESS SECTION */}
+                          <div className="flex flex-col items-center text-center pt-1 pb-2">
                             
-                            {/* Deck Title */}
-                            <div className="flex items-center gap-2">
-                              <div className="w-7 h-7 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center text-sm font-bold shrink-0">
-                                📘
-                              </div>
-                              <h4 className="text-base font-black text-slate-800 truncate">{deck.title}</h4>
+                            {/* Mascot Image */}
+                            <motion.img 
+                              key={mascotImg}
+                              initial={{ scale: 0.8, opacity: 0 }}
+                              animate={{ scale: 1, opacity: 1 }}
+                              transition={{ type: "spring", stiffness: 300, damping: 20 }}
+                              src={mascotImg} 
+                              alt="Vocaburn Mascot" 
+                              className="w-24 h-24 object-contain drop-shadow-md"
+                            />
+
+                            {/* Dynamic Greeting */}
+                            <p className="text-xs font-black text-slate-800 mt-2 max-w-[260px] leading-snug">
+                              {mascotText}
+                            </p>
+
+                            {/* Deck Title Badge */}
+                            <div className="flex items-center gap-1.5 bg-slate-100 px-3 py-1 rounded-full border border-slate-200/60 mt-2">
+                              <BookOpen className="w-3.5 h-3.5 text-indigo-600" />
+                              <span className="text-xs font-black text-slate-800 truncate max-w-[200px]">{deck.title}</span>
                             </div>
 
-                            {/* BIG CIRCULAR PROGRESS RING */}
-                            <div className="relative w-30 h-30 flex items-center justify-center my-1">
-                              <svg className="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
-                                <circle cx="50" cy="50" r={radius} fill="transparent" stroke="#f1f5f9" strokeWidth={strokeWidth} />
-                                <circle 
-                                  cx="50" 
-                                  cy="50" 
-                                  r={radius} 
-                                  fill="transparent" 
-                                  stroke="#6366f1" 
-                                  strokeWidth={strokeWidth} 
-                                  strokeDasharray={circ} 
-                                  strokeDashoffset={off} 
-                                  strokeLinecap="round" 
-                                  className="transition-all duration-700" 
+                            {/* Linear Progress Bar */}
+                            <div className="w-full max-w-[300px] mt-3 bg-slate-50 p-2.5 rounded-2xl border border-slate-100">
+                              <div className="flex items-center justify-between text-[11px] font-black text-slate-700 mb-1.5">
+                                <span>Tiến độ tổng quan</span>
+                                <span className="text-indigo-600">{pct}% ({tD}/{tT} thẻ)</span>
+                              </div>
+                              <div className="h-2.5 bg-slate-200/70 rounded-full overflow-hidden w-full relative">
+                                <motion.div 
+                                  className="h-full bg-gradient-to-r from-indigo-500 via-purple-500 to-orange-500 rounded-full"
+                                  initial={{ width: 0 }}
+                                  animate={{ width: `${pct}%` }}
+                                  transition={{ duration: 0.8, ease: "easeOut" }}
                                 />
-                              </svg>
-                              <div className="absolute flex flex-col items-center justify-center text-center">
-                                <span className="text-3xl font-black text-slate-900 leading-none">{pct}%</span>
-                                <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest mt-1">Tiến độ ngày</span>
                               </div>
-                            </div>
-
-                            {/* Daily Target Pill */}
-                            <div className="flex items-center justify-center gap-2 px-3 py-1 bg-slate-100/90 rounded-full border border-slate-200/60 text-[10.5px] font-bold text-slate-600">
-                              <span>Mục tiêu hôm nay: <strong className="text-indigo-600 font-black">{tD}/{tT} thẻ</strong> ({nT} mới + {rD} ôn)</span>
                             </div>
 
                           </div>
 
-                          {/* 3 STEPS ROADMAP LIST — ANCHORED FLUSH TO BOTTOM BUTTON */}
-                          <div className="flex flex-col gap-2 mt-auto pt-2">
+                          {/* 3 STEPS VERTICAL TIMELINE */}
+                          <div className="flex flex-col gap-0.5 relative pl-4 pr-1 mt-auto">
                             
+                            {/* Vertical Line Connector */}
+                            <div className="absolute left-[27px] top-6 bottom-6 w-0.5 bg-slate-200 -z-10" />
+
                             {/* STEP 1: HỌC TỪ MỚI */}
-                            <div className={`p-3 rounded-2xl border transition-all flex flex-col gap-1.5 ${
-                              s1 ? 'bg-emerald-50/60 border-emerald-200 text-emerald-950' : 'bg-white border-slate-200/80 shadow-sm text-slate-800'
-                            }`}>
-                              <div className="flex items-center justify-between">
-                                <div className="flex items-center gap-2">
-                                  <div className={`w-6 h-6 rounded-lg flex items-center justify-center text-xs font-black ${
-                                    s1 ? 'bg-emerald-500 text-white' : 'bg-indigo-600 text-white'
-                                  }`}>
-                                    {s1 ? '✓' : '1'}
-                                  </div>
-                                  <h5 className="text-xs font-black">Bước 1: Học từ mới</h5>
-                                </div>
-                                <span className="text-[10px] font-black text-indigo-600">
-                                  {nL} / {nT} thẻ ({newPct}%)
-                                </span>
+                            <div className="flex items-start gap-3 py-2">
+                              <div className={cn(
+                                "w-7 h-7 rounded-full flex items-center justify-center text-xs font-black flex-shrink-0 transition-all shadow-2xs mt-0.5",
+                                s1 ? "bg-emerald-500 text-white shadow-emerald-200" : "bg-indigo-600 text-white shadow-indigo-200"
+                              )}>
+                                {s1 ? '✓' : '1'}
                               </div>
-                              <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden w-full">
-                                <div className="h-full bg-indigo-500 rounded-full transition-all" style={{ width: `${newPct}%` }} />
+                              <div className={cn(
+                                "flex-1 p-3 rounded-2xl border transition-all flex flex-col gap-1",
+                                s1 ? "bg-emerald-50/50 border-emerald-200" : "bg-white border-slate-200/80 shadow-2xs"
+                              )}>
+                                <div className="flex items-center justify-between">
+                                  <h5 className="text-xs font-black text-slate-800">Bước 1: Học từ mới</h5>
+                                  <span className="text-[10px] font-black text-indigo-600">{nL} / {nT} thẻ ({newPct}%)</span>
+                                </div>
+                                <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden w-full mt-0.5">
+                                  <div className="h-full bg-indigo-500 rounded-full transition-all" style={{ width: `${newPct}%` }} />
+                                </div>
                               </div>
                             </div>
 
-                            {/* STEP 2: TEST TRẮC NGHIỆM MCQ (HỌC & SHOW TARGET 10 CÂU!) */}
-                            <div className={`p-3 rounded-2xl border transition-all flex flex-col gap-1.5 ${
-                              s2 ? 'bg-emerald-50/60 border-emerald-200 text-emerald-950' : s1 ? 'bg-amber-50/90 border-amber-300 text-amber-950 shadow-sm' : 'bg-white border-slate-200/80 shadow-sm text-slate-800'
-                            }`}>
-                              <div className="flex items-center justify-between">
-                                <div className="flex items-center gap-2">
-                                  <div className={`w-6 h-6 rounded-lg flex items-center justify-center text-xs font-black ${
-                                    s2 ? 'bg-emerald-500 text-white' : s1 ? 'bg-amber-500 text-white' : 'bg-amber-500 text-white'
-                                  }`}>
-                                    {s2 ? '✓' : '2'}
-                                  </div>
-                                  <h5 className="text-xs font-black">Bước 2: Test trắc nghiệm MCQ</h5>
-                                </div>
-                                <span className="text-[10px] font-black text-amber-600">
-                                  {mcqDone} / {mcqTarget} câu ({mcqPct}%)
-                                </span>
+                            {/* STEP 2: TEST TRẮC NGHIỆM MCQ */}
+                            <div className="flex items-start gap-3 py-2">
+                              <div className={cn(
+                                "w-7 h-7 rounded-full flex items-center justify-center text-xs font-black flex-shrink-0 transition-all shadow-2xs mt-0.5",
+                                s2 ? "bg-emerald-500 text-white shadow-emerald-200" : s1 ? "bg-amber-500 text-white shadow-amber-200" : "bg-slate-300 text-white"
+                              )}>
+                                {s2 ? '✓' : '2'}
                               </div>
-                              <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden w-full">
-                                <div className="h-full bg-amber-500 rounded-full transition-all" style={{ width: `${mcqPct}%` }} />
+                              <div className={cn(
+                                "flex-1 p-3 rounded-2xl border transition-all flex flex-col gap-1",
+                                s2 ? "bg-emerald-50/50 border-emerald-200" : s1 ? "bg-amber-50/70 border-amber-200 shadow-2xs" : "bg-slate-50/60 border-slate-200/60"
+                              )}>
+                                <div className="flex items-center justify-between">
+                                  <h5 className="text-xs font-black text-slate-800">Bước 2: Test trắc nghiệm MCQ</h5>
+                                  <span className="text-[10px] font-black text-amber-600">{mcqDone} / {mcqTarget} câu ({mcqPct}%)</span>
+                                </div>
+                                <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden w-full mt-0.5">
+                                  <div className="h-full bg-amber-500 rounded-full transition-all" style={{ width: `${mcqPct}%` }} />
+                                </div>
                               </div>
                             </div>
 
                             {/* STEP 3: ÔN TẬP FSRS */}
-                            <div className={`p-3 rounded-2xl border transition-all flex flex-col gap-1.5 ${
-                              rD > 0 && rDn >= rD ? 'bg-emerald-50/60 border-emerald-200 text-emerald-950' : 'bg-white border-slate-200/80 shadow-sm text-slate-800'
-                            }`}>
-                              <div className="flex items-center justify-between">
-                                <div className="flex items-center gap-2">
-                                  <div className={`w-6 h-6 rounded-lg flex items-center justify-center text-xs font-black ${
-                                    rD > 0 && rDn >= rD ? 'bg-emerald-500 text-white' : 'bg-orange-500 text-white'
-                                  }`}>
-                                    {rD > 0 && rDn >= rD ? '✓' : '3'}
-                                  </div>
-                                  <h5 className="text-xs font-black">Bước 3: Ôn tập FSRS</h5>
-                                </div>
-                                <span className="text-[10px] font-black text-orange-600">
-                                  {rDn} / {rD} thẻ ({revPct}%)
-                                </span>
+                            <div className="flex items-start gap-3 py-2">
+                              <div className={cn(
+                                "w-7 h-7 rounded-full flex items-center justify-center text-xs font-black flex-shrink-0 transition-all shadow-2xs mt-0.5",
+                                rD > 0 && rDn >= rD ? "bg-emerald-500 text-white shadow-emerald-200" : "bg-orange-500 text-white shadow-orange-200"
+                              )}>
+                                {rD > 0 && rDn >= rD ? '✓' : '3'}
                               </div>
-                              <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden w-full">
-                                <div className="h-full bg-orange-500 rounded-full transition-all" style={{ width: `${revPct}%` }} />
+                              <div className={cn(
+                                "flex-1 p-3 rounded-2xl border transition-all flex flex-col gap-1",
+                                rD > 0 && rDn >= rD ? "bg-emerald-50/50 border-emerald-200" : "bg-white border-slate-200/80 shadow-2xs"
+                              )}>
+                                <div className="flex items-center justify-between">
+                                  <h5 className="text-xs font-black text-slate-800">Bước 3: Ôn tập FSRS</h5>
+                                  <span className="text-[10px] font-black text-orange-600">{rDn} / {rD} thẻ ({revPct}%)</span>
+                                </div>
+                                <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden w-full mt-0.5">
+                                  <div className="h-full bg-orange-500 rounded-full transition-all" style={{ width: `${revPct}%` }} />
+                                </div>
                               </div>
                             </div>
 
                           </div>
 
-                          {/* CTA ACTION BUTTON (Cố định ở đáy) */}
-                          <div className="pt-1 flex flex-col items-center gap-1 flex-shrink-0">
+                          {/* CTA PILL ACTION BUTTON */}
+                          <div className="pt-2 flex-shrink-0">
                             <button
-                              onClick={() => { if (nUrl) navigate(nUrl); else navigate(`/flashcard/${deck.deck_id}`); }}
-                              className="w-full h-13 bg-gradient-to-r from-orange-500 via-rose-500 to-pink-500 active:scale-[0.98] text-white font-black text-xs uppercase tracking-widest rounded-2xl transition-all flex items-center justify-center gap-2 shadow-lg shadow-orange-500/25"
+                              onClick={() => { 
+                                if (navigator.vibrate) navigator.vibrate(12);
+                                if (nUrl) navigate(nUrl); 
+                                else navigate(`/flashcard/${deck.deck_id}`); 
+                              }}
+                              className="w-full h-12 bg-gradient-to-r from-indigo-600 via-indigo-700 to-orange-500 active:scale-[0.98] text-white font-black text-xs uppercase tracking-wider rounded-full transition-all flex items-center justify-center gap-2 shadow-lg shadow-indigo-200 cursor-pointer"
                             >
-                              <Play className="w-4 h-4 fill-current" />
-                              {st.all_done
-                                ? '✓ HOÀN THÀNH LỘ TRÌNH HÔM NAY'
-                                : s1
-                                ? '✍️ BẮT ĐẦU BÀI TEST MCQ (BƯỚC 2)'
-                                : '🚀 BẮT ĐẦU HỌC BƯỚC 1 NGAY'}
+                              <Play className="w-4 h-4 fill-current shrink-0" />
+                              <span className="truncate">
+                                {st.all_done
+                                  ? '✓ HOÀN THÀNH LỘ TRÌNH HÔM NAY'
+                                  : s1
+                                  ? '✍️ BẮT ĐẦU BÀI TEST MCQ (BƯỚC 2)'
+                                  : '🚀 BẮT ĐẦU HỌC BƯỚC 1 NGAY'}
+                              </span>
                             </button>
-
-                            {totalDecks > 1 && deckIdx < totalDecks - 1 && (
-                              <div className="flex items-center gap-1 text-[10px] font-bold text-indigo-500 animate-bounce pt-1">
-                                <ChevronRight className="w-3 h-3 rotate-90" />
-                                <span>Vuốt xuống để xem bộ tiếp theo</span>
-                              </div>
-                            )}
                           </div>
 
                         </div>
@@ -1847,48 +1925,38 @@ export default function Dashboard() {
             {currentSlide === 1 && (
               <motion.div 
                 key="slide1"
-                initial={{ opacity: 0, x: 50 }}
+                initial={{ opacity: 0, x: 40 }}
                 animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -50 }}
+                exit={{ opacity: 0, x: -40 }}
                 transition={{ duration: 0.2, ease: "easeInOut" }}
                 className="absolute inset-0 flex flex-col"
               >
-                {/* SYNCHRONIZED CARD HEADER */}
-                <div className="px-5 py-3.5 flex items-center justify-between border-b border-slate-100 bg-white/90 backdrop-blur-md flex-shrink-0">
-                  <div className="flex items-center gap-2">
-                    <BookOpen className="w-4 h-4 text-orange-500" />
-                    <h3 className="text-xs font-black text-slate-800 uppercase tracking-widest">
-                      Các Bộ Thẻ Đang Học
-                    </h3>
-                  </div>
-                  <span className="text-[10px] font-bold text-slate-500 bg-slate-100 px-2.5 py-1 rounded-full border border-slate-200/50">
-                    {activeDecks?.length || 0} bộ
-                  </span>
-                </div>
-
                 <div className="flex-1 overflow-y-auto px-4 py-3 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
                   {activeDecks && activeDecks.length > 0 ? (
-                    <div className="flex flex-col gap-2.5">
+                    <div className="flex flex-col gap-3">
                       {activeDecks.map((deck: any) => (
                         <div
                           key={deck.deck_id}
-                          onClick={() => navigate(`/flashcard/${deck.deck_id}`)}
-                          className="bg-white rounded-2xl border border-slate-100 p-3.5 shadow-sm hover:shadow-md cursor-pointer active:scale-[0.98] transition-all w-full flex items-center gap-3.5 group"
+                          onClick={() => {
+                            if (navigator.vibrate) navigator.vibrate(8);
+                            navigate(`/flashcard/${deck.deck_id}`);
+                          }}
+                          className="bg-white rounded-2xl border border-slate-100 p-4 shadow-2xs hover:shadow-md cursor-pointer active:scale-[0.98] transition-all w-full flex items-center gap-4 group"
                         >
-                          <div className="w-11 h-11 rounded-xl bg-gradient-to-tr from-indigo-50 to-purple-50 flex items-center justify-center text-lg overflow-hidden border border-indigo-100/60 shadow-inner flex-shrink-0">
+                          <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-indigo-50 to-orange-50 flex items-center justify-center text-2xl overflow-hidden border border-indigo-100/60 shadow-inner flex-shrink-0">
                             {deck.cover_image ? <img src={deck.cover_image} alt="" className="w-full h-full object-cover" /> : <span>📘</span>}
                           </div>
                           <div className="flex-1 min-w-0">
-                            <h4 className="text-xs font-black text-slate-800 truncate group-hover:text-indigo-600 transition-colors">{deck.title}</h4>
+                            <h4 className="text-sm font-black text-slate-800 truncate group-hover:text-indigo-600 transition-colors">{deck.title}</h4>
                             <div className="flex items-center gap-2 mt-1">
-                              <span className="text-[10px] font-bold text-slate-400">{deck.learned_cards}/{deck.total_cards} thẻ</span>
-                              <span className="text-[10px] font-black text-indigo-600">{deck.total_pct}%</span>
+                              <span className="text-[11px] font-bold text-slate-500">{deck.learned_cards}/{deck.total_cards} thẻ</span>
+                              <span className="text-[11px] font-black text-indigo-600">{deck.total_pct}%</span>
                             </div>
-                            <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden mt-1.5">
-                              <div className="h-full bg-indigo-500 rounded-full transition-all" style={{ width: `${deck.total_pct}%` }} />
+                            <div className="h-2 bg-slate-100 rounded-full overflow-hidden mt-2">
+                              <div className="h-full bg-gradient-to-r from-indigo-500 to-orange-500 rounded-full transition-all" style={{ width: `${deck.total_pct}%` }} />
                             </div>
                           </div>
-                          <div className="w-7 h-7 rounded-full bg-slate-50 border border-slate-100 flex items-center justify-center text-slate-400 group-hover:text-orange-500 group-hover:bg-orange-50 transition-all flex-shrink-0">
+                          <div className="w-8 h-8 rounded-full bg-slate-50 border border-slate-100 flex items-center justify-center text-slate-400 group-hover:text-orange-500 group-hover:bg-orange-50 transition-all flex-shrink-0">
                             <ChevronRight className="w-4 h-4" />
                           </div>
                         </div>
@@ -1907,25 +1975,12 @@ export default function Dashboard() {
             {currentSlide === 2 && (
               <motion.div 
                 key="slide2"
-                initial={{ opacity: 0, x: 50 }}
+                initial={{ opacity: 0, x: 40 }}
                 animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -50 }}
+                exit={{ opacity: 0, x: -40 }}
                 transition={{ duration: 0.2, ease: "easeInOut" }}
                 className="absolute inset-0 flex flex-col"
               >
-                {/* SYNCHRONIZED CARD HEADER */}
-                <div className="px-5 py-3.5 flex items-center justify-between border-b border-slate-100 bg-white/90 backdrop-blur-md flex-shrink-0">
-                  <div className="flex items-center gap-2">
-                    <TrendingUp className="w-4 h-4 text-orange-500" />
-                    <h3 className="text-xs font-black text-slate-800 uppercase tracking-widest">
-                      Thống Kê & Phân Tích
-                    </h3>
-                  </div>
-                  <span className="text-[10px] font-bold text-slate-500 bg-slate-100 px-2.5 py-1 rounded-full border border-slate-200/50">
-                    Chi tiết
-                  </span>
-                </div>
-
                 <div className="flex-1 overflow-y-auto px-3.5 py-3 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
                   <div className="flex flex-col gap-3">
                     {heatmapData && heatmapData.length > 0 && <MiniHeatmap data={heatmapData} />}
@@ -1940,25 +1995,12 @@ export default function Dashboard() {
             {currentSlide === 3 && (
               <motion.div 
                 key="slide3"
-                initial={{ opacity: 0, x: 50 }}
+                initial={{ opacity: 0, x: 40 }}
                 animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -50 }}
+                exit={{ opacity: 0, x: -40 }}
                 transition={{ duration: 0.2, ease: "easeInOut" }}
                 className="absolute inset-0 flex flex-col"
               >
-                {/* SYNCHRONIZED CARD HEADER */}
-                <div className="px-5 py-3.5 flex items-center justify-between border-b border-slate-100 bg-white/90 backdrop-blur-md flex-shrink-0">
-                  <div className="flex items-center gap-2">
-                    <Trophy className="w-4 h-4 text-amber-500" />
-                    <h3 className="text-xs font-black text-slate-800 uppercase tracking-widest">
-                      Bảng Xếp Hạng
-                    </h3>
-                  </div>
-                  <span className="text-[10px] font-bold text-slate-500 bg-slate-100 px-2.5 py-1 rounded-full border border-slate-200/50">
-                    Tuần này
-                  </span>
-                </div>
-
                 <div className="flex-1 overflow-y-auto px-3.5 py-3 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
                   <div className="flex flex-col gap-3">
                     {leaderboardData && leaderboardData.leaderboard?.length > 0 && (
@@ -1971,38 +2013,6 @@ export default function Dashboard() {
             )}
 
           </AnimatePresence>
-        </div>
-
-        {/* BOTTOM NAVIGATION CONTROLS BAR */}
-        <div className="flex items-center justify-center gap-4 py-2 flex-shrink-0 z-10">
-          <button 
-            onClick={() => setCurrentSlide(prev => Math.max(0, prev - 1))}
-            disabled={currentSlide === 0}
-            className="w-10 h-10 rounded-full bg-white/20 border border-white/30 flex items-center justify-center text-white shadow-lg disabled:opacity-20 active:scale-90 transition-all cursor-pointer"
-          >
-            <ChevronRight className="w-5 h-5 rotate-180" />
-          </button>
-          <div className="flex items-center gap-2">
-            {[0, 1, 2, 3].map(idx => (
-              <button
-                key={idx}
-                onClick={() => setCurrentSlide(idx)}
-                className={cn(
-                  "h-2 transition-all duration-300 rounded-full cursor-pointer",
-                  currentSlide === idx 
-                    ? "w-7 bg-white shadow-[0_0_10px_rgba(255,255,255,0.6)]" 
-                    : "w-2 bg-white/35 hover:bg-white/55"
-                )}
-              />
-            ))}
-          </div>
-          <button 
-            onClick={() => setCurrentSlide(prev => Math.min(3, prev + 1))}
-            disabled={currentSlide === 3}
-            className="w-10 h-10 rounded-full bg-white/90 border border-white flex items-center justify-center text-slate-800 shadow-lg disabled:opacity-20 active:scale-90 transition-all cursor-pointer"
-          >
-            <ChevronRight className="w-5 h-5" />
-          </button>
         </div>
 
       </div>
