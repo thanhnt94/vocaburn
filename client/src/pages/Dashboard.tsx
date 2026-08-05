@@ -346,6 +346,7 @@ function MiniHeatmap({ data }: { data: HeatmapDay[] }) {
 
 // ─── Leaderboard Widget ────────────────────────────────────────────────────────
 // ─── Ultra-Modern App Leaderboard Widget ───────────────────────────────────────
+// ─── Luxury Minimalist Leaderboard Widget (White & Flame Gold) ──────────────────
 function LeaderboardWidget({ 
   data, 
   activeFilter, 
@@ -382,22 +383,22 @@ function LeaderboardWidget({
         : data.current_user_cards_rank
 
   return (
-    <div className="bg-white border border-slate-100 rounded-[2.2rem] p-4 shadow-[0_8px_30px_rgb(0,0,0,0.04)] flex flex-col gap-4 text-left flex-shrink-0">
+    <div className="bg-white border border-neutral-100 rounded-3xl p-4 shadow-[0_4px_25px_rgba(0,0,0,0.03)] flex flex-col gap-3.5 text-left flex-shrink-0">
       
-      {/* Header & Segmented Controls */}
-      <div className="flex flex-col gap-3 pb-3 border-b border-slate-100/80">
+      {/* Header & Controls */}
+      <div className="flex flex-col gap-2.5 pb-2.5 border-b border-neutral-100">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <div className="w-7 h-7 rounded-xl bg-gradient-to-tr from-amber-400 to-orange-500 flex items-center justify-center text-white shadow-sm shadow-orange-200">
-              <Trophy className="w-4 h-4" />
+            <div className="w-7 h-7 rounded-xl bg-amber-50 border border-amber-200/50 flex items-center justify-center text-amber-500 shadow-2xs">
+              <Trophy className="w-3.5 h-3.5" />
             </div>
-            <h3 className="text-xs font-black text-slate-800 uppercase tracking-widest">
+            <h3 className="text-xs font-bold text-slate-800">
               Bảng Xếp Hạng
             </h3>
           </div>
 
           {/* Metric Switcher Segmented Control */}
-          <div className="flex items-center bg-slate-100/80 p-1 rounded-xl border border-slate-200/40">
+          <div className="flex items-center bg-neutral-100/80 p-0.5 rounded-full border border-neutral-200/40">
             {[
               { id: 'xp', label: 'XP' },
               { id: 'time', label: 'Thời gian' },
@@ -411,10 +412,10 @@ function LeaderboardWidget({
                   setActiveTab(tab.id as any);
                 }}
                 className={cn(
-                  "px-2 py-1 rounded-lg text-[9px] font-black transition-all cursor-pointer",
+                  "px-2.5 py-0.5 rounded-full text-[9px] font-medium transition-all cursor-pointer",
                   activeTab === tab.id
-                    ? "bg-white text-indigo-600 shadow-2xs font-extrabold"
-                    : "text-slate-400 hover:text-slate-600"
+                    ? "bg-white text-slate-900 shadow-2xs font-bold"
+                    : "text-neutral-500 hover:text-slate-700"
                 )}
               >
                 {tab.label}
@@ -437,10 +438,10 @@ function LeaderboardWidget({
                 onFilterChange(filter.id);
               }}
               className={cn(
-                "px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider transition-all cursor-pointer",
+                "px-3 py-0.5 rounded-full text-[10px] font-medium transition-all cursor-pointer",
                 activeFilter === filter.id
-                  ? "bg-indigo-600 text-white shadow-xs shadow-indigo-200"
-                  : "bg-slate-100/70 text-slate-500 hover:bg-slate-200/60"
+                  ? "bg-amber-500 text-white font-bold shadow-xs shadow-amber-200"
+                  : "bg-neutral-100/70 text-neutral-500 hover:bg-neutral-200/60"
               )}
             >
               {filter.label}
@@ -449,9 +450,9 @@ function LeaderboardWidget({
         </div>
       </div>
 
-      {/* User Rank List (Podium Modern Cards) */}
+      {/* User Rank List (Subtle Luxury Cards) */}
       <div className="flex flex-col gap-2">
-        {currentList.map((entry: any, index: number) => {
+        {currentList.map((entry: any) => {
           const isRank1 = entry.rank === 1;
           const isRank2 = entry.rank === 2;
           const isRank3 = entry.rank === 3;
@@ -461,43 +462,43 @@ function LeaderboardWidget({
             <div
               key={entry.user_id}
               className={cn(
-                'flex items-center gap-3 px-3.5 py-2.5 rounded-2xl border transition-all relative overflow-hidden',
+                'flex items-center gap-3 px-3 py-2 rounded-2xl border transition-all relative overflow-hidden',
                 isCurrentUser
-                  ? 'bg-gradient-to-r from-indigo-50/90 via-purple-50/60 to-indigo-50/90 border-indigo-300/80 shadow-md shadow-indigo-100/40 ring-1 ring-indigo-400/40'
+                  ? 'bg-amber-50/70 border-amber-300/80 shadow-xs ring-1 ring-amber-400/30'
                   : isRank1
-                    ? 'bg-gradient-to-r from-amber-500/15 via-orange-500/10 to-amber-50/50 border-amber-300/70 shadow-2xs'
+                    ? 'bg-amber-50/40 border-amber-200/60 shadow-2xs'
                     : isRank2
-                      ? 'bg-gradient-to-r from-slate-100/80 via-slate-50 to-white border-slate-300/60'
+                      ? 'bg-neutral-50/60 border-neutral-200/50'
                       : isRank3
-                        ? 'bg-gradient-to-r from-amber-800/10 via-orange-950/5 to-white border-amber-600/30'
-                        : 'bg-white border-slate-100 hover:border-slate-200'
+                        ? 'bg-amber-900/5 border-amber-900/10'
+                        : 'bg-white border-neutral-100 hover:border-neutral-200'
               )}
             >
               {/* Rank Icon Badge */}
-              <div className="w-7 h-7 rounded-xl flex items-center justify-center font-black shrink-0 text-xs">
+              <div className="w-6 h-6 rounded-lg flex items-center justify-center font-bold shrink-0 text-xs">
                 {isRank1 ? (
-                  <span className="text-base">👑</span>
+                  <span className="text-sm">👑</span>
                 ) : isRank2 ? (
-                  <span className="text-base">🥈</span>
+                  <span className="text-sm">🥈</span>
                 ) : isRank3 ? (
-                  <span className="text-base">🥉</span>
+                  <span className="text-sm">🥉</span>
                 ) : (
-                  <span className="text-[11px] font-black text-slate-400">#{entry.rank}</span>
+                  <span className="text-[10px] font-medium text-neutral-400">#{entry.rank}</span>
                 )}
               </div>
 
               {/* Avatar Circle */}
               <div className={cn(
-                'w-9 h-9 rounded-2xl flex items-center justify-center text-xs font-black shrink-0 shadow-2xs',
+                'w-8 h-8 rounded-full flex items-center justify-center text-[11px] font-bold shrink-0 shadow-2xs',
                 isCurrentUser
-                  ? 'bg-gradient-to-tr from-indigo-600 to-purple-600 text-white'
+                  ? 'bg-amber-500 text-white'
                   : isRank1
-                    ? 'bg-gradient-to-tr from-amber-400 to-orange-500 text-white'
+                    ? 'bg-amber-400 text-white'
                     : isRank2
-                      ? 'bg-gradient-to-tr from-slate-400 to-slate-600 text-white'
+                      ? 'bg-slate-300 text-slate-700'
                       : isRank3
-                        ? 'bg-gradient-to-tr from-amber-700 to-amber-900 text-white'
-                        : 'bg-slate-100 text-slate-600'
+                        ? 'bg-amber-700 text-white'
+                        : 'bg-neutral-200 text-slate-600'
               )}>
                 {entry.username.slice(0, 2).toUpperCase()}
               </div>
@@ -506,27 +507,27 @@ function LeaderboardWidget({
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-1.5">
                   <span className={cn(
-                    'text-xs font-black truncate',
-                    isCurrentUser ? 'text-indigo-900' : 'text-slate-800'
+                    'text-xs font-bold truncate',
+                    isCurrentUser ? 'text-amber-950' : 'text-slate-800'
                   )}>
                     {entry.username}
                   </span>
                   {isCurrentUser && (
-                    <span className="text-[9px] font-black px-1.5 py-0.2 bg-indigo-600 text-white rounded-full uppercase tracking-wider">
+                    <span className="text-[8px] font-bold px-1.5 py-0.2 bg-amber-500 text-white rounded-full uppercase tracking-wider">
                       Bạn
                     </span>
                   )}
                 </div>
-                <span className="text-[10px] font-bold text-slate-400 flex items-center gap-1 mt-0.5">
-                  Lv {entry.level} · 🔥 {entry.streak}d streak
+                <span className="text-[10px] font-medium text-neutral-400 flex items-center gap-1 mt-0.5">
+                  Lv {entry.level} · 🔥 {entry.streak}d
                 </span>
               </div>
 
               {/* Value Badge */}
               <div className="shrink-0 text-right">
                 <span className={cn(
-                  'text-xs font-black block',
-                  isRank1 ? 'text-orange-600' : isCurrentUser ? 'text-indigo-600' : 'text-slate-800'
+                  'text-xs font-bold block',
+                  isRank1 ? 'text-amber-600' : isCurrentUser ? 'text-amber-600' : 'text-slate-800'
                 )}>
                   {activeTab === 'xp' 
                     ? entry.xp.toLocaleString() 
@@ -536,7 +537,7 @@ function LeaderboardWidget({
                         ? `${entry.new_cards || 0}` 
                         : `${entry.total_cards || 0}`}
                 </span>
-                <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest">
+                <span className="text-[7px] font-semibold text-neutral-400 uppercase tracking-wider">
                   {activeTab === 'xp' ? 'XP' : activeTab === 'time' ? 'HỌC' : activeTab === 'new_cards' ? 'THẺ MỚI' : 'ÔN TẬP'}
                 </span>
               </div>
@@ -545,16 +546,16 @@ function LeaderboardWidget({
         })}
         
         {currentList.length === 0 && (
-          <div className="py-6 text-center text-xs font-bold text-slate-400">
+          <div className="py-5 text-center text-xs font-medium text-neutral-400">
             Chưa có dữ liệu xếp hạng
           </div>
         )}
       </div>
 
       {currentRank && (
-        <div className="pt-2 border-t border-slate-100 text-center">
-          <span className="text-[10px] font-bold text-slate-400">
-            Hạng hiện tại của bạn: <strong className="text-indigo-600 font-black">#{currentRank}</strong> toàn hệ thống
+        <div className="pt-2 border-t border-neutral-100 text-center">
+          <span className="text-[10px] font-medium text-neutral-400">
+            Hạng hiện tại của bạn: <strong className="text-amber-600 font-bold">#{currentRank}</strong> toàn hệ thống
           </span>
         </div>
       )}
@@ -562,7 +563,7 @@ function LeaderboardWidget({
   )
 }
 
-// ─── Ultra-Modern Badge Achievements Widget ────────────────────────────────────
+// ─── Luxury Minimalist Badge Achievements Widget ───────────────────────────────
 interface BadgeProgress {
   id: string
   name: string
@@ -586,43 +587,43 @@ function BadgeProgressWidget({ data }: { data: BadgeProgress[] }) {
   }
 
   return (
-    <div className="bg-white border border-slate-100 rounded-[2.2rem] p-4 shadow-[0_8px_30px_rgb(0,0,0,0.04)] flex flex-col gap-3.5 text-left flex-shrink-0">
-      <div className="flex items-center justify-between pb-2 border-b border-slate-100">
+    <div className="bg-white border border-neutral-100 rounded-3xl p-4 shadow-[0_4px_25px_rgba(0,0,0,0.03)] flex flex-col gap-3 text-left flex-shrink-0">
+      <div className="flex items-center justify-between pb-2 border-b border-neutral-100">
         <div className="flex items-center gap-2">
-          <div className="w-7 h-7 rounded-xl bg-gradient-to-tr from-amber-400 to-orange-500 flex items-center justify-center text-white shadow-sm shadow-orange-200">
-            <Trophy className="w-4 h-4" />
+          <div className="w-7 h-7 rounded-xl bg-amber-50 border border-amber-200/50 flex items-center justify-center text-amber-500 shadow-2xs">
+            <Trophy className="w-3.5 h-3.5" />
           </div>
           <div>
-            <span className="text-xs font-black text-slate-800 uppercase tracking-widest block">Thành Tích Đạt Được</span>
-            <span className="text-[9px] font-bold text-slate-400 block mt-0.5">Tiến trình huy hiệu của bạn</span>
+            <span className="text-xs font-bold text-slate-800 block">Thành Tích Đạt Được</span>
+            <span className="text-[9px] font-medium text-neutral-400 block mt-0.5">Tiến trình huy hiệu của bạn</span>
           </div>
         </div>
       </div>
 
-      <div className="flex flex-col gap-2.5">
+      <div className="flex flex-col gap-2">
         {data.map(badge => {
           const IconComponent = iconsMap[badge.icon] || Trophy;
           const isComplete = badge.percentage >= 100;
 
           return (
-            <div key={badge.id} className="flex items-center gap-3 p-3 rounded-2xl border border-slate-100 bg-slate-50/40 hover:border-slate-200 transition-all">
+            <div key={badge.id} className="flex items-center gap-3 p-3 rounded-2xl border border-neutral-100 bg-neutral-50/50 transition-all">
               <div className={cn(
-                "w-11 h-11 rounded-2xl flex items-center justify-center shrink-0 shadow-2xs",
+                "w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 shadow-2xs",
                 isComplete 
-                  ? "bg-gradient-to-tr from-amber-400 via-orange-500 to-amber-500 text-white shadow-orange-200" 
-                  : "bg-indigo-50 border border-indigo-100 text-indigo-600"
+                  ? "bg-amber-500 text-white shadow-amber-200" 
+                  : "bg-amber-50 border border-amber-100 text-amber-600"
               )}>
-                <IconComponent className="w-5 h-5" />
+                <IconComponent className="w-4.5 h-4.5" />
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center justify-between gap-2">
-                  <span className="text-xs font-black text-slate-800 truncate">{badge.name}</span>
-                  <span className="text-[10px] font-black text-indigo-600">{badge.percentage}%</span>
+                  <span className="text-xs font-bold text-slate-800 truncate">{badge.name}</span>
+                  <span className="text-[10px] font-bold text-amber-600">{badge.percentage}%</span>
                 </div>
-                <p className="text-[10px] font-medium text-slate-400 truncate mt-0.5">{badge.description}</p>
-                <div className="h-2 bg-slate-200/60 rounded-full mt-2 overflow-hidden w-full relative">
+                <p className="text-[10px] font-medium text-neutral-400 truncate mt-0.5">{badge.description}</p>
+                <div className="h-1.5 bg-neutral-200/60 rounded-full mt-2 overflow-hidden w-full relative">
                   <div
-                    className="h-full bg-gradient-to-r from-indigo-500 via-purple-500 to-orange-500 rounded-full transition-all duration-700"
+                    className="h-full bg-gradient-to-r from-amber-400 to-amber-500 rounded-full transition-all duration-700"
                     style={{ width: `${badge.percentage}%` }}
                   />
                 </div>
@@ -1578,9 +1579,9 @@ export default function Dashboard() {
         </section>
       </div>
 
-      {/* MOBILE FEED — Modern iOS Native App Experience */}
+      {/* MOBILE FEED — Luxury Minimalist (White & Flame Gold) */}
       <div 
-        className="md:hidden flex flex-col bg-slate-100/90 fixed inset-0 top-0 bottom-[60px] z-[100] overflow-hidden select-none"
+        className="md:hidden flex flex-col bg-neutral-50 fixed inset-0 top-0 bottom-[60px] z-[100] overflow-hidden select-none"
         onTouchStart={(e) => {
           (window as any)._touchStartX = e.touches[0].clientX;
           (window as any)._touchStartY = e.touches[0].clientY;
@@ -1594,7 +1595,7 @@ export default function Dashboard() {
           const diffX = endX - startX;
           const diffY = endY - startY;
 
-          // Pull to refresh detection (swipe down at top)
+          // Pull to refresh detection
           if (diffY > 120 && Math.abs(diffX) < 50) {
             if (navigator.vibrate) navigator.vibrate(20);
             queryClient.invalidateQueries();
@@ -1617,83 +1618,81 @@ export default function Dashboard() {
           }
         }}
       >
-        {/* Sleek Glassmorphic Top Status Bar */}
-        <div className="flex items-center justify-between px-4 py-2.5 bg-white/95 backdrop-blur-md border-b border-slate-100 flex-shrink-0 z-20 shadow-2xs">
+        {/* Minimalist Top App Bar */}
+        <div className="flex items-center justify-between px-4 py-2.5 bg-white border-b border-neutral-100 flex-shrink-0 z-20 shadow-2xs">
           <Link to="/" className="flex items-center gap-2 active:scale-95 transition-all">
-            <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-indigo-600 via-indigo-700 to-orange-500 flex items-center justify-center text-white shadow-md shadow-indigo-200">
-              <BookOpen className="w-4.5 h-4.5" />
+            <div className="w-8 h-8 rounded-xl bg-amber-500 flex items-center justify-center text-white shadow-xs shadow-amber-200">
+              <BookOpen className="w-4 h-4" />
             </div>
-            <span className="text-[16px] font-black text-slate-800 tracking-tight">
-              Voca<span className="text-orange-500">burn</span>
+            <span className="text-[15px] font-bold text-slate-800 tracking-tight">
+              Voca<span className="text-amber-500">burn</span>
             </span>
           </Link>
           
           <div className="flex items-center gap-2">
-            <span className="flex items-center gap-1.5 px-3 py-1 bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-full text-[11px] font-black shadow-sm shadow-orange-200">
-              <Flame className="w-3.5 h-3.5 fill-white text-white animate-bounce" />
+            <span className="flex items-center gap-1.5 px-3 py-1 bg-amber-50 border border-amber-200/50 text-amber-600 rounded-full text-xs font-semibold shadow-2xs">
+              <Flame className="w-3.5 h-3.5 fill-amber-500 text-amber-500" />
               {data?.gamify?.streak || 0}d streak
             </span>
 
             <Link 
               to="/profile" 
-              className="w-8 h-8 rounded-full bg-slate-100 border border-slate-200/60 flex items-center justify-center text-slate-700 active:scale-95 transition-all ring-2 ring-indigo-500/20 shadow-2xs"
+              className="w-8 h-8 rounded-full bg-neutral-100 border border-neutral-200/60 flex items-center justify-center text-slate-600 active:scale-95 transition-all shadow-2xs"
             >
               <User className="w-4 h-4" />
             </Link>
           </div>
         </div>
 
-        {/* MODERN SEGMENTED TAB CONTROL */}
-        <div className="bg-white/80 backdrop-blur-md border-b border-slate-100 px-3 py-1.5 flex flex-shrink-0 z-10">
-          <div className="w-full bg-slate-100/90 p-1 rounded-2xl flex items-center justify-around border border-slate-200/50 shadow-inner">
-            {[
-              { id: 0, label: 'Lộ Trình', emoji: '🎯' },
-              { id: 1, label: 'Thẻ Học', emoji: '📚' },
-              { id: 2, label: 'Thống Kê', emoji: '📊' },
-              { id: 3, label: 'Xếp Hạng', emoji: '🏆' }
-            ].map(tab => {
-              const isActive = currentSlide === tab.id;
-              return (
-                <button
-                  key={tab.id}
-                  onClick={() => {
-                    if (navigator.vibrate) navigator.vibrate(8);
-                    setCurrentSlide(tab.id);
-                  }}
-                  className={cn(
-                    "flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-xl text-xs font-black transition-all cursor-pointer relative",
-                    isActive
-                      ? "text-indigo-600 font-extrabold shadow-sm"
-                      : "text-slate-500 hover:text-slate-800"
-                  )}
-                >
-                  <span className="text-xs">{tab.emoji}</span>
-                  <span>{tab.label}</span>
-                  {isActive && (
-                    <motion.div 
-                      layoutId="activeSegmentedPill"
-                      className="absolute inset-0 rounded-xl bg-white border border-slate-200/60 shadow-xs -z-10"
-                      transition={{ type: "spring", stiffness: 450, damping: 32 }}
-                    />
-                  )}
-                </button>
-              );
-            })}
-          </div>
+        {/* SUBTLE FLOATING UNDERLINE TABS */}
+        <div className="bg-white border-b border-neutral-100 px-2 flex items-center justify-around flex-shrink-0 z-10">
+          {[
+            { id: 0, label: 'Lộ Trình', emoji: '🎯' },
+            { id: 1, label: 'Thẻ Học', emoji: '📚' },
+            { id: 2, label: 'Thống Kê', emoji: '📊' },
+            { id: 3, label: 'Xếp Hạng', emoji: '🏆' }
+          ].map(tab => {
+            const isActive = currentSlide === tab.id;
+            return (
+              <button
+                key={tab.id}
+                onClick={() => {
+                  if (navigator.vibrate) navigator.vibrate(8);
+                  setCurrentSlide(tab.id);
+                }}
+                className={cn(
+                  "flex-1 flex items-center justify-center gap-1.5 py-2.5 text-xs transition-all cursor-pointer relative",
+                  isActive
+                    ? "text-slate-900 font-bold"
+                    : "text-neutral-400 font-medium hover:text-slate-600"
+                )}
+              >
+                <span className="text-xs">{tab.emoji}</span>
+                <span>{tab.label}</span>
+                {isActive && (
+                  <motion.div 
+                    layoutId="underlineTab"
+                    className="absolute bottom-0 left-3 right-3 h-0.5 bg-amber-500 rounded-full"
+                    transition={{ type: "spring", stiffness: 500, damping: 35 }}
+                  />
+                )}
+              </button>
+            );
+          })}
         </div>
 
         {/* WHITE MAIN CONTAINER */}
-        <div className="flex-1 bg-white rounded-t-3xl shadow-xl overflow-hidden relative border-t border-slate-100 flex flex-col">
+        <div className="flex-1 bg-white rounded-t-3xl shadow-[0_-4px_25px_rgba(0,0,0,0.02)] overflow-hidden relative flex flex-col">
           <AnimatePresence mode="wait">
             
-            {/* ═══ SLIDE 1: LỘ TRÌNH HỌC (HERO CARD & 3 STEPS VERTICAL TIMELINE) ═══ */}
+            {/* ═══ SLIDE 1: LỘ TRÌNH HỌC (CENTERING MINIMALIST HERO & DELICATE GLASS STEP CARDS) ═══ */}
             {currentSlide === 0 && (
               <motion.div 
                 key="slide0"
-                initial={{ opacity: 0, x: 30 }}
+                initial={{ opacity: 0, x: 25 }}
                 animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -30 }}
-                transition={{ duration: 0.2, ease: "easeInOut" }}
+                exit={{ opacity: 0, x: -25 }}
+                transition={{ duration: 0.18, ease: "easeInOut" }}
                 className="absolute inset-0 flex flex-col"
               >
                 {(() => {
@@ -1702,11 +1701,11 @@ export default function Dashboard() {
                   if (!hasRoadmapDecks) {
                     return (
                       <div className="flex-1 flex flex-col items-center justify-center p-6 text-center">
-                        <div className="w-20 h-20 rounded-3xl bg-indigo-50 flex items-center justify-center mb-4 border border-indigo-100 shadow-inner">
-                          <Compass className="w-10 h-10 text-indigo-500 animate-pulse" />
+                        <div className="w-20 h-20 rounded-3xl bg-amber-50 flex items-center justify-center mb-4 border border-amber-100 shadow-inner">
+                          <Compass className="w-10 h-10 text-amber-500 animate-pulse" />
                         </div>
-                        <h3 className="text-base font-black text-slate-800 mb-2">Chưa có lộ trình học</h3>
-                        <p className="text-xs text-slate-500 leading-relaxed max-w-[260px] mx-auto mb-6">
+                        <h3 className="text-base font-bold text-slate-800 mb-2">Chưa có lộ trình học</h3>
+                        <p className="text-xs text-neutral-500 leading-relaxed max-w-[260px] mx-auto mb-6">
                           Hãy chọn một bộ thẻ từ thư viện và bật "Lộ trình học" để kích hoạt lộ trình hằng ngày.
                         </p>
                         <button
@@ -1714,7 +1713,7 @@ export default function Dashboard() {
                             if (navigator.vibrate) navigator.vibrate(10);
                             navigate('/library');
                           }}
-                          className="w-full max-w-[260px] h-12 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-full text-xs font-black uppercase tracking-wider transition-all active:scale-[0.98] shadow-lg shadow-indigo-200"
+                          className="w-full max-w-[260px] h-12 bg-amber-500 hover:bg-amber-600 text-white rounded-full text-xs font-bold uppercase tracking-wider transition-all active:scale-[0.98] shadow-md shadow-amber-200"
                         >
                           Đi tới Thư viện →
                         </button>
@@ -1758,54 +1757,52 @@ export default function Dashboard() {
                         
                         {/* DECK SELECTOR HEADER (If multiple decks) */}
                         {totalDecks > 1 && (
-                          <div className="px-4 py-2 border-b border-slate-100 bg-slate-50/50 flex items-center justify-between flex-shrink-0 text-xs font-bold text-slate-500">
-                            <span>Bộ thẻ {deckIdx + 1}/{totalDecks}: <strong className="text-slate-800 font-black">{deck.title}</strong></span>
-                            <span className="text-[10px] text-indigo-600 font-black">Vuốt dọc để đổi ↕</span>
+                          <div className="px-4 py-2 border-b border-neutral-100 bg-neutral-50/50 flex items-center justify-between flex-shrink-0 text-xs font-medium text-neutral-500">
+                            <span>Bộ thẻ {deckIdx + 1}/{totalDecks}: <strong className="text-slate-800 font-bold">{deck.title}</strong></span>
+                            <span className="text-[10px] text-amber-600 font-bold">Vuốt dọc để đổi ↕</span>
                           </div>
                         )}
 
                         {/* CARD BODY */}
                         <div className="flex-1 flex flex-col justify-between p-4 overflow-y-auto [&::-webkit-scrollbar]:hidden gap-3">
                           
-                          {/* HERO MASCOT + PROGRESS SECTION (Modern App Glass Card) */}
-                          <div className="bg-gradient-to-br from-indigo-50/90 via-purple-50/40 to-slate-50/30 rounded-[2rem] p-4 border border-indigo-100/60 shadow-[0_4px_20px_rgba(99,102,241,0.06)] relative overflow-hidden flex flex-col items-center text-center">
+                          {/* HERO MASCOT + PROGRESS SECTION (Centering Minimalist Hero) */}
+                          <div className="flex flex-col items-center text-center pt-2 pb-3 relative">
                             
-                            {/* Glow Accent */}
-                            <div className="absolute -right-8 -top-8 w-24 h-24 rounded-full bg-indigo-200/30 blur-xl pointer-events-none" />
+                            {/* Soft Blur Glow Backdrop */}
+                            <div className="absolute top-2 w-32 h-32 rounded-full bg-amber-100/50 blur-2xl pointer-events-none -z-10" />
 
                             {/* Mascot Image */}
                             <motion.img 
                               key={mascotImg}
-                              initial={{ scale: 0.85, opacity: 0 }}
+                              initial={{ scale: 0.9, opacity: 0 }}
                               animate={{ scale: 1, opacity: 1 }}
-                              transition={{ type: "spring", stiffness: 320, damping: 22 }}
+                              transition={{ duration: 0.3 }}
                               src={mascotImg} 
                               alt="Vocaburn Mascot" 
-                              className="w-24 h-24 object-contain drop-shadow-md"
+                              className="w-22 h-22 object-contain drop-shadow-xs"
                             />
 
                             {/* Dynamic Greeting */}
-                            <div className="mt-1 px-3 py-1 bg-white/90 backdrop-blur-md rounded-full border border-indigo-100/80 shadow-2xs">
-                              <p className="text-xs font-black text-slate-800 leading-snug">
-                                {mascotText}
-                              </p>
-                            </div>
+                            <p className="text-xs font-semibold text-slate-800 mt-2 max-w-[260px] leading-snug">
+                              {mascotText}
+                            </p>
 
                             {/* Deck Title Badge */}
-                            <div className="flex items-center gap-1.5 bg-white/80 backdrop-blur-sm px-3 py-1 rounded-full border border-slate-200/60 mt-2.5 shadow-2xs">
-                              <BookOpen className="w-3.5 h-3.5 text-indigo-600" />
-                              <span className="text-xs font-black text-slate-800 truncate max-w-[220px]">{deck.title}</span>
+                            <div className="flex items-center gap-1.5 bg-neutral-100/80 px-3 py-1 rounded-full border border-neutral-200/50 mt-2 text-xs font-medium text-slate-700">
+                              <BookOpen className="w-3.5 h-3.5 text-amber-500" />
+                              <span className="truncate max-w-[200px]">{deck.title}</span>
                             </div>
 
                             {/* Linear Progress Bar */}
-                            <div className="w-full mt-3 bg-white/90 backdrop-blur-sm p-3 rounded-2xl border border-indigo-100/80 shadow-2xs">
-                              <div className="flex items-center justify-between text-[11px] font-black text-slate-700 mb-1.5">
+                            <div className="w-full max-w-[290px] mt-3 bg-neutral-50 p-2.5 rounded-2xl border border-neutral-100/80">
+                              <div className="flex items-center justify-between text-[11px] font-semibold text-slate-700 mb-1.5">
                                 <span>Tiến độ tổng quan</span>
-                                <span className="text-indigo-600 font-black">{pct}% ({tD}/{tT} thẻ)</span>
+                                <span className="text-amber-600 font-bold">{pct}% ({tD}/{tT} thẻ)</span>
                               </div>
-                              <div className="h-2.5 bg-slate-100 rounded-full overflow-hidden w-full relative shadow-inner">
+                              <div className="h-2 bg-neutral-200/60 rounded-full overflow-hidden w-full relative">
                                 <motion.div 
-                                  className="h-full bg-gradient-to-r from-indigo-500 via-purple-500 to-orange-500 rounded-full"
+                                  className="h-full bg-gradient-to-r from-amber-400 to-amber-500 rounded-full"
                                   initial={{ width: 0 }}
                                   animate={{ width: `${pct}%` }}
                                   transition={{ duration: 0.8, ease: "easeOut" }}
@@ -1815,74 +1812,74 @@ export default function Dashboard() {
 
                           </div>
 
-                          {/* 3 STEPS VERTICAL TIMELINE */}
-                          <div className="flex flex-col gap-0.5 relative pl-4 pr-1 mt-auto">
+                          {/* 3 STEPS DELICATE GLASS CARDS */}
+                          <div className="flex flex-col gap-2 relative pl-4 pr-1 mt-auto">
                             
                             {/* Vertical Line Connector */}
-                            <div className="absolute left-[27px] top-6 bottom-6 w-0.5 bg-slate-200/80 -z-10" />
+                            <div className="absolute left-[27px] top-6 bottom-6 w-0.5 bg-neutral-200/60 -z-10" />
 
                             {/* STEP 1: HỌC TỪ MỚI */}
-                            <div className="flex items-start gap-3 py-1.5">
+                            <div className="flex items-start gap-3">
                               <div className={cn(
-                                "w-7 h-7 rounded-full flex items-center justify-center text-xs font-black flex-shrink-0 transition-all shadow-2xs mt-0.5 ring-4 ring-white",
-                                s1 ? "bg-emerald-500 text-white shadow-emerald-200" : "bg-indigo-600 text-white shadow-indigo-200"
+                                "w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 transition-all shadow-2xs mt-1 ring-4 ring-white",
+                                s1 ? "bg-emerald-500 text-white" : "bg-amber-500 text-white"
                               )}>
                                 {s1 ? '✓' : '1'}
                               </div>
                               <div className={cn(
-                                "flex-1 p-3 rounded-2xl border transition-all flex flex-col gap-1",
-                                s1 ? "bg-emerald-50/60 border-emerald-200" : "bg-white border-slate-100 shadow-[0_2px_12px_rgba(0,0,0,0.03)]"
+                                "flex-1 p-3 rounded-2xl border transition-all flex flex-col gap-1.5",
+                                s1 ? "bg-emerald-50/50 border-emerald-200/70" : "bg-neutral-50/70 border-neutral-100 shadow-2xs"
                               )}>
                                 <div className="flex items-center justify-between">
-                                  <h5 className="text-xs font-black text-slate-800">Bước 1: Học từ mới</h5>
-                                  <span className="text-[10px] font-black text-indigo-600">{nL} / {nT} thẻ ({newPct}%)</span>
+                                  <h5 className="text-xs font-semibold text-slate-800">Bước 1: Học từ mới</h5>
+                                  <span className="text-[10px] font-bold text-amber-600">{nL} / {nT} thẻ ({newPct}%)</span>
                                 </div>
-                                <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden w-full mt-0.5">
-                                  <div className="h-full bg-indigo-500 rounded-full transition-all" style={{ width: `${newPct}%` }} />
+                                <div className="h-1.5 bg-neutral-200/60 rounded-full overflow-hidden w-full">
+                                  <div className="h-full bg-amber-500 rounded-full transition-all" style={{ width: `${newPct}%` }} />
                                 </div>
                               </div>
                             </div>
 
                             {/* STEP 2: TEST TRẮC NGHIỆM MCQ */}
-                            <div className="flex items-start gap-3 py-1.5">
+                            <div className="flex items-start gap-3">
                               <div className={cn(
-                                "w-7 h-7 rounded-full flex items-center justify-center text-xs font-black flex-shrink-0 transition-all shadow-2xs mt-0.5 ring-4 ring-white",
-                                s2 ? "bg-emerald-500 text-white shadow-emerald-200" : s1 ? "bg-amber-500 text-white shadow-amber-200" : "bg-slate-300 text-white"
+                                "w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 transition-all shadow-2xs mt-1 ring-4 ring-white",
+                                s2 ? "bg-emerald-500 text-white" : s1 ? "bg-amber-500 text-white" : "bg-neutral-300 text-white"
                               )}>
                                 {s2 ? '✓' : '2'}
                               </div>
                               <div className={cn(
-                                "flex-1 p-3 rounded-2xl border transition-all flex flex-col gap-1",
-                                s2 ? "bg-emerald-50/60 border-emerald-200" : s1 ? "bg-amber-50/80 border-amber-200/80 shadow-[0_2px_12px_rgba(245,158,11,0.06)]" : "bg-slate-50/60 border-slate-100"
+                                "flex-1 p-3 rounded-2xl border transition-all flex flex-col gap-1.5",
+                                s2 ? "bg-emerald-50/50 border-emerald-200/70" : s1 ? "bg-amber-50/60 border-amber-200/60 shadow-2xs" : "bg-neutral-50/40 border-neutral-100"
                               )}>
                                 <div className="flex items-center justify-between">
-                                  <h5 className="text-xs font-black text-slate-800">Bước 2: Test trắc nghiệm MCQ</h5>
-                                  <span className="text-[10px] font-black text-amber-600">{mcqDone} / {mcqTarget} câu ({mcqPct}%)</span>
+                                  <h5 className="text-xs font-semibold text-slate-800">Bước 2: Test trắc nghiệm MCQ</h5>
+                                  <span className="text-[10px] font-bold text-amber-600">{mcqDone} / {mcqTarget} câu ({mcqPct}%)</span>
                                 </div>
-                                <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden w-full mt-0.5">
+                                <div className="h-1.5 bg-neutral-200/60 rounded-full overflow-hidden w-full">
                                   <div className="h-full bg-amber-500 rounded-full transition-all" style={{ width: `${mcqPct}%` }} />
                                 </div>
                               </div>
                             </div>
 
                             {/* STEP 3: ÔN TẬP FSRS */}
-                            <div className="flex items-start gap-3 py-1.5">
+                            <div className="flex items-start gap-3">
                               <div className={cn(
-                                "w-7 h-7 rounded-full flex items-center justify-center text-xs font-black flex-shrink-0 transition-all shadow-2xs mt-0.5 ring-4 ring-white",
-                                rD > 0 && rDn >= rD ? "bg-emerald-500 text-white shadow-emerald-200" : "bg-orange-500 text-white shadow-orange-200"
+                                "w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 transition-all shadow-2xs mt-1 ring-4 ring-white",
+                                rD > 0 && rDn >= rD ? "bg-emerald-500 text-white" : "bg-amber-500 text-white"
                               )}>
                                 {rD > 0 && rDn >= rD ? '✓' : '3'}
                               </div>
                               <div className={cn(
-                                "flex-1 p-3 rounded-2xl border transition-all flex flex-col gap-1",
-                                rD > 0 && rDn >= rD ? "bg-emerald-50/60 border-emerald-200" : "bg-white border-slate-100 shadow-[0_2px_12px_rgba(0,0,0,0.03)]"
+                                "flex-1 p-3 rounded-2xl border transition-all flex flex-col gap-1.5",
+                                rD > 0 && rDn >= rD ? "bg-emerald-50/50 border-emerald-200/70" : "bg-neutral-50/70 border-neutral-100 shadow-2xs"
                               )}>
                                 <div className="flex items-center justify-between">
-                                  <h5 className="text-xs font-black text-slate-800">Bước 3: Ôn tập FSRS</h5>
-                                  <span className="text-[10px] font-black text-orange-600">{rDn} / {rD} thẻ ({revPct}%)</span>
+                                  <h5 className="text-xs font-semibold text-slate-800">Bước 3: Ôn tập FSRS</h5>
+                                  <span className="text-[10px] font-bold text-amber-600">{rDn} / {rD} thẻ ({revPct}%)</span>
                                 </div>
-                                <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden w-full mt-0.5">
-                                  <div className="h-full bg-orange-500 rounded-full transition-all" style={{ width: `${revPct}%` }} />
+                                <div className="h-1.5 bg-neutral-200/60 rounded-full overflow-hidden w-full">
+                                  <div className="h-full bg-amber-500 rounded-full transition-all" style={{ width: `${revPct}%` }} />
                                 </div>
                               </div>
                             </div>
@@ -1897,7 +1894,7 @@ export default function Dashboard() {
                                 if (nUrl) navigate(nUrl); 
                                 else navigate(`/flashcard/${deck.deck_id}`); 
                               }}
-                              className="w-full h-12 bg-gradient-to-r from-indigo-600 via-indigo-700 to-orange-500 active:scale-[0.98] text-white font-black text-xs uppercase tracking-wider rounded-full transition-all flex items-center justify-center gap-2 shadow-lg shadow-indigo-200 cursor-pointer"
+                              className="w-full h-12 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white font-bold text-xs uppercase tracking-wider rounded-full transition-all flex items-center justify-center gap-2 shadow-md shadow-amber-500/20 active:scale-[0.98] cursor-pointer"
                             >
                               <Play className="w-4 h-4 fill-current shrink-0" />
                               <span className="truncate">
@@ -1932,15 +1929,15 @@ export default function Dashboard() {
             {currentSlide === 1 && (
               <motion.div 
                 key="slide1"
-                initial={{ opacity: 0, x: 30 }}
+                initial={{ opacity: 0, x: 25 }}
                 animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -30 }}
-                transition={{ duration: 0.2, ease: "easeInOut" }}
+                exit={{ opacity: 0, x: -25 }}
+                transition={{ duration: 0.18, ease: "easeInOut" }}
                 className="absolute inset-0 flex flex-col"
               >
                 <div className="flex-1 overflow-y-auto px-4 py-3 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
                   {activeDecks && activeDecks.length > 0 ? (
-                    <div className="flex flex-col gap-3">
+                    <div className="flex flex-col gap-2.5">
                       {activeDecks.map((deck: any) => (
                         <div
                           key={deck.deck_id}
@@ -1948,30 +1945,30 @@ export default function Dashboard() {
                             if (navigator.vibrate) navigator.vibrate(8);
                             navigate(`/flashcard/${deck.deck_id}`);
                           }}
-                          className="bg-white rounded-2xl border border-slate-100 p-4 shadow-[0_4px_20px_rgba(0,0,0,0.03)] hover:shadow-md cursor-pointer active:scale-[0.98] transition-all w-full flex items-center gap-4 group"
+                          className="bg-white rounded-2xl border border-neutral-100 p-3.5 shadow-2xs hover:shadow-sm cursor-pointer active:scale-[0.98] transition-all w-full flex items-center gap-3.5 group"
                         >
-                          <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-indigo-50 to-orange-50 flex items-center justify-center text-2xl overflow-hidden border border-indigo-100/60 shadow-inner flex-shrink-0">
+                          <div className="w-13 h-13 rounded-2xl bg-amber-50 border border-amber-100/60 flex items-center justify-center text-xl overflow-hidden shadow-inner flex-shrink-0">
                             {deck.cover_image ? <img src={deck.cover_image} alt="" className="w-full h-full object-cover" /> : <span>📘</span>}
                           </div>
                           <div className="flex-1 min-w-0">
-                            <h4 className="text-sm font-black text-slate-800 truncate group-hover:text-indigo-600 transition-colors">{deck.title}</h4>
+                            <h4 className="text-xs font-bold text-slate-800 truncate group-hover:text-amber-600 transition-colors">{deck.title}</h4>
                             <div className="flex items-center gap-2 mt-1">
-                              <span className="text-[11px] font-bold text-slate-500">{deck.learned_cards}/{deck.total_cards} thẻ</span>
-                              <span className="text-[11px] font-black text-indigo-600">{deck.total_pct}%</span>
+                              <span className="text-[10px] font-medium text-neutral-400">{deck.learned_cards}/{deck.total_cards} thẻ</span>
+                              <span className="text-[10px] font-bold text-amber-600">{deck.total_pct}%</span>
                             </div>
-                            <div className="h-2 bg-slate-100 rounded-full overflow-hidden mt-2">
-                              <div className="h-full bg-gradient-to-r from-indigo-500 to-orange-500 rounded-full transition-all" style={{ width: `${deck.total_pct}%` }} />
+                            <div className="h-1.5 bg-neutral-100 rounded-full overflow-hidden mt-1.5">
+                              <div className="h-full bg-amber-500 rounded-full transition-all" style={{ width: `${deck.total_pct}%` }} />
                             </div>
                           </div>
-                          <div className="w-8 h-8 rounded-full bg-slate-50 border border-slate-100 flex items-center justify-center text-slate-400 group-hover:text-orange-500 group-hover:bg-orange-50 transition-all flex-shrink-0">
-                            <ChevronRight className="w-4 h-4" />
+                          <div className="w-7 h-7 rounded-full bg-neutral-50 border border-neutral-100 flex items-center justify-center text-neutral-400 group-hover:text-amber-500 transition-all flex-shrink-0">
+                            <ChevronRight className="w-3.5 h-3.5" />
                           </div>
                         </div>
                       ))}
                     </div>
                   ) : (
                     <div className="flex-1 flex flex-col items-center justify-center p-6 text-center">
-                      <span className="text-slate-400 text-xs font-bold">Chưa có bộ thẻ nào</span>
+                      <span className="text-neutral-400 text-xs font-medium">Chưa có bộ thẻ nào</span>
                     </div>
                   )}
                 </div>
@@ -1982,10 +1979,10 @@ export default function Dashboard() {
             {currentSlide === 2 && (
               <motion.div 
                 key="slide2"
-                initial={{ opacity: 0, x: 30 }}
+                initial={{ opacity: 0, x: 25 }}
                 animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -30 }}
-                transition={{ duration: 0.2, ease: "easeInOut" }}
+                exit={{ opacity: 0, x: -25 }}
+                transition={{ duration: 0.18, ease: "easeInOut" }}
                 className="absolute inset-0 flex flex-col"
               >
                 <div className="flex-1 overflow-y-auto px-3.5 py-3 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
@@ -2002,10 +1999,10 @@ export default function Dashboard() {
             {currentSlide === 3 && (
               <motion.div 
                 key="slide3"
-                initial={{ opacity: 0, x: 30 }}
+                initial={{ opacity: 0, x: 25 }}
                 animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -30 }}
-                transition={{ duration: 0.2, ease: "easeInOut" }}
+                exit={{ opacity: 0, x: -25 }}
+                transition={{ duration: 0.18, ease: "easeInOut" }}
                 className="absolute inset-0 flex flex-col"
               >
                 <div className="flex-1 overflow-y-auto px-3.5 py-3 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
