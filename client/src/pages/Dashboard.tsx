@@ -1744,16 +1744,19 @@ export default function Dashboard() {
                     const mcqDone = s2 ? 10 : 0;
                     const mcqPct = s2 ? 100 : 0;
 
-                    // Mascot selection
+                    // Mascot selection with 2-line Slogan
                     let mascotImg = '/mascot/sleepy.png';
-                    let mascotText = 'Hôm nay bạn chưa học từ nào, bắt đầu thôi! 🚀';
+                    let mascotLine1 = 'Hôm nay bạn chưa học từ nào,';
+                    let mascotLine2 = 'bắt đầu thôi! 🚀';
                     
                     if (st.all_done || pct >= 100) {
                       mascotImg = '/mascot/celebrating.png';
-                      mascotText = 'Xuất sắc! Bạn đã hoàn thành lộ trình hôm nay! 🎉';
+                      mascotLine1 = 'Xuất sắc!';
+                      mascotLine2 = 'Bạn đã hoàn thành lộ trình hôm nay! 🎉';
                     } else if (pct > 0 || nL > 0 || rDn > 0) {
                       mascotImg = '/mascot/excited.png';
-                      mascotText = 'Đang bùng cháy! Tiếp tục giữ vững tiến độ nhé 🔥';
+                      mascotLine1 = 'Đang bùng cháy!';
+                      mascotLine2 = 'Tiếp tục giữ vững tiến độ nhé 🔥';
                     }
 
                     return (
@@ -1768,16 +1771,16 @@ export default function Dashboard() {
                         )}
 
                         {/* CARD BODY */}
-                        <div className="flex-1 flex flex-col justify-between p-3.5 overflow-y-auto [&::-webkit-scrollbar]:hidden gap-3">
+                        <div className="flex-1 flex flex-col justify-between p-3 sm:p-4 overflow-y-auto [&::-webkit-scrollbar]:hidden gap-2.5 min-h-0">
                           
-                          {/* HERO MASCOT CARD — MATCHING MOCKUP DESIGN */}
-                          <div className="flex-1 bg-white rounded-3xl p-5 border border-slate-200/70 shadow-sm relative overflow-hidden flex flex-col items-center justify-between text-center">
+                          {/* HERO MASCOT CARD */}
+                          <div className="flex-1 bg-white rounded-3xl p-3.5 sm:p-4 border border-slate-200/70 shadow-sm relative overflow-hidden flex flex-col items-center justify-between text-center min-h-[220px]">
                             
                             {/* Ambient Radial Soft Glow */}
                             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 rounded-full bg-orange-100/20 blur-3xl pointer-events-none -z-10" />
 
-                            {/* HUGE TRUE TRANSPARENT MASCOT IMAGE (NO DROP SHADOW, NO BORDER BOX) */}
-                            <div className="flex-1 w-full flex items-center justify-center py-1 px-1 relative min-h-[210px]">
+                            {/* FLEXIBLE MASCOT IMAGE (Auto-scales down on short screens so text & steps are 100% visible) */}
+                            <div className="flex-1 min-h-[90px] max-h-[210px] w-full flex items-center justify-center py-1 px-1 relative overflow-hidden">
                               <motion.img 
                                 key={mascotImg}
                                 initial={{ scale: 0.95, opacity: 0 }}
@@ -1785,18 +1788,19 @@ export default function Dashboard() {
                                 transition={{ duration: 0.3 }}
                                 src={mascotImg} 
                                 alt="Vocaburn Mascot" 
-                                className="h-full max-h-[310px] w-auto max-w-full object-contain scale-110"
+                                className="h-full w-auto max-w-full max-h-[210px] object-contain"
                               />
                             </div>
 
-                            {/* Slogan & Highlighted Deck Info Pill (Fixed Height & Shrink-0) */}
-                            <div className="flex flex-col items-center gap-2 w-full max-w-[320px] shrink-0 pt-1 pb-1 z-10">
-                              <h3 className="text-base sm:text-lg font-bold text-slate-900 tracking-tight leading-snug text-center px-1">
-                                {mascotText}
+                            {/* HIGH PRIORITY PROMINENT 2-LINE SLOGAN & DECK PILL (ALWAYS SHRINK-0 & FULLY VISIBLE) */}
+                            <div className="flex flex-col items-center gap-1.5 w-full max-w-[340px] shrink-0 pt-1 pb-0.5 z-10">
+                              <h3 className="text-base sm:text-lg font-black tracking-tight leading-snug text-center px-1">
+                                <span className="block text-slate-900 font-extrabold">{mascotLine1}</span>
+                                <span className="block bg-gradient-to-r from-orange-600 via-amber-600 to-orange-500 bg-clip-text text-transparent font-black">{mascotLine2}</span>
                               </h3>
-                              <div className="inline-flex items-center gap-1.5 px-4 py-1.5 bg-gradient-to-r from-orange-50 via-amber-50 to-orange-50 text-orange-800 border border-orange-200/90 rounded-full text-xs font-bold shadow-2xs">
+                              <div className="inline-flex items-center gap-1.5 px-3.5 py-1 bg-gradient-to-r from-orange-50 via-amber-50 to-orange-50 text-orange-800 border border-orange-200/90 rounded-full text-xs font-bold shadow-2xs mt-0.5">
                                 <BookOpen className="w-3.5 h-3.5 text-orange-600 shrink-0" />
-                                <span className="truncate max-w-[230px] font-bold text-orange-950">{deck.title}</span>
+                                <span className="truncate max-w-[240px] font-bold text-orange-950">{deck.title}</span>
                               </div>
                             </div>
 
