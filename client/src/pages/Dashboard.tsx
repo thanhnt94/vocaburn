@@ -1579,9 +1579,9 @@ export default function Dashboard() {
         </section>
       </div>
 
-      {/* MOBILE FEED — Premium Outfit Typography & Seamless Mascot Blending */}
+      {/* MOBILE FEED — Standard Font, Prominent Progress & Beautiful Slogan */}
       <div 
-        className="md:hidden flex flex-col bg-slate-50/70 fixed inset-0 top-0 bottom-[60px] z-[100] overflow-hidden select-none font-['Outfit',sans-serif]"
+        className="md:hidden flex flex-col bg-slate-50/70 fixed inset-0 top-0 bottom-[60px] z-[100] overflow-hidden select-none font-sans"
         onTouchStart={(e) => {
           (window as any)._touchStartX = e.touches[0].clientX;
           (window as any)._touchStartY = e.touches[0].clientY;
@@ -1624,7 +1624,7 @@ export default function Dashboard() {
             <div className="w-8.5 h-8.5 rounded-2xl bg-gradient-to-tr from-orange-500 via-orange-600 to-amber-500 flex items-center justify-center text-white shadow-xs shadow-orange-200">
               <BookOpen className="w-4.5 h-4.5" />
             </div>
-            <span className="text-[17px] font-extrabold text-slate-900 tracking-tight">
+            <span className="text-[17px] font-bold text-slate-900 tracking-tight">
               Voca<span className="text-orange-500">burn</span>
             </span>
           </Link>
@@ -1663,8 +1663,8 @@ export default function Dashboard() {
                 className={cn(
                   "flex-1 flex items-center justify-center gap-1.5 py-2.5 text-xs transition-all cursor-pointer relative",
                   isActive
-                    ? "text-orange-600 font-extrabold"
-                    : "text-slate-400 font-semibold hover:text-slate-600"
+                    ? "text-orange-600 font-bold"
+                    : "text-slate-400 font-medium hover:text-slate-600"
                 )}
               >
                 <span className="text-xs">{tab.emoji}</span>
@@ -1685,7 +1685,7 @@ export default function Dashboard() {
         <div className="flex-1 bg-slate-50/70 overflow-hidden relative flex flex-col">
           <AnimatePresence mode="wait">
             
-            {/* ═══ SLIDE 1: LỘ TRÌNH HỌC (SEAMLESS BLENDED MASCOT & OUTFIT TYPOGRAPHY) ═══ */}
+            {/* ═══ SLIDE 1: LỘ TRÌNH HỌC ═══ */}
             {currentSlide === 0 && (
               <motion.div 
                 key="slide0"
@@ -1704,7 +1704,7 @@ export default function Dashboard() {
                         <div className="w-20 h-20 rounded-3xl bg-orange-50 flex items-center justify-center mb-4 border border-orange-100 shadow-inner">
                           <Compass className="w-10 h-10 text-orange-500 animate-pulse" />
                         </div>
-                        <h3 className="text-base font-extrabold text-slate-800 mb-2">Chưa có lộ trình học</h3>
+                        <h3 className="text-base font-bold text-slate-800 mb-2">Chưa có lộ trình học</h3>
                         <p className="text-xs text-slate-500 leading-relaxed max-w-[260px] mx-auto mb-6">
                           Hãy chọn một bộ thẻ từ thư viện và bật "Lộ trình học" để kích hoạt lộ trình hằng ngày.
                         </p>
@@ -1713,7 +1713,7 @@ export default function Dashboard() {
                             if (navigator.vibrate) navigator.vibrate(10);
                             navigate('/library');
                           }}
-                          className="w-full max-w-[260px] h-12 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white rounded-full text-xs font-black uppercase tracking-wider transition-all active:scale-[0.98] shadow-md shadow-orange-200"
+                          className="w-full max-w-[260px] h-12 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white rounded-full text-xs font-bold uppercase tracking-wider transition-all active:scale-[0.98] shadow-md shadow-orange-200"
                         >
                           Đi tới Thư viện →
                         </button>
@@ -1757,8 +1757,8 @@ export default function Dashboard() {
                         
                         {/* DECK SELECTOR HEADER (If multiple decks) */}
                         {totalDecks > 1 && (
-                          <div className="px-4 py-2 border-b border-slate-100 bg-white flex items-center justify-between flex-shrink-0 text-xs font-semibold text-slate-500">
-                            <span>Bộ thẻ {deckIdx + 1}/{totalDecks}: <strong className="text-slate-800 font-extrabold">{deck.title}</strong></span>
+                          <div className="px-4 py-2 border-b border-slate-100 bg-white flex items-center justify-between flex-shrink-0 text-xs font-medium text-slate-500">
+                            <span>Bộ thẻ {deckIdx + 1}/{totalDecks}: <strong className="text-slate-800 font-bold">{deck.title}</strong></span>
                             <span className="text-[10px] text-orange-600 font-bold">Vuốt dọc để đổi ↕</span>
                           </div>
                         )}
@@ -1766,13 +1766,13 @@ export default function Dashboard() {
                         {/* CARD BODY */}
                         <div className="flex-1 flex flex-col justify-between p-3.5 overflow-y-auto [&::-webkit-scrollbar]:hidden gap-3">
                           
-                          {/* HERO MASCOT CARD — PURE WHITE, SEAMLESS MULTIPLY BLEND & HUGE MASCOT */}
+                          {/* HERO MASCOT CARD — CLEAN WHITE, SEAMLESS MASCOT & PROMINENT PROGRESS */}
                           <div className="flex-1 bg-white rounded-3xl p-5 border border-slate-200/60 shadow-[0_4px_25px_rgba(0,0,0,0.03)] relative overflow-hidden flex flex-col items-center justify-between text-center">
                             
                             {/* Ambient Radial Soft Glow */}
                             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 rounded-full bg-orange-100/30 blur-3xl pointer-events-none -z-10" />
 
-                            {/* HUGE MASCOT IMAGE WITH MULTIPLY BLEND (REMOVES WHITE SQUARE BORDER 100%) */}
+                            {/* HUGE SEAMLESS MASCOT IMAGE */}
                             <div className="flex-1 flex items-center justify-center w-full min-h-[190px] my-1 relative">
                               <motion.img 
                                 key={mascotImg}
@@ -1785,26 +1785,26 @@ export default function Dashboard() {
                               />
                             </div>
 
-                            {/* Prominent Slogan & Deck Info (Outfit Font) */}
-                            <div className="flex flex-col items-center gap-1.5 w-full max-w-[310px]">
-                              <h3 className="text-[17px] font-extrabold text-slate-900 tracking-tight leading-snug">
+                            {/* Beautiful Slogan & Deck Info */}
+                            <div className="flex flex-col items-center gap-1.5 w-full max-w-[320px]">
+                              <h3 className="text-lg font-bold text-slate-800 tracking-tight leading-snug text-center">
                                 {mascotText}
                               </h3>
-                              <div className="inline-flex items-center gap-1.5 px-3.5 py-1 bg-orange-50/80 rounded-full text-xs font-bold text-orange-700 border border-orange-200/50 shadow-2xs mt-0.5">
+                              <div className="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-orange-50/80 rounded-full text-xs font-bold text-orange-700 border border-orange-200/50 shadow-2xs mt-0.5">
                                 <BookOpen className="w-3.5 h-3.5 text-orange-500" />
                                 <span className="truncate max-w-[220px]">{deck.title}</span>
                               </div>
                             </div>
 
-                            {/* Elegant Progress Bar */}
-                            <div className="w-full max-w-[310px] mt-3 pt-3 border-t border-slate-100 flex flex-col gap-1.5">
-                              <div className="flex items-center justify-between text-xs font-bold text-slate-700">
+                            {/* Prominent Large Progress Bar Card */}
+                            <div className="w-full max-w-[320px] mt-3.5 p-3 bg-slate-50/90 rounded-2xl border border-slate-100 flex flex-col gap-2 shadow-2xs">
+                              <div className="flex items-center justify-between text-sm font-bold text-slate-800">
                                 <span>Tiến độ bài học</span>
-                                <span className="font-extrabold text-orange-600 text-xs">{pct}% ({tD}/{tT} thẻ)</span>
+                                <span className="font-extrabold text-orange-600 text-sm">{pct}% ({tD}/{tT} thẻ)</span>
                               </div>
-                              <div className="h-2.5 bg-slate-100 rounded-full overflow-hidden w-full relative shadow-inner">
+                              <div className="h-3 bg-slate-200/70 rounded-full overflow-hidden w-full relative shadow-inner p-0.5">
                                 <motion.div 
-                                  className="h-full bg-gradient-to-r from-orange-500 via-amber-500 to-orange-600 rounded-full"
+                                  className="h-full bg-gradient-to-r from-orange-500 via-amber-500 to-orange-600 rounded-full shadow-xs"
                                   initial={{ width: 0 }}
                                   animate={{ width: `${pct}%` }}
                                   transition={{ duration: 0.8, ease: "easeOut" }}
@@ -1823,15 +1823,15 @@ export default function Dashboard() {
                               s1 ? "bg-emerald-50/60 border-emerald-200/80" : "bg-slate-50/80 border-slate-100"
                             )}>
                               <div className={cn(
-                                "w-7 h-7 rounded-xl font-extrabold text-xs flex items-center justify-center shrink-0 shadow-2xs",
+                                "w-7 h-7 rounded-xl font-bold text-xs flex items-center justify-center shrink-0 shadow-2xs",
                                 s1 ? "bg-emerald-500 text-white" : "bg-gradient-to-tr from-orange-500 to-amber-500 text-white"
                               )}>
                                 {s1 ? '✓' : '1'}
                               </div>
                               <div className="flex-1 min-w-0 flex flex-col gap-1">
                                 <div className="flex items-center justify-between">
-                                  <span className="text-xs font-extrabold text-slate-800">Bước 1: Học từ mới</span>
-                                  <span className="text-[11px] font-extrabold text-orange-600">{nL} / {nT} thẻ ({newPct}%)</span>
+                                  <span className="text-xs font-bold text-slate-800">Bước 1: Học từ mới</span>
+                                  <span className="text-[11px] font-bold text-orange-600">{nL} / {nT} thẻ ({newPct}%)</span>
                                 </div>
                                 <div className="h-1.5 bg-slate-200/60 rounded-full overflow-hidden w-full">
                                   <div className="h-full bg-orange-500 rounded-full transition-all" style={{ width: `${newPct}%` }} />
@@ -1845,15 +1845,15 @@ export default function Dashboard() {
                               s2 ? "bg-emerald-50/60 border-emerald-200/80" : s1 ? "bg-orange-50/80 border-orange-200/80" : "bg-slate-50/50 border-slate-100"
                             )}>
                               <div className={cn(
-                                "w-7 h-7 rounded-xl font-extrabold text-xs flex items-center justify-center shrink-0 shadow-2xs",
+                                "w-7 h-7 rounded-xl font-bold text-xs flex items-center justify-center shrink-0 shadow-2xs",
                                 s2 ? "bg-emerald-500 text-white" : s1 ? "bg-gradient-to-tr from-orange-500 to-amber-500 text-white" : "bg-slate-300 text-white"
                               )}>
                                 {s2 ? '✓' : '2'}
                               </div>
                               <div className="flex-1 min-w-0 flex flex-col gap-1">
                                 <div className="flex items-center justify-between">
-                                  <span className="text-xs font-extrabold text-slate-800">Bước 2: Test trắc nghiệm MCQ</span>
-                                  <span className="text-[11px] font-extrabold text-orange-600">{mcqDone} / {mcqTarget} câu ({mcqPct}%)</span>
+                                  <span className="text-xs font-bold text-slate-800">Bước 2: Test trắc nghiệm MCQ</span>
+                                  <span className="text-[11px] font-bold text-orange-600">{mcqDone} / {mcqTarget} câu ({mcqPct}%)</span>
                                 </div>
                                 <div className="h-1.5 bg-slate-200/60 rounded-full overflow-hidden w-full">
                                   <div className="h-full bg-orange-500 rounded-full transition-all" style={{ width: `${mcqPct}%` }} />
@@ -1867,15 +1867,15 @@ export default function Dashboard() {
                               rD > 0 && rDn >= rD ? "bg-emerald-50/60 border-emerald-200/80" : "bg-slate-50/80 border-slate-100"
                             )}>
                               <div className={cn(
-                                "w-7 h-7 rounded-xl font-extrabold text-xs flex items-center justify-center shrink-0 shadow-2xs",
+                                "w-7 h-7 rounded-xl font-bold text-xs flex items-center justify-center shrink-0 shadow-2xs",
                                 rD > 0 && rDn >= rD ? "bg-emerald-500 text-white" : "bg-gradient-to-tr from-orange-500 to-amber-500 text-white"
                               )}>
                                 {rD > 0 && rDn >= rD ? '✓' : '3'}
                               </div>
                               <div className="flex-1 min-w-0 flex flex-col gap-1">
                                 <div className="flex items-center justify-between">
-                                  <span className="text-xs font-extrabold text-slate-800">Bước 3: Ôn tập FSRS</span>
-                                  <span className="text-[11px] font-extrabold text-orange-600">{rDn} / {rD} thẻ ({revPct}%)</span>
+                                  <span className="text-xs font-bold text-slate-800">Bước 3: Ôn tập FSRS</span>
+                                  <span className="text-[11px] font-bold text-orange-600">{rDn} / {rD} thẻ ({revPct}%)</span>
                                 </div>
                                 <div className="h-1.5 bg-slate-200/60 rounded-full overflow-hidden w-full">
                                   <div className="h-full bg-orange-500 rounded-full transition-all" style={{ width: `${revPct}%` }} />
@@ -1893,7 +1893,7 @@ export default function Dashboard() {
                                 if (nUrl) navigate(nUrl); 
                                 else navigate(`/flashcard/${deck.deck_id}`); 
                               }}
-                              className="w-full h-12 bg-gradient-to-r from-orange-500 via-orange-600 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-extrabold text-xs uppercase tracking-wider rounded-full transition-all flex items-center justify-center gap-2 shadow-lg shadow-orange-500/25 active:scale-[0.98] cursor-pointer"
+                              className="w-full h-12 bg-gradient-to-r from-orange-500 via-orange-600 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-bold text-xs uppercase tracking-wider rounded-full transition-all flex items-center justify-center gap-2 shadow-lg shadow-orange-500/25 active:scale-[0.98] cursor-pointer"
                             >
                               <Play className="w-4 h-4 fill-current shrink-0" />
                               <span className="truncate">
@@ -1932,7 +1932,7 @@ export default function Dashboard() {
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: -25 }}
                 transition={{ duration: 0.18, ease: "easeInOut" }}
-                className="absolute inset-0 flex flex-col font-['Outfit',sans-serif]"
+                className="absolute inset-0 flex flex-col font-sans"
               >
                 <div className="flex-1 overflow-y-auto px-4 py-3 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
                   {activeDecks && activeDecks.length > 0 ? (
@@ -1982,7 +1982,7 @@ export default function Dashboard() {
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: -25 }}
                 transition={{ duration: 0.18, ease: "easeInOut" }}
-                className="absolute inset-0 flex flex-col font-['Outfit',sans-serif]"
+                className="absolute inset-0 flex flex-col font-sans"
               >
                 <div className="flex-1 overflow-y-auto px-3.5 py-3 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
                   <div className="flex flex-col gap-3">
@@ -2002,7 +2002,7 @@ export default function Dashboard() {
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: -25 }}
                 transition={{ duration: 0.18, ease: "easeInOut" }}
-                className="absolute inset-0 flex flex-col font-['Outfit',sans-serif]"
+                className="absolute inset-0 flex flex-col font-sans"
               >
                 <div className="flex-1 overflow-y-auto px-3.5 py-3 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
                   <div className="flex flex-col gap-3">
