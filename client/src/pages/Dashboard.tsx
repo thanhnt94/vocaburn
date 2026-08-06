@@ -1777,26 +1777,26 @@ export default function Dashboard() {
                             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 rounded-full bg-orange-100/20 blur-3xl pointer-events-none -z-10" />
 
                             {/* HUGE SEAMLESS MASCOT IMAGE */}
-                            <div className="flex-1 flex items-center justify-center w-full min-h-[190px] my-1 relative">
+                            <div className="flex-1 flex items-center justify-center w-full min-h-[220px] py-1 relative">
                               <motion.img 
                                 key={mascotImg}
-                                initial={{ scale: 0.88, opacity: 0 }}
+                                initial={{ scale: 0.95, opacity: 0 }}
                                 animate={{ scale: 1, opacity: 1 }}
                                 transition={{ duration: 0.3 }}
                                 src={mascotImg} 
                                 alt="Vocaburn Mascot" 
-                                className="h-full max-h-[250px] w-auto object-contain mix-blend-multiply scale-110 drop-shadow-xs"
+                                className="w-full h-full max-h-[290px] object-contain mix-blend-multiply scale-125 drop-shadow-sm"
                               />
                             </div>
 
-                            {/* Slogan & Deck Info Pill */}
-                            <div className="flex flex-col items-center gap-2 w-full max-w-[320px]">
-                              <h3 className="text-lg font-bold text-slate-900 tracking-tight leading-snug text-center px-2">
+                            {/* Slogan & Highlighted Deck Info Pill */}
+                            <div className="flex flex-col items-center gap-2 w-full max-w-[320px] z-10 pb-1">
+                              <h3 className="text-lg font-bold text-slate-900 tracking-tight leading-snug text-center px-1">
                                 {mascotText}
                               </h3>
-                              <div className="inline-flex items-center gap-1.5 px-4 py-1.5 bg-slate-50/90 rounded-full text-xs font-bold text-slate-700 border border-slate-200/80 shadow-2xs mt-0.5">
-                                <BookOpen className="w-3.5 h-3.5 text-orange-500" />
-                                <span className="truncate max-w-[220px]">{deck.title}</span>
+                              <div className="inline-flex items-center gap-1.5 px-4 py-1.5 bg-gradient-to-r from-orange-50 via-amber-50 to-orange-50 text-orange-800 border border-orange-200/90 rounded-full text-xs font-bold shadow-2xs">
+                                <BookOpen className="w-3.5 h-3.5 text-orange-600 shrink-0" />
+                                <span className="truncate max-w-[230px] font-bold text-orange-950">{deck.title}</span>
                               </div>
                             </div>
 
