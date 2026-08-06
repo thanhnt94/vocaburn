@@ -1776,22 +1776,22 @@ export default function Dashboard() {
                             {/* Ambient Radial Soft Glow */}
                             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 rounded-full bg-orange-100/20 blur-3xl pointer-events-none -z-10" />
 
-                            {/* CROPPED SEAMLESS MASCOT IMAGE — PERFECT FIT WITHOUT OVERLAP */}
-                            <div className="flex-1 flex items-center justify-center w-full min-h-[150px] py-1 relative overflow-hidden">
+                            {/* HUGE SEAMLESS TRANSPARENT MASCOT IMAGE */}
+                            <div className="flex-1 w-full flex items-center justify-center py-2 px-1 relative">
                               <motion.img 
                                 key={mascotImg}
-                                initial={{ scale: 0.95, opacity: 0 }}
+                                initial={{ scale: 0.92, opacity: 0 }}
                                 animate={{ scale: 1, opacity: 1 }}
                                 transition={{ duration: 0.3 }}
                                 src={mascotImg} 
                                 alt="Vocaburn Mascot" 
-                                className="h-full max-h-[185px] w-auto object-contain mix-blend-multiply drop-shadow-xs"
+                                className="h-full max-h-[260px] w-auto max-w-full object-contain filter drop-shadow-md"
                               />
                             </div>
 
-                            {/* Slogan & Highlighted Deck Info Pill */}
-                            <div className="flex flex-col items-center gap-2 w-full max-w-[320px] z-10 pb-1">
-                              <h3 className="text-lg font-bold text-slate-900 tracking-tight leading-snug text-center px-1">
+                            {/* Slogan & Highlighted Deck Info Pill (Fixed Height & Shrink-0) */}
+                            <div className="flex flex-col items-center gap-2 w-full max-w-[320px] shrink-0 pt-1 pb-1 z-10">
+                              <h3 className="text-base sm:text-lg font-bold text-slate-900 tracking-tight leading-snug text-center px-1">
                                 {mascotText}
                               </h3>
                               <div className="inline-flex items-center gap-1.5 px-4 py-1.5 bg-gradient-to-r from-orange-50 via-amber-50 to-orange-50 text-orange-800 border border-orange-200/90 rounded-full text-xs font-bold shadow-2xs">
