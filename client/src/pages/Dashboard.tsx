@@ -1776,8 +1776,8 @@ export default function Dashboard() {
                             {/* Ambient Radial Soft Glow */}
                             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 rounded-full bg-orange-100/20 blur-3xl pointer-events-none -z-10" />
 
-                            {/* HUGE SEAMLESS MASCOT IMAGE */}
-                            <div className="flex-1 flex items-center justify-center w-full min-h-[220px] py-1 relative">
+                            {/* CROPPED SEAMLESS MASCOT IMAGE — PERFECT FIT WITHOUT OVERLAP */}
+                            <div className="flex-1 flex items-center justify-center w-full min-h-[150px] py-1 relative overflow-hidden">
                               <motion.img 
                                 key={mascotImg}
                                 initial={{ scale: 0.95, opacity: 0 }}
@@ -1785,7 +1785,7 @@ export default function Dashboard() {
                                 transition={{ duration: 0.3 }}
                                 src={mascotImg} 
                                 alt="Vocaburn Mascot" 
-                                className="w-full h-full max-h-[290px] object-contain mix-blend-multiply scale-125 drop-shadow-sm"
+                                className="h-full max-h-[185px] w-auto object-contain mix-blend-multiply drop-shadow-xs"
                               />
                             </div>
 
