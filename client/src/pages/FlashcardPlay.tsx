@@ -5316,22 +5316,7 @@ export default function FlashcardPlay() {
 
 
 
-      {/* Full-Screen Achievement Celebration Overlay */}
-      <BadgeUnlockOverlay
-        badge={activeUnlockedBadge}
-        onClose={() => setActiveUnlockedBadge(null)}
-      />
-      {/* Milestone Celebrations Overlay */}
-      <AnimatePresence>
-        {activeMilestone && (
-          <MilestoneCelebration
-            type={activeMilestone.type}
-            title={activeMilestone.title}
-            message={activeMilestone.message}
-            onClose={() => setActiveMilestone(null)}
-          />
-        )}
-      </AnimatePresence>
+      {/* Intrusive mid-session popups (Badge & Milestone) disabled per user request */}
       {/* Local Toast Overlay */}
       <AnimatePresence>
         {localToast.visible && (

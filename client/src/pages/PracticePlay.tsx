@@ -6833,17 +6833,7 @@ export default function PracticePlay() {
           )
         })()}
       </AnimatePresence>
-      {/* Milestone Celebrations Overlay */}
-      <AnimatePresence>
-        {activeMilestone && (
-          <MilestoneCelebration
-            type={activeMilestone.type}
-            title={activeMilestone.title}
-            message={activeMilestone.message}
-            onClose={() => setActiveMilestone(null)}
-          />
-        )}
-      </AnimatePresence>
+      {/* Intrusive mid-session popups disabled per user request */}
       <FlashcardEditModal
         isOpen={!!editingFlashcard}
         onClose={() => setEditingFlashcard(null)}
