@@ -1776,16 +1776,16 @@ export default function Dashboard() {
                             {/* Ambient Radial Soft Glow */}
                             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 rounded-full bg-orange-100/20 blur-3xl pointer-events-none -z-10" />
 
-                            {/* HUGE SEAMLESS TRANSPARENT MASCOT IMAGE */}
-                            <div className="flex-1 w-full flex items-center justify-center py-2 px-1 relative">
+                            {/* HUGE TRUE TRANSPARENT MASCOT IMAGE (NO DROP SHADOW, NO BORDER BOX) */}
+                            <div className="flex-1 w-full flex items-center justify-center py-1 px-1 relative min-h-[210px]">
                               <motion.img 
                                 key={mascotImg}
-                                initial={{ scale: 0.92, opacity: 0 }}
+                                initial={{ scale: 0.95, opacity: 0 }}
                                 animate={{ scale: 1, opacity: 1 }}
                                 transition={{ duration: 0.3 }}
                                 src={mascotImg} 
                                 alt="Vocaburn Mascot" 
-                                className="h-full max-h-[260px] w-auto max-w-full object-contain filter drop-shadow-md"
+                                className="h-full max-h-[310px] w-auto max-w-full object-contain scale-110"
                               />
                             </div>
 
