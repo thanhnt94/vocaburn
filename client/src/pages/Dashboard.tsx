@@ -1579,9 +1579,9 @@ export default function Dashboard() {
         </section>
       </div>
 
-      {/* MOBILE FEED — Standard Font, Prominent Progress & Beautiful Slogan */}
+      {/* MOBILE FEED — Exact Mockup Design with Unified Header & Flame Logo */}
       <div 
-        className="md:hidden flex flex-col bg-slate-50/70 fixed inset-0 top-0 bottom-[60px] z-[100] overflow-hidden select-none font-sans"
+        className="md:hidden flex flex-col bg-[#f3f5f8] fixed inset-0 top-0 bottom-[60px] z-[100] overflow-hidden select-none font-sans"
         onTouchStart={(e) => {
           (window as any)._touchStartX = e.touches[0].clientX;
           (window as any)._touchStartY = e.touches[0].clientY;
@@ -1618,74 +1618,78 @@ export default function Dashboard() {
           }
         }}
       >
-        {/* Modern iOS Glass Top Status Bar */}
-        <div className="flex items-center justify-between px-4 py-2.5 bg-white/95 backdrop-blur-md border-b border-slate-100 flex-shrink-0 z-20 shadow-2xs">
-          <Link to="/" className="flex items-center gap-2 active:scale-95 transition-all">
-            <div className="w-8.5 h-8.5 rounded-2xl bg-gradient-to-tr from-orange-500 via-orange-600 to-amber-500 flex items-center justify-center text-white shadow-xs shadow-orange-200">
-              <BookOpen className="w-4.5 h-4.5" />
-            </div>
-            <span className="text-[17px] font-bold text-slate-900 tracking-tight">
-              Voca<span className="text-orange-500">burn</span>
-            </span>
-          </Link>
-          
-          <div className="flex items-center gap-2">
-            <span className="flex items-center gap-1.5 px-3.5 py-1 bg-orange-50 border border-orange-200/60 text-orange-600 rounded-full text-xs font-bold shadow-2xs">
-              <Flame className="w-3.5 h-3.5 fill-orange-500 text-orange-500 animate-bounce" />
-              {data?.gamify?.streak || 0}d streak
-            </span>
-
-            <Link 
-              to="/profile" 
-              className="w-8.5 h-8.5 rounded-full bg-slate-100 border border-slate-200/60 flex items-center justify-center text-slate-600 active:scale-95 transition-all shadow-2xs"
-            >
-              <User className="w-4.5 h-4.5" />
+        {/* UNIFIED TOP HEADER + NAV TABS (Seamless Solid White Header) */}
+        <div className="bg-white flex-shrink-0 z-20 shadow-2xs border-b border-slate-100">
+          {/* Top Status Bar */}
+          <div className="flex items-center justify-between px-4 pt-3 pb-1.5">
+            <Link to="/" className="flex items-center gap-2 active:scale-95 transition-all">
+              <div className="w-8.5 h-8.5 rounded-2xl bg-gradient-to-tr from-orange-500 via-red-500 to-amber-500 flex items-center justify-center text-white shadow-md shadow-orange-200">
+                <Flame className="w-5 h-5 fill-white text-white" />
+              </div>
+              <span className="text-xl font-black text-slate-900 tracking-tight">
+                Voca<span className="text-orange-500">burn</span>
+              </span>
             </Link>
+            
+            <div className="flex items-center gap-2">
+              <span className="flex items-center gap-1.5 px-3.5 py-1 bg-gradient-to-r from-orange-500 via-orange-600 to-amber-500 text-white rounded-full text-xs font-bold shadow-md shadow-orange-500/20">
+                <Flame className="w-3.5 h-3.5 fill-white text-white animate-bounce" />
+                {data?.gamify?.streak || 0}d streak
+              </span>
+
+              <Link 
+                to="/profile" 
+                className="w-8.5 h-8.5 rounded-full bg-slate-100 border border-slate-200/60 flex items-center justify-center text-slate-700 active:scale-95 transition-all shadow-2xs"
+              >
+                <User className="w-4.5 h-4.5" />
+              </Link>
+            </div>
+          </div>
+
+          {/* Unified Tabs Bar (Directly attached to top header) */}
+          <div className="px-2 flex items-center justify-around">
+            {[
+              { id: 0, label: 'Lộ Trình', icon: Compass },
+              { id: 1, label: 'Thẻ Học', icon: BookOpen },
+              { id: 2, label: 'Thống Kê', icon: TrendingUp },
+              { id: 3, label: 'Xếp Hạng', icon: Trophy }
+            ].map(tab => {
+              const isActive = currentSlide === tab.id;
+              const Icon = tab.icon;
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => {
+                    if (navigator.vibrate) navigator.vibrate(8);
+                    setCurrentSlide(tab.id);
+                  }}
+                  className={cn(
+                    "flex-1 flex items-center justify-center gap-1.5 py-2.5 text-xs transition-all cursor-pointer relative",
+                    isActive
+                      ? "text-slate-900 font-bold"
+                      : "text-slate-400 font-medium hover:text-slate-600"
+                  )}
+                >
+                  <Icon className={cn("w-4 h-4", isActive ? "text-slate-900" : "text-slate-400")} />
+                  <span>{tab.label}</span>
+                  {isActive && (
+                    <motion.div 
+                      layoutId="underlineTab"
+                      className="absolute bottom-0 left-3 right-3 h-0.5 bg-gradient-to-r from-orange-500 via-red-500 to-amber-500 rounded-full"
+                      transition={{ type: "spring", stiffness: 500, damping: 35 }}
+                    />
+                  )}
+                </button>
+              );
+            })}
           </div>
         </div>
 
-        {/* BRAND SEGMENTED UNDERLINE TABS */}
-        <div className="bg-white/95 backdrop-blur-md border-b border-slate-100 px-2 flex items-center justify-around flex-shrink-0 z-10">
-          {[
-            { id: 0, label: 'Lộ Trình', emoji: '🎯' },
-            { id: 1, label: 'Thẻ Học', emoji: '📚' },
-            { id: 2, label: 'Thống Kê', emoji: '📊' },
-            { id: 3, label: 'Xếp Hạng', emoji: '🏆' }
-          ].map(tab => {
-            const isActive = currentSlide === tab.id;
-            return (
-              <button
-                key={tab.id}
-                onClick={() => {
-                  if (navigator.vibrate) navigator.vibrate(8);
-                  setCurrentSlide(tab.id);
-                }}
-                className={cn(
-                  "flex-1 flex items-center justify-center gap-1.5 py-2.5 text-xs transition-all cursor-pointer relative",
-                  isActive
-                    ? "text-orange-600 font-bold"
-                    : "text-slate-400 font-medium hover:text-slate-600"
-                )}
-              >
-                <span className="text-xs">{tab.emoji}</span>
-                <span>{tab.label}</span>
-                {isActive && (
-                  <motion.div 
-                    layoutId="underlineTab"
-                    className="absolute bottom-0 left-3 right-3 h-0.5 bg-gradient-to-r from-orange-500 to-amber-500 rounded-full"
-                    transition={{ type: "spring", stiffness: 500, damping: 35 }}
-                  />
-                )}
-              </button>
-            );
-          })}
-        </div>
-
         {/* MAIN CONTAINER */}
-        <div className="flex-1 bg-slate-50/70 overflow-hidden relative flex flex-col">
+        <div className="flex-1 bg-[#f3f5f8] overflow-hidden relative flex flex-col">
           <AnimatePresence mode="wait">
             
-            {/* ═══ SLIDE 1: LỘ TRÌNH HỌC ═══ */}
+            {/* ═══ SLIDE 1: LỘ TRÌNH HỌC (MATCHING USER MOCKUP EXACTLY) ═══ */}
             {currentSlide === 0 && (
               <motion.div 
                 key="slide0"
@@ -1766,11 +1770,11 @@ export default function Dashboard() {
                         {/* CARD BODY */}
                         <div className="flex-1 flex flex-col justify-between p-3.5 overflow-y-auto [&::-webkit-scrollbar]:hidden gap-3">
                           
-                          {/* HERO MASCOT CARD — CLEAN WHITE, SEAMLESS MASCOT & PROMINENT PROGRESS */}
-                          <div className="flex-1 bg-white rounded-3xl p-5 border border-slate-200/60 shadow-[0_4px_25px_rgba(0,0,0,0.03)] relative overflow-hidden flex flex-col items-center justify-between text-center">
+                          {/* HERO MASCOT CARD — MATCHING MOCKUP DESIGN */}
+                          <div className="flex-1 bg-white rounded-3xl p-5 border border-slate-200/70 shadow-sm relative overflow-hidden flex flex-col items-center justify-between text-center">
                             
                             {/* Ambient Radial Soft Glow */}
-                            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 rounded-full bg-orange-100/30 blur-3xl pointer-events-none -z-10" />
+                            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 rounded-full bg-orange-100/20 blur-3xl pointer-events-none -z-10" />
 
                             {/* HUGE SEAMLESS MASCOT IMAGE */}
                             <div className="flex-1 flex items-center justify-center w-full min-h-[190px] my-1 relative">
@@ -1781,104 +1785,79 @@ export default function Dashboard() {
                                 transition={{ duration: 0.3 }}
                                 src={mascotImg} 
                                 alt="Vocaburn Mascot" 
-                                className="h-full max-h-[260px] w-auto object-contain mix-blend-multiply scale-110 drop-shadow-xs"
+                                className="h-full max-h-[250px] w-auto object-contain mix-blend-multiply scale-110 drop-shadow-xs"
                               />
                             </div>
 
-                            {/* Beautiful Slogan & Deck Info */}
-                            <div className="flex flex-col items-center gap-1.5 w-full max-w-[320px]">
-                              <h3 className="text-lg font-bold text-slate-800 tracking-tight leading-snug text-center">
+                            {/* Slogan & Deck Info Pill */}
+                            <div className="flex flex-col items-center gap-2 w-full max-w-[320px]">
+                              <h3 className="text-lg font-bold text-slate-900 tracking-tight leading-snug text-center px-2">
                                 {mascotText}
                               </h3>
-                              <div className="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-orange-50/80 rounded-full text-xs font-bold text-orange-700 border border-orange-200/50 shadow-2xs mt-0.5">
+                              <div className="inline-flex items-center gap-1.5 px-4 py-1.5 bg-slate-50/90 rounded-full text-xs font-bold text-slate-700 border border-slate-200/80 shadow-2xs mt-0.5">
                                 <BookOpen className="w-3.5 h-3.5 text-orange-500" />
                                 <span className="truncate max-w-[220px]">{deck.title}</span>
                               </div>
                             </div>
 
-                            {/* Prominent Large Progress Bar Card */}
-                            <div className="w-full max-w-[320px] mt-3.5 p-3 bg-slate-50/90 rounded-2xl border border-slate-100 flex flex-col gap-2 shadow-2xs">
-                              <div className="flex items-center justify-between text-sm font-bold text-slate-800">
-                                <span>Tiến độ bài học</span>
-                                <span className="font-extrabold text-orange-600 text-sm">{pct}% ({tD}/{tT} thẻ)</span>
-                              </div>
-                              <div className="h-3 bg-slate-200/70 rounded-full overflow-hidden w-full relative shadow-inner p-0.5">
-                                <motion.div 
-                                  className="h-full bg-gradient-to-r from-orange-500 via-amber-500 to-orange-600 rounded-full shadow-xs"
-                                  initial={{ width: 0 }}
-                                  animate={{ width: `${pct}%` }}
-                                  transition={{ duration: 0.8, ease: "easeOut" }}
-                                />
-                              </div>
-                            </div>
-
                           </div>
 
-                          {/* UNIFIED SINGLE CONTAINER 3-STEPS TIMELINE CARD */}
-                          <div className="bg-white border border-slate-200/60 rounded-3xl p-3.5 shadow-2xs flex flex-col gap-2 flex-shrink-0">
+                          {/* 3-STEPS CONTAINER (MATCHING USER MOCKUP EXACTLY) */}
+                          <div className="bg-white border border-slate-200/70 rounded-3xl p-3.5 shadow-sm flex flex-col gap-2.5 flex-shrink-0">
                             
                             {/* Step 1 */}
-                            <div className={cn(
-                              "flex items-center gap-3 p-2.5 rounded-2xl border transition-all",
-                              s1 ? "bg-emerald-50/60 border-emerald-200/80" : "bg-slate-50/80 border-slate-100"
-                            )}>
+                            <div className="bg-slate-50/70 rounded-2xl p-2.5 border border-slate-100/80 flex items-center gap-3">
                               <div className={cn(
-                                "w-7 h-7 rounded-xl font-bold text-xs flex items-center justify-center shrink-0 shadow-2xs",
-                                s1 ? "bg-emerald-500 text-white" : "bg-gradient-to-tr from-orange-500 to-amber-500 text-white"
+                                "w-8 h-8 rounded-full font-bold text-xs flex items-center justify-center shrink-0 shadow-2xs text-white",
+                                s1 ? "bg-emerald-500" : "bg-gradient-to-tr from-orange-500 via-red-500 to-amber-500"
                               )}>
                                 {s1 ? '✓' : '1'}
                               </div>
-                              <div className="flex-1 min-w-0 flex flex-col gap-1">
-                                <div className="flex items-center justify-between">
-                                  <span className="text-xs font-bold text-slate-800">Bước 1: Học từ mới</span>
-                                  <span className="text-[11px] font-bold text-orange-600">{nL} / {nT} thẻ ({newPct}%)</span>
+                              <div className="flex-1 min-w-0 flex flex-col gap-1.5">
+                                <div className="flex items-center justify-between text-xs">
+                                  <span className="font-bold text-slate-900">Bước 1: Học từ mới</span>
+                                  <span className="font-medium text-slate-500">{nL} / {nT} thẻ ({newPct}%)</span>
                                 </div>
                                 <div className="h-1.5 bg-slate-200/60 rounded-full overflow-hidden w-full">
-                                  <div className="h-full bg-orange-500 rounded-full transition-all" style={{ width: `${newPct}%` }} />
+                                  <div className="h-full bg-gradient-to-r from-orange-500 to-amber-500 rounded-full transition-all" style={{ width: `${newPct}%` }} />
                                 </div>
                               </div>
                             </div>
 
                             {/* Step 2 */}
-                            <div className={cn(
-                              "flex items-center gap-3 p-2.5 rounded-2xl border transition-all",
-                              s2 ? "bg-emerald-50/60 border-emerald-200/80" : s1 ? "bg-orange-50/80 border-orange-200/80" : "bg-slate-50/50 border-slate-100"
-                            )}>
+                            <div className="bg-slate-50/70 rounded-2xl p-2.5 border border-slate-100/80 flex items-center gap-3">
                               <div className={cn(
-                                "w-7 h-7 rounded-xl font-bold text-xs flex items-center justify-center shrink-0 shadow-2xs",
-                                s2 ? "bg-emerald-500 text-white" : s1 ? "bg-gradient-to-tr from-orange-500 to-amber-500 text-white" : "bg-slate-300 text-white"
+                                "w-8 h-8 rounded-full font-bold text-xs flex items-center justify-center shrink-0 shadow-2xs text-white",
+                                s2 ? "bg-emerald-500" : s1 ? "bg-gradient-to-tr from-orange-500 via-red-500 to-amber-500" : "bg-slate-300"
                               )}>
                                 {s2 ? '✓' : '2'}
                               </div>
-                              <div className="flex-1 min-w-0 flex flex-col gap-1">
-                                <div className="flex items-center justify-between">
-                                  <span className="text-xs font-bold text-slate-800">Bước 2: Test trắc nghiệm MCQ</span>
-                                  <span className="text-[11px] font-bold text-orange-600">{mcqDone} / {mcqTarget} câu ({mcqPct}%)</span>
+                              <div className="flex-1 min-w-0 flex flex-col gap-1.5">
+                                <div className="flex items-center justify-between text-xs">
+                                  <span className="font-bold text-slate-900">Bước 2: Test trắc nghiệm MCQ</span>
+                                  <span className="font-medium text-slate-500">{mcqDone} / {mcqTarget} câu ({mcqPct}%)</span>
                                 </div>
                                 <div className="h-1.5 bg-slate-200/60 rounded-full overflow-hidden w-full">
-                                  <div className="h-full bg-orange-500 rounded-full transition-all" style={{ width: `${mcqPct}%` }} />
+                                  <div className="h-full bg-gradient-to-r from-orange-500 to-amber-500 rounded-full transition-all" style={{ width: `${mcqPct}%` }} />
                                 </div>
                               </div>
                             </div>
 
                             {/* Step 3 */}
-                            <div className={cn(
-                              "flex items-center gap-3 p-2.5 rounded-2xl border transition-all",
-                              rD > 0 && rDn >= rD ? "bg-emerald-50/60 border-emerald-200/80" : "bg-slate-50/80 border-slate-100"
-                            )}>
+                            <div className="bg-slate-50/70 rounded-2xl p-2.5 border border-slate-100/80 flex items-center gap-3">
                               <div className={cn(
-                                "w-7 h-7 rounded-xl font-bold text-xs flex items-center justify-center shrink-0 shadow-2xs",
-                                rD > 0 && rDn >= rD ? "bg-emerald-500 text-white" : "bg-gradient-to-tr from-orange-500 to-amber-500 text-white"
+                                "w-8 h-8 rounded-full font-bold text-xs flex items-center justify-center shrink-0 shadow-2xs text-white",
+                                rD > 0 && rDn >= rD ? "bg-emerald-500" : "bg-gradient-to-tr from-orange-500 via-red-500 to-amber-500"
                               )}>
                                 {rD > 0 && rDn >= rD ? '✓' : '3'}
                               </div>
-                              <div className="flex-1 min-w-0 flex flex-col gap-1">
-                                <div className="flex items-center justify-between">
-                                  <span className="text-xs font-bold text-slate-800">Bước 3: Ôn tập FSRS</span>
-                                  <span className="text-[11px] font-bold text-orange-600">{rDn} / {rD} thẻ ({revPct}%)</span>
+                              <div className="flex-1 min-w-0 flex flex-col gap-1.5">
+                                <div className="flex items-center justify-between text-xs">
+                                  <span className="font-bold text-slate-900">Bước 3: Ôn tập FSRS</span>
+                                  <span className="font-medium text-slate-500">{rDn} / {rD} thẻ ({revPct}%)</span>
                                 </div>
                                 <div className="h-1.5 bg-slate-200/60 rounded-full overflow-hidden w-full">
-                                  <div className="h-full bg-orange-500 rounded-full transition-all" style={{ width: `${revPct}%` }} />
+                                  <div className="h-full bg-gradient-to-r from-orange-500 to-amber-500 rounded-full transition-all" style={{ width: `${revPct}%` }} />
                                 </div>
                               </div>
                             </div>
@@ -1893,7 +1872,7 @@ export default function Dashboard() {
                                 if (nUrl) navigate(nUrl); 
                                 else navigate(`/flashcard/${deck.deck_id}`); 
                               }}
-                              className="w-full h-12 bg-gradient-to-r from-orange-500 via-orange-600 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-bold text-xs uppercase tracking-wider rounded-full transition-all flex items-center justify-center gap-2 shadow-lg shadow-orange-500/25 active:scale-[0.98] cursor-pointer"
+                              className="w-full h-12.5 bg-gradient-to-r from-orange-500 via-red-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-bold text-xs uppercase tracking-wider rounded-full transition-all flex items-center justify-center gap-2 shadow-lg shadow-orange-500/25 active:scale-[0.98] cursor-pointer"
                             >
                               <Play className="w-4 h-4 fill-current shrink-0" />
                               <span className="truncate">
