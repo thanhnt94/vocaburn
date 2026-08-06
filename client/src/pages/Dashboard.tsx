@@ -1773,14 +1773,14 @@ export default function Dashboard() {
                         {/* CARD BODY */}
                         <div className="flex-1 flex flex-col justify-between p-3 sm:p-4 overflow-y-auto [&::-webkit-scrollbar]:hidden gap-2.5 min-h-0">
                           
-                          {/* HERO MASCOT CARD */}
-                          <div className="flex-1 bg-white rounded-3xl p-3.5 sm:p-4 border border-slate-200/70 shadow-sm relative overflow-hidden flex flex-col items-center justify-between text-center min-h-[220px]">
+                          {/* HERO MASCOT CARD (CENTERED & WIDE EXPANDING MASCOT) */}
+                          <div className="flex-1 bg-white rounded-3xl p-4 sm:p-5 border border-slate-200/70 shadow-sm relative overflow-hidden flex flex-col items-center justify-center text-center gap-2.5 min-h-[240px]">
                             
                             {/* Ambient Radial Soft Glow */}
-                            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 rounded-full bg-orange-100/20 blur-3xl pointer-events-none -z-10" />
+                            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-72 h-72 rounded-full bg-orange-100/25 blur-3xl pointer-events-none -z-10" />
 
-                            {/* FLEXIBLE MASCOT IMAGE (Auto-scales down on short screens so text & steps are 100% visible) */}
-                            <div className="flex-1 min-h-[90px] max-h-[210px] w-full flex items-center justify-center py-1 px-1 relative overflow-hidden">
+                            {/* WIDE CENTERED MASCOT IMAGE (Expands horizontally up to card width) */}
+                            <div className="flex-1 w-full flex items-center justify-center py-1 relative min-h-[140px]">
                               <motion.img 
                                 key={mascotImg}
                                 initial={{ scale: 0.95, opacity: 0 }}
@@ -1788,12 +1788,12 @@ export default function Dashboard() {
                                 transition={{ duration: 0.3 }}
                                 src={mascotImg} 
                                 alt="Vocaburn Mascot" 
-                                className="h-full w-auto max-w-full max-h-[210px] object-contain"
+                                className="w-full h-auto max-h-[280px] sm:max-h-[320px] max-w-[360px] object-contain"
                               />
                             </div>
 
-                            {/* HIGH PRIORITY PROMINENT 2-LINE SLOGAN & DECK PILL (ALWAYS SHRINK-0 & FULLY VISIBLE) */}
-                            <div className="flex flex-col items-center gap-1.5 w-full max-w-[340px] shrink-0 pt-1 pb-0.5 z-10">
+                            {/* HIGH PRIORITY PROMINENT 2-LINE SLOGAN & DECK PILL */}
+                            <div className="flex flex-col items-center gap-1.5 w-full max-w-[340px] shrink-0 z-10">
                               <h3 className="text-base sm:text-lg font-black tracking-tight leading-snug text-center px-1">
                                 <span className="block text-slate-900 font-extrabold">{mascotLine1}</span>
                                 <span className="block bg-gradient-to-r from-orange-600 via-amber-600 to-orange-500 bg-clip-text text-transparent font-black">{mascotLine2}</span>
