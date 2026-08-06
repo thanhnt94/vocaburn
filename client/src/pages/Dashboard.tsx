@@ -1897,11 +1897,13 @@ export default function Dashboard() {
                             >
                               <Play className="w-4 h-4 fill-current shrink-0" />
                               <span className="truncate">
-                                {st.all_done
-                                  ? '✓ HOÀN THÀNH LỘ TRÌNH HÔM NAY'
-                                  : s1
-                                  ? '✍️ BẮT ĐẦU BÀI TEST MCQ (BƯỚC 2)'
-                                  : '🚀 BẮT ĐẦU HỌC BƯỚC 1 NGAY'}
+                                {st.all_done || (s1 && s2 && (rD === 0 || rDn >= rD))
+                                  ? '🎉 HOÀN THÀNH LỘ TRÌNH HÔM NAY'
+                                  : !s1
+                                  ? '🚀 BẮT ĐẦU BƯỚC 1: HỌC TỪ MỚI'
+                                  : !s2
+                                  ? '✍️ BẮT ĐẦU BƯỚC 2: TEST TRẮC NGHIỆM MCQ'
+                                  : '🔄 BẮT ĐẦU BƯỚC 3: ÔN TẬP FSRS'}
                               </span>
                             </button>
                           </div>
