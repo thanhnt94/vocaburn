@@ -1633,11 +1633,11 @@ export default function Dashboard() {
             
             <div className="flex items-center gap-2">
               <span 
-                className="flex items-center gap-1.5 px-3.5 py-1 bg-gradient-to-r from-orange-500 via-orange-600 to-amber-500 text-white rounded-full text-xs font-bold shadow-md shadow-orange-500/20"
+                className="flex items-center gap-1 px-3 py-1 bg-gradient-to-r from-orange-500 via-orange-600 to-amber-500 text-white rounded-full text-xs font-bold shadow-md shadow-orange-500/20"
                 title="Số ngày hoạt động liên tục trên VocaBurn (Mỗi ngày học ít nhất 1 bài để tính active)"
               >
                 <Zap className="w-3.5 h-3.5 fill-white text-white animate-pulse" />
-                {data?.gamify?.streak || 0}d hoạt động
+                {data?.gamify?.streak || 0}d
               </span>
 
               <Link 

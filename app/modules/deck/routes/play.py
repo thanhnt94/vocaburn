@@ -579,6 +579,8 @@ async def record_answer(request: Request, data: dict, db: AsyncSession = Depends
             
     xp_gain = base_xp + bonus_xp_gained
     gamify_res = await GamificationInterface.add_xp(db, user_id, xp_gain, source="deck_answer")
+    await GamificationInterface.update_streak(db, user_id)
+    await GamificationInterface.update_streak(db, user_id)
     has_leveled_up = gamify_res["level_up"]
     current_level = gamify_res["current_level"]
 
