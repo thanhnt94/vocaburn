@@ -145,12 +145,6 @@ async def get_dashboard_data(request: Request, only_created: bool = False, db: A
     except Exception:
         pass
 
-    # Ensure streak is updated if user has recent activity
-    try:
-        await GamificationInterface.update_streak(db, user_id_int)
-    except Exception:
-        pass
-
     # Fetch all database queries concurrently using asyncio.gather
     res_a, res_b, res_c, gamify_data, stats_summary, notifications, unread_count = await asyncio.gather(
         db.execute(query_a),

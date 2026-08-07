@@ -58,10 +58,9 @@ class GamificationInterface:
 
     @staticmethod
     async def calculate_pure_activity_streak(db: AsyncSession, user_id: int) -> int:
-        from app.modules.deck.models import UserAnswer
+        from app.modules.deck.models import UserAnswer, DeckAttempt
 
-        # 1. Fetch distinct dates from UserAnswer (joining DeckAttempt) and DeckAttempt
-        from app.modules.deck.models import DeckAttempt
+        active_dates = set()
 
         ans_stmt = (
             select(func.date(UserAnswer.created_at))
@@ -74,6 +73,7 @@ class GamificationInterface:
             .where(DeckAttempt.user_id == user_id)
             .group_by(func.date(DeckAttempt.started_at))
         )
+
         att_res = await db.execute(att_stmt)
         for row in att_res.all():
             val = row[0]
@@ -82,8 +82,8 @@ class GamificationInterface:
                 except: pass
             elif isinstance(val, datetime): active_dates.add(val.date())
             elif isinstance(val, date): active_dates.add(val)
+
         ans_res = await db.execute(ans_stmt)
-        active_dates = set()
         for row in ans_res.all():
             val = row[0]
             if isinstance(val, str):
