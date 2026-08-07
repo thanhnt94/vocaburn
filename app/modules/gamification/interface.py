@@ -1,5 +1,5 @@
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, and_
+from sqlalchemy import select, and_, func
 from .models import UserGamification, UserDailyActivity, XPTransaction
 from datetime import datetime, timedelta, date
 from typing import Optional
