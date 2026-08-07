@@ -1785,18 +1785,18 @@ export default function Dashboard() {
                           </Link>
                         </div>
 
-                        {/* CARD BODY */}
-                        <div className="flex-1 flex flex-col justify-start p-3 sm:p-4 overflow-y-auto [&::-webkit-scrollbar]:hidden gap-3.5 min-h-0">
+                        {/* CARD BODY (EXPANDED LAYOUT WITH CTA PINNED AT BOTTOM) */}
+                        <div className="flex-1 flex flex-col justify-between p-3 sm:p-4 overflow-y-auto [&::-webkit-scrollbar]:hidden gap-3 min-h-0">
                           
-                          {/* HERO MASCOT CARD (CLEAN INTEGRATED HERO CARD) */}
-                          <div className="bg-gradient-to-br from-amber-50/90 via-orange-50/40 to-amber-100/50 border border-orange-100/90 rounded-3xl p-4 sm:p-5 relative overflow-hidden shadow-xs flex flex-row items-center justify-between min-h-[175px] sm:min-h-[195px] shrink-0">
+                          {/* HERO MASCOT CARD (FLEX-1 EXPANDS VERTICALLY TO FILL SPACE) */}
+                          <div className="bg-gradient-to-br from-amber-50/90 via-orange-50/40 to-amber-100/50 border border-orange-100/90 rounded-3xl p-4 sm:p-5 relative overflow-hidden shadow-xs flex flex-row items-center justify-between flex-1 min-h-[160px]">
                             
                              {/* LEFT SIDE: STREAK BADGE, DECK TITLE PILL & SLOGAN */}
-                            <div className="flex-1 max-w-[58%] min-w-0 flex flex-col justify-center gap-3 z-10 py-2">
+                            <div className="flex-1 max-w-[58%] min-w-0 flex flex-col justify-center gap-2.5 z-10 py-1">
                               
                               {/* TOP BADGES: 🔥 X ngày streak & 📖 Tên bộ thẻ */}
                               <div className="flex flex-wrap items-center gap-2">
-                                <div className="inline-flex items-center gap-1.5 px-3.5 py-1 bg-white border border-orange-200/90 rounded-full text-xs font-extrabold text-orange-600 shadow-2xs">
+                                <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-white border border-orange-200/90 rounded-full text-xs font-extrabold text-orange-600 shadow-2xs">
                                   <span>🔥</span>
                                   <span>{deckStreak} ngày streak</span>
                                 </div>
@@ -1809,7 +1809,7 @@ export default function Dashboard() {
                               </div>
 
                               {/* SLOGAN TEXT */}
-                              <div className="flex flex-col gap-1.5 mt-0.5">
+                              <div className="flex flex-col gap-1 mt-0.5">
                                 <h2 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight leading-snug">
                                   {mascotLine1}
                                 </h2>
@@ -1821,7 +1821,7 @@ export default function Dashboard() {
                             </div>
 
                             {/* RIGHT SIDE: HUGE PROMINENT MASCOT FILLING ENTIRE HEIGHT */}
-                            <div className="w-[45%] max-w-[250px] absolute right-2 sm:right-4 bottom-0 top-0 flex items-end justify-center pointer-events-none z-10">
+                            <div className="w-[45%] max-w-[260px] absolute right-2 sm:right-4 bottom-0 top-0 flex items-end justify-center pointer-events-none z-10">
                               <motion.img 
                                 key={mascotImg}
                                 initial={{ scale: 0.9, opacity: 0 }}
@@ -1829,14 +1829,14 @@ export default function Dashboard() {
                                 transition={{ duration: 0.3 }}
                                 src={mascotImg} 
                                 alt="Vocaburn Mascot" 
-                                className="h-[108%] w-auto max-w-none object-contain object-bottom drop-shadow-2xl translate-y-1"
+                                className="h-[105%] max-h-[280px] w-auto max-w-none object-contain object-bottom drop-shadow-2xl translate-y-1"
                               />
                             </div>
 
                           </div>
 
                           {/* SECTION TITLE: Các bước hôm nay */}
-                          <div className="px-0.5 pt-1">
+                          <div className="px-0.5 pt-0.5 shrink-0">
                             <h3 className="text-sm font-bold text-slate-900">Các bước hôm nay</h3>
                           </div>
 
