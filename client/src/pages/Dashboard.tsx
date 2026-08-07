@@ -1792,19 +1792,19 @@ export default function Dashboard() {
                           <div className="bg-gradient-to-br from-amber-50/90 via-orange-50/40 to-amber-100/50 border border-orange-100/90 rounded-3xl p-4 sm:p-5 relative overflow-hidden shadow-xs flex flex-row items-center justify-between flex-1 min-h-[160px]">
                             
                              {/* LEFT SIDE: STREAK BADGE, DECK TITLE PILL & SLOGAN */}
-                            <div className="relative z-20 flex-1 max-w-[62%] min-w-0 flex flex-col justify-center gap-2.5 py-1">
+                            <div className="relative z-20 flex-1 max-w-[68%] sm:max-w-[72%] min-w-0 flex flex-col justify-center gap-2.5 py-1">
                               
                               {/* TOP BADGES: 🔥 X ngày streak & 📖 Tên bộ thẻ */}
                               <div className="flex flex-wrap items-center gap-2">
-                                <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-white border border-orange-200/90 rounded-full text-xs font-extrabold text-orange-600 shadow-2xs">
+                                <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-white border border-orange-200/90 rounded-full text-xs font-extrabold text-orange-600 shadow-2xs shrink-0">
                                   <span>🔥</span>
                                   <span>{deckStreak} ngày streak</span>
                                 </div>
 
-                                <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-white/95 border border-slate-200/90 rounded-full text-xs font-bold text-slate-800 shadow-2xs">
+                                <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-white/95 border border-slate-200/90 rounded-full text-xs font-bold text-slate-800 shadow-2xs max-w-full">
                                   <BookOpen className="w-3.5 h-3.5 text-orange-600 shrink-0" />
-                                  <span className="truncate max-w-[150px] sm:max-w-[220px] font-extrabold text-slate-900">{deck.title}</span>
-                                  {deck.level && <span className="text-slate-400 font-normal text-[11px]">({deck.level})</span>}
+                                  <span className="truncate max-w-[280px] sm:max-w-[400px] font-extrabold text-slate-900">{deck.title}</span>
+                                  {deck.level && <span className="text-slate-400 font-normal text-[11px] shrink-0">({deck.level})</span>}
                                 </div>
                               </div>
 
