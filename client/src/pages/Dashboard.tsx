@@ -1790,46 +1790,32 @@ export default function Dashboard() {
                         {/* CARD BODY */}
                         <div className="flex-1 flex flex-col justify-between p-3 sm:p-4 overflow-y-auto [&::-webkit-scrollbar]:hidden gap-3 min-h-0">
                           
-                          {/* HERO MASCOT CARD (NEW SPLIT 2-COLUMN DESIGN MATCHING MOCKUP EXACTLY) */}
-                          <div className="bg-gradient-to-br from-amber-50/70 via-orange-50/30 to-orange-100/40 border border-orange-100/80 rounded-3xl p-4 relative overflow-hidden shadow-xs flex flex-row items-center justify-between gap-3 shrink-0">
+                          {/* HERO MASCOT CARD (ENHANCED EXPANDED MASCOT DESIGN) */}
+                          <div className="bg-gradient-to-br from-amber-50/80 via-orange-50/40 to-orange-100/50 border border-orange-100/90 rounded-3xl p-4 sm:p-5 relative overflow-hidden shadow-xs flex flex-row items-center justify-between gap-4 shrink-0 min-h-[160px]">
                             
-                            {/* LEFT SIDE: STREAK BADGE, SLOGAN, EMBEDDED PROGRESS CARD */}
-                            <div className="flex-1 min-w-0 flex flex-col gap-2 z-10">
+                            {/* LEFT SIDE: STREAK BADGE & SLOGAN */}
+                            <div className="flex-1 min-w-0 flex flex-col justify-center gap-2.5 z-10 py-1">
                               
                               {/* TOP BADGE: 🔥 X ngày streak */}
-                              <div className="inline-flex items-center gap-1 px-2.5 py-0.5 bg-white/90 backdrop-blur border border-orange-200/80 rounded-full text-[11px] font-extrabold text-orange-600 shadow-2xs w-fit">
+                              <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-white/95 backdrop-blur border border-orange-200/90 rounded-full text-xs font-extrabold text-orange-600 shadow-2xs w-fit">
                                 <span>🔥</span>
                                 <span>{deckStreak} ngày streak</span>
                               </div>
 
                               {/* SLOGAN TEXT */}
-                              <div className="flex flex-col gap-0.5">
-                                <h2 className="text-base sm:text-lg font-black text-slate-900 tracking-tight leading-snug">
+                              <div className="flex flex-col gap-1">
+                                <h2 className="text-lg sm:text-xl font-black text-slate-900 tracking-tight leading-snug">
                                   {mascotLine1}
                                 </h2>
-                                <p className="text-xs text-slate-500 font-medium leading-relaxed">
+                                <p className="text-xs sm:text-sm text-slate-500 font-medium leading-relaxed max-w-[280px]">
                                   {mascotLine2}
                                 </p>
                               </div>
 
-                              {/* EMBEDDED DECK PROGRESS CARD */}
-                              <div className="bg-white rounded-2xl p-2.5 sm:p-3 border border-slate-200/80 shadow-2xs flex flex-col gap-1.5 w-full mt-0.5">
-                                <div className="flex items-center justify-between text-xs font-bold text-slate-900">
-                                  <span className="truncate">{deck.title} <span className="text-slate-400 font-normal">({deck.level || 'Cơ bản'})</span></span>
-                                </div>
-                                <div className="flex items-baseline justify-between">
-                                  <span className="text-lg sm:text-xl font-black text-orange-600">{newPct}%</span>
-                                  <span className="text-xs font-bold text-slate-500">{nL} / {nT} từ</span>
-                                </div>
-                                <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
-                                  <div className="bg-gradient-to-r from-orange-500 to-amber-500 h-full rounded-full transition-all duration-500" style={{ width: `${newPct}%` }} />
-                                </div>
-                              </div>
-
                             </div>
 
-                            {/* RIGHT SIDE: MASCOT IMAGE */}
-                            <div className="w-28 sm:w-36 h-auto shrink-0 relative flex items-center justify-center self-center">
+                            {/* RIGHT SIDE: LARGE PROMINENT MASCOT IMAGE */}
+                            <div className="w-32 sm:w-44 h-auto shrink-0 relative flex items-center justify-center self-center z-10">
                               <motion.img 
                                 key={mascotImg}
                                 initial={{ scale: 0.9, opacity: 0 }}
@@ -1837,7 +1823,7 @@ export default function Dashboard() {
                                 transition={{ duration: 0.3 }}
                                 src={mascotImg} 
                                 alt="Vocaburn Mascot" 
-                                className="w-full h-auto max-h-[160px] sm:max-h-[190px] object-contain drop-shadow-md"
+                                className="w-full h-auto max-h-[180px] sm:max-h-[220px] object-contain drop-shadow-lg"
                               />
                             </div>
 
@@ -2013,7 +1999,7 @@ export default function Dashboard() {
 
                           </div>
 
-                          {/* CTA PILL ACTION BUTTON */}
+                          {/* CTA PILL ACTION BUTTON (CENTERED & OPTICALLY BALANCED) */}
                           <div className="pt-2 flex-shrink-0">
                             <button
                               onClick={() => { 
@@ -2023,34 +2009,33 @@ export default function Dashboard() {
                               }}
                               className="w-full bg-gradient-to-r from-orange-500 via-amber-500 to-orange-600 hover:from-orange-600 hover:to-amber-600 text-white rounded-2xl p-3 sm:p-3.5 flex items-center justify-between shadow-lg shadow-orange-500/25 active:scale-[0.98] transition-all cursor-pointer group"
                             >
-                              <div className="flex items-center gap-3">
-                                <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center shrink-0">
-                                  <Play className="w-4 h-4 fill-white text-white ml-0.5" />
-                                </div>
-                                <div className="flex flex-col text-left">
-                                  <span className="text-xs sm:text-sm font-black tracking-tight leading-tight">
-                                    {!s1
-                                      ? 'Tiếp tục học • Học từ mới'
-                                      : !s2
-                                      ? 'Bắt đầu • Test trắc nghiệm MCQ'
-                                      : st.all_done
-                                      ? 'Hoàn thành lộ trình • Xem lại'
-                                      : 'Tiếp tục • Ôn tập FSRS'}
-                                  </span>
-                                  <span className="text-[10px] sm:text-[11px] text-orange-100 font-medium">
-                                    {!s1
-                                      ? `Còn ${Math.max(0, nT - nL)} từ hôm nay`
-                                      : !s2
-                                      ? `Cần làm 10 câu trắc nghiệm`
-                                      : st.all_done
-                                      ? `Đã hoàn thành 100% chỉ tiêu`
-                                      : `Còn ${Math.max(0, rD - rDn)} thẻ hôm nay`}
-                                  </span>
-                                </div>
+                              <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-white/20 flex items-center justify-center shrink-0">
+                                <Play className="w-4 h-4 sm:w-5 sm:h-5 fill-white text-white ml-0.5" />
                               </div>
-                              
-                              <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-white text-orange-600 flex items-center justify-center shrink-0 shadow-2xs group-hover:translate-x-0.5 transition-transform">
-                                <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5 font-black stroke-[3]" />
+
+                              <div className="flex-1 flex flex-col items-center justify-center text-center px-2">
+                                <span className="text-sm sm:text-base font-black tracking-tight leading-tight">
+                                  {!s1
+                                    ? 'Tiếp tục học • Học từ mới'
+                                    : !s2
+                                    ? 'Bắt đầu • Test trắc nghiệm MCQ'
+                                    : st.all_done
+                                    ? 'Hoàn thành lộ trình • Xem lại'
+                                    : 'Tiếp tục • Ôn tập FSRS'}
+                                </span>
+                                <span className="text-[11px] sm:text-xs text-orange-100 font-semibold mt-0.5">
+                                  {!s1
+                                    ? `Còn ${Math.max(0, nT - nL)} từ hôm nay`
+                                    : !s2
+                                    ? `Cần làm 10 câu trắc nghiệm`
+                                    : st.all_done
+                                    ? `Đã hoàn thành 100% chỉ tiêu`
+                                    : `Còn ${Math.max(0, rD - rDn)} thẻ hôm nay`}
+                                </span>
+                              </div>
+
+                              <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-white text-orange-600 flex items-center justify-center shrink-0 shadow-md group-hover:scale-105 transition-transform">
+                                <ChevronRight className="w-5 h-5 sm:w-6 sm:h-6 font-black stroke-[3]" />
                               </div>
                             </button>
                           </div>
