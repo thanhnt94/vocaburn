@@ -1793,13 +1793,21 @@ export default function Dashboard() {
                           {/* HERO MASCOT CARD (PROMINENT EXPANDED HERO CARD FILLING DOWN SPACE) */}
                           <div className="bg-gradient-to-br from-amber-50/90 via-orange-50/40 to-amber-100/50 border border-orange-100/90 rounded-3xl p-5 sm:p-7 relative overflow-hidden shadow-xs flex flex-row items-center justify-between min-h-[220px] sm:min-h-[260px] shrink-0">
                             
-                            {/* LEFT SIDE: STREAK BADGE & SLOGAN */}
+                             {/* LEFT SIDE: STREAK BADGE, DECK TITLE PILL & SLOGAN */}
                             <div className="flex-1 max-w-[58%] min-w-0 flex flex-col justify-center gap-3 z-10 py-2">
                               
-                              {/* TOP BADGE: 🔥 X ngày streak */}
-                              <div className="inline-flex items-center gap-1.5 px-3.5 py-1 bg-white border border-orange-200/90 rounded-full text-xs sm:text-sm font-extrabold text-orange-600 shadow-2xs w-fit">
-                                <span>🔥</span>
-                                <span>{deckStreak} ngày streak</span>
+                              {/* TOP BADGES: 🔥 X ngày streak & 📖 Tên bộ thẻ */}
+                              <div className="flex flex-wrap items-center gap-2">
+                                <div className="inline-flex items-center gap-1.5 px-3.5 py-1 bg-white border border-orange-200/90 rounded-full text-xs font-extrabold text-orange-600 shadow-2xs">
+                                  <span>🔥</span>
+                                  <span>{deckStreak} ngày streak</span>
+                                </div>
+
+                                <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-white/95 border border-slate-200/90 rounded-full text-xs font-bold text-slate-800 shadow-2xs">
+                                  <BookOpen className="w-3.5 h-3.5 text-orange-600 shrink-0" />
+                                  <span className="truncate max-w-[150px] sm:max-w-[220px] font-extrabold text-slate-900">{deck.title}</span>
+                                  {deck.level && <span className="text-slate-400 font-normal text-[11px]">({deck.level})</span>}
+                                </div>
                               </div>
 
                               {/* SLOGAN TEXT */}
