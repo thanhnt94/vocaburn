@@ -57,12 +57,84 @@ class GamificationInterface:
         return {"level_down": False, "current_level": 1, "current_xp": 0}
 
     @staticmethod
-    async def sync_and_get_streak(db: AsyncSession, user_id: int) -> int:
-        from app.modules.deck.models import UserAnswer, DeckGoal
+    async def calculate_pure_activity_streak(db: AsyncSession, user_id: int) -> int:
+        from app.modules.deck.models import UserAnswer
 
-        activity_date = datetime.utcnow().date()
-        
-        # 1. Ensure today's UserDailyActivity exists if user has any activity
+        # 1. Fetch distinct dates from UserAnswer (joining DeckAttempt) and DeckAttempt
+        from app.modules.deck.models import DeckAttempt
+
+        ans_stmt = (
+            select(func.date(UserAnswer.created_at))
+            .join(DeckAttempt, UserAnswer.attempt_id == DeckAttempt.id)
+            .where(DeckAttempt.user_id == user_id)
+            .group_by(func.date(UserAnswer.created_at))
+        )
+        att_stmt = (
+            select(func.date(DeckAttempt.started_at))
+            .where(DeckAttempt.user_id == user_id)
+            .group_by(func.date(DeckAttempt.started_at))
+        )
+        att_res = await db.execute(att_stmt)
+        for row in att_res.all():
+            val = row[0]
+            if isinstance(val, str):
+                try: active_dates.add(date.fromisoformat(val))
+                except: pass
+            elif isinstance(val, datetime): active_dates.add(val.date())
+            elif isinstance(val, date): active_dates.add(val)
+        ans_res = await db.execute(ans_stmt)
+        active_dates = set()
+        for row in ans_res.all():
+            val = row[0]
+            if isinstance(val, str):
+                try: active_dates.add(date.fromisoformat(val))
+                except: pass
+            elif isinstance(val, datetime): active_dates.add(val.date())
+            elif isinstance(val, date): active_dates.add(val)
+
+        # 2. Fetch distinct dates from UserDailyActivity
+        act_stmt = select(UserDailyActivity.activity_date).where(UserDailyActivity.user_id == user_id)
+        act_res = await db.execute(act_stmt)
+        for row in act_res.all():
+            if row[0]: active_dates.add(row[0])
+
+        if not active_dates:
+            return 0
+
+        sorted_dates = sorted(list(active_dates), reverse=True)
+
+        today_date = datetime.utcnow().date()
+        yesterday_date = today_date - timedelta(days=1)
+
+        # If user has no activity today or yesterday, streak is broken -> 0
+        if sorted_dates[0] != today_date and sorted_dates[0] != yesterday_date:
+            return 0
+
+        # Count back-to-back consecutive days
+        streak = 1
+        current_date = sorted_dates[0]
+        for d in sorted_dates[1:]:
+            diff = (current_date - d).days
+            if diff == 1:
+                streak += 1
+                current_date = d
+            elif diff == 0:
+                continue
+            else:
+                break
+
+        return streak
+
+    @staticmethod
+    async def update_streak(db: AsyncSession, user_id: int, local_date_str: Optional[str] = None):
+        activity_date = None
+        if local_date_str:
+            try: activity_date = date.fromisoformat(local_date_str)
+            except ValueError: pass
+        if not activity_date:
+            activity_date = datetime.utcnow().date()
+
+        # Record today's activity if not present
         act_res = await db.execute(
             select(UserDailyActivity).where(
                 and_(
@@ -79,78 +151,28 @@ class GamificationInterface:
             except Exception:
                 pass
 
-        # 2. Collect all active dates from UserAnswer and UserDailyActivity
-        ans_stmt = (
-            select(func.date(UserAnswer.created_at))
-            .where(UserAnswer.user_id == user_id)
-            .group_by(func.date(UserAnswer.created_at))
-            .order_by(func.date(UserAnswer.created_at).desc())
-        )
-        ans_res = await db.execute(ans_stmt)
-        active_dates = set()
-        for row in ans_res.all():
-            val = row[0]
-            if isinstance(val, str):
-                try: active_dates.add(date.fromisoformat(val))
-                except: pass
-            elif isinstance(val, datetime): active_dates.add(val.date())
-            elif isinstance(val, date): active_dates.add(val)
-
-        act_stmt = select(UserDailyActivity.activity_date).where(UserDailyActivity.user_id == user_id)
-        act_res2 = await db.execute(act_stmt)
-        for row in act_res2.all():
-            if row[0]: active_dates.add(row[0])
-
-        sorted_dates = sorted(list(active_dates), reverse=True)
-
-        # 3. Calculate consecutive active streak
-        streak = 0
-        if sorted_dates:
-            today_date = datetime.utcnow().date()
-            yesterday_date = today_date - timedelta(days=1)
-            if sorted_dates[0] == today_date or sorted_dates[0] == yesterday_date:
-                streak = 1
-                current_date = sorted_dates[0]
-                for d in sorted_dates[1:]:
-                    if (current_date - d).days == 1:
-                        streak += 1
-                        current_date = d
-                    elif (current_date - d).days == 0:
-                        continue
-                    else:
-                        break
-
-        # 4. Check DeckGoal streak max
-        goal_res = await db.execute(select(func.max(DeckGoal.streak_count)).where(DeckGoal.user_id == user_id))
-        max_goal_streak = goal_res.scalar() or 0
-
-        final_streak = max(streak, max_goal_streak)
-
-        # Update UserGamification
         res = await db.execute(select(UserGamification).where(UserGamification.user_id == user_id))
         user_stats = res.scalar_one_or_none()
-        if user_stats:
-            if user_stats.streak_count != final_streak:
-                user_stats.streak_count = final_streak
-            user_stats.last_activity = datetime.utcnow()
-        else:
-            user_stats = UserGamification(user_id=user_id, streak_count=final_streak, last_activity=datetime.utcnow())
+        if not user_stats:
+            user_stats = UserGamification(user_id=user_id, streak_count=0, last_activity=datetime.utcnow())
             db.add(user_stats)
-        
+            await db.flush()
+
+        # Recalculate exact consecutive active days streak from DB history
+        calculated_streak = await GamificationInterface.calculate_pure_activity_streak(db, user_id)
+        user_stats.streak_count = calculated_streak
+        user_stats.last_activity = datetime.utcnow()
+
         try:
             await db.commit()
         except Exception:
             await db.rollback()
 
-        return final_streak
-
-    @staticmethod
-    async def update_streak(db: AsyncSession, user_id: int, local_date_str: Optional[str] = None):
-        return await GamificationInterface.sync_and_get_streak(db, user_id)
+        return user_stats.streak_count
 
     @staticmethod
     async def get_user_stats(db: AsyncSession, user_id: int):
-        streak_val = await GamificationInterface.sync_and_get_streak(db, user_id)
+        streak_val = await GamificationInterface.update_streak(db, user_id)
         result = await db.execute(select(UserGamification).where(UserGamification.user_id == user_id))
         stats = result.scalar_one_or_none()
         if not stats:
