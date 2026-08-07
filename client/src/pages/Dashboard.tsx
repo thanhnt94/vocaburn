@@ -1827,7 +1827,7 @@ export default function Dashboard() {
                                 initial={{ scale: 0.9, opacity: 0 }}
                                 animate={{ scale: 1, opacity: 1 }}
                                 transition={{ duration: 0.3 }}
-                                src={mascotImg} 
+                                src={`${mascotImg}?v=superhero_cape_v2`} 
                                 alt="Vocaburn Mascot" 
                                 className="h-[105%] max-h-[280px] w-auto max-w-none object-contain object-bottom drop-shadow-2xl translate-y-1"
                               />
