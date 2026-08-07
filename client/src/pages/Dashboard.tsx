@@ -1747,7 +1747,8 @@ export default function Dashboard() {
                     const mcqDone = s2 ? 10 : 0;
                     const mcqPct = s2 ? 100 : 0;
 
-                    // Mascot selection with 2-line Slogan
+                    // Mascot selection with 2-line Slogan & deck streak
+                    const deckStreak = st.streak || 0;
                     let mascotImg = '/mascot/sleepy.png';
                     let mascotLine1 = 'Hôm nay bạn chưa học từ nào,';
                     let mascotLine2 = 'bắt đầu thôi! 🚀';
@@ -1756,10 +1757,14 @@ export default function Dashboard() {
                       mascotImg = '/mascot/celebrating.png';
                       mascotLine1 = 'Xuất sắc!';
                       mascotLine2 = 'Bạn đã hoàn thành lộ trình hôm nay! 🎉';
-                    } else if (pct > 0 || nL > 0 || rDn > 0) {
+                    } else if (pct >= 30 || s1) {
                       mascotImg = '/mascot/excited.png';
                       mascotLine1 = 'Đang bùng cháy!';
                       mascotLine2 = 'Tiếp tục giữ vững tiến độ nhé 🔥';
+                    } else if (pct > 0 || nL > 0 || rDn > 0) {
+                      mascotImg = '/mascot/excited.png';
+                      mascotLine1 = 'Khởi đầu tốt lắm!';
+                      mascotLine2 = 'Cố gắng hoàn thành các bước hôm nay nhé 💪';
                     }
 
                     return (
@@ -1779,6 +1784,15 @@ export default function Dashboard() {
                           {/* HERO MASCOT CARD (CENTERED & WIDE EXPANDING MASCOT) */}
                           <div className="flex-1 bg-white rounded-3xl p-4 sm:p-5 border border-slate-200/70 shadow-sm relative overflow-hidden flex flex-col items-center justify-center text-center gap-2.5 min-h-[240px]">
                             
+                            {/* TOP-LEFT: STREAK BỘ THẺ BADGE */}
+                            <div 
+                              className="absolute top-3 left-3 flex items-center gap-1.5 px-2.5 py-1 bg-gradient-to-r from-orange-50 to-amber-50 border border-orange-200/80 rounded-full text-[10px] font-extrabold text-orange-700 shadow-2xs backdrop-blur-md z-10"
+                              title="Streak bộ thẻ: Số ngày hoàn thành 100% nhiệm vụ bộ thẻ này"
+                            >
+                              <span className="text-[11px]">🎯</span>
+                              <span>Streak bộ thẻ: <strong className="text-orange-950 font-black">{deckStreak}d</strong></span>
+                            </div>
+
                             {/* Ambient Radial Soft Glow */}
                             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-72 h-72 rounded-full bg-orange-100/25 blur-3xl pointer-events-none -z-10" />
 
