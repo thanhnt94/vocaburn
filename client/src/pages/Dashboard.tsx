@@ -1770,28 +1770,26 @@ export default function Dashboard() {
                     return (
                       <div key={deck.deck_id} className="h-full w-full snap-center flex-shrink-0 flex flex-col">
                         
-                        {/* DECK SELECTOR HEADER (If multiple decks) */}
-                        {totalDecks > 1 && (
-                          <div className="px-4 py-1.5 bg-white flex items-center justify-between flex-shrink-0 text-xs font-semibold text-slate-500">
-                            <div className="flex items-center gap-1.5">
-                              <span className="text-slate-600 font-bold">Roadmap</span>
-                              <span className="text-slate-400 font-medium">{deckIdx + 1} / {totalDecks}</span>
-                            </div>
-                            <Link 
-                              to={`/flashcard/${deck.deck_id}/play?mode=roadmap`}
-                              className="text-xs font-bold text-orange-600 hover:text-orange-700 flex items-center gap-0.5 transition-colors cursor-pointer"
-                            >
-                              <span>Xem chi tiết lộ trình</span>
-                              <ChevronRight className="w-3.5 h-3.5" />
-                            </Link>
+                        {/* DECK SUBHEADER BAR */}
+                        <div className="px-4 py-2 bg-white flex items-center justify-between flex-shrink-0 text-xs font-semibold text-slate-500 border-b border-slate-100">
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-slate-600 font-bold">Roadmap</span>
+                            <span className="text-slate-400 font-medium">{deckIdx + 1} / {totalDecks}</span>
                           </div>
-                        )}
+                          <Link 
+                            to={`/flashcard/${deck.deck_id}/roadmap`}
+                            className="text-xs font-bold text-orange-600 hover:text-orange-700 flex items-center gap-0.5 transition-colors cursor-pointer"
+                          >
+                            <span>Xem chi tiết lộ trình</span>
+                            <ChevronRight className="w-3.5 h-3.5" />
+                          </Link>
+                        </div>
 
                         {/* CARD BODY */}
-                        <div className="flex-1 flex flex-col justify-between p-3 sm:p-4 overflow-y-auto [&::-webkit-scrollbar]:hidden gap-3 min-h-0">
+                        <div className="flex-1 flex flex-col justify-start p-3 sm:p-4 overflow-y-auto [&::-webkit-scrollbar]:hidden gap-3.5 min-h-0">
                           
-                          {/* HERO MASCOT CARD (PROMINENT EXPANDED HERO CARD FILLING DOWN SPACE) */}
-                          <div className="bg-gradient-to-br from-amber-50/90 via-orange-50/40 to-amber-100/50 border border-orange-100/90 rounded-3xl p-5 sm:p-7 relative overflow-hidden shadow-xs flex flex-row items-center justify-between min-h-[220px] sm:min-h-[260px] shrink-0">
+                          {/* HERO MASCOT CARD (CLEAN INTEGRATED HERO CARD) */}
+                          <div className="bg-gradient-to-br from-amber-50/90 via-orange-50/40 to-amber-100/50 border border-orange-100/90 rounded-3xl p-4 sm:p-5 relative overflow-hidden shadow-xs flex flex-row items-center justify-between min-h-[175px] sm:min-h-[195px] shrink-0">
                             
                              {/* LEFT SIDE: STREAK BADGE, DECK TITLE PILL & SLOGAN */}
                             <div className="flex-1 max-w-[58%] min-w-0 flex flex-col justify-center gap-3 z-10 py-2">
