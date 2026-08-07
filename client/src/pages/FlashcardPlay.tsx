@@ -3639,61 +3639,74 @@ export default function FlashcardPlay() {
           </div>
         </div>
       
-        {/* Live Dashboard HUD - Clean Light Ticker Style */}
+        {/* Live Dashboard HUD - Dynamic Realtime Step Progress */}
         <div className="bg-slate-100/50 border border-slate-200/40 rounded-xl p-0.5 flex items-center gap-0.5 md:gap-1.5 shadow-[inset_0_1px_2px_rgba(0,0,0,0.02)] flex-shrink-0 mr-0.5 md:mr-0">
-          {false ? (
-            null
-          ) : (
-            <>
-              {/* Item 1: Daily Goal progress */}
-              <div className="flex items-center bg-white/90 border border-slate-200/30 rounded-lg p-0.5 pr-1 md:pr-1.5 shadow-sm min-w-[52px] xs:min-w-[56px] md:min-w-[66px]" title="Mục tiêu ôn tập hàng ngày">
-                <div className="w-4 h-4 md:w-5 md:h-5 flex items-center justify-center bg-indigo-50 text-indigo-600 rounded mr-0.5 md:mr-1 flex-shrink-0">
-                  <Target className="w-2.5 h-2.5 md:w-3 md:h-3" />
+          {(() => {
+            let label = 'Tiến độ';
+            let progressText = '--/--';
+            let Icon = Target;
+            let iconColorClass = 'bg-orange-50 text-orange-600';
+            
+            if (activeMode === 'roadmap' && roadmapStatus) {
+              const currentStep = roadmapStatus?.pipeline?.[roadmapStatus?.current_step_index || 0];
+              if (currentStep) {
+                if (currentStep.type === 'new_cards') {
+                  label = 'Từ Mới';
+                  Icon = Sparkles;
+                  iconColorClass = 'bg-orange-50 text-orange-600';
+                  const total = session?.questions?.length || currentStep.daily_count || 20;
+                  const curr = Math.min(total, currentIndex + 1);
+                  progressText = `${curr}/${total}`;
+                } else if (currentStep.type === 'mcq' || (currentStep.type as string) === 'mcq_quiz') {
+                  label = 'MCQ';
+                  Icon = Target;
+                  iconColorClass = 'bg-amber-50 text-amber-600';
+                  const total = session?.questions?.length || currentStep.daily_count || 10;
+                  const curr = Math.min(total, currentIndex + 1);
+                  progressText = `${curr}/${total}`;
+                } else if (currentStep.type === 'fsrs_review') {
+                  label = 'Ôn Tập';
+                  Icon = Brain;
+                  iconColorClass = 'bg-indigo-50 text-indigo-600';
+                  const total = session?.questions?.length || currentStep.progress?.due_count || 0;
+                  const curr = Math.min(total, currentIndex + 1);
+                  progressText = total > 0 ? `${curr}/${total}` : '0/0';
+                }
+              }
+            } else {
+              const total = session?.questions?.length || 0;
+              const curr = Math.min(total, currentIndex + 1);
+              label = activeMode === 'fsrs' ? 'Ôn Tập' : 'Bài Học';
+              Icon = activeMode === 'fsrs' ? Brain : BookOpen;
+              iconColorClass = activeMode === 'fsrs' ? 'bg-indigo-50 text-indigo-600' : 'bg-orange-50 text-orange-600';
+              progressText = total > 0 ? `${curr}/${total}` : '--';
+            }
+
+            return (
+              <div className="flex items-center bg-white/90 border border-slate-200/30 rounded-lg p-0.5 pr-1 md:pr-1.5 shadow-sm min-w-[56px] xs:min-w-[62px] md:min-w-[72px]" title={`Tiến độ hiện tại: ${label}`}>
+                <div className={`w-4 h-4 md:w-5 md:h-5 flex items-center justify-center rounded mr-0.5 md:mr-1 flex-shrink-0 ${iconColorClass}`}>
+                  <Icon className="w-2.5 h-2.5 md:w-3 md:h-3" />
                 </div>
                 <div className="flex flex-col min-w-0">
-                  <span className="text-[5.5px] md:text-[6.5px] text-slate-400 font-extrabold uppercase tracking-wider leading-none">Goal</span>
+                  <span className="text-[5.5px] md:text-[6.5px] text-slate-400 font-extrabold uppercase tracking-wider leading-none">{label}</span>
                   <div className="h-2.5 md:h-3 overflow-hidden relative min-w-[20px]">
                     <AnimatePresence mode="popLayout" initial={false}>
                       <motion.span
-                        key={activeGoal ? `${activeGoal.done_today}/${activeGoal.daily_target}` : 'none'}
+                        key={progressText}
                         initial={{ y: 8, opacity: 0 }}
                         animate={{ y: 0, opacity: 1 }}
                         exit={{ y: -8, opacity: 0 }}
                         transition={{ type: "spring", stiffness: 350, damping: 18 }}
                         className="text-[7.5px] md:text-[8.5px] font-black text-slate-700 leading-none block truncate"
                       >
-                        {activeGoal ? `${activeGoal.done_today}/${activeGoal.daily_target}` : '--'}
+                        {progressText}
                       </motion.span>
                     </AnimatePresence>
                   </div>
                 </div>
               </div>
-          
-              {/* Item 2: Cards left to study/review */}
-              <div className="flex items-center bg-white/90 border border-slate-200/30 rounded-lg p-0.5 pr-1 md:pr-1.5 shadow-sm min-w-[52px] xs:min-w-[56px] md:min-w-[66px]" title="Số thẻ ôn tập/học còn lại">
-                <div className="w-4 h-4 md:w-5 md:h-5 flex items-center justify-center bg-rose-550/10 bg-rose-50 text-rose-600 rounded mr-0.5 md:mr-1 flex-shrink-0">
-                  <Brain className="w-2.5 h-2.5 md:w-3 md:h-3" />
-                </div>
-                <div className="flex flex-col min-w-0">
-                  <span className="text-[5.5px] md:text-[6.5px] text-slate-400 font-extrabold uppercase tracking-wider leading-none">Left</span>
-                  <div className="h-2.5 md:h-3 overflow-hidden relative min-w-[15px]">
-                    <AnimatePresence mode="popLayout" initial={false}>
-                      <motion.span
-                        key={activeMode === 'fsrs' && dueCardsCount > 0 ? dueCardsCount : (session?.questions ? Math.max(0, session.questions.length - currentIndex) : 0)}
-                        initial={{ y: 8, opacity: 0 }}
-                        animate={{ y: 0, opacity: 1 }}
-                        exit={{ y: -8, opacity: 0 }}
-                        transition={{ type: "spring", stiffness: 350, damping: 18 }}
-                        className="text-[7.5px] md:text-[8.5px] font-black text-slate-700 leading-none block truncate"
-                      >
-                        {activeMode === 'fsrs' && dueCardsCount > 0 ? dueCardsCount : (session?.questions ? Math.max(0, session.questions.length - currentIndex) : 0)}
-                      </motion.span>
-                    </AnimatePresence>
-                  </div>
-                </div>
-              </div>
-            </>
-          )}
+            );
+          })()}
       
           {/* Item 3: Timer */}
           <div 

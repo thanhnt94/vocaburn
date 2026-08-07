@@ -114,7 +114,7 @@ export default function Profile() {
           <div className="grid grid-cols-2 gap-4">
             <div className="p-4 bg-indigo-50/30 rounded-2xl border border-indigo-50">
               <p className="text-xl font-black text-indigo-600">{gamify.streak}</p>
-              <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Day Streak</p>
+              <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Ngày Hoạt Động</p>
             </div>
             <div className="p-4 bg-purple-50/30 rounded-2xl border border-purple-50">
               <p className="text-xl font-black text-purple-600">{gamify.xp}</p>

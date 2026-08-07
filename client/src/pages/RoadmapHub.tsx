@@ -199,7 +199,7 @@ export default function RoadmapHub() {
                       </div>
 
                       <div className="flex items-center gap-4 mt-3 text-[10px] font-bold text-slate-400 flex-wrap">
-                        <span>🔥 Streak: <strong className="text-orange-600">{s.streak || 0}d</strong></span>
+                        <span title="Chuỗi ngày hoàn thành 100% nhiệm vụ bộ thẻ">🎯 Streak bộ thẻ: <strong className="text-orange-600">{s.streak || 0}d</strong></span>
                         <span>🧠 Retention: <strong className="text-indigo-600">{s.retention_rate || 0}%</strong></span>
                         <span>📅 Dự kiến xong: <strong className="text-slate-600">{s.estimated_completion_date || '—'}</strong></span>
                         <span>📚 Còn lại: <strong className="text-slate-600">{s.unlearned_cards || 0} thẻ</strong></span>
