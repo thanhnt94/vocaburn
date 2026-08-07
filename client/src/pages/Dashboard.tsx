@@ -1790,24 +1790,24 @@ export default function Dashboard() {
                         {/* CARD BODY */}
                         <div className="flex-1 flex flex-col justify-between p-3 sm:p-4 overflow-y-auto [&::-webkit-scrollbar]:hidden gap-3 min-h-0">
                           
-                          {/* HERO MASCOT CARD (PROMINENT OVERFLOWING HERO MASCOT DESIGN) */}
-                          <div className="bg-gradient-to-br from-amber-50/90 via-orange-50/40 to-amber-100/50 border border-orange-100 rounded-3xl p-4 sm:p-5 relative overflow-hidden shadow-xs flex flex-row items-center justify-between min-h-[170px] sm:min-h-[190px] shrink-0">
+                          {/* HERO MASCOT CARD (PROMINENT EXPANDED HERO CARD FILLING DOWN SPACE) */}
+                          <div className="bg-gradient-to-br from-amber-50/90 via-orange-50/40 to-amber-100/50 border border-orange-100/90 rounded-3xl p-5 sm:p-7 relative overflow-hidden shadow-xs flex flex-row items-center justify-between min-h-[220px] sm:min-h-[260px] shrink-0">
                             
                             {/* LEFT SIDE: STREAK BADGE & SLOGAN */}
-                            <div className="flex-1 max-w-[58%] min-w-0 flex flex-col justify-center gap-2 z-10 py-1">
+                            <div className="flex-1 max-w-[58%] min-w-0 flex flex-col justify-center gap-3 z-10 py-2">
                               
                               {/* TOP BADGE: 🔥 X ngày streak */}
-                              <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-white border border-orange-200/90 rounded-full text-xs font-extrabold text-orange-600 shadow-2xs w-fit">
+                              <div className="inline-flex items-center gap-1.5 px-3.5 py-1 bg-white border border-orange-200/90 rounded-full text-xs sm:text-sm font-extrabold text-orange-600 shadow-2xs w-fit">
                                 <span>🔥</span>
                                 <span>{deckStreak} ngày streak</span>
                               </div>
 
                               {/* SLOGAN TEXT */}
-                              <div className="flex flex-col gap-1 mt-0.5">
-                                <h2 className="text-lg sm:text-xl font-black text-slate-900 tracking-tight leading-snug">
+                              <div className="flex flex-col gap-1.5 mt-0.5">
+                                <h2 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight leading-snug">
                                   {mascotLine1}
                                 </h2>
-                                <p className="text-xs sm:text-sm text-slate-500 font-medium leading-relaxed">
+                                <p className="text-xs sm:text-base text-slate-500 font-medium leading-relaxed">
                                   {mascotLine2}
                                 </p>
                               </div>
@@ -1815,7 +1815,7 @@ export default function Dashboard() {
                             </div>
 
                             {/* RIGHT SIDE: HUGE PROMINENT MASCOT FILLING ENTIRE HEIGHT */}
-                            <div className="w-[42%] max-w-[210px] absolute right-2 bottom-0 top-0 flex items-end justify-center pointer-events-none z-10">
+                            <div className="w-[45%] max-w-[250px] absolute right-2 sm:right-4 bottom-0 top-0 flex items-end justify-center pointer-events-none z-10">
                               <motion.img 
                                 key={mascotImg}
                                 initial={{ scale: 0.9, opacity: 0 }}
@@ -1823,7 +1823,7 @@ export default function Dashboard() {
                                 transition={{ duration: 0.3 }}
                                 src={mascotImg} 
                                 alt="Vocaburn Mascot" 
-                                className="h-[110%] w-auto max-w-none object-contain object-bottom drop-shadow-xl translate-y-1"
+                                className="h-[108%] w-auto max-w-none object-contain object-bottom drop-shadow-2xl translate-y-1"
                               />
                             </div>
 
