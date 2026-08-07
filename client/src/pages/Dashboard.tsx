@@ -1773,7 +1773,7 @@ export default function Dashboard() {
                         {/* DECK SELECTOR HEADER (If multiple decks) */}
                         {totalDecks > 1 && (
                           <div className="px-4 py-2 border-b border-slate-100 bg-white flex items-center justify-between flex-shrink-0 text-xs font-medium text-slate-500">
-                            <span>Bộ thẻ {deckIdx + 1}/{totalDecks}: <strong className="text-slate-800 font-bold">{deck.title}</strong></span>
+                            <span>Roadmap {deckIdx + 1}/{totalDecks}: <strong className="text-slate-800 font-bold">{deck.title}</strong></span>
                             <span className="text-[10px] text-orange-600 font-bold">Vuốt dọc để đổi ↕</span>
                           </div>
                         )}
@@ -1784,13 +1784,13 @@ export default function Dashboard() {
                           {/* HERO MASCOT CARD (CENTERED & WIDE EXPANDING MASCOT) */}
                           <div className="flex-1 bg-white rounded-3xl p-4 sm:p-5 border border-slate-200/70 shadow-sm relative overflow-hidden flex flex-col items-center justify-center text-center gap-2.5 min-h-[240px]">
                             
-                            {/* TOP-LEFT: STREAK BỘ THẺ BADGE */}
+                            {/* TOP-LEFT: STREAK BỘ THẺ BADGE (ICON & DAYS ONLY) */}
                             <div 
-                              className="absolute top-3 left-3 flex items-center gap-1.5 px-2.5 py-1 bg-gradient-to-r from-orange-50 to-amber-50 border border-orange-200/80 rounded-full text-[10px] font-extrabold text-orange-700 shadow-2xs backdrop-blur-md z-10"
+                              className="absolute top-3.5 left-3.5 flex items-center gap-1 px-2.5 py-1 bg-gradient-to-r from-orange-500 via-amber-500 to-orange-600 text-white rounded-full text-xs font-black shadow-sm shadow-orange-500/25 border border-orange-400/40 z-10"
                               title="Streak bộ thẻ: Số ngày hoàn thành 100% nhiệm vụ bộ thẻ này"
                             >
-                              <span className="text-[11px]">🎯</span>
-                              <span>Streak bộ thẻ: <strong className="text-orange-950 font-black">{deckStreak}d</strong></span>
+                              <span className="text-xs">🎯</span>
+                              <span className="font-black tracking-tight">{deckStreak}d</span>
                             </div>
 
                             {/* Ambient Radial Soft Glow */}
