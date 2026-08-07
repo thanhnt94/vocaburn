@@ -57,26 +57,12 @@ class GamificationInterface:
         return {"level_down": False, "current_level": 1, "current_xp": 0}
 
     @staticmethod
-    async def update_streak(db: AsyncSession, user_id: int, local_date_str: Optional[str] = None):
-        # 1. Parse local_date_str or fall back to UTC date
-        activity_date = None
-        if local_date_str:
-            try:
-                activity_date = date.fromisoformat(local_date_str)
-            except ValueError:
-                pass
-        if not activity_date:
-            activity_date = datetime.utcnow().date()
-            
-        # 2. Get UserGamification stats
-        result = await db.execute(select(UserGamification).where(UserGamification.user_id == user_id))
-        user_stats = result.scalar_one_or_none()
-        if not user_stats:
-            user_stats = UserGamification(user_id=user_id, streak_count=0)
-            db.add(user_stats)
-            await db.flush()
+    async def sync_and_get_streak(db: AsyncSession, user_id: int) -> int:
+        from app.modules.deck.models import UserAnswer, DeckGoal
 
-        # 3. Check if UserDailyActivity for today already exists
+        activity_date = datetime.utcnow().date()
+        
+        # 1. Ensure today's UserDailyActivity exists if user has any activity
         act_res = await db.execute(
             select(UserDailyActivity).where(
                 and_(
@@ -85,48 +71,94 @@ class GamificationInterface:
                 )
             )
         )
-        existing_act = act_res.scalar_one_or_none()
-        
-        if existing_act:
-            # Already active today, streak is maintained. Just return it.
-            return user_stats.streak_count
+        if not act_res.scalar_one_or_none():
+            new_act = UserDailyActivity(user_id=user_id, activity_date=activity_date)
+            db.add(new_act)
+            try:
+                await db.flush()
+            except Exception:
+                pass
 
-        # 4. If not active today, record new daily activity
-        new_act = UserDailyActivity(user_id=user_id, activity_date=activity_date)
-        db.add(new_act)
-
-        # 5. Check if yesterday had an activity to continue the streak
-        yesterday = activity_date - timedelta(days=1)
-        yest_res = await db.execute(
-            select(UserDailyActivity).where(
-                and_(
-                    UserDailyActivity.user_id == user_id,
-                    UserDailyActivity.activity_date == yesterday
-                )
-            )
+        # 2. Collect all active dates from UserAnswer and UserDailyActivity
+        ans_stmt = (
+            select(func.date(UserAnswer.created_at))
+            .where(UserAnswer.user_id == user_id)
+            .group_by(func.date(UserAnswer.created_at))
+            .order_by(func.date(UserAnswer.created_at).desc())
         )
-        existing_yest = yest_res.scalar_one_or_none()
+        ans_res = await db.execute(ans_stmt)
+        active_dates = set()
+        for row in ans_res.all():
+            val = row[0]
+            if isinstance(val, str):
+                try: active_dates.add(date.fromisoformat(val))
+                except: pass
+            elif isinstance(val, datetime): active_dates.add(val.date())
+            elif isinstance(val, date): active_dates.add(val)
 
-        if existing_yest:
-            user_stats.streak_count += 1
+        act_stmt = select(UserDailyActivity.activity_date).where(UserDailyActivity.user_id == user_id)
+        act_res2 = await db.execute(act_stmt)
+        for row in act_res2.all():
+            if row[0]: active_dates.add(row[0])
+
+        sorted_dates = sorted(list(active_dates), reverse=True)
+
+        # 3. Calculate consecutive active streak
+        streak = 0
+        if sorted_dates:
+            today_date = datetime.utcnow().date()
+            yesterday_date = today_date - timedelta(days=1)
+            if sorted_dates[0] == today_date or sorted_dates[0] == yesterday_date:
+                streak = 1
+                current_date = sorted_dates[0]
+                for d in sorted_dates[1:]:
+                    if (current_date - d).days == 1:
+                        streak += 1
+                        current_date = d
+                    elif (current_date - d).days == 0:
+                        continue
+                    else:
+                        break
+
+        # 4. Check DeckGoal streak max
+        goal_res = await db.execute(select(func.max(DeckGoal.streak_count)).where(DeckGoal.user_id == user_id))
+        max_goal_streak = goal_res.scalar() or 0
+
+        final_streak = max(streak, max_goal_streak)
+
+        # Update UserGamification
+        res = await db.execute(select(UserGamification).where(UserGamification.user_id == user_id))
+        user_stats = res.scalar_one_or_none()
+        if user_stats:
+            if user_stats.streak_count != final_streak:
+                user_stats.streak_count = final_streak
+            user_stats.last_activity = datetime.utcnow()
         else:
-            # If yesterday was empty, we check if there's a gap. Streak resets to 1.
-            user_stats.streak_count = 1
+            user_stats = UserGamification(user_id=user_id, streak_count=final_streak, last_activity=datetime.utcnow())
+            db.add(user_stats)
+        
+        try:
+            await db.commit()
+        except Exception:
+            await db.rollback()
 
-        user_stats.last_activity = datetime.utcnow()
-        await db.commit()
-        return user_stats.streak_count
+        return final_streak
+
+    @staticmethod
+    async def update_streak(db: AsyncSession, user_id: int, local_date_str: Optional[str] = None):
+        return await GamificationInterface.sync_and_get_streak(db, user_id)
 
     @staticmethod
     async def get_user_stats(db: AsyncSession, user_id: int):
+        streak_val = await GamificationInterface.sync_and_get_streak(db, user_id)
         result = await db.execute(select(UserGamification).where(UserGamification.user_id == user_id))
         stats = result.scalar_one_or_none()
         if not stats:
-            return {"xp": 0, "level": 1, "streak": 0, "badges": []}
+            return {"xp": 0, "level": 1, "streak": streak_val, "badges": []}
         return {
             "xp": stats.xp,
             "level": stats.level,
-            "streak": stats.streak_count,
+            "streak": streak_val,
             "badges": stats.badges
         }
 
