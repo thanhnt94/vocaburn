@@ -1792,7 +1792,7 @@ export default function Dashboard() {
                           <div className="bg-gradient-to-br from-amber-50/90 via-orange-50/40 to-amber-100/50 border border-orange-100/90 rounded-3xl p-4 sm:p-5 relative overflow-hidden shadow-xs flex flex-row items-center justify-between flex-1 min-h-[160px]">
                             
                              {/* LEFT SIDE: STREAK BADGE, DECK TITLE PILL & SLOGAN */}
-                            <div className="flex-1 max-w-[58%] min-w-0 flex flex-col justify-center gap-2.5 z-10 py-1">
+                            <div className="relative z-20 flex-1 max-w-[62%] min-w-0 flex flex-col justify-center gap-2.5 py-1">
                               
                               {/* TOP BADGES: 🔥 X ngày streak & 📖 Tên bộ thẻ */}
                               <div className="flex flex-wrap items-center gap-2">
