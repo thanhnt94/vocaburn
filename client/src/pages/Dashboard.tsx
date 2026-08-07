@@ -1790,32 +1790,32 @@ export default function Dashboard() {
                         {/* CARD BODY */}
                         <div className="flex-1 flex flex-col justify-between p-3 sm:p-4 overflow-y-auto [&::-webkit-scrollbar]:hidden gap-3 min-h-0">
                           
-                          {/* HERO MASCOT CARD (ENHANCED EXPANDED MASCOT DESIGN) */}
-                          <div className="bg-gradient-to-br from-amber-50/80 via-orange-50/40 to-orange-100/50 border border-orange-100/90 rounded-3xl p-4 sm:p-5 relative overflow-hidden shadow-xs flex flex-row items-center justify-between gap-4 shrink-0 min-h-[160px]">
+                          {/* HERO MASCOT CARD (PROMINENT OVERFLOWING HERO MASCOT DESIGN) */}
+                          <div className="bg-gradient-to-br from-amber-50/90 via-orange-50/40 to-amber-100/50 border border-orange-100 rounded-3xl p-4 sm:p-5 relative overflow-hidden shadow-xs flex flex-row items-center justify-between min-h-[170px] sm:min-h-[190px] shrink-0">
                             
                             {/* LEFT SIDE: STREAK BADGE & SLOGAN */}
-                            <div className="flex-1 min-w-0 flex flex-col justify-center gap-2.5 z-10 py-1">
+                            <div className="flex-1 max-w-[58%] min-w-0 flex flex-col justify-center gap-2 z-10 py-1">
                               
                               {/* TOP BADGE: 🔥 X ngày streak */}
-                              <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-white/95 backdrop-blur border border-orange-200/90 rounded-full text-xs font-extrabold text-orange-600 shadow-2xs w-fit">
+                              <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-white border border-orange-200/90 rounded-full text-xs font-extrabold text-orange-600 shadow-2xs w-fit">
                                 <span>🔥</span>
                                 <span>{deckStreak} ngày streak</span>
                               </div>
 
                               {/* SLOGAN TEXT */}
-                              <div className="flex flex-col gap-1">
+                              <div className="flex flex-col gap-1 mt-0.5">
                                 <h2 className="text-lg sm:text-xl font-black text-slate-900 tracking-tight leading-snug">
                                   {mascotLine1}
                                 </h2>
-                                <p className="text-xs sm:text-sm text-slate-500 font-medium leading-relaxed max-w-[280px]">
+                                <p className="text-xs sm:text-sm text-slate-500 font-medium leading-relaxed">
                                   {mascotLine2}
                                 </p>
                               </div>
 
                             </div>
 
-                            {/* RIGHT SIDE: LARGE PROMINENT MASCOT IMAGE */}
-                            <div className="w-32 sm:w-44 h-auto shrink-0 relative flex items-center justify-center self-center z-10">
+                            {/* RIGHT SIDE: HUGE PROMINENT MASCOT FILLING ENTIRE HEIGHT */}
+                            <div className="w-[42%] max-w-[210px] absolute right-2 bottom-0 top-0 flex items-end justify-center pointer-events-none z-10">
                               <motion.img 
                                 key={mascotImg}
                                 initial={{ scale: 0.9, opacity: 0 }}
@@ -1823,7 +1823,7 @@ export default function Dashboard() {
                                 transition={{ duration: 0.3 }}
                                 src={mascotImg} 
                                 alt="Vocaburn Mascot" 
-                                className="w-full h-auto max-h-[180px] sm:max-h-[220px] object-contain drop-shadow-lg"
+                                className="h-[110%] w-auto max-w-none object-contain object-bottom drop-shadow-xl translate-y-1"
                               />
                             </div>
 
@@ -1834,166 +1834,199 @@ export default function Dashboard() {
                             <h3 className="text-sm font-bold text-slate-900">Các bước hôm nay</h3>
                           </div>
 
-                          {/* 3 STEPS CONTAINER (MATCHING MOCKUP TIMELINE CONNECTORS & CARDS) */}
-                          <div className="relative flex flex-col gap-2.5">
+                          {/* 3 STEPS CONTAINER (TIMELINE CONNECTORS & SPEECH POINTER CARDS MATCHING MOCKUP 3) */}
+                          <div className="flex flex-col gap-3.5 relative pt-1">
                             
-                            {/* Vertical Connecting Line */}
-                            <div className="absolute top-6 bottom-6 left-[21px] w-0.5 bg-slate-200 z-0 pointer-events-none flex flex-col items-center justify-center">
-                              <span className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 text-[10px]">🔥</span>
-                            </div>
-
-                            {/* Step 1 */}
-                            <div 
-                              onClick={() => { if (!s1 && nUrl) navigate(nUrl); }}
-                              className={cn(
-                                "bg-white border rounded-2xl p-3 shadow-2xs flex items-center gap-3 relative z-10 transition-all cursor-pointer hover:shadow-xs",
-                                s1 ? "border-emerald-200/80 bg-emerald-50/20" : "border-slate-200/80"
-                              )}
-                            >
+                            {/* Step 1 Item */}
+                            <div className="flex items-center gap-3.5 relative">
+                              {/* Number Circle 1 */}
                               <div className={cn(
-                                "w-8 h-8 rounded-full font-bold text-xs flex items-center justify-center shrink-0 shadow-2xs text-white z-10",
-                                s1 ? "bg-emerald-500" : "bg-orange-500"
+                                "w-9 h-9 rounded-full font-black text-xs flex items-center justify-center shrink-0 shadow-2xs text-white z-10",
+                                s1 ? "bg-emerald-500" : "bg-gradient-to-tr from-orange-500 to-amber-500"
                               )}>
                                 {s1 ? '✓' : '1'}
                               </div>
 
-                              <div className="w-10 h-10 rounded-2xl bg-orange-50 border border-orange-100 flex items-center justify-center shrink-0">
-                                <BookOpen className="w-5 h-5 text-orange-600" />
-                              </div>
+                              {/* Card with Left Speech Pointer */}
+                              <div 
+                                onClick={() => { if (!s1 && nUrl) navigate(nUrl); }}
+                                className={cn(
+                                  "flex-1 bg-white border rounded-2xl p-3 sm:p-3.5 shadow-2xs flex items-center gap-3 relative transition-all cursor-pointer hover:shadow-xs",
+                                  s1 ? "border-emerald-200/80 bg-emerald-50/20" : "border-slate-100"
+                                )}
+                              >
+                                {/* Left Speech Bubble Triangle Pointer */}
+                                <div className={cn(
+                                  "absolute -left-2 top-1/2 -translate-y-1/2 w-0 h-0 border-y-[6px] border-y-transparent border-r-[8px] z-20",
+                                  s1 ? "border-r-emerald-100" : "border-r-white"
+                                )} />
 
-                              <div className="flex-1 min-w-0 flex flex-col gap-1">
-                                <div className="flex items-center justify-between">
-                                  <span className="font-bold text-xs text-slate-900 truncate">Học từ mới</span>
-                                  {s1 ? (
-                                    <span className="px-2 py-0.5 bg-emerald-50 text-emerald-600 border border-emerald-200 text-[10px] font-bold rounded-full">Đã xong</span>
-                                  ) : (
-                                    <span className="px-2 py-0.5 bg-orange-50 text-orange-600 border border-orange-200 text-[10px] font-bold rounded-full">Đang học</span>
-                                  )}
+                                <div className="w-11 h-11 rounded-2xl bg-orange-50/90 border border-orange-100/80 flex items-center justify-center shrink-0">
+                                  <BookOpen className="w-5.5 h-5.5 text-orange-500" />
                                 </div>
 
-                                <div className="flex items-center justify-between text-xs text-slate-500 font-medium">
-                                  <span><strong className="text-orange-600 font-bold">{nL}</strong> / {nT} từ</span>
+                                <div className="flex-1 min-w-0 flex flex-col gap-0.5">
+                                  <div className="flex items-center justify-between">
+                                    <span className="font-bold text-xs sm:text-sm text-slate-900 truncate">Học từ mới</span>
+                                    {s1 ? (
+                                      <span className="px-2.5 py-0.5 bg-emerald-50 text-emerald-600 border border-emerald-200 text-[10px] font-bold rounded-full">Đã xong</span>
+                                    ) : (
+                                      <span className="px-2.5 py-0.5 bg-orange-50 text-orange-600 border border-orange-200/80 text-[10px] font-bold rounded-full">Đang học</span>
+                                    )}
+                                  </div>
+
+                                  <div className="text-xs font-bold text-slate-500">
+                                    <strong className="text-orange-600 font-extrabold">{nL}</strong> / {nT} từ
+                                  </div>
+
+                                  <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden w-full my-0.5">
+                                    <div className="h-full bg-gradient-to-r from-orange-500 to-amber-500 rounded-full transition-all" style={{ width: `${newPct}%` }} />
+                                  </div>
+
+                                  <div className="text-[11px] text-slate-400 font-medium">
+                                    {s1 ? 'Đã hoàn thành 100%' : `Còn ${Math.max(0, nT - nL)} từ để hoàn thành`}
+                                  </div>
                                 </div>
 
-                                <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden w-full">
-                                  <div className="h-full bg-gradient-to-r from-orange-500 to-amber-500 rounded-full transition-all" style={{ width: `${newPct}%` }} />
+                                <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center shrink-0 text-slate-400">
+                                  <ChevronRight className="w-4 h-4" />
                                 </div>
-
-                                <div className="text-[10px] text-slate-400 font-medium">
-                                  {s1 ? 'Đã hoàn thành 100%' : `Còn ${Math.max(0, nT - nL)} từ để hoàn thành`}
-                                </div>
-                              </div>
-
-                              <div className="w-7 h-7 rounded-full bg-slate-100 flex items-center justify-center shrink-0 text-slate-400">
-                                <ChevronRight className="w-4 h-4" />
                               </div>
                             </div>
 
-                            {/* Step 2 */}
-                            <div 
-                              onClick={() => { if (s1 && !s2 && nUrl) navigate(nUrl); }}
-                              className={cn(
-                                "bg-white border rounded-2xl p-3 shadow-2xs flex items-center gap-3 relative z-10 transition-all cursor-pointer hover:shadow-xs",
-                                s2 ? "border-emerald-200/80 bg-emerald-50/20" : s1 ? "border-orange-200/80" : "border-slate-100 opacity-80"
-                              )}
-                            >
+                            {/* Connecting Line 1 -> 2 with Flame */}
+                            <div className="absolute top-[38px] bottom-[115px] left-[17px] w-0.5 bg-slate-200 z-0 flex items-center justify-center pointer-events-none">
+                              <span className="text-[11px]">🔥</span>
+                            </div>
+
+                            {/* Step 2 Item */}
+                            <div className="flex items-center gap-3.5 relative">
+                              {/* Number Circle 2 */}
                               <div className={cn(
-                                "w-8 h-8 rounded-full font-bold text-xs flex items-center justify-center shrink-0 shadow-2xs text-white z-10",
-                                s2 ? "bg-emerald-500" : s1 ? "bg-orange-500" : "bg-slate-200 text-slate-500"
+                                "w-9 h-9 rounded-full font-black text-xs flex items-center justify-center shrink-0 shadow-2xs text-white z-10",
+                                s2 ? "bg-emerald-500" : s1 ? "bg-gradient-to-tr from-orange-500 to-amber-500" : "bg-slate-200 text-slate-400"
                               )}>
                                 {s2 ? '✓' : '2'}
                               </div>
 
-                              <div className={cn(
-                                "w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 border",
-                                s2 ? "bg-emerald-50 border-emerald-100 text-emerald-600" : s1 ? "bg-orange-50 border-orange-100 text-orange-600" : "bg-slate-100 border-slate-200 text-slate-400"
-                              )}>
-                                <FileText className="w-5 h-5" />
-                              </div>
-
-                              <div className="flex-1 min-w-0 flex flex-col gap-1">
-                                <div className="flex items-center justify-between">
-                                  <span className="font-bold text-xs text-slate-900 truncate">Test trắc nghiệm MCQ</span>
-                                  {s2 ? (
-                                    <span className="px-2 py-0.5 bg-emerald-50 text-emerald-600 border border-emerald-200 text-[10px] font-bold rounded-full">Đã xong</span>
-                                  ) : s1 ? (
-                                    <span className="px-2 py-0.5 bg-orange-50 text-orange-600 border border-orange-200 text-[10px] font-bold rounded-full">Đang học</span>
-                                  ) : (
-                                    <span className="px-2 py-0.5 bg-slate-100 text-slate-400 text-[10px] font-bold rounded-full">Khóa</span>
-                                  )}
-                                </div>
-
-                                <div className="flex items-center justify-between text-xs text-slate-500 font-medium">
-                                  <span><strong className="text-slate-700 font-bold">{mcqDone}</strong> / {mcqTarget} câu</span>
-                                </div>
-
-                                {s1 && (
-                                  <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden w-full">
-                                    <div className="h-full bg-gradient-to-r from-orange-500 to-amber-500 rounded-full transition-all" style={{ width: `${mcqPct}%` }} />
-                                  </div>
+                              {/* Card with Left Speech Pointer */}
+                              <div 
+                                onClick={() => { if (s1 && !s2 && nUrl) navigate(nUrl); }}
+                                className={cn(
+                                  "flex-1 bg-white border rounded-2xl p-3 sm:p-3.5 shadow-2xs flex items-center gap-3 relative transition-all cursor-pointer hover:shadow-xs",
+                                  s2 ? "border-emerald-200/80 bg-emerald-50/20" : s1 ? "border-orange-200/80" : "border-slate-100 opacity-90"
                                 )}
+                              >
+                                {/* Left Speech Bubble Triangle Pointer */}
+                                <div className={cn(
+                                  "absolute -left-2 top-1/2 -translate-y-1/2 w-0 h-0 border-y-[6px] border-y-transparent border-r-[8px] z-20",
+                                  s2 ? "border-r-emerald-100" : "border-r-white"
+                                )} />
 
-                                <div className="text-[10px] text-slate-400 font-medium">
-                                  {s2 ? 'Đã hoàn thành bài test' : s1 ? 'Cần làm 10 câu trắc nghiệm' : '🔒 Hoàn thành bước trước để mở khóa'}
+                                <div className={cn(
+                                  "w-11 h-11 rounded-2xl flex items-center justify-center shrink-0 border",
+                                  s2 ? "bg-emerald-50 border-emerald-100 text-emerald-600" : s1 ? "bg-orange-50 border-orange-100 text-orange-500" : "bg-slate-100 border-slate-200/60 text-slate-400"
+                                )}>
+                                  <FileText className="w-5.5 h-5.5" />
                                 </div>
-                              </div>
 
-                              <div className="w-7 h-7 rounded-full bg-slate-100 flex items-center justify-center shrink-0 text-slate-400">
-                                <ChevronRight className="w-4 h-4" />
+                                <div className="flex-1 min-w-0 flex flex-col gap-0.5">
+                                  <div className="flex items-center justify-between">
+                                    <span className="font-bold text-xs sm:text-sm text-slate-900 truncate">Test trắc nghiệm MCQ</span>
+                                    {s2 ? (
+                                      <span className="px-2.5 py-0.5 bg-emerald-50 text-emerald-600 border border-emerald-200 text-[10px] font-bold rounded-full">Đã xong</span>
+                                    ) : s1 ? (
+                                      <span className="px-2.5 py-0.5 bg-orange-50 text-orange-600 border border-orange-200/80 text-[10px] font-bold rounded-full">Đang học</span>
+                                    ) : (
+                                      <span className="px-2.5 py-0.5 bg-slate-100 text-slate-400 text-[10px] font-bold rounded-full">Khóa</span>
+                                    )}
+                                  </div>
+
+                                  <div className="text-xs font-bold text-slate-500">
+                                    <strong className={cn(s1 ? "text-orange-600 font-extrabold" : "text-slate-400")}>{mcqDone}</strong> / {mcqTarget} câu
+                                  </div>
+
+                                  {s1 && (
+                                    <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden w-full my-0.5">
+                                      <div className="h-full bg-gradient-to-r from-orange-500 to-amber-500 rounded-full transition-all" style={{ width: `${mcqPct}%` }} />
+                                    </div>
+                                  )}
+
+                                  <div className="text-[11px] text-slate-400 font-medium">
+                                    {s2 ? 'Đã hoàn thành bài test' : s1 ? 'Cần làm 10 câu trắc nghiệm' : '🔒 Hoàn thành bước trước để mở khóa'}
+                                  </div>
+                                </div>
+
+                                <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center shrink-0 text-slate-400">
+                                  <ChevronRight className="w-4 h-4" />
+                                </div>
                               </div>
                             </div>
 
-                            {/* Step 3 */}
-                            <div 
-                              onClick={() => { if (s2 && nUrl) navigate(nUrl); }}
-                              className={cn(
-                                "bg-white border rounded-2xl p-3 shadow-2xs flex items-center gap-3 relative z-10 transition-all cursor-pointer hover:shadow-xs",
-                                st.all_done ? "border-emerald-200/80 bg-emerald-50/20" : s2 ? "border-orange-200/80" : "border-slate-100 opacity-80"
-                              )}
-                            >
+                            {/* Connecting Line 2 -> 3 */}
+                            <div className="absolute top-[115px] bottom-[38px] left-[17px] w-0.5 bg-slate-200 z-0 pointer-events-none" />
+
+                            {/* Step 3 Item */}
+                            <div className="flex items-center gap-3.5 relative">
+                              {/* Number Circle 3 */}
                               <div className={cn(
-                                "w-8 h-8 rounded-full font-bold text-xs flex items-center justify-center shrink-0 shadow-2xs text-white z-10",
-                                st.all_done ? "bg-emerald-500" : s2 ? "bg-orange-500" : "bg-slate-200 text-slate-500"
+                                "w-9 h-9 rounded-full font-black text-xs flex items-center justify-center shrink-0 shadow-2xs text-white z-10",
+                                st.all_done ? "bg-emerald-500" : s2 ? "bg-gradient-to-tr from-orange-500 to-amber-500" : "bg-slate-200 text-slate-400"
                               )}>
                                 {st.all_done ? '✓' : '3'}
                               </div>
 
-                              <div className={cn(
-                                "w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 border",
-                                st.all_done ? "bg-emerald-50 border-emerald-100 text-emerald-600" : s2 ? "bg-orange-50 border-orange-100 text-orange-600" : "bg-slate-100 border-slate-200 text-slate-400"
-                              )}>
-                                <RotateCcw className="w-5 h-5" />
-                              </div>
-
-                              <div className="flex-1 min-w-0 flex flex-col gap-1">
-                                <div className="flex items-center justify-between">
-                                  <span className="font-bold text-xs text-slate-900 truncate">Ôn tập FSRS</span>
-                                  {st.all_done ? (
-                                    <span className="px-2 py-0.5 bg-emerald-50 text-emerald-600 border border-emerald-200 text-[10px] font-bold rounded-full">Đã xong</span>
-                                  ) : s2 ? (
-                                    <span className="px-2 py-0.5 bg-orange-50 text-orange-600 border border-orange-200 text-[10px] font-bold rounded-full">Đang học</span>
-                                  ) : (
-                                    <span className="px-2 py-0.5 bg-slate-100 text-slate-400 text-[10px] font-bold rounded-full">Khóa</span>
-                                  )}
-                                </div>
-
-                                <div className="flex items-center justify-between text-xs text-slate-500 font-medium">
-                                  <span><strong className="text-slate-700 font-bold">{rDn}</strong> / {rD} thẻ</span>
-                                </div>
-
-                                {s2 && (
-                                  <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden w-full">
-                                    <div className="h-full bg-gradient-to-r from-orange-500 to-amber-500 rounded-full transition-all" style={{ width: `${revPct}%` }} />
-                                  </div>
+                              {/* Card with Left Speech Pointer */}
+                              <div 
+                                onClick={() => { if (s2 && nUrl) navigate(nUrl); }}
+                                className={cn(
+                                  "flex-1 bg-white border rounded-2xl p-3 sm:p-3.5 shadow-2xs flex items-center gap-3 relative transition-all cursor-pointer hover:shadow-xs",
+                                  st.all_done ? "border-emerald-200/80 bg-emerald-50/20" : s2 ? "border-orange-200/80" : "border-slate-100 opacity-90"
                                 )}
+                              >
+                                {/* Left Speech Bubble Triangle Pointer */}
+                                <div className={cn(
+                                  "absolute -left-2 top-1/2 -translate-y-1/2 w-0 h-0 border-y-[6px] border-y-transparent border-r-[8px] z-20",
+                                  st.all_done ? "border-r-emerald-100" : "border-r-white"
+                                )} />
 
-                                <div className="text-[10px] text-slate-400 font-medium">
-                                  {st.all_done ? 'Đã xong ôn tập hôm nay' : s2 ? `Còn ${Math.max(0, rD - rDn)} thẻ cần ôn` : '🔒 Hoàn thành bước trước để mở khóa'}
+                                <div className={cn(
+                                  "w-11 h-11 rounded-2xl flex items-center justify-center shrink-0 border",
+                                  st.all_done ? "bg-emerald-50 border-emerald-100 text-emerald-600" : s2 ? "bg-orange-50 border-orange-100 text-orange-500" : "bg-slate-100 border-slate-200/60 text-slate-400"
+                                )}>
+                                  <RotateCcw className="w-5.5 h-5.5" />
                                 </div>
-                              </div>
 
-                              <div className="w-7 h-7 rounded-full bg-slate-100 flex items-center justify-center shrink-0 text-slate-400">
-                                <ChevronRight className="w-4 h-4" />
+                                <div className="flex-1 min-w-0 flex flex-col gap-0.5">
+                                  <div className="flex items-center justify-between">
+                                    <span className="font-bold text-xs sm:text-sm text-slate-900 truncate">Ôn tập FSRS</span>
+                                    {st.all_done ? (
+                                      <span className="px-2.5 py-0.5 bg-emerald-50 text-emerald-600 border border-emerald-200 text-[10px] font-bold rounded-full">Đã xong</span>
+                                    ) : s2 ? (
+                                      <span className="px-2.5 py-0.5 bg-orange-50 text-orange-600 border border-orange-200/80 text-[10px] font-bold rounded-full">Đang học</span>
+                                    ) : (
+                                      <span className="px-2.5 py-0.5 bg-slate-100 text-slate-400 text-[10px] font-bold rounded-full">Khóa</span>
+                                    )}
+                                  </div>
+
+                                  <div className="text-xs font-bold text-slate-500">
+                                    <strong className={cn(s2 ? "text-orange-600 font-extrabold" : "text-slate-400")}>{rDn}</strong> / {rD} thẻ
+                                  </div>
+
+                                  {s2 && (
+                                    <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden w-full my-0.5">
+                                      <div className="h-full bg-gradient-to-r from-orange-500 to-amber-500 rounded-full transition-all" style={{ width: `${revPct}%` }} />
+                                    </div>
+                                  )}
+
+                                  <div className="text-[11px] text-slate-400 font-medium">
+                                    {st.all_done ? 'Đã xong ôn tập hôm nay' : s2 ? `Còn ${Math.max(0, rD - rDn)} thẻ cần ôn` : '🔒 Hoàn thành bước trước để mở khóa'}
+                                  </div>
+                                </div>
+
+                                <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center shrink-0 text-slate-400">
+                                  <ChevronRight className="w-4 h-4" />
+                                </div>
                               </div>
                             </div>
 
