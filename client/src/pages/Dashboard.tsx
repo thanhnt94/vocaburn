@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { Brain, Trophy, ChevronRight, LayoutGrid, Users, Zap, Flame, BrainCircuit, X, Play, Crown, Medal, Star, CheckCircle2, Circle, Swords, Settings, Target, RefreshCw, User, BookOpen, Sparkles, TrendingUp, Clock, Layers, Compass, ArrowRight } from 'lucide-react'
+import { Brain, Trophy, ChevronRight, LayoutGrid, Users, Zap, Flame, BrainCircuit, X, Play, Crown, Medal, Star, CheckCircle2, Circle, Swords, Settings, Target, RefreshCw, User, BookOpen, Sparkles, TrendingUp, Clock, Layers, Compass, ArrowRight, FileText, RotateCcw } from 'lucide-react'
 import { useAppStore } from '@/store/useAppStore'
 import { cn } from '@/lib/utils'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -1772,139 +1772,286 @@ export default function Dashboard() {
                         
                         {/* DECK SELECTOR HEADER (If multiple decks) */}
                         {totalDecks > 1 && (
-                          <div className="px-4 py-2 border-b border-slate-100 bg-white flex items-center justify-between flex-shrink-0 text-xs font-semibold text-slate-600">
-                            <span>Roadmap {deckIdx + 1}/{totalDecks}</span>
-                            <span className="text-[10px] text-orange-600 font-bold">Vuốt dọc để đổi ↕</span>
+                          <div className="px-4 py-1.5 bg-white flex items-center justify-between flex-shrink-0 text-xs font-semibold text-slate-500">
+                            <div className="flex items-center gap-1.5">
+                              <span className="text-slate-600 font-bold">Roadmap</span>
+                              <span className="text-slate-400 font-medium">{deckIdx + 1} / {totalDecks}</span>
+                            </div>
+                            <Link 
+                              to={`/flashcard/${deck.deck_id}/play?mode=roadmap`}
+                              className="text-xs font-bold text-orange-600 hover:text-orange-700 flex items-center gap-0.5 transition-colors cursor-pointer"
+                            >
+                              <span>Xem chi tiết lộ trình</span>
+                              <ChevronRight className="w-3.5 h-3.5" />
+                            </Link>
                           </div>
                         )}
 
                         {/* CARD BODY */}
-                        <div className="flex-1 flex flex-col justify-between p-3 sm:p-4 overflow-y-auto [&::-webkit-scrollbar]:hidden gap-2.5 min-h-0">
+                        <div className="flex-1 flex flex-col justify-between p-3 sm:p-4 overflow-y-auto [&::-webkit-scrollbar]:hidden gap-3 min-h-0">
                           
-                          {/* HERO MASCOT CARD (CENTERED & WIDE EXPANDING MASCOT) */}
-                          <div className="flex-1 bg-white rounded-3xl p-4 sm:p-5 border border-slate-200/70 shadow-sm relative overflow-hidden flex flex-col items-center justify-center text-center gap-2.5 min-h-[240px]">
+                          {/* HERO MASCOT CARD (NEW SPLIT 2-COLUMN DESIGN MATCHING MOCKUP EXACTLY) */}
+                          <div className="bg-gradient-to-br from-amber-50/70 via-orange-50/30 to-orange-100/40 border border-orange-100/80 rounded-3xl p-4 relative overflow-hidden shadow-xs flex flex-row items-center justify-between gap-3 shrink-0">
                             
-                            {/* TOP-LEFT: STREAK BỘ THẺ BADGE (ICON & DAYS ONLY) */}
-                            <div 
-                              className="absolute top-3.5 left-3.5 flex items-center gap-1 px-2.5 py-1 bg-gradient-to-r from-orange-500 via-amber-500 to-orange-600 text-white rounded-full text-xs font-black shadow-sm shadow-orange-500/25 border border-orange-400/40 z-10"
-                              title="Streak bộ thẻ: Số ngày hoàn thành 100% nhiệm vụ bộ thẻ này"
-                            >
-                              <span className="text-xs">🎯</span>
-                              <span className="font-black tracking-tight">{deckStreak}d</span>
+                            {/* LEFT SIDE: STREAK BADGE, SLOGAN, EMBEDDED PROGRESS CARD */}
+                            <div className="flex-1 min-w-0 flex flex-col gap-2 z-10">
+                              
+                              {/* TOP BADGE: 🔥 X ngày streak */}
+                              <div className="inline-flex items-center gap-1 px-2.5 py-0.5 bg-white/90 backdrop-blur border border-orange-200/80 rounded-full text-[11px] font-extrabold text-orange-600 shadow-2xs w-fit">
+                                <span>🔥</span>
+                                <span>{deckStreak} ngày streak</span>
+                              </div>
+
+                              {/* SLOGAN TEXT */}
+                              <div className="flex flex-col gap-0.5">
+                                <h2 className="text-base sm:text-lg font-black text-slate-900 tracking-tight leading-snug">
+                                  {mascotLine1}
+                                </h2>
+                                <p className="text-xs text-slate-500 font-medium leading-relaxed">
+                                  {mascotLine2}
+                                </p>
+                              </div>
+
+                              {/* EMBEDDED DECK PROGRESS CARD */}
+                              <div className="bg-white rounded-2xl p-2.5 sm:p-3 border border-slate-200/80 shadow-2xs flex flex-col gap-1.5 w-full mt-0.5">
+                                <div className="flex items-center justify-between text-xs font-bold text-slate-900">
+                                  <span className="truncate">{deck.title} <span className="text-slate-400 font-normal">({deck.level || 'Cơ bản'})</span></span>
+                                </div>
+                                <div className="flex items-baseline justify-between">
+                                  <span className="text-lg sm:text-xl font-black text-orange-600">{newPct}%</span>
+                                  <span className="text-xs font-bold text-slate-500">{nL} / {nT} từ</span>
+                                </div>
+                                <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
+                                  <div className="bg-gradient-to-r from-orange-500 to-amber-500 h-full rounded-full transition-all duration-500" style={{ width: `${newPct}%` }} />
+                                </div>
+                              </div>
+
                             </div>
 
-                            {/* Ambient Radial Soft Glow */}
-                            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-72 h-72 rounded-full bg-orange-100/25 blur-3xl pointer-events-none -z-10" />
-
-                            {/* WIDE CENTERED MASCOT IMAGE (Expands horizontally up to card width) */}
-                            <div className="flex-1 w-full flex items-center justify-center py-1 relative min-h-[140px]">
+                            {/* RIGHT SIDE: MASCOT IMAGE */}
+                            <div className="w-28 sm:w-36 h-auto shrink-0 relative flex items-center justify-center self-center">
                               <motion.img 
                                 key={mascotImg}
-                                initial={{ scale: 0.95, opacity: 0 }}
+                                initial={{ scale: 0.9, opacity: 0 }}
                                 animate={{ scale: 1, opacity: 1 }}
                                 transition={{ duration: 0.3 }}
                                 src={mascotImg} 
                                 alt="Vocaburn Mascot" 
-                                className="w-full h-auto max-h-[280px] sm:max-h-[320px] max-w-[360px] object-contain"
+                                className="w-full h-auto max-h-[160px] sm:max-h-[190px] object-contain drop-shadow-md"
                               />
-                            </div>
-
-                            {/* HIGH PRIORITY PROMINENT 2-LINE SLOGAN & DECK PILL */}
-                            <div className="flex flex-col items-center gap-1.5 w-full max-w-[380px] shrink-0 z-10">
-                              <h3 className="text-sm sm:text-base md:text-lg font-black tracking-tight leading-snug text-center px-1">
-                                <span className="block text-slate-900 font-extrabold whitespace-nowrap">{mascotLine1}</span>
-                                <span className="block bg-gradient-to-r from-orange-600 via-amber-600 to-orange-500 bg-clip-text text-transparent font-black whitespace-nowrap">{mascotLine2}</span>
-                              </h3>
-                              <div className="inline-flex items-center gap-1.5 px-3.5 py-1 bg-gradient-to-r from-orange-50 via-amber-50 to-orange-50 text-orange-800 border border-orange-200/90 rounded-full text-xs font-bold shadow-2xs mt-0.5">
-                                <BookOpen className="w-3.5 h-3.5 text-orange-600 shrink-0" />
-                                <span className="truncate max-w-[240px] font-bold text-orange-950">{deck.title}</span>
-                              </div>
                             </div>
 
                           </div>
 
-                          {/* 3-STEPS CONTAINER (MATCHING USER MOCKUP EXACTLY) */}
-                          <div className="bg-white border border-slate-200/70 rounded-3xl p-3.5 shadow-sm flex flex-col gap-2.5 flex-shrink-0">
+                          {/* SECTION TITLE: Các bước hôm nay */}
+                          <div className="px-0.5 pt-1">
+                            <h3 className="text-sm font-bold text-slate-900">Các bước hôm nay</h3>
+                          </div>
+
+                          {/* 3 STEPS CONTAINER (MATCHING MOCKUP TIMELINE CONNECTORS & CARDS) */}
+                          <div className="relative flex flex-col gap-2.5">
                             
+                            {/* Vertical Connecting Line */}
+                            <div className="absolute top-6 bottom-6 left-[21px] w-0.5 bg-slate-200 z-0 pointer-events-none flex flex-col items-center justify-center">
+                              <span className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 text-[10px]">🔥</span>
+                            </div>
+
                             {/* Step 1 */}
-                            <div className="bg-slate-50/70 rounded-2xl p-2.5 border border-slate-100/80 flex items-center gap-3">
+                            <div 
+                              onClick={() => { if (!s1 && nUrl) navigate(nUrl); }}
+                              className={cn(
+                                "bg-white border rounded-2xl p-3 shadow-2xs flex items-center gap-3 relative z-10 transition-all cursor-pointer hover:shadow-xs",
+                                s1 ? "border-emerald-200/80 bg-emerald-50/20" : "border-slate-200/80"
+                              )}
+                            >
                               <div className={cn(
-                                "w-8 h-8 rounded-full font-bold text-xs flex items-center justify-center shrink-0 shadow-2xs text-white",
-                                s1 ? "bg-emerald-500" : "bg-gradient-to-tr from-orange-500 via-red-500 to-amber-500"
+                                "w-8 h-8 rounded-full font-bold text-xs flex items-center justify-center shrink-0 shadow-2xs text-white z-10",
+                                s1 ? "bg-emerald-500" : "bg-orange-500"
                               )}>
                                 {s1 ? '✓' : '1'}
                               </div>
-                              <div className="flex-1 min-w-0 flex flex-col gap-1.5">
-                                <div className="flex items-center justify-between text-xs">
-                                  <span className="font-bold text-slate-900">Bước 1: Học từ mới</span>
-                                  <span className="font-medium text-slate-500">{nL} / {nT} thẻ ({newPct}%)</span>
+
+                              <div className="w-10 h-10 rounded-2xl bg-orange-50 border border-orange-100 flex items-center justify-center shrink-0">
+                                <BookOpen className="w-5 h-5 text-orange-600" />
+                              </div>
+
+                              <div className="flex-1 min-w-0 flex flex-col gap-1">
+                                <div className="flex items-center justify-between">
+                                  <span className="font-bold text-xs text-slate-900 truncate">Học từ mới</span>
+                                  {s1 ? (
+                                    <span className="px-2 py-0.5 bg-emerald-50 text-emerald-600 border border-emerald-200 text-[10px] font-bold rounded-full">Đã xong</span>
+                                  ) : (
+                                    <span className="px-2 py-0.5 bg-orange-50 text-orange-600 border border-orange-200 text-[10px] font-bold rounded-full">Đang học</span>
+                                  )}
                                 </div>
-                                <div className="h-1.5 bg-slate-200/60 rounded-full overflow-hidden w-full">
+
+                                <div className="flex items-center justify-between text-xs text-slate-500 font-medium">
+                                  <span><strong className="text-orange-600 font-bold">{nL}</strong> / {nT} từ</span>
+                                </div>
+
+                                <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden w-full">
                                   <div className="h-full bg-gradient-to-r from-orange-500 to-amber-500 rounded-full transition-all" style={{ width: `${newPct}%` }} />
                                 </div>
+
+                                <div className="text-[10px] text-slate-400 font-medium">
+                                  {s1 ? 'Đã hoàn thành 100%' : `Còn ${Math.max(0, nT - nL)} từ để hoàn thành`}
+                                </div>
+                              </div>
+
+                              <div className="w-7 h-7 rounded-full bg-slate-100 flex items-center justify-center shrink-0 text-slate-400">
+                                <ChevronRight className="w-4 h-4" />
                               </div>
                             </div>
 
                             {/* Step 2 */}
-                            <div className="bg-slate-50/70 rounded-2xl p-2.5 border border-slate-100/80 flex items-center gap-3">
+                            <div 
+                              onClick={() => { if (s1 && !s2 && nUrl) navigate(nUrl); }}
+                              className={cn(
+                                "bg-white border rounded-2xl p-3 shadow-2xs flex items-center gap-3 relative z-10 transition-all cursor-pointer hover:shadow-xs",
+                                s2 ? "border-emerald-200/80 bg-emerald-50/20" : s1 ? "border-orange-200/80" : "border-slate-100 opacity-80"
+                              )}
+                            >
                               <div className={cn(
-                                "w-8 h-8 rounded-full font-bold text-xs flex items-center justify-center shrink-0 shadow-2xs text-white",
-                                s2 ? "bg-emerald-500" : s1 ? "bg-gradient-to-tr from-orange-500 via-red-500 to-amber-500" : "bg-slate-300"
+                                "w-8 h-8 rounded-full font-bold text-xs flex items-center justify-center shrink-0 shadow-2xs text-white z-10",
+                                s2 ? "bg-emerald-500" : s1 ? "bg-orange-500" : "bg-slate-200 text-slate-500"
                               )}>
                                 {s2 ? '✓' : '2'}
                               </div>
-                              <div className="flex-1 min-w-0 flex flex-col gap-1.5">
-                                <div className="flex items-center justify-between text-xs">
-                                  <span className="font-bold text-slate-900">Bước 2: Test trắc nghiệm MCQ</span>
-                                  <span className="font-medium text-slate-500">{mcqDone} / {mcqTarget} câu ({mcqPct}%)</span>
+
+                              <div className={cn(
+                                "w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 border",
+                                s2 ? "bg-emerald-50 border-emerald-100 text-emerald-600" : s1 ? "bg-orange-50 border-orange-100 text-orange-600" : "bg-slate-100 border-slate-200 text-slate-400"
+                              )}>
+                                <FileText className="w-5 h-5" />
+                              </div>
+
+                              <div className="flex-1 min-w-0 flex flex-col gap-1">
+                                <div className="flex items-center justify-between">
+                                  <span className="font-bold text-xs text-slate-900 truncate">Test trắc nghiệm MCQ</span>
+                                  {s2 ? (
+                                    <span className="px-2 py-0.5 bg-emerald-50 text-emerald-600 border border-emerald-200 text-[10px] font-bold rounded-full">Đã xong</span>
+                                  ) : s1 ? (
+                                    <span className="px-2 py-0.5 bg-orange-50 text-orange-600 border border-orange-200 text-[10px] font-bold rounded-full">Đang học</span>
+                                  ) : (
+                                    <span className="px-2 py-0.5 bg-slate-100 text-slate-400 text-[10px] font-bold rounded-full">Khóa</span>
+                                  )}
                                 </div>
-                                <div className="h-1.5 bg-slate-200/60 rounded-full overflow-hidden w-full">
-                                  <div className="h-full bg-gradient-to-r from-orange-500 to-amber-500 rounded-full transition-all" style={{ width: `${mcqPct}%` }} />
+
+                                <div className="flex items-center justify-between text-xs text-slate-500 font-medium">
+                                  <span><strong className="text-slate-700 font-bold">{mcqDone}</strong> / {mcqTarget} câu</span>
                                 </div>
+
+                                {s1 && (
+                                  <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden w-full">
+                                    <div className="h-full bg-gradient-to-r from-orange-500 to-amber-500 rounded-full transition-all" style={{ width: `${mcqPct}%` }} />
+                                  </div>
+                                )}
+
+                                <div className="text-[10px] text-slate-400 font-medium">
+                                  {s2 ? 'Đã hoàn thành bài test' : s1 ? 'Cần làm 10 câu trắc nghiệm' : '🔒 Hoàn thành bước trước để mở khóa'}
+                                </div>
+                              </div>
+
+                              <div className="w-7 h-7 rounded-full bg-slate-100 flex items-center justify-center shrink-0 text-slate-400">
+                                <ChevronRight className="w-4 h-4" />
                               </div>
                             </div>
 
                             {/* Step 3 */}
-                            <div className="bg-slate-50/70 rounded-2xl p-2.5 border border-slate-100/80 flex items-center gap-3">
+                            <div 
+                              onClick={() => { if (s2 && nUrl) navigate(nUrl); }}
+                              className={cn(
+                                "bg-white border rounded-2xl p-3 shadow-2xs flex items-center gap-3 relative z-10 transition-all cursor-pointer hover:shadow-xs",
+                                st.all_done ? "border-emerald-200/80 bg-emerald-50/20" : s2 ? "border-orange-200/80" : "border-slate-100 opacity-80"
+                              )}
+                            >
                               <div className={cn(
-                                "w-8 h-8 rounded-full font-bold text-xs flex items-center justify-center shrink-0 shadow-2xs text-white",
-                                rD > 0 && rDn >= rD ? "bg-emerald-500" : "bg-gradient-to-tr from-orange-500 via-red-500 to-amber-500"
+                                "w-8 h-8 rounded-full font-bold text-xs flex items-center justify-center shrink-0 shadow-2xs text-white z-10",
+                                st.all_done ? "bg-emerald-500" : s2 ? "bg-orange-500" : "bg-slate-200 text-slate-500"
                               )}>
-                                {rD > 0 && rDn >= rD ? '✓' : '3'}
+                                {st.all_done ? '✓' : '3'}
                               </div>
-                              <div className="flex-1 min-w-0 flex flex-col gap-1.5">
-                                <div className="flex items-center justify-between text-xs">
-                                  <span className="font-bold text-slate-900">Bước 3: Ôn tập FSRS</span>
-                                  <span className="font-medium text-slate-500">{rDn} / {rD} thẻ ({revPct}%)</span>
+
+                              <div className={cn(
+                                "w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 border",
+                                st.all_done ? "bg-emerald-50 border-emerald-100 text-emerald-600" : s2 ? "bg-orange-50 border-orange-100 text-orange-600" : "bg-slate-100 border-slate-200 text-slate-400"
+                              )}>
+                                <RotateCcw className="w-5 h-5" />
+                              </div>
+
+                              <div className="flex-1 min-w-0 flex flex-col gap-1">
+                                <div className="flex items-center justify-between">
+                                  <span className="font-bold text-xs text-slate-900 truncate">Ôn tập FSRS</span>
+                                  {st.all_done ? (
+                                    <span className="px-2 py-0.5 bg-emerald-50 text-emerald-600 border border-emerald-200 text-[10px] font-bold rounded-full">Đã xong</span>
+                                  ) : s2 ? (
+                                    <span className="px-2 py-0.5 bg-orange-50 text-orange-600 border border-orange-200 text-[10px] font-bold rounded-full">Đang học</span>
+                                  ) : (
+                                    <span className="px-2 py-0.5 bg-slate-100 text-slate-400 text-[10px] font-bold rounded-full">Khóa</span>
+                                  )}
                                 </div>
-                                <div className="h-1.5 bg-slate-200/60 rounded-full overflow-hidden w-full">
-                                  <div className="h-full bg-gradient-to-r from-orange-500 to-amber-500 rounded-full transition-all" style={{ width: `${revPct}%` }} />
+
+                                <div className="flex items-center justify-between text-xs text-slate-500 font-medium">
+                                  <span><strong className="text-slate-700 font-bold">{rDn}</strong> / {rD} thẻ</span>
                                 </div>
+
+                                {s2 && (
+                                  <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden w-full">
+                                    <div className="h-full bg-gradient-to-r from-orange-500 to-amber-500 rounded-full transition-all" style={{ width: `${revPct}%` }} />
+                                  </div>
+                                )}
+
+                                <div className="text-[10px] text-slate-400 font-medium">
+                                  {st.all_done ? 'Đã xong ôn tập hôm nay' : s2 ? `Còn ${Math.max(0, rD - rDn)} thẻ cần ôn` : '🔒 Hoàn thành bước trước để mở khóa'}
+                                </div>
+                              </div>
+
+                              <div className="w-7 h-7 rounded-full bg-slate-100 flex items-center justify-center shrink-0 text-slate-400">
+                                <ChevronRight className="w-4 h-4" />
                               </div>
                             </div>
 
                           </div>
 
                           {/* CTA PILL ACTION BUTTON */}
-                          <div className="pt-0.5 flex-shrink-0">
+                          <div className="pt-2 flex-shrink-0">
                             <button
                               onClick={() => { 
                                 if (navigator.vibrate) navigator.vibrate(12);
                                 if (nUrl) navigate(nUrl); 
                                 else navigate(`/flashcard/${deck.deck_id}`); 
                               }}
-                              className="w-full h-12.5 bg-gradient-to-r from-orange-500 via-red-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-bold text-xs uppercase tracking-wider rounded-full transition-all flex items-center justify-center gap-2 shadow-lg shadow-orange-500/25 active:scale-[0.98] cursor-pointer"
+                              className="w-full bg-gradient-to-r from-orange-500 via-amber-500 to-orange-600 hover:from-orange-600 hover:to-amber-600 text-white rounded-2xl p-3 sm:p-3.5 flex items-center justify-between shadow-lg shadow-orange-500/25 active:scale-[0.98] transition-all cursor-pointer group"
                             >
-                              <Play className="w-4 h-4 fill-current shrink-0" />
-                              <span className="truncate">
-                                {st.all_done || (s1 && s2 && (rD === 0 || rDn >= rD))
-                                  ? '🎉 HOÀN THÀNH LỘ TRÌNH HÔM NAY'
-                                  : !s1
-                                  ? '🚀 BẮT ĐẦU BƯỚC 1: HỌC TỪ MỚI'
-                                  : !s2
-                                  ? '✍️ BẮT ĐẦU BƯỚC 2: TEST TRẮC NGHIỆM MCQ'
-                                  : '🔄 BẮT ĐẦU BƯỚC 3: ÔN TẬP FSRS'}
-                              </span>
+                              <div className="flex items-center gap-3">
+                                <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center shrink-0">
+                                  <Play className="w-4 h-4 fill-white text-white ml-0.5" />
+                                </div>
+                                <div className="flex flex-col text-left">
+                                  <span className="text-xs sm:text-sm font-black tracking-tight leading-tight">
+                                    {!s1
+                                      ? 'Tiếp tục học • Học từ mới'
+                                      : !s2
+                                      ? 'Bắt đầu • Test trắc nghiệm MCQ'
+                                      : st.all_done
+                                      ? 'Hoàn thành lộ trình • Xem lại'
+                                      : 'Tiếp tục • Ôn tập FSRS'}
+                                  </span>
+                                  <span className="text-[10px] sm:text-[11px] text-orange-100 font-medium">
+                                    {!s1
+                                      ? `Còn ${Math.max(0, nT - nL)} từ hôm nay`
+                                      : !s2
+                                      ? `Cần làm 10 câu trắc nghiệm`
+                                      : st.all_done
+                                      ? `Đã hoàn thành 100% chỉ tiêu`
+                                      : `Còn ${Math.max(0, rD - rDn)} thẻ hôm nay`}
+                                  </span>
+                                </div>
+                              </div>
+                              
+                              <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-white text-orange-600 flex items-center justify-center shrink-0 shadow-2xs group-hover:translate-x-0.5 transition-transform">
+                                <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5 font-black stroke-[3]" />
+                              </div>
                             </button>
                           </div>
 
