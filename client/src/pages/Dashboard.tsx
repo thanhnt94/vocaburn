@@ -1756,7 +1756,7 @@ export default function Dashboard() {
                     if (st.all_done || pct >= 100) {
                       mascotImg = '/mascot/celebrating.png';
                       mascotLine1 = 'Xuất sắc!';
-                      mascotLine2 = 'Bạn đã hoàn thành lộ trình hôm nay! 🎉';
+                      mascotLine2 = 'Đã hoàn thành lộ trình hôm nay! 🎉';
                     } else if (pct >= 30 || s1) {
                       mascotImg = '/mascot/excited.png';
                       mascotLine1 = 'Đang bùng cháy!';
@@ -1764,7 +1764,7 @@ export default function Dashboard() {
                     } else if (pct > 0 || nL > 0 || rDn > 0) {
                       mascotImg = '/mascot/excited.png';
                       mascotLine1 = 'Khởi đầu tốt lắm!';
-                      mascotLine2 = 'Cố gắng hoàn thành các bước hôm nay nhé 💪';
+                      mascotLine2 = 'Cố gắng hoàn thành các bước hôm nay 💪';
                     }
 
                     return (
@@ -1810,10 +1810,10 @@ export default function Dashboard() {
                             </div>
 
                             {/* HIGH PRIORITY PROMINENT 2-LINE SLOGAN & DECK PILL */}
-                            <div className="flex flex-col items-center gap-1.5 w-full max-w-[340px] shrink-0 z-10">
-                              <h3 className="text-base sm:text-lg font-black tracking-tight leading-snug text-center px-1">
-                                <span className="block text-slate-900 font-extrabold">{mascotLine1}</span>
-                                <span className="block bg-gradient-to-r from-orange-600 via-amber-600 to-orange-500 bg-clip-text text-transparent font-black">{mascotLine2}</span>
+                            <div className="flex flex-col items-center gap-1.5 w-full max-w-[380px] shrink-0 z-10">
+                              <h3 className="text-sm sm:text-base md:text-lg font-black tracking-tight leading-snug text-center px-1">
+                                <span className="block text-slate-900 font-extrabold whitespace-nowrap">{mascotLine1}</span>
+                                <span className="block bg-gradient-to-r from-orange-600 via-amber-600 to-orange-500 bg-clip-text text-transparent font-black whitespace-nowrap">{mascotLine2}</span>
                               </h3>
                               <div className="inline-flex items-center gap-1.5 px-3.5 py-1 bg-gradient-to-r from-orange-50 via-amber-50 to-orange-50 text-orange-800 border border-orange-200/90 rounded-full text-xs font-bold shadow-2xs mt-0.5">
                                 <BookOpen className="w-3.5 h-3.5 text-orange-600 shrink-0" />
