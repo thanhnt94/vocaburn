@@ -1772,8 +1772,8 @@ export default function Dashboard() {
                         
                         {/* DECK SELECTOR HEADER (If multiple decks) */}
                         {totalDecks > 1 && (
-                          <div className="px-4 py-2 border-b border-slate-100 bg-white flex items-center justify-between flex-shrink-0 text-xs font-medium text-slate-500">
-                            <span>Roadmap {deckIdx + 1}/{totalDecks}: <strong className="text-slate-800 font-bold">{deck.title}</strong></span>
+                          <div className="px-4 py-2 border-b border-slate-100 bg-white flex items-center justify-between flex-shrink-0 text-xs font-semibold text-slate-600">
+                            <span>Roadmap {deckIdx + 1}/{totalDecks}</span>
                             <span className="text-[10px] text-orange-600 font-bold">Vuốt dọc để đổi ↕</span>
                           </div>
                         )}
