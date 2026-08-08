@@ -1158,6 +1158,24 @@ export default function Dashboard() {
   const [currentSlide, setCurrentSlide] = useState(0)
   const [mobileRoadmapIdx, setMobileRoadmapIdx] = useState(0)
   const [timeFilter, setTimeFilter] = useState<'all' | 'month' | 'week'>('week')
+  const [remainingTime, setRemainingTime] = useState<string>('')
+
+  useEffect(() => {
+    const updateCountdown = () => {
+      const now = new Date()
+      const endOfDay = new Date()
+      endOfDay.setHours(23, 59, 59, 999)
+      const diffMs = Math.max(0, endOfDay.getTime() - now.getTime())
+      const hours = Math.floor(diffMs / (1000 * 60 * 60))
+      const minutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60))
+      const seconds = Math.floor((diffMs % (1000 * 60)) / 1000)
+      setRemainingTime(`${hours.toString().padStart(2, '0')}h ${minutes.toString().padStart(2, '0')}m ${seconds.toString().padStart(2, '0')}s`)
+    }
+    updateCountdown()
+    const timer = setInterval(updateCountdown, 1000)
+    return () => clearInterval(timer)
+  }, [])
+
   const carouselRef = useRef<HTMLDivElement>(null)
   const scrollCarousel = (direction: 'left' | 'right') => {
     if (carouselRef.current) {
@@ -1807,6 +1825,12 @@ export default function Dashboard() {
                                   <BookOpen className="w-3.5 h-3.5 text-amber-400 shrink-0" />
                                   <span className="truncate max-w-[280px] sm:max-w-[400px] font-extrabold text-white">{deck.title}</span>
                                   {deck.level && <span className="text-slate-300 font-normal text-[11px] shrink-0">({deck.level})</span>}
+                                </div>
+
+                                {/* ⏱️ COUNTDOWN BADGE: Remaining time to complete today's goal */}
+                                <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-amber-500/15 text-amber-900 border border-amber-300/80 rounded-full text-xs font-black shadow-2xs shrink-0">
+                                  <Clock className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                                  <span>Còn {remainingTime}</span>
                                 </div>
                               </div>
 
