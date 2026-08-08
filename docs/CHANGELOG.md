@@ -2,6 +2,19 @@
 
 Tài liệu này lưu lại lịch sử thay đổi cấu trúc, tính năng, và các bản vá lỗi của dự án Vocaburn.
 
+### [2026-08-08]
+#### Cập Nhật & Sửa Lỗi Lộ Trình (Roadmap & Dashboard Enhancements)
+- **Sửa Lỗi Đếm Tiến Trình Bài Học Flashcard (`FlashcardPlay.tsx`)**:
+  - Khắc phục triệt để lỗi hiển thị `20/20` ngay khi vừa bấm vào học từ mới. Loại bỏ việc cộng dồn `sessionAnswers.length` (phiên cũ tích lũy qua nhiều ngày) vào số đếm bài học hàng ngày.
+  - Sử dụng trực tiếp dữ liệu chuẩn hóa từ Backend API (`progress.learned`, `progress.reviewed_today`) và xử lý nullish coalescing `?? 0` chính xác cho `0/20` khi bắt đầu ngày mới.
+- **Tái Thiết Kế Nút Hành Động CTA Dashboard (`Dashboard.tsx`)**:
+  - Chuyển đổi tên bước chính ở dòng 1 sang dạng **IN HOA NỔI BẬT** (`HỌC TỪ MỚI`, `TRẮC NGHIỆM MCQ`, `ÔN TẬP FSRS`, `ĐÃ HOÀN THÀNH ✓`) với font chữ font-black tracking-widest, nâng cao tính trực quan.
+  - Phân tầng màu sắc và độ tương phản giữa dòng tiêu đề chính và dòng mô tả phụ bên dưới.
+- **Bổ Sung Đếm Ngược Thời Gian Còn Lại Trong Ngày (`Dashboard.tsx`)**:
+  - Thêm thẻ đồng hồ đếm ngược thời gian thực (`⏱️ Còn HHh MMm SSs`) ngay trong Hero Mascot Card trên Dashboard để người học dễ dàng theo dõi thời gian còn lại hoàn thành chỉ tiêu trước nửa đêm.
+- **Thêm Quy Tắc AI Workspace (`.agents/AGENTS.md`)**:
+  - Quy định dừng theo dõi (polling/monitoring) ngay sau khi kích hoạt các script remote update (VD: `remote_update_vocaburn.py`), tối ưu tài nguyên token và phản hồi ngay lập tức cho người dùng.
+
 ---
 
 ### [2026-07-28]
