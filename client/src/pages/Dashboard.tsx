@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { Brain, Trophy, ChevronRight, LayoutGrid, Users, Zap, Flame, BrainCircuit, X, Play, Crown, Medal, Star, CheckCircle2, Circle, Swords, Settings, Target, RefreshCw, User, BookOpen, Sparkles, TrendingUp, Clock, Layers, Compass, ArrowRight, FileText, RotateCcw } from 'lucide-react'
+import { Brain, Trophy, ChevronRight, LayoutGrid, Users, Zap, Flame, BrainCircuit, X, Play, Crown, Medal, Star, CheckCircle2, Circle, Swords, Settings, Target, RefreshCw, User, BookOpen, Sparkles, TrendingUp, Clock, Layers, Compass, ArrowRight, FileText, RotateCcw, Search, Plus, ArrowDown } from 'lucide-react'
 import { useAppStore } from '@/store/useAppStore'
 import { cn } from '@/lib/utils'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -38,6 +38,9 @@ interface DashboardData {
   user: { id: number, username: string, email: string }
   gamify: { level: number, xp: number, streak: number }
   stats_summary: { avg_accuracy: number, total_time_hours: number, total_questions: number }
+  my_decks?: any[]
+  created_decks?: any[]
+  discover_decks?: any[]
 }
 
 interface HeatmapDay {
@@ -1159,6 +1162,23 @@ export default function Dashboard() {
   const [mobileRoadmapIdx, setMobileRoadmapIdx] = useState(0)
   const [timeFilter, setTimeFilter] = useState<'all' | 'month' | 'week'>('week')
   const [remainingTime, setRemainingTime] = useState<string>('')
+  const [deckSearchTerm, setDeckSearchTerm] = useState('')
+  const deckListRef = useRef<HTMLDivElement>(null)
+
+  // Auto-scroll to bottom of deck list by default on Slide 1 (Thẻ Học)
+  useEffect(() => {
+    if (currentSlide === 1 && deckListRef.current) {
+      const timer = setTimeout(() => {
+        if (deckListRef.current) {
+          deckListRef.current.scrollTo({
+            top: deckListRef.current.scrollHeight,
+            behavior: 'smooth'
+          })
+        }
+      }, 150)
+      return () => clearTimeout(timer)
+    }
+  }, [currentSlide])
 
   useEffect(() => {
     const updateCountdown = () => {
@@ -1208,6 +1228,17 @@ export default function Dashboard() {
     }
   })
 
+  const { data, isLoading } = useQuery<DashboardData>({
+    queryKey: ['dashboard'],
+    queryFn: async () => {
+      const res = await axios.get('/api/v1/dashboard/data')
+      setUser(res.data.user)
+      setGamify(res.data.gamify)
+      return res.data
+    },
+    retry: false
+  })
+
   const activeDecks = useMemo(() => {
     const list: any[] = [];
     const seenIds = new Set<number>();
@@ -1250,7 +1281,6 @@ export default function Dashboard() {
             has_due: (d.new_count > 0 || d.due_count > 0)
           });
         } else {
-          // Update existing deck with FSRS info if applicable
           const existing = list.find(item => item.deck_id === d.deck_id);
           if (existing) {
             existing.new_remaining += d.new_count || 0;
@@ -1260,9 +1290,32 @@ export default function Dashboard() {
         }
       });
     }
-    
-    return list;
-  }, [roadmapDecks, todayReview]);
+
+    // Add all decks from dashboard data (my_decks / created_decks)
+    const allDashDecks = [...(data?.my_decks || []), ...(data?.created_decks || [])];
+    allDashDecks.forEach((d: any) => {
+      const id = d.id || d.deck_id;
+      if (id && !seenIds.has(id)) {
+        seenIds.add(id);
+        const cardCnt = d.cards_count || d.questions_count || 0;
+        const learnedCnt = d.learned_cards || 0;
+        list.push({
+          deck_id: id,
+          title: d.title,
+          cover_image: d.cover_image,
+          total_cards: cardCnt,
+          learned_cards: learnedCnt,
+          new_remaining: 0,
+          review_remaining: 0,
+          total_pct: cardCnt > 0 ? Math.min(100, Math.round((learnedCnt / cardCnt) * 100)) : 0,
+          has_due: false
+        });
+      }
+    });
+
+    // Sort by deck_id ascending so older decks are at top and NEWEST DECKS ARE AT THE BOTTOM
+    return list.sort((a, b) => a.deck_id - b.deck_id);
+  }, [roadmapDecks, todayReview, data]);
 
   const { data: weeklyReport } = useQuery({
     queryKey: ['weeklyReport'],
@@ -1314,19 +1367,6 @@ export default function Dashboard() {
   })
   const dailyComparisonData = dailyComparisonRaw?.days
   const dailyComparisonAvg = dailyComparisonRaw?.all_time_avg
-
-
-
-  const { data, isLoading } = useQuery<DashboardData>({
-    queryKey: ['dashboard'],
-    queryFn: async () => {
-      const res = await axios.get('/api/v1/dashboard/data')
-      setUser(res.data.user)
-      setGamify(res.data.gamify)
-      return res.data
-    },
-    retry: false
-  })
 
   // Lock scroll on desktop
   useEffect(() => {
@@ -2121,7 +2161,7 @@ export default function Dashboard() {
               </motion.div>
             )}
 
-            {/* ═══ SLIDE 2: CÁC BỘ THẺ ĐANG HỌC ═══ */}
+            {/* ═══ SLIDE 2: CÁC BỘ THẺ ĐANG HỌC (APP-LIKE DESIGN WITH AUTO-SCROLL TO BOTTOM) ═══ */}
             {currentSlide === 1 && (
               <motion.div 
                 key="slide1"
@@ -2131,42 +2171,130 @@ export default function Dashboard() {
                 transition={{ duration: 0.18, ease: "easeInOut" }}
                 className="absolute inset-0 flex flex-col font-sans"
               >
-                <div className="flex-1 overflow-y-auto px-4 py-3 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
-                  {activeDecks && activeDecks.length > 0 ? (
-                    <div className="flex flex-col gap-2.5">
-                      {activeDecks.map((deck: any) => (
-                        <div
-                          key={deck.deck_id}
-                          onClick={() => {
-                            if (navigator.vibrate) navigator.vibrate(8);
-                            navigate(`/flashcard/${deck.deck_id}`);
-                          }}
-                          className="bg-white rounded-2xl border border-slate-100 p-3.5 shadow-2xs hover:shadow-sm cursor-pointer active:scale-[0.98] transition-all w-full flex items-center gap-3.5 group"
-                        >
-                          <div className="w-13 h-13 rounded-2xl bg-orange-50 border border-orange-100/60 flex items-center justify-center text-xl overflow-hidden shadow-inner flex-shrink-0">
-                            {deck.cover_image ? <img src={deck.cover_image} alt="" className="w-full h-full object-cover" /> : <span>📘</span>}
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <h4 className="text-xs font-bold text-slate-800 truncate group-hover:text-orange-600 transition-colors">{deck.title}</h4>
-                            <div className="flex items-center gap-2 mt-1">
-                              <span className="text-[10px] font-medium text-slate-400">{deck.learned_cards}/{deck.total_cards} thẻ</span>
-                              <span className="text-[10px] font-black text-orange-600">{deck.total_pct}%</span>
-                            </div>
-                            <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden mt-1.5">
-                              <div className="h-full bg-orange-500 rounded-full transition-all" style={{ width: `${deck.total_pct}%` }} />
-                            </div>
-                          </div>
-                          <div className="w-7 h-7 rounded-full bg-slate-50 border border-slate-100 flex items-center justify-center text-slate-400 group-hover:text-orange-500 transition-all flex-shrink-0">
-                            <ChevronRight className="w-3.5 h-3.5" />
-                          </div>
+                {/* Search & Header Bar */}
+                <div className="px-4 pt-3 pb-2.5 bg-white/90 backdrop-blur border-b border-slate-200/70 flex flex-col gap-2 shrink-0 shadow-2xs">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-black text-slate-900 uppercase tracking-widest">Tất cả bộ thẻ</span>
+                      <span className="px-2.5 py-0.5 bg-orange-100 text-orange-800 border border-orange-200 text-[10px] font-black rounded-full">
+                        {activeDecks.length} bộ
+                      </span>
+                    </div>
+                    <button
+                      onClick={() => navigate('/create')}
+                      className="flex items-center gap-1 text-[11px] font-black text-orange-600 hover:text-orange-700 transition cursor-pointer"
+                    >
+                      <Plus className="w-3.5 h-3.5" />
+                      <span>Tạo mới</span>
+                    </button>
+                  </div>
+
+                  {/* Search Input */}
+                  <div className="relative w-full">
+                    <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                    <input
+                      type="text"
+                      placeholder="Tìm kiếm bộ thẻ..."
+                      value={deckSearchTerm}
+                      onChange={(e) => setDeckSearchTerm(e.target.value)}
+                      className="w-full bg-slate-100/90 border border-slate-200/80 rounded-xl pl-9 pr-8 py-1.5 text-xs font-bold text-slate-900 placeholder:text-slate-400 outline-none focus:ring-2 focus:ring-orange-500/20 focus:bg-white transition"
+                    />
+                    {deckSearchTerm && (
+                      <button
+                        onClick={() => setDeckSearchTerm('')}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                {/* Scrollable Container with Auto-Scroll to Bottom */}
+                <div 
+                  ref={deckListRef}
+                  className="flex-1 overflow-y-auto px-4 py-3 space-y-3 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
+                >
+                  {(() => {
+                    const filteredDecks = activeDecks.filter(deck => 
+                      !deckSearchTerm || deck.title?.toLowerCase().includes(deckSearchTerm.toLowerCase())
+                    )
+
+                    if (!filteredDecks || filteredDecks.length === 0) {
+                      return (
+                        <div className="flex-1 flex flex-col items-center justify-center p-8 text-center min-h-[240px]">
+                          <BookOpen className="w-10 h-10 text-slate-300 mb-2" />
+                          <span className="text-xs font-bold text-slate-500">Không tìm thấy bộ thẻ nào</span>
                         </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="flex-1 flex flex-col items-center justify-center p-6 text-center">
-                      <span className="text-slate-400 text-xs font-medium">Chưa có bộ thẻ nào</span>
-                    </div>
-                  )}
+                      )
+                    }
+
+                    return (
+                      <div className="flex flex-col gap-3 pb-6">
+                        {filteredDecks.map((deck: any, idx: number) => {
+                          const isLatest = idx === filteredDecks.length - 1
+                          return (
+                            <div
+                              key={deck.deck_id}
+                              onClick={() => {
+                                if (navigator.vibrate) navigator.vibrate(8);
+                                navigate(`/flashcard/${deck.deck_id}`);
+                              }}
+                              className={cn(
+                                "bg-white rounded-3xl border p-3.5 sm:p-4 shadow-2xs hover:shadow-md cursor-pointer active:scale-[0.98] transition-all w-full flex items-center gap-3.5 group relative overflow-hidden",
+                                isLatest ? "border-orange-300 ring-2 ring-orange-500/10" : "border-slate-200/70"
+                              )}
+                            >
+                              {/* Left Icon / Cover */}
+                              <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-gradient-to-br from-orange-50 to-amber-50 border border-orange-100/80 flex items-center justify-center text-2xl overflow-hidden shadow-inner shrink-0">
+                                {deck.cover_image ? (
+                                  <img src={deck.cover_image} alt="" className="w-full h-full object-cover" />
+                                ) : (
+                                  <span>📘</span>
+                                )}
+                              </div>
+
+                              {/* Middle Specs */}
+                              <div className="flex-1 min-w-0 flex flex-col gap-1">
+                                <div className="flex items-center gap-2">
+                                  <h4 className="text-xs sm:text-sm font-black text-slate-900 truncate group-hover:text-orange-600 transition-colors">
+                                    {deck.title}
+                                  </h4>
+                                  {isLatest && (
+                                    <span className="px-2 py-0.5 bg-gradient-to-r from-orange-500 to-amber-500 text-white text-[9px] font-black rounded-md shrink-0 shadow-2xs">
+                                      MỚI
+                                    </span>
+                                  )}
+                                </div>
+
+                                <div className="flex items-center justify-between gap-2">
+                                  <span className="text-[11px] font-bold text-slate-400">
+                                    <strong className="text-slate-700">{deck.learned_cards}</strong> / {deck.total_cards} thẻ
+                                  </span>
+                                  <span className="text-xs font-black text-orange-600 bg-orange-50 border border-orange-100 px-2 py-0.5 rounded-lg">
+                                    {deck.total_pct}%
+                                  </span>
+                                </div>
+
+                                {/* Progress Bar */}
+                                <div className="h-2 bg-slate-100 rounded-full overflow-hidden w-full mt-0.5">
+                                  <div 
+                                    className="h-full bg-gradient-to-r from-orange-500 via-amber-500 to-orange-600 rounded-full transition-all duration-500" 
+                                    style={{ width: `${deck.total_pct}%` }} 
+                                  />
+                                </div>
+                              </div>
+
+                              {/* Right Chevron */}
+                              <div className="w-8 h-8 rounded-full bg-slate-50 border border-slate-100 flex items-center justify-center text-slate-400 group-hover:text-orange-600 group-hover:bg-orange-50 group-hover:border-orange-200 transition-all shrink-0">
+                                <ChevronRight className="w-4 h-4 stroke-[3]" />
+                              </div>
+                            </div>
+                          )
+                        })}
+                      </div>
+                    )
+                  })()}
                 </div>
               </motion.div>
             )}
