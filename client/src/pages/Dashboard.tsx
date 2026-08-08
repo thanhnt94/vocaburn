@@ -1794,17 +1794,19 @@ export default function Dashboard() {
                              {/* LEFT SIDE: STREAK BADGE, DECK TITLE PILL & SLOGAN */}
                             <div className="relative z-20 flex-1 max-w-[68%] sm:max-w-[72%] min-w-0 flex flex-col justify-center gap-2.5 py-1">
                               
-                              {/* TOP BADGES: 🔥 X ngày streak & 📖 Tên bộ thẻ */}
+                              {/* TOP BADGES: 🔥 X ngày streak & 📖 Tên bộ thẻ (DISTINCT STYLING) */}
                               <div className="flex flex-wrap items-center gap-2">
-                                <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-white border border-orange-200/90 rounded-full text-xs font-extrabold text-orange-600 shadow-2xs shrink-0">
-                                  <span>🔥</span>
+                                {/* 🔥 STREAK BADGE: Dynamic vibrant orange gradient pill */}
+                                <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-gradient-to-r from-orange-500 via-amber-500 to-orange-600 text-white rounded-full text-xs font-black shadow-xs shrink-0">
+                                  <span className="text-xs">🔥</span>
                                   <span>{deckStreak} ngày streak</span>
                                 </div>
 
-                                <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-white/95 border border-slate-200/90 rounded-full text-xs font-bold text-slate-800 shadow-2xs max-w-full">
-                                  <BookOpen className="w-3.5 h-3.5 text-orange-600 shrink-0" />
-                                  <span className="truncate max-w-[280px] sm:max-w-[400px] font-extrabold text-slate-900">{deck.title}</span>
-                                  {deck.level && <span className="text-slate-400 font-normal text-[11px] shrink-0">({deck.level})</span>}
+                                {/* 📖 DECK TITLE BADGE: Premium dark slate tag */}
+                                <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-slate-900/95 text-white rounded-xl text-xs font-bold shadow-xs max-w-full">
+                                  <BookOpen className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                                  <span className="truncate max-w-[280px] sm:max-w-[400px] font-extrabold text-white">{deck.title}</span>
+                                  {deck.level && <span className="text-slate-300 font-normal text-[11px] shrink-0">({deck.level})</span>}
                                 </div>
                               </div>
 
