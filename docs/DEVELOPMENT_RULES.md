@@ -51,6 +51,7 @@ Vocaburn tách biệt nghiêm ngặt miền nghiệp vụ giữa 8 module trong 
   ```
   *(Lệnh này đóng gói ứng dụng React từ `client/` sang thư mục sản phẩm tĩnh `app/static/dist`)*.
 - **Triển khai lên VPS**: Chạy công cụ tự động hóa [remote_update_vocaburn.py](file:///c:/Code/Ecosystem/remote_update_vocaburn.py) ở thư mục cấp Ecosystem để đẩy mã nguồn lên GitHub và kích hoạt lệnh cập nhật trên VPS qua SSH.
+  - *Lưu ý cho AI Agent*: Khi chạy script `remote_update_vocaburn.py`, **không chạy vòng lặp polling/monitoring** chờ lệnh kết thúc. Lập tức kết thúc lượt phản hồi và thông báo cho người dùng để tránh tốn token và giật lag.
 
 ---
 

@@ -1904,26 +1904,23 @@ export default function Dashboard() {
                                   <BookOpen className="w-5.5 h-5.5 text-orange-500" />
                                 </div>
 
-                                <div className="flex-1 min-w-0 flex flex-col gap-0.5">
-                                  <div className="flex items-center justify-between">
+                                <div className="flex-1 min-w-0 flex flex-col gap-1">
+                                  <div className="flex items-center justify-between gap-2">
                                     <span className="font-bold text-xs sm:text-sm text-slate-900 truncate">Học từ mới</span>
                                     {s1 ? (
-                                      <span className="px-2.5 py-0.5 bg-emerald-50 text-emerald-600 border border-emerald-200 text-[10px] font-bold rounded-full">Đã xong</span>
+                                      <span className="px-2.5 py-0.5 bg-emerald-50 text-emerald-600 border border-emerald-200 text-[10px] font-bold rounded-full shrink-0">✓ Đã xong</span>
                                     ) : (
-                                      <span className="px-2.5 py-0.5 bg-orange-50 text-orange-600 border border-orange-200/80 text-[10px] font-bold rounded-full">Đang học</span>
+                                      <span className="px-2.5 py-0.5 bg-gradient-to-r from-orange-500 to-amber-500 text-white text-[10px] font-black rounded-full shadow-2xs shrink-0 tracking-wide uppercase">Cần làm</span>
                                     )}
                                   </div>
 
-                                  <div className="text-xs font-bold text-slate-500">
-                                    <strong className="text-orange-600 font-extrabold">{nL}</strong> / {nT} từ
+                                  <div className="text-xs font-bold text-slate-500 flex items-baseline gap-1">
+                                    <span className="text-sm font-black text-orange-600">{nL}</span>
+                                    <span className="text-slate-400 font-semibold text-xs">/ {nT} từ</span>
                                   </div>
 
                                   <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden w-full my-0.5">
                                     <div className="h-full bg-gradient-to-r from-orange-500 to-amber-500 rounded-full transition-all" style={{ width: `${newPct}%` }} />
-                                  </div>
-
-                                  <div className="text-[11px] text-slate-400 font-medium">
-                                    {s1 ? 'Đã hoàn thành 100%' : `Còn ${Math.max(0, nT - nL)} từ để hoàn thành`}
                                   </div>
                                 </div>
 
@@ -1969,20 +1966,21 @@ export default function Dashboard() {
                                   <FileText className="w-5.5 h-5.5" />
                                 </div>
 
-                                <div className="flex-1 min-w-0 flex flex-col gap-0.5">
-                                  <div className="flex items-center justify-between">
+                                <div className="flex-1 min-w-0 flex flex-col gap-1">
+                                  <div className="flex items-center justify-between gap-2">
                                     <span className="font-bold text-xs sm:text-sm text-slate-900 truncate">Test trắc nghiệm MCQ</span>
                                     {s2 ? (
-                                      <span className="px-2.5 py-0.5 bg-emerald-50 text-emerald-600 border border-emerald-200 text-[10px] font-bold rounded-full">Đã xong</span>
+                                      <span className="px-2.5 py-0.5 bg-emerald-50 text-emerald-600 border border-emerald-200 text-[10px] font-bold rounded-full shrink-0">✓ Đã xong</span>
                                     ) : s1 ? (
-                                      <span className="px-2.5 py-0.5 bg-orange-50 text-orange-600 border border-orange-200/80 text-[10px] font-bold rounded-full">Đang học</span>
+                                      <span className="px-2.5 py-0.5 bg-gradient-to-r from-orange-500 to-amber-500 text-white text-[10px] font-black rounded-full shadow-2xs shrink-0 tracking-wide uppercase">Cần làm</span>
                                     ) : (
-                                      <span className="px-2.5 py-0.5 bg-slate-100 text-slate-400 text-[10px] font-bold rounded-full">Khóa</span>
+                                      <span className="px-2 py-0.5 bg-slate-100 text-slate-400 text-[10px] font-bold rounded-full shrink-0">🔒 Khóa</span>
                                     )}
                                   </div>
 
-                                  <div className="text-xs font-bold text-slate-500">
-                                    <strong className={cn(s1 ? "text-orange-600 font-extrabold" : "text-slate-400")}>{mcqDone}</strong> / {mcqTarget} câu
+                                  <div className="text-xs font-bold text-slate-500 flex items-baseline gap-1">
+                                    <span className={cn("text-sm font-black", s1 ? "text-orange-600" : "text-slate-400")}>{mcqDone}</span>
+                                    <span className="text-slate-400 font-semibold text-xs">/ {mcqTarget} câu</span>
                                   </div>
 
                                   {s1 && (
@@ -1990,10 +1988,6 @@ export default function Dashboard() {
                                       <div className="h-full bg-gradient-to-r from-orange-500 to-amber-500 rounded-full transition-all" style={{ width: `${mcqPct}%` }} />
                                     </div>
                                   )}
-
-                                  <div className="text-[11px] text-slate-400 font-medium">
-                                    {s2 ? 'Đã hoàn thành bài test' : s1 ? 'Cần làm 10 câu trắc nghiệm' : '🔒 Hoàn thành bước trước để mở khóa'}
-                                  </div>
                                 </div>
 
                                 <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center shrink-0 text-slate-400">
@@ -2036,20 +2030,21 @@ export default function Dashboard() {
                                   <RotateCcw className="w-5.5 h-5.5" />
                                 </div>
 
-                                <div className="flex-1 min-w-0 flex flex-col gap-0.5">
-                                  <div className="flex items-center justify-between">
+                                <div className="flex-1 min-w-0 flex flex-col gap-1">
+                                  <div className="flex items-center justify-between gap-2">
                                     <span className="font-bold text-xs sm:text-sm text-slate-900 truncate">Ôn tập FSRS</span>
                                     {st.all_done ? (
-                                      <span className="px-2.5 py-0.5 bg-emerald-50 text-emerald-600 border border-emerald-200 text-[10px] font-bold rounded-full">Đã xong</span>
+                                      <span className="px-2.5 py-0.5 bg-emerald-50 text-emerald-600 border border-emerald-200 text-[10px] font-bold rounded-full shrink-0">✓ Đã xong</span>
                                     ) : s2 ? (
-                                      <span className="px-2.5 py-0.5 bg-orange-50 text-orange-600 border border-orange-200/80 text-[10px] font-bold rounded-full">Đang học</span>
+                                      <span className="px-2.5 py-0.5 bg-gradient-to-r from-orange-500 to-amber-500 text-white text-[10px] font-black rounded-full shadow-2xs shrink-0 tracking-wide uppercase">Cần làm</span>
                                     ) : (
-                                      <span className="px-2.5 py-0.5 bg-slate-100 text-slate-400 text-[10px] font-bold rounded-full">Khóa</span>
+                                      <span className="px-2 py-0.5 bg-slate-100 text-slate-400 text-[10px] font-bold rounded-full shrink-0">🔒 Khóa</span>
                                     )}
                                   </div>
 
-                                  <div className="text-xs font-bold text-slate-500">
-                                    <strong className={cn(s2 ? "text-orange-600 font-extrabold" : "text-slate-400")}>{rDn}</strong> / {rD} thẻ
+                                  <div className="text-xs font-bold text-slate-500 flex items-baseline gap-1">
+                                    <span className={cn("text-sm font-black", s2 ? "text-orange-600" : "text-slate-400")}>{rDn}</span>
+                                    <span className="text-slate-400 font-semibold text-xs">/ {rD} thẻ</span>
                                   </div>
 
                                   {s2 && (
@@ -2057,10 +2052,6 @@ export default function Dashboard() {
                                       <div className="h-full bg-gradient-to-r from-orange-500 to-amber-500 rounded-full transition-all" style={{ width: `${revPct}%` }} />
                                     </div>
                                   )}
-
-                                  <div className="text-[11px] text-slate-400 font-medium">
-                                    {st.all_done ? 'Đã xong ôn tập hôm nay' : s2 ? `Còn ${Math.max(0, rD - rDn)} thẻ cần ôn` : '🔒 Hoàn thành bước trước để mở khóa'}
-                                  </div>
                                 </div>
 
                                 <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center shrink-0 text-slate-400">
