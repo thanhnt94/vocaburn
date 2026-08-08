@@ -3642,45 +3642,81 @@ export default function FlashcardPlay() {
         {/* Live Dashboard HUD - Dynamic Realtime Step Progress */}
         <div className="bg-slate-100/50 border border-slate-200/40 rounded-xl p-0.5 flex items-center gap-0.5 md:gap-1.5 shadow-[inset_0_1px_2px_rgba(0,0,0,0.02)] flex-shrink-0 mr-0.5 md:mr-0">
           {(() => {
-            let label = 'Tiến độ';
-            let progressText = '--/--';
-            let Icon = Target;
-            let iconColorClass = 'bg-orange-50 text-orange-600';
-            
-            if (activeMode === 'roadmap' && roadmapStatus) {
-              const currentStep = roadmapStatus?.pipeline?.[roadmapStatus?.current_step_index || 0];
-              if (currentStep) {
-                if (currentStep.type === 'new_cards') {
-                  label = 'Từ Mới';
-                  Icon = Sparkles;
-                  iconColorClass = 'bg-orange-50 text-orange-600';
-                  const total = session?.questions?.length || currentStep.daily_count || 20;
-                  const curr = Math.min(total, currentIndex + 1);
-                  progressText = `${curr}/${total}`;
-                } else if (currentStep.type === 'mcq' || (currentStep.type as string) === 'mcq_quiz') {
-                  label = 'MCQ';
-                  Icon = Target;
-                  iconColorClass = 'bg-amber-50 text-amber-600';
-                  const total = session?.questions?.length || currentStep.daily_count || 10;
-                  const curr = Math.min(total, currentIndex + 1);
-                  progressText = `${curr}/${total}`;
-                } else if (currentStep.type === 'fsrs_review') {
-                  label = 'Ôn Tập';
-                  Icon = Brain;
-                  iconColorClass = 'bg-indigo-50 text-indigo-600';
-                  const total = session?.questions?.length || currentStep.progress?.due_count || 0;
-                  const curr = Math.min(total, currentIndex + 1);
-                  progressText = total > 0 ? `${curr}/${total}` : '0/0';
+            const getStepProgressInfo = () => {
+              if (activeMode === 'roadmap' && roadmapStatus) {
+                const currentStep = roadmapStatus?.pipeline?.[roadmapStatus?.current_step_index || 0];
+                if (currentStep) {
+                  if (currentStep.type === 'new_cards') {
+                    const dailyTarget = currentStep.daily_count || currentStep.progress?.target || roadmapStatus?.new_target_today || 20;
+                    const learnedToday = currentStep.progress?.learned || roadmapStatus?.new_learned_today || 0;
+                    const answeredInSession = Object.keys(sessionAnswers || {}).length;
+                    const curr = Math.min(dailyTarget, Math.max(1, learnedToday + answeredInSession + (sessionAnswers[currentIndex] !== undefined ? 0 : 1)));
+                    return {
+                      label: 'TỪ MỚI',
+                      Icon: Sparkles,
+                      iconColorClass: 'bg-orange-50 text-orange-600',
+                      curr,
+                      total: dailyTarget,
+                      progressText: `${curr}/${dailyTarget}`
+                    };
+                  } else if (currentStep.type === 'mcq' || (currentStep.type as string) === 'mcq_quiz') {
+                    const dailyTarget = currentStep.daily_count || 10;
+                    const answeredInSession = Object.keys(sessionAnswers || {}).length;
+                    const curr = Math.min(dailyTarget, Math.max(1, answeredInSession + 1));
+                    return {
+                      label: 'MCQ',
+                      Icon: Target,
+                      iconColorClass: 'bg-amber-50 text-amber-600',
+                      curr,
+                      total: dailyTarget,
+                      progressText: `${curr}/${dailyTarget}`
+                    };
+                  } else if (currentStep.type === 'fsrs_review') {
+                    const dailyTarget = currentStep.progress?.due_count || roadmapStatus?.review_due_today || session?.questions?.length || 0;
+                    const reviewedToday = roadmapStatus?.review_completed_today || 0;
+                    const answeredInSession = Object.keys(sessionAnswers || {}).length;
+                    const curr = dailyTarget > 0 ? Math.min(dailyTarget, Math.max(1, reviewedToday + answeredInSession + 1)) : 0;
+                    return {
+                      label: 'ÔN TẬP',
+                      Icon: Brain,
+                      iconColorClass: 'bg-indigo-50 text-indigo-600',
+                      curr,
+                      total: dailyTarget,
+                      progressText: dailyTarget > 0 ? `${curr}/${dailyTarget}` : '0/0'
+                    };
+                  }
                 }
+              } else if (activeMode === 'new') {
+                const dailyTarget = 20;
+                const answeredInSession = Object.keys(sessionAnswers || {}).length;
+                const curr = Math.min(dailyTarget, Math.max(1, answeredInSession + 1));
+                return {
+                  label: 'TỪ MỚI',
+                  Icon: Sparkles,
+                  iconColorClass: 'bg-orange-50 text-orange-600',
+                  curr,
+                  total: dailyTarget,
+                  progressText: `${curr}/${dailyTarget}`
+                };
               }
-            } else {
+
               const total = session?.questions?.length || 0;
               const curr = Math.min(total, currentIndex + 1);
-              label = activeMode === 'fsrs' ? 'Ôn Tập' : 'Bài Học';
-              Icon = activeMode === 'fsrs' ? Brain : BookOpen;
-              iconColorClass = activeMode === 'fsrs' ? 'bg-indigo-50 text-indigo-600' : 'bg-orange-50 text-orange-600';
-              progressText = total > 0 ? `${curr}/${total}` : '--';
-            }
+              return {
+                label: activeMode === 'fsrs' ? 'ÔN TẬP' : 'BÀI HỌC',
+                Icon: activeMode === 'fsrs' ? Brain : BookOpen,
+                iconColorClass: activeMode === 'fsrs' ? 'bg-indigo-50 text-indigo-600' : 'bg-orange-50 text-orange-600',
+                curr,
+                total,
+                progressText: total > 0 ? `${curr}/${total}` : '--'
+              };
+            };
+
+            const stepInfo = getStepProgressInfo();
+            const label = stepInfo.label;
+            const Icon = stepInfo.Icon;
+            const iconColorClass = stepInfo.iconColorClass;
+            const progressText = stepInfo.progressText;
 
             return (
               <div className="flex items-center bg-white/90 border border-slate-200/30 rounded-lg p-0.5 pr-1 md:pr-1.5 shadow-sm min-w-[56px] xs:min-w-[62px] md:min-w-[72px]" title={`Tiến độ hiện tại: ${label}`}>
@@ -4207,7 +4243,22 @@ export default function FlashcardPlay() {
                           FRONT CARD
                         </span>
                         <span className="text-[10px] font-black tracking-wider text-white bg-indigo-500 px-3 py-1.5 rounded-xl border border-indigo-600 shadow-sm">
-                          {currentIndex + 1}
+                          {(() => {
+                            if (activeMode === 'roadmap' && roadmapStatus) {
+                              const currentStep = roadmapStatus?.pipeline?.[roadmapStatus?.current_step_index || 0];
+                              if (currentStep?.type === 'new_cards') {
+                                const dailyTarget = currentStep.daily_count || currentStep.progress?.target || roadmapStatus?.new_target_today || 20;
+                                const learnedToday = currentStep.progress?.learned || roadmapStatus?.new_learned_today || 0;
+                                const answeredInSession = Object.keys(sessionAnswers || {}).length;
+                                return Math.min(dailyTarget, Math.max(1, learnedToday + answeredInSession + (sessionAnswers[currentIndex] !== undefined ? 0 : 1)));
+                              }
+                            } else if (activeMode === 'new') {
+                              const dailyTarget = 20;
+                              const answeredInSession = Object.keys(sessionAnswers || {}).length;
+                              return Math.min(dailyTarget, Math.max(1, answeredInSession + 1));
+                            }
+                            return currentIndex + 1;
+                          })()}
                         </span>
                       </div>
                       
@@ -4280,7 +4331,22 @@ export default function FlashcardPlay() {
                           BACK CARD
                         </span>
                         <span className="text-[10px] font-black tracking-wider text-white bg-indigo-500 px-3 py-1.5 rounded-xl border border-indigo-600 shadow-sm">
-                          {currentIndex + 1}
+                          {(() => {
+                            if (activeMode === 'roadmap' && roadmapStatus) {
+                              const currentStep = roadmapStatus?.pipeline?.[roadmapStatus?.current_step_index || 0];
+                              if (currentStep?.type === 'new_cards') {
+                                const dailyTarget = currentStep.daily_count || currentStep.progress?.target || roadmapStatus?.new_target_today || 20;
+                                const learnedToday = currentStep.progress?.learned || roadmapStatus?.new_learned_today || 0;
+                                const answeredInSession = Object.keys(sessionAnswers || {}).length;
+                                return Math.min(dailyTarget, Math.max(1, learnedToday + answeredInSession + (sessionAnswers[currentIndex] !== undefined ? 0 : 1)));
+                              }
+                            } else if (activeMode === 'new') {
+                              const dailyTarget = 20;
+                              const answeredInSession = Object.keys(sessionAnswers || {}).length;
+                              return Math.min(dailyTarget, Math.max(1, answeredInSession + 1));
+                            }
+                            return currentIndex + 1;
+                          })()}
                         </span>
                       </div>
                       
