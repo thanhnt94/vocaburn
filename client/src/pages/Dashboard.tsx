@@ -2055,22 +2055,22 @@ export default function Dashboard() {
                               </div>
 
                               <div className="flex-1 flex flex-col items-center justify-center text-center px-2">
-                                <span className="text-sm sm:text-base font-black tracking-tight leading-tight">
+                                <span className="text-sm sm:text-base font-black tracking-widest leading-tight uppercase">
                                   {!s1
-                                    ? 'Tiếp tục học • Học từ mới'
+                                    ? 'HỌC TỪ MỚI'
                                     : !s2
-                                    ? 'Bắt đầu • Test trắc nghiệm MCQ'
+                                    ? 'TRẮC NGHIỆM MCQ'
                                     : st.all_done
-                                    ? 'Hoàn thành lộ trình • Xem lại'
-                                    : 'Tiếp tục • Ôn tập FSRS'}
+                                    ? 'ĐÃ HOÀN THÀNH ✓'
+                                    : 'ÔN TẬP FSRS'}
                                 </span>
-                                <span className="text-[11px] sm:text-xs text-orange-100 font-semibold mt-0.5">
+                                <span className="text-[11px] sm:text-xs text-white/70 font-semibold mt-0.5 tracking-wide">
                                   {!s1
                                     ? `Còn ${Math.max(0, nT - nL)} từ hôm nay`
                                     : !s2
-                                    ? `Cần làm 10 câu trắc nghiệm`
+                                    ? `Cần đạt ≥80% để qua bước`
                                     : st.all_done
-                                    ? `Đã hoàn thành 100% chỉ tiêu`
+                                    ? `Hoàn thành 100% chỉ tiêu`
                                     : `Còn ${Math.max(0, rD - rDn)} thẻ hôm nay`}
                                 </span>
                               </div>
