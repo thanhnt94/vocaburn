@@ -3647,10 +3647,10 @@ export default function FlashcardPlay() {
                 const currentStep = roadmapStatus?.pipeline?.[roadmapStatus?.current_step_index || 0];
                 if (currentStep) {
                   if (currentStep.type === 'new_cards') {
-                    const dailyTarget = currentStep.daily_count || currentStep.progress?.target || roadmapStatus?.new_target_today || 20;
-                    const learnedToday = currentStep.progress?.learned || roadmapStatus?.new_learned_today || 0;
+                    const dailyTarget = currentStep.daily_count || currentStep.progress?.target || 20;
+                    const learnedToday = currentStep.progress?.learned ?? 0;
                     const answeredInSession = Object.keys(sessionAnswers || {}).length;
-                    const curr = Math.min(dailyTarget, Math.max(1, learnedToday + answeredInSession + (sessionAnswers[currentIndex] !== undefined ? 0 : 1)));
+                    const curr = Math.min(dailyTarget, learnedToday + answeredInSession);
                     return {
                       label: 'TỪ MỚI',
                       Icon: Sparkles,
@@ -3662,7 +3662,7 @@ export default function FlashcardPlay() {
                   } else if (currentStep.type === 'mcq' || (currentStep.type as string) === 'mcq_quiz') {
                     const dailyTarget = currentStep.daily_count || 10;
                     const answeredInSession = Object.keys(sessionAnswers || {}).length;
-                    const curr = Math.min(dailyTarget, Math.max(1, answeredInSession + 1));
+                    const curr = Math.min(dailyTarget, answeredInSession);
                     return {
                       label: 'MCQ',
                       Icon: Target,
@@ -3672,10 +3672,10 @@ export default function FlashcardPlay() {
                       progressText: `${curr}/${dailyTarget}`
                     };
                   } else if (currentStep.type === 'fsrs_review') {
-                    const dailyTarget = currentStep.progress?.due_count || roadmapStatus?.review_due_today || session?.questions?.length || 0;
-                    const reviewedToday = roadmapStatus?.review_completed_today || 0;
+                    const dailyTarget = currentStep.progress?.due_count ?? roadmapStatus?.review_due_today ?? session?.questions?.length ?? 0;
+                    const reviewedToday = currentStep.progress?.reviewed_today ?? 0;
                     const answeredInSession = Object.keys(sessionAnswers || {}).length;
-                    const curr = dailyTarget > 0 ? Math.min(dailyTarget, Math.max(1, reviewedToday + answeredInSession + 1)) : 0;
+                    const curr = dailyTarget > 0 ? Math.min(dailyTarget, reviewedToday + answeredInSession) : 0;
                     return {
                       label: 'ÔN TẬP',
                       Icon: Brain,
@@ -3689,7 +3689,7 @@ export default function FlashcardPlay() {
               } else if (activeMode === 'new') {
                 const dailyTarget = 20;
                 const answeredInSession = Object.keys(sessionAnswers || {}).length;
-                const curr = Math.min(dailyTarget, Math.max(1, answeredInSession + 1));
+                const curr = Math.min(dailyTarget, answeredInSession);
                 return {
                   label: 'TỪ MỚI',
                   Icon: Sparkles,
@@ -4247,8 +4247,8 @@ export default function FlashcardPlay() {
                             if (activeMode === 'roadmap' && roadmapStatus) {
                               const currentStep = roadmapStatus?.pipeline?.[roadmapStatus?.current_step_index || 0];
                               if (currentStep?.type === 'new_cards') {
-                                const dailyTarget = currentStep.daily_count || currentStep.progress?.target || roadmapStatus?.new_target_today || 20;
-                                const learnedToday = currentStep.progress?.learned || roadmapStatus?.new_learned_today || 0;
+                                const dailyTarget = currentStep.daily_count || currentStep.progress?.target || 20;
+                                const learnedToday = currentStep.progress?.learned ?? 0;
                                 const answeredInSession = Object.keys(sessionAnswers || {}).length;
                                 return Math.min(dailyTarget, Math.max(1, learnedToday + answeredInSession + (sessionAnswers[currentIndex] !== undefined ? 0 : 1)));
                               }
@@ -4335,8 +4335,8 @@ export default function FlashcardPlay() {
                             if (activeMode === 'roadmap' && roadmapStatus) {
                               const currentStep = roadmapStatus?.pipeline?.[roadmapStatus?.current_step_index || 0];
                               if (currentStep?.type === 'new_cards') {
-                                const dailyTarget = currentStep.daily_count || currentStep.progress?.target || roadmapStatus?.new_target_today || 20;
-                                const learnedToday = currentStep.progress?.learned || roadmapStatus?.new_learned_today || 0;
+                                const dailyTarget = currentStep.daily_count || currentStep.progress?.target || 20;
+                                const learnedToday = currentStep.progress?.learned ?? 0;
                                 const answeredInSession = Object.keys(sessionAnswers || {}).length;
                                 return Math.min(dailyTarget, Math.max(1, learnedToday + answeredInSession + (sessionAnswers[currentIndex] !== undefined ? 0 : 1)));
                               }
