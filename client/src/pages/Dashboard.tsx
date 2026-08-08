@@ -1163,9 +1163,14 @@ export default function Dashboard() {
   useEffect(() => {
     const updateCountdown = () => {
       const now = new Date()
-      const endOfDay = new Date()
-      endOfDay.setHours(23, 59, 59, 999)
-      const diffMs = Math.max(0, endOfDay.getTime() - now.getTime())
+      // VPS resets daily goal at 23:59:59 UTC
+      const endOfUtcDay = new Date(Date.UTC(
+        now.getUTCFullYear(),
+        now.getUTCMonth(),
+        now.getUTCDate(),
+        23, 59, 59, 999
+      ))
+      const diffMs = Math.max(0, endOfUtcDay.getTime() - now.getTime())
       const hours = Math.floor(diffMs / (1000 * 60 * 60))
       const minutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60))
       const seconds = Math.floor((diffMs % (1000 * 60)) / 1000)
@@ -1827,11 +1832,13 @@ export default function Dashboard() {
                                   {deck.level && <span className="text-slate-300 font-normal text-[11px] shrink-0">({deck.level})</span>}
                                 </div>
 
-                                {/* ⏱️ COUNTDOWN BADGE: Remaining time to complete today's goal */}
-                                <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-amber-500/15 text-amber-900 border border-amber-300/80 rounded-full text-xs font-black shadow-2xs shrink-0">
-                                  <Clock className="w-3.5 h-3.5 text-amber-600 shrink-0" />
-                                  <span>Còn {remainingTime}</span>
-                                </div>
+                                {/* ⏱️ COUNTDOWN BADGE: Remaining time to complete today's goal (only show when not done) */}
+                                {!st.all_done && (
+                                  <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-amber-500/15 text-amber-900 border border-amber-300/80 rounded-full text-xs font-black shadow-2xs shrink-0">
+                                    <Clock className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                                    <span>Còn {remainingTime}</span>
+                                  </div>
+                                )}
                               </div>
 
                               {/* SLOGAN TEXT */}
