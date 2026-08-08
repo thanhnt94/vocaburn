@@ -2876,14 +2876,15 @@ async def get_roadmap_decks(request: Request, db: AsyncSession = Depends(get_db)
 
 async def get_deck_streak_for_user(db: AsyncSession, user_id: int, deck_id: int) -> int:
     from datetime import datetime, date, timedelta
-    from app.modules.deck.models import UserAnswer, Flashcard
+    from app.modules.deck.models import UserAnswer, Flashcard, DeckAttempt
     from sqlalchemy import select, func
     
     active_dates_res = await db.execute(
         select(func.date(UserAnswer.created_at))
+        .join(DeckAttempt, UserAnswer.attempt_id == DeckAttempt.id)
         .join(Flashcard, UserAnswer.card_id == Flashcard.id)
         .where(
-            UserAnswer.user_id == user_id,
+            DeckAttempt.user_id == user_id,
             Flashcard.deck_id == deck_id
         )
         .group_by(func.date(UserAnswer.created_at))
