@@ -2874,9 +2874,61 @@ async def get_roadmap_decks(request: Request, db: AsyncSession = Depends(get_db)
     return {"decks": active_roadmaps}
 
 
+async def get_deck_streak_for_user(db: AsyncSession, user_id: int, deck_id: int) -> int:
+    from datetime import datetime, date, timedelta
+    from app.modules.deck.models import UserAnswer, Flashcard
+    from sqlalchemy import select, func
+    
+    active_dates_res = await db.execute(
+        select(func.date(UserAnswer.created_at))
+        .join(Flashcard, UserAnswer.card_id == Flashcard.id)
+        .where(
+            UserAnswer.user_id == user_id,
+            Flashcard.deck_id == deck_id
+        )
+        .group_by(func.date(UserAnswer.created_at))
+        .order_by(func.date(UserAnswer.created_at).desc())
+    )
+    active_dates = []
+    for row in active_dates_res.all():
+        val = row[0]
+        if not val:
+            continue
+        if isinstance(val, str):
+            try:
+                active_dates.append(date.fromisoformat(val))
+            except Exception:
+                pass
+        elif isinstance(val, datetime):
+            active_dates.append(val.date())
+        elif isinstance(val, date):
+            active_dates.append(val)
+
+    if not active_dates:
+        return 0
+        
+    today_date = datetime.utcnow().date()
+    yesterday_date = today_date - timedelta(days=1)
+    if active_dates[0] != today_date and active_dates[0] != yesterday_date:
+        return 0
+        
+    streak = 1
+    current_date = active_dates[0]
+    for date_val in active_dates[1:]:
+        if (current_date - date_val).days == 1:
+            streak += 1
+            current_date = date_val
+        elif (current_date - date_val).days == 0:
+            continue
+        else:
+            break
+            
+    return streak
+
+
 @router.get("/{deck_id}/leaderboard")
 async def get_deck_leaderboard(request: Request, deck_id: int, db: AsyncSession = Depends(get_db)):
-    """Get top users studying this deck with their learned cards count, streak, and rank."""
+    """Get top users studying this deck with their learned cards count, deck streak, and rank."""
     from app.modules.auth.models import User
     from app.modules.gamification.models import UserGamification
     from app.modules.deck.models import Flashcard, UserCardMastery
@@ -2890,7 +2942,6 @@ async def get_deck_leaderboard(request: Request, deck_id: int, db: AsyncSession 
             User.username,
             User.full_name,
             func.count(func.distinct(case((UserCardMastery.state > 0, UserCardMastery.card_id)))).label("learned_cards"),
-            func.coalesce(UserGamification.streak_count, 0).label("streak"),
             func.coalesce(UserGamification.xp, 0).label("xp")
         )
         .join(UserCardMastery, User.id == UserCardMastery.user_id)
@@ -2899,10 +2950,10 @@ async def get_deck_leaderboard(request: Request, deck_id: int, db: AsyncSession 
         .where(
             Flashcard.deck_id == deck_id
         )
-        .group_by(User.id, User.username, User.full_name, UserGamification.streak_count, UserGamification.xp)
+        .group_by(User.id, User.username, User.full_name, UserGamification.xp)
         .order_by(
             func.count(func.distinct(case((UserCardMastery.state > 0, UserCardMastery.card_id)))).desc(),
-            func.coalesce(UserGamification.streak_count, 0).desc()
+            func.coalesce(UserGamification.xp, 0).desc()
         )
         .limit(20)
     )
@@ -2912,13 +2963,14 @@ async def get_deck_leaderboard(request: Request, deck_id: int, db: AsyncSession 
     
     leaderboard = []
     for rank, r in enumerate(rows, start=1):
+        deck_streak = await get_deck_streak_for_user(db, r.user_id, deck_id)
         leaderboard.append({
             "rank": rank,
             "user_id": r.user_id,
             "username": r.full_name or r.username or f"Người học #{r.user_id}",
             "avatar": None,
             "learned_cards": r.learned_cards or 0,
-            "streak": r.streak or 0,
+            "streak": deck_streak,
             "xp": r.xp or 0,
             "is_current_user": r.user_id == current_user_id
         })
