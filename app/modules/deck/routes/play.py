@@ -2880,6 +2880,7 @@ async def get_deck_leaderboard(request: Request, deck_id: int, db: AsyncSession 
     from app.modules.auth.models import User
     from app.modules.gamification.models import UserGamification
     from app.modules.deck.models import Flashcard, UserCardMastery
+    from sqlalchemy import case
     
     current_user_id = int(request.cookies.get("user_id", 1))
     
@@ -2887,8 +2888,8 @@ async def get_deck_leaderboard(request: Request, deck_id: int, db: AsyncSession 
         select(
             User.id.label("user_id"),
             User.username,
-            User.avatar.label("avatar"),
-            func.count(func.distinct(UserCardMastery.card_id)).label("learned_cards"),
+            User.full_name,
+            func.count(func.distinct(case((UserCardMastery.state > 0, UserCardMastery.card_id)))).label("learned_cards"),
             func.coalesce(UserGamification.streak_count, 0).label("streak"),
             func.coalesce(UserGamification.xp, 0).label("xp")
         )
@@ -2896,11 +2897,13 @@ async def get_deck_leaderboard(request: Request, deck_id: int, db: AsyncSession 
         .join(Flashcard, UserCardMastery.card_id == Flashcard.id)
         .outerjoin(UserGamification, UserGamification.user_id == User.id)
         .where(
-            Flashcard.deck_id == deck_id,
-            UserCardMastery.state > 0
+            Flashcard.deck_id == deck_id
         )
-        .group_by(User.id, User.username, User.avatar, UserGamification.streak_count, UserGamification.xp)
-        .order_by(func.count(func.distinct(UserCardMastery.card_id)).desc(), UserGamification.streak_count.desc())
+        .group_by(User.id, User.username, User.full_name, UserGamification.streak_count, UserGamification.xp)
+        .order_by(
+            func.count(func.distinct(case((UserCardMastery.state > 0, UserCardMastery.card_id)))).desc(),
+            func.coalesce(UserGamification.streak_count, 0).desc()
+        )
         .limit(20)
     )
     
@@ -2912,11 +2915,11 @@ async def get_deck_leaderboard(request: Request, deck_id: int, db: AsyncSession 
         leaderboard.append({
             "rank": rank,
             "user_id": r.user_id,
-            "username": r.username or f"Người học #{r.user_id}",
-            "avatar": r.avatar,
-            "learned_cards": r.learned_cards,
-            "streak": r.streak,
-            "xp": r.xp,
+            "username": r.full_name or r.username or f"Người học #{r.user_id}",
+            "avatar": None,
+            "learned_cards": r.learned_cards or 0,
+            "streak": r.streak or 0,
+            "xp": r.xp or 0,
             "is_current_user": r.user_id == current_user_id
         })
         
