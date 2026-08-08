@@ -45,13 +45,11 @@ Vocaburn tách biệt nghiêm ngặt miền nghiệp vụ giữa 8 module trong 
 ## 5. Đóng gói Frontend & Deploy VPS
 
 - **Cổng Hoạt động Quy định**: **5090** (Backend FastAPI + Phục vụ Static SPA Frontend).
-- **Biên dịch Frontend**: Trước khi thử nghiệm nghiệm thu hoặc đẩy mã nguồn lên VPS, bắt buộc phải chạy lệnh biên dịch giao diện:
-  ```bash
-  python build_vite.py
-  ```
-  *(Lệnh này đóng gói ứng dụng React từ `client/` sang thư mục sản phẩm tĩnh `app/static/dist`)*.
-- **Triển khai lên VPS**: Chạy công cụ tự động hóa [remote_update_vocaburn.py](file:///c:/Code/Ecosystem/remote_update_vocaburn.py) ở thư mục cấp Ecosystem để đẩy mã nguồn lên GitHub và kích hoạt lệnh cập nhật trên VPS qua SSH.
-  - *Lưu ý cho AI Agent*: Khi chạy script `remote_update_vocaburn.py`, **không chạy vòng lặp polling/monitoring** chờ lệnh kết thúc. Lập tức kết thúc lượt phản hồi và thông báo cho người dùng để tránh tốn token và giật lag.
+- **Biên dịch Frontend**: Script `remote_update_vocaburn.py` đã tích hợp sẵn lệnh `build_vite.py` (`npm run build`).
+- **Lưu ý cho AI Agent**:
+  - **KHÔNG chạy `npm run build` thủ công** hoặc đợi build trong background tasks.
+  - **KHÔNG chạy vòng lặp polling/monitoring** sau khi gọi `remote_update_vocaburn.py`.
+  - Sửa code xong là phản hồi ngay cho người dùng để tiết kiệm tối đa token và không làm gián đoạn trải nghiệm.
 
 ---
 

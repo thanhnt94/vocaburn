@@ -2874,6 +2874,55 @@ async def get_roadmap_decks(request: Request, db: AsyncSession = Depends(get_db)
     return {"decks": active_roadmaps}
 
 
+@router.get("/{deck_id}/leaderboard")
+async def get_deck_leaderboard(request: Request, deck_id: int, db: AsyncSession = Depends(get_db)):
+    """Get top users studying this deck with their learned cards count, streak, and rank."""
+    from app.modules.auth.models import User
+    from app.modules.gamification.models import UserGamification
+    from app.modules.deck.models import Flashcard, UserCardMastery
+    
+    current_user_id = int(request.cookies.get("user_id", 1))
+    
+    stmt = (
+        select(
+            User.id.label("user_id"),
+            User.username,
+            User.avatar.label("avatar"),
+            func.count(func.distinct(UserCardMastery.card_id)).label("learned_cards"),
+            func.coalesce(UserGamification.streak_count, 0).label("streak"),
+            func.coalesce(UserGamification.xp, 0).label("xp")
+        )
+        .join(UserCardMastery, User.id == UserCardMastery.user_id)
+        .join(Flashcard, UserCardMastery.card_id == Flashcard.id)
+        .outerjoin(UserGamification, UserGamification.user_id == User.id)
+        .where(
+            Flashcard.deck_id == deck_id,
+            UserCardMastery.state > 0
+        )
+        .group_by(User.id, User.username, User.avatar, UserGamification.streak_count, UserGamification.xp)
+        .order_by(func.count(func.distinct(UserCardMastery.card_id)).desc(), UserGamification.streak_count.desc())
+        .limit(20)
+    )
+    
+    res = await db.execute(stmt)
+    rows = res.all()
+    
+    leaderboard = []
+    for rank, r in enumerate(rows, start=1):
+        leaderboard.append({
+            "rank": rank,
+            "user_id": r.user_id,
+            "username": r.username or f"Người học #{r.user_id}",
+            "avatar": r.avatar,
+            "learned_cards": r.learned_cards,
+            "streak": r.streak,
+            "xp": r.xp,
+            "is_current_user": r.user_id == current_user_id
+        })
+        
+    return {"leaderboard": leaderboard}
+
+
 @router.get("/{deck_id}/roadmap-status")
 async def get_deck_roadmap_status(request: Request, deck_id: int, target_date: Optional[str] = Query(None), db: AsyncSession = Depends(get_db)):
     user_id = int(request.cookies.get("user_id", 1))
