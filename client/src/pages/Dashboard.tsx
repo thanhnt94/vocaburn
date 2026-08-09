@@ -2102,7 +2102,7 @@ export default function Dashboard() {
 
                           </div>
 
-                          {/* CTA PILL ACTION BUTTON (PROMINENT, VIBRANT & GLOWING) */}
+                          {/* CTA PILL ACTION BUTTON (3D TACTILE FIERY SUNSET & OUTFIT TYPOGRAPHY) */}
                           <div className="pt-2 flex-shrink-0">
                             <button
                               onClick={() => { 
@@ -2110,19 +2110,19 @@ export default function Dashboard() {
                                 if (nUrl) navigate(nUrl); 
                                 else navigate(`/flashcard/${deck.deck_id}`); 
                               }}
-                              className="w-full relative overflow-hidden bg-gradient-to-r from-orange-500 via-amber-500 to-rose-600 hover:from-orange-600 hover:via-amber-600 hover:to-rose-700 text-white rounded-2xl p-3 sm:p-3.5 flex items-center justify-between shadow-[0_10px_28px_-4px_rgba(249,115,22,0.45)] hover:shadow-[0_14px_35px_-4px_rgba(249,115,22,0.6)] active:scale-[0.98] transition-all duration-300 cursor-pointer group border border-white/30"
+                              className="w-full relative overflow-hidden bg-gradient-to-r from-amber-500 via-orange-500 to-red-600 hover:from-amber-600 hover:via-orange-600 hover:to-red-700 text-white rounded-2xl p-3 sm:p-3.5 flex items-center justify-between border-t border-x border-white/40 border-b-4 border-red-800/80 shadow-[0_12px_28px_-4px_rgba(234,88,12,0.5)] active:border-b-0 active:translate-y-1 transition-all duration-150 cursor-pointer group"
                             >
                               {/* Animated Light Shimmer Beam */}
-                              <div className="absolute inset-0 w-1/3 h-full bg-gradient-to-r from-transparent via-white/30 to-transparent -skew-x-12 animate-shimmer-sweep pointer-events-none" />
+                              <div className="absolute inset-0 w-1/3 h-full bg-gradient-to-r from-transparent via-white/35 to-transparent -skew-x-12 animate-shimmer-sweep pointer-events-none" />
 
-                              {/* Left Icon: Glowing Frosted Glass Circle */}
-                              <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl bg-white/20 backdrop-blur-md border border-white/40 flex items-center justify-center shrink-0 shadow-inner group-hover:scale-110 group-hover:rotate-3 transition-all duration-300">
-                                <Play className="w-5 h-5 sm:w-6 sm:h-6 fill-white text-white ml-0.5 drop-shadow-[0_2px_4px_rgba(0,0,0,0.2)]" />
+                              {/* Left Icon: White Pill Circle with Flame Orange Play Icon */}
+                              <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl bg-white text-orange-600 flex items-center justify-center shrink-0 shadow-md shadow-black/20 group-hover:scale-110 group-hover:rotate-3 transition-all duration-300 z-10">
+                                <Play className="w-5 h-5 sm:w-6 sm:h-6 fill-orange-600 ml-0.5" />
                               </div>
 
-                              {/* Center Text Section */}
+                              {/* Center Text Section with Outfit & Be Vietnam Pro Typography */}
                               <div className="flex-1 flex flex-col items-center justify-center text-center px-3 relative z-10">
-                                <span className="text-sm sm:text-base font-black tracking-wider leading-tight uppercase drop-shadow-[0_2px_4px_rgba(0,0,0,0.25)] flex items-center gap-1.5">
+                                <span className="font-['Outfit'] font-[900] text-base sm:text-lg tracking-widest leading-tight uppercase text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)] flex items-center gap-1.5">
                                   {!s1
                                     ? '🚀 HỌC TỪ MỚI'
                                     : !s2
@@ -2131,7 +2131,7 @@ export default function Dashboard() {
                                     ? '🎉 ĐÃ HOÀN THÀNH ✓'
                                     : '🧠 ÔN TẬP FSRS'}
                                 </span>
-                                <span className="text-[11px] sm:text-xs text-amber-100 font-extrabold mt-0.5 tracking-wide drop-shadow-xs">
+                                <span className="font-['Be_Vietnam_Pro'] font-extrabold text-[11px] sm:text-xs text-amber-200 mt-0.5 tracking-wide drop-shadow-[0_1px_2px_rgba(0,0,0,0.4)]">
                                   {!s1
                                     ? `Còn ${Math.max(0, nT - nL)} từ hôm nay • Bắt đầu ngay ⚡`
                                     : !s2
@@ -2143,7 +2143,7 @@ export default function Dashboard() {
                               </div>
 
                               {/* Right Arrow Action Circle */}
-                              <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl bg-white text-orange-600 flex items-center justify-center shrink-0 shadow-md shadow-orange-950/20 group-hover:scale-110 group-hover:translate-x-1 transition-all duration-300">
+                              <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl bg-amber-100/95 text-red-600 flex items-center justify-center shrink-0 shadow-md shadow-black/20 group-hover:scale-110 group-hover:translate-x-1 transition-all duration-300 z-10">
                                 <ChevronRight className="w-6 h-6 stroke-[3]" />
                               </div>
                             </button>
