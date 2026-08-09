@@ -875,23 +875,47 @@ export default function DeckRoadmap() {
                         <div
                           key={item.user_id}
                           className={cn(
-                            "p-2.5 rounded-xl border flex items-center justify-between gap-2 text-xs",
+                            "p-2.5 rounded-xl border flex items-center justify-between gap-2 text-xs transition-all",
                             item.is_current_user
                               ? "bg-amber-50/80 border-amber-300 ring-1 ring-amber-500/20"
                               : "bg-slate-50/80 border-slate-200/60"
                           )}
                         >
                           <div className="flex items-center gap-2 min-w-0">
-                            <span className="w-5 h-5 rounded-md bg-slate-200 text-slate-700 text-[10px] font-black flex items-center justify-center shrink-0">
+                            <span className={cn(
+                              "w-6 h-6 rounded-lg text-xs font-black flex items-center justify-center shrink-0 shadow-2xs",
+                              item.rank === 1 ? "bg-amber-400 text-amber-950" :
+                              item.rank === 2 ? "bg-slate-300 text-slate-900" :
+                              item.rank === 3 ? "bg-amber-700 text-amber-50" :
+                              "bg-slate-200 text-slate-600"
+                            )}>
                               {item.rank === 1 ? '🥇' : item.rank === 2 ? '🥈' : item.rank === 3 ? '🥉' : `#${item.rank}`}
                             </span>
-                            <span className="font-black text-slate-900 truncate">{item.username}</span>
-                            {item.is_current_user && (
-                              <span className="px-1 py-0.2 bg-amber-200 text-amber-900 text-[8px] font-black rounded">Bạn</span>
-                            )}
+
+                            <div className="w-7 h-7 rounded-full bg-slate-200 border border-slate-300 overflow-hidden flex items-center justify-center shrink-0">
+                              {item.avatar ? (
+                                <img src={item.avatar} alt={item.username} className="w-full h-full object-cover" />
+                              ) : (
+                                <User className="w-3.5 h-3.5 text-slate-500" />
+                              )}
+                            </div>
+
+                            <div className="min-w-0">
+                              <div className="font-black text-slate-900 truncate flex items-center gap-1">
+                                <span>{item.username}</span>
+                                {item.is_current_user && (
+                                  <span className="px-1 py-0.2 bg-amber-200 text-amber-900 text-[8px] font-black rounded">Bạn</span>
+                                )}
+                              </div>
+                              <div className="text-[9px] font-bold text-slate-400">
+                                🔥 {item.streak || 0}d streak
+                              </div>
+                            </div>
                           </div>
+
                           <div className="text-right shrink-0">
-                            <span className="font-black text-orange-600">{item.learned_cards || 0} thẻ</span>
+                            <div className="font-black text-orange-600 text-xs">{item.learned_cards || 0} thẻ</div>
+                            <div className="text-[9px] font-bold text-slate-400">{item.xp || 0} XP</div>
                           </div>
                         </div>
                       ))}
