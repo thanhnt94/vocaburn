@@ -2421,7 +2421,7 @@ async def update_contribution_status(
 
 
 async def get_deck_roadmap_status_helper(db: AsyncSession, user_id: int, deck_id: int, settings: dict, target_date_str: Optional[str] = None) -> dict:
-    from app.modules.deck.models import FlashcardDeck, Flashcard, UserCardMastery, UserAnswer, DeckAttempt
+    from app.modules.deck.models import FlashcardDeck, Flashcard, UserCardMastery, UserAnswer, DeckAttempt, UserDeckGoal, UserDailyProgress
     deck_obj = await db.get(FlashcardDeck, deck_id)
     deck_practice_settings = deck_obj.practice_settings if (deck_obj and isinstance(deck_obj.practice_settings, dict)) else {}
 
