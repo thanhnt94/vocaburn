@@ -939,7 +939,7 @@ export default function DeckRoadmap() {
                 if (navigator.vibrate) navigator.vibrate(10);
                 navigate(s.next_action_url || `/flashcard/${id}/play?mode=roadmap`);
               }}
-              className="w-full relative overflow-hidden py-3.5 bg-gradient-to-r from-orange-500 via-amber-500 to-rose-600 hover:from-orange-600 hover:via-amber-600 hover:to-rose-700 text-white rounded-2xl font-black text-xs sm:text-sm uppercase tracking-widest shadow-[0_10px_25px_-4px_rgba(249,115,22,0.45)] hover:shadow-[0_14px_35px_-4px_rgba(249,115,22,0.6)] active:scale-98 transition-all flex items-center justify-center gap-2 cursor-pointer border border-white/30 group"
+              className="w-full relative overflow-hidden py-3.5 bg-gradient-to-r from-orange-600 via-amber-600 to-orange-700 hover:from-orange-700 hover:to-amber-700 text-white rounded-2xl font-black text-xs sm:text-sm uppercase tracking-widest shadow-[0_10px_28px_-4px_rgba(234,88,12,0.5)] hover:shadow-[0_14px_35px_-4px_rgba(234,88,12,0.65)] active:scale-98 transition-all flex items-center justify-center gap-2 cursor-pointer border-2 border-amber-200/70 group"
             >
               <div className="absolute inset-0 w-1/3 h-full bg-gradient-to-r from-transparent via-white/30 to-transparent -skew-x-12 animate-shimmer-sweep pointer-events-none" />
               <Play className="w-4.5 h-4.5 fill-white group-hover:scale-110 transition-transform drop-shadow-xs" />
