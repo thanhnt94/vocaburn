@@ -3075,23 +3075,22 @@ async def get_deck_roadmap_calendar(request: Request, deck_id: int, month: str =
         # Estimate completion percent based on dynamic goal
         completion_percent = 0
         if is_active:
-            answer_count = info["answer_count"]
-            if day_date < date.today():
-                if answer_count > daily_card_target:
-                    completion_percent = 150
-                else:
+            if settings.get("roadmap_active"):
+                st = await get_deck_roadmap_status_helper(db, user_id, deck_id, settings, target_date_str=day_str)
+                if st.get("all_done"):
                     completion_percent = 100
+                else:
+                    completion_percent = 50
             else:
-                if answer_count > daily_card_target:
-                    completion_percent = 150
-                elif answer_count == daily_card_target or study_minutes >= 10:
+                answer_count = info["answer_count"]
+                if answer_count >= daily_card_target:
+                    completion_percent = 100
+                elif study_minutes >= 10:
                     completion_percent = 100
                 elif study_minutes >= 5:
                     completion_percent = 75
-                elif study_minutes >= 2:
-                    completion_percent = 50
                 else:
-                    completion_percent = 25
+                    completion_percent = 50
         
         days.append({
             "date": day_str,
