@@ -4,11 +4,48 @@ import axios from 'axios'
 // Set default credentials handling so cookies are automatically sent/received
 axios.defaults.withCredentials = true;
 
+export interface UserSettings {
+  theme: 'light' | 'dark'
+  focus_timer_active: boolean
+  sfx_enabled: boolean
+  haptic_enabled: boolean
+  autoplay_audio: 'never' | 'always' | 'question'
+  quick_learn_enabled: boolean
+  random_enabled: boolean
+  show_images: string
+  show_fsrs: boolean
+  quiz_learning_mode: 'fsrs' | 'leitner' | 'practice'
+  practice_submode: 'mcq' | 'typing' | 'listening'
+  practice_range: 'all' | 'learned'
+  score_mode: 'today' | 'all'
+  time_mode: 'card' | 'today' | 'all'
+  last_deck_id?: number | null
+}
+
+export const DEFAULT_USER_SETTINGS: UserSettings = {
+  theme: 'light',
+  focus_timer_active: true,
+  sfx_enabled: true,
+  haptic_enabled: true,
+  autoplay_audio: 'never',
+  quick_learn_enabled: false,
+  random_enabled: false,
+  show_images: 'always',
+  show_fsrs: true,
+  quiz_learning_mode: 'fsrs',
+  practice_submode: 'mcq',
+  practice_range: 'all',
+  score_mode: 'all',
+  time_mode: 'card',
+  last_deck_id: null,
+}
+
 interface User {
   id: number;
   username: string;
   email?: string;
   role: string;
+  settings?: UserSettings;
 }
 
 interface Gamify {
@@ -25,6 +62,7 @@ interface AuthConfig {
 
 interface AppState {
   user: User | null;
+  userSettings: UserSettings;
   gamify: Gamify;
   isSidebarOpen: boolean;
   authConfig: AuthConfig | null;
@@ -33,6 +71,8 @@ interface AppState {
   
   // Actions
   setUser: (user: User | null) => void;
+  setUserSettings: (settings: Partial<UserSettings>) => void;
+  updateUserSettings: (partialSettings: Partial<UserSettings>) => Promise<void>;
   setGamify: (gamify: Gamify) => void;
   toggleSidebar: () => void;
   fetchAuthConfig: () => Promise<void>;
@@ -44,6 +84,7 @@ interface AppState {
 
 export const useAppStore = create<AppState>((set, get) => ({
   user: null,
+  userSettings: DEFAULT_USER_SETTINGS,
   gamify: { level: 1, xp: 0, streak: 0 },
   isSidebarOpen: false,
   authConfig: null,
@@ -51,6 +92,19 @@ export const useAppStore = create<AppState>((set, get) => ({
   isLoading: true,
 
   setUser: (user) => set({ user, isLoggedIn: !!user }),
+  setUserSettings: (settings) => set((state) => ({ userSettings: { ...state.userSettings, ...settings } })),
+  
+  updateUserSettings: async (partialSettings) => {
+    set((state) => ({
+      userSettings: { ...state.userSettings, ...partialSettings }
+    }))
+    try {
+      await axios.patch('/api/v1/user/settings', partialSettings)
+    } catch (e) {
+      console.error("Failed to persist user settings to DB", e)
+    }
+  },
+
   setGamify: (gamify) => set({ gamify }),
   toggleSidebar: () => set((state) => ({ isSidebarOpen: !state.isSidebarOpen })),
   addXp: (amount) => set((state) => ({ gamify: { ...state.gamify, xp: state.gamify.xp + amount } })),
@@ -68,13 +122,20 @@ export const useAppStore = create<AppState>((set, get) => ({
     try {
       const res = await axios.get('/api/v1/auth/me')
       if (res.data && res.data.user) {
-        set({ user: res.data.user, isLoggedIn: true, isLoading: false })
+        const u = res.data.user
+        const fetchedSettings = u.settings || {}
+        set({ 
+          user: u, 
+          userSettings: { ...DEFAULT_USER_SETTINGS, ...fetchedSettings },
+          isLoggedIn: true, 
+          isLoading: false 
+        })
       } else {
-        set({ user: null, isLoggedIn: false, isLoading: false })
+        set({ user: null, userSettings: DEFAULT_USER_SETTINGS, isLoggedIn: false, isLoading: false })
       }
     } catch (e) {
       console.error("Failed to fetch user state", e)
-      set({ user: null, isLoggedIn: false, isLoading: false })
+      set({ user: null, userSettings: DEFAULT_USER_SETTINGS, isLoggedIn: false, isLoading: false })
     }
   },
 
@@ -82,7 +143,13 @@ export const useAppStore = create<AppState>((set, get) => ({
     try {
       const res = await axios.post('/api/v1/auth/login', credentials)
       if (res.data.status === 'success') {
-        set({ user: res.data.user, isLoggedIn: true })
+        const u = res.data.user
+        const fetchedSettings = u.settings || {}
+        set({ 
+          user: u, 
+          userSettings: { ...DEFAULT_USER_SETTINGS, ...fetchedSettings },
+          isLoggedIn: true 
+        })
         return { success: true }
       } else {
         return { success: false, error: res.data.message || 'Login failed' }
@@ -94,8 +161,6 @@ export const useAppStore = create<AppState>((set, get) => ({
   },
 
   logout: async () => {
-    // Navigate directly to the backend logout endpoint 
-    // so the browser can properly follow the 303 redirect to the SSO portal
     window.location.href = '/logout'
   }
 }))

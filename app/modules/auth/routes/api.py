@@ -5,20 +5,41 @@ from app.core.db import get_db
 from app.modules.auth.services.auth_service import AuthService
 from app.modules.sso_module.service import SSOService
 
+from app.modules.auth.services.user_settings_service import UserSettingsService
+
 router = APIRouter(tags=["Auth"])
 
 @router.get("/auth/me")
 async def get_me(request: Request, db: AsyncSession = Depends(get_db)):
     user = await AuthService.get_current_user(request, db)
     if not user: return {"user": None}
+    
+    settings_obj = await UserSettingsService.get_or_create_settings(db, user.id)
     return {
         "user": {
             "id": user.id,
             "username": user.username,
             "email": user.email,
-            "role": user.role
+            "role": user.role,
+            "settings": UserSettingsService.to_dict(settings_obj)
         }
     }
+
+@router.get("/user/settings")
+async def get_user_settings(request: Request, db: AsyncSession = Depends(get_db)):
+    user = await AuthService.get_current_user(request, db)
+    if not user:
+        raise HTTPException(status_code=401, detail="Unauthorized")
+    settings_obj = await UserSettingsService.get_or_create_settings(db, user.id)
+    return {"status": "success", "settings": UserSettingsService.to_dict(settings_obj)}
+
+@router.patch("/user/settings")
+async def update_user_settings(request: Request, data: dict, db: AsyncSession = Depends(get_db)):
+    user = await AuthService.get_current_user(request, db)
+    if not user:
+        raise HTTPException(status_code=401, detail="Unauthorized")
+    updated_obj = await UserSettingsService.update_settings(db, user.id, data)
+    return {"status": "success", "settings": UserSettingsService.to_dict(updated_obj)}
 
 @router.post("/auth/login")
 async def login_api(

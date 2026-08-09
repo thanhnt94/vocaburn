@@ -1,25 +1,19 @@
-import { useState, useRef } from 'react';
+import { useRef } from 'react';
 import axios from 'axios';
-import { speakMultiLanguage, speakWithEdgeTTS } from '@/lib/audio';
+import { speakWithEdgeTTS } from '@/lib/audio';
+import { useAppStore } from '@/store/useAppStore';
 
 export type AutoPlayMode = 'always' | 'front' | 'back' | 'none';
 
 export function useFlashcardAudio(currentQuestion: any, practiceSettings?: any) {
   const activeAudioRef = useRef<HTMLAudioElement | null>(null);
   const currentQuestionIdRef = useRef<number | null>(null);
+  const { userSettings, updateUserSettings } = useAppStore();
 
-  const [autoPlayAudio, setAutoPlayAudioState] = useState<AutoPlayMode>(() => {
-    if (typeof window !== 'undefined') {
-      return (localStorage.getItem('vocaburn_autoplay_audio') as AutoPlayMode) || 'none';
-    }
-    return 'none';
-  });
+  const autoPlayAudio = (userSettings.autoplay_audio as AutoPlayMode) || 'none';
 
   const setAutoPlayAudio = (mode: AutoPlayMode) => {
-    setAutoPlayAudioState(mode);
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('vocaburn_autoplay_audio', mode);
-    }
+    updateUserSettings({ autoplay_audio: mode });
   };
 
   const stopAudio = () => {

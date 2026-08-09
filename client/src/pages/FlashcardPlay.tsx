@@ -369,6 +369,7 @@ export default function FlashcardPlay() {
     nextActionLabel
   } = useRoadmapStatus(id)
   
+  const { userSettings, updateUserSettings } = useAppStore()
   const [session, setSession] = useState<any>(null)
   const [currentIndex, setCurrentIndex] = useState(-1)
   const [showAbsoluteFirst, setShowAbsoluteFirst] = useState(false)
@@ -378,8 +379,8 @@ export default function FlashcardPlay() {
   const [isUtilityMenuOpen, setIsUtilityMenuOpen] = useState(false)
 
   useEffect(() => {
-    if (id && id !== 'quick') {
-      localStorage.setItem('vocaburn_last_deck_id', id);
+    if (id && id !== 'quick' && !isNaN(Number(id))) {
+      updateUserSettings({ last_deck_id: Number(id) });
     }
   }, [id]);
 
@@ -540,13 +541,12 @@ export default function FlashcardPlay() {
   const [initialTodayXP, setInitialTodayXP] = useState(0)
   const [initialTodayTime, setInitialTodayTime] = useState(0)
   const [initialAllTimeTime, setInitialAllTimeTime] = useState(0)
-  const [scoreMode, setScoreMode] = useState<'today' | 'all'>(() => (localStorage.getItem('vocaburn_score_mode') as 'today' | 'all') || 'all')
-  const [timeMode, setTimeMode] = useState<'card' | 'today' | 'all'>(() => (localStorage.getItem('vocaburn_time_mode') as 'card' | 'today' | 'all') || 'card')
+  const scoreMode = userSettings.score_mode || 'all'
+  const timeMode = userSettings.time_mode || 'card'
 
   const toggleScoreMode = () => {
     const nextMode = scoreMode === 'all' ? 'today' : 'all'
-    setScoreMode(nextMode)
-    localStorage.setItem('vocaburn_score_mode', nextMode)
+    updateUserSettings({ score_mode: nextMode })
   }
 
   const toggleTimeMode = () => {
@@ -554,8 +554,7 @@ export default function FlashcardPlay() {
     if (timeMode === 'card') nextMode = 'today'
     else if (timeMode === 'today') nextMode = 'all'
     else nextMode = 'card'
-    setTimeMode(nextMode)
-    localStorage.setItem('vocaburn_time_mode', nextMode)
+    updateUserSettings({ time_mode: nextMode })
   }
 
   const formatHeaderTime = (seconds: number) => {
@@ -613,10 +612,10 @@ export default function FlashcardPlay() {
     const searchParams = new URLSearchParams(window.location.search);
     const urlMode = searchParams.get('mode');
     if (urlMode === 'new' || urlMode === 'fsrs' || urlMode === 'roadmap' || urlMode === 'review') {
-      localStorage.setItem('quiz_learning_mode', urlMode);
+      updateUserSettings({ quiz_learning_mode: urlMode as any });
       return urlMode;
     }
-    return localStorage.getItem('quiz_learning_mode') || 'fsrs';
+    return userSettings.quiz_learning_mode || 'fsrs';
   })
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
   const [showRoadmapCompleteModal, setShowRoadmapCompleteModal] = useState<boolean>(false);
@@ -965,29 +964,29 @@ export default function FlashcardPlay() {
         const uSet = quizRes.data.user_settings;
         if (uSet.sfx_enabled !== undefined) {
           setSfxEnabled(uSet.sfx_enabled);
-          localStorage.setItem('vocaburn_sfx_enabled', uSet.sfx_enabled ? 'true' : 'false');
+          updateUserSettings({ sfx_enabled: uSet.sfx_enabled });
         }
         if (uSet.autoplay_audio !== undefined) {
           setAutoPlayAudio(uSet.autoplay_audio);
-          localStorage.setItem('vocaburn_autoplay_audio', uSet.autoplay_audio);
+          updateUserSettings({ autoplay_audio: uSet.autoplay_audio });
         }
         if (uSet.learning_mode !== undefined) {
           const searchParams = new URLSearchParams(window.location.search);
           const urlMode = searchParams.get('mode');
           const finalMode = (urlMode === 'new' || urlMode === 'fsrs' || urlMode === 'roadmap' || urlMode === 'review') ? urlMode : uSet.learning_mode;
           setActiveMode(finalMode);
-          localStorage.setItem('quiz_learning_mode', finalMode);
+          updateUserSettings({ quiz_learning_mode: finalMode as any });
         }
         if (uSet.quick_learn_enabled !== undefined) {
           setQuickLearnEnabled(uSet.quick_learn_enabled);
-          localStorage.setItem('vocaburn_quick_learn_enabled', uSet.quick_learn_enabled ? 'true' : 'false');
+          updateUserSettings({ quick_learn_enabled: uSet.quick_learn_enabled });
         }
       }
       
       const hasLearned = questions.some((q: any) => (q.stats?.total || 0) > 0);
       if (activeTab === 'practice' && practiceRange === 'learned' && !hasLearned) {
         setPracticeRange('all');
-        localStorage.setItem('vocab_practice_range', 'all');
+        updateUserSettings({ practice_range: 'all' });
       }
       
       if (isPractice && quizRes.data.practice_settings) {
@@ -1073,7 +1072,7 @@ export default function FlashcardPlay() {
             const initIndex = async () => {
               const searchParams = new URLSearchParams(window.location.search);
               const urlMode = searchParams.get('mode');
-              const savedMode = urlMode || localStorage.getItem('quiz_learning_mode') || 'fsrs';
+              const savedMode = urlMode || userSettings.quiz_learning_mode || 'fsrs';
 
               if (urlMode === 'roadmap' || urlMode === 'new' || urlMode === 'review' || restoredAnswers[curIdx] === undefined) {
                 const answeredIndexes = Object.keys(restoredAnswers).map(Number);
@@ -1082,7 +1081,7 @@ export default function FlashcardPlay() {
                     mode: savedMode,
                     answered_indexes: answeredIndexes,
                     current_index: curIdx,
-                    random_enabled: localStorage.getItem('vocaburn_random_enabled') === 'true'
+                    random_enabled: !!userSettings.random_enabled
                   });
                   if (res.data && res.data.next_index !== undefined) {
                     curIdx = res.data.next_index;
@@ -1125,12 +1124,12 @@ export default function FlashcardPlay() {
             console.error("Failed to load session, running fallback initIndex:", e);
             const searchParams = new URLSearchParams(window.location.search);
             const urlMode = searchParams.get('mode');
-            const savedMode = urlMode || localStorage.getItem('quiz_learning_mode') || 'fsrs';
+            const savedMode = urlMode || userSettings.quiz_learning_mode || 'fsrs';
             axios.post(`/api/v1/deck/${id}/next-card`, {
               mode: savedMode,
               answered_indexes: [],
               current_index: 0,
-              random_enabled: localStorage.getItem('vocaburn_random_enabled') === 'true'
+              random_enabled: !!userSettings.random_enabled
             }).then(res => {
               if (res.data && res.data.next_index !== undefined) {
                 setCurrentIndex(res.data.next_index);
@@ -2308,7 +2307,7 @@ export default function FlashcardPlay() {
 
   const applyLearningMode = async (mode: string) => {
     setActiveMode(mode)
-    localStorage.setItem('quiz_learning_mode', mode)
+    updateUserSettings({ quiz_learning_mode: mode as any })
     saveGeneralSettings({ learning_mode: mode })
 
     if (!session || !session.questions) return

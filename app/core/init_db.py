@@ -1,5 +1,5 @@
 from app.modules.deck.models import Category, FlashcardDeck, Flashcard
-from app.modules.auth.models import User
+from app.modules.auth.models import User, UserGlobalSettings
 from app.modules.gamification.models import UserGamification, Badge
 from app.modules.notification.models import Notification, PushSubscription
 from app.modules.stats.models import UserDailyStats

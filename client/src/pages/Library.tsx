@@ -46,7 +46,7 @@ export default function Library() {
   const [mobileVisibleCount, setMobileVisibleCount] = useState(8)
   const [isRecentDrawerOpen, setIsRecentDrawerOpen] = useState(false) 
 
-  const { setUser, setGamify } = useAppStore()
+  const { setUser, setGamify, updateUserSettings } = useAppStore()
   const queryClient = useQueryClient()
   const navigate = useNavigate()
 
@@ -814,7 +814,7 @@ export default function Library() {
                         key={item.mode}
                         onClick={() => {
                           setIsStudyModalOpen(false)
-                          localStorage.setItem('quiz_learning_mode', item.mode)
+                          updateUserSettings({ quiz_learning_mode: item.mode as any })
                           navigate(`/flashcard/${selectedStudyQuiz.id}/play?mode=${item.mode}`)
                         }}
                         className="group w-full flex items-center gap-4 p-4 sm:p-5 rounded-2xl border border-slate-100 bg-white hover:border-indigo-500/35 hover:bg-indigo-50/5 hover:shadow-lg active:scale-[0.99] hover:scale-[1.01] transition-all text-left shadow-sm"
@@ -845,7 +845,7 @@ export default function Library() {
                         key={item.mode}
                         onClick={() => {
                           setIsStudyModalOpen(false)
-                          localStorage.setItem('vocab_practice_submode', item.mode)
+                          updateUserSettings({ practice_submode: item.mode as any })
                           navigate(`/practice/${selectedStudyQuiz.id}/${item.mode}`)
                         }}
                         className="group w-full flex items-center gap-4 p-4 sm:p-5 rounded-2xl border border-slate-100 bg-white hover:border-emerald-500/35 hover:bg-emerald-50/5 hover:shadow-lg active:scale-[0.99] hover:scale-[1.01] transition-all text-left shadow-sm"

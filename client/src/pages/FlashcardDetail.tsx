@@ -27,7 +27,7 @@ export default function QuizDetail() {
   const { id } = useParams()
   const navigate = useNavigate()
   const queryClient = useQueryClient()
-  const { user } = useAppStore()
+  const { user, userSettings, updateUserSettings } = useAppStore()
   const [activeTab, setActiveTab] = useState<'list' | 'stats'>('list')
   const [searchQuery, setSearchQuery] = useState('')
   const [isEditModalOpen, setIsEditModalOpen] = useState(false)
@@ -1012,7 +1012,7 @@ export default function QuizDetail() {
                     <div className="flex-1 flex relative">
                       <button 
                         onClick={() => {
-                          const savedMode = localStorage.getItem('quiz_learning_mode') || 'fsrs'
+                          const savedMode = userSettings.quiz_learning_mode || 'fsrs'
                           navigate(`/flashcard/${id}/play?mode=${savedMode}`)
                         }}
                         className="flex-1 py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-black text-[10px] md:text-xs rounded-l-xl shadow-lg shadow-indigo-500/15 active:scale-[0.97] transition-all tracking-widest uppercase flex items-center justify-center gap-1.5"
@@ -1046,7 +1046,7 @@ export default function QuizDetail() {
                               <button
                                 key={item.mode}
                                 onClick={() => {
-                                  localStorage.setItem('quiz_learning_mode', item.mode)
+                                  updateUserSettings({ quiz_learning_mode: item.mode as any })
                                   navigate(`/flashcard/${id}/play?mode=${item.mode}`)
                                 }}
                                 className="px-3 py-2 text-[11px] font-bold text-slate-700 hover:bg-indigo-50 hover:text-indigo-600 rounded-lg transition-all text-left flex items-center gap-2"
@@ -1064,7 +1064,7 @@ export default function QuizDetail() {
                     <div className="flex-1 flex relative">
                       <button 
                         onClick={() => {
-                          const savedSub = localStorage.getItem('vocab_practice_submode') || 'mcq'
+                          const savedSub = userSettings.practice_submode || 'mcq'
                           navigate(`/practice/${id}/${savedSub}`)
                         }}
                         className="flex-1 py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-black text-[10px] md:text-xs rounded-l-xl shadow-lg shadow-emerald-500/15 active:scale-[0.97] transition-all tracking-widest uppercase flex items-center justify-center gap-1.5"
@@ -1101,7 +1101,7 @@ export default function QuizDetail() {
                               <button
                                 key={item.mode}
                                 onClick={() => {
-                                  localStorage.setItem('vocab_practice_submode', item.mode)
+                                  updateUserSettings({ practice_submode: item.mode as any })
                                   navigate(`/practice/${id}/${item.mode}`)
                                 }}
                                 className="px-3 py-2 text-[11px] font-bold text-slate-700 hover:bg-emerald-50 hover:text-emerald-600 rounded-lg transition-all text-left flex items-center gap-2"

@@ -39,14 +39,14 @@ function urlBase64ToUint8Array(base64String: string) {
 }
 
 const Settings = () => {
-  const { authConfig } = useAppStore()
-  const [learningMode, setLearningMode] = useState<LearningMode>('sequential')
+  const { authConfig, userSettings, updateUserSettings } = useAppStore()
   const [pushActive, setPushActive] = useState(false)
   const [checkingPush, setCheckingPush] = useState(true)
   const [telegramConfig, setTelegramConfig] = useState<any>(null)
   
-  const [darkMode, setDarkMode] = useState(() => localStorage.getItem('theme') === 'dark')
-  const [focusTimer, setFocusTimer] = useState(() => localStorage.getItem('focus_timer_active') !== 'false')
+  const darkMode = userSettings.theme === 'dark'
+  const focusTimer = userSettings.focus_timer_active
+  const learningMode = (userSettings.quiz_learning_mode || 'fsrs') as LearningMode
 
   // Password Change State
   const [currentPassword, setCurrentPassword] = useState('')
@@ -55,21 +55,17 @@ const Settings = () => {
   const [passLoading, setPassLoading] = useState(false)
 
   const toggleDarkMode = () => {
-    const nextMode = !darkMode
-    setDarkMode(nextMode)
-    if (nextMode) {
+    const nextMode = darkMode ? 'light' : 'dark'
+    if (nextMode === 'dark') {
       document.documentElement.classList.add('dark')
-      localStorage.setItem('theme', 'dark')
     } else {
       document.documentElement.classList.remove('dark')
-      localStorage.setItem('theme', 'light')
     }
+    updateUserSettings({ theme: nextMode })
   }
 
   const toggleFocusTimer = () => {
-    const nextVal = !focusTimer
-    setFocusTimer(nextVal)
-    localStorage.setItem('focus_timer_active', String(nextVal))
+    updateUserSettings({ focus_timer_active: !focusTimer })
   }
 
   const fetchTelegramConfig = async () => {
@@ -93,9 +89,6 @@ const Settings = () => {
   const location = useLocation()
 
   useEffect(() => {
-    const savedMode = localStorage.getItem('quiz_learning_mode') as LearningMode
-    if (savedMode) setLearningMode(savedMode)
-    
     fetchTelegramConfig()
     
     // Check if browser has push subscription active
@@ -126,8 +119,7 @@ const Settings = () => {
   }, [location.hash])
 
   const updateLearningMode = (mode: LearningMode) => {
-    setLearningMode(mode)
-    localStorage.setItem('quiz_learning_mode', mode)
+    updateUserSettings({ quiz_learning_mode: mode })
   }
 
   const togglePushNotifications = async () => {

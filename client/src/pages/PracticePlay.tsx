@@ -276,11 +276,11 @@ export default function PracticePlay() {
   const isRoadmapTestMode = subMode === 'roadmap_test' || subMode === 'roadmap_mcq' || subMode === 'roadmap_typing' || (typeof subMode === 'string' && subMode.startsWith('roadmap_'))
   const navigate = useNavigate()
   const queryClient = useQueryClient()
-  const { user, gamify, setUser, setGamify, addXp } = useAppStore()
+  const { user, gamify, setUser, setGamify, addXp, userSettings, updateUserSettings } = useAppStore()
 
   useEffect(() => {
-    if (id && id !== 'quick') {
-      localStorage.setItem('vocaburn_last_deck_id', id);
+    if (id && id !== 'quick' && !isNaN(Number(id))) {
+      updateUserSettings({ last_deck_id: Number(id) });
     }
   }, [id]);
 
@@ -406,9 +406,7 @@ export default function PracticePlay() {
   const [session, setSession] = useState<any>(null)
   const [editingFlashcard, setEditingFlashcard] = useState<any>(null)
   const [isSaving, setIsSaving] = useState(false)
-  const [autoPlayAudio, setAutoPlayAudio] = useState<'never' | 'always' | 'front' | 'back'>(() => {
-    return (localStorage.getItem('vocaburn_autoplay_audio') as any) || 'never';
-  });
+  const autoPlayAudio = (userSettings.autoplay_audio as any) || 'never';
   const [currentIndex, setCurrentIndex] = useState(-1)
   const [showAbsoluteFirst, setShowAbsoluteFirst] = useState(false)
   const [showAbsoluteLast, setShowAbsoluteLast] = useState(false)
@@ -431,13 +429,12 @@ export default function PracticePlay() {
   const [initialTodayXP, setInitialTodayXP] = useState(0)
   const [initialTodayTime, setInitialTodayTime] = useState(0)
   const [initialAllTimeTime, setInitialAllTimeTime] = useState(0)
-  const [scoreMode, setScoreMode] = useState<'today' | 'all'>(() => (localStorage.getItem('vocaburn_score_mode') as 'today' | 'all') || 'all')
-  const [timeMode, setTimeMode] = useState<'card' | 'today' | 'all'>(() => (localStorage.getItem('vocaburn_time_mode') as 'card' | 'today' | 'all') || 'card')
+  const scoreMode = userSettings.score_mode || 'all'
+  const timeMode = userSettings.time_mode || 'card'
 
   const toggleScoreMode = () => {
     const nextMode = scoreMode === 'all' ? 'today' : 'all'
-    setScoreMode(nextMode)
-    localStorage.setItem('vocaburn_score_mode', nextMode)
+    updateUserSettings({ score_mode: nextMode })
   }
 
   const toggleTimeMode = () => {
@@ -445,8 +442,7 @@ export default function PracticePlay() {
     if (timeMode === 'card') nextMode = 'today'
     else if (timeMode === 'today') nextMode = 'all'
     else nextMode = 'card'
-    setTimeMode(nextMode)
-    localStorage.setItem('vocaburn_time_mode', nextMode)
+    updateUserSettings({ time_mode: nextMode })
   }
 
   const formatHeaderTime = (seconds: number) => {
@@ -545,7 +541,8 @@ export default function PracticePlay() {
   const [activeGoal, setActiveGoal] = useState<any>(null)
   const [showGoalCelebration, setShowGoalCelebration] = useState(false)
   const [isLimitlessStrike, setIsLimitlessStrike] = useState(false)
-  const [activeMode, setActiveMode] = useState<string>(() => localStorage.getItem('quiz_learning_mode') || 'fsrs')
+  const activeMode = userSettings.quiz_learning_mode || 'fsrs'
+  const setActiveMode = (mode: string) => updateUserSettings({ quiz_learning_mode: mode as any })
   const [isModeMenuOpen, setIsModeMenuOpen] = useState(false)
   const [learningModeAlert, setLearningModeAlert] = useState<{
     visible: boolean;
@@ -557,9 +554,11 @@ export default function PracticePlay() {
   // ── Multi-Modal Practice State Hooks ──
   const mainTab = 'practice' as 'fsrs' | 'practice'
   const setMainTab = (tab: 'fsrs' | 'practice') => { }
-  const [practiceSubMode, setPracticeSubMode] = useState<string>(() => localStorage.getItem('vocab_practice_submode') || 'mcq')
+  const practiceSubMode = userSettings.practice_submode || 'mcq'
+  const setPracticeSubMode = (mode: string) => updateUserSettings({ practice_submode: mode as any })
   const baseMode = getBaseMode(practiceSubMode)
-  const [practiceRange, setPracticeRange] = useState<'all' | 'learned'>(() => (localStorage.getItem('vocab_practice_range') as 'all' | 'learned') || 'all')
+  const practiceRange = userSettings.practice_range || 'all'
+  const setPracticeRange = (range: 'all' | 'learned') => updateUserSettings({ practice_range: range })
   const [practiceNeedsSetup, setPracticeNeedsSetup] = useState(false)
   const [practiceDisabled, setPracticeDisabled] = useState(false)
   const [availableColumns, setAvailableColumns] = useState<string[]>([])
@@ -614,14 +613,13 @@ export default function PracticePlay() {
   useEffect(() => {
     if (subMode === 'mcq' || subMode === 'typing' || subMode === 'listening' || subMode === 'roadmap_test' || subMode === 'roadmap_mcq' || subMode === 'roadmap_typing' || (typeof subMode === 'string' && subMode.startsWith('roadmap_'))) {
       setPracticeSubMode(subMode)
-      localStorage.setItem('vocab_practice_submode', subMode)
     }
   }, [subMode])
 
   // Redirect to default subMode if not provided in URL
   useEffect(() => {
     if (!subMode) {
-      const savedSub = localStorage.getItem('vocab_practice_submode') || 'mcq'
+      const savedSub = userSettings.practice_submode || 'mcq'
       navigate(`/practice/${id}/${savedSub}`, { replace: true })
     }
   }, [id, subMode, navigate])
@@ -1295,7 +1293,6 @@ export default function PracticePlay() {
       const hasLearned = questions.some((q: any) => (q.stats?.total || 0) > 0);
       if (activeTab === 'practice' && practiceRange === 'learned' && !hasLearned) {
         setPracticeRange('all');
-        localStorage.setItem('vocab_practice_range', 'all');
       }
 
       if (isPractice) {
@@ -1403,7 +1400,7 @@ export default function PracticePlay() {
 
           // Adjust initial index based on smart learning mode if we are starting a fresh/unanswered question
           if (restoredAnswers[curIdx] === undefined) {
-            const savedMode = localStorage.getItem('quiz_learning_mode') || 'fsrs'
+            const savedMode = userSettings.quiz_learning_mode || 'fsrs'
             if (savedMode !== 'sequential') {
               let modeIdx = -1
               if (savedMode === 'fsrs') {
@@ -2850,7 +2847,6 @@ export default function PracticePlay() {
 
   const applyLearningMode = (mode: string) => {
     setActiveMode(mode)
-    localStorage.setItem('quiz_learning_mode', mode)
     setIsModeMenuOpen(false)
 
     if (!session || !session.questions) return
@@ -4378,7 +4374,6 @@ export default function PracticePlay() {
                   <button
                     onClick={() => {
                       setPracticeRange('all');
-                      localStorage.setItem('vocab_practice_range', 'all');
                     }}
                     className={cn(
                       "px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-wider transition-all duration-200 flex items-center gap-1.5",
@@ -4407,7 +4402,6 @@ export default function PracticePlay() {
                         return;
                       }
                       setPracticeRange('learned');
-                      localStorage.setItem('vocab_practice_range', 'learned');
 
                       if (!learnedIndices.includes(currentIndex)) {
                         navigateToQuestion(learnedIndices[0]);
@@ -6030,7 +6024,6 @@ export default function PracticePlay() {
                     <button
                       onClick={() => {
                         setPracticeRange('all');
-                        localStorage.setItem('vocab_practice_range', 'all');
                       }}
                       className={cn(
                         "flex flex-col items-center justify-center gap-1.5 py-3 px-2 rounded-xl text-[10px] font-bold transition-all",
@@ -6058,7 +6051,6 @@ export default function PracticePlay() {
                           return;
                         }
                         setPracticeRange('learned');
-                        localStorage.setItem('vocab_practice_range', 'learned');
                         if (!learnedIndices.includes(currentIndex)) {
                           navigateToQuestion(learnedIndices[0]);
                         }
@@ -6125,8 +6117,7 @@ export default function PracticePlay() {
                             const isFrontOn = autoPlayAudio === 'always' || autoPlayAudio === 'front';
                             const isBackOn = autoPlayAudio === 'always' || autoPlayAudio === 'back';
                             const nextState = isFrontOn ? (isBackOn ? 'back' : 'never') : (isBackOn ? 'always' : 'front');
-                            setAutoPlayAudio(nextState);
-                            localStorage.setItem('vocaburn_autoplay_audio', nextState);
+                            updateUserSettings({ autoplay_audio: nextState as any });
                             saveGeneralSettings({ autoplay_audio: nextState });
                           }}
                           className={cn(
@@ -6151,8 +6142,7 @@ export default function PracticePlay() {
                             const isFrontOn = autoPlayAudio === 'always' || autoPlayAudio === 'front';
                             const isBackOn = autoPlayAudio === 'always' || autoPlayAudio === 'back';
                             const nextState = isBackOn ? (isFrontOn ? 'front' : 'never') : (isFrontOn ? 'always' : 'back');
-                            setAutoPlayAudio(nextState);
-                            localStorage.setItem('vocaburn_autoplay_audio', nextState);
+                            updateUserSettings({ autoplay_audio: nextState as any });
                             saveGeneralSettings({ autoplay_audio: nextState });
                           }}
                           className={cn(

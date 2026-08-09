@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useAppStore } from '@/store/useAppStore'
 import axios from 'axios'
 
 export function usePlaySettings(
@@ -8,55 +8,14 @@ export function usePlaySettings(
   activeMode: string,
   autoPlayAudio: string
 ) {
-  const [sfxEnabled, setSfxEnabledState] = useState<boolean>(() => {
-    if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('vocaburn_sfx_enabled');
-      return saved !== 'false';
-    }
-    return true;
-  });
+  const { userSettings, updateUserSettings } = useAppStore()
 
-  const [quickLearnEnabled, setQuickLearnEnabledState] = useState<boolean>(() => {
-    if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('vocaburn_quick_learn_enabled');
-      return saved === 'true';
-    }
-    return false;
-  });
-
-  const [hapticEnabled, setHapticEnabledState] = useState<boolean>(() => {
-    if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('vocaburn_haptic_enabled');
-      return saved !== 'false';
-    }
-    return true;
-  });
-
-  const [showImages, setShowImagesState] = useState<string>(() => {
-    if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('vocaburn_show_images');
-      if (saved === 'true') return 'always';
-      if (saved === 'false') return 'none';
-      if (saved && ['always', 'front', 'back', 'none'].includes(saved)) return saved;
-    }
-    return 'always';
-  });
-
-  const [showFsrs, setShowFsrsState] = useState<boolean>(() => {
-    if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('vocaburn_show_fsrs');
-      return saved !== 'false';
-    }
-    return true;
-  });
-
-  const [randomEnabled, setRandomEnabledState] = useState<boolean>(() => {
-    if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('vocaburn_random_enabled');
-      return saved === 'true';
-    }
-    return false;
-  });
+  const sfxEnabled = userSettings.sfx_enabled !== false
+  const quickLearnEnabled = !!userSettings.quick_learn_enabled
+  const hapticEnabled = userSettings.haptic_enabled !== false
+  const showImages = userSettings.show_images || 'always'
+  const showFsrs = userSettings.show_fsrs !== false
+  const randomEnabled = !!userSettings.random_enabled
 
   const saveGeneralSettings = async (updates: {
     sfx_enabled?: boolean;
@@ -91,50 +50,32 @@ export function usePlaySettings(
   };
 
   const setSfxEnabled = (enabled: boolean) => {
-    setSfxEnabledState(enabled);
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('vocaburn_sfx_enabled', enabled ? 'true' : 'false');
-    }
+    updateUserSettings({ sfx_enabled: enabled })
     saveGeneralSettings({ sfx_enabled: enabled });
   };
 
   const setQuickLearnEnabled = (enabled: boolean) => {
-    setQuickLearnEnabledState(enabled);
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('vocaburn_quick_learn_enabled', enabled ? 'true' : 'false');
-    }
+    updateUserSettings({ quick_learn_enabled: enabled })
     saveGeneralSettings({ quick_learn_enabled: enabled });
   };
 
   const setHapticEnabled = (enabled: boolean) => {
-    setHapticEnabledState(enabled);
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('vocaburn_haptic_enabled', enabled ? 'true' : 'false');
-    }
+    updateUserSettings({ haptic_enabled: enabled })
     saveGeneralSettings({ haptic_enabled: enabled });
   };
 
   const setShowImages = (mode: string) => {
-    setShowImagesState(mode);
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('vocaburn_show_images', mode);
-    }
+    updateUserSettings({ show_images: mode })
     saveGeneralSettings({ show_images: mode });
   };
 
   const setShowFsrs = (enabled: boolean) => {
-    setShowFsrsState(enabled);
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('vocaburn_show_fsrs', enabled ? 'true' : 'false');
-    }
+    updateUserSettings({ show_fsrs: enabled })
     saveGeneralSettings({ show_fsrs: enabled });
   };
 
   const setRandomEnabled = (enabled: boolean) => {
-    setRandomEnabledState(enabled);
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('vocaburn_random_enabled', enabled ? 'true' : 'false');
-    }
+    updateUserSettings({ random_enabled: enabled })
     saveGeneralSettings({ random_enabled: enabled });
   };
 

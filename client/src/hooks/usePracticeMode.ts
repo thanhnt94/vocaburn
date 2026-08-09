@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { selectDistractors } from '@/lib/distractor';
+import { useAppStore } from '@/store/useAppStore';
 
 export type PracticeSubMode = 'mcq' | 'typing' | 'listening';
 export type PracticeRange = 'all' | 'learned';
@@ -9,32 +10,16 @@ export function usePracticeMode(
   currentIndex: number,
   mainTab: 'fsrs' | 'practice'
 ) {
-  const [practiceSubMode, setPracticeSubModeState] = useState<PracticeSubMode>(() => {
-    if (typeof window !== 'undefined') {
-      return (localStorage.getItem('vocab_practice_submode') as PracticeSubMode) || 'mcq';
-    }
-    return 'mcq';
-  });
+  const { userSettings, updateUserSettings } = useAppStore();
 
+  const practiceSubMode = userSettings.practice_submode || 'mcq';
   const setPracticeSubMode = (mode: PracticeSubMode) => {
-    setPracticeSubModeState(mode);
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('vocab_practice_submode', mode);
-    }
+    updateUserSettings({ practice_submode: mode });
   };
 
-  const [practiceRange, setPracticeRangeState] = useState<PracticeRange>(() => {
-    if (typeof window !== 'undefined') {
-      return (localStorage.getItem('vocab_practice_range') as PracticeRange) || 'all';
-    }
-    return 'all';
-  });
-
+  const practiceRange = userSettings.practice_range || 'all';
   const setPracticeRange = (range: PracticeRange) => {
-    setPracticeRangeState(range);
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('vocab_practice_range', range);
-    }
+    updateUserSettings({ practice_range: range });
   };
 
   const [practiceNeedsSetup, setPracticeNeedsSetup] = useState(false);
