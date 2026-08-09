@@ -1600,15 +1600,6 @@ export default function Stats() {
                              )}
                           </>
                        )}
-                    </div>
-
-                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6">
-                       <MetricCard label="Total Users" value={global.total_users} sub="Thành viên nền tảng" icon={Users} color="text-indigo-600" bg="bg-indigo-50" />
-                       <MetricCard label="Total Quizzes" value={global.total_quizzes} sub="Bộ thẻ công khai" icon={BookOpen} color="text-emerald-600" bg="bg-emerald-50" />
-                       <MetricCard label="Total Items" value={global.total_questions} sub="Tổng thẻ/câu hỏi" icon={Layers} color="text-amber-600" bg="bg-amber-50" />
-                       <MetricCard label="Platform Acc" value={`${global.platform_accuracy}%`} sub="Độ chính xác toàn sàn" icon={Globe} color="text-rose-600" bg="bg-rose-50" />
-                    </div>
-
                     <div className="bg-white rounded-[2.5rem] border border-slate-100 p-6 md:p-8 shadow-sm flex flex-col md:flex-row items-center justify-between gap-6">
                        <div className="flex items-center gap-4">
                           <div className="w-14 h-14 bg-indigo-50 rounded-[1.5rem] flex items-center justify-center text-indigo-600 shrink-0 shadow-inner">
