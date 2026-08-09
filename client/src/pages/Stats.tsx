@@ -1925,19 +1925,6 @@ export default function Stats() {
         </div>
       </div>
     </div>
-  )        <span className="text-xs font-black text-slate-900">{global.avg_time_per_question}s / câu</span>
-                        </div>
-                        <div className="px-4 py-2.5 bg-emerald-50 rounded-2xl border border-emerald-100 text-center flex-1 md:flex-initial">
-                           <span className="text-[8px] font-black text-emerald-600 uppercase tracking-widest block">Hệ thống</span>
-                           <span className="text-xs font-black text-emerald-600 uppercase">Hoạt động tốt</span>
-                        </div>
-                     </div>
-                  </div>
-               </motion.div>
-            )}
-         </AnimatePresence>
-      </div>
-    </div>
   )
 }
 
