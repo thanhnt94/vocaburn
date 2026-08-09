@@ -1799,7 +1799,7 @@ export default function Dashboard() {
                     const rDn = st.review_completed_today || 0;
                     const tT = nT + rD;
                     const tD = nL + rDn;
-                    const pct = tT > 0 ? Math.min(100, Math.round((tD / tT) * 100)) : (st.all_done ? 100 : 0);
+                    const pct = st.all_done ? 100 : (tT > 0 ? Math.min(100, Math.round((tD / tT) * 100)) : 0);
                     const s1 = st.stage_1_done;
                     const s2 = st.stage_2_done;
                     const nUrl = st.next_action_url;
@@ -1816,7 +1816,7 @@ export default function Dashboard() {
                     let mascotLine1 = 'Hôm nay bạn chưa học từ nào,';
                     let mascotLine2 = 'bắt đầu thôi! 🚀';
                     
-                    if (st.all_done || pct >= 100) {
+                    if (st.all_done) {
                       mascotImg = '/mascot/celebrating.png';
                       mascotLine1 = 'Xuất sắc!';
                       mascotLine2 = 'Đã hoàn thành lộ trình hôm nay! 🎉';

@@ -158,11 +158,13 @@ async def fix_thanhnt():
                         card_id=c_id,
                         state=2,
                         box_level=2,
-                        last_review=yesterday_mid + timedelta(minutes=30)
+                        last_review=yesterday_mid + timedelta(minutes=30),
+                        due=yesterday_mid + timedelta(days=3)
                     ))
                 else:
                     m.state = max(1, m.state)
                     m.last_review = yesterday_mid + timedelta(minutes=30)
+                    m.due = yesterday_mid + timedelta(days=3)
 
                 ans_rev = await db.execute(
                     select(UserAnswer).where(

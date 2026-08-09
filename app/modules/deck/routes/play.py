@@ -2501,8 +2501,8 @@ async def get_deck_roadmap_status_helper(db: AsyncSession, user_id: int, deck_id
             fsrs_overdue_hours = int(st.get("overdue_hours", 24))
             break
 
-    tomorrow_start = today_start + timedelta(days=1)
-    cutoff_time = tomorrow_start - timedelta(hours=fsrs_overdue_hours)
+    # Fix: cutoff_time should be relative to the target day's end, not the real-world today
+    cutoff_time = day_end - timedelta(hours=fsrs_overdue_hours)
 
     review_due_today = await db.scalar(
         select(func.count(UserCardMastery.id))
