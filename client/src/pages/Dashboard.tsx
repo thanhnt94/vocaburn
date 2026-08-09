@@ -2102,43 +2102,49 @@ export default function Dashboard() {
 
                           </div>
 
-                          {/* CTA PILL ACTION BUTTON (CENTERED & OPTICALLY BALANCED) */}
+                          {/* CTA PILL ACTION BUTTON (PROMINENT, VIBRANT & GLOWING) */}
                           <div className="pt-2 flex-shrink-0">
                             <button
                               onClick={() => { 
-                                if (navigator.vibrate) navigator.vibrate(12);
+                                if (navigator.vibrate) navigator.vibrate(14);
                                 if (nUrl) navigate(nUrl); 
                                 else navigate(`/flashcard/${deck.deck_id}`); 
                               }}
-                              className="w-full bg-gradient-to-r from-orange-500 via-amber-500 to-orange-600 hover:from-orange-600 hover:to-amber-600 text-white rounded-2xl p-3 sm:p-3.5 flex items-center justify-between shadow-lg shadow-orange-500/25 active:scale-[0.98] transition-all cursor-pointer group"
+                              className="w-full relative overflow-hidden bg-gradient-to-r from-orange-500 via-amber-500 to-rose-600 hover:from-orange-600 hover:via-amber-600 hover:to-rose-700 text-white rounded-2xl p-3 sm:p-3.5 flex items-center justify-between shadow-[0_10px_28px_-4px_rgba(249,115,22,0.45)] hover:shadow-[0_14px_35px_-4px_rgba(249,115,22,0.6)] active:scale-[0.98] transition-all duration-300 cursor-pointer group border border-white/30"
                             >
-                              <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-white/20 flex items-center justify-center shrink-0">
-                                <Play className="w-4 h-4 sm:w-5 sm:h-5 fill-white text-white ml-0.5" />
+                              {/* Animated Light Shimmer Beam */}
+                              <div className="absolute inset-0 w-1/3 h-full bg-gradient-to-r from-transparent via-white/30 to-transparent -skew-x-12 animate-shimmer-sweep pointer-events-none" />
+
+                              {/* Left Icon: Glowing Frosted Glass Circle */}
+                              <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl bg-white/20 backdrop-blur-md border border-white/40 flex items-center justify-center shrink-0 shadow-inner group-hover:scale-110 group-hover:rotate-3 transition-all duration-300">
+                                <Play className="w-5 h-5 sm:w-6 sm:h-6 fill-white text-white ml-0.5 drop-shadow-[0_2px_4px_rgba(0,0,0,0.2)]" />
                               </div>
 
-                              <div className="flex-1 flex flex-col items-center justify-center text-center px-2">
-                                <span className="text-sm sm:text-base font-black tracking-widest leading-tight uppercase">
+                              {/* Center Text Section */}
+                              <div className="flex-1 flex flex-col items-center justify-center text-center px-3 relative z-10">
+                                <span className="text-sm sm:text-base font-black tracking-wider leading-tight uppercase drop-shadow-[0_2px_4px_rgba(0,0,0,0.25)] flex items-center gap-1.5">
                                   {!s1
-                                    ? 'HỌC TỪ MỚI'
+                                    ? '🚀 HỌC TỪ MỚI'
                                     : !s2
-                                    ? 'TRẮC NGHIỆM MCQ'
+                                    ? '🎯 TRẮC NGHIỆM MCQ'
                                     : st.all_done
-                                    ? 'ĐÃ HOÀN THÀNH ✓'
-                                    : 'ÔN TẬP FSRS'}
+                                    ? '🎉 ĐÃ HOÀN THÀNH ✓'
+                                    : '🧠 ÔN TẬP FSRS'}
                                 </span>
-                                <span className="text-[11px] sm:text-xs text-white/70 font-semibold mt-0.5 tracking-wide">
+                                <span className="text-[11px] sm:text-xs text-amber-100 font-extrabold mt-0.5 tracking-wide drop-shadow-xs">
                                   {!s1
-                                    ? `Còn ${Math.max(0, nT - nL)} từ hôm nay`
+                                    ? `Còn ${Math.max(0, nT - nL)} từ hôm nay • Bắt đầu ngay ⚡`
                                     : !s2
                                     ? `Cần đạt ≥80% để qua bước`
                                     : st.all_done
-                                    ? `Hoàn thành 100% chỉ tiêu`
+                                    ? `Hoàn thành 100% chỉ tiêu hôm nay`
                                     : `Còn ${Math.max(0, rD - rDn)} thẻ hôm nay`}
                                 </span>
                               </div>
 
-                              <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-white text-orange-600 flex items-center justify-center shrink-0 shadow-md group-hover:scale-105 transition-transform">
-                                <ChevronRight className="w-5 h-5 sm:w-6 sm:h-6 font-black stroke-[3]" />
+                              {/* Right Arrow Action Circle */}
+                              <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl bg-white text-orange-600 flex items-center justify-center shrink-0 shadow-md shadow-orange-950/20 group-hover:scale-110 group-hover:translate-x-1 transition-all duration-300">
+                                <ChevronRight className="w-6 h-6 stroke-[3]" />
                               </div>
                             </button>
                           </div>

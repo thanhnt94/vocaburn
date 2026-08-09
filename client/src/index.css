@@ -55,6 +55,14 @@ html, body, #root {
 .card-error { animation: error-shake 0.3s ease; border-color: #EF4444 !important; }
 
 .white-pre-wrap { white-space: pre-wrap; }
+@keyframes shimmer {
+  0% { transform: translateX(-150%) skewX(-12deg); }
+  100% { transform: translateX(350%) skewX(-12deg); }
+}
+.animate-shimmer-sweep {
+  animation: shimmer 3s infinite ease-in-out;
+}
+
 @layer utilities {
   .no-scrollbar::-webkit-scrollbar { display: none; }
   .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
