@@ -233,7 +233,7 @@ export default function DeckRoadmap() {
   }
 
   const s = status || {}
-  const deckTitle = deckData?.deck?.title || deckData?.title || `Bộ Thẻ #${id}`
+  const deckTitle = status?.deck_title || deckData?.deck?.title || deckData?.title || `Bộ Thẻ #${id}`
   const processedPipeline = s.pipeline || []
 
   // Calendar helpers
@@ -352,25 +352,6 @@ export default function DeckRoadmap() {
                   <span className="text-[9px] font-black text-slate-900">{progressPercent}%</span>
                 </div>
               </div>
-
-              {s.roadmap_active && !s.all_done && (
-                <button
-                  onClick={() => {
-                    if (navigator.vibrate) navigator.vibrate(10);
-                    navigate(s.next_action_url || `/flashcard/${id}/play?mode=roadmap`);
-                  }}
-                  className="px-3 py-1.5 bg-gradient-to-r from-orange-500 to-amber-500 text-white rounded-xl font-black text-[11px] uppercase tracking-wider shadow-sm active:scale-95 transition-all flex items-center gap-1 shrink-0"
-                >
-                  <Play className="w-3 h-3 fill-white" />
-                  <span>Học 🚀</span>
-                </button>
-              )}
-
-              {s.roadmap_active && s.all_done && (
-                <span className="px-2 py-1 bg-emerald-100 text-emerald-800 rounded-lg text-[10px] font-black shrink-0">
-                  ✓ Xong
-                </span>
-              )}
             </div>
           </div>
 
@@ -949,6 +930,29 @@ export default function DeckRoadmap() {
             )}
           </AnimatePresence>
         </div>
+
+        {/* 📱 MOBILE STICKY BOTTOM CTA BAR (One-thumb action) */}
+        {s.roadmap_active && !s.all_done && (
+          <div className="p-3 bg-white/95 backdrop-blur-md border-t border-slate-200/80 shrink-0 z-30 shadow-lg">
+            <button
+              onClick={() => {
+                if (navigator.vibrate) navigator.vibrate(10);
+                navigate(s.next_action_url || `/flashcard/${id}/play?mode=roadmap`);
+              }}
+              className="w-full py-3.5 bg-gradient-to-r from-orange-500 via-amber-500 to-orange-600 hover:from-orange-600 hover:to-amber-600 text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-md shadow-orange-500/25 active:scale-98 transition-all flex items-center justify-center gap-2 cursor-pointer"
+            >
+              <Play className="w-4 h-4 fill-white" />
+              <span>{s.next_action_label || 'HỌC TỪ MỚI'} 🚀</span>
+            </button>
+          </div>
+        )}
+
+        {s.roadmap_active && s.all_done && (
+          <div className="p-3 bg-emerald-500/10 backdrop-blur-md border-t border-emerald-200/80 shrink-0 z-30 flex items-center justify-center gap-2 text-emerald-800 text-xs font-black uppercase tracking-wider">
+            <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+            <span>Đã Hoàn Thành Lộ Trình Hôm Nay 🎉</span>
+          </div>
+        )}
       </div>
 
       {/* 💻 DESKTOP LAYOUT (>= md) */}
