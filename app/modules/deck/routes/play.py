@@ -2742,22 +2742,7 @@ async def get_deck_roadmap_status_helper(db: AsyncSession, user_id: int, deck_id
         if not step_data["done"] and first_incomplete_idx is None:
             first_incomplete_idx = idx
 
-    # If it's a historical date and it was an active date, force 100% completion
-    target_date_obj = day_start.date()
-    today_date_obj = datetime.utcnow().date()
-    is_historical = target_date_obj < today_date_obj
-    
-    if is_historical and target_date_obj in active_dates:
-        for st in pipeline_processed:
-            st["done"] = True
-            if "progress" in st and "target" in st["progress"]:
-                st["progress"]["learned"] = st["progress"]["target"]
-            elif "progress" in st and "target_score" in st["progress"]:
-                st["progress"]["best_score"] = st["progress"]["target_score"]
-            elif "progress" in st and "target_minutes" in st["progress"]:
-                st["progress"]["studied_minutes"] = st["progress"]["target_minutes"]
-        first_incomplete_idx = None
-
+    # Calculate estimated completion
     import math
     if daily_new_target > 0:
         days_left = math.ceil(unlearned_cards / daily_new_target)
