@@ -1827,6 +1827,7 @@ export default function Stats() {
                              )}
                           </>
                        )}
+                    </div>
                     <div className="bg-white rounded-[2.5rem] border border-slate-100 p-6 md:p-8 shadow-sm flex flex-col md:flex-row items-center justify-between gap-6">
                        <div className="flex items-center gap-4">
                           <div className="w-14 h-14 bg-indigo-50 rounded-[1.5rem] flex items-center justify-center text-indigo-600 shrink-0 shadow-inner">
