@@ -109,7 +109,8 @@ function ReviewForecastWidget({ data, activePeriod }: { data: ForecastResponse |
     : 0
 
   return (
-    <div className="bg-white border border-slate-200/60 rounded-[2.5rem] p-6 shadow-sm flex flex-col gap-4 text-left relative overflow-hidden flex-shrink-0">
+    <div className="bg-white border border-slate-200/90 rounded-3xl p-4 sm:p-6 shadow-sm flex flex-col gap-4 text-left relative overflow-hidden flex-shrink-0">
+      <div className="h-1 absolute top-0 inset-x-0 bg-gradient-to-r from-orange-500 via-amber-500 to-rose-500" />
       <div className="absolute -right-8 -top-8 w-24 h-24 rounded-full bg-orange-50/20 blur-md pointer-events-none" />
 
       {/* Header */}
@@ -616,36 +617,38 @@ export default function Stats() {
   }
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC]">
+    <div className="md:min-h-screen h-dvh md:h-auto overflow-hidden md:overflow-visible bg-[#F8FAFC]">
       {/* 📱 MOBILE-FIRST APP LAYOUT (< md) */}
       <div 
         onTouchStart={handleTouchStart}
         onTouchEnd={handleTouchEnd}
-        className="md:hidden fixed inset-0 top-0 bottom-[60px] flex flex-col bg-slate-100/70 overflow-hidden z-[90]"
+        className="md:hidden fixed inset-0 top-0 bottom-[60px] flex flex-col bg-[#F8FAFC] overflow-hidden z-[90]"
       >
         {/* ═══════════ STICKY TOP CONTAINER (Header + Tabs) ═══════════ */}
-        <div className="bg-white border-b border-slate-200/80 shrink-0 z-30 shadow-xs">
+        <div className="bg-white border-b border-slate-200/80 shrink-0 z-30 shadow-2xs">
           {/* Top Header */}
           <div className="px-4 pt-3 pb-2 flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-indigo-600 via-purple-600 to-orange-500 flex items-center justify-center text-white shadow-sm">
-                <TrendingUp className="w-4 h-4" />
+            <div className="flex items-center gap-2.5">
+              <div className="w-8.5 h-8.5 rounded-2xl bg-gradient-to-tr from-orange-500 via-amber-500 to-rose-500 flex items-center justify-center text-white shadow-sm shadow-orange-500/20">
+                <TrendingUp className="w-4.5 h-4.5" />
               </div>
               <div>
-                <h1 className="text-sm font-black text-slate-900 leading-none">Thống Kê Học Tập 📊</h1>
-                <span className="text-[9px] font-bold text-slate-400">Quẹt trái/phải để lướt mục khác 👈👉</span>
+                <h1 className="text-xs font-black text-slate-900 leading-none tracking-tight">THỐNG KÊ HỌC TẬP 📊</h1>
+                <span className="text-[8.5px] font-bold text-slate-400 mt-0.5 block">Quẹt trái / phải để lướt mục 👈👉</span>
               </div>
             </div>
           </div>
 
           {/* Main Tab Pills (Cá Nhân vs Cộng Đồng) */}
           <div className="px-4 pb-2">
-            <div className="flex bg-slate-100/80 p-1 rounded-2xl border border-slate-200/60">
+            <div className="flex bg-slate-100 p-1 rounded-2xl border border-slate-200/80">
               <button
                 onClick={() => setActiveTab('personal')}
                 className={cn(
-                  "flex-1 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all text-center cursor-pointer",
-                  activeTab === 'personal' ? "bg-indigo-600 text-white shadow-sm" : "text-slate-500"
+                  "flex-1 py-2 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all text-center cursor-pointer",
+                  activeTab === 'personal'
+                    ? "bg-gradient-to-r from-orange-500 via-amber-500 to-orange-600 text-white shadow-md shadow-orange-500/20"
+                    : "text-slate-500 font-bold hover:text-slate-900"
                 )}
               >
                 👤 Cá Nhân
@@ -653,8 +656,10 @@ export default function Stats() {
               <button
                 onClick={() => setActiveTab('community')}
                 className={cn(
-                  "flex-1 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all text-center cursor-pointer",
-                  activeTab === 'community' ? "bg-indigo-600 text-white shadow-sm" : "text-slate-500"
+                  "flex-1 py-2 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all text-center cursor-pointer",
+                  activeTab === 'community'
+                    ? "bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-700 text-white shadow-md shadow-indigo-500/20"
+                    : "text-slate-500 font-bold hover:text-slate-900"
                 )}
               >
                 👥 Cộng Đồng
@@ -676,10 +681,10 @@ export default function Stats() {
                     key={tab.id}
                     onClick={() => setMobilePersonalSubTab(tab.id)}
                     className={cn(
-                      "px-3 py-1.5 rounded-xl text-[10px] font-black transition-all cursor-pointer border",
+                      "px-3.5 py-1.5 rounded-xl text-[10px] font-black transition-all cursor-pointer border",
                       mobilePersonalSubTab === tab.id
-                        ? "bg-slate-900 text-white border-slate-900 shadow-2xs"
-                        : "bg-slate-50 text-slate-500 border-slate-200/80"
+                        ? "bg-gradient-to-r from-orange-500 to-amber-500 text-white border-orange-500 shadow-xs"
+                        : "bg-slate-50 text-slate-600 border-slate-200/80"
                     )}
                   >
                     {tab.label}
@@ -696,10 +701,10 @@ export default function Stats() {
                     key={tab.id}
                     onClick={() => setMobileCommunitySubTab(tab.id)}
                     className={cn(
-                      "px-3 py-1.5 rounded-xl text-[10px] font-black transition-all cursor-pointer border",
+                      "px-3.5 py-1.5 rounded-xl text-[10px] font-black transition-all cursor-pointer border",
                       mobileCommunitySubTab === tab.id
-                        ? "bg-slate-900 text-white border-slate-900 shadow-2xs"
-                        : "bg-slate-50 text-slate-500 border-slate-200/80"
+                        ? "bg-gradient-to-r from-indigo-600 to-purple-600 text-white border-indigo-600 shadow-xs"
+                        : "bg-slate-50 text-slate-600 border-slate-200/80"
                     )}
                   >
                     {tab.label}
@@ -711,7 +716,7 @@ export default function Stats() {
         </div>
 
         {/* ═══════════ SCROLLABLE SUB-TAB CONTENT PAGE ═══════════ */}
-        <div className="flex-1 overflow-y-auto p-4 space-y-4 scrollbar-thin">
+        <div className="flex-1 overflow-y-auto p-4 space-y-4 no-scrollbar">
           <AnimatePresence mode="wait">
             {activeTab === 'personal' && (
               <motion.div
@@ -733,7 +738,7 @@ export default function Stats() {
                           onClick={() => setPersonalPeriod(period)}
                           className={cn(
                             "flex-1 py-1.5 px-2 rounded-xl text-[9px] font-black uppercase tracking-wider whitespace-nowrap cursor-pointer transition-all",
-                            personalPeriod === period ? "bg-indigo-600 text-white shadow-2xs" : "text-slate-500"
+                            personalPeriod === period ? "bg-orange-600 text-white shadow-2xs" : "text-slate-500 font-bold"
                           )}
                         >
                           {period === 'day' ? 'Hôm nay' : period === 'week' ? 'Tuần này' : period === 'month' ? 'Tháng này' : period === 'year' ? 'Năm nay' : 'Tất cả'}
@@ -832,8 +837,9 @@ export default function Stats() {
                 {mobilePersonalSubTab === 2 && (
                   <>
                     {/* Heatmap Calendar */}
-                    <div className="bg-white rounded-3xl p-4 border border-slate-200/90 shadow-sm space-y-3 overflow-x-auto">
-                      <h3 className="text-xs font-black text-slate-900 uppercase">Bản Đồ Siêng Năng (365 Ngày)</h3>
+                    <div className="bg-white rounded-3xl p-4 border border-slate-200/90 shadow-sm space-y-3 overflow-x-auto no-scrollbar relative">
+                      <div className="h-1 absolute top-0 inset-x-0 bg-gradient-to-r from-orange-500 via-amber-500 to-rose-500" />
+                      <h3 className="text-xs font-black text-slate-900 uppercase pt-1">Bản Đồ Siêng Năng (365 Ngày)</h3>
                       <div className="flex gap-[3px] min-w-[500px] justify-between">
                         {getHeatmapGrid().slice(-26).map((week, wIdx) => (
                           <div key={wIdx} className="flex flex-col gap-[3px]">
@@ -847,10 +853,11 @@ export default function Stats() {
 
                     {/* Leitner Box */}
                     {leitnerStats && (
-                      <div className="bg-white rounded-3xl p-4 border border-slate-200/90 shadow-sm space-y-3">
-                        <div className="flex items-center justify-between">
+                      <div className="bg-white rounded-3xl p-4 border border-slate-200/90 shadow-sm space-y-3 relative overflow-hidden">
+                        <div className="h-1 absolute top-0 inset-x-0 bg-gradient-to-r from-orange-500 via-amber-500 to-rose-500" />
+                        <div className="flex items-center justify-between pt-1">
                           <h3 className="text-xs font-black text-slate-900 uppercase">Hộp Ghi Nhớ Leitner</h3>
-                          <span className="text-[10px] font-black text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-full border border-indigo-100">
+                          <span className="text-[10px] font-black text-orange-600 bg-orange-50 px-2.5 py-0.5 rounded-full border border-orange-200">
                             {leitnerStats.mastery_percentage}% Thành thạo
                           </span>
                         </div>
@@ -860,7 +867,7 @@ export default function Stats() {
                               <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
                               <XAxis dataKey="label" axisLine={false} tickLine={false} tick={{ fontSize: 8, fontWeight: 900, fill: '#94a3b8' }} />
                               <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 8, fontWeight: 900, fill: '#94a3b8' }} />
-                              <Bar dataKey="count" fill="#6366f1" radius={[4, 4, 0, 0]} />
+                              <Bar dataKey="count" fill="#ea580c" radius={[4, 4, 0, 0]} />
                             </BarChart>
                           </ResponsiveContainer>
                         </div>
@@ -869,8 +876,9 @@ export default function Stats() {
 
                     {/* Speed vs Accuracy */}
                     {speedAccuracyStats && (
-                      <div className="bg-white rounded-3xl p-4 border border-slate-200/90 shadow-sm space-y-3">
-                        <h3 className="text-xs font-black text-slate-900 uppercase">Tốc Độ & Độ Chính Xác</h3>
+                      <div className="bg-white rounded-3xl p-4 border border-slate-200/90 shadow-sm space-y-3 relative overflow-hidden">
+                        <div className="h-1 absolute top-0 inset-x-0 bg-gradient-to-r from-orange-500 via-amber-500 to-rose-500" />
+                        <h3 className="text-xs font-black text-slate-900 uppercase pt-1">Tốc Độ & Độ Chính Xác</h3>
                         <div className="grid grid-cols-2 gap-2 text-center text-[10px]">
                           <div className="p-3 bg-emerald-50 rounded-2xl border border-emerald-100">
                             <span className="text-[8px] font-black text-emerald-700 uppercase block">Trả lời Đúng</span>
@@ -911,8 +919,9 @@ export default function Stats() {
                     )}
 
                     {/* Domains */}
-                    <div className="bg-white rounded-3xl p-4 border border-slate-200/90 shadow-sm space-y-3">
-                      <h3 className="text-xs font-black text-slate-900 uppercase">Lĩnh Vực Kiến Thức</h3>
+                    <div className="bg-white rounded-3xl p-4 border border-slate-200/90 shadow-sm space-y-3 relative overflow-hidden">
+                      <div className="h-1 absolute top-0 inset-x-0 bg-gradient-to-r from-orange-500 via-amber-500 to-rose-500" />
+                      <h3 className="text-xs font-black text-slate-900 uppercase pt-1">Lĩnh Vực Kiến Thức</h3>
                       <div className="space-y-2">
                         {personal.category_performance.slice(0, 5).map((cat, idx) => (
                           <div key={idx}>
@@ -929,8 +938,9 @@ export default function Stats() {
                     </div>
 
                     {/* Recent Sessions */}
-                    <div className="bg-white rounded-3xl p-4 border border-slate-200/90 shadow-sm space-y-3">
-                      <h3 className="text-xs font-black text-slate-900 uppercase">Lần Ôn Gần Đây</h3>
+                    <div className="bg-white rounded-3xl p-4 border border-slate-200/90 shadow-sm space-y-3 relative overflow-hidden">
+                      <div className="h-1 absolute top-0 inset-x-0 bg-gradient-to-r from-orange-500 via-amber-500 to-rose-500" />
+                      <h3 className="text-xs font-black text-slate-900 uppercase pt-1">Lần Ôn Gần Đây</h3>
                       <div className="space-y-2">
                         {personal.recent_sessions.slice(0, 4).map((session, idx) => (
                           <div key={idx} className="flex items-center justify-between p-2.5 bg-slate-50 rounded-2xl border border-slate-100 text-[10px]">
@@ -959,8 +969,9 @@ export default function Stats() {
               >
                 {/* 📍 SUB-TAB 0: BẢNG XẾP HẠNG */}
                 {mobileCommunitySubTab === 0 && (
-                  <div className="bg-white rounded-3xl p-4 border border-slate-200/90 shadow-sm space-y-3">
-                    <div className="flex items-center justify-between flex-wrap gap-2">
+                  <div className="bg-white rounded-3xl p-4 border border-slate-200/90 shadow-sm space-y-3 relative overflow-hidden">
+                    <div className="h-1 absolute top-0 inset-x-0 bg-gradient-to-r from-indigo-500 via-purple-500 to-rose-500" />
+                    <div className="flex items-center justify-between flex-wrap gap-2 pt-1">
                       <h3 className="text-xs font-black text-slate-900 uppercase flex items-center gap-1.5">
                         <Trophy className="w-4 h-4 text-amber-500" /> Bảng Vinh Danh
                       </h3>
@@ -1023,8 +1034,9 @@ export default function Stats() {
                       <MetricCard label="Platform Acc" value={`${global.platform_accuracy}%`} sub="Độ chính xác toàn sàn" icon={Globe} color="text-rose-600" bg="bg-rose-50" />
                     </div>
 
-                    <div className="bg-white rounded-3xl p-4 border border-slate-200/90 shadow-sm space-y-2">
-                      <h3 className="text-xs font-black text-slate-900 uppercase">Hệ Thống Vocaburn</h3>
+                    <div className="bg-white rounded-3xl p-4 border border-slate-200/90 shadow-sm space-y-2 relative overflow-hidden">
+                      <div className="h-1 absolute top-0 inset-x-0 bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-700" />
+                      <h3 className="text-xs font-black text-slate-900 uppercase pt-1">Hệ Thống Vocaburn</h3>
                       <p className="text-[10px] text-slate-500 font-medium leading-relaxed">
                         Tốc độ xử lý trung bình: <strong>{global.avg_time_per_question}s / câu</strong>.
                         Tỷ lệ chính xác toàn trang: <strong>{global.platform_accuracy}%</strong>.
@@ -1930,14 +1942,15 @@ export default function Stats() {
 
 function MetricCard({ label, value, sub, icon: Icon, color, bg }: any) {
   return (
-    <div className="bg-white rounded-[1.5rem] md:rounded-[2rem] border border-slate-100 p-4 md:p-6 shadow-sm hover:shadow-xl transition-all group overflow-hidden relative">
-       <div className={cn("w-8 h-8 md:w-10 md:h-10 rounded-lg md:rounded-xl mb-3 flex items-center justify-center transition-all", bg, color)}>
+    <div className="bg-white rounded-2xl md:rounded-[2rem] border border-slate-200/80 p-3.5 md:p-6 shadow-2xs hover:shadow-md transition-all group overflow-hidden relative">
+       <div className="h-1 absolute top-0 inset-x-0 bg-gradient-to-r from-orange-500 via-amber-500 to-rose-500" />
+       <div className={cn("w-8 h-8 md:w-10 md:h-10 rounded-xl mb-2 flex items-center justify-center transition-all pt-0.5", bg, color)}>
           <Icon className="w-4 h-4 md:w-5 md:h-5" />
        </div>
        <div className="relative z-10">
           <h4 className="text-[8px] md:text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">{label}</h4>
-          <div className="text-lg md:text-2xl font-black text-slate-900 tracking-tighter italic leading-none">{value}</div>
-          <p className="text-[7px] md:text-[8px] font-black text-slate-300 uppercase tracking-widest mt-1">{sub}</p>
+          <div className="text-base md:text-2xl font-black text-slate-900 tracking-tighter italic leading-none">{value}</div>
+          <p className="text-[7px] md:text-[8px] font-black text-slate-400 uppercase tracking-widest mt-1">{sub}</p>
        </div>
     </div>
   )

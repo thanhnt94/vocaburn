@@ -95,7 +95,8 @@ export default function DailyComparisonChart({ data, allTimeAvg, isLoading }: Da
   };
 
   return (
-    <div className="bg-white border border-slate-100 rounded-[2.5rem] py-5 px-3 sm:p-7 shadow-sm flex flex-col gap-6 text-left relative">
+    <div className="bg-white border border-slate-200/90 rounded-3xl p-4 sm:p-7 shadow-sm flex flex-col gap-5 text-left relative overflow-hidden">
+      <div className="h-1 absolute top-0 inset-x-0 bg-gradient-to-r from-orange-500 via-amber-500 to-rose-500" />
       {/* Header section */}
       <div className="flex items-center gap-4">
         <div className="w-12 h-12 rounded-[1rem] bg-orange-50 flex items-center justify-center flex-shrink-0">
