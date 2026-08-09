@@ -2590,60 +2590,31 @@ async def get_deck_roadmap_status_helper(db: AsyncSession, user_id: int, deck_id
     test_scores = test_attempts_res.scalars().all()
     retention_rate = int(round(sum(test_scores) / len(test_scores))) if test_scores else 0
 
-    # Calculate streak & 7 days
-    active_dates_res = await db.execute(
-        select(func.date(UserAnswer.created_at))
-        .join(DeckAttempt, UserAnswer.attempt_id == DeckAttempt.id)
-        .join(Flashcard, UserAnswer.card_id == Flashcard.id)
-        .where(
-            DeckAttempt.user_id == user_id,
-            Flashcard.deck_id == deck_id
-        )
-        .group_by(func.date(UserAnswer.created_at))
-        .order_by(func.date(UserAnswer.created_at).desc())
-    )
-    active_dates = []
-    for row in active_dates_res.all():
-        val = row[0]
-        if not val:
-            continue
-        if isinstance(val, str):
-            try:
-                active_dates.append(date.fromisoformat(val))
-            except Exception:
-                pass
-        elif isinstance(val, datetime):
-            active_dates.append(val.date())
-        elif isinstance(val, date):
-            active_dates.append(val)
-
-    streak = 0
-    if active_dates:
-        today_date = datetime.utcnow().date()
-        yesterday_date = today_date - timedelta(days=1)
-        if active_dates[0] == today_date or active_dates[0] == yesterday_date:
-            streak = 1
-            current_date = active_dates[0]
-            for date_val in active_dates[1:]:
-                if (current_date - date_val).days == 1:
-                    streak += 1
-                    current_date = date_val
-                elif (current_date - date_val).days == 0:
-                    continue
-                else:
-                    break
-
     today_date = datetime.utcnow().date()
     seven_days = []
+    
+    goal_res = await db.execute(select(UserDeckGoal).where(UserDeckGoal.user_id == user_id, UserDeckGoal.deck_id == deck_id))
+    goal = goal_res.scalar_one_or_none()
+    
+    if goal:
+        past_7_dates = [(today_date - timedelta(days=i)).isoformat() for i in range(6, -1, -1)]
+        progress_res = await db.execute(
+            select(UserDailyProgress.date, UserDailyProgress.is_target_met)
+            .where(UserDailyProgress.goal_id == goal.id, UserDailyProgress.date.in_(past_7_dates))
+        )
+        progress_map = {row[0]: row[1] for row in progress_res.all()}
+    else:
+        progress_map = {}
+        
     for i in range(6, -1, -1):
         d = today_date - timedelta(days=i)
+        d_str = d.isoformat()
         seven_days.append({
-            "date": d.strftime("%Y-%m-%d"),
+            "date": d_str,
             "day_name": d.strftime("%a"),
-            "active": d in active_dates
+            "active": progress_map.get(d_str, False)
         })
 
-    # Process pipeline steps
     pipeline_processed = []
     first_incomplete_idx = None
     daily_new_target = 0
@@ -2742,7 +2713,6 @@ async def get_deck_roadmap_status_helper(db: AsyncSession, user_id: int, deck_id
         if not step_data["done"] and first_incomplete_idx is None:
             first_incomplete_idx = idx
 
-    # Calculate estimated completion
     import math
     if daily_new_target > 0:
         days_left = math.ceil(unlearned_cards / daily_new_target)
@@ -2751,13 +2721,57 @@ async def get_deck_roadmap_status_helper(db: AsyncSession, user_id: int, deck_id
         days_left = 0
         estimated_completion_date = None
 
-    if len(pipeline_processed) > 0 and first_incomplete_idx is None:
+    if len(pipeline_processed) > 0:
+        all_done = all(step.get("done", False) for step in pipeline_processed)
+    elif len(pipeline_processed) == 0:
         all_done = True
+    else:
+        all_done = False
+        
+    streak = 0
+    today_str = today_date.isoformat()
+    yesterday_str = (today_date - timedelta(days=1)).isoformat()
+    
+    if not goal:
+        goal = UserDeckGoal(user_id=user_id, deck_id=deck_id, streak_count=0)
+        db.add(goal)
+        await db.flush()
+
+    if not target_date_str:
+        prog_res = await db.execute(select(UserDailyProgress).where(UserDailyProgress.goal_id == goal.id, UserDailyProgress.date == today_str))
+        prog = prog_res.scalar_one_or_none()
+        
+        if not prog:
+            prog = UserDailyProgress(goal_id=goal.id, date=today_str, is_target_met=False)
+            db.add(prog)
+            
+        if all_done and not prog.is_target_met:
+            prog.is_target_met = True
+            
+            last_comp = goal.last_completed_date
+            if last_comp == yesterday_str:
+                goal.streak_count += 1
+            elif last_comp != today_str:
+                goal.streak_count = 1
+                
+            goal.last_completed_date = today_str
+            await db.commit()
+            
+    last_comp = goal.last_completed_date
+    if last_comp == today_str or last_comp == yesterday_str:
+        streak = goal.streak_count
+    else:
+        streak = 0
+        if goal.streak_count > 0:
+            goal.streak_count = 0
+            if not target_date_str:
+                await db.commit()
+
+    if len(pipeline_processed) > 0 and first_incomplete_idx is None:
         current_step_index = len(pipeline_processed)
         next_action_url = f"/flashcard/{deck_id}/roadmap"
         next_action_label = "Đã xong lộ trình hôm nay"
     elif len(pipeline_processed) > 0:
-        all_done = False
         current_step_index = first_incomplete_idx
         next_action_url = pipeline_processed[first_incomplete_idx]["url"]
         next_action_label = pipeline_processed[first_incomplete_idx]["label"]
