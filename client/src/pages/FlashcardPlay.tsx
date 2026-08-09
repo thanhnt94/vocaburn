@@ -2272,7 +2272,7 @@ export default function FlashcardPlay() {
     };
 
     if (mainTab === 'practice') {
-      const nextIdx = getNextPracticeIndex(currentIndex, practiceRange, questions);
+      const nextIdx = getNextPracticeIndex(currentIndex, practiceRange as any, questions);
       
       // Clear the answer for both the current and next card so they are always clickable and reusable
       const newAnswers = { ...practiceAnswers };
@@ -3763,7 +3763,7 @@ export default function FlashcardPlay() {
               </span>
               <div className="h-2.5 md:h-3 overflow-hidden relative min-w-[15px]">
                 <TimerWidget
-                  timeMode={timeMode}
+                  timeMode={timeMode as any}
                   initialTodayTime={initialTodayTime}
                   initialAllTimeTime={initialAllTimeTime}
                   showFeedback={showFeedback}
@@ -4195,7 +4195,7 @@ export default function FlashcardPlay() {
                 renderPracticeLockScreen()
               ) : mainTab === 'practice' && (practiceNeedsSetup || subMode === 'setting') ? (
                 <PracticeSetupScreen
-                  practiceSubMode={practiceSubMode}
+                  practiceSubMode={practiceSubMode as any}
                   setupPairs={setupPairs}
                   setSetupPairs={setSetupPairs}
                   availableColumns={availableColumns}

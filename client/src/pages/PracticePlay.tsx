@@ -2675,7 +2675,7 @@ export default function PracticePlay() {
     };
 
     if (mainTab === 'practice') {
-      const nextIdx = getNextPracticeIndex(currentIndex, practiceRange, questions);
+      const nextIdx = getNextPracticeIndex(currentIndex, practiceRange as any, questions);
 
       // Clear the answer for both the current and next card so they are always clickable and reusable
       const newAnswers = { ...practiceAnswers };

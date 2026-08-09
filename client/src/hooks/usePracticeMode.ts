@@ -12,12 +12,12 @@ export function usePracticeMode(
 ) {
   const { userSettings, updateUserSettings } = useAppStore();
 
-  const practiceSubMode = userSettings.practice_submode || 'mcq';
+  const practiceSubMode = (userSettings.practice_submode as PracticeSubMode) || 'mcq';
   const setPracticeSubMode = (mode: PracticeSubMode) => {
     updateUserSettings({ practice_submode: mode });
   };
 
-  const practiceRange = userSettings.practice_range || 'all';
+  const practiceRange = (userSettings.practice_range as PracticeRange) || 'all';
   const setPracticeRange = (range: PracticeRange) => {
     updateUserSettings({ practice_range: range });
   };
