@@ -174,11 +174,13 @@ async def serve_sw():
 @app.get("/settings")
 @app.get("/manage")
 @app.get("/manage/{path:path}")
+@app.get("/roadmap")
+@app.get("/roadmap/{path:path}")
 @app.get("/room/{path:path}")
 @app.get("/admin")
 @app.get("/admin/{path:path}")
 @app.get("/auth/callback")
-async def serve_spa(request: Request, db: AsyncSession = Depends(get_db)):
+async def serve_spa(request: Request):
     # Serve React SPA index.html unconditionally for all frontend paths
     spa_index = os.path.join(DIST_DIR, "index.html")
     if os.path.exists(spa_index):
@@ -195,16 +197,28 @@ async def serve_spa(request: Request, db: AsyncSession = Depends(get_db)):
     )
 
 
-
-
-
-
-
-
 @app.get("/discover")
-async def discover_page(request: Request, db: AsyncSession = Depends(get_db)):
+async def discover_page(request: Request):
     # Redirect to home with a special flag to open the discover tab
     return RedirectResponse(url="/?tab=discover")
+
+
+@app.get("/{full_path:path}")
+async def catch_all_spa(request: Request, full_path: str):
+    # Ignore API or static requests that reach here to return 404 JSON
+    if full_path.startswith("api/") or full_path.startswith("static/") or full_path.startswith("uploads/") or full_path.startswith("mascot/"):
+        raise HTTPException(status_code=404, detail="Not Found")
+    
+    spa_index = os.path.join(DIST_DIR, "index.html")
+    if os.path.exists(spa_index):
+        from fastapi.responses import FileResponse
+        response = FileResponse(spa_index)
+        response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate, max-age=0"
+        response.headers["Pragma"] = "no-cache"
+        response.headers["Expires"] = "0"
+        return response
+    
+    raise HTTPException(status_code=404, detail="Not Found")
 
 
 
