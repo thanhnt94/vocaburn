@@ -318,10 +318,10 @@ export default function DeckRoadmap() {
                 if (navigator.vibrate) navigator.vibrate(8);
                 navigate(`/flashcard/${id}`);
               }}
-              className="flex items-center gap-1 text-xs font-bold text-slate-700 bg-slate-100 px-2.5 py-1.5 rounded-xl shrink-0 active:scale-95 transition-all"
+              className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-700 active:scale-95 transition-all shrink-0 border border-slate-200/60"
+              title="Về bộ thẻ"
             >
-              <ChevronLeft className="w-4 h-4 text-slate-600" />
-              <span>Về bộ thẻ</span>
+              <ChevronLeft className="w-5 h-5 text-slate-700" />
             </button>
 
             <span className="text-sm font-black text-slate-900 truncate px-1 flex-1 text-center">
