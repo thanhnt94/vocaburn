@@ -335,7 +335,8 @@ export default function Stats() {
   const [activeLeaderboardTab, setActiveLeaderboardTab] = useState<'xp' | 'streak' | 'questions' | 'accuracy'>('xp')
   const [leaderboardTimeFilter, setLeaderboardTimeFilter] = useState<'today' | 'week' | 'month' | 'all_time'>('all_time')
   
-  const [mobileSubTab, setMobileSubTab] = useState<number>(0)
+  const [mobilePersonalSubTab, setMobilePersonalSubTab] = useState<number>(0)
+  const [mobileCommunitySubTab, setMobileCommunitySubTab] = useState<number>(0)
   const [touchStartX, setTouchStartX] = useState<number | null>(null)
   const [touchStartY, setTouchStartY] = useState<number | null>(null)
 
@@ -351,10 +352,18 @@ export default function Stats() {
 
     // Horizontal swipe threshold > 40px and dominant over vertical scroll
     if (Math.abs(diffX) > 40 && Math.abs(diffX) > Math.abs(diffY)) {
-      if (diffX > 0 && mobileSubTab < 5) {
-        setMobileSubTab(prev => prev + 1)
-      } else if (diffX < 0 && mobileSubTab > 0) {
-        setMobileSubTab(prev => prev - 1)
+      if (activeTab === 'personal') {
+        if (diffX > 0 && mobilePersonalSubTab < 3) {
+          setMobilePersonalSubTab(prev => prev + 1)
+        } else if (diffX < 0 && mobilePersonalSubTab > 0) {
+          setMobilePersonalSubTab(prev => prev - 1)
+        }
+      } else {
+        if (diffX > 0 && mobileCommunitySubTab < 1) {
+          setMobileCommunitySubTab(prev => prev + 1)
+        } else if (diffX < 0 && mobileCommunitySubTab > 0) {
+          setMobileCommunitySubTab(prev => prev - 1)
+        }
       }
     }
     setTouchStartX(null)
@@ -615,43 +624,95 @@ export default function Stats() {
         onTouchEnd={handleTouchEnd}
         className="md:hidden fixed inset-0 top-0 bottom-[60px] flex flex-col bg-[#F8FAFC] overflow-hidden z-[90]"
       >
-        {/* ═══════════ STICKY TOP CONTAINER (Header + Single Centered Tab Bar) ═══════════ */}
+        {/* ═══════════ STICKY TOP CONTAINER (Header with Compact Switch + Single Subtab Row) ═══════════ */}
         <div className="bg-white border-b border-slate-200/80 shrink-0 z-30 shadow-2xs">
-          {/* Top Header */}
-          <div className="px-4 pt-2.5 pb-2 flex items-center justify-between">
-            <div className="flex items-center gap-2">
+          {/* Top Header Row with Compact Switch */}
+          <div className="px-3.5 pt-2.5 pb-2 flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2 shrink-0">
               <div className="w-8 h-8 rounded-2xl bg-gradient-to-tr from-orange-500 via-amber-500 to-rose-500 flex items-center justify-center text-white shadow-sm shadow-orange-500/20">
                 <TrendingUp className="w-4 h-4" />
               </div>
-              <h1 className="text-xs font-black text-slate-900 leading-none tracking-tight">THỐNG KÊ HỌC TẬP 📊</h1>
+              <h1 className="text-xs font-black text-slate-900 leading-none tracking-tight">THỐNG KÊ 📊</h1>
+            </div>
+
+            {/* Compact Mode Switcher */}
+            <div className="flex bg-slate-100 p-0.5 rounded-xl border border-slate-200/80 shrink-0">
+              <button
+                onClick={() => {
+                  setActiveTab('personal')
+                  setMobilePersonalSubTab(0)
+                }}
+                className={cn(
+                  "px-2.5 py-1 rounded-lg text-[9px] font-black transition-all cursor-pointer",
+                  activeTab === 'personal'
+                    ? "bg-gradient-to-r from-orange-500 via-amber-500 to-orange-600 text-white shadow-2xs"
+                    : "text-slate-500 hover:text-slate-900 font-bold"
+                )}
+              >
+                👤 Cá nhân
+              </button>
+              <button
+                onClick={() => {
+                  setActiveTab('community')
+                  setMobileCommunitySubTab(0)
+                }}
+                className={cn(
+                  "px-2.5 py-1 rounded-lg text-[9px] font-black transition-all cursor-pointer",
+                  activeTab === 'community'
+                    ? "bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-700 text-white shadow-2xs"
+                    : "text-slate-500 hover:text-slate-900 font-bold"
+                )}
+              >
+                👥 Cộng đồng
+              </button>
             </div>
           </div>
 
-          {/* Single Centered Horizontal Tab Row */}
+          {/* Single Centered Sub-Tab Row */}
           <div className="px-2 pb-2 overflow-x-auto no-scrollbar">
-            <div className="flex items-center justify-center gap-1 whitespace-nowrap min-w-max mx-auto">
-              {[
-                { id: 0, label: '📊 Tổng quan' },
-                { id: 1, label: '📈 Biểu đồ' },
-                { id: 2, label: '🧠 Trí nhớ' },
-                { id: 3, label: '🎯 Luyện tập' },
-                { id: 4, label: '🏆 Xếp hạng' },
-                { id: 5, label: '🌐 Nền tảng' }
-              ].map(tab => (
-                <button
-                  key={tab.id}
-                  onClick={() => setMobileSubTab(tab.id)}
-                  className={cn(
-                    "px-3 py-1.5 rounded-xl text-[10px] font-black transition-all cursor-pointer border",
-                    mobileSubTab === tab.id
-                      ? "bg-gradient-to-r from-orange-500 via-amber-500 to-orange-600 text-white border-orange-500 shadow-2xs"
-                      : "bg-slate-50 text-slate-600 border-slate-200/80 hover:bg-slate-100"
-                  )}
-                >
-                  {tab.label}
-                </button>
-              ))}
-            </div>
+            {activeTab === 'personal' ? (
+              <div className="flex items-center justify-center gap-1.5 whitespace-nowrap min-w-max mx-auto">
+                {[
+                  { id: 0, label: '📊 Tổng quan' },
+                  { id: 1, label: '📈 Biểu đồ' },
+                  { id: 2, label: '🧠 Trí nhớ' },
+                  { id: 3, label: '🎯 Luyện tập' }
+                ].map(tab => (
+                  <button
+                    key={tab.id}
+                    onClick={() => setMobilePersonalSubTab(tab.id)}
+                    className={cn(
+                      "px-3 py-1.5 rounded-xl text-[10px] font-black transition-all cursor-pointer border",
+                      mobilePersonalSubTab === tab.id
+                        ? "bg-gradient-to-r from-orange-500 via-amber-500 to-orange-600 text-white border-orange-500 shadow-2xs"
+                        : "bg-slate-50 text-slate-600 border-slate-200/80 hover:bg-slate-100"
+                    )}
+                  >
+                    {tab.label}
+                  </button>
+                ))}
+              </div>
+            ) : (
+              <div className="flex items-center justify-center gap-1.5 whitespace-nowrap min-w-max mx-auto">
+                {[
+                  { id: 0, label: '🏆 Xếp hạng' },
+                  { id: 1, label: '🌐 Nền tảng' }
+                ].map(tab => (
+                  <button
+                    key={tab.id}
+                    onClick={() => setMobileCommunitySubTab(tab.id)}
+                    className={cn(
+                      "px-3 py-1.5 rounded-xl text-[10px] font-black transition-all cursor-pointer border",
+                      mobileCommunitySubTab === tab.id
+                        ? "bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-700 text-white border-indigo-600 shadow-2xs"
+                        : "bg-slate-50 text-slate-600 border-slate-200/80 hover:bg-slate-100"
+                    )}
+                  >
+                    {tab.label}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
         </div>
 
