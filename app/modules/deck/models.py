@@ -96,11 +96,11 @@ class UserAnswer(Base):
 class DeckSession(Base):
     __tablename__ = "deck_sessions"
     id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), index=True)
     deck_id = Column("deck_id", Integer, ForeignKey("flashcard_decks.id"), index=True)
     mode = Column(String) # classic, chaos, mastery, batch
     current_index = Column(Integer, default=0)
-    state_json = Column(String) # For storing card order/answers
+    state_json = Column(Text) # JSON blob for storing card order/answers
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
 class UserCardNote(Base):
@@ -177,6 +177,7 @@ class DeckCollaborator(Base):
     user = relationship("User")
 
 class UserDeckGoal(Base):
+    """Tracks per-deck streak and daily Roadmap target completion."""
     __tablename__ = "user_deck_goals"
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id"), index=True)
@@ -186,6 +187,7 @@ class UserDeckGoal(Base):
     daily_card_target = Column(Integer, default=20) # total cards
     streak_count = Column(Integer, default=0)
     last_completed_date = Column(String(50), nullable=True) # YYYY-MM-DD
+    last_completed_at = Column(Date, nullable=True)
     status = Column(String(50), default="active") # active, paused, completed
     created_at = Column(DateTime, default=datetime.utcnow)
     
@@ -197,6 +199,7 @@ class UserDailyProgress(Base):
     id = Column(Integer, primary_key=True, index=True)
     goal_id = Column(Integer, ForeignKey("user_deck_goals.id"), index=True)
     date = Column(String(50), index=True) # YYYY-MM-DD
+    date_val = Column(Date, nullable=True, index=True)
     count_done = Column(Integer, default=0)
     is_target_met = Column(Boolean, default=False)
     created_at = Column(DateTime, default=datetime.utcnow)
@@ -228,23 +231,13 @@ class UserCardMastery(Base):
 class UserDeckSettings(Base):
     __tablename__ = "user_deck_settings"
     id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, index=True) # ID of the user (e.g. from cookie/auth)
+    user_id = Column(Integer, ForeignKey("users.id"), index=True)
     deck_id = Column(Integer, ForeignKey("flashcard_decks.id"), index=True)
     settings = Column(JSON, nullable=True) # Custom mappings/configurations chosen by the learner
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
     deck = relationship("FlashcardDeck")
 
-class UserGlobalGoal(Base):
-    __tablename__ = "user_global_goals"
-    id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("users.id"), unique=True, index=True)
-    daily_time_target = Column(Integer, default=20) # in minutes
-    daily_card_target = Column(Integer, default=20) # number of cards
-    daily_new_card_target = Column(Integer, default=10) # number of new cards
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-
-    user = relationship("User")
 
 
 class UserPracticeStats(Base):

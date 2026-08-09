@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, DateTime, Boolean
+from sqlalchemy import Column, Integer, String, DateTime, Boolean, ForeignKey
 from app.core.db import Base
 from datetime import datetime
 
@@ -6,7 +6,7 @@ class Notification(Base):
     __tablename__ = "notifications"
     
     id = Column(Integer, primary_key=True)
-    user_id = Column(Integer, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), index=True)
     title = Column(String(100))
     message = Column(String(255))
     type = Column(String(50)) # 'level_up', 'badge', 'system', 'streak'
@@ -17,7 +17,7 @@ class PushSubscription(Base):
     __tablename__ = "push_subscriptions"
     
     id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), index=True)
     endpoint = Column(String(512), unique=True, index=True)
     p256dh = Column(String(255))
     auth = Column(String(255))

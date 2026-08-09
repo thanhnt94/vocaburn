@@ -23,7 +23,7 @@ export default defineConfig({
   base: '/static/dist/',
   build: {
     outDir: path.resolve(__dirname, '../app/static/dist'),
-    emptyOutDir: false,
+    emptyOutDir: true,
     manifest: true,
     rollupOptions: {
       output: {

@@ -40,4 +40,12 @@ class XPTransaction(Base):
     source = Column(String(100), nullable=False) # e.g., 'quiz_answer', 'streak_bonus', 'badge_unlock', 'daily_goal'
     created_at = Column(DateTime, default=datetime.utcnow, index=True)
 
+class UserBadge(Base):
+    __tablename__ = "user_badges"
+    
+    user_id = Column(Integer, ForeignKey("users.id"), primary_key=True)
+    badge_id = Column(String(50), ForeignKey("badges.id"), primary_key=True)
+    earned_at = Column(DateTime, default=datetime.utcnow)
+
+
 

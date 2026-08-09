@@ -289,7 +289,7 @@ async def remove_goal(request: Request, data: dict, db: AsyncSession = Depends(g
 
 @router.get("/gamification/badges")
 async def get_user_badges(request: Request, db: AsyncSession = Depends(get_db)):
-    from app.modules.gamification.models import UserGamification, Badge
+    from app.modules.gamification.models import UserGamification, Badge, UserBadge
     
     user = await AuthService.get_current_user(request, db)
     user_id = user.id if user else 1
@@ -297,7 +297,8 @@ async def get_user_badges(request: Request, db: AsyncSession = Depends(get_db)):
     # Get user gamification model
     user_gamify_res = await db.execute(select(UserGamification).where(UserGamification.user_id == user_id))
     user_gamify = user_gamify_res.scalar_one_or_none()
-    unlocked_badge_ids = set(user_gamify.badges or []) if user_gamify else set()
+    ub_res = await db.execute(select(UserBadge.badge_id).where(UserBadge.user_id == user_id))
+    unlocked_badge_ids = set(r[0] for r in ub_res.all()).union(set(user_gamify.badges or []) if user_gamify else set())
     
     # Get all badges
     badges_res = await db.execute(select(Badge))

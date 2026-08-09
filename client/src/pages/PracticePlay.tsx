@@ -1256,15 +1256,7 @@ export default function PracticePlay() {
             return { data: null }
           })
         )
-      } else {
-        fetchPromises.push(
-          axios.get('/api/v1/deck/goals/active', {
-            params: { local_date: new Date().toISOString().slice(0, 10) }
-          }).catch(e => {
-            console.error("Failed to load active goals", e)
-            return { data: [] }
-          })
-        )
+        fetchPromises.push(Promise.resolve({ data: [] }))
         fetchPromises.push(
           axios.get(`/api/v1/deck/${id}/session`).catch(e => {
             console.error("Failed to load session", e)

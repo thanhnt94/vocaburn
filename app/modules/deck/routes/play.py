@@ -607,7 +607,9 @@ async def record_answer(request: Request, data: dict, db: AsyncSession = Depends
         db.add(user_gamify)
         await db.flush()
 
-    already_earned = set(user_gamify.badges or [])
+    from app.modules.gamification.models import UserBadge
+    ub_res = await db.execute(select(UserBadge.badge_id).where(UserBadge.user_id == user_id))
+    already_earned = set(r[0] for r in ub_res.all()).union(set(user_gamify.badges or []))
     badges_res = await db.execute(select(Badge))
     all_badges = badges_res.scalars().all()
 
@@ -685,8 +687,10 @@ async def record_answer(request: Request, data: dict, db: AsyncSession = Depends
                 should_unlock = True
         
         if should_unlock:
+            db.add(UserBadge(user_id=user_id, badge_id=badge.id))
             new_badges = list(user_gamify.badges or [])
-            new_badges.append(badge.id)
+            if badge.id not in new_badges:
+                new_badges.append(badge.id)
             user_gamify.badges = new_badges
             
             xp_reward = 150
@@ -3009,7 +3013,7 @@ async def get_deck_roadmap_calendar(request: Request, deck_id: int, month: str =
     
     _, days_in_month = cal_mod.monthrange(year, month_num)
     
-    from app.modules.deck.models import UserDeckGoal, UserGlobalGoal
+    from app.modules.deck.models import UserDeckGoal
     goal_res = await db.execute(
         select(UserDeckGoal).where(
             UserDeckGoal.user_id == user_id,
@@ -3017,18 +3021,7 @@ async def get_deck_roadmap_calendar(request: Request, deck_id: int, month: str =
         )
     )
     deck_goal = goal_res.scalar_one_or_none()
-    
-    if deck_goal:
-        daily_card_target = deck_goal.daily_card_target
-    else:
-        global_goal_res = await db.execute(
-            select(UserGlobalGoal).where(UserGlobalGoal.user_id == user_id)
-        )
-        global_goal = global_goal_res.scalar_one_or_none()
-        daily_card_target = global_goal.daily_card_target if global_goal else 20
-        
-    if not daily_card_target or daily_card_target <= 0:
-        daily_card_target = 20
+    daily_card_target = deck_goal.daily_card_target if (deck_goal and deck_goal.daily_card_target) else 20
     
     # Get user's roadmap pipeline settings for this deck
     user_sett_res = await db.execute(

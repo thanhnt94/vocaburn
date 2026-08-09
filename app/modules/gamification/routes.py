@@ -422,7 +422,7 @@ async def get_daily_challenges(
 
 @router.get("/badges/progress")
 async def get_badges_progress(request: Request, db: AsyncSession = Depends(get_db)):
-    from app.modules.gamification.models import Badge, UserGamification
+    from app.modules.gamification.models import Badge, UserGamification, UserBadge
     from app.modules.auth.services.auth_service import AuthService
     from app.modules.deck.models import UserCardMastery
     from app.modules.stats.models import UserDailyStats
@@ -439,7 +439,8 @@ async def get_badges_progress(request: Request, db: AsyncSession = Depends(get_d
     if not user_stats:
         user_stats = UserGamification(user_id=user_id, xp=0, level=1, streak_count=0, badges=[])
         
-    earned_badge_ids = set(user_stats.badges or [])
+    ub_res = await db.execute(select(UserBadge.badge_id).where(UserBadge.user_id == user_id))
+    earned_badge_ids = set(r[0] for r in ub_res.all()).union(set(user_stats.badges or []))
     
     # 2. Fetch all badges
     res_badges = await db.execute(select(Badge))

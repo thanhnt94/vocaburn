@@ -1019,15 +1019,6 @@ export default function FlashcardPlay() {
 
       // Leaderboard is fetched via dynamic useEffect depending on time filter
 
-      if (!isPractice) {
-        setTimeout(() => {
-          axios.get('/api/v1/deck/goals/active').then(goalsRes => {
-            const activeGoalData = goalsRes.data?.find((g: any) => g.deck_id === Number(id) || g.quiz_id === Number(id));
-            if (activeGoalData) {
-              setActiveGoal(activeGoalData);
-            }
-          }).catch(console.error);
-
           axios.get(`/api/v1/deck/${id}/session`).then(sessionRes => {
             let restoredAnswers: Record<number, any> = {};
             let restoredPractice: Record<number, any> = {};
@@ -1138,8 +1129,6 @@ export default function FlashcardPlay() {
               if (currentIndex < 0) setCurrentIndex(0);
             });
           });
-        }, 0);
-      }
     } catch (e) {
       console.error("Failed to load deck data:", e)
       showLocalToast("Failed to load deck data. Please check your connection.", "error")

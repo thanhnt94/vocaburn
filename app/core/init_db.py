@@ -44,18 +44,49 @@ async def init_db():
             
             new_columns = [
                 ("daily_time_target", "INTEGER DEFAULT 10"),
-                ("daily_card_target", "INTEGER DEFAULT 20")
+                ("daily_card_target", "INTEGER DEFAULT 20"),
+                ("last_completed_at", "DATE NULL")
             ]
             
             for col_name, col_type in new_columns:
                 if col_name not in columns:
                     print(f"[MIGRATE] Adding column {col_name} ({col_type}) to user_deck_goals...")
                     connection.execute(text(f"ALTER TABLE user_deck_goals ADD COLUMN {col_name} {col_type}"))
-            
+
+        def migrate_daily_stats_columns(connection):
+            result = connection.execute(text("PRAGMA table_info(user_daily_stats);"))
+            columns = {row[1] for row in result.fetchall()}
+            if "is_active" not in columns:
+                print("[MIGRATE] Adding column is_active to user_daily_stats...")
+                connection.execute(text("ALTER TABLE user_daily_stats ADD COLUMN is_active BOOLEAN DEFAULT 1"))
+
+        def migrate_daily_progress_columns(connection):
+            result = connection.execute(text("PRAGMA table_info(user_daily_progress);"))
+            columns = {row[1] for row in result.fetchall()}
+            if "date_val" not in columns:
+                print("[MIGRATE] Adding column date_val to user_daily_progress...")
+                connection.execute(text("ALTER TABLE user_daily_progress ADD COLUMN date_val DATE NULL"))
+
         await conn.run_sync(migrate_fsrs_columns)
         await conn.run_sync(migrate_deck_goals_columns)
+        await conn.run_sync(migrate_daily_stats_columns)
+        await conn.run_sync(migrate_daily_progress_columns)
         
     async with SessionLocal() as db:
+        # Migrate JSON badges into user_badges table
+        from app.modules.gamification.models import UserGamification, UserBadge
+        import json
+        gam_res = await db.execute(select(UserGamification))
+        for user_gam in gam_res.scalars().all():
+            if user_gam.badges:
+                b_list = user_gam.badges if isinstance(user_gam.badges, list) else json.loads(user_gam.badges)
+                for b_id in b_list:
+                    ub_check = await db.execute(
+                        select(UserBadge).where(UserBadge.user_id == user_gam.user_id, UserBadge.badge_id == str(b_id))
+                    )
+                    if not ub_check.scalar_one_or_none():
+                        db.add(UserBadge(user_id=user_gam.user_id, badge_id=str(b_id)))
+        await db.commit()
         # Check if category exists
         result = await db.execute(select(Category))
         if not result.scalar():

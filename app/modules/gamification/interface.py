@@ -92,7 +92,23 @@ class GamificationInterface:
             elif isinstance(val, datetime): active_dates.add(val.date())
             elif isinstance(val, date): active_dates.add(val)
 
-        # 2. Fetch distinct dates from UserDailyActivity
+        # 2. Fetch distinct dates from UserDailyStats (and legacy UserDailyActivity)
+        from app.modules.stats.models import UserDailyStats
+        stats_stmt = select(func.date(UserDailyStats.date)).where(
+            and_(
+                UserDailyStats.user_id == user_id,
+                UserDailyStats.is_active == True
+            )
+        ).group_by(func.date(UserDailyStats.date))
+        stats_res = await db.execute(stats_stmt)
+        for row in stats_res.all():
+            val = row[0]
+            if isinstance(val, str):
+                try: active_dates.add(date.fromisoformat(val))
+                except: pass
+            elif isinstance(val, datetime): active_dates.add(val.date())
+            elif isinstance(val, date): active_dates.add(val)
+
         act_stmt = select(UserDailyActivity.activity_date).where(UserDailyActivity.user_id == user_id)
         act_res = await db.execute(act_stmt)
         for row in act_res.all():
@@ -134,22 +150,31 @@ class GamificationInterface:
         if not activity_date:
             activity_date = datetime.utcnow().date()
 
-        # Record today's activity if not present
-        act_res = await db.execute(
-            select(UserDailyActivity).where(
+        # Record today's activity in UserDailyStats
+        from app.modules.stats.models import UserDailyStats
+        start_of_day = datetime(activity_date.year, activity_date.month, activity_date.day)
+        end_of_day = start_of_day + timedelta(days=1)
+        
+        stats_res = await db.execute(
+            select(UserDailyStats).where(
                 and_(
-                    UserDailyActivity.user_id == user_id,
-                    UserDailyActivity.activity_date == activity_date
+                    UserDailyStats.user_id == user_id,
+                    UserDailyStats.date >= start_of_day,
+                    UserDailyStats.date < end_of_day
                 )
             )
         )
-        if not act_res.scalar_one_or_none():
-            new_act = UserDailyActivity(user_id=user_id, activity_date=activity_date)
-            db.add(new_act)
+        daily_stat = stats_res.scalars().first()
+        if not daily_stat:
+            daily_stat = UserDailyStats(user_id=user_id, date=start_of_day, is_active=True)
+            db.add(daily_stat)
             try:
                 await db.flush()
             except Exception:
                 pass
+        elif not daily_stat.is_active:
+            daily_stat.is_active = True
+            await db.flush()
 
         res = await db.execute(select(UserGamification).where(UserGamification.user_id == user_id))
         user_stats = res.scalar_one_or_none()
@@ -172,15 +197,23 @@ class GamificationInterface:
 
     @staticmethod
     async def get_user_stats(db: AsyncSession, user_id: int):
+        from .models import UserBadge
         streak_val = await GamificationInterface.update_streak(db, user_id)
         result = await db.execute(select(UserGamification).where(UserGamification.user_id == user_id))
         stats = result.scalar_one_or_none()
+        
+        # Get badges from UserBadge table
+        ub_res = await db.execute(select(UserBadge.badge_id).where(UserBadge.user_id == user_id))
+        badge_ids = [r[0] for r in ub_res.all()]
+        if not badge_ids and stats and stats.badges:
+            badge_ids = stats.badges
+            
         if not stats:
-            return {"xp": 0, "level": 1, "streak": streak_val, "badges": []}
+            return {"xp": 0, "level": 1, "streak": streak_val, "badges": badge_ids}
         return {
             "xp": stats.xp,
             "level": stats.level,
             "streak": streak_val,
-            "badges": stats.badges
+            "badges": badge_ids
         }
 
