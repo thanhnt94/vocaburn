@@ -719,323 +719,336 @@ export default function Stats() {
         {/* ═══════════ SCROLLABLE SUB-TAB CONTENT PAGE ═══════════ */}
         <div className="flex-1 overflow-y-auto p-4 space-y-4 no-scrollbar">
           <AnimatePresence mode="wait">
-            <motion.div
-              key={`mobile-view-${mobileSubTab}`}
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -20 }}
-              transition={{ duration: 0.2 }}
-              className="space-y-4"
-            >
-              {/* 📍 TAB 0: TỔNG QUAN */}
-              {mobileSubTab === 0 && (
-                <>
-                  {/* Period Selector Bar */}
-                  <div className="flex bg-white p-1 rounded-2xl border border-slate-200/80 shadow-2xs overflow-x-auto no-scrollbar">
-                    {(['day', 'week', 'month', 'year', 'all'] as const).map(period => (
-                      <button
-                        key={period}
-                        onClick={() => setPersonalPeriod(period)}
-                        className={cn(
-                          "flex-1 py-1.5 px-2 rounded-xl text-[9px] font-black uppercase tracking-wider whitespace-nowrap cursor-pointer transition-all",
-                          personalPeriod === period ? "bg-orange-600 text-white shadow-2xs" : "text-slate-500 font-bold"
-                        )}
-                      >
-                        {period === 'day' ? 'Hôm nay' : period === 'week' ? 'Tuần này' : period === 'month' ? 'Tháng này' : period === 'year' ? 'Năm nay' : 'Tất cả'}
-                      </button>
-                    ))}
-                  </div>
-
-                  {/* Metric Cards Grid */}
-                  <div className="grid grid-cols-2 gap-3">
-                    <MetricCard label="Accurate Rate" value={`${periodSummary.global_accuracy}%`} sub="Tỷ lệ chính xác" icon={TargetIcon} color="text-indigo-600" bg="bg-indigo-50" />
-                    <MetricCard label="Study Duration" value={`${periodSummary.total_time_hours}h`} sub="Tổng thời gian" icon={Clock} color="text-emerald-600" bg="bg-emerald-50" />
-                    <MetricCard label="Attempted Cards" value={periodSummary.total_questions.toLocaleString()} sub="Số thẻ đã ôn" icon={Layers} color="text-amber-600" bg="bg-amber-50" />
-                    <MetricCard label="Correct Score" value={periodSummary.total_correct.toLocaleString()} sub="Số câu đúng" icon={Zap} color="text-rose-600" bg="bg-rose-50" />
-                  </div>
-
-                  {/* Progress Overview Card */}
-                  <div className="bg-white rounded-3xl p-4 border border-slate-200/90 shadow-sm space-y-3 relative overflow-hidden">
-                    <div className="h-1 absolute top-0 inset-x-0 bg-gradient-to-r from-orange-500 via-amber-500 to-rose-500" />
-                    <div className="flex items-center gap-2 pt-1">
-                      <Calendar className="w-4 h-4 text-orange-600" />
-                      <h3 className="text-xs font-black text-slate-900 uppercase">
-                        Báo cáo tiến độ ({personalPeriod === 'day' ? 'Hôm nay' : personalPeriod === 'week' ? 'Tuần này' : personalPeriod === 'month' ? 'Tháng này' : personalPeriod === 'year' ? 'Năm nay' : 'Tất cả'})
-                      </h3>
+            {activeTab === 'personal' && (
+              <motion.div
+                key={`personal-view-${mobilePersonalSubTab}`}
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -20 }}
+                transition={{ duration: 0.2 }}
+                className="space-y-4"
+              >
+                {/* 📍 SUB-TAB 0: TỔNG QUAN */}
+                {mobilePersonalSubTab === 0 && (
+                  <>
+                    {/* Period Selector Bar */}
+                    <div className="flex bg-white p-1 rounded-2xl border border-slate-200/80 shadow-2xs overflow-x-auto no-scrollbar">
+                      {(['day', 'week', 'month', 'year', 'all'] as const).map(period => (
+                        <button
+                          key={period}
+                          onClick={() => setPersonalPeriod(period)}
+                          className={cn(
+                            "flex-1 py-1.5 px-2 rounded-xl text-[9px] font-black uppercase tracking-wider whitespace-nowrap cursor-pointer transition-all",
+                            personalPeriod === period ? "bg-orange-600 text-white shadow-2xs" : "text-slate-500 font-bold"
+                          )}
+                        >
+                          {period === 'day' ? 'Hôm nay' : period === 'week' ? 'Tuần này' : period === 'month' ? 'Tháng này' : period === 'year' ? 'Năm nay' : 'Tất cả'}
+                        </button>
+                      ))}
                     </div>
-                    <div className="grid grid-cols-2 gap-2 text-[10px]">
-                      <div className="p-3 bg-slate-50 rounded-2xl border border-slate-100">
-                        <span className="text-[8px] font-black text-slate-400 uppercase block">Khối lượng</span>
-                        <span className="text-base font-black text-slate-900 mt-0.5 block">{periodSummary.total_questions.toLocaleString()} thẻ</span>
+
+                    {/* Metric Cards Grid */}
+                    <div className="grid grid-cols-2 gap-3">
+                      <MetricCard label="Accurate Rate" value={`${periodSummary.global_accuracy}%`} sub="Tỷ lệ chính xác" icon={TargetIcon} color="text-indigo-600" bg="bg-indigo-50" />
+                      <MetricCard label="Study Duration" value={`${periodSummary.total_time_hours}h`} sub="Tổng thời gian" icon={Clock} color="text-emerald-600" bg="bg-emerald-50" />
+                      <MetricCard label="Attempted Cards" value={periodSummary.total_questions.toLocaleString()} sub="Số thẻ đã ôn" icon={Layers} color="text-amber-600" bg="bg-amber-50" />
+                      <MetricCard label="Correct Score" value={periodSummary.total_correct.toLocaleString()} sub="Số câu đúng" icon={Zap} color="text-rose-600" bg="bg-rose-50" />
+                    </div>
+
+                    {/* Progress Overview Card */}
+                    <div className="bg-white rounded-3xl p-4 border border-slate-200/90 shadow-sm space-y-3 relative overflow-hidden">
+                      <div className="h-1 absolute top-0 inset-x-0 bg-gradient-to-r from-orange-500 via-amber-500 to-rose-500" />
+                      <div className="flex items-center gap-2 pt-1">
+                        <Calendar className="w-4 h-4 text-orange-600" />
+                        <h3 className="text-xs font-black text-slate-900 uppercase">
+                          Báo cáo tiến độ ({personalPeriod === 'day' ? 'Hôm nay' : personalPeriod === 'week' ? 'Tuần này' : personalPeriod === 'month' ? 'Tháng này' : personalPeriod === 'year' ? 'Năm nay' : 'Tất cả'})
+                        </h3>
                       </div>
-                      <div className="p-3 bg-slate-50 rounded-2xl border border-slate-100">
-                        <span className="text-[8px] font-black text-slate-400 uppercase block">Chính xác</span>
-                        <span className="text-base font-black text-indigo-600 mt-0.5 block">{periodSummary.global_accuracy}%</span>
-                      </div>
-                      <div className="p-3 bg-slate-50 rounded-2xl border border-slate-100">
-                        <span className="text-[8px] font-black text-slate-400 uppercase block">Tập trung</span>
-                        <span className="text-base font-black text-emerald-600 mt-0.5 block">{periodSummary.total_time_minutes} phút</span>
-                      </div>
-                      <div className="p-3 bg-slate-50 rounded-2xl border border-slate-100">
-                        <span className="text-[8px] font-black text-slate-400 uppercase block">Ngày đỉnh cao</span>
-                        <span className="text-base font-black text-amber-600 mt-0.5 block truncate">{periodSummary.best_day}</span>
+                      <div className="grid grid-cols-2 gap-2 text-[10px]">
+                        <div className="p-3 bg-slate-50 rounded-2xl border border-slate-100">
+                          <span className="text-[8px] font-black text-slate-400 uppercase block">Khối lượng</span>
+                          <span className="text-base font-black text-slate-900 mt-0.5 block">{periodSummary.total_questions.toLocaleString()} thẻ</span>
+                        </div>
+                        <div className="p-3 bg-slate-50 rounded-2xl border border-slate-100">
+                          <span className="text-[8px] font-black text-slate-400 uppercase block">Chính xác</span>
+                          <span className="text-base font-black text-indigo-600 mt-0.5 block">{periodSummary.global_accuracy}%</span>
+                        </div>
+                        <div className="p-3 bg-slate-50 rounded-2xl border border-slate-100">
+                          <span className="text-[8px] font-black text-slate-400 uppercase block">Tập trung</span>
+                          <span className="text-base font-black text-emerald-600 mt-0.5 block">{periodSummary.total_time_minutes} phút</span>
+                        </div>
+                        <div className="p-3 bg-slate-50 rounded-2xl border border-slate-100">
+                          <span className="text-[8px] font-black text-slate-400 uppercase block">Ngày đỉnh cao</span>
+                          <span className="text-base font-black text-amber-600 mt-0.5 block truncate">{periodSummary.best_day}</span>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                </>
-              )}
+                  </>
+                )}
 
-              {/* 📍 TAB 1: BIỂU ĐỒ */}
-              {mobileSubTab === 1 && (
-                <>
-                  <ReviewForecastWidget data={forecastData} activePeriod={personalPeriod} />
-                  <DailyComparisonChart data={dailyComparisonData} allTimeAvg={dailyComparisonAvg} isLoading={isDailyComparisonLoading} />
-                  
-                  {/* Charts Carousel */}
-                  <div className="bg-white rounded-3xl border border-slate-200/90 p-4 shadow-sm space-y-4 relative overflow-hidden">
-                    <div className="h-1 absolute top-0 inset-x-0 bg-gradient-to-r from-orange-500 via-amber-500 to-rose-500" />
-                    <div className="flex items-center justify-between pt-1">
-                      <span className="text-xs font-black text-slate-900 uppercase">{charts[activeChart].title}</span>
-                      <div className="flex gap-1">
-                        {charts.map((_, idx) => (
-                          <button
-                            key={idx}
-                            onClick={() => setActiveChart(idx)}
-                            className={cn(
-                              "h-1.5 rounded-full transition-all cursor-pointer",
-                              activeChart === idx ? "w-6 bg-orange-600" : "w-2 bg-slate-200"
-                            )}
-                          />
+                {/* 📍 SUB-TAB 1: BIỂU ĐỒ */}
+                {mobilePersonalSubTab === 1 && (
+                  <>
+                    <ReviewForecastWidget data={forecastData} activePeriod={personalPeriod} />
+                    <DailyComparisonChart data={dailyComparisonData} allTimeAvg={dailyComparisonAvg} isLoading={isDailyComparisonLoading} />
+                    
+                    {/* Charts Carousel */}
+                    <div className="bg-white rounded-3xl border border-slate-200/90 p-4 shadow-sm space-y-4 relative overflow-hidden">
+                      <div className="h-1 absolute top-0 inset-x-0 bg-gradient-to-r from-orange-500 via-amber-500 to-rose-500" />
+                      <div className="flex items-center justify-between pt-1">
+                        <span className="text-xs font-black text-slate-900 uppercase">{charts[activeChart].title}</span>
+                        <div className="flex gap-1">
+                          {charts.map((_, idx) => (
+                            <button
+                              key={idx}
+                              onClick={() => setActiveChart(idx)}
+                              className={cn(
+                                "h-1.5 rounded-full transition-all cursor-pointer",
+                                activeChart === idx ? "w-6 bg-orange-600" : "w-2 bg-slate-200"
+                              )}
+                            />
+                          ))}
+                        </div>
+                      </div>
+
+                      <div className="h-[220px] w-full -ml-4">
+                        <ResponsiveContainer width="100%" height="100%">
+                          {charts[activeChart].type === 'area' ? (
+                            <AreaChart data={charts[activeChart].data as any[]}>
+                              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+                              <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fontSize: 8, fontWeight: 900, fill: '#94a3b8' }} tickFormatter={(str) => str.split('-')[2]} />
+                              <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 8, fontWeight: 900, fill: '#94a3b8' }} />
+                              <Tooltip contentStyle={{ borderRadius: '1rem', fontSize: '10px', fontWeight: 900 }} />
+                              <Area type="monotone" dataKey={charts[activeChart].key} stroke={charts[activeChart].color} strokeWidth={2.5} fillOpacity={0.15} fill={charts[activeChart].color} />
+                            </AreaChart>
+                          ) : (
+                            <BarChart data={charts[activeChart].data as any[]}>
+                              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+                              <XAxis dataKey="hour" axisLine={false} tickLine={false} tick={{ fontSize: 8, fontWeight: 900, fill: '#94a3b8' }} interval={3} />
+                              <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 8, fontWeight: 900, fill: '#94a3b8' }} />
+                              <Tooltip contentStyle={{ borderRadius: '1rem', fontSize: '10px', fontWeight: 900 }} />
+                              <Bar dataKey={charts[activeChart].key} fill={charts[activeChart].color} radius={[4, 4, 0, 0]} />
+                            </BarChart>
+                          )}
+                        </ResponsiveContainer>
+                      </div>
+                    </div>
+                  </>
+                )}
+
+                {/* 📍 SUB-TAB 2: TRÍ NHỚ */}
+                {mobilePersonalSubTab === 2 && (
+                  <>
+                    {/* Heatmap Calendar */}
+                    <div className="bg-white rounded-3xl p-4 border border-slate-200/90 shadow-sm space-y-3 overflow-x-auto no-scrollbar relative">
+                      <div className="h-1 absolute top-0 inset-x-0 bg-gradient-to-r from-orange-500 via-amber-500 to-rose-500" />
+                      <h3 className="text-xs font-black text-slate-900 uppercase pt-1">Bản Đồ Siêng Năng (365 Ngày)</h3>
+                      <div className="flex gap-[3px] min-w-[500px] justify-between">
+                        {getHeatmapGrid().slice(-26).map((week, wIdx) => (
+                          <div key={wIdx} className="flex flex-col gap-[3px]">
+                            {week.map((day, dIdx) => (
+                              <div key={dIdx} className={cn("w-3 h-3 rounded-xs", getDayColorClass(day.count))} title={`${day.dateStr}: ${day.count} thẻ`} />
+                            ))}
+                          </div>
                         ))}
                       </div>
                     </div>
 
-                    <div className="h-[220px] w-full -ml-4">
-                      <ResponsiveContainer width="100%" height="100%">
-                        {charts[activeChart].type === 'area' ? (
-                          <AreaChart data={charts[activeChart].data as any[]}>
-                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
-                            <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fontSize: 8, fontWeight: 900, fill: '#94a3b8' }} tickFormatter={(str) => str.split('-')[2]} />
-                            <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 8, fontWeight: 900, fill: '#94a3b8' }} />
-                            <Tooltip contentStyle={{ borderRadius: '1rem', fontSize: '10px', fontWeight: 900 }} />
-                            <Area type="monotone" dataKey={charts[activeChart].key} stroke={charts[activeChart].color} strokeWidth={2.5} fillOpacity={0.15} fill={charts[activeChart].color} />
-                          </AreaChart>
-                        ) : (
-                          <BarChart data={charts[activeChart].data as any[]}>
-                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
-                            <XAxis dataKey="hour" axisLine={false} tickLine={false} tick={{ fontSize: 8, fontWeight: 900, fill: '#94a3b8' }} interval={3} />
-                            <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 8, fontWeight: 900, fill: '#94a3b8' }} />
-                            <Tooltip contentStyle={{ borderRadius: '1rem', fontSize: '10px', fontWeight: 900 }} />
-                            <Bar dataKey={charts[activeChart].key} fill={charts[activeChart].color} radius={[4, 4, 0, 0]} />
-                          </BarChart>
-                        )}
-                      </ResponsiveContainer>
-                    </div>
-                  </div>
-                </>
-              )}
-
-              {/* 📍 TAB 2: TRÍ NHỚ */}
-              {mobileSubTab === 2 && (
-                <>
-                  {/* Heatmap Calendar */}
-                  <div className="bg-white rounded-3xl p-4 border border-slate-200/90 shadow-sm space-y-3 overflow-x-auto no-scrollbar relative">
-                    <div className="h-1 absolute top-0 inset-x-0 bg-gradient-to-r from-orange-500 via-amber-500 to-rose-500" />
-                    <h3 className="text-xs font-black text-slate-900 uppercase pt-1">Bản Đồ Siêng Năng (365 Ngày)</h3>
-                    <div className="flex gap-[3px] min-w-[500px] justify-between">
-                      {getHeatmapGrid().slice(-26).map((week, wIdx) => (
-                        <div key={wIdx} className="flex flex-col gap-[3px]">
-                          {week.map((day, dIdx) => (
-                            <div key={dIdx} className={cn("w-3 h-3 rounded-xs", getDayColorClass(day.count))} title={`${day.dateStr}: ${day.count} thẻ`} />
-                          ))}
+                    {/* Leitner Box */}
+                    {leitnerStats && (
+                      <div className="bg-white rounded-3xl p-4 border border-slate-200/90 shadow-sm space-y-3 relative overflow-hidden">
+                        <div className="h-1 absolute top-0 inset-x-0 bg-gradient-to-r from-orange-500 via-amber-500 to-rose-500" />
+                        <div className="flex items-center justify-between pt-1">
+                          <h3 className="text-xs font-black text-slate-900 uppercase">Hộp Ghi Nhớ Leitner</h3>
+                          <span className="text-[10px] font-black text-orange-600 bg-orange-50 px-2.5 py-0.5 rounded-full border border-orange-200">
+                            {leitnerStats.mastery_percentage}% Thành thạo
+                          </span>
                         </div>
-                      ))}
-                    </div>
-                  </div>
+                        <div className="h-[180px] w-full -ml-4">
+                          <ResponsiveContainer width="100%" height="100%">
+                            <BarChart data={leitnerStats.box_distribution}>
+                              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+                              <XAxis dataKey="label" axisLine={false} tickLine={false} tick={{ fontSize: 8, fontWeight: 900, fill: '#94a3b8' }} />
+                              <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 8, fontWeight: 900, fill: '#94a3b8' }} />
+                              <Bar dataKey="count" fill="#ea580c" radius={[4, 4, 0, 0]} />
+                            </BarChart>
+                          </ResponsiveContainer>
+                        </div>
+                      </div>
+                    )}
 
-                  {/* Leitner Box */}
-                  {leitnerStats && (
+                    {/* Speed vs Accuracy */}
+                    {speedAccuracyStats && (
+                      <div className="bg-white rounded-3xl p-4 border border-slate-200/90 shadow-sm space-y-3 relative overflow-hidden">
+                        <div className="h-1 absolute top-0 inset-x-0 bg-gradient-to-r from-orange-500 via-amber-500 to-rose-500" />
+                        <h3 className="text-xs font-black text-slate-900 uppercase pt-1">Tốc Độ & Độ Chính Xác</h3>
+                        <div className="grid grid-cols-2 gap-2 text-center text-[10px]">
+                          <div className="p-3 bg-emerald-50 rounded-2xl border border-emerald-100">
+                            <span className="text-[8px] font-black text-emerald-700 uppercase block">Trả lời Đúng</span>
+                            <span className="text-lg font-black text-emerald-600 mt-0.5 block">{speedAccuracyStats.avg_speed_correct}s / câu</span>
+                          </div>
+                          <div className="p-3 bg-rose-50 rounded-2xl border border-rose-100">
+                            <span className="text-[8px] font-black text-rose-700 uppercase block">Trả lời Sai</span>
+                            <span className="text-lg font-black text-rose-600 mt-0.5 block">{speedAccuracyStats.avg_speed_wrong}s / câu</span>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </>
+                )}
+
+                {/* 📍 SUB-TAB 3: LUYỆN TẬP */}
+                {mobilePersonalSubTab === 3 && (
+                  <>
+                    {/* Practice Modes */}
+                    {practiceStats && (
+                      <div className="grid grid-cols-3 gap-2">
+                        <div className="p-3 bg-white border border-slate-200/90 rounded-2xl text-center space-y-1">
+                          <span className="text-[8px] font-black text-slate-400 uppercase block">MCQ</span>
+                          <span className="text-lg font-black text-slate-900 block">{practiceStats.mcq.correct + practiceStats.mcq.wrong}</span>
+                          <span className="text-[8px] font-black text-emerald-600 block">✓ {practiceStats.mcq.correct}</span>
+                        </div>
+                        <div className="p-3 bg-white border border-slate-200/90 rounded-2xl text-center space-y-1">
+                          <span className="text-[8px] font-black text-slate-400 uppercase block">Gõ Phím</span>
+                          <span className="text-lg font-black text-slate-900 block">{practiceStats.typing.correct + practiceStats.typing.wrong}</span>
+                          <span className="text-[8px] font-black text-emerald-600 block">✓ {practiceStats.typing.correct}</span>
+                        </div>
+                        <div className="p-3 bg-white border border-slate-200/90 rounded-2xl text-center space-y-1">
+                          <span className="text-[8px] font-black text-slate-400 uppercase block">Luyện Nghe</span>
+                          <span className="text-lg font-black text-slate-900 block">{practiceStats.listening.correct + practiceStats.listening.wrong}</span>
+                          <span className="text-[8px] font-black text-emerald-600 block">✓ {practiceStats.listening.correct}</span>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Domains */}
                     <div className="bg-white rounded-3xl p-4 border border-slate-200/90 shadow-sm space-y-3 relative overflow-hidden">
                       <div className="h-1 absolute top-0 inset-x-0 bg-gradient-to-r from-orange-500 via-amber-500 to-rose-500" />
-                      <div className="flex items-center justify-between pt-1">
-                        <h3 className="text-xs font-black text-slate-900 uppercase">Hộp Ghi Nhớ Leitner</h3>
-                        <span className="text-[10px] font-black text-orange-600 bg-orange-50 px-2.5 py-0.5 rounded-full border border-orange-200">
-                          {leitnerStats.mastery_percentage}% Thành thạo
-                        </span>
-                      </div>
-                      <div className="h-[180px] w-full -ml-4">
-                        <ResponsiveContainer width="100%" height="100%">
-                          <BarChart data={leitnerStats.box_distribution}>
-                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
-                            <XAxis dataKey="label" axisLine={false} tickLine={false} tick={{ fontSize: 8, fontWeight: 900, fill: '#94a3b8' }} />
-                            <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 8, fontWeight: 900, fill: '#94a3b8' }} />
-                            <Bar dataKey="count" fill="#ea580c" radius={[4, 4, 0, 0]} />
-                          </BarChart>
-                        </ResponsiveContainer>
+                      <h3 className="text-xs font-black text-slate-900 uppercase pt-1">Lĩnh Vực Kiến Thức</h3>
+                      <div className="space-y-2">
+                        {personal.category_performance.slice(0, 5).map((cat, idx) => (
+                          <div key={idx}>
+                            <div className="flex justify-between text-[9px] font-black text-slate-700 mb-0.5">
+                              <span>{cat.category}</span>
+                              <span className="text-indigo-600">{cat.accuracy}%</span>
+                            </div>
+                            <div className="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
+                              <div className="h-full bg-indigo-600 rounded-full" style={{ width: `${cat.accuracy}%` }} />
+                            </div>
+                          </div>
+                        ))}
                       </div>
                     </div>
-                  )}
 
-                  {/* Speed vs Accuracy */}
-                  {speedAccuracyStats && (
+                    {/* Recent Sessions */}
                     <div className="bg-white rounded-3xl p-4 border border-slate-200/90 shadow-sm space-y-3 relative overflow-hidden">
                       <div className="h-1 absolute top-0 inset-x-0 bg-gradient-to-r from-orange-500 via-amber-500 to-rose-500" />
-                      <h3 className="text-xs font-black text-slate-900 uppercase pt-1">Tốc Độ & Độ Chính Xác</h3>
-                      <div className="grid grid-cols-2 gap-2 text-center text-[10px]">
-                        <div className="p-3 bg-emerald-50 rounded-2xl border border-emerald-100">
-                          <span className="text-[8px] font-black text-emerald-700 uppercase block">Trả lời Đúng</span>
-                          <span className="text-lg font-black text-emerald-600 mt-0.5 block">{speedAccuracyStats.avg_speed_correct}s / câu</span>
-                        </div>
-                        <div className="p-3 bg-rose-50 rounded-2xl border border-rose-100">
-                          <span className="text-[8px] font-black text-rose-700 uppercase block">Trả lời Sai</span>
-                          <span className="text-lg font-black text-rose-600 mt-0.5 block">{speedAccuracyStats.avg_speed_wrong}s / câu</span>
-                        </div>
+                      <h3 className="text-xs font-black text-slate-900 uppercase pt-1">Lần Ôn Gần Đây</h3>
+                      <div className="space-y-2">
+                        {personal.recent_sessions.slice(0, 4).map((session, idx) => (
+                          <div key={idx} className="flex items-center justify-between p-2.5 bg-slate-50 rounded-2xl border border-slate-100 text-[10px]">
+                            <div className="min-w-0 flex-1 pr-2">
+                              <h4 className="font-black text-slate-800 truncate">{session.title}</h4>
+                              <span className="text-[8px] font-bold text-slate-400">{session.date}</span>
+                            </div>
+                            <span className="font-black text-indigo-600">{session.score}/{session.total}</span>
+                          </div>
+                        ))}
                       </div>
                     </div>
-                  )}
-                </>
-              )}
+                  </>
+                )}
+              </motion.div>
+            )}
 
-              {/* 📍 TAB 3: LUYỆN TẬP */}
-              {mobileSubTab === 3 && (
-                <>
-                  {/* Practice Modes */}
-                  {practiceStats && (
-                    <div className="grid grid-cols-3 gap-2">
-                      <div className="p-3 bg-white border border-slate-200/90 rounded-2xl text-center space-y-1">
-                        <span className="text-[8px] font-black text-slate-400 uppercase block">MCQ</span>
-                        <span className="text-lg font-black text-slate-900 block">{practiceStats.mcq.correct + practiceStats.mcq.wrong}</span>
-                        <span className="text-[8px] font-black text-emerald-600 block">✓ {practiceStats.mcq.correct}</span>
-                      </div>
-                      <div className="p-3 bg-white border border-slate-200/90 rounded-2xl text-center space-y-1">
-                        <span className="text-[8px] font-black text-slate-400 uppercase block">Gõ Phím</span>
-                        <span className="text-lg font-black text-slate-900 block">{practiceStats.typing.correct + practiceStats.typing.wrong}</span>
-                        <span className="text-[8px] font-black text-emerald-600 block">✓ {practiceStats.typing.correct}</span>
-                      </div>
-                      <div className="p-3 bg-white border border-slate-200/90 rounded-2xl text-center space-y-1">
-                        <span className="text-[8px] font-black text-slate-400 uppercase block">Luyện Nghe</span>
-                        <span className="text-lg font-black text-slate-900 block">{practiceStats.listening.correct + practiceStats.listening.wrong}</span>
-                        <span className="text-[8px] font-black text-emerald-600 block">✓ {practiceStats.listening.correct}</span>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Domains */}
+            {activeTab === 'community' && (
+              <motion.div
+                key={`community-view-${mobileCommunitySubTab}`}
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -20 }}
+                transition={{ duration: 0.2 }}
+                className="space-y-4"
+              >
+                {/* 📍 SUB-TAB 0: BẢNG XẾP HẠNG */}
+                {mobileCommunitySubTab === 0 && (
                   <div className="bg-white rounded-3xl p-4 border border-slate-200/90 shadow-sm space-y-3 relative overflow-hidden">
-                    <div className="h-1 absolute top-0 inset-x-0 bg-gradient-to-r from-orange-500 via-amber-500 to-rose-500" />
-                    <h3 className="text-xs font-black text-slate-900 uppercase pt-1">Lĩnh Vực Kiến Thức</h3>
-                    <div className="space-y-2">
-                      {personal.category_performance.slice(0, 5).map((cat, idx) => (
-                        <div key={idx}>
-                          <div className="flex justify-between text-[9px] font-black text-slate-700 mb-0.5">
-                            <span>{cat.category}</span>
-                            <span className="text-indigo-600">{cat.accuracy}%</span>
-                          </div>
-                          <div className="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
-                            <div className="h-full bg-indigo-600 rounded-full" style={{ width: `${cat.accuracy}%` }} />
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
+                    <div className="h-1 absolute top-0 inset-x-0 bg-gradient-to-r from-amber-500 via-orange-500 to-rose-500" />
+                    <div className="flex items-center justify-between flex-wrap gap-2 pt-1">
+                      <h3 className="text-xs font-black text-slate-900 uppercase flex items-center gap-1.5">
+                        <Trophy className="w-4 h-4 text-amber-500" /> Bảng Vinh Danh
+                      </h3>
 
-                  {/* Recent Sessions */}
-                  <div className="bg-white rounded-3xl p-4 border border-slate-200/90 shadow-sm space-y-3 relative overflow-hidden">
-                    <div className="h-1 absolute top-0 inset-x-0 bg-gradient-to-r from-orange-500 via-amber-500 to-rose-500" />
-                    <h3 className="text-xs font-black text-slate-900 uppercase pt-1">Lần Ôn Gần Đây</h3>
-                    <div className="space-y-2">
-                      {personal.recent_sessions.slice(0, 4).map((session, idx) => (
-                        <div key={idx} className="flex items-center justify-between p-2.5 bg-slate-50 rounded-2xl border border-slate-100 text-[10px]">
-                          <div className="min-w-0 flex-1 pr-2">
-                            <h4 className="font-black text-slate-800 truncate">{session.title}</h4>
-                            <span className="text-[8px] font-bold text-slate-400">{session.date}</span>
-                          </div>
-                          <span className="font-black text-indigo-600">{session.score}/{session.total}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </>
-              )}
-
-              {/* 📍 TAB 4: BẢNG XẾP HẠNG */}
-              {mobileSubTab === 4 && (
-                <div className="bg-white rounded-3xl p-4 border border-slate-200/90 shadow-sm space-y-3 relative overflow-hidden">
-                  <div className="h-1 absolute top-0 inset-x-0 bg-gradient-to-r from-amber-500 via-orange-500 to-rose-500" />
-                  <div className="flex items-center justify-between flex-wrap gap-2 pt-1">
-                    <h3 className="text-xs font-black text-slate-900 uppercase flex items-center gap-1.5">
-                      <Trophy className="w-4 h-4 text-amber-500" /> Bảng Vinh Danh
-                    </h3>
-
-                    {/* Tab & Filter switchers */}
-                    <div className="flex gap-1 overflow-x-auto no-scrollbar">
-                      {(['xp', 'streak', 'questions', 'accuracy'] as const).map(tab => (
-                        <button
-                          key={tab}
-                          onClick={() => setActiveLeaderboardTab(tab)}
-                          className={cn(
-                            "px-2 py-0.5 rounded-lg text-[8px] font-black uppercase cursor-pointer transition-all",
-                            activeLeaderboardTab === tab ? "bg-orange-600 text-white" : "bg-slate-100 text-slate-500"
-                          )}
-                        >
-                          {tab}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Top 3 Podium */}
-                  {topThree.length > 0 && (
-                    <div className="flex items-end justify-center gap-2 py-4 bg-gradient-to-b from-amber-50/30 to-transparent rounded-2xl border border-amber-100/50">
-                      {topThree.map((user: any, idx: number) => (
-                        <div key={user.user_id} className="flex flex-col items-center w-20 text-center">
-                          <div className="w-10 h-10 rounded-full border-2 border-amber-400 bg-white flex items-center justify-center font-black text-xs shadow-xs relative">
-                            {(user.full_name || user.username || '?').charAt(0).toUpperCase()}
-                            <span className="absolute -bottom-1 -right-1 w-4 h-4 rounded-full bg-amber-500 text-white text-[8px] font-black flex items-center justify-center">
-                              #{idx + 1}
-                            </span>
-                          </div>
-                          <span className="text-[9px] font-black text-slate-900 truncate w-full mt-1">{user.full_name}</span>
-                          <span className="text-[8px] font-black text-amber-600">{user.value.toLocaleString()}</span>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-
-                  {/* User Rank Banner */}
-                  {currentLeaderboard.user_rank !== -1 && (
-                    <div className="p-3 bg-orange-600 rounded-2xl text-white flex items-center justify-between text-xs">
-                      <div>
-                        <span className="text-[8px] font-black uppercase text-orange-200 block">Thứ hạng của bạn</span>
-                        <span className="font-black text-amber-300">#{currentLeaderboard.user_rank}</span>
+                      {/* Tab & Filter switchers */}
+                      <div className="flex gap-1 overflow-x-auto no-scrollbar">
+                        {(['xp', 'streak', 'questions', 'accuracy'] as const).map(tab => (
+                          <button
+                            key={tab}
+                            onClick={() => setActiveLeaderboardTab(tab)}
+                            className={cn(
+                              "px-2 py-0.5 rounded-lg text-[8px] font-black uppercase cursor-pointer transition-all",
+                              activeLeaderboardTab === tab ? "bg-orange-600 text-white" : "bg-slate-100 text-slate-500"
+                            )}
+                          >
+                            {tab}
+                          </button>
+                        ))}
                       </div>
-                      <span className="font-black text-amber-300">{currentLeaderboard.user_value.toLocaleString()}</span>
                     </div>
-                  )}
-                </div>
-              )}
 
-              {/* 📍 TAB 5: TOÀN SÀN */}
-              {mobileSubTab === 5 && (
-                <div className="space-y-3">
-                  <div className="grid grid-cols-2 gap-3">
-                    <MetricCard label="Total Users" value={global.total_users} sub="Thành viên nền tảng" icon={Users} color="text-indigo-600" bg="bg-indigo-50" />
-                    <MetricCard label="Total Quizzes" value={global.total_quizzes} sub="Bộ thẻ công khai" icon={BookOpen} color="text-emerald-600" bg="bg-emerald-50" />
-                    <MetricCard label="Total Items" value={global.total_questions} sub="Tổng thẻ/câu hỏi" icon={Layers} color="text-amber-600" bg="bg-amber-50" />
-                    <MetricCard label="Platform Acc" value={`${global.platform_accuracy}%`} sub="Độ chính xác toàn sàn" icon={Globe} color="text-rose-600" bg="bg-rose-50" />
-                  </div>
+                    {/* Top 3 Podium */}
+                    {topThree.length > 0 && (
+                      <div className="flex items-end justify-center gap-2 py-4 bg-gradient-to-b from-amber-50/30 to-transparent rounded-2xl border border-amber-100/50">
+                        {topThree.map((user: any, idx: number) => (
+                          <div key={user.user_id} className="flex flex-col items-center w-20 text-center">
+                            <div className="w-10 h-10 rounded-full border-2 border-amber-400 bg-white flex items-center justify-center font-black text-xs shadow-xs relative">
+                              {(user.full_name || user.username || '?').charAt(0).toUpperCase()}
+                              <span className="absolute -bottom-1 -right-1 w-4 h-4 rounded-full bg-amber-500 text-white text-[8px] font-black flex items-center justify-center">
+                                #{idx + 1}
+                              </span>
+                            </div>
+                            <span className="text-[9px] font-black text-slate-900 truncate w-full mt-1">{user.full_name}</span>
+                            <span className="text-[8px] font-black text-amber-600">{user.value.toLocaleString()}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
 
-                  <div className="bg-white rounded-3xl p-4 border border-slate-200/90 shadow-sm space-y-2 relative overflow-hidden">
-                    <div className="h-1 absolute top-0 inset-x-0 bg-gradient-to-r from-orange-500 via-amber-500 to-rose-500" />
-                    <h3 className="text-xs font-black text-slate-900 uppercase pt-1">Hệ Thống Vocaburn</h3>
-                    <p className="text-[10px] text-slate-500 font-medium leading-relaxed">
-                      Tốc độ xử lý trung bình: <strong>{global.avg_time_per_question}s / câu</strong>.
-                      Tỷ lệ chính xác toàn trang: <strong>{global.platform_accuracy}%</strong>.
-                    </p>
+                    {/* User Rank Banner */}
+                    {currentLeaderboard.user_rank !== -1 && (
+                      <div className="p-3 bg-orange-600 rounded-2xl text-white flex items-center justify-between text-xs">
+                        <div>
+                          <span className="text-[8px] font-black uppercase text-orange-200 block">Thứ hạng của bạn</span>
+                          <span className="font-black text-amber-300">#{currentLeaderboard.user_rank}</span>
+                        </div>
+                        <span className="font-black text-amber-300">{currentLeaderboard.user_value.toLocaleString()}</span>
+                      </div>
+                    )}
                   </div>
-                </div>
-              )}
-            </motion.div>
+                )}
+
+                {/* 📍 SUB-TAB 1: TOÀN SÀN */}
+                {mobileCommunitySubTab === 1 && (
+                  <div className="space-y-3">
+                    <div className="grid grid-cols-2 gap-3">
+                      <MetricCard label="Total Users" value={global.total_users} sub="Thành viên nền tảng" icon={Users} color="text-indigo-600" bg="bg-indigo-50" />
+                      <MetricCard label="Total Quizzes" value={global.total_quizzes} sub="Bộ thẻ công khai" icon={BookOpen} color="text-emerald-600" bg="bg-emerald-50" />
+                      <MetricCard label="Total Items" value={global.total_questions} sub="Tổng thẻ/câu hỏi" icon={Layers} color="text-amber-600" bg="bg-amber-50" />
+                      <MetricCard label="Platform Acc" value={`${global.platform_accuracy}%`} sub="Độ chính xác toàn sàn" icon={Globe} color="text-rose-600" bg="bg-rose-50" />
+                    </div>
+
+                    <div className="bg-white rounded-3xl p-4 border border-slate-200/90 shadow-sm space-y-2 relative overflow-hidden">
+                      <div className="h-1 absolute top-0 inset-x-0 bg-gradient-to-r from-orange-500 via-amber-500 to-rose-500" />
+                      <h3 className="text-xs font-black text-slate-900 uppercase pt-1">Hệ Thống Vocaburn</h3>
+                      <p className="text-[10px] text-slate-500 font-medium leading-relaxed">
+                        Tốc độ xử lý trung bình: <strong>{global.avg_time_per_question}s / câu</strong>.
+                        Tỷ lệ chính xác toàn trang: <strong>{global.platform_accuracy}%</strong>.
+                      </p>
+                    </div>
+                  </div>
+                )}
+              </motion.div>
+            )}
           </AnimatePresence>
         </div>
       </div>
