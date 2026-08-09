@@ -2102,49 +2102,49 @@ export default function Dashboard() {
 
                           </div>
 
-                          {/* CTA PILL ACTION BUTTON (3D TACTILE FIERY SUNSET & OUTFIT TYPOGRAPHY) */}
+                          {/* CTA PILL ACTION BUTTON (CLEAN VIBRANT ORANGE AMBER WITH SMOOTH SHIMMER & HIGH CONTRAST) */}
                           <div className="pt-2 flex-shrink-0">
                             <button
                               onClick={() => { 
-                                if (navigator.vibrate) navigator.vibrate(14);
+                                if (navigator.vibrate) navigator.vibrate(12);
                                 if (nUrl) navigate(nUrl); 
                                 else navigate(`/flashcard/${deck.deck_id}`); 
                               }}
-                              className="w-full relative overflow-hidden bg-gradient-to-r from-amber-500 via-orange-500 to-red-600 hover:from-amber-600 hover:via-orange-600 hover:to-red-700 text-white rounded-2xl p-3 sm:p-3.5 flex items-center justify-between border-t border-x border-white/40 border-b-4 border-red-800/80 shadow-[0_12px_28px_-4px_rgba(234,88,12,0.5)] active:border-b-0 active:translate-y-1 transition-all duration-150 cursor-pointer group"
+                              className="w-full relative overflow-hidden bg-gradient-to-r from-orange-500 via-amber-500 to-orange-600 hover:from-orange-600 hover:to-amber-600 text-white rounded-2xl p-3 sm:p-3.5 flex items-center justify-between shadow-[0_8px_25px_-4px_rgba(249,115,22,0.45)] hover:shadow-[0_12px_30px_-4px_rgba(249,115,22,0.6)] active:scale-[0.98] transition-all duration-200 cursor-pointer group border border-white/25"
                             >
                               {/* Animated Light Shimmer Beam */}
-                              <div className="absolute inset-0 w-1/3 h-full bg-gradient-to-r from-transparent via-white/35 to-transparent -skew-x-12 animate-shimmer-sweep pointer-events-none" />
+                              <div className="absolute inset-0 w-1/3 h-full bg-gradient-to-r from-transparent via-white/25 to-transparent -skew-x-12 animate-shimmer-sweep pointer-events-none" />
 
-                              {/* Left Icon: White Pill Circle with Flame Orange Play Icon */}
-                              <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl bg-white text-orange-600 flex items-center justify-center shrink-0 shadow-md shadow-black/20 group-hover:scale-110 group-hover:rotate-3 transition-all duration-300 z-10">
-                                <Play className="w-5 h-5 sm:w-6 sm:h-6 fill-orange-600 ml-0.5" />
+                              {/* Left Icon: Translucent White Glass Circle */}
+                              <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-white/20 backdrop-blur-xs flex items-center justify-center shrink-0 z-10">
+                                <Play className="w-4 h-4 sm:w-5 sm:h-5 fill-white text-white ml-0.5" />
                               </div>
 
-                              {/* Center Text Section with Outfit & Be Vietnam Pro Typography */}
+                              {/* Center Text Section with Clean Sans Typography */}
                               <div className="flex-1 flex flex-col items-center justify-center text-center px-3 relative z-10">
-                                <span className="font-['Outfit'] font-[900] text-base sm:text-lg tracking-widest leading-tight uppercase text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)] flex items-center gap-1.5">
+                                <span className="text-sm sm:text-base font-black tracking-widest leading-tight uppercase text-white drop-shadow-2xs flex items-center gap-1.5">
                                   {!s1
-                                    ? '🚀 HỌC TỪ MỚI'
+                                    ? 'HỌC TỪ MỚI'
                                     : !s2
-                                    ? '🎯 TRẮC NGHIỆM MCQ'
+                                    ? 'TRẮC NGHIỆM MCQ'
                                     : st.all_done
-                                    ? '🎉 ĐÃ HOÀN THÀNH ✓'
-                                    : '🧠 ÔN TẬP FSRS'}
+                                    ? 'ĐÃ HOÀN THÀNH ✓'
+                                    : 'ÔN TẬP FSRS'}
                                 </span>
-                                <span className="font-['Be_Vietnam_Pro'] font-extrabold text-[11px] sm:text-xs text-amber-200 mt-0.5 tracking-wide drop-shadow-[0_1px_2px_rgba(0,0,0,0.4)]">
+                                <span className="text-[11px] sm:text-xs text-orange-100/90 font-bold mt-0.5 tracking-wide">
                                   {!s1
-                                    ? `Còn ${Math.max(0, nT - nL)} từ hôm nay • Bắt đầu ngay ⚡`
+                                    ? `Còn ${Math.max(0, nT - nL)} từ hôm nay`
                                     : !s2
                                     ? `Cần đạt ≥80% để qua bước`
                                     : st.all_done
-                                    ? `Hoàn thành 100% chỉ tiêu hôm nay`
+                                    ? `Hoàn thành 100% chỉ tiêu`
                                     : `Còn ${Math.max(0, rD - rDn)} thẻ hôm nay`}
                                 </span>
                               </div>
 
                               {/* Right Arrow Action Circle */}
-                              <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl bg-amber-100/95 text-red-600 flex items-center justify-center shrink-0 shadow-md shadow-black/20 group-hover:scale-110 group-hover:translate-x-1 transition-all duration-300 z-10">
-                                <ChevronRight className="w-6 h-6 stroke-[3]" />
+                              <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-white text-orange-600 flex items-center justify-center shrink-0 shadow-md group-hover:scale-105 group-hover:translate-x-0.5 transition-transform z-10">
+                                <ChevronRight className="w-5 h-5 sm:w-6 sm:h-6 stroke-[3]" />
                               </div>
                             </button>
                           </div>
