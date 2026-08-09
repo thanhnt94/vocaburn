@@ -5,20 +5,20 @@ import axios from 'axios'
 axios.defaults.withCredentials = true;
 
 export interface UserSettings {
-  theme: 'light' | 'dark'
+  theme: string
   focus_timer_active: boolean
   sfx_enabled: boolean
   haptic_enabled: boolean
-  autoplay_audio: 'never' | 'always' | 'question'
+  autoplay_audio: string
   quick_learn_enabled: boolean
   random_enabled: boolean
   show_images: string
   show_fsrs: boolean
-  quiz_learning_mode: 'fsrs' | 'leitner' | 'practice'
-  practice_submode: 'mcq' | 'typing' | 'listening'
-  practice_range: 'all' | 'learned'
-  score_mode: 'today' | 'all'
-  time_mode: 'card' | 'today' | 'all'
+  quiz_learning_mode: string
+  practice_submode: string
+  practice_range: string
+  score_mode: string
+  time_mode: string
   last_deck_id?: number | null
 }
 
