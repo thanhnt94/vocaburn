@@ -67,10 +67,17 @@ async def init_db():
                 print("[MIGRATE] Adding column date_val to user_daily_progress...")
                 connection.execute(text("ALTER TABLE user_daily_progress ADD COLUMN date_val DATE NULL"))
 
+        def create_composite_indexes(connection):
+            connection.execute(text("CREATE INDEX IF NOT EXISTS ix_user_daily_stats_user_date ON user_daily_stats(user_id, date);"))
+            connection.execute(text("CREATE INDEX IF NOT EXISTS ix_user_card_mastery_user_due ON user_card_mastery(user_id, due);"))
+            connection.execute(text("CREATE INDEX IF NOT EXISTS ix_user_card_mastery_user_ignored ON user_card_mastery(user_id, is_ignored);"))
+            connection.execute(text("CREATE INDEX IF NOT EXISTS ix_xp_transactions_user_created ON xp_transactions(user_id, created_at);"))
+
         await conn.run_sync(migrate_fsrs_columns)
         await conn.run_sync(migrate_deck_goals_columns)
         await conn.run_sync(migrate_daily_stats_columns)
         await conn.run_sync(migrate_daily_progress_columns)
+        await conn.run_sync(create_composite_indexes)
         
     async with SessionLocal() as db:
         # Migrate JSON badges into user_badges table

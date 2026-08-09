@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, JSON, Date
+from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, JSON, Date, Index
 from sqlalchemy.orm import relationship
 from app.core.db import Base
 from datetime import datetime
@@ -33,6 +33,7 @@ class UserDailyActivity(Base):
 
 class XPTransaction(Base):
     __tablename__ = "xp_transactions"
+    __table_args__ = (Index("ix_xp_transactions_user_created", "user_id", "created_at"),)
     
     id = Column(Integer, primary_key=True, autoincrement=True)
     user_id = Column(Integer, ForeignKey("users.id"), index=True, nullable=False)

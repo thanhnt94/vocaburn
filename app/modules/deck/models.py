@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Boolean, ForeignKey, Text, JSON, DateTime, Float, UniqueConstraint, Date
+from sqlalchemy import Column, Integer, String, Boolean, ForeignKey, Text, JSON, DateTime, Float, UniqueConstraint, Date, Index
 from sqlalchemy.orm import relationship, backref
 from datetime import datetime
 from app.core.db import Base
@@ -208,7 +208,11 @@ class UserDailyProgress(Base):
 
 class UserCardMastery(Base):
     __tablename__ = "user_card_mastery"
-    __table_args__ = (UniqueConstraint("user_id", "card_id", name="uq_user_card"),)
+    __table_args__ = (
+        UniqueConstraint("user_id", "card_id", name="uq_user_card"),
+        Index("ix_user_card_mastery_user_due", "user_id", "due"),
+        Index("ix_user_card_mastery_user_ignored", "user_id", "is_ignored"),
+    )
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id"), index=True)
     card_id = Column("card_id", Integer, ForeignKey("flashcards.id"), index=True)

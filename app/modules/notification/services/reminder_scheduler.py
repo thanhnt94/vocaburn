@@ -27,14 +27,16 @@ async def _get_active_configs(db) -> list:
                 )
                 if response.status_code == 200:
                     remote_configs = response.json()
+                    sso_ids = [str(rc.get("user_id")) for rc in remote_configs if rc.get("user_id")]
                     resolved = []
-                    for rc in remote_configs:
-                        sso_id = str(rc.get("user_id"))
-                        user_res = await db.execute(select(User).where(User.sso_id == sso_id))
-                        user = user_res.scalar_one_or_none()
-                        if user:
-                            rc["local_user_id"] = user.id
-                            resolved.append(rc)
+                    if sso_ids:
+                        user_res = await db.execute(select(User).where(User.sso_id.in_(sso_ids)))
+                        user_map = {u.sso_id: u.id for u in user_res.scalars().all()}
+                        for rc in remote_configs:
+                            sso_id = str(rc.get("user_id"))
+                            if sso_id in user_map:
+                                rc["local_user_id"] = user_map[sso_id]
+                                resolved.append(rc)
                     return resolved
                 logger.warning(f"[Scheduler] CentralAuth config fetch returned status {response.status_code}, fallback to local configs.")
     except Exception as sso_err:

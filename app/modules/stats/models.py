@@ -1,9 +1,10 @@
-from sqlalchemy import Column, Integer, Float, DateTime, String, Boolean, ForeignKey
+from sqlalchemy import Column, Integer, Float, DateTime, String, Boolean, ForeignKey, Index
 from app.core.db import Base
 from datetime import datetime
 
 class UserDailyStats(Base):
     __tablename__ = "user_daily_stats"
+    __table_args__ = (Index("ix_user_daily_stats_user_date", "user_id", "date"),)
     
     id = Column(Integer, primary_key=True)
     user_id = Column(Integer, ForeignKey("users.id"), index=True)
@@ -13,4 +14,5 @@ class UserDailyStats(Base):
     total_time_seconds = Column(Integer, default=0)
     accuracy = Column(Float, default=0.0)
     is_active = Column(Boolean, default=True, server_default='1')
+
 
