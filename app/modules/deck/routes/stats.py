@@ -8,7 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, delete, func, Integer, or_, and_, case
 from sqlalchemy.orm import joinedload, selectinload
 from app.core.db import get_db
-from app.modules.deck.models import UserDeckSettings, FlashcardDeck, Flashcard, UserAnswer, DeckAttempt, UserCardMastery, UserDeckGoal, UserDailyProgress, UserGlobalGoal, UserPracticeStats
+from app.modules.deck.models import UserDeckSettings, FlashcardDeck, Flashcard, UserAnswer, DeckAttempt, UserCardMastery, UserDeckGoal, UserDailyProgress, UserPracticeStats
 from app.modules.auth.services.auth_service import AuthService
 from datetime import datetime, timezone, date, timedelta
 import math
@@ -737,111 +737,7 @@ async def get_speed_accuracy_stats(request: Request, db: AsyncSession = Depends(
         "total_answers_analyzed": total_answers_analyzed
     }
 
-@router.get("/goals/global")
-async def get_global_goals(request: Request, db: AsyncSession = Depends(get_db)):
-    user = await AuthService.get_current_user(request, db)
-    if not user:
-        raise HTTPException(status_code=401, detail="Unauthorized")
-    user_id = user.id
-    
-    # 1. Get or create user global goals
-    res = await db.execute(select(UserGlobalGoal).filter(UserGlobalGoal.user_id == user_id))
-    goal = res.scalar_one_or_none()
-    if not goal:
-        goal = UserGlobalGoal(user_id=user_id, daily_time_target=20, daily_card_target=20, daily_new_card_target=10)
-        db.add(goal)
-        await db.commit()
-        await db.refresh(goal)
-        
-    # 2. Get today's stats (time and cards studied)
-    from app.modules.stats.models import UserDailyStats
-    today = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
-    stats_res = await db.execute(
-        select(UserDailyStats).where(
-            UserDailyStats.user_id == user_id,
-            UserDailyStats.date >= today
-        ).order_by(UserDailyStats.date.desc())
-    )
-    stats = stats_res.scalars().first()
-    
-    # Convert seconds to minutes for daily time progress
-    actual_seconds = stats.total_time_seconds if stats else 0
-    actual_minutes = round(actual_seconds / 60, 1)
-    
-    actual_cards = stats.questions_attempted if stats else 0
-    actual_correct = stats.correct_answers if stats else 0
-    
-    # 3. Calculate actual_new_cards_completed
-    first_answers = select(
-        UserAnswer.card_id,
-        func.min(UserAnswer.created_at).label("first_answered_at")
-    ).join(
-        DeckAttempt, UserAnswer.attempt_id == DeckAttempt.id
-    ).where(
-        DeckAttempt.user_id == user_id
-    ).group_by(
-        UserAnswer.card_id
-    ).subquery()
 
-    stmt_new_cards = select(func.count(first_answers.c.card_id)).where(
-        first_answers.c.first_answered_at >= today
-    )
-    new_cards_res = await db.execute(stmt_new_cards)
-    actual_new_cards_completed = new_cards_res.scalar() or 0
-    
-    # 4. Calculate actual exact XP gained today
-    from app.modules.gamification.models import XPTransaction
-    stmt_xp = select(func.sum(XPTransaction.amount)).where(
-        XPTransaction.user_id == user_id,
-        XPTransaction.created_at >= today
-    )
-    xp_res = await db.execute(stmt_xp)
-    actual_xp_gained_today = xp_res.scalar() or 0
-    
-    return {
-        "daily_time_target": goal.daily_time_target,
-        "daily_card_target": goal.daily_card_target,
-        "daily_new_card_target": goal.daily_new_card_target,
-        "actual_time_minutes": actual_minutes,
-        "actual_cards_completed": actual_cards,
-        "actual_new_cards_completed": actual_new_cards_completed,
-        "actual_correct_answers": actual_correct,
-        "actual_xp_gained_today": actual_xp_gained_today
-    }
-
-@router.post("/goals/global")
-async def update_global_goals(request: Request, data: dict, db: AsyncSession = Depends(get_db)):
-    user = await AuthService.get_current_user(request, db)
-    if not user:
-        raise HTTPException(status_code=401, detail="Unauthorized")
-    user_id = user.id
-    
-    daily_time_target = int(data.get("daily_time_target", 20))
-    daily_card_target = int(data.get("daily_card_target", 20))
-    daily_new_card_target = int(data.get("daily_new_card_target", 10))
-    
-    res = await db.execute(select(UserGlobalGoal).filter(UserGlobalGoal.user_id == user_id))
-    goal = res.scalar_one_or_none()
-    if not goal:
-        goal = UserGlobalGoal(
-            user_id=user_id,
-            daily_time_target=daily_time_target,
-            daily_card_target=daily_card_target,
-            daily_new_card_target=daily_new_card_target
-        )
-        db.add(goal)
-    else:
-        goal.daily_time_target = daily_time_target
-        goal.daily_card_target = daily_card_target
-        goal.daily_new_card_target = daily_new_card_target
-        
-    await db.commit()
-    return {
-        "status": "ok",
-        "daily_time_target": goal.daily_time_target,
-        "daily_card_target": goal.daily_card_target,
-        "daily_new_card_target": goal.daily_new_card_target
-    }
 
 @router.get("/stats/review-forecast")
 async def get_review_forecast(request: Request, db: AsyncSession = Depends(get_db)):
