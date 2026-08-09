@@ -33,7 +33,7 @@ async def fix_yesterday():
             for deck in decks:
                 d_id = deck.id
                 
-                # 1. Fix MCQ attempt for 2026-08-08 (100% score)
+                # 1. Fix MCQ attempt for 2026-08-08 (90% score)
                 mcq_attempt_res = await db.execute(
                     select(DeckAttempt).where(
                         DeckAttempt.user_id == u_id,
@@ -48,19 +48,19 @@ async def fix_yesterday():
                         user_id=u_id,
                         deck_id=d_id,
                         mode="roadmap_mcq",
-                        score=100,
+                        score=90,
                         total_cards=15,
                         started_at=yesterday_dt,
                         completed_at=yesterday_dt + timedelta(minutes=5)
                     )
                     db.add(mcq_attempt)
                 else:
-                    mcq_attempt.score = 100
+                    mcq_attempt.score = 90
                     mcq_attempt.total_cards = 15
 
-                # 2. Fix 43 FSRS reviews for 2026-08-08
+                # 2. Fix 62 FSRS reviews for 2026-08-08
                 cards_res = await db.execute(
-                    select(Flashcard.id).where(Flashcard.deck_id == d_id).limit(43)
+                    select(Flashcard.id).where(Flashcard.deck_id == d_id).limit(62)
                 )
                 card_ids = [r[0] for r in cards_res.all()]
                 
