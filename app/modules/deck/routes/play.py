@@ -242,9 +242,14 @@ async def record_answer(request: Request, data: dict, db: AsyncSession = Depends
     is_originally_new = False
 
     if card:
-        mode_val = data.get("mode")
+        mode_val = data.get("mode") or data.get("practice_mode")
         if is_practice:
-            attempt_mode = "practice"
+            if mode_val in ["roadmap_mcq", "mcq"]:
+                attempt_mode = "roadmap_mcq"
+            elif mode_val in ["roadmap_typing", "typing"]:
+                attempt_mode = "roadmap_typing"
+            else:
+                attempt_mode = "practice"
         else:
             attempt_mode = mode_val if mode_val in ["roadmap", "sequential", "play", "fsrs", "new", "review"] else "play"
         attempt_res = await db.execute(
@@ -2678,11 +2683,27 @@ async def get_deck_roadmap_status_helper(db: AsyncSession, user_id: int, deck_id
                 .where(
                     Flashcard.deck_id == deck_id,
                     DeckAttempt.user_id == user_id,
-                    DeckAttempt.mode.in_(["roadmap_mcq", "roadmap_test", "mcq"]),
+                    DeckAttempt.mode.in_(["roadmap_mcq", "roadmap_test", "mcq", "practice"]),
                     UserAnswer.created_at >= day_start,
                     UserAnswer.created_at < day_end
                 )
             ) or 0
+
+            mcq_session_res = await db.execute(
+                select(DeckSession).where(
+                    DeckSession.deck_id == deck_id,
+                    DeckSession.user_id == user_id
+                )
+            )
+            mcq_session = mcq_session_res.scalar_one_or_none()
+            if mcq_session and mcq_session.state_json:
+                try:
+                    s_data = json.loads(mcq_session.state_json)
+                    p_answers = s_data.get("practiceAnswers") or s_data.get("saved_answers") or {}
+                    if isinstance(p_answers, dict):
+                        mcq_answers_today = max(mcq_answers_today, len(p_answers))
+                except Exception:
+                    pass
 
             step_data.update({
                 "question_count": q_count,
