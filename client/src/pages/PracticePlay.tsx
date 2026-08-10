@@ -11,7 +11,7 @@ import remarkGfm from 'remark-gfm'
 import rehypeRaw from 'rehype-raw'
 import { cn } from '@/lib/utils'
 import { useAppStore } from '@/store/useAppStore'
-import { playCorrectSound, playIncorrectSound, speakMultiLanguage, stripTagsAndBBCode, speakSequentially, speakWithEdgeTTS, speakEdgeTTSSequentially } from '@/lib/audio'
+import { playCorrectSound, playIncorrectSound, speakMultiLanguage, stripTagsAndBBCode, speakSequentially, speakWithEdgeTTS, speakEdgeTTSSequentially, cancelAllAudio } from '@/lib/audio'
 import { parseBBCodeToHtml, stripBBCode, isJapanese, getJpPattern, extractTokens, tokensOverlapHigh } from '@/lib/text'
 import { selectDistractors } from '@/lib/distractor'
 import { TypewriterText } from '@/components/TypewriterText'
@@ -23,6 +23,7 @@ import { MilestoneCelebration } from '@/components/MilestoneCelebration'
 import DailyComparisonChart from '@/components/DailyComparisonChart'
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts'
 import { usePlaySettings } from '@/hooks/usePlaySettings'
+import { PlaySettingsModal } from '@/components/PlaySettingsModal'
 import { PlaySessionSummary } from '@/components/PlaySessionSummary'
 import { PlayStatsDrawer } from '@/components/PlayStatsDrawer'
 import { useRoadmapStatus } from '@/hooks/useRoadmapStatus'
@@ -406,7 +407,11 @@ export default function PracticePlay() {
   const [session, setSession] = useState<any>(null)
   const [editingFlashcard, setEditingFlashcard] = useState<any>(null)
   const [isSaving, setIsSaving] = useState(false)
-  const autoPlayAudio = (userSettings.autoplay_audio as any) || 'never';
+  const autoPlayAudio = (userSettings.autoplay_audio as any) || 'none';
+  const setAutoPlayAudio = (val: any) => {
+    updateUserSettings({ autoplay_audio: val });
+    saveGeneralSettings({ autoplay_audio: val });
+  };
   const [currentIndex, setCurrentIndex] = useState(-1)
   const [showAbsoluteFirst, setShowAbsoluteFirst] = useState(false)
   const [showAbsoluteLast, setShowAbsoluteLast] = useState(false)
@@ -550,6 +555,11 @@ export default function PracticePlay() {
     type?: 'info' | 'warning';
   } | null>(null)
   const [justAnswered, setJustAnswered] = useState(false)
+  const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false)
+
+  useEffect(() => {
+    cancelAllAudio();
+  }, [currentIndex]);
 
   // ── Multi-Modal Practice State Hooks ──
   const mainTab = 'practice' as 'fsrs' | 'practice'
@@ -576,7 +586,6 @@ export default function PracticePlay() {
     roadmap_test: { active_pairs: [{ q: 'front', a: 'back' }], num_choices: 4 }
   })
 
-  const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false)
   const {
     status: roadmapStatus,
     refetchRoadmap,
@@ -600,6 +609,8 @@ export default function PracticePlay() {
     setShowImages,
     showFsrs,
     setShowFsrs,
+    randomEnabled,
+    setRandomEnabled,
     saveGeneralSettings
   } = usePlaySettings(id || '', modeSettings, setModeSettings, activeMode, autoPlayAudio);
 
@@ -5331,26 +5342,20 @@ export default function PracticePlay() {
           <div className="max-w-2xl mx-auto w-full flex flex-col">
             {activeBottomTab === 'flashcard' && !isFeedbackOpen && (
               <div className="w-full flex items-center gap-1.5 sm:gap-3 px-3 sm:px-4 pt-1 pb-2">
-            {/* Settings Button (Hidden in Roadmap mode) */}
-            {!isRoadmapTestMode && (
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setIsSettingsModalOpen(true);
-                }}
-                className="w-12 h-12 flex-shrink-0 flex items-center justify-center bg-indigo-50 border border-indigo-200 text-indigo-600 rounded-2xl shadow-sm active:scale-95 hover:bg-indigo-100 hover:border-indigo-300 transition-all"
-                title="Cấu hình học tập"
-              >
-                <Settings className="w-5.5 h-5.5 text-indigo-600" />
-              </button>
-            )}
+            {/* Settings Button */}
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setIsSettingsModalOpen(true);
+              }}
+              className="w-12 h-12 flex-shrink-0 flex items-center justify-center bg-indigo-50 border border-indigo-200 text-indigo-600 rounded-2xl shadow-sm active:scale-95 hover:bg-indigo-100 hover:border-indigo-300 transition-all"
+              title="Cấu hình học tập"
+            >
+              <Settings className="w-5.5 h-5.5 text-indigo-600" />
+            </button>
 
-              {(() => {
-                if (!currentQuestion) return null;
-
-                if (mainTab === 'practice' && practiceSubMode !== 'listening' && !showFeedback) {
-                  return null;
-                }
+            {(() => {
+              if (!currentQuestion) return null;
 
                 return (
                   <button
@@ -6854,6 +6859,32 @@ export default function PracticePlay() {
         currentStepIndex={(roadmapStatus?.current_step_index || 0) + 1}
         totalSteps={roadmapStatus?.pipeline?.length || 1}
         allDone={isRoadmapAllDone}
+      />
+
+      {/* Play Settings Modal */}
+      <PlaySettingsModal
+        isOpen={isSettingsModalOpen}
+        onClose={() => setIsSettingsModalOpen(false)}
+        activeMode={activeMode}
+        applyLearningMode={setActiveMode}
+        autoPlayAudio={autoPlayAudio}
+        setAutoPlayAudio={setAutoPlayAudio}
+        sfxEnabled={sfxEnabled}
+        setSfxEnabled={setSfxEnabled}
+        hapticEnabled={hapticEnabled}
+        setHapticEnabled={setHapticEnabled}
+        showFeedback={showFeedback}
+        copyQuestionToClipboard={() => {}}
+        currentQuestion={currentQuestion}
+        handleIgnoreQuestion={() => {}}
+        openEditModal={() => setIsEditModalOpen(true)}
+        setIsQuitModalOpen={() => navigate('/')}
+        showImages={showImages}
+        setShowImages={setShowImages}
+        showFsrs={showFsrs}
+        setShowFsrs={setShowFsrs}
+        randomEnabled={randomEnabled}
+        setRandomEnabled={setRandomEnabled}
       />
     </div>
   )

@@ -9,7 +9,7 @@ import remarkGfm from 'remark-gfm'
 import rehypeRaw from 'rehype-raw'
 import { cn } from '@/lib/utils'
 import { useAppStore } from '@/store/useAppStore'
-import { playCorrectSound, playIncorrectSound, speakMultiLanguage } from '@/lib/audio'
+import { playCorrectSound, playIncorrectSound, speakMultiLanguage, cancelAllAudio } from '@/lib/audio'
 import { triggerHaptic } from '@/lib/haptic'
 import { parseBBCodeToHtml, stripBBCode, isJapanese, getJpPattern, extractTokens, tokensOverlapHigh } from '@/lib/text'
 import { selectDistractors } from '@/lib/distractor'
@@ -619,6 +619,10 @@ export default function FlashcardPlay() {
   })
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
   const [showRoadmapCompleteModal, setShowRoadmapCompleteModal] = useState<boolean>(false);
+
+  useEffect(() => {
+    cancelAllAudio();
+  }, [currentIndex]);
 
   const fetchRoadmapStatus = () => refetchRoadmap();
 

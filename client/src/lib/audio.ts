@@ -1,3 +1,25 @@
+let activeAudioElement: HTMLAudioElement | null = null;
+
+export const cancelAllAudio = () => {
+  if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+    try {
+      window.speechSynthesis.cancel();
+    } catch (e) {}
+  }
+  if (activeAudioElement) {
+    try {
+      activeAudioElement.pause();
+      activeAudioElement.currentTime = 0;
+    } catch (e) {}
+    activeAudioElement = null;
+  }
+};
+
+export const registerAudioElement = (audio: HTMLAudioElement) => {
+  cancelAllAudio();
+  activeAudioElement = audio;
+};
+
 export const playCorrectSound = () => {
   try {
     const audio = new Audio(`${import.meta.env.BASE_URL}sounds/correct.mp3`);
@@ -110,6 +132,7 @@ export const speakWithEdgeTTS = async (text: string, lang?: string) => {
       const data = await res.json();
       if (data.url) {
         const audio = new Audio(`${data.url}?t=${Date.now()}`);
+        registerAudioElement(audio);
         audio.play().catch(e => {
           console.warn('[EDGE TTS AUTOPLAY BLOCKED]', e);
           speakMultiLanguage(text);
@@ -137,6 +160,8 @@ export const speakWithEdgeTTSPromise = (text: string, lang?: string): Promise<vo
         const data = await res.json();
         if (data.url) {
           const audio = new Audio(`${data.url}?t=${Date.now()}`);
+          registerAudioElement(audio);
+          audio.onended = () => resolve();
           audio.onended = () => resolve();
           audio.onerror = () => {
             speakMultiLanguage(text);
