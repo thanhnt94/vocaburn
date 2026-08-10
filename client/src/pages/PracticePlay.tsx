@@ -5356,52 +5356,56 @@ export default function PracticePlay() {
 
             {(() => {
               if (!currentQuestion) return null;
+              const hasAnswered = showFeedback || practiceAnswers[currentIndex] !== undefined;
+              if (mainTab === 'practice' && !hasAnswered) {
+                return null;
+              }
 
-                return (
-                  <button
-                    onClick={async (e) => {
-                      e.stopPropagation();
-                      if (mainTab === 'practice') {
-                        if (showFeedback) {
-                          speakPracticeQuestionAndAnswer();
-                        } else {
-                          const practiceData = currentPracticeData;
-                          if (practiceData) {
-                            const { question: qText } = practiceData;
-                            speakMultiLanguage(qText);
-                          }
-                        }
-                      } else {
-                        await playCardAudio(isFlipped ? 'back' : 'front');
-                      }
-                    }}
-                    className="w-12 h-12 flex-shrink-0 flex items-center justify-center bg-indigo-50 border border-indigo-200 rounded-2xl text-indigo-600 shadow-sm active:scale-95 transition-all hover:bg-indigo-100 hover:border-indigo-300"
-                    title="Phát âm"
-                  >
-                    <Volume2 className="w-5.5 h-5.5 text-indigo-600 animate-pulse" />
-                  </button>
-                );
-              })()}
-
-              {/* Lightbulb Explanation Button (visible in FSRS, and also in practice mode if a question is loaded) */}
-              {(mainTab === 'practice' || isFlipped || showFeedback) && (
+              return (
                 <button
-                  onClick={() => {
+                  onClick={async (e) => {
+                    e.stopPropagation();
                     if (mainTab === 'practice') {
-                      setShowFeedback(true);
+                      if (showFeedback) {
+                        speakPracticeQuestionAndAnswer();
+                      } else {
+                        const practiceData = currentPracticeData;
+                        if (practiceData) {
+                          const { question: qText } = practiceData;
+                          speakMultiLanguage(qText);
+                        }
+                      }
+                    } else {
+                      await playCardAudio(isFlipped ? 'back' : 'front');
                     }
-                    setIsFeedbackOpen(true);
                   }}
-                  className={`xl:hidden w-12 h-12 flex-shrink-0 flex items-center justify-center rounded-2xl shadow-sm active:scale-95 transition-all relative ${justAnswered
-                    ? 'bg-indigo-600 border border-indigo-600 text-white animate-[pulse_1.5s_infinite] ring-4 ring-indigo-300 ring-offset-1 drop-shadow-[0_0_12px_rgba(99,102,241,0.6)]'
-                    : 'bg-indigo-50 border border-indigo-200 text-indigo-600 hover:bg-indigo-100'
-                    }`}
-                  title="Xem giải thích và hướng dẫn"
+                  className="w-12 h-12 flex-shrink-0 flex items-center justify-center bg-indigo-50 border border-indigo-200 rounded-2xl text-indigo-600 shadow-sm active:scale-95 transition-all hover:bg-indigo-100 hover:border-indigo-300"
+                  title="Phát âm"
                 >
-                  <Lightbulb className="w-5.5 h-5.5" />
-                  {justAnswered && <span className="absolute -top-1 -right-1 w-3 h-3 bg-rose-500 rounded-full border-2 border-white animate-pulse"></span>}
+                  <Volume2 className="w-5.5 h-5.5 text-indigo-600 animate-pulse" />
                 </button>
-              )}
+              );
+            })()}
+
+            {/* Lightbulb Explanation Button (visible in FSRS, and in practice mode after answering) */}
+            {((mainTab === 'practice' ? (showFeedback || practiceAnswers[currentIndex] !== undefined) : (isFlipped || showFeedback))) && (
+              <button
+                onClick={() => {
+                  if (mainTab === 'practice') {
+                    setShowFeedback(true);
+                  }
+                  setIsFeedbackOpen(true);
+                }}
+                className={`xl:hidden w-12 h-12 flex-shrink-0 flex items-center justify-center rounded-2xl shadow-sm active:scale-95 transition-all relative ${justAnswered
+                  ? 'bg-indigo-600 border border-indigo-600 text-white animate-[pulse_1.5s_infinite] ring-4 ring-indigo-300 ring-offset-1 drop-shadow-[0_0_12px_rgba(99,102,241,0.6)]'
+                  : 'bg-indigo-50 border border-indigo-200 text-indigo-600 hover:bg-indigo-100'
+                  }`}
+                title="Xem giải thích và hướng dẫn"
+              >
+                <Lightbulb className="w-5.5 h-5.5" />
+                {justAnswered && <span className="absolute -top-1 -right-1 w-3 h-3 bg-rose-500 rounded-full border-2 border-white animate-pulse"></span>}
+              </button>
+            )}
 
               {/* Main Action Buttons */}
               {mainTab === 'practice' ? (
