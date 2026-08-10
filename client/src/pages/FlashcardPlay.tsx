@@ -3636,7 +3636,6 @@ export default function FlashcardPlay() {
                 if (currentStep) {
                   if (currentStep.type === 'new_cards') {
                     // Backend progress.learned = accurate count of new cards learned TODAY
-                    // Do NOT add sessionAnswers.length - it's cumulative across all days
                     const dailyTarget = currentStep.daily_count || currentStep.progress?.target || 20;
                     const learnedToday = currentStep.progress?.learned ?? 0;
                     return {
@@ -3647,19 +3646,10 @@ export default function FlashcardPlay() {
                       total: dailyTarget,
                       progressText: `${learnedToday}/${dailyTarget}`
                     };
-                  } else if (currentStep.type === 'mcq' || (currentStep.type as string) === 'mcq_quiz') {
-                    const dailyTarget = currentStep.daily_count || 10;
-                    const attempts = currentStep.progress?.attempts_today ?? 0;
-                    return {
-                      label: 'MCQ',
-                      Icon: Target,
-                      iconColorClass: 'bg-amber-50 text-amber-600',
-                      curr: attempts,
-                      total: dailyTarget,
-                      progressText: `${attempts}/${dailyTarget}`
-                    };
+                  } else if (currentStep.type === 'mcq' || (currentStep.type as string) === 'mcq_quiz' || currentStep.type === 'typing') {
+                    // In FlashcardPlay interface, hide the goal pill when current step is MCQ or Typing
+                    return null;
                   } else if (currentStep.type === 'fsrs_review') {
-                    // Backend progress.due_count = cards still due, reviewed_today = completed today
                     const dueCount = currentStep.progress?.due_count ?? roadmapStatus?.review_due_today ?? 0;
                     const reviewedToday = currentStep.progress?.reviewed_today ?? roadmapStatus?.review_completed_today ?? 0;
                     const totalReview = reviewedToday + dueCount;
@@ -3674,7 +3664,6 @@ export default function FlashcardPlay() {
                   }
                 }
               } else if (activeMode === 'new') {
-                // For non-roadmap 'new' mode, use roadmapStatus if available
                 const newTarget = roadmapStatus?.new_target_today ?? 20;
                 const newLearned = roadmapStatus?.new_learned_today ?? 0;
                 return {
@@ -3700,6 +3689,8 @@ export default function FlashcardPlay() {
             };
 
             const stepInfo = getStepProgressInfo();
+            if (!stepInfo) return null;
+
             const label = stepInfo.label;
             const Icon = stepInfo.Icon;
             const iconColorClass = stepInfo.iconColorClass;
