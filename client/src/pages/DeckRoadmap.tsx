@@ -5,7 +5,7 @@ import {
   ChevronLeft, Compass, Target, Flame, Brain, Play, CheckCircle2, Circle, Clock, 
   ArrowRight, Settings, RotateCcw, Sparkles, BookOpen, Layers, Lock, ShieldCheck,
   Plus, Trash2, ArrowUp, ArrowDown, Check, Trophy, Calendar, BarChart3, History,
-  Zap, ChevronRight, TrendingUp, TrendingDown, ArrowLeftRight, Star, User, Users, Medal, Crown
+  Zap, ChevronRight, TrendingUp, TrendingDown, ArrowLeftRight, Star, User, Users, Medal, Crown, Send
 } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import axios from 'axios'
@@ -150,6 +150,15 @@ export default function DeckRoadmap() {
       return res.data?.leaderboard || []
     },
     enabled: Boolean(id) && activeTab === 'stats'
+  })
+
+  // Fetch Telegram Config
+  const { data: tgConfig, refetch: refetchTgConfig } = useQuery({
+    queryKey: ['telegram-config'],
+    queryFn: async () => {
+      const res = await axios.get('/api/v1/telegram/config')
+      return res.data
+    }
   })
 
   useEffect(() => {
@@ -1008,7 +1017,6 @@ export default function DeckRoadmap() {
                     🚫 Đã Tắt
                   </button>
                 )}
-                <TelegramRoadmapReminderToggle />
               </div>
 
               <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-white mb-2">
@@ -1608,6 +1616,94 @@ export default function DeckRoadmap() {
                       </button>
                     )}
                   </div>
+                </div>
+
+                {/* ═══ THÔNG BÁO TELEGRAM (CẤU HÌNH LỘ TRÌNH) ═══ */}
+                <div className="mt-6 bg-gradient-to-br from-sky-50/70 via-indigo-50/30 to-slate-50 border border-sky-200/80 rounded-2xl p-5 shadow-2xs">
+                  <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-8 h-8 rounded-xl bg-sky-500 text-white flex items-center justify-center shadow-xs">
+                        <Send className="w-4 h-4" />
+                      </div>
+                      <div>
+                        <h4 className="text-xs font-black text-slate-900 uppercase tracking-wider">Nhắc Nhở Học Qua Telegram Bot</h4>
+                        <p className="text-[11px] font-medium text-slate-500">Tự động gửi thông báo tiến độ bài học & nhắc streak qua Telegram mỗi ngày.</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {tgConfig?.is_linked ? (
+                    <div className="bg-white rounded-xl p-4 border border-sky-100 shadow-2xs space-y-3">
+                      <div className="flex items-center justify-between flex-wrap gap-2">
+                        <div className="flex items-center gap-2">
+                          <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
+                          <span className="text-xs font-black text-slate-800">Đã kết nối tài khoản Telegram</span>
+                        </div>
+
+                        <button
+                          onClick={async () => {
+                            try {
+                              await axios.post('/api/v1/telegram/config', { is_active: !tgConfig.is_active })
+                              refetchTgConfig()
+                            } catch (e) {
+                              console.error("Failed to toggle Telegram config:", e)
+                            }
+                          }}
+                          className={cn(
+                            "px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition-all cursor-pointer active:scale-95 shadow-2xs",
+                            tgConfig.is_active 
+                              ? "bg-emerald-500 text-white hover:bg-emerald-600 shadow-emerald-500/20" 
+                              : "bg-slate-200 text-slate-700 hover:bg-slate-300"
+                          )}
+                        >
+                          {tgConfig.is_active ? '✓ Đang Bật Nhắc Nhở' : '🚫 Đã Tắt Nhắc Nhở'}
+                        </button>
+                      </div>
+
+                      <div className="flex items-center gap-4 pt-2 border-t border-slate-100 flex-wrap text-xs">
+                        <div className="flex items-center gap-2">
+                          <span className="font-bold text-slate-600">Khung giờ nhắc:</span>
+                          <select
+                            value={tgConfig.reminder_time || '20:00'}
+                            onChange={async (e) => {
+                              try {
+                                await axios.post('/api/v1/telegram/config', { reminder_time: e.target.value })
+                                refetchTgConfig()
+                              } catch (err) {
+                                console.error("Failed to update reminder time:", err)
+                              }
+                            }}
+                            className="px-2.5 py-1 bg-slate-50 border border-slate-300 rounded-lg font-black text-slate-900 outline-none focus:ring-2 focus:ring-sky-500"
+                          >
+                            {['07:00', '08:00', '09:00', '12:00', '19:00', '20:00', '21:00', '22:00'].map(t => (
+                              <option key={t} value={t}>{t}</option>
+                            ))}
+                          </select>
+                        </div>
+                        <span className="text-[11px] font-medium text-slate-400">
+                          (Tin nhắn bao gồm: Tên bộ thẻ, tiến độ thẻ/câu trắc nghiệm, streak & link trực tiếp)
+                        </span>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="bg-amber-50/80 border border-amber-200 rounded-xl p-4 flex items-center justify-between gap-3 flex-wrap">
+                      <div className="text-xs font-bold text-amber-900">
+                        ⚠️ Tài khoản của bạn chưa kết nối Telegram Bot.
+                      </div>
+                      <button
+                        onClick={() => {
+                          if (tgConfig?.connect_token) {
+                            window.open(`https://t.me/${tgConfig.bot_username || 'VocaburnBot'}?start=${tgConfig.connect_token}`, '_blank')
+                          } else {
+                            window.open('https://t.me/VocaburnBot', '_blank')
+                          }
+                        }}
+                        className="px-4 py-2 bg-gradient-to-r from-sky-500 to-indigo-600 hover:from-sky-600 hover:to-indigo-700 text-white rounded-xl font-black text-xs uppercase tracking-wider shadow-sm transition active:scale-95 cursor-pointer"
+                      >
+                        Kết Nối Telegram Bot 🚀
+                      </button>
+                    </div>
+                  )}
                 </div>
               </div>
             </motion.div>

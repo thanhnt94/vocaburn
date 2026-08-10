@@ -85,10 +85,12 @@ async def get_telegram_config(request: Request, db: AsyncSession = Depends(get_d
     from app.modules.notification.services.telegram_service import TelegramService
     from app.modules.auth.models import User
     
-    user_id = int(request.cookies.get("user_id", 1))
-    user_res = await db.execute(select(User).where(User.id == user_id))
-    user = user_res.scalar_one_or_none()
-    sso_id = user.sso_id if user else None
+    from app.modules.auth.services.auth_service import AuthService
+    user = await AuthService.get_current_user(request, db)
+    if not user:
+        raise HTTPException(status_code=401, detail="Unauthorized")
+    user_id = user.id
+    sso_id = user.sso_id
     
     from app.modules.sso_module.service import SSOService
     sso_config = await SSOService.get_config(db)
@@ -139,10 +141,12 @@ async def update_telegram_config(request: Request, data: dict, db: AsyncSession 
     from app.modules.notification.models import UserTelegramConfig
     from app.modules.auth.models import User
     
-    user_id = int(request.cookies.get("user_id", 1))
-    user_res = await db.execute(select(User).where(User.id == user_id))
-    user = user_res.scalar_one_or_none()
-    sso_id = user.sso_id if user else None
+    from app.modules.auth.services.auth_service import AuthService
+    user = await AuthService.get_current_user(request, db)
+    if not user:
+        raise HTTPException(status_code=401, detail="Unauthorized")
+    user_id = user.id
+    sso_id = user.sso_id
     
     from app.modules.sso_module.service import SSOService
     sso_config = await SSOService.get_config(db)

@@ -32,8 +32,8 @@
       "_utils-legacy-C8Y6kIqQ.js"
     ]
   },
-  "_RoadmapHeaderTracker-legacy-B3Ror8_C.js": {
-    "file": "assets/RoadmapHeaderTracker-legacy-B3Ror8_C.js",
+  "_RoadmapHeaderTracker-legacy-DPLQYJQt.js": {
+    "file": "assets/RoadmapHeaderTracker-legacy-DPLQYJQt.js",
     "name": "RoadmapHeaderTracker",
     "imports": [
       "_react-core-vendor-legacy-C4v24-zd.js",
@@ -46,15 +46,12 @@
       "_utils-legacy-C8Y6kIqQ.js"
     ]
   },
-  "_TelegramRoadmapReminderToggle-legacy-BYWby1Ms.js": {
-    "file": "assets/TelegramRoadmapReminderToggle-legacy-BYWby1Ms.js",
+  "_TelegramRoadmapReminderToggle-legacy-Dr-Gwsj7.js": {
+    "file": "assets/TelegramRoadmapReminderToggle-legacy-Dr-Gwsj7.js",
     "name": "TelegramRoadmapReminderToggle",
     "imports": [
-      "_react-core-vendor-legacy-C4v24-zd.js",
       "_rolldown-runtime-legacy-Djb2rrqm.js",
-      "_animations-vendor-legacy-DSorD1UE.js",
-      "_vendor-legacy-BPp_scNM.js",
-      "_utils-legacy-C8Y6kIqQ.js"
+      "_animations-vendor-legacy-DSorD1UE.js"
     ]
   },
   "_animations-vendor-legacy-DSorD1UE.js": {
@@ -110,7 +107,7 @@
     ]
   },
   "index-legacy.html": {
-    "file": "assets/index-legacy-Ch5sHMa3.js",
+    "file": "assets/index-legacy-BDBsaRVR.js",
     "name": "index",
     "src": "index-legacy.html",
     "isEntry": true,
@@ -142,7 +139,7 @@
     ]
   },
   "src/pages/Admin-legacy.tsx": {
-    "file": "assets/Admin-legacy-5iKk1ItI.js",
+    "file": "assets/Admin-legacy-qS6ahgOj.js",
     "name": "Admin",
     "src": "src/pages/Admin-legacy.tsx",
     "isDynamicEntry": true,
@@ -155,7 +152,7 @@
     ]
   },
   "src/pages/Dashboard-legacy.tsx": {
-    "file": "assets/Dashboard-legacy-DkK5XVIV.js",
+    "file": "assets/Dashboard-legacy-DKkRjclx.js",
     "name": "Dashboard",
     "src": "src/pages/Dashboard-legacy.tsx",
     "isDynamicEntry": true,
@@ -167,12 +164,12 @@
       "_animations-vendor-legacy-DSorD1UE.js",
       "_vendor-legacy-BPp_scNM.js",
       "_DailyComparisonChart-legacy-Decr-TbS.js",
-      "_TelegramRoadmapReminderToggle-legacy-BYWby1Ms.js",
+      "_TelegramRoadmapReminderToggle-legacy-Dr-Gwsj7.js",
       "_utils-legacy-C8Y6kIqQ.js"
     ]
   },
   "src/pages/DeckRoadmap-legacy.tsx": {
-    "file": "assets/DeckRoadmap-legacy-C2MaStua.js",
+    "file": "assets/DeckRoadmap-legacy-CwlcA6Ok.js",
     "name": "DeckRoadmap",
     "src": "src/pages/DeckRoadmap-legacy.tsx",
     "isDynamicEntry": true,
@@ -181,7 +178,7 @@
       "_rolldown-runtime-legacy-Djb2rrqm.js",
       "_animations-vendor-legacy-DSorD1UE.js",
       "_vendor-legacy-BPp_scNM.js",
-      "_TelegramRoadmapReminderToggle-legacy-BYWby1Ms.js",
+      "_TelegramRoadmapReminderToggle-legacy-Dr-Gwsj7.js",
       "_utils-legacy-C8Y6kIqQ.js"
     ]
   },
@@ -213,7 +210,7 @@
     ]
   },
   "src/pages/FlashcardDetail-legacy.tsx": {
-    "file": "assets/FlashcardDetail-legacy--PffmYCh.js",
+    "file": "assets/FlashcardDetail-legacy-DYqAYnyZ.js",
     "name": "FlashcardDetail",
     "src": "src/pages/FlashcardDetail-legacy.tsx",
     "isDynamicEntry": true,
@@ -230,7 +227,7 @@
     ]
   },
   "src/pages/FlashcardPlay-legacy.tsx": {
-    "file": "assets/FlashcardPlay-legacy-CsPuh54u.js",
+    "file": "assets/FlashcardPlay-legacy-BavjUHuJ.js",
     "name": "FlashcardPlay",
     "src": "src/pages/FlashcardPlay-legacy.tsx",
     "isDynamicEntry": true,
@@ -241,7 +238,7 @@
       "_animations-vendor-legacy-DSorD1UE.js",
       "_vendor-legacy-BPp_scNM.js",
       "_DailyComparisonChart-legacy-Decr-TbS.js",
-      "_RoadmapHeaderTracker-legacy-B3Ror8_C.js",
+      "_RoadmapHeaderTracker-legacy-DPLQYJQt.js",
       "_FlashcardEditModal-legacy-D_-QHYkN.js",
       "_audio-legacy-DuFJrEl5.js",
       "_text-legacy-DYqHS0RK.js",
@@ -276,7 +273,7 @@
     ]
   },
   "src/pages/Library-legacy.tsx": {
-    "file": "assets/Library-legacy-BszCUzrM.js",
+    "file": "assets/Library-legacy-D04pjgqi.js",
     "name": "Library",
     "src": "src/pages/Library-legacy.tsx",
     "isDynamicEntry": true,
@@ -303,7 +300,7 @@
     ]
   },
   "src/pages/PracticePlay-legacy.tsx": {
-    "file": "assets/PracticePlay-legacy-GwJe1ITf.js",
+    "file": "assets/PracticePlay-legacy-C41-FZIQ.js",
     "name": "PracticePlay",
     "src": "src/pages/PracticePlay-legacy.tsx",
     "isDynamicEntry": true,
@@ -314,7 +311,7 @@
       "_animations-vendor-legacy-DSorD1UE.js",
       "_vendor-legacy-BPp_scNM.js",
       "_DailyComparisonChart-legacy-Decr-TbS.js",
-      "_RoadmapHeaderTracker-legacy-B3Ror8_C.js",
+      "_RoadmapHeaderTracker-legacy-DPLQYJQt.js",
       "_FlashcardEditModal-legacy-D_-QHYkN.js",
       "_LearningInsightsModal-legacy-_2JuvCBc.js",
       "_audio-legacy-DuFJrEl5.js",
@@ -323,7 +320,7 @@
     ]
   },
   "src/pages/Profile-legacy.tsx": {
-    "file": "assets/Profile-legacy-CK7CuYkO.js",
+    "file": "assets/Profile-legacy-BH9Z3R4f.js",
     "name": "Profile",
     "src": "src/pages/Profile-legacy.tsx",
     "isDynamicEntry": true,
@@ -337,7 +334,7 @@
     ]
   },
   "src/pages/RoadmapHub-legacy.tsx": {
-    "file": "assets/RoadmapHub-legacy-CJr0DNqO.js",
+    "file": "assets/RoadmapHub-legacy-lRU41cXF.js",
     "name": "RoadmapHub",
     "src": "src/pages/RoadmapHub-legacy.tsx",
     "isDynamicEntry": true,
@@ -346,7 +343,7 @@
       "_rolldown-runtime-legacy-Djb2rrqm.js",
       "_animations-vendor-legacy-DSorD1UE.js",
       "_vendor-legacy-BPp_scNM.js",
-      "_TelegramRoadmapReminderToggle-legacy-BYWby1Ms.js",
+      "_TelegramRoadmapReminderToggle-legacy-Dr-Gwsj7.js",
       "_utils-legacy-C8Y6kIqQ.js"
     ]
   },
@@ -364,7 +361,7 @@
     ]
   },
   "src/pages/Settings-legacy.tsx": {
-    "file": "assets/Settings-legacy-dWzDvN9J.js",
+    "file": "assets/Settings-legacy-Bugo-xx2.js",
     "name": "Settings",
     "src": "src/pages/Settings-legacy.tsx",
     "isDynamicEntry": true,
@@ -392,7 +389,7 @@
     ]
   },
   "vite/legacy-polyfills-legacy": {
-    "file": "assets/polyfills-legacy-CODy_kiR.js",
+    "file": "assets/polyfills-legacy-BOiYABkR.js",
     "name": "polyfills",
     "src": "vite/legacy-polyfills-legacy",
     "isEntry": true
@@ -430,8 +427,8 @@
       "_utils-D9fRIgtx.js"
     ]
   },
-  "_RoadmapHeaderTracker-CerityUM.js": {
-    "file": "assets/RoadmapHeaderTracker-CerityUM.js",
+  "_RoadmapHeaderTracker-DDWq0eZe.js": {
+    "file": "assets/RoadmapHeaderTracker-DDWq0eZe.js",
     "name": "RoadmapHeaderTracker",
     "imports": [
       "_react-core-vendor-BYobTUnc.js",
@@ -444,15 +441,12 @@
       "_utils-D9fRIgtx.js"
     ]
   },
-  "_TelegramRoadmapReminderToggle-4ZOorRUB.js": {
-    "file": "assets/TelegramRoadmapReminderToggle-4ZOorRUB.js",
+  "_TelegramRoadmapReminderToggle-DQDRb42E.js": {
+    "file": "assets/TelegramRoadmapReminderToggle-DQDRb42E.js",
     "name": "TelegramRoadmapReminderToggle",
     "imports": [
-      "_react-core-vendor-BYobTUnc.js",
       "_rolldown-runtime-BYbx6iT9.js",
-      "_animations-vendor-BeQiPDnd.js",
-      "_vendor-ClHW8laE.js",
-      "_utils-D9fRIgtx.js"
+      "_animations-vendor-BeQiPDnd.js"
     ]
   },
   "_animations-vendor-BeQiPDnd.js": {
@@ -508,7 +502,7 @@
     ]
   },
   "index.html": {
-    "file": "assets/index-Bbz8FcT4.js",
+    "file": "assets/index-DdFXmrYY.js",
     "name": "index",
     "src": "index.html",
     "isEntry": true,
@@ -539,11 +533,11 @@
       "src/pages/DeckRoadmap.tsx"
     ],
     "css": [
-      "assets/index-CGF0Tob7.css"
+      "assets/index-C8BKTWFt.css"
     ]
   },
   "src/pages/Admin.tsx": {
-    "file": "assets/Admin-CVNhJu2Y.js",
+    "file": "assets/Admin-BZSMQpuc.js",
     "name": "Admin",
     "src": "src/pages/Admin.tsx",
     "isDynamicEntry": true,
@@ -556,7 +550,7 @@
     ]
   },
   "src/pages/Dashboard.tsx": {
-    "file": "assets/Dashboard-DbG-uknB.js",
+    "file": "assets/Dashboard-BlUQDRfY.js",
     "name": "Dashboard",
     "src": "src/pages/Dashboard.tsx",
     "isDynamicEntry": true,
@@ -568,12 +562,12 @@
       "_animations-vendor-BeQiPDnd.js",
       "_vendor-ClHW8laE.js",
       "_DailyComparisonChart-D9mSgYVG.js",
-      "_TelegramRoadmapReminderToggle-4ZOorRUB.js",
+      "_TelegramRoadmapReminderToggle-DQDRb42E.js",
       "_utils-D9fRIgtx.js"
     ]
   },
   "src/pages/DeckRoadmap.tsx": {
-    "file": "assets/DeckRoadmap-C2u5NflF.js",
+    "file": "assets/DeckRoadmap-Df8Tb3Hn.js",
     "name": "DeckRoadmap",
     "src": "src/pages/DeckRoadmap.tsx",
     "isDynamicEntry": true,
@@ -582,7 +576,7 @@
       "_rolldown-runtime-BYbx6iT9.js",
       "_animations-vendor-BeQiPDnd.js",
       "_vendor-ClHW8laE.js",
-      "_TelegramRoadmapReminderToggle-4ZOorRUB.js",
+      "_TelegramRoadmapReminderToggle-DQDRb42E.js",
       "_utils-D9fRIgtx.js"
     ]
   },
@@ -614,7 +608,7 @@
     ]
   },
   "src/pages/FlashcardDetail.tsx": {
-    "file": "assets/FlashcardDetail-DbKXgaNv.js",
+    "file": "assets/FlashcardDetail-D--emFLj.js",
     "name": "FlashcardDetail",
     "src": "src/pages/FlashcardDetail.tsx",
     "isDynamicEntry": true,
@@ -631,7 +625,7 @@
     ]
   },
   "src/pages/FlashcardPlay.tsx": {
-    "file": "assets/FlashcardPlay-CzvFrqq5.js",
+    "file": "assets/FlashcardPlay-BHcpt0Xh.js",
     "name": "FlashcardPlay",
     "src": "src/pages/FlashcardPlay.tsx",
     "isDynamicEntry": true,
@@ -642,7 +636,7 @@
       "_animations-vendor-BeQiPDnd.js",
       "_vendor-ClHW8laE.js",
       "_DailyComparisonChart-D9mSgYVG.js",
-      "_RoadmapHeaderTracker-CerityUM.js",
+      "_RoadmapHeaderTracker-DDWq0eZe.js",
       "_FlashcardEditModal-nol2Z5I9.js",
       "_audio-DULhAeht.js",
       "_text-DbvAHA7m.js",
@@ -677,7 +671,7 @@
     ]
   },
   "src/pages/Library.tsx": {
-    "file": "assets/Library-0_JWryM-.js",
+    "file": "assets/Library-EwSP9Zgp.js",
     "name": "Library",
     "src": "src/pages/Library.tsx",
     "isDynamicEntry": true,
@@ -704,7 +698,7 @@
     ]
   },
   "src/pages/PracticePlay.tsx": {
-    "file": "assets/PracticePlay-BpVpUiiJ.js",
+    "file": "assets/PracticePlay-CzU3GF-H.js",
     "name": "PracticePlay",
     "src": "src/pages/PracticePlay.tsx",
     "isDynamicEntry": true,
@@ -715,7 +709,7 @@
       "_animations-vendor-BeQiPDnd.js",
       "_vendor-ClHW8laE.js",
       "_DailyComparisonChart-D9mSgYVG.js",
-      "_RoadmapHeaderTracker-CerityUM.js",
+      "_RoadmapHeaderTracker-DDWq0eZe.js",
       "_FlashcardEditModal-nol2Z5I9.js",
       "_LearningInsightsModal-DsqQCMa9.js",
       "_audio-DULhAeht.js",
@@ -724,7 +718,7 @@
     ]
   },
   "src/pages/Profile.tsx": {
-    "file": "assets/Profile-CntdnpeO.js",
+    "file": "assets/Profile-DwyMhqG8.js",
     "name": "Profile",
     "src": "src/pages/Profile.tsx",
     "isDynamicEntry": true,
@@ -738,7 +732,7 @@
     ]
   },
   "src/pages/RoadmapHub.tsx": {
-    "file": "assets/RoadmapHub-B21XXCrG.js",
+    "file": "assets/RoadmapHub-jabHiTLS.js",
     "name": "RoadmapHub",
     "src": "src/pages/RoadmapHub.tsx",
     "isDynamicEntry": true,
@@ -747,7 +741,7 @@
       "_rolldown-runtime-BYbx6iT9.js",
       "_animations-vendor-BeQiPDnd.js",
       "_vendor-ClHW8laE.js",
-      "_TelegramRoadmapReminderToggle-4ZOorRUB.js",
+      "_TelegramRoadmapReminderToggle-DQDRb42E.js",
       "_utils-D9fRIgtx.js"
     ]
   },
@@ -765,7 +759,7 @@
     ]
   },
   "src/pages/Settings.tsx": {
-    "file": "assets/Settings-B6NsJN3p.js",
+    "file": "assets/Settings-CO1sKENF.js",
     "name": "Settings",
     "src": "src/pages/Settings.tsx",
     "isDynamicEntry": true,
