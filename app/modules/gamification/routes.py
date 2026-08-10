@@ -360,15 +360,7 @@ async def get_daily_challenges(
     # ─────────────────────────────────────────────────────────────────────────
     # Challenge 3: Keep the streak alive (logged activity today)
     # ─────────────────────────────────────────────────────────────────────────
-    act_res = await db.execute(
-        select(UserDailyActivity).where(
-            and_(
-                UserDailyActivity.user_id == user_id,
-                UserDailyActivity.activity_date == activity_date,
-            )
-        )
-    )
-    has_activity_today = act_res.scalar_one_or_none() is not None
+    has_activity_today = bool(daily_stats and daily_stats.is_active)
     challenge3_completed = has_activity_today or cards_today > 0
 
     challenges = [

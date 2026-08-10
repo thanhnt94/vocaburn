@@ -1,20 +1,11 @@
-from fastapi import FastAPI, Request, Depends, Form, Response, HTTPException
+from fastapi import FastAPI, Request, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import RedirectResponse, JSONResponse
 from app.core.config import settings
-from app.modules.auth.models import User
-from app.modules.auth.services.central_auth_client import CentralAuthClient
-from app.core.db import get_db, engine, Base
 from app.core.init_db import init_db
-from app.modules.stats.services.analytics_service import AnalyticsService
-from app.modules.deck.services.deck_service import DeckService
-from app.modules.auth.services.auth_service import AuthService
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func, Integer
 from contextlib import asynccontextmanager
 import os
-import httpx
 import time
 import asyncio
 

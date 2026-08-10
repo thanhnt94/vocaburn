@@ -193,10 +193,10 @@ class DeckService:
     @staticmethod
     async def get_today_review(db: AsyncSession, user_id: int):
         import math
-        from datetime import datetime
+        from datetime import datetime, timedelta
         from sqlalchemy import select, func
         from app.modules.deck.models import DeckAttempt, UserDeckGoal, UserDailyProgress, UserCardMastery, Flashcard, FlashcardDeck
-        from app.modules.gamification.models import UserDailyActivity
+        from app.modules.stats.models import UserDailyStats
         
         # 1. Get interacted deck ids (not archived)
         interaction_res = await db.execute(
@@ -315,14 +315,18 @@ class DeckService:
                 total_due_review += due_reviews_count
                 total_due_new += due_new_count
                 
-        # Check if daily activity exists for today in gamification
-        act_res = await db.execute(
-            select(UserDailyActivity).where(
-                UserDailyActivity.user_id == user_id,
-                UserDailyActivity.activity_date == now.date()
+        # Check if daily activity exists for today in UserDailyStats
+        today_start = datetime(now.year, now.month, now.day)
+        today_end = today_start + timedelta(days=1)
+        stat_res = await db.execute(
+            select(UserDailyStats).where(
+                UserDailyStats.user_id == user_id,
+                UserDailyStats.date >= today_start,
+                UserDailyStats.date < today_end,
+                UserDailyStats.is_active == True
             )
         )
-        has_activity_today = act_res.scalar_one_or_none() is not None
+        has_activity_today = stat_res.scalars().first() is not None
         
         # Calculate estimated minutes
         estimated_minutes = math.ceil((total_due_review * 15 + total_due_new * 30) / 60)

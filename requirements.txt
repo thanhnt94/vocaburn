@@ -4,7 +4,6 @@ fastapi
 uvicorn[standard]
 gunicorn>=21.2.0
 python-multipart
-jinja2
 python-dotenv==1.0.1
 httpx
 requests>=2.31.0

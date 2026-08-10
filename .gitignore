@@ -12,6 +12,10 @@ backend/data/
 .env
 .vscode/
 .idea/
+scratch/
+antigravity/
+.antigravity*
 
 # Ensure build artifacts are tracked
 !app/static/dist/**
+
