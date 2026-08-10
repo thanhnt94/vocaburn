@@ -3624,6 +3624,15 @@ export default function FlashcardPlay() {
             <h1 className="text-xs md:text-sm font-extrabold text-slate-800 tracking-tight break-words line-clamp-2 leading-snug" title={session.title}>
               {session.title}
             </h1>
+            {activeMode === 'roadmap' && roadmapStatus?.pipeline && (
+              <RoadmapHeaderTracker
+                pipeline={roadmapStatus.pipeline}
+                currentStepIndex={roadmapStatus.current_step_index}
+                allDone={roadmapStatus.all_done}
+                deckId={id || ''}
+                className="mt-0.5"
+              />
+            )}
           </div>
         </div>
       

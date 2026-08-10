@@ -4140,7 +4140,7 @@ export default function PracticePlay() {
                     "text-[9px] font-black leading-none mt-0.5",
                     accuracyPercent >= 80 ? "text-emerald-600" : accuracyPercent >= 60 ? "text-amber-600" : "text-rose-600"
                   )}>
-                    {accuracyPercent}% <span className="text-[7px] text-slate-400 font-normal">(≥80%)</span>
+                    {accuracyPercent}%
                   </span>
                 </div>
               </div>
