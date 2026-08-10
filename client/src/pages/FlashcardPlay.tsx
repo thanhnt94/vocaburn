@@ -2298,6 +2298,7 @@ export default function FlashcardPlay() {
     setActiveMode(mode)
     updateUserSettings({ quiz_learning_mode: mode as any })
     saveGeneralSettings({ learning_mode: mode })
+    navigate(`/flashcard/${id}/play?mode=${mode}`, { replace: true })
 
     if (!session || !session.questions) return
 
@@ -5479,7 +5480,7 @@ export default function FlashcardPlay() {
 
       {/* Floating Roadmap Step Completion Banner */}
       <RoadmapFloatingBanner
-        show={showBanner}
+        show={activeMode === 'roadmap' && showBanner}
         onClose={dismissBanner}
         completedStep={justCompletedStep}
         nextActionUrl={nextActionUrl}

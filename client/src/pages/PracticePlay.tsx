@@ -6849,7 +6849,7 @@ export default function PracticePlay() {
 
       {/* Floating Roadmap Step Completion Banner */}
       <RoadmapFloatingBanner
-        show={showBanner}
+        show={isRoadmapActive && showBanner}
         onClose={dismissBanner}
         completedStep={justCompletedStep}
         nextActionUrl={nextActionUrl}
