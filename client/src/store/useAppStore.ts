@@ -52,6 +52,8 @@ interface Gamify {
   level: number;
   xp: number;
   streak: number;
+  streak_points?: number;
+  streak_freeze_count?: number;
 }
 
 interface AuthConfig {

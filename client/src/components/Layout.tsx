@@ -1,15 +1,18 @@
 import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom'
-import { LayoutGrid, Compass, BarChart3, User, BrainCircuit, Bell, Settings, Plus, Library, Users, FolderKanban, BookOpen, Flame, Award, Sparkles } from 'lucide-react'
+import { useState } from 'react'
+import { LayoutGrid, Compass, BarChart3, User, BrainCircuit, Bell, Settings, Plus, Library, Users, FolderKanban, BookOpen, Flame, Award, Sparkles, Shield, Zap, ShoppingBag } from 'lucide-react'
 import { motion } from 'framer-motion'
 import { useAppStore } from '@/store/useAppStore'
 import { cn } from '@/lib/utils'
 import { useQuery } from '@tanstack/react-query'
 import axios from 'axios'
+import { ShopModal } from './ShopModal'
 
 export default function Layout() {
   const { user, gamify, setUser, setGamify, isLoggedIn, authConfig } = useAppStore()
   const location = useLocation()
   const navigate = useNavigate()
+  const [isShopOpen, setIsShopOpen] = useState<boolean>(false)
 
   const handleNavClick = (e: React.MouseEvent, path: string, label: string) => {
     if (label === 'Roadmap') {
@@ -19,7 +22,7 @@ export default function Layout() {
   }
 
   // Ensure data is loaded even if we land on subpages (only if logged in)
-  const { data } = useQuery({
+  const { data, refetch } = useQuery({
     queryKey: ['dashboard'],
     queryFn: async () => {
       const res = await axios.get('/api/v1/dashboard/data')
@@ -103,11 +106,23 @@ export default function Layout() {
         {isLoggedIn ? (
           <div className="flex items-center gap-5">
             <div className="flex items-center gap-4 border-r border-slate-100 pr-5">
-              <span className="flex items-center gap-1 text-orange-500 hover:scale-105 transition-transform" title="Daily Streak">
+              <button 
+                onClick={() => setIsShopOpen(true)}
+                className="flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-600 hover:bg-amber-500/20 transition-all hover:scale-105 active:scale-95 cursor-pointer"
+                title="Mở Cửa Hàng & Kho Cứu Streak"
+              >
+                <ShoppingBag className="w-3.5 h-3.5" />
+                <span className="text-[11px] font-black">{gamify.streak_points || 0} ⚡</span>
+                <span className="text-slate-300">•</span>
+                <Shield className="w-3.5 h-3.5 fill-sky-400/20 text-sky-500" />
+                <span className="text-[11px] font-black text-sky-600">{gamify.streak_freeze_count || 0}/2</span>
+              </button>
+
+              <span className="flex items-center gap-1 text-orange-500 hover:scale-105 transition-transform cursor-default" title="Daily Streak">
                 <Flame className="w-4 h-4 fill-orange-500" />
                 <span className="text-xs font-black">{gamify.streak}d</span>
               </span>
-              <span className="flex items-center gap-1 text-amber-500 hover:scale-105 transition-transform" title="Level">
+              <span className="flex items-center gap-1 text-amber-500 hover:scale-105 transition-transform cursor-default" title="Level">
                 <Award className="w-4 h-4" />
                 <span className="text-xs font-black">Lvl {gamify.level}</span>
               </span>
@@ -192,6 +207,13 @@ export default function Layout() {
           </nav>
         </div>
       )}
+
+      {/* Shop & Inventory Modal */}
+      <ShopModal 
+        isOpen={isShopOpen} 
+        onClose={() => setIsShopOpen(false)} 
+        onPurchaseSuccess={() => refetch()} 
+      />
     </div>
   )
 }

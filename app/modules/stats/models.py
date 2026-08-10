@@ -14,5 +14,6 @@ class UserDailyStats(Base):
     total_time_seconds = Column(Integer, default=0)
     accuracy = Column(Float, default=0.0)
     is_active = Column(Boolean, default=True, server_default='1')
+    is_frozen = Column(Boolean, default=False, server_default='0')
 
 

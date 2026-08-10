@@ -10,6 +10,9 @@ class UserGamification(Base):
     xp = Column(Integer, default=0)
     level = Column(Integer, default=1)
     streak_count = Column(Integer, default=0)
+    streak_points = Column(Integer, default=0) # Reward points currency
+    streak_freeze_count = Column(Integer, default=0) # Number of streak freeze cards (max 2)
+    last_freeze_used_at = Column(DateTime, nullable=True) # Last date a streak freeze was auto-used
     last_activity = Column(DateTime, default=datetime.utcnow)
     badges = Column(JSON, default=list) # List of badge IDs earned
 
@@ -47,6 +50,17 @@ class UserBadge(Base):
     user_id = Column(Integer, ForeignKey("users.id"), primary_key=True)
     badge_id = Column(String(50), ForeignKey("badges.id"), primary_key=True)
     earned_at = Column(DateTime, default=datetime.utcnow)
+
+class PointTransaction(Base):
+    __tablename__ = "point_transactions"
+    __table_args__ = (Index("ix_point_transactions_user_created", "user_id", "created_at"),)
+    
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    user_id = Column(Integer, ForeignKey("users.id"), index=True, nullable=False)
+    amount = Column(Integer, nullable=False)
+    source = Column(String(100), nullable=False) # 'daily_target', 'double_target', 'buy_freeze'
+    created_at = Column(DateTime, default=datetime.utcnow, index=True)
+
 
 
 

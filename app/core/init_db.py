@@ -59,6 +59,22 @@ async def init_db():
             if "is_active" not in columns:
                 print("[MIGRATE] Adding column is_active to user_daily_stats...")
                 connection.execute(text("ALTER TABLE user_daily_stats ADD COLUMN is_active BOOLEAN DEFAULT 1"))
+            if "is_frozen" not in columns:
+                print("[MIGRATE] Adding column is_frozen to user_daily_stats...")
+                connection.execute(text("ALTER TABLE user_daily_stats ADD COLUMN is_frozen BOOLEAN DEFAULT 0"))
+
+        def migrate_gamification_columns(connection):
+            result = connection.execute(text("PRAGMA table_info(user_gamification);"))
+            columns = {row[1] for row in result.fetchall()}
+            if "streak_points" not in columns:
+                print("[MIGRATE] Adding column streak_points to user_gamification...")
+                connection.execute(text("ALTER TABLE user_gamification ADD COLUMN streak_points INTEGER DEFAULT 0"))
+            if "streak_freeze_count" not in columns:
+                print("[MIGRATE] Adding column streak_freeze_count to user_gamification...")
+                connection.execute(text("ALTER TABLE user_gamification ADD COLUMN streak_freeze_count INTEGER DEFAULT 0"))
+            if "last_freeze_used_at" not in columns:
+                print("[MIGRATE] Adding column last_freeze_used_at to user_gamification...")
+                connection.execute(text("ALTER TABLE user_gamification ADD COLUMN last_freeze_used_at DATETIME NULL"))
 
         def migrate_daily_progress_columns(connection):
             result = connection.execute(text("PRAGMA table_info(user_daily_progress);"))
@@ -76,6 +92,7 @@ async def init_db():
         await conn.run_sync(migrate_fsrs_columns)
         await conn.run_sync(migrate_deck_goals_columns)
         await conn.run_sync(migrate_daily_stats_columns)
+        await conn.run_sync(migrate_gamification_columns)
         await conn.run_sync(migrate_daily_progress_columns)
         await conn.run_sync(create_composite_indexes)
         

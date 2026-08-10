@@ -500,3 +500,31 @@ async def get_badges_progress(request: Request, db: AsyncSession = Depends(get_d
     # Return top 3 closest badges
     return unearned_progress[:3]
 
+
+@router.get("/shop/status")
+async def get_shop_status(request: Request, db: AsyncSession = Depends(get_db)):
+    from app.modules.auth.services.auth_service import AuthService
+    current_user = await AuthService.get_current_user(request, db)
+    user_id = current_user.id if current_user else 1
+
+    stats = await GamificationInterface.get_user_stats(db, user_id)
+    return {
+        "streak_points": stats.get("streak_points", 0),
+        "streak_freeze_count": stats.get("streak_freeze_count", 0),
+        "streak": stats.get("streak", 0)
+    }
+
+
+@router.post("/shop/buy-freeze")
+async def buy_streak_freeze_endpoint(request: Request, db: AsyncSession = Depends(get_db)):
+    from app.modules.auth.services.auth_service import AuthService
+    current_user = await AuthService.get_current_user(request, db)
+    user_id = current_user.id if current_user else 1
+
+    res = await GamificationInterface.buy_streak_freeze(db, user_id)
+    if not res.get("success"):
+        raise HTTPException(status_code=400, detail=res.get("error", "Failed to buy streak freeze"))
+
+    return res
+
+
