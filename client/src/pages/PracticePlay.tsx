@@ -5477,7 +5477,7 @@ export default function PracticePlay() {
                     setIsMapOpen(true);
                     setIsFeedbackOpen(false);
                   }}
-                  className="relative flex items-center justify-center gap-1.5 py-1.5 px-1 transition-all active:scale-95 overflow-hidden"
+                  className="relative flex items-center justify-center gap-1.5 py-3 px-1 transition-all active:scale-95 overflow-hidden"
                   title="Mở bản đồ thẻ"
                 >
                   {activeBottomTab === 'map' && (
@@ -5503,7 +5503,7 @@ export default function PracticePlay() {
                     setIsStatsOpen(false);
                     setIsFeedbackOpen(false);
                   }}
-                  className="relative flex items-center justify-center gap-1.5 py-1.5 px-1 transition-all active:scale-95 overflow-hidden"
+                  className="relative flex items-center justify-center gap-1.5 py-3 px-1 transition-all active:scale-95 overflow-hidden"
                   title="Tiến trình học tập hiện tại"
                 >
                   {activeBottomTab === 'flashcard' && (
@@ -5529,7 +5529,7 @@ export default function PracticePlay() {
                     setIsStatsOpen(true);
                     setIsFeedbackOpen(false);
                   }}
-                  className="relative flex items-center justify-center gap-1.5 py-1.5 px-1 transition-all active:scale-95 overflow-hidden"
+                  className="relative flex items-center justify-center gap-1.5 py-3 px-1 transition-all active:scale-95 overflow-hidden"
                   title="Mở thống kê tiến trình"
                 >
                   {activeBottomTab === 'stats' && (
