@@ -22,7 +22,7 @@ class SSOService:
         if not config.is_enabled:
             raise HTTPException(status_code=400, detail="SSO is disabled locally")
 
-        async with httpx.AsyncClient() as client:
+        async with httpx.AsyncClient(timeout=5.0) as client:
             # Exchange code for token at CentralAuth
             res = await client.post(
                 f"{config.server_url.rstrip('/')}/api/auth/token",

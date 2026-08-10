@@ -19,6 +19,19 @@ async def get_sso_config(db: AsyncSession = Depends(get_db)):
     config = await SSOService.get_config(db)
     return config.to_dict()
 
+import time
+import asyncio
+
+_HEALTH_CACHE = {"status": False, "ts": 0}
+
+def _check_host(host: str, port: int) -> bool:
+    import socket
+    try:
+        with socket.create_connection((host, port), timeout=0.5):
+            return True
+    except Exception:
+        return False
+
 @router.get("/api/v1/auth/config")
 async def get_auth_config(db: AsyncSession = Depends(get_db)):
     """Public authentication configuration endpoint for pure SPA."""
@@ -26,23 +39,23 @@ async def get_auth_config(db: AsyncSession = Depends(get_db)):
     
     sso_active = config.is_enabled
     if sso_active and config.server_url:
-        import urllib.parse
-        import socket
-        try:
-            parsed = urllib.parse.urlparse(config.server_url)
-            host = parsed.hostname
-            port = parsed.port
-            if not host:
+        now = time.time()
+        if now - _HEALTH_CACHE["ts"] < 30:
+            sso_active = _HEALTH_CACHE["status"]
+        else:
+            import urllib.parse
+            try:
+                parsed = urllib.parse.urlparse(config.server_url)
+                host = parsed.hostname
+                port = parsed.port or (443 if parsed.scheme == "https" else 80)
+                if not host:
+                    sso_active = False
+                else:
+                    sso_active = await asyncio.to_thread(_check_host, host, port)
+            except Exception:
                 sso_active = False
-            else:
-                if not port:
-                    port = 443 if parsed.scheme == "https" else 80
-                # Fast TCP ping check (0.5 second timeout) to avoid blockages
-                socket.gethostbyname(host)
-                with socket.create_connection((host, port), timeout=0.5):
-                    pass
-        except Exception:
-            sso_active = False
+            _HEALTH_CACHE["status"] = sso_active
+            _HEALTH_CACHE["ts"] = now
             
     return {
         "auth_provider": "central" if sso_active else "local",
@@ -89,38 +102,41 @@ async def sso_callback(request: Request, code: Optional[str] = None, db: AsyncSe
     sso_id = str(user_data.get("id"))
     username = user_data.get("username")
     email = user_data.get("email")
-    password_hash = user_data.get("password_hash")
     role = user_data.get("role")
     
     # 1. Try to find by sso_id
     result = await db.execute(select(User).where(User.sso_id == sso_id))
     user = result.scalar_one_or_none()
     
-    if not user:
-        # 2. Try to find by username
+    if not user and email:
+        # 2. Try to find by email
+        result = await db.execute(select(User).where(User.email == email))
+        user = result.scalar_one_or_none()
+
+    if not user and username:
+        # 3. Try to find by username
         result = await db.execute(select(User).where(User.username == username))
         user = result.scalar_one_or_none()
-        
-        if user:
-            # Link existing account to SSO
-            user.sso_id = sso_id
-        else:
-            # 3. Create new user
-            user = User(
-                username=username,
-                email=email,
-                full_name=username,
-                sso_id=sso_id,
-                hashed_password=password_hash
-            )
-            db.add(user)
+
+    if user:
+        # Link or sync account to SSO
+        user.sso_id = sso_id
+        if username:
+            user.username = username
+        if email:
+            user.email = email
+    else:
+        # 4. Create new user
+        user = User(
+            username=username,
+            email=email,
+            full_name=username,
+            sso_id=sso_id
+        )
+        db.add(user)
     
     if role:
         user.role = role
-        
-    # Sync password hash from CentralAuth
-    if password_hash:
-        user.hashed_password = password_hash
     
     await db.commit()
     await db.refresh(user)

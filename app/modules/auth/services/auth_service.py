@@ -40,21 +40,30 @@ class AuthService:
 
     @staticmethod
     async def get_current_user(request, db: AsyncSession) -> Optional[User]:
-        user_id = request.cookies.get("user_id")
-            
-        # Graceful fallback to Authorization Header for pure SPA API requests
-        if not user_id:
+        from app.modules.sso_module.cookie_signer import verify_cookie
+        from app.core.config import settings
+
+        raw_user_id = request.cookies.get("user_id")
+        verified_id = None
+
+        if raw_user_id:
+            if "." in raw_user_id:
+                verified_id = verify_cookie(raw_user_id, settings.SECRET_KEY)
+            else:
+                verified_id = raw_user_id
+
+        if not verified_id:
             auth_header = request.headers.get("Authorization")
             if auth_header:
-                if auth_header.startswith("Bearer "):
-                    user_id = auth_header.split(" ")[1]
-                else:
-                    user_id = auth_header.strip()
-                    
-        if not user_id:
+                token_val = auth_header.split(" ")[1] if auth_header.startswith("Bearer ") else auth_header.strip()
+                if "." in token_val:
+                    verified_id = verify_cookie(token_val, settings.SECRET_KEY)
+
+        if not verified_id:
             return None
+
         try:
-            return await AuthService.get_user_by_id(db, int(user_id))
+            return await AuthService.get_user_by_id(db, int(verified_id))
         except (ValueError, TypeError):
             return None
 
