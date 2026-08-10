@@ -57,18 +57,18 @@ export const RoadmapFloatingBanner: React.FC<RoadmapFloatingBannerProps> = ({
         transition={{ type: 'spring', stiffness: 450, damping: 28 }}
         className="fixed bottom-24 right-4 z-[999] touch-none select-none"
       >
-        {/* Dark Glassmorphic 2-Line Banner */}
-        <div className="flex flex-col bg-slate-950/95 backdrop-blur-2xl border border-slate-800/90 text-white rounded-2xl p-2.5 shadow-[0_16px_40px_rgba(0,0,0,0.6)] ring-1 ring-white/10 transition-all cursor-grab active:cursor-grabbing w-60 sm:w-64">
+        {/* Compact Dark Glassmorphic 2-Line Banner */}
+        <div className="flex flex-col bg-slate-950/95 backdrop-blur-2xl border border-slate-800/90 text-white rounded-xl p-1.5 sm:p-2 shadow-[0_12px_32px_rgba(0,0,0,0.6)] ring-1 ring-white/10 transition-all cursor-grab active:cursor-grabbing w-44 xs:w-48">
           
           {/* Row 1: Drag Handle, Step Badge, Close Button */}
-          <div className="flex items-center justify-between pb-2 border-b border-slate-800/80">
-            <div className="flex items-center gap-1.5">
+          <div className="flex items-center justify-between pb-1 border-b border-slate-800/70">
+            <div className="flex items-center gap-1">
               <span title="Kéo để di chuyển vị trí" className="text-slate-500 hover:text-slate-300 cursor-grab active:cursor-grabbing">
-                <GripVertical className="w-3.5 h-3.5 shrink-0" />
+                <GripVertical className="w-3 h-3 shrink-0" />
               </span>
-              <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 font-black text-[10px] uppercase tracking-wider shadow-2xs">
-                <CheckCircle2 className="w-3 h-3 text-emerald-400 shrink-0" />
-                <span>{allDone ? '✓ HOÀN THÀNH' : `BƯỚC ${currentStepIndex}/${totalSteps}`}</span>
+              <div className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 font-extrabold text-[9px] uppercase tracking-wider">
+                <CheckCircle2 className="w-2.5 h-2.5 text-emerald-400 shrink-0" />
+                <span>{allDone ? '✓ DONE' : `BƯỚC ${currentStepIndex}/${totalSteps}`}</span>
               </div>
             </div>
 
@@ -77,25 +77,25 @@ export const RoadmapFloatingBanner: React.FC<RoadmapFloatingBannerProps> = ({
                 e.stopPropagation()
                 onClose()
               }}
-              className="w-5 h-5 rounded-lg bg-slate-800/80 hover:bg-slate-700 flex items-center justify-center text-slate-400 hover:text-slate-200 transition-all cursor-pointer shrink-0"
+              className="w-4.5 h-4.5 rounded bg-slate-800/80 hover:bg-slate-700 flex items-center justify-center text-slate-400 hover:text-slate-200 transition-all cursor-pointer shrink-0"
               title="Ẩn nút chuyển bước"
             >
-              <X className="w-3 h-3" />
+              <X className="w-2.5 h-2.5" />
             </button>
           </div>
 
-          {/* Row 2: Prominent Action CTA Button */}
-          <div className="pt-2">
+          {/* Row 2: Compact Action CTA Button */}
+          <div className="pt-1">
             <button
               onClick={(e) => {
                 e.stopPropagation()
                 onClose()
                 navigate(nextActionUrl)
               }}
-              className="w-full py-2 px-3.5 rounded-xl bg-gradient-to-r from-orange-500 via-amber-500 to-orange-600 hover:from-orange-600 hover:to-amber-600 text-white font-black text-xs uppercase tracking-wider shadow-lg shadow-orange-500/30 active:scale-95 transition-all flex items-center justify-center gap-2 cursor-pointer"
+              className="w-full py-1 px-2.5 rounded-lg bg-gradient-to-r from-orange-500 via-amber-500 to-orange-600 hover:from-orange-600 hover:to-amber-600 text-white font-black text-[10.5px] uppercase tracking-wider shadow-md shadow-orange-500/25 active:scale-95 transition-all flex items-center justify-center gap-1.5 cursor-pointer"
             >
               <span>{allDone ? 'XONG 🎉' : getCleanLabel(nextActionLabel)}</span>
-              <ArrowRight className="w-3.5 h-3.5 shrink-0" />
+              <ArrowRight className="w-3 h-3 shrink-0" />
             </button>
           </div>
 
