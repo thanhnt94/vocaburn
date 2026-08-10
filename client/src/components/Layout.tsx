@@ -6,6 +6,7 @@ import { useAppStore } from '@/store/useAppStore'
 import { cn } from '@/lib/utils'
 import { useQuery } from '@tanstack/react-query'
 import axios from 'axios'
+import { VocaburnLogo } from './VocaburnLogo'
 import { ShopModal } from './ShopModal'
 
 export default function Layout() {
@@ -73,16 +74,8 @@ export default function Layout() {
             : "bg-slate-950/80 border-white/5 text-white"
         )}>
           <div className="flex items-center gap-8">
-          <Link to="/" className="flex items-center gap-2 group">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-orange-500 to-rose-500 flex items-center justify-center text-white shadow-lg shadow-orange-500/20 group-hover:rotate-12 transition-transform">
-              <BookOpen className="w-6 h-6" />
-            </div>
-            <span className={cn(
-              "text-xl font-black tracking-tighter uppercase",
-              isLoggedIn ? "text-slate-800" : "text-white"
-            )}>
-              Voca<span className="text-orange-500">burn</span>
-            </span>
+          <Link to="/" className="active:scale-95 transition-all">
+            <VocaburnLogo iconSize="lg" textSize="lg" variant={isLoggedIn ? 'dark' : 'light'} />
           </Link>
           {isLoggedIn && (
             <nav className="flex items-center gap-6">

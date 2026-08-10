@@ -8,6 +8,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import axios from 'axios'
 import { ResponsiveContainer, ComposedChart, Bar, Line, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts'
 import DailyComparisonChart from '@/components/DailyComparisonChart'
+import { VocaburnLogo } from '@/components/VocaburnLogo'
 
 
 
@@ -1685,13 +1686,8 @@ export default function Dashboard() {
         <div className="bg-white flex-shrink-0 z-20 shadow-2xs border-b border-slate-100">
           {/* Top Status Bar */}
           <div className="flex items-center justify-between px-4 pt-3 pb-1.5">
-            <Link to="/" className="flex items-center gap-2 active:scale-95 transition-all">
-              <div className="w-8.5 h-8.5 rounded-2xl bg-gradient-to-tr from-orange-500 via-red-500 to-amber-500 flex items-center justify-center text-white shadow-md shadow-orange-200">
-                <Flame className="w-5 h-5 fill-white text-white" />
-              </div>
-              <span className="text-xl font-black text-slate-900 tracking-tight">
-                Voca<span className="text-orange-500">burn</span>
-              </span>
+            <Link to="/" className="active:scale-95 transition-all">
+              <VocaburnLogo iconSize="md" textSize="md" />
             </Link>
             
             <div className="flex items-center gap-2">
