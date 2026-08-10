@@ -4076,10 +4076,7 @@ export default function PracticePlay() {
           </button>
           <div className="flex flex-col min-w-0">
             <h1 className="text-xs md:text-sm font-extrabold text-slate-800 tracking-tight truncate md:break-words md:line-clamp-2 leading-snug" title={session?.title || session?.deck_title || ''}>
-              {(() => {
-                const dt = session?.title || session?.deck_title || session?.quiz_title || '';
-                return isRoadmapTestMode ? `🎯 Bài Kiểm Tra Roadmap${dt ? ` - ${dt}` : ''}` : (dt || 'Luyện tập');
-              })()}
+              {session?.title || session?.deck_title || session?.quiz_title || 'Luyện tập'}
             </h1>
             {isRoadmapActive && roadmapStatus?.pipeline && (
               <RoadmapHeaderTracker
@@ -4135,7 +4132,7 @@ export default function PracticePlay() {
               <div className="flex items-center bg-white/90 border border-slate-200/30 rounded-lg p-0.5 px-2 shadow-sm" title="Tỷ lệ trả lời chính xác">
                 <Target className="w-3.5 h-3.5 text-emerald-600 mr-1" />
                 <div className="flex flex-col">
-                  <span className="text-[6px] text-slate-400 font-extrabold uppercase tracking-wider leading-none">Chính Xác</span>
+                  <span className="text-[6px] text-slate-400 font-extrabold uppercase tracking-wider leading-none">C.Xác</span>
                   <span className={cn(
                     "text-[9px] font-black leading-none mt-0.5",
                     accuracyPercent >= 80 ? "text-emerald-600" : accuracyPercent >= 60 ? "text-amber-600" : "text-rose-600"
