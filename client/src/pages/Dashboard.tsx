@@ -1806,9 +1806,15 @@ export default function Dashboard() {
 
                     const newPct = nT > 0 ? Math.min(100, Math.round((nL / nT) * 100)) : 100;
                     const revPct = rD > 0 ? Math.min(100, Math.round((rDn / rD) * 100)) : 100;
-                    const mcqTarget = 10;
-                    const mcqDone = s2 ? 10 : 0;
-                    const mcqPct = s2 ? 100 : 0;
+                    const mcqStep = st.pipeline?.find((p: any) => p.type === 'mcq' || p.type === 'typing');
+                    const mcqTarget = mcqStep?.question_count || st.roadmap_daily_new || (nT > 0 ? nT : 20);
+                    const mcqDone = s2 
+                      ? mcqTarget 
+                      : (mcqStep?.progress?.answered_today !== undefined 
+                          ? Math.min(mcqTarget, mcqStep.progress.answered_today) 
+                          : (mcqStep?.progress?.best_score ? Math.round((mcqStep.progress.best_score / 100) * mcqTarget) : 0)
+                        );
+                    const mcqPct = mcqTarget > 0 ? Math.min(100, Math.round((mcqDone / mcqTarget) * 100)) : 0;
 
                     // Mascot selection with 2-line Slogan & deck streak
                     const deckStreak = st.streak || 0;

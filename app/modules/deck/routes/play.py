@@ -2655,7 +2655,7 @@ async def get_deck_roadmap_status_helper(db: AsyncSession, user_id: int, deck_id
                 "label": "Ôn tập FSRS"
             })
         elif stype == "mcq":
-            q_count = int(st.get("question_count", 15))
+            q_count = int(st.get("question_count") or daily_new_target or 20)
             threshold = int(st.get("pass_threshold", 80))
             mcq_res = await db.execute(
                 select(DeckAttempt.score)
@@ -2670,16 +2670,36 @@ async def get_deck_roadmap_status_helper(db: AsyncSession, user_id: int, deck_id
             mcq_scores = mcq_res.scalars().all()
             best_score = max(mcq_scores) if mcq_scores else 0
             is_done = any(s >= threshold for s in mcq_scores)
+            
+            mcq_answers_today = await db.scalar(
+                select(func.count(UserAnswer.id))
+                .join(Flashcard, UserAnswer.card_id == Flashcard.id)
+                .join(DeckAttempt, UserAnswer.attempt_id == DeckAttempt.id)
+                .where(
+                    Flashcard.deck_id == deck_id,
+                    DeckAttempt.user_id == user_id,
+                    DeckAttempt.mode.in_(["roadmap_mcq", "roadmap_test", "mcq"]),
+                    UserAnswer.created_at >= day_start,
+                    UserAnswer.created_at < day_end
+                )
+            ) or 0
+
             step_data.update({
                 "question_count": q_count,
                 "pass_threshold": threshold,
                 "done": is_done,
-                "progress": {"best_score": best_score, "attempts_today": len(mcq_scores), "target_score": threshold},
+                "progress": {
+                    "best_score": best_score, 
+                    "attempts_today": len(mcq_scores), 
+                    "target_score": threshold,
+                    "answered_today": mcq_answers_today,
+                    "target_count": q_count
+                },
                 "url": f"/practice/{deck_id}/roadmap_mcq",
                 "label": "Trắc nghiệm MCQ"
             })
         elif stype == "typing":
-            q_count = int(st.get("question_count", 10))
+            q_count = int(st.get("question_count") or daily_new_target or 20)
             threshold = int(st.get("pass_threshold", 70))
             typing_res = await db.execute(
                 select(DeckAttempt.score)
@@ -2694,11 +2714,31 @@ async def get_deck_roadmap_status_helper(db: AsyncSession, user_id: int, deck_id
             typing_scores = typing_res.scalars().all()
             best_score = max(typing_scores) if typing_scores else 0
             is_done = any(s >= threshold for s in typing_scores)
+
+            typing_answers_today = await db.scalar(
+                select(func.count(UserAnswer.id))
+                .join(Flashcard, UserAnswer.card_id == Flashcard.id)
+                .join(DeckAttempt, UserAnswer.attempt_id == DeckAttempt.id)
+                .where(
+                    Flashcard.deck_id == deck_id,
+                    DeckAttempt.user_id == user_id,
+                    DeckAttempt.mode.in_(["roadmap_typing", "typing"]),
+                    UserAnswer.created_at >= day_start,
+                    UserAnswer.created_at < day_end
+                )
+            ) or 0
+
             step_data.update({
                 "question_count": q_count,
                 "pass_threshold": threshold,
                 "done": is_done,
-                "progress": {"best_score": best_score, "attempts_today": len(typing_scores), "target_score": threshold},
+                "progress": {
+                    "best_score": best_score, 
+                    "attempts_today": len(typing_scores), 
+                    "target_score": threshold,
+                    "answered_today": typing_answers_today,
+                    "target_count": q_count
+                },
                 "url": f"/practice/{deck_id}/roadmap_typing",
                 "label": "Gõ từ vựng"
             })
