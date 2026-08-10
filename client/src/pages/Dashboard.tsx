@@ -9,6 +9,7 @@ import axios from 'axios'
 import { ResponsiveContainer, ComposedChart, Bar, Line, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts'
 import DailyComparisonChart from '@/components/DailyComparisonChart'
 import { VocaburnLogo } from '@/components/VocaburnLogo'
+import { TelegramRoadmapReminderToggle } from '@/components/TelegramRoadmapReminderToggle'
 
 
 
@@ -1837,15 +1838,16 @@ export default function Dashboard() {
                         
                         {/* DECK SUBHEADER BAR */}
                         <div className="px-4 py-2 bg-white flex items-center justify-between flex-shrink-0 text-xs font-semibold text-slate-500 border-b border-slate-100">
-                          <div className="flex items-center gap-1.5">
+                          <div className="flex items-center gap-2">
                             <span className="text-slate-600 font-bold">Roadmap</span>
                             <span className="text-slate-400 font-medium">{deckIdx + 1} / {totalDecks}</span>
+                            <TelegramRoadmapReminderToggle />
                           </div>
                           <Link 
                             to={`/flashcard/${deck.deck_id}/roadmap`}
                             className="text-xs font-bold text-orange-600 hover:text-orange-700 flex items-center gap-0.5 transition-colors cursor-pointer"
                           >
-                            <span>Xem chi tiết lộ trình</span>
+                            <span>Chi tiết</span>
                             <ChevronRight className="w-3.5 h-3.5" />
                           </Link>
                         </div>

@@ -10,6 +10,7 @@ import {
 import { motion, AnimatePresence } from 'framer-motion'
 import axios from 'axios'
 import { cn } from '@/lib/utils'
+import { TelegramRoadmapReminderToggle } from '@/components/TelegramRoadmapReminderToggle'
 
 export type StepType = 'new_cards' | 'fsrs_review' | 'mcq' | 'typing' | 'study_time'
 
@@ -1007,6 +1008,7 @@ export default function DeckRoadmap() {
                     🚫 Đã Tắt
                   </button>
                 )}
+                <TelegramRoadmapReminderToggle />
               </div>
 
               <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-white mb-2">

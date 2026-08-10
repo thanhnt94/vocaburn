@@ -5,6 +5,7 @@ import { Compass, Target, Flame, Brain, ArrowRight, Play, CheckCircle2, Circle, 
 import { motion } from 'framer-motion'
 import axios from 'axios'
 import { cn } from '@/lib/utils'
+import { TelegramRoadmapReminderToggle } from '@/components/TelegramRoadmapReminderToggle'
 
 export default function RoadmapHub() {
   const navigate = useNavigate()
@@ -50,14 +51,17 @@ export default function RoadmapHub() {
               </div>
             </div>
 
-            <Link
-              to="/library"
-              className="px-2.5 py-1.5 rounded-xl bg-indigo-50 border border-indigo-200 text-indigo-700 font-black text-[11px] flex items-center gap-1 active:scale-95 transition-all shadow-2xs"
-              title="Thêm lộ trình bộ thẻ mới"
-            >
-              <Plus className="w-3.5 h-3.5" />
-              <span>Thêm bộ thẻ</span>
-            </Link>
+            <div className="flex items-center gap-1.5">
+              <TelegramRoadmapReminderToggle />
+              <Link
+                to="/library"
+                className="px-2.5 py-1.5 rounded-xl bg-indigo-50 border border-indigo-200 text-indigo-700 font-black text-[11px] flex items-center gap-1 active:scale-95 transition-all shadow-2xs"
+                title="Thêm lộ trình bộ thẻ mới"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                <span>Thêm</span>
+              </Link>
+            </div>
           </div>
 
           {/* Fixed 3-Column Vibrant Stats Cards */}
