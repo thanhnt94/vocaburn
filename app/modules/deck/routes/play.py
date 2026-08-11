@@ -2651,7 +2651,7 @@ async def get_deck_roadmap_status_helper(db: AsyncSession, user_id: int, deck_id
             })
         elif stype == "fsrs_review":
             overdue_hours = int(st.get("overdue_hours", 24))
-            is_done = (review_due_today <= 0)
+            is_done = (review_due_today <= 0) or (prog is not None and prog.is_target_met) or (target_date_str is not None and review_completed_today > 0) or (review_completed_today > 0 and review_due_today <= 0)
             step_data.update({
                 "overdue_hours": overdue_hours,
                 "done": is_done,
