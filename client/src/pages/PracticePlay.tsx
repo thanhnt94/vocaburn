@@ -4077,9 +4077,9 @@ export default function PracticePlay() {
       </AnimatePresence>
 
       <header className={cn(
-        "sticky top-0 flex-shrink-0 z-[120] backdrop-blur-2xl px-2.5 md:px-4 py-1.5 flex items-center justify-between shadow-md gap-2.5 transition-colors duration-300",
+        "sticky top-0 flex-shrink-0 z-[120] backdrop-blur-2xl px-2.5 md:px-4 py-1.5 flex items-center justify-between gap-2.5 transition-colors duration-300",
         isRoadmapActive
-          ? "bg-slate-900 border-b border-slate-800/90 text-white"
+          ? "bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-slate-900 via-indigo-950/95 to-slate-950 border-b border-indigo-500/20 shadow-[0_4px_25px_rgba(0,0,0,0.5)] text-white"
           : "bg-white/95 border-b border-slate-100/80 text-slate-800 shadow-[0_1px_20px_rgba(99,102,241,0.04)]"
       )}>
         <button 
@@ -4087,7 +4087,7 @@ export default function PracticePlay() {
           className={cn(
             "w-8.5 h-8.5 flex items-center justify-center rounded-xl shadow-xs active:scale-90 transition-all flex-shrink-0 border",
             isRoadmapActive
-              ? "bg-slate-800 hover:bg-slate-700 text-slate-200 border-slate-700 hover:text-white"
+              ? "bg-slate-800/80 hover:bg-slate-700/90 text-slate-200 border-slate-700/80 hover:text-white"
               : "bg-slate-50 hover:bg-indigo-50 text-slate-600 border-slate-200/60 hover:text-indigo-600 hover:border-indigo-100"
           )}
           title="Thoát phiên học"

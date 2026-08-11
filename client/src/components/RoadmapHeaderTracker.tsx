@@ -57,7 +57,7 @@ export const RoadmapHeaderTracker: React.FC<RoadmapHeaderTrackerProps> = ({
       subProgressCurr > prevCurrRef.current
     ) {
       setShowSparkle(true)
-      const t = setTimeout(() => setShowSparkle(false), 900)
+      const t = setTimeout(() => setShowSparkle(false), 950)
       return () => clearTimeout(t)
     }
     prevCurrRef.current = subProgressCurr
@@ -71,28 +71,28 @@ export const RoadmapHeaderTracker: React.FC<RoadmapHeaderTrackerProps> = ({
     <div 
       onClick={toggleViewMode}
       className={cn(
-        "flex-1 flex items-center justify-between min-w-0 cursor-pointer select-none py-0.5 px-1 rounded-xl hover:bg-white/5 transition-colors group",
+        "relative flex-1 flex items-center justify-between min-w-0 cursor-pointer select-none py-0.5 px-1 rounded-xl hover:bg-white/5 transition-colors group",
         className
       )}
       title="Bấm vào thanh này để chuyển giữa Nấc 1 (Tên bộ thẻ) & Nấc 2 (Thông số bài học)"
     >
-      {/* Content Switcher: Nấc 1 vs Nấc 2 */}
-      <div className="flex items-center min-w-0 flex-1 mr-3">
+      {/* Content Switcher: Nấc 1 vs Nấc 2 (PERFECTLY CENTERED) */}
+      <div className="flex-1 flex items-center justify-center min-w-0 mx-auto px-2">
         <AnimatePresence mode="wait">
           {/* NẤC 1: TÊN BỘ THẺ */}
           {viewMode === 0 ? (
             <motion.div
               key="nac-1"
-              initial={{ opacity: 0, y: 6 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -6 }}
+              initial={{ opacity: 0, y: 6, scale: 0.98 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: -6, scale: 0.98 }}
               transition={{ duration: 0.16 }}
-              className="flex items-center gap-2.5 min-w-0"
+              className="flex items-center justify-center gap-2.5 min-w-0"
             >
               <h1 className="text-xs md:text-sm font-black text-white tracking-tight truncate drop-shadow-xs">
                 {deckTitle || 'Phiên Học Lộ Trình'}
               </h1>
-              <span className="px-2 py-0.5 rounded-md bg-orange-500/20 border border-orange-500/40 text-orange-300 text-[9.5px] font-black uppercase shrink-0">
+              <span className="px-2 py-0.5 rounded-md bg-gradient-to-r from-orange-500/30 to-amber-500/30 border border-orange-400/40 text-orange-300 text-[9.5px] font-black uppercase shrink-0 shadow-2xs">
                 {allDone ? '✓ HOÀN THÀNH' : `BƯỚC ${currentStepIndex + 1}/${pipeline.length}`}
               </span>
             </motion.div>
@@ -100,11 +100,11 @@ export const RoadmapHeaderTracker: React.FC<RoadmapHeaderTrackerProps> = ({
             /* NẤC 2: CÁC THÔNG SỐ BÀI HỌC */
             <motion.div
               key="nac-2"
-              initial={{ opacity: 0, y: 6 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -6 }}
+              initial={{ opacity: 0, y: 6, scale: 0.98 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: -6, scale: 0.98 }}
               transition={{ duration: 0.16 }}
-              className="flex items-center gap-3 text-xs min-w-0 overflow-x-auto scrollbar-none"
+              className="flex items-center justify-center gap-2.5 text-xs min-w-0 overflow-x-auto scrollbar-none"
             >
               {/* Badge Bước */}
               <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-orange-500/20 border border-orange-400/40 text-orange-300 text-[10px] font-black shrink-0">
@@ -147,25 +147,24 @@ export const RoadmapHeaderTracker: React.FC<RoadmapHeaderTrackerProps> = ({
       {/* Mode Switcher Button (Nấc 1 ⇄ Nấc 2) */}
       <button
         onClick={(e) => { e.stopPropagation(); toggleViewMode(); }}
-        className="flex items-center gap-1 px-2 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 text-[10px] font-black shrink-0 transition-colors cursor-pointer"
+        className="flex items-center gap-1 p-1.5 rounded-lg bg-slate-800/80 hover:bg-slate-700 text-slate-300 hover:text-amber-400 border border-slate-700/80 text-[10px] font-black shrink-0 transition-all cursor-pointer active:scale-95 shadow-xs"
         title="Chuyển chế độ Nấc 1 / Nấc 2"
       >
-        <ArrowRightLeft className="w-3 h-3 text-amber-400" />
-        <span className="hidden xs:inline">{viewMode === 0 ? 'Hiện Thông Số' : 'Hiện Tiêu Đề'}</span>
+        <ArrowRightLeft className="w-3.5 h-3.5 text-amber-400" />
       </button>
 
-      {/* Floating Sparkle Animation on +1 Progress */}
+      {/* Floating Sparkle Animation on +1 Progress (Centered Above Header) */}
       <AnimatePresence>
         {showSparkle && (
           <motion.div
-            initial={{ opacity: 0, y: 0, scale: 0.5 }}
-            animate={{ opacity: 1, y: -22, scale: 1.15 }}
-            exit={{ opacity: 0, y: -30, scale: 0.8 }}
-            transition={{ duration: 0.75, ease: "easeOut" }}
-            className="absolute right-12 top-0 pointer-events-none flex items-center gap-1 text-[9.5px] font-black text-slate-950 bg-gradient-to-r from-amber-300 to-orange-400 border border-amber-200 px-2.5 py-0.5 rounded-full shadow-[0_0_15px_rgba(251,191,36,0.6)] z-50"
+            initial={{ opacity: 0, y: 10, scale: 0.7 }}
+            animate={{ opacity: 1, y: -26, scale: 1.1 }}
+            exit={{ opacity: 0, y: -36, scale: 0.8 }}
+            transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
+            className="absolute left-1/2 -translate-x-1/2 top-0 pointer-events-none flex items-center gap-1.5 text-[10px] font-black text-slate-950 bg-gradient-to-r from-amber-300 via-orange-400 to-amber-300 border border-amber-200 px-3 py-1 rounded-full shadow-[0_0_20px_rgba(251,191,36,0.8)] z-[250]"
           >
-            <Sparkles className="w-3 h-3 text-slate-950 fill-slate-950 animate-spin" />
-            <span>+1 Tiến Bộ!</span>
+            <Sparkles className="w-3.5 h-3.5 text-slate-950 fill-slate-950 animate-spin" />
+            <span>+1 Tiến Bộ! ✨</span>
           </motion.div>
         )}
       </AnimatePresence>
