@@ -10,7 +10,8 @@ from sqlalchemy import select, and_
 from app.core.db import SessionLocal
 from app.modules.auth.models import User
 from app.modules.deck.models import UserDeckGoal, UserDailyProgress, FlashcardDeck
-from app.modules.stats.models import UserDailyStats, UserDailyActivity
+from app.modules.stats.models import UserDailyStats
+from app.modules.gamification.models import UserDailyActivity
 from app.modules.gamification.interface import GamificationInterface
 
 async def main():
