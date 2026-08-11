@@ -3636,6 +3636,26 @@ export default function FlashcardPlay() {
                 allDone={roadmapStatus.all_done}
                 deckId={id || ''}
                 className="mt-0.5"
+                subProgressCurr={(() => {
+                  const currentStep = roadmapStatus?.pipeline?.[roadmapStatus?.current_step_index || 0];
+                  if (currentStep?.type === 'new_cards') {
+                    return currentStep.progress?.learned ?? 0;
+                  } else if (currentStep?.type === 'fsrs_review') {
+                    return currentStep.progress?.reviewed_today ?? roadmapStatus?.review_completed_today ?? 0;
+                  }
+                  return currentIndex + 1;
+                })()}
+                subProgressTotal={(() => {
+                  const currentStep = roadmapStatus?.pipeline?.[roadmapStatus?.current_step_index || 0];
+                  if (currentStep?.type === 'new_cards') {
+                    return currentStep.daily_count || currentStep.progress?.target || 20;
+                  } else if (currentStep?.type === 'fsrs_review') {
+                    const due = currentStep.progress?.due_count ?? roadmapStatus?.review_due_today ?? 0;
+                    const done = currentStep.progress?.reviewed_today ?? roadmapStatus?.review_completed_today ?? 0;
+                    return done + due;
+                  }
+                  return session?.questions?.length || 20;
+                })()}
               />
             )}
           </div>
@@ -3772,43 +3792,58 @@ export default function FlashcardPlay() {
             </div>
           </div>
       
-          {/* Item 4: Current user score */}
-          <div 
-            onClick={toggleScoreMode}
-            className="flex items-center bg-white/90 border border-slate-200/30 rounded-lg p-0.5 pr-1 md:pr-1.5 shadow-sm min-w-[52px] xs:min-w-[56px] md:min-w-[66px] cursor-pointer active:scale-95 transition-all select-none hover:bg-slate-50" 
-            title={
-              scoreMode === 'all' 
-                ? "Điểm số toàn bộ (XP) - Click để chuyển sang điểm ngày"
-                : "Điểm số trong ngày (XP) - Click để chuyển sang toàn bộ điểm"
-            }
-          >
-            <div className="w-4 h-4 md:w-5 md:h-5 flex items-center justify-center bg-amber-50 text-amber-600 rounded mr-0.5 md:mr-1 flex-shrink-0">
-              <Trophy className="w-2.5 h-2.5 md:w-3 md:h-3" />
-            </div>
-            <div className="flex flex-col min-w-0">
-              <span className="text-[5.5px] md:text-[6.5px] text-slate-400 font-extrabold uppercase tracking-wider leading-none">
-                {scoreMode === 'all' ? 'Score' : 'Today'}
-              </span>
-              <div className="h-2.5 md:h-3 overflow-hidden relative min-w-[25px]">
-                <AnimatePresence mode="popLayout" initial={false}>
-                  <motion.span
-                    key={scoreMode === 'all' ? gamify.xp : initialTodayXP + sessionXP}
-                    initial={{ y: 8, opacity: 0 }}
-                    animate={{ y: 0, opacity: 1 }}
-                    exit={{ y: -8, opacity: 0 }}
-                    transition={{ type: "spring", stiffness: 350, damping: 18 }}
-                    className="text-[7.5px] md:text-[8.5px] font-black text-slate-700 leading-none block truncate"
-                  >
-                    {
-                      scoreMode === 'all' 
-                        ? gamify.xp.toLocaleString() 
-                        : (initialTodayXP + sessionXP).toLocaleString()
-                    }
-                  </motion.span>
-                </AnimatePresence>
+          {/* Item 4: Current user score / Streak in Roadmap mode */}
+          {activeMode === 'roadmap' ? (
+            <div 
+              className="flex items-center bg-orange-50 border border-orange-200/80 rounded-lg p-0.5 pr-1.5 shadow-sm" 
+              title="Chuỗi ngày liên tiếp Roadmap Streak"
+            >
+              <Flame className="w-3.5 h-3.5 text-orange-500 fill-orange-500 mr-1 animate-pulse" />
+              <div className="flex flex-col">
+                <span className="text-[6px] text-orange-600 font-extrabold uppercase tracking-wider leading-none">Streak</span>
+                <span className="text-[9px] font-black text-orange-600 leading-none mt-0.5">
+                  {roadmapStatus?.streak || 0}d
+                </span>
               </div>
             </div>
-          </div>
+          ) : (
+            <div 
+              onClick={toggleScoreMode}
+              className="flex items-center bg-white/90 border border-slate-200/30 rounded-lg p-0.5 pr-1 md:pr-1.5 shadow-sm min-w-[52px] xs:min-w-[56px] md:min-w-[66px] cursor-pointer active:scale-95 transition-all select-none hover:bg-slate-50" 
+              title={
+                scoreMode === 'all' 
+                  ? "Điểm số toàn bộ (XP) - Click để chuyển sang điểm ngày"
+                  : "Điểm số trong ngày (XP) - Click để chuyển sang toàn bộ điểm"
+              }
+            >
+              <div className="w-4 h-4 md:w-5 md:h-5 flex items-center justify-center bg-amber-50 text-amber-600 rounded mr-0.5 md:mr-1 flex-shrink-0">
+                <Trophy className="w-2.5 h-2.5 md:w-3 md:h-3" />
+              </div>
+              <div className="flex flex-col min-w-0">
+                <span className="text-[5.5px] md:text-[6.5px] text-slate-400 font-extrabold uppercase tracking-wider leading-none">
+                  {scoreMode === 'all' ? 'Score' : 'Today'}
+                </span>
+                <div className="h-2.5 md:h-3 overflow-hidden relative min-w-[25px]">
+                  <AnimatePresence mode="popLayout" initial={false}>
+                    <motion.span
+                      key={scoreMode === 'all' ? gamify.xp : initialTodayXP + sessionXP}
+                      initial={{ y: 8, opacity: 0 }}
+                      animate={{ y: 0, opacity: 1 }}
+                      exit={{ y: -8, opacity: 0 }}
+                      transition={{ type: "spring", stiffness: 350, damping: 18 }}
+                      className="text-[7.5px] md:text-[8.5px] font-black text-slate-700 leading-none block truncate"
+                    >
+                      {
+                        scoreMode === 'all' 
+                          ? gamify.xp.toLocaleString() 
+                          : (initialTodayXP + sessionXP).toLocaleString()
+                      }
+                    </motion.span>
+                  </AnimatePresence>
+                </div>
+              </div>
+            </div>
+          )}
 
         </div>
       </header>
