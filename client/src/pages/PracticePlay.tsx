@@ -4106,6 +4106,7 @@ export default function PracticePlay() {
         {(isRoadmapActive || roadmapStatus?.pipeline) && roadmapStatus?.pipeline ? (() => {
           const subCurr = Math.min(Object.keys(practiceAnswers).length, session?.questions?.length || 15);
           const subTotal = session?.questions?.length || 15;
+          const isGoalReached = subCurr >= subTotal;
           const activePercent = subTotal > 0 ? Math.min(100, Math.round((subCurr / subTotal) * 100)) : 0;
 
           return (
@@ -4120,7 +4121,12 @@ export default function PracticePlay() {
                     className="absolute bottom-0 left-0 right-0 h-0.5 bg-slate-900/80 pointer-events-none z-[125]"
                   >
                     <motion.div 
-                      className="h-full bg-gradient-to-r from-orange-500 via-amber-400 to-emerald-400 shadow-[0_0_8px_rgba(249,115,22,0.9)] rounded-r-full"
+                      className={cn(
+                        "h-full rounded-r-full transition-all duration-500",
+                        isGoalReached 
+                          ? "bg-gradient-to-r from-emerald-500 via-teal-400 to-cyan-300 shadow-[0_0_10px_rgba(16,185,129,0.9)]" 
+                          : "bg-gradient-to-r from-orange-500 via-amber-400 to-emerald-400 shadow-[0_0_8px_rgba(249,115,22,0.9)]"
+                      )}
                       initial={{ width: 0 }}
                       animate={{ width: `${activePercent}%` }}
                       transition={{ type: "spring", stiffness: 120, damping: 18 }}
@@ -4133,7 +4139,7 @@ export default function PracticePlay() {
                 <RoadmapHeaderTracker
                   pipeline={roadmapStatus.pipeline}
                   currentStepIndex={roadmapStatus.current_step_index}
-                  allDone={isRoadmapAllDone}
+                  allDone={isRoadmapAllDone || isGoalReached}
                   deckId={id || ''}
                   deckTitle={session?.title || session?.deck_title || session?.quiz_title || 'Luyện tập'}
                   subProgressCurr={subCurr}

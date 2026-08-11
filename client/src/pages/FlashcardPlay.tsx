@@ -3645,17 +3645,24 @@ export default function FlashcardPlay() {
         </AnimatePresence>
 
         {roadmapStatus?.pipeline ? (() => {
-          const currentStep = roadmapStatus?.pipeline?.[roadmapStatus?.current_step_index || 0];
+          const rawIdx = roadmapStatus?.current_step_index || 0;
+          const flashcardStepIdx = roadmapStatus.pipeline.findIndex((s: any) => s.type === 'new_cards' || s.type === 'fsrs_review');
+          // If we are on FlashcardPlay page, but backend step has advanced to MCQ/typing (step 2 or 3),
+          // lock display to Flashcard step so header doesn't say "Step 2 MCQ" on Flashcard page!
+          const displayStepIdx = (flashcardStepIdx !== -1 && rawIdx > flashcardStepIdx) ? flashcardStepIdx : rawIdx;
+
+          const currentStep = roadmapStatus?.pipeline?.[displayStepIdx];
           let subCurr = currentIndex + 1;
           let subTotal = session?.questions?.length || 20;
           if (currentStep?.type === 'new_cards') {
-            subCurr = currentStep.progress?.learned ?? 0;
+            subCurr = currentStep.progress?.learned ?? (currentIndex + 1);
             subTotal = currentStep.daily_count || currentStep.progress?.target || 20;
           } else if (currentStep?.type === 'fsrs_review') {
-            subCurr = currentStep.progress?.reviewed_today ?? roadmapStatus?.review_completed_today ?? 0;
+            subCurr = currentStep.progress?.reviewed_today ?? roadmapStatus?.review_completed_today ?? (currentIndex + 1);
             const due = currentStep.progress?.due_count ?? roadmapStatus?.review_due_today ?? 0;
             subTotal = subCurr + due;
           }
+          const isGoalReached = subCurr >= subTotal;
           const activePercent = subTotal > 0 ? Math.min(100, Math.round((subCurr / subTotal) * 100)) : 0;
 
           return (
@@ -3670,7 +3677,12 @@ export default function FlashcardPlay() {
                     className="absolute bottom-0 left-0 right-0 h-0.5 bg-slate-900/80 pointer-events-none z-[125]"
                   >
                     <motion.div 
-                      className="h-full bg-gradient-to-r from-orange-500 via-amber-400 to-emerald-400 shadow-[0_0_8px_rgba(249,115,22,0.9)] rounded-r-full"
+                      className={cn(
+                        "h-full rounded-r-full transition-all duration-500",
+                        isGoalReached 
+                          ? "bg-gradient-to-r from-emerald-500 via-teal-400 to-cyan-300 shadow-[0_0_10px_rgba(16,185,129,0.9)]" 
+                          : "bg-gradient-to-r from-orange-500 via-amber-400 to-emerald-400 shadow-[0_0_8px_rgba(249,115,22,0.9)]"
+                      )}
                       initial={{ width: 0 }}
                       animate={{ width: `${activePercent}%` }}
                       transition={{ type: "spring", stiffness: 120, damping: 18 }}
@@ -3682,8 +3694,8 @@ export default function FlashcardPlay() {
               <div className="flex-1 min-w-0 relative z-[140]">
                 <RoadmapHeaderTracker
                   pipeline={roadmapStatus.pipeline}
-                  currentStepIndex={roadmapStatus.current_step_index}
-                  allDone={roadmapStatus.all_done}
+                  currentStepIndex={displayStepIdx}
+                  allDone={roadmapStatus.all_done || isGoalReached}
                   deckId={id || ''}
                   deckTitle={session.title}
                   subProgressCurr={subCurr}
