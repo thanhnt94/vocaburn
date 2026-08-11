@@ -1689,6 +1689,27 @@ async def get_next_card(request: Request, deck_id: int, data: dict, db: AsyncSes
 
     elif mode in ("fsrs", "review", "fsrs_review"):
         now_utc = datetime.utcnow()
+
+        from app.modules.deck.models import UserDeckSettings
+        user_sett_res = await db.execute(
+            select(UserDeckSettings).where(
+                UserDeckSettings.user_id == user_id,
+                UserDeckSettings.deck_id == deck_id
+            )
+        )
+        user_sett = user_sett_res.scalar_one_or_none()
+        settings = user_sett.settings if (user_sett and user_sett.settings) else {}
+        raw_pipeline = settings.get("pipeline", [])
+        
+        fsrs_overdue_hours = 24
+        if isinstance(raw_pipeline, list):
+            for st in raw_pipeline:
+                if isinstance(st, dict) and st.get("type") == "fsrs_review":
+                    fsrs_overdue_hours = int(st.get("overdue_hours", 24))
+                    break
+
+        due_cutoff = now_utc - timedelta(hours=fsrs_overdue_hours) + timedelta(seconds=30)
+        
         due_cards = []
         unanswered_review_cards = []
         all_learned_cards = []
@@ -1701,7 +1722,8 @@ async def get_next_card(request: Request, deck_id: int, data: dict, db: AsyncSes
             if not m or m.state == 0 or m.stability is None:
                 continue
 
-            is_due = (m.due - timedelta(seconds=30)) <= now_utc
+            # Card is due if its due date is at or before the overdue threshold
+            is_due = m.due <= due_cutoff
             has_answered = idx in answered_indexes
             card_info = {"idx": idx, "due": m.due, "stability": m.stability or 0.0}
             all_learned_cards.append(card_info)
@@ -1720,7 +1742,7 @@ async def get_next_card(request: Request, deck_id: int, data: dict, db: AsyncSes
                 next_index = due_cards[0]["idx"]
             return {"next_index": next_index, "phase": "review"}
         elif unanswered_review_cards:
-            # All 24h due cards are reviewed; serve remaining review cards (due under 24h) for overachievement
+            # All overdue cards are reviewed; serve remaining review cards for overachievement
             unanswered_review_cards.sort(key=lambda x: x["due"])
             return {"next_index": unanswered_review_cards[0]["idx"], "phase": "review"}
         elif all_learned_cards:
@@ -2436,8 +2458,8 @@ async def get_deck_roadmap_status_helper(db: AsyncSession, user_id: int, deck_id
             fsrs_overdue_hours = int(st.get("overdue_hours", 24))
             break
 
-    # Fix: cutoff_time should be relative to the target day's end, not the real-world today
-    cutoff_time = day_end - timedelta(hours=fsrs_overdue_hours)
+    now_utc = datetime.utcnow()
+    cutoff_time = now_utc - timedelta(hours=fsrs_overdue_hours)
 
     review_due_today = await db.scalar(
         select(func.count(UserCardMastery.id))
