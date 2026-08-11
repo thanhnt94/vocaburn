@@ -4076,10 +4076,20 @@ export default function PracticePlay() {
         )}
       </AnimatePresence>
 
-      <header className="sticky top-0 flex-shrink-0 z-[120] bg-white/95 backdrop-blur-2xl border-b border-slate-100/80 px-2.5 md:px-4 py-1.5 flex items-center justify-between shadow-[0_1px_20px_rgba(99,102,241,0.04)] gap-2">
+      <header className={cn(
+        "sticky top-0 flex-shrink-0 z-[120] backdrop-blur-2xl px-2.5 md:px-4 py-1.5 flex items-center justify-between shadow-md gap-2.5 transition-colors duration-300",
+        isRoadmapActive
+          ? "bg-slate-900 border-b border-slate-800/90 text-white"
+          : "bg-white/95 border-b border-slate-100/80 text-slate-800 shadow-[0_1px_20px_rgba(99,102,241,0.04)]"
+      )}>
         <button 
           onClick={() => navigate('/')} 
-          className="w-8.5 h-8.5 flex items-center justify-center bg-slate-50 border border-slate-200/60 rounded-xl text-slate-600 shadow-sm hover:bg-indigo-50 hover:text-indigo-600 hover:border-indigo-100 active:scale-90 transition-all flex-shrink-0"
+          className={cn(
+            "w-8.5 h-8.5 flex items-center justify-center rounded-xl shadow-xs active:scale-90 transition-all flex-shrink-0 border",
+            isRoadmapActive
+              ? "bg-slate-800 hover:bg-slate-700 text-slate-200 border-slate-700 hover:text-white"
+              : "bg-slate-50 hover:bg-indigo-50 text-slate-600 border-slate-200/60 hover:text-indigo-600 hover:border-indigo-100"
+          )}
           title="Thoát phiên học"
         >
           <X className="w-4.5 h-4.5" />
