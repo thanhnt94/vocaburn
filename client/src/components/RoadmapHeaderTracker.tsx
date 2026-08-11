@@ -15,6 +15,7 @@ interface RoadmapHeaderTrackerProps {
   subProgressTotal?: number
   streakCount?: number
   onSurgeChange?: (isSurging: boolean) => void
+  onViewModeChange?: (viewMode: 0 | 1) => void
 }
 
 const STEP_META: Record<string, { emoji: string; label: string }> = {
@@ -42,7 +43,8 @@ export const RoadmapHeaderTracker: React.FC<RoadmapHeaderTrackerProps> = ({
   subProgressCurr,
   subProgressTotal,
   streakCount = 0,
-  onSurgeChange
+  onSurgeChange,
+  onViewModeChange
 }) => {
   // Toggle State: 0 = Nấc 1 (Tên bộ thẻ), 1 = Nấc 2 (Các thông số bài học)
   const [viewMode, setViewMode] = useState<0 | 1>(0)
@@ -85,7 +87,11 @@ export const RoadmapHeaderTracker: React.FC<RoadmapHeaderTrackerProps> = ({
   }, [subProgressCurr, onSurgeChange])
 
   const toggleViewMode = () => {
-    setViewMode((prev) => (prev === 0 ? 1 : 0))
+    setViewMode((prev) => {
+      const next = prev === 0 ? 1 : 0
+      onViewModeChange?.(next)
+      return next
+    })
   }
 
   return (
@@ -259,7 +265,7 @@ export const RoadmapHeaderTracker: React.FC<RoadmapHeaderTrackerProps> = ({
 
       {/* Mode Switcher Button (Nấc 1 ⇄ Nấc 2) */}
       <AnimatePresence>
-        {!isSurging && (
+        {!isSurging && viewMode === 0 && (
           <motion.button
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}

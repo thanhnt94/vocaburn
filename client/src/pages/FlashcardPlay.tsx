@@ -621,6 +621,7 @@ export default function FlashcardPlay() {
   })
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
   const [showRoadmapCompleteModal, setShowRoadmapCompleteModal] = useState<boolean>(false);
+  const [headerViewMode, setHeaderViewMode] = useState<0 | 1>(0);
 
   useEffect(() => {
     cancelAllAudio();
@@ -3643,7 +3644,7 @@ export default function FlashcardPlay() {
           : "bg-white/95 border-b border-slate-100/80 text-slate-800 shadow-[0_1px_20px_rgba(99,102,241,0.04)]"
       )}>
         <AnimatePresence>
-          {!isHeaderSurging && (
+          {!isHeaderSurging && headerViewMode === 0 && (
             <motion.button 
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -3743,6 +3744,7 @@ export default function FlashcardPlay() {
                   subProgressTotal={subTotal}
                   streakCount={roadmapStatus?.streak || gamify.streak || 0}
                   onSurgeChange={setIsHeaderSurging}
+                  onViewModeChange={setHeaderViewMode}
                 />
               </div>
             </>

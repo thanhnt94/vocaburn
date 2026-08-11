@@ -36,25 +36,29 @@ export function VocaburnLogo({
   }[textSize]
 
   return (
-    <div className={cn("flex items-center gap-2 select-none group", className)}>
+    <div className={cn("flex items-center gap-2.5 select-none group cursor-pointer", className)}>
       {showIcon && (
         <div className={cn(
-          "flex items-center justify-center text-white shadow-md shadow-orange-500/25 group-hover:scale-105 group-hover:rotate-6 transition-all duration-300",
+          "relative flex items-center justify-center text-white shadow-lg shadow-orange-500/30 group-hover:scale-105 group-hover:shadow-orange-500/45 transition-all duration-300 ease-out border border-white/25 overflow-hidden shrink-0",
           "bg-gradient-to-tr from-orange-500 via-red-500 to-amber-500",
           iconContainerSize
         )}>
-          <Flame className={cn("fill-white text-white drop-shadow-xs", flameSize)} />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/15 via-transparent to-white/25 pointer-events-none" />
+          <Flame className={cn("relative z-10 fill-white text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.3)] transition-transform duration-300 group-hover:scale-110", flameSize)} />
         </div>
       )}
 
       <span className={cn(
-        "font-black tracking-wider uppercase italic leading-none flex items-center",
+        "font-black tracking-tight uppercase not-italic leading-none flex items-center font-sans",
         textClasses
       )}>
-        <span className={variant === 'dark' ? "text-slate-900" : "text-white"}>
+        <span className={cn(
+          "font-black tracking-tight transition-colors duration-200",
+          variant === 'dark' ? "text-slate-900" : "text-white"
+        )}>
           VOCA
         </span>
-        <span className="bg-gradient-to-r from-orange-500 via-red-500 to-amber-500 bg-clip-text text-transparent font-black ml-0.5">
+        <span className="bg-gradient-to-r from-orange-500 via-red-500 to-amber-500 bg-clip-text text-transparent font-black ml-1 tracking-tight drop-shadow-[0_2px_8px_rgba(249,115,22,0.2)]">
           BURN
         </span>
       </span>

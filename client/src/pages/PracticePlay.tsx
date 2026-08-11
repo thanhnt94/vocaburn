@@ -941,6 +941,8 @@ export default function PracticePlay() {
     return parseUTCDate(currentQuestion.fsrs.due).getTime() - 30000 <= currentTime.getTime();
   })()
 
+  const [headerViewMode, setHeaderViewMode] = useState<0 | 1>(0);
+
   const hasRated = activelyRatedCurrentCard || (sessionAnswers[currentIndex] !== undefined && !isCardUnlocked)
 
   const getCardBoxId = (item: any) => {
@@ -4084,7 +4086,7 @@ export default function PracticePlay() {
           : "bg-white/95 border-b border-slate-100/80 text-slate-800 shadow-[0_1px_20px_rgba(99,102,241,0.04)]"
       )}>
         <AnimatePresence>
-          {!isHeaderSurging && (
+          {!isHeaderSurging && headerViewMode === 0 && (
             <motion.button 
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -4149,6 +4151,7 @@ export default function PracticePlay() {
                   subProgressTotal={subTotal}
                   streakCount={roadmapStatus?.streak || gamify.streak || 0}
                   onSurgeChange={setIsHeaderSurging}
+                  onViewModeChange={setHeaderViewMode}
                 />
               </div>
             </>
