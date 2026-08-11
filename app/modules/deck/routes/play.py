@@ -220,7 +220,7 @@ async def record_answer(request: Request, data: dict, db: AsyncSession = Depends
     from app.modules.notification.interface import NotificationInterface
     from sqlalchemy import and_, case
 
-    user_id = int(request.cookies.get("user_id", 1)) # Default to 1 for demo
+    user_id = AuthService.get_user_id(request)
     is_correct = data.get("is_correct", False)
     time_spent = int(data.get("time_spent", 0))
     card_id = int(data.get("card_id", data.get("question_id", 0)))
@@ -2404,7 +2404,7 @@ async def update_contribution_status(
     request: Request, 
     db: AsyncSession = Depends(get_db)
 ):
-    user_id = int(request.cookies.get("user_id", 1))
+    user_id = AuthService.get_user_id(request)
     user = await db.get(User, user_id)
     if not user:
         return JSONResponse({"detail": "User not found"}, status_code=404)
@@ -3019,7 +3019,7 @@ async def get_deck_leaderboard(request: Request, deck_id: int, db: AsyncSession 
     from app.modules.deck.models import Flashcard, UserCardMastery
     from sqlalchemy import case
     
-    current_user_id = int(request.cookies.get("user_id", 1))
+    current_user_id = AuthService.get_user_id(request)
     
     stmt = (
         select(
@@ -3065,7 +3065,7 @@ async def get_deck_leaderboard(request: Request, deck_id: int, db: AsyncSession 
 
 @router.get("/{deck_id}/roadmap-status")
 async def get_deck_roadmap_status(request: Request, deck_id: int, target_date: Optional[str] = Query(None), db: AsyncSession = Depends(get_db)):
-    user_id = int(request.cookies.get("user_id", 1))
+    user_id = AuthService.get_user_id(request)
     
     user_sett_res = await db.execute(
         select(UserDeckSettings).where(
@@ -3083,7 +3083,7 @@ async def get_deck_roadmap_status(request: Request, deck_id: int, target_date: O
 @router.get("/{deck_id}/roadmap-calendar")
 async def get_deck_roadmap_calendar(request: Request, deck_id: int, month: str = Query(...), db: AsyncSession = Depends(get_db)):
     """Get calendar heatmap data for a month. month format: YYYY-MM"""
-    user_id = int(request.cookies.get("user_id", 1))
+    user_id = AuthService.get_user_id(request)
     from app.modules.deck.models import Flashcard, DeckAttempt, UserAnswer
     import calendar as cal_mod
     

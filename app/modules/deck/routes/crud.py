@@ -8,6 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, delete, func, Integer, or_
 from sqlalchemy.orm import selectinload
 from app.core.db import get_db
+from app.modules.auth.services.auth_service import AuthService
 from app.modules.deck.services.excel_service import ExcelDeckService
 from app.modules.deck.services.deck_service import DeckService
 from app.modules.deck.services.ai_service import ai_service
@@ -112,7 +113,7 @@ async def upload_deck(request: Request, file: UploadFile = File(...), metadata_o
             await db.refresh(db_cat)
 
         # Create deck using Info sheet metadata
-        user_id = int(request.cookies.get("user_id", 1))
+        user_id = AuthService.get_user_id(request)
         deck_data = DeckSchema(
             title=metadata.get("title", f"Import: {file.filename.split('.')[0]}"),
             description=metadata.get("description", f"Batch import with {len(cards)} cards."),
@@ -151,7 +152,7 @@ async def upload_deck(request: Request, file: UploadFile = File(...), metadata_o
 
         # Auto-enroll the creator so it shows in "My Collection" and "Creator Studio"
         from app.modules.deck.models import DeckAttempt
-        user_id = int(request.cookies.get("user_id", 1))
+        user_id = AuthService.get_user_id(request)
         attempt = DeckAttempt(
             user_id=user_id,
             deck_id=db_deck.id,
@@ -175,7 +176,7 @@ async def upload_deck(request: Request, file: UploadFile = File(...), metadata_o
 @router.post("/import-text")
 async def import_text(request: Request, data: dict, db: AsyncSession = Depends(get_db)):
     try:
-        user_id = int(request.cookies.get("user_id", 1))
+        user_id = AuthService.get_user_id(request)
         
         title = data.get("title", "Quick Text Import")
         description = data.get("description", "Imported via copy-paste.")
@@ -244,7 +245,7 @@ async def import_text(request: Request, data: dict, db: AsyncSession = Depends(g
 @router.post("/create")
 async def create_deck_endpoint(request: Request, data: dict, db: AsyncSession = Depends(get_db)):
     try:
-        user_id = int(request.cookies.get("user_id", 1))
+        user_id = AuthService.get_user_id(request)
         title = data.get("title", "").strip()
         description = data.get("description", "").strip()
         cover_image = data.get("cover_image", "").strip() or None
@@ -383,7 +384,7 @@ async def get_deck_cards(deck_id: int, request: Request, page: int = 1, size: in
     
     # Fetch stats and mastery for these cards
     from app.modules.deck.models import UserAnswer, UserCardMastery
-    user_id = int(request.cookies.get("user_id", 1))
+    user_id = AuthService.get_user_id(request)
     c_ids = [c.id for c in cs]
     stats_query = select(
         UserAnswer.card_id,
@@ -436,7 +437,7 @@ async def get_deck_cards(deck_id: int, request: Request, page: int = 1, size: in
 @router.post("/{deck_id}/enroll")
 async def enroll_deck(request: Request, deck_id: int, db: AsyncSession = Depends(get_db)):
     from app.modules.deck.models import DeckAttempt
-    user_id = int(request.cookies.get("user_id", 1))
+    user_id = AuthService.get_user_id(request)
     
     # Check if already enrolled
     result = await db.execute(
@@ -464,7 +465,7 @@ async def enroll_deck(request: Request, deck_id: int, db: AsyncSession = Depends
 @router.post("/{deck_id}/archive")
 async def archive_deck(request: Request, deck_id: int, db: AsyncSession = Depends(get_db)):
     from app.modules.deck.models import DeckAttempt
-    user_id = int(request.cookies.get("user_id", 1))
+    user_id = AuthService.get_user_id(request)
     result = await db.execute(select(DeckAttempt).where(DeckAttempt.user_id == user_id, DeckAttempt.deck_id == deck_id))
     attempts = result.scalars().all()
     if attempts:
@@ -511,7 +512,7 @@ async def delete_deck(deck_id: int, db: AsyncSession = Depends(get_db)):
 
 @router.patch("/{deck_id}")
 async def update_deck(request: Request, deck_id: int, data: dict, db: AsyncSession = Depends(get_db)):
-    user_id = int(request.cookies.get("user_id", 1))
+    user_id = AuthService.get_user_id(request)
     from app.modules.deck.models import FlashcardDeck, DeckCollaborator
     
     result = await db.execute(select(FlashcardDeck).where(FlashcardDeck.id == deck_id))
