@@ -2810,27 +2810,46 @@ async def get_deck_roadmap_status_helper(db: AsyncSession, user_id: int, deck_id
             prog = UserDailyProgress(goal_id=goal.id, date=today_str, is_target_met=False)
             db.add(prog)
             
-        if all_done and not prog.is_target_met:
+        if all_done:
             prog.is_target_met = True
-            
-            last_comp = goal.last_completed_date
-            if last_comp == yesterday_str:
-                goal.streak_count += 1
-            elif last_comp != today_str:
-                goal.streak_count = 1
-                
             goal.last_completed_date = today_str
-            await db.commit()
-            
-    last_comp = goal.last_completed_date
-    if last_comp == today_str or last_comp == yesterday_str:
-        streak = goal.streak_count
-    else:
+
+    # Calculate exact consecutive active streak for this deck goal from UserDailyProgress
+    all_progs_res = await db.execute(
+        select(UserDailyProgress.date)
+        .where(UserDailyProgress.goal_id == goal.id, UserDailyProgress.is_target_met == True)
+        .order_by(UserDailyProgress.date.desc())
+    )
+    met_date_strings = all_progs_res.scalars().all()
+    met_dates = []
+    for d_str in met_date_strings:
+        try:
+            met_dates.append(date.fromisoformat(d_str))
+        except Exception:
+            pass
+
+    if not met_dates:
         streak = 0
-        if goal.streak_count > 0:
-            goal.streak_count = 0
-            if not target_date_str:
-                await db.commit()
+    else:
+        most_recent = met_dates[0]
+        if most_recent != today_date and most_recent != (today_date - timedelta(days=1)):
+            streak = 0
+        else:
+            streak = 1
+            curr = most_recent
+            for d in met_dates[1:]:
+                diff = (curr - d).days
+                if diff == 1:
+                    streak += 1
+                    curr = d
+                elif diff == 0:
+                    continue
+                else:
+                    break
+
+    goal.streak_count = streak
+    if not target_date_str:
+        await db.commit()
 
     if len(pipeline_processed) > 0 and first_incomplete_idx is None:
         current_step_index = len(pipeline_processed)
