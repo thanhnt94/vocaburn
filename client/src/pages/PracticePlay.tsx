@@ -4076,208 +4076,129 @@ export default function PracticePlay() {
         )}
       </AnimatePresence>
 
-      <header className="sticky top-0 flex-shrink-0 z-[120] bg-white/95 backdrop-blur-2xl border-b border-slate-100/80 pl-3 pr-1 md:px-4 py-1.5 flex flex-wrap md:flex-nowrap items-center justify-between gap-y-1 shadow-[0_1px_20px_rgba(99,102,241,0.04)]">
-        <div className="flex items-center gap-2 font-sans min-w-0 flex-1 mr-2 md:mr-4">
-          <button 
-            onClick={() => navigate('/')} 
-            className="w-8.5 h-8.5 flex items-center justify-center bg-slate-50 border border-slate-200/60 rounded-xl text-slate-600 shadow-sm hover:bg-indigo-50 hover:text-indigo-600 hover:border-indigo-100 active:scale-90 transition-all flex-shrink-0"
-            title="Thoát phiên học"
-          >
-            <X className="w-4.5 h-4.5" />
-          </button>
-          <div className="flex items-center min-w-0">
-            {isRoadmapActive && roadmapStatus?.pipeline ? (
-              <RoadmapHeaderTracker
-                pipeline={roadmapStatus.pipeline}
-                currentStepIndex={roadmapStatus.current_step_index}
-                allDone={isRoadmapAllDone}
-                deckId={id || ''}
-                deckTitle={session?.title || session?.deck_title || session?.quiz_title || 'Luyện tập'}
-                subProgressCurr={Math.min(Object.keys(practiceAnswers).length, session?.questions?.length || 15)}
-                subProgressTotal={session?.questions?.length || 15}
-                streakCount={roadmapStatus?.streak || gamify.streak || 0}
-                streakPoints={gamify.streak_points || 0}
-                userLevel={gamify.level || 1}
-              />
-            ) : (
+      <header className="sticky top-0 flex-shrink-0 z-[120] bg-white/95 backdrop-blur-2xl border-b border-slate-100/80 px-2.5 md:px-4 py-1.5 flex items-center justify-between shadow-[0_1px_20px_rgba(99,102,241,0.04)] gap-2">
+        <button 
+          onClick={() => navigate('/')} 
+          className="w-8.5 h-8.5 flex items-center justify-center bg-slate-50 border border-slate-200/60 rounded-xl text-slate-600 shadow-sm hover:bg-indigo-50 hover:text-indigo-600 hover:border-indigo-100 active:scale-90 transition-all flex-shrink-0"
+          title="Thoát phiên học"
+        >
+          <X className="w-4.5 h-4.5" />
+        </button>
+
+        {isRoadmapActive && roadmapStatus?.pipeline ? (
+          <div className="flex-1 min-w-0">
+            <RoadmapHeaderTracker
+              pipeline={roadmapStatus.pipeline}
+              currentStepIndex={roadmapStatus.current_step_index}
+              allDone={isRoadmapAllDone}
+              deckId={id || ''}
+              deckTitle={session?.title || session?.deck_title || session?.quiz_title || 'Luyện tập'}
+              subProgressCurr={Math.min(Object.keys(practiceAnswers).length, session?.questions?.length || 15)}
+              subProgressTotal={session?.questions?.length || 15}
+              streakCount={roadmapStatus?.streak || gamify.streak || 0}
+            />
+          </div>
+        ) : (
+          <>
+            <div className="flex items-center min-w-0 flex-1 mr-2 md:mr-4">
               <h1 className="text-xs md:text-sm font-extrabold text-slate-800 tracking-tight truncate line-clamp-1 leading-snug" title={session?.title || session?.deck_title || ''}>
                 {session?.title || session?.deck_title || session?.quiz_title || 'Luyện tập'}
               </h1>
-            )}
-          </div>
-        </div>
+            </div>
       
-        {/* Live Dashboard HUD */}
-        {isRoadmapTestMode ? (() => {
-          const totalQ = session?.questions?.length || 15;
-          const answeredCount = isRoadmapTestFinished ? totalQ : Math.min(Object.keys(practiceAnswers).length, totalQ);
-          const correctCount = session?.questions
-            ? Object.entries(practiceAnswers).reduce((acc, [qIdx, chosenOptId]) => {
-                const q = session.questions[Number(qIdx)];
-                if (!q) return acc;
-                const isCorr = (() => {
-                  if (chosenOptId === undefined || chosenOptId === null) return false;
-                  if (q.practice?.correct_index !== undefined && q.practice.correct_index !== null) {
-                    return Number(chosenOptId) === Number(q.practice.correct_index);
-                  }
-                  if (q.options && Array.isArray(q.options) && q.options.length > 0) {
-                    const chosen = q.options.find((o: any) => o.id === chosenOptId) || q.options[chosenOptId];
-                    if (chosen && chosen.is_correct !== undefined) return chosen.is_correct;
-                  }
-                  return Number(chosenOptId) === 3;
-                })();
-                return acc + (isCorr ? 1 : 0);
-              }, 0)
-            : practiceCorrectCount;
-
-          const accuracyPercent = totalQ > 0 ? Math.round((correctCount / totalQ) * 100) : 0;
-
-          return (
-            <div className="bg-slate-100/50 border border-slate-200/40 rounded-xl p-0.5 flex items-center gap-1 shadow-inner flex-shrink-0">
-              {/* Item 1: Progress (Đã làm) */}
-              <div className="flex items-center bg-white/90 border border-slate-200/30 rounded-lg p-0.5 px-2 shadow-sm" title="Số câu đã hoàn thành">
-                <Brain className="w-3.5 h-3.5 text-purple-600 mr-1" />
-                <div className="flex flex-col">
-                  <span className="text-[6px] text-slate-400 font-extrabold uppercase tracking-wider leading-none">Đã Làm</span>
-                  <span className="text-[9px] font-black text-slate-800 leading-none mt-0.5">
-                    {answeredCount}/{totalQ}
-                  </span>
+            {/* Live Dashboard HUD */}
+            <div className="bg-slate-100/50 border border-slate-200/40 rounded-xl p-0.5 flex items-center gap-0.5 md:gap-1.5 shadow-[inset_0_1px_2px_rgba(0,0,0,0.02)] flex-shrink-0 mr-0.5 md:mr-0">
+              {/* Item 1: Daily Goal progress */}
+              <div className="flex items-center bg-white/90 border border-slate-200/30 rounded-lg p-0.5 pr-1 md:pr-1.5 shadow-sm min-w-[52px] xs:min-w-[56px] md:min-w-[66px]" title="Mục tiêu ôn tập hàng ngày">
+                <div className="w-4 h-4 md:w-5 md:h-5 flex items-center justify-center bg-indigo-50 text-indigo-600 rounded mr-0.5 md:mr-1 flex-shrink-0">
+                  <Target className="w-2.5 h-2.5 md:w-3 md:h-3" />
+                </div>
+                <div className="flex flex-col min-w-0">
+                  <span className="text-[5.5px] md:text-[6.5px] text-slate-400 font-extrabold uppercase tracking-wider leading-none">Goal</span>
+                  <div className="h-2.5 md:h-3 overflow-hidden relative min-w-[20px]">
+                    <AnimatePresence mode="popLayout" initial={false}>
+                      <motion.span
+                        key={activeGoal ? `${activeGoal.done_today}/${activeGoal.daily_target}` : 'none'}
+                        initial={{ y: 8, opacity: 0 }}
+                        animate={{ y: 0, opacity: 1 }}
+                        exit={{ y: -8, opacity: 0 }}
+                        transition={{ type: "spring", stiffness: 350, damping: 18 }}
+                        className="text-[7.5px] md:text-[8.5px] font-black text-slate-700 leading-none block truncate"
+                      >
+                        {activeGoal ? `${activeGoal.done_today}/${activeGoal.daily_target}` : '--'}
+                      </motion.span>
+                    </AnimatePresence>
+                  </div>
                 </div>
               </div>
 
-              {/* Item 2: Accuracy % */}
-              <div className="flex items-center bg-white/90 border border-slate-200/30 rounded-lg p-0.5 px-2 shadow-sm" title="Tỷ lệ trả lời chính xác">
-                <Target className="w-3.5 h-3.5 text-emerald-600 mr-1" />
-                <div className="flex flex-col">
-                  <span className="text-[6px] text-slate-400 font-extrabold uppercase tracking-wider leading-none">C.Xác</span>
-                  <span className={cn(
-                    "text-[9px] font-black leading-none mt-0.5",
-                    accuracyPercent >= 80 ? "text-emerald-600" : accuracyPercent >= 60 ? "text-amber-600" : "text-rose-600"
-                  )}>
-                    {accuracyPercent}%
-                  </span>
+              {/* Item 2: Cards left / Question count */}
+              <div className="flex items-center bg-white/90 border border-slate-200/30 rounded-lg p-0.5 pr-1 md:pr-1.5 shadow-sm min-w-[52px] xs:min-w-[56px] md:min-w-[66px]" title="Số thẻ ôn tập/học còn lại">
+                <div className="w-4 h-4 md:w-5 md:h-5 flex items-center justify-center bg-rose-50 text-rose-600 rounded mr-0.5 md:mr-1 flex-shrink-0">
+                  <Brain className="w-2.5 h-2.5 md:w-3 md:h-3" />
+                </div>
+                <div className="flex flex-col min-w-0">
+                  <span className="text-[5.5px] md:text-[6.5px] text-slate-400 font-extrabold uppercase tracking-wider leading-none">Left</span>
+                  <div className="h-2.5 md:h-3 overflow-hidden relative min-w-[15px]">
+                    <AnimatePresence mode="popLayout" initial={false}>
+                      <motion.span
+                        key={session?.questions ? Math.max(0, session.questions.length - currentIndex) : 0}
+                        initial={{ y: 8, opacity: 0 }}
+                        animate={{ y: 0, opacity: 1 }}
+                        exit={{ y: -8, opacity: 0 }}
+                        transition={{ type: "spring", stiffness: 350, damping: 18 }}
+                        className="text-[7.5px] md:text-[8.5px] font-black text-slate-700 leading-none block truncate"
+                      >
+                        {session?.questions ? Math.max(0, session.questions.length - currentIndex) : 0}
+                      </motion.span>
+                    </AnimatePresence>
+                  </div>
                 </div>
               </div>
 
               {/* Item 3: Timer */}
-              <div className="flex items-center bg-white/90 border border-slate-200/30 rounded-lg p-0.5 px-2 shadow-sm" title="Thời gian làm bài">
-                <Clock className="w-3.5 h-3.5 text-indigo-600 mr-1" />
-                <div className="flex flex-col">
-                  <span className="text-[6px] text-slate-400 font-extrabold uppercase tracking-wider leading-none">Time</span>
-                  <span className="text-[9px] font-black text-slate-800 leading-none mt-0.5">
-                    {timeLeft}s
-                  </span>
-                </div>
-              </div>
-            </div>
-          );
-        })() : (
-          <div className="bg-slate-100/50 border border-slate-200/40 rounded-xl p-0.5 flex items-center gap-0.5 md:gap-1.5 shadow-[inset_0_1px_2px_rgba(0,0,0,0.02)] flex-shrink-0 mr-0.5 md:mr-0">
-            {/* Item 1: Daily Goal progress */}
-            <div className="flex items-center bg-white/90 border border-slate-200/30 rounded-lg p-0.5 pr-1 md:pr-1.5 shadow-sm min-w-[52px] xs:min-w-[56px] md:min-w-[66px]" title="Mục tiêu ôn tập hàng ngày">
-              <div className="w-4 h-4 md:w-5 md:h-5 flex items-center justify-center bg-indigo-50 text-indigo-600 rounded mr-0.5 md:mr-1 flex-shrink-0">
-                <Target className="w-2.5 h-2.5 md:w-3 md:h-3" />
-              </div>
-              <div className="flex flex-col min-w-0">
-                <span className="text-[5.5px] md:text-[6.5px] text-slate-400 font-extrabold uppercase tracking-wider leading-none">Goal</span>
-                <div className="h-2.5 md:h-3 overflow-hidden relative min-w-[20px]">
-                  <AnimatePresence mode="popLayout" initial={false}>
-                    <motion.span
-                      key={activeGoal ? `${activeGoal.done_today}/${activeGoal.daily_target}` : 'none'}
-                      initial={{ y: 8, opacity: 0 }}
-                      animate={{ y: 0, opacity: 1 }}
-                      exit={{ y: -8, opacity: 0 }}
-                      transition={{ type: "spring", stiffness: 350, damping: 18 }}
-                      className="text-[7.5px] md:text-[8.5px] font-black text-slate-700 leading-none block truncate"
-                    >
-                      {activeGoal ? `${activeGoal.done_today}/${activeGoal.daily_target}` : '--'}
-                    </motion.span>
-                  </AnimatePresence>
-                </div>
-              </div>
-            </div>
-        
-            {/* Item 2: Cards left / Question count */}
-            <div className="flex items-center bg-white/90 border border-slate-200/30 rounded-lg p-0.5 pr-1 md:pr-1.5 shadow-sm min-w-[52px] xs:min-w-[56px] md:min-w-[66px]" title="Số thẻ ôn tập/học còn lại">
-              <div className="w-4 h-4 md:w-5 md:h-5 flex items-center justify-center bg-rose-50 text-rose-600 rounded mr-0.5 md:mr-1 flex-shrink-0">
-                <Brain className="w-2.5 h-2.5 md:w-3 md:h-3" />
-              </div>
-              <div className="flex flex-col min-w-0">
-                <span className="text-[5.5px] md:text-[6.5px] text-slate-400 font-extrabold uppercase tracking-wider leading-none">Left</span>
-                <div className="h-2.5 md:h-3 overflow-hidden relative min-w-[15px]">
-                  <AnimatePresence mode="popLayout" initial={false}>
-                    <motion.span
-                      key={session?.questions ? Math.max(0, session.questions.length - currentIndex) : 0}
-                      initial={{ y: 8, opacity: 0 }}
-                      animate={{ y: 0, opacity: 1 }}
-                      exit={{ y: -8, opacity: 0 }}
-                      transition={{ type: "spring", stiffness: 350, damping: 18 }}
-                      className="text-[7.5px] md:text-[8.5px] font-black text-slate-700 leading-none block truncate"
-                    >
-                      {session?.questions ? Math.max(0, session.questions.length - currentIndex) : 0}
-                    </motion.span>
-                  </AnimatePresence>
-                </div>
-              </div>
-            </div>
-        
-            {/* Item 3: Timer */}
-            <div 
-              onClick={toggleTimeMode}
-              className="flex items-center bg-white/90 border border-slate-200/30 rounded-lg p-0.5 pr-1 md:pr-1.5 shadow-sm min-w-[52px] xs:min-w-[56px] md:min-w-[66px] cursor-pointer active:scale-95 transition-all select-none hover:bg-slate-50" 
-              title="Thời gian học"
-            >
-              <div className="w-4 h-4 md:w-5 md:h-5 flex items-center justify-center bg-emerald-50 text-emerald-600 rounded mr-0.5 md:mr-1 flex-shrink-0">
-                <Clock className="w-2.5 h-2.5 md:w-3 md:h-3" />
-              </div>
-              <div className="flex flex-col min-w-0">
-                <span className="text-[5.5px] md:text-[6.5px] text-slate-400 font-extrabold uppercase tracking-wider leading-none">
-                  {timeMode === 'card' ? 'Time' : timeMode === 'today' ? 'Today' : 'Total'}
-                </span>
-                <div className="h-2.5 md:h-3 overflow-hidden relative min-w-[15px]">
-                  <AnimatePresence mode="popLayout" initial={false}>
-                    <motion.span
-                      key={
-                        timeMode === 'card' 
-                          ? timeLeft 
-                          : timeMode === 'today' 
-                            ? formatHeaderTime(initialTodayTime + sessionStudyTime) 
-                            : formatHeaderTime(initialAllTimeTime + sessionStudyTime)
-                      }
-                      initial={{ y: 8, opacity: 0 }}
-                      animate={{ y: 0, opacity: 1 }}
-                      exit={{ y: -8, opacity: 0 }}
-                      transition={{ type: "spring", stiffness: 350, damping: 18 }}
-                      className="text-[7.5px] md:text-[8.5px] font-black text-slate-700 leading-none block truncate"
-                    >
-                      {
-                        timeMode === 'card' 
-                          ? `${timeLeft}s` 
-                          : timeMode === 'today' 
-                            ? formatHeaderTime(initialTodayTime + sessionStudyTime) 
-                            : formatHeaderTime(initialAllTimeTime + sessionStudyTime)
-                      }
-                    </motion.span>
-                  </AnimatePresence>
-                </div>
-              </div>
-            </div>
-        
-            {/* Item 4: Current user score / Streak in Roadmap mode */}
-            {isRoadmapActive ? (
               <div 
-                className="flex items-center bg-orange-50 border border-orange-200/80 rounded-lg p-0.5 pr-1.5 shadow-sm" 
-                title="Chuỗi ngày liên tiếp Roadmap Streak"
+                onClick={toggleTimeMode}
+                className="flex items-center bg-white/90 border border-slate-200/30 rounded-lg p-0.5 pr-1 md:pr-1.5 shadow-sm min-w-[52px] xs:min-w-[56px] md:min-w-[66px] cursor-pointer active:scale-95 transition-all select-none hover:bg-slate-50" 
+                title="Thời gian học"
               >
-                <Flame className="w-3.5 h-3.5 text-orange-500 fill-orange-500 mr-1 animate-pulse" />
-                <div className="flex flex-col">
-                  <span className="text-[6px] text-orange-600 font-extrabold uppercase tracking-wider leading-none">Streak</span>
-                  <span className="text-[9px] font-black text-orange-600 leading-none mt-0.5">
-                    {roadmapStatus?.streak || 0}d
+                <div className="w-4 h-4 md:w-5 md:h-5 flex items-center justify-center bg-emerald-50 text-emerald-600 rounded mr-0.5 md:mr-1 flex-shrink-0">
+                  <Clock className="w-2.5 h-2.5 md:w-3 md:h-3" />
+                </div>
+                <div className="flex flex-col min-w-0">
+                  <span className="text-[5.5px] md:text-[6.5px] text-slate-400 font-extrabold uppercase tracking-wider leading-none">
+                    {timeMode === 'card' ? 'Time' : timeMode === 'today' ? 'Today' : 'Total'}
                   </span>
+                  <div className="h-2.5 md:h-3 overflow-hidden relative min-w-[15px]">
+                    <AnimatePresence mode="popLayout" initial={false}>
+                      <motion.span
+                        key={
+                          timeMode === 'card' 
+                            ? timeLeft 
+                            : timeMode === 'today' 
+                              ? formatHeaderTime(initialTodayTime + sessionStudyTime) 
+                              : formatHeaderTime(initialAllTimeTime + sessionStudyTime)
+                        }
+                        initial={{ y: 8, opacity: 0 }}
+                        animate={{ y: 0, opacity: 1 }}
+                        exit={{ y: -8, opacity: 0 }}
+                        transition={{ type: "spring", stiffness: 350, damping: 18 }}
+                        className="text-[7.5px] md:text-[8.5px] font-black text-slate-700 leading-none block truncate"
+                      >
+                        {
+                          timeMode === 'card' 
+                            ? `${timeLeft}s` 
+                            : timeMode === 'today' 
+                              ? formatHeaderTime(initialTodayTime + sessionStudyTime) 
+                              : formatHeaderTime(initialAllTimeTime + sessionStudyTime)
+                        }
+                      </motion.span>
+                    </AnimatePresence>
+                  </div>
                 </div>
               </div>
-            ) : (
+
+              {/* Item 4: Current user score */}
               <div 
                 onClick={toggleScoreMode}
                 className="flex items-center bg-white/90 border border-slate-200/30 rounded-lg p-0.5 pr-1 md:pr-1.5 shadow-sm min-w-[52px] xs:min-w-[56px] md:min-w-[66px] cursor-pointer active:scale-95 transition-all select-none hover:bg-slate-50" 
@@ -4310,8 +4231,8 @@ export default function PracticePlay() {
                   </div>
                 </div>
               </div>
-            )}
-          </div>
+            </div>
+          </>
         )}
 
         {/* Quick Add Button (Hidden in Roadmap mode) */}

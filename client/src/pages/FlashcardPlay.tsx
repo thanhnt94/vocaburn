@@ -3616,210 +3616,193 @@ export default function FlashcardPlay() {
         )}
       </AnimatePresence>
 
-      <header className="sticky top-0 flex-shrink-0 z-[120] bg-white/95 backdrop-blur-2xl border-b border-slate-100/80 pl-3 pr-1 md:px-4 py-1.5 flex items-center justify-between shadow-[0_1px_20px_rgba(99,102,241,0.04)]">
-        <div className="flex items-center gap-2 font-sans min-w-0 flex-1 mr-2 md:mr-4">
-          <button 
-            onClick={() => navigate('/')} 
-            className="w-8.5 h-8.5 flex items-center justify-center bg-slate-50 border border-slate-200/60 rounded-xl text-slate-600 shadow-sm hover:bg-indigo-50 hover:text-indigo-600 hover:border-indigo-100 active:scale-90 transition-all flex-shrink-0"
-            title="Thoát phiên học"
-          >
-            <X className="w-4.5 h-4.5" />
-          </button>
-          <div className="flex items-center min-w-0">
-            {activeMode === 'roadmap' && roadmapStatus?.pipeline ? (
-              <RoadmapHeaderTracker
-                pipeline={roadmapStatus.pipeline}
-                currentStepIndex={roadmapStatus.current_step_index}
-                allDone={roadmapStatus.all_done}
-                deckId={id || ''}
-                deckTitle={session.title}
-                subProgressCurr={(() => {
-                  const currentStep = roadmapStatus?.pipeline?.[roadmapStatus?.current_step_index || 0];
-                  if (currentStep?.type === 'new_cards') {
-                    return currentStep.progress?.learned ?? 0;
-                  } else if (currentStep?.type === 'fsrs_review') {
-                    return currentStep.progress?.reviewed_today ?? roadmapStatus?.review_completed_today ?? 0;
-                  }
-                  return currentIndex + 1;
-                })()}
-                subProgressTotal={(() => {
-                  const currentStep = roadmapStatus?.pipeline?.[roadmapStatus?.current_step_index || 0];
-                  if (currentStep?.type === 'new_cards') {
-                    return currentStep.daily_count || currentStep.progress?.target || 20;
-                  } else if (currentStep?.type === 'fsrs_review') {
-                    const due = currentStep.progress?.due_count ?? roadmapStatus?.review_due_today ?? 0;
-                    const done = currentStep.progress?.reviewed_today ?? roadmapStatus?.review_completed_today ?? 0;
-                    return done + due;
-                  }
-                  return session?.questions?.length || 20;
-                })()}
-                streakCount={roadmapStatus?.streak || gamify.streak || 0}
-                streakPoints={gamify.streak_points || 0}
-                userLevel={gamify.level || 1}
-              />
-            ) : (
+      <header className="sticky top-0 flex-shrink-0 z-[120] bg-white/95 backdrop-blur-2xl border-b border-slate-100/80 px-2.5 md:px-4 py-1.5 flex items-center justify-between shadow-[0_1px_20px_rgba(99,102,241,0.04)] gap-2">
+        <button 
+          onClick={() => navigate('/')} 
+          className="w-8.5 h-8.5 flex items-center justify-center bg-slate-50 border border-slate-200/60 rounded-xl text-slate-600 shadow-sm hover:bg-indigo-50 hover:text-indigo-600 hover:border-indigo-100 active:scale-90 transition-all flex-shrink-0"
+          title="Thoát phiên học"
+        >
+          <X className="w-4.5 h-4.5" />
+        </button>
+
+        {activeMode === 'roadmap' && roadmapStatus?.pipeline ? (
+          <div className="flex-1 min-w-0">
+            <RoadmapHeaderTracker
+              pipeline={roadmapStatus.pipeline}
+              currentStepIndex={roadmapStatus.current_step_index}
+              allDone={roadmapStatus.all_done}
+              deckId={id || ''}
+              deckTitle={session.title}
+              subProgressCurr={(() => {
+                const currentStep = roadmapStatus?.pipeline?.[roadmapStatus?.current_step_index || 0];
+                if (currentStep?.type === 'new_cards') {
+                  return currentStep.progress?.learned ?? 0;
+                } else if (currentStep?.type === 'fsrs_review') {
+                  return currentStep.progress?.reviewed_today ?? roadmapStatus?.review_completed_today ?? 0;
+                }
+                return currentIndex + 1;
+              })()}
+              subProgressTotal={(() => {
+                const currentStep = roadmapStatus?.pipeline?.[roadmapStatus?.current_step_index || 0];
+                if (currentStep?.type === 'new_cards') {
+                  return currentStep.daily_count || currentStep.progress?.target || 20;
+                } else if (currentStep?.type === 'fsrs_review') {
+                  const due = currentStep.progress?.due_count ?? roadmapStatus?.review_due_today ?? 0;
+                  const done = currentStep.progress?.reviewed_today ?? roadmapStatus?.review_completed_today ?? 0;
+                  return done + due;
+                }
+                return session?.questions?.length || 20;
+              })()}
+              streakCount={roadmapStatus?.streak || gamify.streak || 0}
+            />
+          </div>
+        ) : (
+          <>
+            <div className="flex items-center min-w-0 flex-1 mr-2 md:mr-4">
               <h1 className="text-xs md:text-sm font-extrabold text-slate-800 tracking-tight truncate line-clamp-1 leading-snug" title={session.title}>
                 {session.title}
               </h1>
-            )}
-          </div>
-        </div>
+            </div>
       
-        {/* Live Dashboard HUD */}
-        <div className="bg-slate-100/50 border border-slate-200/40 rounded-xl p-0.5 flex items-center gap-0.5 md:gap-1.5 shadow-[inset_0_1px_2px_rgba(0,0,0,0.02)] flex-shrink-0 mr-0.5 md:mr-0">
-          {(() => {
-            const getStepProgressInfo = () => {
-              if (activeMode === 'roadmap') {
-                return null; // Roadmap sub-progress is inside RoadmapHeaderTracker!
-              } else if (activeMode === 'new') {
-                const newTarget = roadmapStatus?.new_target_today ?? 20;
-                const newLearned = roadmapStatus?.new_learned_today ?? 0;
-                return {
-                  label: 'TỪ MỚI',
-                  Icon: Sparkles,
-                  iconColorClass: 'bg-orange-50 text-orange-600',
-                  curr: newLearned,
-                  total: newTarget,
-                  progressText: `${newLearned}/${newTarget}`
+            {/* Live Dashboard HUD */}
+            <div className="bg-slate-100/50 border border-slate-200/40 rounded-xl p-0.5 flex items-center gap-0.5 md:gap-1.5 shadow-[inset_0_1px_2px_rgba(0,0,0,0.02)] flex-shrink-0 mr-0.5 md:mr-0">
+              {(() => {
+                const getStepProgressInfo = () => {
+                  if (activeMode === 'new') {
+                    const newTarget = roadmapStatus?.new_target_today ?? 20;
+                    const newLearned = roadmapStatus?.new_learned_today ?? 0;
+                    return {
+                      label: 'TỪ MỚI',
+                      Icon: Sparkles,
+                      iconColorClass: 'bg-orange-50 text-orange-600',
+                      curr: newLearned,
+                      total: newTarget,
+                      progressText: `${newLearned}/${newTarget}`
+                    };
+                  }
+
+                  const total = session?.questions?.length || 0;
+                  const curr = Math.min(total, currentIndex + 1);
+                  return {
+                    label: activeMode === 'fsrs' ? 'ÔN TẬP' : 'BÀI HỌC',
+                    Icon: activeMode === 'fsrs' ? Brain : BookOpen,
+                    iconColorClass: activeMode === 'fsrs' ? 'bg-indigo-50 text-indigo-600' : 'bg-orange-50 text-orange-600',
+                    curr,
+                    total,
+                    progressText: total > 0 ? `${curr}/${total}` : '--'
+                  };
                 };
-              }
 
-              const total = session?.questions?.length || 0;
-              const curr = Math.min(total, currentIndex + 1);
-              return {
-                label: activeMode === 'fsrs' ? 'ÔN TẬP' : 'BÀI HỌC',
-                Icon: activeMode === 'fsrs' ? Brain : BookOpen,
-                iconColorClass: activeMode === 'fsrs' ? 'bg-indigo-50 text-indigo-600' : 'bg-orange-50 text-orange-600',
-                curr,
-                total,
-                progressText: total > 0 ? `${curr}/${total}` : '--'
-              };
-            };
+                const stepInfo = getStepProgressInfo();
+                if (!stepInfo) return null;
 
-            const stepInfo = getStepProgressInfo();
-            if (!stepInfo) return null;
+                const label = stepInfo.label;
+                const Icon = stepInfo.Icon;
+                const iconColorClass = stepInfo.iconColorClass;
+                const progressText = stepInfo.progressText;
 
-            const label = stepInfo.label;
-            const Icon = stepInfo.Icon;
-            const iconColorClass = stepInfo.iconColorClass;
-            const progressText = stepInfo.progressText;
-
-            return (
-              <div className="flex items-center bg-white/90 border border-slate-200/30 rounded-lg p-0.5 pr-1 md:pr-1.5 shadow-sm min-w-[56px] xs:min-w-[62px] md:min-w-[72px]" title={`Tiến độ hiện tại: ${label}`}>
-                <div className={`w-4 h-4 md:w-5 md:h-5 flex items-center justify-center rounded mr-0.5 md:mr-1 flex-shrink-0 ${iconColorClass}`}>
-                  <Icon className="w-2.5 h-2.5 md:w-3 md:h-3" />
+                return (
+                  <div className="flex items-center bg-white/90 border border-slate-200/30 rounded-lg p-0.5 pr-1 md:pr-1.5 shadow-sm min-w-[56px] xs:min-w-[62px] md:min-w-[72px]" title={`Tiến độ hiện tại: ${label}`}>
+                    <div className={`w-4 h-4 md:w-5 md:h-5 flex items-center justify-center rounded mr-0.5 md:mr-1 flex-shrink-0 ${iconColorClass}`}>
+                      <Icon className="w-2.5 h-2.5 md:w-3 md:h-3" />
+                    </div>
+                    <div className="flex flex-col min-w-0">
+                      <span className="text-[5.5px] md:text-[6.5px] text-slate-400 font-extrabold uppercase tracking-wider leading-none">{label}</span>
+                      <div className="h-2.5 md:h-3 overflow-hidden relative min-w-[20px]">
+                        <AnimatePresence mode="popLayout" initial={false}>
+                          <motion.span
+                            key={progressText}
+                            initial={{ y: 8, opacity: 0 }}
+                            animate={{ y: 0, opacity: 1 }}
+                            exit={{ y: -8, opacity: 0 }}
+                            transition={{ type: "spring", stiffness: 350, damping: 18 }}
+                            className="text-[7.5px] md:text-[8.5px] font-black text-slate-700 leading-none block truncate"
+                          >
+                            {progressText}
+                          </motion.span>
+                        </AnimatePresence>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })()}
+          
+              {/* Item 3: Timer */}
+              <div 
+                onClick={toggleTimeMode}
+                className="flex items-center bg-white/90 border border-slate-200/30 rounded-lg p-0.5 pr-1 md:pr-1.5 shadow-sm min-w-[52px] xs:min-w-[56px] md:min-w-[66px] cursor-pointer active:scale-95 transition-all select-none hover:bg-slate-50" 
+                title={
+                  timeMode === 'card' 
+                    ? "Thời gian học thẻ này - Click để chuyển sang thời gian ngày"
+                    : timeMode === 'today'
+                      ? "Thời gian học trong ngày - Click để chuyển sang tổng thời gian"
+                      : "Tổng thời gian học toàn bộ - Click để chuyển sang thời gian thẻ này"
+                }
+              >
+                <div className="w-4 h-4 md:w-5 md:h-5 flex items-center justify-center bg-emerald-50 text-emerald-600 rounded mr-0.5 md:mr-1 flex-shrink-0">
+                  <Clock className="w-2.5 h-2.5 md:w-3 md:h-3" />
                 </div>
                 <div className="flex flex-col min-w-0">
-                  <span className="text-[5.5px] md:text-[6.5px] text-slate-400 font-extrabold uppercase tracking-wider leading-none">{label}</span>
-                  <div className="h-2.5 md:h-3 overflow-hidden relative min-w-[20px]">
+                  <span className="text-[5.5px] md:text-[6.5px] text-slate-400 font-extrabold uppercase tracking-wider leading-none">
+                    {timeMode === 'card' ? 'Time' : timeMode === 'today' ? 'Today' : 'Total'}
+                  </span>
+                  <div className="h-2.5 md:h-3 overflow-hidden relative min-w-[15px]">
+                    <TimerWidget
+                      timeMode={timeMode as any}
+                      initialTodayTime={initialTodayTime}
+                      initialAllTimeTime={initialAllTimeTime}
+                      showFeedback={showFeedback}
+                      hasRated={selectedOption !== null}
+                      mainTab={mainTab}
+                      currentIndex={currentIndex}
+                      timeLeftRef={timeLeftRef}
+                      sessionStudyTimeRef={sessionStudyTimeRef}
+                      formatHeaderTime={formatHeaderTime}
+                    />
+                  </div>
+                </div>
+              </div>
+          
+              {/* Item 4: Current user score */}
+              <div 
+                onClick={toggleScoreMode}
+                className="flex items-center bg-white/90 border border-slate-200/30 rounded-lg p-0.5 pr-1 md:pr-1.5 shadow-sm min-w-[52px] xs:min-w-[56px] md:min-w-[66px] cursor-pointer active:scale-95 transition-all select-none hover:bg-slate-50" 
+                title={
+                  scoreMode === 'all' 
+                    ? "Điểm số toàn bộ (XP) - Click để chuyển sang điểm ngày"
+                    : "Điểm số trong ngày (XP) - Click để chuyển sang toàn bộ điểm"
+                }
+              >
+                <div className="w-4 h-4 md:w-5 md:h-5 flex items-center justify-center bg-amber-50 text-amber-600 rounded mr-0.5 md:mr-1 flex-shrink-0">
+                  <Trophy className="w-2.5 h-2.5 md:w-3 md:h-3" />
+                </div>
+                <div className="flex flex-col min-w-0">
+                  <span className="text-[5.5px] md:text-[6.5px] text-slate-400 font-extrabold uppercase tracking-wider leading-none">
+                    {scoreMode === 'all' ? 'Score' : 'Today'}
+                  </span>
+                  <div className="h-2.5 md:h-3 overflow-hidden relative min-w-[25px]">
                     <AnimatePresence mode="popLayout" initial={false}>
                       <motion.span
-                        key={progressText}
+                        key={scoreMode === 'all' ? gamify.xp : initialTodayXP + sessionXP}
                         initial={{ y: 8, opacity: 0 }}
                         animate={{ y: 0, opacity: 1 }}
                         exit={{ y: -8, opacity: 0 }}
                         transition={{ type: "spring", stiffness: 350, damping: 18 }}
                         className="text-[7.5px] md:text-[8.5px] font-black text-slate-700 leading-none block truncate"
                       >
-                        {progressText}
+                        {
+                          scoreMode === 'all' 
+                            ? gamify.xp.toLocaleString() 
+                            : (initialTodayXP + sessionXP).toLocaleString()
+                        }
                       </motion.span>
                     </AnimatePresence>
                   </div>
                 </div>
               </div>
-            );
-          })()}
-      
-          {/* Item 3: Timer */}
-          <div 
-            onClick={toggleTimeMode}
-            className="flex items-center bg-white/90 border border-slate-200/30 rounded-lg p-0.5 pr-1 md:pr-1.5 shadow-sm min-w-[52px] xs:min-w-[56px] md:min-w-[66px] cursor-pointer active:scale-95 transition-all select-none hover:bg-slate-50" 
-            title={
-              timeMode === 'card' 
-                ? "Thời gian học thẻ này - Click để chuyển sang thời gian ngày"
-                : timeMode === 'today'
-                  ? "Thời gian học trong ngày - Click để chuyển sang tổng thời gian"
-                  : "Tổng thời gian học toàn bộ - Click để chuyển sang thời gian thẻ này"
-            }
-          >
-            <div className="w-4 h-4 md:w-5 md:h-5 flex items-center justify-center bg-emerald-50 text-emerald-600 rounded mr-0.5 md:mr-1 flex-shrink-0">
-              <Clock className="w-2.5 h-2.5 md:w-3 md:h-3" />
             </div>
-            <div className="flex flex-col min-w-0">
-              <span className="text-[5.5px] md:text-[6.5px] text-slate-400 font-extrabold uppercase tracking-wider leading-none">
-                {timeMode === 'card' ? 'Time' : timeMode === 'today' ? 'Today' : 'Total'}
-              </span>
-              <div className="h-2.5 md:h-3 overflow-hidden relative min-w-[15px]">
-                <TimerWidget
-                  timeMode={timeMode as any}
-                  initialTodayTime={initialTodayTime}
-                  initialAllTimeTime={initialAllTimeTime}
-                  showFeedback={showFeedback}
-                  hasRated={selectedOption !== null}
-                  mainTab={mainTab}
-                  currentIndex={currentIndex}
-                  timeLeftRef={timeLeftRef}
-                  sessionStudyTimeRef={sessionStudyTimeRef}
-                  formatHeaderTime={formatHeaderTime}
-                />
-              </div>
-            </div>
-          </div>
-      
-          {/* Item 4: Current user score / Streak in Roadmap mode */}
-          {activeMode === 'roadmap' ? (
-            <div 
-              className="flex items-center bg-orange-50 border border-orange-200/80 rounded-lg p-0.5 pr-1.5 shadow-sm" 
-              title="Chuỗi ngày liên tiếp Roadmap Streak"
-            >
-              <Flame className="w-3.5 h-3.5 text-orange-500 fill-orange-500 mr-1 animate-pulse" />
-              <div className="flex flex-col">
-                <span className="text-[6px] text-orange-600 font-extrabold uppercase tracking-wider leading-none">Streak</span>
-                <span className="text-[9px] font-black text-orange-600 leading-none mt-0.5">
-                  {roadmapStatus?.streak || 0}d
-                </span>
-              </div>
-            </div>
-          ) : (
-            <div 
-              onClick={toggleScoreMode}
-              className="flex items-center bg-white/90 border border-slate-200/30 rounded-lg p-0.5 pr-1 md:pr-1.5 shadow-sm min-w-[52px] xs:min-w-[56px] md:min-w-[66px] cursor-pointer active:scale-95 transition-all select-none hover:bg-slate-50" 
-              title={
-                scoreMode === 'all' 
-                  ? "Điểm số toàn bộ (XP) - Click để chuyển sang điểm ngày"
-                  : "Điểm số trong ngày (XP) - Click để chuyển sang toàn bộ điểm"
-              }
-            >
-              <div className="w-4 h-4 md:w-5 md:h-5 flex items-center justify-center bg-amber-50 text-amber-600 rounded mr-0.5 md:mr-1 flex-shrink-0">
-                <Trophy className="w-2.5 h-2.5 md:w-3 md:h-3" />
-              </div>
-              <div className="flex flex-col min-w-0">
-                <span className="text-[5.5px] md:text-[6.5px] text-slate-400 font-extrabold uppercase tracking-wider leading-none">
-                  {scoreMode === 'all' ? 'Score' : 'Today'}
-                </span>
-                <div className="h-2.5 md:h-3 overflow-hidden relative min-w-[25px]">
-                  <AnimatePresence mode="popLayout" initial={false}>
-                    <motion.span
-                      key={scoreMode === 'all' ? gamify.xp : initialTodayXP + sessionXP}
-                      initial={{ y: 8, opacity: 0 }}
-                      animate={{ y: 0, opacity: 1 }}
-                      exit={{ y: -8, opacity: 0 }}
-                      transition={{ type: "spring", stiffness: 350, damping: 18 }}
-                      className="text-[7.5px] md:text-[8.5px] font-black text-slate-700 leading-none block truncate"
-                    >
-                      {
-                        scoreMode === 'all' 
-                          ? gamify.xp.toLocaleString() 
-                          : (initialTodayXP + sessionXP).toLocaleString()
-                      }
-                    </motion.span>
-                  </AnimatePresence>
-                </div>
-              </div>
-            </div>
-          )}
-
-        </div>
+          </>
+        )}
       </header>
 
       {/* Decoupled - Practice mode moved to standalone /practice/:id page */}

@@ -32,8 +32,8 @@
       "_utils-legacy-D0uXNIBy.js"
     ]
   },
-  "_RoadmapHeaderTracker-legacy-mdMsIPg5.js": {
-    "file": "assets/RoadmapHeaderTracker-legacy-mdMsIPg5.js",
+  "_RoadmapHeaderTracker-legacy-ctrqdRVF.js": {
+    "file": "assets/RoadmapHeaderTracker-legacy-ctrqdRVF.js",
     "name": "RoadmapHeaderTracker",
     "imports": [
       "_react-core-vendor-legacy-cBApLgv9.js",
@@ -107,7 +107,7 @@
     ]
   },
   "index-legacy.html": {
-    "file": "assets/index-legacy-D89WFxZl.js",
+    "file": "assets/index-legacy-6i--HypV.js",
     "name": "index",
     "src": "index-legacy.html",
     "isEntry": true,
@@ -139,7 +139,7 @@
     ]
   },
   "src/pages/Admin-legacy.tsx": {
-    "file": "assets/Admin-legacy-CJ6MYfc6.js",
+    "file": "assets/Admin-legacy-TPuuEOO-.js",
     "name": "Admin",
     "src": "src/pages/Admin-legacy.tsx",
     "isDynamicEntry": true,
@@ -152,7 +152,7 @@
     ]
   },
   "src/pages/Dashboard-legacy.tsx": {
-    "file": "assets/Dashboard-legacy-BXlFXTZP.js",
+    "file": "assets/Dashboard-legacy-C-Yfo3gK.js",
     "name": "Dashboard",
     "src": "src/pages/Dashboard-legacy.tsx",
     "isDynamicEntry": true,
@@ -210,7 +210,7 @@
     ]
   },
   "src/pages/FlashcardDetail-legacy.tsx": {
-    "file": "assets/FlashcardDetail-legacy-bu5NNgie.js",
+    "file": "assets/FlashcardDetail-legacy-BxQgnXAR.js",
     "name": "FlashcardDetail",
     "src": "src/pages/FlashcardDetail-legacy.tsx",
     "isDynamicEntry": true,
@@ -227,7 +227,7 @@
     ]
   },
   "src/pages/FlashcardPlay-legacy.tsx": {
-    "file": "assets/FlashcardPlay-legacy-BUf401nZ.js",
+    "file": "assets/FlashcardPlay-legacy-CrkNHQzK.js",
     "name": "FlashcardPlay",
     "src": "src/pages/FlashcardPlay-legacy.tsx",
     "isDynamicEntry": true,
@@ -238,7 +238,7 @@
       "_animations-vendor-legacy-DSorD1UE.js",
       "_vendor-legacy-3VFEuxyX.js",
       "_DailyComparisonChart-legacy-BEQpYoJH.js",
-      "_RoadmapHeaderTracker-legacy-mdMsIPg5.js",
+      "_RoadmapHeaderTracker-legacy-ctrqdRVF.js",
       "_FlashcardEditModal-legacy-B2RfG8Kn.js",
       "_audio-legacy-DuFJrEl5.js",
       "_text-legacy-DYqHS0RK.js",
@@ -273,7 +273,7 @@
     ]
   },
   "src/pages/Library-legacy.tsx": {
-    "file": "assets/Library-legacy-Dkmxhqdg.js",
+    "file": "assets/Library-legacy-CKbeDI--.js",
     "name": "Library",
     "src": "src/pages/Library-legacy.tsx",
     "isDynamicEntry": true,
@@ -300,7 +300,7 @@
     ]
   },
   "src/pages/PracticePlay-legacy.tsx": {
-    "file": "assets/PracticePlay-legacy-B33Mbjsl.js",
+    "file": "assets/PracticePlay-legacy-BS3ds4nF.js",
     "name": "PracticePlay",
     "src": "src/pages/PracticePlay-legacy.tsx",
     "isDynamicEntry": true,
@@ -311,7 +311,7 @@
       "_animations-vendor-legacy-DSorD1UE.js",
       "_vendor-legacy-3VFEuxyX.js",
       "_DailyComparisonChart-legacy-BEQpYoJH.js",
-      "_RoadmapHeaderTracker-legacy-mdMsIPg5.js",
+      "_RoadmapHeaderTracker-legacy-ctrqdRVF.js",
       "_FlashcardEditModal-legacy-B2RfG8Kn.js",
       "_LearningInsightsModal-legacy-DH0Epasn.js",
       "_audio-legacy-DuFJrEl5.js",
@@ -320,7 +320,7 @@
     ]
   },
   "src/pages/Profile-legacy.tsx": {
-    "file": "assets/Profile-legacy-B7kmXeTR.js",
+    "file": "assets/Profile-legacy-CZTzHoJb.js",
     "name": "Profile",
     "src": "src/pages/Profile-legacy.tsx",
     "isDynamicEntry": true,
@@ -361,7 +361,7 @@
     ]
   },
   "src/pages/Settings-legacy.tsx": {
-    "file": "assets/Settings-legacy-FGQJUAD6.js",
+    "file": "assets/Settings-legacy-CbFIunhZ.js",
     "name": "Settings",
     "src": "src/pages/Settings-legacy.tsx",
     "isDynamicEntry": true,
@@ -427,8 +427,8 @@
       "_utils-KspuahjX.js"
     ]
   },
-  "_RoadmapHeaderTracker-DTiVZm9y.js": {
-    "file": "assets/RoadmapHeaderTracker-DTiVZm9y.js",
+  "_RoadmapHeaderTracker-D_7zrdnn.js": {
+    "file": "assets/RoadmapHeaderTracker-D_7zrdnn.js",
     "name": "RoadmapHeaderTracker",
     "imports": [
       "_react-core-vendor-CDIaTNJf.js",
@@ -502,7 +502,7 @@
     ]
   },
   "index.html": {
-    "file": "assets/index-QYXT7rWo.js",
+    "file": "assets/index-BUMkWzCo.js",
     "name": "index",
     "src": "index.html",
     "isEntry": true,
@@ -533,11 +533,11 @@
       "src/pages/DeckRoadmap.tsx"
     ],
     "css": [
-      "assets/index-DZzvdvEd.css"
+      "assets/index-DUc5VIcu.css"
     ]
   },
   "src/pages/Admin.tsx": {
-    "file": "assets/Admin-kc_PXetv.js",
+    "file": "assets/Admin-Z4-Nbsc0.js",
     "name": "Admin",
     "src": "src/pages/Admin.tsx",
     "isDynamicEntry": true,
@@ -550,7 +550,7 @@
     ]
   },
   "src/pages/Dashboard.tsx": {
-    "file": "assets/Dashboard-DQlV2wEm.js",
+    "file": "assets/Dashboard-C2tTAaKX.js",
     "name": "Dashboard",
     "src": "src/pages/Dashboard.tsx",
     "isDynamicEntry": true,
@@ -608,7 +608,7 @@
     ]
   },
   "src/pages/FlashcardDetail.tsx": {
-    "file": "assets/FlashcardDetail-Dvq0F2le.js",
+    "file": "assets/FlashcardDetail-CBK-97L4.js",
     "name": "FlashcardDetail",
     "src": "src/pages/FlashcardDetail.tsx",
     "isDynamicEntry": true,
@@ -625,7 +625,7 @@
     ]
   },
   "src/pages/FlashcardPlay.tsx": {
-    "file": "assets/FlashcardPlay-N82W7VFL.js",
+    "file": "assets/FlashcardPlay-BWfQCmzI.js",
     "name": "FlashcardPlay",
     "src": "src/pages/FlashcardPlay.tsx",
     "isDynamicEntry": true,
@@ -636,7 +636,7 @@
       "_animations-vendor-BeQiPDnd.js",
       "_vendor-DtOZoTZ9.js",
       "_DailyComparisonChart-g-4Nbmyv.js",
-      "_RoadmapHeaderTracker-DTiVZm9y.js",
+      "_RoadmapHeaderTracker-D_7zrdnn.js",
       "_FlashcardEditModal-jaOVq_lz.js",
       "_audio-DULhAeht.js",
       "_text-DbvAHA7m.js",
@@ -671,7 +671,7 @@
     ]
   },
   "src/pages/Library.tsx": {
-    "file": "assets/Library-Bj5rTF1N.js",
+    "file": "assets/Library-C9yqHxId.js",
     "name": "Library",
     "src": "src/pages/Library.tsx",
     "isDynamicEntry": true,
@@ -698,7 +698,7 @@
     ]
   },
   "src/pages/PracticePlay.tsx": {
-    "file": "assets/PracticePlay-DiGqzy7t.js",
+    "file": "assets/PracticePlay-CWOI507Y.js",
     "name": "PracticePlay",
     "src": "src/pages/PracticePlay.tsx",
     "isDynamicEntry": true,
@@ -709,7 +709,7 @@
       "_animations-vendor-BeQiPDnd.js",
       "_vendor-DtOZoTZ9.js",
       "_DailyComparisonChart-g-4Nbmyv.js",
-      "_RoadmapHeaderTracker-DTiVZm9y.js",
+      "_RoadmapHeaderTracker-D_7zrdnn.js",
       "_FlashcardEditModal-jaOVq_lz.js",
       "_LearningInsightsModal-D0hzbtwf.js",
       "_audio-DULhAeht.js",
@@ -718,7 +718,7 @@
     ]
   },
   "src/pages/Profile.tsx": {
-    "file": "assets/Profile-DXhPCg_Y.js",
+    "file": "assets/Profile-D4udIXKc.js",
     "name": "Profile",
     "src": "src/pages/Profile.tsx",
     "isDynamicEntry": true,
@@ -759,7 +759,7 @@
     ]
   },
   "src/pages/Settings.tsx": {
-    "file": "assets/Settings-rAqAgqqD.js",
+    "file": "assets/Settings-CKqMCfCh.js",
     "name": "Settings",
     "src": "src/pages/Settings.tsx",
     "isDynamicEntry": true,
