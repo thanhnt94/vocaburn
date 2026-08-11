@@ -3652,9 +3652,9 @@ export default function FlashcardPlay() {
           return (
             <>
               {/* Sleek Underline Progress Bar at the Bottom Edge of Header */}
-              <div className="absolute bottom-0 left-0 right-0 h-1 bg-slate-900/80 pointer-events-none z-[125]">
+              <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-slate-900/80 pointer-events-none z-[125]">
                 <motion.div 
-                  className="h-full bg-gradient-to-r from-orange-500 via-amber-400 to-emerald-400 shadow-[0_0_12px_rgba(249,115,22,0.9)] rounded-r-full"
+                  className="h-full bg-gradient-to-r from-orange-500 via-amber-400 to-emerald-400 shadow-[0_0_8px_rgba(249,115,22,0.9)] rounded-r-full"
                   initial={{ width: 0 }}
                   animate={{ width: `${activePercent}%` }}
                   transition={{ type: "spring", stiffness: 120, damping: 18 }}
