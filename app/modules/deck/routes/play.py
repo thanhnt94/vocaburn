@@ -341,8 +341,9 @@ async def record_answer(request: Request, data: dict, db: AsyncSession = Depends
                 State.Review: 2,
                 State.Relearning: 3
             }
-            mastery.state = state_reverse_map.get(updated_card.state, 1)
-            
+            # Save prior due date to track Option B roadmap eligibility
+            mastery.last_due = mastery.due
+
             # Calculate fractional due date for Review cards
             if updated_card.state == State.Review:
                 float_interval_days = (updated_card.stability / scheduler._FACTOR) * (
@@ -2434,7 +2435,17 @@ async def get_deck_roadmap_status_helper(db: AsyncSession, user_id: int, deck_id
         )
     ) or 0
     
+    fsrs_overdue_hours = 24
+    for st in pipeline_input:
+        if st.get("type") == "fsrs_review":
+            fsrs_overdue_hours = int(st.get("overdue_hours", 24))
+            break
+
+    now_utc = datetime.utcnow()
+    cutoff_time = now_utc - timedelta(hours=fsrs_overdue_hours)
+
     from sqlalchemy import or_
+    # Option B: Only count cards that were ORIGINALLY DUE (or overdue) when reviewed today
     review_completed_today = await db.scalar(
         select(func.count(UserCardMastery.id))
         .join(Flashcard, UserCardMastery.card_id == Flashcard.id)
@@ -2448,18 +2459,14 @@ async def get_deck_roadmap_status_helper(db: AsyncSession, user_id: int, deck_id
             or_(
                 min_answer_sub.c.min_created == None,
                 min_answer_sub.c.min_created < day_start
+            ),
+            or_(
+                UserCardMastery.last_due == None,
+                UserCardMastery.last_due <= cutoff_time,
+                UserCardMastery.due <= cutoff_time
             )
         )
     ) or 0
-    
-    fsrs_overdue_hours = 24
-    for st in pipeline_input:
-        if st.get("type") == "fsrs_review":
-            fsrs_overdue_hours = int(st.get("overdue_hours", 24))
-            break
-
-    now_utc = datetime.utcnow()
-    cutoff_time = now_utc - timedelta(hours=fsrs_overdue_hours)
 
     review_due_today = await db.scalar(
         select(func.count(UserCardMastery.id))

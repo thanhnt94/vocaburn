@@ -228,6 +228,7 @@ class UserCardMastery(Base):
     state = Column(Integer, default=0) # 0=New, 1=Learning, 2=Review, 3=Relearning
     step = Column(Integer, default=0)
     due = Column(DateTime, default=datetime.utcnow, index=True)
+    last_due = Column(DateTime, nullable=True)
     last_review = Column(DateTime, nullable=True)
     
     card = relationship("Flashcard")
