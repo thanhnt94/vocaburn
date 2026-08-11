@@ -1067,11 +1067,12 @@ export default function FlashcardPlay() {
 
             // Adjust initial index based on smart learning mode
             const initIndex = async () => {
+              const isFsrsSession = mode === 'fsrs_review' || (subMode as any) === 'review' || mode === 'review';
               const searchParams = new URLSearchParams(window.location.search);
               const urlMode = searchParams.get('mode');
-              const savedMode = urlMode || userSettings.quiz_learning_mode || 'fsrs';
+              const savedMode = isFsrsSession ? 'review' : (urlMode || 'roadmap');
 
-              if (urlMode === 'roadmap' || urlMode === 'new' || urlMode === 'review' || restoredAnswers[curIdx] === undefined) {
+              if (urlMode === 'roadmap' || urlMode === 'new' || urlMode === 'review' || isFsrsSession || restoredAnswers[curIdx] === undefined) {
                 const answeredIndexes = Object.keys(restoredAnswers).map(Number);
                 try {
                   const res = await axios.post(`/api/v1/deck/${id}/next-card`, {
@@ -2285,12 +2286,15 @@ export default function FlashcardPlay() {
     const answeredIndexes = Object.keys(updatedAnswers).map(Number)
     
     try {
+      const isFsrsSession = mode === 'fsrs_review' || (subMode as any) === 'review' || mode === 'review';
+      const targetMode = isFsrsSession ? 'review' : (activeMode === 'fsrs' ? 'roadmap' : activeMode);
+
       const res = await axios.post(`/api/v1/deck/${id}/next-card`, {
-        mode: activeMode,
+        mode: targetMode,
         answered_indexes: answeredIndexes,
         current_index: currentIndex,
-        random_enabled: randomEnabled
-      })
+        random_enabled: !!userSettings.random_enabled
+      });
       nextIdx = res.data.next_index
     } catch (err) {
       console.error("Failed to fetch next card from backend", err)

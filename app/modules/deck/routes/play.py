@@ -1659,88 +1659,23 @@ async def get_next_card(request: Request, deck_id: int, data: dict, db: AsyncSes
 
     effective_answered = set(answered_indexes) | ignored_indexes
 
-    if mode == "roadmap":
-        from app.modules.deck.models import UserDeckSettings
-        user_sett_res = await db.execute(
-            select(UserDeckSettings).where(
-                UserDeckSettings.user_id == user_id,
-                UserDeckSettings.deck_id == deck_id
-            )
-        )
-        user_sett = user_sett_res.scalar_one_or_none()
-        settings = user_sett.settings if (user_sett and user_sett.settings) else {}
-        pipeline = settings.get("pipeline") or []
-        roadmap_daily_new = 10
-        for st in pipeline:
-            if st.get("type") == "new_cards":
-                roadmap_daily_new = int(st.get("daily_count", 10))
-                break
-
-        today_start = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
-        from app.modules.deck.models import UserAnswer, DeckAttempt
-        min_answer_sub = select(
-            UserAnswer.card_id,
-            func.min(UserAnswer.created_at).label("min_created")
-        ).join(DeckAttempt, UserAnswer.attempt_id == DeckAttempt.id)\
-         .where(
-             DeckAttempt.user_id == user_id,
-             DeckAttempt.mode.in_(["sequential", "roadmap", "play", "fsrs", "new", "review"])
-         )\
-         .group_by(UserAnswer.card_id).subquery()
-
-        new_learned_today = await db.scalar(
-            select(func.count(min_answer_sub.c.card_id))
-            .join(Flashcard, min_answer_sub.c.card_id == Flashcard.id)
-            .where(
-                Flashcard.deck_id == deck_id,
-                min_answer_sub.c.min_created >= today_start
-            )
-        ) or 0
-
-        if new_learned_today < roadmap_daily_new:
-            new_cards = []
-            for idx, c in enumerate(deck.cards):
-                if idx in ignored_indexes:
-                    continue
-                m = mastery_map.get(c.id)
-                is_new = not m or m.state == 0 or m.stability is None
-                if is_new and idx not in effective_answered:
-                    new_cards.append(idx)
-            if new_cards:
-                if random_enabled:
-                    import random
-                    return {"next_index": random.choice(new_cards), "phase": "new"}
-                else:
-                    return {"next_index": new_cards[0], "phase": "new"}
-
-        fsrs_overdue_hours = 24
-        for st in pipeline:
-            if st.get("type") == "fsrs_review":
-                fsrs_overdue_hours = int(st.get("overdue_hours", 24))
-                break
-
-        tomorrow_start = today_start + timedelta(days=1)
-        cutoff_time = tomorrow_start - timedelta(hours=fsrs_overdue_hours)
-        due_cards = []
+    if mode in ("roadmap", "new"):
+        new_cards = []
         for idx, c in enumerate(deck.cards):
             if idx in ignored_indexes:
                 continue
             m = mastery_map.get(c.id)
-            if not m or m.state == 0 or m.stability is None:
-                continue
-            is_due = m.due <= cutoff_time
-            if is_due and idx not in answered_indexes:
-                due_cards.append({"idx": idx, "stability": m.stability or 0.0})
-
-        if due_cards:
+            is_new = not m or m.state == 0 or m.stability is None
+            if is_new and idx not in effective_answered:
+                new_cards.append(idx)
+        if new_cards:
             if random_enabled:
                 import random
-                next_index = random.choice(due_cards)["idx"]
-                return {"next_index": next_index, "phase": "review"}
+                return {"next_index": random.choice(new_cards), "phase": "new"}
             else:
-                due_cards.sort(key=lambda x: x["stability"])
-                return {"next_index": due_cards[0]["idx"], "phase": "review"}
+                return {"next_index": new_cards[0], "phase": "new"}
 
+        # If no new cards remain in the deck, fallback to review or unanswered cards
         unanswered = [idx for idx in range(total) if idx not in effective_answered]
         if unanswered:
             if random_enabled:
@@ -1751,9 +1686,10 @@ async def get_next_card(request: Request, deck_id: int, data: dict, db: AsyncSes
 
         return {"next_index": min(current_index + 1, total - 1), "phase": "free"}
 
-    elif mode == "fsrs":
+    elif mode in ("fsrs", "review", "fsrs_review"):
         now_utc = datetime.utcnow()
         due_cards = []
+        all_review_cards = []
         for idx, c in enumerate(deck.cards):
             if idx in ignored_indexes:
                 continue
@@ -1764,11 +1700,11 @@ async def get_next_card(request: Request, deck_id: int, data: dict, db: AsyncSes
 
             is_due = (m.due - timedelta(seconds=30)) <= now_utc
             has_answered = idx in answered_indexes
-            if has_answered and not is_due:
-                continue
-
-            if is_due:
-                due_cards.append({"idx": idx, "stability": m.stability or 0.0})
+            
+            if not has_answered:
+                all_review_cards.append({"idx": idx, "due": m.due, "stability": m.stability or 0.0})
+                if is_due:
+                    due_cards.append({"idx": idx, "stability": m.stability or 0.0})
 
         if due_cards:
             if random_enabled:
@@ -1777,33 +1713,21 @@ async def get_next_card(request: Request, deck_id: int, data: dict, db: AsyncSes
             else:
                 due_cards.sort(key=lambda x: x["stability"])
                 next_index = due_cards[0]["idx"]
-            return {"next_index": next_index}
+            return {"next_index": next_index, "phase": "review"}
+        elif all_review_cards:
+            # All 24h due cards are reviewed; serve remaining review cards (due under 24h) for overachievement
+            all_review_cards.sort(key=lambda x: x["due"])
+            return {"next_index": all_review_cards[0]["idx"], "phase": "review"}
         else:
-            new_cards = []
-            for idx, c in enumerate(deck.cards):
-                if idx in ignored_indexes:
-                    continue
-                m = mastery_map.get(c.id)
-                is_new = not m or m.state == 0 or m.stability is None
-                has_not_answered = idx not in effective_answered
-                if is_new and has_not_answered:
-                    new_cards.append(idx)
-            if new_cards:
-                if random_enabled:
-                    import random
-                    return {"next_index": random.choice(new_cards)}
-                else:
-                    return {"next_index": new_cards[0]}
-
             unanswered = [idx for idx in range(total) if idx not in effective_answered]
             if unanswered:
                 if random_enabled:
                     import random
-                    return {"next_index": random.choice(unanswered)}
+                    return {"next_index": random.choice(unanswered), "phase": "free"}
                 else:
-                    return {"next_index": unanswered[0]}
+                    return {"next_index": unanswered[0], "phase": "free"}
 
-            return {"next_index": min(current_index + 1, total - 1)}
+            return {"next_index": min(current_index + 1, total - 1), "phase": "free"}
 
     elif mode == "new":
         new_cards = []
