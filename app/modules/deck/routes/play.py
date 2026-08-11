@@ -2606,7 +2606,16 @@ async def get_deck_roadmap_status_helper(db: AsyncSession, user_id: int, deck_id
     goal_res = await db.execute(select(UserDeckGoal).where(UserDeckGoal.user_id == user_id, UserDeckGoal.deck_id == deck_id))
     goal = goal_res.scalar_one_or_none()
     
+    prog = None
     if goal:
+        prog_res = await db.execute(
+            select(UserDailyProgress).where(
+                UserDailyProgress.goal_id == goal.id,
+                UserDailyProgress.date == target_date_str
+            )
+        )
+        prog = prog_res.scalar_one_or_none()
+
         past_7_dates = [(today_date - timedelta(days=i)).isoformat() for i in range(6, -1, -1)]
         progress_res = await db.execute(
             select(UserDailyProgress.date, UserDailyProgress.is_target_met)
