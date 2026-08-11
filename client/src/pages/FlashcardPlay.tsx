@@ -357,6 +357,8 @@ export default function FlashcardPlay() {
   const navigate = useNavigate()
   const { user, gamify, setUser, setGamify, addXp } = useAppStore()
 
+  const [isHeaderSurging, setIsHeaderSurging] = useState(false)
+
   const {
     status: roadmapStatus,
     refetchRoadmap,
@@ -3622,18 +3624,25 @@ export default function FlashcardPlay() {
           ? "bg-slate-950 border-b border-slate-800/80 text-white shadow-xl"
           : "bg-white/95 border-b border-slate-100/80 text-slate-800 shadow-[0_1px_20px_rgba(99,102,241,0.04)]"
       )}>
-        <button 
-          onClick={() => navigate('/')} 
-          className={cn(
-            "w-8.5 h-8.5 flex items-center justify-center rounded-xl shadow-2xs active:scale-90 transition-all flex-shrink-0 border relative z-[140]",
-            roadmapStatus?.pipeline
-              ? "bg-slate-900/90 hover:bg-slate-800 text-slate-200 border-slate-700/80 hover:text-white"
-              : "bg-slate-50 hover:bg-indigo-50 text-slate-600 border-slate-200/60 hover:text-indigo-600 hover:border-indigo-100"
+        <AnimatePresence>
+          {!isHeaderSurging && (
+            <motion.button 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => navigate('/')} 
+              className={cn(
+                "w-8.5 h-8.5 flex items-center justify-center rounded-xl shadow-2xs active:scale-90 transition-all flex-shrink-0 border relative z-[140]",
+                roadmapStatus?.pipeline
+                  ? "bg-slate-900/90 hover:bg-slate-800 text-slate-200 border-slate-700/80 hover:text-white"
+                  : "bg-slate-50 hover:bg-indigo-50 text-slate-600 border-slate-200/60 hover:text-indigo-600 hover:border-indigo-100"
+              )}
+              title="Thoát phiên học"
+            >
+              <X className="w-4.5 h-4.5" />
+            </motion.button>
           )}
-          title="Thoát phiên học"
-        >
-          <X className="w-4.5 h-4.5" />
-        </button>
+        </AnimatePresence>
 
         {roadmapStatus?.pipeline ? (() => {
           const currentStep = roadmapStatus?.pipeline?.[roadmapStatus?.current_step_index || 0];
@@ -3652,14 +3661,23 @@ export default function FlashcardPlay() {
           return (
             <>
               {/* Sleek Underline Progress Bar at the Bottom Edge of Header */}
-              <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-slate-900/80 pointer-events-none z-[125]">
-                <motion.div 
-                  className="h-full bg-gradient-to-r from-orange-500 via-amber-400 to-emerald-400 shadow-[0_0_8px_rgba(249,115,22,0.9)] rounded-r-full"
-                  initial={{ width: 0 }}
-                  animate={{ width: `${activePercent}%` }}
-                  transition={{ type: "spring", stiffness: 120, damping: 18 }}
-                />
-              </div>
+              <AnimatePresence>
+                {!isHeaderSurging && (
+                  <motion.div 
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    className="absolute bottom-0 left-0 right-0 h-0.5 bg-slate-900/80 pointer-events-none z-[125]"
+                  >
+                    <motion.div 
+                      className="h-full bg-gradient-to-r from-orange-500 via-amber-400 to-emerald-400 shadow-[0_0_8px_rgba(249,115,22,0.9)] rounded-r-full"
+                      initial={{ width: 0 }}
+                      animate={{ width: `${activePercent}%` }}
+                      transition={{ type: "spring", stiffness: 120, damping: 18 }}
+                    />
+                  </motion.div>
+                )}
+              </AnimatePresence>
 
               <div className="flex-1 min-w-0 relative z-[140]">
                 <RoadmapHeaderTracker
@@ -3671,6 +3689,7 @@ export default function FlashcardPlay() {
                   subProgressCurr={subCurr}
                   subProgressTotal={subTotal}
                   streakCount={roadmapStatus?.streak || gamify.streak || 0}
+                  onSurgeChange={setIsHeaderSurging}
                 />
               </div>
             </>

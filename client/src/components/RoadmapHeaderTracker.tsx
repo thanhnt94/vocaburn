@@ -14,6 +14,7 @@ interface RoadmapHeaderTrackerProps {
   subProgressCurr?: number
   subProgressTotal?: number
   streakCount?: number
+  onSurgeChange?: (isSurging: boolean) => void
 }
 
 const STEP_META: Record<string, { emoji: string; label: string }> = {
@@ -33,7 +34,8 @@ export const RoadmapHeaderTracker: React.FC<RoadmapHeaderTrackerProps> = ({
   className,
   subProgressCurr,
   subProgressTotal,
-  streakCount = 0
+  streakCount = 0,
+  onSurgeChange
 }) => {
   // Toggle State: 0 = Nấc 1 (Tên bộ thẻ), 1 = Nấc 2 (Các thông số bài học)
   const [viewMode, setViewMode] = useState<0 | 1>(0)
@@ -55,11 +57,18 @@ export const RoadmapHeaderTracker: React.FC<RoadmapHeaderTrackerProps> = ({
       subProgressCurr > prevCurrRef.current
     ) {
       setIsSurging(true)
-      const t = setTimeout(() => setIsSurging(false), 1200)
-      return () => clearTimeout(t)
+      onSurgeChange?.(true)
+      const t = setTimeout(() => {
+        setIsSurging(false)
+        onSurgeChange?.(false)
+      }, 2000)
+      return () => {
+        clearTimeout(t)
+        onSurgeChange?.(false)
+      }
     }
     prevCurrRef.current = subProgressCurr
-  }, [subProgressCurr])
+  }, [subProgressCurr, onSurgeChange])
 
   const toggleViewMode = () => {
     setViewMode((prev) => (prev === 0 ? 1 : 0))
@@ -74,41 +83,41 @@ export const RoadmapHeaderTracker: React.FC<RoadmapHeaderTrackerProps> = ({
       )}
       title="Bấm vào thanh này để chuyển giữa Nấc 1 (Tên bộ thẻ) & Nấc 2 (Thông số bài học)"
     >
-      {/* FULL-HEIGHT POWER SURGE EXPANSION OVERLAY (XUẤT HIỆN KHI +1 THẺ MỚI) */}
+      {/* FULL-HEIGHT POWER SURGE EXPANSION OVERLAY (XUẤT HIỆN KHI +1 THẺ MỚI - FULL COVERAGE) */}
       <AnimatePresence>
         {isSurging && (
           <motion.div
             initial={{ opacity: 0, scaleY: 0.1 }}
             animate={{ opacity: 1, scaleY: 1 }}
             exit={{ opacity: 0, scaleY: 0.1 }}
-            transition={{ duration: 0.22, ease: "easeOut" }}
-            className="absolute inset-0 bg-slate-950 flex items-center justify-center overflow-hidden z-[200] rounded-xl border border-amber-500/40"
+            transition={{ duration: 0.3, ease: "easeInOut" }}
+            className="fixed inset-x-0 top-0 h-[48px] sm:h-[52px] bg-slate-950 flex items-center justify-center overflow-hidden z-[250] border-b border-amber-500/50 shadow-2xl"
           >
-            {/* Surge Background Beam */}
+            {/* Surge Background Beam Fill */}
             <motion.div
               initial={{ width: 0 }}
               animate={{ width: `${subPercent}%` }}
-              transition={{ duration: 0.55, ease: "easeOut" }}
-              className="absolute inset-y-0 left-0 bg-gradient-to-r from-orange-600 via-amber-500 to-emerald-400 shadow-[0_0_25px_rgba(249,115,22,0.9)]"
+              transition={{ duration: 0.8, ease: "easeOut" }}
+              className="absolute inset-y-0 left-0 bg-gradient-to-r from-orange-600 via-amber-500 to-emerald-400 shadow-[0_0_30px_rgba(249,115,22,0.9)]"
             />
-            {/* Surge Dynamic Beam Flash */}
+            {/* Surge Dynamic Beam Flash Sweep */}
             <motion.div
               initial={{ x: '-100%' }}
               animate={{ x: '200%' }}
-              transition={{ duration: 0.85, ease: "easeInOut" }}
-              className="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent pointer-events-none"
+              transition={{ duration: 1.2, ease: "easeInOut", repeat: 1, repeatType: "reverse" }}
+              className="absolute inset-0 bg-gradient-to-r from-transparent via-white/50 to-transparent pointer-events-none"
             />
             {/* Center Surge Text */}
             <motion.div
               initial={{ scale: 0.7, opacity: 0 }}
               animate={{ scale: [0.85, 1.15, 1], opacity: 1 }}
-              transition={{ duration: 0.35 }}
-              className="relative z-10 font-black text-white text-xs sm:text-sm tracking-wider flex items-center gap-2 drop-shadow-[0_2px_10px_rgba(0,0,0,0.9)]"
+              transition={{ duration: 0.45 }}
+              className="relative z-10 font-black text-white text-xs sm:text-sm tracking-wider flex items-center gap-2.5 drop-shadow-[0_2px_12px_rgba(0,0,0,0.95)]"
             >
-              <Flame className="w-4 h-4 text-amber-300 fill-amber-300 animate-bounce" />
+              <Flame className="w-4.5 h-4.5 text-amber-300 fill-amber-300 animate-bounce" />
               <span>TIẾN BỘ TỪ VỰNG!</span>
               {hasSubProg && (
-                <span className="bg-black/70 px-2 py-0.5 rounded-full border border-amber-300/40 text-amber-300 text-xs font-black">
+                <span className="bg-black/70 px-2.5 py-0.5 rounded-full border border-amber-300/50 text-amber-300 text-xs font-black shadow-md">
                   {subProgressCurr} / {subProgressTotal}
                 </span>
               )}
@@ -160,7 +169,7 @@ export const RoadmapHeaderTracker: React.FC<RoadmapHeaderTrackerProps> = ({
                   <span className="text-white font-extrabold">{currentStep ? (currentStep.label || meta.label) : 'Đã Xong'}</span>
                 </div>
 
-                {/* Con số Tốt / Thẻ (Ví dụ: 12/20) */}
+                {/* Con số Tốt / Thẻ (Ví dụ: 19/20) */}
                 {hasSubProg && (
                   <div className="flex items-center gap-1 bg-slate-900 border border-slate-700/80 px-3 py-0.5 rounded-full text-white font-black text-xs shrink-0 shadow-xs">
                     <span className="text-amber-400 font-black">{subProgressCurr}</span>
@@ -181,13 +190,20 @@ export const RoadmapHeaderTracker: React.FC<RoadmapHeaderTrackerProps> = ({
       </div>
 
       {/* Mode Switcher Button (Nấc 1 ⇄ Nấc 2) */}
-      <button
-        onClick={(e) => { e.stopPropagation(); toggleViewMode(); }}
-        className="flex items-center gap-1 p-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-amber-400 border border-slate-700 text-[10px] font-black shrink-0 transition-all cursor-pointer active:scale-95 shadow-xs relative z-[140]"
-        title="Chuyển chế độ Nấc 1 / Nấc 2"
-      >
-        <ArrowRightLeft className="w-3.5 h-3.5 text-amber-400" />
-      </button>
+      <AnimatePresence>
+        {!isSurging && (
+          <motion.button
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={(e) => { e.stopPropagation(); toggleViewMode(); }}
+            className="flex items-center gap-1 p-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-amber-400 border border-slate-700 text-[10px] font-black shrink-0 transition-all cursor-pointer active:scale-95 shadow-xs relative z-[140]"
+            title="Chuyển chế độ Nấc 1 / Nấc 2"
+          >
+            <ArrowRightLeft className="w-3.5 h-3.5 text-amber-400" />
+          </motion.button>
+        )}
+      </AnimatePresence>
     </div>
   )
 }
