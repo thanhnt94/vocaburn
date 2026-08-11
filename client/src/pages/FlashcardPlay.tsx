@@ -3670,17 +3670,24 @@ export default function FlashcardPlay() {
 
           const currentStep = roadmapStatus?.pipeline?.[displayStepIdx];
           
-          let subCurr = Math.max(0, currentIndex + 1);
+          let subCurr = 0;
           let subTotal = session?.questions?.length || 20;
 
+          const answeredInSession = Object.keys(sessionAnswers).length;
+
           if (currentStep?.type === 'new_cards') {
-            subTotal = currentStep.daily_count || currentStep.progress?.target || roadmapStatus?.new_target_today || 20;
-            // Use current session card index position so it increases 1, 2, 3... 20, 21 (+1), 22 (+2), 25 (+5)
-            subCurr = Math.max(0, currentIndex + 1);
+            const targetNew = currentStep.daily_count || currentStep.progress?.target || roadmapStatus?.new_target_today || 20;
+            const learnedToday = currentStep.progress?.learned ?? roadmapStatus?.new_learned_today ?? 0;
+
+            subTotal = targetNew;
+            subCurr = Math.max(learnedToday, answeredInSession);
           } else if (currentStep?.type === 'fsrs_review') {
-            const dueCount = currentStep.progress?.due_count ?? roadmapStatus?.review_due_today ?? 0;
-            subCurr = Math.max(0, currentIndex + 1);
-            subTotal = dueCount > 0 ? dueCount : (session?.questions?.length || 15);
+            const reviewedToday = currentStep.progress?.reviewed_today ?? roadmapStatus?.review_completed_today ?? 0;
+            const dueRemaining = currentStep.progress?.due_count ?? roadmapStatus?.review_due_today ?? 0;
+
+            const initialDueTarget = dueRemaining + reviewedToday;
+            subTotal = initialDueTarget > 0 ? initialDueTarget : (session?.questions?.length || 15);
+            subCurr = Math.max(reviewedToday, answeredInSession);
           }
 
           const isGoalReached = subCurr >= subTotal;
