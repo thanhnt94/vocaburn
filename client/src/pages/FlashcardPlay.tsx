@@ -176,6 +176,52 @@ function formatRelativeTime(dateStr: string | null | undefined): { relative: str
   return { relative, full };
 }
 
+function formatOverdueTime(dueIsoStr?: string | null): { relative: string; full: string; overdue: boolean; severe: boolean } {
+  if (!dueIsoStr) return { relative: 'none', full: 'Chưa có hạn ôn', overdue: false, severe: false };
+  const d = parseUTCDate(dueIsoStr);
+  if (isNaN(d.getTime())) return { relative: 'none', full: 'Chưa có hạn ôn', overdue: false, severe: false };
+
+  const now = new Date();
+  const diffMs = now.getTime() - d.getTime();
+  
+  const dayStr = String(d.getDate()).padStart(2, '0');
+  const monthStr = String(d.getMonth() + 1).padStart(2, '0');
+  const yearStr = d.getFullYear();
+  const hourStr = String(d.getHours()).padStart(2, '0');
+  const minStr = String(d.getMinutes()).padStart(2, '0');
+  const full = `Hạn ôn: ${dayStr}/${monthStr}/${yearStr} ${hourStr}:${minStr}`;
+
+  if (diffMs <= 0) {
+    return { relative: 'Đúng hạn', full, overdue: false, severe: false };
+  }
+
+  const diffSec = Math.floor(diffMs / 1000);
+  const diffMin = Math.floor(diffSec / 60);
+  const diffHour = Math.floor(diffMin / 60);
+  const diffDay = Math.floor(diffHour / 24);
+
+  let relative = '';
+  let severe = false;
+
+  if (diffDay >= 1) {
+    const remainingHours = diffHour % 24;
+    relative = remainingHours > 0 ? `${diffDay}d ${remainingHours}h` : `${diffDay}d`;
+    severe = diffDay >= 1;
+  } else if (diffHour >= 1) {
+    const remainingMin = diffMin % 60;
+    relative = remainingMin > 0 ? `${diffHour}h ${remainingMin}m` : `${diffHour}h`;
+    severe = diffHour >= 24;
+  } else if (diffMin >= 1) {
+    relative = `${diffMin}m`;
+    severe = false;
+  } else {
+    relative = 'Vừa đến';
+    severe = false;
+  }
+
+  return { relative, full, overdue: true, severe };
+}
+
 const getMapTitleInfo = (mode: string) => {
   switch (mode) {
     case 'unseen':
@@ -4581,14 +4627,26 @@ export default function FlashcardPlay() {
                       
                       return (
                         <div className="flex items-center justify-between bg-gradient-to-r from-slate-50/80 via-white to-slate-50/80 rounded-2xl px-1 py-1.5 sm:px-1.5 sm:py-2 border border-slate-100/90 text-[9px] font-bold shadow-[0_4px_20px_rgba(0,0,0,0.01),inset_0_1px_2px_rgba(255,255,255,0.6)] backdrop-blur-md w-full md:mt-3 mt-1.5 gap-0.5 sm:gap-1.5 animate-fadeIn">
-                          {/* State */}
-                          <div className="flex flex-col items-center gap-0.5 flex-1 justify-center min-w-0">
-                            <span className="text-[9px] sm:text-[10px] font-black text-slate-400 uppercase tracking-wider truncate">State</span>
-                            <span className={cn("px-1.5 py-0.5 rounded-lg border text-[9.5px] sm:text-[11px] font-black uppercase tracking-wider flex items-center gap-0.5 truncate transition-all duration-300", stateColors[stateIdx])}>
-                              <span className={cn("w-1 h-1 rounded-full animate-pulse", stateDots[stateIdx])} />
-                              {stateLabels[stateIdx]}
-                            </span>
-                          </div>
+                          {/* Overdue / Quá hạn */}
+                          {(() => {
+                            const overdueInfo = formatOverdueTime(currentQuestion.fsrs?.due);
+                            return (
+                              <div className="flex flex-col items-center gap-0.5 flex-1 justify-center min-w-0 cursor-pointer select-none" title={overdueInfo.full}>
+                                <span className="text-[9px] sm:text-[10px] font-black text-slate-400 uppercase tracking-wider truncate">Overdue</span>
+                                <span className={cn(
+                                  "px-1.5 py-0.5 rounded-lg border text-[9.5px] sm:text-[11px] font-black uppercase tracking-wider flex items-center gap-0.5 truncate transition-all duration-300 shadow-2xs",
+                                  overdueInfo.overdue
+                                    ? (overdueInfo.severe ? "bg-rose-500/10 text-rose-600 border-rose-500/25 shadow-rose-500/5" : "bg-amber-500/10 text-amber-600 border-amber-500/25 shadow-amber-500/5")
+                                    : "bg-emerald-500/10 text-emerald-600 border-emerald-500/25 shadow-emerald-500/5"
+                                )}>
+                                  {overdueInfo.overdue && (
+                                    <span className={cn("w-1 h-1 rounded-full animate-ping", overdueInfo.severe ? "bg-rose-500" : "bg-amber-500")} />
+                                  )}
+                                  <span>{overdueInfo.relative}</span>
+                                </span>
+                              </div>
+                            );
+                          })()}
                           <div className="w-px h-6 bg-gradient-to-b from-slate-100 via-slate-200/60 to-slate-100 flex-shrink-0" />
 
                           {/* Stability */}
