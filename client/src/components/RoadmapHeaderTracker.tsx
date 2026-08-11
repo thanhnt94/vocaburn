@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react'
-import { ArrowRightLeft, Flame, Trophy } from 'lucide-react'
+import { ArrowRightLeft, Flame, Trophy, Zap } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { cn } from '@/lib/utils'
 import type { PipelineStepStatus } from '@/hooks/useRoadmapStatus'
@@ -24,6 +24,13 @@ const STEP_META: Record<string, { emoji: string; label: string }> = {
   typing: { emoji: '⌨️', label: 'Gõ Từ Vựng' },
   study_time: { emoji: '⏱️', label: 'Thời Gian Học' }
 }
+
+const OVERACHIEVE_PRAISES = [
+  "⚡ NỖ LỰC PHI THƯỜNG!",
+  "🚀 VƯỢT CHỈ TIÊU BỨT PHÁ!",
+  "👑 BỨT PHÁ GIỚI HẠN BẢN THÂN!",
+  "🔥 CHĂM CHỈ XUẤT SẮC!"
+]
 
 export const RoadmapHeaderTracker: React.FC<RoadmapHeaderTrackerProps> = ({
   pipeline,
@@ -50,6 +57,12 @@ export const RoadmapHeaderTracker: React.FC<RoadmapHeaderTrackerProps> = ({
   const hasSubProg = typeof subProgressCurr === 'number' && typeof subProgressTotal === 'number' && subProgressTotal > 0
   const subPercent = hasSubProg ? Math.min(100, Math.round((subProgressCurr / subProgressTotal) * 100)) : 0
   const isGoalReached = hasSubProg && subProgressCurr >= subProgressTotal
+  const extraCount = hasSubProg && subProgressCurr > subProgressTotal ? subProgressCurr - subProgressTotal : 0
+  const isOverachieved = extraCount > 0
+
+  const praiseMsg = isOverachieved 
+    ? OVERACHIEVE_PRAISES[(extraCount - 1) % OVERACHIEVE_PRAISES.length] 
+    : (isGoalReached ? 'ĐÃ ĐẠT GOAL TỪ VỰNG!' : 'TIẾN BỘ TỪ VỰNG!')
 
   useEffect(() => {
     if (
@@ -94,7 +107,11 @@ export const RoadmapHeaderTracker: React.FC<RoadmapHeaderTrackerProps> = ({
             transition={{ duration: 0.3, ease: "easeInOut" }}
             className={cn(
               "fixed inset-x-0 top-0 h-[48px] sm:h-[52px] bg-slate-950 flex items-center justify-center overflow-hidden z-[250] border-b shadow-2xl",
-              isGoalReached ? "border-emerald-400/60 shadow-emerald-950/40" : "border-amber-500/50"
+              isOverachieved
+                ? "border-cyan-400/70 shadow-cyan-950/50"
+                : isGoalReached 
+                  ? "border-emerald-400/60 shadow-emerald-950/40" 
+                  : "border-amber-500/50"
             )}
           >
             {/* Surge Background Beam Fill */}
@@ -103,10 +120,12 @@ export const RoadmapHeaderTracker: React.FC<RoadmapHeaderTrackerProps> = ({
               animate={{ width: `${subPercent}%` }}
               transition={{ duration: 0.8, ease: "easeOut" }}
               className={cn(
-                "absolute inset-y-0 left-0 shadow-[0_0_30px_rgba(249,115,22,0.9)]",
-                isGoalReached 
-                  ? "bg-gradient-to-r from-emerald-600 via-teal-500 to-cyan-400 shadow-[0_0_30px_rgba(16,185,129,0.9)]" 
-                  : "bg-gradient-to-r from-orange-600 via-amber-500 to-emerald-400"
+                "absolute inset-y-0 left-0",
+                isOverachieved
+                  ? "bg-gradient-to-r from-emerald-600 via-teal-400 to-cyan-400 shadow-[0_0_35px_rgba(34,211,238,0.9)]"
+                  : isGoalReached 
+                    ? "bg-gradient-to-r from-emerald-600 via-teal-500 to-cyan-400 shadow-[0_0_30px_rgba(16,185,129,0.9)]" 
+                    : "bg-gradient-to-r from-orange-600 via-amber-500 to-emerald-400 shadow-[0_0_30px_rgba(249,115,22,0.9)]"
               )}
             />
             {/* Surge Dynamic Beam Flash Sweep */}
@@ -123,20 +142,25 @@ export const RoadmapHeaderTracker: React.FC<RoadmapHeaderTrackerProps> = ({
               transition={{ duration: 0.45 }}
               className="relative z-10 font-black text-white text-xs sm:text-sm tracking-wider flex items-center gap-2.5 drop-shadow-[0_2px_12px_rgba(0,0,0,0.95)]"
             >
-              {isGoalReached ? (
+              {isOverachieved ? (
+                <Zap className="w-4.5 h-4.5 text-cyan-300 fill-cyan-300 animate-bounce" />
+              ) : isGoalReached ? (
                 <Trophy className="w-4.5 h-4.5 text-emerald-300 fill-emerald-300 animate-bounce" />
               ) : (
                 <Flame className="w-4.5 h-4.5 text-amber-300 fill-amber-300 animate-bounce" />
               )}
-              <span>{isGoalReached ? 'ĐÃ ĐẠT GOAL TỪ VỰNG!' : 'TIẾN BỘ TỪ VỰNG!'}</span>
+              <span>{praiseMsg}</span>
               {hasSubProg && (
                 <span className={cn(
-                  "px-2.5 py-0.5 rounded-full border text-xs font-black shadow-md",
-                  isGoalReached 
-                    ? "bg-emerald-950/80 border-emerald-400/60 text-emerald-200" 
-                    : "bg-black/70 border-amber-300/50 text-amber-300"
+                  "px-2.5 py-0.5 rounded-full border text-xs font-black shadow-md flex items-center gap-1",
+                  isOverachieved
+                    ? "bg-cyan-950/90 border-cyan-400/80 text-cyan-200"
+                    : isGoalReached 
+                      ? "bg-emerald-950/80 border-emerald-400/60 text-emerald-200" 
+                      : "bg-black/70 border-amber-300/50 text-amber-300"
                 )}>
-                  {subProgressCurr} / {subProgressTotal}
+                  <span>{subProgressCurr} / {subProgressTotal}</span>
+                  {isOverachieved && <span className="text-cyan-300 font-extrabold">(+{extraCount})</span>}
                 </span>
               )}
             </motion.div>
@@ -163,15 +187,17 @@ export const RoadmapHeaderTracker: React.FC<RoadmapHeaderTrackerProps> = ({
                 </h1>
                 <span className={cn(
                   "px-2.5 py-0.5 rounded-full border text-[10.5px] font-black shrink-0 shadow-xs",
-                  isGoalReached 
-                    ? "bg-emerald-950/90 border-emerald-500/60 text-emerald-300" 
-                    : "bg-slate-900 border-slate-700 text-amber-400"
+                  isOverachieved
+                    ? "bg-cyan-950/90 border-cyan-500/70 text-cyan-300"
+                    : isGoalReached 
+                      ? "bg-emerald-950/90 border-emerald-500/60 text-emerald-300" 
+                      : "bg-slate-900 border-slate-700 text-amber-400"
                 )}>
                   {allDone ? '✓ 100%' : `${currentStepIndex + 1}/${pipeline.length}`}
                 </span>
               </motion.div>
             ) : (
-              /* NẤC 2: THÔNG SỐ SANG TRỌNG ĐEN HOÀN TOÀN / EMERALD GOAL REACHED */
+              /* NẤC 2: THÔNG SỐ SANG TRỌNG ĐEN HOÀN TOÀN / EMERALD GOAL REACHED / OVERACHIEVED */
               <motion.div
                 key="nac-2"
                 initial={{ opacity: 0, y: 4, scale: 0.98 }}
@@ -183,11 +209,13 @@ export const RoadmapHeaderTracker: React.FC<RoadmapHeaderTrackerProps> = ({
                 {/* Badge 1/3 */}
                 <div className={cn(
                   "flex items-center gap-1.5 px-2.5 py-0.5 rounded-full border text-[10.5px] font-black shrink-0 shadow-xs",
-                  isGoalReached 
-                    ? "bg-emerald-950/90 border-emerald-500/60 text-emerald-300" 
-                    : "bg-slate-900 border-slate-700 text-amber-400"
+                  isOverachieved
+                    ? "bg-cyan-950/90 border-cyan-500/70 text-cyan-300"
+                    : isGoalReached 
+                      ? "bg-emerald-950/90 border-emerald-500/60 text-emerald-300" 
+                      : "bg-slate-900 border-slate-700 text-amber-400"
                 )}>
-                  <div className={cn("w-1.5 h-1.5 rounded-full animate-ping", isGoalReached ? "bg-emerald-400" : "bg-amber-400")} />
+                  <div className={cn("w-1.5 h-1.5 rounded-full animate-ping", isOverachieved ? "bg-cyan-400" : isGoalReached ? "bg-emerald-400" : "bg-amber-400")} />
                   <span>{currentStepIndex + 1}/{pipeline.length}</span>
                 </div>
 
@@ -197,18 +225,31 @@ export const RoadmapHeaderTracker: React.FC<RoadmapHeaderTrackerProps> = ({
                   <span className="text-white font-extrabold">{currentStep ? (currentStep.label || meta.label) : 'Đã Xong'}</span>
                 </div>
 
-                {/* Con số Tốt / Thẻ (Ví dụ: 20/20) */}
+                {/* Con số Tốt / Thẻ (Ví dụ: 21/20 +1 BỨT PHÁ) */}
                 {hasSubProg && (
                   <div className={cn(
                     "flex items-center gap-1 border px-3 py-0.5 rounded-full text-white font-black text-xs shrink-0 shadow-xs",
-                    isGoalReached 
-                      ? "bg-emerald-950/90 border-emerald-500/70 text-emerald-300 shadow-[0_0_10px_rgba(16,185,129,0.3)]" 
-                      : "bg-slate-900 border-slate-700/80"
+                    isOverachieved
+                      ? "bg-emerald-950/90 border-cyan-400/80 text-emerald-300 shadow-[0_0_14px_rgba(34,211,238,0.4)]"
+                      : isGoalReached 
+                        ? "bg-emerald-950/90 border-emerald-500/70 text-emerald-300 shadow-[0_0_10px_rgba(16,185,129,0.3)]" 
+                        : "bg-slate-900 border-slate-700/80"
                   )}>
-                    {isGoalReached && <Trophy className="w-3.5 h-3.5 text-emerald-400 fill-emerald-400 shrink-0 mr-0.5" />}
+                    {isOverachieved ? (
+                      <Zap className="w-3.5 h-3.5 text-cyan-300 fill-cyan-300 shrink-0 mr-0.5 animate-bounce" />
+                    ) : isGoalReached ? (
+                      <Trophy className="w-3.5 h-3.5 text-emerald-400 fill-emerald-400 shrink-0 mr-0.5" />
+                    ) : null}
+
                     <span className={isGoalReached ? "text-emerald-300 font-black" : "text-amber-400 font-black"}>{subProgressCurr}</span>
                     <span className={isGoalReached ? "text-emerald-500" : "text-slate-500"}>/</span>
                     <span className={isGoalReached ? "text-emerald-200" : "text-slate-200"}>{subProgressTotal}</span>
+
+                    {isOverachieved && (
+                      <span className="ml-1 px-1.5 py-0.2 rounded-full bg-cyan-500/20 border border-cyan-400/60 text-cyan-300 text-[10px] font-black uppercase tracking-wider animate-pulse">
+                        +{extraCount} BỨT PHÁ
+                      </span>
+                    )}
                   </div>
                 )}
 
@@ -233,13 +274,15 @@ export const RoadmapHeaderTracker: React.FC<RoadmapHeaderTrackerProps> = ({
             onClick={(e) => { e.stopPropagation(); toggleViewMode(); }}
             className={cn(
               "flex items-center gap-1 p-1.5 rounded-xl border text-[10px] font-black shrink-0 transition-all cursor-pointer active:scale-95 shadow-xs relative z-[140]",
-              isGoalReached 
-                ? "bg-emerald-950/90 hover:bg-emerald-900 text-emerald-300 border-emerald-500/60" 
-                : "bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-amber-400 border-slate-700"
+              isOverachieved
+                ? "bg-cyan-950/90 hover:bg-cyan-900 text-cyan-300 border-cyan-400/70"
+                : isGoalReached 
+                  ? "bg-emerald-950/90 hover:bg-emerald-900 text-emerald-300 border-emerald-500/60" 
+                  : "bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-amber-400 border-slate-700"
             )}
             title="Chuyển chế độ Nấc 1 / Nấc 2"
           >
-            <ArrowRightLeft className={cn("w-3.5 h-3.5", isGoalReached ? "text-emerald-400" : "text-amber-400")} />
+            <ArrowRightLeft className={cn("w-3.5 h-3.5", isOverachieved ? "text-cyan-400" : isGoalReached ? "text-emerald-400" : "text-amber-400")} />
           </motion.button>
         )}
       </AnimatePresence>

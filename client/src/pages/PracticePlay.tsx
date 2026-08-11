@@ -4104,9 +4104,10 @@ export default function PracticePlay() {
         </AnimatePresence>
 
         {(isRoadmapActive || roadmapStatus?.pipeline) && roadmapStatus?.pipeline ? (() => {
-          const subCurr = Math.min(Object.keys(practiceAnswers).length, session?.questions?.length || 15);
+          const subCurr = Object.keys(practiceAnswers).length;
           const subTotal = session?.questions?.length || 15;
           const isGoalReached = subCurr >= subTotal;
+          const isOverachieved = subCurr > subTotal;
           const activePercent = subTotal > 0 ? Math.min(100, Math.round((subCurr / subTotal) * 100)) : 0;
 
           return (
@@ -4123,9 +4124,11 @@ export default function PracticePlay() {
                     <motion.div 
                       className={cn(
                         "h-full rounded-r-full transition-all duration-500",
-                        isGoalReached 
-                          ? "bg-gradient-to-r from-emerald-500 via-teal-400 to-cyan-300 shadow-[0_0_10px_rgba(16,185,129,0.9)]" 
-                          : "bg-gradient-to-r from-orange-500 via-amber-400 to-emerald-400 shadow-[0_0_8px_rgba(249,115,22,0.9)]"
+                        isOverachieved
+                          ? "bg-gradient-to-r from-emerald-500 via-teal-400 to-cyan-300 shadow-[0_0_14px_rgba(34,211,238,0.9)]"
+                          : isGoalReached 
+                            ? "bg-gradient-to-r from-emerald-500 via-teal-400 to-cyan-300 shadow-[0_0_10px_rgba(16,185,129,0.9)]" 
+                            : "bg-gradient-to-r from-orange-500 via-amber-400 to-emerald-400 shadow-[0_0_8px_rgba(249,115,22,0.9)]"
                       )}
                       initial={{ width: 0 }}
                       animate={{ width: `${activePercent}%` }}

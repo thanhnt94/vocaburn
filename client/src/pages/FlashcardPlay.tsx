@@ -3655,14 +3655,15 @@ export default function FlashcardPlay() {
           let subCurr = currentIndex + 1;
           let subTotal = session?.questions?.length || 20;
           if (currentStep?.type === 'new_cards') {
-            subCurr = currentStep.progress?.learned ?? (currentIndex + 1);
+            subCurr = Math.max(currentStep.progress?.learned ?? 0, currentIndex + 1);
             subTotal = currentStep.daily_count || currentStep.progress?.target || 20;
           } else if (currentStep?.type === 'fsrs_review') {
-            subCurr = currentStep.progress?.reviewed_today ?? roadmapStatus?.review_completed_today ?? (currentIndex + 1);
+            subCurr = Math.max(currentStep.progress?.reviewed_today ?? roadmapStatus?.review_completed_today ?? 0, currentIndex + 1);
             const due = currentStep.progress?.due_count ?? roadmapStatus?.review_due_today ?? 0;
-            subTotal = subCurr + due;
+            subTotal = Math.max(subCurr, subCurr + due);
           }
           const isGoalReached = subCurr >= subTotal;
+          const isOverachieved = subCurr > subTotal;
           const activePercent = subTotal > 0 ? Math.min(100, Math.round((subCurr / subTotal) * 100)) : 0;
 
           return (
@@ -3679,9 +3680,11 @@ export default function FlashcardPlay() {
                     <motion.div 
                       className={cn(
                         "h-full rounded-r-full transition-all duration-500",
-                        isGoalReached 
-                          ? "bg-gradient-to-r from-emerald-500 via-teal-400 to-cyan-300 shadow-[0_0_10px_rgba(16,185,129,0.9)]" 
-                          : "bg-gradient-to-r from-orange-500 via-amber-400 to-emerald-400 shadow-[0_0_8px_rgba(249,115,22,0.9)]"
+                        isOverachieved
+                          ? "bg-gradient-to-r from-emerald-500 via-teal-400 to-cyan-300 shadow-[0_0_14px_rgba(34,211,238,0.9)]"
+                          : isGoalReached 
+                            ? "bg-gradient-to-r from-emerald-500 via-teal-400 to-cyan-300 shadow-[0_0_10px_rgba(16,185,129,0.9)]" 
+                            : "bg-gradient-to-r from-orange-500 via-amber-400 to-emerald-400 shadow-[0_0_8px_rgba(249,115,22,0.9)]"
                       )}
                       initial={{ width: 0 }}
                       animate={{ width: `${activePercent}%` }}
