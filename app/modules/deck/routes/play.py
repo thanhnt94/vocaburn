@@ -2817,11 +2817,12 @@ async def get_deck_roadmap_status_helper(db: AsyncSession, user_id: int, deck_id
         prog = prog_res.scalar_one_or_none()
         
         if not prog:
-            prog = UserDailyProgress(goal_id=goal.id, date=today_str, is_target_met=False)
+            prog = UserDailyProgress(goal_id=goal.id, date=today_str, is_target_met=all_done)
             db.add(prog)
+        else:
+            prog.is_target_met = all_done
             
         if all_done:
-            prog.is_target_met = True
             goal.last_completed_date = today_str
 
     # Calculate exact consecutive active streak for this deck goal from UserDailyProgress
@@ -2834,7 +2835,10 @@ async def get_deck_roadmap_status_helper(db: AsyncSession, user_id: int, deck_id
     met_dates = []
     for d_str in met_date_strings:
         try:
-            met_dates.append(date.fromisoformat(d_str))
+            d_obj = date.fromisoformat(d_str)
+            if d_obj == today_date and not all_done:
+                continue
+            met_dates.append(d_obj)
         except Exception:
             pass
 
