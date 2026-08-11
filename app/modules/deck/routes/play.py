@@ -776,7 +776,7 @@ async def undo_answer(request: Request, data: dict, db: AsyncSession = Depends(g
     from app.modules.stats.interface import StatsInterface
     from app.modules.notification.interface import NotificationInterface
 
-    user_id = int(request.cookies.get("user_id", 1))
+    user_id = AuthService.get_user_id(request)
     card_id = int(data.get("card_id", 0))
     if not card_id:
         return JSONResponse(status_code=400, content={"error": "card_id is required"})
@@ -1043,7 +1043,7 @@ async def undo_answer(request: Request, data: dict, db: AsyncSession = Depends(g
 
 @router.get("/{deck_id}/data")
 async def get_deck_data(request: Request, deck_id: int, db: AsyncSession = Depends(get_db)):
-    user_id = int(request.cookies.get("user_id", 1))
+    user_id = AuthService.get_user_id(request)
     from app.modules.deck.models import DeckCollaborator
     
     deck = await DeckService.get_deck_by_id(db, deck_id)
@@ -1097,7 +1097,7 @@ def migrate_practice_settings(settings: Optional[dict]) -> dict:
 
 @router.get("/quick-play-data")
 async def get_quick_play_data(request: Request, db: AsyncSession = Depends(get_db)):
-    user_id = int(request.cookies.get("user_id", 1))
+    user_id = AuthService.get_user_id(request)
     
     # 1. Fetch all decks connected to this user
     from app.modules.deck.models import FlashcardDeck, DeckCollaborator, DeckAttempt
@@ -1311,7 +1311,7 @@ async def get_quick_play_data(request: Request, db: AsyncSession = Depends(get_d
 
 @router.get("/{deck_id}/play-data")
 async def get_deck_play_data(request: Request, deck_id: int, mode: Optional[str] = None, lightweight: Optional[bool] = None, db: AsyncSession = Depends(get_db)):
-    user_id = int(request.cookies.get("user_id", 1))
+    user_id = AuthService.get_user_id(request)
     
     # Check if deck exists and enforce privacy
     deck_check = await DeckService.get_deck_by_id(db, deck_id)
@@ -1591,7 +1591,7 @@ async def get_deck_play_data(request: Request, deck_id: int, mode: Optional[str]
 @router.get("/{deck_id}/session")
 async def get_deck_session(request: Request, deck_id: int, db: AsyncSession = Depends(get_db)):
     from app.modules.deck.models import DeckSession
-    user_id = int(request.cookies.get("user_id", 1))
+    user_id = AuthService.get_user_id(request)
     result = await db.execute(select(DeckSession).filter(DeckSession.deck_id == deck_id, DeckSession.user_id == user_id))
     session = result.scalar_one_or_none()
     if not session: return None
@@ -1604,7 +1604,7 @@ async def get_deck_session(request: Request, deck_id: int, db: AsyncSession = De
 @router.post("/{deck_id}/session")
 async def save_deck_session(request: Request, deck_id: int, data: dict, db: AsyncSession = Depends(get_db)):
     from app.modules.deck.models import DeckSession
-    user_id = int(request.cookies.get("user_id", 1))
+    user_id = AuthService.get_user_id(request)
     result = await db.execute(select(DeckSession).filter(DeckSession.deck_id == deck_id, DeckSession.user_id == user_id))
     session = result.scalar_one_or_none()
     if not session:
@@ -1620,14 +1620,14 @@ async def save_deck_session(request: Request, deck_id: int, data: dict, db: Asyn
 @router.delete("/{deck_id}/session")
 async def reset_deck_session(request: Request, deck_id: int, db: AsyncSession = Depends(get_db)):
     from app.modules.deck.models import DeckSession
-    user_id = int(request.cookies.get("user_id", 1))
+    user_id = AuthService.get_user_id(request)
     await db.execute(delete(DeckSession).where(DeckSession.deck_id == deck_id, DeckSession.user_id == user_id))
     await db.commit()
     return {"status": "ok"}
 
 @router.post("/{deck_id}/next-card")
 async def get_next_card(request: Request, deck_id: int, data: dict, db: AsyncSession = Depends(get_db)):
-    user_id = int(request.cookies.get("user_id", 1))
+    user_id = AuthService.get_user_id(request)
     mode = data.get("mode", "fsrs")
     answered_indexes = data.get("answered_indexes", [])
     current_index = data.get("current_index", 0)
@@ -2223,7 +2223,7 @@ from app.modules.deck.schemas import ContributionCreate, ContributionResponse, C
 
 @router.get("/question/{card_id}/contributions", response_model=List[ContributionResponse])
 async def get_card_contributions(card_id: int, request: Request, db: AsyncSession = Depends(get_db)):
-    user_id = int(request.cookies.get("user_id", 1))
+    user_id = AuthService.get_user_id(request)
     
     stmt = (
         select(CardContribution)
@@ -2303,7 +2303,7 @@ async def create_card_contribution(
     request: Request, 
     db: AsyncSession = Depends(get_db)
 ):
-    user_id = int(request.cookies.get("user_id", 1))
+    user_id = AuthService.get_user_id(request)
     user = await db.get(User, user_id)
     if not user:
         return JSONResponse({"detail": "User not found"}, status_code=404)
@@ -2353,7 +2353,7 @@ async def create_card_contribution(
 
 @router.post("/contributions/{contribution_id}/like")
 async def like_contribution(contribution_id: int, request: Request, db: AsyncSession = Depends(get_db)):
-    user_id = int(request.cookies.get("user_id", 1))
+    user_id = AuthService.get_user_id(request)
     
     contrib = await db.get(CardContribution, contribution_id)
     if not contrib:
@@ -2381,7 +2381,7 @@ async def like_contribution(contribution_id: int, request: Request, db: AsyncSes
 
 @router.delete("/contributions/{contribution_id}")
 async def delete_contribution(contribution_id: int, request: Request, db: AsyncSession = Depends(get_db)):
-    user_id = int(request.cookies.get("user_id", 1))
+    user_id = AuthService.get_user_id(request)
     user = await db.get(User, user_id)
     if not user:
         return JSONResponse({"detail": "User not found"}, status_code=404)
@@ -3200,7 +3200,7 @@ async def get_deck_roadmap_calendar(request: Request, deck_id: int, month: str =
 @router.get("/{deck_id}/roadmap-pipeline-history")
 async def get_pipeline_history(request: Request, deck_id: int, db: AsyncSession = Depends(get_db)):
     """Get pipeline change history for a deck."""
-    user_id = int(request.cookies.get("user_id", 1))
+    user_id = AuthService.get_user_id(request)
     from app.modules.deck.models import RoadmapPipelineHistory
     
     history_res = await db.execute(
@@ -3228,7 +3228,7 @@ async def get_pipeline_history(request: Request, deck_id: int, db: AsyncSession 
 
 @router.post("/{deck_id}/reset-progress")
 async def reset_deck_progress(request: Request, deck_id: int, db: AsyncSession = Depends(get_db)):
-    user_id = int(request.cookies.get("user_id", 1))
+    user_id = AuthService.get_user_id(request)
     
     deck = await DeckService.get_deck_by_id(db, deck_id)
     if not deck:
@@ -3284,7 +3284,7 @@ async def reset_deck_progress(request: Request, deck_id: int, db: AsyncSession =
 
 @router.get("/{deck_id}/roadmap-test-questions")
 async def get_roadmap_test_questions(request: Request, deck_id: int, db: AsyncSession = Depends(get_db)):
-    user_id = int(request.cookies.get("user_id", 1))
+    user_id = AuthService.get_user_id(request)
     
     from app.modules.deck.models import Flashcard, FlashcardDeck, UserDeckSettings, UserCardMastery, UserAnswer, DeckAttempt, DeckSession
     import random
@@ -3620,7 +3620,7 @@ async def get_roadmap_test_questions(request: Request, deck_id: int, db: AsyncSe
 
 @router.post("/{deck_id}/roadmap-test-submit")
 async def submit_roadmap_test(request: Request, deck_id: int, data: dict, db: AsyncSession = Depends(get_db)):
-    user_id = int(request.cookies.get("user_id", 1))
+    user_id = AuthService.get_user_id(request)
     from app.modules.deck.models import DeckSession, DeckAttempt, UserAnswer
     from sqlalchemy import delete
     from datetime import datetime
@@ -3680,7 +3680,7 @@ async def submit_roadmap_test(request: Request, deck_id: int, data: dict, db: As
 
 @router.post("/{deck_id}/roadmap-test-reset")
 async def reset_roadmap_test(request: Request, deck_id: int, db: AsyncSession = Depends(get_db)):
-    user_id = int(request.cookies.get("user_id", 1))
+    user_id = AuthService.get_user_id(request)
     from app.modules.deck.models import DeckSession
     from sqlalchemy import delete
 
@@ -3697,7 +3697,7 @@ async def reset_roadmap_test(request: Request, deck_id: int, db: AsyncSession = 
 
 @router.post("/{deck_id}/roadmap-test-save-progress")
 async def save_roadmap_test_progress(request: Request, deck_id: int, data: dict, db: AsyncSession = Depends(get_db)):
-    user_id = int(request.cookies.get("user_id", 1))
+    user_id = AuthService.get_user_id(request)
     from app.modules.deck.models import DeckSession
 
     session_res = await db.execute(
