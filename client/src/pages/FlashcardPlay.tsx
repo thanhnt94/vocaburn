@@ -3645,25 +3645,27 @@ export default function FlashcardPlay() {
         </AnimatePresence>
 
         {roadmapStatus?.pipeline ? (() => {
-          const rawIdx = roadmapStatus?.current_step_index || 0;
-          const flashcardStepIdx = roadmapStatus.pipeline.findIndex((s: any) => s.type === 'new_cards' || s.type === 'fsrs_review');
-          // If we are on FlashcardPlay page, but backend step has advanced to MCQ/typing (step 2 or 3),
-          // lock display to Flashcard step so header doesn't say "Step 2 MCQ" on Flashcard page!
-          const displayStepIdx = (flashcardStepIdx !== -1 && rawIdx > flashcardStepIdx) ? flashcardStepIdx : rawIdx;
+          const isFsrsSession = mode === 'fsrs_review' || subMode === 'review' || mode === 'review';
+          const targetType = isFsrsSession ? 'fsrs_review' : 'new_cards';
+          
+          const matchedStepIdx = roadmapStatus.pipeline.findIndex((s: any) => s.type === targetType);
+          const displayStepIdx = matchedStepIdx !== -1 ? matchedStepIdx : (roadmapStatus?.current_step_index || 0);
 
           const currentStep = roadmapStatus?.pipeline?.[displayStepIdx];
-          let subCurr = currentIndex + 1;
+          
+          let subCurr = Math.max(0, currentIndex + 1);
           let subTotal = session?.questions?.length || 20;
+
           if (currentStep?.type === 'new_cards') {
-            const learnedToday = currentStep.progress?.new_learned_today ?? currentStep.progress?.learned_today ?? roadmapStatus?.new_learned_today ?? (currentIndex + 1);
-            subCurr = Math.max(learnedToday, currentIndex + 1);
             subTotal = currentStep.daily_count || currentStep.progress?.target || roadmapStatus?.new_target_today || 20;
+            // Use current session card index position so it increases 1, 2, 3... 20, 21 (+1), 22 (+2), 25 (+5)
+            subCurr = Math.max(0, currentIndex + 1);
           } else if (currentStep?.type === 'fsrs_review') {
-            const reviewedToday = currentStep.progress?.reviewed_today ?? roadmapStatus?.review_completed_today ?? (currentIndex + 1);
-            subCurr = Math.max(reviewedToday, currentIndex + 1);
-            const due = currentStep.progress?.due_count ?? roadmapStatus?.review_due_today ?? 0;
-            subTotal = Math.max(subCurr, subCurr + due);
+            const dueCount = currentStep.progress?.due_count ?? roadmapStatus?.review_due_today ?? 0;
+            subCurr = Math.max(0, currentIndex + 1);
+            subTotal = dueCount > 0 ? dueCount : (session?.questions?.length || 15);
           }
+
           const isGoalReached = subCurr >= subTotal;
           const isOverachieved = subCurr > subTotal;
           const activePercent = subTotal > 0 ? Math.min(100, Math.round((subCurr / subTotal) * 100)) : 0;
