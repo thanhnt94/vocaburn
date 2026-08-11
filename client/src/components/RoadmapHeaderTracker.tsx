@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react'
-import { ArrowRightLeft, Flame } from 'lucide-react'
+import { ArrowRightLeft, Flame, Sparkles } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { cn } from '@/lib/utils'
 import type { PipelineStepStatus } from '@/hooks/useRoadmapStatus'
@@ -37,7 +37,7 @@ export const RoadmapHeaderTracker: React.FC<RoadmapHeaderTrackerProps> = ({
 }) => {
   // Toggle State: 0 = Nấc 1 (Tên bộ thẻ), 1 = Nấc 2 (Các thông số bài học)
   const [viewMode, setViewMode] = useState<0 | 1>(0)
-  const [isBouncing, setIsBouncing] = useState(false)
+  const [isFireFlaring, setIsFireFlaring] = useState(false)
   const prevCurrRef = useRef(subProgressCurr)
 
   if (!pipeline || pipeline.length === 0) return null
@@ -46,7 +46,6 @@ export const RoadmapHeaderTracker: React.FC<RoadmapHeaderTrackerProps> = ({
   const meta = currentStep ? (STEP_META[currentStep.type] || STEP_META.new_cards) : STEP_META.new_cards
 
   const hasSubProg = typeof subProgressCurr === 'number' && typeof subProgressTotal === 'number' && subProgressTotal > 0
-  const subPercent = hasSubProg ? Math.min(100, Math.round((subProgressCurr / subProgressTotal) * 100)) : 0
 
   useEffect(() => {
     if (
@@ -54,8 +53,8 @@ export const RoadmapHeaderTracker: React.FC<RoadmapHeaderTrackerProps> = ({
       typeof prevCurrRef.current === 'number' &&
       subProgressCurr > prevCurrRef.current
     ) {
-      setIsBouncing(true)
-      const t = setTimeout(() => setIsBouncing(false), 700)
+      setIsFireFlaring(true)
+      const t = setTimeout(() => setIsFireFlaring(false), 850)
       return () => clearTimeout(t)
     }
     prevCurrRef.current = subProgressCurr
@@ -74,8 +73,21 @@ export const RoadmapHeaderTracker: React.FC<RoadmapHeaderTrackerProps> = ({
       )}
       title="Bấm vào thanh này để chuyển giữa Nấc 1 (Tên bộ thẻ) & Nấc 2 (Thông số bài học)"
     >
-      {/* Content Switcher: Nấc 1 vs Nấc 2 (PERFECTLY CENTERED BROADCAST STYLE) */}
-      <div className="flex-1 flex items-center justify-center min-w-0 mx-auto px-2">
+      {/* Fiery Burst Animation Wave Overlay (Ngọn Lửa Vụt Cháy khi học thêm từ) */}
+      <AnimatePresence>
+        {isFireFlaring && (
+          <motion.div
+            initial={{ opacity: 0, scaleY: 0 }}
+            animate={{ opacity: [0, 1, 0.8, 0], scaleY: [0.3, 1.6, 1.2, 0] }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.8, ease: "easeOut" }}
+            className="absolute inset-x-0 -bottom-2 h-10 bg-gradient-to-t from-orange-500/60 via-amber-500/30 to-transparent pointer-events-none z-[135] blur-xs"
+          />
+        )}
+      </AnimatePresence>
+
+      {/* Content Switcher: Nấc 1 vs Nấc 2 (PERFECTLY CENTERED OBSIDIAN BLACK STYLE) */}
+      <div className="flex-1 flex items-center justify-center min-w-0 mx-auto px-2 relative z-[140]">
         <AnimatePresence mode="wait">
           {/* NẤC 1: TÊN BỘ THẺ */}
           {viewMode === 0 ? (
@@ -90,12 +102,12 @@ export const RoadmapHeaderTracker: React.FC<RoadmapHeaderTrackerProps> = ({
               <h1 className="text-xs md:text-sm font-black text-white tracking-tight truncate drop-shadow-md">
                 {deckTitle || 'Phiên Học Lộ Trình'}
               </h1>
-              <span className="px-2.5 py-0.5 rounded-full bg-black/40 border border-amber-400/40 text-amber-300 text-[10.5px] font-black shrink-0 shadow-xs">
+              <span className="px-2.5 py-0.5 rounded-full bg-slate-900 border border-slate-700 text-amber-400 text-[10.5px] font-black shrink-0 shadow-xs">
                 {allDone ? '✓ 100%' : `${currentStepIndex + 1}/${pipeline.length}`}
               </span>
             </motion.div>
           ) : (
-            /* NẤC 2: THÔNG SỐ TRUYỀN HÌNH PREMIER LEAGUE STYLE */
+            /* NẤC 2: THÔNG SỐ SANG TRỌNG ĐEN HOÀN TOÀN + NGỌN LỬA VỤT CHÁY */
             <motion.div
               key="nac-2"
               initial={{ opacity: 0, y: 4, scale: 0.98 }}
@@ -105,9 +117,9 @@ export const RoadmapHeaderTracker: React.FC<RoadmapHeaderTrackerProps> = ({
               className="flex items-center justify-center gap-3 text-xs min-w-0 overflow-x-auto scrollbar-none"
             >
               {/* Badge 1/3 */}
-              <div className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-black/40 border border-amber-400/40 text-amber-300 text-[10.5px] font-black shrink-0 shadow-xs">
+              <div className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-slate-900 border border-slate-700 text-amber-400 text-[10.5px] font-black shrink-0 shadow-xs">
                 <div className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-ping" />
-                <span>{currentStepIndex + 1}/${pipeline.length}</span>
+                <span>{currentStepIndex + 1}/{pipeline.length}</span>
               </div>
 
               {/* Tên bước học */}
@@ -116,21 +128,38 @@ export const RoadmapHeaderTracker: React.FC<RoadmapHeaderTrackerProps> = ({
                 <span className="text-white font-extrabold">{currentStep ? (currentStep.label || meta.label) : 'Đã Xong'}</span>
               </div>
 
-              {/* Con số Tốt / Thẻ (Ví dụ: 7/20) với hiệu ứng nổ Bounce khi ghi bàn / học từ */}
+              {/* Con số Tốt / Thẻ (Ví dụ: 9/20) với Ngọn lửa bùng cháy khi tăng tiến độ */}
               {hasSubProg && (
-                <motion.div 
-                  animate={isBouncing ? { scale: [1, 1.3, 1], textShadow: "0 0 12px rgba(251,191,36,1)" } : { scale: 1 }}
-                  transition={{ duration: 0.4 }}
-                  className="flex items-center gap-1 bg-black/40 border border-white/20 px-3 py-0.5 rounded-full text-white font-black text-xs shrink-0 shadow-xs"
-                >
-                  <span className="text-amber-300 font-black">{subProgressCurr}</span>
-                  <span className="text-slate-400">/</span>
-                  <span className="text-slate-200">{subProgressTotal}</span>
-                </motion.div>
+                <div className="relative flex items-center">
+                  <motion.div 
+                    animate={isFireFlaring ? { scale: [1, 1.35, 1], textShadow: "0 0 16px rgba(249,115,22,1)" } : { scale: 1 }}
+                    transition={{ duration: 0.4 }}
+                    className="flex items-center gap-1 bg-slate-900 border border-slate-700/80 px-3 py-0.5 rounded-full text-white font-black text-xs shrink-0 shadow-xs"
+                  >
+                    <span className="text-amber-400 font-black">{subProgressCurr}</span>
+                    <span className="text-slate-500">/</span>
+                    <span className="text-slate-200">{subProgressTotal}</span>
+                  </motion.div>
+
+                  {/* Flame Flare Burst Overlay Icon */}
+                  <AnimatePresence>
+                    {isFireFlaring && (
+                      <motion.div
+                        initial={{ opacity: 0, scale: 0.5, y: 0 }}
+                        animate={{ opacity: 1, scale: [1, 1.8, 1], y: -16, rotate: [0, -20, 20, 0] }}
+                        exit={{ opacity: 0, scale: 0.5, y: -24 }}
+                        transition={{ duration: 0.7 }}
+                        className="absolute left-1/2 -translate-x-1/2 top-0 pointer-events-none text-orange-500 drop-shadow-[0_0_12px_rgba(249,115,22,1)]"
+                      >
+                        <Flame className="w-5 h-5 fill-orange-500 text-amber-300 animate-pulse" />
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
               )}
 
               {/* Streak */}
-              <div className="flex items-center gap-1 bg-orange-500/20 border border-orange-500/40 px-2.5 py-0.5 rounded-full text-orange-300 font-black text-[10.5px] shrink-0">
+              <div className="flex items-center gap-1 bg-orange-500/10 border border-orange-500/30 px-2.5 py-0.5 rounded-full text-orange-400 font-black text-[10.5px] shrink-0">
                 <Flame className="w-3.5 h-3.5 text-orange-400 fill-orange-400 animate-pulse" />
                 <span>{streakCount}d</span>
               </div>
@@ -142,7 +171,7 @@ export const RoadmapHeaderTracker: React.FC<RoadmapHeaderTrackerProps> = ({
       {/* Mode Switcher Button (Nấc 1 ⇄ Nấc 2) */}
       <button
         onClick={(e) => { e.stopPropagation(); toggleViewMode(); }}
-        className="flex items-center gap-1 p-1.5 rounded-xl bg-black/40 hover:bg-black/60 text-slate-200 hover:text-amber-300 border border-white/20 text-[10px] font-black shrink-0 transition-all cursor-pointer active:scale-95 shadow-xs"
+        className="flex items-center gap-1 p-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-amber-400 border border-slate-700 text-[10px] font-black shrink-0 transition-all cursor-pointer active:scale-95 shadow-xs relative z-[140]"
         title="Chuyển chế độ Nấc 1 / Nấc 2"
       >
         <ArrowRightLeft className="w-3.5 h-3.5 text-amber-400" />

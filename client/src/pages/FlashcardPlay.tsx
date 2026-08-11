@@ -3619,7 +3619,7 @@ export default function FlashcardPlay() {
       <header className={cn(
         "sticky top-0 flex-shrink-0 z-[120] backdrop-blur-2xl px-2.5 md:px-4 py-1.5 flex items-center justify-between gap-2.5 transition-colors duration-300 relative overflow-hidden",
         roadmapStatus?.pipeline
-          ? "bg-slate-950 border-b border-slate-800 text-white shadow-lg"
+          ? "bg-slate-950 border-b border-slate-800/80 text-white shadow-xl"
           : "bg-white/95 border-b border-slate-100/80 text-slate-800 shadow-[0_1px_20px_rgba(99,102,241,0.04)]"
       )}>
         <button 
@@ -3627,7 +3627,7 @@ export default function FlashcardPlay() {
           className={cn(
             "w-8.5 h-8.5 flex items-center justify-center rounded-xl shadow-2xs active:scale-90 transition-all flex-shrink-0 border relative z-[140]",
             roadmapStatus?.pipeline
-              ? "bg-black/40 hover:bg-black/60 text-slate-200 border-white/20 hover:text-white"
+              ? "bg-slate-900/90 hover:bg-slate-800 text-slate-200 border-slate-700/80 hover:text-white"
               : "bg-slate-50 hover:bg-indigo-50 text-slate-600 border-slate-200/60 hover:text-indigo-600 hover:border-indigo-100"
           )}
           title="Thoát phiên học"
@@ -3651,13 +3651,15 @@ export default function FlashcardPlay() {
 
           return (
             <>
-              {/* Full-width Header Bar Progress Fill (Gamified Premier League Bar) */}
-              <motion.div 
-                className="absolute inset-y-0 left-0 bg-gradient-to-r from-indigo-900/90 via-indigo-700/85 to-amber-500/80 border-r-2 border-amber-300 shadow-[0_0_25px_rgba(251,191,36,0.8)] pointer-events-none z-[125]"
-                initial={{ width: 0 }}
-                animate={{ width: `${activePercent}%` }}
-                transition={{ type: "spring", stiffness: 120, damping: 18 }}
-              />
+              {/* Sleek Underline Progress Bar at the Bottom Edge of Header */}
+              <div className="absolute bottom-0 left-0 right-0 h-1 bg-slate-900/80 pointer-events-none z-[125]">
+                <motion.div 
+                  className="h-full bg-gradient-to-r from-orange-500 via-amber-400 to-emerald-400 shadow-[0_0_12px_rgba(249,115,22,0.9)] rounded-r-full"
+                  initial={{ width: 0 }}
+                  animate={{ width: `${activePercent}%` }}
+                  transition={{ type: "spring", stiffness: 120, damping: 18 }}
+                />
+              </div>
 
               <div className="flex-1 min-w-0 relative z-[140]">
                 <RoadmapHeaderTracker
