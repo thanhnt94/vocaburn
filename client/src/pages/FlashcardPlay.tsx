@@ -3655,10 +3655,12 @@ export default function FlashcardPlay() {
           let subCurr = currentIndex + 1;
           let subTotal = session?.questions?.length || 20;
           if (currentStep?.type === 'new_cards') {
-            subCurr = Math.max(currentStep.progress?.learned ?? 0, currentIndex + 1);
-            subTotal = currentStep.daily_count || currentStep.progress?.target || 20;
+            const learnedToday = currentStep.progress?.new_learned_today ?? currentStep.progress?.learned_today ?? roadmapStatus?.new_learned_today ?? (currentIndex + 1);
+            subCurr = Math.max(learnedToday, currentIndex + 1);
+            subTotal = currentStep.daily_count || currentStep.progress?.target || roadmapStatus?.new_target_today || 20;
           } else if (currentStep?.type === 'fsrs_review') {
-            subCurr = Math.max(currentStep.progress?.reviewed_today ?? roadmapStatus?.review_completed_today ?? 0, currentIndex + 1);
+            const reviewedToday = currentStep.progress?.reviewed_today ?? roadmapStatus?.review_completed_today ?? (currentIndex + 1);
+            subCurr = Math.max(reviewedToday, currentIndex + 1);
             const due = currentStep.progress?.due_count ?? roadmapStatus?.review_due_today ?? 0;
             subTotal = Math.max(subCurr, subCurr + due);
           }

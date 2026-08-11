@@ -159,8 +159,7 @@ export const RoadmapHeaderTracker: React.FC<RoadmapHeaderTrackerProps> = ({
                       ? "bg-emerald-950/80 border-emerald-400/60 text-emerald-200" 
                       : "bg-black/70 border-amber-300/50 text-amber-300"
                 )}>
-                  <span>{subProgressCurr} / {subProgressTotal}</span>
-                  {isOverachieved && <span className="text-cyan-300 font-extrabold">(+{extraCount})</span>}
+                  {isOverachieved ? `+${extraCount}` : `${subProgressCurr} / ${subProgressTotal}`}
                 </span>
               )}
             </motion.div>
@@ -204,7 +203,7 @@ export const RoadmapHeaderTracker: React.FC<RoadmapHeaderTrackerProps> = ({
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 exit={{ opacity: 0, y: -4, scale: 0.98 }}
                 transition={{ duration: 0.16 }}
-                className="flex items-center justify-center gap-3 text-xs min-w-0 overflow-x-auto scrollbar-none"
+                className="flex items-center justify-center gap-2.5 text-xs min-w-0 overflow-x-auto scrollbar-none"
               >
                 {/* Badge 1/3 */}
                 <div className={cn(
@@ -225,32 +224,26 @@ export const RoadmapHeaderTracker: React.FC<RoadmapHeaderTrackerProps> = ({
                   <span className="text-white font-extrabold">{currentStep ? (currentStep.label || meta.label) : 'Đã Xong'}</span>
                 </div>
 
-                {/* Con số Tốt / Thẻ (Ví dụ: 21/20 +1 BỨT PHÁ) */}
+                {/* Con số Tốt / Thẻ (Hiển thị gọn +N khi học vượt, hoặc 9/20 khi chưa đủ) */}
                 {hasSubProg && (
-                  <div className={cn(
-                    "flex items-center gap-1 border px-3 py-0.5 rounded-full text-white font-black text-xs shrink-0 shadow-xs",
-                    isOverachieved
-                      ? "bg-emerald-950/90 border-cyan-400/80 text-emerald-300 shadow-[0_0_14px_rgba(34,211,238,0.4)]"
-                      : isGoalReached 
+                  isOverachieved ? (
+                    <div className="flex items-center gap-1 border px-2.5 py-0.5 rounded-full bg-cyan-950/90 border-cyan-400/80 text-cyan-300 text-xs font-black shrink-0 shadow-[0_0_12px_rgba(34,211,238,0.4)]">
+                      <Zap className="w-3.5 h-3.5 text-cyan-300 fill-cyan-300 shrink-0 animate-bounce" />
+                      <span>+{extraCount}</span>
+                    </div>
+                  ) : (
+                    <div className={cn(
+                      "flex items-center gap-1 border px-3 py-0.5 rounded-full text-white font-black text-xs shrink-0 shadow-xs",
+                      isGoalReached 
                         ? "bg-emerald-950/90 border-emerald-500/70 text-emerald-300 shadow-[0_0_10px_rgba(16,185,129,0.3)]" 
                         : "bg-slate-900 border-slate-700/80"
-                  )}>
-                    {isOverachieved ? (
-                      <Zap className="w-3.5 h-3.5 text-cyan-300 fill-cyan-300 shrink-0 mr-0.5 animate-bounce" />
-                    ) : isGoalReached ? (
-                      <Trophy className="w-3.5 h-3.5 text-emerald-400 fill-emerald-400 shrink-0 mr-0.5" />
-                    ) : null}
-
-                    <span className={isGoalReached ? "text-emerald-300 font-black" : "text-amber-400 font-black"}>{subProgressCurr}</span>
-                    <span className={isGoalReached ? "text-emerald-500" : "text-slate-500"}>/</span>
-                    <span className={isGoalReached ? "text-emerald-200" : "text-slate-200"}>{subProgressTotal}</span>
-
-                    {isOverachieved && (
-                      <span className="ml-1 px-1.5 py-0.2 rounded-full bg-cyan-500/20 border border-cyan-400/60 text-cyan-300 text-[10px] font-black uppercase tracking-wider animate-pulse">
-                        +{extraCount} BỨT PHÁ
-                      </span>
-                    )}
-                  </div>
+                    )}>
+                      {isGoalReached && <Trophy className="w-3.5 h-3.5 text-emerald-400 fill-emerald-400 shrink-0 mr-0.5" />}
+                      <span className={isGoalReached ? "text-emerald-300 font-black" : "text-amber-400 font-black"}>{subProgressCurr}</span>
+                      <span className={isGoalReached ? "text-emerald-500" : "text-slate-500"}>/</span>
+                      <span className={isGoalReached ? "text-emerald-200" : "text-slate-200"}>{subProgressTotal}</span>
+                    </div>
+                  )
                 )}
 
                 {/* Streak */}
