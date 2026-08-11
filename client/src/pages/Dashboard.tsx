@@ -1792,8 +1792,9 @@ export default function Dashboard() {
                     const st = deck?.status || {};
                     const nT = st.new_target_today || 0;
                     const nL = st.new_learned_today || 0;
-                    const rD = st.review_due_today || 0;
                     const rDn = st.review_completed_today || 0;
+                    const dueRemaining = st.review_due_today || 0;
+                    const rD = rDn + dueRemaining;
                     const tT = nT + rD;
                     const tD = nL + rDn;
                     const pct = st.all_done ? 100 : (tT > 0 ? Math.min(100, Math.round((tD / tT) * 100)) : 0);

@@ -637,15 +637,21 @@ export default function QuizDetail() {
               )}
 
               {/* Today's Review */}
-              {roadmapStatus?.roadmap_active && (
-                <div className="p-3 rounded-xl bg-slate-50/80 border border-slate-100/60">
-                  <span className="text-[7px] font-black text-slate-400 uppercase tracking-wider block mb-1">Review Today</span>
-                  <span className="text-sm font-black text-slate-800 leading-none">{roadmapStatus.review_completed_today}/{roadmapStatus.review_due_today}</span>
-                  <div className="w-full h-1.5 bg-slate-200 rounded-full overflow-hidden mt-1.5">
-                    <div className="h-full bg-gradient-to-r from-indigo-500 to-purple-500 rounded-full transition-all" style={{ width: `${roadmapStatus.review_due_today > 0 ? Math.min(100, Math.round((roadmapStatus.review_completed_today / roadmapStatus.review_due_today) * 100)) : 0}%` }} />
+              {roadmapStatus?.roadmap_active && (() => {
+                const rDn = roadmapStatus.review_completed_today || 0;
+                const rDue = roadmapStatus.review_due_today || 0;
+                const totalReviewTarget = rDn + rDue;
+                const reviewPct = totalReviewTarget > 0 ? Math.min(100, Math.round((rDn / totalReviewTarget) * 100)) : 100;
+                return (
+                  <div className="p-3 rounded-xl bg-slate-50/80 border border-slate-100/60">
+                    <span className="text-[7px] font-black text-slate-400 uppercase tracking-wider block mb-1">Review Today</span>
+                    <span className="text-sm font-black text-slate-800 leading-none">{rDn}/{totalReviewTarget}</span>
+                    <div className="w-full h-1.5 bg-slate-200 rounded-full overflow-hidden mt-1.5">
+                      <div className="h-full bg-gradient-to-r from-indigo-500 to-purple-500 rounded-full transition-all" style={{ width: `${reviewPct}%` }} />
+                    </div>
                   </div>
-                </div>
-              )}
+                );
+              })()}
 
               {/* Retention Rate */}
               {roadmapStatus?.roadmap_active && (
