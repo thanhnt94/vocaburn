@@ -8,6 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, delete, func, Integer, or_
 from sqlalchemy.orm import selectinload
 from app.core.db import get_db
+from app.modules.auth.services.auth_service import AuthService
 from app.modules.deck.services.excel_service import ExcelDeckService
 from app.modules.deck.services.deck_service import DeckService
 from app.modules.deck.services.ai_service import ai_service
@@ -71,7 +72,7 @@ def migrate_practice_settings(settings: Optional[dict]) -> dict:
 
 @router.get("/{deck_id}/practice-settings")
 async def get_practice_settings(request: Request, deck_id: int, db: AsyncSession = Depends(get_db)):
-    user_id = int(request.cookies.get("user_id", 1))
+    user_id = AuthService.get_user_id(request)
     
     deck = await DeckService.get_deck_by_id(db, deck_id)
     if not deck:
@@ -186,7 +187,7 @@ async def save_practice_settings(request: Request, deck_id: int, payload: dict, 
                 if pair_url_col in ("front", "back"):
                     return JSONResponse(status_code=400, content={"error": f"Cặp custom #{c_idx+1}: Cột đường dẫn âm thanh không được trùng với cột nội dung chính (front/back)."})
 
-    user_id = int(request.cookies.get("user_id", 1))
+    user_id = AuthService.get_user_id(request)
     is_creator = payload.get("is_creator", False)
     settings = payload.get("settings")
     
