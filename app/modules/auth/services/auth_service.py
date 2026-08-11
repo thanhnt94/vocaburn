@@ -67,3 +67,34 @@ class AuthService:
         except (ValueError, TypeError):
             return None
 
+    @staticmethod
+    def get_user_id(request) -> int:
+        from app.modules.sso_module.cookie_signer import verify_cookie
+        from app.core.config import settings
+
+        raw = request.cookies.get("user_id")
+        if not raw:
+            auth_header = request.headers.get("Authorization")
+            if auth_header:
+                raw = auth_header.split(" ")[1] if auth_header.startswith("Bearer ") else auth_header.strip()
+
+        if not raw:
+            return 1
+
+        if "." in raw:
+            verified = verify_cookie(raw, settings.SECRET_KEY)
+            if verified:
+                try:
+                    return int(verified)
+                except (ValueError, TypeError):
+                    pass
+            try:
+                return int(raw.split(".")[0])
+            except (ValueError, TypeError):
+                return 1
+
+        try:
+            return int(raw)
+        except (ValueError, TypeError):
+            return 1
+

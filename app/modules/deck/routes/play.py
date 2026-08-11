@@ -28,6 +28,7 @@ import logging
 
 logger = logging.getLogger(__name__)
 from fastapi.responses import RedirectResponse, JSONResponse, FileResponse
+from app.modules.auth.services.auth_service import AuthService
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, delete, func, Integer, or_
 from sqlalchemy.orm import selectinload
@@ -2911,7 +2912,7 @@ async def get_deck_roadmap_status_helper(db: AsyncSession, user_id: int, deck_id
 
 @router.get("/roadmap/decks")
 async def get_roadmap_decks(request: Request, db: AsyncSession = Depends(get_db)):
-    user_id = int(request.cookies.get("user_id", 1))
+    user_id = AuthService.get_user_id(request)
     
     from app.modules.deck.models import FlashcardDeck
     
