@@ -1660,36 +1660,39 @@ async def get_next_card(request: Request, deck_id: int, data: dict, db: AsyncSes
     effective_answered = set(answered_indexes) | ignored_indexes
 
     if mode in ("roadmap", "new"):
-        new_cards = []
+        unanswered_new = []
+        all_new = []
         for idx, c in enumerate(deck.cards):
             if idx in ignored_indexes:
                 continue
             m = mastery_map.get(c.id)
             is_new = not m or m.state == 0 or m.stability is None
-            if is_new and idx not in effective_answered:
-                new_cards.append(idx)
-        if new_cards:
+            if is_new:
+                all_new.append(idx)
+                if idx not in effective_answered:
+                    unanswered_new.append(idx)
+
+        if unanswered_new:
             if random_enabled:
                 import random
-                return {"next_index": random.choice(new_cards), "phase": "new"}
+                return {"next_index": random.choice(unanswered_new), "phase": "new"}
             else:
-                return {"next_index": new_cards[0], "phase": "new"}
-
-        # If no new cards remain in the deck, fallback to review or unanswered cards
-        unanswered = [idx for idx in range(total) if idx not in effective_answered]
-        if unanswered:
+                return {"next_index": unanswered_new[0], "phase": "new"}
+        elif all_new:
             if random_enabled:
                 import random
-                return {"next_index": random.choice(unanswered), "phase": "free"}
+                return {"next_index": random.choice(all_new), "phase": "new"}
             else:
-                return {"next_index": unanswered[0], "phase": "free"}
-
-        return {"next_index": min(current_index + 1, total - 1), "phase": "free"}
+                return {"next_index": all_new[0], "phase": "new"}
+        else:
+            return {"next_index": min(current_index + 1, total - 1), "phase": "free"}
 
     elif mode in ("fsrs", "review", "fsrs_review"):
         now_utc = datetime.utcnow()
         due_cards = []
-        all_review_cards = []
+        unanswered_review_cards = []
+        all_learned_cards = []
+
         for idx, c in enumerate(deck.cards):
             if idx in ignored_indexes:
                 continue
@@ -1700,11 +1703,13 @@ async def get_next_card(request: Request, deck_id: int, data: dict, db: AsyncSes
 
             is_due = (m.due - timedelta(seconds=30)) <= now_utc
             has_answered = idx in answered_indexes
+            card_info = {"idx": idx, "due": m.due, "stability": m.stability or 0.0}
+            all_learned_cards.append(card_info)
             
             if not has_answered:
-                all_review_cards.append({"idx": idx, "due": m.due, "stability": m.stability or 0.0})
+                unanswered_review_cards.append(card_info)
                 if is_due:
-                    due_cards.append({"idx": idx, "stability": m.stability or 0.0})
+                    due_cards.append(card_info)
 
         if due_cards:
             if random_enabled:
@@ -1714,20 +1719,16 @@ async def get_next_card(request: Request, deck_id: int, data: dict, db: AsyncSes
                 due_cards.sort(key=lambda x: x["stability"])
                 next_index = due_cards[0]["idx"]
             return {"next_index": next_index, "phase": "review"}
-        elif all_review_cards:
+        elif unanswered_review_cards:
             # All 24h due cards are reviewed; serve remaining review cards (due under 24h) for overachievement
-            all_review_cards.sort(key=lambda x: x["due"])
-            return {"next_index": all_review_cards[0]["idx"], "phase": "review"}
+            unanswered_review_cards.sort(key=lambda x: x["due"])
+            return {"next_index": unanswered_review_cards[0]["idx"], "phase": "review"}
+        elif all_learned_cards:
+            # All learned cards answered in session; recycle learned cards
+            all_learned_cards.sort(key=lambda x: x["due"])
+            return {"next_index": all_learned_cards[0]["idx"], "phase": "review"}
         else:
-            unanswered = [idx for idx in range(total) if idx not in effective_answered]
-            if unanswered:
-                if random_enabled:
-                    import random
-                    return {"next_index": random.choice(unanswered), "phase": "free"}
-                else:
-                    return {"next_index": unanswered[0], "phase": "free"}
-
-            return {"next_index": min(current_index + 1, total - 1), "phase": "free"}
+            return {"next_index": 0, "phase": "review_empty"}
 
     elif mode == "new":
         new_cards = []
