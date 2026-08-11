@@ -49,26 +49,29 @@ async def main():
                 print(f"[+] Updated UserDailyProgress for goal_id={goal.id} on {target_date_str} (is_target_met=True)")
 
         # 2. Update/Create UserDailyStats for Aug 10, 2026
+        from sqlalchemy import func
+        dt_obj = datetime(2026, 8, 10, 12, 0, 0)
         stats_res = await db.execute(
             select(UserDailyStats).where(
                 UserDailyStats.user_id == user.id,
-                UserDailyStats.date == target_date_str
+                func.date(UserDailyStats.date) == target_date_str
             )
         )
         daily_stat = stats_res.scalar_one_or_none()
         if not daily_stat:
             daily_stat = UserDailyStats(
                 user_id=user.id,
-                date=target_date_str,
-                reviewed_cards=107,
+                date=dt_obj,
+                questions_attempted=107,
+                correct_answers=107,
                 is_active=True
             )
             db.add(daily_stat)
-            print(f"[+] Created UserDailyStats for {target_date_str} with 107 reviewed cards")
+            print(f"[+] Created UserDailyStats for {target_date_str} with 107 questions_attempted")
         else:
-            daily_stat.reviewed_cards = max(daily_stat.reviewed_cards or 0, 107)
+            daily_stat.questions_attempted = max(daily_stat.questions_attempted or 0, 107)
             daily_stat.is_active = True
-            print(f"[+] Updated UserDailyStats for {target_date_str} with {daily_stat.reviewed_cards} reviewed cards")
+            print(f"[+] Updated UserDailyStats for {target_date_str}")
 
         # 3. Update/Create UserDailyActivity for Aug 10, 2026
         act_res = await db.execute(
