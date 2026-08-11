@@ -3653,6 +3653,9 @@ export default function FlashcardPlay() {
                   }
                   return session?.questions?.length || 20;
                 })()}
+                streakCount={roadmapStatus?.streak || gamify.streak || 0}
+                streakPoints={gamify.streak_points || 0}
+                userLevel={gamify.level || 1}
               />
             ) : (
               <h1 className="text-xs md:text-sm font-extrabold text-slate-800 tracking-tight truncate line-clamp-1 leading-snug" title={session.title}>

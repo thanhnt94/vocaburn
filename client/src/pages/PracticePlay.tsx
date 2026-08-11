@@ -4095,6 +4095,9 @@ export default function PracticePlay() {
                 deckTitle={session?.title || session?.deck_title || session?.quiz_title || 'Luyện tập'}
                 subProgressCurr={Math.min(Object.keys(practiceAnswers).length, session?.questions?.length || 15)}
                 subProgressTotal={session?.questions?.length || 15}
+                streakCount={roadmapStatus?.streak || gamify.streak || 0}
+                streakPoints={gamify.streak_points || 0}
+                userLevel={gamify.level || 1}
               />
             ) : (
               <h1 className="text-xs md:text-sm font-extrabold text-slate-800 tracking-tight truncate line-clamp-1 leading-snug" title={session?.title || session?.deck_title || ''}>
