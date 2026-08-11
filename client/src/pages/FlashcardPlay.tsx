@@ -1067,7 +1067,9 @@ export default function FlashcardPlay() {
 
             // Adjust initial index based on smart learning mode
             const initIndex = async () => {
-              const isFsrsSession = mode === 'fsrs_review' || (subMode as any) === 'review' || mode === 'review';
+              const rawIdx = roadmapStatus?.current_step_index || 0;
+              const rawStep = roadmapStatus?.pipeline?.[rawIdx];
+              const isFsrsSession = mode === 'fsrs_review' || (subMode as any) === 'review' || mode === 'review' || rawStep?.type === 'fsrs_review';
               const searchParams = new URLSearchParams(window.location.search);
               const urlMode = searchParams.get('mode');
               const savedMode = isFsrsSession ? 'review' : (urlMode || 'roadmap');
@@ -2286,7 +2288,9 @@ export default function FlashcardPlay() {
     const answeredIndexes = Object.keys(updatedAnswers).map(Number)
     
     try {
-      const isFsrsSession = mode === 'fsrs_review' || (subMode as any) === 'review' || mode === 'review';
+      const rawIdx = roadmapStatus?.current_step_index || 0;
+      const rawStep = roadmapStatus?.pipeline?.[rawIdx];
+      const isFsrsSession = mode === 'fsrs_review' || (subMode as any) === 'review' || mode === 'review' || rawStep?.type === 'fsrs_review';
       const targetMode = isFsrsSession ? 'review' : (activeMode === 'fsrs' ? 'roadmap' : activeMode);
 
       const res = await axios.post(`/api/v1/deck/${id}/next-card`, {
@@ -3649,11 +3653,20 @@ export default function FlashcardPlay() {
         </AnimatePresence>
 
         {roadmapStatus?.pipeline ? (() => {
-          const isFsrsSession = mode === 'fsrs_review' || subMode === 'review' || mode === 'review';
-          const targetType = isFsrsSession ? 'fsrs_review' : 'new_cards';
+          const rawIdx = roadmapStatus?.current_step_index || 0;
+          const rawStep = roadmapStatus.pipeline[rawIdx];
           
-          const matchedStepIdx = roadmapStatus.pipeline.findIndex((s: any) => s.type === targetType);
-          const displayStepIdx = matchedStepIdx !== -1 ? matchedStepIdx : (roadmapStatus?.current_step_index || 0);
+          let displayStepIdx = rawIdx;
+          if (rawStep?.type === 'mcq' || rawStep?.type === 'typing') {
+            const isStage1Done = roadmapStatus?.stage_1_done || false;
+            if (!isStage1Done) {
+              const newCardsIdx = roadmapStatus.pipeline.findIndex((s: any) => s.type === 'new_cards');
+              if (newCardsIdx !== -1) displayStepIdx = newCardsIdx;
+            } else {
+              const fsrsIdx = roadmapStatus.pipeline.findIndex((s: any) => s.type === 'fsrs_review');
+              if (fsrsIdx !== -1) displayStepIdx = fsrsIdx;
+            }
+          }
 
           const currentStep = roadmapStatus?.pipeline?.[displayStepIdx];
           
