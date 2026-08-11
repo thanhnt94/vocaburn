@@ -1067,8 +1067,13 @@ export default function FlashcardPlay() {
 
             // Adjust initial index based on smart learning mode
             const initIndex = async () => {
-              const rawIdx = roadmapStatus?.current_step_index || 0;
-              const rawStep = roadmapStatus?.pipeline?.[rawIdx];
+              let rmStatus = roadmapStatus;
+              if (!rmStatus && refetchRoadmap) {
+                const fetched = await refetchRoadmap();
+                rmStatus = fetched?.data || undefined;
+              }
+              const rawIdx = rmStatus?.current_step_index || 0;
+              const rawStep = rmStatus?.pipeline?.[rawIdx];
               const isFsrsSession = mode === 'fsrs_review' || (subMode as any) === 'review' || mode === 'review' || rawStep?.type === 'fsrs_review';
               const searchParams = new URLSearchParams(window.location.search);
               const urlMode = searchParams.get('mode');
@@ -2288,8 +2293,13 @@ export default function FlashcardPlay() {
     const answeredIndexes = Object.keys(updatedAnswers).map(Number)
     
     try {
-      const rawIdx = roadmapStatus?.current_step_index || 0;
-      const rawStep = roadmapStatus?.pipeline?.[rawIdx];
+      let rmStatus = roadmapStatus;
+      if (!rmStatus && refetchRoadmap) {
+        const fetched = await refetchRoadmap();
+        rmStatus = fetched?.data || undefined;
+      }
+      const rawIdx = rmStatus?.current_step_index || 0;
+      const rawStep = rmStatus?.pipeline?.[rawIdx];
       const isFsrsSession = mode === 'fsrs_review' || (subMode as any) === 'review' || mode === 'review' || rawStep?.type === 'fsrs_review';
       const targetMode = isFsrsSession ? 'review' : (activeMode === 'fsrs' ? 'roadmap' : activeMode);
 
