@@ -3625,17 +3625,14 @@ export default function FlashcardPlay() {
           >
             <X className="w-4.5 h-4.5" />
           </button>
-          <div className="flex flex-col min-w-0">
-            <h1 className="text-xs md:text-sm font-extrabold text-slate-800 tracking-tight break-words line-clamp-2 leading-snug" title={session.title}>
-              {session.title}
-            </h1>
-            {activeMode === 'roadmap' && roadmapStatus?.pipeline && (
+          <div className="flex items-center min-w-0">
+            {activeMode === 'roadmap' && roadmapStatus?.pipeline ? (
               <RoadmapHeaderTracker
                 pipeline={roadmapStatus.pipeline}
                 currentStepIndex={roadmapStatus.current_step_index}
                 allDone={roadmapStatus.all_done}
                 deckId={id || ''}
-                className="mt-0.5"
+                deckTitle={session.title}
                 subProgressCurr={(() => {
                   const currentStep = roadmapStatus?.pipeline?.[roadmapStatus?.current_step_index || 0];
                   if (currentStep?.type === 'new_cards') {
@@ -3657,46 +3654,20 @@ export default function FlashcardPlay() {
                   return session?.questions?.length || 20;
                 })()}
               />
+            ) : (
+              <h1 className="text-xs md:text-sm font-extrabold text-slate-800 tracking-tight truncate line-clamp-1 leading-snug" title={session.title}>
+                {session.title}
+              </h1>
             )}
           </div>
         </div>
       
-        {/* Live Dashboard HUD - Dynamic Realtime Step Progress */}
+        {/* Live Dashboard HUD */}
         <div className="bg-slate-100/50 border border-slate-200/40 rounded-xl p-0.5 flex items-center gap-0.5 md:gap-1.5 shadow-[inset_0_1px_2px_rgba(0,0,0,0.02)] flex-shrink-0 mr-0.5 md:mr-0">
           {(() => {
             const getStepProgressInfo = () => {
-              if (activeMode === 'roadmap' && roadmapStatus) {
-                const currentStep = roadmapStatus?.pipeline?.[roadmapStatus?.current_step_index || 0];
-                if (currentStep) {
-                  if (currentStep.type === 'new_cards') {
-                    // Backend progress.learned = accurate count of new cards learned TODAY
-                    const dailyTarget = currentStep.daily_count || currentStep.progress?.target || 20;
-                    const learnedToday = currentStep.progress?.learned ?? 0;
-                    return {
-                      label: 'TỪ MỚI',
-                      Icon: Sparkles,
-                      iconColorClass: 'bg-orange-50 text-orange-600',
-                      curr: learnedToday,
-                      total: dailyTarget,
-                      progressText: `${learnedToday}/${dailyTarget}`
-                    };
-                  } else if (currentStep.type === 'mcq' || (currentStep.type as string) === 'mcq_quiz' || currentStep.type === 'typing') {
-                    // In FlashcardPlay interface, hide the goal pill when current step is MCQ or Typing
-                    return null;
-                  } else if (currentStep.type === 'fsrs_review') {
-                    const dueCount = currentStep.progress?.due_count ?? roadmapStatus?.review_due_today ?? 0;
-                    const reviewedToday = currentStep.progress?.reviewed_today ?? roadmapStatus?.review_completed_today ?? 0;
-                    const totalReview = reviewedToday + dueCount;
-                    return {
-                      label: 'ÔN TẬP',
-                      Icon: Brain,
-                      iconColorClass: 'bg-indigo-50 text-indigo-600',
-                      curr: reviewedToday,
-                      total: totalReview,
-                      progressText: totalReview > 0 ? `${reviewedToday}/${totalReview}` : '0/0'
-                    };
-                  }
-                }
+              if (activeMode === 'roadmap') {
+                return null; // Roadmap sub-progress is inside RoadmapHeaderTracker!
               } else if (activeMode === 'new') {
                 const newTarget = roadmapStatus?.new_target_today ?? 20;
                 const newLearned = roadmapStatus?.new_learned_today ?? 0;

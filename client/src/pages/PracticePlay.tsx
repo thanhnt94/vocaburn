@@ -4085,20 +4085,21 @@ export default function PracticePlay() {
           >
             <X className="w-4.5 h-4.5" />
           </button>
-          <div className="flex flex-col min-w-0">
-            <h1 className="text-xs md:text-sm font-extrabold text-slate-800 tracking-tight truncate md:break-words md:line-clamp-2 leading-snug" title={session?.title || session?.deck_title || ''}>
-              {session?.title || session?.deck_title || session?.quiz_title || 'Luyện tập'}
-            </h1>
-            {isRoadmapActive && roadmapStatus?.pipeline && (
+          <div className="flex items-center min-w-0">
+            {isRoadmapActive && roadmapStatus?.pipeline ? (
               <RoadmapHeaderTracker
                 pipeline={roadmapStatus.pipeline}
                 currentStepIndex={roadmapStatus.current_step_index}
                 allDone={isRoadmapAllDone}
                 deckId={id || ''}
-                className="mt-0.5"
+                deckTitle={session?.title || session?.deck_title || session?.quiz_title || 'Luyện tập'}
                 subProgressCurr={Math.min(Object.keys(practiceAnswers).length, session?.questions?.length || 15)}
                 subProgressTotal={session?.questions?.length || 15}
               />
+            ) : (
+              <h1 className="text-xs md:text-sm font-extrabold text-slate-800 tracking-tight truncate line-clamp-1 leading-snug" title={session?.title || session?.deck_title || ''}>
+                {session?.title || session?.deck_title || session?.quiz_title || 'Luyện tập'}
+              </h1>
             )}
           </div>
         </div>
