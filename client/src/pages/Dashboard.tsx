@@ -1876,12 +1876,6 @@ export default function Dashboard() {
                                   {deck.level && <span className="text-slate-300 font-normal text-[11px] shrink-0">({deck.level})</span>}
                                 </div>
 
-                                 {/* 🎓 SEPARATE COMPACT LEARNED BADGE */}
-                                 <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-emerald-500/15 text-emerald-950 border border-emerald-300/80 rounded-full text-xs font-black shadow-2xs shrink-0" title="Từ vựng đã thuộc / Tổng số từ vựng">
-                                   <span className="text-xs">🎓</span>
-                                   <span>{st.learned_cards || 0}/{st.total_cards || deck.questions_count || 0}</span>
-                                 </div>
-
                                 {/* ⏱️ COUNTDOWN BADGE: Remaining time to complete today's goal (only show when not done) */}
                                 {!st.all_done && (
                                   <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-amber-500/15 text-amber-900 border border-amber-300/80 rounded-full text-xs font-black shadow-2xs shrink-0">
@@ -1889,6 +1883,12 @@ export default function Dashboard() {
                                     <span>Còn {remainingTime}</span>
                                   </div>
                                 )}
+
+                                 {/* 🎓 SEPARATE COMPACT LEARNED BADGE */}
+                                 <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-emerald-500/15 text-emerald-950 border border-emerald-300/80 rounded-full text-xs font-black shadow-2xs shrink-0" title="Từ vựng đã thuộc / Tổng số từ vựng">
+                                   <span className="text-xs">🎓</span>
+                                   <span>{st.learned_cards || 0}/{st.total_cards || deck.questions_count || 0}</span>
+                                 </div>
                               </div>
 
                               {/* SLOGAN TEXT */}
