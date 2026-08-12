@@ -454,14 +454,14 @@ export default function DeckRoadmap() {
                 {/* Quick Stats Grid */}
                 <div className="grid grid-cols-2 gap-2.5">
                   <div className="bg-white border border-slate-200/80 rounded-2xl p-3 shadow-2xs">
-                    <div className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-0.5">Tiến độ</div>
-                    <div className="text-xl font-black text-slate-900">{completedSteps}/{totalSteps}</div>
-                    <div className="text-[9px] font-bold text-slate-500">bước xong</div>
+                    <div className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-0.5">Từ đã thuộc</div>
+                    <div className="text-xl font-black text-emerald-600">{s.learned_cards || 0}<span className="text-[11px] text-slate-400 font-bold">/{s.total_cards || 0}</span></div>
+                    <div className="text-[9px] font-bold text-slate-500">tổng số từ vựng</div>
                   </div>
                   <div className="bg-white border border-slate-200/80 rounded-2xl p-3 shadow-2xs">
-                    <div className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-0.5">Thời gian</div>
-                    <div className="text-xl font-black text-slate-900">{s.today_total_study_minutes || 0}<span className="text-[10px] text-slate-400 ml-0.5">m</span></div>
-                    <div className="text-[9px] font-bold text-slate-500">học hôm nay</div>
+                    <div className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-0.5">Tiến độ hôm nay</div>
+                    <div className="text-xl font-black text-slate-900">{completedSteps}/{totalSteps}</div>
+                    <div className="text-[9px] font-bold text-slate-500">bước xong</div>
                   </div>
                   <div className="bg-white border border-slate-200/80 rounded-2xl p-3 shadow-2xs">
                     <div className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-0.5">Streak</div>
