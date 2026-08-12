@@ -1873,9 +1873,14 @@ export default function Dashboard() {
                                 <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-slate-900/95 text-white rounded-xl text-xs font-bold shadow-xs max-w-full">
                                   <BookOpen className="w-3.5 h-3.5 text-amber-400 shrink-0" />
                                   <span className="truncate max-w-[280px] sm:max-w-[400px] font-extrabold text-white">{deck.title}</span>
-                                   <span className="ml-1 text-emerald-400 font-black text-[11px] shrink-0 bg-emerald-500/20 px-2 py-0.5 rounded-md border border-emerald-500/30">Đã học {st.learned_cards || 0}/{st.total_cards || deck.questions_count || 0} từ</span>
                                   {deck.level && <span className="text-slate-300 font-normal text-[11px] shrink-0">({deck.level})</span>}
                                 </div>
+
+                                 {/* 🎓 SEPARATE COMPACT LEARNED BADGE */}
+                                 <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-emerald-500/15 text-emerald-950 border border-emerald-300/80 rounded-full text-xs font-black shadow-2xs shrink-0" title="Từ vựng đã thuộc / Tổng số từ vựng">
+                                   <span className="text-xs">🎓</span>
+                                   <span>{st.learned_cards || 0}/{st.total_cards || deck.questions_count || 0}</span>
+                                 </div>
 
                                 {/* ⏱️ COUNTDOWN BADGE: Remaining time to complete today's goal (only show when not done) */}
                                 {!st.all_done && (
