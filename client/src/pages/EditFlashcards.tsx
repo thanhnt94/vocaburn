@@ -104,6 +104,7 @@ const EditFlashcards = () => {
         const res = await axios.get(`/api/v1/deck/${id}/practice-settings`)
         const availCols: string[] = res.data.available_columns || ['front', 'back']
         const creatorSettings = res.data.creator_settings || {}
+        const userSettings = res.data.user_settings || {}
         setAvailableColumns(availCols)
         setPracticeSettings(creatorSettings)
         if (res.data.deck_name) setDeckName(res.data.deck_name)
@@ -127,13 +128,42 @@ const EditFlashcards = () => {
           effectiveOrder = Array.from(new Set([...SYSTEM_DEFAULTS, ...customOnly, ...otherExtra]))
         }
 
-        setVisibleCols(effectiveOrder)
+        // Prefer user's saved editor_visible_cols (per-user preference from DB)
+        const savedUserCols: string[] | undefined = userSettings.editor_visible_cols
+        if (Array.isArray(savedUserCols) && savedUserCols.length > 0) {
+          // Filter to only include columns that actually exist in this deck
+          const validSavedCols = savedUserCols.filter(c => allDeckCols.includes(c))
+          if (validSavedCols.length > 0) {
+            setVisibleCols(validSavedCols)
+          } else {
+            setVisibleCols(effectiveOrder)
+          }
+        } else {
+          setVisibleCols(effectiveOrder)
+        }
       } catch (e) {
         console.error("Failed to fetch deck practice settings", e)
       }
     }
     fetchSettings()
   }, [id])
+  // Helper: save visible columns preference to DB (per-user, per-deck)
+  const saveVisibleColsToDb = async (cols: string[]) => {
+    try {
+      await axios.post(`/api/v1/deck/${id}/practice-settings`, {
+        settings: { editor_visible_cols: cols },
+        is_creator: false
+      })
+    } catch (e) {
+      console.error('Failed to save editor_visible_cols', e)
+    }
+  }
+
+  // Wrapper that updates state + persists to DB
+  const updateVisibleCols = (cols: string[]) => {
+    setVisibleCols(cols)
+    saveVisibleColsToDb(cols)
+  }
 
   const generateCellAi = async (cardId: number, col: string) => {
     const key = `${cardId}_${col}`
@@ -1412,7 +1442,7 @@ orange	quả cam"
                             {visibleCols.length > 1 && (
                               <button
                                 type="button"
-                                onClick={() => setVisibleCols(visibleCols.filter(c => c !== col))}
+                                onClick={() => updateVisibleCols(visibleCols.filter(c => c !== col))}
                                 className="w-3.5 h-3.5 rounded-full hover:bg-indigo-200/50 flex items-center justify-center text-indigo-400 hover:text-indigo-650 transition-colors"
                               >
                                 <X className="w-2.5 h-2.5" />
@@ -1428,7 +1458,7 @@ orange	quả cam"
                         <span className="text-[10px] font-black text-slate-800 uppercase tracking-wider">Thêm cột hiển thị:</span>
                         <button
                           type="button"
-                          onClick={() => setVisibleCols(['front', 'back'])}
+                          onClick={() => updateVisibleCols(['front', 'back'])}
                           className="px-2.5 py-1 bg-slate-50 hover:bg-slate-100 border border-slate-200 text-[8px] font-black text-slate-500 rounded-lg uppercase tracking-wider transition-colors"
                         >
                           Reset về mặc định
@@ -1440,7 +1470,7 @@ orange	quả cam"
                           value=""
                           onChange={(e) => {
                             if (e.target.value) {
-                              setVisibleCols([...visibleCols, e.target.value])
+                              updateVisibleCols([...visibleCols, e.target.value])
                             }
                           }}
                           className="w-full bg-slate-50 border border-slate-250/60 rounded-xl px-3.5 h-10 text-[10px] font-black text-slate-600 outline-none cursor-pointer hover:border-indigo-500 transition-all uppercase tracking-wider"
