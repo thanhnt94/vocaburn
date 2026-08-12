@@ -1690,10 +1690,29 @@ async def get_next_card(request: Request, deck_id: int, data: dict, db: AsyncSes
 
     elif mode in ("fsrs", "review", "fsrs_review"):
         now_utc = datetime.utcnow()
-        # Use end-of-today (UTC) as cutoff so the set of due cards is fixed for the entire day
+        # Calculate end-of-today (UTC) minus overdue_hours so due count is fixed for the entire day
         end_of_today_utc = (now_utc.replace(hour=0, minute=0, second=0, microsecond=0) + timedelta(days=1))
 
-        due_cutoff = end_of_today_utc
+        from app.modules.deck.models import UserDeckSettings
+        user_sett_res = await db.execute(
+            select(UserDeckSettings).where(
+                UserDeckSettings.user_id == user_id,
+                UserDeckSettings.deck_id == deck_id
+            )
+        )
+        user_sett = user_sett_res.scalar_one_or_none()
+        settings = user_sett.settings if (user_sett and user_sett.settings) else {}
+        raw_pipeline = settings.get("pipeline", [])
+        
+        fsrs_overdue_hours = 24
+        if isinstance(raw_pipeline, list):
+            for st in raw_pipeline:
+                if isinstance(st, dict) and st.get("type") == "fsrs_review":
+                    fsrs_overdue_hours = int(st.get("overdue_hours", 24))
+                    break
+
+        # cutoff = end_of_today - overdue_hours → card.due <= cutoff means (end_of_today - card.due) >= overdue_hours
+        due_cutoff = end_of_today_utc - timedelta(hours=fsrs_overdue_hours)
         
         due_cards = []
         unanswered_review_cards = []
@@ -2426,8 +2445,9 @@ async def get_deck_roadmap_status_helper(db: AsyncSession, user_id: int, deck_id
             break
 
     now_utc = datetime.utcnow()
-    # Use end-of-day as cutoff so the FSRS review count is fixed for the entire day
-    cutoff_time = day_end
+    # cutoff = day_end - overdue_hours → card is due if (end_of_today - card.due) >= overdue_hours
+    # With overdue_hours=24: cutoff = day_start (00:00 UTC today). Fixed for the entire day.
+    cutoff_time = day_end - timedelta(hours=fsrs_overdue_hours)
 
     from sqlalchemy import or_
     # Option B: Only count cards that were ORIGINALLY DUE (or overdue) when reviewed today
