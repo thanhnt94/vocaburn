@@ -281,6 +281,29 @@ export const RoadmapHeaderTracker: React.FC<RoadmapHeaderTrackerProps> = ({
           )}
         </AnimatePresence>
       </div>
+
+      {/* Mode Switcher Button (Nấc 1 ⇄ Nấc 2) */}
+      <AnimatePresence>
+        {!isSurging && (
+          <motion.button
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={(e) => { e.stopPropagation(); toggleViewMode(); }}
+            className={cn(
+              "flex items-center gap-1 p-1.5 rounded-xl border text-[10px] font-black shrink-0 transition-all cursor-pointer active:scale-95 shadow-xs relative z-[140]",
+              isOverachieved
+                ? "bg-cyan-950/90 hover:bg-cyan-900 text-cyan-300 border-cyan-400/70"
+                : isGoalReached 
+                  ? "bg-emerald-950/90 hover:bg-emerald-900 text-emerald-300 border-emerald-500/60" 
+                  : "bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-amber-400 border-slate-700"
+            )}
+            title="Chuyển chế độ Nấc 1 / Nấc 2"
+          >
+            <ArrowRightLeft className={cn("w-3.5 h-3.5", isOverachieved ? "text-cyan-400" : isGoalReached ? "text-emerald-400" : "text-amber-400")} />
+          </motion.button>
+        )}
+      </AnimatePresence>
     </div>
   )
 }

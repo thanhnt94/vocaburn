@@ -4131,18 +4131,25 @@ export default function PracticePlay() {
           ? "bg-slate-950 border-b border-slate-800/80 text-white shadow-xl"
           : "bg-white/95 border-b border-slate-100/80 text-slate-800 shadow-[0_1px_20px_rgba(99,102,241,0.04)]"
       )}>
-        <motion.button 
-          onClick={() => navigate('/')} 
-          className={cn(
-            "w-8 h-8 flex items-center justify-center transition-all flex-shrink-0 relative z-[140]",
-            (isRoadmapActive || roadmapStatus?.pipeline)
-              ? "text-slate-300 hover:text-white"
-              : "text-slate-500 hover:text-indigo-600"
+        <AnimatePresence>
+          {headerViewMode === 0 && (
+            <motion.button 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => navigate('/')} 
+              className={cn(
+                "w-8 h-8 flex items-center justify-center transition-all flex-shrink-0 relative z-[140]",
+                (isRoadmapActive || roadmapStatus?.pipeline)
+                  ? "text-slate-300 hover:text-white"
+                  : "text-slate-500 hover:text-indigo-600"
+              )}
+              title="Thoát phiên học"
+            >
+              <X className="w-5 h-5" />
+            </motion.button>
           )}
-          title="Thoát phiên học"
-        >
-          <X className="w-5 h-5" />
-        </motion.button>
+        </AnimatePresence>
 
         {(isRoadmapActive || roadmapStatus?.pipeline) && roadmapStatus?.pipeline ? (() => {
           const subCurr = Object.keys(practiceAnswers).length;
@@ -5476,7 +5483,25 @@ export default function PracticePlay() {
                   </div>
                 )
               ) : (
-                !hasRated ? null : (
+                !hasRated ? (
+                  <button
+                    onClick={() => {
+                      const nextFlipped = !isFlipped;
+                      setIsFlipped(nextFlipped);
+                      if (nextFlipped) {
+                        setShowFeedback(true);
+                        setJustAnswered(true);
+                      }
+                    }}
+                    className="flex-1 h-12 bg-gradient-to-r from-indigo-500 via-indigo-600 to-purple-600 text-white font-black text-xs rounded-2xl shadow-lg shadow-indigo-300/50 flex items-center justify-center gap-2.5 uppercase tracking-widest active:scale-[0.98] transition-all hover:shadow-indigo-400/60 hover:shadow-xl"
+                  >
+                    {isFlipped ? (
+                      <><ChevronRight className="w-4 h-4 rotate-180" /> FLIP BACK</>
+                    ) : (
+                      <>FLIP CARD <ChevronRight className="w-4 h-4 rotate-90" /></>
+                    )}
+                  </button>
+                ) : (
                   <div className="flex-1 flex gap-3 h-12">
                     <button
                       onClick={() => setIsFlipped(prev => !prev)}
