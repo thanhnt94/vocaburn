@@ -5012,25 +5012,7 @@ export default function FlashcardPlay() {
                   </div>
                 )
               ) : (
-                (!hasRated && activeMode !== 'flip') || (activeMode === 'flip' && !isFlipped) ? (
-                  <button 
-                    onClick={() => {
-                      const nextFlipped = !isFlipped;
-                      setIsFlipped(nextFlipped);
-                      if (nextFlipped) {
-                        setShowFeedback(true);
-                        setJustAnswered(true);
-                      }
-                    }}
-                    className="flex-1 h-12 sm:h-14 bg-gradient-to-r from-indigo-500 via-indigo-600 to-purple-600 text-white font-black text-xs rounded-2xl shadow-lg shadow-indigo-300/50 flex items-center justify-center gap-2.5 uppercase tracking-widest active:scale-[0.98] transition-all hover:shadow-emerald-400/60 hover:shadow-xl"
-                  >
-                    {isFlipped ? (
-                      <><ChevronRight className="w-4 h-4 rotate-180" /> FLIP BACK</>
-                    ) : (
-                      <>FLIP CARD <ChevronRight className="w-4 h-4 rotate-90" /></>
-                    )}
-                  </button>
-                ) : (
+                (!hasRated && activeMode !== 'flip') || (activeMode === 'flip' && !isFlipped) ? null : (
                   <div className="flex-1 flex gap-1.5 sm:gap-3 h-12 sm:h-14">
                     <button 
                       onClick={() => setIsFlipped(prev => !prev)}

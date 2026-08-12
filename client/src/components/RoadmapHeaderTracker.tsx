@@ -193,9 +193,22 @@ export const RoadmapHeaderTracker: React.FC<RoadmapHeaderTrackerProps> = ({
                 
                 <div className="w-[1px] h-3.5 bg-slate-700/60 mx-0.5 shrink-0" />
 
-                <span className="text-xs font-medium text-slate-300 shrink-0">
-                  Bước <strong className="text-orange-400 font-extrabold">{allDone ? '✓ 100%' : `${currentStepIndex + 1}/${pipeline.length}`}</strong>
-                </span>
+                {/* Visual Step Indicator (e.g. Step 1 of 3) */}
+                <div className="flex items-center gap-1 shrink-0 px-1.5 py-1 rounded-full bg-slate-900/80 border border-slate-700/60" title={`Bước ${currentStepIndex + 1}/${pipeline.length}`}>
+                  {pipeline.map((_, idx) => (
+                    <div
+                      key={idx}
+                      className={cn(
+                        "h-1.5 rounded-full transition-all duration-300",
+                        idx === currentStepIndex
+                          ? "w-4 bg-amber-400 shadow-[0_0_8px_rgba(251,191,36,0.6)]"
+                          : idx < currentStepIndex
+                          ? "w-2 bg-emerald-400"
+                          : "w-2 bg-slate-700/80"
+                      )}
+                    />
+                  ))}
+                </div>
               </motion.div>
             ) : (
               /* NẤC 2: THÔNG SỐ MINIMALIST VỚI VÁCH NGĂN TINH TẾ */
@@ -207,10 +220,22 @@ export const RoadmapHeaderTracker: React.FC<RoadmapHeaderTrackerProps> = ({
                 transition={{ duration: 0.16 }}
                 className="flex items-center justify-center gap-2.5 text-xs min-w-0 overflow-x-auto scrollbar-none"
               >
-                {/* Bước 1/3 */}
-                <span className="text-xs font-medium text-slate-300 shrink-0">
-                  Bước <strong className="text-orange-400 font-extrabold">{currentStepIndex + 1}/{pipeline.length}</strong>
-                </span>
+                {/* Visual Step Indicator */}
+                <div className="flex items-center gap-1 shrink-0 px-1.5 py-1 rounded-full bg-slate-900/80 border border-slate-700/60" title={`Bước ${currentStepIndex + 1}/${pipeline.length}`}>
+                  {pipeline.map((_, idx) => (
+                    <div
+                      key={idx}
+                      className={cn(
+                        "h-1.5 rounded-full transition-all duration-300",
+                        idx === currentStepIndex
+                          ? "w-4 bg-amber-400 shadow-[0_0_8px_rgba(251,191,36,0.6)]"
+                          : idx < currentStepIndex
+                          ? "w-2 bg-emerald-400"
+                          : "w-2 bg-slate-700/80"
+                      )}
+                    />
+                  ))}
+                </div>
 
                 {/* Thin Vertical Divider */}
                 <div className="w-[1px] h-3.5 bg-slate-700/60 shrink-0" />
