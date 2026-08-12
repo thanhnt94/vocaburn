@@ -55,13 +55,13 @@ export default function Layout() {
                     location.pathname.includes('/room/') ||
                     location.pathname.includes('/flashcards') ||
                     location.pathname.includes('/manage/edit')
-  const showBottomNav = isLoggedIn
+  const showBottomNav = isLoggedIn && !isPlaying
 
   return (
     <div className={cn(
       "min-h-screen flex flex-col",
       isLoggedIn 
-        ? (isDashboard ? "pb-20 md:pb-0 md:min-h-0 md:h-screen md:w-screen md:overflow-hidden" : "pb-20 md:pb-0")
+        ? (isPlaying ? "pb-0 h-screen h-[100dvh] overflow-hidden" : (isDashboard ? "pb-20 md:pb-0 md:min-h-0 md:h-screen md:w-screen md:overflow-hidden" : "pb-20 md:pb-0"))
         : ""
     )}>
 
