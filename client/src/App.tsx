@@ -86,15 +86,15 @@ function AppContent() {
             <Route path="/flashcard/:id/roadmap" element={isLoggedIn ? <DeckRoadmap /> : <Navigate to="/login" replace />} />
             <Route path="/room/join" element={isLoggedIn ? <RoomJoin /> : <Navigate to="/login" replace />} />
             
+            {/* Flashcard & Study Views */}
+            <Route path="/flashcard/:id" element={isLoggedIn ? <FlashcardDetail /> : <Navigate to="/login" replace />} />
+            <Route path="/flashcard/:id/play" element={isLoggedIn ? <FlashcardPlay /> : <Navigate to="/login" replace />} />
+            <Route path="/practice/:id/:subMode?" element={isLoggedIn ? <PracticePlay /> : <Navigate to="/login" replace />} />
+            <Route path="/room/:code" element={isLoggedIn ? <FlashcardRoom /> : <Navigate to="/login" replace />} />
+
             {/* Admin Control Panel */}
             <Route path="/admin/:tab?" element={isLoggedIn && user?.role === 'admin' ? <Admin /> : <Navigate to="/" replace />} />
           </Route>
-
-          {/* Fullscreen Protected Views */}
-          <Route path="/flashcard/:id" element={isLoggedIn ? <FlashcardDetail /> : <Navigate to="/login" replace />} />
-          <Route path="/flashcard/:id/play" element={isLoggedIn ? <FlashcardPlay /> : <Navigate to="/login" replace />} />
-          <Route path="/practice/:id/:subMode?" element={isLoggedIn ? <PracticePlay /> : <Navigate to="/login" replace />} />
-          <Route path="/room/:code" element={isLoggedIn ? <FlashcardRoom /> : <Navigate to="/login" replace />} />
 
           {/* Catch-all Redirect */}
           <Route path="*" element={<Navigate to="/" replace />} />

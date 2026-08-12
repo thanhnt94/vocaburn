@@ -497,7 +497,7 @@ export default function QuizDetail() {
   ].filter(t => t.content.trim() !== '') : []
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC]">
+    <div className="min-h-screen bg-[#F8FAFC] pb-36 md:pb-24">
       {/* ═══════════════ COMPACT NAV HEADER ═══════════════ */}
       <nav className="fixed top-0 left-0 right-0 z-[120] bg-white/80 backdrop-blur-2xl border-b border-slate-100 px-4 py-3 flex items-center gap-3">
         <button onClick={() => navigate(-1)} className="w-9 h-9 flex-shrink-0 flex items-center justify-center bg-white border border-slate-100 rounded-xl text-indigo-600 shadow-sm active:scale-90 transition-all">
@@ -899,7 +899,7 @@ export default function QuizDetail() {
       </div>
 
       {/* ═══════════════ FLOATING BOTTOM BAR ═══════════════ */}
-      <div className="fixed bottom-0 left-0 right-0 z-[130]">
+      <div className="fixed bottom-14 md:bottom-0 left-0 right-0 z-[130]">
         {/* Creator Panel (Quick Add) - slides up above the bar */}
         <AnimatePresence>
           {bottomBarMode === 'creator' && !isSearchPanelOpen && canEdit && (
