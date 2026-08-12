@@ -3714,20 +3714,18 @@ export default function FlashcardPlay() {
           const rawStep = roadmapStatus.pipeline[rawIdx];
           
           let displayStepIdx = rawIdx;
-          // When in roadmap mode (or explicit new/fsrs), determine which pipeline step
-          // the user is actually working on based on stage_1_done flag
           const isStage1Done = roadmapStatus?.stage_1_done || false;
-          if (activeMode === 'new') {
+          const firstCard = session?.questions?.[0];
+          const isNewCardSession = firstCard ? (firstCard.is_new || firstCard.state === 0 || firstCard.repetition === 0) : true;
+
+          if (activeMode === 'new' || isNewCardSession) {
             const newCardsIdx = roadmapStatus.pipeline.findIndex((s: any) => s.type === 'new_cards');
             if (newCardsIdx !== -1) displayStepIdx = newCardsIdx;
           } else if (activeMode === 'fsrs') {
             const fsrsIdx = roadmapStatus.pipeline.findIndex((s: any) => s.type === 'fsrs_review');
             if (fsrsIdx !== -1) displayStepIdx = fsrsIdx;
           } else if (activeMode === 'roadmap' || rawStep?.type === 'mcq' || rawStep?.type === 'typing') {
-            // In roadmap mode, the actual session type depends on stage_1_done:
-            // - stage_1_done=false → user is learning new cards
-            // - stage_1_done=true → user is doing FSRS review
-            if (!isStage1Done) {
+            if (!isStage1Done || isNewCardSession) {
               const newCardsIdx = roadmapStatus.pipeline.findIndex((s: any) => s.type === 'new_cards');
               if (newCardsIdx !== -1) displayStepIdx = newCardsIdx;
             } else {
@@ -3748,14 +3746,14 @@ export default function FlashcardPlay() {
             const learnedToday = currentStep.progress?.learned ?? roadmapStatus?.new_learned_today ?? 0;
 
             subTotal = targetNew;
-            subCurr = Math.max(learnedToday, answeredInSession);
+            subCurr = Math.min(targetNew, Math.max(learnedToday, answeredInSession));
           } else if (currentStep?.type === 'fsrs_review') {
             const reviewedToday = currentStep.progress?.reviewed_today ?? roadmapStatus?.review_completed_today ?? 0;
             const dueRemaining = currentStep.progress?.due_count ?? roadmapStatus?.review_due_today ?? 0;
 
-            const initialDueTarget = dueRemaining + reviewedToday;
-            subTotal = initialDueTarget > 0 ? initialDueTarget : (session?.questions?.length || 15);
-            subCurr = Math.max(reviewedToday, answeredInSession);
+            const fsrsTarget = currentStep.daily_count || currentStep.progress?.target || (reviewedToday + dueRemaining);
+            subTotal = fsrsTarget > 0 ? fsrsTarget : (session?.questions?.length || 15);
+            subCurr = Math.min(subTotal, Math.max(reviewedToday, answeredInSession));
           }
 
           const isGoalReached = subTotal > 0 && subCurr >= subTotal;
