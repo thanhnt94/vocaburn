@@ -4154,8 +4154,8 @@ export default function PracticePlay() {
         {(isRoadmapActive || roadmapStatus?.pipeline) && roadmapStatus?.pipeline ? (() => {
           const subCurr = Object.keys(practiceAnswers).length;
           const subTotal = session?.questions?.length || 15;
-          const isGoalReached = subCurr >= subTotal;
-          const isOverachieved = subCurr > subTotal;
+          const isGoalReached = subTotal > 0 && subCurr >= subTotal;
+          const isOverachieved = subTotal > 0 && subCurr > subTotal;
           const activePercent = subTotal > 0 ? Math.min(100, Math.round((subCurr / subTotal) * 100)) : 0;
 
           return (
@@ -4190,7 +4190,7 @@ export default function PracticePlay() {
                 <RoadmapHeaderTracker
                   pipeline={roadmapStatus.pipeline}
                   currentStepIndex={roadmapStatus.current_step_index}
-                  allDone={isRoadmapAllDone || isGoalReached}
+                  allDone={Boolean(isRoadmapAllDone)}
                   deckId={id || ''}
                   deckTitle={session?.title || session?.deck_title || session?.quiz_title || 'Luyện tập'}
                   subProgressCurr={subCurr}

@@ -3747,8 +3747,8 @@ export default function FlashcardPlay() {
             subCurr = Math.max(reviewedToday, answeredInSession);
           }
 
-          const isGoalReached = subCurr >= subTotal;
-          const isOverachieved = subCurr > subTotal;
+          const isGoalReached = subTotal > 0 && subCurr >= subTotal;
+          const isOverachieved = subTotal > 0 && subCurr > subTotal;
           const activePercent = subTotal > 0 ? Math.min(100, Math.round((subCurr / subTotal) * 100)) : 0;
 
           return (
@@ -3783,7 +3783,7 @@ export default function FlashcardPlay() {
                 <RoadmapHeaderTracker
                   pipeline={roadmapStatus.pipeline}
                   currentStepIndex={displayStepIdx}
-                  allDone={roadmapStatus.all_done || isGoalReached}
+                  allDone={Boolean(roadmapStatus.all_done)}
                   deckId={id || ''}
                   deckTitle={session.title}
                   subProgressCurr={subCurr}
