@@ -3714,14 +3714,19 @@ export default function FlashcardPlay() {
           const rawStep = roadmapStatus.pipeline[rawIdx];
           
           let displayStepIdx = rawIdx;
+          // When in roadmap mode (or explicit new/fsrs), determine which pipeline step
+          // the user is actually working on based on stage_1_done flag
+          const isStage1Done = roadmapStatus?.stage_1_done || false;
           if (activeMode === 'new') {
             const newCardsIdx = roadmapStatus.pipeline.findIndex((s: any) => s.type === 'new_cards');
             if (newCardsIdx !== -1) displayStepIdx = newCardsIdx;
           } else if (activeMode === 'fsrs') {
             const fsrsIdx = roadmapStatus.pipeline.findIndex((s: any) => s.type === 'fsrs_review');
             if (fsrsIdx !== -1) displayStepIdx = fsrsIdx;
-          } else if (rawStep?.type === 'mcq' || rawStep?.type === 'typing') {
-            const isStage1Done = roadmapStatus?.stage_1_done || false;
+          } else if (activeMode === 'roadmap' || rawStep?.type === 'mcq' || rawStep?.type === 'typing') {
+            // In roadmap mode, the actual session type depends on stage_1_done:
+            // - stage_1_done=false → user is learning new cards
+            // - stage_1_done=true → user is doing FSRS review
             if (!isStage1Done) {
               const newCardsIdx = roadmapStatus.pipeline.findIndex((s: any) => s.type === 'new_cards');
               if (newCardsIdx !== -1) displayStepIdx = newCardsIdx;
