@@ -185,24 +185,20 @@ export const RoadmapHeaderTracker: React.FC<RoadmapHeaderTrackerProps> = ({
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 exit={{ opacity: 0, y: -4, scale: 0.98 }}
                 transition={{ duration: 0.16 }}
-                className="flex items-center justify-center gap-2.5 min-w-0"
+                className="flex items-center justify-center gap-2 min-w-0"
               >
                 <h1 className="text-xs md:text-sm font-black text-white tracking-tight truncate drop-shadow-md">
                   {deckTitle || 'Phiên Học Lộ Trình'}
                 </h1>
-                <span className={cn(
-                  "px-2.5 py-0.5 rounded-full border text-[10.5px] font-black shrink-0 shadow-xs",
-                  isOverachieved
-                    ? "bg-cyan-950/90 border-cyan-500/70 text-cyan-300"
-                    : isGoalReached 
-                      ? "bg-emerald-950/90 border-emerald-500/60 text-emerald-300" 
-                      : "bg-slate-900 border-slate-700 text-amber-400"
-                )}>
-                  {allDone ? '✓ 100%' : `${currentStepIndex + 1}/${pipeline.length}`}
+                
+                <div className="w-[1px] h-3.5 bg-slate-700/60 mx-0.5 shrink-0" />
+
+                <span className="text-xs font-medium text-slate-300 shrink-0">
+                  Bước <strong className="text-orange-400 font-extrabold">{allDone ? '✓ 100%' : `${currentStepIndex + 1}/${pipeline.length}`}</strong>
                 </span>
               </motion.div>
             ) : (
-              /* NẤC 2: THÔNG SỐ SANG TRỌNG ĐEN HOÀN TOÀN / EMERALD GOAL REACHED / OVERACHIEVED */
+              /* NẤC 2: THÔNG SỐ MINIMALIST VỚI VÁCH NGĂN TINH TẾ */
               <motion.div
                 key="nac-2"
                 initial={{ opacity: 0, y: 4, scale: 0.98 }}
@@ -211,18 +207,13 @@ export const RoadmapHeaderTracker: React.FC<RoadmapHeaderTrackerProps> = ({
                 transition={{ duration: 0.16 }}
                 className="flex items-center justify-center gap-2.5 text-xs min-w-0 overflow-x-auto scrollbar-none"
               >
-                {/* Badge 1/3 */}
-                <div className={cn(
-                  "flex items-center gap-1.5 px-2.5 py-0.5 rounded-full border text-[10.5px] font-black shrink-0 shadow-xs",
-                  isOverachieved
-                    ? "bg-cyan-950/90 border-cyan-500/70 text-cyan-300"
-                    : isGoalReached 
-                      ? "bg-emerald-950/90 border-emerald-500/60 text-emerald-300" 
-                      : "bg-slate-900 border-slate-700 text-amber-400"
-                )}>
-                  <div className={cn("w-1.5 h-1.5 rounded-full animate-ping", isOverachieved ? "bg-cyan-400" : isGoalReached ? "bg-emerald-400" : "bg-amber-400")} />
-                  <span>{currentStepIndex + 1}/{pipeline.length}</span>
-                </div>
+                {/* Bước 1/3 */}
+                <span className="text-xs font-medium text-slate-300 shrink-0">
+                  Bước <strong className="text-orange-400 font-extrabold">{currentStepIndex + 1}/{pipeline.length}</strong>
+                </span>
+
+                {/* Thin Vertical Divider */}
+                <div className="w-[1px] h-3.5 bg-slate-700/60 shrink-0" />
 
                 {/* Tên bước học */}
                 <div className="flex items-center gap-1.5 text-slate-100 font-bold text-xs shrink-0 drop-shadow-xs">
@@ -230,33 +221,36 @@ export const RoadmapHeaderTracker: React.FC<RoadmapHeaderTrackerProps> = ({
                   <span className="text-white font-extrabold">{currentStep ? (currentStep.label || meta.label) : 'Đã Xong'}</span>
                 </div>
 
-                {/* Con số Tốt / Thẻ (Hiển thị gọn +N khi học vượt, hoặc 9/20 khi chưa đủ) */}
+                {/* Con số Tốt / Thẻ / Surge */}
                 {hasSubProg && (
-                  isOverachieved ? (
-                    <div className="flex items-center gap-1 border px-2.5 py-0.5 rounded-full bg-cyan-950/90 border-cyan-400/80 text-cyan-300 text-xs font-black shrink-0 shadow-[0_0_12px_rgba(34,211,238,0.4)]">
-                      <Zap className="w-3.5 h-3.5 text-cyan-300 fill-cyan-300 shrink-0 animate-bounce" />
-                      <span>+{extraCount}</span>
-                    </div>
-                  ) : (
-                    <div className={cn(
-                      "flex items-center gap-1 border px-3 py-0.5 rounded-full text-white font-black text-xs shrink-0 shadow-xs",
-                      isGoalReached 
-                        ? "bg-emerald-950/90 border-emerald-500/70 text-emerald-300 shadow-[0_0_10px_rgba(16,185,129,0.3)]" 
-                        : "bg-slate-900 border-slate-700/80"
-                    )}>
-                      {isGoalReached && <Trophy className="w-3.5 h-3.5 text-emerald-400 fill-emerald-400 shrink-0 mr-0.5" />}
-                      <span className={isGoalReached ? "text-emerald-300 font-black" : "text-amber-400 font-black"}>{subProgressCurr}</span>
-                      <span className={isGoalReached ? "text-emerald-500" : "text-slate-500"}>/</span>
-                      <span className={isGoalReached ? "text-emerald-200" : "text-slate-200"}>{subProgressTotal}</span>
-                    </div>
-                  )
+                  <>
+                    <div className="w-[1px] h-3.5 bg-slate-700/60 shrink-0" />
+                    {isOverachieved ? (
+                      <div className="flex items-center gap-1 text-sky-400 text-xs font-black shrink-0">
+                        <Zap className="w-3.5 h-3.5 text-sky-400 fill-sky-400 shrink-0 animate-bounce" />
+                        <span>+{extraCount}</span>
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-1 text-xs font-black shrink-0">
+                        {isGoalReached && <Trophy className="w-3.5 h-3.5 text-emerald-400 fill-emerald-400 shrink-0 mr-0.5" />}
+                        <span className={isGoalReached ? "text-emerald-400 font-black" : "text-amber-400 font-black"}>{subProgressCurr}</span>
+                        <span className="text-slate-500">/</span>
+                        <span className="text-slate-300">{subProgressTotal}</span>
+                      </div>
+                    )}
+                  </>
                 )}
 
                 {/* Streak */}
-                <div className="flex items-center gap-1 bg-orange-500/10 border border-orange-500/30 px-2.5 py-0.5 rounded-full text-orange-400 font-black text-[10.5px] shrink-0">
-                  <Flame className="w-3.5 h-3.5 text-orange-400 fill-orange-400 animate-pulse" />
-                  <span>{streakCount}d</span>
-                </div>
+                {streakCount > 0 && (
+                  <>
+                    <div className="w-[1px] h-3.5 bg-slate-700/60 shrink-0" />
+                    <div className="flex items-center gap-1 text-amber-400 font-black text-xs shrink-0">
+                      <Flame className="w-3.5 h-3.5 text-amber-500 fill-amber-500 shrink-0 animate-pulse" />
+                      <span>{streakCount}d</span>
+                    </div>
+                  </>
+                )}
               </motion.div>
             )
           )}
