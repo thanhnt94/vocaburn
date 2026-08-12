@@ -3715,6 +3715,7 @@ export default function FlashcardPlay() {
           
           let displayStepIdx = rawIdx;
           const isStage1Done = roadmapStatus?.stage_1_done || false;
+          const isStage2Done = roadmapStatus?.stage_2_done || false;
           const firstCard = session?.questions?.[0];
           const isNewCardSession = firstCard ? (firstCard.is_new || firstCard.state === 0 || firstCard.repetition === 0) : true;
 
@@ -3722,10 +3723,16 @@ export default function FlashcardPlay() {
             const newCardsIdx = roadmapStatus.pipeline.findIndex((s: any) => s.type === 'new_cards');
             if (newCardsIdx !== -1) displayStepIdx = newCardsIdx;
           } else if (activeMode === 'fsrs') {
-            const fsrsIdx = roadmapStatus.pipeline.findIndex((s: any) => s.type === 'fsrs_review');
-            if (fsrsIdx !== -1) displayStepIdx = fsrsIdx;
+            // Strictly enforce roadmap unlocking: if in roadmap mode and stage 2 (MCQ/typing) is not done, lock FSRS step
+            if (!isStage2Done) {
+              const newCardsIdx = roadmapStatus.pipeline.findIndex((s: any) => s.type === 'new_cards');
+              if (newCardsIdx !== -1) displayStepIdx = newCardsIdx;
+            } else {
+              const fsrsIdx = roadmapStatus.pipeline.findIndex((s: any) => s.type === 'fsrs_review');
+              if (fsrsIdx !== -1) displayStepIdx = fsrsIdx;
+            }
           } else if (activeMode === 'roadmap' || rawStep?.type === 'mcq' || rawStep?.type === 'typing') {
-            if (!isStage1Done || isNewCardSession) {
+            if (!isStage1Done || isNewCardSession || !isStage2Done) {
               const newCardsIdx = roadmapStatus.pipeline.findIndex((s: any) => s.type === 'new_cards');
               if (newCardsIdx !== -1) displayStepIdx = newCardsIdx;
             } else {
