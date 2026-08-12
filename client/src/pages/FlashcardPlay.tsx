@@ -3745,15 +3745,26 @@ export default function FlashcardPlay() {
             const targetNew = currentStep.daily_count || currentStep.progress?.target || roadmapStatus?.new_target_today || 20;
             const learnedToday = currentStep.progress?.learned ?? roadmapStatus?.new_learned_today ?? 0;
 
+            const newCardsInSession = Object.keys(sessionAnswers).filter(idxStr => {
+              const q = session?.questions?.[Number(idxStr)];
+              return q && (q.is_new || q.state === 0 || q.repetition === 0);
+            }).length;
+
             subTotal = targetNew;
-            subCurr = Math.min(targetNew, Math.max(learnedToday, answeredInSession));
+            subCurr = Math.max(learnedToday, newCardsInSession);
           } else if (currentStep?.type === 'fsrs_review') {
             const reviewedToday = currentStep.progress?.reviewed_today ?? roadmapStatus?.review_completed_today ?? 0;
             const dueRemaining = currentStep.progress?.due_count ?? roadmapStatus?.review_due_today ?? 0;
 
             const fsrsTarget = currentStep.daily_count || currentStep.progress?.target || (reviewedToday + dueRemaining);
             subTotal = fsrsTarget > 0 ? fsrsTarget : (session?.questions?.length || 15);
-            subCurr = Math.min(subTotal, Math.max(reviewedToday, answeredInSession));
+
+            const fsrsInSession = Object.keys(sessionAnswers).filter(idxStr => {
+              const q = session?.questions?.[Number(idxStr)];
+              return q && !(q.is_new || q.state === 0 || q.repetition === 0);
+            }).length;
+
+            subCurr = Math.max(reviewedToday, fsrsInSession);
           }
 
           const isGoalReached = subTotal > 0 && subCurr >= subTotal;
