@@ -3697,14 +3697,14 @@ export default function FlashcardPlay() {
               exit={{ opacity: 0 }}
               onClick={() => navigate('/')} 
               className={cn(
-                "w-8.5 h-8.5 flex items-center justify-center rounded-xl shadow-2xs active:scale-90 transition-all flex-shrink-0 border relative z-[140]",
+                "w-8 h-8 flex items-center justify-center transition-all flex-shrink-0 relative z-[140]",
                 roadmapStatus?.pipeline
-                  ? "bg-slate-900/90 hover:bg-slate-800 text-slate-200 border-slate-700/80 hover:text-white"
-                  : "bg-slate-50 hover:bg-indigo-50 text-slate-600 border-slate-200/60 hover:text-indigo-600 hover:border-indigo-100"
+                  ? "text-slate-300 hover:text-white"
+                  : "text-slate-500 hover:text-indigo-600"
               )}
               title="Thoát phiên học"
             >
-              <X className="w-4.5 h-4.5" />
+              <X className="w-5 h-5" />
             </motion.button>
           )}
         </AnimatePresence>
@@ -5021,25 +5021,7 @@ export default function FlashcardPlay() {
                   </div>
                 )
               ) : (
-                (!hasRated && activeMode !== 'flip') || (activeMode === 'flip' && !isFlipped) ? (
-                  <button 
-                    onClick={() => {
-                      const nextFlipped = !isFlipped;
-                      setIsFlipped(nextFlipped);
-                      if (nextFlipped) {
-                        setShowFeedback(true);
-                        setJustAnswered(true);
-                      }
-                    }}
-                    className="flex-1 h-12 sm:h-14 bg-gradient-to-r from-indigo-500 via-indigo-600 to-purple-600 text-white font-black text-xs rounded-2xl shadow-lg shadow-indigo-300/50 flex items-center justify-center gap-2.5 uppercase tracking-widest active:scale-[0.98] transition-all hover:shadow-indigo-400/60 hover:shadow-xl"
-                  >
-                    {isFlipped ? (
-                      <><ChevronRight className="w-4 h-4 rotate-180" /> FLIP BACK</>
-                    ) : (
-                      <>FLIP CARD <ChevronRight className="w-4 h-4 rotate-90" /></>
-                    )}
-                  </button>
-                ) : (
+                (!hasRated && activeMode !== 'flip') || (activeMode === 'flip' && !isFlipped) ? null : (
                   <div className="flex-1 flex gap-1.5 sm:gap-3 h-12 sm:h-14">
                     <button 
                       onClick={() => setIsFlipped(prev => !prev)}
