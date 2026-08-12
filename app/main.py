@@ -152,7 +152,7 @@ async def serve_sw():
         sw_path = os.path.join(BASE_DIR, "..", "client", "public", "sw.js")
     if os.path.exists(sw_path):
         from fastapi.responses import FileResponse
-        return FileResponse(sw_path, media_type="application/javascript")
+        return FileResponse(sw_path, media_type="application/javascript", headers={"Cache-Control": "no-cache, no-store, must-revalidate"})
     raise HTTPException(status_code=404, detail="Service worker file not found")
 
 @app.get("/")

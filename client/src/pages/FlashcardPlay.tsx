@@ -3714,7 +3714,13 @@ export default function FlashcardPlay() {
           const rawStep = roadmapStatus.pipeline[rawIdx];
           
           let displayStepIdx = rawIdx;
-          if (rawStep?.type === 'mcq' || rawStep?.type === 'typing') {
+          if (activeMode === 'new') {
+            const newCardsIdx = roadmapStatus.pipeline.findIndex((s: any) => s.type === 'new_cards');
+            if (newCardsIdx !== -1) displayStepIdx = newCardsIdx;
+          } else if (activeMode === 'fsrs') {
+            const fsrsIdx = roadmapStatus.pipeline.findIndex((s: any) => s.type === 'fsrs_review');
+            if (fsrsIdx !== -1) displayStepIdx = fsrsIdx;
+          } else if (rawStep?.type === 'mcq' || rawStep?.type === 'typing') {
             const isStage1Done = roadmapStatus?.stage_1_done || false;
             if (!isStage1Done) {
               const newCardsIdx = roadmapStatus.pipeline.findIndex((s: any) => s.type === 'new_cards');
