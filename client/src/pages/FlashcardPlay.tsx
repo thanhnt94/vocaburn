@@ -3689,25 +3689,18 @@ export default function FlashcardPlay() {
           ? "bg-slate-950 border-b border-slate-800/80 text-white shadow-xl"
           : "bg-white/95 border-b border-slate-100/80 text-slate-800 shadow-[0_1px_20px_rgba(99,102,241,0.04)]"
       )}>
-        <AnimatePresence>
-          {!isHeaderSurging && headerViewMode === 0 && (
-            <motion.button 
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => navigate('/')} 
-              className={cn(
-                "w-8 h-8 flex items-center justify-center transition-all flex-shrink-0 relative z-[140]",
-                roadmapStatus?.pipeline
-                  ? "text-slate-300 hover:text-white"
-                  : "text-slate-500 hover:text-indigo-600"
-              )}
-              title="Thoát phiên học"
-            >
-              <X className="w-5 h-5" />
-            </motion.button>
+        <motion.button 
+          onClick={() => navigate('/')} 
+          className={cn(
+            "w-8 h-8 flex items-center justify-center transition-all flex-shrink-0 relative z-[140]",
+            roadmapStatus?.pipeline
+              ? "text-slate-300 hover:text-white"
+              : "text-slate-500 hover:text-indigo-600"
           )}
-        </AnimatePresence>
+          title="Thoát phiên học"
+        >
+          <X className="w-5 h-5" />
+        </motion.button>
 
         {roadmapStatus?.pipeline ? (() => {
           const rawIdx = roadmapStatus?.current_step_index || 0;
@@ -3783,14 +3776,7 @@ export default function FlashcardPlay() {
                     className="absolute bottom-0 left-0 right-0 h-0.5 bg-slate-900/80 pointer-events-none z-[125]"
                   >
                     <motion.div 
-                      className={cn(
-                        "h-full rounded-r-full transition-all duration-500",
-                        isOverachieved
-                          ? "bg-gradient-to-r from-emerald-500 via-teal-400 to-cyan-300 shadow-[0_0_14px_rgba(34,211,238,0.9)]"
-                          : isGoalReached 
-                            ? "bg-gradient-to-r from-emerald-500 via-teal-400 to-cyan-300 shadow-[0_0_10px_rgba(16,185,129,0.9)]" 
-                            : "bg-gradient-to-r from-orange-500 via-amber-400 to-emerald-400 shadow-[0_0_8px_rgba(249,115,22,0.9)]"
-                      )}
+                      className="h-full rounded-r-full transition-all duration-500 bg-gradient-to-r from-purple-600 via-indigo-500 to-fuchsia-500 shadow-[0_0_10px_rgba(168,85,247,0.9)]"
                       initial={{ width: 0 }}
                       animate={{ width: `${activePercent}%` }}
                       transition={{ type: "spring", stiffness: 120, damping: 18 }}
