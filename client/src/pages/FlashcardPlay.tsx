@@ -43,6 +43,7 @@ interface Option {
 
 interface Question {
   id: number
+  original_index?: number
   is_ignored?: boolean
   is_starred?: boolean
   content: string
@@ -4386,19 +4387,7 @@ export default function FlashcardPlay() {
                           FRONT CARD
                         </span>
                         <span className="text-[10px] font-black tracking-wider text-white bg-indigo-500 px-3 py-1.5 rounded-xl border border-indigo-600 shadow-sm">
-                          {(() => {
-                            if (activeMode === 'roadmap' && roadmapStatus) {
-                              const currentStep = roadmapStatus?.pipeline?.[roadmapStatus?.current_step_index || 0];
-                              if (currentStep?.type === 'new_cards') {
-                                const learnedToday = currentStep.progress?.learned ?? 0;
-                                return Math.max(1, learnedToday + 1);
-                              }
-                            } else if (activeMode === 'new') {
-                              const newLearned = roadmapStatus?.new_learned_today ?? 0;
-                              return Math.max(1, newLearned + 1);
-                            }
-                            return currentIndex + 1;
-                          })()}
+                          {currentQuestion?.original_index ?? (currentIndex + 1)}
                         </span>
                       </div>
                       
@@ -4471,19 +4460,7 @@ export default function FlashcardPlay() {
                           BACK CARD
                         </span>
                         <span className="text-[10px] font-black tracking-wider text-white bg-indigo-500 px-3 py-1.5 rounded-xl border border-indigo-600 shadow-sm">
-                          {(() => {
-                            if (activeMode === 'roadmap' && roadmapStatus) {
-                              const currentStep = roadmapStatus?.pipeline?.[roadmapStatus?.current_step_index || 0];
-                              if (currentStep?.type === 'new_cards') {
-                                const learnedToday = currentStep.progress?.learned ?? 0;
-                                return Math.max(1, learnedToday + 1);
-                              }
-                            } else if (activeMode === 'new') {
-                              const newLearned = roadmapStatus?.new_learned_today ?? 0;
-                              return Math.max(1, newLearned + 1);
-                            }
-                            return currentIndex + 1;
-                          })()}
+                          {currentQuestion?.original_index ?? (currentIndex + 1)}
                         </span>
                       </div>
                       

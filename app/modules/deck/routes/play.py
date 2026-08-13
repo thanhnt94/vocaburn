@@ -1343,6 +1343,7 @@ async def get_deck_play_data(request: Request, deck_id: int, mode: Optional[str]
         
         cards_list = [{
             "id": c.id,
+            "original_index": i + 1,
             "content": c.content,
             "explanation": c.explanation,
             "front_audio_content": c.front_audio_content,
@@ -1354,7 +1355,7 @@ async def get_deck_play_data(request: Request, deck_id: int, mode: Optional[str]
             "image": fix_static_urls(c.back_img),
             "audio": fix_static_urls(c.front_audio_url),
             "others": fix_static_urls(c.others)
-        } for c in deck.cards]
+        } for i, c in enumerate(deck.cards)]
         
         await resolve_play_cards(cards_list, db)
         return {
@@ -1482,9 +1483,10 @@ async def get_deck_play_data(request: Request, deck_id: int, mode: Optional[str]
     
     if is_practice:
         # Ultra-fast path for practice: just card data, no FSRS computation
-        for c in deck.cards:
+        for i, c in enumerate(deck.cards):
             cards_list.append({
                 "id": c.id,
+                "original_index": i + 1,
                 "content": c.content,
                 "explanation": c.explanation,
                 "ai_explanation": c.others.get("ai_explanation") if c.others else None,
@@ -1509,7 +1511,7 @@ async def get_deck_play_data(request: Request, deck_id: int, mode: Optional[str]
         new_card = build_fsrs_card(None, now_utc)
         default_new_intervals = estimate_intervals(scheduler, new_card, now_utc)
                 
-        for c in deck.cards:
+        for idx, c in enumerate(deck.cards):
             m = mastery_records.get(c.id)
             
             m_state = m.state if m else 0
@@ -1535,6 +1537,7 @@ async def get_deck_play_data(request: Request, deck_id: int, mode: Optional[str]
 
             cards_list.append({
                 "id": c.id,
+                "original_index": idx + 1,
                 "content": c.content,
                 "explanation": c.explanation,
                 "front_audio_content": c.front_audio_content,

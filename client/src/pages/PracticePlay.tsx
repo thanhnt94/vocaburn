@@ -38,6 +38,7 @@ interface Option {
 
 interface Question {
   id: number
+  original_index?: number
   is_ignored?: boolean
   is_starred?: boolean
   content: string
@@ -4948,7 +4949,7 @@ export default function PracticePlay() {
                               FRONT CARD
                             </span>
                             <span className="text-[10px] font-black tracking-wider text-white bg-indigo-500 px-3 py-1.5 rounded-xl border border-indigo-600 shadow-sm">
-                              {currentIndex + 1}
+                              {currentQuestion?.original_index ?? (currentIndex + 1)}
                             </span>
                           </div>
 
