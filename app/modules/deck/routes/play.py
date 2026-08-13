@@ -2620,7 +2620,7 @@ async def get_deck_roadmap_status_helper(db: AsyncSession, user_id: int, deck_id
             })
         elif stype == "fsrs_review":
             overdue_hours = int(st.get("overdue_hours", 24))
-            is_done = (review_due_today <= 0) or (prog is not None and prog.is_target_met) or (target_date_str is not None and review_completed_today > 0) or (review_completed_today > 0 and review_due_today <= 0)
+            is_done = (review_due_today <= 0) or (review_completed_today >= review_due_today)
             step_data.update({
                 "overdue_hours": overdue_hours,
                 "done": is_done,
@@ -2755,10 +2755,19 @@ async def get_deck_roadmap_status_helper(db: AsyncSession, user_id: int, deck_id
         days_left = 0
         estimated_completion_date = None
 
+    has_activity_today = (
+        new_learned_today > 0 or 
+        review_completed_today > 0 or 
+        answers_count_today > 0 or 
+        today_studied_minutes > 0 or 
+        mcq_attempts_count_today > 0 or 
+        typing_attempts_count_today > 0
+    )
+    all_cards_learned = (total_cards > 0 and unlearned_cards == 0)
+
     if len(pipeline_processed) > 0:
-        all_done = all(step.get("done", False) for step in pipeline_processed)
-    elif len(pipeline_processed) == 0:
-        all_done = True
+        steps_all_done = all(step.get("done", False) for step in pipeline_processed)
+        all_done = steps_all_done and (has_activity_today or all_cards_learned)
     else:
         all_done = False
         
