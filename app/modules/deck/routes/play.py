@@ -2746,6 +2746,9 @@ async def get_deck_roadmap_status_helper(db: AsyncSession, user_id: int, deck_id
                 "label": f"Thời gian học ({target_mins} phút)"
             })
 
+        if prog and prog.is_target_met:
+            step_data["done"] = True
+
         pipeline_processed.append(step_data)
         if not step_data["done"] and first_incomplete_idx is None:
             first_incomplete_idx = idx
