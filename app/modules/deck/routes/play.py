@@ -1520,7 +1520,7 @@ async def get_deck_play_data(request: Request, deck_id: int, mode: Optional[str]
             m_last_review = m.last_review if m else None
             m_box_level = m.box_level if m else 1
             
-            is_new = (m is None) or (m_state == 0) or (m_stability is None)
+            is_new = (m is None) or (m_state == 0 and m_last_review is None)
             
             if is_new:
                 intervals = default_new_intervals
@@ -1666,6 +1666,7 @@ async def get_next_card(request: Request, deck_id: int, data: dict, db: AsyncSes
         for idx, c in enumerate(deck.cards):
             if idx in ignored_indexes:
                 continue
+            m = mastery_map.get(c.id)
             is_new = not m or (m.state == 0 and getattr(m, 'last_review', None) is None)
             if is_new:
                 all_new.append(idx)
