@@ -4,6 +4,7 @@ from sqlalchemy import select, func
 from app.core.db import get_db
 from datetime import datetime, date, timedelta
 from typing import Optional
+from app.modules.gamification.interface import GamificationInterface
 
 router = APIRouter(prefix="/gamification", tags=["Gamification"])
 

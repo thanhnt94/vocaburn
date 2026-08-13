@@ -2773,7 +2773,8 @@ async def get_deck_roadmap_status_helper(db: AsyncSession, user_id: int, deck_id
 
     if len(pipeline_processed) > 0:
         steps_all_done = all(step.get("done", False) for step in pipeline_processed)
-        all_done = steps_all_done and (has_activity_today or all_cards_learned)
+        is_already_met = (prog is not None and (getattr(prog, 'is_target_met', False) or getattr(prog, 'is_rescued', False)))
+        all_done = is_already_met or (steps_all_done and (has_activity_today or all_cards_learned))
     else:
         all_done = False
         
