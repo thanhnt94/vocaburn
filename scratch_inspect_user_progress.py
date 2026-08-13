@@ -1,8 +1,9 @@
 import asyncio
-from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
+from sqlalchemy.ext.asyncio import create_async_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy import select
 from app.core.config import settings
+from app.modules.auth.models import User
 from app.modules.deck.models import UserDailyProgress, UserDeckGoal
 
 async def inspect():
