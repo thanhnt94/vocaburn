@@ -202,6 +202,7 @@ class UserDailyProgress(Base):
     date_val = Column(Date, nullable=True, index=True)
     count_done = Column(Integer, default=0)
     is_target_met = Column(Boolean, default=False)
+    is_rescued = Column(Boolean, default=False, server_default='0')
     created_at = Column(DateTime, default=datetime.utcnow)
     
     goal = relationship("UserDeckGoal")

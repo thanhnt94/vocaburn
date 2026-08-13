@@ -1666,8 +1666,7 @@ async def get_next_card(request: Request, deck_id: int, data: dict, db: AsyncSes
         for idx, c in enumerate(deck.cards):
             if idx in ignored_indexes:
                 continue
-            m = mastery_map.get(c.id)
-            is_new = not m or m.state == 0 or m.stability is None
+            is_new = not m or (m.state == 0 and getattr(m, 'last_review', None) is None)
             if is_new:
                 all_new.append(idx)
                 if idx not in effective_answered:
@@ -2473,7 +2472,7 @@ async def get_deck_roadmap_status_helper(db: AsyncSession, user_id: int, deck_id
         )
     ) or 0
 
-    review_due_today = await db.scalar(
+    review_still_due = await db.scalar(
         select(func.count(UserCardMastery.id))
         .join(Flashcard, UserCardMastery.card_id == Flashcard.id)
         .where(
@@ -2483,6 +2482,8 @@ async def get_deck_roadmap_status_helper(db: AsyncSession, user_id: int, deck_id
             UserCardMastery.due <= cutoff_time
         )
     ) or 0
+    # Total due at start of target day = cards currently due + cards reviewed today
+    review_due_today = review_still_due + review_completed_today
 
     # Calculate target day's total active study time in minutes for this deck
     today_time_seconds = await db.scalar(
@@ -2577,20 +2578,22 @@ async def get_deck_roadmap_status_helper(db: AsyncSession, user_id: int, deck_id
 
         past_7_dates = [(today_date - timedelta(days=i)).isoformat() for i in range(6, -1, -1)]
         progress_res = await db.execute(
-            select(UserDailyProgress.date, UserDailyProgress.is_target_met)
+            select(UserDailyProgress.date, UserDailyProgress.is_target_met, UserDailyProgress.is_rescued)
             .where(UserDailyProgress.goal_id == goal.id, UserDailyProgress.date.in_(past_7_dates))
         )
-        progress_map = {row[0]: row[1] for row in progress_res.all()}
+        progress_map = {row[0]: {"is_target_met": row[1], "is_rescued": getattr(row, "is_rescued", False)} for row in progress_res.all()}
     else:
         progress_map = {}
         
     for i in range(6, -1, -1):
         d = today_date - timedelta(days=i)
         d_str = d.isoformat()
+        d_info = progress_map.get(d_str, {"is_target_met": False, "is_rescued": False})
         seven_days.append({
             "date": d_str,
             "day_name": d.strftime("%a"),
-            "active": progress_map.get(d_str, False)
+            "active": d_info["is_target_met"],
+            "rescued": d_info.get("is_rescued", False)
         })
 
     pipeline_processed = []
@@ -2788,7 +2791,8 @@ async def get_deck_roadmap_status_helper(db: AsyncSession, user_id: int, deck_id
             prog = UserDailyProgress(goal_id=goal.id, date=today_str, is_target_met=all_done)
             db.add(prog)
         else:
-            prog.is_target_met = all_done
+            if not getattr(prog, 'is_rescued', False):
+                prog.is_target_met = all_done
             
         if all_done:
             goal.last_completed_date = today_str
@@ -3095,11 +3099,23 @@ async def get_deck_roadmap_calendar(request: Request, deck_id: int, month: str =
     user_sett = user_sett_res.scalar_one_or_none()
     settings = user_sett.settings if (user_sett and user_sett.settings) else {}
     pipeline = settings.get("pipeline", [])
-    total_steps = len(pipeline) if pipeline else 1
-    
     # Get all active dates in this month for this deck
     month_start = datetime(year, month_num, 1)
     month_end = datetime(year, month_num, days_in_month, 23, 59, 59)
+
+    month_start_str = month_start.strftime("%Y-%m-%d")
+    month_end_str = month_end.strftime("%Y-%m-%d")
+    progress_records_map = {}
+    if deck_goal:
+        progress_res = await db.execute(
+            select(UserDailyProgress)
+            .where(
+                UserDailyProgress.goal_id == deck_goal.id,
+                UserDailyProgress.date >= month_start_str,
+                UserDailyProgress.date <= month_end_str
+            )
+        )
+        progress_records_map = {p.date: p for p in progress_res.scalars().all()}
     
     # Get study minutes per day
     daily_study_res = await db.execute(
@@ -3141,9 +3157,14 @@ async def get_deck_roadmap_calendar(request: Request, deck_id: int, month: str =
         is_active = info["answer_count"] > 0
         study_minutes = round(info["study_seconds"] / 60.0, 1)
         
-        # Estimate completion percent based on dynamic goal
+        p_record = progress_records_map.get(day_str)
+        is_rescued = getattr(p_record, "is_rescued", False) if p_record else False
+        is_target_met = getattr(p_record, "is_target_met", False) if p_record else False
+        
         completion_percent = 0
-        if is_active:
+        if is_target_met or is_rescued:
+            completion_percent = 100
+        elif is_active:
             if settings.get("roadmap_active"):
                 st = await get_deck_roadmap_status_helper(db, user_id, deck_id, settings, target_date_str=day_str)
                 if st.get("all_done"):
@@ -3164,7 +3185,9 @@ async def get_deck_roadmap_calendar(request: Request, deck_id: int, month: str =
         days.append({
             "date": day_str,
             "day_of_week": day_date.weekday(),  # 0=Monday
-            "active": is_active,
+            "active": is_active or is_target_met or is_rescued,
+            "is_target_met": is_target_met,
+            "rescued": is_rescued,
             "completion_percent": completion_percent,
             "study_minutes": study_minutes,
             "answer_count": info["answer_count"]
@@ -3175,6 +3198,52 @@ async def get_deck_roadmap_calendar(request: Request, deck_id: int, month: str =
         "days": days,
         "total_active_days": sum(1 for d in days if d["active"]),
         "total_study_minutes": round(sum(d["study_minutes"] for d in days), 1)
+    }
+
+
+@router.post("/{deck_id}/roadmap-rescue")
+async def rescue_deck_roadmap_day(request: Request, deck_id: int, db: AsyncSession = Depends(get_db)):
+    """Manually use a Streak Freeze card to rescue an uncompleted day."""
+    user_id = AuthService.get_user_id(request)
+    body = await request.json()
+    target_date_str = body.get("date")
+    if not target_date_str:
+        return JSONResponse(status_code=400, content={"error": "Thiếu ngày cần giải cứu"})
+        
+    from app.modules.gamification.models import UserGamification
+    res_gamify = await db.execute(select(UserGamification).where(UserGamification.user_id == user_id))
+    user_gamify = res_gamify.scalar_one_or_none()
+    
+    freeze_count = user_gamify.streak_freeze_count if (user_gamify and user_gamify.streak_freeze_count) else 0
+    if freeze_count <= 0:
+        return JSONResponse(status_code=400, content={"error": "Bạn không có đủ Thẻ Cứu Streak. Hãy tích điểm để đổi thẻ trong Cửa Hàng!"})
+        
+    from app.modules.deck.models import UserDeckGoal
+    goal_res = await db.execute(select(UserDeckGoal).where(UserDeckGoal.user_id == user_id, UserDeckGoal.deck_id == deck_id))
+    goal = goal_res.scalar_one_or_none()
+    if not goal:
+        goal = UserDeckGoal(user_id=user_id, deck_id=deck_id, streak_count=0)
+        db.add(goal)
+        await db.flush()
+        
+    prog_res = await db.execute(select(UserDailyProgress).where(UserDailyProgress.goal_id == goal.id, UserDailyProgress.date == target_date_str))
+    prog = prog_res.scalar_one_or_none()
+    
+    if not prog:
+        prog = UserDailyProgress(goal_id=goal.id, date=target_date_str, is_target_met=True, is_rescued=True)
+        db.add(prog)
+    else:
+        prog.is_target_met = True
+        prog.is_rescued = True
+        
+    user_gamify.streak_freeze_count = max(0, freeze_count - 1)
+    user_gamify.last_freeze_used_at = datetime.utcnow()
+    
+    await db.commit()
+    return {
+        "success": True, 
+        "message": f"🎉 Đã giải cứu thành công ngày {target_date_str}!", 
+        "streak_freeze_count": user_gamify.streak_freeze_count
     }
 
 

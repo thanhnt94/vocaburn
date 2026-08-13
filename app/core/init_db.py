@@ -82,6 +82,9 @@ async def init_db():
             if "date_val" not in columns:
                 print("[MIGRATE] Adding column date_val to user_daily_progress...")
                 connection.execute(text("ALTER TABLE user_daily_progress ADD COLUMN date_val DATE NULL"))
+            if "is_rescued" not in columns:
+                print("[MIGRATE] Adding column is_rescued to user_daily_progress...")
+                connection.execute(text("ALTER TABLE user_daily_progress ADD COLUMN is_rescued BOOLEAN DEFAULT 0"))
 
         def create_composite_indexes(connection):
             connection.execute(text("CREATE INDEX IF NOT EXISTS ix_user_daily_stats_user_date ON user_daily_stats(user_id, date);"))

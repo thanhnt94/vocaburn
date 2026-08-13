@@ -94,9 +94,20 @@ export default function DeckRoadmap() {
   ])
   const [selectedDate, setSelectedDate] = useState<string | null>(null)
   const [isSavingSettings, setIsSavingSettings] = useState(false)
+  const [rescueDayTarget, setRescueDayTarget] = useState<string | null>(null)
+  const [isRescuing, setIsRescuing] = useState(false)
   const [calendarMonth, setCalendarMonth] = useState(() => {
     const now = new Date()
     return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
+  })
+
+  // Fetch Gamification Shop Status (Streak Freeze Count & Points)
+  const { data: gamifyShop, refetch: refetchGamifyShop } = useQuery({
+    queryKey: ['gamification-shop-status'],
+    queryFn: async () => {
+      const res = await axios.get('/api/v1/gamification/shop/status')
+      return res.data
+    }
   })
 
   // Fetch deck roadmap status
@@ -123,7 +134,7 @@ export default function DeckRoadmap() {
   })
 
   // Fetch calendar heatmap
-  const { data: calendarData } = useQuery({
+  const { data: calendarData, refetch: refetchCalendar } = useQuery({
     queryKey: ['deck-roadmap-calendar', id, calendarMonth],
     queryFn: async () => {
       const res = await axios.get(`/api/v1/deck/${id}/roadmap-calendar?month=${calendarMonth}`)
@@ -199,6 +210,26 @@ export default function DeckRoadmap() {
       alert("⚠️ Không thể lưu cấu hình pipeline. Vui lòng thử lại!")
     } finally {
       setIsSavingSettings(false)
+    }
+  }
+
+  const handleRescueDay = async (dateStr: string) => {
+    try {
+      setIsRescuing(true)
+      const res = await axios.post(`/api/v1/deck/${id}/roadmap-rescue`, { date: dateStr })
+      if (res.data && res.data.success) {
+        setRescueDayTarget(null)
+        await refetch()
+        await refetchCalendar()
+        await refetchGamifyShop()
+        queryClient.invalidateQueries({ queryKey: ['user-gamification'] })
+        alert(res.data.message || `🎉 Đã giải cứu thành công ngày ${dateStr}!`)
+      }
+    } catch (err: any) {
+      const msg = err.response?.data?.error || err.response?.data?.detail || "Không thể giải cứu ngày này."
+      alert(`⚠️ ${msg}`)
+    } finally {
+      setIsRescuing(false)
     }
   }
 
@@ -564,6 +595,24 @@ export default function DeckRoadmap() {
                 transition={{ duration: 0.18, ease: "easeInOut" }}
                 className="absolute inset-0 flex flex-col overflow-y-auto p-4 space-y-4 scrollbar-thin"
               >
+                {/* Streak Freeze Info Banner */}
+                <div className="bg-gradient-to-r from-sky-900 via-indigo-950 to-slate-900 text-white rounded-2xl p-3 border border-sky-500/30 shadow-xs flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-8 h-8 rounded-xl bg-sky-500/20 border border-sky-500/30 flex items-center justify-center text-sky-300 font-bold shrink-0 text-sm">
+                      🛡️
+                    </div>
+                    <div>
+                      <div className="text-[11px] font-black text-white flex items-center gap-1.5 leading-tight">
+                        <span>Kho Cứu Streak:</span>
+                        <span className="text-sky-300">{gamifyShop?.streak_freeze_count || 0}/2 Thẻ</span>
+                      </div>
+                      <span className="text-[9px] font-medium text-slate-300 block mt-0.5">
+                        Tích lũy: <strong className="text-amber-400">{gamifyShop?.streak_points || 0}⚡ điểm</strong> • Bấm vào ô ngày qua để giải cứu!
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
                 {/* Calendar Heatmap */}
                 <div className="bg-white border border-slate-200/80 rounded-2xl p-4 shadow-2xs">
                   <div className="flex items-center justify-between mb-4">
@@ -601,18 +650,21 @@ export default function DeckRoadmap() {
                             key={day.date}
                             onClick={() => {
                               setSelectedDate(day.date)
-                              setCurrentSlide(0)
+                              setActiveTab('today')
                             }}
                             className={cn(
-                              "aspect-square rounded-lg flex items-center justify-center text-[9px] font-black transition-all cursor-pointer relative",
-                              day.active
-                                ? day.completion_percent >= 100
-                                  ? "bg-emerald-500 text-white shadow-xs font-black"
-                                  : "bg-orange-100 text-orange-800 font-bold"
-                                : "bg-slate-100 text-slate-400 hover:bg-slate-200",
+                              "aspect-square rounded-lg flex items-center justify-center text-[10px] font-black transition-all cursor-pointer relative",
+                              day.rescued
+                                ? "bg-sky-400 text-white shadow-xs font-black"
+                                : day.active
+                                  ? day.completion_percent >= 100
+                                    ? "bg-emerald-500 text-white shadow-xs font-black"
+                                    : "bg-orange-100 text-orange-800 font-bold"
+                                  : "bg-slate-100 text-slate-400 hover:bg-slate-200",
                               isSelected && "ring-2 ring-orange-500 ring-offset-1",
                               isToday && "border-2 border-indigo-500"
                             )}
+                            title={`${day.date}: ${day.study_minutes} phút, ${day.answer_count} câu trả lời`}
                           >
                             {parseInt(day.date.split('-')[2])}
                           </button>
@@ -620,6 +672,26 @@ export default function DeckRoadmap() {
                       })}
                     </div>
                   </div>
+
+                  {/* Selected Past Day Manual Rescue Banner */}
+                  {selectedDate && calendarDays.find((d: any) => d.date === selectedDate && !d.rescued && d.completion_percent < 100) && (
+                    <div className="mt-3 p-3 bg-amber-50 border border-amber-200 rounded-xl flex items-center justify-between gap-2 shadow-2xs">
+                      <div className="text-[11px] font-bold text-amber-900">
+                        <span>🛡️ Ngày <strong>{selectedDate}</strong> chưa hoàn thành.</span>
+                      </div>
+                      <button
+                        onClick={() => handleRescueDay(selectedDate)}
+                        disabled={isRescuing || (gamifyShop?.streak_freeze_count || 0) <= 0}
+                        className={`px-2.5 py-1 rounded-lg text-[10px] font-black flex items-center gap-1 transition-all ${
+                          (gamifyShop?.streak_freeze_count || 0) > 0
+                            ? "bg-sky-500 text-white hover:bg-sky-600 shadow-xs active:scale-95 cursor-pointer"
+                            : "bg-slate-200 text-slate-400 cursor-not-allowed"
+                        }`}
+                      >
+                        {isRescuing ? "Đang cứu..." : "Dùng Thẻ Cứu (1 🛡️)"}
+                      </button>
+                    </div>
+                  )}
 
                   {/* Legend */}
                   <div className="flex items-center justify-center gap-3 mt-4 pt-3 border-t border-slate-100 flex-wrap">
@@ -634,6 +706,10 @@ export default function DeckRoadmap() {
                     <div className="flex items-center gap-1">
                       <div className="w-2.5 h-2.5 rounded bg-emerald-500" />
                       <span className="text-[9px] font-bold text-slate-500">Hoàn thành</span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <div className="w-2.5 h-2.5 rounded bg-sky-400" />
+                      <span className="text-[9px] font-bold text-slate-500">Đã giải cứu</span>
                     </div>
                   </div>
                 </div>
