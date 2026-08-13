@@ -3069,7 +3069,7 @@ async def get_deck_roadmap_status(request: Request, deck_id: int, target_date: O
 async def get_deck_roadmap_calendar(request: Request, deck_id: int, month: str = Query(...), db: AsyncSession = Depends(get_db)):
     """Get calendar heatmap data for a month. month format: YYYY-MM"""
     user_id = AuthService.get_user_id(request)
-    from app.modules.deck.models import Flashcard, DeckAttempt, UserAnswer
+    from app.modules.deck.models import Flashcard, DeckAttempt, UserAnswer, UserDeckGoal, UserDailyProgress
     import calendar as cal_mod
     
     try:
