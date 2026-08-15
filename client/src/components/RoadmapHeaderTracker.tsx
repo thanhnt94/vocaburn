@@ -189,7 +189,7 @@ export const RoadmapHeaderTracker: React.FC<RoadmapHeaderTrackerProps> = ({
   }
 
   return (
-    <div className={cn("relative w-full flex items-center justify-between gap-2 md:gap-4 select-none min-w-0 h-9", className)}>
+    <div className={cn("relative w-full flex items-center justify-between gap-1.5 sm:gap-3 select-none min-w-0 h-9", className)}>
       {/* POWER SURGE EXPANSION OVERLAY */}
       <AnimatePresence>
         {isSurging && (
@@ -199,12 +199,12 @@ export const RoadmapHeaderTracker: React.FC<RoadmapHeaderTrackerProps> = ({
             exit={{ opacity: 0, scaleY: 0.1 }}
             transition={{ duration: 0.3, ease: "easeInOut" }}
             className={cn(
-              "fixed inset-x-0 top-0 h-[48px] bg-slate-950 flex items-center justify-center overflow-hidden z-[250] border-b shadow-2xl",
+              "fixed inset-x-0 top-0 h-[48px] bg-slate-950/95 backdrop-blur-xl flex items-center justify-center overflow-hidden z-[250] border-b shadow-2xl",
               isOverachieved
                 ? "border-cyan-400/70 shadow-cyan-950/50"
                 : isGoalReached 
                   ? "border-emerald-400/60 shadow-emerald-950/40" 
-                  : "border-amber-500/50"
+                  : "border-amber-500/50 shadow-amber-950/40"
             )}
           >
             <motion.div
@@ -217,20 +217,20 @@ export const RoadmapHeaderTracker: React.FC<RoadmapHeaderTrackerProps> = ({
                   ? "bg-gradient-to-r from-emerald-600 via-teal-400 to-cyan-400 shadow-[0_0_35px_rgba(34,211,238,0.9)]"
                   : isGoalReached 
                     ? "bg-gradient-to-r from-emerald-600 via-teal-500 to-cyan-400 shadow-[0_0_30px_rgba(16,185,129,0.9)]" 
-                    : "bg-gradient-to-r from-orange-600 via-amber-500 to-emerald-400 shadow-[0_0_30px_rgba(249,115,22,0.9)]"
+                    : "bg-gradient-to-r from-amber-600 via-orange-500 to-amber-400 shadow-[0_0_30px_rgba(245,158,11,0.9)]"
               )}
             />
             <motion.div
               initial={{ x: '-100%' }}
               animate={{ x: '200%' }}
               transition={{ duration: 1.2, ease: "easeInOut", repeat: 1, repeatType: "reverse" }}
-              className="absolute inset-0 bg-gradient-to-r from-transparent via-white/50 to-transparent pointer-events-none"
+              className="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent pointer-events-none"
             />
             <motion.div
-              initial={{ scale: 0.7, opacity: 0 }}
-              animate={{ scale: [0.85, 1.15, 1], opacity: 1 }}
-              transition={{ duration: 0.45 }}
-              className="relative z-10 font-black text-white text-xs sm:text-sm tracking-wider flex items-center gap-2.5 drop-shadow-[0_2px_12px_rgba(0,0,0,0.95)]"
+              initial={{ scale: 0.8, opacity: 0 }}
+              animate={{ scale: [0.9, 1.08, 1], opacity: 1 }}
+              transition={{ duration: 0.35 }}
+              className="relative z-10 font-black text-white text-xs sm:text-sm tracking-wider flex items-center gap-2 drop-shadow-[0_2px_10px_rgba(0,0,0,0.9)]"
             >
               {isOverachieved ? (
                 <Zap className="w-4 h-4 text-cyan-300 fill-cyan-300 animate-bounce" />
@@ -257,12 +257,12 @@ export const RoadmapHeaderTracker: React.FC<RoadmapHeaderTrackerProps> = ({
         )}
       </AnimatePresence>
 
-      {/* 1. LEFT: Exit button */}
-      <div className="flex items-center flex-shrink-0 z-[140]">
+      {/* 1. LEFT: Exit button (Guaranteed never to shrink or get pushed off) */}
+      <div className="flex items-center shrink-0 z-[140]">
         {onExit && (
           <button
             onClick={onExit}
-            className="w-7 h-7 rounded-lg bg-slate-900/80 hover:bg-slate-800 text-slate-400 hover:text-rose-300 border border-slate-800 hover:border-slate-700 flex items-center justify-center transition-all active:scale-95"
+            className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-slate-900/90 hover:bg-slate-800 text-slate-300 hover:text-rose-300 border border-slate-800 hover:border-slate-700 flex items-center justify-center transition-all active:scale-95 shrink-0 shadow-sm"
             title="Thoát phiên học"
           >
             <X className="w-4 h-4" />
@@ -273,28 +273,22 @@ export const RoadmapHeaderTracker: React.FC<RoadmapHeaderTrackerProps> = ({
       {/* 2. CENTER: Interactive Flip Capsule (Bấm để chuyển giữa Tên bộ thẻ & Chỉ số bài học) */}
       <div 
         onClick={toggleViewMode}
-        className="flex-1 flex items-center justify-center min-w-0 px-1 z-[140] cursor-pointer"
+        className="flex-1 flex items-center justify-center min-w-0 px-0.5 sm:px-1 z-[140] cursor-pointer"
         title="Bấm để chuyển đổi giữa Tên bộ thẻ & Chỉ số bài học"
       >
-        <div className="flex items-center gap-2 px-3.5 py-1 rounded-full bg-slate-900/70 hover:bg-slate-900/90 border border-slate-800/80 hover:border-slate-700 backdrop-blur-md text-xs shadow-sm transition-all select-none">
+        <div className="flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3.5 py-1 rounded-full bg-slate-900/80 hover:bg-slate-900 border border-slate-800/80 hover:border-slate-700 backdrop-blur-md text-xs shadow-sm transition-all select-none max-w-full">
           <AnimatePresence mode="wait">
             {viewMode === 0 ? (
-              /* NẤC 1: TÊN BỘ THẺ + DOTS */
+              /* NẤC 1: DOTS + TÊN BỘ THẺ */
               <motion.div
                 key="nac-title"
-                initial={{ opacity: 0, y: 3 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -3 }}
-                transition={{ duration: 0.15 }}
-                className="flex items-center gap-2 min-w-0"
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.95 }}
+                transition={{ duration: 0.12 }}
+                className="flex items-center gap-1.5 sm:gap-2 min-w-0"
               >
-                <h1 className="text-xs sm:text-sm font-bold text-slate-200 tracking-tight truncate max-w-[180px] xs:max-w-[240px] sm:max-w-[340px] md:max-w-[440px]" title={deckTitle}>
-                  {deckTitle || 'Phiên Học Lộ Trình'}
-                </h1>
-
-                <div className="w-[1px] h-3 bg-slate-800 shrink-0" />
-
-                {/* Step Dots */}
+                {/* Step Dots (Anchored consistently on the left) */}
                 <div className="flex items-center gap-1 shrink-0" title={`Bước ${currentStepIndex + 1}/${pipeline.length}`}>
                   {pipeline.map((_, idx) => (
                     <div
@@ -310,18 +304,27 @@ export const RoadmapHeaderTracker: React.FC<RoadmapHeaderTrackerProps> = ({
                     />
                   ))}
                 </div>
+
+                <div className="w-[1px] h-3 bg-slate-800 shrink-0" />
+
+                <div className="flex items-center gap-1.5 min-w-0">
+                  <span className="text-xs shrink-0">🎴</span>
+                  <h1 className="text-xs sm:text-sm font-bold text-slate-200 tracking-tight truncate max-w-[100px] xs:max-w-[140px] sm:max-w-[260px] md:max-w-[380px]" title={deckTitle}>
+                    {deckTitle || 'Phiên Học Lộ Trình'}
+                  </h1>
+                </div>
               </motion.div>
             ) : (
-              /* NẤC 2: CHỈ SỐ BÀI HỌC */
+              /* NẤC 2: DOTS + CHỈ SỐ BÀI HỌC */
               <motion.div
                 key="nac-stats"
-                initial={{ opacity: 0, y: 3 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -3 }}
-                transition={{ duration: 0.15 }}
-                className="flex items-center gap-2 min-w-0"
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.95 }}
+                transition={{ duration: 0.12 }}
+                className="flex items-center gap-1.5 sm:gap-2 min-w-0"
               >
-                {/* Step Dots */}
+                {/* Step Dots (Anchored consistently on the left) */}
                 <div className="flex items-center gap-1 shrink-0" title={`Bước ${currentStepIndex + 1}/${pipeline.length}`}>
                   {pipeline.map((_, idx) => (
                     <div
@@ -341,9 +344,9 @@ export const RoadmapHeaderTracker: React.FC<RoadmapHeaderTrackerProps> = ({
                 <div className="w-[1px] h-3 bg-slate-800 shrink-0" />
 
                 {/* Active Step Label */}
-                <div className="flex items-center gap-1 font-bold text-slate-100 shrink-0">
-                  <span className="text-xs">{meta.emoji}</span>
-                  <span className="font-extrabold text-[11px] text-amber-300 truncate max-w-[130px] sm:max-w-none">
+                <div className="flex items-center gap-1 font-bold text-slate-100 min-w-0">
+                  <span className="text-xs shrink-0">{meta.emoji}</span>
+                  <span className="font-extrabold text-[11px] text-amber-300 truncate max-w-[80px] xs:max-w-[120px] sm:max-w-none">
                     {currentStep?.label || meta.label}
                   </span>
                 </div>
@@ -373,29 +376,23 @@ export const RoadmapHeaderTracker: React.FC<RoadmapHeaderTrackerProps> = ({
       </div>
 
       {/* 3. RIGHT: One Unified Clean HUD Bar (Timer | XP | Streak) */}
-      <div className="flex items-center flex-shrink-0 z-[140]">
-        <div className="flex items-center gap-2 sm:gap-2.5 px-2.5 py-1 rounded-full bg-slate-900/70 border border-slate-800/80 backdrop-blur-md shadow-sm text-xs">
+      <div className="flex items-center shrink-0 z-[140]">
+        <div className="flex items-center gap-1.5 sm:gap-2 px-2 sm:px-2.5 py-1 rounded-full bg-slate-900/80 border border-slate-800/80 backdrop-blur-md shadow-sm text-xs shrink-0">
           {/* Timer */}
           <div
             onClick={onToggleTimeMode}
             className="flex items-center gap-1 text-emerald-400 font-bold font-mono cursor-pointer active:scale-95 transition-transform"
-            title={
-              timeMode === 'card'
-                ? "Thời gian làm thẻ này (Bấm để đổi)"
-                : timeMode === 'today'
-                  ? "Thời gian học hôm nay (Bấm để đổi)"
-                  : "Tổng thời gian học (Bấm để đổi)"
-            }
+            title="Thời gian (Bấm để đổi)"
           >
             <Clock className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
             <AnimatePresence mode="popLayout" initial={false}>
               <motion.span
                 key={displayTime}
-                initial={{ y: 5, opacity: 0 }}
+                initial={{ y: 4, opacity: 0 }}
                 animate={{ y: 0, opacity: 1 }}
-                exit={{ y: -5, opacity: 0 }}
-                transition={{ duration: 0.15 }}
-                className="text-[11px] font-extrabold"
+                exit={{ y: -4, opacity: 0 }}
+                transition={{ duration: 0.12 }}
+                className="text-[10px] sm:text-[11px] font-extrabold"
               >
                 {displayTime}
               </motion.span>
@@ -408,17 +405,17 @@ export const RoadmapHeaderTracker: React.FC<RoadmapHeaderTrackerProps> = ({
           <div
             onClick={onToggleScoreMode}
             className="flex items-center gap-1 text-amber-300 font-bold font-mono cursor-pointer active:scale-95 transition-transform"
-            title={scoreMode === 'all' ? "Tổng XP (Bấm để đổi)" : "XP hôm nay (Bấm để đổi)"}
+            title="Điểm XP (Bấm để đổi)"
           >
             <Trophy className="w-3.5 h-3.5 text-amber-400 shrink-0" />
             <AnimatePresence mode="popLayout" initial={false}>
               <motion.span
                 key={displayScore}
-                initial={{ y: 5, opacity: 0 }}
+                initial={{ y: 4, opacity: 0 }}
                 animate={{ y: 0, opacity: 1 }}
-                exit={{ y: -5, opacity: 0 }}
-                transition={{ duration: 0.15 }}
-                className="text-[11px] font-extrabold"
+                exit={{ y: -4, opacity: 0 }}
+                transition={{ duration: 0.12 }}
+                className="text-[10px] sm:text-[11px] font-extrabold"
               >
                 {displayScore}
               </motion.span>
@@ -430,11 +427,11 @@ export const RoadmapHeaderTracker: React.FC<RoadmapHeaderTrackerProps> = ({
             <>
               <div className="w-[1px] h-3 bg-slate-800" />
               <div
-                className="flex items-center gap-1 text-orange-400 font-bold font-mono"
-                title={`Chuỗi ${streakCount} ngày liên tục`}
+                className="flex items-center gap-0.5 sm:gap-1 text-orange-400 font-bold font-mono"
+                title={`Chuỗi ${streakCount} ngày`}
               >
                 <Flame className="w-3.5 h-3.5 text-orange-500 fill-orange-500 shrink-0 animate-pulse" />
-                <span className="text-[11px] font-extrabold">{streakCount}d</span>
+                <span className="text-[10px] sm:text-[11px] font-extrabold">{streakCount}d</span>
               </div>
             </>
           )}
