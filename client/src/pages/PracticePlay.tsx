@@ -4154,6 +4154,14 @@ export default function PracticePlay() {
           const isOverachieved = subTotal > 0 && subCurr > subTotal;
           const activePercent = subTotal > 0 ? Math.min(100, Math.round((subCurr / subTotal) * 100)) : 0;
 
+          const answeredCount = Object.keys(practiceAnswers).length;
+          const correctCount = Object.entries(practiceAnswers).filter(([idxStr, optIdx]) => {
+            const q = session?.questions?.[Number(idxStr)];
+            return q && (q.correct_index === optIdx || q.correct_option === optIdx);
+          }).length;
+          const totalCards = session?.questions?.length || 0;
+          const cardsRemaining = Math.max(0, totalCards - currentIndex - 1);
+
           return (
             <>
               {/* Sleek Underline Progress Bar at the Bottom Edge of Header */}
@@ -4200,6 +4208,10 @@ export default function PracticePlay() {
                   xp={gamify.xp}
                   todayXP={initialTodayXP + sessionXP}
                   sessionXP={sessionXP}
+                  answeredCount={answeredCount}
+                  correctCount={correctCount}
+                  totalCards={totalCards}
+                  cardsRemaining={cardsRemaining}
                 />
               </div>
             </>

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react'
-import { Clock, Flame, Trophy, Zap, X } from 'lucide-react'
+import { Clock, Flame, Trophy, Zap, X, Target, Sparkles, Brain, Gauge, ArrowRightLeft } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { cn } from '@/lib/utils'
 import type { PipelineStepStatus } from '@/hooks/useRoadmapStatus'
@@ -38,6 +38,12 @@ export interface RoadmapHeaderTrackerProps {
   xp?: number
   todayXP?: number
   sessionXP?: number
+
+  // Live Study Performance Stats
+  answeredCount?: number
+  correctCount?: number
+  totalCards?: number
+  cardsRemaining?: number
 }
 
 const STEP_META: Record<string, { emoji: string; label: string }> = {
@@ -82,9 +88,13 @@ export const RoadmapHeaderTracker: React.FC<RoadmapHeaderTrackerProps> = ({
   onToggleScoreMode,
   xp = 0,
   todayXP = 0,
-  sessionXP = 0
+  sessionXP = 0,
+  answeredCount = 0,
+  correctCount = 0,
+  totalCards = 0,
+  cardsRemaining = 0
 }) => {
-  // Toggle State: 0 = Nấc 1 (Tên bộ thẻ), 1 = Nấc 2 (Chỉ số bước học)
+  // 0 = Mặt 1 (Tên bộ thẻ & Chế độ học), 1 = Mặt 2 (Toàn bộ các thông số chi tiết HUD)
   const [viewMode, setViewMode] = useState<0 | 1>(0)
   const [isSurging, setIsSurging] = useState(false)
   const prevCurrRef = useRef(subProgressCurr)
@@ -130,20 +140,27 @@ export const RoadmapHeaderTracker: React.FC<RoadmapHeaderTrackerProps> = ({
 
   const formatTime = formatHeaderTime || defaultFormatTime
 
-  const displayTime = useMemo(() => {
-    if (timeMode === 'card') {
-      return `${localCardTime}s`
-    }
-    const baseTime = timeMode === 'today' ? initialTodayTime : initialAllTimeTime
-    return formatTime(baseTime + localSessionStudyTime)
-  }, [timeMode, localCardTime, localSessionStudyTime, initialTodayTime, initialAllTimeTime, formatTime])
+  const displayCardTime = useMemo(() => `${localCardTime}s`, [localCardTime])
+  const displayTodayTime = useMemo(() => formatTime(initialTodayTime + localSessionStudyTime), [initialTodayTime, localSessionStudyTime, formatTime])
 
-  const displayScore = useMemo(() => {
-    const val = scoreMode === 'all' ? xp : todayXP
-    if (val >= 1000000) return `${(val / 1000000).toFixed(1)}M`
-    if (val >= 10000) return `${(val / 1000).toFixed(1)}k`
-    return val.toLocaleString()
-  }, [scoreMode, xp, todayXP])
+  const displayTotalXP = useMemo(() => {
+    if (xp >= 1000000) return `${(xp / 1000000).toFixed(1)}M`
+    if (xp >= 10000) return `${(xp / 1000).toFixed(1)}k`
+    return xp.toLocaleString()
+  }, [xp])
+
+  // Accuracy calculation
+  const accuracyPercent = useMemo(() => {
+    if (answeredCount === 0) return null
+    return Math.round((correctCount / answeredCount) * 100)
+  }, [answeredCount, correctCount])
+
+  // Average speed (seconds per card)
+  const avgSpeed = useMemo(() => {
+    if (answeredCount === 0 || localSessionStudyTime === 0) return null
+    const secPerCard = (localSessionStudyTime / answeredCount).toFixed(1)
+    return `${secPerCard}s`
+  }, [answeredCount, localSessionStudyTime])
 
   if (!pipeline || pipeline.length === 0) return null
 
@@ -189,7 +206,7 @@ export const RoadmapHeaderTracker: React.FC<RoadmapHeaderTrackerProps> = ({
   }
 
   return (
-    <div className={cn("relative w-full flex items-center justify-between gap-1.5 sm:gap-3 select-none min-w-0 h-9", className)}>
+    <div className={cn("relative w-full flex items-center gap-2 select-none min-w-0 h-9", className)}>
       {/* POWER SURGE EXPANSION OVERLAY */}
       <AnimatePresence>
         {isSurging && (
@@ -270,175 +287,180 @@ export const RoadmapHeaderTracker: React.FC<RoadmapHeaderTrackerProps> = ({
         )}
       </div>
 
-      {/* 2. CENTER: Interactive Flip Capsule (Bấm để chuyển giữa Tên bộ thẻ & Chỉ số bài học) */}
+      {/* 2. FULL BAR FLIP CONTAINER (BẤM VÀO ĐÂY ĐỂ FLIP TOÀN BỘ THANH) */}
       <div 
         onClick={toggleViewMode}
-        className="flex-1 flex items-center justify-center min-w-0 px-0.5 sm:px-1 z-[140] cursor-pointer"
-        title="Bấm để chuyển đổi giữa Tên bộ thẻ & Chỉ số bài học"
+        className="flex-1 flex items-center min-w-0 h-full cursor-pointer z-[140]"
+        title="Bấm vào thanh để chuyển đổi giữa (Tên bộ thẻ & Chế độ) ⇄ (Toàn bộ Thông số chi tiết)"
       >
-        <div className="flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3.5 py-1 rounded-full bg-slate-900/80 hover:bg-slate-900 border border-slate-800/80 hover:border-slate-700 backdrop-blur-md text-xs shadow-sm transition-all select-none max-w-full">
-          <AnimatePresence mode="wait">
+        <div className="w-full h-full flex items-center rounded-full bg-slate-900/80 hover:bg-slate-900/95 border border-slate-800 hover:border-slate-700/80 px-2.5 sm:px-3.5 backdrop-blur-md shadow-sm transition-all overflow-hidden relative">
+          <AnimatePresence mode="wait" initial={false}>
             {viewMode === 0 ? (
-              /* NẤC 1: DOTS + TÊN BỘ THẺ */
+              /* ========================================================================= */
+              /* MẶT 1: TÊN BỘ THẺ & CHẾ ĐỘ HỌC (Full Deck & Mode Identification)           */
+              /* ========================================================================= */
               <motion.div
-                key="nac-title"
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.95 }}
-                transition={{ duration: 0.12 }}
-                className="flex items-center gap-1.5 sm:gap-2 min-w-0"
+                key="face-deck-title"
+                initial={{ opacity: 0, rotateX: 90 }}
+                animate={{ opacity: 1, rotateX: 0 }}
+                exit={{ opacity: 0, rotateX: -90 }}
+                transition={{ duration: 0.18, ease: "easeInOut" }}
+                className="w-full flex items-center justify-between gap-2 min-w-0"
               >
-                {/* Step Dots (Anchored consistently on the left) */}
-                <div className="flex items-center gap-1 shrink-0" title={`Bước ${currentStepIndex + 1}/${pipeline.length}`}>
-                  {pipeline.map((_, idx) => (
-                    <div
-                      key={idx}
-                      className={cn(
-                        "h-1.5 rounded-full transition-all duration-300",
-                        idx === currentStepIndex
-                          ? "w-3 bg-amber-400 shadow-[0_0_6px_rgba(251,191,36,0.6)]"
-                          : idx < currentStepIndex
-                            ? "w-1.5 bg-emerald-400"
-                            : "w-1.5 bg-slate-700"
-                      )}
-                    />
-                  ))}
-                </div>
-
-                <div className="w-[1px] h-3 bg-slate-800 shrink-0" />
-
-                <div className="flex items-center gap-1.5 min-w-0">
+                {/* Left side of Face 1: Deck Title */}
+                <div className="flex items-center gap-2 min-w-0 flex-1">
                   <span className="text-xs shrink-0">🎴</span>
-                  <h1 className="text-xs sm:text-sm font-bold text-slate-200 tracking-tight truncate max-w-[100px] xs:max-w-[140px] sm:max-w-[260px] md:max-w-[380px]" title={deckTitle}>
+                  <h1 className="text-xs sm:text-sm font-bold text-slate-100 tracking-tight truncate" title={deckTitle}>
                     {deckTitle || 'Phiên Học Lộ Trình'}
                   </h1>
                 </div>
-              </motion.div>
-            ) : (
-              /* NẤC 2: DOTS + CHỈ SỐ BÀI HỌC */
-              <motion.div
-                key="nac-stats"
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.95 }}
-                transition={{ duration: 0.12 }}
-                className="flex items-center gap-1.5 sm:gap-2 min-w-0"
-              >
-                {/* Step Dots (Anchored consistently on the left) */}
-                <div className="flex items-center gap-1 shrink-0" title={`Bước ${currentStepIndex + 1}/${pipeline.length}`}>
-                  {pipeline.map((_, idx) => (
-                    <div
-                      key={idx}
-                      className={cn(
-                        "h-1.5 rounded-full transition-all duration-300",
-                        idx === currentStepIndex
-                          ? "w-3 bg-amber-400 shadow-[0_0_6px_rgba(251,191,36,0.6)]"
-                          : idx < currentStepIndex
-                            ? "w-1.5 bg-emerald-400"
-                            : "w-1.5 bg-slate-700"
-                      )}
-                    />
-                  ))}
-                </div>
 
-                <div className="w-[1px] h-3 bg-slate-800 shrink-0" />
+                {/* Right side of Face 1: Mode + Step Dots + Progress + Flip Hint */}
+                <div className="flex items-center gap-2 sm:gap-2.5 shrink-0">
+                  {/* Step Stepper Dots */}
+                  <div className="flex items-center gap-1 shrink-0" title={`Bước ${currentStepIndex + 1}/${pipeline.length}`}>
+                    {pipeline.map((_, idx) => (
+                      <div
+                        key={idx}
+                        className={cn(
+                          "h-1.5 rounded-full transition-all duration-300",
+                          idx === currentStepIndex
+                            ? "w-3 bg-amber-400 shadow-[0_0_6px_rgba(251,191,36,0.6)]"
+                            : idx < currentStepIndex
+                              ? "w-1.5 bg-emerald-400"
+                              : "w-1.5 bg-slate-700"
+                        )}
+                      />
+                    ))}
+                  </div>
 
-                {/* Active Step Label */}
-                <div className="flex items-center gap-1 font-bold text-slate-100 min-w-0">
-                  <span className="text-xs shrink-0">{meta.emoji}</span>
-                  <span className="font-extrabold text-[11px] text-amber-300 truncate max-w-[80px] xs:max-w-[120px] sm:max-w-none">
-                    {currentStep?.label || meta.label}
-                  </span>
-                </div>
+                  <div className="w-[1px] h-3 bg-slate-800 shrink-0" />
 
-                {/* Counter */}
-                {hasSubProg && (
-                  <>
-                    <div className="w-[1px] h-3 bg-slate-800 shrink-0" />
-                    <div className="flex items-center gap-0.5 font-bold font-mono text-[11px] shrink-0">
-                      {isGoalReached && <Trophy className="w-3 h-3 text-emerald-400 fill-emerald-400 mr-0.5 shrink-0" />}
+                  {/* Mode Badge */}
+                  <div className="flex items-center gap-1 px-2 py-0.5 rounded-md bg-amber-500/10 border border-amber-500/20 text-amber-300 text-xs font-bold shrink-0">
+                    <span>{meta.emoji}</span>
+                    <span className="text-[11px] font-black truncate max-w-[90px] xs:max-w-[130px] sm:max-w-none">
+                      {currentStep?.label || meta.label}
+                    </span>
+                  </div>
+
+                  {/* Sub Progress Counter */}
+                  {hasSubProg && (
+                    <div className="flex items-center gap-0.5 font-bold font-mono text-[11px] text-slate-300 shrink-0">
                       <span className={isGoalReached ? "text-emerald-400 font-extrabold" : "text-amber-400 font-extrabold"}>
                         {isOverachieved ? `+${extraCount}` : subProgressCurr}
                       </span>
                       {!isOverachieved && (
                         <>
                           <span className="text-slate-600">/</span>
-                          <span className="text-slate-400">{subProgressTotal}</span>
+                          <span>{subProgressTotal}</span>
                         </>
                       )}
                     </div>
+                  )}
+
+                  {/* Flip Action Indicator Pill */}
+                  <div className="hidden md:flex items-center gap-1 px-2 py-0.5 rounded-full bg-slate-800/80 border border-slate-700/60 text-[10px] font-bold text-slate-400 hover:text-slate-200 shrink-0">
+                    <ArrowRightLeft className="w-2.5 h-2.5" />
+                    <span>Thông số</span>
+                  </div>
+                </div>
+              </motion.div>
+            ) : (
+              /* ========================================================================= */
+              /* MẶT 2: TOÀN BỘ CÁC THÔNG SỐ CHI TIẾT (Full Live HUD Dashboard)             */
+              /* ========================================================================= */
+              <motion.div
+                key="face-stats-hud"
+                initial={{ opacity: 0, rotateX: -90 }}
+                animate={{ opacity: 1, rotateX: 0 }}
+                exit={{ opacity: 0, rotateX: 90 }}
+                transition={{ duration: 0.18, ease: "easeInOut" }}
+                className="w-full flex items-center justify-between gap-1.5 sm:gap-3 text-xs min-w-0 font-mono"
+              >
+                {/* 1. Timer: Thẻ này & Tổng hôm nay */}
+                <div className="flex items-center gap-1 shrink-0" title="Thời gian xem thẻ hiện tại & Tổng thời gian học">
+                  <Clock className="w-3.5 h-3.5 text-emerald-400 shrink-0 animate-pulse" />
+                  <span className="text-emerald-300 font-black text-[11px]">{displayCardTime}</span>
+                  <span className="text-slate-600 hidden sm:inline">•</span>
+                  <span className="text-slate-400 text-[10px] hidden sm:inline" title="Thời gian học hôm nay">{displayTodayTime}</span>
+                </div>
+
+                <div className="w-[1px] h-3 bg-slate-800 shrink-0" />
+
+                {/* 2. Tiến độ & Còn lại */}
+                <div className="flex items-center gap-1 shrink-0" title="Tiến độ thẻ hiện tại">
+                  <Target className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
+                  <span className="text-slate-200 font-black text-[11px]">
+                    {hasSubProg ? `${subProgressCurr}/${subProgressTotal}` : `${currentIndex + 1}/${totalCards || '--'}`}
+                  </span>
+                  {cardsRemaining > 0 && (
+                    <span className="text-slate-500 text-[10px] hidden md:inline">({cardsRemaining} còn)</span>
+                  )}
+                </div>
+
+                {/* 3. Độ chính xác (Accuracy %) */}
+                {accuracyPercent !== null && (
+                  <>
+                    <div className="w-[1px] h-3 bg-slate-800 shrink-0 hidden sm:block" />
+                    <div className="hidden sm:flex items-center gap-1 shrink-0" title={`Độ chính xác: ${correctCount}/${answeredCount} câu đúng`}>
+                      <Gauge className="w-3.5 h-3.5 text-teal-400 shrink-0" />
+                      <span className={cn(
+                        "font-black text-[11px]",
+                        accuracyPercent >= 80 ? "text-emerald-400" : accuracyPercent >= 60 ? "text-amber-400" : "text-rose-400"
+                      )}>
+                        {accuracyPercent}%
+                      </span>
+                    </div>
                   </>
                 )}
+
+                {/* 4. Tốc độ trung bình (Avg Speed) */}
+                {avgSpeed && (
+                  <>
+                    <div className="w-[1px] h-3 bg-slate-800 shrink-0 hidden lg:block" />
+                    <div className="hidden lg:flex items-center gap-1 shrink-0 text-slate-400 text-[10px]" title="Tốc độ học trung bình mỗi thẻ">
+                      <Zap className="w-3 h-3 text-cyan-400 shrink-0" />
+                      <span>{avgSpeed}/thẻ</span>
+                    </div>
+                  </>
+                )}
+
+                <div className="w-[1px] h-3 bg-slate-800 shrink-0" />
+
+                {/* 5. XP Score */}
+                <div className="flex items-center gap-1 shrink-0 text-amber-300" title={`Điểm phiên: +${sessionXP} XP | Tổng: ${xp.toLocaleString()} XP`}>
+                  <Trophy className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                  <span className="font-black text-[11px]">
+                    {sessionXP > 0 ? `+${sessionXP}` : displayTotalXP}
+                  </span>
+                  <span className="text-[10px] text-amber-400/80 font-semibold">XP</span>
+                </div>
+
+                {/* 6. Streak Flame */}
+                {streakCount > 0 && (
+                  <>
+                    <div className="w-[1px] h-3 bg-slate-800 shrink-0" />
+                    <div className="flex items-center gap-1 shrink-0 text-orange-400" title={`Chuỗi học ${streakCount} ngày liên tục`}>
+                      <Flame className="w-3.5 h-3.5 text-orange-500 fill-orange-500 shrink-0 animate-pulse" />
+                      <span className="font-black text-[11px]">{streakCount}d</span>
+                    </div>
+                  </>
+                )}
+
+                {/* Flip Back Hint */}
+                <div className="hidden md:flex items-center gap-1 px-2 py-0.5 rounded-full bg-slate-800/80 border border-slate-700/60 text-[10px] font-bold text-slate-400 hover:text-slate-200 shrink-0 ml-auto">
+                  <ArrowRightLeft className="w-2.5 h-2.5" />
+                  <span>Tên thẻ</span>
+                </div>
               </motion.div>
             )}
           </AnimatePresence>
         </div>
       </div>
-
-      {/* 3. RIGHT: One Unified Clean HUD Bar (Timer | XP | Streak) */}
-      <div className="flex items-center shrink-0 z-[140]">
-        <div className="flex items-center gap-1.5 sm:gap-2 px-2 sm:px-2.5 py-1 rounded-full bg-slate-900/80 border border-slate-800/80 backdrop-blur-md shadow-sm text-xs shrink-0">
-          {/* Timer */}
-          <div
-            onClick={onToggleTimeMode}
-            className="flex items-center gap-1 text-emerald-400 font-bold font-mono cursor-pointer active:scale-95 transition-transform"
-            title="Thời gian (Bấm để đổi)"
-          >
-            <Clock className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-            <AnimatePresence mode="popLayout" initial={false}>
-              <motion.span
-                key={displayTime}
-                initial={{ y: 4, opacity: 0 }}
-                animate={{ y: 0, opacity: 1 }}
-                exit={{ y: -4, opacity: 0 }}
-                transition={{ duration: 0.12 }}
-                className="text-[10px] sm:text-[11px] font-extrabold"
-              >
-                {displayTime}
-              </motion.span>
-            </AnimatePresence>
-          </div>
-
-          <div className="w-[1px] h-3 bg-slate-800" />
-
-          {/* XP */}
-          <div
-            onClick={onToggleScoreMode}
-            className="flex items-center gap-1 text-amber-300 font-bold font-mono cursor-pointer active:scale-95 transition-transform"
-            title="Điểm XP (Bấm để đổi)"
-          >
-            <Trophy className="w-3.5 h-3.5 text-amber-400 shrink-0" />
-            <AnimatePresence mode="popLayout" initial={false}>
-              <motion.span
-                key={displayScore}
-                initial={{ y: 4, opacity: 0 }}
-                animate={{ y: 0, opacity: 1 }}
-                exit={{ y: -4, opacity: 0 }}
-                transition={{ duration: 0.12 }}
-                className="text-[10px] sm:text-[11px] font-extrabold"
-              >
-                {displayScore}
-              </motion.span>
-            </AnimatePresence>
-          </div>
-
-          {/* Streak */}
-          {streakCount > 0 && (
-            <>
-              <div className="w-[1px] h-3 bg-slate-800" />
-              <div
-                className="flex items-center gap-0.5 sm:gap-1 text-orange-400 font-bold font-mono"
-                title={`Chuỗi ${streakCount} ngày`}
-              >
-                <Flame className="w-3.5 h-3.5 text-orange-500 fill-orange-500 shrink-0 animate-pulse" />
-                <span className="text-[10px] sm:text-[11px] font-extrabold">{streakCount}d</span>
-              </div>
-            </>
-          )}
-        </div>
-      </div>
     </div>
   )
 }
+
 
 

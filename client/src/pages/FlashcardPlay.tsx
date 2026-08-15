@@ -3774,6 +3774,14 @@ export default function FlashcardPlay() {
           const isOverachieved = subTotal > 0 && subCurr > subTotal;
           const activePercent = subTotal > 0 ? Math.min(100, Math.round((subCurr / subTotal) * 100)) : 0;
 
+          const answeredCount = Object.keys(sessionAnswers).length;
+          const correctCount = Object.values(sessionAnswers).filter(val => {
+            const r = Array.isArray(val) ? val[val.length - 1] : val;
+            return typeof r === 'number' && r >= 3;
+          }).length;
+          const totalCards = session?.questions?.length || 0;
+          const cardsRemaining = Math.max(0, totalCards - currentIndex - 1);
+
           return (
             <>
               {/* Sleek Underline Progress Bar at the Bottom Edge of Header */}
@@ -3823,6 +3831,10 @@ export default function FlashcardPlay() {
                   xp={gamify.xp}
                   todayXP={initialTodayXP + sessionXP}
                   sessionXP={sessionXP}
+                  answeredCount={answeredCount}
+                  correctCount={correctCount}
+                  totalCards={totalCards}
+                  cardsRemaining={cardsRemaining}
                 />
               </div>
             </>
