@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react'
-import { Clock, Flame, Trophy, Zap, Check, ChevronRight, X, Sparkles } from 'lucide-react'
+import { Clock, Flame, Trophy, Zap, X } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { cn } from '@/lib/utils'
 import type { PipelineStepStatus } from '@/hooks/useRoadmapStatus'
@@ -84,6 +84,8 @@ export const RoadmapHeaderTracker: React.FC<RoadmapHeaderTrackerProps> = ({
   todayXP = 0,
   sessionXP = 0
 }) => {
+  // Toggle State: 0 = Nấc 1 (Tên bộ thẻ), 1 = Nấc 2 (Chỉ số bước học)
+  const [viewMode, setViewMode] = useState<0 | 1>(0)
   const [isSurging, setIsSurging] = useState(false)
   const prevCurrRef = useRef(subProgressCurr)
 
@@ -178,6 +180,14 @@ export const RoadmapHeaderTracker: React.FC<RoadmapHeaderTrackerProps> = ({
     prevCurrRef.current = subProgressCurr
   }, [subProgressCurr, onSurgeChange])
 
+  const toggleViewMode = () => {
+    setViewMode((prev) => {
+      const next = prev === 0 ? 1 : 0
+      onViewModeChange?.(next)
+      return next
+    })
+  }
+
   return (
     <div className={cn("relative w-full flex items-center justify-between gap-2 md:gap-4 select-none min-w-0 h-9", className)}>
       {/* POWER SURGE EXPANSION OVERLAY */}
@@ -247,8 +257,8 @@ export const RoadmapHeaderTracker: React.FC<RoadmapHeaderTrackerProps> = ({
         )}
       </AnimatePresence>
 
-      {/* 1. LEFT: Exit button + Clean single-line title */}
-      <div className="flex items-center gap-2 min-w-0 flex-shrink-0 z-[140]">
+      {/* 1. LEFT: Exit button */}
+      <div className="flex items-center flex-shrink-0 z-[140]">
         {onExit && (
           <button
             onClick={onExit}
@@ -258,65 +268,107 @@ export const RoadmapHeaderTracker: React.FC<RoadmapHeaderTrackerProps> = ({
             <X className="w-4 h-4" />
           </button>
         )}
-
-        <div className="flex items-center gap-2 min-w-0 max-w-[140px] sm:max-w-[220px] md:max-w-[280px]">
-          <h1 className="text-xs sm:text-sm font-bold text-slate-200 tracking-tight truncate" title={deckTitle}>
-            {deckTitle || 'Phiên Học Lộ Trình'}
-          </h1>
-          <span className="text-[10px] font-black px-1.5 py-0.2 rounded bg-amber-500/10 border border-amber-500/20 text-amber-400 shrink-0 hidden sm:inline-block">
-            {currentStepIndex + 1}/{pipeline.length}
-          </span>
-        </div>
       </div>
 
-      {/* 2. CENTER: Unified Minimalist Stepper Capsule */}
-      <div className="flex-1 flex items-center justify-center min-w-0 px-1 z-[140]">
-        <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-slate-900/70 border border-slate-800/80 backdrop-blur-md text-xs shadow-sm">
-          {/* Step Dots */}
-          <div className="flex items-center gap-1">
-            {pipeline.map((_, idx) => (
-              <div
-                key={idx}
-                className={cn(
-                  "h-1.5 rounded-full transition-all duration-300",
-                  idx === currentStepIndex
-                    ? "w-3 bg-amber-400 shadow-[0_0_6px_rgba(251,191,36,0.6)]"
-                    : idx < currentStepIndex
-                      ? "w-1.5 bg-emerald-400"
-                      : "w-1.5 bg-slate-700"
-                )}
-              />
-            ))}
-          </div>
+      {/* 2. CENTER: Interactive Flip Capsule (Bấm để chuyển giữa Tên bộ thẻ & Chỉ số bài học) */}
+      <div 
+        onClick={toggleViewMode}
+        className="flex-1 flex items-center justify-center min-w-0 px-1 z-[140] cursor-pointer"
+        title="Bấm để chuyển đổi giữa Tên bộ thẻ & Chỉ số bài học"
+      >
+        <div className="flex items-center gap-2 px-3.5 py-1 rounded-full bg-slate-900/70 hover:bg-slate-900/90 border border-slate-800/80 hover:border-slate-700 backdrop-blur-md text-xs shadow-sm transition-all select-none">
+          <AnimatePresence mode="wait">
+            {viewMode === 0 ? (
+              /* NẤC 1: TÊN BỘ THẺ + DOTS */
+              <motion.div
+                key="nac-title"
+                initial={{ opacity: 0, y: 3 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -3 }}
+                transition={{ duration: 0.15 }}
+                className="flex items-center gap-2 min-w-0"
+              >
+                <h1 className="text-xs sm:text-sm font-bold text-slate-200 tracking-tight truncate max-w-[180px] xs:max-w-[240px] sm:max-w-[340px] md:max-w-[440px]" title={deckTitle}>
+                  {deckTitle || 'Phiên Học Lộ Trình'}
+                </h1>
 
-          <div className="w-[1px] h-3 bg-slate-800" />
+                <div className="w-[1px] h-3 bg-slate-800 shrink-0" />
 
-          {/* Active Step Label */}
-          <div className="flex items-center gap-1 font-bold text-slate-100">
-            <span className="text-xs">{meta.emoji}</span>
-            <span className="font-extrabold text-[11px] text-amber-300 truncate max-w-[100px] sm:max-w-none">
-              {currentStep?.label || meta.label}
-            </span>
-          </div>
+                {/* Step Dots */}
+                <div className="flex items-center gap-1 shrink-0" title={`Bước ${currentStepIndex + 1}/${pipeline.length}`}>
+                  {pipeline.map((_, idx) => (
+                    <div
+                      key={idx}
+                      className={cn(
+                        "h-1.5 rounded-full transition-all duration-300",
+                        idx === currentStepIndex
+                          ? "w-3 bg-amber-400 shadow-[0_0_6px_rgba(251,191,36,0.6)]"
+                          : idx < currentStepIndex
+                            ? "w-1.5 bg-emerald-400"
+                            : "w-1.5 bg-slate-700"
+                      )}
+                    />
+                  ))}
+                </div>
+              </motion.div>
+            ) : (
+              /* NẤC 2: CHỈ SỐ BÀI HỌC */
+              <motion.div
+                key="nac-stats"
+                initial={{ opacity: 0, y: 3 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -3 }}
+                transition={{ duration: 0.15 }}
+                className="flex items-center gap-2 min-w-0"
+              >
+                {/* Step Dots */}
+                <div className="flex items-center gap-1 shrink-0" title={`Bước ${currentStepIndex + 1}/${pipeline.length}`}>
+                  {pipeline.map((_, idx) => (
+                    <div
+                      key={idx}
+                      className={cn(
+                        "h-1.5 rounded-full transition-all duration-300",
+                        idx === currentStepIndex
+                          ? "w-3 bg-amber-400 shadow-[0_0_6px_rgba(251,191,36,0.6)]"
+                          : idx < currentStepIndex
+                            ? "w-1.5 bg-emerald-400"
+                            : "w-1.5 bg-slate-700"
+                      )}
+                    />
+                  ))}
+                </div>
 
-          {/* Counter */}
-          {hasSubProg && (
-            <>
-              <div className="w-[1px] h-3 bg-slate-800" />
-              <div className="flex items-center gap-0.5 font-bold font-mono text-[11px]">
-                {isGoalReached && <Trophy className="w-3 h-3 text-emerald-400 fill-emerald-400 mr-0.5 shrink-0" />}
-                <span className={isGoalReached ? "text-emerald-400 font-extrabold" : "text-amber-400 font-extrabold"}>
-                  {isOverachieved ? `+${extraCount}` : subProgressCurr}
-                </span>
-                {!isOverachieved && (
+                <div className="w-[1px] h-3 bg-slate-800 shrink-0" />
+
+                {/* Active Step Label */}
+                <div className="flex items-center gap-1 font-bold text-slate-100 shrink-0">
+                  <span className="text-xs">{meta.emoji}</span>
+                  <span className="font-extrabold text-[11px] text-amber-300 truncate max-w-[130px] sm:max-w-none">
+                    {currentStep?.label || meta.label}
+                  </span>
+                </div>
+
+                {/* Counter */}
+                {hasSubProg && (
                   <>
-                    <span className="text-slate-600">/</span>
-                    <span className="text-slate-400">{subProgressTotal}</span>
+                    <div className="w-[1px] h-3 bg-slate-800 shrink-0" />
+                    <div className="flex items-center gap-0.5 font-bold font-mono text-[11px] shrink-0">
+                      {isGoalReached && <Trophy className="w-3 h-3 text-emerald-400 fill-emerald-400 mr-0.5 shrink-0" />}
+                      <span className={isGoalReached ? "text-emerald-400 font-extrabold" : "text-amber-400 font-extrabold"}>
+                        {isOverachieved ? `+${extraCount}` : subProgressCurr}
+                      </span>
+                      {!isOverachieved && (
+                        <>
+                          <span className="text-slate-600">/</span>
+                          <span className="text-slate-400">{subProgressTotal}</span>
+                        </>
+                      )}
+                    </div>
                   </>
                 )}
-              </div>
-            </>
-          )}
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
       </div>
 
@@ -391,4 +443,5 @@ export const RoadmapHeaderTracker: React.FC<RoadmapHeaderTrackerProps> = ({
     </div>
   )
 }
+
 
