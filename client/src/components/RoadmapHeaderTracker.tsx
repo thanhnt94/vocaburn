@@ -46,12 +46,37 @@ export interface RoadmapHeaderTrackerProps {
   cardsRemaining?: number
 }
 
-const STEP_META: Record<string, { emoji: string; label: string }> = {
-  new_cards: { emoji: '🎴', label: 'Học Từ Mới' },
-  fsrs_review: { emoji: '🔄', label: 'Ôn Tập FSRS' },
-  mcq: { emoji: '🎯', label: 'Trắc Nghiệm' },
-  typing: { emoji: '⌨️', label: 'Gõ Từ Vựng' },
-  study_time: { emoji: '⏱️', label: 'Thời Gian Học' }
+const STEP_META: Record<string, { emoji: string; label: string; short: string; style: string }> = {
+  new_cards: { 
+    emoji: '🎴', 
+    label: 'Học Từ Mới', 
+    short: 'NW',
+    style: 'bg-indigo-500/15 border-indigo-500/30 text-indigo-300'
+  },
+  fsrs_review: { 
+    emoji: '🔄', 
+    label: 'Ôn Tập FSRS', 
+    short: 'REV',
+    style: 'bg-emerald-500/15 border-emerald-500/30 text-emerald-300'
+  },
+  mcq: { 
+    emoji: '🎯', 
+    label: 'Trắc Nghiệm MCQ', 
+    short: 'MCQ',
+    style: 'bg-rose-500/15 border-rose-500/30 text-rose-300'
+  },
+  typing: { 
+    emoji: '⌨️', 
+    label: 'Gõ Từ Vựng', 
+    short: 'TYP',
+    style: 'bg-purple-500/15 border-purple-500/30 text-purple-300'
+  },
+  study_time: { 
+    emoji: '⏱️', 
+    label: 'Thời Gian Học', 
+    short: 'TIME',
+    style: 'bg-amber-500/15 border-amber-500/30 text-amber-300'
+  }
 }
 
 const OVERACHIEVE_PRAISES = [
@@ -334,13 +359,17 @@ export const RoadmapHeaderTracker: React.FC<RoadmapHeaderTrackerProps> = ({
                     ))}
                   </div>
 
-                  <div className="w-[1px] h-3 bg-slate-800 shrink-0" />
-
-                  {/* Mode Badge */}
-                  <div className="flex items-center gap-1 px-2 py-0.5 rounded-md bg-amber-500/10 border border-amber-500/20 text-amber-300 text-xs font-bold shrink-0">
-                    <span>{meta.emoji}</span>
-                    <span className="text-[11px] font-black truncate max-w-[90px] xs:max-w-[130px] sm:max-w-none">
-                      {currentStep?.label || meta.label}
+                  {/* Mode Badge (Ultra-clean acronym: NW, REV, MCQ, TYP, TIME) */}
+                  <div 
+                    className={cn(
+                      "flex items-center gap-1 px-1.5 py-0.5 rounded-md border text-xs font-black shrink-0 tracking-wide shadow-sm",
+                      meta.style || "bg-amber-500/15 border-amber-500/30 text-amber-300"
+                    )}
+                    title={currentStep?.label || meta.label}
+                  >
+                    <span className="text-[10px] sm:text-xs">{meta.emoji}</span>
+                    <span className="text-[10px] sm:text-[11px] font-black">
+                      {meta.short}
                     </span>
                   </div>
 
