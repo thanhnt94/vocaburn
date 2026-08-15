@@ -3687,22 +3687,17 @@ export default function FlashcardPlay() {
       <header className={cn(
         "sticky top-0 flex-shrink-0 z-[120] backdrop-blur-2xl px-2.5 md:px-4 py-1.5 flex items-center justify-between gap-2.5 transition-colors duration-300 relative overflow-hidden",
         roadmapStatus?.pipeline
-          ? "bg-slate-950 border-b border-slate-800/80 text-white shadow-xl"
+          ? "bg-slate-950/90 border-b border-slate-800/80 text-white shadow-xl"
           : "bg-white/95 border-b border-slate-100/80 text-slate-800 shadow-[0_1px_20px_rgba(99,102,241,0.04)]"
       )}>
         <AnimatePresence>
-          {headerViewMode === 0 && (
+          {!roadmapStatus?.pipeline && (
             <motion.button 
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => navigate('/')} 
-              className={cn(
-                "w-8 h-8 flex items-center justify-center transition-all flex-shrink-0 relative z-[140]",
-                roadmapStatus?.pipeline
-                  ? "text-slate-300 hover:text-white"
-                  : "text-slate-500 hover:text-indigo-600"
-              )}
+              className="w-8 h-8 flex items-center justify-center transition-all flex-shrink-0 relative z-[140] text-slate-500 hover:text-indigo-600"
               title="Thoát phiên học"
             >
               <X className="w-5 h-5" />
@@ -3788,10 +3783,10 @@ export default function FlashcardPlay() {
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
-                    className="absolute bottom-0 left-0 right-0 h-0.5 bg-slate-900/80 pointer-events-none z-[125]"
+                    className="absolute bottom-0 left-0 right-0 h-[2.5px] bg-slate-800/60 pointer-events-none z-[125]"
                   >
                     <motion.div 
-                      className="h-full rounded-r-full transition-all duration-500 bg-gradient-to-r from-purple-600 via-indigo-500 to-fuchsia-500 shadow-[0_0_10px_rgba(168,85,247,0.9)]"
+                      className="h-full rounded-r-full transition-all duration-500 bg-gradient-to-r from-amber-500 via-rose-500 to-indigo-500 shadow-[0_0_12px_rgba(245,158,11,0.8)]"
                       initial={{ width: 0 }}
                       animate={{ width: `${activePercent}%` }}
                       transition={{ type: "spring", stiffness: 120, damping: 18 }}
@@ -3812,6 +3807,22 @@ export default function FlashcardPlay() {
                   streakCount={roadmapStatus?.streak || gamify.streak || 0}
                   onSurgeChange={setIsHeaderSurging}
                   onViewModeChange={setHeaderViewMode}
+                  onExit={() => navigate('/')}
+                  timeMode={timeMode as any}
+                  onToggleTimeMode={toggleTimeMode}
+                  initialTodayTime={initialTodayTime}
+                  initialAllTimeTime={initialAllTimeTime}
+                  showFeedback={showFeedback}
+                  hasRated={selectedOption !== null}
+                  currentIndex={currentIndex}
+                  timeLeftRef={timeLeftRef}
+                  sessionStudyTimeRef={sessionStudyTimeRef}
+                  formatHeaderTime={formatHeaderTime}
+                  scoreMode={scoreMode as any}
+                  onToggleScoreMode={toggleScoreMode}
+                  xp={gamify.xp}
+                  todayXP={initialTodayXP + sessionXP}
+                  sessionXP={sessionXP}
                 />
               </div>
             </>

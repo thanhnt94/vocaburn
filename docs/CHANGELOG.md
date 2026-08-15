@@ -2,6 +2,21 @@
 
 Tài liệu này lưu lại lịch sử thay đổi cấu trúc, tính năng, và các bản vá lỗi của dự án Vocaburn.
 
+### [2026-08-15]
+#### Nâng Cấp Giao Diện Header Bar Chế Độ Lộ Trình (Roadmap Pro Live HUD Header Bar)
+- **Thiết kế Pro Live HUD Header Bar (`RoadmapHeaderTracker.tsx`)**:
+  - Tái cấu trúc thanh Header trong chế độ Roadmap (`/flashcard/:id/play?mode=roadmap` và `/practice/:id`) sang phong cách **Dark Glassmorphism** cao cấp (`backdrop-blur-2xl`, viền neon mờ, badge sắc nét).
+  - Tích hợp cụm **Pro HUD Chips** bên phải hiển thị đầy đủ thông tin thời gian thực:
+    - **Live Card & Session Timer (⏱️)**: Đếm thời gian làm từng thẻ (reset tự động khi chuyển thẻ) và hỗ trợ click để chuyển đổi chế độ xem: Thời gian thẻ này (Card Time) ➔ Thời gian học hôm nay (Today Time) ➔ Tổng thời gian (Total Time).
+    - **Điểm XP & Gamification (🏆 / ⚡)**: Hiển thị XP đạt được trong ngày và tổng XP với hiệu ứng nhảy số động `popLayout`.
+    - **Chuỗi ngày học Streak (🔥)**: Hiệu ứng pulse và đếm ngày liên tục rực rỡ.
+  - Tích hợp **Pipeline Stepper**: Hiển thị rõ ràng các bước trong lộ trình (Học từ mới, Trắc nghiệm MCQ, Ôn tập FSRS...) với tiến độ thẻ chi tiết (`10 / 20`), icon sinh động và hiệu ứng phát sáng cho bước đang kích hoạt.
+  - Nút thoát phiên học (`X`) thiết kế phong cách glassmorphism mượt mà.
+  - Tương thích Responsive: Hiển thị pipeline đa bước trên Desktop/Tablet và tự động thu gọn thành pill active tinh gọn trên Mobile.
+- **Đồng bộ hóa giao diện FlashcardPlay & PracticePlay (`FlashcardPlay.tsx`, `PracticePlay.tsx`)**:
+  - Truyền đầy đủ trạng thái thời gian, điểm XP, streak và tiến độ thẻ sang cho `RoadmapHeaderTracker`.
+  - Thanh tiến trình viền dưới Header (*Glow Underline Progress Bar*) chuyển động mượt mà với dải màu gradient `amber ➔ rose ➔ indigo` phản hồi theo tiến độ hoàn thành mục tiêu ngày.
+
 ### [2026-08-08]
 #### Cập Nhật & Sửa Lỗi Lộ Trình (Roadmap & Dashboard Enhancements)
 - **Sửa Lỗi Đếm Tiến Trình Bài Học Flashcard (`FlashcardPlay.tsx`)**:
