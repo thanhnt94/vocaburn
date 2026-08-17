@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { Brain, Trophy, ChevronRight, LayoutGrid, Users, Zap, Flame, BrainCircuit, X, Play, Crown, Medal, Star, CheckCircle2, Circle, Swords, Settings, Target, RefreshCw, User, BookOpen, Sparkles, TrendingUp, Clock, Layers, Compass, ArrowRight, FileText, RotateCcw, Search, Plus, ArrowDown } from 'lucide-react'
+import { Brain, Trophy, ChevronRight, LayoutGrid, Users, Zap, Flame, BrainCircuit, X, Play, Crown, Medal, Star, CheckCircle2, Circle, Swords, Settings, Target, RefreshCw, User, BookOpen, Sparkles, TrendingUp, Clock, Layers, Compass, ArrowRight, FileText, RotateCcw, Search, Plus, ArrowDown, Calendar } from 'lucide-react'
 import { useAppStore } from '@/store/useAppStore'
 import { cn } from '@/lib/utils'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -1834,6 +1834,38 @@ export default function Dashboard() {
                       mascotLine2 = 'Cố gắng hoàn thành các bước hôm nay 💪';
                     }
 
+                    // Estimated completion date computation
+                    let estimatedDateText = '—';
+                    if (st.roadmap_type === 'accumulation') {
+                      estimatedDateText = 'Tích lũy vô tận';
+                    } else if (st.estimated_completion_date) {
+                      try {
+                        const d = new Date(st.estimated_completion_date);
+                        if (!isNaN(d.getTime())) {
+                          estimatedDateText = d.toLocaleDateString('vi-VN');
+                        } else {
+                          estimatedDateText = st.estimated_completion_date;
+                        }
+                      } catch {
+                        estimatedDateText = st.estimated_completion_date;
+                      }
+                    } else {
+                      const total = st.total_cards || deck.questions_count || 0;
+                      const learned = st.learned_cards || 0;
+                      const remaining = Math.max(0, total - learned);
+                      if (remaining === 0) {
+                        estimatedDateText = 'Đã hoàn thành 🎉';
+                      } else {
+                        const dailyNew = st.roadmap_daily_new || st.new_target_today || 20;
+                        if (dailyNew > 0) {
+                          const daysLeft = Math.ceil(remaining / dailyNew);
+                          const targetDate = new Date();
+                          targetDate.setDate(targetDate.getDate() + daysLeft);
+                          estimatedDateText = targetDate.toLocaleDateString('vi-VN');
+                        }
+                      }
+                    }
+
                     return (
                       <div key={deck.deck_id} className="h-full w-full snap-center flex-shrink-0 flex flex-col">
                         
@@ -1858,37 +1890,56 @@ export default function Dashboard() {
                           {/* HERO MASCOT CARD (FLEX-1 EXPANDS VERTICALLY TO FILL SPACE) */}
                           <div className="bg-gradient-to-br from-amber-50/90 via-orange-50/40 to-amber-100/50 border border-orange-100/90 rounded-3xl p-4 sm:p-5 relative overflow-hidden shadow-xs flex flex-row items-center justify-between flex-1 min-h-[160px]">
                             
-                             {/* LEFT SIDE: STREAK BADGE, DECK TITLE PILL & SLOGAN */}
+                            {/* LEFT SIDE: STREAK BADGE, DECK TITLE PILL & SLOGAN */}
                             <div className="relative z-20 flex-1 max-w-[68%] sm:max-w-[72%] min-w-0 flex flex-col justify-center gap-2.5 py-1">
                               
-                              {/* TOP BADGES: 🔥 X ngày streak & 📖 Tên bộ thẻ (DISTINCT STYLING) */}
-                              <div className="flex flex-wrap items-center gap-2">
-                                {/* 🔥 STREAK BADGE: Dynamic vibrant orange gradient pill */}
-                                <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-gradient-to-r from-orange-500 via-amber-500 to-orange-600 text-white rounded-full text-xs font-black shadow-xs shrink-0">
-                                  <span className="text-xs">🔥</span>
-                                  <span>{deckStreak} ngày streak</span>
-                                </div>
-
-                                {/* 📖 DECK TITLE BADGE: Premium dark slate tag */}
-                                <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-slate-900/95 text-white rounded-xl text-xs font-bold shadow-xs max-w-full">
-                                  <BookOpen className="w-3.5 h-3.5 text-amber-400 shrink-0" />
-                                  <span className="truncate max-w-[280px] sm:max-w-[400px] font-extrabold text-white">{deck.title}</span>
-                                  {deck.level && <span className="text-slate-300 font-normal text-[11px] shrink-0">({deck.level})</span>}
-                                </div>
-
-                                {/* ⏱️ COUNTDOWN BADGE: Remaining time to complete today's goal (only show when not done) */}
-                                {!st.all_done && (
-                                  <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-amber-500/15 text-amber-900 border border-amber-300/80 rounded-full text-xs font-black shadow-2xs shrink-0">
-                                    <Clock className="w-3.5 h-3.5 text-amber-600 shrink-0" />
-                                    <span>Còn {remainingTime}</span>
+                              {/* TOP BADGES: 3 DISTINCT CLEAN ROWS */}
+                              <div className="flex flex-col gap-2">
+                                {/* DÒNG 1: 🔥 Streak & ⏱️ Thời gian còn lại */}
+                                <div className="flex flex-wrap items-center gap-2">
+                                  {/* 🔥 STREAK BADGE: Dynamic vibrant orange gradient pill */}
+                                  <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-gradient-to-r from-orange-500 via-amber-500 to-orange-600 text-white rounded-full text-xs font-black shadow-xs shrink-0">
+                                    <span className="text-xs">🔥</span>
+                                    <span>{deckStreak} ngày streak</span>
                                   </div>
-                                )}
 
-                                 {/* 🎓 SEPARATE COMPACT LEARNED BADGE */}
-                                 <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-emerald-500/15 text-emerald-950 border border-emerald-300/80 rounded-full text-xs font-black shadow-2xs shrink-0" title="Từ vựng đã thuộc / Tổng số từ vựng">
-                                   <span className="text-xs">🎓</span>
-                                   <span>{st.learned_cards || 0}/{st.total_cards || deck.questions_count || 0}</span>
-                                 </div>
+                                  {/* ⏱️ COUNTDOWN / STATUS BADGE */}
+                                  {!st.all_done ? (
+                                    <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-amber-500/15 text-amber-900 border border-amber-300/80 rounded-full text-xs font-black shadow-2xs shrink-0">
+                                      <Clock className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                                      <span>Còn {remainingTime}</span>
+                                    </div>
+                                  ) : (
+                                    <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-emerald-500/15 text-emerald-950 border border-emerald-300/80 rounded-full text-xs font-black shadow-2xs shrink-0">
+                                      <span className="text-xs">✓</span>
+                                      <span>Đã xong hôm nay</span>
+                                    </div>
+                                  )}
+                                </div>
+
+                                {/* DÒNG 2: 📖 Tên bộ thẻ */}
+                                <div className="flex items-center max-w-full">
+                                  <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-slate-900/95 text-white rounded-xl text-xs font-bold shadow-xs max-w-full">
+                                    <BookOpen className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                                    <span className="truncate max-w-[280px] sm:max-w-[400px] font-extrabold text-white">{deck.title}</span>
+                                    {deck.level && <span className="text-slate-300 font-normal text-[11px] shrink-0">({deck.level})</span>}
+                                  </div>
+                                </div>
+
+                                {/* DÒNG 3: 🎓 Đã học / Tổng số & 📅 Ngày dự kiến xong */}
+                                <div className="flex flex-wrap items-center gap-2">
+                                  {/* 🎓 SEPARATE COMPACT LEARNED BADGE */}
+                                  <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-emerald-500/15 text-emerald-950 border border-emerald-300/80 rounded-full text-xs font-black shadow-2xs shrink-0" title="Từ vựng đã thuộc / Tổng số từ vựng">
+                                    <span className="text-xs">🎓</span>
+                                    <span>{st.learned_cards || 0}/{st.total_cards || deck.questions_count || 0}</span>
+                                  </div>
+
+                                  {/* 📅 ESTIMATED COMPLETION DATE BADGE */}
+                                  <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-indigo-500/15 text-indigo-950 border border-indigo-300/80 rounded-full text-xs font-black shadow-2xs shrink-0" title="Ngày dự kiến hoàn thành bộ thẻ">
+                                    <Calendar className="w-3.5 h-3.5 text-indigo-600 shrink-0" />
+                                    <span>Dự kiến: {estimatedDateText}</span>
+                                  </div>
+                                </div>
                               </div>
 
                               {/* SLOGAN TEXT */}
