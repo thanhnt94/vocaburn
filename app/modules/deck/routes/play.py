@@ -3309,8 +3309,9 @@ async def reset_deck_progress(request: Request, deck_id: int, db: AsyncSession =
 async def get_roadmap_test_questions(request: Request, deck_id: int, db: AsyncSession = Depends(get_db)):
     user_id = AuthService.get_user_id(request)
     
-    from app.modules.deck.models import Flashcard, FlashcardDeck, UserDeckSettings, UserCardMastery, UserAnswer, DeckAttempt
+    from app.modules.deck.models import Flashcard, FlashcardDeck, UserDeckSettings, UserCardMastery, UserAnswer, DeckAttempt, DeckSession
     import random
+    import json
 
     # Load deck
     deck_res = await db.execute(select(FlashcardDeck).where(FlashcardDeck.id == deck_id))
@@ -3320,6 +3321,50 @@ async def get_roadmap_test_questions(request: Request, deck_id: int, db: AsyncSe
 
     deck_title = deck.title
     today_str = datetime.utcnow().strftime("%Y-%m-%d")
+
+    # 1. Check for existing active Roadmap Test Session for today
+    sess_res = await db.execute(
+        select(DeckSession).where(
+            DeckSession.user_id == user_id,
+            DeckSession.deck_id == deck_id,
+            DeckSession.mode == "roadmap_test"
+        )
+    )
+    existing_sess = sess_res.scalar_one_or_none()
+    if existing_sess and existing_sess.state_json:
+        try:
+            state = json.loads(existing_sess.state_json)
+            if state.get("created_date") == today_str and state.get("questions"):
+                # Load settings for display
+                user_sett_res = await db.execute(
+                    select(UserDeckSettings).where(
+                        UserDeckSettings.user_id == user_id,
+                        UserDeckSettings.deck_id == deck_id
+                    )
+                )
+                user_sett = user_sett_res.scalar_one_or_none()
+                settings = user_sett.settings if (user_sett and user_sett.settings) else {}
+                migrated = migrate_practice_settings(settings)
+                creator_migrated = {}
+                if deck.practice_settings and isinstance(deck.practice_settings, dict):
+                    creator_migrated = migrate_practice_settings(deck.practice_settings)
+
+                return {
+                    "title": deck_title,
+                    "deck_title": deck_title,
+                    "questions": state["questions"],
+                    "total": len(state["questions"]),
+                    "current_index": existing_sess.current_index,
+                    "saved_answers": state.get("saved_answers", {}),
+                    "practiceTotalAnswered": state.get("practiceTotalAnswered", 0),
+                    "practiceCorrectCount": state.get("practiceCorrectCount", 0),
+                    "sessionXP": state.get("sessionXP", 0),
+                    "streak": state.get("streak", 0),
+                    "practice_settings": migrated,
+                    "creator_settings": creator_migrated
+                }
+        except Exception as e:
+            pass
 
     # Gate check: Step 1 (Học từ mới) MUST be completed today before entering Stage 2 Test
     user_sett_res = await db.execute(
@@ -3571,11 +3616,42 @@ async def get_roadmap_test_questions(request: Request, deck_id: int, db: AsyncSe
 
 
 
+    # Persist newly generated test session for today
+    new_state = {
+        "created_date": today_str,
+        "questions": formatted_questions,
+        "saved_answers": {},
+        "practiceTotalAnswered": 0,
+        "practiceCorrectCount": 0,
+        "sessionXP": 0,
+        "streak": 0
+    }
+    if existing_sess:
+        existing_sess.current_index = 0
+        existing_sess.state_json = json.dumps(new_state)
+        existing_sess.updated_at = datetime.utcnow()
+    else:
+        new_sess = DeckSession(
+            user_id=user_id,
+            deck_id=deck_id,
+            mode="roadmap_test",
+            current_index=0,
+            state_json=json.dumps(new_state)
+        )
+        db.add(new_sess)
+    await db.commit()
+
     return {
         "title": deck_title,
         "deck_title": deck_title,
         "questions": formatted_questions,
         "total": len(formatted_questions),
+        "current_index": 0,
+        "saved_answers": {},
+        "practiceTotalAnswered": 0,
+        "practiceCorrectCount": 0,
+        "sessionXP": 0,
+        "streak": 0,
         "practice_settings": migrated,
         "creator_settings": creator_migrated
     }
@@ -3584,7 +3660,7 @@ async def get_roadmap_test_questions(request: Request, deck_id: int, db: AsyncSe
 @router.post("/{deck_id}/roadmap-test-submit")
 async def submit_roadmap_test(request: Request, deck_id: int, data: dict, db: AsyncSession = Depends(get_db)):
     user_id = AuthService.get_user_id(request)
-    from app.modules.deck.models import DeckAttempt, UserAnswer
+    from app.modules.deck.models import DeckAttempt, UserAnswer, DeckSession
     from sqlalchemy import delete
     from datetime import datetime
     
@@ -3620,6 +3696,15 @@ async def submit_roadmap_test(request: Request, deck_id: int, data: dict, db: As
             )
             db.add(user_ans)
 
+    # 3. Clean up the finished roadmap_test session
+    await db.execute(
+        delete(DeckSession).where(
+            DeckSession.user_id == user_id,
+            DeckSession.deck_id == deck_id,
+            DeckSession.mode == "roadmap_test"
+        )
+    )
+
     await db.commit()
 
     return {
@@ -3634,9 +3719,53 @@ async def submit_roadmap_test(request: Request, deck_id: int, data: dict, db: As
 
 @router.post("/{deck_id}/roadmap-test-reset")
 async def reset_roadmap_test(request: Request, deck_id: int, db: AsyncSession = Depends(get_db)):
+    user_id = AuthService.get_user_id(request)
+    from app.modules.deck.models import DeckSession
+    from sqlalchemy import delete
+    
+    await db.execute(
+        delete(DeckSession).where(
+            DeckSession.user_id == user_id,
+            DeckSession.deck_id == deck_id,
+            DeckSession.mode == "roadmap_test"
+        )
+    )
+    await db.commit()
     return {"status": "ok"}
 
 
 @router.post("/{deck_id}/roadmap-test-save-progress")
 async def save_roadmap_test_progress(request: Request, deck_id: int, data: dict, db: AsyncSession = Depends(get_db)):
+    user_id = AuthService.get_user_id(request)
+    from app.modules.deck.models import DeckSession
+    import json
+    
+    sess_res = await db.execute(
+        select(DeckSession).where(
+            DeckSession.user_id == user_id,
+            DeckSession.deck_id == deck_id,
+            DeckSession.mode == "roadmap_test"
+        )
+    )
+    sess = sess_res.scalar_one_or_none()
+    if sess and sess.state_json:
+        try:
+            state = json.loads(sess.state_json)
+            if "practiceAnswers" in data:
+                state["saved_answers"] = data.get("practiceAnswers")
+            if "practiceTotalAnswered" in data:
+                state["practiceTotalAnswered"] = data.get("practiceTotalAnswered")
+            if "practiceCorrectCount" in data:
+                state["practiceCorrectCount"] = data.get("practiceCorrectCount")
+            if "sessionXP" in data:
+                state["sessionXP"] = data.get("sessionXP")
+            if "streak" in data:
+                state["streak"] = data.get("streak")
+            
+            sess.current_index = data.get("current_index", sess.current_index)
+            sess.state_json = json.dumps(state)
+            sess.updated_at = datetime.utcnow()
+            await db.commit()
+        except Exception:
+            pass
     return {"status": "ok"}
