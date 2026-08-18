@@ -1318,12 +1318,7 @@ export default function PracticePlay() {
           })
         )
         fetchPromises.push(Promise.resolve({ data: [] }))
-        fetchPromises.push(
-          axios.get(`/api/v1/deck/${id}/session`).catch(e => {
-            console.error("Failed to load session", e)
-            return { data: null }
-          })
-        )
+        fetchPromises.push(Promise.resolve({ data: null }))
       }
 
       const results = await Promise.all(fetchPromises)
@@ -1774,36 +1769,7 @@ export default function PracticePlay() {
     newTotalAnswered: number = practiceTotalAnswered,
     newCorrectCount: number = practiceCorrectCount
   ) => {
-    try {
-      const isPractice = mainTab === 'practice';
-      if (isPractice && !isRoadmapTestMode) return; // Skip saving non-roadmap practice sessions
-      
-      const payloadMode = isRoadmapTestMode ? practiceSubMode : 'sequential';
-      await axios.post(`/api/v1/deck/${id}/session`, {
-        mode: payloadMode,
-        current_index: newIndex,
-        state: {
-          sessionAnswers: isPractice ? sessionAnswers : newAnswers,
-          practiceAnswers: isPractice ? newAnswers : practiceAnswers,
-          questions: session?.questions || [],
-          created_date: new Date().toISOString().slice(0, 10),
-          completed: false
-        }
-      });
-      return;
-      await axios.post(`/api/v1/deck/${id}/session`, {
-        mode: "sequential",
-        current_index: newIndex,
-        state: {
-          sessionAnswers: isPractice ? sessionAnswers : newAnswers,
-          practiceAnswers: isPractice ? newAnswers : practiceAnswers,
-          practiceTotalAnswered: newTotalAnswered,
-          practiceCorrectCount: newCorrectCount,
-          sessionXP: currentXP,
-          streak: currentStreak
-        }
-      })
-    } catch (e) { }
+    // Dynamic realtime queue: answers are persisted directly via /record_answer or /save-rating
   }
 
   const handleReviewRating = async (rating: number) => {
@@ -6424,10 +6390,7 @@ export default function PracticePlay() {
                     KEEP STUDYING
                   </button>
                   <button
-                    onClick={async () => {
-                      try {
-                        await axios.delete(`/api/v1/deck/${id}/session`)
-                      } catch (e) { }
+                    onClick={() => {
                       navigate(`/flashcard/${id}`)
                     }}
                     className="py-4 bg-rose-500 text-white font-black text-[10px] uppercase tracking-widest rounded-2xl shadow-lg shadow-rose-200 active:scale-95 transition-all"

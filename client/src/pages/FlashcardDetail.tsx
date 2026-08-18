@@ -391,13 +391,6 @@ export default function QuizDetail() {
     }
   })
 
-  const { data: sessionData } = useQuery({
-    queryKey: ['quiz-session', id],
-    queryFn: async () => {
-      const res = await axios.get(`/api/v1/deck/${id}/session`)
-      return res.data
-    }
-  })
 
   const { data: roadmapStatus, refetch: refetchRoadmapStatus } = useQuery({
     queryKey: ['quiz-roadmap-status', id],

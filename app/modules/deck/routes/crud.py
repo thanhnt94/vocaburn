@@ -478,7 +478,7 @@ async def archive_deck(request: Request, deck_id: int, db: AsyncSession = Depend
 @router.delete("/{deck_id}")
 async def delete_deck(deck_id: int, db: AsyncSession = Depends(get_db)):
     from app.modules.deck.models import (
-        FlashcardDeck, Flashcard, DeckAttempt, DeckSession, 
+        FlashcardDeck, Flashcard, DeckAttempt, 
         DeckRoom, UserDeckGoal, UserDeckSettings, DeckCollaborator,
         UserCardMastery, UserPracticeStats, UserCardNote, UserAnswer
     )
@@ -499,7 +499,6 @@ async def delete_deck(deck_id: int, db: AsyncSession = Depends(get_db)):
         
     # 4. Delete records referencing deck_id
     await db.execute(delete(DeckAttempt).where(DeckAttempt.deck_id == deck_id))
-    await db.execute(delete(DeckSession).where(DeckSession.deck_id == deck_id))
     await db.execute(delete(DeckRoom).where(DeckRoom.deck_id == deck_id))
     await db.execute(delete(UserDeckGoal).where(UserDeckGoal.deck_id == deck_id))
     await db.execute(delete(UserDeckSettings).where(UserDeckSettings.deck_id == deck_id))

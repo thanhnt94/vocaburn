@@ -251,7 +251,7 @@ async def save_practice_settings(request: Request, deck_id: int, payload: dict, 
     
     # Smart diff pipeline comparison + history recording
     if settings and "pipeline" in settings and not is_creator:
-        from app.modules.deck.models import DeckAttempt, DeckSession, RoadmapPipelineHistory
+        from app.modules.deck.models import DeckAttempt, RoadmapPipelineHistory
         from sqlalchemy import delete
         
         new_pipeline = settings.get("pipeline", [])
@@ -317,14 +317,7 @@ async def save_practice_settings(request: Request, deck_id: int, payload: dict, 
                 )
             )
             
-            # 2. Delete active roadmap session state
-            await db.execute(
-                delete(DeckSession).where(
-                    DeckSession.user_id == user_id,
-                    DeckSession.deck_id == deck_id,
-                    DeckSession.mode.in_(["roadmap_test", "roadmap_mcq", "roadmap_typing"])
-                )
-            )
+
         
         await db.commit()
 

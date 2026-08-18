@@ -1071,126 +1071,41 @@ export default function FlashcardPlay() {
       // Fetch Roadmap status for current deck
       fetchRoadmapStatus();
 
-      // Leaderboard is fetched via dynamic useEffect depending on time filter
+      // Dynamic Realtime Queue Initialization (Stateless across devices)
+      const initIndex = async () => {
+        let rmStatus = roadmapStatus;
+        if (!rmStatus && refetchRoadmap) {
+          const fetched = await refetchRoadmap();
+          rmStatus = fetched?.data || undefined;
+        }
+        const rawIdx = rmStatus?.current_step_index || 0;
+        const rawStep = rmStatus?.pipeline?.[rawIdx];
+        const isFsrsSession = mode === 'fsrs_review' || (subMode as any) === 'review' || mode === 'review' || rawStep?.type === 'fsrs_review';
+        const searchParams = new URLSearchParams(window.location.search);
+        const urlMode = searchParams.get('mode');
+        const savedMode = isFsrsSession ? 'review' : (urlMode || userSettings.quiz_learning_mode || 'roadmap');
 
-          axios.get(`/api/v1/deck/${id}/session`).then(sessionRes => {
-            let restoredAnswers: Record<number, any> = {};
-            let restoredPractice: Record<number, any> = {};
-            let curIdx = 0;
-
-            if (sessionRes.data) {
-              restoredAnswers = sessionRes.data.state?.sessionAnswers || {};
-              setSessionAnswers(restoredAnswers);
-              restoredPractice = sessionRes.data.state?.practiceAnswers || {};
-              setPracticeAnswers(restoredPractice);
-
-              if (sessionRes.data.state?.practiceTotalAnswered !== undefined) {
-                setPracticeTotalAnswered(sessionRes.data.state.practiceTotalAnswered);
-              }
-              if (sessionRes.data.state?.practiceCorrectCount !== undefined) {
-                setPracticeCorrectCount(sessionRes.data.state.practiceCorrectCount);
-              }
-              if (sessionRes.data.current_index !== undefined) {
-                curIdx = sessionRes.data.current_index;
-              }
-
-              if (sessionRes.data.state?.sessionXP) {
-                const todayStr = new Date().toISOString().slice(0, 10);
-                const sessionDate = sessionRes.data.state?.session_date;
-                if (sessionDate === todayStr) {
-                  setSessionXP(sessionRes.data.state.sessionXP);
-                }
-              }
-              if (sessionRes.data.state?.streak) {
-                setStreak(sessionRes.data.state.streak);
-              }
-            }
-
-            if ((activeTab as string) === 'practice' && practiceRange === 'learned') {
-              const learnedIndices = questions.map((q: any, i: number) => (q.stats?.total || 0) > 0 ? i : -1).filter((i: number) => i !== -1);
-              if (learnedIndices.length > 0 && !learnedIndices.includes(curIdx)) {
-                curIdx = learnedIndices[0];
-              }
-            }
-
-            // Adjust initial index based on smart learning mode
-            const initIndex = async () => {
-              let rmStatus = roadmapStatus;
-              if (!rmStatus && refetchRoadmap) {
-                const fetched = await refetchRoadmap();
-                rmStatus = fetched?.data || undefined;
-              }
-              const rawIdx = rmStatus?.current_step_index || 0;
-              const rawStep = rmStatus?.pipeline?.[rawIdx];
-              const isFsrsSession = mode === 'fsrs_review' || (subMode as any) === 'review' || mode === 'review' || rawStep?.type === 'fsrs_review';
-              const searchParams = new URLSearchParams(window.location.search);
-              const urlMode = searchParams.get('mode');
-              const savedMode = isFsrsSession ? 'review' : (urlMode || 'roadmap');
-
-              if (urlMode === 'roadmap' || urlMode === 'new' || urlMode === 'review' || isFsrsSession || restoredAnswers[curIdx] === undefined) {
-                const answeredIndexes = Object.keys(restoredAnswers).map(Number);
-                try {
-                  const res = await axios.post(`/api/v1/deck/${id}/next-card`, {
-                    mode: savedMode,
-                    answered_indexes: answeredIndexes,
-                    current_index: curIdx,
-                    random_enabled: !!userSettings.random_enabled
-                  });
-                  if (res.data && res.data.next_index !== undefined) {
-                    curIdx = res.data.next_index;
-                  }
-                } catch (err) {
-                  console.error("Failed to fetch initial next card from backend", err);
-                }
-              }
-
-              setCurrentIndex(curIdx);
-
-              const isPractice = (activeTab as string) === 'practice';
-              const activeRestored = isPractice ? restoredPractice : restoredAnswers;
-
-              if (isPractice) {
-                if (activeRestored[curIdx] !== undefined) {
-                  setSelectedOption(activeRestored[curIdx]);
-                  setShowFeedback(true);
-                  if (subMode === 'typing') {
-                    setTypingFeedback({ checked: true, isCorrect: activeRestored[curIdx] === 3 });
-                  }
-                } else {
-                  setSelectedOption(null);
-                  setShowFeedback(false);
-                  setTypingFeedback(null);
-                }
-              } else {
-                if (typeof activeRestored[curIdx] === 'number') {
-                  setSelectedOption(activeRestored[curIdx]);
-                  setShowFeedback(true);
-                } else {
-                  setSelectedOption(null);
-                  setShowFeedback(false);
-                }
-              }
-            };
-
-            initIndex();
-          }).catch(e => {
-            console.error("Failed to load session, running fallback initIndex:", e);
-            const searchParams = new URLSearchParams(window.location.search);
-            const urlMode = searchParams.get('mode');
-            const savedMode = urlMode || userSettings.quiz_learning_mode || 'fsrs';
-            axios.post(`/api/v1/deck/${id}/next-card`, {
-              mode: savedMode,
-              answered_indexes: [],
-              current_index: 0,
-              random_enabled: !!userSettings.random_enabled
-            }).then(res => {
-              if (res.data && res.data.next_index !== undefined) {
-                setCurrentIndex(res.data.next_index);
-              }
-            }).catch(err => {
-              if (currentIndex < 0) setCurrentIndex(0);
-            });
+        let curIdx = 0;
+        try {
+          const res = await axios.post(`/api/v1/deck/${id}/next-card`, {
+            mode: savedMode,
+            answered_indexes: [],
+            current_index: 0,
+            random_enabled: !!userSettings.random_enabled
           });
+          if (res.data && res.data.next_index !== undefined) {
+            curIdx = res.data.next_index;
+          }
+        } catch (err) {
+          console.error("Failed to fetch initial next card from backend", err);
+        }
+
+        setCurrentIndex(curIdx);
+        setSelectedOption(null);
+        setShowFeedback(false);
+      };
+
+      initIndex();
     } catch (e) {
       console.error("Failed to load deck data:", e)
       showLocalToast("Failed to load deck data. Please check your connection.", "error")
@@ -1295,32 +1210,14 @@ export default function FlashcardPlay() {
   }
 
   const saveSession = async (
-    newAnswers: Record<number, any>,
-    newIndex: number,
-    currentXP: number = sessionXP,
-    currentStreak: number = streak,
-    newTotalAnswered: number = practiceTotalAnswered,
-    newCorrectCount: number = practiceCorrectCount
+    _newAnswers: Record<number, any>,
+    _newIndex: number,
+    _currentXP: number = sessionXP,
+    _currentStreak: number = streak,
+    _newTotalAnswered: number = practiceTotalAnswered,
+    _newCorrectCount: number = practiceCorrectCount
   ) => {
-    try {
-      const isPractice = mainTab === 'practice';
-      if (isPractice) return; // Completely skip saving to the FSRS session on the server in Practice mode
-      await axios.post(`/api/v1/deck/${id}/session`, {
-        mode: "sequential",
-        current_index: newIndex,
-        state: { 
-          sessionAnswers: isPractice ? sessionAnswers : newAnswers,
-          practiceAnswers: isPractice ? newAnswers : practiceAnswers,
-          practiceTotalAnswered: newTotalAnswered,
-          practiceCorrectCount: newCorrectCount,
-          sessionXP: currentXP,
-          streak: currentStreak,
-          session_date: new Date().toISOString().slice(0, 10) // track which day this XP belongs to
-        }
-      })
-    } catch (e) {
-      console.error("Failed to save local session state to server:", e)
-    }
+    // Dynamic realtime queue: answers are persisted directly via /record_answer or /save-rating
   }
 
   const handleToggleHint = async (e?: React.MouseEvent) => {
@@ -5466,12 +5363,7 @@ export default function FlashcardPlay() {
                     KEEP STUDYING
                   </button>
                   <button 
-                    onClick={async () => {
-                      try {
-                        await axios.delete(`/api/v1/deck/${id}/session`)
-                      } catch (e) {
-                        console.error("Failed to delete session on exit:", e)
-                      }
+                    onClick={() => {
                       navigate(`/flashcard/${id}`)
                     }}
                     className="py-4 bg-rose-500 text-white font-black text-[10px] uppercase tracking-widest rounded-2xl shadow-lg shadow-rose-200 active:scale-95 transition-all"

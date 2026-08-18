@@ -1595,41 +1595,19 @@ async def get_deck_play_data(request: Request, deck_id: int, mode: Optional[str]
 
 @router.get("/{deck_id}/session")
 async def get_deck_session(request: Request, deck_id: int, db: AsyncSession = Depends(get_db)):
-    from app.modules.deck.models import DeckSession
-    user_id = AuthService.get_user_id(request)
-    result = await db.execute(select(DeckSession).filter(DeckSession.deck_id == deck_id, DeckSession.user_id == user_id))
-    session = result.scalar_one_or_none()
-    if not session: return None
     return {
-        "mode": session.mode,
-        "current_index": session.current_index,
-        "state": json.loads(session.state_json) if session.state_json else {}
+        "mode": "sequential",
+        "current_index": 0,
+        "state": {}
     }
 
 @router.post("/{deck_id}/session")
 async def save_deck_session(request: Request, deck_id: int, data: dict, db: AsyncSession = Depends(get_db)):
-    from app.modules.deck.models import DeckSession
-    user_id = AuthService.get_user_id(request)
-    result = await db.execute(select(DeckSession).filter(DeckSession.deck_id == deck_id, DeckSession.user_id == user_id))
-    session = result.scalar_one_or_none()
-    if not session:
-        session = DeckSession(deck_id=deck_id, user_id=user_id)
-        db.add(session)
-    
-    session.mode = data.get("mode")
-    session.current_index = data.get("current_index", 0)
-    session.state_json = json.dumps(data.get("state", {}))
-    await db.commit()
     return {"status": "ok"}
 
 @router.delete("/{deck_id}/session")
 async def reset_deck_session(request: Request, deck_id: int, db: AsyncSession = Depends(get_db)):
-    from app.modules.deck.models import DeckSession
-    user_id = AuthService.get_user_id(request)
-    await db.execute(delete(DeckSession).where(DeckSession.deck_id == deck_id, DeckSession.user_id == user_id))
-    await db.commit()
     return {"status": "ok"}
-
 @router.post("/{deck_id}/next-card")
 async def get_next_card(request: Request, deck_id: int, data: dict, db: AsyncSession = Depends(get_db)):
     user_id = AuthService.get_user_id(request)
@@ -1638,28 +1616,44 @@ async def get_next_card(request: Request, deck_id: int, data: dict, db: AsyncSes
     current_index = data.get("current_index", 0)
     random_enabled = data.get("random_enabled", False)
 
-    deck = await DeckService.get_deck_by_id_with_cards(db, deck_id)
-    if not deck:
-        return JSONResponse(status_code=404, content={"error": "Deck not found"})
-
-    total = len(deck.cards)
+    from app.modules.deck.models import Flashcard
+    cards_res = await db.execute(
+        select(Flashcard.id).where(Flashcard.deck_id == deck_id).order_by(Flashcard.id.asc())
+    )
+    card_ids = cards_res.scalars().all()
+    total = len(card_ids)
     if total == 0:
         return {"next_index": 0}
 
     from app.modules.deck.models import UserCardMastery
-    c_ids = [c.id for c in deck.cards]
     mastery_res = await db.execute(
-        select(UserCardMastery).where(
+        select(
+            UserCardMastery.card_id,
+            UserCardMastery.state,
+            UserCardMastery.stability,
+            UserCardMastery.due,
+            UserCardMastery.last_review,
+            UserCardMastery.is_ignored
+        ).where(
             UserCardMastery.user_id == user_id,
-            UserCardMastery.card_id.in_(c_ids)
+            UserCardMastery.card_id.in_(card_ids)
         )
     )
-    mastery_map = {m.card_id: m for m in mastery_res.scalars().all()}
+    mastery_map = {
+        r.card_id: {
+            "state": r.state or 0,
+            "stability": r.stability,
+            "due": r.due,
+            "last_review": r.last_review,
+            "is_ignored": bool(r.is_ignored)
+        }
+        for r in mastery_res.all()
+    }
 
     ignored_indexes = set()
-    for idx, c in enumerate(deck.cards):
-        m = mastery_map.get(c.id)
-        if m and getattr(m, 'is_ignored', False):
+    for idx, c_id in enumerate(card_ids):
+        m = mastery_map.get(c_id)
+        if m and m["is_ignored"]:
             ignored_indexes.add(idx)
 
     effective_answered = set(answered_indexes) | ignored_indexes
@@ -1667,11 +1661,11 @@ async def get_next_card(request: Request, deck_id: int, data: dict, db: AsyncSes
     if mode in ("roadmap", "new"):
         unanswered_new = []
         all_new = []
-        for idx, c in enumerate(deck.cards):
+        for idx, c_id in enumerate(card_ids):
             if idx in ignored_indexes:
                 continue
-            m = mastery_map.get(c.id)
-            is_new = not m or (m.state == 0 and getattr(m, 'last_review', None) is None)
+            m = mastery_map.get(c_id)
+            is_new = not m or (m["state"] == 0 and m["last_review"] is None)
             if is_new:
                 all_new.append(idx)
                 if idx not in effective_answered:
@@ -1694,18 +1688,16 @@ async def get_next_card(request: Request, deck_id: int, data: dict, db: AsyncSes
 
     elif mode in ("fsrs", "review", "fsrs_review"):
         now_utc = datetime.utcnow()
-        # Calculate end-of-today (UTC) minus overdue_hours so due count is fixed for the entire day
         end_of_today_utc = (now_utc.replace(hour=0, minute=0, second=0, microsecond=0) + timedelta(days=1))
 
         from app.modules.deck.models import UserDeckSettings
         user_sett_res = await db.execute(
-            select(UserDeckSettings).where(
+            select(UserDeckSettings.settings).where(
                 UserDeckSettings.user_id == user_id,
                 UserDeckSettings.deck_id == deck_id
             )
         )
-        user_sett = user_sett_res.scalar_one_or_none()
-        settings = user_sett.settings if (user_sett and user_sett.settings) else {}
+        settings = user_sett_res.scalar_one_or_none() or {}
         raw_pipeline = settings.get("pipeline", [])
         
         fsrs_overdue_hours = 24
@@ -1715,25 +1707,23 @@ async def get_next_card(request: Request, deck_id: int, data: dict, db: AsyncSes
                     fsrs_overdue_hours = int(st.get("overdue_hours", 24))
                     break
 
-        # cutoff = end_of_today - overdue_hours → card.due <= cutoff means (end_of_today - card.due) >= overdue_hours
         due_cutoff = end_of_today_utc - timedelta(hours=fsrs_overdue_hours)
         
         due_cards = []
         unanswered_review_cards = []
         all_learned_cards = []
 
-        for idx, c in enumerate(deck.cards):
+        for idx, c_id in enumerate(card_ids):
             if idx in ignored_indexes:
                 continue
 
-            m = mastery_map.get(c.id)
-            if not m or m.state == 0 or m.stability is None:
+            m = mastery_map.get(c_id)
+            if not m or m["state"] == 0 or m["stability"] is None:
                 continue
 
-            # Card is due if its due date is at or before the overdue threshold
-            is_due = m.due <= due_cutoff
+            is_due = m["due"] and m["due"] <= due_cutoff
             has_answered = idx in answered_indexes
-            card_info = {"idx": idx, "due": m.due, "stability": m.stability or 0.0}
+            card_info = {"idx": idx, "due": m["due"], "stability": m["stability"] or 0.0}
             all_learned_cards.append(card_info)
             
             if not has_answered:
@@ -1750,23 +1740,21 @@ async def get_next_card(request: Request, deck_id: int, data: dict, db: AsyncSes
                 next_index = due_cards[0]["idx"]
             return {"next_index": next_index, "phase": "review"}
         elif unanswered_review_cards:
-            # All overdue cards are reviewed; serve remaining review cards for overachievement
-            unanswered_review_cards.sort(key=lambda x: x["due"])
+            unanswered_review_cards.sort(key=lambda x: x["due"] or datetime.max)
             return {"next_index": unanswered_review_cards[0]["idx"], "phase": "review"}
         elif all_learned_cards:
-            # All learned cards answered in session; recycle learned cards
-            all_learned_cards.sort(key=lambda x: x["due"])
+            all_learned_cards.sort(key=lambda x: x["due"] or datetime.max)
             return {"next_index": all_learned_cards[0]["idx"], "phase": "review"}
         else:
             return {"next_index": 0, "phase": "review_empty"}
 
     elif mode == "new":
         new_cards = []
-        for idx, c in enumerate(deck.cards):
+        for idx, c_id in enumerate(card_ids):
             if idx in ignored_indexes:
                 continue
-            m = mastery_map.get(c.id)
-            is_new = not m or m.state == 0 or m.stability is None
+            m = mastery_map.get(c_id)
+            is_new = not m or m["state"] == 0 or m["stability"] is None
             if is_new and idx not in effective_answered:
                 new_cards.append(idx)
 
@@ -1779,15 +1767,15 @@ async def get_next_card(request: Request, deck_id: int, data: dict, db: AsyncSes
 
         now_utc = datetime.utcnow()
         due_cards = []
-        for idx, c in enumerate(deck.cards):
+        for idx, c_id in enumerate(card_ids):
             if idx in ignored_indexes:
                 continue
-            m = mastery_map.get(c.id)
-            if not m or m.state == 0 or m.stability is None:
+            m = mastery_map.get(c_id)
+            if not m or m["state"] == 0 or m["stability"] is None:
                 continue
-            is_due = (m.due - timedelta(seconds=30)) <= now_utc
+            is_due = m["due"] and ((m["due"] - timedelta(seconds=30)) <= now_utc)
             if is_due and idx not in answered_indexes:
-                due_cards.append({"idx": idx, "stability": m.stability or 0.0})
+                due_cards.append({"idx": idx, "stability": m["stability"] or 0.0})
         if due_cards:
             if random_enabled:
                 import random
@@ -2666,22 +2654,6 @@ async def get_deck_roadmap_status_helper(db: AsyncSession, user_id: int, deck_id
                 )
             ) or 0
 
-            mcq_session_res = await db.execute(
-                select(DeckSession).where(
-                    DeckSession.deck_id == deck_id,
-                    DeckSession.user_id == user_id
-                )
-            )
-            mcq_session = mcq_session_res.scalar_one_or_none()
-            if mcq_session and mcq_session.state_json:
-                try:
-                    s_data = json.loads(mcq_session.state_json)
-                    p_answers = s_data.get("practiceAnswers") or s_data.get("saved_answers") or {}
-                    if isinstance(p_answers, dict):
-                        mcq_answers_today = max(mcq_answers_today, len(p_answers))
-                except Exception:
-                    pass
-
             step_data.update({
                 "question_count": q_count,
                 "pass_threshold": threshold,
@@ -3329,14 +3301,6 @@ async def reset_deck_progress(request: Request, deck_id: int, db: AsyncSession =
             await db.execute(delete(UserAnswer).where(UserAnswer.attempt_id.in_(attempt_ids)))
             await db.execute(delete(DeckAttempt).where(DeckAttempt.id.in_(attempt_ids)))
             
-    # 5. Delete DeckSession for this user & deck
-    await db.execute(
-        delete(DeckSession).where(
-            DeckSession.user_id == user_id,
-            DeckSession.deck_id == deck_id
-        )
-    )
-    
     await db.commit()
     return {"status": "ok", "message": "Deck progress reset successfully"}
 
@@ -3345,7 +3309,7 @@ async def reset_deck_progress(request: Request, deck_id: int, db: AsyncSession =
 async def get_roadmap_test_questions(request: Request, deck_id: int, db: AsyncSession = Depends(get_db)):
     user_id = AuthService.get_user_id(request)
     
-    from app.modules.deck.models import Flashcard, FlashcardDeck, UserDeckSettings, UserCardMastery, UserAnswer, DeckAttempt, DeckSession
+    from app.modules.deck.models import Flashcard, FlashcardDeck, UserDeckSettings, UserCardMastery, UserAnswer, DeckAttempt
     import random
 
     # Load deck
@@ -3376,41 +3340,6 @@ async def get_roadmap_test_questions(request: Request, deck_id: int, db: AsyncSe
                 "message": "Bạn chưa hoàn thành chỉ tiêu học từ mới hôm nay (Bước 1)! Hãy hoàn thành Bước 1 trước khi làm Bài kiểm tra Roadmap."
             }
         )
-
-    # Check for existing active DeckSession for roadmap_test
-    session_res = await db.execute(
-        select(DeckSession).where(
-            DeckSession.deck_id == deck_id,
-            DeckSession.user_id == user_id
-        )
-    )
-    existing_session = session_res.scalar_one_or_none()
-
-    if existing_session and (existing_session.mode == "roadmap_test" or (existing_session.mode and existing_session.mode.startswith("roadmap"))) and existing_session.state_json:
-        try:
-            saved_state = json.loads(existing_session.state_json)
-            if (
-                isinstance(saved_state, dict)
-                and saved_state.get("questions")
-                and isinstance(saved_state.get("questions"), list)
-                and len(saved_state.get("questions")) > 0
-                and not saved_state.get("completed", False)
-                and saved_state.get("created_date") == today_str
-            ):
-                return {
-                    "id": deck.id,
-                    "title": deck.title,
-                    "questions": saved_state["questions"],
-                    "current_index": existing_session.current_index or 0,
-                    "saved_answers": saved_state.get("practiceAnswers", {}),
-                    "practiceTotalAnswered": saved_state.get("practiceTotalAnswered", 0),
-                    "practiceCorrectCount": saved_state.get("practiceCorrectCount", 0),
-                    "sessionXP": saved_state.get("sessionXP", 0),
-                    "streak": saved_state.get("streak", 0),
-                    "restored": True
-                }
-        except Exception:
-            pass
 
     # Load all cards for deck cleanly via async query
     all_cards_res = await db.execute(
@@ -3640,32 +3569,7 @@ async def get_roadmap_test_questions(request: Request, deck_id: int, db: AsyncSe
             }
         })
 
-    # Save generated unique roadmap test session to DB for resuming later
-    if existing_session:
-        existing_session.mode = "roadmap_test"
-        existing_session.current_index = 0
-        existing_session.state_json = json.dumps({
-            "questions": formatted_questions,
-            "practiceAnswers": {},
-            "created_date": today_str,
-            "completed": False
-        })
-    else:
-        new_session = DeckSession(
-            deck_id=deck_id,
-            user_id=user_id,
-            mode="roadmap_test",
-            current_index=0,
-            state_json=json.dumps({
-                "questions": formatted_questions,
-                "practiceAnswers": {},
-                "created_date": today_str,
-                "completed": False
-            })
-        )
-        db.add(new_session)
-    
-    await db.commit()
+
 
     return {
         "title": deck_title,
@@ -3680,7 +3584,7 @@ async def get_roadmap_test_questions(request: Request, deck_id: int, db: AsyncSe
 @router.post("/{deck_id}/roadmap-test-submit")
 async def submit_roadmap_test(request: Request, deck_id: int, data: dict, db: AsyncSession = Depends(get_db)):
     user_id = AuthService.get_user_id(request)
-    from app.modules.deck.models import DeckSession, DeckAttempt, UserAnswer
+    from app.modules.deck.models import DeckAttempt, UserAnswer
     from sqlalchemy import delete
     from datetime import datetime
     
@@ -3716,15 +3620,6 @@ async def submit_roadmap_test(request: Request, deck_id: int, data: dict, db: As
             )
             db.add(user_ans)
 
-    # 3. Clean up DeckSession upon completion so a new test can be generated next time
-    await db.execute(
-        delete(DeckSession).where(
-            DeckSession.deck_id == deck_id,
-            DeckSession.user_id == user_id,
-            DeckSession.mode.startswith("roadmap")
-        )
-    )
-
     await db.commit()
 
     return {
@@ -3739,57 +3634,9 @@ async def submit_roadmap_test(request: Request, deck_id: int, data: dict, db: As
 
 @router.post("/{deck_id}/roadmap-test-reset")
 async def reset_roadmap_test(request: Request, deck_id: int, db: AsyncSession = Depends(get_db)):
-    user_id = AuthService.get_user_id(request)
-    from app.modules.deck.models import DeckSession
-    from sqlalchemy import delete
-
-    await db.execute(
-        delete(DeckSession).where(
-            DeckSession.deck_id == deck_id,
-            DeckSession.user_id == user_id,
-            DeckSession.mode.startswith("roadmap")
-        )
-    )
-    await db.commit()
     return {"status": "ok"}
 
 
 @router.post("/{deck_id}/roadmap-test-save-progress")
 async def save_roadmap_test_progress(request: Request, deck_id: int, data: dict, db: AsyncSession = Depends(get_db)):
-    user_id = AuthService.get_user_id(request)
-    from app.modules.deck.models import DeckSession
-
-    session_res = await db.execute(
-        select(DeckSession).where(
-            DeckSession.deck_id == deck_id,
-            DeckSession.user_id == user_id
-        )
-    )
-    existing_session = session_res.scalar_one_or_none()
-
-    if existing_session and existing_session.state_json:
-        try:
-            saved_state = json.loads(existing_session.state_json)
-            if isinstance(saved_state, dict):
-                current_idx = data.get("current_index", existing_session.current_index or 0)
-                answers = data.get("practiceAnswers") or data.get("saved_answers") or {}
-                
-                existing_session.current_index = current_idx
-                saved_state["practiceAnswers"] = answers
-                
-                if "practiceTotalAnswered" in data:
-                    saved_state["practiceTotalAnswered"] = data["practiceTotalAnswered"]
-                if "practiceCorrectCount" in data:
-                    saved_state["practiceCorrectCount"] = data["practiceCorrectCount"]
-                if "sessionXP" in data:
-                    saved_state["sessionXP"] = data["sessionXP"]
-                if "streak" in data:
-                    saved_state["streak"] = data["streak"]
-                    
-                existing_session.state_json = json.dumps(saved_state)
-                await db.commit()
-                return {"status": "ok", "message": "Progress saved successfully"}
-        except Exception as e:
-            pass
-
-    return {"status": "ok", "message": "No active session to save"}
+    return {"status": "ok"}

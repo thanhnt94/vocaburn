@@ -123,15 +123,6 @@ export default function DeckRoadmap() {
     enabled: Boolean(id)
   })
 
-  // Fetch deck session & enabled practice modes
-  const { data: deckData } = useQuery({
-    queryKey: ['deck-detail-basic', id],
-    queryFn: async () => {
-      const res = await axios.get(`/api/v1/deck/${id}/session`)
-      return res.data
-    },
-    enabled: Boolean(id)
-  })
 
   // Fetch calendar heatmap
   const { data: calendarData, refetch: refetchCalendar } = useQuery({
@@ -187,7 +178,7 @@ export default function DeckRoadmap() {
     }
   }, [status])
 
-  const enabledModes: string[] = deckData?.enabled_practice_modes || ['mcq', 'typing']
+  const enabledModes: string[] = ['mcq', 'typing']
 
   const handleSavePipeline = async (active = true) => {
     try {
@@ -274,7 +265,7 @@ export default function DeckRoadmap() {
   }
 
   const s = status || {}
-  const deckTitle = status?.deck_title || deckData?.deck?.title || deckData?.title || `Bộ Thẻ #${id}`
+  const deckTitle = status?.deck_title || `Bộ Thẻ #${id}`
   const processedPipeline = s.pipeline || []
 
   // Calendar helpers
