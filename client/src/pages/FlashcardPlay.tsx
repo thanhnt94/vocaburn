@@ -3887,8 +3887,8 @@ export default function FlashcardPlay() {
 
       {/* Decoupled - Practice mode moved to standalone /practice/:id page */}
 
-      <main className="flex-1 flex w-full max-w-none justify-center gap-4 lg:gap-8 px-2 lg:px-6 xl:px-10 md:py-3 py-2 overflow-hidden">
-        <aside className="hidden xl:flex w-[340px] 2xl:w-[440px] flex-shrink-0 flex-col overflow-hidden bg-white border border-slate-100 rounded-[2.5rem] shadow-sm">
+      <main className="flex-1 min-h-0 flex w-full max-w-none justify-center gap-4 lg:gap-8 px-2 lg:px-6 xl:px-10 md:py-3 py-2 overflow-hidden">
+        <aside className="hidden xl:flex w-[340px] 2xl:w-[440px] flex-shrink-0 flex-col min-h-0 overflow-hidden bg-white border border-slate-100 rounded-[2.5rem] shadow-sm">
           {showFeedback ? (
             <FeedbackArea
               showFeedback={showFeedback}
@@ -4245,8 +4245,8 @@ export default function FlashcardPlay() {
           )}
         </aside>
 
-        <div className="w-full max-w-4xl min-w-0 flex flex-col overflow-hidden h-full">
-          <div className="flex-1 flex flex-col overflow-hidden md:pr-2 md:pb-2 pr-0 pb-0 xl:pb-0">
+        <div className="w-full max-w-4xl min-w-0 flex flex-col min-h-0 overflow-hidden h-full">
+          <div className="flex-1 flex flex-col overflow-hidden md:pr-2 md:pb-2 pr-0 pb-0 xl:pb-0 min-h-0">
             
 
           <AnimatePresence mode="wait">
@@ -4751,7 +4751,7 @@ export default function FlashcardPlay() {
         </div>
 
         {/* Sidebar */}
-        <aside className="hidden lg:flex w-[340px] 2xl:w-[420px] flex-shrink-0 flex-col overflow-hidden">
+        <aside className="hidden lg:flex w-[340px] 2xl:w-[420px] flex-shrink-0 flex-col min-h-0 overflow-hidden">
           <div className="flex-1 bg-white border border-slate-100 rounded-[2.5rem] p-6 shadow-sm flex flex-col overflow-hidden">
             <h4 className="text-[8px] font-black text-slate-300 uppercase tracking-[0.3em] mb-4 flex-shrink-0">
               {mainTab === 'practice' ? 'PRACTICE STATS' : 'CARD MAP'}
@@ -4784,7 +4784,7 @@ export default function FlashcardPlay() {
       {(mainTab !== 'practice' || (mainTab === 'practice' && !practiceNeedsSetup)) && (
       <footer className="relative w-full flex-shrink-0 bg-white/95 backdrop-blur-2xl border-t border-slate-100/80 px-0 pt-0 pb-0 z-[300] shadow-[0_-4px_24px_rgba(99,102,241,0.06)]">
         <div className="max-w-2xl mx-auto w-full flex flex-col">
-          {activeBottomTab === 'flashcard' && !isFeedbackOpen && (
+          {(activeBottomTab === 'flashcard' || !isFeedbackOpen) && (
             <>
               {/* Hint Popup Bubble */}
               <AnimatePresence>
