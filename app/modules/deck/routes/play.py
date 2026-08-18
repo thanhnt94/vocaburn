@@ -341,6 +341,7 @@ async def record_answer(request: Request, data: dict, db: AsyncSession = Depends
                 State.Review: 2,
                 State.Relearning: 3
             }
+            mastery.state = state_reverse_map.get(updated_card.state, 1)
             # Save prior due date to track Option B roadmap eligibility
             mastery.last_due = mastery.due
 
