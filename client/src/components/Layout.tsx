@@ -66,7 +66,7 @@ export default function Layout() {
     )}>
 
       {/* Desktop Header */}
-      {!isLandingPage && (
+      {!isLandingPage && !isPlaying && (
         <header className={cn(
           "fixed top-0 left-0 right-0 z-[110] backdrop-blur-2xl border-b px-8 py-4 hidden md:flex items-center justify-between transition-all duration-300",
           isLoggedIn 
@@ -162,7 +162,7 @@ export default function Layout() {
       <main className={cn(
         "flex-1 w-full",
         isLoggedIn 
-          ? (isDashboard ? "pt-0 md:pt-20 md:h-full md:overflow-hidden" : "pt-0 md:pt-20")
+          ? (isDashboard ? "pt-0 md:pt-20 md:h-full md:overflow-hidden" : (isPlaying ? "pt-0 h-full overflow-hidden" : "pt-0 md:pt-20"))
           : ""
       )}>
         <Outlet />
