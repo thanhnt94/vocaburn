@@ -44,6 +44,8 @@ export interface RoadmapHeaderTrackerProps {
   correctCount?: number
   totalCards?: number
   cardsRemaining?: number
+  activeMode?: string
+  modeBadge?: { emoji: string; label: string; short: string; style: string }
 }
 
 const STEP_META: Record<string, { emoji: string; label: string; short: string; style: string }> = {
@@ -117,7 +119,9 @@ export const RoadmapHeaderTracker: React.FC<RoadmapHeaderTrackerProps> = ({
   answeredCount = 0,
   correctCount = 0,
   totalCards = 0,
-  cardsRemaining = 0
+  cardsRemaining = 0,
+  activeMode,
+  modeBadge
 }) => {
   // 0 = Mặt 1 (Tên bộ thẻ & Chế độ học), 1 = Mặt 2 (Toàn bộ các thông số chi tiết HUD)
   const [viewMode, setViewMode] = useState<0 | 1>(0)
@@ -190,7 +194,7 @@ export const RoadmapHeaderTracker: React.FC<RoadmapHeaderTrackerProps> = ({
   if (!pipeline || pipeline.length === 0) return null
 
   const currentStep = pipeline[currentStepIndex] || null
-  const meta = currentStep ? (STEP_META[currentStep.type] || STEP_META.new_cards) : STEP_META.new_cards
+  const meta = modeBadge || (currentStep ? (STEP_META[currentStep.type] || STEP_META.new_cards) : STEP_META.new_cards)
 
   const hasSubProg = typeof subProgressCurr === 'number' && typeof subProgressTotal === 'number' && subProgressTotal > 0
   const subPercent = hasSubProg ? Math.min(100, Math.round((subProgressCurr / subProgressTotal) * 100)) : 0
@@ -342,22 +346,24 @@ export const RoadmapHeaderTracker: React.FC<RoadmapHeaderTrackerProps> = ({
 
                 {/* Right side of Face 1: Mode + Step Dots + Progress + Flip Hint */}
                 <div className="flex items-center gap-2 sm:gap-2.5 shrink-0">
-                  {/* Step Stepper Dots */}
-                  <div className="flex items-center gap-1 shrink-0" title={`Bước ${currentStepIndex + 1}/${pipeline.length}`}>
-                    {pipeline.map((_, idx) => (
-                      <div
-                        key={idx}
-                        className={cn(
-                          "h-1.5 rounded-full transition-all duration-300",
-                          idx === currentStepIndex
-                            ? "w-3 bg-amber-400 shadow-[0_0_6px_rgba(251,191,36,0.6)]"
-                            : idx < currentStepIndex
-                              ? "w-1.5 bg-emerald-400"
-                              : "w-1.5 bg-slate-700"
-                        )}
-                      />
-                    ))}
-                  </div>
+                  {/* Step Stepper Dots (Chỉ hiển thị khi đang học theo Roadmap) */}
+                  {(!activeMode || activeMode === 'roadmap') && (
+                    <div className="flex items-center gap-1 shrink-0" title={`Bước ${currentStepIndex + 1}/${pipeline.length}`}>
+                      {pipeline.map((_, idx) => (
+                        <div
+                          key={idx}
+                          className={cn(
+                            "h-1.5 rounded-full transition-all duration-300",
+                            idx === currentStepIndex
+                              ? "w-3 bg-amber-400 shadow-[0_0_6px_rgba(251,191,36,0.6)]"
+                              : idx < currentStepIndex
+                                ? "w-1.5 bg-emerald-400"
+                                : "w-1.5 bg-slate-700"
+                          )}
+                        />
+                      ))}
+                    </div>
+                  )}
 
                   {/* Mode Badge (Ultra-clean acronym: NW, REV, MCQ, TYP, TIME) */}
                   <div 

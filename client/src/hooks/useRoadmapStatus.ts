@@ -32,6 +32,8 @@ export interface RoadmapStatusData {
   roadmap_pass_threshold?: number
   streak?: number
   retention_rate?: number
+  total_cards?: number
+  learned_cards?: number
   unlearned_cards?: number
   estimated_completion_date?: string
   today_total_study_minutes?: number

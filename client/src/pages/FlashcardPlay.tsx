@@ -1087,10 +1087,11 @@ export default function FlashcardPlay() {
         }
         const rawIdx = rmStatus?.current_step_index || 0;
         const rawStep = rmStatus?.pipeline?.[rawIdx];
-        const isFsrsSession = mode === 'fsrs_review' || (subMode as any) === 'review' || mode === 'review' || rawStep?.type === 'fsrs_review';
         const searchParams = new URLSearchParams(window.location.search);
         const urlMode = searchParams.get('mode');
-        const savedMode = isFsrsSession ? 'review' : (urlMode || userSettings.quiz_learning_mode || 'roadmap');
+        const effectiveMode = urlMode || activeMode || userSettings.quiz_learning_mode || 'fsrs';
+        const isFsrsSession = effectiveMode === 'fsrs' || effectiveMode === 'review' || mode === 'fsrs_review' || (subMode as any) === 'review' || mode === 'review' || rawStep?.type === 'fsrs_review';
+        const savedMode = isFsrsSession ? 'fsrs' : effectiveMode;
 
         let curIdx = 0;
         try {
@@ -2252,8 +2253,11 @@ export default function FlashcardPlay() {
       }
       const rawIdx = rmStatus?.current_step_index || 0;
       const rawStep = rmStatus?.pipeline?.[rawIdx];
-      const isFsrsSession = mode === 'fsrs_review' || (subMode as any) === 'review' || mode === 'review' || rawStep?.type === 'fsrs_review';
-      const targetMode = isFsrsSession ? 'review' : (activeMode === 'fsrs' ? 'roadmap' : activeMode);
+      const searchParams = new URLSearchParams(window.location.search);
+      const urlMode = searchParams.get('mode');
+      const effectiveMode = urlMode || activeMode || userSettings.quiz_learning_mode || 'fsrs';
+      const isFsrsSession = effectiveMode === 'fsrs' || effectiveMode === 'review' || mode === 'fsrs_review' || (subMode as any) === 'review' || mode === 'review' || rawStep?.type === 'fsrs_review';
+      const targetMode = isFsrsSession ? 'fsrs' : effectiveMode;
 
       const res = await axios.post(`/api/v1/deck/${id}/next-card`, {
         mode: targetMode,
@@ -3590,7 +3594,15 @@ export default function FlashcardPlay() {
 
       <header className={cn(
         "sticky top-0 flex-shrink-0 z-[120] backdrop-blur-2xl px-2.5 md:px-4 py-1.5 flex items-center justify-between gap-2.5 transition-colors duration-300 relative overflow-hidden",
-        roadmapStatus?.pipeline
+        activeMode === 'fsrs'
+          ? "bg-slate-950/95 border-b border-emerald-500/30 text-white shadow-[0_4px_25px_-5px_rgba(16,185,129,0.25)]"
+          : activeMode === 'review'
+          ? "bg-slate-950/95 border-b border-teal-500/30 text-white shadow-[0_4px_25px_-5px_rgba(20,184,166,0.25)]"
+          : activeMode === 'new'
+          ? "bg-slate-950/95 border-b border-indigo-500/30 text-white shadow-[0_4px_25px_-5px_rgba(99,102,241,0.25)]"
+          : activeMode === 'flip'
+          ? "bg-slate-950/95 border-b border-amber-500/30 text-white shadow-[0_4px_25px_-5px_rgba(245,158,11,0.25)]"
+          : roadmapStatus?.pipeline
           ? "bg-slate-950/90 border-b border-slate-800/80 text-white shadow-xl"
           : "bg-white/95 border-b border-slate-100/80 text-slate-800 shadow-[0_1px_20px_rgba(99,102,241,0.04)]"
       )}>
@@ -3619,19 +3631,59 @@ export default function FlashcardPlay() {
           const firstCard = session?.questions?.[0];
           const isNewCardSession = firstCard ? (firstCard.is_new || firstCard.state === 0 || firstCard.repetition === 0) : true;
 
-          if (activeMode === 'new' || isNewCardSession) {
+          let modeBadge: { emoji: string; label: string; short: string; style: string } | undefined = undefined;
+          let subCurr = 0;
+          let subTotal = session?.questions?.length || 20;
+
+          if (activeMode === 'fsrs') {
+            const fsrsIdx = roadmapStatus.pipeline.findIndex((s: any) => s.type === 'fsrs_review');
+            if (fsrsIdx !== -1) displayStepIdx = fsrsIdx;
+            modeBadge = {
+              emoji: '🧠',
+              label: 'FSRS Spaced Repetition v6',
+              short: 'FSRS',
+              style: 'bg-emerald-500/20 border-emerald-500/40 text-emerald-300'
+            };
+            const reviewedToday = roadmapStatus?.review_completed_today ?? 0;
+            const dueToday = roadmapStatus?.review_due_today ?? 0;
+            subTotal = dueToday > 0 ? dueToday : (session?.questions?.length || 15);
+            subCurr = reviewedToday;
+          } else if (activeMode === 'review') {
+            const fsrsIdx = roadmapStatus.pipeline.findIndex((s: any) => s.type === 'fsrs_review');
+            if (fsrsIdx !== -1) displayStepIdx = fsrsIdx;
+            modeBadge = {
+              emoji: '📚',
+              label: 'Chỉ Ôn Tập Thẻ Cũ (Review Only)',
+              short: 'REV',
+              style: 'bg-teal-500/20 border-teal-500/40 text-teal-300'
+            };
+            const learnedTotal = roadmapStatus?.learned_cards || session?.questions?.filter((q: any) => !q.is_new && q.state > 0).length || session?.questions?.length || 0;
+            const reviewedCount = roadmapStatus?.review_completed_today ?? Object.keys(sessionAnswers).length;
+            subTotal = learnedTotal > 0 ? learnedTotal : (session?.questions?.length || 15);
+            subCurr = reviewedCount;
+          } else if (activeMode === 'new') {
             const newCardsIdx = roadmapStatus.pipeline.findIndex((s: any) => s.type === 'new_cards');
             if (newCardsIdx !== -1) displayStepIdx = newCardsIdx;
-          } else if (activeMode === 'fsrs') {
-            // Strictly enforce roadmap unlocking: if in roadmap mode and stage 2 (MCQ/typing) is not done, lock FSRS step
-            if (!isStage2Done) {
-              const newCardsIdx = roadmapStatus.pipeline.findIndex((s: any) => s.type === 'new_cards');
-              if (newCardsIdx !== -1) displayStepIdx = newCardsIdx;
-            } else {
-              const fsrsIdx = roadmapStatus.pipeline.findIndex((s: any) => s.type === 'fsrs_review');
-              if (fsrsIdx !== -1) displayStepIdx = fsrsIdx;
-            }
-          } else if (activeMode === 'roadmap' || rawStep?.type === 'mcq' || rawStep?.type === 'typing') {
+            modeBadge = {
+              emoji: '✨',
+              label: 'Học Thẻ Mới (New Only)',
+              short: 'NEW',
+              style: 'bg-indigo-500/20 border-indigo-500/40 text-indigo-300'
+            };
+            // Số thẻ đã học / Tổng số thẻ trong bộ thẻ
+            subTotal = roadmapStatus?.total_cards || session?.questions?.length || 0;
+            subCurr = roadmapStatus?.learned_cards || 0;
+          } else if (activeMode === 'flip') {
+            modeBadge = {
+              emoji: '🔄',
+              label: 'Lật Thẻ Tự Do (Flip Card)',
+              short: 'FLIP',
+              style: 'bg-amber-500/20 border-amber-500/40 text-amber-300'
+            };
+            subTotal = session?.questions?.length || 1;
+            subCurr = currentIndex + 1;
+          } else {
+            // Standard guided Roadmap mode (mode === 'roadmap')
             if (!isStage1Done || isNewCardSession || !isStage2Done) {
               const newCardsIdx = roadmapStatus.pipeline.findIndex((s: any) => s.type === 'new_cards');
               if (newCardsIdx !== -1) displayStepIdx = newCardsIdx;
@@ -3639,39 +3691,28 @@ export default function FlashcardPlay() {
               const fsrsIdx = roadmapStatus.pipeline.findIndex((s: any) => s.type === 'fsrs_review');
               if (fsrsIdx !== -1) displayStepIdx = fsrsIdx;
             }
-          }
 
-          const currentStep = roadmapStatus?.pipeline?.[displayStepIdx];
-          
-          let subCurr = 0;
-          let subTotal = session?.questions?.length || 20;
-
-          const answeredInSession = Object.keys(sessionAnswers).length;
-
-          if (currentStep?.type === 'new_cards') {
-            const targetNew = currentStep.daily_count || currentStep.progress?.target || roadmapStatus?.new_target_today || 20;
-            const learnedToday = currentStep.progress?.learned ?? roadmapStatus?.new_learned_today ?? 0;
-
-            const newCardsInSession = Object.keys(sessionAnswers).filter(idxStr => {
-              const q = session?.questions?.[Number(idxStr)];
-              return q && (q.is_new || q.state === 0 || q.repetition === 0);
-            }).length;
-
-            subTotal = targetNew;
-            subCurr = Math.max(learnedToday, newCardsInSession);
-          } else if (currentStep?.type === 'fsrs_review') {
-            const reviewedToday = currentStep.progress?.reviewed_today ?? roadmapStatus?.review_completed_today ?? 0;
-            const dueRemaining = currentStep.progress?.due_count ?? roadmapStatus?.review_due_today ?? 0;
-
-            const fsrsTarget = currentStep.daily_count || currentStep.progress?.target || (reviewedToday + dueRemaining);
-            subTotal = fsrsTarget > 0 ? fsrsTarget : (session?.questions?.length || 15);
-
-            const fsrsInSession = Object.keys(sessionAnswers).filter(idxStr => {
-              const q = session?.questions?.[Number(idxStr)];
-              return q && !(q.is_new || q.state === 0 || q.repetition === 0);
-            }).length;
-
-            subCurr = Math.max(reviewedToday, fsrsInSession);
+            const currentStep = roadmapStatus?.pipeline?.[displayStepIdx];
+            if (currentStep?.type === 'new_cards') {
+              const targetNew = currentStep.daily_count || currentStep.progress?.target || roadmapStatus?.new_target_today || 20;
+              const learnedToday = currentStep.progress?.learned ?? roadmapStatus?.new_learned_today ?? 0;
+              const newCardsInSession = Object.keys(sessionAnswers).filter(idxStr => {
+                const q = session?.questions?.[Number(idxStr)];
+                return q && (q.is_new || q.state === 0 || q.repetition === 0);
+              }).length;
+              subTotal = targetNew;
+              subCurr = Math.max(learnedToday, newCardsInSession);
+            } else if (currentStep?.type === 'fsrs_review') {
+              const reviewedToday = currentStep.progress?.reviewed_today ?? roadmapStatus?.review_completed_today ?? 0;
+              const dueRemaining = currentStep.progress?.due_count ?? roadmapStatus?.review_due_today ?? 0;
+              const fsrsTarget = currentStep.daily_count || currentStep.progress?.target || (reviewedToday + dueRemaining);
+              subTotal = fsrsTarget > 0 ? fsrsTarget : (session?.questions?.length || 15);
+              const fsrsInSession = Object.keys(sessionAnswers).filter(idxStr => {
+                const q = session?.questions?.[Number(idxStr)];
+                return q && !(q.is_new || q.state === 0 || q.repetition === 0);
+              }).length;
+              subCurr = Math.max(reviewedToday, fsrsInSession);
+            }
           }
 
           const isGoalReached = subTotal > 0 && subCurr >= subTotal;
@@ -3698,7 +3739,18 @@ export default function FlashcardPlay() {
                     className="absolute bottom-0 left-0 right-0 h-[2.5px] bg-slate-800/60 pointer-events-none z-[125]"
                   >
                     <motion.div 
-                      className="h-full rounded-r-full transition-all duration-500 bg-gradient-to-r from-amber-500 via-rose-500 to-indigo-500 shadow-[0_0_12px_rgba(245,158,11,0.8)]"
+                      className={cn(
+                        "h-full rounded-r-full transition-all duration-500",
+                        activeMode === 'fsrs'
+                          ? "bg-gradient-to-r from-emerald-500 via-teal-400 to-emerald-300 shadow-[0_0_12px_rgba(16,185,129,0.8)]"
+                          : activeMode === 'review'
+                          ? "bg-gradient-to-r from-teal-500 via-cyan-400 to-teal-300 shadow-[0_0_12px_rgba(20,184,166,0.8)]"
+                          : activeMode === 'new'
+                          ? "bg-gradient-to-r from-indigo-500 via-purple-500 to-indigo-300 shadow-[0_0_12px_rgba(99,102,241,0.8)]"
+                          : activeMode === 'flip'
+                          ? "bg-gradient-to-r from-amber-500 via-orange-500 to-amber-300 shadow-[0_0_12px_rgba(245,158,11,0.8)]"
+                          : "bg-gradient-to-r from-amber-500 via-rose-500 to-indigo-500 shadow-[0_0_12px_rgba(245,158,11,0.8)]"
+                      )}
                       initial={{ width: 0 }}
                       animate={{ width: `${activePercent}%` }}
                       transition={{ type: "spring", stiffness: 120, damping: 18 }}
@@ -3717,6 +3769,8 @@ export default function FlashcardPlay() {
                   subProgressCurr={subCurr}
                   subProgressTotal={subTotal}
                   streakCount={roadmapStatus?.streak || gamify.streak || 0}
+                  activeMode={activeMode}
+                  modeBadge={modeBadge}
                   onSurgeChange={setIsHeaderSurging}
                   onViewModeChange={setHeaderViewMode}
                   onExit={() => navigate('/')}
