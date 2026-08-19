@@ -3424,6 +3424,8 @@ export default function FlashcardPlay() {
     return false;
   }, [activeMode, roadmapStatus, sessionAnswers]);
 
+  const [showModePickerInComplete, setShowModePickerInComplete] = useState(false);
+
   const renderRoadmapStepCompleteScreen = () => {
     const isAllDone = Boolean(roadmapStatus?.all_done);
     const newTarget = roadmapStatus?.new_target_today ?? 20;
@@ -3431,7 +3433,7 @@ export default function FlashcardPlay() {
     const newLearned = Math.min(newTarget, (roadmapStatus?.new_learned_today ?? 0) + answeredInSession);
 
     return (
-      <div className="flex-1 flex flex-col items-center justify-center p-5 md:p-8 text-center bg-gradient-to-b from-slate-900/95 via-slate-950 to-slate-950 text-white rounded-[2rem] border border-slate-800/90 shadow-2xl relative overflow-hidden my-auto max-w-2xl mx-auto w-full">
+      <div className="flex-1 flex flex-col items-center justify-center p-4 md:p-8 text-center bg-gradient-to-b from-slate-900/95 via-slate-950 to-slate-950 text-white rounded-[2rem] border border-slate-800/90 shadow-2xl relative overflow-y-auto custom-scrollbar my-auto max-w-2xl mx-auto w-full min-h-0">
         {/* Glow backgrounds */}
         <div className="absolute -top-24 -left-24 w-72 h-72 bg-amber-500/15 rounded-full blur-3xl pointer-events-none" />
         <div className="absolute -bottom-24 -right-24 w-72 h-72 bg-emerald-500/15 rounded-full blur-3xl pointer-events-none" />
@@ -3441,35 +3443,35 @@ export default function FlashcardPlay() {
           initial={{ scale: 0.7, opacity: 0 }}
           animate={{ scale: [0.85, 1.1, 1], opacity: 1 }}
           transition={{ duration: 0.5, ease: "easeOut" }}
-          className="w-20 h-20 md:w-24 md:h-24 rounded-3xl bg-gradient-to-tr from-amber-500 via-orange-500 to-amber-400 flex items-center justify-center mb-5 shadow-[0_0_40px_rgba(245,158,11,0.5)] border border-amber-300/40 shrink-0"
+          className="w-16 h-16 md:w-20 md:h-20 rounded-3xl bg-gradient-to-tr from-amber-500 via-orange-500 to-amber-400 flex items-center justify-center mb-4 shadow-[0_0_40px_rgba(245,158,11,0.5)] border border-amber-300/40 shrink-0"
         >
           {isAllDone ? (
-            <Trophy className="w-10 h-10 md:w-12 md:h-12 text-white fill-white animate-bounce" />
+            <Trophy className="w-8 h-8 md:w-10 md:h-10 text-white fill-white animate-bounce" />
           ) : (
-            <Sparkles className="w-10 h-10 md:w-12 md:h-12 text-white fill-white animate-pulse" />
+            <Sparkles className="w-8 h-8 md:w-10 md:h-10 text-white fill-white animate-pulse" />
           )}
         </motion.div>
 
         {/* Step Badge */}
-        <div className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-300 font-black text-xs uppercase tracking-widest mb-3 shadow-sm">
-          <CheckCircle2 className="w-4 h-4 text-amber-400" />
+        <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-300 font-black text-[11px] uppercase tracking-widest mb-2 shadow-sm shrink-0">
+          <CheckCircle2 className="w-3.5 h-3.5 text-amber-400" />
           <span>{isAllDone ? 'HOÀN THÀNH LỘ TRÌNH NGÀY' : `ĐÃ XONG BƯỚC 1: HỌC TỪ MỚI (${newLearned}/${newTarget})`}</span>
         </div>
 
         {/* Title */}
-        <h2 className="text-xl md:text-2xl font-black tracking-tight text-white mb-2 max-w-lg">
+        <h2 className="text-lg md:text-2xl font-black tracking-tight text-white mb-2 max-w-lg shrink-0">
           {isAllDone ? 'Chúc mừng bạn đã hoàn thành toàn bộ lộ trình hôm nay! 🎉' : 'Đã học xong từ mới lộ trình hôm nay! 🎯'}
         </h2>
 
         {/* Subtitle */}
-        <p className="text-xs md:text-sm text-slate-300 font-medium max-w-md mb-6 leading-relaxed">
+        <p className="text-xs md:text-sm text-slate-300 font-medium max-w-md mb-5 leading-relaxed shrink-0">
           {isAllDone
             ? 'Bạn đã xuất sắc hoàn thành tất cả các bước trong lộ trình ngày. Hãy quay lại vào ngày mai hoặc ôn tập tự do!'
             : `Xuất sắc! Hãy chuyển sang Bước 2 để làm bài kiểm tra trắc nghiệm MCQ / gõ từ giúp củng cố kiến thức vào trí nhớ dài hạn.`}
         </p>
 
         {/* Action Buttons */}
-        <div className="flex flex-col gap-3 w-full max-w-sm">
+        <div className="flex flex-col gap-2.5 w-full max-w-sm shrink-0">
           {!isAllDone && (
             <button
               onClick={() => {
@@ -3482,26 +3484,69 @@ export default function FlashcardPlay() {
             </button>
           )}
 
-          <div className="flex items-center gap-2 w-full">
+          {/* Flashcard Mode Switcher Expandable */}
+          <div className="w-full bg-slate-900/90 border border-slate-800 rounded-2xl p-2.5 flex flex-col text-left">
             <button
-              onClick={() => {
-                // Switch to free study mode (mode = 'new') to let user overachieve / learn more new cards freely
-                setActiveMode('new');
-              }}
-              className="flex-1 py-3 px-3 rounded-xl bg-slate-800/80 hover:bg-slate-800 border border-slate-700/80 text-slate-200 hover:text-white font-bold text-xs active:scale-95 transition-all cursor-pointer flex items-center justify-center gap-1.5"
-              title="Tiếp tục học thêm từ mới vượt chỉ tiêu ngày"
+              onClick={() => setShowModePickerInComplete(prev => !prev)}
+              className="w-full flex items-center justify-between text-xs font-bold text-slate-300 hover:text-white transition-colors cursor-pointer py-1 px-1"
             >
-              <Zap className="w-3.5 h-3.5 text-cyan-400" />
-              <span>Học vượt từ mới</span>
+              <span className="flex items-center gap-1.5">
+                <Brain className="w-3.5 h-3.5 text-indigo-400" />
+                Vẫn muốn học Flashcard? Đổi chế độ
+              </span>
+              <ChevronDown className={cn("w-3.5 h-3.5 transition-transform duration-200", showModePickerInComplete && "rotate-180")} />
             </button>
 
-            <button
-              onClick={() => navigate('/')}
-              className="flex-1 py-3 px-3 rounded-xl bg-slate-800/80 hover:bg-slate-800 border border-slate-700/80 text-slate-300 hover:text-white font-bold text-xs active:scale-95 transition-all cursor-pointer"
-            >
-              Về Trang Chủ
-            </button>
+            <AnimatePresence>
+              {showModePickerInComplete && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: 'auto' }}
+                  exit={{ opacity: 0, height: 0 }}
+                  className="grid grid-cols-2 gap-1.5 pt-2 mt-1 border-t border-slate-800/80 overflow-hidden"
+                >
+                  <button
+                    onClick={() => setActiveMode('new')}
+                    className="p-2 rounded-xl bg-indigo-950/60 hover:bg-indigo-900/80 border border-indigo-500/30 text-indigo-200 text-[11px] font-bold flex items-center gap-1.5 transition-all active:scale-95 cursor-pointer"
+                  >
+                    <Sparkles className="w-3 h-3 text-indigo-400 shrink-0" />
+                    <span>Học từ mới (New)</span>
+                  </button>
+
+                  <button
+                    onClick={() => setActiveMode('fsrs')}
+                    className="p-2 rounded-xl bg-emerald-950/60 hover:bg-emerald-900/80 border border-emerald-500/30 text-emerald-200 text-[11px] font-bold flex items-center gap-1.5 transition-all active:scale-95 cursor-pointer"
+                  >
+                    <Brain className="w-3 h-3 text-emerald-400 shrink-0" />
+                    <span>Ôn tập FSRS</span>
+                  </button>
+
+                  <button
+                    onClick={() => setActiveMode('review')}
+                    className="p-2 rounded-xl bg-teal-950/60 hover:bg-teal-900/80 border border-teal-500/30 text-teal-200 text-[11px] font-bold flex items-center gap-1.5 transition-all active:scale-95 cursor-pointer"
+                  >
+                    <BookOpen className="w-3 h-3 text-teal-400 shrink-0" />
+                    <span>Ôn tất cả đã học</span>
+                  </button>
+
+                  <button
+                    onClick={() => setActiveMode('flip')}
+                    className="p-2 rounded-xl bg-amber-950/60 hover:bg-amber-900/80 border border-amber-500/30 text-amber-200 text-[11px] font-bold flex items-center gap-1.5 transition-all active:scale-95 cursor-pointer"
+                  >
+                    <RefreshCw className="w-3 h-3 text-amber-400 shrink-0" />
+                    <span>Lật thẻ tự do</span>
+                  </button>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
+
+          <button
+            onClick={() => navigate('/')}
+            className="w-full py-2.5 px-4 rounded-xl bg-slate-800/60 hover:bg-slate-800 border border-slate-700/60 text-slate-300 hover:text-white font-bold text-xs active:scale-95 transition-all cursor-pointer"
+          >
+            Về Trang Chủ
+          </button>
         </div>
       </div>
     );
@@ -4968,7 +5013,7 @@ export default function FlashcardPlay() {
       </main>
 
 
-      {(mainTab !== 'practice' || (mainTab === 'practice' && !practiceNeedsSetup)) && (
+      {!shouldShowRoadmapStepCompleteScreen && (mainTab !== 'practice' || (mainTab === 'practice' && !practiceNeedsSetup)) && (
       <footer className="relative w-full flex-shrink-0 bg-white/95 backdrop-blur-2xl border-t border-slate-100/80 px-0 pt-0 pb-0 z-[300] shadow-[0_-4px_24px_rgba(99,102,241,0.06)]">
         <div className="max-w-2xl mx-auto w-full flex flex-col">
           {(activeBottomTab === 'flashcard' || !isFeedbackOpen) && (
@@ -5722,7 +5767,7 @@ export default function FlashcardPlay() {
 
       {/* Floating Roadmap Step Completion Banner */}
       <RoadmapFloatingBanner
-        show={activeMode === 'roadmap' && showBanner}
+        show={!shouldShowRoadmapStepCompleteScreen && activeMode === 'roadmap' && showBanner}
         onClose={dismissBanner}
         completedStep={justCompletedStep}
         nextActionUrl={nextActionUrl}
