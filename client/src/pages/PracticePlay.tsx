@@ -3502,21 +3502,46 @@ export default function PracticePlay() {
 
                 let cardStyle = "bg-white border-slate-100 hover:border-amber-300 hover:shadow-md text-slate-800";
                 let badgeStyle = "bg-amber-50/90 text-amber-800 border-amber-100/80";
-                let radioStyle = "border-slate-200 group-hover:border-amber-300";
+
+                const oppositeText = answered ? (() => {
+                  const qKey = currentPracticeData?.question_key || 'front';
+                  const aKey = currentPracticeData?.answer_key || 'back';
+                  let qData: any = null;
+                  if (choice_item_ids && session?.questions && choice_item_ids[idx] !== undefined) {
+                    const selectedId = choice_item_ids[idx];
+                    qData = session.questions.find((q: any) => String(q.id) === String(selectedId));
+                  }
+                  if (!qData && session?.questions && session.questions.length > 0) {
+                    const choiceNorm = String(choice || "").trim().toLowerCase();
+                    qData = session.questions.find((q: any) => {
+                      const valA = (getVal(q, aKey) || "").toLowerCase();
+                      const valBack = (getVal(q, 'back') || q.explanation || "").toLowerCase();
+                      return (valA && valA === choiceNorm) || (valBack && valBack === choiceNorm);
+                    });
+                    if (!qData) {
+                      qData = session.questions.find((q: any) => {
+                        const valQ = (getVal(q, qKey) || "").toLowerCase();
+                        const valFront = (getVal(q, 'front') || q.content || "").toLowerCase();
+                        return (valQ && valQ === choiceNorm) || (valFront && valFront === choiceNorm);
+                      });
+                    }
+                  }
+                  if (qData) {
+                    return getVal(qData, qKey) || qData.content || qData.front || '';
+                  }
+                  return getOppositeTextFromCard(null, choice, qKey, aKey) || '';
+                })() : '';
 
                 if (answered) {
                   if (isCorrectChoice) {
                     cardStyle = "bg-emerald-50/80 border-emerald-300 text-emerald-950 shadow-md shadow-emerald-100/50 scale-[1.01]";
                     badgeStyle = "bg-emerald-500 text-white border-emerald-500";
-                    radioStyle = "border-emerald-500 bg-emerald-500 text-white";
                   } else if (isSelected) {
                     cardStyle = "bg-rose-50/80 border-rose-300 text-rose-950 shadow-md shadow-rose-100/50";
                     badgeStyle = "bg-rose-500 text-white border-rose-500";
-                    radioStyle = "border-rose-500 bg-rose-500 text-white";
                   } else {
                     cardStyle = "bg-slate-50/60 border-slate-100/60 opacity-60 text-slate-500";
                     badgeStyle = "bg-slate-100 text-slate-400 border-slate-200";
-                    radioStyle = "border-slate-200";
                   }
                 }
 
@@ -3583,9 +3608,10 @@ export default function PracticePlay() {
                       cardStyle
                     )}
                   >
-                    <div className="flex items-center gap-3.5 min-w-0 flex-1">
+                    {/* Left: Letter Badge + Choice Text */}
+                    <div className="flex items-center gap-3 min-w-0 flex-1">
                       <span className={cn(
-                        "w-9 h-9 md:w-10 md:h-10 rounded-full flex items-center justify-center text-xs md:text-sm font-black border flex-shrink-0 transition-colors shadow-sm",
+                        "w-8.5 h-8.5 md:w-9.5 md:h-9.5 rounded-full flex items-center justify-center text-xs md:text-sm font-black border flex-shrink-0 transition-colors shadow-sm",
                         badgeStyle
                       )}>
                         {letter}
@@ -3593,17 +3619,25 @@ export default function PracticePlay() {
                       <span className="leading-snug truncate" dangerouslySetInnerHTML={{ __html: parseBBCodeToHtml(choice) }} />
                     </div>
 
-                    <div className={cn(
-                      "w-5 h-5 md:w-5.5 md:h-5.5 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-all",
-                      radioStyle
-                    )}>
-                      {answered && isCorrectChoice && (
-                        <Check className="w-3.5 h-3.5 stroke-[3] text-white" />
-                      )}
-                      {answered && isSelected && !isCorrectChoice && (
-                        <X className="w-3.5 h-3.5 stroke-[3] text-white" />
-                      )}
-                    </div>
+                    {/* Right: Split Word Badge (when answered) OR Radio Circle (when not answered) */}
+                    {answered ? (
+                      oppositeText ? (
+                        <div className="flex items-center shrink-0 pl-3 border-l border-slate-200/80">
+                          <span className={cn(
+                            "px-2.5 py-1 rounded-xl text-xs md:text-sm font-black tracking-wide shadow-sm font-sans transition-all",
+                            isCorrectChoice
+                              ? "bg-emerald-100 text-emerald-800 border border-emerald-200"
+                              : isSelected
+                              ? "bg-rose-100 text-rose-800 border border-rose-200"
+                              : "bg-slate-100 text-slate-700 border border-slate-200"
+                          )}>
+                            {oppositeText}
+                          </span>
+                        </div>
+                      ) : null
+                    ) : (
+                      <div className="w-5 h-5 rounded-full border-2 border-slate-200 group-hover:border-amber-300 flex items-center justify-center flex-shrink-0 transition-all" />
+                    )}
                   </button>
                 );
               })}
