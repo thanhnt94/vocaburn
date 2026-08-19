@@ -3644,10 +3644,10 @@ export default function FlashcardPlay() {
               short: 'FSRS',
               style: 'bg-emerald-500/20 border-emerald-500/40 text-emerald-300'
             };
-            const reviewedToday = roadmapStatus?.review_completed_today ?? 0;
+            const baseReviewedToday = roadmapStatus?.review_completed_today ?? 0;
             const dueToday = roadmapStatus?.review_due_today ?? 0;
             subTotal = dueToday > 0 ? dueToday : (session?.questions?.length || 15);
-            subCurr = reviewedToday;
+            subCurr = baseReviewedToday + Object.keys(sessionAnswers).length;
           } else if (activeMode === 'review') {
             const fsrsIdx = roadmapStatus.pipeline.findIndex((s: any) => s.type === 'fsrs_review');
             if (fsrsIdx !== -1) displayStepIdx = fsrsIdx;
@@ -3657,8 +3657,11 @@ export default function FlashcardPlay() {
               short: 'REV',
               style: 'bg-teal-500/20 border-teal-500/40 text-teal-300'
             };
-            const learnedTotal = roadmapStatus?.learned_cards || session?.questions?.filter((q: any) => !q.is_new && q.state > 0).length || session?.questions?.length || 0;
-            const reviewedCount = roadmapStatus?.review_completed_today ?? Object.keys(sessionAnswers).length;
+            const learnedTotal = session?.questions ? session.questions.filter((q: any) => {
+              return q.fsrs ? (q.fsrs.state > 0 || q.fsrs.last_review !== null) : (!q.is_new && q.is_new !== undefined);
+            }).length : (roadmapStatus?.learned_cards || session?.questions?.length || 0);
+            
+            const reviewedCount = (roadmapStatus?.review_completed_today ?? 0) + Object.keys(sessionAnswers).length;
             subTotal = learnedTotal > 0 ? learnedTotal : (session?.questions?.length || 15);
             subCurr = reviewedCount;
           } else if (activeMode === 'new') {
@@ -3670,9 +3673,22 @@ export default function FlashcardPlay() {
               short: 'NEW',
               style: 'bg-indigo-500/20 border-indigo-500/40 text-indigo-300'
             };
-            // Số thẻ đã học / Tổng số thẻ trong bộ thẻ
-            subTotal = roadmapStatus?.total_cards || session?.questions?.length || 0;
-            subCurr = roadmapStatus?.learned_cards || 0;
+            
+            // Total cards in deck
+            subTotal = session?.questions?.length || roadmapStatus?.total_cards || 0;
+
+            // Dynamically count learned cards: base learned in questions + newly answered in session
+            const initialLearnedCount = session?.questions ? session.questions.filter((q: any) => {
+              const isLearned = q.fsrs ? (q.fsrs.state > 0 || q.fsrs.last_review !== null) : (!q.is_new && q.is_new !== undefined);
+              return isLearned;
+            }).length : (roadmapStatus?.learned_cards || 0);
+
+            const newlyAnsweredCount = session?.questions ? session.questions.filter((q: any, idx: number) => {
+              const isLearnedBefore = q.fsrs ? (q.fsrs.state > 0 || q.fsrs.last_review !== null) : (!q.is_new && q.is_new !== undefined);
+              return !isLearnedBefore && sessionAnswers[idx] !== undefined;
+            }).length : Object.keys(sessionAnswers).length;
+
+            subCurr = initialLearnedCount + newlyAnsweredCount;
           } else if (activeMode === 'flip') {
             modeBadge = {
               emoji: '🔄',
