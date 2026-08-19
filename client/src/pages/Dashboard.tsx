@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { Brain, Trophy, ChevronRight, LayoutGrid, Users, Zap, Flame, BrainCircuit, X, Play, Crown, Medal, Star, CheckCircle2, Circle, Swords, Settings, Target, RefreshCw, User, BookOpen, Sparkles, TrendingUp, Clock, Layers, Compass, ArrowRight, FileText, RotateCcw, Search, Plus, ArrowDown, Calendar } from 'lucide-react'
+import { Brain, Trophy, ChevronRight, LayoutGrid, Users, Zap, Flame, BrainCircuit, X, Play, Crown, Medal, Star, CheckCircle2, Circle, Swords, Settings, Target, RefreshCw, User, BookOpen, Sparkles, TrendingUp, Clock, Layers, Compass, ArrowRight, FileText, RotateCcw, Search, Plus, ArrowDown, Calendar, Keyboard, Volume2 } from 'lucide-react'
 import { useAppStore } from '@/store/useAppStore'
 import { cn } from '@/lib/utils'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -1151,10 +1151,13 @@ function DeckGoalSettingsModal({
 
 // ─── Main Dashboard Component ─────────────────────────────────────────────────
 export default function Dashboard() {
-  const { setUser, setGamify } = useAppStore()
+  const { setUser, setGamify, updateUserSettings } = useAppStore()
   const queryClient = useQueryClient()
   const navigate = useNavigate()
 
+  const [selectedStudyQuiz, setSelectedStudyQuiz] = useState<any | null>(null)
+  const [isStudyModalOpen, setIsStudyModalOpen] = useState(false)
+  const [studyModalTab, setStudyModalTab] = useState<'flashcard' | 'practice'>('flashcard')
   const [selectedPracticeQuiz, setSelectedPracticeQuiz] = useState<any | null>(null)
   const [isPracticeModalOpen, setIsPracticeModalOpen] = useState(false)
   const [isJoinModalOpen, setIsJoinModalOpen] = useState(false)
@@ -1952,6 +1955,49 @@ export default function Dashboard() {
                                 </p>
                               </div>
 
+                              {/* 2 NÚT HỌC FLASHCARD (NÃO CAM) & QUIZ (CÚP XANH) CHUẨN ĐỒNG BỘ NHƯ TRONG LIBRARY (ẨN KHI ĐÃ HOÀN THÀNH VÌ NÚT DƯỚI ĐÃ TÁCH 2) */}
+                              {!st.all_done && (
+                                <div className="flex items-center gap-2.5 pt-1.5 z-20">
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setSelectedStudyQuiz({
+                                        id: deck.deck_id,
+                                        title: deck.title,
+                                        questions_count: st.total_cards || deck.questions_count || 0,
+                                        practice_settings: deck.practice_settings
+                                      });
+                                      setStudyModalTab('flashcard');
+                                      setIsStudyModalOpen(true);
+                                    }}
+                                    className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white flex items-center justify-center shadow-md shadow-orange-500/25 active:scale-90 transition-all cursor-pointer flex-shrink-0"
+                                    title="Chọn chế độ học Flashcard"
+                                  >
+                                    <Brain className="w-5 h-5 text-white" />
+                                  </button>
+
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setSelectedStudyQuiz({
+                                        id: deck.deck_id,
+                                        title: deck.title,
+                                        questions_count: st.total_cards || deck.questions_count || 0,
+                                        practice_settings: deck.practice_settings
+                                      });
+                                      setStudyModalTab('practice');
+                                      setIsStudyModalOpen(true);
+                                    }}
+                                    className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white flex items-center justify-center shadow-md shadow-emerald-500/25 active:scale-90 transition-all cursor-pointer flex-shrink-0"
+                                    title="Chọn chế độ luyện tập / Quiz"
+                                  >
+                                    <Trophy className="w-5 h-5 text-white" />
+                                  </button>
+                                </div>
+                              )}
+
                             </div>
 
                             {/* RIGHT SIDE: HUGE PROMINENT MASCOT FILLING ENTIRE HEIGHT */}
@@ -2163,51 +2209,109 @@ export default function Dashboard() {
 
                           </div>
 
-                          {/* CTA PILL ACTION BUTTON (CLEAN VIBRANT ORANGE AMBER WITH SMOOTH SHIMMER & HIGH CONTRAST) */}
+                          {/* CTA ACTION AREA (KHI HOÀN THÀNH LỘ TRÌNH THÌ TÁCH THÀNH 2 NÚT HỌC FSRS & LUYỆN TẬP) */}
                           <div className="pt-2 flex-shrink-0">
-                            <button
-                              onClick={() => { 
-                                if (navigator.vibrate) navigator.vibrate(12);
-                                if (nUrl) navigate(nUrl); 
-                                else navigate(`/flashcard/${deck.deck_id}`); 
-                              }}
-                              className="w-full relative overflow-hidden bg-gradient-to-r from-orange-600 via-amber-600 to-orange-700 hover:from-orange-700 hover:to-amber-700 text-white rounded-2xl p-3 sm:p-3.5 flex items-center justify-between shadow-[0_10px_28px_-4px_rgba(234,88,12,0.5)] hover:shadow-[0_14px_35px_-4px_rgba(234,88,12,0.65)] active:scale-[0.98] transition-all duration-200 cursor-pointer group border-2 border-amber-200/70"
-                            >
-                              {/* Animated Light Shimmer Beam */}
-                              <div className="absolute inset-0 w-1/3 h-full bg-gradient-to-r from-transparent via-white/25 to-transparent -skew-x-12 animate-shimmer-sweep pointer-events-none" />
+                            {st.all_done ? (
+                              <div className="grid grid-cols-2 gap-2.5 sm:gap-3 w-full">
+                                {/* NÚT 1: HỌC FSRS TIẾP */}
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    if (navigator.vibrate) navigator.vibrate(12);
+                                    setSelectedStudyQuiz({
+                                      id: deck.deck_id,
+                                      title: deck.title,
+                                      questions_count: st.total_cards || deck.questions_count || 0,
+                                      practice_settings: deck.practice_settings
+                                    });
+                                    setStudyModalTab('flashcard');
+                                    setIsStudyModalOpen(true);
+                                  }}
+                                  className="relative overflow-hidden bg-gradient-to-r from-orange-500 via-amber-500 to-orange-600 hover:from-orange-600 hover:to-amber-600 text-white rounded-2xl p-3 sm:p-3.5 flex items-center gap-2.5 sm:gap-3 shadow-[0_8px_20px_-4px_rgba(249,115,22,0.45)] hover:shadow-[0_12px_28px_-4px_rgba(249,115,22,0.6)] active:scale-[0.98] transition-all duration-200 cursor-pointer group border border-amber-200/60 text-left"
+                                >
+                                  <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-white/20 backdrop-blur-xs flex items-center justify-center shrink-0 shadow-xs">
+                                    <Brain className="w-5 h-5 text-white" />
+                                  </div>
+                                  <div className="flex-1 min-w-0">
+                                    <span className="text-xs sm:text-sm font-black tracking-wider leading-tight uppercase text-white block truncate">
+                                      HỌC FSRS TIẾP
+                                    </span>
+                                    <span className="text-[10px] sm:text-[11px] text-orange-100 font-bold block truncate mt-0.5">
+                                      Ôn tập / Học thẻ
+                                    </span>
+                                  </div>
+                                </button>
 
-                              {/* Left Icon: Translucent White Glass Circle */}
-                              <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-white/20 backdrop-blur-xs flex items-center justify-center shrink-0 z-10">
-                                <Play className="w-4 h-4 sm:w-5 sm:h-5 fill-white text-white ml-0.5" />
+                                {/* NÚT 2: LUYỆN TẬP QUIZ */}
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    if (navigator.vibrate) navigator.vibrate(12);
+                                    setSelectedStudyQuiz({
+                                      id: deck.deck_id,
+                                      title: deck.title,
+                                      questions_count: st.total_cards || deck.questions_count || 0,
+                                      practice_settings: deck.practice_settings
+                                    });
+                                    setStudyModalTab('practice');
+                                    setIsStudyModalOpen(true);
+                                  }}
+                                  className="relative overflow-hidden bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-600 hover:from-emerald-600 hover:to-teal-600 text-white rounded-2xl p-3 sm:p-3.5 flex items-center gap-2.5 sm:gap-3 shadow-[0_8px_20px_-4px_rgba(16,185,129,0.45)] hover:shadow-[0_12px_28px_-4px_rgba(16,185,129,0.6)] active:scale-[0.98] transition-all duration-200 cursor-pointer group border border-emerald-200/60 text-left"
+                                >
+                                  <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-white/20 backdrop-blur-xs flex items-center justify-center shrink-0 shadow-xs">
+                                    <Trophy className="w-5 h-5 text-white" />
+                                  </div>
+                                  <div className="flex-1 min-w-0">
+                                    <span className="text-xs sm:text-sm font-black tracking-wider leading-tight uppercase text-white block truncate">
+                                      LUYỆN TẬP QUIZ
+                                    </span>
+                                    <span className="text-[10px] sm:text-[11px] text-emerald-100 font-bold block truncate mt-0.5">
+                                      Trắc nghiệm / Gõ từ
+                                    </span>
+                                  </div>
+                                </button>
                               </div>
+                            ) : (
+                              <button
+                                onClick={() => { 
+                                  if (navigator.vibrate) navigator.vibrate(12);
+                                  if (nUrl) navigate(nUrl); 
+                                  else navigate(`/flashcard/${deck.deck_id}`); 
+                                }}
+                                className="w-full relative overflow-hidden bg-gradient-to-r from-orange-600 via-amber-600 to-orange-700 hover:from-orange-700 hover:to-amber-700 text-white rounded-2xl p-3 sm:p-3.5 flex items-center justify-between shadow-[0_10px_28px_-4px_rgba(234,88,12,0.5)] hover:shadow-[0_14px_35px_-4px_rgba(234,88,12,0.65)] active:scale-[0.98] transition-all duration-200 cursor-pointer group border-2 border-amber-200/70"
+                              >
+                                {/* Animated Light Shimmer Beam */}
+                                <div className="absolute inset-0 w-1/3 h-full bg-gradient-to-r from-transparent via-white/25 to-transparent -skew-x-12 animate-shimmer-sweep pointer-events-none" />
 
-                              {/* Center Text Section with Clean Sans Typography */}
-                              <div className="flex-1 flex flex-col items-center justify-center text-center px-3 relative z-10">
-                                <span className="text-sm sm:text-base font-black tracking-widest leading-tight uppercase text-white drop-shadow-2xs flex items-center gap-1.5">
-                                  {!s1
-                                    ? 'HỌC TỪ MỚI'
-                                    : !s2
-                                    ? 'TRẮC NGHIỆM MCQ'
-                                    : st.all_done
-                                    ? 'ĐÃ HOÀN THÀNH ✓'
-                                    : 'ÔN TẬP FSRS'}
-                                </span>
-                                <span className="text-[11px] sm:text-xs text-orange-100/90 font-bold mt-0.5 tracking-wide">
-                                  {!s1
-                                    ? `Còn ${Math.max(0, nT - nL)} từ hôm nay`
-                                    : !s2
-                                    ? `Cần đạt ≥80% để qua bước`
-                                    : st.all_done
-                                    ? `Hoàn thành 100% chỉ tiêu`
-                                    : `Còn ${Math.max(0, rD - rDn)} thẻ hôm nay`}
-                                </span>
-                              </div>
+                                {/* Left Icon: Translucent White Glass Circle */}
+                                <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-white/20 backdrop-blur-xs flex items-center justify-center shrink-0 z-10">
+                                  <Play className="w-4 h-4 sm:w-5 sm:h-5 fill-white text-white ml-0.5" />
+                                </div>
 
-                              {/* Right Arrow Action Circle */}
-                              <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-white text-orange-600 flex items-center justify-center shrink-0 shadow-md group-hover:scale-105 group-hover:translate-x-0.5 transition-transform z-10">
-                                <ChevronRight className="w-5 h-5 sm:w-6 sm:h-6 stroke-[3]" />
-                              </div>
-                            </button>
+                                {/* Center Text Section with Clean Sans Typography */}
+                                <div className="flex-1 flex flex-col items-center justify-center text-center px-3 relative z-10">
+                                  <span className="text-sm sm:text-base font-black tracking-widest leading-tight uppercase text-white drop-shadow-2xs flex items-center gap-1.5">
+                                    {!s1
+                                      ? 'HỌC TỪ MỚI'
+                                      : !s2
+                                      ? 'TRẮC NGHIỆM MCQ'
+                                      : 'ÔN TẬP FSRS'}
+                                  </span>
+                                  <span className="text-[11px] sm:text-xs text-orange-100/90 font-bold mt-0.5 tracking-wide">
+                                    {!s1
+                                      ? `Còn ${Math.max(0, nT - nL)} từ hôm nay`
+                                      : !s2
+                                      ? `Cần đạt ≥80% để qua bước`
+                                      : `Còn ${Math.max(0, rD - rDn)} thẻ hôm nay`}
+                                  </span>
+                                </div>
+
+                                {/* Right Arrow Action Circle */}
+                                <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-white text-orange-600 flex items-center justify-center shrink-0 shadow-md group-hover:scale-105 group-hover:translate-x-0.5 transition-transform z-10">
+                                  <ChevronRight className="w-5 h-5 sm:w-6 sm:h-6 stroke-[3]" />
+                                </div>
+                              </button>
+                            )}
                           </div>
 
                         </div>
@@ -2558,6 +2662,123 @@ export default function Dashboard() {
           </div>
         )}
 
+
+        {/* UNIFIED STUDY MODE SELECTOR POPUP MODAL */}
+        {isStudyModalOpen && selectedStudyQuiz && (
+          <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4 sm:p-6">
+            <motion.div 
+              initial={{ opacity: 0 }} 
+              animate={{ opacity: 1 }} 
+              exit={{ opacity: 0 }}
+              onClick={() => setIsStudyModalOpen(false)}
+              className="absolute inset-0 bg-slate-900/60 backdrop-blur-md"
+            />
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95, y: 15 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 15 }}
+              className="w-full max-w-lg bg-white rounded-[2.5rem] shadow-2xl relative z-10 p-6 sm:p-9 border border-slate-100 text-left overflow-hidden flex flex-col max-h-[90vh]"
+            >
+              <div className="absolute -top-12 -right-12 w-32 h-32 rounded-full bg-indigo-100/40 blur-2xl pointer-events-none" />
+              
+              <div className="flex items-center justify-between mb-6 relative z-10 flex-shrink-0">
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 rounded-2xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-650">
+                    <Brain className="w-6 h-6 animate-pulse" />
+                  </div>
+                  <div>
+                    <h3 className="text-base sm:text-lg font-black text-slate-800 uppercase tracking-tight leading-tight">
+                      {studyModalTab === 'flashcard' ? 'Study Console' : 'Practice Console'}
+                    </h3>
+                    <p className="text-[10px] sm:text-xs text-slate-400 font-bold uppercase tracking-wider mt-0.5">
+                      {studyModalTab === 'flashcard' ? 'Chọn phương pháp học tập' : 'Chọn chế độ luyện tập'}
+                    </p>
+                  </div>
+                </div>
+                <button 
+                  onClick={() => setIsStudyModalOpen(false)} 
+                  className="w-9 h-9 rounded-full bg-slate-50 border border-slate-200/50 flex items-center justify-center text-slate-400 hover:text-rose-500 hover:scale-105 active:scale-95 transition-all"
+                >
+                   <X className="w-4.5 h-4.5" />
+                </button>
+              </div>
+
+              <div className="bg-slate-50 border border-slate-100 rounded-2xl p-4 sm:p-5 mb-5 flex-shrink-0 text-left">
+                <h4 className="text-xs sm:text-sm font-black text-indigo-650 tracking-wide line-clamp-1">{selectedStudyQuiz.title}</h4>
+                <p className="text-[9px] sm:text-[10px] text-slate-400 font-black uppercase tracking-wider mt-1 flex items-center gap-1.5">
+                  <BrainCircuit className="w-3.5 h-3.5 text-slate-350" />
+                  {selectedStudyQuiz.questions_count} câu hỏi trong bộ thẻ
+                </p>
+              </div>
+
+              <div className="flex-1 overflow-y-auto pr-1 space-y-4 custom-scrollbar min-h-0">
+                {/* ── FLASHCARD MODES ── */}
+                {studyModalTab === 'flashcard' && (
+                  <div className="space-y-3">
+                    {[
+                      { mode: 'fsrs', icon: '🧠', title: 'FSRS Spaced Repetition', desc: 'Học lặp lại ngắt quãng thông minh' },
+                      { mode: 'roadmap', icon: '🗺️', title: 'Roadmap Mode', desc: 'Học theo lộ trình mục tiêu mỗi ngày' },
+                      { mode: 'flip', icon: '🔄', title: 'Flip Card', desc: 'Lật thẻ ghi nhớ phản xạ tự do' },
+                      { mode: 'review', icon: '📚', title: 'Review Only', desc: 'Chỉ ôn tập lại các thẻ cũ' },
+                      { mode: 'new', icon: '✨', title: 'New Only', desc: 'Chỉ học các thẻ mới chưa biết' },
+                    ].filter(item => {
+                      const disabled = (selectedStudyQuiz as any).practice_settings?.disabled_modes || [];
+                      return !disabled.includes(item.mode);
+                    }).map(item => (
+                      <button
+                        key={item.mode}
+                        onClick={() => {
+                          setIsStudyModalOpen(false)
+                          updateUserSettings({ quiz_learning_mode: item.mode as any })
+                          navigate(`/flashcard/${selectedStudyQuiz.id}/play?mode=${item.mode}`)
+                        }}
+                        className="group w-full flex items-center gap-4 p-4 sm:p-5 rounded-2xl border border-slate-100 bg-white hover:border-indigo-500/35 hover:bg-indigo-50/5 hover:shadow-lg active:scale-[0.99] hover:scale-[1.01] transition-all text-left shadow-sm"
+                      >
+                        <span className="text-xl w-11 h-11 bg-slate-50 rounded-xl flex items-center justify-center group-hover:scale-105 transition-all flex-shrink-0">{item.icon}</span>
+                        <div className="min-w-0 flex-1">
+                          <span className="text-xs sm:text-sm font-extrabold text-slate-800 block group-hover:text-indigo-600 transition-colors truncate">{item.title}</span>
+                          <span className="text-[10px] sm:text-xs font-semibold text-slate-400 block mt-0.5 leading-relaxed">{item.desc}</span>
+                        </div>
+                        <ChevronRight className="w-4.5 h-4.5 text-slate-300 group-hover:text-indigo-500 group-hover:translate-x-0.5 transition-all ml-auto flex-shrink-0" />
+                      </button>
+                    ))}
+                  </div>
+                )}
+
+                {/* ── PRACTICE MODES ── */}
+                {studyModalTab === 'practice' && (
+                  <div className="space-y-3">
+                    {[
+                      { mode: 'mcq', icon: '🎯', title: 'MCQ Test', desc: 'Trắc nghiệm phản xạ 4 đáp án' },
+                      { mode: 'typing', icon: '⌨️', title: 'Typing Test', desc: 'Gõ từ vựng nhớ chi tiết' },
+                      { mode: 'listening', icon: '🎧', title: 'Listening Test', desc: 'Nghe audio chọn đáp án' },
+                    ].filter(item => {
+                      const disabled = (selectedStudyQuiz as any).practice_settings?.disabled_modes || [];
+                      return !disabled.includes(item.mode);
+                    }).map(item => (
+                      <button
+                        key={item.mode}
+                        onClick={() => {
+                          setIsStudyModalOpen(false)
+                          updateUserSettings({ practice_submode: item.mode as any })
+                          navigate(`/practice/${selectedStudyQuiz.id}/${item.mode}`)
+                        }}
+                        className="group w-full flex items-center gap-4 p-4 sm:p-5 rounded-2xl border border-slate-100 bg-white hover:border-emerald-500/35 hover:bg-emerald-50/5 hover:shadow-lg active:scale-[0.99] hover:scale-[1.01] transition-all text-left shadow-sm"
+                      >
+                        <span className="text-xl w-11 h-11 bg-slate-50 rounded-xl flex items-center justify-center group-hover:scale-105 transition-all flex-shrink-0">{item.icon}</span>
+                        <div className="min-w-0 flex-1">
+                          <span className="text-xs sm:text-sm font-extrabold text-slate-800 block group-hover:text-emerald-600 transition-colors truncate">{item.title}</span>
+                          <span className="text-[10px] sm:text-xs font-semibold text-slate-400 block mt-0.5 leading-relaxed">{item.desc}</span>
+                        </div>
+                        <ChevronRight className="w-4.5 h-4.5 text-slate-300 group-hover:text-emerald-500 group-hover:translate-x-0.5 transition-all ml-auto flex-shrink-0" />
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </motion.div>
+          </div>
+        )}
 
       </AnimatePresence>
     </div>

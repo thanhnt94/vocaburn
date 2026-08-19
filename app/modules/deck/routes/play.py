@@ -2510,7 +2510,7 @@ async def get_deck_roadmap_status_helper(db: AsyncSession, user_id: int, deck_id
         .where(
             DeckAttempt.user_id == user_id,
             DeckAttempt.deck_id == deck_id,
-            DeckAttempt.mode.in_(["roadmap_mcq", "mcq"]),
+            DeckAttempt.mode.in_(["roadmap_mcq", "mcq", "roadmap_test", "practice", "listening"]),
             func.coalesce(DeckAttempt.completed_at, DeckAttempt.started_at) >= day_start,
             func.coalesce(DeckAttempt.completed_at, DeckAttempt.started_at) < day_end
         )
@@ -2521,7 +2521,7 @@ async def get_deck_roadmap_status_helper(db: AsyncSession, user_id: int, deck_id
         .where(
             DeckAttempt.user_id == user_id,
             DeckAttempt.deck_id == deck_id,
-            DeckAttempt.mode.in_(["roadmap_typing", "typing"]),
+            DeckAttempt.mode.in_(["roadmap_typing", "typing", "practice"]),
             func.coalesce(DeckAttempt.completed_at, DeckAttempt.started_at) >= day_start,
             func.coalesce(DeckAttempt.completed_at, DeckAttempt.started_at) < day_end
         )
@@ -2632,7 +2632,7 @@ async def get_deck_roadmap_status_helper(db: AsyncSession, user_id: int, deck_id
                 .where(
                     DeckAttempt.user_id == user_id,
                     DeckAttempt.deck_id == deck_id,
-                    DeckAttempt.mode.in_(["roadmap_mcq", "roadmap_test", "mcq"]),
+                    DeckAttempt.mode.in_(["roadmap_mcq", "roadmap_test", "mcq", "practice", "listening"]),
                     func.coalesce(DeckAttempt.completed_at, DeckAttempt.started_at) >= day_start,
                     func.coalesce(DeckAttempt.completed_at, DeckAttempt.started_at) < day_end
                 )
@@ -2648,7 +2648,7 @@ async def get_deck_roadmap_status_helper(db: AsyncSession, user_id: int, deck_id
                 .where(
                     Flashcard.deck_id == deck_id,
                     DeckAttempt.user_id == user_id,
-                    DeckAttempt.mode.in_(["roadmap_mcq", "roadmap_test", "mcq", "practice"]),
+                    DeckAttempt.mode.in_(["roadmap_mcq", "roadmap_test", "mcq", "practice", "listening"]),
                     UserAnswer.created_at >= day_start,
                     UserAnswer.created_at < day_end
                 )
@@ -2676,7 +2676,7 @@ async def get_deck_roadmap_status_helper(db: AsyncSession, user_id: int, deck_id
                 .where(
                     DeckAttempt.user_id == user_id,
                     DeckAttempt.deck_id == deck_id,
-                    DeckAttempt.mode.in_(["roadmap_typing", "typing"]),
+                    DeckAttempt.mode.in_(["roadmap_typing", "typing", "practice"]),
                     func.coalesce(DeckAttempt.completed_at, DeckAttempt.started_at) >= day_start,
                     func.coalesce(DeckAttempt.completed_at, DeckAttempt.started_at) < day_end
                 )
@@ -2692,7 +2692,7 @@ async def get_deck_roadmap_status_helper(db: AsyncSession, user_id: int, deck_id
                 .where(
                     Flashcard.deck_id == deck_id,
                     DeckAttempt.user_id == user_id,
-                    DeckAttempt.mode.in_(["roadmap_typing", "typing"]),
+                    DeckAttempt.mode.in_(["roadmap_typing", "typing", "practice"]),
                     UserAnswer.created_at >= day_start,
                     UserAnswer.created_at < day_end
                 )

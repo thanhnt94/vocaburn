@@ -661,7 +661,6 @@ export default function FlashcardPlay() {
     const searchParams = new URLSearchParams(window.location.search);
     const urlMode = searchParams.get('mode');
     if (urlMode === 'new' || urlMode === 'fsrs' || urlMode === 'roadmap' || urlMode === 'review') {
-      updateUserSettings({ quiz_learning_mode: urlMode as any });
       return urlMode;
     }
     return userSettings.quiz_learning_mode || 'fsrs';
@@ -669,6 +668,14 @@ export default function FlashcardPlay() {
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
   const [showRoadmapCompleteModal, setShowRoadmapCompleteModal] = useState<boolean>(false);
   const [headerViewMode, setHeaderViewMode] = useState<0 | 1>(0);
+
+  useEffect(() => {
+    const searchParams = new URLSearchParams(window.location.search);
+    const urlMode = searchParams.get('mode');
+    if (urlMode === 'new' || urlMode === 'fsrs' || urlMode === 'roadmap' || urlMode === 'review') {
+      updateUserSettings({ quiz_learning_mode: urlMode as any });
+    }
+  }, [])
 
   useEffect(() => {
     cancelAllAudio();
