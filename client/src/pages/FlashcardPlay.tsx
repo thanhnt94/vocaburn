@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useMemo } from 'react'
 import confetti from 'canvas-confetti'
 import { useParams, useNavigate } from 'react-router-dom'
-import { ChevronLeft, ChevronRight, ChevronDown, LayoutGrid, Timer, Flame, Trophy, Check, X, Sparkles, Lightbulb, StickyNote, Play, Target, CheckCircle2, XCircle, Clock, BookOpen, Hash, Copy, Edit3, Brain, FileText, HelpCircle, Sliders, ListOrdered, Shuffle, Eye, EyeOff, AlertCircle, TrendingUp, Award, Lock, Keyboard, Volume2, VolumeX, RefreshCw, Undo2, Settings, Star } from 'lucide-react'
+import { ChevronLeft, ChevronRight, ChevronDown, LayoutGrid, Timer, Flame, Trophy, Check, X, Sparkles, Lightbulb, StickyNote, Play, Target, CheckCircle2, XCircle, Clock, BookOpen, Hash, Copy, Edit3, Brain, FileText, HelpCircle, Sliders, ListOrdered, Shuffle, Eye, EyeOff, AlertCircle, TrendingUp, Award, Lock, Keyboard, Volume2, VolumeX, RefreshCw, Undo2, Settings, Star, Zap, ArrowRight } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import axios from 'axios'
 import ReactMarkdown from 'react-markdown'
@@ -3399,6 +3399,114 @@ export default function FlashcardPlay() {
     activeMode
   });
 
+  const shouldShowRoadmapStepCompleteScreen = useMemo(() => {
+    if (activeMode !== 'roadmap' || !roadmapStatus?.pipeline) return false;
+    
+    const isStage1Done = roadmapStatus.stage_1_done || false;
+    const isStage2Done = roadmapStatus.stage_2_done || false;
+    const answeredInSession = Object.keys(sessionAnswers).length;
+    const newTarget = roadmapStatus.new_target_today || 20;
+    const newLearned = (roadmapStatus.new_learned_today || 0) + answeredInSession;
+    const isStep1Done = isStage1Done || newLearned >= newTarget;
+
+    // If all steps in roadmap are completed
+    if (roadmapStatus.all_done) return true;
+
+    // If step 1 (new cards) is completed:
+    if (isStep1Done && !isStage2Done) {
+      // If the next step in pipeline is a practice test (MCQ, typing, listening):
+      const testStep = roadmapStatus.pipeline.find((s: any) => s.type === 'mcq' || s.type === 'typing' || s.type === 'listening');
+      if (testStep) {
+        return true;
+      }
+    }
+
+    return false;
+  }, [activeMode, roadmapStatus, sessionAnswers]);
+
+  const renderRoadmapStepCompleteScreen = () => {
+    const isAllDone = Boolean(roadmapStatus?.all_done);
+    const newTarget = roadmapStatus?.new_target_today ?? 20;
+    const answeredInSession = Object.keys(sessionAnswers).length;
+    const newLearned = Math.min(newTarget, (roadmapStatus?.new_learned_today ?? 0) + answeredInSession);
+
+    return (
+      <div className="flex-1 flex flex-col items-center justify-center p-5 md:p-8 text-center bg-gradient-to-b from-slate-900/95 via-slate-950 to-slate-950 text-white rounded-[2rem] border border-slate-800/90 shadow-2xl relative overflow-hidden my-auto max-w-2xl mx-auto w-full">
+        {/* Glow backgrounds */}
+        <div className="absolute -top-24 -left-24 w-72 h-72 bg-amber-500/15 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute -bottom-24 -right-24 w-72 h-72 bg-emerald-500/15 rounded-full blur-3xl pointer-events-none" />
+
+        {/* Icon / Trophy */}
+        <motion.div 
+          initial={{ scale: 0.7, opacity: 0 }}
+          animate={{ scale: [0.85, 1.1, 1], opacity: 1 }}
+          transition={{ duration: 0.5, ease: "easeOut" }}
+          className="w-20 h-20 md:w-24 md:h-24 rounded-3xl bg-gradient-to-tr from-amber-500 via-orange-500 to-amber-400 flex items-center justify-center mb-5 shadow-[0_0_40px_rgba(245,158,11,0.5)] border border-amber-300/40 shrink-0"
+        >
+          {isAllDone ? (
+            <Trophy className="w-10 h-10 md:w-12 md:h-12 text-white fill-white animate-bounce" />
+          ) : (
+            <Sparkles className="w-10 h-10 md:w-12 md:h-12 text-white fill-white animate-pulse" />
+          )}
+        </motion.div>
+
+        {/* Step Badge */}
+        <div className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-300 font-black text-xs uppercase tracking-widest mb-3 shadow-sm">
+          <CheckCircle2 className="w-4 h-4 text-amber-400" />
+          <span>{isAllDone ? 'HOÀN THÀNH LỘ TRÌNH NGÀY' : `ĐÃ XONG BƯỚC 1: HỌC TỪ MỚI (${newLearned}/${newTarget})`}</span>
+        </div>
+
+        {/* Title */}
+        <h2 className="text-xl md:text-2xl font-black tracking-tight text-white mb-2 max-w-lg">
+          {isAllDone ? 'Chúc mừng bạn đã hoàn thành toàn bộ lộ trình hôm nay! 🎉' : 'Đã học xong từ mới lộ trình hôm nay! 🎯'}
+        </h2>
+
+        {/* Subtitle */}
+        <p className="text-xs md:text-sm text-slate-300 font-medium max-w-md mb-6 leading-relaxed">
+          {isAllDone
+            ? 'Bạn đã xuất sắc hoàn thành tất cả các bước trong lộ trình ngày. Hãy quay lại vào ngày mai hoặc ôn tập tự do!'
+            : `Xuất sắc! Hãy chuyển sang Bước 2 để làm bài kiểm tra trắc nghiệm MCQ / gõ từ giúp củng cố kiến thức vào trí nhớ dài hạn.`}
+        </p>
+
+        {/* Action Buttons */}
+        <div className="flex flex-col gap-3 w-full max-w-sm">
+          {!isAllDone && (
+            <button
+              onClick={() => {
+                navigate(nextActionUrl);
+              }}
+              className="w-full py-3.5 px-6 rounded-2xl bg-gradient-to-r from-orange-500 via-amber-500 to-orange-600 hover:from-orange-600 hover:to-amber-600 text-white font-black text-xs uppercase tracking-wider shadow-lg shadow-orange-500/30 active:scale-95 transition-all flex items-center justify-center gap-2 cursor-pointer"
+            >
+              <span>{nextActionLabel || 'SANG BƯỚC 2: LÀM MCQ'}</span>
+              <ArrowRight className="w-4 h-4" />
+            </button>
+          )}
+
+          <div className="flex items-center gap-2 w-full">
+            <button
+              onClick={() => {
+                // Switch to free study mode (mode = 'new') to let user overachieve / learn more new cards freely
+                setActiveMode('new');
+              }}
+              className="flex-1 py-3 px-3 rounded-xl bg-slate-800/80 hover:bg-slate-800 border border-slate-700/80 text-slate-200 hover:text-white font-bold text-xs active:scale-95 transition-all cursor-pointer flex items-center justify-center gap-1.5"
+              title="Tiếp tục học thêm từ mới vượt chỉ tiêu ngày"
+            >
+              <Zap className="w-3.5 h-3.5 text-cyan-400" />
+              <span>Học vượt từ mới</span>
+            </button>
+
+            <button
+              onClick={() => navigate('/')}
+              className="flex-1 py-3 px-3 rounded-xl bg-slate-800/80 hover:bg-slate-800 border border-slate-700/80 text-slate-300 hover:text-white font-bold text-xs active:scale-95 transition-all cursor-pointer"
+            >
+              Về Trang Chủ
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   if (!session || currentIndex < 0) return <SessionLoadingScreen />
 
   return (
@@ -4350,6 +4458,8 @@ export default function FlashcardPlay() {
                 />
               ) : mainTab === 'practice' ? (
                 renderPracticeScreen()
+              ) : shouldShowRoadmapStepCompleteScreen ? (
+                renderRoadmapStepCompleteScreen()
               ) : (
                 <div 
                   className="perspective-1000 w-full h-full flex-1 relative min-h-0"
