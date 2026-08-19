@@ -30,9 +30,9 @@ import { PlaySettingsModal } from '@/components/PlaySettingsModal'
 import { PlaySessionSummary } from '@/components/PlaySessionSummary'
 import { PlayStatsDrawer } from '@/components/PlayStatsDrawer'
 import { BadgeUnlockOverlay } from '@/components/BadgeUnlockOverlay'
-import { useRoadmapStatus } from '@/hooks/useRoadmapStatus'
+import { useRoadmapStatus, type PipelineStepStatus } from '@/hooks/useRoadmapStatus'
 import { RoadmapFloatingBanner } from '@/components/RoadmapFloatingBanner'
-import { RoadmapHeaderTracker } from '@/components/RoadmapHeaderTracker'
+import { StudyHeaderTracker } from '@/components/StudyHeaderTracker'
 
 
 interface Option {
@@ -3712,38 +3712,21 @@ export default function FlashcardPlay() {
       </AnimatePresence>
 
       <header className={cn(
-        "sticky top-0 flex-shrink-0 z-[120] backdrop-blur-2xl px-2.5 md:px-4 py-1.5 flex items-center justify-between gap-2.5 transition-colors duration-300 relative overflow-hidden",
-        activeMode === 'fsrs'
-          ? "bg-slate-950/95 border-b border-emerald-500/30 text-white shadow-[0_4px_25px_-5px_rgba(16,185,129,0.25)]"
-          : activeMode === 'review'
-          ? "bg-slate-950/95 border-b border-teal-500/30 text-white shadow-[0_4px_25px_-5px_rgba(20,184,166,0.25)]"
-          : activeMode === 'new'
-          ? "bg-slate-950/95 border-b border-indigo-500/30 text-white shadow-[0_4px_25px_-5px_rgba(99,102,241,0.25)]"
-          : activeMode === 'flip'
-          ? "bg-slate-950/95 border-b border-amber-500/30 text-white shadow-[0_4px_25px_-5px_rgba(245,158,11,0.25)]"
-          : roadmapStatus?.pipeline
-          ? "bg-slate-950/90 border-b border-slate-800/80 text-white shadow-xl"
-          : "bg-white/95 border-b border-slate-100/80 text-slate-800 shadow-[0_1px_20px_rgba(99,102,241,0.04)]"
+        "sticky top-0 flex-shrink-0 z-[120] backdrop-blur-2xl px-2.5 md:px-4 py-1.5 flex items-center justify-between gap-2.5 transition-colors duration-300 relative overflow-hidden bg-slate-950/90 border-b border-slate-800/80 text-white shadow-xl"
       )}>
-        <AnimatePresence>
-          {!roadmapStatus?.pipeline && (
-            <motion.button 
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => navigate('/')} 
-              className="w-8 h-8 flex items-center justify-center transition-all flex-shrink-0 relative z-[140] text-slate-500 hover:text-indigo-600"
-              title="Thoát phiên học"
-            >
-              <X className="w-5 h-5" />
-            </motion.button>
-          )}
-        </AnimatePresence>
+        {(() => {
+          const rawPipeline: PipelineStepStatus[] = roadmapStatus?.pipeline || [
+            {
+              type: (activeMode === 'new' ? 'new_cards' : 'fsrs_review') as any,
+              label: activeMode === 'new' ? 'Học Từ Mới' : (activeMode === 'review' ? 'Ôn Tập Thẻ Cũ' : 'Ôn Tập FSRS'),
+              daily_count: session?.questions?.length || 20,
+              done: false,
+              url: `/flashcard/${id}/play`,
+              progress: {}
+            }
+          ];
 
-        {roadmapStatus?.pipeline ? (() => {
           const rawIdx = roadmapStatus?.current_step_index || 0;
-          const rawStep = roadmapStatus.pipeline[rawIdx];
-          
           let displayStepIdx = rawIdx;
           const isStage1Done = roadmapStatus?.stage_1_done || false;
           const isStage2Done = roadmapStatus?.stage_2_done || false;
@@ -3755,7 +3738,7 @@ export default function FlashcardPlay() {
           let subTotal = session?.questions?.length || 20;
 
           if (activeMode === 'fsrs') {
-            const fsrsIdx = roadmapStatus.pipeline.findIndex((s: any) => s.type === 'fsrs_review');
+            const fsrsIdx = rawPipeline.findIndex((s: any) => s.type === 'fsrs_review');
             if (fsrsIdx !== -1) displayStepIdx = fsrsIdx;
             modeBadge = {
               emoji: '🧠',
@@ -3768,7 +3751,7 @@ export default function FlashcardPlay() {
             subTotal = dueToday > 0 ? dueToday : (session?.questions?.length || 15);
             subCurr = baseReviewedToday + Object.keys(sessionAnswers).length;
           } else if (activeMode === 'review') {
-            const fsrsIdx = roadmapStatus.pipeline.findIndex((s: any) => s.type === 'fsrs_review');
+            const fsrsIdx = rawPipeline.findIndex((s: any) => s.type === 'fsrs_review');
             if (fsrsIdx !== -1) displayStepIdx = fsrsIdx;
             modeBadge = {
               emoji: '📚',
@@ -3784,7 +3767,7 @@ export default function FlashcardPlay() {
             subTotal = learnedTotal > 0 ? learnedTotal : (session?.questions?.length || 15);
             subCurr = reviewedCount;
           } else if (activeMode === 'new') {
-            const newCardsIdx = roadmapStatus.pipeline.findIndex((s: any) => s.type === 'new_cards');
+            const newCardsIdx = rawPipeline.findIndex((s: any) => s.type === 'new_cards');
             if (newCardsIdx !== -1) displayStepIdx = newCardsIdx;
             modeBadge = {
               emoji: '✨',
@@ -3793,10 +3776,7 @@ export default function FlashcardPlay() {
               style: 'bg-indigo-500/20 border-indigo-500/40 text-indigo-300'
             };
             
-            // Total cards in deck
             subTotal = session?.questions?.length || roadmapStatus?.total_cards || 0;
-
-            // Dynamically count learned cards: base learned in questions + newly answered in session
             const initialLearnedCount = session?.questions ? session.questions.filter((q: any) => {
               const isLearned = q.fsrs ? (q.fsrs.state > 0 || q.fsrs.last_review !== null) : (!q.is_new && q.is_new !== undefined);
               return isLearned;
@@ -3820,14 +3800,14 @@ export default function FlashcardPlay() {
           } else {
             // Standard guided Roadmap mode (mode === 'roadmap')
             if (!isStage1Done || isNewCardSession || !isStage2Done) {
-              const newCardsIdx = roadmapStatus.pipeline.findIndex((s: any) => s.type === 'new_cards');
+              const newCardsIdx = rawPipeline.findIndex((s: any) => s.type === 'new_cards');
               if (newCardsIdx !== -1) displayStepIdx = newCardsIdx;
             } else {
-              const fsrsIdx = roadmapStatus.pipeline.findIndex((s: any) => s.type === 'fsrs_review');
+              const fsrsIdx = rawPipeline.findIndex((s: any) => s.type === 'fsrs_review');
               if (fsrsIdx !== -1) displayStepIdx = fsrsIdx;
             }
 
-            const currentStep = roadmapStatus?.pipeline?.[displayStepIdx];
+            const currentStep = rawPipeline?.[displayStepIdx];
             if (currentStep?.type === 'new_cards') {
               const targetNew = currentStep.daily_count || currentStep.progress?.target || roadmapStatus?.new_target_today || 20;
               const learnedToday = currentStep.progress?.learned ?? roadmapStatus?.new_learned_today ?? 0;
@@ -3850,10 +3830,7 @@ export default function FlashcardPlay() {
             }
           }
 
-          const isGoalReached = subTotal > 0 && subCurr >= subTotal;
-          const isOverachieved = subTotal > 0 && subCurr > subTotal;
           const activePercent = subTotal > 0 ? Math.min(100, Math.round((subCurr / subTotal) * 100)) : 0;
-
           const answeredCount = Object.keys(sessionAnswers).length;
           const correctCount = Object.values(sessionAnswers).filter(val => {
             const r = Array.isArray(val) ? val[val.length - 1] : val;
@@ -3895,12 +3872,12 @@ export default function FlashcardPlay() {
               </AnimatePresence>
 
               <div className="flex-1 min-w-0 relative z-[140]">
-                <RoadmapHeaderTracker
-                  pipeline={roadmapStatus.pipeline}
+                <StudyHeaderTracker
+                  pipeline={rawPipeline}
                   currentStepIndex={displayStepIdx}
-                  allDone={Boolean(roadmapStatus.all_done)}
+                  allDone={Boolean(roadmapStatus?.all_done)}
                   deckId={id || ''}
-                  deckTitle={session.title}
+                  deckTitle={session?.title}
                   subProgressCurr={subCurr}
                   subProgressTotal={subTotal}
                   streakCount={roadmapStatus?.streak || gamify.streak || 0}
@@ -3932,153 +3909,7 @@ export default function FlashcardPlay() {
               </div>
             </>
           );
-        })() : (
-          <>
-            <div className="flex items-center min-w-0 flex-1 mr-2 md:mr-4">
-              <h1 className="text-xs md:text-sm font-extrabold text-slate-800 tracking-tight truncate line-clamp-1 leading-snug" title={session.title}>
-                {session.title}
-              </h1>
-            </div>
-      
-            {/* Live Dashboard HUD */}
-            <div className="bg-slate-100/50 border border-slate-200/40 rounded-xl p-0.5 flex items-center gap-0.5 md:gap-1.5 shadow-[inset_0_1px_2px_rgba(0,0,0,0.02)] flex-shrink-0 mr-0.5 md:mr-0">
-              {(() => {
-                const getStepProgressInfo = () => {
-                  if (activeMode === 'new') {
-                    const newTarget = roadmapStatus?.new_target_today ?? 20;
-                    const newLearned = roadmapStatus?.new_learned_today ?? 0;
-                    return {
-                      label: 'TỪ MỚI',
-                      Icon: Sparkles,
-                      iconColorClass: 'bg-orange-50 text-orange-600',
-                      curr: newLearned,
-                      total: newTarget,
-                      progressText: `${newLearned}/${newTarget}`
-                    };
-                  }
-
-                  const total = session?.questions?.length || 0;
-                  const curr = Math.min(total, currentIndex + 1);
-                  return {
-                    label: activeMode === 'fsrs' ? 'ÔN TẬP' : 'BÀI HỌC',
-                    Icon: activeMode === 'fsrs' ? Brain : BookOpen,
-                    iconColorClass: activeMode === 'fsrs' ? 'bg-indigo-50 text-indigo-600' : 'bg-orange-50 text-orange-600',
-                    curr,
-                    total,
-                    progressText: total > 0 ? `${curr}/${total}` : '--'
-                  };
-                };
-
-                const stepInfo = getStepProgressInfo();
-                if (!stepInfo) return null;
-
-                const label = stepInfo.label;
-                const Icon = stepInfo.Icon;
-                const iconColorClass = stepInfo.iconColorClass;
-                const progressText = stepInfo.progressText;
-
-                return (
-                  <div className="flex items-center bg-white/90 border border-slate-200/30 rounded-lg p-0.5 pr-1 md:pr-1.5 shadow-sm min-w-[56px] xs:min-w-[62px] md:min-w-[72px]" title={`Tiến độ hiện tại: ${label}`}>
-                    <div className={`w-4 h-4 md:w-5 md:h-5 flex items-center justify-center rounded mr-0.5 md:mr-1 flex-shrink-0 ${iconColorClass}`}>
-                      <Icon className="w-2.5 h-2.5 md:w-3 md:h-3" />
-                    </div>
-                    <div className="flex flex-col min-w-0">
-                      <span className="text-[5.5px] md:text-[6.5px] text-slate-400 font-extrabold uppercase tracking-wider leading-none">{label}</span>
-                      <div className="h-2.5 md:h-3 overflow-hidden relative min-w-[20px]">
-                        <AnimatePresence mode="popLayout" initial={false}>
-                          <motion.span
-                            key={progressText}
-                            initial={{ y: 8, opacity: 0 }}
-                            animate={{ y: 0, opacity: 1 }}
-                            exit={{ y: -8, opacity: 0 }}
-                            transition={{ type: "spring", stiffness: 350, damping: 18 }}
-                            className="text-[7.5px] md:text-[8.5px] font-black text-slate-700 leading-none block truncate"
-                          >
-                            {progressText}
-                          </motion.span>
-                        </AnimatePresence>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })()}
-          
-              {/* Item 3: Timer */}
-              <div 
-                onClick={toggleTimeMode}
-                className="flex items-center bg-white/90 border border-slate-200/30 rounded-lg p-0.5 pr-1 md:pr-1.5 shadow-sm min-w-[52px] xs:min-w-[56px] md:min-w-[66px] cursor-pointer active:scale-95 transition-all select-none hover:bg-slate-50" 
-                title={
-                  timeMode === 'card' 
-                    ? "Thời gian học thẻ này - Click để chuyển sang thời gian ngày"
-                    : timeMode === 'today'
-                      ? "Thời gian học trong ngày - Click để chuyển sang tổng thời gian"
-                      : "Tổng thời gian học toàn bộ - Click để chuyển sang thời gian thẻ này"
-                }
-              >
-                <div className="w-4 h-4 md:w-5 md:h-5 flex items-center justify-center bg-emerald-50 text-emerald-600 rounded mr-0.5 md:mr-1 flex-shrink-0">
-                  <Clock className="w-2.5 h-2.5 md:w-3 md:h-3" />
-                </div>
-                <div className="flex flex-col min-w-0">
-                  <span className="text-[5.5px] md:text-[6.5px] text-slate-400 font-extrabold uppercase tracking-wider leading-none">
-                    {timeMode === 'card' ? 'Time' : timeMode === 'today' ? 'Today' : 'Total'}
-                  </span>
-                  <div className="h-2.5 md:h-3 overflow-hidden relative min-w-[15px]">
-                    <TimerWidget
-                      timeMode={timeMode as any}
-                      initialTodayTime={initialTodayTime}
-                      initialAllTimeTime={initialAllTimeTime}
-                      showFeedback={showFeedback}
-                      hasRated={selectedOption !== null}
-                      mainTab={mainTab}
-                      currentIndex={currentIndex}
-                      timeLeftRef={timeLeftRef}
-                      sessionStudyTimeRef={sessionStudyTimeRef}
-                      formatHeaderTime={formatHeaderTime}
-                    />
-                  </div>
-                </div>
-              </div>
-          
-              {/* Item 4: Current user score */}
-              <div 
-                onClick={toggleScoreMode}
-                className="flex items-center bg-white/90 border border-slate-200/30 rounded-lg p-0.5 pr-1 md:pr-1.5 shadow-sm min-w-[52px] xs:min-w-[56px] md:min-w-[66px] cursor-pointer active:scale-95 transition-all select-none hover:bg-slate-50" 
-                title={
-                  scoreMode === 'all' 
-                    ? "Điểm số toàn bộ (XP) - Click để chuyển sang điểm ngày"
-                    : "Điểm số trong ngày (XP) - Click để chuyển sang toàn bộ điểm"
-                }
-              >
-                <div className="w-4 h-4 md:w-5 md:h-5 flex items-center justify-center bg-amber-50 text-amber-600 rounded mr-0.5 md:mr-1 flex-shrink-0">
-                  <Trophy className="w-2.5 h-2.5 md:w-3 md:h-3" />
-                </div>
-                <div className="flex flex-col min-w-0">
-                  <span className="text-[5.5px] md:text-[6.5px] text-slate-400 font-extrabold uppercase tracking-wider leading-none">
-                    {scoreMode === 'all' ? 'Score' : 'Today'}
-                  </span>
-                  <div className="h-2.5 md:h-3 overflow-hidden relative min-w-[25px]">
-                    <AnimatePresence mode="popLayout" initial={false}>
-                      <motion.span
-                        key={scoreMode === 'all' ? gamify.xp : initialTodayXP + sessionXP}
-                        initial={{ y: 8, opacity: 0 }}
-                        animate={{ y: 0, opacity: 1 }}
-                        exit={{ y: -8, opacity: 0 }}
-                        transition={{ type: "spring", stiffness: 350, damping: 18 }}
-                        className="text-[7.5px] md:text-[8.5px] font-black text-slate-700 leading-none block truncate"
-                      >
-                        {
-                          scoreMode === 'all' 
-                            ? gamify.xp.toLocaleString() 
-                            : (initialTodayXP + sessionXP).toLocaleString()
-                        }
-                      </motion.span>
-                    </AnimatePresence>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </>
-        )}
+        })()}
       </header>
 
       {/* Decoupled - Practice mode moved to standalone /practice/:id page */}

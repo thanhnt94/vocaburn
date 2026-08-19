@@ -26,9 +26,9 @@ import { usePlaySettings } from '@/hooks/usePlaySettings'
 import { PlaySettingsModal } from '@/components/PlaySettingsModal'
 import { PlaySessionSummary } from '@/components/PlaySessionSummary'
 import { PlayStatsDrawer } from '@/components/PlayStatsDrawer'
-import { useRoadmapStatus } from '@/hooks/useRoadmapStatus'
+import { useRoadmapStatus, type PipelineStepStatus } from '@/hooks/useRoadmapStatus'
 import { RoadmapFloatingBanner } from '@/components/RoadmapFloatingBanner'
-import { RoadmapHeaderTracker } from '@/components/RoadmapHeaderTracker'
+import { StudyHeaderTracker } from '@/components/StudyHeaderTracker'
 
 interface Option {
   id: number
@@ -4187,31 +4187,22 @@ export default function PracticePlay() {
       </AnimatePresence>
 
       <header className={cn(
-        "sticky top-0 flex-shrink-0 z-[120] backdrop-blur-2xl px-2.5 md:px-4 py-1.5 flex items-center justify-between gap-2.5 transition-colors duration-300 relative overflow-hidden",
-        (isRoadmapActive || roadmapStatus?.pipeline)
-          ? "bg-slate-950/90 border-b border-slate-800/80 text-white shadow-xl"
-          : "bg-white/95 border-b border-slate-100/80 text-slate-800 shadow-[0_1px_20px_rgba(99,102,241,0.04)]"
+        "sticky top-0 flex-shrink-0 z-[120] backdrop-blur-2xl px-2.5 md:px-4 py-1.5 flex items-center justify-between gap-2.5 transition-colors duration-300 relative overflow-hidden bg-slate-950/90 border-b border-slate-800/80 text-white shadow-xl"
       )}>
-        <AnimatePresence>
-          {!(isRoadmapActive || roadmapStatus?.pipeline) && (
-            <motion.button 
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => navigate('/')} 
-              className="w-8 h-8 flex items-center justify-center transition-all flex-shrink-0 relative z-[140] text-slate-500 hover:text-indigo-600"
-              title="Thoát phiên học"
-            >
-              <X className="w-5 h-5" />
-            </motion.button>
-          )}
-        </AnimatePresence>
+        {(() => {
+          const rawPipeline: PipelineStepStatus[] = roadmapStatus?.pipeline || [
+            {
+              type: 'mcq' as any,
+              label: 'Trắc Nghiệm MCQ',
+              daily_count: session?.questions?.length || 15,
+              done: false,
+              url: `/practice/${id}/mcq`,
+              progress: {}
+            }
+          ];
 
-        {(isRoadmapActive || roadmapStatus?.pipeline) && roadmapStatus?.pipeline ? (() => {
           const subCurr = Object.keys(practiceAnswers).length;
           const subTotal = session?.questions?.length || 15;
-          const isGoalReached = subTotal > 0 && subCurr >= subTotal;
-          const isOverachieved = subTotal > 0 && subCurr > subTotal;
           const activePercent = subTotal > 0 ? Math.min(100, Math.round((subCurr / subTotal) * 100)) : 0;
 
           const answeredCount = Object.keys(practiceAnswers).length;
@@ -4244,9 +4235,9 @@ export default function PracticePlay() {
               </AnimatePresence>
 
               <div className="flex-1 min-w-0 relative z-[140]">
-                <RoadmapHeaderTracker
-                  pipeline={roadmapStatus.pipeline}
-                  currentStepIndex={roadmapStatus.current_step_index}
+                <StudyHeaderTracker
+                  pipeline={rawPipeline}
+                  currentStepIndex={roadmapStatus?.current_step_index || 0}
                   allDone={Boolean(isRoadmapAllDone)}
                   deckId={id || ''}
                   deckTitle={session?.title || session?.deck_title || session?.quiz_title || 'Luyện tập'}
@@ -4276,142 +4267,7 @@ export default function PracticePlay() {
               </div>
             </>
           );
-        })() : (
-          <>
-            <div className="flex items-center min-w-0 flex-1 mr-2 md:mr-4">
-              <h1 className="text-xs md:text-sm font-extrabold text-slate-800 tracking-tight truncate line-clamp-1 leading-snug" title={session?.title || session?.deck_title || ''}>
-                {session?.title || session?.deck_title || session?.quiz_title || 'Luyện tập'}
-              </h1>
-            </div>
-      
-            {/* Live Dashboard HUD */}
-            <div className="bg-slate-100/50 border border-slate-200/40 rounded-xl p-0.5 flex items-center gap-0.5 md:gap-1.5 shadow-[inset_0_1px_2px_rgba(0,0,0,0.02)] flex-shrink-0 mr-0.5 md:mr-0">
-              {/* Item 1: Daily Goal progress */}
-              <div className="flex items-center bg-white/90 border border-slate-200/30 rounded-lg p-0.5 pr-1 md:pr-1.5 shadow-sm min-w-[52px] xs:min-w-[56px] md:min-w-[66px]" title="Mục tiêu ôn tập hàng ngày">
-                <div className="w-4 h-4 md:w-5 md:h-5 flex items-center justify-center bg-indigo-50 text-indigo-600 rounded mr-0.5 md:mr-1 flex-shrink-0">
-                  <Target className="w-2.5 h-2.5 md:w-3 md:h-3" />
-                </div>
-                <div className="flex flex-col min-w-0">
-                  <span className="text-[5.5px] md:text-[6.5px] text-slate-400 font-extrabold uppercase tracking-wider leading-none">Goal</span>
-                  <div className="h-2.5 md:h-3 overflow-hidden relative min-w-[20px]">
-                    <AnimatePresence mode="popLayout" initial={false}>
-                      <motion.span
-                        key={activeGoal ? `${activeGoal.done_today}/${activeGoal.daily_target}` : 'none'}
-                        initial={{ y: 8, opacity: 0 }}
-                        animate={{ y: 0, opacity: 1 }}
-                        exit={{ y: -8, opacity: 0 }}
-                        transition={{ type: "spring", stiffness: 350, damping: 18 }}
-                        className="text-[7.5px] md:text-[8.5px] font-black text-slate-700 leading-none block truncate"
-                      >
-                        {activeGoal ? `${activeGoal.done_today}/${activeGoal.daily_target}` : '--'}
-                      </motion.span>
-                    </AnimatePresence>
-                  </div>
-                </div>
-              </div>
-
-              {/* Item 2: Cards left / Question count */}
-              <div className="flex items-center bg-white/90 border border-slate-200/30 rounded-lg p-0.5 pr-1 md:pr-1.5 shadow-sm min-w-[52px] xs:min-w-[56px] md:min-w-[66px]" title="Số thẻ ôn tập/học còn lại">
-                <div className="w-4 h-4 md:w-5 md:h-5 flex items-center justify-center bg-rose-50 text-rose-600 rounded mr-0.5 md:mr-1 flex-shrink-0">
-                  <Brain className="w-2.5 h-2.5 md:w-3 md:h-3" />
-                </div>
-                <div className="flex flex-col min-w-0">
-                  <span className="text-[5.5px] md:text-[6.5px] text-slate-400 font-extrabold uppercase tracking-wider leading-none">Left</span>
-                  <div className="h-2.5 md:h-3 overflow-hidden relative min-w-[15px]">
-                    <AnimatePresence mode="popLayout" initial={false}>
-                      <motion.span
-                        key={session?.questions ? Math.max(0, session.questions.length - currentIndex) : 0}
-                        initial={{ y: 8, opacity: 0 }}
-                        animate={{ y: 0, opacity: 1 }}
-                        exit={{ y: -8, opacity: 0 }}
-                        transition={{ type: "spring", stiffness: 350, damping: 18 }}
-                        className="text-[7.5px] md:text-[8.5px] font-black text-slate-700 leading-none block truncate"
-                      >
-                        {session?.questions ? Math.max(0, session.questions.length - currentIndex) : 0}
-                      </motion.span>
-                    </AnimatePresence>
-                  </div>
-                </div>
-              </div>
-
-              {/* Item 3: Timer */}
-              <div 
-                onClick={toggleTimeMode}
-                className="flex items-center bg-white/90 border border-slate-200/30 rounded-lg p-0.5 pr-1 md:pr-1.5 shadow-sm min-w-[52px] xs:min-w-[56px] md:min-w-[66px] cursor-pointer active:scale-95 transition-all select-none hover:bg-slate-50" 
-                title="Thời gian học"
-              >
-                <div className="w-4 h-4 md:w-5 md:h-5 flex items-center justify-center bg-emerald-50 text-emerald-600 rounded mr-0.5 md:mr-1 flex-shrink-0">
-                  <Clock className="w-2.5 h-2.5 md:w-3 md:h-3" />
-                </div>
-                <div className="flex flex-col min-w-0">
-                  <span className="text-[5.5px] md:text-[6.5px] text-slate-400 font-extrabold uppercase tracking-wider leading-none">
-                    {timeMode === 'card' ? 'Time' : timeMode === 'today' ? 'Today' : 'Total'}
-                  </span>
-                  <div className="h-2.5 md:h-3 overflow-hidden relative min-w-[15px]">
-                    <AnimatePresence mode="popLayout" initial={false}>
-                      <motion.span
-                        key={
-                          timeMode === 'card' 
-                            ? timeLeft 
-                            : timeMode === 'today' 
-                              ? formatHeaderTime(initialTodayTime + sessionStudyTime) 
-                              : formatHeaderTime(initialAllTimeTime + sessionStudyTime)
-                        }
-                        initial={{ y: 8, opacity: 0 }}
-                        animate={{ y: 0, opacity: 1 }}
-                        exit={{ y: -8, opacity: 0 }}
-                        transition={{ type: "spring", stiffness: 350, damping: 18 }}
-                        className="text-[7.5px] md:text-[8.5px] font-black text-slate-700 leading-none block truncate"
-                      >
-                        {
-                          timeMode === 'card' 
-                            ? `${timeLeft}s` 
-                            : timeMode === 'today' 
-                              ? formatHeaderTime(initialTodayTime + sessionStudyTime) 
-                              : formatHeaderTime(initialAllTimeTime + sessionStudyTime)
-                        }
-                      </motion.span>
-                    </AnimatePresence>
-                  </div>
-                </div>
-              </div>
-
-              {/* Item 4: Current user score */}
-              <div 
-                onClick={toggleScoreMode}
-                className="flex items-center bg-white/90 border border-slate-200/30 rounded-lg p-0.5 pr-1 md:pr-1.5 shadow-sm min-w-[52px] xs:min-w-[56px] md:min-w-[66px] cursor-pointer active:scale-95 transition-all select-none hover:bg-slate-50" 
-                title="Điểm XP"
-              >
-                <div className="w-4 h-4 md:w-5 md:h-5 flex items-center justify-center bg-amber-50 text-amber-600 rounded mr-0.5 md:mr-1 flex-shrink-0">
-                  <Trophy className="w-2.5 h-2.5 md:w-3 md:h-3" />
-                </div>
-                <div className="flex flex-col min-w-0">
-                  <span className="text-[5.5px] md:text-[6.5px] text-slate-400 font-extrabold uppercase tracking-wider leading-none">
-                    {scoreMode === 'all' ? 'Score' : 'Today'}
-                  </span>
-                  <div className="h-2.5 md:h-3 overflow-hidden relative min-w-[25px]">
-                    <AnimatePresence mode="popLayout" initial={false}>
-                      <motion.span
-                        key={scoreMode === 'all' ? gamify.xp : initialTodayXP + sessionXP}
-                        initial={{ y: 8, opacity: 0 }}
-                        animate={{ y: 0, opacity: 1 }}
-                        exit={{ y: -8, opacity: 0 }}
-                        transition={{ type: "spring", stiffness: 350, damping: 18 }}
-                        className="text-[7.5px] md:text-[8.5px] font-black text-slate-700 leading-none block truncate"
-                      >
-                        {
-                          scoreMode === 'all' 
-                            ? gamify.xp.toLocaleString() 
-                            : (initialTodayXP + sessionXP).toLocaleString()
-                        }
-                      </motion.span>
-                    </AnimatePresence>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </>
-        )}
+        })()}
 
         {/* Quick Add Button (Hidden in Roadmap mode) */}
         {!isRoadmapTestMode && (
