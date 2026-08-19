@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import confetti from 'canvas-confetti'
 import { useParams, useNavigate } from 'react-router-dom'
-import { ChevronLeft, ChevronRight, ChevronDown, MessageSquare, Play, Volume2, Maximize2, Hash, Minimize2, Check, X, RotateCcw, AlertCircle, LayoutGrid, Timer, Flame, Trophy, Sparkles, Lightbulb, StickyNote, Target, CheckCircle2, XCircle, Clock, BookOpen, Copy, Edit3, Brain, FileText, HelpCircle, Sliders, ListOrdered, Shuffle, Eye, EyeOff, TrendingUp, Award, Lock, Keyboard, VolumeX, Settings, RefreshCw, Undo2, LogOut, Zap, Music, Image, Plus, Star } from 'lucide-react'
+import { ChevronLeft, ChevronRight, ChevronDown, MessageSquare, Play, Volume2, Maximize2, Hash, Minimize2, Check, X, RotateCcw, AlertCircle, LayoutGrid, Timer, Flame, Trophy, Sparkles, Lightbulb, StickyNote, Target, CheckCircle2, XCircle, Clock, BookOpen, Copy, Edit3, Brain, FileText, HelpCircle, Sliders, ListOrdered, Shuffle, Eye, EyeOff, TrendingUp, Award, Lock, Keyboard, VolumeX, Settings, RefreshCw, Undo2, LogOut, Zap, Music, Image, Plus, Star, Bookmark } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { FlashcardEditModal } from '@/components/FlashcardEditModal'
 import axios from 'axios'
@@ -463,6 +463,7 @@ export default function PracticePlay() {
   const [currentIndex, setCurrentIndex] = useState(-1)
   const [showAbsoluteFirst, setShowAbsoluteFirst] = useState(false)
   const [showAbsoluteLast, setShowAbsoluteLast] = useState(false)
+  const [starredCards, setStarredCards] = useState<Record<number, boolean>>({})
 
   useEffect(() => {
     setShowAbsoluteFirst(false)
@@ -3433,54 +3434,93 @@ export default function PracticePlay() {
     }
 
     return (
-      <div className="flex-1 bg-white md:rounded-[2rem] rounded-[1.25rem] border border-slate-100 md:p-6 md:pt-4 p-4 pt-3 flex flex-col justify-end gap-4 md:gap-6 shadow-2xl shadow-indigo-100/40 min-h-0 overflow-y-auto">
+      <div className="flex-1 bg-gradient-to-b from-slate-50 via-purple-50/15 to-slate-50 md:rounded-[2.5rem] rounded-[1.5rem] border border-slate-100/80 md:p-6 p-3 flex flex-col justify-between gap-3 md:gap-5 shadow-2xl shadow-indigo-100/30 min-h-0 overflow-y-auto custom-scrollbar">
 
-        {/* Premium Question Card container for better space usage and rich aesthetics */}
-        <div className="w-full max-w-3xl mx-auto py-1 text-center animate-in fade-in slide-in-from-top-3 duration-500 my-auto shrink-0">
-          <div className="w-full bg-white border-2 border-indigo-100/80 rounded-[2rem] p-5 md:p-6 shadow-sm flex flex-col items-center justify-center text-center gap-4 relative overflow-hidden">
-            <div className="absolute top-[-10%] left-[-10%] w-[30%] h-[30%] rounded-full bg-indigo-50/20 blur-2xl pointer-events-none" />
-            <div className="absolute bottom-[-10%] right-[-10%] w-[30%] h-[30%] rounded-full bg-pink-50/20 blur-2xl pointer-events-none" />
-            {/* Image removed from question card for MCQ/Practice modes as requested */}
+        {/* ── Top Question Card (Clean Soft Purple Mesh Glassmorphism) ── */}
+        <div className="w-full max-w-2xl mx-auto my-auto animate-in fade-in slide-in-from-top-3 duration-500 shrink-0">
+          <div className="w-full bg-gradient-to-b from-purple-50/80 via-indigo-50/40 to-white/95 backdrop-blur-xl rounded-[2rem] p-5 md:p-8 shadow-[0_12px_36px_rgba(99,102,241,0.08)] border border-purple-100/70 flex flex-col items-center justify-center text-center relative overflow-hidden">
+            {/* Ambient Background Glows */}
+            <div className="absolute top-0 left-1/2 -translate-x-1/2 w-48 h-24 bg-purple-200/25 blur-3xl pointer-events-none" />
+            <div className="absolute -bottom-8 -right-8 w-32 h-32 bg-indigo-100/35 blur-2xl pointer-events-none" />
+
+            {/* Top Row: Question Pill on Left, Bookmark on Right */}
+            <div className="w-full flex items-center justify-between mb-3 md:mb-4 relative z-10">
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-purple-100/80 border border-purple-200/60 text-purple-700 font-black text-xs shadow-sm">
+                <Sparkles className="w-3.5 h-3.5 text-purple-600 fill-purple-200" />
+                <span>Câu hỏi {currentIndex + 1}</span>
+              </span>
+
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (currentQuestion?.id) {
+                    setStarredCards(prev => ({ ...prev, [currentQuestion.id]: !prev[currentQuestion.id] }));
+                  }
+                }}
+                className="w-8 h-8 rounded-xl flex items-center justify-center text-purple-400 hover:text-purple-600 hover:bg-purple-50/80 transition-all active:scale-90 cursor-pointer"
+                title={currentQuestion?.id && starredCards[currentQuestion.id] ? "Bỏ đánh dấu" : "Đánh dấu câu hỏi"}
+              >
+                <Bookmark className={cn("w-5 h-5 transition-colors", currentQuestion?.id && starredCards[currentQuestion.id] ? "fill-purple-600 text-purple-600" : "text-purple-400")} />
+              </button>
+            </div>
+
+            {/* Question Word & Prompt */}
             {baseMode === 'listening' ? (
-              <div className="flex flex-col items-center gap-3">
+              <div className="flex flex-col items-center gap-3 my-2">
                 <div
                   onClick={() => {
                     const { question_key: qKey } = practiceData!;
                     playCardAudio(qKey || 'front');
                   }}
-                  className="relative w-20 h-20 rounded-full bg-white border border-indigo-100 flex items-center justify-center shadow-lg shadow-indigo-100/50 hover:bg-indigo-50 active:scale-95 transition-all cursor-pointer group"
+                  className="relative w-20 h-20 rounded-full bg-white border border-purple-200 flex items-center justify-center shadow-lg shadow-purple-100/50 hover:bg-purple-50 active:scale-95 transition-all cursor-pointer group"
                   title="Nhấn để nghe lại"
                 >
-                  <div className="absolute inset-0 rounded-full bg-indigo-400/10 animate-ping" />
-                  <div className="absolute inset-2 rounded-full bg-indigo-300/20 animate-pulse" />
-                  <Play className="w-7 h-7 text-indigo-600 fill-indigo-600 group-hover:scale-110 transition-transform" />
+                  <div className="absolute inset-0 rounded-full bg-purple-400/10 animate-ping" />
+                  <div className="absolute inset-2 rounded-full bg-purple-300/20 animate-pulse" />
+                  <Play className="w-7 h-7 text-purple-600 fill-purple-600 group-hover:scale-110 transition-transform" />
                 </div>
-                <span className="text-[9px] font-black text-indigo-500 tracking-widest uppercase mt-1">NHẤN ĐỂ NGHE PHÁT ÂM</span>
+                <span className="text-[10px] font-black text-purple-600 tracking-widest uppercase mt-1">NHẤN ĐỂ NGHE PHÁT ÂM</span>
               </div>
             ) : (
-                <h2 className="text-xl md:text-2xl lg:text-3xl font-black text-slate-800 leading-snug max-w-2xl px-2">
+              <div className="my-1">
+                <h2 className="text-3xl md:text-4xl lg:text-5xl font-black text-slate-900 leading-tight tracking-wide font-sans px-2">
                   <span dangerouslySetInnerHTML={{ __html: parseBBCodeToHtml(question || '') }} />
                 </h2>
+                <div className="w-12 h-1 bg-purple-300/90 rounded-full mx-auto my-3" />
+                <p className="text-xs md:text-sm text-slate-500 font-semibold tracking-normal">
+                  Chọn nghĩa <span className="text-purple-600 font-bold">đúng nhất</span>
+                </p>
+              </div>
             )}
           </div>
         </div>
 
-        <div className="w-full max-w-3xl mx-auto pt-4 md:pt-6 border-t border-slate-100">
+        {/* ── MCQ Choices (A, B, C, D) ── */}
+        <div className="w-full max-w-2xl mx-auto shrink-0">
           {['mcq', 'listening'].includes(baseMode) && choices && (
-            <div className="grid grid-cols-1 gap-2 md:gap-3.5 mb-2 md:mb-4">
+            <div className="grid grid-cols-1 gap-2.5 md:gap-3 mb-1 md:mb-2">
               {choices.map((choice: string, idx: number) => {
                 const isSelected = selectedOption === idx;
                 const isCorrectChoice = idx === correct_index;
+                const letter = String.fromCharCode(65 + idx); // A, B, C, D
 
-                let btnStyle = "border-slate-200 hover:bg-slate-50/50 hover:border-indigo-200 text-slate-700 active:scale-[0.99] ";
+                let cardStyle = "bg-white border-slate-100 hover:border-purple-200 hover:shadow-md text-slate-800";
+                let badgeStyle = "bg-purple-50/90 text-purple-700 border-purple-100/60";
+                let radioStyle = "border-slate-200";
 
                 if (answered) {
                   if (isCorrectChoice) {
-                    btnStyle = "bg-gradient-to-r from-emerald-500 to-teal-500 border-emerald-600 text-white shadow-lg shadow-emerald-100 scale-[1.015] ";
+                    cardStyle = "bg-emerald-50/80 border-emerald-300 text-emerald-950 shadow-md shadow-emerald-100/50 scale-[1.01]";
+                    badgeStyle = "bg-emerald-500 text-white border-emerald-500";
+                    radioStyle = "border-emerald-500 bg-emerald-500 text-white";
                   } else if (isSelected) {
-                    btnStyle = "bg-gradient-to-r from-rose-500 to-pink-500 border-rose-600 text-white shadow-lg shadow-rose-100 ";
+                    cardStyle = "bg-rose-50/80 border-rose-300 text-rose-950 shadow-md shadow-rose-100/50";
+                    badgeStyle = "bg-rose-500 text-white border-rose-500";
+                    radioStyle = "border-rose-500 bg-rose-500 text-white";
                   } else {
-                    btnStyle = "border-slate-100 bg-slate-50/50 opacity-60 text-slate-500 hover:opacity-100 hover:bg-slate-50 hover:shadow-sm cursor-pointer ";
+                    cardStyle = "bg-slate-50/60 border-slate-100/60 opacity-60 text-slate-500";
+                    badgeStyle = "bg-slate-100 text-slate-400 border-slate-200";
+                    radioStyle = "border-slate-200";
                   }
                 }
 
@@ -3510,14 +3550,12 @@ export default function PracticePlay() {
 
                         // Step 2: Fallback lookup in session.questions matching choiceText in aKey/back/front columns
                         if (!qData && session?.questions && session.questions.length > 0) {
-                          // Try matching answer column (aKey / back / explanation)
                           qData = session.questions.find((q: any) => {
                             const valA = getVal(q, aKey).toLowerCase();
                             const valBack = (getVal(q, 'back') || q.explanation || "").toLowerCase();
                             return (valA && valA === choiceNorm) || (valBack && valBack === choiceNorm);
                           });
 
-                          // If not found in answer column, try matching question column (qKey / front / content)
                           if (!qData) {
                             qData = session.questions.find((q: any) => {
                               const valQ = getVal(q, qKey).toLowerCase();
@@ -3545,28 +3583,31 @@ export default function PracticePlay() {
                       }
                     }}
                     className={cn(
-                      "group p-3.5 md:p-6 rounded-2xl md:rounded-[2rem] border text-left font-extrabold text-sm md:text-xl transition-all duration-300 flex items-center justify-between gap-3 min-h-[54px] md:min-h-[72px] shadow-sm",
-                      btnStyle
+                      "group w-full p-3.5 md:p-4 rounded-2xl md:rounded-[1.25rem] border text-left font-bold text-sm md:text-base transition-all duration-200 flex items-center justify-between gap-3 shadow-[0_2px_12px_rgba(0,0,0,0.02)] active:scale-[0.99] cursor-pointer",
+                      cardStyle
                     )}
                   >
-                    <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-3.5 min-w-0 flex-1">
                       <span className={cn(
-                        "w-7 h-7 rounded-xl flex items-center justify-center text-xs font-black border flex-shrink-0 transition-colors duration-300",
-                        answered && isCorrectChoice ? "bg-white text-emerald-600 border-emerald-400 shadow-sm" :
-                          answered && isSelected ? "bg-white text-rose-600 border-rose-400 shadow-sm" :
-                            "bg-white border-slate-200 text-slate-400 shadow-sm group-hover:border-indigo-300 group-hover:text-indigo-600"
+                        "w-9 h-9 md:w-10 md:h-10 rounded-full flex items-center justify-center text-xs md:text-sm font-black border flex-shrink-0 transition-colors shadow-sm",
+                        badgeStyle
                       )}>
-                        {idx + 1}
+                        {letter}
                       </span>
-                      <span className="leading-snug" dangerouslySetInnerHTML={{ __html: parseBBCodeToHtml(choice) }} />
+                      <span className="leading-snug truncate" dangerouslySetInnerHTML={{ __html: parseBBCodeToHtml(choice) }} />
                     </div>
 
-                    {answered && isCorrectChoice && (
-                      <Check className="w-5 h-5 stroke-[3] text-white flex-shrink-0" />
-                    )}
-                    {answered && isSelected && !isCorrectChoice && (
-                      <X className="w-5 h-5 stroke-[3] text-white flex-shrink-0" />
-                    )}
+                    <div className={cn(
+                      "w-5 h-5 md:w-5.5 md:h-5.5 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-all",
+                      radioStyle
+                    )}>
+                      {answered && isCorrectChoice && (
+                        <Check className="w-3.5 h-3.5 stroke-[3] text-white" />
+                      )}
+                      {answered && isSelected && !isCorrectChoice && (
+                        <X className="w-3.5 h-3.5 stroke-[3] text-white" />
+                      )}
+                    </div>
                   </button>
                 );
               })}
