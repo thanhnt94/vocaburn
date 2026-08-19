@@ -2035,10 +2035,19 @@ export default function Dashboard() {
 
                               {/* Card with Left Speech Pointer */}
                               <div 
-                                onClick={() => { if (!s1 && nUrl) navigate(nUrl); }}
+                                onClick={() => {
+                                  if (navigator.vibrate) navigator.vibrate(8);
+                                  if (!s1) {
+                                    navigate(st.pipeline?.[0]?.url || nUrl || `/flashcard/${deck.deck_id}/play?mode=roadmap`);
+                                  } else {
+                                    // Đã xong -> vào mode chỉ học từ mới (bỏ qua quota lộ trình)
+                                    navigate(`/flashcard/${deck.deck_id}/play?mode=new`);
+                                  }
+                                }}
+                                title={s1 ? "Đã xong mục tiêu hôm nay. Bấm để tiếp tục học thêm từ mới!" : "Bắt đầu học từ mới hôm nay"}
                                 className={cn(
-                                  "flex-1 bg-white border rounded-2xl p-3 sm:p-3.5 shadow-2xs flex items-center gap-3 relative transition-all cursor-pointer hover:shadow-xs",
-                                  s1 ? "border-emerald-200/80 bg-emerald-50/20" : "border-slate-100"
+                                  "flex-1 bg-white border rounded-2xl p-3 sm:p-3.5 shadow-2xs flex items-center gap-3 relative transition-all cursor-pointer hover:shadow-sm hover:scale-[1.008] active:scale-[0.99]",
+                                  s1 ? "border-emerald-200/90 bg-emerald-50/30 hover:bg-emerald-50/50" : "border-slate-100 hover:border-orange-200"
                                 )}
                               >
                                 {/* Left Speech Bubble Triangle Pointer */}
@@ -2094,10 +2103,20 @@ export default function Dashboard() {
 
                               {/* Card with Left Speech Pointer */}
                               <div 
-                                onClick={() => { if (s1 && !s2 && nUrl) navigate(nUrl); }}
+                                onClick={() => {
+                                  if (navigator.vibrate) navigator.vibrate(8);
+                                  const testUrl = mcqStep?.url || `/practice/${deck.deck_id}/roadmap_mcq`;
+                                  if (!s1) {
+                                    navigate(st.pipeline?.[0]?.url || nUrl || `/flashcard/${deck.deck_id}/play?mode=roadmap`);
+                                    return;
+                                  }
+                                  // Khi đã xong hoặc chưa xong -> đều có thể làm test (lấy kết quả cao nhất)
+                                  navigate(testUrl);
+                                }}
+                                title={!s1 ? "Cần hoàn thành Bước 1: Học từ mới trước" : s2 ? "Đã đạt chỉ tiêu! Bấm để làm thêm bài test 20 câu mới (lấy điểm cao nhất)" : "Bắt đầu làm bài test trắc nghiệm"}
                                 className={cn(
-                                  "flex-1 bg-white border rounded-2xl p-3 sm:p-3.5 shadow-2xs flex items-center gap-3 relative transition-all cursor-pointer hover:shadow-xs",
-                                  s2 ? "border-emerald-200/80 bg-emerald-50/20" : s1 ? "border-orange-200/80" : "border-slate-100 opacity-90"
+                                  "flex-1 bg-white border rounded-2xl p-3 sm:p-3.5 shadow-2xs flex items-center gap-3 relative transition-all cursor-pointer hover:shadow-sm hover:scale-[1.008] active:scale-[0.99]",
+                                  s2 ? "border-emerald-200/90 bg-emerald-50/30 hover:bg-emerald-50/50" : s1 ? "border-orange-200/80 hover:border-orange-300" : "border-slate-100 opacity-90 hover:opacity-100"
                                 )}
                               >
                                 {/* Left Speech Bubble Triangle Pointer */}
@@ -2158,10 +2177,22 @@ export default function Dashboard() {
 
                               {/* Card with Left Speech Pointer */}
                               <div 
-                                onClick={() => { if (s2 && nUrl) navigate(nUrl); }}
+                                onClick={() => {
+                                  if (navigator.vibrate) navigator.vibrate(8);
+                                  const fsrsStep = st.pipeline?.find((p: any) => p.type === 'fsrs_review');
+                                  const fsrsUrl = fsrsStep?.url || `/flashcard/${deck.deck_id}/play?mode=roadmap`;
+                                  if (!s2) {
+                                    const testUrl = mcqStep?.url || `/practice/${deck.deck_id}/roadmap_mcq`;
+                                    navigate(testUrl);
+                                    return;
+                                  }
+                                  // Điều hướng vào ôn tập FSRS theo cấu hình Roadmap (lọc theo overdue_hours của roadmap)
+                                  navigate(fsrsUrl);
+                                }}
+                                title={!s2 ? "Cần hoàn thành Bước 2: Test trắc nghiệm trước" : st.all_done ? "Đã xong lộ trình FSRS. Bấm để tiếp tục ôn tập FSRS theo bộ lọc lộ trình!" : "Bắt đầu ôn tập FSRS"}
                                 className={cn(
-                                  "flex-1 bg-white border rounded-2xl p-3 sm:p-3.5 shadow-2xs flex items-center gap-3 relative transition-all cursor-pointer hover:shadow-xs",
-                                  st.all_done ? "border-emerald-200/80 bg-emerald-50/20" : s2 ? "border-orange-200/80" : "border-slate-100 opacity-90"
+                                  "flex-1 bg-white border rounded-2xl p-3 sm:p-3.5 shadow-2xs flex items-center gap-3 relative transition-all cursor-pointer hover:shadow-sm hover:scale-[1.008] active:scale-[0.99]",
+                                  st.all_done ? "border-emerald-200/90 bg-emerald-50/30 hover:bg-emerald-50/50" : s2 ? "border-orange-200/80 hover:border-orange-300" : "border-slate-100 opacity-90 hover:opacity-100"
                                 )}
                               >
                                 {/* Left Speech Bubble Triangle Pointer */}
