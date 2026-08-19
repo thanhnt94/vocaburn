@@ -1955,49 +1955,6 @@ export default function Dashboard() {
                                 </p>
                               </div>
 
-                              {/* 2 NÚT HỌC FLASHCARD (NÃO CAM) & QUIZ (CÚP XANH) CHUẨN ĐỒNG BỘ NHƯ TRONG LIBRARY (ẨN KHI ĐÃ HOÀN THÀNH VÌ NÚT DƯỚI ĐÃ TÁCH 2) */}
-                              {!st.all_done && (
-                                <div className="flex items-center gap-2.5 pt-1.5 z-20">
-                                  <button
-                                    type="button"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      setSelectedStudyQuiz({
-                                        id: deck.deck_id,
-                                        title: deck.title,
-                                        questions_count: st.total_cards || deck.questions_count || 0,
-                                        practice_settings: deck.practice_settings
-                                      });
-                                      setStudyModalTab('flashcard');
-                                      setIsStudyModalOpen(true);
-                                    }}
-                                    className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white flex items-center justify-center shadow-md shadow-orange-500/25 active:scale-90 transition-all cursor-pointer flex-shrink-0"
-                                    title="Chọn chế độ học Flashcard"
-                                  >
-                                    <Brain className="w-5 h-5 text-white" />
-                                  </button>
-
-                                  <button
-                                    type="button"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      setSelectedStudyQuiz({
-                                        id: deck.deck_id,
-                                        title: deck.title,
-                                        questions_count: st.total_cards || deck.questions_count || 0,
-                                        practice_settings: deck.practice_settings
-                                      });
-                                      setStudyModalTab('practice');
-                                      setIsStudyModalOpen(true);
-                                    }}
-                                    className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white flex items-center justify-center shadow-md shadow-emerald-500/25 active:scale-90 transition-all cursor-pointer flex-shrink-0"
-                                    title="Chọn chế độ luyện tập / Quiz"
-                                  >
-                                    <Trophy className="w-5 h-5 text-white" />
-                                  </button>
-                                </div>
-                              )}
-
                             </div>
 
                             {/* RIGHT SIDE: HUGE PROMINENT MASCOT FILLING ENTIRE HEIGHT */}
@@ -2012,6 +1969,49 @@ export default function Dashboard() {
                                 className="h-[105%] max-h-[280px] w-auto max-w-none object-contain object-bottom drop-shadow-2xl translate-y-1"
                               />
                             </div>
+
+                            {/* 2 NÚT HỌC FLASHCARD (NÃO CAM) & QUIZ (CÚP XANH) FIXED ABSOLUTE Ở GÓC PHẢI DƯỚI */}
+                            {!st.all_done && (
+                              <div className="absolute right-3 sm:right-4 bottom-3 sm:bottom-4 z-30 flex items-center gap-2 pointer-events-auto">
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setSelectedStudyQuiz({
+                                      id: deck.deck_id,
+                                      title: deck.title,
+                                      questions_count: st.total_cards || deck.questions_count || 0,
+                                      practice_settings: deck.practice_settings
+                                    });
+                                    setStudyModalTab('flashcard');
+                                    setIsStudyModalOpen(true);
+                                  }}
+                                  className="w-9 h-9 sm:w-10 sm:h-10 rounded-2xl bg-gradient-to-tr from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white flex items-center justify-center shadow-lg shadow-orange-500/30 border border-white/50 active:scale-90 transition-all cursor-pointer flex-shrink-0"
+                                  title="Chọn chế độ học Flashcard"
+                                >
+                                  <Brain className="w-4.5 h-4.5 text-white" />
+                                </button>
+
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setSelectedStudyQuiz({
+                                      id: deck.deck_id,
+                                      title: deck.title,
+                                      questions_count: st.total_cards || deck.questions_count || 0,
+                                      practice_settings: deck.practice_settings
+                                    });
+                                    setStudyModalTab('practice');
+                                    setIsStudyModalOpen(true);
+                                  }}
+                                  className="w-9 h-9 sm:w-10 sm:h-10 rounded-2xl bg-gradient-to-tr from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white flex items-center justify-center shadow-lg shadow-emerald-500/30 border border-white/50 active:scale-90 transition-all cursor-pointer flex-shrink-0"
+                                  title="Chọn chế độ luyện tập / Quiz"
+                                >
+                                  <Trophy className="w-4.5 h-4.5 text-white" />
+                                </button>
+                              </div>
+                            )}
 
                           </div>
 
