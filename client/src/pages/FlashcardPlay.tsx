@@ -3424,7 +3424,7 @@ export default function FlashcardPlay() {
     return false;
   }, [activeMode, roadmapStatus, sessionAnswers]);
 
-  const [showModePickerInComplete, setShowModePickerInComplete] = useState(false);
+  const [isStudyConsoleOpen, setIsStudyConsoleOpen] = useState(false);
 
   const renderRoadmapStepCompleteScreen = () => {
     const isAllDone = Boolean(roadmapStatus?.all_done);
@@ -3433,7 +3433,7 @@ export default function FlashcardPlay() {
     const newLearned = Math.min(newTarget, (roadmapStatus?.new_learned_today ?? 0) + answeredInSession);
 
     return (
-      <div className="flex-1 flex flex-col items-center justify-center p-4 md:p-8 text-center bg-gradient-to-b from-slate-900/95 via-slate-950 to-slate-950 text-white rounded-[2rem] border border-slate-800/90 shadow-2xl relative overflow-y-auto custom-scrollbar my-auto max-w-2xl mx-auto w-full min-h-0">
+      <div className="flex-1 flex flex-col items-center justify-center p-6 md:p-10 text-center bg-gradient-to-b from-slate-900/95 via-slate-950 to-slate-950 text-white rounded-[2.5rem] border border-slate-800/90 shadow-2xl relative overflow-hidden h-full w-full max-w-xl mx-auto my-auto">
         {/* Glow backgrounds */}
         <div className="absolute -top-24 -left-24 w-72 h-72 bg-amber-500/15 rounded-full blur-3xl pointer-events-none" />
         <div className="absolute -bottom-24 -right-24 w-72 h-72 bg-emerald-500/15 rounded-full blur-3xl pointer-events-none" />
@@ -3443,107 +3443,61 @@ export default function FlashcardPlay() {
           initial={{ scale: 0.7, opacity: 0 }}
           animate={{ scale: [0.85, 1.1, 1], opacity: 1 }}
           transition={{ duration: 0.5, ease: "easeOut" }}
-          className="w-16 h-16 md:w-20 md:h-20 rounded-3xl bg-gradient-to-tr from-amber-500 via-orange-500 to-amber-400 flex items-center justify-center mb-4 shadow-[0_0_40px_rgba(245,158,11,0.5)] border border-amber-300/40 shrink-0"
+          className="w-20 h-20 md:w-24 md:h-24 rounded-3xl bg-gradient-to-tr from-amber-500 via-orange-500 to-amber-400 flex items-center justify-center mb-5 shadow-[0_0_40px_rgba(245,158,11,0.5)] border border-amber-300/40 shrink-0"
         >
           {isAllDone ? (
-            <Trophy className="w-8 h-8 md:w-10 md:h-10 text-white fill-white animate-bounce" />
+            <Trophy className="w-10 h-10 md:w-12 md:h-12 text-white fill-white animate-bounce" />
           ) : (
-            <Sparkles className="w-8 h-8 md:w-10 md:h-10 text-white fill-white animate-pulse" />
+            <Sparkles className="w-10 h-10 md:w-12 md:h-12 text-white fill-white animate-pulse" />
           )}
         </motion.div>
 
         {/* Step Badge */}
-        <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-300 font-black text-[11px] uppercase tracking-widest mb-2 shadow-sm shrink-0">
-          <CheckCircle2 className="w-3.5 h-3.5 text-amber-400" />
+        <div className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-300 font-black text-xs uppercase tracking-widest mb-3 shadow-sm shrink-0">
+          <CheckCircle2 className="w-4 h-4 text-amber-400" />
           <span>{isAllDone ? 'HOÀN THÀNH LỘ TRÌNH NGÀY' : `ĐÃ XONG BƯỚC 1: HỌC TỪ MỚI (${newLearned}/${newTarget})`}</span>
         </div>
 
         {/* Title */}
-        <h2 className="text-lg md:text-2xl font-black tracking-tight text-white mb-2 max-w-lg shrink-0">
+        <h2 className="text-xl md:text-2xl font-black tracking-tight text-white mb-2 max-w-lg shrink-0">
           {isAllDone ? 'Chúc mừng bạn đã hoàn thành toàn bộ lộ trình hôm nay! 🎉' : 'Đã học xong từ mới lộ trình hôm nay! 🎯'}
         </h2>
 
         {/* Subtitle */}
-        <p className="text-xs md:text-sm text-slate-300 font-medium max-w-md mb-5 leading-relaxed shrink-0">
+        <p className="text-xs md:text-sm text-slate-300 font-medium max-w-md mb-6 leading-relaxed shrink-0">
           {isAllDone
             ? 'Bạn đã xuất sắc hoàn thành tất cả các bước trong lộ trình ngày. Hãy quay lại vào ngày mai hoặc ôn tập tự do!'
             : `Xuất sắc! Hãy chuyển sang Bước 2 để làm bài kiểm tra trắc nghiệm MCQ / gõ từ giúp củng cố kiến thức vào trí nhớ dài hạn.`}
         </p>
 
         {/* Action Buttons */}
-        <div className="flex flex-col gap-2.5 w-full max-w-sm shrink-0">
+        <div className="flex flex-col gap-3 w-full max-w-sm shrink-0">
           {!isAllDone && (
             <button
               onClick={() => {
                 navigate(nextActionUrl);
               }}
-              className="w-full py-3.5 px-6 rounded-2xl bg-gradient-to-r from-orange-500 via-amber-500 to-orange-600 hover:from-orange-600 hover:to-amber-600 text-white font-black text-xs uppercase tracking-wider shadow-lg shadow-orange-500/30 active:scale-95 transition-all flex items-center justify-center gap-2 cursor-pointer"
+              className="w-full py-4 px-6 rounded-2xl bg-gradient-to-r from-orange-500 via-amber-500 to-orange-600 hover:from-orange-600 hover:to-amber-600 text-white font-black text-xs uppercase tracking-wider shadow-lg shadow-orange-500/30 active:scale-95 transition-all flex items-center justify-center gap-2 cursor-pointer"
             >
-              <span>{nextActionLabel || 'SANG BƯỚC 2: LÀM MCQ'}</span>
+              <span>{nextActionLabel || 'SANG BƯỚC 2: TRẮC NGHIỆM MCQ'}</span>
               <ArrowRight className="w-4 h-4" />
             </button>
           )}
 
-          {/* Flashcard Mode Switcher Expandable */}
-          <div className="w-full bg-slate-900/90 border border-slate-800 rounded-2xl p-2.5 flex flex-col text-left">
-            <button
-              onClick={() => setShowModePickerInComplete(prev => !prev)}
-              className="w-full flex items-center justify-between text-xs font-bold text-slate-300 hover:text-white transition-colors cursor-pointer py-1 px-1"
-            >
-              <span className="flex items-center gap-1.5">
-                <Brain className="w-3.5 h-3.5 text-indigo-400" />
-                Vẫn muốn học Flashcard? Đổi chế độ
-              </span>
-              <ChevronDown className={cn("w-3.5 h-3.5 transition-transform duration-200", showModePickerInComplete && "rotate-180")} />
-            </button>
-
-            <AnimatePresence>
-              {showModePickerInComplete && (
-                <motion.div
-                  initial={{ opacity: 0, height: 0 }}
-                  animate={{ opacity: 1, height: 'auto' }}
-                  exit={{ opacity: 0, height: 0 }}
-                  className="grid grid-cols-2 gap-1.5 pt-2 mt-1 border-t border-slate-800/80 overflow-hidden"
-                >
-                  <button
-                    onClick={() => setActiveMode('new')}
-                    className="p-2 rounded-xl bg-indigo-950/60 hover:bg-indigo-900/80 border border-indigo-500/30 text-indigo-200 text-[11px] font-bold flex items-center gap-1.5 transition-all active:scale-95 cursor-pointer"
-                  >
-                    <Sparkles className="w-3 h-3 text-indigo-400 shrink-0" />
-                    <span>Học từ mới (New)</span>
-                  </button>
-
-                  <button
-                    onClick={() => setActiveMode('fsrs')}
-                    className="p-2 rounded-xl bg-emerald-950/60 hover:bg-emerald-900/80 border border-emerald-500/30 text-emerald-200 text-[11px] font-bold flex items-center gap-1.5 transition-all active:scale-95 cursor-pointer"
-                  >
-                    <Brain className="w-3 h-3 text-emerald-400 shrink-0" />
-                    <span>Ôn tập FSRS</span>
-                  </button>
-
-                  <button
-                    onClick={() => setActiveMode('review')}
-                    className="p-2 rounded-xl bg-teal-950/60 hover:bg-teal-900/80 border border-teal-500/30 text-teal-200 text-[11px] font-bold flex items-center gap-1.5 transition-all active:scale-95 cursor-pointer"
-                  >
-                    <BookOpen className="w-3 h-3 text-teal-400 shrink-0" />
-                    <span>Ôn tất cả đã học</span>
-                  </button>
-
-                  <button
-                    onClick={() => setActiveMode('flip')}
-                    className="p-2 rounded-xl bg-amber-950/60 hover:bg-amber-900/80 border border-amber-500/30 text-amber-200 text-[11px] font-bold flex items-center gap-1.5 transition-all active:scale-95 cursor-pointer"
-                  >
-                    <RefreshCw className="w-3 h-3 text-amber-400 shrink-0" />
-                    <span>Lật thẻ tự do</span>
-                  </button>
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </div>
+          <button
+            onClick={() => setIsStudyConsoleOpen(true)}
+            className="w-full py-3.5 px-4 rounded-2xl bg-slate-900/90 hover:bg-slate-800 border border-slate-700/80 text-slate-200 hover:text-white font-bold text-xs active:scale-95 transition-all cursor-pointer flex items-center justify-between shadow-sm"
+          >
+            <span className="flex items-center gap-2">
+              <Brain className="w-4 h-4 text-indigo-400" />
+              <span>Vẫn muốn học Flashcard? Đổi chế độ</span>
+            </span>
+            <ChevronRight className="w-4 h-4 text-slate-400" />
+          </button>
 
           <button
             onClick={() => navigate('/')}
-            className="w-full py-2.5 px-4 rounded-xl bg-slate-800/60 hover:bg-slate-800 border border-slate-700/60 text-slate-300 hover:text-white font-bold text-xs active:scale-95 transition-all cursor-pointer"
+            className="w-full py-3 px-4 rounded-xl bg-slate-800/50 hover:bg-slate-800 border border-slate-700/60 text-slate-300 hover:text-white font-bold text-xs active:scale-95 transition-all cursor-pointer"
           >
             Về Trang Chủ
           </button>
@@ -5776,6 +5730,89 @@ export default function FlashcardPlay() {
         totalSteps={roadmapStatus?.pipeline?.length || 1}
         allDone={isRoadmapAllDone}
       />
+
+      {/* ── STUDY CONSOLE MODAL ── */}
+      <AnimatePresence>
+        {isStudyConsoleOpen && (
+          <div className="fixed inset-0 z-[2000] flex items-center justify-center p-4">
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setIsStudyConsoleOpen(false)}
+              className="absolute inset-0 bg-slate-950/80 backdrop-blur-md pointer-events-auto"
+            />
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95, y: 15 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 15 }}
+              className="w-full max-w-lg bg-white rounded-[2.5rem] shadow-2xl relative z-10 p-6 sm:p-8 border border-slate-100 text-left overflow-hidden flex flex-col max-h-[90vh] pointer-events-auto text-slate-800"
+            >
+              <div className="absolute -top-12 -right-12 w-32 h-32 rounded-full bg-indigo-100/40 blur-2xl pointer-events-none" />
+              
+              <div className="flex items-center justify-between mb-5 relative z-10 flex-shrink-0">
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 rounded-2xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600">
+                    <Brain className="w-6 h-6 animate-pulse" />
+                  </div>
+                  <div>
+                    <h3 className="text-base sm:text-lg font-black text-slate-800 uppercase tracking-tight leading-tight">
+                      STUDY CONSOLE
+                    </h3>
+                    <p className="text-[10px] sm:text-xs text-slate-400 font-bold uppercase tracking-wider mt-0.5">
+                      Chọn phương pháp học tập
+                    </p>
+                  </div>
+                </div>
+                <button 
+                  onClick={() => setIsStudyConsoleOpen(false)} 
+                  className="w-9 h-9 rounded-full bg-slate-50 border border-slate-200/50 flex items-center justify-center text-slate-400 hover:text-rose-500 hover:scale-105 active:scale-95 transition-all cursor-pointer"
+                >
+                   <X className="w-4.5 h-4.5" />
+                </button>
+              </div>
+
+              {session && (
+                <div className="bg-slate-50 border border-slate-100 rounded-2xl p-4 mb-4 flex-shrink-0 text-left">
+                  <h4 className="text-xs sm:text-sm font-black text-indigo-950 tracking-wide line-clamp-1">{session.title}</h4>
+                  <p className="text-[10px] text-slate-400 font-black uppercase tracking-wider mt-1 flex items-center gap-1.5">
+                    <Brain className="w-3.5 h-3.5 text-slate-400" />
+                    {session.questions?.length || 0} câu hỏi trong bộ thẻ
+                  </p>
+                </div>
+              )}
+
+              <div className="flex-1 overflow-y-auto pr-1 space-y-2.5 custom-scrollbar min-h-0">
+                {[
+                  { mode: 'fsrs', icon: '🧠', title: 'FSRS Spaced Repetition', desc: 'Học lặp lại ngắt quãng thông minh' },
+                  { mode: 'roadmap', icon: '🗺️', title: 'Roadmap Mode', desc: 'Học theo lộ trình mục tiêu mỗi ngày' },
+                  { mode: 'flip', icon: '🔄', title: 'Flip Card', desc: 'Lật thẻ ghi nhớ phản xạ tự do' },
+                  { mode: 'review', icon: '📚', title: 'Review Only', desc: 'Chỉ ôn tập lại các thẻ cũ' },
+                  { mode: 'new', icon: '✨', title: 'New Only', desc: 'Chỉ học các thẻ mới chưa biết' },
+                ].map(item => (
+                  <button
+                    key={item.mode}
+                    onClick={() => {
+                      setIsStudyConsoleOpen(false);
+                      updateUserSettings({ quiz_learning_mode: item.mode as any });
+                      navigate(`/flashcard/${id}/play?mode=${item.mode}`);
+                      setActiveMode(item.mode as any);
+                    }}
+                    className="group w-full flex items-center gap-3.5 p-3.5 sm:p-4 rounded-2xl border border-slate-100 bg-white hover:border-indigo-500/35 hover:bg-indigo-50/10 hover:shadow-md active:scale-[0.99] transition-all text-left shadow-sm cursor-pointer"
+                  >
+                    <span className="text-xl w-10 h-10 bg-slate-50 rounded-xl flex items-center justify-center group-hover:scale-105 transition-all flex-shrink-0">{item.icon}</span>
+                    <div className="min-w-0 flex-1">
+                      <span className="text-xs sm:text-sm font-extrabold text-slate-800 block group-hover:text-indigo-600 transition-colors truncate">{item.title}</span>
+                      <span className="text-[10px] sm:text-xs font-semibold text-slate-400 block mt-0.5 leading-relaxed">{item.desc}</span>
+                    </div>
+                    <ChevronRight className="w-4.5 h-4.5 text-slate-300 group-hover:text-indigo-500 group-hover:translate-x-0.5 transition-all ml-auto flex-shrink-0" />
+                  </button>
+                ))}
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   )
 }
