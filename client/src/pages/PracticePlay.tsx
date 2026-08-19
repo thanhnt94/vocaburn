@@ -78,10 +78,12 @@ interface Question {
   practice?: {
     question: string
     choices?: string[]
+    choices_data?: any[]
+    choice_item_ids?: number[]
     correct_index?: number
     correct_answer?: string
-    question_key: string
-    answer_key: string
+    question_key?: string
+    answer_key?: string
   }
 }
 
@@ -3504,13 +3506,27 @@ export default function PracticePlay() {
                 let badgeStyle = "bg-amber-50/90 text-amber-800 border-amber-100/80";
 
                 const oppositeText = answered ? (() => {
-                  const qKey = currentPracticeData?.question_key || 'front';
-                  const aKey = currentPracticeData?.answer_key || 'back';
+                  const qKey = currentPracticeData?.question_key || currentQuestion?.practice?.question_key || 'front';
+                  const aKey = currentPracticeData?.answer_key || currentQuestion?.practice?.answer_key || 'back';
+
+                  // 1. Primary: Direct lookup from choices_data (matches exact distractor item)
+                  const cData = currentPracticeData?.choices_data?.[idx] || currentQuestion?.practice?.choices_data?.[idx];
+                  if (cData) {
+                    const qVal = cData.q_text || cData.front || (cData.card && (getVal(cData.card, qKey) || cData.card.content || cData.card.front));
+                    if (qVal && String(qVal).trim() && String(qVal).trim().toLowerCase() !== String(choice || "").trim().toLowerCase()) {
+                      return String(qVal).trim();
+                    }
+                  }
+
+                  // 2. Secondary: lookup by choice_item_ids
+                  const choiceIds = choice_item_ids || currentPracticeData?.choice_item_ids || currentQuestion?.practice?.choice_item_ids;
                   let qData: any = null;
-                  if (choice_item_ids && session?.questions && choice_item_ids[idx] !== undefined) {
-                    const selectedId = choice_item_ids[idx];
+                  if (choiceIds && session?.questions && choiceIds[idx] !== undefined) {
+                    const selectedId = choiceIds[idx];
                     qData = session.questions.find((q: any) => String(q.id) === String(selectedId));
                   }
+
+                  // 3. Tertiary: lookup in session.questions matching choice text in answer column
                   if (!qData && session?.questions && session.questions.length > 0) {
                     const choiceNorm = String(choice || "").trim().toLowerCase();
                     qData = session.questions.find((q: any) => {
@@ -3526,10 +3542,15 @@ export default function PracticePlay() {
                       });
                     }
                   }
+
                   if (qData) {
-                    return getVal(qData, qKey) || qData.content || qData.front || '';
+                    const result = getVal(qData, qKey) || qData.content || qData.front || '';
+                    if (result && result.toLowerCase() !== String(choice || "").trim().toLowerCase()) {
+                      return result;
+                    }
                   }
-                  return getOppositeTextFromCard(null, choice, qKey, aKey) || '';
+
+                  return '';
                 })() : '';
 
                 if (answered) {
