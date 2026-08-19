@@ -3434,19 +3434,19 @@ export default function PracticePlay() {
     }
 
     return (
-      <div className="flex-1 bg-gradient-to-b from-slate-50 via-purple-50/15 to-slate-50 md:rounded-[2.5rem] rounded-[1.5rem] border border-slate-100/80 md:p-6 p-3 flex flex-col justify-between gap-3 md:gap-5 shadow-2xl shadow-indigo-100/30 min-h-0 overflow-y-auto custom-scrollbar">
+      <div className="flex-1 bg-gradient-to-b from-slate-50 via-amber-50/15 to-slate-50 md:rounded-[2.5rem] rounded-[1.5rem] border border-slate-100/80 md:p-6 p-3 flex flex-col justify-between gap-3 md:gap-5 shadow-2xl shadow-amber-100/20 min-h-0 overflow-y-auto custom-scrollbar">
 
-        {/* ── Top Question Card (Clean Soft Purple Mesh Glassmorphism) ── */}
+        {/* ── Top Question Card (Clean Warm Amber Mesh Glassmorphism) ── */}
         <div className="w-full max-w-2xl mx-auto my-auto animate-in fade-in slide-in-from-top-3 duration-500 shrink-0">
-          <div className="w-full bg-gradient-to-b from-purple-50/80 via-indigo-50/40 to-white/95 backdrop-blur-xl rounded-[2rem] p-5 md:p-8 shadow-[0_12px_36px_rgba(99,102,241,0.08)] border border-purple-100/70 flex flex-col items-center justify-center text-center relative overflow-hidden">
+          <div className="w-full bg-gradient-to-b from-amber-50/80 via-orange-50/30 to-white/95 backdrop-blur-xl rounded-[2rem] p-6 md:p-8 shadow-[0_12px_36px_rgba(245,158,11,0.08)] border border-amber-100/80 flex flex-col items-center justify-center text-center relative overflow-hidden">
             {/* Ambient Background Glows */}
-            <div className="absolute top-0 left-1/2 -translate-x-1/2 w-48 h-24 bg-purple-200/25 blur-3xl pointer-events-none" />
-            <div className="absolute -bottom-8 -right-8 w-32 h-32 bg-indigo-100/35 blur-2xl pointer-events-none" />
+            <div className="absolute top-0 left-1/2 -translate-x-1/2 w-48 h-24 bg-amber-200/25 blur-3xl pointer-events-none" />
+            <div className="absolute -bottom-8 -right-8 w-32 h-32 bg-orange-100/35 blur-2xl pointer-events-none" />
 
             {/* Top Row: Question Pill on Left, Bookmark on Right */}
-            <div className="w-full flex items-center justify-between mb-3 md:mb-4 relative z-10">
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-purple-100/80 border border-purple-200/60 text-purple-700 font-black text-xs shadow-sm">
-                <Sparkles className="w-3.5 h-3.5 text-purple-600 fill-purple-200" />
+            <div className="w-full flex items-center justify-between mb-4 relative z-10">
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-amber-100/80 border border-amber-200/70 text-amber-800 font-black text-xs shadow-sm">
+                <Sparkles className="w-3.5 h-3.5 text-amber-600 fill-amber-300" />
                 <span>Câu hỏi {currentIndex + 1}</span>
               </span>
 
@@ -3457,39 +3457,35 @@ export default function PracticePlay() {
                     setStarredCards(prev => ({ ...prev, [currentQuestion.id]: !prev[currentQuestion.id] }));
                   }
                 }}
-                className="w-8 h-8 rounded-xl flex items-center justify-center text-purple-400 hover:text-purple-600 hover:bg-purple-50/80 transition-all active:scale-90 cursor-pointer"
+                className="w-8 h-8 rounded-xl flex items-center justify-center text-amber-400 hover:text-amber-600 hover:bg-amber-50/80 transition-all active:scale-90 cursor-pointer"
                 title={currentQuestion?.id && starredCards[currentQuestion.id] ? "Bỏ đánh dấu" : "Đánh dấu câu hỏi"}
               >
-                <Bookmark className={cn("w-5 h-5 transition-colors", currentQuestion?.id && starredCards[currentQuestion.id] ? "fill-purple-600 text-purple-600" : "text-purple-400")} />
+                <Bookmark className={cn("w-5 h-5 transition-colors", currentQuestion?.id && starredCards[currentQuestion.id] ? "fill-amber-500 text-amber-500" : "text-amber-400")} />
               </button>
             </div>
 
-            {/* Question Word & Prompt */}
+            {/* Question Word */}
             {baseMode === 'listening' ? (
-              <div className="flex flex-col items-center gap-3 my-2">
+              <div className="flex flex-col items-center gap-3 my-3">
                 <div
                   onClick={() => {
                     const { question_key: qKey } = practiceData!;
                     playCardAudio(qKey || 'front');
                   }}
-                  className="relative w-20 h-20 rounded-full bg-white border border-purple-200 flex items-center justify-center shadow-lg shadow-purple-100/50 hover:bg-purple-50 active:scale-95 transition-all cursor-pointer group"
+                  className="relative w-20 h-20 rounded-full bg-white border border-amber-200 flex items-center justify-center shadow-lg shadow-amber-100/50 hover:bg-amber-50 active:scale-95 transition-all cursor-pointer group"
                   title="Nhấn để nghe lại"
                 >
-                  <div className="absolute inset-0 rounded-full bg-purple-400/10 animate-ping" />
-                  <div className="absolute inset-2 rounded-full bg-purple-300/20 animate-pulse" />
-                  <Play className="w-7 h-7 text-purple-600 fill-purple-600 group-hover:scale-110 transition-transform" />
+                  <div className="absolute inset-0 rounded-full bg-amber-400/10 animate-ping" />
+                  <div className="absolute inset-2 rounded-full bg-amber-300/20 animate-pulse" />
+                  <Play className="w-7 h-7 text-amber-600 fill-amber-600 group-hover:scale-110 transition-transform" />
                 </div>
-                <span className="text-[10px] font-black text-purple-600 tracking-widest uppercase mt-1">NHẤN ĐỂ NGHE PHÁT ÂM</span>
+                <span className="text-[10px] font-black text-amber-600 tracking-widest uppercase mt-1">NHẤN ĐỂ NGHE PHÁT ÂM</span>
               </div>
             ) : (
-              <div className="my-1">
+              <div className="my-3">
                 <h2 className="text-3xl md:text-4xl lg:text-5xl font-black text-slate-900 leading-tight tracking-wide font-sans px-2">
                   <span dangerouslySetInnerHTML={{ __html: parseBBCodeToHtml(question || '') }} />
                 </h2>
-                <div className="w-12 h-1 bg-purple-300/90 rounded-full mx-auto my-3" />
-                <p className="text-xs md:text-sm text-slate-500 font-semibold tracking-normal">
-                  Chọn nghĩa <span className="text-purple-600 font-bold">đúng nhất</span>
-                </p>
               </div>
             )}
           </div>
@@ -3504,9 +3500,9 @@ export default function PracticePlay() {
                 const isCorrectChoice = idx === correct_index;
                 const letter = String.fromCharCode(65 + idx); // A, B, C, D
 
-                let cardStyle = "bg-white border-slate-100 hover:border-purple-200 hover:shadow-md text-slate-800";
-                let badgeStyle = "bg-purple-50/90 text-purple-700 border-purple-100/60";
-                let radioStyle = "border-slate-200";
+                let cardStyle = "bg-white border-slate-100 hover:border-amber-300 hover:shadow-md text-slate-800";
+                let badgeStyle = "bg-amber-50/90 text-amber-800 border-amber-100/80";
+                let radioStyle = "border-slate-200 group-hover:border-amber-300";
 
                 if (answered) {
                   if (isCorrectChoice) {
