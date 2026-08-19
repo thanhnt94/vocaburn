@@ -3433,63 +3433,75 @@ export default function FlashcardPlay() {
     const newLearned = Math.min(newTarget, (roadmapStatus?.new_learned_today ?? 0) + answeredInSession);
 
     return (
-      <div className="flex-1 flex flex-col items-center justify-center p-6 md:p-10 text-center bg-gradient-to-b from-slate-900/95 via-slate-950 to-slate-950 text-white rounded-[2.5rem] border border-slate-800/90 shadow-2xl relative overflow-hidden h-full w-full max-w-xl mx-auto my-auto">
-        {/* Glow backgrounds */}
-        <div className="absolute -top-24 -left-24 w-72 h-72 bg-amber-500/15 rounded-full blur-3xl pointer-events-none" />
-        <div className="absolute -bottom-24 -right-24 w-72 h-72 bg-emerald-500/15 rounded-full blur-3xl pointer-events-none" />
-
-        {/* Icon / Trophy */}
-        <motion.div 
-          initial={{ scale: 0.7, opacity: 0 }}
-          animate={{ scale: [0.85, 1.1, 1], opacity: 1 }}
-          transition={{ duration: 0.5, ease: "easeOut" }}
-          className="w-20 h-20 md:w-24 md:h-24 rounded-3xl bg-gradient-to-tr from-amber-500 via-orange-500 to-amber-400 flex items-center justify-center mb-5 shadow-[0_0_40px_rgba(245,158,11,0.5)] border border-amber-300/40 shrink-0"
-        >
-          {isAllDone ? (
-            <Trophy className="w-10 h-10 md:w-12 md:h-12 text-white fill-white animate-bounce" />
-          ) : (
-            <Sparkles className="w-10 h-10 md:w-12 md:h-12 text-white fill-white animate-pulse" />
-          )}
-        </motion.div>
-
-        {/* Step Badge */}
-        <div className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-300 font-black text-xs uppercase tracking-widest mb-3 shadow-sm shrink-0">
-          <CheckCircle2 className="w-4 h-4 text-amber-400" />
-          <span>{isAllDone ? 'HOÀN THÀNH LỘ TRÌNH NGÀY' : `ĐÃ XONG BƯỚC 1: HỌC TỪ MỚI (${newLearned}/${newTarget})`}</span>
+      <div className="flex-1 bg-white md:rounded-[2rem] rounded-[1.25rem] border border-slate-100 p-6 md:p-10 flex flex-col items-center justify-center text-center gap-6 shadow-2xl shadow-indigo-100/40 min-h-[480px] w-full max-w-xl mx-auto my-auto">
+        {/* Icon Badge */}
+        <div className="w-20 h-20 rounded-3xl flex items-center justify-center shadow-xl border animate-in zoom-in-75 duration-500 bg-gradient-to-tr from-emerald-400 to-teal-500 text-white border-emerald-300 shadow-emerald-200">
+          <Trophy className="w-10 h-10 animate-bounce" />
         </div>
 
-        {/* Title */}
-        <h2 className="text-xl md:text-2xl font-black tracking-tight text-white mb-2 max-w-lg shrink-0">
-          {isAllDone ? 'Chúc mừng bạn đã hoàn thành toàn bộ lộ trình hôm nay! 🎉' : 'Đã học xong từ mới lộ trình hôm nay! 🎯'}
-        </h2>
+        {/* Title & Subtitle */}
+        <div className="space-y-2 max-w-md">
+          <h2 className="text-2xl md:text-3xl font-black text-slate-800 tracking-tight">
+            {isAllDone ? "🎉 XUẤT SẮC! HOÀN THÀNH LỘ TRÌNH" : "🎉 XUẤT SẮC! ĐẠT MỤC TIÊU ROADMAP"}
+          </h2>
+          <p className="text-xs md:text-sm font-medium text-slate-500 leading-relaxed">
+            {isAllDone
+              ? "Chúc mừng bạn đã hoàn thành tất cả các bước trong lộ trình ngày hôm nay!"
+              : "Chúc mừng bạn đã hoàn thành việc học từ mới của lộ trình hôm nay!"}
+          </p>
+        </div>
 
-        {/* Subtitle */}
-        <p className="text-xs md:text-sm text-slate-300 font-medium max-w-md mb-6 leading-relaxed shrink-0">
-          {isAllDone
-            ? 'Bạn đã xuất sắc hoàn thành tất cả các bước trong lộ trình ngày. Hãy quay lại vào ngày mai hoặc ôn tập tự do!'
-            : `Xuất sắc! Hãy chuyển sang Bước 2 để làm bài kiểm tra trắc nghiệm MCQ / gõ từ giúp củng cố kiến thức vào trí nhớ dài hạn.`}
-        </p>
+        {/* Stats Grid */}
+        <div className="grid grid-cols-3 gap-3 w-full max-w-md my-2">
+          <div className="bg-slate-50 p-3.5 rounded-2xl border border-slate-100 text-center">
+            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">Đã học</span>
+            <span className="text-2xl font-black text-emerald-600 block mt-0.5">
+              {newLearned}/{newTarget}
+            </span>
+          </div>
+
+          <div className="bg-slate-50 p-3.5 rounded-2xl border border-slate-100 text-center">
+            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">Hoàn thành</span>
+            <span className="text-2xl font-black text-emerald-600 block mt-0.5">
+              100%
+            </span>
+          </div>
+
+          <div className="bg-slate-50 p-3.5 rounded-2xl border border-slate-100 text-center">
+            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">Mục tiêu</span>
+            <span className="text-2xl font-black text-indigo-600 block mt-0.5">
+              100%
+            </span>
+          </div>
+        </div>
 
         {/* Action Buttons */}
-        <div className="flex flex-col gap-3 w-full max-w-sm shrink-0">
-          {!isAllDone && (
+        <div className="w-full max-w-md space-y-3 pt-2">
+          {!isAllDone && nextActionUrl && (
             <button
-              onClick={() => {
-                navigate(nextActionUrl);
-              }}
-              className="w-full py-4 px-6 rounded-2xl bg-gradient-to-r from-orange-500 via-amber-500 to-orange-600 hover:from-orange-600 hover:to-amber-600 text-white font-black text-xs uppercase tracking-wider shadow-lg shadow-orange-500/30 active:scale-95 transition-all flex items-center justify-center gap-2 cursor-pointer"
+              onClick={() => navigate(nextActionUrl)}
+              className="w-full py-4 px-6 bg-gradient-to-r from-orange-500 via-amber-500 to-orange-600 hover:from-orange-600 hover:to-amber-600 text-white font-black text-sm uppercase tracking-wider rounded-2xl shadow-xl shadow-orange-500/20 active:scale-[0.98] transition-all flex items-center justify-center gap-2 cursor-pointer"
             >
-              <span>{nextActionLabel || 'SANG BƯỚC 2: TRẮC NGHIỆM MCQ'}</span>
-              <ArrowRight className="w-4 h-4" />
+              <span>{nextActionLabel ? `🚀 SANG BƯỚC: ${nextActionLabel} ➔` : '🚀 SANG BƯỚC TIẾP THEO ➔'}</span>
+            </button>
+          )}
+
+          {isAllDone && (
+            <button
+              onClick={() => navigate('/')}
+              className="w-full py-4 px-6 bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-600 hover:from-emerald-600 hover:to-teal-700 text-white font-black text-sm uppercase tracking-wider rounded-2xl shadow-xl shadow-emerald-500/20 active:scale-[0.98] transition-all flex items-center justify-center gap-2 cursor-pointer"
+            >
+              <Trophy className="w-5 h-5 fill-current" />
+              <span>🎉 HOÀN THÀNH LỘ TRÌNH HÔM NAY ➔ VỀ DASHBOARD</span>
             </button>
           )}
 
           <button
             onClick={() => setIsStudyConsoleOpen(true)}
-            className="w-full py-3.5 px-4 rounded-2xl bg-slate-900/90 hover:bg-slate-800 border border-slate-700/80 text-slate-200 hover:text-white font-bold text-xs active:scale-95 transition-all cursor-pointer flex items-center justify-between shadow-sm"
+            className="w-full py-3.5 px-4 rounded-2xl bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-700 hover:text-slate-900 font-bold text-xs active:scale-95 transition-all cursor-pointer flex items-center justify-between shadow-sm"
           >
             <span className="flex items-center gap-2">
-              <Brain className="w-4 h-4 text-indigo-400" />
+              <Brain className="w-4 h-4 text-indigo-500" />
               <span>Vẫn muốn học Flashcard? Đổi chế độ</span>
             </span>
             <ChevronRight className="w-4 h-4 text-slate-400" />
@@ -3497,7 +3509,7 @@ export default function FlashcardPlay() {
 
           <button
             onClick={() => navigate('/')}
-            className="w-full py-3 px-4 rounded-xl bg-slate-800/50 hover:bg-slate-800 border border-slate-700/60 text-slate-300 hover:text-white font-bold text-xs active:scale-95 transition-all cursor-pointer"
+            className="w-full py-3 px-4 rounded-xl bg-slate-100/60 hover:bg-slate-100 border border-slate-200/60 text-slate-500 hover:text-slate-700 font-bold text-xs active:scale-95 transition-all cursor-pointer"
           >
             Về Trang Chủ
           </button>
