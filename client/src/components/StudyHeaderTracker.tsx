@@ -464,12 +464,6 @@ export const StudyHeaderTracker: React.FC<StudyHeaderTrackerProps> = ({
                       {hasSubProg ? subProgressTotal : (totalCards || '--')}
                     </span>
                   </div>
-
-                  {/* Flip Hint Icon */}
-                  <div className="hidden sm:flex items-center gap-1 text-[10px] text-slate-400 hover:text-slate-200 border-l border-slate-800 pl-2 shrink-0">
-                    <ArrowRightLeft className="w-2.5 h-2.5" />
-                    <span>Thông số</span>
-                  </div>
                 </div>
               </motion.div>
             ) : (
@@ -553,12 +547,6 @@ export const StudyHeaderTracker: React.FC<StudyHeaderTrackerProps> = ({
                     </div>
                   </>
                 )}
-
-                {/* Flip Back Hint */}
-                <div className="hidden md:flex items-center gap-1 px-2 py-0.5 rounded-full bg-slate-800/80 border border-slate-700/60 text-[10px] font-bold text-slate-400 hover:text-slate-200 shrink-0 ml-auto">
-                  <ArrowRightLeft className="w-2.5 h-2.5" />
-                  <span>Tên thẻ</span>
-                </div>
               </motion.div>
             )}
           </AnimatePresence>
