@@ -244,7 +244,8 @@ async def record_answer(request: Request, data: dict, db: AsyncSession = Depends
 
     if card:
         mode_val = data.get("mode") or data.get("practice_mode")
-        if is_practice:
+        is_practice_mode = is_practice or (mode_val in ["practice", "roadmap_mcq", "roadmap_typing", "roadmap_test", "mcq", "typing", "listening"])
+        if is_practice_mode:
             if mode_val in ["roadmap_mcq", "mcq"]:
                 attempt_mode = "roadmap_mcq"
             elif mode_val in ["roadmap_typing", "typing"]:
@@ -252,7 +253,7 @@ async def record_answer(request: Request, data: dict, db: AsyncSession = Depends
             else:
                 attempt_mode = "practice"
         else:
-            attempt_mode = mode_val if mode_val in ["roadmap", "sequential", "play", "fsrs", "new", "review"] else "play"
+            attempt_mode = mode_val if mode_val in ["roadmap", "sequential", "play", "fsrs", "new", "review", "flip"] else "play"
         attempt_res = await db.execute(
             select(DeckAttempt)
             .filter(
@@ -281,7 +282,7 @@ async def record_answer(request: Request, data: dict, db: AsyncSession = Depends
         # --- FSRS v6 Spaced Repetition Mastery Levels ---
         practice_mode = data.get("practice_mode", "mcq")  # mcq, typing, listening
         
-        if not is_practice:
+        if not is_practice_mode:
             from fsrs import Card, Scheduler, Rating, State
             
             mastery_res = await db.execute(

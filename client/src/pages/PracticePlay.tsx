@@ -2000,6 +2000,8 @@ export default function PracticePlay() {
       const res = await axios.post('/api/v1/deck/record_answer', {
         question_id: currentQuestion.id,
         is_correct: correct,
+        is_practice: true,
+        practice_mode: practiceSubMode || 'mcq',
         rating: rating,
         time_spent: timeTaken,
         local_date: new Date().toISOString().slice(0, 10)
