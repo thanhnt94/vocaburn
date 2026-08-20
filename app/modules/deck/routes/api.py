@@ -12,3 +12,8 @@ router.include_router(play_router)
 router.include_router(stats_router)
 router.include_router(features_router)
 router.include_router(review_router)
+
+from app.modules.deck.routes.community import router as community_router
+from app.modules.deck.routes.roadmap import router as roadmap_router
+router.include_router(community_router)
+router.include_router(roadmap_router)
