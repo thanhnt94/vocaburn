@@ -2699,7 +2699,7 @@ async def get_deck_roadmap_status_helper(db: AsyncSession, user_id: int, deck_id
                 "label": f"Thời gian học ({target_mins} phút)"
             })
 
-        if prog and prog.is_target_met:
+        if prog and getattr(prog, 'is_rescued', False):
             step_data["done"] = True
 
         pipeline_processed.append(step_data)
@@ -2726,8 +2726,8 @@ async def get_deck_roadmap_status_helper(db: AsyncSession, user_id: int, deck_id
 
     if len(pipeline_processed) > 0:
         steps_all_done = all(step.get("done", False) for step in pipeline_processed)
-        is_already_met = (prog is not None and (getattr(prog, 'is_target_met', False) or getattr(prog, 'is_rescued', False)))
-        all_done = is_already_met or (steps_all_done and (has_activity_today or all_cards_learned))
+        is_rescued = (prog is not None and getattr(prog, 'is_rescued', False))
+        all_done = is_rescued or (steps_all_done and (has_activity_today or all_cards_learned))
     else:
         all_done = False
         

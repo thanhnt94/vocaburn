@@ -3405,19 +3405,14 @@ export default function FlashcardPlay() {
   const shouldShowRoadmapStepCompleteScreen = useMemo(() => {
     if (activeMode !== 'roadmap' || !roadmapStatus?.pipeline) return false;
     
-    const isStage1Done = roadmapStatus.stage_1_done || false;
-    const isStage2Done = roadmapStatus.stage_2_done || false;
-    const answeredInSession = Object.keys(sessionAnswers).length;
-    const newTarget = roadmapStatus.new_target_today || 20;
-    const newLearned = (roadmapStatus.new_learned_today || 0) + answeredInSession;
-    const isStep1Done = isStage1Done || newLearned >= newTarget;
-
     // If all steps in roadmap are completed
     if (roadmapStatus.all_done) return true;
 
-    // If step 1 (new cards) is completed:
-    if (isStep1Done && !isStage2Done) {
-      // If the next step in pipeline is a practice test (MCQ, typing, listening):
+    const isStage1Done = Boolean(roadmapStatus.stage_1_done);
+    const isStage2Done = Boolean(roadmapStatus.stage_2_done);
+
+    // If step 1 (new cards) is completed and step 2 test is pending:
+    if (isStage1Done && !isStage2Done) {
       const testStep = roadmapStatus.pipeline.find((s: any) => s.type === 'mcq' || s.type === 'typing' || s.type === 'listening');
       if (testStep) {
         return true;
@@ -3425,15 +3420,18 @@ export default function FlashcardPlay() {
     }
 
     return false;
-  }, [activeMode, roadmapStatus, sessionAnswers]);
+  }, [activeMode, roadmapStatus]);
 
   const [isStudyConsoleOpen, setIsStudyConsoleOpen] = useState(false);
 
   const renderRoadmapStepCompleteScreen = () => {
     const isAllDone = Boolean(roadmapStatus?.all_done);
     const newTarget = roadmapStatus?.new_target_today ?? 20;
-    const answeredInSession = Object.keys(sessionAnswers).length;
-    const newLearned = Math.min(newTarget, (roadmapStatus?.new_learned_today ?? 0) + answeredInSession);
+    const newLearned = Math.min(newTarget, roadmapStatus?.new_learned_today ?? 0);
+
+    const testStep = roadmapStatus?.pipeline?.find((s: any) => s.type === 'mcq' || s.type === 'typing' || s.type === 'listening');
+    const targetActionUrl = !isAllDone && testStep?.url ? testStep.url : nextActionUrl;
+    const targetActionLabel = !isAllDone && testStep?.label ? testStep.label : (nextActionLabel || 'Tiếp theo');
 
     return (
       <div className="flex-1 bg-white md:rounded-[2rem] rounded-[1.25rem] border border-slate-100 p-6 md:p-10 flex flex-col items-center justify-center text-center gap-6 shadow-2xl shadow-indigo-100/40 min-h-[480px] w-full max-w-xl mx-auto my-auto">
@@ -3466,7 +3464,7 @@ export default function FlashcardPlay() {
           <div className="bg-slate-50 p-3.5 rounded-2xl border border-slate-100 text-center">
             <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">Hoàn thành</span>
             <span className="text-2xl font-black text-emerald-600 block mt-0.5">
-              100%
+              {newTarget > 0 ? Math.min(100, Math.round((newLearned / newTarget) * 100)) : 100}%
             </span>
           </div>
 
@@ -3480,12 +3478,12 @@ export default function FlashcardPlay() {
 
         {/* Action Buttons */}
         <div className="w-full max-w-md space-y-3 pt-2">
-          {!isAllDone && nextActionUrl && (
+          {!isAllDone && targetActionUrl && (
             <button
-              onClick={() => navigate(nextActionUrl)}
+              onClick={() => navigate(targetActionUrl)}
               className="w-full py-4 px-6 bg-gradient-to-r from-orange-500 via-amber-500 to-orange-600 hover:from-orange-600 hover:to-amber-600 text-white font-black text-sm uppercase tracking-wider rounded-2xl shadow-xl shadow-orange-500/20 active:scale-[0.98] transition-all flex items-center justify-center gap-2 cursor-pointer"
             >
-              <span>{nextActionLabel ? `🚀 SANG BƯỚC: ${nextActionLabel} ➔` : '🚀 SANG BƯỚC TIẾP THEO ➔'}</span>
+              <span>{targetActionLabel ? `🚀 SANG BƯỚC: ${targetActionLabel} ➔` : '🚀 SANG BƯỚC TIẾP THEO ➔'}</span>
             </button>
           )}
 
