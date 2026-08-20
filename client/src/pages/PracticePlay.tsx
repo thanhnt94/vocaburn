@@ -6838,17 +6838,7 @@ export default function PracticePlay() {
         )}
       </AnimatePresence>
 
-      {/* Floating Roadmap Step Completion Banner */}
-      <RoadmapFloatingBanner
-        show={isRoadmapActive && showBanner && !shouldShowRoadmapTestSummary}
-        onClose={dismissBanner}
-        completedStep={justCompletedStep}
-        nextActionUrl={nextActionUrl}
-        nextActionLabel={nextActionLabel}
-        currentStepIndex={(roadmapStatus?.current_step_index || 0) + 1}
-        totalSteps={roadmapStatus?.pipeline?.length || 1}
-        allDone={isRoadmapAllDone}
-      />
+
 
       {/* Play Settings Modal */}
       <PlaySettingsModal

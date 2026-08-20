@@ -5496,17 +5496,7 @@ export default function FlashcardPlay() {
 
 
 
-      {/* Floating Roadmap Step Completion Banner */}
-      <RoadmapFloatingBanner
-        show={!shouldShowRoadmapStepCompleteScreen && activeMode === 'roadmap' && showBanner}
-        onClose={dismissBanner}
-        completedStep={justCompletedStep}
-        nextActionUrl={nextActionUrl}
-        nextActionLabel={nextActionLabel}
-        currentStepIndex={(roadmapStatus?.current_step_index || 0) + 1}
-        totalSteps={roadmapStatus?.pipeline?.length || 1}
-        allDone={isRoadmapAllDone}
-      />
+
 
       {/* ── STUDY CONSOLE MODAL ── */}
       <AnimatePresence>
