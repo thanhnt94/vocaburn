@@ -1524,10 +1524,7 @@ export default function FlashcardPlay() {
           if (updated && updated.pipeline) {
             const newStep = updated.pipeline.find((s: any) => s.type === 'new_cards');
             const revStep = updated.pipeline.find((s: any) => s.type === 'fsrs_review');
-            const newDone = newStep ? newStep.done : true;
-            if (newDone && activeMode === 'roadmap' && !updated.all_done) {
-              setShowRoadmapCompleteModal(true);
-            }
+            // Roadmap status updated, inline complete screen will handle completion display smoothly
           }
         });
       }
@@ -3422,6 +3419,12 @@ export default function FlashcardPlay() {
     return false;
   }, [activeMode, roadmapStatus]);
 
+  useEffect(() => {
+    if (shouldShowRoadmapStepCompleteScreen) {
+      confetti({ zIndex: 9999, particleCount: 150, spread: 80, origin: { y: 0.5 } });
+    }
+  }, [shouldShowRoadmapStepCompleteScreen]);
+
   const [isStudyConsoleOpen, setIsStudyConsoleOpen] = useState(false);
 
   const renderRoadmapStepCompleteScreen = () => {
@@ -3443,12 +3446,14 @@ export default function FlashcardPlay() {
         {/* Title & Subtitle */}
         <div className="space-y-2 max-w-md">
           <h2 className="text-2xl md:text-3xl font-black text-slate-800 tracking-tight">
-            {isAllDone ? "🎉 XUẤT SẮC! HOÀN THÀNH LỘ TRÌNH" : "🎉 XUẤT SẮC! ĐẠT MỤC TIÊU ROADMAP"}
+            {isAllDone ? "🎉 XUẤT SẮC! HOÀN THÀNH LỘ TRÌNH" : "🎉 XUẤT SẮC! ĐÃ HỌC XONG TỪ MỚI"}
           </h2>
           <p className="text-xs md:text-sm font-medium text-slate-500 leading-relaxed">
             {isAllDone
               ? "Chúc mừng bạn đã hoàn thành tất cả các bước trong lộ trình ngày hôm nay!"
-              : "Chúc mừng bạn đã hoàn thành việc học từ mới của lộ trình hôm nay!"}
+              : testStep
+                ? "Xuất sắc! Hãy thực hiện bài kiểm tra để đánh giá khả năng ghi nhớ & giữ Streak ngày!"
+                : "Chúc mừng bạn đã hoàn thành việc học từ mới của lộ trình hôm nay!"}
           </p>
         </div>
 
@@ -3481,9 +3486,10 @@ export default function FlashcardPlay() {
           {!isAllDone && targetActionUrl && (
             <button
               onClick={() => navigate(targetActionUrl)}
-              className="w-full py-4 px-6 bg-gradient-to-r from-orange-500 via-amber-500 to-orange-600 hover:from-orange-600 hover:to-amber-600 text-white font-black text-sm uppercase tracking-wider rounded-2xl shadow-xl shadow-orange-500/20 active:scale-[0.98] transition-all flex items-center justify-center gap-2 cursor-pointer"
+              className="w-full py-4 px-6 bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-700 hover:from-indigo-700 hover:to-purple-800 text-white font-black text-sm uppercase tracking-wider rounded-2xl shadow-xl shadow-indigo-500/20 active:scale-[0.98] transition-all flex items-center justify-center gap-2 cursor-pointer"
             >
-              <span>{targetActionLabel ? `🚀 SANG BƯỚC: ${targetActionLabel} ➔` : '🚀 SANG BƯỚC TIẾP THEO ➔'}</span>
+              <Target className="w-4 h-4" />
+              <span>{targetActionLabel ? `🚀 SANG BƯỚC: ${targetActionLabel} ➔` : '🎯 BẮT ĐẦU BÀI KIỂM TRA ➔'}</span>
             </button>
           )}
 
@@ -3496,6 +3502,16 @@ export default function FlashcardPlay() {
               <span>🎉 HOÀN THÀNH LỘ TRÌNH HÔM NAY ➔ VỀ DASHBOARD</span>
             </button>
           )}
+
+          <button
+            onClick={() => {
+              applyLearningMode('new');
+            }}
+            className="w-full py-3.5 px-4 rounded-2xl bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-700 hover:text-slate-900 font-bold text-xs active:scale-95 transition-all cursor-pointer flex items-center justify-center gap-2 shadow-sm"
+          >
+            <Sparkles className="w-4 h-4 text-orange-500" />
+            <span>Học tiếp từ mới 🚀</span>
+          </button>
 
           <button
             onClick={() => setIsStudyConsoleOpen(true)}
@@ -5470,100 +5486,7 @@ export default function FlashcardPlay() {
         )}
       </AnimatePresence>
 
-      {/* ROADMAP DAILY COMPLETE MODAL */}
-      <AnimatePresence>
-        {showRoadmapCompleteModal && roadmapStatus && (
-          <div className="fixed inset-0 z-[2000] flex items-center justify-center p-4">
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setShowRoadmapCompleteModal(false)}
-              className="absolute inset-0 bg-slate-900/60 backdrop-blur-md pointer-events-auto"
-            />
-            <motion.div
-              initial={{ opacity: 0, scale: 0.9, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.9, y: 20 }}
-              className="relative w-full max-w-md bg-white rounded-[2.5rem] p-8 shadow-2xl border border-slate-100 overflow-hidden text-slate-800 pointer-events-auto text-center"
-            >
-              <div className="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-orange-500 via-rose-500 to-amber-500"></div>
-              <div className="absolute -top-12 -right-12 w-32 h-32 rounded-full bg-orange-100/40 blur-2xl pointer-events-none" />
 
-              <div className="w-20 h-20 bg-gradient-to-tr from-orange-400 to-rose-500 rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-lg shadow-orange-200/50 animate-bounce">
-                <Trophy className="w-10 h-10 text-white fill-white" />
-              </div>
-
-              <h3 className="text-2xl font-black text-slate-800 mb-2 uppercase tracking-tight">Đã học xong từ mới! 🎯</h3>
-              <p className="text-slate-500 font-bold text-sm leading-relaxed mb-6">
-                {(() => {
-                  const testStep = roadmapStatus?.pipeline?.find((s: any) => s.type === 'mcq' || s.type === 'typing');
-                  const thresh = testStep?.pass_threshold || 80;
-                  return `Xuất sắc! Hãy thực hiện **Bài Kiểm Tra Roadmap** (Đạt ≥${thresh}%) để đánh giá khả năng ghi nhớ & giữ Streak ngày!`;
-                })()}
-              </p>
-
-              <div className="grid grid-cols-2 gap-4 bg-slate-50 p-4 rounded-3xl border border-slate-100 mb-6">
-                <div className="text-center border-r border-slate-200/60">
-                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Mục tiêu từ mới</span>
-                  <span className="text-xl font-black text-orange-600">
-                    {(() => {
-                      const newStep = roadmapStatus?.pipeline?.find((s: any) => s.type === 'new_cards');
-                      return `${newStep?.progress?.learned || 0}/${newStep?.daily_count || 10}`;
-                    })()} từ
-                  </span>
-                </div>
-                <div className="text-center">
-                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Ngưỡng điểm đỗ</span>
-                  <span className="text-xl font-black text-emerald-600">
-                    ≥ {(() => {
-                      const testStep = roadmapStatus?.pipeline?.find((s: any) => s.type === 'mcq' || s.type === 'typing');
-                      return testStep?.pass_threshold || 80;
-                    })()}%
-                  </span>
-                </div>
-              </div>
-
-              <div className="flex flex-col gap-3">
-                <button
-                  onClick={() => {
-                    setShowRoadmapCompleteModal(false);
-                    const testStep = roadmapStatus?.pipeline?.find((s: any) => s.type === 'mcq' || s.type === 'typing');
-                    const targetUrl = testStep?.url || `/practice/${id}/roadmap_test`;
-                    navigate(targetUrl);
-                  }}
-                  className="py-4 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-black text-xs uppercase tracking-widest rounded-2xl shadow-lg shadow-indigo-200 active:scale-95 transition-all flex items-center justify-center gap-2 cursor-pointer"
-                >
-                  <Target className="w-4 h-4" /> BẮT ĐẦU BÀI KIỂM TRA 🎯
-                </button>
-                <button
-                  onClick={async () => {
-                    try {
-                      const newStep = roadmapStatus?.pipeline?.find((s: any) => s.type === 'new_cards');
-                      const currentDaily = newStep?.daily_count || 10;
-                      const updatedPipeline = (roadmapStatus?.pipeline || []).map((st: any) => 
-                        st.type === 'new_cards' ? { ...st, daily_count: currentDaily + 5 } : st
-                      );
-                      await axios.post(`/api/v1/deck/${id}/practice-settings`, {
-                        settings: { pipeline: updatedPipeline },
-                        is_creator: false
-                      });
-                      await fetchRoadmapStatus();
-                      setShowRoadmapCompleteModal(false);
-                      handleNext();
-                    } catch (e) {
-                      console.error("Failed to update daily new cards limit:", e);
-                    }
-                  }}
-                  className="py-3.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-black text-xs uppercase tracking-widest rounded-2xl active:scale-95 transition-all cursor-pointer"
-                >
-                  HỌC THÊM 5 TỪ MỚI 🚀
-                </button>
-              </div>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
 
       {/* Floating Roadmap Step Completion Banner */}
       <RoadmapFloatingBanner
