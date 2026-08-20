@@ -3428,13 +3428,21 @@ export default function FlashcardPlay() {
   const [isStudyConsoleOpen, setIsStudyConsoleOpen] = useState(false);
 
   const renderRoadmapStepCompleteScreen = () => {
-    const isAllDone = Boolean(roadmapStatus?.all_done);
+    const firstUnfinishedStep = roadmapStatus?.pipeline?.find((s: any) => !s.done);
+    const isAllDone = Boolean(roadmapStatus?.all_done || !firstUnfinishedStep);
     const newTarget = roadmapStatus?.new_target_today ?? 20;
     const newLearned = Math.min(newTarget, roadmapStatus?.new_learned_today ?? 0);
 
-    const testStep = roadmapStatus?.pipeline?.find((s: any) => s.type === 'mcq' || s.type === 'typing' || s.type === 'listening');
-    const targetActionUrl = !isAllDone && testStep?.url ? testStep.url : nextActionUrl;
-    const targetActionLabel = !isAllDone && testStep?.label ? testStep.label : (nextActionLabel || 'Tiếp theo');
+    const targetActionUrl = firstUnfinishedStep?.url || (!isAllDone ? nextActionUrl : null);
+    const targetActionLabel = firstUnfinishedStep?.label || nextActionLabel || 'Tiếp theo';
+
+    const subtitleText = isAllDone
+      ? "Chúc mừng bạn đã hoàn thành tất cả các bước trong lộ trình ngày hôm nay!"
+      : firstUnfinishedStep?.type === 'mcq' || firstUnfinishedStep?.type === 'typing'
+        ? "Xuất sắc! Hãy thực hiện bài kiểm tra để đánh giá khả năng ghi nhớ & giữ Streak ngày!"
+        : firstUnfinishedStep?.type === 'fsrs_review'
+          ? "Xuất sắc! Tiếp tục với bước Ôn tập FSRS để củng cố khả năng ghi nhớ dài hạn!"
+          : "Chúc mừng bạn đã hoàn thành việc học từ mới của lộ trình hôm nay!";
 
     return (
       <div className="flex-1 bg-white md:rounded-[2rem] rounded-[1.25rem] border border-slate-100 p-6 md:p-10 flex flex-col items-center justify-center text-center gap-6 shadow-2xl shadow-indigo-100/40 min-h-[480px] w-full max-w-xl mx-auto my-auto">
@@ -3449,11 +3457,7 @@ export default function FlashcardPlay() {
             {isAllDone ? "🎉 XUẤT SẮC! HOÀN THÀNH LỘ TRÌNH" : "🎉 XUẤT SẮC! ĐÃ HỌC XONG TỪ MỚI"}
           </h2>
           <p className="text-xs md:text-sm font-medium text-slate-500 leading-relaxed">
-            {isAllDone
-              ? "Chúc mừng bạn đã hoàn thành tất cả các bước trong lộ trình ngày hôm nay!"
-              : testStep
-                ? "Xuất sắc! Hãy thực hiện bài kiểm tra để đánh giá khả năng ghi nhớ & giữ Streak ngày!"
-                : "Chúc mừng bạn đã hoàn thành việc học từ mới của lộ trình hôm nay!"}
+            {subtitleText}
           </p>
         </div>
 
@@ -3489,7 +3493,11 @@ export default function FlashcardPlay() {
               className="w-full py-4 px-6 bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-700 hover:from-indigo-700 hover:to-purple-800 text-white font-black text-sm uppercase tracking-wider rounded-2xl shadow-xl shadow-indigo-500/20 active:scale-[0.98] transition-all flex items-center justify-center gap-2 cursor-pointer"
             >
               <Target className="w-4 h-4" />
-              <span>{targetActionLabel ? `🚀 SANG BƯỚC: ${targetActionLabel} ➔` : '🎯 BẮT ĐẦU BÀI KIỂM TRA ➔'}</span>
+              <span>
+                {firstUnfinishedStep?.type === 'mcq' || firstUnfinishedStep?.type === 'typing'
+                  ? '🎯 BẮT ĐẦU BÀI KIỂM TRA ➔'
+                  : `🚀 SANG BƯỚC: ${targetActionLabel} ➔`}
+              </span>
             </button>
           )}
 

@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useMemo } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import confetti from 'canvas-confetti'
 import { useParams, useNavigate } from 'react-router-dom'
@@ -541,10 +541,12 @@ export default function PracticePlay() {
   const [isEditingPrompt, setIsEditingPrompt] = useState(false)
   const [promptInput, setPromptInput] = useState('')
   const [isRoadmapTestFinished, setIsRoadmapTestFinished] = useState(false)
+  const [isRetakingTest, setIsRetakingTest] = useState(false)
   const [roadmapSubmitResult, setRoadmapSubmitResult] = useState<any>(null)
   const [isSubmittingTest, setIsSubmittingTest] = useState(false)
 
   const handleResetRoadmapTest = async () => {
+    setIsRetakingTest(true);
     setIsRoadmapTestFinished(false);
     setRoadmapSubmitResult(null);
     setPracticeAnswers({});
@@ -650,6 +652,15 @@ export default function PracticePlay() {
   } = useRoadmapStatus(id)
   const fetchRoadmapStatus = () => refetchRoadmap()
   const activeBottomTab = isMapOpen ? 'map' : (isStatsOpen ? 'stats' : 'flashcard')
+
+  const isStage2AlreadyDone = Boolean(roadmapStatus?.stage_2_done || roadmapStatus?.pipeline?.find((p: any) => p.type === 'mcq' || p.type === 'typing')?.done)
+
+  const shouldShowRoadmapTestSummary = useMemo(() => {
+    if (isRetakingTest) return false;
+    if (isRoadmapTestFinished) return true;
+    if (isRoadmapTestMode && isStage2AlreadyDone) return true;
+    return false;
+  }, [isRetakingTest, isRoadmapTestFinished, isRoadmapTestMode, isStage2AlreadyDone]);
 
   const {
     sfxEnabled,
@@ -3921,6 +3932,11 @@ export default function PracticePlay() {
       : (totalQ > 0 ? Math.round((correctCount / totalQ) * 100) : 0);
     const isPassed = roadmapSubmitResult?.passed !== undefined ? roadmapSubmitResult.passed : scorePercent >= 80;
 
+    const firstUnfinishedStep = roadmapStatus?.pipeline?.find((s: any) => !s.done);
+    const isAllDone = Boolean(roadmapStatus?.all_done || !firstUnfinishedStep);
+    const targetActionUrl = firstUnfinishedStep?.url || (!isAllDone ? roadmapStatus?.next_action_url : null);
+    const targetActionLabel = firstUnfinishedStep?.label || roadmapStatus?.next_action_label || 'Tiếp theo';
+
     return (
       <div className="flex-1 bg-white md:rounded-[2rem] rounded-[1.25rem] border border-slate-100 p-6 md:p-10 flex flex-col items-center justify-center text-center gap-6 shadow-2xl shadow-indigo-100/40 min-h-[480px]">
         {/* Icon Badge */}
@@ -3974,7 +3990,41 @@ export default function PracticePlay() {
 
         {/* Action Buttons */}
         <div className="w-full max-w-md space-y-3 pt-2">
-          {!isPassed ? (
+          {isPassed ? (
+            <>
+              {isAllDone || !targetActionUrl ? (
+                <button
+                  onClick={() => navigate('/')}
+                  className="w-full py-4 px-6 bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-600 hover:from-emerald-600 hover:to-teal-700 text-white font-black text-sm uppercase tracking-wider rounded-2xl shadow-xl shadow-emerald-500/20 active:scale-[0.98] transition-all flex items-center justify-center gap-2 cursor-pointer"
+                >
+                  <Trophy className="w-5 h-5 fill-current" />
+                  <span>🎉 HOÀN THÀNH LỘ TRÌNH HÔM NAY ➔ VỀ DASHBOARD</span>
+                </button>
+              ) : (
+                <button
+                  onClick={() => navigate(targetActionUrl)}
+                  className="w-full py-4 px-6 bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-700 hover:from-indigo-700 hover:to-purple-800 text-white font-black text-sm uppercase tracking-wider rounded-2xl shadow-xl shadow-indigo-500/20 active:scale-[0.98] transition-all flex items-center justify-center gap-2 cursor-pointer"
+                >
+                  <span>{targetActionLabel ? `🚀 SANG BƯỚC: ${targetActionLabel} ➔` : '🚀 SANG BƯỚC TIẾP THEO ➔'}</span>
+                </button>
+              )}
+
+              <button
+                onClick={handleResetRoadmapTest}
+                className="w-full py-3.5 px-4 rounded-2xl bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-700 hover:text-slate-900 font-bold text-xs active:scale-95 transition-all cursor-pointer flex items-center justify-center gap-2 shadow-sm"
+              >
+                <RefreshCw className="w-4 h-4 text-indigo-500" />
+                <span>Làm lại bài kiểm tra 🔄</span>
+              </button>
+
+              <button
+                onClick={() => navigate('/')}
+                className="w-full py-3 px-4 rounded-xl bg-slate-100/60 hover:bg-slate-100 border border-slate-200/60 text-slate-500 hover:text-slate-700 font-bold text-xs active:scale-95 transition-all cursor-pointer"
+              >
+                Về Trang Chủ
+              </button>
+            </>
+          ) : (
             <button
               onClick={handleResetRoadmapTest}
               className="w-full py-4 px-6 bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-white font-black text-sm uppercase tracking-wider rounded-2xl shadow-lg shadow-orange-200 active:scale-[0.98] transition-all flex items-center justify-center gap-2"
@@ -3982,23 +4032,6 @@ export default function PracticePlay() {
               <RefreshCw className="w-4.5 h-4.5" />
               <span>🔄 Làm lại bài test khác</span>
             </button>
-          ) : (
-            (roadmapStatus?.all_done || !roadmapStatus?.next_action_url || roadmapStatus?.next_action_url.includes('/roadmap')) ? (
-              <button
-                onClick={() => navigate('/')}
-                className="w-full py-4 px-6 bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-600 hover:from-emerald-600 hover:to-teal-700 text-white font-black text-sm uppercase tracking-wider rounded-2xl shadow-xl shadow-emerald-500/20 active:scale-[0.98] transition-all flex items-center justify-center gap-2 cursor-pointer"
-              >
-                <Trophy className="w-5 h-5 fill-current" />
-                <span>🎉 HOÀN THÀNH LỘ TRÌNH HÔM NAY ➔ VỀ DASHBOARD</span>
-              </button>
-            ) : (
-              <button
-                onClick={() => navigate(roadmapStatus.next_action_url)}
-                className="w-full py-4 px-6 bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-700 hover:from-indigo-700 hover:to-purple-800 text-white font-black text-sm uppercase tracking-wider rounded-2xl shadow-xl shadow-indigo-500/20 active:scale-[0.98] transition-all flex items-center justify-center gap-2 cursor-pointer"
-              >
-                <span>{roadmapStatus.next_action_label ? `🚀 SANG BƯỚC: ${roadmapStatus.next_action_label} ➔` : '🚀 SANG BƯỚC TIẾP THEO ➔'}</span>
-              </button>
-            )
           )}
         </div>
       </div>
@@ -4811,7 +4844,7 @@ export default function PracticePlay() {
                     resetPracticeSettings={resetPracticeSettings}
                   />
                 ) : mainTab === 'practice' ? (
-                  isRoadmapTestFinished ? (
+                  shouldShowRoadmapTestSummary ? (
                     renderRoadmapTestSummary()
                   ) : (
                     renderPracticeScreen()
@@ -5286,7 +5319,7 @@ export default function PracticePlay() {
         </aside>
       </main>
 
-      {!isRoadmapTestFinished && (mainTab !== 'practice' || (mainTab === 'practice' && !practiceNeedsSetup)) && (
+      {!shouldShowRoadmapTestSummary && (mainTab !== 'practice' || (mainTab === 'practice' && !practiceNeedsSetup)) && (
         <footer className="relative w-full flex-shrink-0 bg-white/95 backdrop-blur-2xl border-t border-slate-100/80 px-0 pt-0 pb-0 z-[300] shadow-[0_-4px_24px_rgba(99,102,241,0.06)]">
           <div className="max-w-2xl mx-auto w-full flex flex-col">
             {activeBottomTab === 'flashcard' && !isFeedbackOpen && (
@@ -6807,7 +6840,7 @@ export default function PracticePlay() {
 
       {/* Floating Roadmap Step Completion Banner */}
       <RoadmapFloatingBanner
-        show={isRoadmapActive && showBanner && !isRoadmapTestFinished}
+        show={isRoadmapActive && showBanner && !shouldShowRoadmapTestSummary}
         onClose={dismissBanner}
         completedStep={justCompletedStep}
         nextActionUrl={nextActionUrl}
