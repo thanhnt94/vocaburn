@@ -120,7 +120,7 @@ async def check_badges_async(user_id: int, time_spent: int, is_correct: bool, go
 
 async def sync_roadmap_status_async(user_id: int, deck_id: int, settings: dict):
     from app.core.db import SessionLocal
-    from app.modules.deck.routes.play import get_deck_roadmap_status_helper
+    from app.modules.deck.routes.roadmap import get_deck_roadmap_status_helper
     
     async with SessionLocal() as db:
         await get_deck_roadmap_status_helper(db, user_id, deck_id, settings)

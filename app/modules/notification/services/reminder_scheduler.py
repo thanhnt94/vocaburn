@@ -61,7 +61,7 @@ async def _get_active_configs(db) -> list:
 
 async def _build_user_roadmap_reminder_message(db, user_id: int):
     try:
-        from app.modules.deck.routes.play import get_roadmap_decks
+        from app.modules.deck.routes.roadmap import get_roadmap_decks
         roadmap_data = await get_roadmap_decks(user_id=user_id, db=db)
         decks = roadmap_data.get("decks", [])
     except Exception as e:

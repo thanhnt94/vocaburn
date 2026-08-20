@@ -1,4 +1,5 @@
 from app.modules.deck.services.fsrs_service import build_fsrs_card, estimate_intervals, apply_stability_boost
+from app.modules.deck.routes.roadmap import get_deck_roadmap_status_helper, get_roadmap_decks, get_deck_streak_for_user
 def get_enabled_practice_modes(practice_settings):
     if not practice_settings or not isinstance(practice_settings, dict):
         return []
