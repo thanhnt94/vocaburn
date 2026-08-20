@@ -496,7 +496,7 @@ async def get_deck_roadmap_status_helper(db: AsyncSession, user_id: int, deck_id
 async def get_roadmap_decks(request: Request, db: AsyncSession = Depends(get_db)):
     user_id = AuthService.get_user_id(request)
     
-    from app.modules.deck.models import FlashcardDeck
+    from app.modules.deck.models import FlashcardDeck, UserDeckSettings
     
     # STRICT: Only show decks where user has EXPLICITLY set roadmap_active=True in their UserDeckSettings
     user_setts_res = await db.execute(
