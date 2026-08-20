@@ -472,7 +472,8 @@ async def record_answer(request: Request, data: dict, db: AsyncSession = Depends
                 ).join(
                     DeckAttempt, UserAnswer.attempt_id == DeckAttempt.id
                 ).where(
-                    DeckAttempt.user_id == user_id
+                    DeckAttempt.user_id == user_id,
+                    DeckAttempt.mode.in_(["sequential", "roadmap", "play", "fsrs", "new", "review"])
                 ).group_by(
                     UserAnswer.card_id
                 ).subquery()
@@ -3683,12 +3684,25 @@ async def submit_roadmap_test(request: Request, deck_id: int, data: dict, db: As
 
     passed = score_percentage >= float(pass_threshold)
 
+    # Determine attempt mode: roadmap_typing or roadmap_mcq
+    test_mode = data.get("mode") or data.get("test_mode")
+    if not test_mode:
+        if isinstance(raw_pipeline, list):
+            for st in raw_pipeline:
+                if isinstance(st, dict) and st.get("type") in ("mcq", "typing"):
+                    test_mode = st.get("type")
+                    break
+    if test_mode in ("roadmap_typing", "typing"):
+        attempt_mode = "roadmap_typing"
+    else:
+        attempt_mode = "roadmap_mcq"
+
     now_utc = datetime.utcnow()
     # 1. Record DeckAttempt
     attempt = DeckAttempt(
         user_id=user_id,
         deck_id=deck_id,
-        mode="roadmap_mcq",
+        mode=attempt_mode,
         total_cards=total_questions,
         score=int(round(score_percentage)),
         started_at=now_utc,

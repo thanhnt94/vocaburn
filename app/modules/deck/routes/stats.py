@@ -52,19 +52,32 @@ async def get_practice_stats(request: Request, deck_id: Optional[int] = None, db
 
 
 @router.get("/stats")
-async def get_deck_stats(db: AsyncSession = Depends(get_db)):
-    # 1. Overall accuracy
-    total_res = await db.execute(select(func.count(UserAnswer.id)))
-    total = total_res.scalar()
+async def get_deck_stats(request: Request, db: AsyncSession = Depends(get_db)):
+    user = await AuthService.get_current_user(request, db)
+    user_id = user.id if user else 1
     
-    correct_res = await db.execute(select(func.count(UserAnswer.id)).filter(UserAnswer.is_correct == True))
-    correct = correct_res.scalar()
+    # 1. Overall accuracy for current user
+    total_res = await db.execute(
+        select(func.count(UserAnswer.id))
+        .join(DeckAttempt, UserAnswer.attempt_id == DeckAttempt.id)
+        .where(DeckAttempt.user_id == user_id)
+    )
+    total = total_res.scalar() or 0
+    
+    correct_res = await db.execute(
+        select(func.count(UserAnswer.id))
+        .join(DeckAttempt, UserAnswer.attempt_id == DeckAttempt.id)
+        .where(DeckAttempt.user_id == user_id, UserAnswer.is_correct == True)
+    )
+    correct = correct_res.scalar() or 0
     
     accuracy = (correct / total * 100) if total > 0 else 0
     
-    # 2. Activity by day (last 7 days)
+    # 2. Activity by day (last 7 days) for current user
     activity_res = await db.execute(
         select(func.date(UserAnswer.created_at), func.count(UserAnswer.id))
+        .join(DeckAttempt, UserAnswer.attempt_id == DeckAttempt.id)
+        .where(DeckAttempt.user_id == user_id)
         .group_by(func.date(UserAnswer.created_at))
         .order_by(func.date(UserAnswer.created_at))
         .limit(7)
@@ -202,20 +215,22 @@ async def get_active_goals(request: Request, local_date: Optional[str] = None, d
     )
     learned_map = {r[0]: r[1] for r in learned_res.all()}
 
-    # Bulk query today's study time (seconds) grouped by deck_id
+    # Bulk query today's study time (seconds) grouped by deck_id for current user
     time_res = await db.execute(
         select(Flashcard.deck_id, func.sum(UserAnswer.active_time))
         .join(UserAnswer, UserAnswer.card_id == Flashcard.id)
-        .where(UserAnswer.created_at >= today)
+        .join(DeckAttempt, UserAnswer.attempt_id == DeckAttempt.id)
+        .where(DeckAttempt.user_id == user_id, UserAnswer.created_at >= today)
         .group_by(Flashcard.deck_id)
     )
     deck_time_map = {r[0]: r[1] for r in time_res.all()}
 
-    # Bulk query today's total card attempts grouped by deck_id
+    # Bulk query today's total card attempts grouped by deck_id for current user
     attempted_res = await db.execute(
         select(Flashcard.deck_id, func.count(UserAnswer.id))
         .join(UserAnswer, UserAnswer.card_id == Flashcard.id)
-        .where(UserAnswer.created_at >= today)
+        .join(DeckAttempt, UserAnswer.attempt_id == DeckAttempt.id)
+        .where(DeckAttempt.user_id == user_id, UserAnswer.created_at >= today)
         .group_by(Flashcard.deck_id)
     )
     deck_attempted_map = {r[0]: r[1] for r in attempted_res.all()}
@@ -741,9 +756,11 @@ async def get_review_forecast(request: Request, db: AsyncSession = Depends(get_d
     today_start = datetime(today.year, today.month, today.day)
     today_end = today_start + timedelta(days=1)
     
-    # Fetch all UserCardMastery records for this user that are not ignored
+    # Fetch all UserCardMastery records for this user that are in review (state > 0) and not ignored
     stmt = select(UserCardMastery.due).where(
         UserCardMastery.user_id == user_id,
+        UserCardMastery.state > 0,
+        UserCardMastery.last_review.isnot(None),
         or_(UserCardMastery.is_ignored == False, UserCardMastery.is_ignored.is_(None))
     )
     result = await db.execute(stmt)

@@ -1920,6 +1920,7 @@ export default function PracticePlay() {
 
               setIsSubmittingRoadmapTest(true);
               axios.post(`/api/v1/deck/${id}/roadmap-test-submit`, { 
+                mode: subMode,
                 answers: testAnswers,
                 time_spent_seconds: sessionStudyTime
               })
@@ -2667,6 +2668,7 @@ export default function PracticePlay() {
         });
 
         const res = await axios.post(`/api/v1/deck/${id}/roadmap-test-submit`, {
+          mode: subMode,
           answers: answersPayload,
           time_spent_seconds: sessionStudyTime
         });

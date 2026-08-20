@@ -5530,7 +5530,9 @@ export default function FlashcardPlay() {
                 <button
                   onClick={() => {
                     setShowRoadmapCompleteModal(false);
-                    navigate(`/practice/${id}/roadmap_test`);
+                    const testStep = roadmapStatus?.pipeline?.find((s: any) => s.type === 'mcq' || s.type === 'typing');
+                    const targetUrl = testStep?.url || `/practice/${id}/roadmap_test`;
+                    navigate(targetUrl);
                   }}
                   className="py-4 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-black text-xs uppercase tracking-widest rounded-2xl shadow-lg shadow-indigo-200 active:scale-95 transition-all flex items-center justify-center gap-2 cursor-pointer"
                 >

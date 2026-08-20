@@ -291,8 +291,9 @@ class GamificationInterface:
             await db.flush()
 
         # Award daily reward points if target met
-        if daily_stat and daily_stat.questions_attempted > 0:
-            await GamificationInterface.award_daily_reward_points(db, user_id, daily_stat.questions_attempted)
+        questions_today = (daily_stat.questions_attempted or 0) if daily_stat else 0
+        if questions_today > 0:
+            await GamificationInterface.award_daily_reward_points(db, user_id, questions_today)
 
         res = await db.execute(select(UserGamification).where(UserGamification.user_id == user_id))
         user_stats = res.scalar_one_or_none()
