@@ -6,7 +6,7 @@ from typing import Optional
 
 class GamificationInterface:
     @staticmethod
-    async def add_xp(db: AsyncSession, user_id: int, amount: int, source: str = "unknown"):
+    async def add_xp(db: AsyncSession, user_id: int, amount: int, source: str = "unknown", commit: bool = True):
         if amount <= 0:
             return {"level_up": False, "current_level": 1, "current_xp": 0}
             
@@ -26,11 +26,14 @@ class GamificationInterface:
         tx = XPTransaction(user_id=user_id, amount=amount, source=source)
         db.add(tx)
         
-        await db.commit()
+        if commit:
+            await db.commit()
+        else:
+            await db.flush()
         return {"level_up": level_up, "current_level": user_stats.level, "current_xp": user_stats.xp}
 
     @staticmethod
-    async def revert_xp(db: AsyncSession, user_id: int, amount: int, source: str = "unknown"):
+    async def revert_xp(db: AsyncSession, user_id: int, amount: int, source: str = "unknown", commit: bool = True):
         if amount <= 0:
             return {"level_down": False, "current_level": 1, "current_xp": 0}
             
@@ -52,7 +55,10 @@ class GamificationInterface:
             if tx:
                 await db.delete(tx)
                 
-            await db.commit()
+            if commit:
+                await db.commit()
+            else:
+                await db.flush()
             return {"level_down": level_down, "current_level": user_stats.level, "current_xp": user_stats.xp}
         return {"level_down": False, "current_level": 1, "current_xp": 0}
 
