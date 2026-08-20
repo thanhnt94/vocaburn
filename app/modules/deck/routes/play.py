@@ -1,3 +1,4 @@
+from app.modules.deck.services.fsrs_service import build_fsrs_card, estimate_intervals, apply_stability_boost
 def get_enabled_practice_modes(practice_settings):
     if not practice_settings or not isinstance(practice_settings, dict):
         return []
