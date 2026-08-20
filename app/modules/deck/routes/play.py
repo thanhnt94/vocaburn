@@ -487,14 +487,16 @@ async def record_answer(request: Request, data: dict, background_tasks: Backgrou
     
     # Sync roadmap status asynchronously to maintain streak and progress
     from app.modules.deck.models import FlashcardDeck, UserDeckSettings
-    deck_res = await db.execute(select(FlashcardDeck).where(FlashcardDeck.id == deck_id_val))
-    deck_obj = deck_res.scalar_one_or_none()
-    user_sett_res = await db.execute(select(UserDeckSettings).where(UserDeckSettings.user_id == user_id, UserDeckSettings.deck_id == deck_id_val))
-    user_sett = user_sett_res.scalar_one_or_none()
-    creator_sett = deck_obj.practice_settings if (deck_obj and isinstance(deck_obj.practice_settings, dict)) else {}
-    u_sett = user_sett.settings if (user_sett and isinstance(user_sett.settings, dict)) else {}
-    merged_settings = {**creator_sett, **u_sett}
-    background_tasks.add_task(sync_roadmap_status_async, user_id, deck_id_val, merged_settings)
+    deck_id_val = card.deck_id if card else data.get("deck_id")
+    if deck_id_val:
+        deck_res = await db.execute(select(FlashcardDeck).where(FlashcardDeck.id == deck_id_val))
+        deck_obj = deck_res.scalar_one_or_none()
+        user_sett_res = await db.execute(select(UserDeckSettings).where(UserDeckSettings.user_id == user_id, UserDeckSettings.deck_id == deck_id_val))
+        user_sett = user_sett_res.scalar_one_or_none()
+        creator_sett = deck_obj.practice_settings if (deck_obj and isinstance(deck_obj.practice_settings, dict)) else {}
+        u_sett = user_sett.settings if (user_sett and isinstance(user_sett.settings, dict)) else {}
+        merged_settings = {**creator_sett, **u_sett}
+        background_tasks.add_task(sync_roadmap_status_async, user_id, deck_id_val, merged_settings)
     
     unlocked_badge_info = None
 
