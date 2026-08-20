@@ -451,7 +451,7 @@ def fix_static_urls(val):
 @router.get("/card/{card_id}/note")
 async def get_card_note(request: Request, card_id: int, db: AsyncSession = Depends(get_db)):
     from app.modules.deck.models import UserCardNote
-    user_id = int(request.cookies.get("user_id", 1))
+    user_id = AuthService.get_user_id(request)
     result = await db.execute(
         select(UserCardNote).where(UserCardNote.user_id == user_id, UserCardNote.card_id == card_id)
     )
@@ -463,7 +463,7 @@ async def get_card_note(request: Request, card_id: int, db: AsyncSession = Depen
 @router.post("/card/{card_id}/note")
 async def save_card_note(request: Request, card_id: int, data: dict, db: AsyncSession = Depends(get_db)):
     from app.modules.deck.models import UserCardNote
-    user_id = int(request.cookies.get("user_id", 1))
+    user_id = AuthService.get_user_id(request)
     content = data.get("content", "")
     
     result = await db.execute(
@@ -485,7 +485,7 @@ async def save_card_note(request: Request, card_id: int, data: dict, db: AsyncSe
 @router.post("/card/{card_id}/ignore")
 async def toggle_card_ignore(request: Request, card_id: int, data: dict, db: AsyncSession = Depends(get_db)):
     from app.modules.deck.models import UserCardMastery
-    user_id = int(request.cookies.get("user_id", 1))
+    user_id = AuthService.get_user_id(request)
     is_ignored = data.get("is_ignored", True)
     
     result = await db.execute(
@@ -507,7 +507,7 @@ async def toggle_card_ignore(request: Request, card_id: int, data: dict, db: Asy
 @router.post("/card/{card_id}/star")
 async def toggle_card_star(request: Request, card_id: int, data: dict, db: AsyncSession = Depends(get_db)):
     from app.modules.deck.models import UserCardMastery
-    user_id = int(request.cookies.get("user_id", 1))
+    user_id = AuthService.get_user_id(request)
     is_starred = data.get("is_starred", True)
     
     result = await db.execute(
@@ -527,7 +527,7 @@ async def toggle_card_star(request: Request, card_id: int, data: dict, db: Async
 @router.get("/{deck_id}/notes")
 async def get_deck_notes(request: Request, deck_id: int, db: AsyncSession = Depends(get_db)):
     from app.modules.deck.models import UserCardNote, Flashcard
-    user_id = int(request.cookies.get("user_id", 1))
+    user_id = AuthService.get_user_id(request)
     result = await db.execute(
         select(UserCardNote).join(Flashcard).where(UserCardNote.user_id == user_id, Flashcard.deck_id == deck_id)
     )
@@ -578,7 +578,7 @@ async def export_deck(deck_id: int, request: Request, exclude_ids: bool = False,
 @router.post("/{deck_id}/import-analyze")
 async def import_analyze_deck(request: Request, deck_id: int, file: UploadFile = File(...), db: AsyncSession = Depends(get_db)):
     try:
-        user_id = int(request.cookies.get("user_id", 1))
+        user_id = AuthService.get_user_id(request)
         deck = await DeckService.get_deck_by_id(db, deck_id)
         if not deck:
             return JSONResponse(status_code=404, content={"error": "Deck not found"})
@@ -633,7 +633,7 @@ async def import_analyze_deck(request: Request, deck_id: int, file: UploadFile =
 @router.post("/{deck_id}/import-update")
 async def import_update_deck(request: Request, deck_id: int, file: UploadFile = File(...), mode: str = Form("merge"), db: AsyncSession = Depends(get_db)):
     try:
-        user_id = int(request.cookies.get("user_id", 1))
+        user_id = AuthService.get_user_id(request)
         deck = await DeckService.get_deck_by_id(db, deck_id)
         if not deck:
             return JSONResponse(status_code=404, content={"error": "Deck not found"})
@@ -733,7 +733,7 @@ async def import_update_deck(request: Request, deck_id: int, file: UploadFile = 
 @router.post("/{deck_id}/import-text-update")
 async def import_text_update(request: Request, deck_id: int, data: dict, db: AsyncSession = Depends(get_db)):
     try:
-        user_id = int(request.cookies.get("user_id", 1))
+        user_id = AuthService.get_user_id(request)
         deck = await DeckService.get_deck_by_id(db, deck_id)
         if not deck:
             return JSONResponse(status_code=404, content={"error": "Deck not found"})
@@ -1954,172 +1954,6 @@ async def delete_deck_column(deck_id: int, payload: dict, db: AsyncSession = Dep
             
     await db.commit()
     return {"status": "ok"}
-
-@router.get("/{deck_id}/image-status")
-async def get_deck_image_status(deck_id: int, target_field: str = "front_img", db: AsyncSession = Depends(get_db)):
-    from app.modules.deck.models import Flashcard
-    res = await db.execute(select(Flashcard).filter(Flashcard.deck_id == deck_id))
-    cards = res.scalars().all()
-    
-    total = len(cards)
-    missing = 0
-    cards_list = []
-    
-    physical_map = {
-        "front_img": "front_img",
-        "back_img": "back_img"
-    }
-    
-    for c in cards:
-        has_val = False
-        if target_field in physical_map:
-            val = getattr(c, physical_map[target_field])
-            has_val = bool(val and val.strip())
-        else:
-            has_val = bool(c.others and c.others.get(target_field))
-        if not has_val:
-            missing += 1
-            
-        cards_list.append({
-            "id": c.id,
-            "content": c.content,
-            "missing": not has_val
-        })
-            
-    return {
-        "total_cards": total,
-        "missing_image_cards": missing,
-        "cards": cards_list
-    }
-
-@router.post("/{deck_id}/generate-all-images")
-async def generate_all_deck_images(
-    deck_id: int,
-    background_tasks: BackgroundTasks,
-    request: Request,
-    payload: dict = None,
-    db: AsyncSession = Depends(get_db)
-):
-    from app.modules.deck.models import FlashcardDeck
-    res = await db.execute(select(FlashcardDeck).filter(FlashcardDeck.id == deck_id))
-    deck = res.scalar_one_or_none()
-    if not deck:
-        return JSONResponse(status_code=404, content={"error": "Deck not found"})
-        
-    source_field = "front"
-    target_field = "front_img"
-    force = False
-    card_ids = None
-    if payload:
-        source_field = payload.get("source_field", "front")
-        target_field = payload.get("target_field", "front_img")
-        force = payload.get("force", False)
-        card_ids = payload.get("card_ids", None)
-        
-    scheme = request.headers.get("x-forwarded-proto", request.url.scheme)
-    netloc = request.url.netloc
-    if "localhost" not in netloc and "127.0.0.1" not in netloc:
-        scheme = "https"
-    base_url = f"{scheme}://{netloc}"
-    
-    background_tasks.add_task(_bulk_generate_deck_images_task, deck_id, source_field, target_field, force, base_url, card_ids)
-    return {"status": "ok", "message": f"Bulk image generation queue submission started."}
-
-async def _bulk_generate_deck_images_task(deck_id: int, source_field: str, target_field: str, force: bool, base_url: str, card_ids: list = None):
-    from app.core.db import SessionLocal
-    async with SessionLocal() as db:
-        from app.modules.deck.models import Flashcard
-        res = await db.execute(select(Flashcard).filter(Flashcard.deck_id == deck_id))
-        cards = res.scalars().all()
-        if card_ids is not None:
-            cards = [c for c in cards if c.id in card_ids]
-        
-        # Get CentralAuth configuration
-        from app.modules.sso_module.service import SSOService
-        sso_config = await SSOService.get_config(db)
-        if not sso_config.is_enabled or not sso_config.server_url:
-            logger.error("[BULK IMAGE ERROR] CentralAuth is not enabled or server URL is not configured.")
-            return
-
-        import httpx
-        from app.core.config import settings
-        
-        tasks_to_submit = []
-        callback_base = settings.APP_BASE_URL if settings.APP_BASE_URL else base_url
-        callback_url = f"{callback_base.rstrip('/')}/api/v1/deck/image-callback"
-        
-        source_map = {
-            "front": "content",
-            "back": "explanation",
-        }
-        
-        target_map = {
-            "front_img": "front_img",
-            "back_img": "back_img"
-        }
-        
-        for c in cards:
-            await db.refresh(c)
-            
-            # Check if already has image
-            has_val = False
-            if target_field in target_map:
-                val = getattr(c, target_map[target_field])
-                has_val = bool(val and val.strip())
-            else:
-                has_val = bool(c.others and c.others.get(target_field))
-                
-            if force or not has_val:
-                # Get keyword text from source field
-                keyword = ""
-                if source_field in source_map:
-                    keyword = getattr(c, source_map[source_field])
-                else:
-                    keyword = c.others.get(source_field) if c.others else ""
-                    
-                if not keyword or not keyword.strip():
-                    continue
-                    
-                tasks_to_submit.append({
-                    "satellite_source": "vocaburn",
-                    "prompt": keyword.strip(),
-                    "callback_url": callback_url,
-                    "extra_data": json.dumps({
-                        "task_type": "image",
-                        "card_id": c.id,
-                        "source_field": source_field,
-                        "target_field": target_field,
-                        "deck_id": deck_id
-                    }),
-                    "max_retries": 3
-                })
-
-        if not tasks_to_submit:
-            logger.info(f"[BULK IMAGE] All cards in deck {deck_id} are already fully synchronized for field '{target_field}'.")
-            return
-
-        logger.info(f"[BULK IMAGE] Submitting {len(tasks_to_submit)} queue tasks to CentralAuth...")
-        queue_token = getattr(settings, "QUEUE_API_SECRET", "super-secret-token-123")
-        chunk_size = 100
-
-        async with httpx.AsyncClient() as client:
-            for i in range(0, len(tasks_to_submit), chunk_size):
-                  chunk = tasks_to_submit[i:i + chunk_size]
-                  try:
-                      response = await client.post(
-                          f"{sso_config.server_url.rstrip('/')}/api/queue/submit/batch",
-                          json={"tasks": chunk},
-                          headers={"X-Queue-Token": queue_token},
-                          timeout=30.0
-                      )
-                      if response.status_code != 200:
-                          logger.error(f"[BULK IMAGE SUBMIT ERROR] Chunk {i//chunk_size} failed: {response.text}")
-                      else:
-                          logger.info(f"[BULK IMAGE SUBMIT] Successfully submitted chunk {i//chunk_size} ({len(chunk)} tasks)")
-                  except Exception as batch_err:
-                      logger.error(f"[BULK IMAGE SUBMIT EXCEPTION] Exception in chunk {i//chunk_size}: {batch_err}")
-
-
 
 @router.get("/{deck_id}/image-status")
 async def get_deck_image_status(deck_id: int, target_field: str = "front_img", db: AsyncSession = Depends(get_db)):

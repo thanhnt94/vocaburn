@@ -1356,7 +1356,7 @@ export default function PracticePlay() {
           const parsed = !isObjEmpty(userSettings) ? userSettings : (!isObjEmpty(creatorSettings) ? creatorSettings : null)
           if (parsed) {
             setModeSettings(parsed)
-            if (!parsed.mcq?.active_pairs || parsed.mcq.active_pairs.length === 0) {
+            if (!isRoadmapTestMode && (!parsed.mcq?.active_pairs || parsed.mcq.active_pairs.length === 0)) {
               setPracticeNeedsSetup(true)
               if ((subMode as string) !== 'setting') {
                 navigate(`/practice/${id}/setting`, { replace: true })
@@ -1897,7 +1897,7 @@ export default function PracticePlay() {
         if (pct >= m && !milestonesHit.has(m)) {
           setMilestonesHit(prev => new Set([...prev, m]))
           if (m === 100) {
-            if (subMode === 'roadmap_test') {
+            if (isRoadmapTestMode) {
               // Submit roadmap test to backend
               const testAnswers = session?.questions.map((q: any, i: number) => {
                 const ansVal = practiceAnswers[i] !== undefined ? practiceAnswers[i] : sessionAnswers[i];
@@ -1905,26 +1905,34 @@ export default function PracticePlay() {
                 if (q.options && q.options.length > 0) {
                   const selectedOptIdx = typeof ansVal === 'number' ? ansVal : 0;
                   isCorrect = Boolean(q.options[selectedOptIdx]?.is_correct);
-                } else if (q.practice?.correct_answer) {
-                  isCorrect = String(typingInput).trim().toLowerCase() === String(q.practice.correct_answer).trim().toLowerCase();
+                } else if (q.practice?.correct_index !== undefined && q.practice.correct_index !== null) {
+                  isCorrect = Number(ansVal) === Number(q.practice.correct_index);
                 } else {
-                  isCorrect = ansVal === 1 || Boolean(ansVal);
+                  isCorrect = ansVal === 3 || ansVal === 1 || Boolean(ansVal);
                 }
                 return {
                   card_id: q.id,
                   is_correct: isCorrect,
+                  user_response: String(ansVal ?? ""),
                   active_time: 2.0
                 };
               }) || [];
 
               setIsSubmittingRoadmapTest(true);
-              axios.post(`/api/v1/deck/${id}/roadmap-test-submit`, { answers: testAnswers })
+              axios.post(`/api/v1/deck/${id}/roadmap-test-submit`, { 
+                answers: testAnswers,
+                time_spent_seconds: sessionStudyTime
+              })
                 .then(res => {
                   setRoadmapTestResult(res.data);
+                  setRoadmapSubmitResult(res.data);
+                  setIsRoadmapTestFinished(true);
                   setIsSessionSummaryOpen(true);
+                  refetchRoadmap();
                 })
                 .catch(err => {
                   console.error("Failed to submit roadmap test:", err);
+                  setIsRoadmapTestFinished(true);
                   setIsSessionSummaryOpen(true);
                 })
                 .finally(() => setIsSubmittingRoadmapTest(false));
@@ -2664,6 +2672,7 @@ export default function PracticePlay() {
         });
 
         setRoadmapSubmitResult(res.data);
+        setRoadmapTestResult(res.data);
         setIsRoadmapTestFinished(true);
 
         // Invalidate & refetch roadmap queries to update UI header and step progress
@@ -4263,6 +4272,7 @@ export default function PracticePlay() {
                   correctCount={correctCount}
                   totalCards={totalCards}
                   cardsRemaining={cardsRemaining}
+                  activeMode={subMode || practiceSubMode || 'mcq'}
                 />
               </div>
             </>
@@ -4284,60 +4294,11 @@ export default function PracticePlay() {
       {/* Dynamic Mode Switcher Bar (Hidden completely in Roadmap mode) */}
       {!isRoadmapTestMode && (
         <div className="flex-shrink-0 bg-white/80 backdrop-blur-md border-b border-slate-100/50 px-4 lg:px-8 py-1.5 md:py-2 flex items-center justify-between gap-2 md:gap-3 z-50 w-full shadow-sm">
-        {subMode === 'roadmap_test' ? (() => {
-          const totalQ = session?.questions?.length || 50;
-          const answeredCount = Object.keys(practiceAnswers).length;
-          const correctCount = Object.entries(practiceAnswers).filter(([idxStr, ansIdx]) => {
-            const q = session?.questions?.[Number(idxStr)];
-            if (!q || !q.practice) return false;
-            return Number(ansIdx) === q.practice.correct_index;
-          }).length;
-          const accuracyPercent = answeredCount > 0 ? Math.round((correctCount / answeredCount) * 100) : 0;
-          const progressPercent = totalQ > 0 ? Math.round((answeredCount / totalQ) * 100) : 0;
-
-          return (
-            <div className="flex items-center justify-between w-full">
-              <div className="flex items-center gap-2">
-                <Target className="w-5 h-5 text-purple-600 animate-pulse" />
-                <span className="text-xs md:text-sm font-black text-purple-900 tracking-wider uppercase">
-                  BÀI KIỂM TRA ROADMAP 🎯
-                </span>
-              </div>
-
-              <div className="flex items-center gap-3 sm:gap-6">
-                {/* Accuracy Badge */}
-                <div className="flex flex-col items-end">
-                  <span className="text-[8px] md:text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none">Chính xác</span>
-                  <span className={cn(
-                    "text-xs md:text-sm font-black leading-tight",
-                    accuracyPercent >= 80 ? "text-emerald-600" : (accuracyPercent >= 60 ? "text-amber-600" : "text-rose-600")
-                  )}>
-                    {answeredCount > 0 ? `${accuracyPercent}% (${correctCount}/${answeredCount})` : '—'}
-                  </span>
-                </div>
-
-                {/* Question & Progress Bar */}
-                <div className="text-right">
-                  <span className="text-[11px] md:text-xs font-black text-slate-700">
-                    Câu {currentIndex + 1} / {totalQ} <span className="text-slate-400 text-[10px] font-bold">({progressPercent}% xong)</span>
-                  </span>
-                  <div className="w-24 xs:w-32 md:w-44 bg-slate-100 rounded-full h-2 overflow-hidden border border-slate-200/50 mt-0.5">
-                    <div
-                      className="bg-gradient-to-r from-indigo-500 to-purple-600 h-full rounded-full transition-all duration-300"
-                      style={{ width: `${Math.min(100, progressPercent)}%` }}
-                    />
-                  </div>
-                </div>
-              </div>
-            </div>
-          );
-        })() : (
-          <>
-            {/* Left Side: Branding */}
-            <div className="flex items-center gap-2">
-              <Trophy className="w-4 h-4 text-amber-500 animate-bounce" />
-              <span className="text-xs font-black text-slate-700 tracking-wider uppercase">Luyện tập (Practice Mode)</span>
-            </div>
+          {/* Left Side: Branding */}
+          <div className="flex items-center gap-2">
+            <Trophy className="w-4 h-4 text-amber-500 animate-bounce" />
+            <span className="text-xs font-black text-slate-700 tracking-wider uppercase">Luyện tập (Practice Mode)</span>
+          </div>
 
             {/* Right Side: Sub-mode Selector for Practice Tab */}
             {!practiceNeedsSetup && !practiceDisabled && (
@@ -4461,9 +4422,7 @@ export default function PracticePlay() {
                 </div>
               </div>
             )}
-          </>
-        )}
-      </div>
+        </div>
       )}
 
 <main className="flex-1 flex w-full max-w-none justify-center gap-4 lg:gap-8 px-2 lg:px-6 xl:px-10 md:py-3 py-2 overflow-hidden">
@@ -5548,8 +5507,9 @@ export default function PracticePlay() {
       {/* ✅ SESSION COMPLETE SUMMARY MODAL */}
       <AnimatePresence>
         {isSessionSummaryOpen && (() => {
-          if (subMode === 'roadmap_test' && roadmapTestResult) {
-            const passed = roadmapTestResult.passed;
+          const testResult = roadmapTestResult || roadmapSubmitResult;
+          if (isRoadmapTestMode && testResult) {
+            const passed = testResult.passed;
             return (
               <div className="fixed inset-0 z-[500] flex items-center justify-center p-4">
                 <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
@@ -5566,22 +5526,22 @@ export default function PracticePlay() {
                     </div>
                     <h2 className="text-xl font-black uppercase">{passed ? 'ĐÃ ĐẠT BÀI KIỂM TRA!' : 'CHƯA ĐẠT NGƯỠNG ĐỖ'}</h2>
                     <p className="text-sm opacity-90 mt-1 font-semibold">
-                      {passed ? `Chúc mừng! Bạn đạt ${roadmapTestResult.score}% (Vượt qua ngưỡng ≥${roadmapTestResult.pass_threshold}%)` : `Bạn đạt ${roadmapTestResult.score}% (Cần đạt ≥${roadmapTestResult.pass_threshold}% để tích Streak)`}
+                      {passed ? `Chúc mừng! Bạn đạt ${testResult.score}% (Vượt qua ngưỡng ≥${testResult.pass_threshold}%)` : `Bạn đạt ${testResult.score}% (Cần đạt ≥${testResult.pass_threshold}% để tích Streak)`}
                     </p>
                   </div>
 
                   <div className="p-6 space-y-4">
                     <div className="grid grid-cols-3 gap-3">
                       <div className="text-center p-3 bg-slate-50 rounded-2xl">
-                        <div className="text-2xl font-black text-slate-800">{roadmapTestResult.correct_count}/{roadmapTestResult.total_count}</div>
+                        <div className="text-2xl font-black text-slate-800">{testResult.correct_count}/{testResult.total_count}</div>
                         <div className="text-[9px] font-black text-slate-400 uppercase">Đúng / Tổng</div>
                       </div>
                       <div className="text-center p-3 bg-indigo-50 rounded-2xl">
-                        <div className="text-2xl font-black text-indigo-600">{roadmapTestResult.retention_rate}%</div>
+                        <div className="text-2xl font-black text-indigo-600">{testResult.retention_rate}%</div>
                         <div className="text-[9px] font-black text-indigo-400 uppercase">Retention Rate</div>
                       </div>
                       <div className="text-center p-3 bg-amber-50 rounded-2xl">
-                        <div className="text-2xl font-black text-amber-600">🔥 {roadmapTestResult.streak}d</div>
+                        <div className="text-2xl font-black text-amber-600">🔥 {testResult.streak}d</div>
                         <div className="text-[9px] font-black text-amber-400 uppercase">Streak</div>
                       </div>
                     </div>
@@ -5591,7 +5551,7 @@ export default function PracticePlay() {
                         <>
                           <button onClick={() => {
                             setIsSessionSummaryOpen(false);
-                            fetchSession('practice', 'roadmap_test');
+                            handleResetRoadmapTest();
                           }}
                             className="py-4 bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-black text-xs uppercase tracking-widest rounded-2xl shadow-lg shadow-indigo-200 active:scale-95 transition-all cursor-pointer">
                             THỬ LẠI BÀI KIỂM TRA 🔄
@@ -5603,12 +5563,21 @@ export default function PracticePlay() {
                         </>
                       ) : (
                         <>
+                          {roadmapStatus?.next_action_url && !roadmapStatus?.all_done && (
+                            <button onClick={() => {
+                              setIsSessionSummaryOpen(false);
+                              navigate(roadmapStatus.next_action_url);
+                            }}
+                              className="py-4 bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-700 text-white font-black text-xs uppercase tracking-widest rounded-2xl shadow-lg shadow-indigo-200 active:scale-95 transition-all cursor-pointer">
+                              {roadmapStatus.next_action_label ? `🚀 SANG BƯỚC: ${roadmapStatus.next_action_label} ➔` : '🚀 SANG BƯỚC TIẾP THEO ➔'}
+                            </button>
+                          )}
                           <button onClick={() => navigate('/')}
-                            className="py-4 bg-gradient-to-r from-emerald-500 to-teal-600 text-white font-black text-xs uppercase tracking-widest rounded-2xl shadow-lg shadow-emerald-200 active:scale-95 transition-all cursor-pointer">
+                            className="py-3.5 bg-gradient-to-r from-emerald-500 to-teal-600 text-white font-black text-xs uppercase tracking-widest rounded-2xl shadow-lg shadow-emerald-200 active:scale-95 transition-all cursor-pointer">
                             VỀ TRANG CHỦ 🏠
                           </button>
                           <button onClick={() => navigate(`/flashcard/${id}`)}
-                            className="py-3.5 bg-slate-100 text-slate-700 font-black text-xs uppercase tracking-widest rounded-2xl hover:bg-slate-200 transition-all cursor-pointer">
+                            className="py-3 bg-slate-100 text-slate-700 font-black text-xs uppercase tracking-widest rounded-2xl hover:bg-slate-200 transition-all cursor-pointer">
                             VỀ CHI TIẾT BỘ THẺ 📚
                           </button>
                         </>

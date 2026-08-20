@@ -2,6 +2,7 @@ from fastapi import APIRouter, Request, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, delete
 from app.core.db import get_db
+from app.modules.auth.services.auth_service import AuthService
 from app.modules.notification.services.push_service import PushService
 
 router = APIRouter(prefix="/notifications", tags=["Notifications"])
@@ -9,7 +10,7 @@ router = APIRouter(prefix="/notifications", tags=["Notifications"])
 @router.post("/read-all")
 async def mark_notifications_read(request: Request, db: AsyncSession = Depends(get_db)):
     from app.modules.notification.models import Notification
-    user_id = int(request.cookies.get("user_id", 1))
+    user_id = AuthService.get_user_id(request)
     await db.execute(
         Notification.__table__.update().where(Notification.user_id == user_id).values(is_read=True)
     )
@@ -27,7 +28,7 @@ async def get_vapid_public_key():
 @router.post("/push/subscribe")
 async def subscribe_push(request: Request, data: dict, db: AsyncSession = Depends(get_db)):
     from app.modules.notification.models import PushSubscription
-    user_id = int(request.cookies.get("user_id", 1))
+    user_id = AuthService.get_user_id(request)
     
     endpoint = data.get("endpoint")
     keys = data.get("keys", {})
@@ -62,7 +63,7 @@ async def subscribe_push(request: Request, data: dict, db: AsyncSession = Depend
 @router.post("/push/unsubscribe")
 async def unsubscribe_push(request: Request, data: dict, db: AsyncSession = Depends(get_db)):
     from app.modules.notification.models import PushSubscription
-    user_id = int(request.cookies.get("user_id", 1))
+    user_id = AuthService.get_user_id(request)
     endpoint = data.get("endpoint")
     
     if endpoint:

@@ -80,10 +80,7 @@ async def get_deck_stats(db: AsyncSession = Depends(get_db)):
 
 @router.post("/goals")
 async def create_or_update_goal(request: Request, data: dict, db: AsyncSession = Depends(get_db)):
-    try:
-        user_id = int((request.cookies.get("user_id") or "1").split(".")[0])
-    except ValueError:
-        user_id = 1
+    user_id = AuthService.get_user_id(request)
     deck_id = int(data.get("deck_id", data.get("quiz_id")))
     daily_target = int(data.get("daily_target", data.get("daily_new_card_target", 5)))
     daily_time_target = int(data.get("daily_time_target", 10))
@@ -121,10 +118,7 @@ async def create_or_update_goal(request: Request, data: dict, db: AsyncSession =
 
 @router.get("/goals/active")
 async def get_active_goals(request: Request, local_date: Optional[str] = None, db: AsyncSession = Depends(get_db)):
-    try:
-        user_id = int((request.cookies.get("user_id") or "1").split(".")[0])
-    except ValueError:
-        user_id = 1
+    user_id = AuthService.get_user_id(request)
     # Always synchronize to UTC date
     local_date = datetime.utcnow().strftime("%Y-%m-%d")
 
@@ -275,10 +269,7 @@ async def get_active_goals(request: Request, local_date: Optional[str] = None, d
 
 @router.post("/goals/remove")
 async def remove_goal(request: Request, data: dict, db: AsyncSession = Depends(get_db)):
-    try:
-        user_id = int((request.cookies.get("user_id") or "1").split(".")[0])
-    except ValueError:
-        user_id = 1
+    user_id = AuthService.get_user_id(request)
     deck_id = int(data.get("deck_id", data.get("quiz_id")))
     
     await db.execute(

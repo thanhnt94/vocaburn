@@ -2129,12 +2129,18 @@ export default function Dashboard() {
                                   "w-11 h-11 rounded-2xl flex items-center justify-center shrink-0 border",
                                   s2 ? "bg-emerald-50 border-emerald-100 text-emerald-600" : s1 ? "bg-orange-50 border-orange-100 text-orange-500" : "bg-slate-100 border-slate-200/60 text-slate-400"
                                 )}>
-                                  <FileText className="w-5.5 h-5.5" />
+                                  {mcqStep?.type === 'typing' ? (
+                                    <Keyboard className="w-5.5 h-5.5" />
+                                  ) : (
+                                    <FileText className="w-5.5 h-5.5" />
+                                  )}
                                 </div>
 
                                 <div className="flex-1 min-w-0 flex flex-col gap-1">
                                   <div className="flex items-center justify-between gap-2">
-                                    <span className="font-bold text-xs sm:text-sm text-slate-900 truncate">Test trắc nghiệm MCQ</span>
+                                    <span className="font-bold text-xs sm:text-sm text-slate-900 truncate">
+                                      {mcqStep?.label || (mcqStep?.type === 'typing' ? 'Gõ từ vựng' : 'Test trắc nghiệm MCQ')}
+                                    </span>
                                     {s2 ? (
                                       <span className="px-2.5 py-0.5 bg-emerald-50 text-emerald-600 border border-emerald-200 text-[10px] font-bold rounded-full shrink-0">✓ Đã xong</span>
                                     ) : s1 ? (
@@ -2181,6 +2187,10 @@ export default function Dashboard() {
                                   if (navigator.vibrate) navigator.vibrate(8);
                                   const fsrsStep = st.pipeline?.find((p: any) => p.type === 'fsrs_review');
                                   const fsrsUrl = fsrsStep?.url || `/flashcard/${deck.deck_id}/play?mode=roadmap`;
+                                  if (!s1) {
+                                    navigate(st.pipeline?.[0]?.url || nUrl || `/flashcard/${deck.deck_id}/play?mode=roadmap`);
+                                    return;
+                                  }
                                   if (!s2) {
                                     const testUrl = mcqStep?.url || `/practice/${deck.deck_id}/roadmap_mcq`;
                                     navigate(testUrl);
@@ -2189,7 +2199,7 @@ export default function Dashboard() {
                                   // Điều hướng vào ôn tập FSRS theo cấu hình Roadmap (lọc theo overdue_hours của roadmap)
                                   navigate(fsrsUrl);
                                 }}
-                                title={!s2 ? "Cần hoàn thành Bước 2: Test trắc nghiệm trước" : st.all_done ? "Đã xong lộ trình FSRS. Bấm để tiếp tục ôn tập FSRS theo bộ lọc lộ trình!" : "Bắt đầu ôn tập FSRS"}
+                                title={!s1 ? "Cần hoàn thành Bước 1: Học từ mới trước" : !s2 ? "Cần hoàn thành Bước 2: Test trắc nghiệm trước" : st.all_done ? "Đã xong lộ trình FSRS. Bấm để tiếp tục ôn tập FSRS theo bộ lọc lộ trình!" : "Bắt đầu ôn tập FSRS"}
                                 className={cn(
                                   "flex-1 bg-white border rounded-2xl p-3 sm:p-3.5 shadow-2xs flex items-center gap-3 relative transition-all cursor-pointer hover:shadow-sm hover:scale-[1.008] active:scale-[0.99]",
                                   st.all_done ? "border-emerald-200/90 bg-emerald-50/30 hover:bg-emerald-50/50" : s2 ? "border-orange-200/80 hover:border-orange-300" : "border-slate-100 opacity-90 hover:opacity-100"

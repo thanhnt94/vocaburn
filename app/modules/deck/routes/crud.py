@@ -564,7 +564,7 @@ async def get_collaborators(deck_id: int, db: AsyncSession = Depends(get_db)):
 
 @router.post("/{deck_id}/collaborators")
 async def add_collaborator(request: Request, deck_id: int, db: AsyncSession = Depends(get_db)):
-    user_id = int(request.cookies.get("user_id", 1))
+    user_id = AuthService.get_user_id(request)
     
     try:
         data = await request.json()
@@ -596,7 +596,7 @@ async def add_collaborator(request: Request, deck_id: int, db: AsyncSession = De
 
 @router.delete("/{deck_id}/collaborators/{collab_user_id}")
 async def remove_collaborator(request: Request, deck_id: int, collab_user_id: int, db: AsyncSession = Depends(get_db)):
-    user_id = int(request.cookies.get("user_id", 1))
+    user_id = AuthService.get_user_id(request)
     
     from app.modules.deck.models import FlashcardDeck, DeckCollaborator
     from app.modules.auth.models import User as UserDB
@@ -616,7 +616,7 @@ async def remove_collaborator(request: Request, deck_id: int, collab_user_id: in
 
 @router.post("/{deck_id}/transfer-ownership")
 async def transfer_ownership(request: Request, deck_id: int, data: dict, db: AsyncSession = Depends(get_db)):
-    user_id = int(request.cookies.get("user_id", 1))
+    user_id = AuthService.get_user_id(request)
     target_user_id = data.get("user_id")
     
     from app.modules.deck.models import FlashcardDeck
@@ -638,7 +638,7 @@ async def transfer_ownership(request: Request, deck_id: int, data: dict, db: Asy
 @router.post("/{deck_id}/flashcard")
 @router.post("/{deck_id}/card")
 async def create_card(request: Request, deck_id: int, data: dict, db: AsyncSession = Depends(get_db)):
-    user_id = int(request.cookies.get("user_id", 1))
+    user_id = AuthService.get_user_id(request)
     
     deck = await DeckService.get_deck_by_id(db, deck_id)
     if not deck:
@@ -763,8 +763,7 @@ async def delete_card(card_id: int, db: AsyncSession = Depends(get_db)):
 
 @router.delete("/{deck_id}/flashcards/duplicates")
 async def delete_duplicates(request: Request, deck_id: int, db: AsyncSession = Depends(get_db)):
-    user_id_cookie = request.cookies.get("user_id", "1")
-    user_id = int(user_id_cookie)
+    user_id = AuthService.get_user_id(request)
     
     from app.modules.deck.models import FlashcardDeck, Flashcard, UserCardMastery, UserPracticeStats, UserCardNote, UserAnswer
     from app.modules.auth.models import User as UserDB

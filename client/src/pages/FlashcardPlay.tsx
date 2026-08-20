@@ -1090,8 +1090,10 @@ export default function FlashcardPlay() {
         const searchParams = new URLSearchParams(window.location.search);
         const urlMode = searchParams.get('mode');
         const effectiveMode = urlMode || activeMode || userSettings.quiz_learning_mode || 'fsrs';
-        const isFsrsSession = effectiveMode === 'fsrs' || effectiveMode === 'review' || mode === 'fsrs_review' || (subMode as any) === 'review' || mode === 'review' || rawStep?.type === 'fsrs_review';
-        const savedMode = isFsrsSession ? 'fsrs' : effectiveMode;
+        let savedMode = effectiveMode;
+        if (effectiveMode === 'roadmap') {
+          savedMode = rawStep?.type === 'fsrs_review' ? 'fsrs' : 'new';
+        }
 
         let curIdx = 0;
         try {
@@ -1523,8 +1525,7 @@ export default function FlashcardPlay() {
             const newStep = updated.pipeline.find((s: any) => s.type === 'new_cards');
             const revStep = updated.pipeline.find((s: any) => s.type === 'fsrs_review');
             const newDone = newStep ? newStep.done : true;
-            const reviewDone = revStep ? revStep.done : true;
-            if (newDone && reviewDone && activeMode === 'roadmap') {
+            if (newDone && activeMode === 'roadmap' && !updated.all_done) {
               setShowRoadmapCompleteModal(true);
             }
           }
@@ -2256,8 +2257,10 @@ export default function FlashcardPlay() {
       const searchParams = new URLSearchParams(window.location.search);
       const urlMode = searchParams.get('mode');
       const effectiveMode = urlMode || activeMode || userSettings.quiz_learning_mode || 'fsrs';
-      const isFsrsSession = effectiveMode === 'fsrs' || effectiveMode === 'review' || mode === 'fsrs_review' || (subMode as any) === 'review' || mode === 'review' || rawStep?.type === 'fsrs_review';
-      const targetMode = isFsrsSession ? 'fsrs' : effectiveMode;
+      let targetMode = effectiveMode;
+      if (effectiveMode === 'roadmap') {
+        targetMode = rawStep?.type === 'fsrs_review' ? 'fsrs' : 'new';
+      }
 
       const res = await axios.post(`/api/v1/deck/${id}/next-card`, {
         mode: targetMode,

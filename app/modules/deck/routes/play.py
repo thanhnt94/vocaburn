@@ -589,7 +589,6 @@ async def record_answer(request: Request, data: dict, db: AsyncSession = Depends
     xp_gain = base_xp + bonus_xp_gained
     gamify_res = await GamificationInterface.add_xp(db, user_id, xp_gain, source="deck_answer")
     await GamificationInterface.update_streak(db, user_id)
-    await GamificationInterface.update_streak(db, user_id)
     has_leveled_up = gamify_res["level_up"]
     current_level = gamify_res["current_level"]
 
@@ -1251,7 +1250,7 @@ async def get_quick_play_data(request: Request, db: AsyncSession = Depends(get_d
         m_last_review = m.last_review if m else None
         m_box_level = m.box_level if m else 1
         
-        is_new = (m is None) or (m_state == 0) or (m_stability is None)
+        is_new = (m is None) or (m_state == 0 and m_last_review is None)
         if is_new:
             intervals = default_new_intervals
         else:
@@ -1659,7 +1658,27 @@ async def get_next_card(request: Request, deck_id: int, data: dict, db: AsyncSes
 
     effective_answered = set(answered_indexes) | ignored_indexes
 
-    if mode in ("roadmap", "new"):
+    original_mode = mode
+    target_mode = mode
+    if mode == "roadmap":
+        from app.modules.deck.models import UserDeckSettings
+        user_sett_res = await db.execute(
+            select(UserDeckSettings.settings).where(
+                UserDeckSettings.user_id == user_id,
+                UserDeckSettings.deck_id == deck_id
+            )
+        )
+        settings = user_sett_res.scalar_one_or_none() or {}
+        st_helper = await get_deck_roadmap_status_helper(db, user_id, deck_id, settings)
+        current_step_idx = st_helper.get("current_step_index", 0)
+        pipeline = st_helper.get("pipeline", [])
+        if pipeline and current_step_idx < len(pipeline):
+            current_step_type = pipeline[current_step_idx].get("type")
+            target_mode = "fsrs" if current_step_type == "fsrs_review" else "new"
+        else:
+            target_mode = "fsrs" if st_helper.get("stage_1_done") else "new"
+
+    if target_mode == "new":
         unanswered_new = []
         all_new = []
         for idx, c_id in enumerate(card_ids):
@@ -1687,26 +1706,27 @@ async def get_next_card(request: Request, deck_id: int, data: dict, db: AsyncSes
         else:
             return {"next_index": min(current_index + 1, total - 1), "phase": "free"}
 
-    elif mode in ("fsrs", "review", "fsrs_review"):
+    elif target_mode in ("fsrs", "fsrs_review"):
         now_utc = datetime.utcnow()
         end_of_today_utc = (now_utc.replace(hour=0, minute=0, second=0, microsecond=0) + timedelta(days=1))
 
-        from app.modules.deck.models import UserDeckSettings
-        user_sett_res = await db.execute(
-            select(UserDeckSettings.settings).where(
-                UserDeckSettings.user_id == user_id,
-                UserDeckSettings.deck_id == deck_id
-            )
-        )
-        settings = user_sett_res.scalar_one_or_none() or {}
-        raw_pipeline = settings.get("pipeline", [])
-        
         fsrs_overdue_hours = 24
-        if isinstance(raw_pipeline, list):
-            for st in raw_pipeline:
-                if isinstance(st, dict) and st.get("type") == "fsrs_review":
-                    fsrs_overdue_hours = int(st.get("overdue_hours", 24))
-                    break
+        if original_mode == "roadmap":
+            from app.modules.deck.models import UserDeckSettings
+            user_sett_res = await db.execute(
+                select(UserDeckSettings.settings).where(
+                    UserDeckSettings.user_id == user_id,
+                    UserDeckSettings.deck_id == deck_id
+                )
+            )
+            settings = user_sett_res.scalar_one_or_none() or {}
+            raw_pipeline = settings.get("pipeline", [])
+            
+            if isinstance(raw_pipeline, list):
+                for st in raw_pipeline:
+                    if isinstance(st, dict) and st.get("type") == "fsrs_review":
+                        fsrs_overdue_hours = int(st.get("overdue_hours", 24))
+                        break
 
         due_cutoff = end_of_today_utc - timedelta(hours=fsrs_overdue_hours)
         
@@ -1748,52 +1768,6 @@ async def get_next_card(request: Request, deck_id: int, data: dict, db: AsyncSes
             return {"next_index": all_learned_cards[0]["idx"], "phase": "review"}
         else:
             return {"next_index": 0, "phase": "review_empty"}
-
-    elif mode == "new":
-        new_cards = []
-        for idx, c_id in enumerate(card_ids):
-            if idx in ignored_indexes:
-                continue
-            m = mastery_map.get(c_id)
-            is_new = not m or m["state"] == 0 or m["stability"] is None
-            if is_new and idx not in effective_answered:
-                new_cards.append(idx)
-
-        if new_cards:
-            if random_enabled:
-                import random
-                return {"next_index": random.choice(new_cards)}
-            else:
-                return {"next_index": new_cards[0]}
-
-        now_utc = datetime.utcnow()
-        due_cards = []
-        for idx, c_id in enumerate(card_ids):
-            if idx in ignored_indexes:
-                continue
-            m = mastery_map.get(c_id)
-            if not m or m["state"] == 0 or m["stability"] is None:
-                continue
-            is_due = m["due"] and ((m["due"] - timedelta(seconds=30)) <= now_utc)
-            if is_due and idx not in answered_indexes:
-                due_cards.append({"idx": idx, "stability": m["stability"] or 0.0})
-        if due_cards:
-            if random_enabled:
-                import random
-                return {"next_index": random.choice(due_cards)["idx"]}
-            else:
-                due_cards.sort(key=lambda x: x["stability"])
-                return {"next_index": due_cards[0]["idx"]}
-
-        unanswered = [idx for idx in range(total) if idx not in effective_answered]
-        if unanswered:
-            if random_enabled:
-                import random
-                return {"next_index": random.choice(unanswered)}
-            else:
-                return {"next_index": unanswered[0]}
-
-        return {"next_index": min(current_index + 1, total - 1)}
 
     elif mode == "review":
         deck_with_stats = await DeckService.get_deck_with_stats(db, deck_id, user_id=user_id)
@@ -3395,12 +3369,29 @@ async def get_roadmap_test_questions(request: Request, deck_id: int, db: AsyncSe
     if not all_cards:
         return JSONResponse(status_code=404, content={"error": "No cards in deck"})
 
+    # Detect whether current test step is MCQ or Typing
+    pipeline_steps = status_info.get("pipeline", [])
+    current_step_idx = status_info.get("current_step_index", 0)
+
+    target_test_mode = "mcq"
+    if pipeline_steps and current_step_idx < len(pipeline_steps):
+        curr_step = pipeline_steps[current_step_idx]
+        step_type = curr_step.get("type")
+        if step_type in ("mcq", "typing"):
+            target_test_mode = step_type
+    else:
+        test_step = next((st for st in pipeline_steps if st.get("type") in ("mcq", "typing")), None)
+        if test_step:
+            target_test_mode = test_step.get("type", "mcq")
+
     # Priority 1 for Roadmap Test: DECK CREATOR PRACTICE SETTINGS (cấu hình gốc của bộ thẻ)
     active_pairs = []
     creator_migrated = {}
     if deck.practice_settings and isinstance(deck.practice_settings, dict):
         creator_migrated = migrate_practice_settings(deck.practice_settings)
-        active_pairs = creator_migrated.get("mcq", {}).get("active_pairs", [])
+        active_pairs = creator_migrated.get(target_test_mode, {}).get("active_pairs", [])
+        if not active_pairs and target_test_mode != "mcq":
+            active_pairs = creator_migrated.get("mcq", {}).get("active_pairs", [])
         if not active_pairs:
             active_pairs = deck.practice_settings.get("active_pairs", [])
 
@@ -3416,8 +3407,10 @@ async def get_roadmap_test_questions(request: Request, deck_id: int, db: AsyncSe
     migrated = migrate_practice_settings(settings)
     
     if not active_pairs:
-        mcq_setts = migrated.get("mcq", {})
-        active_pairs = mcq_setts.get("active_pairs", [])
+        mode_setts = migrated.get(target_test_mode, {})
+        active_pairs = mode_setts.get("active_pairs", [])
+        if not active_pairs and target_test_mode != "mcq":
+            active_pairs = migrated.get("mcq", {}).get("active_pairs", [])
 
     if not active_pairs:
         active_pairs = [{"q": "front", "a": "back"}]
@@ -3487,8 +3480,6 @@ async def get_roadmap_test_questions(request: Request, deck_id: int, db: AsyncSe
     )
     prev_cards = list(prev_cards_res.scalars().all())
     target_count_from_pipeline = 15
-    pipeline_steps = status_info.get("pipeline", [])
-    current_step_idx = status_info.get("current_step_index", 0)
     
     if pipeline_steps and current_step_idx < len(pipeline_steps):
         curr_step = pipeline_steps[current_step_idx]
@@ -3601,8 +3592,8 @@ async def get_roadmap_test_questions(request: Request, deck_id: int, db: AsyncSe
             "others": fix_static_urls(card.others),
             "image": fix_static_urls(card.back_img),
             "audio": fix_static_urls(card.front_audio_url),
-            "question_type": "mcq",
-            "practice_submode": "mcq",
+            "question_type": target_test_mode,
+            "practice_submode": target_test_mode,
             "practice": {
                 "question": front_text,
                 "choices": [o["content"] for o in options_list],
@@ -3661,7 +3652,7 @@ async def get_roadmap_test_questions(request: Request, deck_id: int, db: AsyncSe
 @router.post("/{deck_id}/roadmap-test-submit")
 async def submit_roadmap_test(request: Request, deck_id: int, data: dict, db: AsyncSession = Depends(get_db)):
     user_id = AuthService.get_user_id(request)
-    from app.modules.deck.models import DeckAttempt, UserAnswer, DeckSession
+    from app.modules.deck.models import DeckAttempt, UserAnswer, DeckSession, UserDeckSettings
     from sqlalchemy import delete
     from datetime import datetime
     
@@ -3669,7 +3660,28 @@ async def submit_roadmap_test(request: Request, deck_id: int, data: dict, db: As
     total_questions = len(answers)
     correct_count = sum(1 for a in answers if a.get("is_correct"))
     score_percentage = (correct_count / total_questions * 100.0) if total_questions > 0 else 0.0
-    passed = score_percentage >= 80.0
+
+    pass_threshold = 80
+    try:
+        user_sett_res = await db.execute(
+            select(UserDeckSettings.settings).where(
+                UserDeckSettings.user_id == user_id,
+                UserDeckSettings.deck_id == deck_id
+            )
+        )
+        user_sett = user_sett_res.scalar_one_or_none() or {}
+        raw_pipeline = user_sett.get("pipeline", [])
+        if isinstance(raw_pipeline, list):
+            for st in raw_pipeline:
+                if isinstance(st, dict) and st.get("type") in ("mcq", "typing"):
+                    pass_threshold = int(st.get("pass_threshold", 80))
+                    break
+        elif user_sett.get("roadmap_pass_threshold"):
+            pass_threshold = int(user_sett.get("roadmap_pass_threshold", 80))
+    except Exception:
+        pass_threshold = 80
+
+    passed = score_percentage >= float(pass_threshold)
 
     now_utc = datetime.utcnow()
     # 1. Record DeckAttempt
@@ -3711,10 +3723,11 @@ async def submit_roadmap_test(request: Request, deck_id: int, data: dict, db: As
     return {
         "status": "ok",
         "passed": passed,
+        "pass_threshold": pass_threshold,
         "score": round(score_percentage, 1),
         "correct_count": correct_count,
         "total_questions": total_questions,
-        "message": "Bài kiểm tra hoàn thành xuất sắc!" if passed else "Bạn chưa đạt điểm đỗ (80%), hãy luyện tập thêm nhé!"
+        "message": "Bài kiểm tra hoàn thành xuất sắc!" if passed else f"Bạn chưa đạt điểm đỗ ({pass_threshold}%), hãy luyện tập thêm nhé!"
     }
 
 
