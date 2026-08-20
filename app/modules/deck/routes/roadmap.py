@@ -1,3 +1,4 @@
+from app.modules.deck.models import UserDeckSettings
 from fastapi import APIRouter, Depends, Request, Query, HTTPException, BackgroundTasks
 from fastapi.responses import JSONResponse
 from sqlalchemy.ext.asyncio import AsyncSession
