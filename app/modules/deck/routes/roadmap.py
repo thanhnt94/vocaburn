@@ -1,16 +1,48 @@
-from app.modules.deck.models import UserDeckSettings
 from fastapi import APIRouter, Depends, Request, Query, HTTPException, BackgroundTasks
 from fastapi.responses import JSONResponse
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func, and_, or_, delete
+from sqlalchemy import select, func, and_, or_, delete, case
 from sqlalchemy.orm import selectinload
 from typing import Optional, List
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timezone, date, timedelta
 import json
+import random
+
 from app.core.db import get_db
 from app.modules.auth.services.auth_service import AuthService
+from app.modules.deck.services.deck_service import DeckService
+from app.modules.deck.models import (
+    FlashcardDeck, Flashcard, UserCardMastery, UserAnswer, 
+    DeckAttempt, UserDeckGoal, UserDailyProgress, DeckSession, 
+    UserDeckSettings, RoadmapPipelineHistory, UserPracticeStats
+)
+
+def fix_static_urls(val):
+    if not val:
+        return val
+    if isinstance(val, str):
+        return val.replace("/static/uploads/", "/uploads/")
+    if isinstance(val, dict):
+        return {k: fix_static_urls(v) for k, v in val.items()}
+    if isinstance(val, list):
+        return [fix_static_urls(item) for item in val]
+    return val
+
+def migrate_practice_settings(settings: Optional[dict]) -> dict:
+    if not settings:
+        return {}
+    if any(k in settings for k in ("mcq", "typing", "listening")):
+        return settings
+    active_pairs = settings.get("active_pairs", [])
+    num_choices = settings.get("num_choices", 4)
+    new_settings = dict(settings)
+    new_settings["mcq"] = {"active_pairs": active_pairs, "num_choices": num_choices}
+    new_settings["typing"] = {"active_pairs": active_pairs}
+    new_settings["listening"] = {"active_pairs": active_pairs, "num_choices": num_choices}
+    return new_settings
 
 router = APIRouter(tags=['Roadmap'])
+
 
 async def get_deck_roadmap_status_helper(db: AsyncSession, user_id: int, deck_id: int, settings: dict, target_date_str: Optional[str] = None) -> dict:
     from app.modules.deck.models import FlashcardDeck, Flashcard, UserCardMastery, UserAnswer, DeckAttempt, UserDeckGoal, UserDailyProgress, DeckSession
