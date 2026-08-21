@@ -743,47 +743,76 @@ function TodayFocusWidget({
                         <span>Ôn tập: <span className="text-orange-600 font-black">{reviewDone}/{reviewDue}</span></span>
                       </div>
 
-                      {/* Step Badges */}
+                      {/* Step Badges with Direct Click Jumping */}
                       <div className="flex items-center gap-1.5 mt-2 flex-wrap">
-                        <span className={cn(
-                          "text-[8.5px] font-black px-2.5 py-0.5 rounded-full flex items-center gap-1",
-                          isStage1Done ? "bg-emerald-50 text-emerald-600 border border-emerald-200" : "bg-indigo-50 text-indigo-600 border border-indigo-200"
-                        )}>
-                          {isStage1Done ? "✓ Bước 1: Đạt chỉ tiêu" : "• Bước 1: Học từ mới"}
-                        </span>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            navigate(`/flashcard/${deck.deck_id}/play?mode=roadmap`);
+                          }}
+                          className={cn(
+                            "text-[9px] font-black px-2.5 py-1 rounded-xl flex items-center gap-1 transition-all cursor-pointer shadow-2xs active:scale-95",
+                            isStage1Done 
+                              ? "bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100" 
+                              : "bg-indigo-50 text-indigo-700 border border-indigo-200 hover:bg-indigo-100"
+                          )}
+                          title="Bước 1: Học từ mới & Ôn tập FSRS"
+                        >
+                          {isStage1Done ? "✓ Bước 1: Đạt chỉ tiêu" : "▶ Bước 1: Học từ mới"}
+                        </button>
                         {status.has_stage_2 && (
-                          <span className={cn(
-                            "text-[8.5px] font-black px-2.5 py-0.5 rounded-full flex items-center gap-1",
-                            isStage2Done ? "bg-emerald-50 text-emerald-600 border border-emerald-200" : isStage1Done ? "bg-indigo-50 text-indigo-600 border border-indigo-200" : "bg-slate-50 text-slate-400"
-                          )}>
-                            {isStage2Done ? "✓ Bước 2: Đã đạt bài test" : "• Bước 2: Bài test"}
-                          </span>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              navigate(`/practice/${deck.deck_id}/mcq?mode=roadmap_test`);
+                            }}
+                            className={cn(
+                              "text-[9px] font-black px-2.5 py-1 rounded-xl flex items-center gap-1 transition-all cursor-pointer shadow-2xs active:scale-95",
+                              isStage2Done 
+                                ? "bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100" 
+                                : isStage1Done 
+                                ? "bg-amber-50 text-amber-700 border border-amber-200 hover:bg-amber-100 animate-pulse" 
+                                : "bg-slate-50 text-slate-400 border border-slate-200 opacity-80"
+                            )}
+                            title="Bước 2: Bài test kiểm tra lộ trình"
+                          >
+                            {isStage2Done ? "✓ Bước 2: Đã đạt bài test" : "▶ Bước 2: Bài test"}
+                          </button>
                         )}
                       </div>
                     </div>
                   </div>
                 </div>
 
-                {/* Large Action CTA Button */}
-                <button
-                  onClick={() => {
-                    if (nextActionUrl) {
-                      navigate(nextActionUrl);
-                    } else {
-                      navigate(`/flashcard/${deck.deck_id}`);
-                    }
-                  }}
-                  className="w-full py-3 px-5 bg-gradient-to-r from-orange-500 via-orange-600 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-black text-xs uppercase tracking-widest rounded-2xl shadow-lg shadow-orange-500/20 active:scale-[0.98] transition-all flex items-center justify-center gap-2 cursor-pointer mt-1"
-                >
-                  <Play className="w-4 h-4 fill-current shrink-0" />
-                  <span className="truncate">
-                    {status.all_done
-                      ? '✓ HOÀN THÀNH LỘ TRÌNH HÔM NAY'
-                      : isStage1Done
-                      ? 'BẮT ĐẦU BÀI TEST LỘ TRÌNH'
-                      : 'BẮT ĐẦU HỌC LỘ TRÌNH'}
-                  </span>
-                </button>
+                {/* Bottom Action Row: Main CTA + Quick Detail Link */}
+                <div className="flex items-center gap-2 mt-1">
+                  <button
+                    onClick={() => {
+                      if (nextActionUrl) {
+                        navigate(nextActionUrl);
+                      } else {
+                        navigate(`/flashcard/${deck.deck_id}`);
+                      }
+                    }}
+                    className="flex-1 py-3 px-5 bg-gradient-to-r from-orange-500 via-orange-600 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-black text-xs uppercase tracking-widest rounded-2xl shadow-lg shadow-orange-500/20 active:scale-[0.98] transition-all flex items-center justify-center gap-2 cursor-pointer"
+                  >
+                    <Play className="w-4 h-4 fill-current shrink-0" />
+                    <span className="truncate">
+                      {status.all_done
+                        ? '✓ HOÀN THÀNH LỘ TRÌNH HÔM NAY'
+                        : isStage1Done
+                        ? 'BẮT ĐẦU BÀI TEST LỘ TRÌNH'
+                        : 'BẮT ĐẦU HỌC LỘ TRÌNH'}
+                    </span>
+                  </button>
+                  <button
+                    onClick={() => navigate(`/flashcard/${deck.deck_id}`)}
+                    className="py-3 px-4 bg-slate-50 hover:bg-slate-100 text-slate-600 hover:text-slate-800 font-black text-xs uppercase tracking-wider rounded-2xl border border-slate-200/80 transition-all active:scale-[0.98] cursor-pointer shrink-0"
+                    title="Xem chi tiết bộ thẻ"
+                  >
+                    Chi tiết
+                  </button>
+                </div>
               </div>
             );
           })}

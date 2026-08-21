@@ -101,20 +101,29 @@ export function useKeyboardShortcuts(params: KeyboardShortcutsParams) {
       // Practice Mode Hotkeys
       if (mainTab === 'practice') {
         if (['mcq', 'listening'].includes(practiceSubMode)) {
-          if (e.key === 'Enter' || key === 'n') {
+          if (e.key === 'Enter' || e.key === ' ' || key === 'n') {
             if (showFeedback) {
               e.preventDefault();
               handleNext();
             }
           } else if (!showFeedback && currentPracticeChoicesCount > 0) {
+            // Support numbers 1..N
             const keyNum = parseInt(e.key);
             if (!isNaN(keyNum) && keyNum >= 1 && keyNum <= currentPracticeChoicesCount) {
               e.preventDefault();
               handleMCQAnswer(keyNum - 1);
+              return;
+            }
+            // Support letters a, b, c, d...
+            const charCode = key.charCodeAt(0);
+            if (key.length === 1 && charCode >= 97 && charCode < 97 + currentPracticeChoicesCount) {
+              e.preventDefault();
+              handleMCQAnswer(charCode - 97);
+              return;
             }
           }
         } else if (practiceSubMode === 'typing') {
-          if (e.key === 'Enter' || key === 'n') {
+          if (e.key === 'Enter' || e.key === ' ' || key === 'n') {
             if (showFeedback) {
               e.preventDefault();
               handleNext();
@@ -127,9 +136,12 @@ export function useKeyboardShortcuts(params: KeyboardShortcutsParams) {
       // Handle card flip (Space)
       if (e.key === ' ') {
         e.preventDefault();
-        const nextFlipped = !isFlipped;
-        setIsFlipped(nextFlipped);
-        setShowFeedback(nextFlipped);
+        if (!isFlipped) {
+          setIsFlipped(true);
+          setShowFeedback(true);
+        } else if (hasRated || activeMode === 'flip') {
+          handleNext();
+        }
       } 
       // Handle next card (Enter or N)
       else if (e.key === 'Enter' || key === 'n') {

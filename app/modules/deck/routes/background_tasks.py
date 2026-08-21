@@ -112,16 +112,8 @@ async def check_badges_async(user_id: int, time_spent: int, is_correct: bool, go
                 
                 await NotificationInterface.send(
                     db, user_id,
-                    f"?? ACHIEVEMENT UNLOCKED: {badge.name}!",
+                    f"🎉 ACHIEVEMENT UNLOCKED: {badge.name}!",
                     f"You unlocked the badge '{badge.name}' and earned +{xp_reward} XP! {badge.description}",
                     "achievement"
                 )
-        await db.commit()
-
-async def sync_roadmap_status_async(user_id: int, deck_id: int, settings: dict):
-    from app.core.db import SessionLocal
-    from app.modules.deck.routes.roadmap import get_deck_roadmap_status_helper
-    
-    async with SessionLocal() as db:
-        await get_deck_roadmap_status_helper(db, user_id, deck_id, settings)
         await db.commit()

@@ -69,6 +69,9 @@ class Flashcard(Base):
 
 class DeckAttempt(Base):
     __tablename__ = "deck_attempts"
+    __table_args__ = (
+        Index("ix_deck_attempts_user_deck_mode", "user_id", "deck_id", "mode"),
+    )
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id"), index=True)
     deck_id = Column("deck_id", Integer, ForeignKey("flashcard_decks.id"), index=True)
@@ -83,6 +86,9 @@ class DeckAttempt(Base):
 
 class UserAnswer(Base):
     __tablename__ = "card_answers"
+    __table_args__ = (
+        Index("ix_card_answers_attempt_card_created", "attempt_id", "card_id", "created_at"),
+    )
     id = Column(Integer, primary_key=True, index=True)
     attempt_id = Column(Integer, ForeignKey("deck_attempts.id"), index=True)
     card_id = Column("card_id", Integer, ForeignKey("flashcards.id"), index=True)
@@ -95,6 +101,9 @@ class UserAnswer(Base):
 
 class DeckSession(Base):
     __tablename__ = "deck_sessions"
+    __table_args__ = (
+        Index("ix_deck_sessions_user_deck_mode", "user_id", "deck_id", "mode"),
+    )
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id"), index=True)
     deck_id = Column("deck_id", Integer, ForeignKey("flashcard_decks.id"), index=True)
@@ -195,7 +204,10 @@ class UserDeckGoal(Base):
 
 class UserDailyProgress(Base):
     __tablename__ = "user_daily_progress"
-    __table_args__ = (UniqueConstraint("goal_id", "date", name="uq_goal_date"),)
+    __table_args__ = (
+        UniqueConstraint("goal_id", "date", name="uq_goal_date"),
+        Index("ix_user_daily_progress_goal_date_target", "goal_id", "date", "is_target_met"),
+    )
     id = Column(Integer, primary_key=True, index=True)
     goal_id = Column(Integer, ForeignKey("user_deck_goals.id"), index=True)
     date = Column(String(50), index=True) # YYYY-MM-DD
@@ -213,6 +225,7 @@ class UserCardMastery(Base):
         UniqueConstraint("user_id", "card_id", name="uq_user_card"),
         Index("ix_user_card_mastery_user_due", "user_id", "due"),
         Index("ix_user_card_mastery_user_ignored", "user_id", "is_ignored"),
+        Index("ix_user_card_mastery_user_card_state", "user_id", "card_id", "state"),
     )
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id"), index=True)

@@ -2364,6 +2364,131 @@ export default function FlashcardPlay() {
     }
   };
 
+  // ── Desktop Keyboard Navigation Shortcuts ──
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Ignore when user is typing in an input, textarea, or contentEditable
+      const target = e.target as HTMLElement;
+      if (
+        target &&
+        (target.tagName === 'INPUT' ||
+          target.tagName === 'TEXTAREA' ||
+          target.isContentEditable)
+      ) {
+        return;
+      }
+
+      // Ignore when modals or drawers are open
+      if (
+        isFeedbackOpen ||
+        isMapOpen ||
+        isStatsOpen ||
+        isEditModalOpen ||
+        isQuitModalOpen ||
+        isSessionSummaryOpen ||
+        isSettingsModalOpen
+      ) {
+        return;
+      }
+
+      // Space or Enter:
+      // If card is not flipped -> flip it
+      // If card is flipped & has rated -> go to next card
+      if (e.code === 'Space' || e.code === 'Enter') {
+        e.preventDefault();
+        if (!isFlipped) {
+          setIsFlipped(true);
+          setShowFeedback(true);
+          setJustAnswered(true);
+        } else if (hasRated || activeMode === 'flip') {
+          handleNext();
+        }
+        return;
+      }
+
+      // Number keys 1, 2, 3, 4 for FSRS Rating when flipped
+      if (isFlipped && !hasRated && activeMode !== 'flip') {
+        if (e.code === 'Digit1' || e.code === 'Numpad1') {
+          e.preventDefault();
+          handleReviewRating(1);
+          return;
+        }
+        if (e.code === 'Digit2' || e.code === 'Numpad2') {
+          e.preventDefault();
+          handleReviewRating(2);
+          return;
+        }
+        if (e.code === 'Digit3' || e.code === 'Numpad3') {
+          e.preventDefault();
+          handleReviewRating(3);
+          return;
+        }
+        if (e.code === 'Digit4' || e.code === 'Numpad4') {
+          e.preventDefault();
+          handleReviewRating(4);
+          return;
+        }
+      }
+
+      // Key R: Replay audio
+      if (e.code === 'KeyR') {
+        e.preventDefault();
+        if (isFlipped) {
+          playCardAudio('back');
+        } else {
+          playCardAudio('front');
+        }
+        return;
+      }
+
+      // Key Z: Undo last rating
+      if ((e.code === 'KeyZ' || (e.ctrlKey && e.code === 'KeyZ')) && activelyRatedCurrentCard) {
+        e.preventDefault();
+        handleUndoRating();
+        return;
+      }
+
+      // Key S: Star question
+      if (e.code === 'KeyS') {
+        e.preventDefault();
+        handleStarQuestion();
+        return;
+      }
+
+      // Key H: Show Hint
+      if (e.code === 'KeyH') {
+        e.preventDefault();
+        handleToggleHint();
+        return;
+      }
+
+      // ArrowRight: Next card (if rated or flip mode)
+      if (e.code === 'ArrowRight' && (hasRated || activeMode === 'flip')) {
+        e.preventDefault();
+        handleNext();
+        return;
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [
+    isFlipped,
+    hasRated,
+    activeMode,
+    activelyRatedCurrentCard,
+    currentQuestion,
+    isFeedbackOpen,
+    isMapOpen,
+    isStatsOpen,
+    isEditModalOpen,
+    isQuitModalOpen,
+    isSessionSummaryOpen,
+    isSettingsModalOpen
+  ]);
+
   const askAI = async (field: string = "explanation", manualText?: string) => {
     if (!currentQuestion) return
     setIsAskingAI(true)
@@ -4954,15 +5079,17 @@ export default function FlashcardPlay() {
                 practiceAnswers[currentIndex] !== undefined ? (
                   <button 
                     onClick={handleNext}
-                    className="flex-1 h-12 sm:h-14 bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-600 text-white font-black text-xs rounded-2xl shadow-lg shadow-emerald-300/50 flex items-center justify-center gap-2.5 uppercase tracking-widest active:scale-[0.98] transition-all hover:shadow-emerald-400/60 hover:shadow-xl"
+                    className="flex-1 h-12 sm:h-14 bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-600 text-white font-black text-xs rounded-2xl shadow-lg shadow-emerald-300/50 flex items-center justify-center gap-2.5 uppercase tracking-widest active:scale-[0.98] transition-all hover:shadow-emerald-400/60 hover:shadow-xl cursor-pointer"
                   >
-                    Continue <ChevronRight className="w-4 h-4" />
+                    <span>Continue</span>
+                    <kbd className="hidden md:inline-flex items-center justify-center px-1.5 py-0.5 text-[9px] font-mono font-bold bg-white/20 text-white rounded border border-white/30">Space / ↵</kbd>
+                    <ChevronRight className="w-4 h-4" />
                   </button>
                 ) : (
                   <div className="flex-1 flex gap-2 h-12 sm:h-14">
                     <button
                       onClick={handleNext}
-                      className="flex-1 h-12 sm:h-14 bg-slate-50 border border-slate-200 text-slate-500 hover:bg-slate-100 font-black text-xs rounded-2xl flex items-center justify-center gap-1.5 uppercase tracking-widest active:scale-[0.98] transition-all"
+                      className="flex-1 h-12 sm:h-14 bg-slate-50 border border-slate-200 text-slate-500 hover:bg-slate-100 font-black text-xs rounded-2xl flex items-center justify-center gap-1.5 uppercase tracking-widest active:scale-[0.98] transition-all cursor-pointer"
                     >
                       Skip <ChevronRight className="w-4 h-4" />
                     </button>
@@ -4982,28 +5109,38 @@ export default function FlashcardPlay() {
                         setJustAnswered(true);
                       }
                     }}
-                    className="flex-1 h-12 sm:h-14 bg-gradient-to-r from-indigo-500 via-indigo-600 to-purple-600 text-white font-black text-xs rounded-2xl shadow-lg shadow-indigo-300/50 flex items-center justify-center gap-2.5 uppercase tracking-widest active:scale-[0.98] transition-all hover:shadow-indigo-400/60 hover:shadow-xl"
+                    className="flex-1 h-12 sm:h-14 bg-gradient-to-r from-indigo-500 via-indigo-600 to-purple-600 text-white font-black text-xs rounded-2xl shadow-lg shadow-indigo-300/50 flex items-center justify-center gap-2.5 uppercase tracking-widest active:scale-[0.98] transition-all hover:shadow-indigo-400/60 hover:shadow-xl cursor-pointer"
                   >
                     {isFlipped ? (
-                      <><ChevronRight className="w-4 h-4 rotate-180" /> FLIP BACK</>
+                      <>
+                        <ChevronRight className="w-4 h-4 rotate-180" />
+                        <span>FLIP BACK</span>
+                        <kbd className="hidden md:inline-flex items-center justify-center px-1.5 py-0.5 text-[9px] font-mono font-bold bg-white/20 text-white rounded border border-white/30">Space</kbd>
+                      </>
                     ) : (
-                      <>FLIP CARD <ChevronRight className="w-4 h-4 rotate-90" /></>
+                      <>
+                        <span>FLIP CARD</span>
+                        <kbd className="hidden md:inline-flex items-center justify-center px-1.5 py-0.5 text-[9px] font-mono font-bold bg-white/20 text-white rounded border border-white/30">Space</kbd>
+                        <ChevronRight className="w-4 h-4 rotate-90" />
+                      </>
                     )}
                   </button>
                 ) : (
                   <div className="flex-1 flex gap-1.5 sm:gap-3 h-12 sm:h-14">
                     <button 
                       onClick={() => setIsFlipped(prev => !prev)}
-                      className="w-12 h-12 sm:w-14 sm:h-14 flex-shrink-0 bg-gradient-to-r from-indigo-50 to-indigo-100/80 hover:from-indigo-100 hover:to-indigo-200 text-indigo-600 border border-indigo-200/50 rounded-2xl flex items-center justify-center gap-2 active:scale-[0.98] transition-all"
+                      className="w-12 h-12 sm:w-14 sm:h-14 flex-shrink-0 bg-gradient-to-r from-indigo-50 to-indigo-100/80 hover:from-indigo-100 hover:to-indigo-200 text-indigo-600 border border-indigo-200/50 rounded-2xl flex items-center justify-center gap-2 active:scale-[0.98] transition-all cursor-pointer"
                       title={isFlipped ? "Flip to Front" : "Flip to Back"}
                     >
                       <RefreshCw className="w-5 h-5 sm:w-5.5 sm:h-5.5 text-indigo-600 animate-[spin_4s_linear_infinite]" />
                     </button>
                     <button 
                       onClick={handleNext}
-                      className="flex-1 h-12 sm:h-14 bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-600 text-white font-black text-xs rounded-2xl shadow-lg shadow-emerald-300/50 flex items-center justify-center gap-2.5 uppercase tracking-widest active:scale-[0.98] transition-all hover:shadow-emerald-400/60 hover:shadow-xl"
+                      className="flex-1 h-12 sm:h-14 bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-600 text-white font-black text-xs rounded-2xl shadow-lg shadow-emerald-300/50 flex items-center justify-center gap-2.5 uppercase tracking-widest active:scale-[0.98] transition-all hover:shadow-emerald-400/60 hover:shadow-xl cursor-pointer"
                     >
-                      NEXT CARD <ChevronRight className="w-4 h-4" />
+                      <span>NEXT CARD</span>
+                      <kbd className="hidden md:inline-flex items-center justify-center px-1.5 py-0.5 text-[9px] font-mono font-bold bg-white/20 text-white rounded border border-white/30">Space / ↵</kbd>
+                      <ChevronRight className="w-4 h-4" />
                     </button>
                   </div>
                 )

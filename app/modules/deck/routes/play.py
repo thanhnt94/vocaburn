@@ -1,5 +1,7 @@
 from app.modules.deck.services.fsrs_service import build_fsrs_card, estimate_intervals, apply_stability_boost
 from app.modules.deck.routes.roadmap import get_deck_roadmap_status_helper, get_roadmap_decks, get_deck_streak_for_user
+from app.modules.deck.utils import fix_static_urls, migrate_practice_settings
+
 def get_enabled_practice_modes(practice_settings):
     if not practice_settings or not isinstance(practice_settings, dict):
         return []
@@ -50,17 +52,6 @@ from datetime import datetime, timezone, date, timedelta
 
 router = APIRouter(tags=["Deck"])
 
-def fix_static_urls(val):
-    if not val:
-        return val
-    if isinstance(val, str):
-        return val.replace("/static/uploads/", "/uploads/")
-    if isinstance(val, dict):
-        return {k: fix_static_urls(v) for k, v in val.items()}
-    if isinstance(val, list):
-        return [fix_static_urls(v) for v in val]
-    return val
-
 async def resolve_play_cards(cards_list, db):
     from .media_resolver import get_sso_server_url, resolve_card_dict, resolve_central_url
     sso_url = await get_sso_server_url(db)
@@ -87,10 +78,19 @@ async def explain_card(data: dict):
     return {"explanation": explanation}
 
 @router.get("/{deck_id}/mistakes")
-async def get_deck_mistakes(deck_id: int, db: AsyncSession = Depends(get_db)):
-    from app.modules.deck.models import UserAnswer, Flashcard
+async def get_deck_mistakes(request: Request, deck_id: int, db: AsyncSession = Depends(get_db)):
+    user_id = AuthService.get_user_id(request)
+    from app.modules.deck.models import UserAnswer, Flashcard, DeckAttempt
     result = await db.execute(
-        select(Flashcard).join(UserAnswer).filter(UserAnswer.is_correct == False, Flashcard.deck_id == deck_id).distinct()
+        select(Flashcard)
+        .join(UserAnswer, UserAnswer.card_id == Flashcard.id)
+        .join(DeckAttempt, UserAnswer.attempt_id == DeckAttempt.id)
+        .filter(
+            DeckAttempt.user_id == user_id,
+            UserAnswer.is_correct == False,
+            Flashcard.deck_id == deck_id
+        )
+        .distinct()
     )
     mistakes = result.scalars().all()
     return mistakes
@@ -482,22 +482,9 @@ async def record_answer(request: Request, data: dict, background_tasks: Backgrou
         )
 
     # --- Achievements Check ---
-    from app.modules.deck.routes.background_tasks import check_badges_async, sync_roadmap_status_async
+    from app.modules.deck.routes.background_tasks import check_badges_async
     goal_streak = goal_update_info["streak_count"] if goal_update_info else 0
     background_tasks.add_task(check_badges_async, user_id, time_spent, is_correct, goal_streak)
-    
-    # Sync roadmap status asynchronously to maintain streak and progress
-    from app.modules.deck.models import FlashcardDeck, UserDeckSettings
-    deck_id_val = card.deck_id if card else data.get("deck_id")
-    if deck_id_val:
-        deck_res = await db.execute(select(FlashcardDeck).where(FlashcardDeck.id == deck_id_val))
-        deck_obj = deck_res.scalar_one_or_none()
-        user_sett_res = await db.execute(select(UserDeckSettings).where(UserDeckSettings.user_id == user_id, UserDeckSettings.deck_id == deck_id_val))
-        user_sett = user_sett_res.scalar_one_or_none()
-        creator_sett = deck_obj.practice_settings if (deck_obj and isinstance(deck_obj.practice_settings, dict)) else {}
-        u_sett = user_sett.settings if (user_sett and isinstance(user_sett.settings, dict)) else {}
-        merged_settings = {**creator_sett, **u_sett}
-        background_tasks.add_task(sync_roadmap_status_async, user_id, deck_id_val, merged_settings)
     
     unlocked_badge_info = None
 

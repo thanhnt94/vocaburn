@@ -1,12 +1,14 @@
+import logging
+import json
+import random
+from datetime import datetime, timezone, date, timedelta
+from typing import Optional, List
+
 from fastapi import APIRouter, Depends, Request, Query, HTTPException, BackgroundTasks
 from fastapi.responses import JSONResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func, and_, or_, delete, case
 from sqlalchemy.orm import selectinload
-from typing import Optional, List
-from datetime import datetime, timezone, date, timedelta
-import json
-import random
 
 from app.core.db import get_db
 from app.modules.auth.services.auth_service import AuthService
@@ -16,30 +18,9 @@ from app.modules.deck.models import (
     DeckAttempt, UserDeckGoal, UserDailyProgress, DeckSession, 
     UserDeckSettings, RoadmapPipelineHistory, UserPracticeStats
 )
+from app.modules.deck.utils import fix_static_urls, migrate_practice_settings, extract_card_val
 
-def fix_static_urls(val):
-    if not val:
-        return val
-    if isinstance(val, str):
-        return val.replace("/static/uploads/", "/uploads/")
-    if isinstance(val, dict):
-        return {k: fix_static_urls(v) for k, v in val.items()}
-    if isinstance(val, list):
-        return [fix_static_urls(item) for item in val]
-    return val
-
-def migrate_practice_settings(settings: Optional[dict]) -> dict:
-    if not settings:
-        return {}
-    if any(k in settings for k in ("mcq", "typing", "listening")):
-        return settings
-    active_pairs = settings.get("active_pairs", [])
-    num_choices = settings.get("num_choices", 4)
-    new_settings = dict(settings)
-    new_settings["mcq"] = {"active_pairs": active_pairs, "num_choices": num_choices}
-    new_settings["typing"] = {"active_pairs": active_pairs}
-    new_settings["listening"] = {"active_pairs": active_pairs, "num_choices": num_choices}
-    return new_settings
+logger = logging.getLogger(__name__)
 
 router = APIRouter(tags=['Roadmap'])
 
@@ -72,7 +53,8 @@ async def get_deck_roadmap_status_helper(db: AsyncSession, user_id: int, deck_id
     if target_date_str:
         try:
             target_dt = datetime.strptime(target_date_str, "%Y-%m-%d")
-        except Exception:
+        except Exception as e:
+            logger.warning(f"Failed to parse target_date_str '{target_date_str}': {e}")
             target_dt = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
     else:
         target_dt = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
@@ -441,8 +423,8 @@ async def get_deck_roadmap_status_helper(db: AsyncSession, user_id: int, deck_id
             if d_obj == today_date and not all_done:
                 continue
             met_dates.append(d_obj)
-        except Exception:
-            pass
+        except Exception as e:
+            logger.warning(f"Error parsing met_date string '{d_str}': {e}")
 
     if not met_dates:
         streak = 0
@@ -597,8 +579,8 @@ async def get_deck_streak_for_user(db: AsyncSession, user_id: int, deck_id: int)
         if isinstance(val, str):
             try:
                 active_dates.append(date.fromisoformat(val))
-            except Exception:
-                pass
+            except Exception as e:
+                logger.warning(f"Error parsing active date string '{val}': {e}")
         elif isinstance(val, datetime):
             active_dates.append(val.date())
         elif isinstance(val, date):
@@ -634,7 +616,7 @@ async def get_deck_leaderboard(request: Request, deck_id: int, db: AsyncSession 
     """Get top users studying this deck with their learned cards count, deck streak, and rank."""
     from app.modules.auth.models import User
     from app.modules.gamification.models import UserGamification
-    from app.modules.deck.models import Flashcard, UserCardMastery
+    from app.modules.deck.models import Flashcard, UserCardMastery, UserDeckGoal
     from sqlalchemy import case
     
     current_user_id = AuthService.get_user_id(request)
@@ -664,9 +646,21 @@ async def get_deck_leaderboard(request: Request, deck_id: int, db: AsyncSession 
     res = await db.execute(stmt)
     rows = res.all()
     
+    # Batch query deck streak for all users on leaderboard (fixes N+1)
+    user_ids = [r.user_id for r in rows]
+    streak_map = {}
+    if user_ids:
+        goals_res = await db.execute(
+            select(UserDeckGoal.user_id, UserDeckGoal.streak_count).where(
+                UserDeckGoal.deck_id == deck_id,
+                UserDeckGoal.user_id.in_(user_ids)
+            )
+        )
+        streak_map = {row[0]: (row[1] or 0) for row in goals_res.all()}
+    
     leaderboard = []
     for rank, r in enumerate(rows, start=1):
-        deck_streak = await get_deck_streak_for_user(db, r.user_id, deck_id)
+        deck_streak = streak_map.get(r.user_id, 0)
         leaderboard.append({
             "rank": rank,
             "user_id": r.user_id,
@@ -799,11 +793,7 @@ async def get_deck_roadmap_calendar(request: Request, deck_id: int, month: str =
             completion_percent = 100
         elif is_active:
             if settings.get("roadmap_active"):
-                st = await get_deck_roadmap_status_helper(db, user_id, deck_id, settings, target_date_str=day_str)
-                if st.get("all_done"):
-                    completion_percent = 100
-                else:
-                    completion_percent = 50
+                completion_percent = 50
             else:
                 answer_count = info["answer_count"]
                 if answer_count >= daily_card_target:
@@ -1016,7 +1006,7 @@ async def get_roadmap_test_questions(request: Request, deck_id: int, db: AsyncSe
                     "creator_settings": creator_migrated
                 }
         except Exception as e:
-            pass
+            logger.warning(f"Error loading existing test session state for deck {deck_id}: {e}")
 
     # Gate check: Step 1 (Học từ mới) MUST be completed today before entering Stage 2 Test
     user_sett_res = await db.execute(
@@ -1091,24 +1081,6 @@ async def get_roadmap_test_questions(request: Request, deck_id: int, db: AsyncSe
 
     if not active_pairs:
         active_pairs = [{"q": "front", "a": "back"}]
-
-    def extract_card_val(card, key):
-        if not key:
-            return (card.content or "").strip()
-        # 1. Check card.others dict FIRST for custom column keys (e.g. kanji, meaning, hiragana, etc.)
-        if card.others and isinstance(card.others, dict) and key in card.others:
-            val = card.others.get(key)
-            if val is not None and str(val).strip():
-                return str(val).strip()
-        if key in ("front", "content"):
-            return (card.content or "").strip()
-        if key in ("back", "explanation"):
-            return (card.explanation or "").strip()
-        if hasattr(card, key):
-            val = getattr(card, key)
-            if val is not None and str(val).strip():
-                return str(val).strip()
-        return (card.explanation or card.content or "").strip()
 
     today_start = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
     yesterday_utc = datetime.utcnow() - timedelta(days=1)
@@ -1470,6 +1442,6 @@ async def save_roadmap_test_progress(request: Request, deck_id: int, data: dict,
             sess.state_json = json.dumps(state)
             sess.updated_at = datetime.utcnow()
             await db.commit()
-        except Exception:
-            pass
+        except Exception as e:
+            logger.warning(f"Error saving roadmap test progress for user {user_id}, deck {deck_id}: {e}")
     return {"status": "ok"}

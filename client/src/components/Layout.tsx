@@ -36,12 +36,12 @@ export default function Layout() {
   })
   
   const navItems = [
-    { label: 'Home', path: '/', icon: Compass },
-    { label: 'Library', path: '/library', icon: BookOpen },
-    { label: 'Stats', path: '/stats', icon: BarChart3 },
-    { label: 'Studio', path: '/manage', icon: FolderKanban },
-    { label: 'Roadmap', path: '/roadmap', icon: Compass },
-    { label: 'Settings', path: '/profile', icon: User },
+    { label: 'Trang chủ', path: '/', icon: LayoutGrid },
+    { label: 'Lộ trình', path: '/roadmap', icon: Compass },
+    { label: 'Thư viện', path: '/library', icon: BookOpen },
+    { label: 'Bộ thẻ', path: '/manage', icon: FolderKanban },
+    { label: 'Thống kê', path: '/stats', icon: BarChart3 },
+    { label: 'Cài đặt', path: '/settings', icon: Settings },
   ]
 
   if (user?.role === 'admin') {
@@ -68,95 +68,102 @@ export default function Layout() {
       {/* Desktop Header */}
       {!isLandingPage && !isPlaying && (
         <header className={cn(
-          "fixed top-0 left-0 right-0 z-[110] backdrop-blur-2xl border-b px-8 py-4 hidden md:flex items-center justify-between transition-all duration-300",
+          "fixed top-0 left-0 right-0 z-[110] backdrop-blur-2xl border-b hidden md:flex items-center transition-all duration-300",
           isLoggedIn 
-            ? "bg-white/80 border-slate-100 text-slate-900" 
+            ? "bg-white/90 border-slate-100/80 text-slate-900 shadow-2xs" 
             : "bg-slate-950/80 border-white/5 text-white"
         )}>
-          <div className="flex items-center gap-8">
-          <Link to="/" className="active:scale-95 transition-all">
-            <VocaburnLogo iconSize="lg" textSize="lg" variant={isLoggedIn ? 'dark' : 'light'} />
-          </Link>
-          {isLoggedIn && (
-            <nav className="flex items-center gap-6">
-              {navItems.map((item) => (
-                <Link 
-                  key={item.path}
-                  to={item.path} 
-                  onClick={(e) => handleNavClick(e, item.path, item.label)}
-                  className={cn(
-                    "text-[10px] font-black uppercase tracking-widest transition-colors",
-                    location.pathname === item.path ? "text-indigo-600" : "text-slate-400 hover:text-slate-600"
-                  )}
-                >
-                  {item.label}
-                </Link>
-              ))}
-            </nav>
-          )}
-        </div>
-        
-        {isLoggedIn ? (
-          <div className="flex items-center gap-5">
-            <div className="flex items-center gap-4 border-r border-slate-100 pr-5">
-              <button 
-                onClick={() => setIsShopOpen(true)}
-                className="flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-600 hover:bg-amber-500/20 transition-all hover:scale-105 active:scale-95 cursor-pointer"
-                title="Mở Cửa Hàng & Kho Cứu Streak"
-              >
-                <ShoppingBag className="w-3.5 h-3.5" />
-                <span className="text-[11px] font-black">{gamify.streak_points || 0} ⚡</span>
-                <span className="text-slate-300">•</span>
-                <Shield className="w-3.5 h-3.5 fill-sky-400/20 text-sky-500" />
-                <span className="text-[11px] font-black text-sky-600">{gamify.streak_freeze_count || 0}/2</span>
-              </button>
-
-              <span className="flex items-center gap-1 text-orange-500 hover:scale-105 transition-transform cursor-default" title="Daily Streak">
-                <Flame className="w-4 h-4 fill-orange-500" />
-                <span className="text-xs font-black">{gamify.streak}d</span>
-              </span>
-              <span className="flex items-center gap-1 text-amber-500 hover:scale-105 transition-transform cursor-default" title="Level">
-                <Award className="w-4 h-4" />
-                <span className="text-xs font-black">Lvl {gamify.level}</span>
-              </span>
-            </div>
-
-            <Link to="/profile" className="flex items-center gap-2.5 group cursor-pointer">
-              <div className="text-right hidden lg:block">
-                <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest leading-none mb-1">Logged In</p>
-                <p className="text-[11px] font-black text-slate-800 leading-none group-hover:text-indigo-600 transition-colors">{user?.username || 'GUEST'}</p>
-              </div>
-              <div className="w-9 h-9 rounded-xl bg-slate-50 border border-slate-200/80 flex items-center justify-center text-slate-500 group-hover:border-indigo-200 group-hover:bg-indigo-50/50 transition-all">
-                <User className="w-4.5 h-4.5" />
-              </div>
-            </Link>
-          </div>
-        ) : (
-          <div className="flex items-center gap-4">
-            <Link 
-              to="/login"
-              className="text-[10px] font-black uppercase tracking-widest text-slate-300 hover:text-white bg-white/5 hover:bg-white/10 border border-white/10 px-4 py-2.5 rounded-xl transition-all active:scale-95"
-            >
-              Sign In
-            </Link>
-            {authConfig?.sso_enabled ? (
-              <a
-                href={authConfig.jump_url ? authConfig.jump_url.replace('/api/auth/jump/', '/auth/register?client_id=') : 'http://localhost:5000/auth/register?client_id=vocaburn-v1'}
-                className="px-5 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest bg-gradient-to-r from-indigo-500 to-pink-500 hover:from-indigo-600 hover:to-pink-600 text-white shadow-lg shadow-indigo-500/20 active:scale-95 transition-all"
-              >
-                Sign Up
-              </a>
-            ) : (
-              <Link
-                to="/login"
-                className="px-5 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest bg-gradient-to-r from-indigo-500 to-pink-500 hover:from-indigo-600 hover:to-pink-600 text-white shadow-lg shadow-indigo-500/20 active:scale-95 transition-all"
-              >
-                Sign Up
+          <div className="max-w-[1600px] w-full mx-auto px-8 py-3 flex items-center justify-between">
+            <div className="flex items-center gap-8">
+              <Link to="/" className="active:scale-95 transition-all">
+                <VocaburnLogo iconSize="lg" textSize="lg" variant={isLoggedIn ? 'dark' : 'light'} />
               </Link>
+              {isLoggedIn && (
+                <nav className="flex items-center gap-2">
+                  {navItems.map((item) => {
+                    const isActive = location.pathname === item.path
+                    return (
+                      <Link 
+                        key={item.path}
+                        to={item.path} 
+                        onClick={(e) => handleNavClick(e, item.path, item.label)}
+                        className={cn(
+                          "text-[11px] font-bold tracking-wide transition-all px-3 py-1.5 rounded-xl",
+                          isActive 
+                            ? "text-indigo-600 bg-indigo-50/80 font-black" 
+                            : "text-slate-500 hover:text-slate-900 hover:bg-slate-100/70"
+                        )}
+                      >
+                        {item.label}
+                      </Link>
+                    )
+                  })}
+                </nav>
+              )}
+            </div>
+            
+            {isLoggedIn ? (
+              <div className="flex items-center gap-5">
+                <div className="flex items-center gap-3.5 border-r border-slate-100 pr-5">
+                  <button 
+                    onClick={() => setIsShopOpen(true)}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-700 hover:bg-amber-500/20 transition-all hover:scale-105 active:scale-95 cursor-pointer shadow-2xs"
+                    title="Mở Cửa Hàng & Kho Cứu Streak"
+                  >
+                    <ShoppingBag className="w-3.5 h-3.5 text-amber-600" />
+                    <span className="text-[11px] font-black">{gamify.streak_points || 0} ⚡</span>
+                    <span className="text-slate-300">•</span>
+                    <Shield className="w-3.5 h-3.5 fill-sky-400/20 text-sky-500" />
+                    <span className="text-[11px] font-black text-sky-600">{gamify.streak_freeze_count || 0}/2</span>
+                  </button>
+
+                  <span className="flex items-center gap-1 text-orange-500 hover:scale-105 transition-transform cursor-default" title="Daily Streak">
+                    <Flame className="w-4 h-4 fill-orange-500" />
+                    <span className="text-xs font-black">{gamify.streak}d</span>
+                  </span>
+                  <span className="flex items-center gap-1 text-amber-500 hover:scale-105 transition-transform cursor-default" title="Level">
+                    <Award className="w-4 h-4" />
+                    <span className="text-xs font-black">Lvl {gamify.level}</span>
+                  </span>
+                </div>
+
+                <Link to="/profile" className="flex items-center gap-2.5 group cursor-pointer">
+                  <div className="text-right hidden lg:block">
+                    <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest leading-none mb-1">Tài khoản</p>
+                    <p className="text-[11px] font-black text-slate-800 leading-none group-hover:text-indigo-600 transition-colors">{user?.username || 'GUEST'}</p>
+                  </div>
+                  <div className="w-9 h-9 rounded-xl bg-slate-50 border border-slate-200/80 flex items-center justify-center text-slate-500 group-hover:border-indigo-200 group-hover:bg-indigo-50/50 transition-all">
+                    <User className="w-4.5 h-4.5" />
+                  </div>
+                </Link>
+              </div>
+            ) : (
+              <div className="flex items-center gap-4">
+                <Link 
+                  to="/login"
+                  className="text-[10px] font-black uppercase tracking-widest text-slate-300 hover:text-white bg-white/5 hover:bg-white/10 border border-white/10 px-4 py-2.5 rounded-xl transition-all active:scale-95"
+                >
+                  Sign In
+                </Link>
+                {authConfig?.sso_enabled ? (
+                  <a
+                    href={authConfig.jump_url ? authConfig.jump_url.replace('/api/auth/jump/', '/auth/register?client_id=') : 'http://localhost:5000/auth/register?client_id=vocaburn-v1'}
+                    className="px-5 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest bg-gradient-to-r from-indigo-500 to-pink-500 hover:from-indigo-600 hover:to-pink-600 text-white shadow-lg shadow-indigo-500/20 active:scale-95 transition-all"
+                  >
+                    Sign Up
+                  </a>
+                ) : (
+                  <Link
+                    to="/login"
+                    className="px-5 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest bg-gradient-to-r from-indigo-500 to-pink-500 hover:from-indigo-600 hover:to-pink-600 text-white shadow-lg shadow-indigo-500/20 active:scale-95 transition-all"
+                  >
+                    Sign Up
+                  </Link>
+                )}
+              </div>
             )}
           </div>
-        )}
-      </header>
+        </header>
       )}
 
       <main className={cn(

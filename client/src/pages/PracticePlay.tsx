@@ -3653,12 +3653,17 @@ export default function PracticePlay() {
                   >
                     {/* Left: Letter Badge + Choice Text */}
                     <div className="flex items-center gap-3 min-w-0 flex-1">
-                      <span className={cn(
-                        "w-8.5 h-8.5 md:w-9.5 md:h-9.5 rounded-full flex items-center justify-center text-xs md:text-sm font-black border flex-shrink-0 transition-colors shadow-sm",
-                        badgeStyle
-                      )}>
-                        {letter}
-                      </span>
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        <span className={cn(
+                          "w-8.5 h-8.5 md:w-9.5 md:h-9.5 rounded-full flex items-center justify-center text-xs md:text-sm font-black border flex-shrink-0 transition-colors shadow-sm",
+                          badgeStyle
+                        )}>
+                          {letter}
+                        </span>
+                        <kbd className="hidden md:inline-flex items-center justify-center px-1.5 py-0.5 text-[8.5px] font-mono font-bold rounded border border-slate-300/80 bg-slate-100/90 text-slate-500 shadow-2xs">
+                          {idx + 1}
+                        </kbd>
+                      </div>
                       <span className="leading-snug truncate" dangerouslySetInnerHTML={{ __html: parseBBCodeToHtml(choice) }} />
                     </div>
 
@@ -5394,16 +5399,18 @@ export default function PracticePlay() {
                 practiceAnswers[currentIndex] !== undefined ? (
                   <button
                     onClick={() => handleNext()}
-                    className="flex-1 h-12 bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-600 text-white font-black text-xs rounded-2xl shadow-lg shadow-emerald-300/50 flex items-center justify-center gap-2.5 uppercase tracking-widest active:scale-[0.98] transition-all hover:shadow-emerald-400/60 hover:shadow-xl"
+                    className="flex-1 h-12 bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-600 text-white font-black text-xs rounded-2xl shadow-lg shadow-emerald-300/50 flex items-center justify-center gap-2.5 uppercase tracking-widest active:scale-[0.98] transition-all hover:shadow-emerald-400/60 hover:shadow-xl cursor-pointer"
                   >
-                    Continue <ChevronRight className="w-4 h-4" />
+                    <span>Continue</span>
+                    <kbd className="hidden md:inline-flex items-center justify-center px-1.5 py-0.5 text-[9px] font-mono font-bold bg-white/20 text-white rounded border border-white/30">Space / ↵</kbd>
+                    <ChevronRight className="w-4 h-4" />
                   </button>
                 ) : (
                   <div className="flex-1 flex gap-2 h-12">
                     {!isRoadmapTestMode && (
                       <button
                         onClick={() => handleNext()}
-                        className="flex-1 h-12 bg-slate-50 border border-slate-200 text-slate-500 hover:bg-slate-100 font-black text-xs rounded-2xl flex items-center justify-center gap-1.5 uppercase tracking-widest active:scale-[0.98] transition-all"
+                        className="flex-1 h-12 bg-slate-50 border border-slate-200 text-slate-500 hover:bg-slate-100 font-black text-xs rounded-2xl flex items-center justify-center gap-1.5 uppercase tracking-widest active:scale-[0.98] transition-all cursor-pointer"
                       >
                         Skip <ChevronRight className="w-4 h-4" />
                       </button>
@@ -5424,28 +5431,38 @@ export default function PracticePlay() {
                         setJustAnswered(true);
                       }
                     }}
-                    className="flex-1 h-12 bg-gradient-to-r from-indigo-500 via-indigo-600 to-purple-600 text-white font-black text-xs rounded-2xl shadow-lg shadow-indigo-300/50 flex items-center justify-center gap-2.5 uppercase tracking-widest active:scale-[0.98] transition-all hover:shadow-indigo-400/60 hover:shadow-xl"
+                    className="flex-1 h-12 bg-gradient-to-r from-indigo-500 via-indigo-600 to-purple-600 text-white font-black text-xs rounded-2xl shadow-lg shadow-indigo-300/50 flex items-center justify-center gap-2.5 uppercase tracking-widest active:scale-[0.98] transition-all hover:shadow-indigo-400/60 hover:shadow-xl cursor-pointer"
                   >
                     {isFlipped ? (
-                      <><ChevronRight className="w-4 h-4 rotate-180" /> FLIP BACK</>
+                      <>
+                        <ChevronRight className="w-4 h-4 rotate-180" />
+                        <span>FLIP BACK</span>
+                        <kbd className="hidden md:inline-flex items-center justify-center px-1.5 py-0.5 text-[9px] font-mono font-bold bg-white/20 text-white rounded border border-white/30">Space</kbd>
+                      </>
                     ) : (
-                      <>FLIP CARD <ChevronRight className="w-4 h-4 rotate-90" /></>
+                      <>
+                        <span>FLIP CARD</span>
+                        <kbd className="hidden md:inline-flex items-center justify-center px-1.5 py-0.5 text-[9px] font-mono font-bold bg-white/20 text-white rounded border border-white/30">Space</kbd>
+                        <ChevronRight className="w-4 h-4 rotate-90" />
+                      </>
                     )}
                   </button>
                 ) : (
                   <div className="flex-1 flex gap-3 h-12">
                     <button
                       onClick={() => setIsFlipped(prev => !prev)}
-                      className="w-12 h-12 flex-shrink-0 bg-gradient-to-r from-indigo-50 to-indigo-100/80 hover:from-indigo-100 hover:to-indigo-200 text-indigo-600 border border-indigo-200/50 rounded-2xl flex items-center justify-center gap-2 active:scale-[0.98] transition-all"
+                      className="w-12 h-12 flex-shrink-0 bg-gradient-to-r from-indigo-50 to-indigo-100/80 hover:from-indigo-100 hover:to-indigo-200 text-indigo-600 border border-indigo-200/50 rounded-2xl flex items-center justify-center gap-2 active:scale-[0.98] transition-all cursor-pointer"
                       title={isFlipped ? "Flip to Front" : "Flip to Back"}
                     >
                       <RefreshCw className="w-5 h-5 text-indigo-600 animate-[spin_4s_linear_infinite]" />
                     </button>
                     <button
                       onClick={() => handleNext()}
-                      className="flex-1 h-12 bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-600 text-white font-black text-xs rounded-2xl shadow-lg shadow-emerald-300/50 flex items-center justify-center gap-2.5 uppercase tracking-widest active:scale-[0.98] transition-all hover:shadow-emerald-400/60 hover:shadow-xl"
+                      className="flex-1 h-12 bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-600 text-white font-black text-xs rounded-2xl shadow-lg shadow-emerald-300/50 flex items-center justify-center gap-2.5 uppercase tracking-widest active:scale-[0.98] transition-all hover:shadow-emerald-400/60 hover:shadow-xl cursor-pointer"
                     >
-                      NEXT CARD <ChevronRight className="w-4 h-4" />
+                      <span>NEXT CARD</span>
+                      <kbd className="hidden md:inline-flex items-center justify-center px-1.5 py-0.5 text-[9px] font-mono font-bold bg-white/20 text-white rounded border border-white/30">Space / ↵</kbd>
+                      <ChevronRight className="w-4 h-4" />
                     </button>
                   </div>
                 )

@@ -75,12 +75,15 @@ export const FSRSActionButtons: React.FC<FSRSActionButtonsProps> = ({
       <button
         onClick={(e) => {
           e.stopPropagation();
-          console.log("DEBUG CLICK: AGAIN button clicked!");
           onRate(1);
         }}
         className={getButtonClass(0)}
+        title="Phím tắt: 1"
       >
-        <span className={cn("text-[9px] sm:text-[10px] font-black tracking-wider transition-colors duration-200", hasRated && selectedOption === 0 ? "text-white" : "text-rose-500")}>AGAIN</span>
+        <div className="flex items-center gap-1">
+          <span className={cn("text-[9px] sm:text-[10px] font-black tracking-wider transition-colors duration-200", hasRated && selectedOption === 0 ? "text-white" : "text-rose-500")}>AGAIN</span>
+          <kbd className="hidden md:inline-flex items-center justify-center px-1.5 py-0.2 text-[8px] font-mono font-black rounded border border-rose-300 bg-rose-100/60 text-rose-700 shadow-2xs">1</kbd>
+        </div>
         <span className={cn("text-[10.5px] sm:text-xs font-black transition-colors duration-200", hasRated && selectedOption === 0 ? "text-rose-100" : "text-rose-600")}>
           {intervals?.[1] || "1m"}
         </span>
@@ -90,12 +93,15 @@ export const FSRSActionButtons: React.FC<FSRSActionButtonsProps> = ({
       <button
         onClick={(e) => {
           e.stopPropagation();
-          console.log("DEBUG CLICK: HARD button clicked!");
           onRate(2);
         }}
         className={getButtonClass(1)}
+        title="Phím tắt: 2"
       >
-        <span className={cn("text-[9px] sm:text-[10px] font-black tracking-wider transition-colors duration-200", hasRated && selectedOption === 1 ? "text-white" : "text-amber-500")}>HARD</span>
+        <div className="flex items-center gap-1">
+          <span className={cn("text-[9px] sm:text-[10px] font-black tracking-wider transition-colors duration-200", hasRated && selectedOption === 1 ? "text-white" : "text-amber-500")}>HARD</span>
+          <kbd className="hidden md:inline-flex items-center justify-center px-1.5 py-0.2 text-[8px] font-mono font-black rounded border border-amber-300 bg-amber-100/60 text-amber-700 shadow-2xs">2</kbd>
+        </div>
         <span className={cn("text-[10.5px] sm:text-xs font-black transition-colors duration-200", hasRated && selectedOption === 1 ? "text-amber-100" : "text-amber-600")}>
           {intervals?.[2] || "5m"}
         </span>
@@ -105,12 +111,15 @@ export const FSRSActionButtons: React.FC<FSRSActionButtonsProps> = ({
       <button
         onClick={(e) => {
           e.stopPropagation();
-          console.log("DEBUG CLICK: GOOD button clicked!");
           onRate(3);
         }}
         className={getButtonClass(2)}
+        title="Phím tắt: 3"
       >
-        <span className={cn("text-[9px] sm:text-[10px] font-black tracking-wider transition-colors duration-200", hasRated && selectedOption === 2 ? "text-white" : "text-indigo-500")}>GOOD</span>
+        <div className="flex items-center gap-1">
+          <span className={cn("text-[9px] sm:text-[10px] font-black tracking-wider transition-colors duration-200", hasRated && selectedOption === 2 ? "text-white" : "text-indigo-500")}>GOOD</span>
+          <kbd className="hidden md:inline-flex items-center justify-center px-1.5 py-0.2 text-[8px] font-mono font-black rounded border border-indigo-300 bg-indigo-100/60 text-indigo-700 shadow-2xs">3</kbd>
+        </div>
         <span className={cn("text-[10.5px] sm:text-xs font-black transition-colors duration-200", hasRated && selectedOption === 2 ? "text-indigo-100" : "text-indigo-600")}>
           {intervals?.[3] || "10m"}
         </span>
@@ -120,12 +129,15 @@ export const FSRSActionButtons: React.FC<FSRSActionButtonsProps> = ({
       <button
         onClick={(e) => {
           e.stopPropagation();
-          console.log("DEBUG CLICK: EASY button clicked!");
           onRate(4);
         }}
         className={getButtonClass(3)}
+        title="Phím tắt: 4"
       >
-        <span className={cn("text-[9px] sm:text-[10px] font-black tracking-wider transition-colors duration-200", hasRated && selectedOption === 3 ? "text-white" : "text-emerald-500")}>EASY</span>
+        <div className="flex items-center gap-1">
+          <span className={cn("text-[9px] sm:text-[10px] font-black tracking-wider transition-colors duration-200", hasRated && selectedOption === 3 ? "text-white" : "text-emerald-500")}>EASY</span>
+          <kbd className="hidden md:inline-flex items-center justify-center px-1.5 py-0.2 text-[8px] font-mono font-black rounded border border-emerald-300 bg-emerald-100/60 text-emerald-700 shadow-2xs">4</kbd>
+        </div>
         <span className={cn("text-[10.5px] sm:text-xs font-black transition-colors duration-200", hasRated && selectedOption === 3 ? "text-emerald-100" : "text-emerald-600")}>
           {intervals?.[4] || "4d"}
         </span>
