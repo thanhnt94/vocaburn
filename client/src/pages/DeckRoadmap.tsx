@@ -544,8 +544,24 @@ export default function DeckRoadmap() {
                                 </div>
                                 <h4 className="text-xs font-black text-slate-900 truncate">{meta.title}</h4>
                                 <div className="text-[10px] font-bold text-slate-500">
-                                  {step.type === 'new_cards' && `${step.progress?.learned || 0}/${step.daily_count || 10} từ mới`}
-                                  {step.type === 'fsrs_review' && (step.done ? `Đã ôn ${step.progress?.reviewed_today || 0} thẻ` : `Còn ${step.progress?.due_count || 0} thẻ`)}
+                                  {step.type === 'new_cards' && (
+                                    step.progress?.all_learned ? (
+                                      <span className="text-emerald-700 font-bold">✓ Đã học hết từ mới</span>
+                                    ) : (
+                                      `${step.progress?.learned || 0}/${step.progress?.target || step.daily_count || 10} từ mới`
+                                    )
+                                  )}
+                                  {step.type === 'fsrs_review' && (
+                                    step.done ? (
+                                      step.progress?.due_count === 0 && (step.progress?.reviewed_today || 0) === 0 ? (
+                                        <span className="text-emerald-700 font-bold">✓ Không có thẻ cần ôn</span>
+                                      ) : (
+                                        `Đã ôn ${step.progress?.reviewed_today || 0} thẻ`
+                                      )
+                                    ) : (
+                                      `Còn ${step.progress?.still_due || step.progress?.due_count || 0} thẻ cần ôn`
+                                    )
+                                  )}
                                   {(step.type === 'mcq' || step.type === 'typing') && `Điểm: ${step.progress?.best_score || 0}% / ${step.pass_threshold}%`}
                                   {step.type === 'study_time' && `${step.progress?.studied_minutes || 0}/${step.target_minutes || 10} phút`}
                                 </div>
@@ -1320,15 +1336,25 @@ export default function DeckRoadmap() {
                             <div className="text-right">
                               {step.type === 'new_cards' && (
                                 <div className="text-xs font-black text-slate-800">
-                                  <span className="text-orange-600">{step.progress?.learned || 0}</span> / {step.daily_count || 10} <span className="text-slate-400 font-semibold text-xs">từ mới</span>
+                                  {step.progress?.all_learned ? (
+                                    <span className="text-emerald-600 font-bold">✓ Đã học hết toàn bộ từ mới trong bộ</span>
+                                  ) : (
+                                    <>
+                                      <span className="text-orange-600">{step.progress?.learned || 0}</span> / {step.progress?.target || step.daily_count || 10} <span className="text-slate-400 font-semibold text-xs">từ mới</span>
+                                    </>
+                                  )}
                                 </div>
                               )}
                               {step.type === 'fsrs_review' && (
                                 <div className="text-xs font-black text-slate-800">
                                   {step.done ? (
-                                    <>Đã ôn: <span className="text-emerald-600">{step.progress?.reviewed_today || 0}</span> <span className="text-slate-400 font-semibold text-xs">thẻ</span></>
+                                    step.progress?.due_count === 0 && (step.progress?.reviewed_today || 0) === 0 ? (
+                                      <span className="text-emerald-600 font-bold">✓ Không có thẻ đến hạn ôn hôm nay</span>
+                                    ) : (
+                                      <>Đã ôn: <span className="text-emerald-600">{step.progress?.reviewed_today || 0}</span> <span className="text-slate-400 font-semibold text-xs">thẻ</span></>
+                                    )
                                   ) : (
-                                    <>Còn: {step.progress?.due_count || 0} <span className="text-slate-400 font-semibold text-xs">thẻ (đã ôn {step.progress?.reviewed_today || 0})</span></>
+                                    <>Còn: <span className="text-orange-600">{step.progress?.still_due || step.progress?.due_count || 0}</span> <span className="text-slate-400 font-semibold text-xs">thẻ cần ôn (đã ôn {step.progress?.reviewed_today || 0})</span></>
                                   )}
                                 </div>
                               )}

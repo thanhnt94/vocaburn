@@ -237,21 +237,39 @@ async def get_deck_roadmap_status_helper(db: AsyncSession, user_id: int, deck_id
         if stype == "new_cards":
             daily_count = int(st.get("daily_count", 10))
             daily_new_target = daily_count
-            is_done = new_learned_today >= daily_count
+            available_new_today = unlearned_cards + new_learned_today
+            effective_target = min(daily_count, available_new_today)
+            is_all_learned = (unlearned_cards == 0)
+            is_done = (
+                (new_learned_today >= daily_count) or 
+                is_all_learned or 
+                (available_new_today > 0 and new_learned_today >= available_new_today)
+            )
             step_data.update({
                 "daily_count": daily_count,
+                "effective_target": effective_target,
+                "all_learned": is_all_learned,
                 "done": is_done,
-                "progress": {"learned": new_learned_today, "target": daily_count},
+                "progress": {
+                    "learned": new_learned_today, 
+                    "target": effective_target,
+                    "unlearned_cards": unlearned_cards,
+                    "all_learned": is_all_learned
+                },
                 "url": f"/flashcard/{deck_id}/play?mode=roadmap",
-                "label": "Học từ mới"
+                "label": "Đã học hết từ mới" if is_all_learned else "Học từ mới"
             })
         elif stype == "fsrs_review":
             overdue_hours = int(st.get("overdue_hours", 24))
-            is_done = (review_due_today <= 0) or (review_completed_today >= review_due_today)
+            is_done = (review_still_due <= 0) or (review_due_today <= 0) or (review_completed_today >= review_due_today)
             step_data.update({
                 "overdue_hours": overdue_hours,
                 "done": is_done,
-                "progress": {"due_count": review_due_today, "reviewed_today": review_completed_today},
+                "progress": {
+                    "due_count": review_due_today, 
+                    "still_due": review_still_due,
+                    "reviewed_today": review_completed_today
+                },
                 "url": f"/flashcard/{deck_id}/play?mode=roadmap",
                 "label": "Ôn tập FSRS"
             })
@@ -452,7 +470,7 @@ async def get_deck_roadmap_status_helper(db: AsyncSession, user_id: int, deck_id
     if len(pipeline_processed) > 0 and first_incomplete_idx is None:
         current_step_index = len(pipeline_processed)
         next_action_url = f"/flashcard/{deck_id}/roadmap"
-        next_action_label = "Đã xong lộ trình hôm nay"
+        next_action_label = "Đã học hết toàn bộ thẻ!" if all_cards_learned else "Đã xong lộ trình hôm nay"
     elif len(pipeline_processed) > 0:
         current_step_index = first_incomplete_idx
         next_action_url = pipeline_processed[first_incomplete_idx]["url"]
