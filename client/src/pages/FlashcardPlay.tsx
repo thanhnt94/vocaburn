@@ -4024,41 +4024,36 @@ export default function FlashcardPlay() {
             const totalDeckCards = session?.questions?.length || 0;
             const nowTime = new Date().getTime();
 
-            // 1. Identify all due cards for review in this deck
-            const dueCardsIndices = session?.questions ? session.questions.map((q: any, idx: number) => {
-              if (q.is_ignored) return -1;
-              const isLearned = (q.fsrs && (q.fsrs.state > 0 || q.fsrs.last_review !== null)) || (q.stats?.total && q.stats.total > 0);
-              if (!isLearned || !q.fsrs?.due) return -1;
-              const isDue = (parseUTCDate(q.fsrs.due).getTime() - 30000) <= nowTime;
-              return isDue ? idx : -1;
-            }).filter((idx: number) => idx !== -1) : [];
-
-            // 2. Count total learned cards in the whole deck (from DB + session)
+            // 1. Count total learned cards in the whole deck (from DB + session)
             const totalLearnedCards = session?.questions ? session.questions.filter((q: any, idx: number) => {
-              const isLearnedInDB = (q.fsrs && (q.fsrs.state > 0 || q.fsrs.last_review !== null)) || (q.stats?.total && q.stats.total > 0);
+              const box = getCardBoxId(q);
+              const isLearnedInDB = box !== 'unseen';
               const isAnsweredThisSession = sessionAnswers[idx] !== undefined;
               return isLearnedInDB || isAnsweredThisSession;
             }).length : 0;
 
-            // 3. Determine if current card is due for review or is a new card
-            const isCurrentCardLearned = currentQuestion && (
-              (currentQuestion.fsrs && (currentQuestion.fsrs.state > 0 || currentQuestion.fsrs.last_review !== null)) ||
-              (currentQuestion.stats?.total && currentQuestion.stats.total > 0)
-            );
+            // 2. Identify due review cards
+            const dueCardsIndices = session?.questions ? session.questions.map((q: any, idx: number) => {
+              if (q.is_ignored) return -1;
+              const box = getCardBoxId(q);
+              if (box === 'unseen' || !q.fsrs?.due) return -1;
+              const isDue = (parseUTCDate(q.fsrs.due).getTime() - 30000) <= nowTime;
+              return isDue ? idx : -1;
+            }).filter((idx: number) => idx !== -1) : [];
 
-            const isCurrentCardDue = isCurrentCardLearned && currentQuestion?.fsrs?.due && (
-              (parseUTCDate(currentQuestion.fsrs.due).getTime() - 30000) <= nowTime
-            );
+            // 3. Determine if current card being viewed is a NEW card or a REVIEW card
+            const currentBox = currentQuestion ? getCardBoxId(currentQuestion) : 'unseen';
+            const isCurrentCardNew = currentBox === 'unseen';
 
-            if (isCurrentCardDue || dueCardsIndices.length > 0) {
-              // Thẻ ôn tập: Hiển thị số từ cần ôn còn lại / Tổng số từ cần ôn
-              const unreviewedDueCount = dueCardsIndices.filter((idx: number) => sessionAnswers[idx] === undefined).length;
-              subCurr = unreviewedDueCount;
-              subTotal = dueCardsIndices.length;
-            } else {
-              // Thẻ mới: Hiển thị số từ đã học / Tổng số từ của bộ thẻ
+            if (isCurrentCardNew) {
+              // Thẻ mới (⭐ MỚI): Hiển thị [Số từ đã học] / [Tổng số từ của bộ thẻ] (ví dụ: 2 / 26)
               subCurr = totalLearnedCards;
               subTotal = totalDeckCards;
+            } else {
+              // Thẻ ôn tập (🌱 ĐANG HỌC, ⚠️ THẺ KHÓ, 🏆 ĐÃ THUỘC): Hiển thị [Số từ cần ôn còn lại] / [Tổng số từ cần ôn]
+              const unreviewedDueCount = dueCardsIndices.filter((idx: number) => sessionAnswers[idx] === undefined).length;
+              subCurr = unreviewedDueCount;
+              subTotal = dueCardsIndices.length > 0 ? dueCardsIndices.length : totalDeckCards;
             }
           } else if (activeMode === 'review') {
             const fsrsIdx = rawPipeline.findIndex((s: any) => s.type === 'fsrs_review');
