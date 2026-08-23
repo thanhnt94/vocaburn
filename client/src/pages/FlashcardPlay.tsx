@@ -4042,21 +4042,20 @@ export default function FlashcardPlay() {
               return isDue ? idx : -1;
             }).filter((idx: number) => idx !== -1) : [];
 
-            // 3. Determine if current card being viewed is a NEW card or a REVIEW card
-            const currentBox = currentQuestion ? getCardBoxId(currentQuestion) : 'unseen';
-            const isCurrentCardNew = currentBox === 'unseen';
+            // 3. Determine if current card being viewed is an active due review card or in new cards phase
+            const isCurrentCardActiveReview = dueCardsIndices.includes(currentIndex);
 
-            if (isCurrentCardNew) {
-              // Thẻ mới (⭐ MỚI): Hiển thị [Số từ đã học] / [Tổng số từ của bộ thẻ] (ví dụ: 2 / 26, 3 / 26)
-              subCurr = totalLearnedCards;
-              subTotal = totalDeckCards;
-              progressPillText = undefined;
-            } else {
-              // Thẻ ôn tập (🌱 ĐANG HỌC, ⚠️ THẺ KHÓ, 🏆 ĐÃ THUỘC): Hiển thị "Còn X" (ví dụ: Còn 2, Còn 3)
+            if (isCurrentCardActiveReview) {
+              // Thẻ ôn tập: Hiển thị "Còn X" (ví dụ: Còn 2, Còn 1)
               const unreviewedDueCount = dueCardsIndices.filter((idx: number) => sessionAnswers[idx] === undefined).length;
               subCurr = unreviewedDueCount;
               subTotal = dueCardsIndices.length > 0 ? dueCardsIndices.length : totalDeckCards;
               progressPillText = `Còn ${unreviewedDueCount}`;
+            } else {
+              // Thẻ mới (⭐ MỚI): Hiển thị [Số từ đã học] / [Tổng số từ của bộ thẻ] (ví dụ: 3 / 26 -> sau khi đánh giá nhảy lên 4 / 26)
+              subCurr = totalLearnedCards;
+              subTotal = totalDeckCards;
+              progressPillText = undefined;
             }
           } else if (activeMode === 'review') {
             const fsrsIdx = rawPipeline.findIndex((s: any) => s.type === 'fsrs_review');
