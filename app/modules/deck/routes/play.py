@@ -1491,17 +1491,24 @@ async def get_next_card(request: Request, deck_id: int, data: dict, db: AsyncSes
         due_cards = []
         unanswered_review_cards = []
         all_learned_cards = []
+        unanswered_new_cards = []
+        all_new_cards = []
 
         for idx, c_id in enumerate(card_ids):
             if idx in ignored_indexes:
                 continue
 
             m = mastery_map.get(c_id)
+            has_answered = idx in effective_answered
+
+            # Check if it's an unlearned / new card
             if not m or m["state"] == 0 or m["stability"] is None:
+                all_new_cards.append(idx)
+                if not has_answered:
+                    unanswered_new_cards.append(idx)
                 continue
 
             is_due = m["due"] and m["due"] <= due_cutoff
-            has_answered = idx in answered_indexes
             card_info = {"idx": idx, "due": m["due"], "stability": m["stability"] or 0.0}
             all_learned_cards.append(card_info)
             
@@ -1510,6 +1517,7 @@ async def get_next_card(request: Request, deck_id: int, data: dict, db: AsyncSes
                 if is_due:
                     due_cards.append(card_info)
 
+        # 1. PRIORITY 1: Due Review cards (Thẻ đến hạn ôn tập)
         if due_cards:
             if random_enabled:
                 import random
@@ -1517,15 +1525,58 @@ async def get_next_card(request: Request, deck_id: int, data: dict, db: AsyncSes
             else:
                 due_cards.sort(key=lambda x: x["stability"])
                 next_index = due_cards[0]["idx"]
-            return {"next_index": next_index, "phase": "review"}
+            return {"next_index": next_index, "phase": "review", "due_count": len(due_cards), "unlearned_count": len(unanswered_new_cards)}
+            
+        # 2. PRIORITY 2: Learn New/Unlearned Cards (Học từ mới nếu không có từ cần ôn tập)
+        elif unanswered_new_cards:
+            if random_enabled:
+                import random
+                return {"next_index": random.choice(unanswered_new_cards), "phase": "new", "due_count": 0, "unlearned_count": len(unanswered_new_cards)}
+            else:
+                forward_new = [i for i in unanswered_new_cards if i > current_index]
+                next_idx = forward_new[0] if forward_new else unanswered_new_cards[0]
+                return {"next_index": next_idx, "phase": "new", "due_count": 0, "unlearned_count": len(unanswered_new_cards)}
+
+        # 3. PRIORITY 3: Other review cards in this session (if any remaining)
         elif unanswered_review_cards:
             unanswered_review_cards.sort(key=lambda x: x["due"] or datetime.max)
-            return {"next_index": unanswered_review_cards[0]["idx"], "phase": "review"}
-        elif all_learned_cards:
-            all_learned_cards.sort(key=lambda x: x["due"] or datetime.max)
-            return {"next_index": all_learned_cards[0]["idx"], "phase": "review"}
+            return {"next_index": unanswered_review_cards[0]["idx"], "phase": "review", "due_count": 0, "unlearned_count": 0}
+
+        # 4. BOTH COMPLETED (Hoàn thành cả 2 điều kiện: hết thẻ cần ôn & hết thẻ mới)
         else:
-            return {"next_index": 0, "phase": "review_empty"}
+            future_dates = [c["due"] for c in all_learned_cards if c.get("due") and c["due"] > now_utc]
+            min_future_due = min(future_dates) if future_dates else (all_learned_cards[0]["due"] if all_learned_cards and all_learned_cards[0].get("due") else None)
+            
+            wait_sec = 600
+            wait_text = "10 phút nữa"
+            if min_future_due:
+                diff_sec = int((min_future_due - now_utc).total_seconds())
+                wait_sec = max(60, diff_sec)
+                
+                hours = wait_sec // 3600
+                minutes = (wait_sec % 3600) // 60
+                days = hours // 24
+                
+                if days > 0:
+                    rem_h = hours % 24
+                    wait_text = f"{days} ngày {rem_h} giờ nữa" if rem_h > 0 else f"{days} ngày nữa"
+                elif hours > 0:
+                    wait_text = f"{hours} giờ {minutes} phút nữa" if minutes > 0 else f"{hours} giờ nữa"
+                else:
+                    wait_text = f"{max(1, minutes)} phút nữa"
+
+            return {
+                "next_index": -1,
+                "phase": "completed",
+                "is_all_completed": True,
+                "next_due_in_seconds": wait_sec,
+                "next_due_text": wait_text,
+                "next_due_date": min_future_due.isoformat() if min_future_due else None,
+                "due_count": 0,
+                "unlearned_count": 0,
+                "total_cards": total,
+                "learned_cards": len(all_learned_cards)
+            }
 
     elif mode == "review":
         deck_with_stats = await DeckService.get_deck_with_stats(db, deck_id, user_id=user_id)

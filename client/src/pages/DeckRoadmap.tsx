@@ -1886,16 +1886,23 @@ export default function DeckRoadmap() {
                     </div>
                   </div>
 
-                  {/* Estimated completion */}
-                  <div className="p-4 bg-orange-50 rounded-2xl border border-orange-100">
-                    <div className="text-[10px] font-black text-orange-800 uppercase tracking-widest mb-1">Dự kiến hoàn thành</div>
-                    <div className="text-sm font-black text-orange-950">
-                      📅 {s.estimated_completion_date || 'Đã hoàn thành!'}
-                    </div>
-                    <div className="text-[10px] font-medium text-orange-700 mt-0.5">
-                      Còn ~{s.days_left || 0} ngày cho {s.unlearned_cards || 0} thẻ chưa học
-                    </div>
-                  </div>
+                  {/* Estimated completion / Completed status */}
+                  {(() => {
+                    const isAllLearned = (s.unlearned_cards === 0) || (s.total_cards > 0 && (s.learned_cards || 0) >= s.total_cards);
+                    return (
+                      <div className={cn("p-4 rounded-2xl border", isAllLearned ? "bg-emerald-50 border-emerald-200" : "bg-orange-50 border-orange-100")}>
+                        <div className={cn("text-[10px] font-black uppercase tracking-widest mb-1", isAllLearned ? "text-emerald-800" : "text-orange-800")}>
+                          {isAllLearned ? "Trạng thái bộ thẻ" : "Dự kiến hoàn thành"}
+                        </div>
+                        <div className={cn("text-sm font-black", isAllLearned ? "text-emerald-950" : "text-orange-950")}>
+                          {isAllLearned ? "🎉 Đã học hết toàn bộ từ vựng!" : `📅 ${s.estimated_completion_date || 'Đã hoàn thành!'}`}
+                        </div>
+                        <div className={cn("text-[10px] font-medium mt-0.5", isAllLearned ? "text-emerald-700" : "text-orange-700")}>
+                          {isAllLearned ? `Toàn bộ ${s.total_cards || 0} từ trong bộ thẻ đã được nạp` : `Còn ~${s.days_left || 0} ngày cho ${s.unlearned_cards || 0} thẻ chưa học`}
+                        </div>
+                      </div>
+                    );
+                  })()}
                 </div>
               </div>
 

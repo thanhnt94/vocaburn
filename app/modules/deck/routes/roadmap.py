@@ -380,7 +380,7 @@ async def get_deck_roadmap_status_helper(db: AsyncSession, user_id: int, deck_id
             first_incomplete_idx = idx
 
     import math
-    if daily_new_target > 0:
+    if unlearned_cards > 0 and daily_new_target > 0:
         days_left = math.ceil(unlearned_cards / daily_new_target)
         estimated_completion_date = (datetime.utcnow() + timedelta(days=days_left)).strftime("%Y-%m-%d")
     else:

@@ -1867,8 +1867,15 @@ export default function Dashboard() {
                     }
 
                     // Estimated completion date computation
+                    const totalCards = st.total_cards || deck.questions_count || 0;
+                    const learnedCards = st.learned_cards || 0;
+                    const unlearnedCards = st.unlearned_cards !== undefined ? st.unlearned_cards : Math.max(0, totalCards - learnedCards);
+                    const isDeckAllLearned = totalCards > 0 && (unlearnedCards === 0 || learnedCards >= totalCards);
+
                     let estimatedDateText = '—';
-                    if (st.roadmap_type === 'accumulation') {
+                    if (isDeckAllLearned) {
+                      estimatedDateText = 'Đã hoàn thành 🎉';
+                    } else if (st.roadmap_type === 'accumulation') {
                       estimatedDateText = 'Tích lũy vô tận';
                     } else if (st.estimated_completion_date) {
                       try {
@@ -1882,19 +1889,12 @@ export default function Dashboard() {
                         estimatedDateText = st.estimated_completion_date;
                       }
                     } else {
-                      const total = st.total_cards || deck.questions_count || 0;
-                      const learned = st.learned_cards || 0;
-                      const remaining = Math.max(0, total - learned);
-                      if (remaining === 0) {
-                        estimatedDateText = 'Đã hoàn thành 🎉';
-                      } else {
-                        const dailyNew = st.roadmap_daily_new || st.new_target_today || 20;
-                        if (dailyNew > 0) {
-                          const daysLeft = Math.ceil(remaining / dailyNew);
-                          const targetDate = new Date();
-                          targetDate.setDate(targetDate.getDate() + daysLeft);
-                          estimatedDateText = targetDate.toLocaleDateString('vi-VN');
-                        }
+                      const dailyNew = st.roadmap_daily_new || st.new_target_today || 20;
+                      if (dailyNew > 0 && unlearnedCards > 0) {
+                        const daysLeft = Math.ceil(unlearnedCards / dailyNew);
+                        const targetDate = new Date();
+                        targetDate.setDate(targetDate.getDate() + daysLeft);
+                        estimatedDateText = targetDate.toLocaleDateString('vi-VN');
                       }
                     }
 
@@ -1966,11 +1966,18 @@ export default function Dashboard() {
                                     <span>{st.learned_cards || 0}/{st.total_cards || deck.questions_count || 0}</span>
                                   </div>
 
-                                  {/* 📅 ESTIMATED COMPLETION DATE BADGE */}
-                                  <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-indigo-500/15 text-indigo-950 border border-indigo-300/80 rounded-full text-xs font-black shadow-2xs shrink-0" title="Ngày dự kiến hoàn thành bộ thẻ">
-                                    <Calendar className="w-3.5 h-3.5 text-indigo-600 shrink-0" />
-                                    <span>Dự kiến: {estimatedDateText}</span>
-                                  </div>
+                                  {/* 📅 ESTIMATED COMPLETION DATE / COMPLETED BADGE */}
+                                  {isDeckAllLearned ? (
+                                    <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-emerald-500/20 text-emerald-950 border border-emerald-300/90 rounded-full text-xs font-black shadow-2xs shrink-0" title="Đã học hết toàn bộ từ mới trong bộ thẻ">
+                                      <span className="text-xs">🎉</span>
+                                      <span>Đã thuộc toàn bộ</span>
+                                    </div>
+                                  ) : (
+                                    <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-indigo-500/15 text-indigo-950 border border-indigo-300/80 rounded-full text-xs font-black shadow-2xs shrink-0" title="Ngày dự kiến hoàn thành bộ thẻ">
+                                      <Calendar className="w-3.5 h-3.5 text-indigo-600 shrink-0" />
+                                      <span>Dự kiến: {estimatedDateText}</span>
+                                    </div>
+                                  )}
                                 </div>
                               </div>
 
