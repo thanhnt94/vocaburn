@@ -1466,86 +1466,76 @@ async def get_next_card(request: Request, deck_id: int, data: dict, db: AsyncSes
 
     elif target_mode in ("fsrs", "fsrs_review"):
         now_utc = datetime.utcnow()
-        end_of_today_utc = (now_utc.replace(hour=0, minute=0, second=0, microsecond=0) + timedelta(days=1))
-
-        fsrs_overdue_hours = 24
-        if original_mode == "roadmap":
-            from app.modules.deck.models import UserDeckSettings
-            user_sett_res = await db.execute(
-                select(UserDeckSettings.settings).where(
-                    UserDeckSettings.user_id == user_id,
-                    UserDeckSettings.deck_id == deck_id
-                )
-            )
-            settings = user_sett_res.scalar_one_or_none() or {}
-            raw_pipeline = settings.get("pipeline", [])
-            
-            if isinstance(raw_pipeline, list):
-                for st in raw_pipeline:
-                    if isinstance(st, dict) and st.get("type") == "fsrs_review":
-                        fsrs_overdue_hours = int(st.get("overdue_hours", 24))
-                        break
-
-        due_cutoff = end_of_today_utc - timedelta(hours=fsrs_overdue_hours)
         
         due_cards = []
-        unanswered_review_cards = []
-        all_learned_cards = []
-        unanswered_new_cards = []
         all_new_cards = []
+        all_learned_cards = []
+        future_due_dates = []
 
         for idx, c_id in enumerate(card_ids):
             if idx in ignored_indexes:
                 continue
 
             m = mastery_map.get(c_id)
-            has_answered = idx in effective_answered
 
-            # Check if it's an unlearned / new card
-            if not m or m["state"] == 0 or m["stability"] is None:
+            # Check if card is brand new (never reviewed)
+            if not m or (m["state"] == 0 and m["last_review"] is None):
                 all_new_cards.append(idx)
-                if not has_answered:
-                    unanswered_new_cards.append(idx)
                 continue
 
-            is_due = m["due"] and m["due"] <= due_cutoff
+            # Card has been learned/reviewed before
             card_info = {"idx": idx, "due": m["due"], "stability": m["stability"] or 0.0}
             all_learned_cards.append(card_info)
             
-            if not has_answered:
-                unanswered_review_cards.append(card_info)
-                if is_due:
+            if m["due"]:
+                if m["due"] <= now_utc:
                     due_cards.append(card_info)
+                else:
+                    future_due_dates.append(m["due"])
 
-        # 1. PRIORITY 1: Due Review cards (Thẻ đến hạn ôn tập)
+        # 1. PRIORITY 1: Due Review Cards (Thẻ đã đến hạn ôn tập)
         if due_cards:
+            candidates = [c for c in due_cards if c["idx"] != current_index]
+            if not candidates:
+                candidates = due_cards
+
             if random_enabled:
                 import random
-                next_index = random.choice(due_cards)["idx"]
+                selected = random.choice(candidates)
             else:
-                due_cards.sort(key=lambda x: x["stability"])
-                next_index = due_cards[0]["idx"]
-            return {"next_index": next_index, "phase": "review", "due_count": len(due_cards), "unlearned_count": len(unanswered_new_cards)}
+                # Lowest stability first
+                candidates.sort(key=lambda x: (x["stability"], x["due"] or now_utc))
+                selected = candidates[0]
+                
+            return {
+                "next_index": selected["idx"],
+                "phase": "review",
+                "due_count": len(due_cards),
+                "unlearned_count": len(all_new_cards),
+                "total_cards": total,
+                "learned_cards": len(all_learned_cards)
+            }
             
-        # 2. PRIORITY 2: Learn New/Unlearned Cards (Học từ mới nếu không có từ cần ôn tập)
-        elif unanswered_new_cards:
+        # 2. PRIORITY 2: New Cards (Học từ mới nếu không có từ nào đến hạn ôn)
+        elif all_new_cards:
             if random_enabled:
                 import random
-                return {"next_index": random.choice(unanswered_new_cards), "phase": "new", "due_count": 0, "unlearned_count": len(unanswered_new_cards)}
+                next_idx = random.choice(all_new_cards)
             else:
-                forward_new = [i for i in unanswered_new_cards if i > current_index]
-                next_idx = forward_new[0] if forward_new else unanswered_new_cards[0]
-                return {"next_index": next_idx, "phase": "new", "due_count": 0, "unlearned_count": len(unanswered_new_cards)}
+                forward_new = [i for i in all_new_cards if i > current_index]
+                next_idx = forward_new[0] if forward_new else all_new_cards[0]
+            return {
+                "next_index": next_idx,
+                "phase": "new",
+                "due_count": 0,
+                "unlearned_count": len(all_new_cards),
+                "total_cards": total,
+                "learned_cards": len(all_learned_cards)
+            }
 
-        # 3. PRIORITY 3: Other review cards in this session (if any remaining)
-        elif unanswered_review_cards:
-            unanswered_review_cards.sort(key=lambda x: x["due"] or datetime.max)
-            return {"next_index": unanswered_review_cards[0]["idx"], "phase": "review", "due_count": 0, "unlearned_count": 0}
-
-        # 4. BOTH COMPLETED (Hoàn thành cả 2 điều kiện: hết thẻ cần ôn & hết thẻ mới)
+        # 3. PRIORITY 3: All current due and new cards completed! (Hoàn thành cả 2 điều kiện)
         else:
-            future_dates = [c["due"] for c in all_learned_cards if c.get("due") and c["due"] > now_utc]
-            min_future_due = min(future_dates) if future_dates else (all_learned_cards[0]["due"] if all_learned_cards and all_learned_cards[0].get("due") else None)
+            min_future_due = min(future_due_dates) if future_due_dates else (all_learned_cards[0]["due"] if all_learned_cards and all_learned_cards[0].get("due") else None)
             
             wait_sec = 600
             wait_text = "10 phút nữa"
