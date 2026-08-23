@@ -4020,10 +4020,46 @@ export default function FlashcardPlay() {
               short: 'FSRS',
               style: 'bg-emerald-500/20 border-emerald-500/40 text-emerald-300'
             };
-            const baseReviewedToday = roadmapStatus?.review_completed_today ?? 0;
-            const dueToday = roadmapStatus?.review_due_today ?? 0;
-            subTotal = dueToday > 0 ? dueToday : (session?.questions?.length || 15);
-            subCurr = baseReviewedToday + Object.keys(sessionAnswers).length;
+
+            const totalDeckCards = session?.questions?.length || 0;
+            const nowTime = new Date().getTime();
+
+            // 1. Identify all due cards for review in this deck
+            const dueCardsIndices = session?.questions ? session.questions.map((q: any, idx: number) => {
+              if (q.is_ignored) return -1;
+              const isLearned = (q.fsrs && (q.fsrs.state > 0 || q.fsrs.last_review !== null)) || (q.stats?.total && q.stats.total > 0);
+              if (!isLearned || !q.fsrs?.due) return -1;
+              const isDue = (parseUTCDate(q.fsrs.due).getTime() - 30000) <= nowTime;
+              return isDue ? idx : -1;
+            }).filter((idx: number) => idx !== -1) : [];
+
+            // 2. Count total learned cards in the whole deck (from DB + session)
+            const totalLearnedCards = session?.questions ? session.questions.filter((q: any, idx: number) => {
+              const isLearnedInDB = (q.fsrs && (q.fsrs.state > 0 || q.fsrs.last_review !== null)) || (q.stats?.total && q.stats.total > 0);
+              const isAnsweredThisSession = sessionAnswers[idx] !== undefined;
+              return isLearnedInDB || isAnsweredThisSession;
+            }).length : 0;
+
+            // 3. Determine if current card is due for review or is a new card
+            const isCurrentCardLearned = currentQuestion && (
+              (currentQuestion.fsrs && (currentQuestion.fsrs.state > 0 || currentQuestion.fsrs.last_review !== null)) ||
+              (currentQuestion.stats?.total && currentQuestion.stats.total > 0)
+            );
+
+            const isCurrentCardDue = isCurrentCardLearned && currentQuestion?.fsrs?.due && (
+              (parseUTCDate(currentQuestion.fsrs.due).getTime() - 30000) <= nowTime
+            );
+
+            if (isCurrentCardDue || dueCardsIndices.length > 0) {
+              // Thẻ ôn tập: Hiển thị số từ cần ôn còn lại / Tổng số từ cần ôn
+              const unreviewedDueCount = dueCardsIndices.filter((idx: number) => sessionAnswers[idx] === undefined).length;
+              subCurr = unreviewedDueCount;
+              subTotal = dueCardsIndices.length;
+            } else {
+              // Thẻ mới: Hiển thị số từ đã học / Tổng số từ của bộ thẻ
+              subCurr = totalLearnedCards;
+              subTotal = totalDeckCards;
+            }
           } else if (activeMode === 'review') {
             const fsrsIdx = rawPipeline.findIndex((s: any) => s.type === 'fsrs_review');
             if (fsrsIdx !== -1) displayStepIdx = fsrsIdx;
