@@ -4010,6 +4010,7 @@ export default function FlashcardPlay() {
           let modeBadge: { emoji: string; label: string; short: string; style: string } | undefined = undefined;
           let subCurr = 0;
           let subTotal = session?.questions?.length || 20;
+          let progressPillText: string | undefined = undefined;
 
           if (activeMode === 'fsrs') {
             const fsrsIdx = rawPipeline.findIndex((s: any) => s.type === 'fsrs_review');
@@ -4046,14 +4047,16 @@ export default function FlashcardPlay() {
             const isCurrentCardNew = currentBox === 'unseen';
 
             if (isCurrentCardNew) {
-              // Thẻ mới (⭐ MỚI): Hiển thị [Số từ đã học] / [Tổng số từ của bộ thẻ] (ví dụ: 2 / 26)
+              // Thẻ mới (⭐ MỚI): Hiển thị [Số từ đã học] / [Tổng số từ của bộ thẻ] (ví dụ: 2 / 26, 3 / 26)
               subCurr = totalLearnedCards;
               subTotal = totalDeckCards;
+              progressPillText = undefined;
             } else {
-              // Thẻ ôn tập (🌱 ĐANG HỌC, ⚠️ THẺ KHÓ, 🏆 ĐÃ THUỘC): Hiển thị [Số từ cần ôn còn lại] / [Tổng số từ cần ôn]
+              // Thẻ ôn tập (🌱 ĐANG HỌC, ⚠️ THẺ KHÓ, 🏆 ĐÃ THUỘC): Hiển thị "Còn X" (ví dụ: Còn 2, Còn 3)
               const unreviewedDueCount = dueCardsIndices.filter((idx: number) => sessionAnswers[idx] === undefined).length;
               subCurr = unreviewedDueCount;
               subTotal = dueCardsIndices.length > 0 ? dueCardsIndices.length : totalDeckCards;
+              progressPillText = `Còn ${unreviewedDueCount}`;
             }
           } else if (activeMode === 'review') {
             const fsrsIdx = rawPipeline.findIndex((s: any) => s.type === 'fsrs_review');
@@ -4185,6 +4188,7 @@ export default function FlashcardPlay() {
                   deckTitle={session?.title}
                   subProgressCurr={subCurr}
                   subProgressTotal={subTotal}
+                  progressPillText={progressPillText}
                   streakCount={roadmapStatus?.streak || gamify.streak || 0}
                   activeMode={activeMode}
                   modeBadge={modeBadge}

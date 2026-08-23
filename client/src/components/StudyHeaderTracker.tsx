@@ -46,6 +46,7 @@ export interface StudyHeaderTrackerProps {
   cardsRemaining?: number
   activeMode?: string
   modeBadge?: { emoji: string; label: string; short: string; style: string }
+  progressPillText?: string
 }
 
 const MODE_META_DICT: Record<string, { emoji: string; label: string; short: string; style: string }> = {
@@ -181,7 +182,8 @@ export const StudyHeaderTracker: React.FC<StudyHeaderTrackerProps> = ({
   totalCards = 0,
   cardsRemaining = 0,
   activeMode,
-  modeBadge
+  modeBadge,
+  progressPillText
 }) => {
   // 0 = Mặt 1 (Tên bộ thẻ & Chế độ học), 1 = Mặt 2 (Toàn bộ các thông số chi tiết HUD)
   const [viewMode, setViewMode] = useState<0 | 1>(0)
@@ -368,7 +370,7 @@ export const StudyHeaderTracker: React.FC<StudyHeaderTrackerProps> = ({
                       ? "bg-emerald-950/80 border-emerald-400/60 text-emerald-200" 
                       : "bg-black/70 border-amber-300/50 text-amber-300"
                 )}>
-                  {isOverachieved ? `+${extraCount}` : `${subProgressCurr} / ${subProgressTotal}`}
+                  {isOverachieved ? `+${extraCount}` : (progressPillText || `${subProgressCurr} / ${subProgressTotal}`)}
                 </span>
               )}
             </motion.div>
@@ -454,15 +456,25 @@ export const StudyHeaderTracker: React.FC<StudyHeaderTrackerProps> = ({
 
                   {/* Micro Progress Counter Pill */}
                   <div className="flex items-center gap-1 text-[10px] sm:text-xs font-black font-mono tracking-tight text-slate-300 bg-slate-950/80 px-2 py-0.5 rounded-md border border-slate-800/90 shrink-0">
-                    <span className={cn(
-                      isOverachieved ? "text-cyan-300" : isGoalReached ? "text-emerald-400" : "text-slate-100"
-                    )}>
-                      {hasSubProg ? subProgressCurr : (currentIndex + 1)}
-                    </span>
-                    <span className="text-slate-600 font-normal">/</span>
-                    <span className="text-slate-400">
-                      {hasSubProg ? subProgressTotal : (totalCards || '--')}
-                    </span>
+                    {progressPillText ? (
+                      <span className={cn(
+                        isOverachieved ? "text-cyan-300" : isGoalReached ? "text-emerald-400" : "text-amber-300 font-bold"
+                      )}>
+                        {progressPillText}
+                      </span>
+                    ) : (
+                      <>
+                        <span className={cn(
+                          isOverachieved ? "text-cyan-300" : isGoalReached ? "text-emerald-400" : "text-slate-100"
+                        )}>
+                          {hasSubProg ? subProgressCurr : (currentIndex + 1)}
+                        </span>
+                        <span className="text-slate-600 font-normal">/</span>
+                        <span className="text-slate-400">
+                          {hasSubProg ? subProgressTotal : (totalCards || '--')}
+                        </span>
+                      </>
+                    )}
                   </div>
                 </div>
               </motion.div>
