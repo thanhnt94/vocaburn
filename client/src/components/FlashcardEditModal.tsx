@@ -376,7 +376,7 @@ export const FlashcardEditModal: React.FC<FlashcardEditModalProps> = ({
       }
       parsedOthers = unresolveDict(parsedOthers);
 
-      const merged = {
+      const merged: Record<string, any> = {
         front_img: unresolvedCard.front_img || parsedOthers.front_img || '',
         back_img: unresolvedCard.back_img || parsedOthers.back_img || '',
         front_audio_url: unresolvedCard.front_audio_url || parsedOthers.front_audio_url || '',
@@ -384,14 +384,16 @@ export const FlashcardEditModal: React.FC<FlashcardEditModalProps> = ({
         front_audio_content: unresolvedCard.front_audio_content || parsedOthers.front_audio_content || '',
         back_audio_content: unresolvedCard.back_audio_content || parsedOthers.back_audio_content || '',
         ...parsedOthers
-      }
+      };
 
       // Pre-fill missing custom columns with empty string
-      (availableColumns || []).forEach((col: string) => {
-        if (col !== 'front' && col !== 'back' && (merged as any)[col] === undefined) {
-          (merged as any)[col] = ''
+      if (Array.isArray(availableColumns)) {
+        for (const col of availableColumns) {
+          if (col !== 'front' && col !== 'back' && merged[col] === undefined) {
+            merged[col] = '';
+          }
         }
-      })
+      }
 
       setFormData({
         ...unresolvedCard,
