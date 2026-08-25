@@ -50,23 +50,27 @@ export default function Layout() {
 
   const isLandingPage = location.pathname === '/' && !isLoggedIn
   const isDashboard = location.pathname === '/' || location.pathname === '/dashboard'
-  const isPlaying = location.pathname.includes('/play') || 
-                    location.pathname.includes('/practice/') || 
-                    location.pathname.includes('/room/') ||
-                    location.pathname.includes('/flashcards') ||
-                    location.pathname.includes('/manage/edit')
-  const showBottomNav = isLoggedIn && !isPlaying
+  const isFullscreenPlay = location.pathname.includes('/play') || 
+                          location.pathname.includes('/practice/') || 
+                          location.pathname.includes('/room/')
+  const isManageEdit = location.pathname.includes('/manage/edit') || location.pathname.includes('/flashcards')
+  const showDesktopHeader = !isLandingPage && !isFullscreenPlay && !isManageEdit
+  const showBottomNav = isLoggedIn && !isFullscreenPlay && !isManageEdit
 
   return (
     <div className={cn(
       "min-h-screen flex flex-col",
       isLoggedIn 
-        ? (isPlaying ? "pb-0 h-screen h-[100dvh] overflow-hidden" : (isDashboard ? "pb-20 md:pb-0 md:min-h-0 md:h-screen md:w-screen md:overflow-hidden" : "pb-20 md:pb-0"))
+        ? (isFullscreenPlay
+            ? "pb-0 h-screen h-[100dvh] overflow-hidden" 
+            : (isDashboard 
+                ? "pb-20 md:pb-0 md:min-h-0 md:h-screen md:w-screen md:overflow-hidden" 
+                : (isManageEdit ? "pb-0" : "pb-20 md:pb-0")))
         : ""
     )}>
 
       {/* Desktop Header */}
-      {!isLandingPage && !isPlaying && (
+      {showDesktopHeader && (
         <header className={cn(
           "fixed top-0 left-0 right-0 z-[110] backdrop-blur-2xl border-b hidden md:flex items-center transition-all duration-300",
           isLoggedIn 
@@ -103,45 +107,44 @@ export default function Layout() {
             </div>
             
             {isLoggedIn ? (
-              <div className="flex items-center gap-5">
-                <div className="flex items-center gap-3.5 border-r border-slate-100 pr-5">
-                  <button 
-                    onClick={() => setIsShopOpen(true)}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-700 hover:bg-amber-500/20 transition-all hover:scale-105 active:scale-95 cursor-pointer shadow-2xs"
-                    title="Mở Cửa Hàng & Kho Cứu Streak"
-                  >
-                    <ShoppingBag className="w-3.5 h-3.5 text-amber-600" />
-                    <span className="text-[11px] font-black">{gamify.streak_points || 0} ⚡</span>
-                    <span className="text-slate-300">•</span>
-                    <Shield className="w-3.5 h-3.5 fill-sky-400/20 text-sky-500" />
-                    <span className="text-[11px] font-black text-sky-600">{gamify.streak_freeze_count || 0}/2</span>
-                  </button>
-
-                  <span className="flex items-center gap-1 text-orange-500 hover:scale-105 transition-transform cursor-default" title="Daily Streak">
-                    <Flame className="w-4 h-4 fill-orange-500" />
-                    <span className="text-xs font-black">{gamify.streak}d</span>
-                  </span>
-                  <span className="flex items-center gap-1 text-amber-500 hover:scale-105 transition-transform cursor-default" title="Level">
-                    <Award className="w-4 h-4" />
-                    <span className="text-xs font-black">Lvl {gamify.level}</span>
-                  </span>
+              <div className="flex items-center gap-3">
+                {/* Streak Badge */}
+                <div className="flex items-center gap-1.5 px-3 py-1.5 bg-orange-50/80 border border-orange-200/60 rounded-xl">
+                  <Flame className="w-4 h-4 text-orange-500 fill-orange-500 animate-pulse" />
+                  <span className="text-xs font-black text-orange-700">{gamify.streak}</span>
                 </div>
 
-                <Link to="/profile" className="flex items-center gap-2.5 group cursor-pointer">
-                  <div className="text-right hidden lg:block">
-                    <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest leading-none mb-1">Tài khoản</p>
-                    <p className="text-[11px] font-black text-slate-800 leading-none group-hover:text-indigo-600 transition-colors">{user?.username || 'GUEST'}</p>
+                {/* Level / XP Badge */}
+                <div className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-50/80 border border-indigo-200/60 rounded-xl">
+                  <Award className="w-4 h-4 text-indigo-500" />
+                  <span className="text-xs font-black text-indigo-700">Lv.{gamify.level}</span>
+                </div>
+
+                {/* Shop Button */}
+                <button
+                  onClick={() => setIsShopOpen(true)}
+                  className="flex items-center gap-1.5 px-3 py-1.5 bg-pink-50/80 hover:bg-pink-100/80 border border-pink-200/60 rounded-xl text-xs font-black text-pink-700 transition-all active:scale-95 cursor-pointer"
+                  title="Cửa hàng & Kho đồ"
+                >
+                  <ShoppingBag className="w-4 h-4 text-pink-500" />
+                  <span>Shop</span>
+                </button>
+
+                {/* User Info / Avatar */}
+                <Link to="/profile" className="flex items-center gap-2 pl-2 border-l border-slate-200 hover:opacity-80 transition-opacity">
+                  <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-indigo-500 to-purple-500 flex items-center justify-center text-white font-bold text-xs shadow-sm">
+                    {user?.full_name?.charAt(0) || user?.username?.charAt(0) || 'U'}
                   </div>
-                  <div className="w-9 h-9 rounded-xl bg-slate-50 border border-slate-200/80 flex items-center justify-center text-slate-500 group-hover:border-indigo-200 group-hover:bg-indigo-50/50 transition-all">
-                    <User className="w-4.5 h-4.5" />
-                  </div>
+                  <span className="text-xs font-bold text-slate-700 max-w-[120px] truncate hidden lg:inline">
+                    {user?.full_name || user?.username}
+                  </span>
                 </Link>
               </div>
             ) : (
-              <div className="flex items-center gap-4">
-                <Link 
+              <div className="flex items-center gap-3">
+                <Link
                   to="/login"
-                  className="text-[10px] font-black uppercase tracking-widest text-slate-300 hover:text-white bg-white/5 hover:bg-white/10 border border-white/10 px-4 py-2.5 rounded-xl transition-all active:scale-95"
+                  className="px-4 py-2 text-xs font-bold text-slate-300 hover:text-white transition-colors"
                 >
                   Sign In
                 </Link>
@@ -169,7 +172,11 @@ export default function Layout() {
       <main className={cn(
         "flex-1 w-full",
         isLoggedIn 
-          ? (isDashboard ? "pt-0 md:pt-20 md:h-full md:overflow-hidden" : (isPlaying ? "pt-0 h-full overflow-hidden" : "pt-0 md:pt-20"))
+          ? (isDashboard 
+              ? "pt-0 md:pt-20 md:h-full md:overflow-hidden" 
+              : (isFullscreenPlay 
+                  ? "pt-0 h-full overflow-hidden" 
+                  : (isManageEdit ? "pt-0" : "pt-0 md:pt-20")))
           : ""
       )}>
         <Outlet />
