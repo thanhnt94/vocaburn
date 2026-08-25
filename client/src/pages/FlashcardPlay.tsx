@@ -5733,6 +5733,7 @@ export default function FlashcardPlay() {
         flashcard={editFormData}
         onSave={handleSaveEdit}
         isSaving={isSavingEdit}
+        availableColumns={session?.column_order || session?.custom_columns || []}
       />
 
 

@@ -353,8 +353,18 @@ export const FlashcardEditModal: React.FC<FlashcardEditModalProps> = ({
     }
   }
 
+  const initializedCardIdRef = React.useRef<number | string | null>(null);
+
   useEffect(() => {
-    if (flashcard) {
+    if (!isOpen) {
+      initializedCardIdRef.current = null;
+      setFormData(null);
+      setCustomJsonText('');
+      return;
+    }
+
+    if (flashcard && initializedCardIdRef.current !== flashcard.id) {
+      initializedCardIdRef.current = flashcard.id;
       const unresolvedCard = unresolveDict(flashcard);
       let parsedOthers: any = {}
       if (unresolvedCard.others) {
@@ -377,9 +387,9 @@ export const FlashcardEditModal: React.FC<FlashcardEditModalProps> = ({
       }
 
       // Pre-fill missing custom columns with empty string
-      availableColumns.forEach(col => {
-        if (col !== 'front' && col !== 'back' && merged[col] === undefined) {
-          merged[col] = ''
+      (availableColumns || []).forEach((col: string) => {
+        if (col !== 'front' && col !== 'back' && (merged as any)[col] === undefined) {
+          (merged as any)[col] = ''
         }
       })
 
@@ -401,11 +411,8 @@ export const FlashcardEditModal: React.FC<FlashcardEditModalProps> = ({
           : ''
       )
       setJsonError('')
-    } else {
-      setFormData(null)
-      setCustomJsonText('')
     }
-  }, [flashcard?.id, availableColumns])
+  }, [isOpen, flashcard?.id])
 
   // Sync customJsonText back into formData.others on valid edits
   const handleCustomJsonChange = (text: string) => {
@@ -535,7 +542,7 @@ export const FlashcardEditModal: React.FC<FlashcardEditModalProps> = ({
           front_audio_content: '',
           back_audio_content: '',
         }
-        availableColumns.forEach(col => {
+        availableColumns.forEach((col: string) => {
           if (col !== 'front' && col !== 'back') {
             (clearedOthers as any)[col] = ''
           }
