@@ -133,10 +133,10 @@ export default function Layout() {
                 {/* User Info / Avatar */}
                 <Link to="/profile" className="flex items-center gap-2 pl-2 border-l border-slate-200 hover:opacity-80 transition-opacity">
                   <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-indigo-500 to-purple-500 flex items-center justify-center text-white font-bold text-xs shadow-sm">
-                    {user?.full_name?.charAt(0) || user?.username?.charAt(0) || 'U'}
+                    {user?.username?.charAt(0)?.toUpperCase() || 'U'}
                   </div>
                   <span className="text-xs font-bold text-slate-700 max-w-[120px] truncate hidden lg:inline">
-                    {user?.full_name || user?.username}
+                    {user?.username || 'User'}
                   </span>
                 </Link>
               </div>

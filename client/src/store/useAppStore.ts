@@ -43,6 +43,7 @@ export const DEFAULT_USER_SETTINGS: UserSettings = {
 interface User {
   id: number;
   username: string;
+  full_name?: string;
   email?: string;
   role: string;
   settings?: UserSettings;
