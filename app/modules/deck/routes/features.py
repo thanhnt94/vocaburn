@@ -545,10 +545,18 @@ async def export_deck(deck_id: int, request: Request, exclude_ids: bool = False,
     if not deck:
         return JSONResponse(status_code=404, content={"error": "Deck not found"})
         
-    from app.modules.deck.models import Flashcard
+    from app.modules.deck.models import Flashcard, DeckCollaborator
+    from app.modules.auth.models import User as UserDB
+
     c_stmt = select(Flashcard).where(Flashcard.deck_id == deck_id)
     res = await db.execute(c_stmt)
     cards = res.scalars().all()
+    
+    collab_stmt = select(DeckCollaborator, UserDB.username, UserDB.email).join(UserDB, DeckCollaborator.user_id == UserDB.id).where(DeckCollaborator.deck_id == deck_id)
+    collab_res = await db.execute(collab_stmt)
+    collaborators_list = []
+    for c_row, username, email in collab_res.all():
+        collaborators_list.append({"username": username or email, "role": c_row.role})
     
     category_name = deck.category.name if deck.category else "General"
     tags = [t.name for t in deck.tags]
@@ -560,7 +568,12 @@ async def export_deck(deck_id: int, request: Request, exclude_ids: bool = False,
         tags=tags,
         practice_settings=deck.practice_settings,
         cards=cards,
-        exclude_ids=exclude_ids
+        exclude_ids=exclude_ids,
+        cover_image=deck.cover_image or "",
+        instruction=deck.instruction or "",
+        is_public=deck.is_public if deck.is_public is not None else True,
+        time_limit=deck.time_limit or 0,
+        collaborators=collaborators_list
     )
     
     from fastapi.responses import Response
@@ -660,6 +673,14 @@ async def import_update_deck(request: Request, deck_id: int, file: UploadFile = 
             
         deck.title = metadata.get("title", deck.title)
         deck.description = metadata.get("description", deck.description)
+        if "cover_image" in metadata and metadata["cover_image"]:
+            deck.cover_image = metadata["cover_image"]
+        if "instruction" in metadata and metadata["instruction"]:
+            deck.instruction = metadata["instruction"]
+        if "is_public" in metadata:
+            deck.is_public = metadata["is_public"]
+        if "time_limit" in metadata:
+            deck.time_limit = metadata["time_limit"]
         
         category_name = metadata.get("category")
         if category_name:
@@ -673,10 +694,32 @@ async def import_update_deck(request: Request, deck_id: int, file: UploadFile = 
             deck.category_id = db_cat.id
             
         if "practice_settings" in metadata:
-            deck.practice_settings = metadata["practice_settings"]
+            existing_ps = dict(deck.practice_settings) if deck.practice_settings else {}
+            existing_ps.update(metadata["practice_settings"])
+            deck.practice_settings = existing_ps
             
         if metadata.get("tags"):
             await DeckService.set_deck_tags(db, deck_id, metadata["tags"])
+            
+        # Import collaborators if present in Excel
+        if metadata.get("collaborators"):
+            for collab_info in metadata["collaborators"]:
+                uname = collab_info.get("username")
+                role = collab_info.get("role", "editor")
+                if not uname: continue
+                
+                u_res = await db.execute(select(UserDB).where((UserDB.username == uname) | (UserDB.email == uname)))
+                target_user = u_res.scalar_one_or_none()
+                if target_user and target_user.id != deck.creator_id:
+                    c_check = await db.execute(select(DeckCollaborator).where(
+                        DeckCollaborator.deck_id == deck_id,
+                        DeckCollaborator.user_id == target_user.id
+                    ))
+                    existing_collab = c_check.scalar_one_or_none()
+                    if existing_collab:
+                        existing_collab.role = role
+                    else:
+                        db.add(DeckCollaborator(deck_id=deck_id, user_id=target_user.id, role=role))
             
         from app.modules.deck.models import Flashcard
         

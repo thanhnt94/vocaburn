@@ -328,6 +328,72 @@ const EditFlashcard = () => {
     }
   }
 
+  const fetchQuiz = async () => {
+    try {
+      const res = await axios.get(`/api/v1/deck/${id}/data`)
+      setFormData({
+        title: res.data.title,
+        description: res.data.description || '',
+        ai_prompt: res.data.ai_prompt || '',
+        ai_prompt_hint: res.data.ai_prompt_hint || '',
+        ai_prompt_mnemonic: res.data.ai_prompt_mnemonic || '',
+        instruction: res.data.instruction || '',
+        category_name: res.data.category_name || 'General',
+        cover_image: res.data.cover_image || '',
+        tags: res.data.tags?.join(', ') || '',
+        creator_id: res.data.creator_id,
+        is_public: res.data.is_public !== undefined ? res.data.is_public : true
+      })
+      
+      // Fetch collaborators
+      const collabRes = await axios.get(`/api/v1/deck/${id}/collaborators`)
+      setCollaborators(collabRes.data)
+
+      // Fetch practice settings
+      const settingsRes = await axios.get(`/api/v1/deck/${id}/practice-settings`)
+      const availCols = settingsRes.data.available_columns || ['front', 'back']
+      setAvailableColumns(availCols)
+      
+      const loaded = settingsRes.data.creator_settings && Object.keys(settingsRes.data.creator_settings).length > 0
+        ? settingsRes.data.creator_settings
+        : {}
+        
+      if (!loaded.ai_prompts) loaded.ai_prompts = []
+      if (!loaded.insight_columns) loaded.insight_columns = []
+      
+      const loadedCustom = loaded.custom_columns || []
+      const availNonDefault = availCols.filter((c: string) => !SYSTEM_DEFAULTS.includes(c))
+      const mergedCustom = Array.from(new Set([...loadedCustom, ...availNonDefault]))
+
+      const loadedOrder = loaded.column_order || []
+      const allDeckCols = Array.from(new Set([...SYSTEM_DEFAULTS, ...mergedCustom, ...availCols]))
+
+      let initialColumnOrder: string[] = []
+      if (Array.isArray(loadedOrder) && loadedOrder.length > 0) {
+        initialColumnOrder = loadedOrder.filter((c: string) => allDeckCols.includes(c))
+        allDeckCols.forEach((c: string) => {
+          if (!initialColumnOrder.includes(c)) {
+            initialColumnOrder.push(c)
+          }
+        })
+      } else {
+        const customOnly = mergedCustom.filter((c: string) => !SYSTEM_DEFAULTS.includes(c))
+        const otherExtra = availCols.filter((c: string) => !SYSTEM_DEFAULTS.includes(c) && !customOnly.includes(c))
+        initialColumnOrder = Array.from(new Set([...SYSTEM_DEFAULTS, ...customOnly, ...otherExtra]))
+      }
+      
+      loaded.custom_columns = mergedCustom
+      loaded.column_order = initialColumnOrder
+      setCustomColumns(mergedCustom)
+      setColumnOrder(initialColumnOrder)
+      setPracticeSettings(loaded)
+    } catch (err) {
+      setError('Failed to load quiz data')
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
   const handleImportExcel = async () => {
     if (!excelFile) return
     setIsImporting(true)
@@ -347,9 +413,8 @@ const EditFlashcard = () => {
       setImportSuccess(true)
       setExcelFile(null)
       
-      // Re-fetch deck/practice settings to refresh page state
-      const settingsRes = await axios.get(`/api/v1/deck/${id}/practice-settings`)
-      setAvailableColumns(settingsRes.data.available_columns || ['front', 'back'])
+      // Fully refresh all tabs state
+      await fetchQuiz()
     } catch (err: any) {
       setImportError(err.response?.data?.error || "Nhập Excel thất bại")
     } finally {
@@ -419,71 +484,6 @@ const EditFlashcard = () => {
   const [isSearching, setIsSearching] = useState(false)
 
   useEffect(() => {
-    const fetchQuiz = async () => {
-      try {
-        const res = await axios.get(`/api/v1/deck/${id}/data`)
-        setFormData({
-          title: res.data.title,
-          description: res.data.description || '',
-          ai_prompt: res.data.ai_prompt || '',
-          ai_prompt_hint: res.data.ai_prompt_hint || '',
-          ai_prompt_mnemonic: res.data.ai_prompt_mnemonic || '',
-          instruction: res.data.instruction || '',
-          category_name: res.data.category_name || 'General',
-          cover_image: res.data.cover_image || '',
-          tags: res.data.tags?.join(', ') || '',
-          creator_id: res.data.creator_id,
-          is_public: res.data.is_public !== undefined ? res.data.is_public : true
-        })
-        
-        // Fetch collaborators
-        const collabRes = await axios.get(`/api/v1/deck/${id}/collaborators`)
-        setCollaborators(collabRes.data)
-
-        // Fetch practice settings
-        const settingsRes = await axios.get(`/api/v1/deck/${id}/practice-settings`)
-        const availCols = settingsRes.data.available_columns || ['front', 'back']
-        setAvailableColumns(availCols)
-        
-        const loaded = settingsRes.data.creator_settings && Object.keys(settingsRes.data.creator_settings).length > 0
-          ? settingsRes.data.creator_settings
-          : {}
-          
-        if (!loaded.ai_prompts) loaded.ai_prompts = []
-        if (!loaded.insight_columns) loaded.insight_columns = []
-        
-        const loadedCustom = loaded.custom_columns || []
-        const availNonDefault = availCols.filter((c: string) => !SYSTEM_DEFAULTS.includes(c))
-        const mergedCustom = Array.from(new Set([...loadedCustom, ...availNonDefault]))
-
-        const loadedOrder = loaded.column_order || []
-        const allDeckCols = Array.from(new Set([...SYSTEM_DEFAULTS, ...mergedCustom, ...availCols]))
-
-        let initialColumnOrder: string[] = []
-        if (Array.isArray(loadedOrder) && loadedOrder.length > 0) {
-          initialColumnOrder = loadedOrder.filter((c: string) => allDeckCols.includes(c))
-          allDeckCols.forEach((c: string) => {
-            if (!initialColumnOrder.includes(c)) {
-              initialColumnOrder.push(c)
-            }
-          })
-        } else {
-          const customOnly = mergedCustom.filter((c: string) => !SYSTEM_DEFAULTS.includes(c))
-          const otherExtra = availCols.filter((c: string) => !SYSTEM_DEFAULTS.includes(c) && !customOnly.includes(c))
-          initialColumnOrder = Array.from(new Set([...SYSTEM_DEFAULTS, ...customOnly, ...otherExtra]))
-        }
-        
-        loaded.custom_columns = mergedCustom
-        loaded.column_order = initialColumnOrder
-        setCustomColumns(mergedCustom)
-        setColumnOrder(initialColumnOrder)
-        setPracticeSettings(loaded)
-      } catch (err) {
-        setError('Failed to load quiz data')
-      } finally {
-        setIsLoading(false)
-      }
-    }
     fetchQuiz()
   }, [id])
 
