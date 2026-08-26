@@ -4116,6 +4116,12 @@ export default function FlashcardPlay() {
 
             const currentStep = rawPipeline?.[displayStepIdx];
             if (currentStep?.type === 'new_cards') {
+              modeBadge = {
+                emoji: '🛣️',
+                label: 'Lộ trình - Học từ mới (Roadmap New)',
+                short: 'RM',
+                style: 'bg-amber-500/20 border-amber-500/40 text-amber-300'
+              };
               const targetNew = currentStep.daily_count || currentStep.progress?.target || roadmapStatus?.new_target_today || 20;
               const learnedToday = currentStep.progress?.learned ?? roadmapStatus?.new_learned_today ?? 0;
               const newCardsInSession = Object.keys(sessionAnswers).filter(idxStr => {
@@ -4124,16 +4130,35 @@ export default function FlashcardPlay() {
               }).length;
               subTotal = targetNew;
               subCurr = Math.max(learnedToday, newCardsInSession);
-            } else if (currentStep?.type === 'fsrs_review') {
-              const reviewedToday = currentStep.progress?.reviewed_today ?? roadmapStatus?.review_completed_today ?? 0;
-              const dueRemaining = currentStep.progress?.due_count ?? roadmapStatus?.review_due_today ?? 0;
-              const fsrsTarget = currentStep.daily_count || currentStep.progress?.target || (reviewedToday + dueRemaining);
+              progressPillText = undefined; // Hiển thị số thẻ mới / tổng số thẻ (ví dụ 7 / 20)
+            } else {
+              modeBadge = {
+                emoji: '🛣️',
+                label: 'Lộ trình - Ôn tập (Roadmap Review)',
+                short: 'RM',
+                style: 'bg-emerald-500/20 border-emerald-500/40 text-emerald-300'
+              };
+              const reviewedToday = currentStep?.progress?.reviewed_today ?? roadmapStatus?.review_completed_today ?? 0;
+              const dueRemaining = currentStep?.progress?.due_count ?? roadmapStatus?.review_due_today ?? 0;
+              const fsrsTarget = currentStep?.daily_count || currentStep?.progress?.target || (reviewedToday + dueRemaining);
               subTotal = fsrsTarget > 0 ? fsrsTarget : (session?.questions?.length || 15);
-              const fsrsInSession = Object.keys(sessionAnswers).filter(idxStr => {
-                const q = session?.questions?.[Number(idxStr)];
-                return q && !(q.is_new || q.state === 0 || q.repetition === 0);
-              }).length;
-              subCurr = Math.max(reviewedToday, fsrsInSession);
+
+              // Đếm số thẻ ôn tập đến hạn còn lại chưa được đánh giá trong phiên này
+              const nowTime = new Date().getTime();
+              const dueCardsIndices = session?.questions ? session.questions.map((q: any, idx: number) => {
+                if (q.is_ignored) return -1;
+                const box = getCardBoxId(q);
+                if (box === 'unseen' || !q.fsrs?.due) return -1;
+                const isDue = (parseUTCDate(q.fsrs.due).getTime() - 30000) <= nowTime;
+                return isDue ? idx : -1;
+              }).filter((idx: number) => idx !== -1) : [];
+
+              const unreviewedDueCount = dueCardsIndices.length > 0 
+                ? dueCardsIndices.filter((idx: number) => sessionAnswers[idx] === undefined).length 
+                : Math.max(0, dueRemaining - Object.keys(sessionAnswers).length);
+
+              subCurr = unreviewedDueCount;
+              progressPillText = `Còn ${unreviewedDueCount}`;
             }
           }
 

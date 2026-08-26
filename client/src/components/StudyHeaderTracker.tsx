@@ -50,6 +50,24 @@ export interface StudyHeaderTrackerProps {
 }
 
 const MODE_META_DICT: Record<string, { emoji: string; label: string; short: string; style: string }> = {
+  roadmap: { 
+    emoji: '🛣️', 
+    label: 'Lộ Trình Học Roadmap', 
+    short: 'RM',
+    style: 'bg-amber-500/15 border-amber-500/30 text-amber-300'
+  },
+  roadmap_new: { 
+    emoji: '🛣️', 
+    label: 'Lộ Trình - Học Mới', 
+    short: 'RM',
+    style: 'bg-amber-500/15 border-amber-500/30 text-amber-300'
+  },
+  roadmap_review: { 
+    emoji: '🛣️', 
+    label: 'Lộ Trình - Ôn Tập', 
+    short: 'RM',
+    style: 'bg-emerald-500/15 border-emerald-500/30 text-emerald-300'
+  },
   new_cards: { 
     emoji: '✨', 
     label: 'Học Từ Mới', 
