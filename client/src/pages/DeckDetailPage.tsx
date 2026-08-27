@@ -37,21 +37,23 @@ export default function DeckDetailPage() {
     ? currentTabParam
     : 'overview'
 
-  // Fetch basic deck metadata to determine role & display header
+  // Fetch basic deck metadata to determine role & display header (shares cache with FlashcardDetail)
   const { data: deckMeta, isLoading: isMetaLoading } = useQuery({
-    queryKey: ['deck-detail-meta', id],
+    queryKey: ['quiz', id],
     queryFn: async () => {
       if (!id) return null
-      const res = await axios.get(`/api/v1/deck/${id}`)
+      const res = await axios.get(`/api/v1/deck/${id}/data`)
       return res.data
     },
     enabled: !!id,
     staleTime: 60 * 1000,
   })
 
-  const isOwner = deckMeta?.is_creator || 
-                  (user && deckMeta?.owner_id === user.id) ||
-                  (user?.role === 'admin')
+  const isOwner = Boolean(
+    deckMeta?.is_creator || 
+    (user && deckMeta?.owner_id === user.id) ||
+    (user?.role === 'admin')
+  )
 
   const handleTabChange = (tab: DeckDetailTab) => {
     setSearchParams({ tab }, { replace: true })
