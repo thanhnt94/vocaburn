@@ -193,16 +193,16 @@ export default function DecksPage() {
   )
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC] pb-28">
+    <div className="min-h-screen bg-[#F8FAFC] pb-20 sm:pb-12">
       {/* ═══════════ TOP COMPACT STICKY BAR ═══════════ */}
       <div className="sticky top-0 md:top-16 z-30 bg-white/95 backdrop-blur-xl border-b border-slate-200/80 shadow-2xs">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
           
           {/* Top Row: Title, Action Buttons */}
-          <div className="flex items-center justify-between gap-3 pt-2.5 pb-2">
+          <div className="flex items-center justify-between gap-2 pt-2.5 pb-2">
             {/* Title */}
-            <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-gradient-to-tr from-indigo-500 via-purple-500 to-pink-500 flex items-center justify-center text-white shadow-xs text-sm sm:text-base shrink-0">
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-indigo-500 via-purple-500 to-pink-500 flex items-center justify-center text-white shadow-xs text-sm shrink-0">
                 📚
               </div>
               <div>
@@ -215,7 +215,7 @@ export default function DecksPage() {
             <div className="flex items-center gap-1.5">
               <button 
                 onClick={() => navigate('/create')}
-                className="flex items-center gap-1 px-3 py-1.5 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white rounded-xl text-[11px] font-black uppercase tracking-wider shadow-xs active:scale-95 transition-all"
+                className="flex items-center gap-1 px-2.5 sm:px-3 py-1.5 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white rounded-xl text-[10px] sm:text-[11px] font-black uppercase tracking-wider shadow-xs active:scale-95 transition-all cursor-pointer shrink-0"
               >
                 <Plus className="w-3.5 h-3.5" />
                 <span>Tạo bộ thẻ</span>
@@ -223,7 +223,7 @@ export default function DecksPage() {
 
               <button 
                 onClick={() => setIsJoinModalOpen(true)}
-                className="flex items-center gap-1 px-2.5 py-1.5 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-[11px] font-black uppercase tracking-wider shadow-2xs active:scale-95 transition-all"
+                className="flex items-center gap-1 px-2 sm:px-2.5 py-1.5 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-[10px] sm:text-[11px] font-black uppercase tracking-wider shadow-2xs active:scale-95 transition-all cursor-pointer shrink-0"
                 title="Tham gia phòng đấu Arena"
               >
                 <Users className="w-3.5 h-3.5" />
@@ -232,10 +232,9 @@ export default function DecksPage() {
             </div>
           </div>
 
-          {/* Middle Row: 3 Main Tabs & Search Bar */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2">
-            {/* 3 Main Tabs: Đang học / Khám phá / Đã ẩn */}
-            <div className="flex items-center gap-1 p-0.5 bg-slate-100/90 rounded-xl border border-slate-200/60 overflow-x-auto no-scrollbar shrink-0">
+          {/* Middle Row: 3 Centered Full-Width Equal Segmented Tabs */}
+          <div className="pb-2">
+            <div className="grid grid-cols-3 w-full bg-slate-100/90 p-1 rounded-xl border border-slate-200/70">
               {tabsConfig.map((tab) => {
                 const isActive = activeTab === tab.id
                 return (
@@ -243,9 +242,9 @@ export default function DecksPage() {
                     key={tab.id}
                     onClick={() => setActiveTab(tab.id)}
                     className={cn(
-                      "relative flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-black tracking-wide transition-all shrink-0 select-none",
+                      "relative flex items-center justify-center gap-1 sm:gap-1.5 py-1.5 sm:py-2 rounded-lg text-xs font-black tracking-tight transition-all select-none cursor-pointer",
                       isActive
-                        ? "text-indigo-600 shadow-2xs"
+                        ? "text-indigo-600"
                         : "text-slate-500 hover:text-slate-800 hover:bg-slate-200/50"
                     )}
                   >
@@ -253,13 +252,13 @@ export default function DecksPage() {
                       <motion.div
                         layoutId="activeDecksTabPill"
                         className="absolute inset-0 bg-white rounded-lg shadow-2xs border border-slate-200/80"
-                        transition={{ type: "spring", bounce: 0.15, duration: 0.5 }}
+                        transition={{ type: "spring", bounce: 0.15, duration: 0.4 }}
                       />
                     )}
-                    <span className="relative z-10 text-xs">{tab.icon}</span>
-                    <span className="relative z-10 uppercase">{tab.label}</span>
+                    <span className="relative z-10 text-xs hidden xs:inline">{tab.icon}</span>
+                    <span className="relative z-10 text-[11px] sm:text-xs truncate">{tab.label}</span>
                     <span className={cn(
-                      "relative z-10 px-1.5 py-0.2 rounded-md text-[10px] font-black",
+                      "relative z-10 px-1.5 py-0.2 rounded-md text-[9px] sm:text-[10px] font-black leading-none",
                       isActive ? "bg-indigo-50 text-indigo-700" : "bg-slate-200 text-slate-600"
                     )}>
                       {tab.count}
@@ -268,107 +267,110 @@ export default function DecksPage() {
                 )
               })}
             </div>
+          </div>
 
+          {/* Search Bar & Tag/Status Filters in compact single row */}
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-1.5 pb-2">
             {/* Search Input */}
-            <div className="relative flex-1 max-w-sm">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
+            <div className="relative flex-1">
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
               <input 
                 type="text" 
-                placeholder="Tìm theo tên hoặc người tạo..." 
+                placeholder="Tìm tên bộ thẻ..." 
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full h-8.5 pl-8.5 pr-8 bg-slate-100/80 border border-slate-200/80 rounded-xl text-xs font-bold text-slate-900 placeholder:text-slate-400 outline-none focus:ring-2 focus:ring-indigo-500/20 focus:bg-white transition"
+                className="w-full h-8 pl-8 pr-7 bg-slate-100/80 border border-slate-200/80 rounded-xl text-xs font-bold text-slate-900 placeholder:text-slate-400 outline-none focus:ring-2 focus:ring-indigo-500/20 focus:bg-white transition"
               />
               {searchQuery && (
-                <button onClick={() => setSearchQuery('')} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
+                <button onClick={() => setSearchQuery('')} className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
                   <X className="w-3.5 h-3.5" />
                 </button>
               )}
             </div>
-          </div>
 
-          {/* Bottom Filter Row: Status Filters & Tags */}
-          <div className="flex items-center gap-1.5 pb-2 overflow-x-auto no-scrollbar pt-0.5 border-t border-slate-100/80">
-            {/* Status Filter Chips (Only relevant for "my" tab) */}
-            {activeTab === 'my' && (
-              <div className="flex items-center gap-1 shrink-0 pr-1.5 border-r border-slate-200">
-                {[
-                  { id: 'all' as StatusFilter, label: 'Tất cả' },
-                  { id: 'learning' as StatusFilter, label: '⚡ Đang học' },
-                  { id: 'unlearned' as StatusFilter, label: '✨ Chưa học' },
-                  { id: 'mastered' as StatusFilter, label: '🌟 Đã thuộc' },
-                ].map(st => (
+            {/* Status & Tag Filter Chips */}
+            <div className="flex items-center gap-1 overflow-x-auto no-scrollbar py-0.5 shrink-0">
+              {activeTab === 'my' && (
+                <div className="flex items-center gap-1 shrink-0 pr-1 border-r border-slate-200">
+                  {[
+                    { id: 'all' as StatusFilter, label: 'Tất cả' },
+                    { id: 'learning' as StatusFilter, label: '⚡ Đang học' },
+                    { id: 'unlearned' as StatusFilter, label: '✨ Chưa học' },
+                    { id: 'mastered' as StatusFilter, label: '🌟 Đã thuộc' },
+                  ].map(st => (
+                    <button
+                      key={st.id}
+                      onClick={() => setStatusFilter(st.id)}
+                      className={cn(
+                        "px-2 py-0.5 rounded-lg text-[10px] font-black transition-all shrink-0 border cursor-pointer",
+                        statusFilter === st.id
+                          ? "bg-indigo-600 border-indigo-600 text-white shadow-2xs"
+                          : "bg-slate-50 border-slate-200/70 text-slate-600 hover:bg-slate-100"
+                      )}
+                    >
+                      {st.label}
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              {/* Tag Chips */}
+              <button 
+                onClick={() => setActiveTag(null)}
+                className={cn(
+                  "px-2 py-0.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all shrink-0 border cursor-pointer",
+                  !activeTag 
+                    ? "bg-slate-900 border-slate-900 text-white shadow-2xs" 
+                    : "bg-slate-100/80 border-slate-200 text-slate-600 hover:bg-slate-200/70"
+                )}
+              >
+                Tags
+              </button>
+              {allAvailableTags.slice(0, 8).map(tag => {
+                const isActive = activeTag === tag
+                return (
                   <button
-                    key={st.id}
-                    onClick={() => setStatusFilter(st.id)}
+                    key={tag}
+                    onClick={() => setActiveTag(isActive ? null : tag)}
                     className={cn(
-                      "px-2.5 py-0.5 rounded-lg text-[10px] font-black transition-all shrink-0 border",
-                      statusFilter === st.id
+                      "px-2 py-0.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all shrink-0 border cursor-pointer",
+                      isActive
                         ? "bg-indigo-600 border-indigo-600 text-white shadow-2xs"
-                        : "bg-slate-50 border-slate-200/70 text-slate-600 hover:bg-slate-100"
+                        : "bg-white border-slate-200/80 text-slate-600 hover:border-indigo-200 hover:bg-indigo-50/50"
                     )}
                   >
-                    {st.label}
+                    #{tag}
                   </button>
-                ))}
-              </div>
-            )}
-
-            {/* Tag Filter Chips */}
-            <button 
-              onClick={() => setActiveTag(null)}
-              className={cn(
-                "px-2.5 py-0.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all shrink-0 border",
-                !activeTag 
-                  ? "bg-slate-900 border-slate-900 text-white shadow-2xs" 
-                  : "bg-slate-100/80 border-slate-200 text-slate-600 hover:bg-slate-200/70"
-              )}
-            >
-              Tất cả tags
-            </button>
-            {allAvailableTags.map(tag => {
-              const isActive = activeTag === tag
-              return (
-                <button
-                  key={tag}
-                  onClick={() => setActiveTag(isActive ? null : tag)}
-                  className={cn(
-                    "px-2.5 py-0.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all shrink-0 border",
-                    isActive
-                      ? "bg-indigo-600 border-indigo-600 text-white shadow-2xs"
-                      : "bg-white border-slate-200/80 text-slate-600 hover:border-indigo-200 hover:bg-indigo-50/50"
-                  )}
-                >
-                  #{tag}
-                </button>
-              )
-            })}
+                )
+              })}
+            </div>
           </div>
 
         </div>
       </div>
 
-      {/* ═══════════ MAIN CONTENT GRID ═══════════ */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-4">
+      {/* ═══════════ MAIN CONTENT LIST ═══════════ */}
+      <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 pt-3">
         
-        {/* Decks List / Cards Grid */}
+        {/* Empty State */}
         {filteredData.length === 0 ? (
-          <div className="w-full bg-white border border-slate-200/80 rounded-3xl p-10 text-center flex flex-col items-center justify-center shadow-xs">
-            <span className="text-4xl mb-3">🔍</span>
-            <h3 className="text-sm font-black text-slate-800 uppercase tracking-widest mb-1">Không tìm thấy bộ thẻ phù hợp</h3>
-            <p className="text-xs text-slate-400 max-w-sm mb-4">Hãy thử tìm từ khóa khác hoặc xóa bộ lọc trạng thái/tag.</p>
+          <div className="w-full bg-white border border-slate-200/80 rounded-2xl p-8 text-center flex flex-col items-center justify-center shadow-xs">
+            <span className="text-3xl mb-2">🔍</span>
+            <h3 className="text-xs sm:text-sm font-black text-slate-800 uppercase tracking-wider mb-1">Không tìm thấy bộ thẻ phù hợp</h3>
+            <p className="text-[11px] text-slate-400 max-w-sm mb-3">Hãy thử tìm từ khóa khác hoặc xóa bộ lọc trạng thái/tag.</p>
             {activeTab === 'discover' && (
               <button 
                 onClick={() => navigate('/create')}
-                className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xs uppercase tracking-wider rounded-xl shadow-md shadow-indigo-100 transition-all"
+                className="px-3.5 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xs uppercase tracking-wider rounded-xl shadow-xs transition-all cursor-pointer"
               >
                 + Tự tạo bộ thẻ mới
               </button>
             )}
           </div>
         ) : (
-          <div className="space-y-5">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3.5 sm:gap-4.5">
+          <div className="space-y-3">
+            {/* Compact Deck Cards Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2.5 sm:gap-3.5">
               <AnimatePresence mode="popLayout">
                 {paginatedData.map((quiz, idx) => {
                   const isCreator = quiz.is_creator || quiz.owner_id === data.user?.id || quiz.creator_id === data.user?.id
@@ -385,148 +387,111 @@ export default function DecksPage() {
                     <motion.div
                       key={quiz.id}
                       layout
-                      initial={{ opacity: 0, y: 12 }}
+                      initial={{ opacity: 0, y: 8 }}
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0, scale: 0.95 }}
-                      transition={{ delay: idx * 0.02 }}
-                      className="group flex flex-col justify-between bg-white rounded-2xl sm:rounded-3xl border border-slate-200/80 p-4 shadow-2xs hover:shadow-md hover:border-indigo-200 transition-all relative overflow-hidden"
+                      transition={{ delay: idx * 0.015 }}
+                      className="group bg-white rounded-xl sm:rounded-2xl border border-slate-200/80 p-3 sm:p-3.5 shadow-2xs hover:shadow-sm hover:border-indigo-200 transition-all relative flex flex-col justify-between gap-2.5"
                     >
-                      {/* Top Row: Cover, Info & Creator */}
-                      <div>
-                        <div className="flex items-start gap-3 mb-2.5">
-                          {/* Deck Cover Thumbnail */}
-                          <Link 
-                            to={`/decks/${quiz.id}`}
-                            className="w-13 h-13 rounded-2xl overflow-hidden shadow-2xs border border-slate-100 shrink-0 relative group-hover:scale-102 transition-transform"
-                            title="Xem chi tiết bộ thẻ"
-                          >
-                            {quiz.cover_image ? (
-                              <img src={quiz.cover_image} alt="" className="w-full h-full object-cover" />
-                            ) : (
-                              <div className={cn(
-                                "w-full h-full flex items-center justify-center text-white text-base font-bold",
-                                idx % 5 === 0 ? "bg-gradient-to-br from-indigo-500 to-purple-600" :
-                                idx % 5 === 1 ? "bg-gradient-to-br from-rose-500 to-orange-500" :
-                                idx % 5 === 2 ? "bg-gradient-to-br from-emerald-500 to-teal-600" :
-                                idx % 5 === 3 ? "bg-gradient-to-br from-blue-500 to-cyan-600" :
-                                "bg-gradient-to-br from-amber-500 to-yellow-600"
-                              )}>
-                                🎴
-                              </div>
-                            )}
-                          </Link>
+                      {/* Top Row: Thumbnail + Info */}
+                      <div className="flex items-start gap-2.5 min-w-0">
+                        {/* Compact Thumbnail */}
+                        <Link 
+                          to={`/decks/${quiz.id}`}
+                          className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl overflow-hidden shadow-2xs border border-slate-100 shrink-0 relative group-hover:scale-102 transition-transform flex items-center justify-center"
+                          title="Xem chi tiết bộ thẻ"
+                        >
+                          {quiz.cover_image ? (
+                            <img src={quiz.cover_image} alt="" className="w-full h-full object-cover" />
+                          ) : (
+                            <div className={cn(
+                              "w-full h-full flex items-center justify-center text-white text-sm font-bold",
+                              idx % 5 === 0 ? "bg-gradient-to-br from-indigo-500 to-purple-600" :
+                              idx % 5 === 1 ? "bg-gradient-to-br from-rose-500 to-orange-500" :
+                              idx % 5 === 2 ? "bg-gradient-to-br from-emerald-500 to-teal-600" :
+                              idx % 5 === 3 ? "bg-gradient-to-br from-blue-500 to-cyan-600" :
+                              "bg-gradient-to-br from-amber-500 to-yellow-600"
+                            )}>
+                              🎴
+                            </div>
+                          )}
+                        </Link>
 
-                          {/* Deck Title, Creator & Badges */}
-                          <div className="flex-1 min-w-0">
+                        {/* Title & Metadata */}
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-start justify-between gap-1.5">
                             <Link 
                               to={`/decks/${quiz.id}`}
-                              className="text-xs sm:text-sm font-black text-slate-900 hover:text-indigo-600 transition-colors line-clamp-2 leading-tight block"
+                              className="text-xs sm:text-sm font-black text-slate-900 hover:text-indigo-600 transition-colors line-clamp-1 leading-snug"
                               title={quiz.title}
                             >
                               {quiz.title}
                             </Link>
 
-                            {/* Creator Name Display */}
-                            <div className="flex items-center gap-1 mt-1 text-[10px] font-bold text-slate-500 truncate">
-                              <UserIcon className="w-3 h-3 text-slate-400 shrink-0" />
-                              <span className="truncate">
-                                {isCreator ? `@${creatorDisplayName} (Bạn)` : `@${creatorDisplayName}`}
-                              </span>
-                            </div>
-
-                            {/* Card Count & Type */}
-                            <div className="flex items-center gap-1.5 mt-1">
-                              <span className="px-1.5 py-0.5 bg-slate-100 text-slate-700 border border-slate-200/60 rounded-md text-[9px] font-black">
-                                🎴 {quiz.questions_count} thẻ
-                              </span>
-                            </div>
+                            <span className="px-1.5 py-0.2 bg-slate-100 text-slate-600 border border-slate-200/60 rounded text-[9px] font-bold shrink-0">
+                              {quiz.questions_count} thẻ
+                            </span>
                           </div>
-                        </div>
 
-                        {/* Deck Tags */}
-                        {quiz.tags && quiz.tags.length > 0 && (
-                          <div className="flex flex-wrap gap-1 mb-2.5">
-                            {quiz.tags.slice(0, 3).map(t => (
-                              <span key={t} className="px-1.5 py-0.5 bg-slate-50 border border-slate-200/50 rounded text-[8px] font-black text-slate-500 uppercase tracking-wider">
-                                #{t}
-                              </span>
-                            ))}
-                            {quiz.tags.length > 3 && (
-                              <span className="px-1 py-0.5 text-[8px] font-bold text-slate-400">
-                                +{quiz.tags.length - 3}
-                              </span>
-                            )}
-                          </div>
-                        )}
-
-                        {/* Progress Section (Only for "my" and "archived" tabs) */}
-                        {activeTab !== 'discover' && (
-                          <div className="bg-slate-50/90 border border-slate-100 rounded-xl p-2.5 mb-3">
-                            <div className="flex items-center justify-between text-[10px] font-bold mb-1">
-                              {hasStudied ? (
-                                progressPct === 100 ? (
-                                  <span className="flex items-center gap-1 text-emerald-600 font-black">
-                                    <CheckCircle2 className="w-3 h-3" /> Thuộc 100%
-                                  </span>
+                          {/* Sub-line: Creator only for discover tab, or progress info for my/archived */}
+                          {activeTab === 'discover' ? (
+                            <div className="flex items-center gap-1 mt-0.5 text-[10px] font-bold text-slate-400 truncate">
+                              <span>Bởi @{creatorDisplayName}</span>
+                            </div>
+                          ) : (
+                            <div className="flex items-center justify-between text-[10px] font-bold mt-0.5 text-slate-500">
+                              <span>
+                                {hasStudied ? (
+                                  progressPct === 100 ? (
+                                    <span className="text-emerald-600 font-black">🌟 Thuộc 100%</span>
+                                  ) : (
+                                    <span className="text-indigo-600 font-bold">⚡ Đang học ({progressPct}%)</span>
+                                  )
                                 ) : (
-                                  <span className="text-indigo-600 font-black">
-                                    ⚡ Đang học ({progressPct}%)
-                                  </span>
-                                )
-                              ) : (
-                                <span className="text-slate-400 font-bold">
-                                  ✨ Chưa bắt đầu học
-                                </span>
-                              )}
-
-                              <span className="text-slate-500 font-mono text-[9px]">
-                                {learned}/{quiz.questions_count} thẻ
+                                  <span className="text-slate-400">✨ Chưa học</span>
+                                )}
+                              </span>
+                              <span className="font-mono text-[9px] text-slate-400">
+                                {learned}/{quiz.questions_count}
                               </span>
                             </div>
+                          )}
 
-                            {/* Two-tone Progress Bar */}
-                            <div className="w-full h-1.5 bg-slate-200/70 rounded-full overflow-hidden flex">
+                          {/* Mini Progress Bar (for my and archived tabs) */}
+                          {activeTab !== 'discover' && (
+                            <div className="w-full h-1 bg-slate-100 rounded-full overflow-hidden flex mt-1">
                               {masteredPct > 0 && (
                                 <div 
-                                  className="h-full bg-amber-500 transition-all duration-500" 
+                                  className="h-full bg-amber-500 transition-all duration-300" 
                                   style={{ width: `${masteredPct}%` }}
-                                  title={`Đã thuộc: ${mastered} thẻ`}
                                 />
                               )}
                               {progressPct > masteredPct && (
                                 <div 
-                                  className="h-full bg-indigo-600 transition-all duration-500" 
+                                  className="h-full bg-indigo-600 transition-all duration-300" 
                                   style={{ width: `${progressPct - masteredPct}%` }}
-                                  title={`Đang học: ${learned - mastered} thẻ`}
                                 />
                               )}
                             </div>
-
-                            {hasStudied && mastered > 0 && (
-                              <div className="flex items-center justify-between text-[8px] font-bold text-slate-400 mt-1">
-                                <span>Thuộc: {mastered} thẻ</span>
-                                <span>Cần ôn: {learned - mastered} thẻ</span>
-                              </div>
-                            )}
-                          </div>
-                        )}
+                          )}
+                        </div>
                       </div>
 
-                      {/* Card Action Buttons (Compact & Harmonious) */}
-                      <div className="pt-2 border-t border-slate-100 flex items-center justify-between gap-1.5">
+                      {/* Bottom Action Row: Compact, Non-Intrusive Buttons */}
+                      <div className="flex items-center justify-between gap-1.5 pt-1.5 border-t border-slate-100">
                         
                         {/* TAB: ĐANG HỌC (MY DECKS) */}
                         {activeTab === 'my' && (
                           <>
-                            <div className="flex items-center gap-1.5 flex-1">
-                              {/* Học Button (Sleek Compact Pill) */}
+                            <div className="flex items-center gap-1 flex-1">
+                              {/* Học Button (Compact Pill) */}
                               <button
                                 onClick={() => {
                                   setSelectedStudyQuiz(quiz)
                                   setStudyModalTab('flashcard')
                                   setIsStudyModalOpen(true)
                                 }}
-                                className="flex-1 h-8 px-3 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white rounded-xl font-black text-[11px] shadow-2xs active:scale-95 transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                                className="flex-1 h-7.5 px-2.5 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white rounded-lg font-black text-[11px] shadow-2xs active:scale-95 transition-all flex items-center justify-center gap-1 cursor-pointer"
                               >
                                 <Brain className="w-3.5 h-3.5" />
                                 <span>Học</span>
@@ -539,30 +504,30 @@ export default function DecksPage() {
                                   setStudyModalTab('practice')
                                   setIsStudyModalOpen(true)
                                 }}
-                                className="h-8 px-2.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200/80 rounded-xl font-black text-[11px] active:scale-95 transition-all flex items-center justify-center gap-1 cursor-pointer"
+                                className="h-7.5 px-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200/70 rounded-lg font-black text-[10px] active:scale-95 transition-all flex items-center justify-center gap-1 cursor-pointer"
                                 title="Luyện tập trắc nghiệm & gõ từ"
                               >
-                                <Trophy className="w-3.5 h-3.5" />
-                                <span className="hidden sm:inline">Luyện</span>
+                                <Trophy className="w-3 h-3" />
+                                <span>Luyện</span>
                               </button>
                             </div>
 
                             {/* Utility Buttons: Chi tiết & Ẩn */}
-                            <div className="flex items-center gap-1">
+                            <div className="flex items-center gap-1 shrink-0">
                               <Link
                                 to={`/decks/${quiz.id}`}
-                                className="h-8 w-8 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl transition-all border border-slate-200/60 flex items-center justify-center"
+                                className="h-7.5 w-7.5 bg-slate-50 hover:bg-slate-100 text-slate-600 rounded-lg transition-all border border-slate-200/60 flex items-center justify-center"
                                 title="Xem chi tiết bộ thẻ"
                               >
-                                <ChevronRight className="w-4 h-4" />
+                                <ChevronRight className="w-3.5 h-3.5" />
                               </Link>
                               
                               <button
                                 onClick={() => archiveMutation.mutate(quiz.id)}
-                                className="h-8 w-8 bg-slate-100 hover:bg-rose-50 hover:text-rose-600 text-slate-400 rounded-xl transition-all border border-slate-200/60 flex items-center justify-center cursor-pointer"
+                                className="h-7.5 w-7.5 bg-slate-50 hover:bg-rose-50 hover:text-rose-600 text-slate-400 rounded-lg transition-all border border-slate-200/60 flex items-center justify-center cursor-pointer"
                                 title="Ẩn vào kho lưu trữ"
                               >
-                                <Archive className="w-3.5 h-3.5" />
+                                <Archive className="w-3 h-3" />
                               </button>
                             </div>
                           </>
@@ -573,17 +538,17 @@ export default function DecksPage() {
                           <>
                             <button
                               onClick={() => enrollMutation.mutate(quiz.id)}
-                              className="flex-1 h-8 px-3 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white rounded-xl font-black text-[11px] shadow-2xs active:scale-95 transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                              className="flex-1 h-7.5 px-2.5 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white rounded-lg font-black text-[11px] shadow-2xs active:scale-95 transition-all flex items-center justify-center gap-1 cursor-pointer"
                             >
-                              <Plus className="w-3.5 h-3.5" />
+                              <Plus className="w-3 h-3" />
                               <span>+ Thêm vào học</span>
                             </button>
 
                             <Link
                               to={`/decks/${quiz.id}`}
-                              className="h-8 px-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200/60 rounded-xl font-black text-[11px] transition-all flex items-center gap-1"
+                              className="h-7.5 px-2 bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200/60 rounded-lg font-black text-[10px] transition-all flex items-center gap-1"
                             >
-                              <Eye className="w-3.5 h-3.5" />
+                              <Eye className="w-3 h-3" />
                               <span>Xem</span>
                             </Link>
                           </>
@@ -594,18 +559,18 @@ export default function DecksPage() {
                           <>
                             <button
                               onClick={() => archiveMutation.mutate(quiz.id)}
-                              className="flex-1 h-8 px-3 bg-slate-900 hover:bg-slate-800 text-white rounded-xl font-black text-[11px] shadow-2xs active:scale-95 transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                              className="flex-1 h-7.5 px-2.5 bg-slate-900 hover:bg-slate-800 text-white rounded-lg font-black text-[11px] shadow-2xs active:scale-95 transition-all flex items-center justify-center gap-1 cursor-pointer"
                             >
-                              <RotateCcw className="w-3.5 h-3.5" />
+                              <RotateCcw className="w-3 h-3" />
                               <span>Khôi phục học</span>
                             </button>
 
                             <Link
                               to={`/decks/${quiz.id}`}
-                              className="h-8 w-8 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl transition-all border border-slate-200/60 flex items-center justify-center"
+                              className="h-7.5 w-7.5 bg-slate-50 hover:bg-slate-100 text-slate-600 rounded-lg transition-all border border-slate-200/60 flex items-center justify-center"
                               title="Chi tiết bộ thẻ"
                             >
-                              <ChevronRight className="w-4 h-4" />
+                              <ChevronRight className="w-3.5 h-3.5" />
                             </Link>
                           </>
                         )}
@@ -617,49 +582,32 @@ export default function DecksPage() {
               </AnimatePresence>
             </div>
 
-            {/* Pagination Controls */}
+            {/* Pagination Controls only if needed and compact */}
             {totalPages > 1 && (
-              <div className="flex items-center justify-between pt-3 pb-8 border-t border-slate-200/80">
-                <span className="text-[11px] font-bold text-slate-400">
-                  Trang {currentPage} / {totalPages} ({filteredData.length} bộ thẻ)
+              <div className="flex items-center justify-between pt-2 pb-4 text-slate-400">
+                <span className="text-[10px] font-bold">
+                  {filteredData.length} bộ thẻ
                 </span>
 
-                <div className="flex items-center gap-1.5">
+                <div className="flex items-center gap-1">
                   <button 
                     onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
                     disabled={currentPage === 1}
-                    className="px-2.5 h-8 rounded-xl bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 disabled:opacity-40 disabled:hover:bg-white text-[10px] font-black uppercase tracking-wider transition-all flex items-center gap-1 shadow-2xs cursor-pointer"
+                    className="px-2 h-7 rounded-lg bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 disabled:opacity-40 text-[10px] font-bold transition-all flex items-center gap-0.5 cursor-pointer"
                   >
-                    <ChevronLeft className="w-3.5 h-3.5" /> Trước
+                    <ChevronLeft className="w-3 h-3" /> Trước
                   </button>
                   
-                  <div className="flex items-center gap-1">
-                    {getPageNumbers().map((p, idx) => (
-                      p === '...' ? (
-                        <span key={`dots-${idx}`} className="w-7 h-7 flex items-center justify-center text-xs font-bold text-slate-400">...</span>
-                      ) : (
-                        <button 
-                          key={`page-${p}`}
-                          onClick={() => setCurrentPage(Number(p))}
-                          className={cn(
-                            "w-7 h-7 rounded-lg flex items-center justify-center text-xs font-black transition-all cursor-pointer",
-                            currentPage === p 
-                              ? "bg-indigo-600 text-white shadow-2xs" 
-                              : "bg-white border border-slate-200 text-slate-600 hover:bg-slate-50"
-                          )}
-                        >
-                          {p}
-                        </button>
-                      )
-                    ))}
-                  </div>
+                  <span className="px-2 text-[10px] font-bold text-slate-600">
+                    {currentPage} / {totalPages}
+                  </span>
 
                   <button 
                     onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
                     disabled={currentPage === totalPages}
-                    className="px-2.5 h-8 rounded-xl bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 disabled:opacity-40 disabled:hover:bg-white text-[10px] font-black uppercase tracking-wider transition-all flex items-center gap-1 shadow-2xs cursor-pointer"
+                    className="px-2 h-7 rounded-lg bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 disabled:opacity-40 text-[10px] font-bold transition-all flex items-center gap-0.5 cursor-pointer"
                   >
-                    Sau <ChevronRight className="w-3.5 h-3.5" />
+                    Sau <ChevronRight className="w-3 h-3" />
                   </button>
                 </div>
               </div>
