@@ -99,6 +99,11 @@ export default function DeckDetailPage() {
                   </h1>
                   <div className="flex items-center gap-2 text-[10px] text-slate-500 font-medium">
                     <span>{deckMeta?.questions_count ?? '--'} cards</span>
+                    {deckMeta?.creator_name && (
+                      <span className="text-slate-600 font-bold truncate">
+                        👤 @{deckMeta.creator_name}{isOwner ? ' (Bạn)' : ''}
+                      </span>
+                    )}
                     {deckMeta?.is_public !== undefined && (
                       <span className="flex items-center gap-0.5 text-slate-400">
                         {deckMeta.is_public ? <Globe className="w-2.5 h-2.5" /> : <Lock className="w-2.5 h-2.5" />}
