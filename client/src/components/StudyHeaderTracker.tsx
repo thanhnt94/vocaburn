@@ -52,119 +52,119 @@ export interface StudyHeaderTrackerProps {
 const MODE_META_DICT: Record<string, { emoji: string; label: string; short: string; style: string }> = {
   roadmap: { 
     emoji: '🛣️', 
-    label: 'Lộ Trình Học Roadmap', 
+    label: 'Roadmap Guided', 
     short: 'RM',
     style: 'bg-amber-500/15 border-amber-500/30 text-amber-300'
   },
   roadmap_new: { 
     emoji: '🛣️', 
-    label: 'Lộ Trình - Học Mới', 
+    label: 'Roadmap - New Cards', 
     short: 'RM',
     style: 'bg-amber-500/15 border-amber-500/30 text-amber-300'
   },
   roadmap_review: { 
     emoji: '🛣️', 
-    label: 'Lộ Trình - Ôn Tập', 
+    label: 'Roadmap - Review', 
     short: 'RM',
     style: 'bg-emerald-500/15 border-emerald-500/30 text-emerald-300'
   },
   new_cards: { 
     emoji: '✨', 
-    label: 'Học Từ Mới', 
+    label: 'Learn New Cards', 
     short: 'NEW',
     style: 'bg-indigo-500/15 border-indigo-500/30 text-indigo-300'
   },
   new: { 
     emoji: '✨', 
-    label: 'Học Từ Mới', 
+    label: 'Learn New Cards', 
     short: 'NEW',
     style: 'bg-indigo-500/15 border-indigo-500/30 text-indigo-300'
   },
   fsrs_review: { 
     emoji: '🧠', 
-    label: 'Ôn Tập FSRS', 
+    label: 'FSRS Review', 
     short: 'FSRS',
     style: 'bg-emerald-500/15 border-emerald-500/30 text-emerald-300'
   },
   fsrs: { 
     emoji: '🧠', 
-    label: 'Ôn Tập FSRS v6', 
+    label: 'FSRS v6 Spaced Repetition', 
     short: 'FSRS',
     style: 'bg-emerald-500/15 border-emerald-500/30 text-emerald-300'
   },
   review: { 
     emoji: '📚', 
-    label: 'Chỉ Ôn Tập Thẻ Cũ', 
+    label: 'Review Only', 
     short: 'REV',
     style: 'bg-teal-500/15 border-teal-500/30 text-teal-300'
   },
   rev: { 
     emoji: '📚', 
-    label: 'Chỉ Ôn Tập Thẻ Cũ', 
+    label: 'Review Only', 
     short: 'REV',
     style: 'bg-teal-500/15 border-teal-500/30 text-teal-300'
   },
   flip: { 
     emoji: '🔄', 
-    label: 'Lật Thẻ Tự Do', 
+    label: 'Free Flip Mode', 
     short: 'FLIP',
     style: 'bg-amber-500/15 border-amber-500/30 text-amber-300'
   },
   mcq: { 
     emoji: '🎯', 
-    label: 'Trắc Nghiệm MCQ', 
+    label: 'Multiple Choice MCQ', 
     short: 'MCQ',
     style: 'bg-rose-500/15 border-rose-500/30 text-rose-300'
   },
   roadmap_mcq: { 
     emoji: '🎯', 
-    label: 'Trắc Nghiệm MCQ', 
+    label: 'Roadmap MCQ', 
     short: 'MCQ',
     style: 'bg-rose-500/15 border-rose-500/30 text-rose-300'
   },
   typing: { 
     emoji: '⌨️', 
-    label: 'Gõ Từ Vựng', 
+    label: 'Typing Mode', 
     short: 'TYP',
     style: 'bg-purple-500/15 border-purple-500/30 text-purple-300'
   },
   roadmap_typing: { 
     emoji: '⌨️', 
-    label: 'Gõ Từ Vựng', 
+    label: 'Roadmap Typing', 
     short: 'TYP',
     style: 'bg-purple-500/15 border-purple-500/30 text-purple-300'
   },
   listening: { 
     emoji: '🎧', 
-    label: 'Luyện Nghe', 
+    label: 'Listening Mode', 
     short: 'LIS',
     style: 'bg-sky-500/15 border-sky-500/30 text-sky-300'
   },
   audio: { 
     emoji: '🎧', 
-    label: 'Luyện Nghe', 
+    label: 'Listening Mode', 
     short: 'LIS',
     style: 'bg-sky-500/15 border-sky-500/30 text-sky-300'
   },
   study_time: { 
     emoji: '⏱️', 
-    label: 'Thời Gian Học', 
+    label: 'Study Time', 
     short: 'TIME',
     style: 'bg-amber-500/15 border-amber-500/30 text-amber-300'
   },
   roadmap_test: { 
     emoji: '🏆', 
-    label: 'Kiểm Tra Roadmap', 
+    label: 'Roadmap Test', 
     short: 'TEST',
     style: 'bg-amber-500/15 border-amber-500/30 text-amber-300'
   }
 }
 
 const OVERACHIEVE_PRAISES = [
-  "⚡ NỖ LỰC PHI THƯỜNG!",
-  "🚀 VƯỢT CHỈ TIÊU BỨT PHÁ!",
-  "👑 BỨT PHÁ GIỚI HẠN BẢN THÂN!",
-  "🔥 CHĂM CHỈ XUẤT SẮC!"
+  "⚡ OUTSTANDING EFFORT!",
+  "🚀 GOAL CRUSHED!",
+  "👑 LIMIT BREAKER!",
+  "🔥 ON FIRE!"
 ]
 
 export const StudyHeaderTracker: React.FC<StudyHeaderTrackerProps> = ({
@@ -297,7 +297,7 @@ export const StudyHeaderTracker: React.FC<StudyHeaderTrackerProps> = ({
 
   const praiseMsg = isOverachieved 
     ? OVERACHIEVE_PRAISES[(extraCount - 1) % OVERACHIEVE_PRAISES.length] 
-    : (isGoalReached ? 'ĐÃ ĐẠT GOAL TỪ VỰNG!' : 'TIẾN BỘ TỪ VỰNG!')
+    : (isGoalReached ? 'DAILY GOAL REACHED!' : 'VOCAB PROGRESS!')
 
   useEffect(() => {
     if (
@@ -396,30 +396,30 @@ export const StudyHeaderTracker: React.FC<StudyHeaderTrackerProps> = ({
         )}
       </AnimatePresence>
 
-      {/* 1. LEFT: Exit button (Guaranteed never to shrink or get pushed off) */}
+      {/* 1. LEFT: Exit button */}
       <div className="flex items-center shrink-0 z-[140]">
         {onExit && (
           <button
             onClick={onExit}
             className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-slate-900/90 hover:bg-slate-800 text-slate-300 hover:text-rose-300 border border-slate-800 hover:border-slate-700 flex items-center justify-center transition-all active:scale-95 shrink-0 shadow-sm cursor-pointer"
-            title="Thoát phiên học"
+            title="Exit session"
           >
             <X className="w-4 h-4" />
           </button>
         )}
       </div>
 
-      {/* 2. FULL BAR FLIP CONTAINER (BẤM VÀO ĐÂY ĐỂ FLIP TOÀN BỘ THANH) */}
+      {/* 2. FULL BAR FLIP CONTAINER */}
       <div 
         onClick={toggleViewMode}
         className="flex-1 flex items-center min-w-0 h-full cursor-pointer z-[140]"
-        title="Bấm vào thanh để chuyển đổi giữa (Tên bộ thẻ & Chế độ) ⇄ (Toàn bộ Thông số chi tiết)"
+        title="Click to toggle between Deck Info ⇄ Live HUD Stats"
       >
         <div className="w-full h-full flex items-center rounded-full bg-slate-900/80 hover:bg-slate-900/95 border border-slate-800 hover:border-slate-700/80 px-2.5 sm:px-3.5 backdrop-blur-md shadow-sm transition-all overflow-hidden relative">
           <AnimatePresence mode="wait" initial={false}>
             {viewMode === 0 ? (
               /* ========================================================================= */
-              /* MẶT 1: TÊN BỘ THẺ & CHẾ ĐỘ HỌC (Full Deck & Mode Identification)           */
+              /* FACE 1: DECK TITLE & MODE                                                 */
               /* ========================================================================= */
               <motion.div
                 key="face-deck-title"
@@ -433,15 +433,15 @@ export const StudyHeaderTracker: React.FC<StudyHeaderTrackerProps> = ({
                 <div className="flex items-center gap-2 min-w-0 flex-1">
                   <span className="text-xs shrink-0">{meta.emoji || '🎴'}</span>
                   <h1 className="text-xs sm:text-sm font-bold text-slate-100 tracking-tight truncate" title={deckTitle}>
-                    {deckTitle || 'Phiên Học Vocaburn'}
+                    {deckTitle || 'Vocaburn Study Session'}
                   </h1>
                 </div>
 
                 {/* Right side of Face 1: Mode + Step Dots + Progress + Flip Hint */}
                 <div className="flex items-center gap-2 sm:gap-2.5 shrink-0">
-                  {/* Step Stepper Dots (Chỉ hiển thị khi đang học theo Roadmap có nhiều bước) */}
+                  {/* Step Stepper Dots */}
                   {effectivePipeline.length > 1 && (
-                    <div className="flex items-center gap-1 shrink-0" title={`Bước ${(currentStepIndex || 0) + 1}/${effectivePipeline.length}`}>
+                    <div className="flex items-center gap-1 shrink-0" title={`Step ${(currentStepIndex || 0) + 1}/${effectivePipeline.length}`}>
                       {effectivePipeline.map((_, idx) => (
                         <div
                           key={idx}
@@ -458,7 +458,7 @@ export const StudyHeaderTracker: React.FC<StudyHeaderTrackerProps> = ({
                     </div>
                   )}
 
-                  {/* Mode Badge (Ultra-clean acronym: NEW, FSRS, REV, FLIP, MCQ, TYP, LIS, TEST) */}
+                  {/* Mode Badge (Ultra-clean acronym: NEW, FSRS, REV, FLIP, MCQ, TYP, LIS, TEST, RM) */}
                   <div 
                     className={cn(
                       "flex items-center gap-1 px-1.5 py-0.5 rounded-md border text-xs font-black shrink-0 tracking-wide shadow-sm",
@@ -498,7 +498,7 @@ export const StudyHeaderTracker: React.FC<StudyHeaderTrackerProps> = ({
               </motion.div>
             ) : (
               /* ========================================================================= */
-              /* MẶT 2: TOÀN BỘ CÁC THÔNG SỐ CHI TIẾT (Full Live HUD Dashboard)             */
+              /* FACE 2: SEGMENTED NEON DOCK (Full Live HUD Dashboard)                     */
               /* ========================================================================= */
               <motion.div
                 key="face-stats-hud"
@@ -506,76 +506,81 @@ export const StudyHeaderTracker: React.FC<StudyHeaderTrackerProps> = ({
                 animate={{ opacity: 1, rotateX: 0 }}
                 exit={{ opacity: 0, rotateX: 90 }}
                 transition={{ duration: 0.18, ease: "easeInOut" }}
-                className="w-full flex items-center justify-between gap-1.5 sm:gap-3 text-xs min-w-0 font-mono"
+                className="w-full flex items-center justify-between gap-1 sm:gap-1.5 text-xs min-w-0 font-mono"
               >
-                {/* 1. Timer: Thẻ này & Tổng hôm nay */}
-                <div className="flex items-center gap-1 shrink-0" title="Thời gian xem thẻ hiện tại & Tổng thời gian học">
-                  <Clock className="w-3.5 h-3.5 text-emerald-400 shrink-0 animate-pulse" />
-                  <span className="text-emerald-300 font-black text-[11px]">{displayCardTime}</span>
-                  <span className="text-slate-600 hidden sm:inline">•</span>
-                  <span className="text-slate-400 text-[10px] hidden sm:inline" title="Thời gian học hôm nay">{displayTodayTime}</span>
+                {/* 1. Segment: Timer (Card & Today) */}
+                <div 
+                  className="flex-1 flex items-center justify-center gap-1 sm:gap-1.5 py-1 px-1.5 sm:px-2 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/25 text-emerald-300 transition-all shadow-xs group min-w-0" 
+                  title="Card timer & Today's study time"
+                >
+                  <Clock className="w-3.5 h-3.5 text-emerald-400 shrink-0 animate-pulse group-hover:scale-110 transition-transform" />
+                  <span className="font-black text-[11px] tracking-tight">{displayCardTime}</span>
+                  <span className="text-emerald-500/40 hidden sm:inline">•</span>
+                  <span className="text-emerald-400/80 text-[10px] hidden sm:inline font-semibold" title="Today's study time">{displayTodayTime}</span>
                 </div>
 
-                <div className="w-[1px] h-3 bg-slate-800 shrink-0" />
-
-                {/* 2. Tiến độ & Còn lại */}
-                <div className="flex items-center gap-1 shrink-0" title="Tiến độ thẻ hiện tại">
-                  <Target className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
-                  <span className="text-slate-200 font-black text-[11px]">
+                {/* 2. Segment: Progress & Remaining */}
+                <div 
+                  className="flex-1 flex items-center justify-center gap-1 sm:gap-1.5 py-1 px-1.5 sm:px-2 rounded-lg bg-indigo-500/10 hover:bg-indigo-500/20 border border-indigo-500/25 text-indigo-300 transition-all shadow-xs group min-w-0" 
+                  title="Current card progress"
+                >
+                  <Target className="w-3.5 h-3.5 text-indigo-400 shrink-0 group-hover:scale-110 transition-transform" />
+                  <span className="font-black text-[11px] text-slate-100 tracking-tight truncate">
                     {hasSubProg ? `${subProgressCurr}/${subProgressTotal}` : `${currentIndex + 1}/${totalCards || '--'}`}
                   </span>
                   {cardsRemaining > 0 && (
-                    <span className="text-slate-500 text-[10px] hidden md:inline">({cardsRemaining} còn)</span>
+                    <span className="text-indigo-400/70 text-[9.5px] hidden md:inline font-semibold">({cardsRemaining} left)</span>
                   )}
                 </div>
 
-                {/* 3. Độ chính xác (Accuracy %) */}
+                {/* 3. Segment: Accuracy % */}
                 {accuracyPercent !== null && (
-                  <>
-                    <div className="w-[1px] h-3 bg-slate-800 shrink-0 hidden sm:block" />
-                    <div className="hidden sm:flex items-center gap-1 shrink-0" title={`Độ chính xác: ${correctCount}/${answeredCount} câu đúng`}>
-                      <Gauge className="w-3.5 h-3.5 text-teal-400 shrink-0" />
-                      <span className={cn(
-                        "font-black text-[11px]",
-                        accuracyPercent >= 80 ? "text-emerald-400" : accuracyPercent >= 60 ? "text-amber-400" : "text-rose-400"
-                      )}>
-                        {accuracyPercent}%
-                      </span>
-                    </div>
-                  </>
+                  <div 
+                    className="flex-1 hidden sm:flex items-center justify-center gap-1 sm:gap-1.5 py-1 px-1.5 sm:px-2 rounded-lg bg-teal-500/10 hover:bg-teal-500/20 border border-teal-500/25 text-teal-300 transition-all shadow-xs group min-w-0" 
+                    title={`Accuracy: ${correctCount}/${answeredCount} correct`}
+                  >
+                    <Gauge className="w-3.5 h-3.5 text-teal-400 shrink-0 group-hover:scale-110 transition-transform" />
+                    <span className={cn(
+                      "font-black text-[11px] tracking-tight",
+                      accuracyPercent >= 80 ? "text-emerald-300" : accuracyPercent >= 60 ? "text-amber-300" : "text-rose-300"
+                    )}>
+                      {accuracyPercent}%
+                    </span>
+                  </div>
                 )}
 
-                {/* 4. Tốc độ trung bình (Avg Speed) */}
+                {/* 4. Segment: Avg Speed */}
                 {avgSpeed && (
-                  <>
-                    <div className="w-[1px] h-3 bg-slate-800 shrink-0 hidden lg:block" />
-                    <div className="hidden lg:flex items-center gap-1 shrink-0 text-slate-400 text-[10px]" title="Tốc độ học trung bình mỗi thẻ">
-                      <Zap className="w-3 h-3 text-cyan-400 shrink-0" />
-                      <span>{avgSpeed}/thẻ</span>
-                    </div>
-                  </>
+                  <div 
+                    className="hidden lg:flex items-center justify-center gap-1 py-1 px-2 rounded-lg bg-cyan-500/10 hover:bg-cyan-500/20 border border-cyan-500/25 text-cyan-300 transition-all shadow-xs group shrink-0" 
+                    title="Average time per card"
+                  >
+                    <Zap className="w-3 h-3 text-cyan-400 shrink-0 group-hover:scale-110 transition-transform" />
+                    <span className="font-black text-[10px] text-cyan-200">{avgSpeed}/c</span>
+                  </div>
                 )}
 
-                <div className="w-[1px] h-3 bg-slate-800 shrink-0" />
-
-                {/* 5. XP Score */}
-                <div className="flex items-center gap-1 shrink-0 text-amber-300" title={`Điểm phiên: +${sessionXP} XP | Tổng: ${xp.toLocaleString()} XP`}>
-                  <Trophy className="w-3.5 h-3.5 text-amber-400 shrink-0" />
-                  <span className="font-black text-[11px]">
+                {/* 5. Segment: XP Score */}
+                <div 
+                  className="flex-1 flex items-center justify-center gap-1 sm:gap-1.5 py-1 px-1.5 sm:px-2 rounded-lg bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/25 text-amber-300 transition-all shadow-xs group min-w-0" 
+                  title={`Session: +${sessionXP} XP | Total: ${xp.toLocaleString()} XP`}
+                >
+                  <Trophy className="w-3.5 h-3.5 text-amber-400 shrink-0 group-hover:scale-110 transition-transform" />
+                  <span className="font-black text-[11px] text-amber-300 tracking-tight">
                     {sessionXP > 0 ? `+${sessionXP}` : displayTotalXP}
                   </span>
-                  <span className="text-[10px] text-amber-400/80 font-semibold">XP</span>
+                  <span className="text-[9.5px] text-amber-400/80 font-bold">XP</span>
                 </div>
 
-                {/* 6. Streak Flame */}
+                {/* 6. Segment: Streak Flame */}
                 {streakCount > 0 && (
-                  <>
-                    <div className="w-[1px] h-3 bg-slate-800 shrink-0" />
-                    <div className="flex items-center gap-1 shrink-0 text-orange-400" title={`Chuỗi học ${streakCount} ngày liên tục`}>
-                      <Flame className="w-3.5 h-3.5 text-orange-500 fill-orange-500 shrink-0 animate-pulse" />
-                      <span className="font-black text-[11px]">{streakCount}d</span>
-                    </div>
-                  </>
+                  <div 
+                    className="flex-1 flex items-center justify-center gap-1 sm:gap-1.5 py-1 px-1.5 sm:px-2 rounded-lg bg-orange-500/10 hover:bg-orange-500/20 border border-orange-500/25 text-orange-300 transition-all shadow-xs group min-w-0" 
+                    title={`Streak: ${streakCount} consecutive days`}
+                  >
+                    <Flame className="w-3.5 h-3.5 text-orange-400 fill-orange-400 shrink-0 animate-pulse group-hover:scale-110 transition-transform" />
+                    <span className="font-black text-[11px] text-orange-300 tracking-tight">{streakCount}d</span>
+                  </div>
                 )}
               </motion.div>
             )}
