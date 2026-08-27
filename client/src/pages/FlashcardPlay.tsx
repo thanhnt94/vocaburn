@@ -1128,7 +1128,7 @@ export default function FlashcardPlay() {
       console.error("Failed to load deck data:", e)
       showLocalToast("Failed to load deck data. Please check your connection.", "error")
       setTimeout(() => {
-        navigate('/library')
+        navigate('/decks?tab=library')
       }, 2500)
     }
   }
@@ -3774,7 +3774,7 @@ export default function FlashcardPlay() {
           </button>
 
           <button
-            onClick={() => navigate(`/flashcard/${id}`)}
+            onClick={() => navigate(`/decks/${id}`)}
             className="w-full py-3.5 px-4 rounded-2xl bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-700 hover:text-slate-900 font-bold text-xs active:scale-95 transition-all cursor-pointer flex items-center justify-center gap-2 shadow-sm"
           >
             <BookOpen className="w-4 h-4 text-indigo-500" />
@@ -3782,7 +3782,7 @@ export default function FlashcardPlay() {
           </button>
 
           <button
-            onClick={() => navigate('/library')}
+            onClick={() => navigate('/decks?tab=library')}
             className="w-full py-3 px-4 rounded-xl bg-slate-100/60 hover:bg-slate-100 border border-slate-200/60 text-slate-500 hover:text-slate-700 font-bold text-xs active:scale-95 transition-all cursor-pointer"
           >
             Về Thư Viện
@@ -5428,7 +5428,7 @@ export default function FlashcardPlay() {
         questions={session.questions}
         sessionXP={sessionXP}
         milestonesHit={milestonesHit}
-        onNavigateToDeck={() => navigate(`/flashcard/${id}`)}
+        onNavigateToDeck={() => navigate(`/decks/${id}`)}
       />
 
       {/* Mobile Question Map Modal / Practice Stats Drawer */}
@@ -5740,7 +5740,7 @@ export default function FlashcardPlay() {
                   </button>
                   <button 
                     onClick={() => {
-                      navigate(`/flashcard/${id}`)
+                      navigate(`/decks/${id}`)
                     }}
                     className="py-4 bg-rose-500 text-white font-black text-[10px] uppercase tracking-widest rounded-2xl shadow-lg shadow-rose-200 active:scale-95 transition-all"
                   >

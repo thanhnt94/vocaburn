@@ -73,17 +73,35 @@ const TABS = [
   { id: 'stats', label: 'Thống Kê', icon: BarChart3 },
 ] as const
 
-type TabId = typeof TABS[number]['id']
+export type TabId = typeof TABS[number]['id']
 
-export default function DeckRoadmap() {
-  const { id } = useParams<{ id: string }>()
+interface DeckRoadmapProps {
+  embedded?: boolean
+  deckId?: string | number
+}
+
+export default function DeckRoadmap({ embedded = false, deckId }: DeckRoadmapProps = {}) {
+  const { id: routeId } = useParams<{ id: string }>()
+  const id = deckId ? String(deckId) : routeId
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const [searchParams, setSearchParams] = useSearchParams()
 
-  const activeTab = (searchParams.get('tab') as TabId) || 'today'
+  const [localTab, setLocalTab] = useState<TabId>('today')
+  const currentTabParam = searchParams.get(embedded ? 'rm_tab' : 'tab') as TabId
+  const activeTab: TabId = TABS.some(t => t.id === currentTabParam) ? currentTabParam : (embedded ? localTab : 'today')
+
   const setActiveTab = (tab: TabId) => {
-    setSearchParams({ tab }, { replace: true })
+    if (embedded) {
+      setLocalTab(tab)
+      setSearchParams(prev => {
+        const next = new URLSearchParams(prev)
+        next.set('rm_tab', tab)
+        return next
+      }, { replace: true })
+    } else {
+      setSearchParams({ tab }, { replace: true })
+    }
   }
 
   const [pipeline, setPipeline] = useState<PipelineStep[]>([
@@ -345,16 +363,18 @@ export default function DeckRoadmap() {
         <div className="bg-white flex-shrink-0 z-20 shadow-2xs border-b border-slate-100">
           {/* Top Status Bar */}
           <div className="flex items-center justify-between px-3.5 pt-3 pb-2 gap-2">
-            <button
-              onClick={() => {
-                if (navigator.vibrate) navigator.vibrate(8);
-                navigate(`/flashcard/${id}`);
-              }}
-              className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-700 active:scale-95 transition-all shrink-0 border border-slate-200/60"
-              title="Về bộ thẻ"
-            >
-              <ChevronLeft className="w-5 h-5 text-slate-700" />
-            </button>
+            {!embedded ? (
+              <button
+                onClick={() => {
+                  if (navigator.vibrate) navigator.vibrate(8);
+                  navigate(`/decks/${id}`);
+                }}
+                className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-700 active:scale-95 transition-all shrink-0 border border-slate-200/60"
+                title="Về bộ thẻ"
+              >
+                <ChevronLeft className="w-5 h-5 text-slate-700" />
+              </button>
+            ) : null}
 
             <span className="text-sm font-black text-slate-900 truncate px-1 flex-1 text-center">
               {deckTitle}
@@ -1055,24 +1075,26 @@ export default function DeckRoadmap() {
       {/* ═══════════ TOP CONTAINER ═══════════ */}
       <div className="max-w-6xl mx-auto px-4 md:px-8 pt-4 sm:pt-6">
         
-        {/* Top Nav */}
-        <div className="flex items-center justify-between mb-4">
-          <button
-            onClick={() => navigate(`/flashcard/${id}`)}
-            className="flex items-center gap-1.5 text-xs font-bold text-slate-600 hover:text-slate-900 transition-colors cursor-pointer bg-white border border-slate-200/80 px-3.5 py-2 rounded-xl shadow-2xs"
-          >
-            <ChevronLeft className="w-4 h-4" />
-            <span>Về Bộ Thẻ</span>
-          </button>
+        {/* Top Nav (Standalone only) */}
+        {!embedded && (
+          <div className="flex items-center justify-between mb-4">
+            <button
+              onClick={() => navigate(`/decks/${id}`)}
+              className="flex items-center gap-1.5 text-xs font-bold text-slate-600 hover:text-slate-900 transition-colors cursor-pointer bg-white border border-slate-200/80 px-3.5 py-2 rounded-xl shadow-2xs"
+            >
+              <ChevronLeft className="w-4 h-4" />
+              <span>Về Bộ Thẻ</span>
+            </button>
 
-          <Link
-            to="/roadmap"
-            className="flex items-center gap-1.5 text-xs font-bold text-orange-600 hover:text-orange-700 transition-colors"
-          >
-            <Compass className="w-4 h-4" />
-            <span>Tất Cả Lộ Trình</span>
-          </Link>
-        </div>
+            <Link
+              to="/roadmap"
+              className="flex items-center gap-1.5 text-xs font-bold text-orange-600 hover:text-orange-700 transition-colors"
+            >
+              <Compass className="w-4 h-4" />
+              <span>Tất Cả Lộ Trình</span>
+            </Link>
+          </div>
+        )}
 
         {/* ═══════════ HERO HEADER CARD (SLATE LUXURY CARD) ═══════════ */}
         <div className="bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-900 text-white rounded-3xl p-5 sm:p-7 relative overflow-hidden shadow-xl mb-6">

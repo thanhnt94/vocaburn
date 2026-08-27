@@ -26,7 +26,11 @@ interface DashboardData {
   stats_summary: { avg_accuracy: number, total_time_hours: number, total_questions: number }
 }
 
-export default function Library() {
+interface LibraryProps {
+  embedded?: boolean
+}
+
+export default function Library({ embedded = false }: LibraryProps = {}) {
   const [activeTab, setActiveTab] = useState<'my' | 'discover' | 'archived'>('my')
   const [searchQuery, setSearchQuery] = useState('')
   const [activeTag, setActiveTag] = useState<string | null>(null)
@@ -196,7 +200,7 @@ export default function Library() {
             </div>
             <div className="flex items-center gap-1.5">
                <Link 
-                  to="/manage"
+                  to="/decks"
                   className="w-8.5 h-8.5 rounded-xl bg-indigo-50 border border-indigo-100/60 flex items-center justify-center text-indigo-600 shadow-sm active:scale-90 transition-all"
                   title="Creator Studio"
                >
@@ -230,7 +234,7 @@ export default function Library() {
             </div>
             
             <Link 
-              to="/manage"
+              to="/decks"
               className="w-full h-12 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl text-xs font-black uppercase tracking-widest transition-all shadow-md shadow-indigo-200 flex items-center justify-center gap-2 active:scale-95"
             >
               <Plus className="w-4 h-4" />
@@ -369,7 +373,7 @@ export default function Library() {
                         <div className="group h-full flex flex-col justify-between bg-white rounded-[2rem] border border-slate-200/50 p-6 shadow-sm hover:shadow-xl hover:shadow-indigo-100/20 hover:-translate-y-1 transition-all relative overflow-hidden text-left">
                            <div>
                               <div className="flex items-start justify-between mb-5 mt-1">
-                                 <Link to={`/flashcard/${quiz.id}`} className="block flex-shrink-0 transition-transform hover:scale-105" title="Vào Dashboard bộ thẻ">
+                                 <Link to={`/decks/${quiz.id}`} className="block flex-shrink-0 transition-transform hover:scale-105" title="Vào Dashboard bộ thẻ">
                                    <div className={cn(
                                       "w-14 h-14 rounded-[1.25rem] overflow-hidden shadow-md transition-all",
                                       !quiz.cover_image && (
@@ -432,7 +436,7 @@ export default function Library() {
                               </div>
 
                               <div className="flex-grow">
-                                 <Link to={`/flashcard/${quiz.id}`} className="block hover:underline" title="Vào Dashboard bộ thẻ">
+                                 <Link to={`/decks/${quiz.id}`} className="block hover:underline" title="Vào Dashboard bộ thẻ">
                                    <h3 className="text-sm font-black text-slate-800 hover:text-indigo-600 transition-colors leading-tight mb-2 truncate">{quiz.title}</h3>
                                  </Link>
                                  <div className="flex flex-wrap gap-1 mb-3">
@@ -457,7 +461,7 @@ export default function Library() {
                                     </button>
                                   )}
                               </div>
-                              <Link to={`/flashcard/${quiz.id}`} className="hover:translate-x-1 transition-transform" title="Vào Dashboard bộ thẻ">
+                              <Link to={`/decks/${quiz.id}`} className="hover:translate-x-1 transition-transform" title="Vào Dashboard bộ thẻ">
                                 <ChevronRight className="w-4 h-4 text-slate-300 hover:text-indigo-600 transition-all" />
                               </Link>
                            </div>
@@ -509,7 +513,7 @@ export default function Library() {
                        <div 
                          onClick={() => {
                            setIsRecentDrawerOpen(false)
-                           navigate(`/flashcard/${quiz.id}`)
+                           navigate(`/decks/${quiz.id}`)
                          }}
                          className="flex-1 min-w-0 flex items-center gap-2.5 cursor-pointer"
                        >
@@ -607,7 +611,7 @@ export default function Library() {
                     <div className="bg-white rounded-[1.75rem] border border-slate-200/60 p-4 shadow-sm active:scale-[0.98] transition-all relative overflow-hidden flex items-center justify-between gap-3">
                       {/* Left Side: Clickable Cover, Title, Info */}
                       <div 
-                        onClick={() => navigate(`/flashcard/${quiz.id}`)}
+                        onClick={() => navigate(`/decks/${quiz.id}`)}
                         className="flex-1 min-w-0 flex items-center gap-3.5 text-left cursor-pointer"
                       >
                          <div className="w-13 h-13 rounded-2xl flex-shrink-0 overflow-hidden shadow-md transition-all relative">

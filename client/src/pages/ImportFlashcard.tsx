@@ -67,7 +67,12 @@ const MarkdownComponents = {
   }
 }
 
-const ImportFlashcard = () => {
+interface ImportFlashcardProps {
+  embedded?: boolean
+  onImportSuccess?: (id?: number) => void
+}
+
+const ImportFlashcard = ({ embedded = false, onImportSuccess }: ImportFlashcardProps = {}) => {
   const navigate = useNavigate()
   const [isUploading, setIsUploading] = useState(false)
   const [isPreviewing, setIsPreviewing] = useState(false)
@@ -170,7 +175,10 @@ const ImportFlashcard = () => {
       const response = await axios.post('/api/v1/deck/import-text', payload)
       if (response.data.status === 'ok') {
         setSuccess(true)
-        setTimeout(() => navigate('/manage'), 2000)
+        setTimeout(() => {
+          if (onImportSuccess) onImportSuccess(response.data.deck_id)
+          else navigate('/decks')
+        }, 1500)
       } else {
         throw new Error(response.data.error || "Neural ingestion failed.")
       }
@@ -230,7 +238,10 @@ const ImportFlashcard = () => {
       const response = await axios.post('/api/v1/deck/upload', formData)
       if (response.data.status === 'ok') {
         setSuccess(true)
-        setTimeout(() => navigate('/manage'), 2000)
+        setTimeout(() => {
+          if (onImportSuccess) onImportSuccess(response.data.deck_id)
+          else navigate('/decks')
+        }, 1500)
       } else {
         throw new Error(response.data.error || "Neural ingestion failed.")
       }
@@ -243,50 +254,55 @@ const ImportFlashcard = () => {
   }
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC] pb-10">
-      {/* Sticky Mobile Header */}
-      <div className="sticky top-0 z-[120] bg-white/80 backdrop-blur-xl border-b border-slate-100 px-4 py-4 md:hidden shadow-sm flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <button 
-            onClick={() => navigate('/manage')}
-            className="w-9 h-9 bg-slate-50 rounded-xl flex items-center justify-center text-slate-400 active:scale-90 transition-all border border-slate-100"
-          >
-            <ChevronLeft className="w-4 h-4" />
-          </button>
-          <h1 className="text-sm font-black text-slate-900 uppercase tracking-tight italic">Import Studio</h1>
-        </div>
-        <button 
-           onClick={() => setShowGuide(true)}
-           className="w-9 h-9 bg-indigo-50 text-indigo-600 rounded-xl flex items-center justify-center active:scale-90 transition-all"
-        >
-           <Info className="w-4 h-4" />
-        </button>
-      </div>
-
-      {/* Desktop Header */}
-      <div className="bg-white border-b border-slate-100 px-6 py-10 mb-8 hidden md:block">
-        <div className="max-w-6xl mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-4">
+    <div className={cn("min-h-screen bg-[#F8FAFC]", embedded ? "pt-4 pb-16" : "pb-10")}>
+      {/* Sticky Mobile Header (Standalone only) */}
+      {!embedded && (
+        <div className="sticky top-0 z-[120] bg-white/80 backdrop-blur-xl border-b border-slate-100 px-4 py-4 md:hidden shadow-sm flex items-center justify-between">
+          <div className="flex items-center gap-3">
             <button 
-              onClick={() => navigate('/manage')}
-              className="w-10 h-10 bg-slate-50 rounded-xl flex items-center justify-center text-slate-400 hover:text-slate-900 transition-all hover:bg-white hover:shadow-sm border border-transparent hover:border-slate-100"
+              onClick={() => navigate('/decks')}
+              className="w-9 h-9 bg-slate-50 rounded-xl flex items-center justify-center text-slate-400 active:scale-90 transition-all border border-slate-100"
             >
-              <ChevronLeft className="w-5 h-5" />
+              <ChevronLeft className="w-4 h-4" />
             </button>
-            <div>
-              <h1 className="text-xl font-black text-slate-900 uppercase tracking-tight italic">Flashcard Management Center</h1>
-              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-1">Bulk Deck Ingestion</p>
-            </div>
+            <h1 className="text-sm font-black text-slate-900 uppercase tracking-tight italic">Import Studio</h1>
           </div>
-          <a 
-            href="/api/v1/deck/template/download"
-            className="flex items-center gap-2 px-6 py-3 bg-slate-900 text-white text-[10px] font-black rounded-2xl hover:bg-slate-800 transition-all shadow-lg shadow-slate-200 uppercase tracking-widest"
+          <button 
+             onClick={() => setShowGuide(true)}
+             className="w-9 h-9 bg-indigo-50 text-indigo-600 rounded-xl flex items-center justify-center active:scale-90 transition-all"
           >
-            <Download className="w-4 h-4" />
-            Download Excel Template
-          </a>
+             <Info className="w-4 h-4" />
+          </button>
         </div>
-      </div>
+      )}
+
+      {/* Desktop Header (Standalone only) */}
+      {!embedded && (
+        <div className="bg-white border-b border-slate-100 px-6 py-10 mb-8 hidden md:block">
+          <div className="max-w-6xl mx-auto flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <button 
+                onClick={() => navigate('/decks')}
+                className="w-10 h-10 bg-slate-50 rounded-xl flex items-center justify-center text-slate-400 hover:text-slate-900 transition-all hover:bg-white hover:shadow-sm border border-transparent hover:border-slate-100"
+              >
+                <ChevronLeft className="w-5 h-5" />
+              </button>
+              <div>
+                <h1 className="text-xl font-black text-slate-900 uppercase tracking-tight italic">Flashcard Management Center</h1>
+                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-1">Bulk Deck Ingestion</p>
+              </div>
+            </div>
+
+            <a 
+              href="/api/v1/deck/template/download"
+              className="flex items-center gap-2 px-6 py-3 bg-slate-900 text-white text-[10px] font-black rounded-2xl hover:bg-slate-800 transition-all shadow-lg shadow-slate-200 uppercase tracking-widest"
+            >
+              <Download className="w-4 h-4" />
+              Download Excel Template
+            </a>
+          </div>
+        </div>
+      )}
 
       <div className="max-w-6xl mx-auto px-4 mt-6 md:mt-0 grid grid-cols-1 lg:grid-cols-4 gap-8">
         {/* Sidebar Instructions (Desktop Only) */}

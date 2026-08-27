@@ -126,7 +126,7 @@ export function useRoadmapStatus(deckId: string | number | undefined, targetDate
     currentStep: status?.pipeline?.[status.current_step_index] || null,
     isRoadmapActive: Boolean(status?.roadmap_active),
     isAllDone: Boolean(status?.all_done),
-    nextActionUrl: status?.next_action_url || `/flashcard/${deckId}/roadmap`,
+    nextActionUrl: status?.next_action_url || `/decks/${deckId}?tab=roadmap`,
     nextActionLabel: status?.next_action_label || 'Tiếp Tục'
   }
 }

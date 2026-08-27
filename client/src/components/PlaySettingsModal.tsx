@@ -518,7 +518,7 @@ export const PlaySettingsModal: React.FC<PlaySettingsModalProps> = ({
                           type="button"
                           onClick={() => {
                             onClose()
-                            navigate(`/manage/edit/${id}`)
+                            navigate(`/decks/${id}?tab=settings`)
                           }}
                           className="flex items-center gap-2.5 p-3 bg-white hover:bg-indigo-50/50 border border-slate-100 hover:border-indigo-200 rounded-2xl text-slate-700 transition-all shadow-2xs active:scale-95 cursor-pointer text-left group"
                         >
@@ -535,7 +535,7 @@ export const PlaySettingsModal: React.FC<PlaySettingsModalProps> = ({
                           type="button"
                           onClick={() => {
                             onClose()
-                            navigate(`/manage/edit/${id}/flashcards`)
+                            navigate(`/decks/${id}?tab=cards`)
                           }}
                           className="flex items-center gap-2.5 p-3 bg-white hover:bg-emerald-50/50 border border-slate-100 hover:border-emerald-200 rounded-2xl text-slate-700 transition-all shadow-2xs active:scale-95 cursor-pointer text-left group"
                         >

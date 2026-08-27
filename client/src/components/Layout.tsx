@@ -36,12 +36,11 @@ export default function Layout() {
   })
   
   const navItems = [
-    { label: 'Trang chủ', path: '/', icon: LayoutGrid },
-    { label: 'Lộ trình', path: '/roadmap', icon: Compass },
-    { label: 'Thư viện', path: '/library', icon: BookOpen },
-    { label: 'Bộ thẻ', path: '/manage', icon: FolderKanban },
-    { label: 'Thống kê', path: '/stats', icon: BarChart3 },
-    { label: 'Cài đặt', path: '/settings', icon: Settings },
+    { label: 'Home', path: '/', icon: LayoutGrid },
+    { label: 'Decks', path: '/decks', icon: FolderKanban },
+    { label: 'Roadmap', path: '/roadmap', icon: Compass },
+    { label: 'Stats', path: '/stats', icon: BarChart3 },
+    { label: 'Settings', path: '/settings', icon: Settings },
   ]
 
   if (user?.role === 'admin') {
@@ -53,9 +52,8 @@ export default function Layout() {
   const isFullscreenPlay = location.pathname.includes('/play') || 
                           location.pathname.includes('/practice/') || 
                           location.pathname.includes('/room/')
-  const isManageEdit = location.pathname.includes('/manage/edit') || location.pathname.includes('/flashcards')
-  const showDesktopHeader = !isLandingPage && !isFullscreenPlay && !isManageEdit
-  const showBottomNav = isLoggedIn && !isFullscreenPlay && !isManageEdit
+  const showDesktopHeader = !isLandingPage && !isFullscreenPlay
+  const showBottomNav = isLoggedIn && !isFullscreenPlay
 
   return (
     <div className={cn(
@@ -65,7 +63,7 @@ export default function Layout() {
             ? "pb-0 h-screen h-[100dvh] overflow-hidden" 
             : (isDashboard 
                 ? "pb-20 md:pb-0 md:min-h-0 md:h-screen md:w-screen md:overflow-hidden" 
-                : (isManageEdit ? "pb-0" : "pb-20 md:pb-0")))
+                : "pb-20 md:pb-0"))
         : ""
     )}>
 
@@ -85,7 +83,9 @@ export default function Layout() {
               {isLoggedIn && (
                 <nav className="flex items-center gap-2">
                   {navItems.map((item) => {
-                    const isActive = location.pathname === item.path
+                    const isActive = item.path === '/' 
+                      ? (location.pathname === '/' || location.pathname === '/dashboard')
+                      : location.pathname.startsWith(item.path)
                     return (
                       <Link 
                         key={item.path}
@@ -176,7 +176,7 @@ export default function Layout() {
               ? "pt-0 md:pt-20 md:h-full md:overflow-hidden" 
               : (isFullscreenPlay 
                   ? "pt-0 h-full overflow-hidden" 
-                  : (isManageEdit ? "pt-0" : "pt-0 md:pt-20")))
+                  : "pt-0 md:pt-20"))
           : ""
       )}>
         <Outlet />
@@ -188,7 +188,9 @@ export default function Layout() {
           <nav className="flex items-center justify-between max-w-md mx-auto h-12">
             {navItems.filter(item => item.label !== 'Admin').map((item, idx) => {
               const Icon = item.icon
-              const isActive = location.pathname === item.path
+              const isActive = item.path === '/' 
+                ? (location.pathname === '/' || location.pathname === '/dashboard')
+                : location.pathname.startsWith(item.path)
               
               return (
                 <Link 

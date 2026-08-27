@@ -665,7 +665,7 @@ function TodayFocusWidget({
           <p className="text-[10px] text-slate-400 mt-2 max-w-xs mx-auto font-bold uppercase tracking-wider leading-relaxed">Hãy chọn một bộ thẻ từ thư viện và bật "Lộ trình học" để hệ thống tự động thiết lập mục tiêu hàng ngày cho bạn.</p>
           <motion.button
             whileTap={{ scale: 0.95 }}
-            onClick={() => navigate('/library')}
+            onClick={() => navigate('/decks?tab=library')}
             className="mt-4 px-5 py-2.5 bg-indigo-600 hover:bg-indigo-750 text-white text-[10px] font-black uppercase tracking-widest rounded-xl shadow-md shadow-indigo-100 transition-all cursor-pointer"
           >
             📚 Đi tới Thư viện
@@ -791,7 +791,7 @@ function TodayFocusWidget({
                       if (nextActionUrl) {
                         navigate(nextActionUrl);
                       } else {
-                        navigate(`/flashcard/${deck.deck_id}`);
+                        navigate(`/decks/${deck.deck_id}`);
                       }
                     }}
                     className="flex-1 py-3 px-5 bg-gradient-to-r from-orange-500 via-orange-600 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-black text-xs uppercase tracking-widest rounded-2xl shadow-lg shadow-orange-500/20 active:scale-[0.98] transition-all flex items-center justify-center gap-2 cursor-pointer"
@@ -806,7 +806,7 @@ function TodayFocusWidget({
                     </span>
                   </button>
                   <button
-                    onClick={() => navigate(`/flashcard/${deck.deck_id}`)}
+                    onClick={() => navigate(`/decks/${deck.deck_id}`)}
                     className="py-3 px-4 bg-slate-50 hover:bg-slate-100 text-slate-600 hover:text-slate-800 font-black text-xs uppercase tracking-wider rounded-2xl border border-slate-200/80 transition-all active:scale-[0.98] cursor-pointer shrink-0"
                     title="Xem chi tiết bộ thẻ"
                   >
@@ -1459,7 +1459,7 @@ export default function Dashboard() {
               </h3>
             </div>
             <Link
-              to="/library"
+              to="/decks?tab=library"
               className="h-9 px-4 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-[10px] font-black uppercase tracking-wider shadow-sm flex items-center justify-center gap-1.5 self-start sm:self-center"
             >
               Vào Thư Viện Học Thêm
@@ -1810,7 +1810,7 @@ export default function Dashboard() {
                         <button
                           onClick={() => {
                             if (navigator.vibrate) navigator.vibrate(10);
-                            navigate('/library');
+                            navigate('/decks?tab=library');
                           }}
                           className="w-full max-w-[260px] h-12 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white rounded-full text-xs font-bold uppercase tracking-wider transition-all active:scale-[0.98] shadow-md shadow-orange-200"
                         >
@@ -1908,7 +1908,7 @@ export default function Dashboard() {
                             <span className="text-slate-400 font-medium">{deckIdx + 1} / {totalDecks}</span>
                           </div>
                           <Link 
-                            to={`/flashcard/${deck.deck_id}/roadmap`}
+                            to={`/decks/${deck.deck_id}?tab=roadmap`}
                             className="text-xs font-bold text-orange-600 hover:text-orange-700 flex items-center gap-0.5 transition-colors cursor-pointer"
                           >
                             <span>Chi tiết</span>
@@ -2337,7 +2337,7 @@ export default function Dashboard() {
                                 onClick={() => { 
                                   if (navigator.vibrate) navigator.vibrate(12);
                                   if (nUrl) navigate(nUrl); 
-                                  else navigate(`/flashcard/${deck.deck_id}`); 
+                                  else navigate(`/decks/${deck.deck_id}`); 
                                 }}
                                 className="w-full relative overflow-hidden bg-gradient-to-r from-orange-600 via-amber-600 to-orange-700 hover:from-orange-700 hover:to-amber-700 text-white rounded-2xl p-3 sm:p-3.5 flex items-center justify-between shadow-[0_10px_28px_-4px_rgba(234,88,12,0.5)] hover:shadow-[0_14px_35px_-4px_rgba(234,88,12,0.65)] active:scale-[0.98] transition-all duration-200 cursor-pointer group border-2 border-amber-200/70"
                               >
@@ -2470,7 +2470,7 @@ export default function Dashboard() {
                               key={deck.deck_id}
                               onClick={() => {
                                 if (navigator.vibrate) navigator.vibrate(8);
-                                navigate(`/flashcard/${deck.deck_id}`);
+                                navigate(`/decks/${deck.deck_id}`);
                               }}
                               className={cn(
                                 "bg-white rounded-3xl border p-3.5 sm:p-4 shadow-2xs hover:shadow-md cursor-pointer active:scale-[0.98] transition-all w-full flex items-center gap-3.5 group relative overflow-hidden",

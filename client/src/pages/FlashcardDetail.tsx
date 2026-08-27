@@ -23,8 +23,15 @@ interface Question {
   others?: Record<string, any> | null
 }
 
-export default function QuizDetail() {
-  const { id } = useParams()
+interface QuizDetailProps {
+  embedded?: boolean
+  deckId?: string | number
+  onNavigateTab?: (tab: string) => void
+}
+
+export default function QuizDetail({ embedded = false, deckId, onNavigateTab }: QuizDetailProps = {}) {
+  const { id: routeId } = useParams()
+  const id = deckId ? String(deckId) : routeId
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const { user, userSettings, updateUserSettings } = useAppStore()
@@ -307,7 +314,7 @@ export default function QuizDetail() {
 
   useEffect(() => {
     if (id === 'import') {
-      navigate('/manage', { replace: true })
+      navigate('/decks', { replace: true })
     }
   }, [id, navigate])
 
@@ -490,50 +497,52 @@ export default function QuizDetail() {
   ].filter(t => t.content.trim() !== '') : []
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC] pb-36 md:pb-24">
-      {/* ═══════════════ COMPACT NAV HEADER ═══════════════ */}
-      <nav className="fixed top-0 left-0 right-0 z-[120] bg-white/80 backdrop-blur-2xl border-b border-slate-100 px-4 py-3 flex items-center gap-3">
-        <button onClick={() => navigate(-1)} className="w-9 h-9 flex-shrink-0 flex items-center justify-center bg-white border border-slate-100 rounded-xl text-indigo-600 shadow-sm active:scale-90 transition-all">
-          <ChevronLeft className="w-5 h-5" />
-        </button>
+    <div className={cn("min-h-screen bg-[#F8FAFC]", embedded ? "pb-12" : "pb-36 md:pb-24")}>
+      {/* ═══════════════ COMPACT NAV HEADER (Standalone only) ═══════════════ */}
+      {!embedded && (
+        <nav className="fixed top-0 left-0 right-0 z-[120] bg-white/80 backdrop-blur-2xl border-b border-slate-100 px-4 py-3 flex items-center gap-3">
+          <button onClick={() => navigate('/decks')} className="w-9 h-9 flex-shrink-0 flex items-center justify-center bg-white border border-slate-100 rounded-xl text-indigo-600 shadow-sm active:scale-90 transition-all">
+            <ChevronLeft className="w-5 h-5" />
+          </button>
 
-        {/* Compact Title + Badge */}
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2">
-            <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-indigo-50 to-white border border-indigo-100/60 flex items-center justify-center flex-shrink-0">
-              <BookOpen className="w-3.5 h-3.5 text-indigo-600" />
+          {/* Compact Title + Badge */}
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2">
+              <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-indigo-50 to-white border border-indigo-100/60 flex items-center justify-center flex-shrink-0">
+                <BookOpen className="w-3.5 h-3.5 text-indigo-600" />
+              </div>
+              <h1 className="text-sm font-black text-slate-900 truncate tracking-tight">{quiz?.title}</h1>
+              <span className="px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-600 text-[8px] font-black uppercase tracking-widest flex-shrink-0">
+                {quiz?.questions_count || 0}
+              </span>
             </div>
-            <h1 className="text-sm font-black text-slate-900 truncate tracking-tight">{quiz?.title}</h1>
-            <span className="px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-600 text-[8px] font-black uppercase tracking-widest flex-shrink-0">
-              {quiz?.questions_count || 0}
-            </span>
           </div>
-        </div>
 
-        {/* Inline Action Buttons */}
-        <div className="flex items-center gap-1.5 flex-shrink-0">
-          {canEdit && (
-            <>
-              <Link
-                to={`/manage/edit/${id}/flashcards`}
-                className="h-8 px-3 bg-indigo-50 hover:bg-indigo-100 text-indigo-600 text-[9px] font-black uppercase tracking-wider rounded-lg flex items-center gap-1 active:scale-95 transition-all"
-              >
-                <Layers className="w-3 h-3" />
-                <span className="hidden sm:inline">Manage</span>
-              </Link>
-              <Link 
-                to={`/manage/edit/${id}`}
-                className="w-8 h-8 flex items-center justify-center bg-white border border-slate-100 rounded-lg text-slate-400 hover:text-indigo-600 transition-all active:scale-90"
-                title="Edit Collection"
-              >
-                <Settings className="w-4 h-4" />
-              </Link>
-            </>
-          )}
-        </div>
-      </nav>
+          {/* Inline Action Buttons */}
+          <div className="flex items-center gap-1.5 flex-shrink-0">
+            {canEdit && (
+              <>
+                <button
+                  onClick={() => onNavigateTab ? onNavigateTab('cards') : navigate(`/decks/${id}?tab=cards`)}
+                  className="h-8 px-3 bg-indigo-50 hover:bg-indigo-100 text-indigo-600 text-[9px] font-black uppercase tracking-wider rounded-lg flex items-center gap-1 active:scale-95 transition-all"
+                >
+                  <Layers className="w-3 h-3" />
+                  <span className="hidden sm:inline">Manage</span>
+                </button>
+                <button 
+                  onClick={() => onNavigateTab ? onNavigateTab('settings') : navigate(`/decks/${id}?tab=settings`)}
+                  className="w-8 h-8 flex items-center justify-center bg-white border border-slate-100 rounded-lg text-slate-400 hover:text-indigo-600 transition-all active:scale-90"
+                  title="Edit Collection"
+                >
+                  <Settings className="w-4 h-4" />
+                </button>
+              </>
+            )}
+          </div>
+        </nav>
+      )}
 
-      <div className="pt-16 pb-28">
+      <div className={cn(embedded ? "pt-2 pb-24" : "pt-16 pb-28")}>
         {/* ═══════════════ DESCRIPTION LINE (if exists) ═══════════════ */}
         {quiz?.description && (
           <div className="px-4 max-w-5xl mx-auto mt-2 mb-3">
@@ -561,7 +570,7 @@ export default function QuizDetail() {
                   <RotateCcw className="w-3.5 h-3.5" />
                 </button>
                 <button
-                  onClick={() => navigate(`/flashcard/${id}/roadmap`)}
+                  onClick={() => onNavigateTab ? onNavigateTab('roadmap') : navigate(`/decks/${id}?tab=roadmap`)}
                   className="px-2.5 py-1 rounded-lg bg-indigo-50 border border-indigo-100 flex items-center gap-1 text-[10px] font-black text-indigo-600 hover:bg-indigo-100 transition-all active:scale-95 cursor-pointer"
                   title="Mở Trang Lộ Trình Bộ Thẻ"
                 >
@@ -718,7 +727,7 @@ export default function QuizDetail() {
                     );
                   })}
                   <button
-                    onClick={() => navigate(roadmapStatus.next_action_url || `/flashcard/${id}/roadmap`)}
+                    onClick={() => navigate(roadmapStatus.next_action_url || `/decks/${id}?tab=roadmap`)}
                     className={cn(
                       "ml-auto px-3 py-1 rounded-lg text-[9px] font-black uppercase tracking-wider transition-all active:scale-95 cursor-pointer",
                       roadmapStatus.stage_2_done
@@ -984,7 +993,7 @@ export default function QuizDetail() {
                   return (
                     <div className="w-full flex items-center gap-2">
                       <button
-                        onClick={() => navigate(roadmapStatus?.next_action_url || `/flashcard/${id}/roadmap`)}
+                        onClick={() => navigate(roadmapStatus?.next_action_url || `/decks/${id}?tab=roadmap`)}
                         className="flex-1 py-3.5 px-5 bg-gradient-to-r from-orange-500 via-orange-600 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-black text-xs uppercase tracking-widest rounded-2xl shadow-lg shadow-orange-500/20 active:scale-[0.98] transition-all flex items-center justify-center gap-2 cursor-pointer"
                       >
                         <Compass className="w-4 h-4 animate-pulse shrink-0" />

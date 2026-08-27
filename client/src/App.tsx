@@ -8,22 +8,17 @@ import Layout from './components/Layout'
 
 // Lazy loaded page components
 const Dashboard = lazy(() => import('./pages/Dashboard'))
-const Library = lazy(() => import('./pages/Library'))
+const DecksPage = lazy(() => import('./pages/DecksPage'))
+const DeckDetailPage = lazy(() => import('./pages/DeckDetailPage'))
 const Admin = lazy(() => import('./pages/Admin'))
 const FlashcardPlay = lazy(() => import('./pages/FlashcardPlay'))
 const PracticePlay = lazy(() => import('./pages/PracticePlay'))
-const FlashcardDetail = lazy(() => import('./pages/FlashcardDetail'))
 const Profile = lazy(() => import('./pages/Profile'))
 const Stats = lazy(() => import('./pages/Stats'))
 const Settings = lazy(() => import('./pages/Settings'))
-const ManageFlashcards = lazy(() => import('./pages/ManageFlashcards'))
-const ImportFlashcard = lazy(() => import('./pages/ImportFlashcard'))
-const EditFlashcard = lazy(() => import('./pages/EditFlashcard'))
-const EditFlashcards = lazy(() => import('./pages/EditFlashcards'))
 const FlashcardRoom = lazy(() => import('./pages/FlashcardRoom'))
 const RoomJoin = lazy(() => import('./pages/RoomJoin'))
 const RoadmapHub = lazy(() => import('./pages/RoadmapHub'))
-const DeckRoadmap = lazy(() => import('./pages/DeckRoadmap'))
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -74,19 +69,13 @@ function AppContent() {
             <Route path="/dashboard" element={<Navigate to="/" replace />} />
             
             {/* Protected Routes (Authenticated only) */}
-            <Route path="/library" element={isLoggedIn ? <Library /> : <Navigate to="/login" replace />} />
+            <Route path="/decks" element={isLoggedIn ? <DecksPage /> : <Navigate to="/login" replace />} />
+            <Route path="/decks/:id" element={isLoggedIn ? <DeckDetailPage /> : <Navigate to="/login" replace />} />
             <Route path="/profile" element={isLoggedIn ? <Profile /> : <Navigate to="/login" replace />} />
             <Route path="/stats" element={isLoggedIn ? <Stats /> : <Navigate to="/login" replace />} />
             <Route path="/settings" element={isLoggedIn ? <Settings /> : <Navigate to="/login" replace />} />
-            <Route path="/manage" element={isLoggedIn ? <ManageFlashcards /> : <Navigate to="/login" replace />} />
-            <Route path="/manage/import" element={isLoggedIn ? <ImportFlashcard /> : <Navigate to="/login" replace />} />
-            <Route path="/manage/edit/:id" element={isLoggedIn ? <EditFlashcard /> : <Navigate to="/login" replace />} />
-            <Route path="/manage/edit/:id/flashcards" element={isLoggedIn ? <EditFlashcards /> : <Navigate to="/login" replace />} />
             <Route path="/roadmap" element={isLoggedIn ? <RoadmapHub /> : <Navigate to="/login" replace />} />
             <Route path="/room/join" element={isLoggedIn ? <RoomJoin /> : <Navigate to="/login" replace />} />
-            {/* Flashcard & Roadmap Views */}
-            <Route path="/flashcard/:id" element={isLoggedIn ? <FlashcardDetail /> : <Navigate to="/login" replace />} />
-            <Route path="/flashcard/:id/roadmap" element={isLoggedIn ? <DeckRoadmap /> : <Navigate to="/login" replace />} />
 
             {/* Admin Control Panel */}
             <Route path="/admin/:tab?" element={isLoggedIn && user?.role === 'admin' ? <Admin /> : <Navigate to="/" replace />} />

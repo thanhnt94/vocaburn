@@ -34,8 +34,14 @@ import { cn } from '@/lib/utils'
 
 const SYSTEM_DEFAULTS = ['front', 'back', 'front_audio_content', 'back_audio_content', 'front_audio_url', 'back_audio_url', 'front_img', 'back_img']
 
-const EditFlashcards = () => {
-  const { id } = useParams()
+interface EditFlashcardsProps {
+  embedded?: boolean
+  deckId?: string | number
+}
+
+const EditFlashcards = ({ embedded = false, deckId }: EditFlashcardsProps = {}) => {
+  const { id: paramId } = useParams()
+  const id = deckId ? String(deckId) : paramId
   const navigate = useNavigate()
   const [isLoading, setIsLoading] = useState(true)
   const [flashcards, setFlashcards] = useState<any[]>([])
@@ -692,21 +698,26 @@ const EditFlashcards = () => {
   }
 
   return (
-    <div className={cn("min-h-screen bg-[#F8FAFC]", isQuickAddOpen ? "pb-[230px] md:pb-[180px]" : "pb-[64px] md:pb-[56px]")}>
-      {/* Fixed Header */}
-      <div className="fixed top-0 left-0 right-0 z-[100] bg-white/80 backdrop-blur-xl border-b border-slate-100 px-4 py-3 shadow-sm w-full md:top-0">
+    <div className={cn("min-h-screen bg-[#F8FAFC]", isQuickAddOpen ? "pb-[230px] md:pb-[180px]" : "pb-[64px] md:pb-[56px]", embedded ? "pt-2" : "pt-16")}>
+      {/* Header / Toolbar */}
+      <div className={cn(
+        "bg-white/95 backdrop-blur-xl border-b border-slate-200/80 px-4 py-2.5 shadow-2xs w-full",
+        embedded ? "sticky top-24 z-20" : "fixed top-0 left-0 right-0 z-[100]"
+      )}>
         <div className="max-w-[95%] xl:max-w-[98%] mx-auto flex items-center justify-between gap-3">
           <div className="flex items-center gap-2.5 min-w-0">
-            <button 
-              onClick={() => navigate('/manage')}
-              className="w-8 h-8 bg-rose-50 hover:bg-rose-100 rounded-lg flex items-center justify-center text-rose-500 border border-rose-200 active:scale-95 shrink-0"
-              title="Đóng"
-            >
-              <X className="w-4 h-4" />
-            </button>
+            {!embedded && (
+              <button 
+                onClick={() => navigate('/decks')}
+                className="w-8 h-8 bg-rose-50 hover:bg-rose-100 rounded-lg flex items-center justify-center text-rose-500 border border-rose-200 active:scale-95 shrink-0"
+                title="Đóng"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            )}
             <div className="flex flex-col min-w-0">
               <h1 className="text-[11px] md:text-sm font-black text-slate-800 uppercase tracking-tight truncate leading-none mb-1">Card Manager</h1>
-              {deckName && (
+              {deckName && !embedded && (
                 <p className="text-[9px] font-black text-indigo-600 uppercase tracking-wide truncate leading-none mb-1">{deckName}</p>
               )}
               <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest leading-none">{total} Items</p>

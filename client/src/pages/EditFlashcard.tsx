@@ -63,19 +63,35 @@ const SYSTEM_DEFAULTS = ['front', 'back', 'front_audio_content', 'back_audio_con
 
 type TabType = 'basic' | 'columns' | 'ai' | 'collaboration' | 'practice' | 'excel' | 'modes' | 'audio'
 const VALID_TABS: TabType[] = ['basic', 'columns', 'ai', 'collaboration', 'practice', 'excel', 'modes', 'audio']
+interface EditFlashcardProps {
+  embedded?: boolean
+  deckId?: string | number
+}
 
-const EditFlashcard = () => {
-  const { id } = useParams()
+const EditFlashcard = ({ embedded = false, deckId }: EditFlashcardProps = {}) => {
+  const { id: paramId } = useParams()
+  const id = deckId ? String(deckId) : paramId
   const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
-  const currentTabParam = searchParams.get('tab')
+  const currentTabParam = searchParams.get(embedded ? 'subtab' : 'tab')
+
+  const [localTab, setLocalTab] = useState<TabType>('basic')
 
   const activeTab: TabType = (currentTabParam && VALID_TABS.includes(currentTabParam as TabType))
     ? (currentTabParam as TabType)
-    : 'basic'
+    : (embedded ? localTab : 'basic')
 
   const setActiveTab = (tab: TabType) => {
-    setSearchParams({ tab }, { replace: true })
+    if (embedded) {
+      setLocalTab(tab)
+      setSearchParams(prev => {
+        const next = new URLSearchParams(prev)
+        next.set('subtab', tab)
+        return next
+      }, { replace: true })
+    } else {
+      setSearchParams({ tab }, { replace: true })
+    }
   }
 
   const [isSaving, setIsSaving] = useState(false)
@@ -632,7 +648,7 @@ const EditFlashcard = () => {
     try {
       await axios.post(`/api/v1/deck/${id}/transfer-ownership`, { user_id: userId })
       alert("Ownership transferred successfully")
-      navigate('/manage')
+      navigate('/decks')
     } catch (err) {
       alert("Failed to transfer ownership")
     }
@@ -647,19 +663,24 @@ const EditFlashcard = () => {
   }
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC] pb-10">
-      {/* Fixed Header on Mobile, Sticky on Desktop */}
-      <div className="fixed top-0 left-0 right-0 z-[100] bg-white/80 backdrop-blur-xl border-b border-slate-100 px-3 sm:px-4 py-3 shadow-sm w-full md:sticky md:top-0">
+    <div className={cn("min-h-screen bg-[#F8FAFC]", embedded ? "pb-16 pt-2" : "pb-10")}>
+      {/* Header Bar */}
+      <div className={cn(
+        "bg-white/95 backdrop-blur-xl border-b border-slate-200/80 px-3 sm:px-4 py-2.5 shadow-2xs w-full",
+        embedded ? "sticky top-24 z-20" : "fixed top-0 left-0 right-0 z-[100] md:sticky md:top-0"
+      )}>
         <div className="max-w-[1400px] mx-auto flex items-center justify-between gap-2 sm:gap-3">
           <div className="flex items-center gap-2 sm:gap-2.5 min-w-0 flex-1">
-            <button 
-              onClick={() => navigate('/manage')}
-              className="w-8 h-8 bg-slate-50 rounded-lg flex items-center justify-center text-slate-400 active:scale-95 transition-all border border-slate-100 shrink-0"
-            >
-              <ChevronLeft className="w-4 h-4" />
-            </button>
+            {!embedded && (
+              <button 
+                onClick={() => navigate('/decks')}
+                className="w-8 h-8 bg-slate-50 rounded-lg flex items-center justify-center text-slate-400 active:scale-95 transition-all border border-slate-100 shrink-0"
+              >
+                <ChevronLeft className="w-4 h-4" />
+              </button>
+            )}
             <div className="flex flex-col min-w-0">
-              <h1 className="text-[10px] sm:text-xs md:text-sm font-black text-slate-900 uppercase tracking-tight italic truncate leading-none">Edit Collection</h1>
+              <h1 className="text-[10px] sm:text-xs md:text-sm font-black text-slate-900 uppercase tracking-tight italic truncate leading-none">Deck Settings</h1>
               <p className="hidden md:block text-[8px] font-black text-slate-400 uppercase tracking-widest mt-0.5">Refine Identity & AI Rules</p>
             </div>
           </div>
@@ -667,7 +688,7 @@ const EditFlashcard = () => {
           <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
             <button 
               type="button"
-              onClick={() => navigate(`/manage/edit/${id}/flashcards`)}
+              onClick={() => navigate(`/decks/${id}?tab=cards`)}
               className="flex items-center gap-1.5 px-2.5 sm:px-3 py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-[9px] md:text-[10px] font-black rounded-lg transition-all border border-indigo-200/80 uppercase tracking-wider active:scale-95 shrink-0 cursor-pointer shadow-2xs"
               title="Chuyển sang Quản lý thẻ"
             >
@@ -729,7 +750,7 @@ const EditFlashcard = () => {
                  <h4 className="text-sm font-black uppercase italic tracking-tighter">Quick Access</h4>
                  <p className="text-[10px] opacity-80 mt-2 font-medium leading-relaxed">Manage individual cards and options in the question studio.</p>
                  <button 
-                    onClick={() => navigate(`/manage/edit/${id}/flashcards`)}
+                    onClick={() => navigate(`/decks/${id}?tab=cards`)}
                     className="w-full mt-6 py-3 bg-white text-indigo-600 text-[9px] font-black uppercase tracking-widest rounded-xl hover:bg-slate-50 transition-all active:scale-95"
                  >
                     Manage Cards
@@ -2108,7 +2129,7 @@ const EditFlashcard = () => {
               {/* Card Manager Shortcut (Mobile) */}
               <div className="md:hidden mt-8">
                  <button 
-                    onClick={() => navigate(`/manage/edit/${id}/flashcards`)}
+                    onClick={() => navigate(`/decks/${id}?tab=cards`)}
                     className="w-full p-6 bg-white border border-slate-100 rounded-[2rem] flex items-center justify-between shadow-sm active:scale-95 transition-all"
                  >
                     <div className="flex items-center gap-4">

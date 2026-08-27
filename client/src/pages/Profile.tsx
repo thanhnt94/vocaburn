@@ -64,7 +64,7 @@ export default function Profile() {
       <div className="fixed top-0 left-0 right-0 z-[150] md:hidden px-6 pt-10 pb-6 bg-white border-b border-slate-100 flex items-center justify-between">
         <h1 className="text-xl font-black text-slate-900 tracking-tighter">My Profile</h1>
         <Link 
-          to="/manage"
+          to="/decks"
           className="px-4 py-2 rounded-xl bg-indigo-50 border border-indigo-100/50 flex items-center gap-1.5 text-indigo-600 shadow-sm active:scale-95 transition-all text-xs font-black uppercase tracking-wider"
         >
           <BrainCircuit className="w-4 h-4" />
@@ -77,7 +77,7 @@ export default function Profile() {
         <div className="hidden md:flex items-center justify-between mb-6">
           <h1 className="text-2xl font-black text-slate-900 tracking-tighter">My Profile</h1>
           <Link 
-            to="/manage"
+            to="/decks"
             className="px-5 py-2.5 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white flex items-center gap-2 shadow-md shadow-indigo-100 active:scale-95 transition-all text-xs font-black uppercase tracking-widest"
           >
             <BrainCircuit className="w-4 h-4" />

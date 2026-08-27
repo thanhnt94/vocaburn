@@ -1560,7 +1560,7 @@ export default function PracticePlay() {
     } catch (e: any) {
       if (e?.response?.data?.error === 'stage_1_not_done') {
         alert(e.response.data.message || "Bạn chưa hoàn thành Bước 1 học từ mới!");
-        navigate(`/flashcard/${id}/roadmap`);
+        navigate(`/decks/${id}?tab=roadmap`);
         return;
       }
       navigate('/')
@@ -5628,7 +5628,7 @@ export default function PracticePlay() {
                             className="py-3.5 bg-gradient-to-r from-emerald-500 to-teal-600 text-white font-black text-xs uppercase tracking-widest rounded-2xl shadow-lg shadow-emerald-200 active:scale-95 transition-all cursor-pointer">
                             VỀ TRANG CHỦ 🏠
                           </button>
-                          <button onClick={() => navigate(`/flashcard/${id}`)}
+                          <button onClick={() => navigate(`/decks/${id}`)}
                             className="py-3 bg-slate-100 text-slate-700 font-black text-xs uppercase tracking-widest rounded-2xl hover:bg-slate-200 transition-all cursor-pointer">
                             VỀ CHI TIẾT BỘ THẺ 📚
                           </button>
@@ -5711,7 +5711,7 @@ export default function PracticePlay() {
                       className="py-3.5 bg-slate-100 text-slate-700 font-black text-[10px] uppercase tracking-widest rounded-2xl hover:bg-slate-200 transition-all">
                       Keep Going
                     </button>
-                    <button onClick={() => navigate(`/flashcard/${id}`)}
+                    <button onClick={() => navigate(`/decks/${id}`)}
                       className="py-3.5 bg-gradient-to-r from-indigo-500 to-purple-600 text-white font-black text-[10px] uppercase tracking-widest rounded-2xl shadow-lg shadow-indigo-200 active:scale-95 transition-all">
                       Finish &amp; Exit
                     </button>
@@ -6290,7 +6290,7 @@ export default function PracticePlay() {
                       <button 
                         onClick={() => {
                           setIsSettingsModalOpen(false);
-                          navigate(`/manage/edit/${id}`);
+                          navigate(`/decks/${id}?tab=settings`);
                         }}
                         className="flex items-center justify-center gap-2 py-2 px-3 bg-slate-50 hover:bg-slate-100 border border-slate-200/60 rounded-xl text-slate-700 font-black text-[10px] uppercase tracking-wider shadow-sm transition-all active:scale-95"
                       >
@@ -6300,7 +6300,7 @@ export default function PracticePlay() {
                       <button 
                         onClick={() => {
                           setIsSettingsModalOpen(false);
-                          navigate(`/manage/edit/${id}/flashcards`);
+                          navigate(`/decks/${id}?tab=cards`);
                         }}
                         className="flex items-center justify-center gap-2 py-2 px-3 bg-slate-50 hover:bg-slate-100 border border-slate-200/60 rounded-xl text-slate-700 font-black text-[10px] uppercase tracking-wider shadow-sm transition-all active:scale-95"
                       >
@@ -6362,7 +6362,7 @@ export default function PracticePlay() {
                   </button>
                   <button
                     onClick={() => {
-                      navigate(`/flashcard/${id}`)
+                      navigate(`/decks/${id}`)
                     }}
                     className="py-4 bg-rose-500 text-white font-black text-[10px] uppercase tracking-widest rounded-2xl shadow-lg shadow-rose-200 active:scale-95 transition-all"
                   >

@@ -26,9 +26,9 @@ export default function RoadmapHub() {
     if (nextIncompleteDeck && nextIncompleteDeck.status?.next_action_url) {
       navigate(nextIncompleteDeck.status.next_action_url)
     } else if (decks.length > 0) {
-      navigate(`/flashcard/${decks[0].deck_id}/roadmap`)
+      navigate(`/decks/${decks[0].deck_id}?tab=roadmap`)
     } else {
-      navigate('/library')
+      navigate('/decks?tab=library')
     }
   }
 
@@ -52,7 +52,7 @@ export default function RoadmapHub() {
             </div>
 
             <Link
-              to="/library"
+              to="/decks?tab=library"
               className="px-2.5 py-1.5 rounded-xl bg-indigo-50 border border-indigo-200 text-indigo-700 font-black text-[11px] flex items-center gap-1 active:scale-95 transition-all shadow-2xs"
               title="Thêm lộ trình bộ thẻ mới"
             >
@@ -118,7 +118,7 @@ export default function RoadmapHub() {
                 Chọn bộ thẻ từ thư viện để thiết lập pipeline luyện tập hàng ngày.
               </p>
               <Link
-                to="/library"
+                to="/decks?tab=library"
                 className="px-5 py-2.5 bg-indigo-600 text-white font-black text-xs uppercase tracking-wider rounded-xl shadow-sm inline-block"
               >
                 Vào Thư Viện 📚
@@ -206,7 +206,7 @@ export default function RoadmapHub() {
                       </div>
 
                       <Link
-                        to={`/flashcard/${item.deck_id}/roadmap`}
+                        to={`/decks/${item.deck_id}?tab=roadmap`}
                         className="px-3 py-1.5 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-[9px] font-black uppercase tracking-wider shadow-xs active:scale-95 transition-all flex items-center gap-1 shrink-0"
                       >
                         <span>LỘ TRÌNH</span>
@@ -319,7 +319,7 @@ export default function RoadmapHub() {
             <h2 className="text-sm font-black text-slate-800 uppercase tracking-widest">
               Danh Sách Bộ Thẻ Đang Theo Lộ Trình ({decks.length})
             </h2>
-            <Link to="/library" className="text-xs font-bold text-indigo-600 hover:underline">
+            <Link to="/decks?tab=library" className="text-xs font-bold text-indigo-600 hover:underline">
               + Thêm lộ trình bộ thẻ mới
             </Link>
           </div>
@@ -339,7 +339,7 @@ export default function RoadmapHub() {
                 Bạn chưa kích hoạt Lộ Trình cho bộ thẻ nào. Hãy chọn bộ thẻ từ thư viện để thiết lập pipeline luyện tập tự động.
               </p>
               <Link
-                to="/library"
+                to="/decks?tab=library"
                 className="px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xs uppercase tracking-widest rounded-2xl shadow-lg shadow-indigo-200 transition-all inline-block"
               >
                 Vào Thư Viện Chọn Bộ Thẻ 📚
@@ -413,14 +413,14 @@ export default function RoadmapHub() {
                     {/* Actions */}
                     <div className="flex items-center gap-2.5 flex-shrink-0 border-t md:border-t-0 pt-3 md:pt-0 border-slate-100">
                       <Link
-                        to={`/flashcard/${item.deck_id}/roadmap`}
+                        to={`/decks/${item.deck_id}?tab=roadmap`}
                         className="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-black text-xs uppercase tracking-wider transition-all"
                       >
                         Cài Đặt 🗺️
                       </Link>
 
                       <button
-                        onClick={() => navigate(s.next_action_url || `/flashcard/${item.deck_id}/roadmap`)}
+                        onClick={() => navigate(s.next_action_url || `/decks/${item.deck_id}?tab=roadmap`)}
                         className={cn(
                           "px-5 py-2.5 rounded-xl font-black text-xs uppercase tracking-wider shadow-md transition-all flex items-center gap-1.5 cursor-pointer",
                           isAllDone
