@@ -4,13 +4,19 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { 
   Search, Plus, ChevronRight, ChevronLeft, Archive, 
   RotateCcw, Users, Brain, Trophy, X, MoreHorizontal,
-  Play, Sparkles, BookOpen, Layers, Eye, Check, Calendar, User as UserIcon
+  Play, Sparkles, BookOpen, Layers, Eye, Check, Calendar
 } from 'lucide-react'
 import { useAppStore } from '@/store/useAppStore'
 import { cn } from '@/lib/utils'
 import { motion, AnimatePresence } from 'framer-motion'
 import axios from 'axios'
-import { DeckStudyModal, DeckJoinRoomModal, DeckCreateModal, DeckActionSheet } from '@/components/deck/modals'
+import { 
+  DeckStudyModal, 
+  DeckJoinRoomModal, 
+  DeckCreateModal, 
+  DeckActionSheet,
+  DeckPagination 
+} from '@/components/deck'
 
 export interface Quiz {
   id: number
@@ -184,38 +190,38 @@ export default function DecksPage() {
 
   return (
     <div className="fixed inset-0 top-0 bottom-[60px] md:relative md:inset-auto md:top-auto md:bottom-auto md:min-h-screen flex flex-col bg-[#F8FAFC] overflow-hidden text-left select-none">
-      {/* ═══════════ TOP COMPACT APP-LIKE HEADER (SHRINK-0) ═══════════ */}
-      <div className="shrink-0 z-30 bg-white/95 backdrop-blur-xl border-b border-slate-200/80 shadow-2xs">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6">
+      {/* ═══════════ TOP PREMIUM APP-LIKE HEADER (SHRINK-0) ═══════════ */}
+      <div className="shrink-0 z-30 bg-white/90 backdrop-blur-2xl border-b border-slate-200/70 shadow-2xs">
+        <div className="max-w-5xl mx-auto px-3.5 sm:px-6">
           
-          {/* Row 1: Header Title & Minimalist Action Buttons */}
+          {/* Row 1: Header Brand & Actions */}
           <div className="flex items-center justify-between pt-2.5 pb-2">
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-indigo-600 to-purple-600 flex items-center justify-center text-white text-sm shadow-xs shrink-0 font-bold">
+            <div className="flex items-center gap-2.5">
+              <div className="w-9 h-9 rounded-2xl bg-gradient-to-tr from-orange-500 via-rose-500 to-indigo-600 flex items-center justify-center text-white text-base shadow-sm shadow-orange-500/20 shrink-0 font-bold">
                 🎴
               </div>
               <div className="flex items-center gap-2">
-                <h1 className="text-sm sm:text-base font-black text-slate-900 tracking-tight">
+                <h1 className="text-base sm:text-lg font-black text-slate-900 tracking-tight">
                   Bộ Thẻ
                 </h1>
-                <span className="px-2 py-0.2 rounded-full bg-indigo-50 text-indigo-700 text-[10px] font-black border border-indigo-100">
+                <span className="px-2.5 py-0.5 rounded-full bg-slate-100 border border-slate-200/60 text-slate-600 text-[10px] font-black">
                   {filteredData.length}
                 </span>
               </div>
             </div>
 
-            {/* Quick Action Icons (Top Right) */}
+            {/* Quick Action Group */}
             <div className="flex items-center gap-1.5">
-              {/* Search Toggle Icon */}
+              {/* Search Toggle */}
               <button
                 onClick={() => setIsSearchOpen(prev => !prev)}
                 className={cn(
-                  "w-8 h-8 rounded-xl flex items-center justify-center transition-all cursor-pointer",
+                  "w-8.5 h-8.5 rounded-xl border transition-all flex items-center justify-center cursor-pointer shadow-2xs active:scale-95",
                   isSearchOpen || searchQuery
-                    ? "bg-indigo-50 text-indigo-600 border border-indigo-200"
-                    : "bg-slate-100 text-slate-600 hover:bg-slate-200/80"
+                    ? "bg-indigo-50 border-indigo-200 text-indigo-600 shadow-indigo-100"
+                    : "bg-slate-50 border-slate-200/70 text-slate-600 hover:bg-slate-100"
                 )}
-                title="Tìm kiếm"
+                title="Tìm kiếm bộ thẻ"
               >
                 <Search className="w-4 h-4" />
               </button>
@@ -223,18 +229,18 @@ export default function DecksPage() {
               {/* Arena Join */}
               <button
                 onClick={() => setIsJoinModalOpen(true)}
-                className="w-8 h-8 rounded-xl bg-slate-100 hover:bg-slate-200/80 text-slate-700 flex items-center justify-center transition-all cursor-pointer"
-                title="Phòng đấu Arena"
+                className="w-8.5 h-8.5 rounded-xl bg-slate-50 hover:bg-slate-100 text-slate-600 hover:text-indigo-600 border border-slate-200/70 transition-all flex items-center justify-center cursor-pointer shadow-2xs active:scale-95"
+                title="Tham gia phòng đấu"
               >
                 <Users className="w-4 h-4" />
               </button>
 
-              {/* Create Deck Button */}
+              {/* Create Button */}
               <button
                 onClick={() => setIsCreateModalOpen(true)}
-                className="h-8 px-2.5 sm:px-3 rounded-xl bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white text-[11px] sm:text-xs font-black shadow-xs active:scale-95 transition-all flex items-center gap-1 cursor-pointer shrink-0"
+                className="h-8.5 px-3 rounded-xl bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white text-[11px] sm:text-xs font-black shadow-xs shadow-orange-500/20 active:scale-95 transition-all flex items-center gap-1 cursor-pointer shrink-0"
               >
-                <Plus className="w-3.5 h-3.5" />
+                <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
                 <span className="hidden xs:inline">Tạo mới</span>
               </button>
             </div>
@@ -258,7 +264,7 @@ export default function DecksPage() {
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     autoFocus
-                    className="w-full h-8.5 pl-9 pr-8 bg-slate-100/90 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 placeholder:text-slate-400 outline-none focus:bg-white focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/15 transition-all"
+                    className="w-full h-9 pl-9 pr-8 bg-slate-100/90 border border-slate-200/80 rounded-xl text-xs font-bold text-slate-800 placeholder:text-slate-400 outline-none focus:bg-white focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/15 transition-all"
                   />
                   {searchQuery && (
                     <button
@@ -290,7 +296,7 @@ export default function DecksPage() {
                       "px-2.5 py-1 rounded-xl text-[10px] font-black transition-all shrink-0 border cursor-pointer select-none",
                       statusFilter === st.id
                         ? "bg-indigo-600 border-indigo-600 text-white shadow-2xs"
-                        : "bg-white border-slate-200 text-slate-600 hover:bg-slate-50"
+                        : "bg-white border-slate-200/80 text-slate-600 hover:bg-slate-50"
                     )}
                   >
                     {st.label}
@@ -307,7 +313,7 @@ export default function DecksPage() {
                 "px-2.5 py-1 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all shrink-0 border cursor-pointer select-none",
                 !activeTag 
                   ? "bg-slate-900 border-slate-900 text-white shadow-2xs" 
-                  : "bg-white border-slate-200 text-slate-600 hover:bg-slate-50"
+                  : "bg-white border-slate-200/80 text-slate-600 hover:bg-slate-50"
               )}
             >
               Tags
@@ -323,7 +329,7 @@ export default function DecksPage() {
                     "px-2.5 py-1 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all shrink-0 border cursor-pointer select-none",
                     isActive
                       ? "bg-indigo-600 border-indigo-600 text-white shadow-2xs"
-                      : "bg-white border-slate-200 text-slate-600 hover:border-indigo-200 hover:bg-indigo-50/40"
+                      : "bg-white border-slate-200/80 text-slate-600 hover:border-indigo-200 hover:bg-indigo-50/40"
                   )}
                 >
                   #{tag}
@@ -378,7 +384,7 @@ export default function DecksPage() {
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0, scale: 0.95 }}
                       transition={{ delay: idx * 0.015 }}
-                      className="group bg-white rounded-2xl border border-slate-200/80 hover:border-indigo-300 p-3 sm:p-3.5 shadow-2xs hover:shadow-sm transition-all flex flex-col justify-between gap-2.5 relative"
+                      className="group bg-white rounded-2xl border border-slate-200/80 hover:border-indigo-300 p-3 sm:p-3.5 shadow-2xs hover:shadow-sm transition-all flex flex-col justify-between gap-2 relative"
                     >
                       {/* Card Content Row */}
                       <div className="flex items-start gap-3 min-w-0">
@@ -413,7 +419,7 @@ export default function DecksPage() {
                             {quiz.title}
                           </h3>
 
-                          {/* Meta line: Creator, Date, Card count */}
+                          {/* Meta line: Card count, Creator, Date */}
                           <div className="flex items-center flex-wrap gap-x-2 gap-y-0.5 mt-0.5 text-[10px] font-bold text-slate-400">
                             <span className="text-indigo-600 font-extrabold">{quiz.questions_count} thẻ</span>
                             <span>•</span>
@@ -430,23 +436,27 @@ export default function DecksPage() {
                             )}
                           </div>
 
-                          {/* Progress line */}
+                          {/* Progress Line (Clean inline without detached floating numbers) */}
                           {activeTab !== 'discover' && (
-                            <div className="flex items-center justify-between text-[10px] font-bold mt-1 text-slate-500">
-                              <span>
-                                {hasStudied ? (
-                                  isMastered ? (
-                                    <span className="text-emerald-600 font-black">🌟 Thuộc 100%</span>
-                                  ) : (
-                                    <span className="text-indigo-600 font-bold">⚡ Đang học {progressPct}%</span>
-                                  )
+                            <div className="flex items-center gap-1.5 text-[10px] font-bold mt-1">
+                              {hasStudied ? (
+                                isMastered ? (
+                                  <span className="inline-flex items-center gap-1 text-emerald-600 font-black">
+                                    <span>🌟 Thuộc 100%</span>
+                                    <span className="text-slate-400 font-medium font-mono">({quiz.questions_count}/{quiz.questions_count})</span>
+                                  </span>
                                 ) : (
-                                  <span className="text-slate-400">✨ Chưa học</span>
-                                )}
-                              </span>
-                              <span className="font-mono text-[9px] text-slate-400">
-                                {learned}/{quiz.questions_count}
-                              </span>
+                                  <span className="inline-flex items-center gap-1 text-indigo-600 font-bold">
+                                    <span>⚡ Đang học {progressPct}%</span>
+                                    <span className="text-slate-400 font-medium font-mono">({learned}/{quiz.questions_count})</span>
+                                  </span>
+                                )
+                              ) : (
+                                <span className="inline-flex items-center gap-1 text-slate-400 font-semibold">
+                                  <span>✨ Chưa học</span>
+                                  <span className="text-slate-400 font-mono">(0/{quiz.questions_count})</span>
+                                </span>
+                              )}
                             </div>
                           )}
                         </div>
@@ -554,32 +564,12 @@ export default function DecksPage() {
             </div>
           </div>
 
-          {/* Right: Distinct Pagination Stepper (Always shown 1/1, 1/2...) */}
-          <div className="flex items-center gap-1 shrink-0">
-            <button 
-              onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-              disabled={currentPage === 1}
-              className="w-8 h-8 rounded-xl bg-white border border-slate-200 text-slate-700 disabled:opacity-30 disabled:border-slate-150 shadow-2xs hover:border-indigo-300 hover:text-indigo-600 flex items-center justify-center transition-all cursor-pointer disabled:cursor-not-allowed"
-              title="Trang trước"
-            >
-              <ChevronLeft className="w-4 h-4" />
-            </button>
-
-            <div className="px-2.5 h-8 rounded-xl bg-slate-50 border border-slate-200/90 flex items-center justify-center shadow-2xs min-w-[42px]">
-              <span className="text-[11px] font-black text-slate-700 tracking-wider">
-                {currentPage}/{totalPages}
-              </span>
-            </div>
-
-            <button 
-              onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
-              disabled={currentPage === totalPages}
-              className="w-8 h-8 rounded-xl bg-white border border-slate-200 text-slate-700 disabled:opacity-30 disabled:border-slate-150 shadow-2xs hover:border-indigo-300 hover:text-indigo-600 flex items-center justify-center transition-all cursor-pointer disabled:cursor-not-allowed"
-              title="Trang sau"
-            >
-              <ChevronRight className="w-4 h-4" />
-            </button>
-          </div>
+          {/* Right: Distinct Standalone Pagination Stepper Component with Jump Modal */}
+          <DeckPagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            onPageChange={setCurrentPage}
+          />
 
         </div>
       </div>
