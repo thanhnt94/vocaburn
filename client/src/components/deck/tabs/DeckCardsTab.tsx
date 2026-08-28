@@ -109,7 +109,7 @@ export function DeckCardsTab({
     }
   }, [selectedCardIds.size, onSelectionChange])
 
-  // 1. Fetch server-side paginated questions list
+  // 1. Fetch server-side paginated questions list with keepPreviousData
   const { data, isLoading } = useQuery({
     queryKey: ['quiz-questions', id, currentPage, debouncedSearch],
     queryFn: async () => {
@@ -124,7 +124,8 @@ export function DeckCardsTab({
       return res.data
     },
     enabled: !!id,
-    staleTime: 15 * 1000,
+    placeholderData: (previousData) => previousData,
+    staleTime: 30 * 1000,
   })
 
   // 2. Fetch deck settings for practice settings & available columns
@@ -139,8 +140,14 @@ export function DeckCardsTab({
     staleTime: 60 * 1000,
   })
 
+  // Giữ lại tổng số thẻ đã biết gần nhất để không bao giờ bị reset về 0/1 trang trong lúc đang tải trang mới
+  const lastKnownTotalRef = React.useRef(0)
+  if (data?.total && data.total > 0) {
+    lastKnownTotalRef.current = data.total
+  }
+
   const rawCards: CardData[] = data?.questions || []
-  const totalCards: number = data?.total ?? 0
+  const totalCards: number = data?.total ?? (lastKnownTotalRef.current || deckData?.questions_count || 0)
 
   // Filter Status Logic (Client-side refinement for starred / ignored)
   const displayedCards = useMemo(() => {
@@ -153,11 +160,12 @@ export function DeckCardsTab({
 
   // Total pages based on server total
   const totalPages = useMemo(() => {
-    return Math.max(1, Math.ceil(totalCards / pageSize))
+    const effectiveTotal = totalCards > 0 ? totalCards : lastKnownTotalRef.current
+    return Math.max(1, Math.ceil(effectiveTotal / pageSize))
   }, [totalCards, pageSize])
 
   useEffect(() => {
-    if (onTotalPagesChange) {
+    if (onTotalPagesChange && totalPages > 0) {
       onTotalPagesChange(totalPages)
     }
   }, [totalPages, onTotalPagesChange])

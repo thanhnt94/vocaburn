@@ -242,51 +242,57 @@ export function DeckDetailPage() {
       </div>
 
       {/* ═══════════ FIXED ACTION & PAGINATION BAR (CHỈ HIỆN KHI Ở TAB CARDS - NẰM NGAY TRÊN 4 TABS) ═══════════ */}
-      {activeTab === 'cards' && (
-        <div className="shrink-0 z-30 bg-white/95 backdrop-blur-2xl border-t border-slate-200/80 px-3 sm:px-6 py-1.5 shadow-[0_-2px_10px_rgba(0,0,0,0.03)]">
-          <div className="max-w-5xl mx-auto flex items-center justify-between gap-2">
-            {/* Left: Pagination */}
-            <DeckPagination
-              currentPage={cardsPage}
-              totalPages={cardsTotalPages}
-              onPageChange={setCardsPage}
-            />
+      {activeTab === 'cards' && (() => {
+        const metaTotalCount = deckMeta?.questions_count ?? 0
+        const metaTotalPages = metaTotalCount > 0 ? Math.max(1, Math.ceil(metaTotalCount / 50)) : 1
+        const effectiveTotalPages = Math.max(cardsTotalPages, metaTotalPages)
 
-            {/* Right: Quick actions (Thêm nhanh, Paste, Thêm chi tiết) */}
-            <div className="flex items-center gap-1.5">
-              <button
-                onClick={() => setIsQuickAddOpen(prev => !prev)}
-                className={cn(
-                  "h-8.5 px-3 rounded-xl border text-xs font-black transition-all flex items-center gap-1.5 active:scale-95 cursor-pointer shadow-2xs",
-                  isQuickAddOpen
-                    ? "bg-orange-500 border-orange-500 text-white shadow-orange-500/20"
-                    : "bg-orange-50 hover:bg-orange-100 border-orange-200 text-orange-700"
-                )}
-                title="Bật/tắt thanh nhập nhanh"
-              >
-                <Zap className="w-3.5 h-3.5 fill-current" />
-                <span>+ Thêm nhanh</span>
-              </button>
+        return (
+          <div className="shrink-0 z-30 bg-white/95 backdrop-blur-2xl border-t border-slate-200/80 px-3 sm:px-6 py-1.5 shadow-[0_-2px_10px_rgba(0,0,0,0.03)]">
+            <div className="max-w-5xl mx-auto flex items-center justify-between gap-2">
+              {/* Left: Pagination */}
+              <DeckPagination
+                currentPage={cardsPage}
+                totalPages={effectiveTotalPages}
+                onPageChange={setCardsPage}
+              />
 
-              <button
-                onClick={() => setIsBatchPasteOpen(true)}
-                className="h-8.5 w-8.5 rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-200/80 text-slate-700 flex items-center justify-center transition-all active:scale-95 cursor-pointer shadow-2xs"
-                title="Dán nhanh nhiều thẻ từ Excel / Google Sheets"
-              >
-                <ClipboardPaste className="w-4 h-4 text-indigo-600" />
-              </button>
+              {/* Right: Quick actions (Thêm nhanh, Paste, Thêm chi tiết) */}
+              <div className="flex items-center gap-1.5">
+                <button
+                  onClick={() => setIsQuickAddOpen(prev => !prev)}
+                  className={cn(
+                    "h-8.5 px-3 rounded-xl border text-xs font-black transition-all flex items-center gap-1.5 active:scale-95 cursor-pointer shadow-2xs",
+                    isQuickAddOpen
+                      ? "bg-orange-500 border-orange-500 text-white shadow-orange-500/20"
+                      : "bg-orange-50 hover:bg-orange-100 border-orange-200 text-orange-700"
+                  )}
+                  title="Bật/tắt thanh nhập nhanh"
+                >
+                  <Zap className="w-3.5 h-3.5 fill-current" />
+                  <span>+ Thêm nhanh</span>
+                </button>
 
-              <button
-                onClick={() => setIsEditModalOpen(true)}
-                className="h-8.5 w-8.5 rounded-xl bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white flex items-center justify-center shadow-xs shadow-indigo-500/20 active:scale-95 transition-all cursor-pointer"
-                title="Thêm thẻ mới (đầy đủ chi tiết)"
-              >
-                <Plus className="w-4 h-4 stroke-[3]" />
-              </button>
+                <button
+                  onClick={() => setIsBatchPasteOpen(true)}
+                  className="h-8.5 w-8.5 rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-200/80 text-slate-700 flex items-center justify-center transition-all active:scale-95 cursor-pointer shadow-2xs"
+                  title="Dán nhanh nhiều thẻ từ Excel / Google Sheets"
+                >
+                  <ClipboardPaste className="w-4 h-4 text-indigo-600" />
+                </button>
+
+                <button
+                  onClick={() => setIsEditModalOpen(true)}
+                  className="h-8.5 w-8.5 rounded-xl bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white flex items-center justify-center shadow-xs shadow-indigo-500/20 active:scale-95 transition-all cursor-pointer"
+                  title="Thêm thẻ mới (đầy đủ chi tiết)"
+                >
+                  <Plus className="w-4 h-4 stroke-[3]" />
+                </button>
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        )
+      })()}
 
       {/* ═══════════ ONE-HAND BOTTOM DOCKED TAB BAR (4 TABS CĂN CHÍNH GIỮA) ═══════════ */}
       <div className="shrink-0 z-30 bg-white/95 backdrop-blur-2xl border-t border-slate-200/80 px-3 sm:px-6 py-1.5 shadow-[0_-4px_20px_rgba(0,0,0,0.05)]">
