@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react'
+import React, { useState, useMemo, useEffect, useRef } from 'react'
 import { useParams } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -9,7 +9,7 @@ import { DeckCardFilterBar, type CardFilterStatus } from '../cards/DeckCardFilte
 import { DeckCardBatchPasteModal } from '../cards/DeckCardBatchPasteModal'
 import { DeckCardEditModal } from '../cards/DeckCardEditModal'
 import { DeckPagination } from '../DeckPagination'
-import { Trash2, Star, EyeOff, X, CheckSquare, Sparkles } from 'lucide-react'
+import { Trash2, Star, EyeOff, X, CheckSquare, Sparkles, PlusCircle } from 'lucide-react'
 
 export interface DeckCardsTabProps {
   embedded?: boolean
@@ -29,6 +29,7 @@ export function DeckCardsTab({
   const { id: paramId } = useParams()
   const id = deckId ? String(deckId) : paramId
   const queryClient = useQueryClient()
+  const quickAddRef = useRef<HTMLDivElement>(null)
 
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState<CardFilterStatus>('all')
@@ -143,6 +144,10 @@ export function DeckCardsTab({
 
   const handleClearSelection = () => {
     setSelectedCardIds(new Set())
+  }
+
+  const scrollToQuickAdd = () => {
+    quickAddRef.current?.scrollIntoView({ behavior: 'smooth' })
   }
 
   // Handlers
@@ -277,10 +282,7 @@ export function DeckCardsTab({
 
   return (
     <div className="max-w-5xl mx-auto px-3 sm:px-6 py-3 space-y-3 text-left animate-in fade-in duration-200 relative pb-28 md:pb-8">
-      {/* 1. Quick Add Bar */}
-      <DeckCardQuickAdd onAddCard={handleQuickAdd} isAdding={isQuickAdding} />
-
-      {/* 2. Sticky Filter & Search Bar */}
+      {/* 1. Sticky Filter & Search Bar (Nằm trên cùng danh sách thẻ) */}
       <div className="sticky top-0 z-20 bg-[#F8FAFC]/95 backdrop-blur-md pt-1 pb-1">
         <DeckCardFilterBar
           search={search}
@@ -310,7 +312,7 @@ export function DeckCardsTab({
         />
       </div>
 
-      {/* 3. Cards List */}
+      {/* 2. Cards List */}
       {isLoading ? (
         <div className="space-y-2.5">
           {[1, 2, 3, 4, 5].map((n) => (
@@ -322,7 +324,7 @@ export function DeckCardsTab({
           <span className="text-3xl block mb-2">🎴</span>
           <h3 className="text-sm font-black text-slate-800">Không tìm thấy thẻ từ vựng nào</h3>
           <p className="text-xs text-slate-400 mt-1">
-            {search ? 'Thử tìm kiếm với từ khóa khác' : 'Hãy nhập thẻ vào thanh thêm nhanh phía trên!'}
+            {search ? 'Thử tìm kiếm với từ khóa khác' : 'Hãy nhập từ vựng vào khung thêm nhanh phía dưới!'}
           </p>
         </div>
       ) : (
@@ -343,7 +345,18 @@ export function DeckCardsTab({
         </div>
       )}
 
-      {/* 4. Standalone Pagination Fallback (If not embedded in DeckDetailPage) */}
+      {/* 3. Quick Add Bar Chuyển Xuống Dưới Cùng (Thumb Zone tiện lợi) */}
+      <div ref={quickAddRef} className="pt-2">
+        <div className="flex items-center gap-2 mb-2 px-1">
+          <PlusCircle className="w-4 h-4 text-indigo-600" />
+          <span className="text-xs font-black text-slate-700 uppercase tracking-wider">
+            Thêm nhanh thẻ mới
+          </span>
+        </div>
+        <DeckCardQuickAdd onAddCard={handleQuickAdd} isAdding={isQuickAdding} />
+      </div>
+
+      {/* 4. Standalone Pagination Fallback (Khi không nằm trong DeckDetailPage) */}
       {!controlledOnPageChange && (
         <div className="flex items-center justify-between pt-3 text-slate-400 text-xs font-bold">
           <span>
@@ -366,7 +379,7 @@ export function DeckCardsTab({
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 30, scale: 0.95 }}
             transition={{ type: "spring", bounce: 0.15, duration: 0.3 }}
-            className="fixed bottom-[115px] md:bottom-16 left-4 right-4 max-w-lg mx-auto z-[150] bg-slate-900/95 backdrop-blur-xl text-white rounded-2xl p-2.5 sm:p-3 shadow-2xl border border-slate-700/80 flex items-center justify-between gap-2"
+            className="fixed bottom-[125px] md:bottom-24 left-4 right-4 max-w-lg mx-auto z-[150] bg-slate-900/95 backdrop-blur-xl text-white rounded-2xl p-2.5 sm:p-3 shadow-2xl border border-slate-700/80 flex items-center justify-between gap-2"
           >
             <div className="flex items-center gap-2 pl-1.5 min-w-0">
               <span className="w-6 h-6 rounded-lg bg-indigo-600 text-white text-xs font-black flex items-center justify-center shrink-0">
