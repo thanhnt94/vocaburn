@@ -1,95 +1,95 @@
 {
-  "_DailyComparisonChart-legacy-Cu7xXRIJ.js": {
-    "file": "assets/DailyComparisonChart-legacy-Cu7xXRIJ.js",
+  "_DailyComparisonChart-legacy-B165vASi.js": {
+    "file": "assets/DailyComparisonChart-legacy-B165vASi.js",
     "name": "DailyComparisonChart",
     "imports": [
-      "_react-core-vendor-legacy-t8Ib6N3c.js",
+      "_react-core-vendor-legacy-1561FzbO.js",
       "_charts-vendor-legacy-BXv00XNe.js",
       "_rolldown-runtime-legacy-Djb2rrqm.js",
       "_animations-vendor-legacy-C84tHauM.js"
     ]
   },
-  "_DeckCardsTab-legacy-keHnxT_L.js": {
-    "file": "assets/DeckCardsTab-legacy-keHnxT_L.js",
+  "_DeckCardsTab-legacy-eshqXwxj.js": {
+    "file": "assets/DeckCardsTab-legacy-eshqXwxj.js",
     "name": "DeckCardsTab",
     "imports": [
-      "_react-core-vendor-legacy-t8Ib6N3c.js",
+      "_react-core-vendor-legacy-1561FzbO.js",
       "_charts-vendor-legacy-BXv00XNe.js",
       "_rolldown-runtime-legacy-Djb2rrqm.js",
       "index-legacy.html",
       "_animations-vendor-legacy-C84tHauM.js",
-      "_vendor-legacy-BMRnsoea.js",
-      "_FlashcardEditModal-legacy-BSHGqNnI.js",
+      "_vendor-legacy-DS0BqRxG.js",
+      "_FlashcardEditModal-legacy-Dh6t_kFh.js",
       "_text-legacy-7ifFusew.js",
-      "_utils-legacy-DZyONIOp.js"
+      "_utils-legacy-DYCh-YVF.js"
     ]
   },
-  "_DeckOverviewTab-legacy-abYWi78w.js": {
-    "file": "assets/DeckOverviewTab-legacy-abYWi78w.js",
+  "_DeckOverviewTab-legacy-BAqra2Y5.js": {
+    "file": "assets/DeckOverviewTab-legacy-BAqra2Y5.js",
     "name": "DeckOverviewTab",
     "imports": [
-      "_react-core-vendor-legacy-t8Ib6N3c.js",
+      "_react-core-vendor-legacy-1561FzbO.js",
       "_rolldown-runtime-legacy-Djb2rrqm.js",
       "_animations-vendor-legacy-C84tHauM.js",
-      "_vendor-legacy-BMRnsoea.js"
+      "_vendor-legacy-DS0BqRxG.js"
     ]
   },
-  "_DeckRoadmapTab-legacy-C9zlKVoF.js": {
-    "file": "assets/DeckRoadmapTab-legacy-C9zlKVoF.js",
+  "_DeckRoadmapTab-legacy-MMvIO5aa.js": {
+    "file": "assets/DeckRoadmapTab-legacy-MMvIO5aa.js",
     "name": "DeckRoadmapTab",
     "imports": [
-      "_react-core-vendor-legacy-t8Ib6N3c.js",
+      "_react-core-vendor-legacy-1561FzbO.js",
       "_rolldown-runtime-legacy-Djb2rrqm.js",
       "_animations-vendor-legacy-C84tHauM.js",
-      "_vendor-legacy-BMRnsoea.js",
-      "_TelegramRoadmapReminderToggle-legacy-DwGDe4Xz.js"
+      "_vendor-legacy-DS0BqRxG.js",
+      "_TelegramRoadmapReminderToggle-legacy-D4pikUvc.js"
     ]
   },
-  "_DeckSettingsTab-legacy-De1cSyv1.js": {
-    "file": "assets/DeckSettingsTab-legacy-De1cSyv1.js",
+  "_DeckSettingsTab-legacy-BMScBE5O.js": {
+    "file": "assets/DeckSettingsTab-legacy-BMScBE5O.js",
     "name": "DeckSettingsTab",
     "imports": [
-      "_react-core-vendor-legacy-t8Ib6N3c.js",
+      "_react-core-vendor-legacy-1561FzbO.js",
       "_rolldown-runtime-legacy-Djb2rrqm.js",
       "index-legacy.html",
       "_animations-vendor-legacy-C84tHauM.js",
-      "_vendor-legacy-BMRnsoea.js"
+      "_vendor-legacy-DS0BqRxG.js"
     ]
   },
-  "_FlashcardEditModal-legacy-BSHGqNnI.js": {
-    "file": "assets/FlashcardEditModal-legacy-BSHGqNnI.js",
+  "_FlashcardEditModal-legacy-Dh6t_kFh.js": {
+    "file": "assets/FlashcardEditModal-legacy-Dh6t_kFh.js",
     "name": "FlashcardEditModal",
     "imports": [
-      "_react-core-vendor-legacy-t8Ib6N3c.js",
+      "_react-core-vendor-legacy-1561FzbO.js",
       "_rolldown-runtime-legacy-Djb2rrqm.js",
       "_animations-vendor-legacy-C84tHauM.js",
-      "_vendor-legacy-BMRnsoea.js",
-      "_utils-legacy-DZyONIOp.js"
+      "_vendor-legacy-DS0BqRxG.js",
+      "_utils-legacy-DYCh-YVF.js"
     ]
   },
-  "_StudyHeaderTracker-legacy-C85o86HM.js": {
-    "file": "assets/StudyHeaderTracker-legacy-C85o86HM.js",
+  "_StudyHeaderTracker-legacy-COux0W3F.js": {
+    "file": "assets/StudyHeaderTracker-legacy-COux0W3F.js",
     "name": "StudyHeaderTracker",
     "imports": [
-      "_react-core-vendor-legacy-t8Ib6N3c.js",
+      "_react-core-vendor-legacy-1561FzbO.js",
       "_rolldown-runtime-legacy-Djb2rrqm.js",
       "index-legacy.html",
       "_animations-vendor-legacy-C84tHauM.js",
-      "_vendor-legacy-BMRnsoea.js",
-      "_DailyComparisonChart-legacy-Cu7xXRIJ.js",
+      "_vendor-legacy-DS0BqRxG.js",
+      "_DailyComparisonChart-legacy-B165vASi.js",
       "_text-legacy-7ifFusew.js",
-      "_utils-legacy-DZyONIOp.js"
+      "_utils-legacy-DYCh-YVF.js"
     ]
   },
-  "_TelegramRoadmapReminderToggle-legacy-DwGDe4Xz.js": {
-    "file": "assets/TelegramRoadmapReminderToggle-legacy-DwGDe4Xz.js",
+  "_TelegramRoadmapReminderToggle-legacy-D4pikUvc.js": {
+    "file": "assets/TelegramRoadmapReminderToggle-legacy-D4pikUvc.js",
     "name": "TelegramRoadmapReminderToggle",
     "imports": [
-      "_react-core-vendor-legacy-t8Ib6N3c.js",
+      "_react-core-vendor-legacy-1561FzbO.js",
       "_rolldown-runtime-legacy-Djb2rrqm.js",
       "_animations-vendor-legacy-C84tHauM.js",
-      "_vendor-legacy-BMRnsoea.js",
-      "_utils-legacy-DZyONIOp.js"
+      "_vendor-legacy-DS0BqRxG.js",
+      "_utils-legacy-DYCh-YVF.js"
     ]
   },
   "_animations-vendor-legacy-C84tHauM.js": {
@@ -107,23 +107,23 @@
       "_animations-vendor-legacy-C84tHauM.js"
     ]
   },
-  "_deck-legacy-CfTXM2Np.js": {
-    "file": "assets/deck-legacy-CfTXM2Np.js",
+  "_deck-legacy-CceEDus-.js": {
+    "file": "assets/deck-legacy-CceEDus-.js",
     "name": "deck",
     "imports": [
-      "_react-core-vendor-legacy-t8Ib6N3c.js",
+      "_react-core-vendor-legacy-1561FzbO.js",
       "_rolldown-runtime-legacy-Djb2rrqm.js",
       "index-legacy.html",
       "_animations-vendor-legacy-C84tHauM.js",
-      "_vendor-legacy-BMRnsoea.js",
-      "_DeckCardsTab-legacy-keHnxT_L.js",
-      "_DeckOverviewTab-legacy-abYWi78w.js",
-      "_DeckRoadmapTab-legacy-C9zlKVoF.js",
-      "_DeckSettingsTab-legacy-De1cSyv1.js"
+      "_vendor-legacy-DS0BqRxG.js",
+      "_DeckCardsTab-legacy-eshqXwxj.js",
+      "_DeckOverviewTab-legacy-BAqra2Y5.js",
+      "_DeckRoadmapTab-legacy-MMvIO5aa.js",
+      "_DeckSettingsTab-legacy-BMScBE5O.js"
     ]
   },
-  "_react-core-vendor-legacy-t8Ib6N3c.js": {
-    "file": "assets/react-core-vendor-legacy-t8Ib6N3c.js",
+  "_react-core-vendor-legacy-1561FzbO.js": {
+    "file": "assets/react-core-vendor-legacy-1561FzbO.js",
     "name": "react-core-vendor",
     "imports": [
       "_charts-vendor-legacy-BXv00XNe.js",
@@ -139,33 +139,33 @@
     "file": "assets/text-legacy-7ifFusew.js",
     "name": "text"
   },
-  "_utils-legacy-DZyONIOp.js": {
-    "file": "assets/utils-legacy-DZyONIOp.js",
+  "_utils-legacy-DYCh-YVF.js": {
+    "file": "assets/utils-legacy-DYCh-YVF.js",
     "name": "utils",
     "imports": [
       "_charts-vendor-legacy-BXv00XNe.js",
-      "_vendor-legacy-BMRnsoea.js"
+      "_vendor-legacy-DS0BqRxG.js"
     ]
   },
-  "_vendor-legacy-BMRnsoea.js": {
-    "file": "assets/vendor-legacy-BMRnsoea.js",
+  "_vendor-legacy-DS0BqRxG.js": {
+    "file": "assets/vendor-legacy-DS0BqRxG.js",
     "name": "vendor",
     "imports": [
-      "_react-core-vendor-legacy-t8Ib6N3c.js",
+      "_react-core-vendor-legacy-1561FzbO.js",
       "_rolldown-runtime-legacy-Djb2rrqm.js"
     ]
   },
   "index-legacy.html": {
-    "file": "assets/index-legacy-mZLxntJL.js",
+    "file": "assets/index-legacy-BEmDJHty.js",
     "name": "index",
     "src": "index-legacy.html",
     "isEntry": true,
     "imports": [
-      "_react-core-vendor-legacy-t8Ib6N3c.js",
+      "_react-core-vendor-legacy-1561FzbO.js",
       "_rolldown-runtime-legacy-Djb2rrqm.js",
       "_animations-vendor-legacy-C84tHauM.js",
-      "_vendor-legacy-BMRnsoea.js",
-      "_utils-legacy-DZyONIOp.js"
+      "_vendor-legacy-DS0BqRxG.js",
+      "_utils-legacy-DYCh-YVF.js"
     ],
     "dynamicImports": [
       "src/pages/Dashboard-legacy.tsx",
@@ -183,191 +183,191 @@
     ]
   },
   "src/pages/Admin-legacy.tsx": {
-    "file": "assets/Admin-legacy-By3DxFP9.js",
+    "file": "assets/Admin-legacy-DhaXKUlq.js",
     "name": "Admin",
     "src": "src/pages/Admin-legacy.tsx",
     "isDynamicEntry": true,
     "imports": [
-      "_react-core-vendor-legacy-t8Ib6N3c.js",
+      "_react-core-vendor-legacy-1561FzbO.js",
       "_rolldown-runtime-legacy-Djb2rrqm.js",
       "index-legacy.html",
       "_animations-vendor-legacy-C84tHauM.js",
-      "_vendor-legacy-BMRnsoea.js"
+      "_vendor-legacy-DS0BqRxG.js"
     ]
   },
   "src/pages/Dashboard-legacy.tsx": {
-    "file": "assets/Dashboard-legacy--tXwbvR6.js",
+    "file": "assets/Dashboard-legacy-Ctr32Pvx.js",
     "name": "Dashboard",
     "src": "src/pages/Dashboard-legacy.tsx",
     "isDynamicEntry": true,
     "imports": [
-      "_react-core-vendor-legacy-t8Ib6N3c.js",
+      "_react-core-vendor-legacy-1561FzbO.js",
       "_charts-vendor-legacy-BXv00XNe.js",
       "_rolldown-runtime-legacy-Djb2rrqm.js",
       "index-legacy.html",
       "_animations-vendor-legacy-C84tHauM.js",
-      "_vendor-legacy-BMRnsoea.js",
-      "_DailyComparisonChart-legacy-Cu7xXRIJ.js",
-      "_TelegramRoadmapReminderToggle-legacy-DwGDe4Xz.js",
-      "_utils-legacy-DZyONIOp.js"
+      "_vendor-legacy-DS0BqRxG.js",
+      "_DailyComparisonChart-legacy-B165vASi.js",
+      "_TelegramRoadmapReminderToggle-legacy-D4pikUvc.js",
+      "_utils-legacy-DYCh-YVF.js"
     ]
   },
   "src/pages/DeckDetailPage-legacy.tsx": {
-    "file": "assets/DeckDetailPage-legacy-BM9_U_FB.js",
+    "file": "assets/DeckDetailPage-legacy-DlfPg6ms.js",
     "name": "DeckDetailPage",
     "src": "src/pages/DeckDetailPage-legacy.tsx",
     "isDynamicEntry": true,
     "imports": [
-      "_react-core-vendor-legacy-t8Ib6N3c.js",
+      "_react-core-vendor-legacy-1561FzbO.js",
       "_rolldown-runtime-legacy-Djb2rrqm.js",
       "index-legacy.html",
       "_animations-vendor-legacy-C84tHauM.js",
-      "_vendor-legacy-BMRnsoea.js",
-      "_DeckCardsTab-legacy-keHnxT_L.js",
-      "_deck-legacy-CfTXM2Np.js",
-      "_utils-legacy-DZyONIOp.js"
+      "_vendor-legacy-DS0BqRxG.js",
+      "_DeckCardsTab-legacy-eshqXwxj.js",
+      "_deck-legacy-CceEDus-.js",
+      "_utils-legacy-DYCh-YVF.js"
     ],
     "dynamicImports": [
-      "_DeckOverviewTab-legacy-abYWi78w.js",
-      "_DeckCardsTab-legacy-keHnxT_L.js",
-      "_DeckRoadmapTab-legacy-C9zlKVoF.js",
-      "_DeckSettingsTab-legacy-De1cSyv1.js"
+      "_DeckOverviewTab-legacy-BAqra2Y5.js",
+      "_DeckCardsTab-legacy-eshqXwxj.js",
+      "_DeckRoadmapTab-legacy-MMvIO5aa.js",
+      "_DeckSettingsTab-legacy-BMScBE5O.js"
     ]
   },
   "src/pages/DecksPage-legacy.tsx": {
-    "file": "assets/DecksPage-legacy-0flafU98.js",
+    "file": "assets/DecksPage-legacy-CN3KnrF2.js",
     "name": "DecksPage",
     "src": "src/pages/DecksPage-legacy.tsx",
     "isDynamicEntry": true,
     "imports": [
-      "_react-core-vendor-legacy-t8Ib6N3c.js",
+      "_react-core-vendor-legacy-1561FzbO.js",
       "_rolldown-runtime-legacy-Djb2rrqm.js",
       "index-legacy.html",
       "_animations-vendor-legacy-C84tHauM.js",
-      "_vendor-legacy-BMRnsoea.js",
-      "_DeckCardsTab-legacy-keHnxT_L.js",
-      "_deck-legacy-CfTXM2Np.js",
-      "_utils-legacy-DZyONIOp.js"
+      "_vendor-legacy-DS0BqRxG.js",
+      "_DeckCardsTab-legacy-eshqXwxj.js",
+      "_deck-legacy-CceEDus-.js",
+      "_utils-legacy-DYCh-YVF.js"
     ]
   },
   "src/pages/FlashcardPlay-legacy.tsx": {
-    "file": "assets/FlashcardPlay-legacy-DGjRo4Ey.js",
+    "file": "assets/FlashcardPlay-legacy-Da-7FKwH.js",
     "name": "FlashcardPlay",
     "src": "src/pages/FlashcardPlay-legacy.tsx",
     "isDynamicEntry": true,
     "imports": [
-      "_react-core-vendor-legacy-t8Ib6N3c.js",
+      "_react-core-vendor-legacy-1561FzbO.js",
       "_rolldown-runtime-legacy-Djb2rrqm.js",
       "index-legacy.html",
       "_animations-vendor-legacy-C84tHauM.js",
-      "_vendor-legacy-BMRnsoea.js",
-      "_DailyComparisonChart-legacy-Cu7xXRIJ.js",
-      "_StudyHeaderTracker-legacy-C85o86HM.js",
-      "_FlashcardEditModal-legacy-BSHGqNnI.js",
+      "_vendor-legacy-DS0BqRxG.js",
+      "_DailyComparisonChart-legacy-B165vASi.js",
+      "_StudyHeaderTracker-legacy-COux0W3F.js",
+      "_FlashcardEditModal-legacy-Dh6t_kFh.js",
       "_text-legacy-7ifFusew.js",
-      "_utils-legacy-DZyONIOp.js"
+      "_utils-legacy-DYCh-YVF.js"
     ]
   },
   "src/pages/FlashcardRoom-legacy.tsx": {
-    "file": "assets/FlashcardRoom-legacy-BNXKm8C4.js",
+    "file": "assets/FlashcardRoom-legacy-CupyzOJl.js",
     "name": "FlashcardRoom",
     "src": "src/pages/FlashcardRoom-legacy.tsx",
     "isDynamicEntry": true,
     "imports": [
-      "_react-core-vendor-legacy-t8Ib6N3c.js",
+      "_react-core-vendor-legacy-1561FzbO.js",
       "_rolldown-runtime-legacy-Djb2rrqm.js",
       "_animations-vendor-legacy-C84tHauM.js",
-      "_vendor-legacy-BMRnsoea.js",
+      "_vendor-legacy-DS0BqRxG.js",
       "_text-legacy-7ifFusew.js",
-      "_utils-legacy-DZyONIOp.js"
+      "_utils-legacy-DYCh-YVF.js"
     ]
   },
   "src/pages/PracticePlay-legacy.tsx": {
-    "file": "assets/PracticePlay-legacy-mP33Aw10.js",
+    "file": "assets/PracticePlay-legacy-CaZ1u0aJ.js",
     "name": "PracticePlay",
     "src": "src/pages/PracticePlay-legacy.tsx",
     "isDynamicEntry": true,
     "imports": [
-      "_react-core-vendor-legacy-t8Ib6N3c.js",
+      "_react-core-vendor-legacy-1561FzbO.js",
       "_rolldown-runtime-legacy-Djb2rrqm.js",
       "index-legacy.html",
       "_animations-vendor-legacy-C84tHauM.js",
-      "_vendor-legacy-BMRnsoea.js",
-      "_DailyComparisonChart-legacy-Cu7xXRIJ.js",
-      "_StudyHeaderTracker-legacy-C85o86HM.js",
-      "_FlashcardEditModal-legacy-BSHGqNnI.js",
+      "_vendor-legacy-DS0BqRxG.js",
+      "_DailyComparisonChart-legacy-B165vASi.js",
+      "_StudyHeaderTracker-legacy-COux0W3F.js",
+      "_FlashcardEditModal-legacy-Dh6t_kFh.js",
       "_text-legacy-7ifFusew.js",
-      "_utils-legacy-DZyONIOp.js"
+      "_utils-legacy-DYCh-YVF.js"
     ]
   },
   "src/pages/Profile-legacy.tsx": {
-    "file": "assets/Profile-legacy-E5KqRRVz.js",
+    "file": "assets/Profile-legacy-DLqmjzu9.js",
     "name": "Profile",
     "src": "src/pages/Profile-legacy.tsx",
     "isDynamicEntry": true,
     "imports": [
-      "_react-core-vendor-legacy-t8Ib6N3c.js",
+      "_react-core-vendor-legacy-1561FzbO.js",
       "_rolldown-runtime-legacy-Djb2rrqm.js",
       "index-legacy.html",
       "_animations-vendor-legacy-C84tHauM.js",
-      "_vendor-legacy-BMRnsoea.js",
-      "_utils-legacy-DZyONIOp.js"
+      "_vendor-legacy-DS0BqRxG.js",
+      "_utils-legacy-DYCh-YVF.js"
     ]
   },
   "src/pages/RoadmapHub-legacy.tsx": {
-    "file": "assets/RoadmapHub-legacy-DW8hhP84.js",
+    "file": "assets/RoadmapHub-legacy-wsWr6M0T.js",
     "name": "RoadmapHub",
     "src": "src/pages/RoadmapHub-legacy.tsx",
     "isDynamicEntry": true,
     "imports": [
-      "_react-core-vendor-legacy-t8Ib6N3c.js",
+      "_react-core-vendor-legacy-1561FzbO.js",
       "_rolldown-runtime-legacy-Djb2rrqm.js",
       "_animations-vendor-legacy-C84tHauM.js",
-      "_vendor-legacy-BMRnsoea.js",
-      "_TelegramRoadmapReminderToggle-legacy-DwGDe4Xz.js",
-      "_utils-legacy-DZyONIOp.js"
+      "_vendor-legacy-DS0BqRxG.js",
+      "_TelegramRoadmapReminderToggle-legacy-D4pikUvc.js",
+      "_utils-legacy-DYCh-YVF.js"
     ]
   },
   "src/pages/RoomJoin-legacy.tsx": {
-    "file": "assets/RoomJoin-legacy-BLb64ktr.js",
+    "file": "assets/RoomJoin-legacy-BpqkbQfm.js",
     "name": "RoomJoin",
     "src": "src/pages/RoomJoin-legacy.tsx",
     "isDynamicEntry": true,
     "imports": [
-      "_react-core-vendor-legacy-t8Ib6N3c.js",
+      "_react-core-vendor-legacy-1561FzbO.js",
       "_rolldown-runtime-legacy-Djb2rrqm.js",
       "_animations-vendor-legacy-C84tHauM.js",
-      "_vendor-legacy-BMRnsoea.js",
-      "_utils-legacy-DZyONIOp.js"
+      "_vendor-legacy-DS0BqRxG.js",
+      "_utils-legacy-DYCh-YVF.js"
     ]
   },
   "src/pages/Settings-legacy.tsx": {
-    "file": "assets/Settings-legacy-DvJxyhq0.js",
+    "file": "assets/Settings-legacy-CLEPCfm_.js",
     "name": "Settings",
     "src": "src/pages/Settings-legacy.tsx",
     "isDynamicEntry": true,
     "imports": [
-      "_react-core-vendor-legacy-t8Ib6N3c.js",
+      "_react-core-vendor-legacy-1561FzbO.js",
       "_rolldown-runtime-legacy-Djb2rrqm.js",
       "index-legacy.html",
       "_animations-vendor-legacy-C84tHauM.js",
-      "_vendor-legacy-BMRnsoea.js",
-      "_utils-legacy-DZyONIOp.js"
+      "_vendor-legacy-DS0BqRxG.js",
+      "_utils-legacy-DYCh-YVF.js"
     ]
   },
   "src/pages/Stats-legacy.tsx": {
-    "file": "assets/Stats-legacy-ghalsXxC.js",
+    "file": "assets/Stats-legacy-DOVkP92C.js",
     "name": "Stats",
     "src": "src/pages/Stats-legacy.tsx",
     "isDynamicEntry": true,
     "imports": [
-      "_react-core-vendor-legacy-t8Ib6N3c.js",
+      "_react-core-vendor-legacy-1561FzbO.js",
       "_charts-vendor-legacy-BXv00XNe.js",
       "_rolldown-runtime-legacy-Djb2rrqm.js",
       "_animations-vendor-legacy-C84tHauM.js",
-      "_vendor-legacy-BMRnsoea.js",
-      "_DailyComparisonChart-legacy-Cu7xXRIJ.js",
-      "_utils-legacy-DZyONIOp.js"
+      "_vendor-legacy-DS0BqRxG.js",
+      "_DailyComparisonChart-legacy-B165vASi.js",
+      "_utils-legacy-DYCh-YVF.js"
     ]
   },
   "vite/legacy-polyfills-legacy": {
@@ -376,97 +376,97 @@
     "src": "vite/legacy-polyfills-legacy",
     "isEntry": true
   },
-  "_DailyComparisonChart-ChpAvbu2.js": {
-    "file": "assets/DailyComparisonChart-ChpAvbu2.js",
+  "_DailyComparisonChart-CtawZewp.js": {
+    "file": "assets/DailyComparisonChart-CtawZewp.js",
     "name": "DailyComparisonChart",
     "imports": [
-      "_react-core-vendor-CmRfG613.js",
+      "_react-core-vendor-DBfoyjiu.js",
       "_charts-vendor-DtEHlSYM.js",
       "_rolldown-runtime-BYbx6iT9.js",
       "_animations-vendor-ZnnRDFcw.js"
     ]
   },
-  "_DeckCardsTab-EQRIdSII.js": {
-    "file": "assets/DeckCardsTab-EQRIdSII.js",
+  "_DeckCardsTab-D3tSi_p-.js": {
+    "file": "assets/DeckCardsTab-D3tSi_p-.js",
     "name": "DeckCardsTab",
     "imports": [
-      "_react-core-vendor-CmRfG613.js",
+      "_react-core-vendor-DBfoyjiu.js",
       "_charts-vendor-DtEHlSYM.js",
       "_rolldown-runtime-BYbx6iT9.js",
       "index.html",
       "_animations-vendor-ZnnRDFcw.js",
-      "_vendor-CW32RcX1.js",
-      "_FlashcardEditModal-ZQMy3br0.js",
+      "_vendor-DomEdLiy.js",
+      "_FlashcardEditModal-DsGi0ZCw.js",
       "_text-DODzR70U.js",
-      "_utils-o3rcqxyj.js"
+      "_utils-CwdYX0b2.js"
     ]
   },
-  "_DeckOverviewTab-8aXEfeql.js": {
-    "file": "assets/DeckOverviewTab-8aXEfeql.js",
+  "_DeckOverviewTab-i0QDJojt.js": {
+    "file": "assets/DeckOverviewTab-i0QDJojt.js",
     "name": "DeckOverviewTab",
     "imports": [
-      "_react-core-vendor-CmRfG613.js",
+      "_react-core-vendor-DBfoyjiu.js",
       "_rolldown-runtime-BYbx6iT9.js",
       "_animations-vendor-ZnnRDFcw.js",
-      "_vendor-CW32RcX1.js"
+      "_vendor-DomEdLiy.js"
     ]
   },
-  "_DeckRoadmapTab-Bw2yvZ0y.js": {
-    "file": "assets/DeckRoadmapTab-Bw2yvZ0y.js",
+  "_DeckRoadmapTab-B7SxP2Yp.js": {
+    "file": "assets/DeckRoadmapTab-B7SxP2Yp.js",
     "name": "DeckRoadmapTab",
     "imports": [
-      "_react-core-vendor-CmRfG613.js",
+      "_react-core-vendor-DBfoyjiu.js",
       "_rolldown-runtime-BYbx6iT9.js",
       "_animations-vendor-ZnnRDFcw.js",
-      "_vendor-CW32RcX1.js",
-      "_TelegramRoadmapReminderToggle-BXy6zFCc.js"
+      "_vendor-DomEdLiy.js",
+      "_TelegramRoadmapReminderToggle-Bdfj5jRo.js"
     ]
   },
-  "_DeckSettingsTab-khDTntdx.js": {
-    "file": "assets/DeckSettingsTab-khDTntdx.js",
+  "_DeckSettingsTab-0H0zHy9u.js": {
+    "file": "assets/DeckSettingsTab-0H0zHy9u.js",
     "name": "DeckSettingsTab",
     "imports": [
-      "_react-core-vendor-CmRfG613.js",
+      "_react-core-vendor-DBfoyjiu.js",
       "_rolldown-runtime-BYbx6iT9.js",
       "index.html",
       "_animations-vendor-ZnnRDFcw.js",
-      "_vendor-CW32RcX1.js"
+      "_vendor-DomEdLiy.js"
     ]
   },
-  "_FlashcardEditModal-ZQMy3br0.js": {
-    "file": "assets/FlashcardEditModal-ZQMy3br0.js",
+  "_FlashcardEditModal-DsGi0ZCw.js": {
+    "file": "assets/FlashcardEditModal-DsGi0ZCw.js",
     "name": "FlashcardEditModal",
     "imports": [
-      "_react-core-vendor-CmRfG613.js",
+      "_react-core-vendor-DBfoyjiu.js",
       "_rolldown-runtime-BYbx6iT9.js",
       "_animations-vendor-ZnnRDFcw.js",
-      "_vendor-CW32RcX1.js",
-      "_utils-o3rcqxyj.js"
+      "_vendor-DomEdLiy.js",
+      "_utils-CwdYX0b2.js"
     ]
   },
-  "_StudyHeaderTracker-SS7HJ3I0.js": {
-    "file": "assets/StudyHeaderTracker-SS7HJ3I0.js",
+  "_StudyHeaderTracker-DZbafLx_.js": {
+    "file": "assets/StudyHeaderTracker-DZbafLx_.js",
     "name": "StudyHeaderTracker",
     "imports": [
-      "_react-core-vendor-CmRfG613.js",
+      "_react-core-vendor-DBfoyjiu.js",
       "_rolldown-runtime-BYbx6iT9.js",
       "index.html",
       "_animations-vendor-ZnnRDFcw.js",
-      "_vendor-CW32RcX1.js",
-      "_DailyComparisonChart-ChpAvbu2.js",
+      "_vendor-DomEdLiy.js",
+      "_DailyComparisonChart-CtawZewp.js",
       "_text-DODzR70U.js",
-      "_utils-o3rcqxyj.js"
+      "_utils-CwdYX0b2.js"
     ]
   },
-  "_TelegramRoadmapReminderToggle-BXy6zFCc.js": {
-    "file": "assets/TelegramRoadmapReminderToggle-BXy6zFCc.js",
+  "_TelegramRoadmapReminderToggle-Bdfj5jRo.js": {
+    "file": "assets/TelegramRoadmapReminderToggle-Bdfj5jRo.js",
     "name": "TelegramRoadmapReminderToggle",
     "imports": [
-      "_react-core-vendor-CmRfG613.js",
+      "_react-core-vendor-DBfoyjiu.js",
       "_rolldown-runtime-BYbx6iT9.js",
       "_animations-vendor-ZnnRDFcw.js",
-      "_vendor-CW32RcX1.js",
-      "_utils-o3rcqxyj.js"
+      "_vendor-DomEdLiy.js",
+      "_utils-CwdYX0b2.js"
     ]
   },
   "_animations-vendor-ZnnRDFcw.js": {
@@ -484,23 +484,23 @@
       "_animations-vendor-ZnnRDFcw.js"
     ]
   },
-  "_deck-Dt89zulf.js": {
-    "file": "assets/deck-Dt89zulf.js",
+  "_deck-C3hTcFa3.js": {
+    "file": "assets/deck-C3hTcFa3.js",
     "name": "deck",
     "imports": [
-      "_react-core-vendor-CmRfG613.js",
+      "_react-core-vendor-DBfoyjiu.js",
       "_rolldown-runtime-BYbx6iT9.js",
       "index.html",
       "_animations-vendor-ZnnRDFcw.js",
-      "_vendor-CW32RcX1.js",
-      "_DeckCardsTab-EQRIdSII.js",
-      "_DeckOverviewTab-8aXEfeql.js",
-      "_DeckRoadmapTab-Bw2yvZ0y.js",
-      "_DeckSettingsTab-khDTntdx.js"
+      "_vendor-DomEdLiy.js",
+      "_DeckCardsTab-D3tSi_p-.js",
+      "_DeckOverviewTab-i0QDJojt.js",
+      "_DeckRoadmapTab-B7SxP2Yp.js",
+      "_DeckSettingsTab-0H0zHy9u.js"
     ]
   },
-  "_react-core-vendor-CmRfG613.js": {
-    "file": "assets/react-core-vendor-CmRfG613.js",
+  "_react-core-vendor-DBfoyjiu.js": {
+    "file": "assets/react-core-vendor-DBfoyjiu.js",
     "name": "react-core-vendor",
     "imports": [
       "_charts-vendor-DtEHlSYM.js",
@@ -516,33 +516,33 @@
     "file": "assets/text-DODzR70U.js",
     "name": "text"
   },
-  "_utils-o3rcqxyj.js": {
-    "file": "assets/utils-o3rcqxyj.js",
+  "_utils-CwdYX0b2.js": {
+    "file": "assets/utils-CwdYX0b2.js",
     "name": "utils",
     "imports": [
       "_charts-vendor-DtEHlSYM.js",
-      "_vendor-CW32RcX1.js"
+      "_vendor-DomEdLiy.js"
     ]
   },
-  "_vendor-CW32RcX1.js": {
-    "file": "assets/vendor-CW32RcX1.js",
+  "_vendor-DomEdLiy.js": {
+    "file": "assets/vendor-DomEdLiy.js",
     "name": "vendor",
     "imports": [
-      "_react-core-vendor-CmRfG613.js",
+      "_react-core-vendor-DBfoyjiu.js",
       "_rolldown-runtime-BYbx6iT9.js"
     ]
   },
   "index.html": {
-    "file": "assets/index-DcE30RgK.js",
+    "file": "assets/index-CSKpDkVK.js",
     "name": "index",
     "src": "index.html",
     "isEntry": true,
     "imports": [
-      "_react-core-vendor-CmRfG613.js",
+      "_react-core-vendor-DBfoyjiu.js",
       "_rolldown-runtime-BYbx6iT9.js",
       "_animations-vendor-ZnnRDFcw.js",
-      "_vendor-CW32RcX1.js",
-      "_utils-o3rcqxyj.js"
+      "_vendor-DomEdLiy.js",
+      "_utils-CwdYX0b2.js"
     ],
     "dynamicImports": [
       "src/pages/Dashboard.tsx",
@@ -559,195 +559,195 @@
       "src/pages/RoadmapHub.tsx"
     ],
     "css": [
-      "assets/index-Bys108VA.css"
+      "assets/index-CsD1BMCx.css"
     ]
   },
   "src/pages/Admin.tsx": {
-    "file": "assets/Admin-CYgvYX8f.js",
+    "file": "assets/Admin-bJf3xE9v.js",
     "name": "Admin",
     "src": "src/pages/Admin.tsx",
     "isDynamicEntry": true,
     "imports": [
-      "_react-core-vendor-CmRfG613.js",
+      "_react-core-vendor-DBfoyjiu.js",
       "_rolldown-runtime-BYbx6iT9.js",
       "index.html",
       "_animations-vendor-ZnnRDFcw.js",
-      "_vendor-CW32RcX1.js"
+      "_vendor-DomEdLiy.js"
     ]
   },
   "src/pages/Dashboard.tsx": {
-    "file": "assets/Dashboard-DBTQ1ifr.js",
+    "file": "assets/Dashboard-DqOcOoiw.js",
     "name": "Dashboard",
     "src": "src/pages/Dashboard.tsx",
     "isDynamicEntry": true,
     "imports": [
-      "_react-core-vendor-CmRfG613.js",
+      "_react-core-vendor-DBfoyjiu.js",
       "_charts-vendor-DtEHlSYM.js",
       "_rolldown-runtime-BYbx6iT9.js",
       "index.html",
       "_animations-vendor-ZnnRDFcw.js",
-      "_vendor-CW32RcX1.js",
-      "_DailyComparisonChart-ChpAvbu2.js",
-      "_TelegramRoadmapReminderToggle-BXy6zFCc.js",
-      "_utils-o3rcqxyj.js"
+      "_vendor-DomEdLiy.js",
+      "_DailyComparisonChart-CtawZewp.js",
+      "_TelegramRoadmapReminderToggle-Bdfj5jRo.js",
+      "_utils-CwdYX0b2.js"
     ]
   },
   "src/pages/DeckDetailPage.tsx": {
-    "file": "assets/DeckDetailPage-DAIFKi6X.js",
+    "file": "assets/DeckDetailPage-CATS82NZ.js",
     "name": "DeckDetailPage",
     "src": "src/pages/DeckDetailPage.tsx",
     "isDynamicEntry": true,
     "imports": [
-      "_react-core-vendor-CmRfG613.js",
+      "_react-core-vendor-DBfoyjiu.js",
       "_rolldown-runtime-BYbx6iT9.js",
       "index.html",
       "_animations-vendor-ZnnRDFcw.js",
-      "_vendor-CW32RcX1.js",
-      "_DeckCardsTab-EQRIdSII.js",
-      "_deck-Dt89zulf.js",
-      "_utils-o3rcqxyj.js"
+      "_vendor-DomEdLiy.js",
+      "_DeckCardsTab-D3tSi_p-.js",
+      "_deck-C3hTcFa3.js",
+      "_utils-CwdYX0b2.js"
     ],
     "dynamicImports": [
-      "_DeckOverviewTab-8aXEfeql.js",
-      "_DeckCardsTab-EQRIdSII.js",
-      "_DeckRoadmapTab-Bw2yvZ0y.js",
-      "_DeckSettingsTab-khDTntdx.js"
+      "_DeckOverviewTab-i0QDJojt.js",
+      "_DeckCardsTab-D3tSi_p-.js",
+      "_DeckRoadmapTab-B7SxP2Yp.js",
+      "_DeckSettingsTab-0H0zHy9u.js"
     ]
   },
   "src/pages/DecksPage.tsx": {
-    "file": "assets/DecksPage-CyXngBRh.js",
+    "file": "assets/DecksPage-D74Tp7sI.js",
     "name": "DecksPage",
     "src": "src/pages/DecksPage.tsx",
     "isDynamicEntry": true,
     "imports": [
-      "_react-core-vendor-CmRfG613.js",
+      "_react-core-vendor-DBfoyjiu.js",
       "_rolldown-runtime-BYbx6iT9.js",
       "index.html",
       "_animations-vendor-ZnnRDFcw.js",
-      "_vendor-CW32RcX1.js",
-      "_DeckCardsTab-EQRIdSII.js",
-      "_deck-Dt89zulf.js",
-      "_utils-o3rcqxyj.js"
+      "_vendor-DomEdLiy.js",
+      "_DeckCardsTab-D3tSi_p-.js",
+      "_deck-C3hTcFa3.js",
+      "_utils-CwdYX0b2.js"
     ]
   },
   "src/pages/FlashcardPlay.tsx": {
-    "file": "assets/FlashcardPlay-CjlyU7Yr.js",
+    "file": "assets/FlashcardPlay-jK6ji0Mn.js",
     "name": "FlashcardPlay",
     "src": "src/pages/FlashcardPlay.tsx",
     "isDynamicEntry": true,
     "imports": [
-      "_react-core-vendor-CmRfG613.js",
+      "_react-core-vendor-DBfoyjiu.js",
       "_rolldown-runtime-BYbx6iT9.js",
       "index.html",
       "_animations-vendor-ZnnRDFcw.js",
-      "_vendor-CW32RcX1.js",
-      "_DailyComparisonChart-ChpAvbu2.js",
-      "_StudyHeaderTracker-SS7HJ3I0.js",
-      "_FlashcardEditModal-ZQMy3br0.js",
+      "_vendor-DomEdLiy.js",
+      "_DailyComparisonChart-CtawZewp.js",
+      "_StudyHeaderTracker-DZbafLx_.js",
+      "_FlashcardEditModal-DsGi0ZCw.js",
       "_text-DODzR70U.js",
-      "_utils-o3rcqxyj.js"
+      "_utils-CwdYX0b2.js"
     ]
   },
   "src/pages/FlashcardRoom.tsx": {
-    "file": "assets/FlashcardRoom-5l94882i.js",
+    "file": "assets/FlashcardRoom-6KMZHODQ.js",
     "name": "FlashcardRoom",
     "src": "src/pages/FlashcardRoom.tsx",
     "isDynamicEntry": true,
     "imports": [
-      "_react-core-vendor-CmRfG613.js",
+      "_react-core-vendor-DBfoyjiu.js",
       "_rolldown-runtime-BYbx6iT9.js",
       "_animations-vendor-ZnnRDFcw.js",
-      "_vendor-CW32RcX1.js",
+      "_vendor-DomEdLiy.js",
       "_text-DODzR70U.js",
-      "_utils-o3rcqxyj.js"
+      "_utils-CwdYX0b2.js"
     ]
   },
   "src/pages/PracticePlay.tsx": {
-    "file": "assets/PracticePlay-Cp4MVKsW.js",
+    "file": "assets/PracticePlay-R3640SJN.js",
     "name": "PracticePlay",
     "src": "src/pages/PracticePlay.tsx",
     "isDynamicEntry": true,
     "imports": [
-      "_react-core-vendor-CmRfG613.js",
+      "_react-core-vendor-DBfoyjiu.js",
       "_rolldown-runtime-BYbx6iT9.js",
       "index.html",
       "_animations-vendor-ZnnRDFcw.js",
-      "_vendor-CW32RcX1.js",
-      "_DailyComparisonChart-ChpAvbu2.js",
-      "_StudyHeaderTracker-SS7HJ3I0.js",
-      "_FlashcardEditModal-ZQMy3br0.js",
+      "_vendor-DomEdLiy.js",
+      "_DailyComparisonChart-CtawZewp.js",
+      "_StudyHeaderTracker-DZbafLx_.js",
+      "_FlashcardEditModal-DsGi0ZCw.js",
       "_text-DODzR70U.js",
-      "_utils-o3rcqxyj.js"
+      "_utils-CwdYX0b2.js"
     ]
   },
   "src/pages/Profile.tsx": {
-    "file": "assets/Profile-DnI4vJFT.js",
+    "file": "assets/Profile-DcH4pbf4.js",
     "name": "Profile",
     "src": "src/pages/Profile.tsx",
     "isDynamicEntry": true,
     "imports": [
-      "_react-core-vendor-CmRfG613.js",
+      "_react-core-vendor-DBfoyjiu.js",
       "_rolldown-runtime-BYbx6iT9.js",
       "index.html",
       "_animations-vendor-ZnnRDFcw.js",
-      "_vendor-CW32RcX1.js",
-      "_utils-o3rcqxyj.js"
+      "_vendor-DomEdLiy.js",
+      "_utils-CwdYX0b2.js"
     ]
   },
   "src/pages/RoadmapHub.tsx": {
-    "file": "assets/RoadmapHub-7nX7qvXA.js",
+    "file": "assets/RoadmapHub-s-QG5naQ.js",
     "name": "RoadmapHub",
     "src": "src/pages/RoadmapHub.tsx",
     "isDynamicEntry": true,
     "imports": [
-      "_react-core-vendor-CmRfG613.js",
+      "_react-core-vendor-DBfoyjiu.js",
       "_rolldown-runtime-BYbx6iT9.js",
       "_animations-vendor-ZnnRDFcw.js",
-      "_vendor-CW32RcX1.js",
-      "_TelegramRoadmapReminderToggle-BXy6zFCc.js",
-      "_utils-o3rcqxyj.js"
+      "_vendor-DomEdLiy.js",
+      "_TelegramRoadmapReminderToggle-Bdfj5jRo.js",
+      "_utils-CwdYX0b2.js"
     ]
   },
   "src/pages/RoomJoin.tsx": {
-    "file": "assets/RoomJoin-BvOf-8tO.js",
+    "file": "assets/RoomJoin-DTKP6cCw.js",
     "name": "RoomJoin",
     "src": "src/pages/RoomJoin.tsx",
     "isDynamicEntry": true,
     "imports": [
-      "_react-core-vendor-CmRfG613.js",
+      "_react-core-vendor-DBfoyjiu.js",
       "_rolldown-runtime-BYbx6iT9.js",
       "_animations-vendor-ZnnRDFcw.js",
-      "_vendor-CW32RcX1.js",
-      "_utils-o3rcqxyj.js"
+      "_vendor-DomEdLiy.js",
+      "_utils-CwdYX0b2.js"
     ]
   },
   "src/pages/Settings.tsx": {
-    "file": "assets/Settings-BHMfCWsp.js",
+    "file": "assets/Settings-SP_wuvQD.js",
     "name": "Settings",
     "src": "src/pages/Settings.tsx",
     "isDynamicEntry": true,
     "imports": [
-      "_react-core-vendor-CmRfG613.js",
+      "_react-core-vendor-DBfoyjiu.js",
       "_rolldown-runtime-BYbx6iT9.js",
       "index.html",
       "_animations-vendor-ZnnRDFcw.js",
-      "_vendor-CW32RcX1.js",
-      "_utils-o3rcqxyj.js"
+      "_vendor-DomEdLiy.js",
+      "_utils-CwdYX0b2.js"
     ]
   },
   "src/pages/Stats.tsx": {
-    "file": "assets/Stats-D7HFx24Y.js",
+    "file": "assets/Stats-fvkh4kES.js",
     "name": "Stats",
     "src": "src/pages/Stats.tsx",
     "isDynamicEntry": true,
     "imports": [
-      "_react-core-vendor-CmRfG613.js",
+      "_react-core-vendor-DBfoyjiu.js",
       "_charts-vendor-DtEHlSYM.js",
       "_rolldown-runtime-BYbx6iT9.js",
       "_animations-vendor-ZnnRDFcw.js",
-      "_vendor-CW32RcX1.js",
-      "_DailyComparisonChart-ChpAvbu2.js",
-      "_utils-o3rcqxyj.js"
+      "_vendor-DomEdLiy.js",
+      "_DailyComparisonChart-CtawZewp.js",
+      "_utils-CwdYX0b2.js"
     ]
   }
 }

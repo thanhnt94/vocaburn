@@ -26,7 +26,7 @@ class UserSettingsService:
             "autoplay_audio", "quick_learn_enabled", "random_enabled",
             "show_images", "show_fsrs", "quiz_learning_mode",
             "practice_submode", "practice_range", "score_mode", "time_mode",
-            "last_deck_id", "paste_columns"
+            "last_deck_id", "paste_columns", "quick_add_columns"
         }
         
         updated = False
@@ -62,4 +62,5 @@ class UserSettingsService:
             "time_mode": settings_obj.time_mode,
             "last_deck_id": settings_obj.last_deck_id,
             "paste_columns": settings_obj.paste_columns or ["front", "back"],
+            "quick_add_columns": settings_obj.quick_add_columns or ["front", "back"],
         }

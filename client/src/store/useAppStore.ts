@@ -21,6 +21,7 @@ export interface UserSettings {
   time_mode: string
   last_deck_id?: number | null
   paste_columns?: string[]
+  quick_add_columns?: string[]
 }
 
 export const DEFAULT_USER_SETTINGS: UserSettings = {
@@ -40,6 +41,7 @@ export const DEFAULT_USER_SETTINGS: UserSettings = {
   time_mode: 'card',
   last_deck_id: null,
   paste_columns: ['front', 'back'],
+  quick_add_columns: ['front', 'back'],
 }
 
 interface User {

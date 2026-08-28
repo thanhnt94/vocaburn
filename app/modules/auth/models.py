@@ -44,6 +44,7 @@ class UserGlobalSettings(Base):
     time_mode = Column(String(20), default="card") # 'card' | 'today' | 'all'
     last_deck_id = Column(Integer, nullable=True)
     paste_columns = Column(JSON, nullable=True, default=lambda: ["front", "back"])
+    quick_add_columns = Column(JSON, nullable=True, default=lambda: ["front", "back"])
     
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     

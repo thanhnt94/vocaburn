@@ -152,12 +152,11 @@ export function DeckCardsTab({
   }
 
   // Handlers
-  const handleQuickAdd = async (front: string, back: string): Promise<boolean> => {
+  const handleQuickAdd = async (payload: any): Promise<boolean> => {
     setIsQuickAdding(true)
     try {
       await axios.post(`/api/v1/deck/${id}/flashcard`, {
-        content: front,
-        explanation: back,
+        ...payload,
         options: []
       })
       queryClient.invalidateQueries({ queryKey: ['quiz-questions', id] })
@@ -346,6 +345,7 @@ export function DeckCardsTab({
       <DeckCardQuickAdd
         isOpen={isQuickAddOpen}
         onClose={() => setIsQuickAddOpen(false)}
+        deckId={id!}
         onAddCard={handleQuickAdd}
         isAdding={isQuickAdding}
         onOpenFullEdit={() => {
