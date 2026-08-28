@@ -20,6 +20,7 @@ export interface UserSettings {
   score_mode: string
   time_mode: string
   last_deck_id?: number | null
+  paste_columns?: string[]
 }
 
 export const DEFAULT_USER_SETTINGS: UserSettings = {
@@ -38,6 +39,7 @@ export const DEFAULT_USER_SETTINGS: UserSettings = {
   score_mode: 'all',
   time_mode: 'card',
   last_deck_id: null,
+  paste_columns: ['front', 'back'],
 }
 
 interface User {

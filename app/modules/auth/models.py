@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Boolean, DateTime, ForeignKey
+from sqlalchemy import Column, Integer, String, Boolean, DateTime, ForeignKey, JSON
 from sqlalchemy.orm import relationship
 from datetime import datetime
 from app.core.db import Base
@@ -43,6 +43,7 @@ class UserGlobalSettings(Base):
     score_mode = Column(String(20), default="all") # 'today' | 'all'
     time_mode = Column(String(20), default="card") # 'card' | 'today' | 'all'
     last_deck_id = Column(Integer, nullable=True)
+    paste_columns = Column(JSON, nullable=True, default=lambda: ["front", "back"])
     
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
