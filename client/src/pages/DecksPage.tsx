@@ -193,7 +193,7 @@ export default function DecksPage() {
   )
 
   return (
-    <div className="min-h-[calc(100vh-60px)] md:min-h-screen flex flex-col bg-[#F8FAFC] overflow-hidden text-left select-none pb-24 md:pb-8">
+    <div className="fixed inset-0 top-0 bottom-[60px] md:relative md:inset-auto md:top-auto md:bottom-auto md:min-h-screen flex flex-col bg-[#F8FAFC] overflow-hidden text-left select-none">
       {/* ═══════════ TOP UNIFIED HEADER ═══════════ */}
       <div className="shrink-0 z-30 bg-white/90 backdrop-blur-2xl border-b border-slate-200/70 shadow-2xs">
         <div className="max-w-5xl mx-auto px-3 sm:px-6">
