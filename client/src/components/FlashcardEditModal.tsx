@@ -363,6 +363,38 @@ export const FlashcardEditModal: React.FC<FlashcardEditModalProps> = ({
       return;
     }
 
+    if (!flashcard) {
+      initializedCardIdRef.current = 'new';
+      const emptyMerged: Record<string, any> = {
+        front_img: '',
+        back_img: '',
+        front_audio_url: '',
+        back_audio_url: '',
+        front_audio_content: '',
+        back_audio_content: '',
+      };
+      if (Array.isArray(availableColumns)) {
+        for (const col of availableColumns) {
+          if (col !== 'front' && col !== 'back') {
+            emptyMerged[col] = '';
+          }
+        }
+      }
+      setFormData({
+        content: '',
+        explanation: '',
+        ai_explanation: '',
+        hint: '',
+        mnemonic: '',
+        image: null,
+        audio: null,
+        others: emptyMerged
+      });
+      setCustomJsonText('');
+      setJsonError('');
+      return;
+    }
+
     if (flashcard && initializedCardIdRef.current !== flashcard.id) {
       initializedCardIdRef.current = flashcard.id;
       const unresolvedCard = unresolveDict(flashcard);
