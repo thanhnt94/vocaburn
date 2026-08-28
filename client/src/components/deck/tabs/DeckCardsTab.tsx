@@ -1,28 +1,48 @@
-import React, { useState, useMemo } from 'react'
+import React, { useState, useMemo, useEffect } from 'react'
 import { useParams } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { motion, AnimatePresence } from 'framer-motion'
 import axios from 'axios'
 import { DeckCardItem, type CardData } from '../cards/DeckCardItem'
 import { DeckCardQuickAdd } from '../cards/DeckCardQuickAdd'
 import { DeckCardFilterBar, type CardFilterStatus } from '../cards/DeckCardFilterBar'
 import { DeckCardBatchPasteModal } from '../cards/DeckCardBatchPasteModal'
 import { DeckCardEditModal } from '../cards/DeckCardEditModal'
-import { ChevronLeft, ChevronRight, Layers, Sparkles } from 'lucide-react'
+import { DeckPagination } from '../DeckPagination'
+import { Trash2, Star, EyeOff, X, CheckSquare, Sparkles } from 'lucide-react'
 
 export interface DeckCardsTabProps {
   embedded?: boolean
   deckId?: string | number
+  currentPage?: number
+  onPageChange?: (page: number) => void
+  onTotalPagesChange?: (total: number) => void
 }
 
-export function DeckCardsTab({ embedded = false, deckId }: DeckCardsTabProps) {
+export function DeckCardsTab({
+  embedded = false,
+  deckId,
+  currentPage: controlledPage,
+  onPageChange: controlledOnPageChange,
+  onTotalPagesChange
+}: DeckCardsTabProps) {
   const { id: paramId } = useParams()
   const id = deckId ? String(deckId) : paramId
   const queryClient = useQueryClient()
 
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState<CardFilterStatus>('all')
-  const [currentPage, setCurrentPage] = useState(1)
+  const [internalPage, setInternalPage] = useState(1)
   const itemsPerPage = 30
+
+  const currentPage = controlledPage !== undefined ? controlledPage : internalPage
+  const setCurrentPage = (p: number) => {
+    if (controlledOnPageChange) {
+      controlledOnPageChange(p)
+    } else {
+      setInternalPage(p)
+    }
+  }
 
   // Modals state
   const [isBatchPasteOpen, setIsBatchPasteOpen] = useState(false)
@@ -33,6 +53,7 @@ export function DeckCardsTab({ embedded = false, deckId }: DeckCardsTabProps) {
 
   // Multi-select state
   const [selectedCardIds, setSelectedCardIds] = useState<Set<number>>(new Set())
+  const [isBulkProcessing, setIsBulkProcessing] = useState(false)
 
   // 1. Fetch questions list
   const { data, isLoading } = useQuery({
@@ -65,7 +86,6 @@ export function DeckCardsTab({ embedded = false, deckId }: DeckCardsTabProps) {
   // Filter & Search Logic
   const filteredCards = useMemo(() => {
     return rawCards.filter((card) => {
-      // 1. Search Query
       const query = search.toLowerCase().trim()
       const matchesSearch =
         !query ||
@@ -74,7 +94,6 @@ export function DeckCardsTab({ embedded = false, deckId }: DeckCardsTabProps) {
         (card.hint && card.hint.toLowerCase().includes(query)) ||
         (card.mnemonic && card.mnemonic.toLowerCase().includes(query))
 
-      // 2. Status filter
       let matchesStatus = true
       if (statusFilter === 'starred') {
         matchesStatus = !!card.is_starred
@@ -87,11 +106,44 @@ export function DeckCardsTab({ embedded = false, deckId }: DeckCardsTabProps) {
   }, [rawCards, search, statusFilter])
 
   // Pagination Logic
-  const totalPages = Math.max(1, Math.ceil(filteredCards.length / itemsPerPage))
+  const totalPages = useMemo(() => {
+    return Math.max(1, Math.ceil(filteredCards.length / itemsPerPage))
+  }, [filteredCards.length, itemsPerPage])
+
+  useEffect(() => {
+    if (onTotalPagesChange) {
+      onTotalPagesChange(totalPages)
+    }
+  }, [totalPages, onTotalPagesChange])
+
   const paginatedCards = useMemo(() => {
     const start = (currentPage - 1) * itemsPerPage
     return filteredCards.slice(start, start + itemsPerPage)
   }, [filteredCards, currentPage, itemsPerPage])
+
+  // Multi-selection helpers
+  const isAllSelected = filteredCards.length > 0 && selectedCardIds.size === filteredCards.length
+
+  const handleToggleSelectAll = () => {
+    if (isAllSelected) {
+      setSelectedCardIds(new Set())
+    } else {
+      setSelectedCardIds(new Set(filteredCards.map((c) => c.id)))
+    }
+  }
+
+  const handleToggleSelect = (cardId: number) => {
+    setSelectedCardIds((prev) => {
+      const next = new Set(prev)
+      if (next.has(cardId)) next.delete(cardId)
+      else next.add(cardId)
+      return next
+    })
+  }
+
+  const handleClearSelection = () => {
+    setSelectedCardIds(new Set())
+  }
 
   // Handlers
   const handleQuickAdd = async (front: string, back: string): Promise<boolean> => {
@@ -151,10 +203,8 @@ export function DeckCardsTab({ embedded = false, deckId }: DeckCardsTabProps) {
     setIsSavingCard(true)
     try {
       if (editingCard?.id) {
-        // Update existing card
         await axios.patch(`/api/v1/deck/question/${editingCard.id}`, updatedCard)
       } else {
-        // Create new card
         await axios.post(`/api/v1/deck/${id}/flashcard`, updatedCard)
       }
       queryClient.invalidateQueries({ queryKey: ['quiz-questions', id] })
@@ -173,67 +223,102 @@ export function DeckCardsTab({ embedded = false, deckId }: DeckCardsTabProps) {
     }
   }
 
-  const handleToggleSelect = (cardId: number) => {
-    setSelectedCardIds((prev) => {
-      const next = new Set(prev)
-      if (next.has(cardId)) next.delete(cardId)
-      else next.add(cardId)
-      return next
-    })
-  }
-
+  // Bulk Handlers
   const handleBulkDelete = async () => {
     if (selectedCardIds.size === 0) return
-    if (!window.confirm(`Bạn có chắc muốn xóa ${selectedCardIds.size} thẻ đã chọn?`)) return
+    if (!window.confirm(`Bạn có chắc muốn xóa vĩnh viễn ${selectedCardIds.size} thẻ đã chọn?`)) return
+    setIsBulkProcessing(true)
     try {
-      for (const cardId of selectedCardIds) {
-        await axios.delete(`/api/v1/deck/question/${cardId}`)
-      }
+      const deletePromises = Array.from(selectedCardIds).map((cardId) =>
+        axios.delete(`/api/v1/deck/question/${cardId}`)
+      )
+      await Promise.all(deletePromises)
       setSelectedCardIds(new Set())
       queryClient.invalidateQueries({ queryKey: ['quiz-questions', id] })
       queryClient.invalidateQueries({ queryKey: ['quiz', id] })
     } catch (e) {
       alert('Xóa thẻ hàng loạt thất bại')
+    } finally {
+      setIsBulkProcessing(false)
+    }
+  }
+
+  const handleBulkStar = async () => {
+    if (selectedCardIds.size === 0) return
+    setIsBulkProcessing(true)
+    try {
+      const starPromises = Array.from(selectedCardIds).map((cardId) =>
+        axios.post(`/api/v1/deck/question/${cardId}/star`)
+      )
+      await Promise.all(starPromises)
+      queryClient.invalidateQueries({ queryKey: ['quiz-questions', id] })
+    } catch (e) {
+      console.error('Failed to star selected cards', e)
+    } finally {
+      setIsBulkProcessing(false)
+    }
+  }
+
+  const handleBulkIgnore = async () => {
+    if (selectedCardIds.size === 0) return
+    setIsBulkProcessing(true)
+    try {
+      const ignorePromises = Array.from(selectedCardIds).map((cardId) =>
+        axios.post(`/api/v1/deck/question/${cardId}/ignore`)
+      )
+      await Promise.all(ignorePromises)
+      queryClient.invalidateQueries({ queryKey: ['quiz-questions', id] })
+    } catch (e) {
+      console.error('Failed to ignore selected cards', e)
+    } finally {
+      setIsBulkProcessing(false)
     }
   }
 
   return (
-    <div className="max-w-5xl mx-auto px-4 py-4 sm:py-6 space-y-4 text-left animate-in fade-in duration-200">
+    <div className="max-w-5xl mx-auto px-3 sm:px-6 py-3 space-y-3 text-left animate-in fade-in duration-200 relative pb-28 md:pb-8">
       {/* 1. Quick Add Bar */}
       <DeckCardQuickAdd onAddCard={handleQuickAdd} isAdding={isQuickAdding} />
 
-      {/* 2. Filter Bar */}
-      <DeckCardFilterBar
-        search={search}
-        onSearchChange={(val) => {
-          setSearch(val)
-          setCurrentPage(1)
-        }}
-        status={statusFilter}
-        onStatusChange={(val) => {
-          setStatusFilter(val)
-          setCurrentPage(1)
-        }}
-        totalCount={rawCards.length}
-        filteredCount={filteredCards.length}
-        selectedCount={selectedCardIds.size}
-        onOpenBatchPaste={() => setIsBatchPasteOpen(true)}
-        onAddNewCard={() => {
-          setEditingCard(null)
-          setIsEditModalOpen(true)
-        }}
-        onBulkDelete={handleBulkDelete}
-      />
+      {/* 2. Sticky Filter & Search Bar */}
+      <div className="sticky top-0 z-20 bg-[#F8FAFC]/95 backdrop-blur-md pt-1 pb-1">
+        <DeckCardFilterBar
+          search={search}
+          onSearchChange={(val) => {
+            setSearch(val)
+            setCurrentPage(1)
+          }}
+          status={statusFilter}
+          onStatusChange={(val) => {
+            setStatusFilter(val)
+            setCurrentPage(1)
+          }}
+          totalCount={rawCards.length}
+          filteredCount={filteredCards.length}
+          selectedCount={selectedCardIds.size}
+          isAllSelected={isAllSelected}
+          onToggleSelectAll={handleToggleSelectAll}
+          onOpenBatchPaste={() => setIsBatchPasteOpen(true)}
+          onAddNewCard={() => {
+            setEditingCard(null)
+            setIsEditModalOpen(true)
+          }}
+          onBulkDelete={handleBulkDelete}
+          onBulkIgnore={handleBulkIgnore}
+          onBulkStar={handleBulkStar}
+          onClearSelection={handleClearSelection}
+        />
+      </div>
 
       {/* 3. Cards List */}
       {isLoading ? (
-        <div className="space-y-3">
-          {[1, 2, 3, 4].map((n) => (
-            <div key={n} className="h-20 bg-white rounded-2xl border border-slate-100 animate-pulse" />
+        <div className="space-y-2.5">
+          {[1, 2, 3, 4, 5].map((n) => (
+            <div key={n} className="h-24 bg-white rounded-2xl border border-slate-100 animate-pulse" />
           ))}
         </div>
       ) : filteredCards.length === 0 ? (
-        <div className="p-12 text-center bg-white rounded-3xl border border-slate-100 shadow-sm">
+        <div className="p-12 text-center bg-white rounded-3xl border border-slate-200/80 shadow-xs">
           <span className="text-3xl block mb-2">🎴</span>
           <h3 className="text-sm font-black text-slate-800">Không tìm thấy thẻ từ vựng nào</h3>
           <p className="text-xs text-slate-400 mt-1">
@@ -258,36 +343,82 @@ export function DeckCardsTab({ embedded = false, deckId }: DeckCardsTabProps) {
         </div>
       )}
 
-      {/* 4. Pagination */}
-      {totalPages > 1 && (
+      {/* 4. Standalone Pagination Fallback (If not embedded in DeckDetailPage) */}
+      {!controlledOnPageChange && (
         <div className="flex items-center justify-between pt-3 text-slate-400 text-xs font-bold">
           <span>
             Hiển thị {paginatedCards.length} / {filteredCards.length} thẻ
           </span>
 
-          <div className="flex items-center gap-1.5">
-            <button
-              onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-              disabled={currentPage === 1}
-              className="px-3 h-8 rounded-xl bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 disabled:opacity-40 font-bold transition-all flex items-center gap-1 cursor-pointer"
-            >
-              <ChevronLeft className="w-3.5 h-3.5" /> Trước
-            </button>
-
-            <span className="px-2 font-black text-slate-700">
-              {currentPage} / {totalPages}
-            </span>
-
-            <button
-              onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-              disabled={currentPage === totalPages}
-              className="px-3 h-8 rounded-xl bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 disabled:opacity-40 font-bold transition-all flex items-center gap-1 cursor-pointer"
-            >
-              Sau <ChevronRight className="w-3.5 h-3.5" />
-            </button>
-          </div>
+          <DeckPagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            onPageChange={setCurrentPage}
+          />
         </div>
       )}
+
+      {/* ═══════════ FLOATING BULK ACTION TOOLBAR ═══════════ */}
+      <AnimatePresence>
+        {selectedCardIds.size > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: 30, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 30, scale: 0.95 }}
+            transition={{ type: "spring", bounce: 0.15, duration: 0.3 }}
+            className="fixed bottom-[115px] md:bottom-16 left-4 right-4 max-w-lg mx-auto z-[150] bg-slate-900/95 backdrop-blur-xl text-white rounded-2xl p-2.5 sm:p-3 shadow-2xl border border-slate-700/80 flex items-center justify-between gap-2"
+          >
+            <div className="flex items-center gap-2 pl-1.5 min-w-0">
+              <span className="w-6 h-6 rounded-lg bg-indigo-600 text-white text-xs font-black flex items-center justify-center shrink-0">
+                {selectedCardIds.size}
+              </span>
+              <span className="text-xs font-bold text-slate-200 truncate">
+                Đã chọn {selectedCardIds.size} thẻ
+              </span>
+            </div>
+
+            <div className="flex items-center gap-1.5 shrink-0">
+              <button
+                onClick={handleBulkStar}
+                disabled={isBulkProcessing}
+                className="h-8 px-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-amber-400 text-xs font-bold transition-all flex items-center gap-1 cursor-pointer disabled:opacity-50"
+                title="Gắn sao các thẻ đã chọn"
+              >
+                <Star className="w-3.5 h-3.5 fill-current" />
+                <span className="hidden sm:inline">Sao</span>
+              </button>
+
+              <button
+                onClick={handleBulkIgnore}
+                disabled={isBulkProcessing}
+                className="h-8 px-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold transition-all flex items-center gap-1 cursor-pointer disabled:opacity-50"
+                title="Ẩn các thẻ đã chọn"
+              >
+                <EyeOff className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Ẩn</span>
+              </button>
+
+              <button
+                onClick={handleBulkDelete}
+                disabled={isBulkProcessing}
+                className="h-8 px-3 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-black transition-all flex items-center gap-1 cursor-pointer disabled:opacity-50 shadow-sm shadow-rose-900/40"
+                title="Xóa tất cả các thẻ đã chọn"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                <span>Xóa</span>
+              </button>
+
+              <button
+                onClick={handleClearSelection}
+                className="w-7 h-7 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white transition-all flex items-center justify-center cursor-pointer ml-1"
+                title="Bỏ chọn tất cả"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* 5. Modals */}
       <DeckCardBatchPasteModal
