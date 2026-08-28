@@ -1,5 +1,5 @@
 import React from 'react'
-import { Search, Star, EyeOff, ClipboardPaste, Plus, Trash2, CheckSquare, Square, X } from 'lucide-react'
+import { Search, Star, EyeOff, ClipboardPaste, Plus, Trash2, CheckSquare, Square, X, Zap } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 export type CardFilterStatus = 'all' | 'starred' | 'ignored'
@@ -13,6 +13,8 @@ export interface DeckCardFilterBarProps {
   filteredCount: number
   selectedCount: number
   isAllSelected?: boolean
+  isQuickAddOpen?: boolean
+  onToggleQuickAdd?: () => void
   onToggleSelectAll?: () => void
   onOpenBatchPaste: () => void
   onAddNewCard: () => void
@@ -31,6 +33,8 @@ export function DeckCardFilterBar({
   filteredCount,
   selectedCount,
   isAllSelected,
+  isQuickAddOpen,
+  onToggleQuickAdd,
   onToggleSelectAll,
   onOpenBatchPaste,
   onAddNewCard,
@@ -64,6 +68,22 @@ export function DeckCardFilterBar({
 
         {/* Quick Actions */}
         <div className="flex items-center gap-1.5 shrink-0">
+          {onToggleQuickAdd && (
+            <button
+              onClick={onToggleQuickAdd}
+              className={cn(
+                "h-9 px-2.5 sm:px-3 rounded-xl border text-xs font-black transition-all flex items-center gap-1 active:scale-95 cursor-pointer shadow-2xs",
+                isQuickAddOpen
+                  ? "bg-orange-500 border-orange-500 text-white shadow-orange-500/20"
+                  : "bg-orange-50 hover:bg-orange-100/80 border-orange-200 text-orange-700"
+              )}
+              title="Bật/tắt thanh nhập nhanh từ vựng"
+            >
+              <Zap className="w-3.5 h-3.5 fill-current" />
+              <span>+ Thêm nhanh</span>
+            </button>
+          )}
+
           <button
             onClick={onOpenBatchPaste}
             className="h-9 px-2.5 sm:px-3 rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-200/80 text-slate-700 text-xs font-black transition-all flex items-center gap-1 active:scale-95 cursor-pointer shadow-2xs"
@@ -76,9 +96,10 @@ export function DeckCardFilterBar({
           <button
             onClick={onAddNewCard}
             className="h-9 px-3 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-black shadow-xs shadow-indigo-200 active:scale-95 transition-all flex items-center gap-1 cursor-pointer"
+            title="Mở form tạo thẻ đầy đủ chi tiết"
           >
             <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
-            <span className="hidden xs:inline">Tạo thẻ</span>
+            <span className="hidden xs:inline">Chi tiết</span>
           </button>
         </div>
       </div>

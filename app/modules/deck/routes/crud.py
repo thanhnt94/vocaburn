@@ -315,7 +315,9 @@ async def validate_deck(file: UploadFile = File(...)):
 @router.get("/{deck_id}/questions")
 @router.get("/{deck_id}/flashcards")
 @router.get("/{deck_id}/cards")
-async def get_deck_cards(deck_id: int, request: Request, page: int = 1, size: int = 50, search: str = "", db: AsyncSession = Depends(get_db)):
+async def get_deck_cards(deck_id: int, request: Request, page: int = 1, size: int = 50, limit: Optional[int] = None, search: str = "", db: AsyncSession = Depends(get_db)):
+    if limit is not None:
+        size = limit
     from app.modules.deck.models import Flashcard
     from sqlalchemy import or_, and_, func, cast, String
     

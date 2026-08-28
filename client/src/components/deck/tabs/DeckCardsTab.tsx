@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect, useRef } from 'react'
+import React, { useState, useMemo, useEffect } from 'react'
 import { useParams } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -9,7 +9,7 @@ import { DeckCardFilterBar, type CardFilterStatus } from '../cards/DeckCardFilte
 import { DeckCardBatchPasteModal } from '../cards/DeckCardBatchPasteModal'
 import { DeckCardEditModal } from '../cards/DeckCardEditModal'
 import { DeckPagination } from '../DeckPagination'
-import { Trash2, Star, EyeOff, X, CheckSquare, Sparkles, PlusCircle } from 'lucide-react'
+import { Trash2, Star, EyeOff, X, Zap } from 'lucide-react'
 
 export interface DeckCardsTabProps {
   embedded?: boolean
@@ -31,12 +31,12 @@ export function DeckCardsTab({
   const { id: paramId } = useParams()
   const id = deckId ? String(deckId) : paramId
   const queryClient = useQueryClient()
-  const quickAddRef = useRef<HTMLDivElement>(null)
 
   const [search, setSearch] = useState('')
+  const [debouncedSearch, setDebouncedSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState<CardFilterStatus>('all')
   const [internalPage, setInternalPage] = useState(1)
-  const itemsPerPage = 30
+  const pageSize = 50
 
   const currentPage = controlledPage !== undefined ? controlledPage : internalPage
   const setCurrentPage = (p: number) => {
@@ -47,7 +47,17 @@ export function DeckCardsTab({
     }
   }
 
+  // Debounce search input for snappy typing
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(search)
+      setCurrentPage(1)
+    }, 300)
+    return () => clearTimeout(timer)
+  }, [search])
+
   // Modals state
+  const [isQuickAddOpen, setIsQuickAddOpen] = useState(false)
   const [isBatchPasteOpen, setIsBatchPasteOpen] = useState(false)
   const [isEditModalOpen, setIsEditModalOpen] = useState(false)
   const [editingCard, setEditingCard] = useState<CardData | null>(null)
@@ -64,13 +74,17 @@ export function DeckCardsTab({
     }
   }, [selectedCardIds.size, onSelectionChange])
 
-  // 1. Fetch questions list
+  // 1. Fetch server-side paginated questions list
   const { data, isLoading } = useQuery({
-    queryKey: ['quiz-questions', id],
+    queryKey: ['quiz-questions', id, currentPage, debouncedSearch],
     queryFn: async () => {
       if (!id) return { questions: [], total: 0 }
       const res = await axios.get(`/api/v1/deck/${id}/questions`, {
-        params: { limit: 2000 }
+        params: {
+          page: currentPage,
+          size: pageSize,
+          search: debouncedSearch.trim()
+        }
       })
       return res.data
     },
@@ -91,33 +105,21 @@ export function DeckCardsTab({
   })
 
   const rawCards: CardData[] = data?.questions || []
+  const totalCards: number = data?.total ?? 0
 
-  // Filter & Search Logic
-  const filteredCards = useMemo(() => {
+  // Filter Status Logic (Client-side refinement for starred / ignored)
+  const displayedCards = useMemo(() => {
     return rawCards.filter((card) => {
-      const query = search.toLowerCase().trim()
-      const matchesSearch =
-        !query ||
-        card.content.toLowerCase().includes(query) ||
-        (card.explanation && card.explanation.toLowerCase().includes(query)) ||
-        (card.hint && card.hint.toLowerCase().includes(query)) ||
-        (card.mnemonic && card.mnemonic.toLowerCase().includes(query))
-
-      let matchesStatus = true
-      if (statusFilter === 'starred') {
-        matchesStatus = !!card.is_starred
-      } else if (statusFilter === 'ignored') {
-        matchesStatus = !!card.is_ignored
-      }
-
-      return matchesSearch && matchesStatus
+      if (statusFilter === 'starred') return !!card.is_starred
+      if (statusFilter === 'ignored') return !!card.is_ignored
+      return true
     })
-  }, [rawCards, search, statusFilter])
+  }, [rawCards, statusFilter])
 
-  // Pagination Logic
+  // Total pages based on server total
   const totalPages = useMemo(() => {
-    return Math.max(1, Math.ceil(filteredCards.length / itemsPerPage))
-  }, [filteredCards.length, itemsPerPage])
+    return Math.max(1, Math.ceil(totalCards / pageSize))
+  }, [totalCards, pageSize])
 
   useEffect(() => {
     if (onTotalPagesChange) {
@@ -125,19 +127,14 @@ export function DeckCardsTab({
     }
   }, [totalPages, onTotalPagesChange])
 
-  const paginatedCards = useMemo(() => {
-    const start = (currentPage - 1) * itemsPerPage
-    return filteredCards.slice(start, start + itemsPerPage)
-  }, [filteredCards, currentPage, itemsPerPage])
-
   // Multi-selection helpers
-  const isAllSelected = filteredCards.length > 0 && selectedCardIds.size === filteredCards.length
+  const isAllSelected = displayedCards.length > 0 && selectedCardIds.size === displayedCards.length
 
   const handleToggleSelectAll = () => {
     if (isAllSelected) {
       setSelectedCardIds(new Set())
     } else {
-      setSelectedCardIds(new Set(filteredCards.map((c) => c.id)))
+      setSelectedCardIds(new Set(displayedCards.map((c) => c.id)))
     }
   }
 
@@ -286,23 +283,19 @@ export function DeckCardsTab({
 
   return (
     <div className="max-w-5xl mx-auto px-3 sm:px-6 py-3 space-y-3 text-left animate-in fade-in duration-200 relative pb-36 sm:pb-32">
-      {/* 1. Sticky Filter & Search Bar (Nằm trên cùng danh sách thẻ) */}
+      {/* 1. Sticky Filter & Search Bar */}
       <div className="sticky top-0 z-20 bg-[#F8FAFC]/95 backdrop-blur-md pt-1 pb-1">
         <DeckCardFilterBar
           search={search}
-          onSearchChange={(val) => {
-            setSearch(val)
-            setCurrentPage(1)
-          }}
+          onSearchChange={setSearch}
           status={statusFilter}
-          onStatusChange={(val) => {
-            setStatusFilter(val)
-            setCurrentPage(1)
-          }}
-          totalCount={rawCards.length}
-          filteredCount={filteredCards.length}
+          onStatusChange={setStatusFilter}
+          totalCount={totalCards}
+          filteredCount={displayedCards.length}
           selectedCount={selectedCardIds.size}
           isAllSelected={isAllSelected}
+          isQuickAddOpen={isQuickAddOpen}
+          onToggleQuickAdd={() => setIsQuickAddOpen(prev => !prev)}
           onToggleSelectAll={handleToggleSelectAll}
           onOpenBatchPaste={() => setIsBatchPasteOpen(true)}
           onAddNewCard={() => {
@@ -323,21 +316,21 @@ export function DeckCardsTab({
             <div key={n} className="h-24 bg-white rounded-2xl border border-slate-100 animate-pulse" />
           ))}
         </div>
-      ) : filteredCards.length === 0 ? (
+      ) : displayedCards.length === 0 ? (
         <div className="p-12 text-center bg-white rounded-3xl border border-slate-200/80 shadow-xs">
           <span className="text-3xl block mb-2">🎴</span>
           <h3 className="text-sm font-black text-slate-800">Không tìm thấy thẻ từ vựng nào</h3>
           <p className="text-xs text-slate-400 mt-1">
-            {search ? 'Thử tìm kiếm với từ khóa khác' : 'Hãy nhập từ vựng vào khung thêm nhanh phía dưới!'}
+            {search ? 'Thử tìm kiếm với từ khóa khác' : 'Hãy bấm "+ Thêm nhanh" để bắt đầu tạo thẻ!'}
           </p>
         </div>
       ) : (
         <div className="space-y-2.5">
-          {paginatedCards.map((card, idx) => (
+          {displayedCards.map((card, idx) => (
             <DeckCardItem
               key={card.id}
               card={card}
-              index={(currentPage - 1) * itemsPerPage + idx}
+              index={(currentPage - 1) * pageSize + idx}
               isSelected={selectedCardIds.has(card.id)}
               onToggleSelect={() => handleToggleSelect(card.id)}
               onEdit={handleOpenEdit}
@@ -349,22 +342,23 @@ export function DeckCardsTab({
         </div>
       )}
 
-      {/* 3. Quick Add Bar Chuyển Xuống Dưới Cùng (Thumb Zone tiện lợi) */}
-      <div ref={quickAddRef} className="pt-2">
-        <div className="flex items-center gap-2 mb-2 px-1">
-          <PlusCircle className="w-4 h-4 text-indigo-600" />
-          <span className="text-xs font-black text-slate-700 uppercase tracking-wider">
-            Thêm nhanh thẻ mới
-          </span>
-        </div>
-        <DeckCardQuickAdd onAddCard={handleQuickAdd} isAdding={isQuickAdding} />
-      </div>
+      {/* 3. Docked Quick Add Panel (Xuất hiện ngay phía trên thanh tab khi bật) */}
+      <DeckCardQuickAdd
+        isOpen={isQuickAddOpen}
+        onClose={() => setIsQuickAddOpen(false)}
+        onAddCard={handleQuickAdd}
+        isAdding={isQuickAdding}
+        onOpenFullEdit={() => {
+          setEditingCard(null)
+          setIsEditModalOpen(true)
+        }}
+      />
 
       {/* 4. Standalone Pagination Fallback (Khi không nằm trong DeckDetailPage) */}
       {!controlledOnPageChange && (
         <div className="flex items-center justify-between pt-3 text-slate-400 text-xs font-bold">
           <span>
-            Hiển thị {paginatedCards.length} / {filteredCards.length} thẻ
+            Trang {currentPage} / {totalPages} (Tổng {totalCards} thẻ)
           </span>
 
           <DeckPagination
@@ -375,7 +369,7 @@ export function DeckCardsTab({
         </div>
       )}
 
-      {/* ═══════════ FLOATING BULK ACTION TOOLBAR (CENTERED, CLEAN) ═══════════ */}
+      {/* ═══════════ FLOATING BULK ACTION TOOLBAR ═══════════ */}
       <AnimatePresence>
         {selectedCardIds.size > 0 && (
           <motion.div

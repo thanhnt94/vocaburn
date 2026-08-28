@@ -180,21 +180,25 @@ export default function DeckDetailPage() {
         </Suspense>
       </div>
 
-      {/* ═══════════ FLOATING PAGINATION STEPPER ("NÚT BAY BAY" PHÍA TRÊN GÓC PHẢI - TỰ ẨN KHI CHỌN HÀNG LOẠT) ═══════════ */}
+      {/* ═══════════ DRAGGABLE FLOATING PAGINATION ("NÚT BAY BAY KÉO THẢ ĐƯỢC") ═══════════ */}
       <AnimatePresence>
         {activeTab === 'cards' && !hasCardSelection && (
           <motion.div
+            drag
+            dragMomentum={false}
+            dragElastic={0.1}
             initial={{ opacity: 0, scale: 0.85, y: 8 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.85, y: 8 }}
             transition={{ duration: 0.15 }}
-            className="fixed bottom-[72px] md:bottom-20 right-3 sm:right-6 z-40"
+            className="fixed bottom-[72px] md:bottom-20 right-3 sm:right-6 z-40 touch-none cursor-grab active:cursor-grabbing"
+            title="Kéo thả để di chuyển vị trí bất kỳ"
           >
             <DeckPagination
               currentPage={cardsPage}
               totalPages={cardsTotalPages}
               onPageChange={setCardsPage}
-              className="bg-white/95 backdrop-blur-xl shadow-lg border border-slate-200/90 rounded-2xl p-1 shadow-indigo-500/10"
+              className="bg-white/95 backdrop-blur-xl shadow-xl border border-slate-200/90 rounded-2xl p-1 shadow-indigo-500/15"
             />
           </motion.div>
         )}
