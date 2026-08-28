@@ -171,33 +171,28 @@ export default function DecksPage() {
   )
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC] pb-24 sm:pb-12 text-left">
-      {/* ═══════════ TOP APP-LIKE STICKY HEADER ═══════════ */}
+    <div className="min-h-screen bg-[#F8FAFC] pb-32 sm:pb-24 text-left">
+      {/* ═══════════ TOP COMPACT APP-LIKE HEADER ═══════════ */}
       <div className="sticky top-0 md:top-16 z-30 bg-white/95 backdrop-blur-xl border-b border-slate-200/80 shadow-2xs">
         <div className="max-w-5xl mx-auto px-4 sm:px-6">
           
           {/* Row 1: Header Title & Minimalist Action Buttons */}
-          <div className="flex items-center justify-between pt-3 pb-2">
-            <div className="flex items-center gap-2.5">
-              <div className="w-9 h-9 rounded-2xl bg-gradient-to-tr from-indigo-600 to-purple-600 flex items-center justify-center text-white text-base shadow-xs shrink-0 font-bold">
+          <div className="flex items-center justify-between pt-2.5 pb-2">
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-indigo-600 to-purple-600 flex items-center justify-center text-white text-sm shadow-xs shrink-0 font-bold">
                 🎴
               </div>
-              <div>
-                <div className="flex items-center gap-2">
-                  <h1 className="text-base sm:text-lg font-black text-slate-900 tracking-tight">
-                    Bộ Thẻ
-                  </h1>
-                  <span className="px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-700 text-[10px] font-black border border-indigo-100">
-                    {filteredData.length} bộ
-                  </span>
-                </div>
-                <p className="text-[10px] text-slate-400 font-bold hidden sm:block">
-                  Không gian học tập FSRS & Lộ trình thông minh
-                </p>
+              <div className="flex items-center gap-2">
+                <h1 className="text-sm sm:text-base font-black text-slate-900 tracking-tight">
+                  Bộ Thẻ
+                </h1>
+                <span className="px-2 py-0.2 rounded-full bg-indigo-50 text-indigo-700 text-[10px] font-black border border-indigo-100">
+                  {filteredData.length}
+                </span>
               </div>
             </div>
 
-            {/* Quick Action Icons */}
+            {/* Quick Action Icons (Top Right) */}
             <div className="flex items-center gap-1.5">
               {/* Search Toggle Icon */}
               <button
@@ -225,7 +220,7 @@ export default function DecksPage() {
               {/* Create Deck Button */}
               <button
                 onClick={() => setIsCreateModalOpen(true)}
-                className="h-8 px-3 rounded-xl bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white text-xs font-black shadow-xs active:scale-95 transition-all flex items-center gap-1 cursor-pointer shrink-0"
+                className="h-8 px-2.5 sm:px-3 rounded-xl bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white text-[11px] sm:text-xs font-black shadow-xs active:scale-95 transition-all flex items-center gap-1 cursor-pointer shrink-0"
               >
                 <Plus className="w-3.5 h-3.5" />
                 <span className="hidden xs:inline">Tạo mới</span>
@@ -251,7 +246,7 @@ export default function DecksPage() {
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     autoFocus
-                    className="w-full h-9 pl-9 pr-8 bg-slate-100/90 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 placeholder:text-slate-400 outline-none focus:bg-white focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/15 transition-all"
+                    className="w-full h-8.5 pl-9 pr-8 bg-slate-100/90 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 placeholder:text-slate-400 outline-none focus:bg-white focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/15 transition-all"
                   />
                   {searchQuery && (
                     <button
@@ -266,42 +261,8 @@ export default function DecksPage() {
             )}
           </AnimatePresence>
 
-          {/* Row 3: iOS-style Segmented Tabs */}
-          <div className="pb-2">
-            <div className="grid grid-cols-3 w-full bg-slate-100/80 p-1 rounded-2xl border border-slate-200/60">
-              {tabsConfig.map((tab) => {
-                const isActive = activeTab === tab.id
-                return (
-                  <button
-                    key={tab.id}
-                    onClick={() => setActiveTab(tab.id)}
-                    className={cn(
-                      "relative flex items-center justify-center gap-1.5 py-1.5 rounded-xl text-xs font-black transition-all select-none cursor-pointer",
-                      isActive ? "text-indigo-600" : "text-slate-500 hover:text-slate-800"
-                    )}
-                  >
-                    {isActive && (
-                      <motion.div
-                        layoutId="activeDecksAppTabPill"
-                        className="absolute inset-0 bg-white rounded-xl shadow-xs border border-slate-200/80"
-                        transition={{ type: "spring", bounce: 0.15, duration: 0.4 }}
-                      />
-                    )}
-                    <span className="relative z-10 text-[11px] sm:text-xs truncate">{tab.label}</span>
-                    <span className={cn(
-                      "relative z-10 px-1.5 py-0.2 rounded-md text-[9px] font-black leading-none",
-                      isActive ? "bg-indigo-50 text-indigo-700" : "bg-slate-200 text-slate-600"
-                    )}>
-                      {tab.count}
-                    </span>
-                  </button>
-                )
-              })}
-            </div>
-          </div>
-
-          {/* Row 4: Horizontal Scrollable Filter Chips */}
-          <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-2.5 pt-0.5">
+          {/* Row 3: Horizontal Scrollable Filter Chips */}
+          <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-2 pt-0.5">
             {activeTab === 'my' && (
               <>
                 {[
@@ -362,7 +323,7 @@ export default function DecksPage() {
         </div>
       </div>
 
-      {/* ═══════════ MAIN DECK LIST (APP-LIKE CARDS) ═══════════ */}
+      {/* ═══════════ MAIN DECK LIST (SCROLLABLE CARDS) ═══════════ */}
       <div className="max-w-5xl mx-auto px-3 sm:px-6 pt-3.5">
         
         {/* Empty State */}
@@ -406,14 +367,14 @@ export default function DecksPage() {
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0, scale: 0.95 }}
                       transition={{ delay: idx * 0.015 }}
-                      className="group bg-white rounded-2xl border border-slate-200/80 hover:border-indigo-300 p-3 shadow-2xs hover:shadow-sm transition-all flex flex-col justify-between gap-2.5 relative"
+                      className="group bg-white rounded-2xl border border-slate-200/80 hover:border-indigo-300 p-3 shadow-2xs hover:shadow-sm transition-all flex flex-col justify-between gap-2 relative"
                     >
-                      {/* Top Row: Thumbnail + Info + Quick Actions */}
+                      {/* Card Content Row */}
                       <div className="flex items-center gap-3 min-w-0">
                         {/* Thumbnail */}
                         <div
                           onClick={() => navigate(`/decks/${quiz.id}`)}
-                          className="w-12 h-12 rounded-2xl overflow-hidden border border-slate-100 shadow-2xs shrink-0 cursor-pointer group-hover:scale-102 transition-transform flex items-center justify-center"
+                          className="w-11 h-11 rounded-2xl overflow-hidden border border-slate-100 shadow-2xs shrink-0 cursor-pointer group-hover:scale-102 transition-transform flex items-center justify-center"
                         >
                           {quiz.cover_image ? (
                             <img src={quiz.cover_image} alt="" className="w-full h-full object-cover" />
@@ -431,16 +392,14 @@ export default function DecksPage() {
                           )}
                         </div>
 
-                        {/* Deck Info (Click to View) */}
+                        {/* Deck Info */}
                         <div
                           onClick={() => navigate(`/decks/${quiz.id}`)}
                           className="flex-1 min-w-0 cursor-pointer"
                         >
-                          <div className="flex items-center gap-1.5">
-                            <h3 className="text-xs sm:text-sm font-extrabold text-slate-800 group-hover:text-indigo-600 transition-colors line-clamp-1">
-                              {quiz.title}
-                            </h3>
-                          </div>
+                          <h3 className="text-xs sm:text-sm font-extrabold text-slate-800 group-hover:text-indigo-600 transition-colors line-clamp-1">
+                            {quiz.title}
+                          </h3>
 
                           <div className="flex items-center gap-2 mt-0.5 text-[10px] font-bold text-slate-400">
                             <span>{quiz.questions_count} thẻ</span>
@@ -463,12 +422,12 @@ export default function DecksPage() {
                           </div>
                         </div>
 
-                        {/* Right Buttons: Primary Quick CTA + More Options */}
+                        {/* Right Buttons: Quick Play CTA + More Options */}
                         <div className="flex items-center gap-1.5 shrink-0">
                           {activeTab === 'my' && (
                             <button
                               onClick={() => handleStudyTrigger(quiz, 'flashcard')}
-                              className="h-8.5 px-3 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xs shadow-xs shadow-indigo-200 active:scale-95 transition-all flex items-center gap-1 cursor-pointer"
+                              className="h-8.5 px-3 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-black text-xs shadow-xs shadow-indigo-200 active:scale-95 transition-all flex items-center gap-1 cursor-pointer"
                               title="Học bộ thẻ này"
                             >
                               <Play className="w-3.5 h-3.5 fill-current" />
@@ -507,7 +466,7 @@ export default function DecksPage() {
                         </div>
                       </div>
 
-                      {/* Slim Bottom Progress Bar for Active Decks */}
+                      {/* Slim Bottom Progress Bar */}
                       {activeTab !== 'discover' && (
                         <div className="w-full h-1 bg-slate-100 rounded-full overflow-hidden">
                           <div
@@ -524,47 +483,78 @@ export default function DecksPage() {
                 })}
               </AnimatePresence>
             </div>
-
-            {/* Pagination Controls */}
-            {totalPages > 1 && (
-              <div className="flex items-center justify-between pt-3 pb-4 text-slate-400">
-                <span className="text-[11px] font-bold">
-                  Trang {currentPage} / {totalPages}
-                </span>
-
-                <div className="flex items-center gap-1">
-                  <button 
-                    onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-                    disabled={currentPage === 1}
-                    className="px-3 h-8 rounded-xl bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 disabled:opacity-40 text-xs font-bold transition-all flex items-center gap-0.5 cursor-pointer shadow-2xs"
-                  >
-                    <ChevronLeft className="w-3.5 h-3.5" /> Trước
-                  </button>
-
-                  <button 
-                    onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
-                    disabled={currentPage === totalPages}
-                    className="px-3 h-8 rounded-xl bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 disabled:opacity-40 text-xs font-bold transition-all flex items-center gap-0.5 cursor-pointer shadow-2xs"
-                  >
-                    Sau <ChevronRight className="w-3.5 h-3.5" />
-                  </button>
-                </div>
-              </div>
-            )}
           </div>
         )}
 
       </div>
 
-      {/* ═══════════ ONE-HAND MOBILE FLOATING ACTION BUTTON (FAB) ═══════════ */}
-      <div className="fixed bottom-20 right-4 sm:hidden z-20">
-        <button
-          onClick={() => setIsCreateModalOpen(true)}
-          className="w-13 h-13 rounded-2xl bg-gradient-to-r from-orange-500 to-amber-500 text-white flex items-center justify-center shadow-lg shadow-orange-500/30 active:scale-90 transition-transform cursor-pointer"
-          title="Tạo bộ thẻ mới"
-        >
-          <Plus className="w-6 h-6 stroke-[2.5]" />
-        </button>
+      {/* ═══════════ ONE-HAND BOTTOM DOCKED CONTROL BAR ═══════════ */}
+      {/* Docked directly above mobile bottom nav (bottom-[60px]) and sticky bottom on desktop */}
+      <div className="fixed bottom-[60px] md:bottom-0 left-0 right-0 z-[110] bg-white/95 backdrop-blur-2xl border-t border-slate-200/80 px-3 sm:px-6 py-2 shadow-[0_-4px_20px_rgba(0,0,0,0.05)]">
+        <div className="max-w-5xl mx-auto flex items-center justify-between gap-2">
+          
+          {/* Left/Center: Segmented Tabs (Thumb Zone) */}
+          <div className="flex-1 max-w-sm">
+            <div className="grid grid-cols-3 w-full bg-slate-100/90 p-1 rounded-2xl border border-slate-200/60">
+              {tabsConfig.map((tab) => {
+                const isActive = activeTab === tab.id
+                return (
+                  <button
+                    key={tab.id}
+                    onClick={() => setActiveTab(tab.id)}
+                    className={cn(
+                      "relative flex items-center justify-center gap-1 py-1.5 rounded-xl text-xs font-black transition-all select-none cursor-pointer",
+                      isActive ? "text-indigo-600" : "text-slate-500 hover:text-slate-800"
+                    )}
+                  >
+                    {isActive && (
+                      <motion.div
+                        layoutId="activeDecksBottomTabPill"
+                        className="absolute inset-0 bg-white rounded-xl shadow-xs border border-slate-200/80"
+                        transition={{ type: "spring", bounce: 0.15, duration: 0.4 }}
+                      />
+                    )}
+                    <span className="relative z-10 text-[11px] sm:text-xs truncate">{tab.label}</span>
+                    <span className={cn(
+                      "relative z-10 px-1.5 py-0.2 rounded-md text-[9px] font-black leading-none",
+                      isActive ? "bg-indigo-50 text-indigo-700" : "bg-slate-200 text-slate-600"
+                    )}>
+                      {tab.count}
+                    </span>
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+
+          {/* Right: Compact Pagination (Only shown when totalPages > 1) */}
+          {totalPages > 1 && (
+            <div className="flex items-center gap-1 shrink-0 bg-slate-100/90 p-1 rounded-2xl border border-slate-200/60">
+              <button 
+                onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                disabled={currentPage === 1}
+                className="w-7 h-7 rounded-xl bg-white disabled:bg-transparent text-slate-700 disabled:text-slate-300 shadow-2xs disabled:shadow-none flex items-center justify-center transition-all cursor-pointer disabled:cursor-not-allowed"
+                title="Trang trước"
+              >
+                <ChevronLeft className="w-3.5 h-3.5" />
+              </button>
+
+              <span className="px-2 text-[10px] font-black text-slate-600">
+                {currentPage}/{totalPages}
+              </span>
+
+              <button 
+                onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                disabled={currentPage === totalPages}
+                className="w-7 h-7 rounded-xl bg-white disabled:bg-transparent text-slate-700 disabled:text-slate-300 shadow-2xs disabled:shadow-none flex items-center justify-center transition-all cursor-pointer disabled:cursor-not-allowed"
+                title="Trang sau"
+              >
+                <ChevronRight className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          )}
+
+        </div>
       </div>
 
       {/* ═══════════ MODALS & BOTTOM SHEETS ═══════════ */}
