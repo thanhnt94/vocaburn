@@ -10,6 +10,7 @@ import { useAppStore } from '@/store/useAppStore'
 import { cn } from '@/lib/utils'
 import { motion, AnimatePresence } from 'framer-motion'
 import axios from 'axios'
+import { DeckStudyModal, DeckJoinRoomModal, DeckCreateModal } from '@/components/deck/modals'
 
 export interface Quiz {
   id: number
@@ -51,8 +52,7 @@ export default function DecksPage() {
   const [activeTag, setActiveTag] = useState<string | null>(null)
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all')
   const [isJoinModalOpen, setIsJoinModalOpen] = useState(false)
-  const [roomCode, setRoomCode] = useState('')
-  const [isJoining, setIsJoining] = useState(false)
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
   
   // Unified Study Popup State
   const [selectedStudyQuiz, setSelectedStudyQuiz] = useState<Quiz | null>(null)
@@ -98,19 +98,6 @@ export default function DecksPage() {
       queryClient.invalidateQueries({ queryKey: ['dashboard'] })
     }
   })
-
-  const handleJoinRoom = async () => {
-    if (!roomCode) return
-    setIsJoining(true)
-    try {
-      await axios.post('/api/v1/deck/room/join', { room_code: roomCode })
-      navigate(`/room/${roomCode.toUpperCase()}`)
-    } catch (e) {
-      alert("Phòng không tồn tại hoặc đã hết hạn!")
-    } finally {
-      setIsJoining(false)
-    }
-  }
 
   const allAvailableTags = useMemo(() => {
     const tags = new Set<string>()
@@ -214,7 +201,7 @@ export default function DecksPage() {
             {/* Quick Actions */}
             <div className="flex items-center gap-1.5">
               <button 
-                onClick={() => navigate('/create')}
+                onClick={() => setIsCreateModalOpen(true)}
                 className="flex items-center gap-1 px-2.5 sm:px-3 py-1.5 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white rounded-xl text-[10px] sm:text-[11px] font-black uppercase tracking-wider shadow-xs active:scale-95 transition-all cursor-pointer shrink-0"
               >
                 <Plus className="w-3.5 h-3.5" />
@@ -617,171 +604,23 @@ export default function DecksPage() {
 
       </div>
 
-      {/* ═══════════ JOIN ROOM ARENA MODAL ═══════════ */}
-      <AnimatePresence>
-        {isJoinModalOpen && (
-          <div className="fixed inset-0 z-[1000] flex items-center justify-center p-6">
-            <motion.div 
-              initial={{ opacity: 0 }} 
-              animate={{ opacity: 1 }} 
-              exit={{ opacity: 0 }}
-              onClick={() => setIsJoinModalOpen(false)}
-              className="absolute inset-0 bg-slate-900/60 backdrop-blur-md"
-            />
-            <motion.div 
-              initial={{ opacity: 0, scale: 0.9, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.9, y: 20 }}
-              className="w-full max-w-sm bg-white rounded-3xl shadow-2xl relative z-10 p-6 border border-slate-100"
-            >
-              <div className="flex items-center justify-between mb-5">
-                <h3 className="text-sm font-black text-slate-800 uppercase tracking-widest">Tham Gia Phòng Đấu</h3>
-                <button onClick={() => setIsJoinModalOpen(false)} className="w-7 h-7 rounded-full bg-slate-50 flex items-center justify-center text-slate-400 hover:text-rose-500 transition-all cursor-pointer">
-                   <X className="w-3.5 h-3.5" />
-                </button>
-              </div>
-              
-              <div className="space-y-5">
-                <div>
-                   <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5 block ml-1">Nhập mã phòng Arena</label>
-                   <input 
-                     type="text" 
-                     placeholder="VD: AZ78K"
-                     value={roomCode}
-                     onChange={(e) => setRoomCode(e.target.value.toUpperCase())}
-                     className="w-full h-14 bg-slate-50 border-2 border-slate-200 rounded-2xl px-4 text-xl font-black tracking-[0.25em] text-center text-indigo-600 focus:border-indigo-500 focus:bg-white outline-none transition-all placeholder:text-slate-300 placeholder:tracking-normal placeholder:text-xs"
-                   />
-                </div>
-                
-                <button 
-                  onClick={handleJoinRoom}
-                  disabled={!roomCode || isJoining}
-                  className="w-full h-12 bg-indigo-600 text-white rounded-xl font-black text-xs shadow-md shadow-indigo-200 hover:bg-indigo-700 active:scale-95 transition-all disabled:opacity-50 disabled:bg-slate-200 disabled:shadow-none cursor-pointer"
-                >
-                  {isJoining ? 'ĐANG KẾT NỐI...' : 'VÀO PHÒNG NGAY 🚀'}
-                </button>
-              </div>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
+      {/* ═══════════ MODALS ═══════════ */}
+      <DeckJoinRoomModal
+        isOpen={isJoinModalOpen}
+        onClose={() => setIsJoinModalOpen(false)}
+      />
 
-      {/* ═══════════ UNIFIED STUDY MODE SELECTOR POPUP ═══════════ */}
-      <AnimatePresence>
-        {isStudyModalOpen && selectedStudyQuiz && (
-          <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4 sm:p-6">
-            <motion.div 
-              initial={{ opacity: 0 }} 
-              animate={{ opacity: 1 }} 
-              exit={{ opacity: 0 }}
-              onClick={() => setIsStudyModalOpen(false)}
-              className="absolute inset-0 bg-slate-900/60 backdrop-blur-md"
-            />
-            <motion.div 
-              initial={{ opacity: 0, scale: 0.95, y: 15 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 15 }}
-              className="w-full max-w-lg bg-white rounded-3xl shadow-2xl relative z-10 p-5 sm:p-6 border border-slate-100 text-left overflow-hidden flex flex-col max-h-[90vh]"
-            >
-              <div className="flex items-center justify-between mb-4 relative z-10 shrink-0">
-                <div className="flex items-center gap-2.5">
-                  <div className="w-10 h-10 rounded-2xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600">
-                    <Brain className="w-5 h-5 animate-pulse" />
-                  </div>
-                  <div>
-                    <h3 className="text-sm sm:text-base font-black text-slate-800 uppercase tracking-tight leading-tight">
-                      {studyModalTab === 'flashcard' ? 'Study Console' : 'Practice Console'}
-                    </h3>
-                    <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mt-0.5">
-                      {studyModalTab === 'flashcard' ? 'Chọn phương pháp học tập' : 'Chọn chế độ luyện tập'}
-                    </p>
-                  </div>
-                </div>
-                <button 
-                  onClick={() => setIsStudyModalOpen(false)} 
-                  className="w-8 h-8 rounded-full bg-slate-50 border border-slate-200/50 flex items-center justify-center text-slate-400 hover:text-rose-500 hover:scale-105 active:scale-95 transition-all cursor-pointer"
-                >
-                   <X className="w-4 h-4" />
-                </button>
-              </div>
+      <DeckCreateModal
+        isOpen={isCreateModalOpen}
+        onClose={() => setIsCreateModalOpen(false)}
+      />
 
-              {/* Deck Info Banner */}
-              <div className="bg-slate-50 border border-slate-100 rounded-2xl p-3 mb-3 shrink-0 text-left">
-                <h4 className="text-xs sm:text-sm font-black text-indigo-700 tracking-wide line-clamp-1">{selectedStudyQuiz.title}</h4>
-                <p className="text-[10px] text-slate-400 font-black uppercase tracking-wider mt-0.5 flex items-center gap-1.5">
-                  <BrainCircuit className="w-3.5 h-3.5 text-slate-400" />
-                  {selectedStudyQuiz.questions_count} câu hỏi trong bộ thẻ
-                </p>
-              </div>
-
-              {/* Mode Options List */}
-              <div className="flex-1 overflow-y-auto pr-1 space-y-2.5 custom-scrollbar min-h-0">
-                {studyModalTab === 'flashcard' && (
-                  <div className="space-y-2">
-                    {[
-                      { mode: 'fsrs', icon: '🧠', title: 'FSRS Spaced Repetition', desc: 'Học lặp lại ngắt quãng thông minh' },
-                      { mode: 'roadmap', icon: '🗺️', title: 'Roadmap Mode', desc: 'Học theo lộ trình mục tiêu mỗi ngày' },
-                      { mode: 'flip', icon: '🔄', title: 'Flip Card', desc: 'Lật thẻ ghi nhớ phản xạ tự do' },
-                      { mode: 'review', icon: '📚', title: 'Review Only', desc: 'Chỉ ôn tập lại các thẻ cũ' },
-                      { mode: 'new', icon: '✨', title: 'New Only', desc: 'Chỉ học các thẻ mới chưa biết' },
-                    ].filter(item => {
-                      const disabled = (selectedStudyQuiz as any).practice_settings?.disabled_modes || [];
-                      return !disabled.includes(item.mode);
-                    }).map(item => (
-                      <button
-                        key={item.mode}
-                        onClick={() => {
-                          setIsStudyModalOpen(false)
-                          updateUserSettings({ quiz_learning_mode: item.mode as any })
-                          navigate(`/flashcard/${selectedStudyQuiz.id}/play?mode=${item.mode}`)
-                        }}
-                        className="group w-full flex items-center gap-3 p-3 rounded-2xl border border-slate-100 bg-white hover:border-indigo-500/35 hover:bg-indigo-50/10 hover:shadow-xs active:scale-[0.99] transition-all text-left shadow-2xs cursor-pointer"
-                      >
-                        <span className="text-lg w-9 h-9 bg-slate-50 rounded-xl flex items-center justify-center group-hover:scale-105 transition-all shrink-0">{item.icon}</span>
-                        <div className="min-w-0 flex-1">
-                          <span className="text-xs sm:text-sm font-extrabold text-slate-800 block group-hover:text-indigo-600 transition-colors truncate">{item.title}</span>
-                          <span className="text-[10px] font-semibold text-slate-400 block mt-0.5 leading-relaxed">{item.desc}</span>
-                        </div>
-                        <ChevronRight className="w-3.5 h-3.5 text-slate-300 group-hover:text-indigo-500 group-hover:translate-x-0.5 transition-all ml-auto shrink-0" />
-                      </button>
-                    ))}
-                  </div>
-                )}
-
-                {studyModalTab === 'practice' && (
-                  <div className="space-y-2">
-                    {[
-                      { mode: 'mcq', icon: '🎯', title: 'MCQ Test', desc: 'Trắc nghiệm phản xạ 4 đáp án' },
-                      { mode: 'typing', icon: '⌨️', title: 'Typing Test', desc: 'Gõ từ vựng nhớ chi tiết' },
-                      { mode: 'listening', icon: '🎧', title: 'Listening Test', desc: 'Nghe audio chọn đáp án' },
-                    ].filter(item => {
-                      const disabled = (selectedStudyQuiz as any).practice_settings?.disabled_modes || [];
-                      return !disabled.includes(item.mode);
-                    }).map(item => (
-                      <button
-                        key={item.mode}
-                        onClick={() => {
-                          setIsStudyModalOpen(false)
-                          updateUserSettings({ practice_submode: item.mode as any })
-                          navigate(`/practice/${selectedStudyQuiz.id}/${item.mode}`)
-                        }}
-                        className="group w-full flex items-center gap-3 p-3 rounded-2xl border border-slate-100 bg-white hover:border-emerald-500/35 hover:bg-emerald-50/10 hover:shadow-xs active:scale-[0.99] transition-all text-left shadow-2xs cursor-pointer"
-                      >
-                        <span className="text-lg w-9 h-9 bg-slate-50 rounded-xl flex items-center justify-center group-hover:scale-105 transition-all shrink-0">{item.icon}</span>
-                        <div className="min-w-0 flex-1">
-                          <span className="text-xs sm:text-sm font-extrabold text-slate-800 block group-hover:text-emerald-600 transition-colors truncate">{item.title}</span>
-                          <span className="text-[10px] font-semibold text-slate-400 block mt-0.5 leading-relaxed">{item.desc}</span>
-                        </div>
-                        <ChevronRight className="w-3.5 h-3.5 text-slate-300 group-hover:text-emerald-500 group-hover:translate-x-0.5 transition-all ml-auto shrink-0" />
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
+      <DeckStudyModal
+        isOpen={isStudyModalOpen}
+        onClose={() => setIsStudyModalOpen(false)}
+        deck={selectedStudyQuiz}
+        initialTab={studyModalTab}
+      />
     </div>
   )
 }

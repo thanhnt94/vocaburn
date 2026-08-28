@@ -86,23 +86,24 @@ Mã nguồn Frontend nằm trong thư mục `client/` được xây dựng bằn
 ```
 client/src/
 ├── components/                 # UI components dùng chung (Card, Modal, Drawer, Buttons)
-├── hooks/                      # Custom React hooks (useAudio, useDebounce, useHotkeys)
-├── lib/                        # Axios client instance, API helper functions
-├── store/                      # Quản lý state toàn cục bằng Zustand
-│   ├── useAppStore.ts          # State tiến độ học tập, bộ thẻ, theme
-│   └── useAuthStore.ts         # State phiên đăng nhập, thông tin User, cấu hình SSO
-├── pages/                      # 19 Màn hình chính của ứng dụng
+│   └── deck/                   # 🎴 Phân hệ Deck (Tập trung toàn bộ UI & sub-modules của Deck)
+│       ├── tabs/               # 4 Tab chính: DeckOverviewTab, DeckCardsTab, DeckRoadmapTab, DeckSettingsTab
+│       ├── cards/              # DeckCardItem, DeckCardQuickAdd, DeckCardBatchPasteModal, DeckCardEditModal, DeckCardFilterBar
+│       ├── settings/           # DeckGeneralForm, DeckPracticeConfig, DeckAutomationTools, DeckExcelManager, DeckDangerZone, DeckCollaboratorsModal
+│       ├── overview/           # DeckFsrsStatsCard, DeckQuickStudyLauncher, DeckRecentHistory
+│       ├── roadmap/            # DeckRoadmapPipelineCard, DeckRoadmapGoalForm
+│       └── modals/             # DeckStudyModal, DeckCreateModal, DeckJoinRoomModal
+├── hooks/                      # Custom React hooks (useAudio, useRoadmapStatus, useSessionStats...)
+├── lib/                        # Axios client instance, API helper functions, text & audio utils
+├── store/                      # Quản lý state toàn cục bằng Zustand (useAppStore, useAuthStore)
+├── pages/                      # Các trang màn hình chính của ứng dụng
 │   ├── Dashboard.tsx           # Bảng điều khiển chính, lộ trình học, streak & thống kê
+│   ├── DecksPage.tsx           # Trung tâm quản lý tất cả bộ thẻ (/decks)
+│   ├── DeckDetailPage.tsx      # Khung điều hướng chi tiết bộ thẻ (/decks/:id)
 │   ├── FlashcardPlay.tsx       # Màn hình học Flashcard FSRS v6 (giao diện 3D flip card, full-height)
-│   ├── PracticePlay.tsx        # Màn hình luyện tập đa chế độ (Flashcard, MCQ, Typing)
-│   ├── EditFlashcards.tsx      # Quản lý danh sách thẻ trong bộ
-│   ├── EditFlashcard.tsx       # Tạo/Chỉnh sửa chi tiết một thẻ từ vựng
-│   ├── FlashcardDetail.tsx     # Chi tiết bộ thẻ & thông số FSRS
-│   ├── DeckRoadmap.tsx         # Thiết lập lộ trình mục tiêu học tập hàng ngày
-│   ├── RoadmapHub.tsx          # Trung tâm tổng hợp lộ trình bộ thẻ
-│   ├── ImportFlashcard.tsx     # Import bộ thẻ từ file Excel
-│   ├── Library.tsx / Manage... # Thư viện bộ thẻ cá nhân & cộng đồng
-│   ├── FlashcardRoom.tsx / RoomJoin.tsx # Phòng luyện tập nhóm
+│   ├── PracticePlay.tsx        # Màn hình luyện tập đa chế độ (MCQ, Typing, Listening, Test)
+│   ├── RoadmapHub.tsx          # Trung tâm tổng hợp lộ trình bộ thẻ (/roadmap)
+│   ├── FlashcardRoom.tsx / RoomJoin.tsx # Phòng luyện tập nhóm đối kháng (/room/...)
 │   ├── Stats.tsx / Profile.tsx # Báo cáo thống kê & Trang cá nhân
 │   ├── Admin.tsx / Settings.tsx# Trang quản trị & Cấu hình ứng dụng
 │   └── Landing.tsx / Login.tsx # Trang giới thiệu & Đăng nhập

@@ -18,11 +18,11 @@ import axios from 'axios'
 import { useAppStore } from '@/store/useAppStore'
 import { cn } from '@/lib/utils'
 
-// Lazy load child sub-pages
-const FlashcardDetail = lazy(() => import('./FlashcardDetail'))
-const EditFlashcards = lazy(() => import('./EditFlashcards'))
-const EditFlashcard = lazy(() => import('./EditFlashcard'))
-const DeckRoadmap = lazy(() => import('./DeckRoadmap'))
+// Lazy load child sub-page tabs from modular deck package
+const DeckOverviewTab = lazy(() => import('@/components/deck/tabs/DeckOverviewTab'))
+const DeckCardsTab = lazy(() => import('@/components/deck/tabs/DeckCardsTab'))
+const DeckRoadmapTab = lazy(() => import('@/components/deck/tabs/DeckRoadmapTab'))
+const DeckSettingsTab = lazy(() => import('@/components/deck/tabs/DeckSettingsTab'))
 
 export type DeckDetailTab = 'overview' | 'cards' | 'settings' | 'roadmap'
 
@@ -180,16 +180,16 @@ export default function DeckDetailPage() {
               transition={{ duration: 0.15 }}
             >
               {activeTab === 'overview' && (
-                <FlashcardDetail embedded deckId={id} onNavigateTab={(t: string) => handleTabChange(t as DeckDetailTab)} />
+                <DeckOverviewTab embedded deckId={id} onNavigateTab={(t: string) => handleTabChange(t as DeckDetailTab)} />
               )}
               {activeTab === 'cards' && (
-                <EditFlashcards embedded deckId={id} />
+                <DeckCardsTab embedded deckId={id} />
               )}
               {activeTab === 'settings' && isOwner && (
-                <EditFlashcard embedded deckId={id} />
+                <DeckSettingsTab embedded deckId={id} />
               )}
               {activeTab === 'roadmap' && (
-                <DeckRoadmap embedded deckId={id} />
+                <DeckRoadmapTab embedded deckId={id} />
               )}
             </motion.div>
           </AnimatePresence>

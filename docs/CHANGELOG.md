@@ -2,6 +2,24 @@
 
 Tài liệu này lưu lại lịch sử thay đổi cấu trúc, tính năng, và các bản vá lỗi của dự án Vocaburn.
 
+### [2026-08-28]
+#### Tái Cấu Trúc & Module Hóa Toàn Diện Phân Hệ Deck (Frontend)
+- **Chuẩn hóa đặt tên Tiền tố `Deck...`**:
+  - Gom toàn bộ các component và tab của phân hệ Deck vào thư mục chuyên trách `client/src/components/deck/`.
+  - Phân rã 4 tệp khổng lồ (>7.500 dòng code) thành 4 tab tinh gọn: `DeckOverviewTab.tsx`, `DeckCardsTab.tsx`, `DeckRoadmapTab.tsx`, `DeckSettingsTab.tsx`.
+- **Tách nhỏ Sub-components độc lập & Tái sử dụng**:
+  - `cards/`: `DeckCardItem.tsx`, `DeckCardQuickAdd.tsx`, `DeckCardBatchPasteModal.tsx`, `DeckCardEditModal.tsx`, `DeckCardFilterBar.tsx`.
+  - `overview/`: `DeckFsrsStatsCard.tsx`, `DeckQuickStudyLauncher.tsx`, `DeckRecentHistory.tsx`.
+  - `roadmap/`: `DeckRoadmapPipelineCard.tsx`, `DeckRoadmapGoalForm.tsx`.
+  - `settings/`: `DeckGeneralForm.tsx`, `DeckPracticeConfig.tsx`, `DeckAutomationTools.tsx`, `DeckExcelManager.tsx`, `DeckDangerZone.tsx`, `DeckCollaboratorsModal.tsx`.
+  - `modals/`: `DeckStudyModal.tsx`, `DeckCreateModal.tsx`, `DeckJoinRoomModal.tsx`.
+- **Tối ưu hóa `DecksPage.tsx` & `DeckDetailPage.tsx`**:
+  - Tích hợp các modal dùng chung, giảm hơn 200 dòng inline modal code trong `DecksPage.tsx`.
+  - Kết nối hệ thống tab switcher mượt mà bằng Framer Motion trong `DeckDetailPage.tsx`.
+- **Dọn dẹp Dead Code**:
+  - Loại bỏ hoàn toàn 6 file cũ: `FlashcardDetail.tsx`, `EditFlashcards.tsx`, `EditFlashcard.tsx`, `DeckRoadmap.tsx`, `Library.tsx`, `ManageFlashcards.tsx`.
+  - Xác thực TypeScript không có lỗi (`npx tsc --noEmit` code 0).
+
 ### [2026-08-15]
 #### Nâng Cấp Giao Diện Header Bar Chế Độ Lộ Trình (Roadmap Pro Live HUD Header Bar)
 - **Thiết kế Pro Live HUD Header Bar (`RoadmapHeaderTracker.tsx`)**:
