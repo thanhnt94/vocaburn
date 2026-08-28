@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { 
   Search, Plus, ChevronRight, ChevronLeft, Archive, 
   RotateCcw, Users, Brain, Trophy, X, MoreHorizontal,
-  Play, Sparkles, BookOpen, Layers, Eye, Check
+  Play, Sparkles, BookOpen, Layers, Eye, Check, Calendar, User as UserIcon
 } from 'lucide-react'
 import { useAppStore } from '@/store/useAppStore'
 import { cn } from '@/lib/utils'
@@ -28,6 +28,7 @@ export interface Quiz {
   learned_count?: number
   mastered_count?: number
   progress_percent?: number
+  created_at?: string | null
   last_studied_at?: string | null
 }
 
@@ -158,6 +159,17 @@ export default function DecksPage() {
     setIsStudyModalOpen(true)
   }
 
+  const formatDate = (dateStr?: string | null) => {
+    if (!dateStr) return null
+    try {
+      const d = new Date(dateStr)
+      if (isNaN(d.getTime())) return null
+      return d.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' })
+    } catch {
+      return null
+    }
+  }
+
   if (error || (data && (data as any).error)) {
     window.location.href = '/login'
     return null
@@ -171,9 +183,9 @@ export default function DecksPage() {
   )
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC] pb-32 sm:pb-24 text-left">
-      {/* ═══════════ TOP COMPACT APP-LIKE HEADER ═══════════ */}
-      <div className="sticky top-0 md:top-16 z-30 bg-white/95 backdrop-blur-xl border-b border-slate-200/80 shadow-2xs">
+    <div className="fixed inset-0 top-0 bottom-[60px] md:relative md:inset-auto md:top-auto md:bottom-auto md:min-h-screen flex flex-col bg-[#F8FAFC] overflow-hidden text-left select-none">
+      {/* ═══════════ TOP COMPACT APP-LIKE HEADER (SHRINK-0) ═══════════ */}
+      <div className="shrink-0 z-30 bg-white/95 backdrop-blur-xl border-b border-slate-200/80 shadow-2xs">
         <div className="max-w-5xl mx-auto px-4 sm:px-6">
           
           {/* Row 1: Header Title & Minimalist Action Buttons */}
@@ -323,33 +335,31 @@ export default function DecksPage() {
         </div>
       </div>
 
-      {/* ═══════════ MAIN DECK LIST (SCROLLABLE CARDS) ═══════════ */}
-      <div className="max-w-5xl mx-auto px-3 sm:px-6 pt-3.5">
-        
-        {/* Empty State */}
-        {filteredData.length === 0 ? (
-          <div className="w-full bg-white border border-slate-200/80 rounded-3xl p-8 text-center flex flex-col items-center justify-center shadow-xs">
-            <div className="w-12 h-12 rounded-2xl bg-slate-100 flex items-center justify-center text-2xl mb-3">
-              🔍
+      {/* ═══════════ MAIN DECK LIST (INTERNAL SCROLLABLE - FLEX-1) ═══════════ */}
+      <div className="flex-1 overflow-y-auto custom-scrollbar px-3 sm:px-6 py-3">
+        <div className="max-w-5xl mx-auto">
+          {/* Empty State */}
+          {filteredData.length === 0 ? (
+            <div className="w-full bg-white border border-slate-200/80 rounded-3xl p-8 text-center flex flex-col items-center justify-center shadow-xs my-auto">
+              <div className="w-12 h-12 rounded-2xl bg-slate-100 flex items-center justify-center text-2xl mb-3">
+                🔍
+              </div>
+              <h3 className="text-sm font-black text-slate-800 uppercase tracking-wider mb-1">
+                Không tìm thấy bộ thẻ
+              </h3>
+              <p className="text-xs text-slate-400 max-w-sm mb-4">
+                Hãy thử tìm kiếm với từ khóa khác hoặc bỏ chọn bộ lọc trạng thái.
+              </p>
+              {activeTab === 'discover' && (
+                <button 
+                  onClick={() => setIsCreateModalOpen(true)}
+                  className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xs uppercase tracking-wider rounded-xl shadow-xs transition-all cursor-pointer"
+                >
+                  + Tự tạo bộ thẻ mới
+                </button>
+              )}
             </div>
-            <h3 className="text-sm font-black text-slate-800 uppercase tracking-wider mb-1">
-              Không tìm thấy bộ thẻ
-            </h3>
-            <p className="text-xs text-slate-400 max-w-sm mb-4">
-              Hãy thử tìm kiếm với từ khóa khác hoặc bỏ chọn bộ lọc trạng thái.
-            </p>
-            {activeTab === 'discover' && (
-              <button 
-                onClick={() => setIsCreateModalOpen(true)}
-                className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xs uppercase tracking-wider rounded-xl shadow-xs transition-all cursor-pointer"
-              >
-                + Tự tạo bộ thẻ mới
-              </button>
-            )}
-          </div>
-        ) : (
-          <div className="space-y-2.5">
-            {/* Grid of Clean, App-like Cards */}
+          ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
               <AnimatePresence mode="popLayout">
                 {paginatedData.map((quiz, idx) => {
@@ -358,6 +368,7 @@ export default function DecksPage() {
                   const progressPct = quiz.progress_percent ?? Math.min(100, Math.round((learned / total) * 100))
                   const hasStudied = learned > 0
                   const isMastered = progressPct === 100
+                  const formattedDate = formatDate(quiz.created_at)
 
                   return (
                     <motion.div
@@ -367,14 +378,14 @@ export default function DecksPage() {
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0, scale: 0.95 }}
                       transition={{ delay: idx * 0.015 }}
-                      className="group bg-white rounded-2xl border border-slate-200/80 hover:border-indigo-300 p-3 shadow-2xs hover:shadow-sm transition-all flex flex-col justify-between gap-2 relative"
+                      className="group bg-white rounded-2xl border border-slate-200/80 hover:border-indigo-300 p-3 sm:p-3.5 shadow-2xs hover:shadow-sm transition-all flex flex-col justify-between gap-2.5 relative"
                     >
                       {/* Card Content Row */}
-                      <div className="flex items-center gap-3 min-w-0">
+                      <div className="flex items-start gap-3 min-w-0">
                         {/* Thumbnail */}
                         <div
                           onClick={() => navigate(`/decks/${quiz.id}`)}
-                          className="w-11 h-11 rounded-2xl overflow-hidden border border-slate-100 shadow-2xs shrink-0 cursor-pointer group-hover:scale-102 transition-transform flex items-center justify-center"
+                          className="w-12 h-12 sm:w-13 sm:h-13 rounded-2xl overflow-hidden border border-slate-100 shadow-2xs shrink-0 cursor-pointer group-hover:scale-102 transition-transform flex items-center justify-center"
                         >
                           {quiz.cover_image ? (
                             <img src={quiz.cover_image} alt="" className="w-full h-full object-cover" />
@@ -395,35 +406,53 @@ export default function DecksPage() {
                         {/* Deck Info */}
                         <div
                           onClick={() => navigate(`/decks/${quiz.id}`)}
-                          className="flex-1 min-w-0 cursor-pointer"
+                          className="flex-1 min-w-0 cursor-pointer text-left"
                         >
-                          <h3 className="text-xs sm:text-sm font-extrabold text-slate-800 group-hover:text-indigo-600 transition-colors line-clamp-1">
+                          {/* Title */}
+                          <h3 className="text-xs sm:text-sm font-black text-slate-800 group-hover:text-indigo-600 transition-colors line-clamp-1 leading-snug">
                             {quiz.title}
                           </h3>
 
-                          <div className="flex items-center gap-2 mt-0.5 text-[10px] font-bold text-slate-400">
-                            <span>{quiz.questions_count} thẻ</span>
+                          {/* Meta line: Creator, Date, Card count */}
+                          <div className="flex items-center flex-wrap gap-x-2 gap-y-0.5 mt-0.5 text-[10px] font-bold text-slate-400">
+                            <span className="text-indigo-600 font-extrabold">{quiz.questions_count} thẻ</span>
                             <span>•</span>
-                            {activeTab === 'discover' ? (
-                              <span className="text-slate-500">@{quiz.creator_name || 'Hệ thống'}</span>
-                            ) : (
+                            <span className="text-slate-600 truncate max-w-[120px]">
+                              @{quiz.creator_name || (quiz.is_creator ? 'Bạn' : 'Hệ thống')}
+                            </span>
+                            {formattedDate && (
+                              <>
+                                <span>•</span>
+                                <span className="text-slate-400 font-medium">
+                                  {formattedDate}
+                                </span>
+                              </>
+                            )}
+                          </div>
+
+                          {/* Progress line */}
+                          {activeTab !== 'discover' && (
+                            <div className="flex items-center justify-between text-[10px] font-bold mt-1 text-slate-500">
                               <span>
                                 {hasStudied ? (
                                   isMastered ? (
-                                    <span className="text-emerald-600 font-bold">Thuộc 100%</span>
+                                    <span className="text-emerald-600 font-black">🌟 Thuộc 100%</span>
                                   ) : (
-                                    <span className="text-indigo-600 font-bold">Đang học {progressPct}%</span>
+                                    <span className="text-indigo-600 font-bold">⚡ Đang học {progressPct}%</span>
                                   )
                                 ) : (
-                                  <span className="text-slate-400">Chưa học</span>
+                                  <span className="text-slate-400">✨ Chưa học</span>
                                 )}
                               </span>
-                            )}
-                          </div>
+                              <span className="font-mono text-[9px] text-slate-400">
+                                {learned}/{quiz.questions_count}
+                              </span>
+                            </div>
+                          )}
                         </div>
 
                         {/* Right Buttons: Quick Play CTA + More Options */}
-                        <div className="flex items-center gap-1.5 shrink-0">
+                        <div className="flex items-center gap-1.5 shrink-0 self-center">
                           {activeTab === 'my' && (
                             <button
                               onClick={() => handleStudyTrigger(quiz, 'flashcard')}
@@ -483,15 +512,13 @@ export default function DecksPage() {
                 })}
               </AnimatePresence>
             </div>
-          </div>
-        )}
-
+          )}
+        </div>
       </div>
 
-      {/* ═══════════ ONE-HAND BOTTOM DOCKED CONTROL BAR ═══════════ */}
-      {/* Docked directly above mobile bottom nav (bottom-[60px]) and sticky bottom on desktop */}
-      <div className="fixed bottom-[60px] md:bottom-0 left-0 right-0 z-[110] bg-white/95 backdrop-blur-2xl border-t border-slate-200/80 px-3 sm:px-6 py-2 shadow-[0_-4px_20px_rgba(0,0,0,0.05)]">
-        <div className="max-w-5xl mx-auto flex items-center justify-between gap-2">
+      {/* ═══════════ ONE-HAND BOTTOM DOCKED CONTROL BAR (SHRINK-0) ═══════════ */}
+      <div className="shrink-0 z-30 bg-white/95 backdrop-blur-2xl border-t border-slate-200/80 px-3 sm:px-6 py-2 shadow-[0_-4px_20px_rgba(0,0,0,0.05)]">
+        <div className="max-w-5xl mx-auto flex items-center justify-between gap-3">
           
           {/* Left/Center: Segmented Tabs (Thumb Zone) */}
           <div className="flex-1 max-w-sm">
@@ -527,32 +554,32 @@ export default function DecksPage() {
             </div>
           </div>
 
-          {/* Right: Compact Pagination (Only shown when totalPages > 1) */}
-          {totalPages > 1 && (
-            <div className="flex items-center gap-1 shrink-0 bg-slate-100/90 p-1 rounded-2xl border border-slate-200/60">
-              <button 
-                onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-                disabled={currentPage === 1}
-                className="w-7 h-7 rounded-xl bg-white disabled:bg-transparent text-slate-700 disabled:text-slate-300 shadow-2xs disabled:shadow-none flex items-center justify-center transition-all cursor-pointer disabled:cursor-not-allowed"
-                title="Trang trước"
-              >
-                <ChevronLeft className="w-3.5 h-3.5" />
-              </button>
+          {/* Right: Distinct Pagination Stepper (Always shown 1/1, 1/2...) */}
+          <div className="flex items-center gap-1 shrink-0">
+            <button 
+              onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+              disabled={currentPage === 1}
+              className="w-8 h-8 rounded-xl bg-white border border-slate-200 text-slate-700 disabled:opacity-30 disabled:border-slate-150 shadow-2xs hover:border-indigo-300 hover:text-indigo-600 flex items-center justify-center transition-all cursor-pointer disabled:cursor-not-allowed"
+              title="Trang trước"
+            >
+              <ChevronLeft className="w-4 h-4" />
+            </button>
 
-              <span className="px-2 text-[10px] font-black text-slate-600">
+            <div className="px-2.5 h-8 rounded-xl bg-slate-50 border border-slate-200/90 flex items-center justify-center shadow-2xs min-w-[42px]">
+              <span className="text-[11px] font-black text-slate-700 tracking-wider">
                 {currentPage}/{totalPages}
               </span>
-
-              <button 
-                onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
-                disabled={currentPage === totalPages}
-                className="w-7 h-7 rounded-xl bg-white disabled:bg-transparent text-slate-700 disabled:text-slate-300 shadow-2xs disabled:shadow-none flex items-center justify-center transition-all cursor-pointer disabled:cursor-not-allowed"
-                title="Trang sau"
-              >
-                <ChevronRight className="w-3.5 h-3.5" />
-              </button>
             </div>
-          )}
+
+            <button 
+              onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+              disabled={currentPage === totalPages}
+              className="w-8 h-8 rounded-xl bg-white border border-slate-200 text-slate-700 disabled:opacity-30 disabled:border-slate-150 shadow-2xs hover:border-indigo-300 hover:text-indigo-600 flex items-center justify-center transition-all cursor-pointer disabled:cursor-not-allowed"
+              title="Trang sau"
+            >
+              <ChevronRight className="w-4 h-4" />
+            </button>
+          </div>
 
         </div>
       </div>

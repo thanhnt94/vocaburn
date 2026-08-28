@@ -221,6 +221,7 @@ async def get_dashboard_data(request: Request, only_created: bool = False, db: A
             "learned_count": learned_cnt,
             "mastered_count": mastered_cnt,
             "progress_percent": pct,
+            "created_at": q.created_at.isoformat() if q.created_at else None,
             "last_studied_at": last_studied.isoformat() if last_studied else None
         }
 
