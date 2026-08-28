@@ -207,7 +207,7 @@ export function DeckCardQuickAdd({
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: 40 }}
           transition={{ type: "spring", bounce: 0.15, duration: 0.3 }}
-          className="fixed bottom-[58px] md:bottom-14 left-0 right-0 z-[140] bg-white/95 backdrop-blur-2xl border-t border-slate-200/90 shadow-[0_-8px_30px_rgba(0,0,0,0.12)] p-3.5 sm:p-4 text-left"
+          className="fixed bottom-[96px] md:bottom-24 left-0 right-0 z-[140] bg-white/95 backdrop-blur-2xl border-t border-slate-200/90 shadow-[0_-8px_30px_rgba(0,0,0,0.12)] p-3.5 sm:p-4 text-left"
         >
           <div className="max-w-4xl mx-auto space-y-3">
             {/* 1. Header row */}

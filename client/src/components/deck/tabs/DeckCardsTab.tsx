@@ -1,15 +1,15 @@
 import React, { useState, useMemo, useEffect } from 'react'
 import { useParams } from 'react-router-dom'
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { motion, AnimatePresence } from 'framer-motion'
 import axios from 'axios'
 import { DeckCardItem, type CardData } from '../cards/DeckCardItem'
-import { DeckCardQuickAdd } from '../cards/DeckCardQuickAdd'
+import { DeckCardQuickAdd, type QuickAddCardPayload } from '../cards/DeckCardQuickAdd'
 import { DeckCardFilterBar, type CardFilterStatus } from '../cards/DeckCardFilterBar'
 import { DeckCardBatchPasteModal } from '../cards/DeckCardBatchPasteModal'
 import { DeckCardEditModal } from '../cards/DeckCardEditModal'
 import { DeckPagination } from '../DeckPagination'
-import { Trash2, Star, EyeOff, X, Zap } from 'lucide-react'
+import { Trash2, Star, EyeOff, X } from 'lucide-react'
 
 export interface DeckCardsTabProps {
   embedded?: boolean
@@ -18,6 +18,13 @@ export interface DeckCardsTabProps {
   onPageChange?: (page: number) => void
   onTotalPagesChange?: (total: number) => void
   onSelectionChange?: (hasSelection: boolean) => void
+  search?: string
+  isQuickAddOpen?: boolean
+  onCloseQuickAdd?: () => void
+  isBatchPasteOpen?: boolean
+  onCloseBatchPaste?: () => void
+  isEditModalOpen?: boolean
+  onCloseEditModal?: () => void
 }
 
 export function DeckCardsTab({
@@ -26,13 +33,22 @@ export function DeckCardsTab({
   currentPage: controlledPage,
   onPageChange: controlledOnPageChange,
   onTotalPagesChange,
-  onSelectionChange
+  onSelectionChange,
+  search: externalSearch = '',
+  isQuickAddOpen: externalQuickAddOpen,
+  onCloseQuickAdd: externalOnCloseQuickAdd,
+  isBatchPasteOpen: externalBatchPasteOpen,
+  onCloseBatchPaste: externalOnCloseBatchPaste,
+  isEditModalOpen: externalEditModalOpen,
+  onCloseEditModal: externalOnCloseEditModal,
 }: DeckCardsTabProps) {
   const { id: paramId } = useParams()
   const id = deckId ? String(deckId) : paramId
   const queryClient = useQueryClient()
 
-  const [search, setSearch] = useState('')
+  const [internalSearch, setInternalSearch] = useState('')
+  const search = externalSearch !== undefined ? externalSearch : internalSearch
+
   const [debouncedSearch, setDebouncedSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState<CardFilterStatus>('all')
   const [internalPage, setInternalPage] = useState(1)
@@ -52,15 +68,34 @@ export function DeckCardsTab({
     const timer = setTimeout(() => {
       setDebouncedSearch(search)
       setCurrentPage(1)
-    }, 300)
+    }, 250)
     return () => clearTimeout(timer)
   }, [search])
 
-  // Modals state
-  const [isQuickAddOpen, setIsQuickAddOpen] = useState(false)
-  const [isBatchPasteOpen, setIsBatchPasteOpen] = useState(false)
-  const [isEditModalOpen, setIsEditModalOpen] = useState(false)
+  // Modals state (internal fallback if not controlled)
+  const [internalQuickAddOpen, setInternalQuickAddOpen] = useState(false)
+  const isQuickAddOpen = externalQuickAddOpen !== undefined ? externalQuickAddOpen : internalQuickAddOpen
+  const handleCloseQuickAdd = () => {
+    if (externalOnCloseQuickAdd) externalOnCloseQuickAdd()
+    else setInternalQuickAddOpen(false)
+  }
+
+  const [internalBatchPasteOpen, setInternalBatchPasteOpen] = useState(false)
+  const isBatchPasteOpen = externalBatchPasteOpen !== undefined ? externalBatchPasteOpen : internalBatchPasteOpen
+  const handleCloseBatchPaste = () => {
+    if (externalOnCloseBatchPaste) externalOnCloseBatchPaste()
+    else setInternalBatchPasteOpen(false)
+  }
+
+  const [internalEditModalOpen, setInternalEditModalOpen] = useState(false)
+  const isEditModalOpen = externalEditModalOpen !== undefined ? externalEditModalOpen : internalEditModalOpen
   const [editingCard, setEditingCard] = useState<CardData | null>(null)
+  const handleCloseEditModal = () => {
+    if (externalOnCloseEditModal) externalOnCloseEditModal()
+    else setInternalEditModalOpen(false)
+    setEditingCard(null)
+  }
+
   const [isSavingCard, setIsSavingCard] = useState(false)
   const [isQuickAdding, setIsQuickAdding] = useState(false)
 
@@ -152,7 +187,7 @@ export function DeckCardsTab({
   }
 
   // Handlers
-  const handleQuickAdd = async (payload: any): Promise<boolean> => {
+  const handleQuickAdd = async (payload: QuickAddCardPayload): Promise<boolean> => {
     setIsQuickAdding(true)
     try {
       await axios.post(`/api/v1/deck/${id}/flashcard`, {
@@ -201,37 +236,36 @@ export function DeckCardsTab({
 
   const handleOpenEdit = (card: CardData) => {
     setEditingCard(card)
-    setIsEditModalOpen(true)
+    if (externalEditModalOpen !== undefined) {
+      // Handled via state in parent if needed
+    } else {
+      setInternalEditModalOpen(true)
+    }
   }
 
-  const handleSaveCardEdit = async (updatedCard: any, addAnother?: boolean) => {
+  const handleSaveCardEdit = async (updatedData: any) => {
     setIsSavingCard(true)
     try {
-      if (editingCard?.id) {
-        await axios.patch(`/api/v1/deck/question/${editingCard.id}`, updatedCard)
+      if (editingCard) {
+        await axios.put(`/api/v1/deck/question/${editingCard.id}`, updatedData)
       } else {
-        await axios.post(`/api/v1/deck/${id}/flashcard`, updatedCard)
+        await axios.post(`/api/v1/deck/${id}/flashcard`, updatedData)
       }
       queryClient.invalidateQueries({ queryKey: ['quiz-questions', id] })
       queryClient.invalidateQueries({ queryKey: ['quiz', id] })
-
-      if (addAnother) {
-        setEditingCard(null)
-      } else {
-        setIsEditModalOpen(false)
-        setEditingCard(null)
-      }
+      handleCloseEditModal()
     } catch (e) {
-      alert('Không thể lưu thẻ')
+      alert('Lưu thẻ thất bại. Vui lòng thử lại.')
     } finally {
       setIsSavingCard(false)
     }
   }
 
-  // Bulk Handlers
+  // Bulk Actions
   const handleBulkDelete = async () => {
     if (selectedCardIds.size === 0) return
-    if (!window.confirm(`Bạn có chắc muốn xóa vĩnh viễn ${selectedCardIds.size} thẻ đã chọn?`)) return
+    if (!window.confirm(`Bạn có chắc muốn xóa ${selectedCardIds.size} thẻ đã chọn?`)) return
+
     setIsBulkProcessing(true)
     try {
       const deletePromises = Array.from(selectedCardIds).map((cardId) =>
@@ -281,26 +315,17 @@ export function DeckCardsTab({
   }
 
   return (
-    <div className="max-w-5xl mx-auto px-3 sm:px-6 py-3 space-y-3 text-left animate-in fade-in duration-200 relative pb-36 sm:pb-32">
-      {/* 1. Sticky Filter & Search Bar */}
-      <div className="sticky top-0 z-20 bg-[#F8FAFC]/95 backdrop-blur-md pt-1 pb-1">
+    <div className="max-w-5xl mx-auto px-3 sm:px-6 py-2.5 space-y-2.5 text-left animate-in fade-in duration-200 relative pb-32">
+      {/* 1. Sticky Filter Bar (Tất cả, Có sao, Đang ẩn, Chọn tất cả, Bulk actions) */}
+      <div className="sticky top-0 z-20 bg-[#F8FAFC]/95 backdrop-blur-md pt-0.5 pb-0.5">
         <DeckCardFilterBar
-          search={search}
-          onSearchChange={setSearch}
           status={statusFilter}
           onStatusChange={setStatusFilter}
           totalCount={totalCards}
           filteredCount={displayedCards.length}
           selectedCount={selectedCardIds.size}
           isAllSelected={isAllSelected}
-          isQuickAddOpen={isQuickAddOpen}
-          onToggleQuickAdd={() => setIsQuickAddOpen(prev => !prev)}
           onToggleSelectAll={handleToggleSelectAll}
-          onOpenBatchPaste={() => setIsBatchPasteOpen(true)}
-          onAddNewCard={() => {
-            setEditingCard(null)
-            setIsEditModalOpen(true)
-          }}
           onBulkDelete={handleBulkDelete}
           onBulkIgnore={handleBulkIgnore}
           onBulkStar={handleBulkStar}
@@ -310,7 +335,7 @@ export function DeckCardsTab({
 
       {/* 2. Cards List */}
       {isLoading ? (
-        <div className="space-y-2.5">
+        <div className="space-y-2">
           {[1, 2, 3, 4, 5].map((n) => (
             <div key={n} className="h-24 bg-white rounded-2xl border border-slate-100 animate-pulse" />
           ))}
@@ -320,7 +345,7 @@ export function DeckCardsTab({
           <span className="text-3xl block mb-2">🎴</span>
           <h3 className="text-sm font-black text-slate-800">Không tìm thấy thẻ từ vựng nào</h3>
           <p className="text-xs text-slate-400 mt-1">
-            {search ? 'Thử tìm kiếm với từ khóa khác' : 'Hãy bấm "+ Thêm nhanh" để bắt đầu tạo thẻ!'}
+            {search ? 'Thử tìm kiếm với từ khóa khác' : 'Hãy bấm "+ Thêm nhanh" ở thanh dưới để bắt đầu tạo thẻ!'}
           </p>
         </div>
       ) : (
@@ -341,16 +366,20 @@ export function DeckCardsTab({
         </div>
       )}
 
-      {/* 3. Docked Quick Add Panel (Xuất hiện ngay phía trên thanh tab khi bật) */}
+      {/* 3. Docked Quick Add Panel */}
       <DeckCardQuickAdd
         isOpen={isQuickAddOpen}
-        onClose={() => setIsQuickAddOpen(false)}
+        onClose={handleCloseQuickAdd}
         deckId={id!}
         onAddCard={handleQuickAdd}
         isAdding={isQuickAdding}
         onOpenFullEdit={() => {
           setEditingCard(null)
-          setIsEditModalOpen(true)
+          if (externalEditModalOpen !== undefined) {
+            // Handled via external trigger
+          } else {
+            setInternalEditModalOpen(true)
+          }
         }}
       />
 
@@ -377,7 +406,7 @@ export function DeckCardsTab({
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 20, scale: 0.95 }}
             transition={{ type: "spring", bounce: 0.15, duration: 0.3 }}
-            className="fixed bottom-[72px] md:bottom-20 left-3 right-3 sm:left-6 sm:right-6 max-w-md mx-auto z-[150] bg-slate-900/95 backdrop-blur-xl text-white rounded-2xl p-2.5 shadow-2xl border border-slate-700/80 flex items-center justify-between gap-2"
+            className="fixed bottom-[110px] md:bottom-28 left-3 right-3 sm:left-6 sm:right-6 max-w-md mx-auto z-[150] bg-slate-900/95 backdrop-blur-xl text-white rounded-2xl p-2.5 shadow-2xl border border-slate-700/80 flex items-center justify-between gap-2"
           >
             <div className="flex items-center gap-2 pl-1.5 min-w-0">
               <span className="w-6 h-6 rounded-lg bg-indigo-600 text-white text-xs font-black flex items-center justify-center shrink-0">
@@ -434,16 +463,13 @@ export function DeckCardsTab({
       {/* 5. Modals */}
       <DeckCardBatchPasteModal
         isOpen={isBatchPasteOpen}
-        onClose={() => setIsBatchPasteOpen(false)}
+        onClose={handleCloseBatchPaste}
         deckId={id!}
       />
 
       <DeckCardEditModal
-        isOpen={isEditModalOpen}
-        onClose={() => {
-          setIsEditModalOpen(false)
-          setEditingCard(null)
-        }}
+        isOpen={isEditModalOpen || (editingCard !== null)}
+        onClose={handleCloseEditModal}
         flashcard={editingCard}
         onSave={handleSaveCardEdit}
         isSaving={isSavingCard}

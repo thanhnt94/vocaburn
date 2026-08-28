@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import { motion, AnimatePresence, Reorder } from 'framer-motion'
 import { 
   X, 
@@ -280,9 +281,9 @@ export function DeckCardBatchPasteModal({
 
   if (!isOpen) return null
 
-  return (
+  return createPortal(
     <AnimatePresence>
-      <div className="fixed inset-0 z-[1000] flex items-center justify-center p-3 sm:p-6 text-left select-none">
+      <div className="fixed inset-0 z-[9999] flex items-center justify-center p-3 sm:p-6 text-left select-none">
         {/* Backdrop */}
         <motion.div
           initial={{ opacity: 0 }}
@@ -508,7 +509,8 @@ export function DeckCardBatchPasteModal({
           </div>
         </motion.div>
       </div>
-    </AnimatePresence>
+    </AnimatePresence>,
+    document.body
   )
 }
 

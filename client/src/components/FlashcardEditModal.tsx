@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react'
+import { createPortal } from 'react-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { X, Save, Pencil, Sparkles, RefreshCw, Volume2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -634,21 +635,21 @@ export const FlashcardEditModal: React.FC<FlashcardEditModalProps> = ({
 
   if (!isOpen || !formData) return null;
 
-  return (
+  return createPortal(
     <AnimatePresence>
-      <div className="fixed inset-0 z-[1000] flex items-center justify-center p-2 md:p-4">
+      <div className="fixed inset-0 z-[9999] flex items-center justify-center p-2.5 md:p-4 text-left">
         <motion.div 
           initial={{ opacity: 0 }} 
           animate={{ opacity: 1 }} 
           exit={{ opacity: 0 }} 
           onClick={onClose} 
-          className="absolute inset-0 bg-slate-900/65 backdrop-blur-md" 
+          className="fixed inset-0 bg-slate-900/65 backdrop-blur-md" 
         />
         <motion.div 
           initial={{ opacity: 0, scale: 0.95, y: 20 }} 
           animate={{ opacity: 1, scale: 1, y: 0 }} 
           exit={{ opacity: 0, scale: 0.95, y: 20 }} 
-          className="relative w-full max-w-4xl bg-white md:rounded-[2rem] rounded-t-[1.75rem] rounded-b-[1.75rem] shadow-2xl overflow-hidden h-[90vh] md:h-[85vh] flex flex-col z-10"
+          className="relative w-full max-w-4xl bg-white md:rounded-[2rem] rounded-2xl shadow-2xl overflow-hidden h-[92vh] md:h-[85vh] flex flex-col z-10"
         >
           {/* Fixed Header */}
           <div className="flex items-center justify-between bg-white px-5 py-3.5 border-b border-slate-100 shrink-0">
@@ -950,6 +951,7 @@ export const FlashcardEditModal: React.FC<FlashcardEditModalProps> = ({
             </div>
           </motion.div>
         </div>
-      </AnimatePresence>
+      </AnimatePresence>,
+      document.body
   )
 }

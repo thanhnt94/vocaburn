@@ -1,40 +1,52 @@
-import React, { Suspense, lazy, useState } from 'react'
+import React, { useState, Suspense, lazy } from 'react'
 import { useParams, useNavigate, useSearchParams, Link } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { 
   ChevronLeft, 
-  BookOpen, 
+  Sparkles, 
   Layers, 
   Settings as SettingsIcon, 
   Compass, 
-  Sparkles,
+  BookOpen, 
+  Globe, 
   Lock,
-  Globe
+  Search,
+  X,
+  Zap,
+  ClipboardPaste,
+  Plus
 } from 'lucide-react'
-import { motion, AnimatePresence } from 'framer-motion'
 import axios from 'axios'
+import { motion, AnimatePresence } from 'framer-motion'
 import { useAppStore } from '@/store/useAppStore'
 import { cn } from '@/lib/utils'
-import { DeckPagination } from '@/components/deck'
+import { DeckPagination } from '@/components/deck/DeckPagination'
 
-// Lazy load child sub-page tabs from modular deck package
+// Lazy load tab components for optimal performance
 const DeckOverviewTab = lazy(() => import('@/components/deck/tabs/DeckOverviewTab'))
 const DeckCardsTab = lazy(() => import('@/components/deck/tabs/DeckCardsTab'))
-const DeckRoadmapTab = lazy(() => import('@/components/deck/tabs/DeckRoadmapTab'))
 const DeckSettingsTab = lazy(() => import('@/components/deck/tabs/DeckSettingsTab'))
+const DeckRoadmapTab = lazy(() => import('@/components/deck/tabs/DeckRoadmapTab'))
 
 export type DeckDetailTab = 'overview' | 'cards' | 'settings' | 'roadmap'
 
-export default function DeckDetailPage() {
-  const { id } = useParams()
+export function DeckDetailPage() {
+  const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
   const { user } = useAppStore()
 
-  // Cards Pagination State (controlled from detail page)
+  // Cards Pagination & Search State (Controlled from detail page)
   const [cardsPage, setCardsPage] = useState(1)
   const [cardsTotalPages, setCardsTotalPages] = useState(1)
   const [hasCardSelection, setHasCardSelection] = useState(false)
+  const [cardsSearch, setCardsSearch] = useState('')
+  const [isSearchOpen, setIsSearchOpen] = useState(false)
+
+  // Modals state controlled from fixed action bar
+  const [isQuickAddOpen, setIsQuickAddOpen] = useState(false)
+  const [isBatchPasteOpen, setIsBatchPasteOpen] = useState(false)
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false)
 
   const currentTabParam = searchParams.get('tab') as DeckDetailTab
   const activeTab: DeckDetailTab = ['overview', 'cards', 'settings', 'roadmap'].includes(currentTabParam)
@@ -77,9 +89,9 @@ export default function DeckDetailPage() {
       {/* ═══════════ TOP UNIFIED HEADER (SHRINK-0) ═══════════ */}
       <div className="shrink-0 z-30 bg-white/90 backdrop-blur-2xl border-b border-slate-200/70 shadow-2xs">
         <div className="max-w-7xl mx-auto px-3.5 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between pt-2.5 pb-2.5">
+          <div className="flex items-center justify-between pt-2.5 pb-2.5 gap-2">
             {/* Left: Back Button & Deck Info */}
-            <div className="flex items-center gap-2.5 min-w-0">
+            <div className="flex items-center gap-2.5 min-w-0 flex-1">
               <button
                 onClick={() => navigate('/decks')}
                 className="w-8.5 h-8.5 rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-200/80 text-slate-700 flex items-center justify-center transition-all active:scale-95 shrink-0 cursor-pointer shadow-2xs"
@@ -88,7 +100,7 @@ export default function DeckDetailPage() {
                 <ChevronLeft className="w-4 h-4" />
               </button>
 
-              <div className="flex items-center gap-2.5 min-w-0">
+              <div className="flex items-center gap-2.5 min-w-0 flex-1">
                 <div className="w-9 h-9 rounded-2xl bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 flex items-center justify-center text-white font-bold text-base shrink-0 overflow-hidden shadow-sm shadow-indigo-500/20">
                   {deckMeta?.cover_image ? (
                     <img src={deckMeta.cover_image} alt="" className="w-full h-full object-cover" />
@@ -96,44 +108,86 @@ export default function DeckDetailPage() {
                     <span>🎴</span>
                   )}
                 </div>
-                <div className="min-w-0">
-                  <h1 className="text-xs sm:text-sm font-black text-slate-900 truncate tracking-tight">
-                    {deckMeta?.title || 'Đang tải bộ thẻ...'}
-                  </h1>
-                  <div className="flex items-center gap-2 text-[10px] text-slate-400 font-bold">
-                    <span className="text-indigo-600 font-extrabold">{deckMeta?.questions_count ?? '--'} thẻ</span>
-                    {deckMeta?.creator_name && (
-                      <>
-                        <span>•</span>
-                        <span className="text-slate-600 truncate max-w-[120px]">
-                          @{deckMeta.creator_name}{isOwner ? ' (Bạn)' : ''}
-                        </span>
-                      </>
-                    )}
-                    {deckMeta?.is_public !== undefined && (
-                      <>
-                        <span>•</span>
-                        <span className="flex items-center gap-0.5 text-slate-400">
-                          {deckMeta.is_public ? <Globe className="w-2.5 h-2.5" /> : <Lock className="w-2.5 h-2.5" />}
-                          {deckMeta.is_public ? 'Public' : 'Private'}
-                        </span>
-                      </>
-                    )}
+                
+                {/* Search Input inline or Deck Title */}
+                {isSearchOpen && activeTab === 'cards' ? (
+                  <div className="flex items-center gap-1.5 flex-1 max-w-sm bg-slate-100/90 rounded-xl px-2.5 py-1 border border-indigo-200 animate-in fade-in zoom-in-95 duration-150">
+                    <Search className="w-3.5 h-3.5 text-indigo-500 shrink-0" />
+                    <input
+                      autoFocus
+                      type="text"
+                      placeholder="Tìm từ vựng, kanji, nghĩa..."
+                      value={cardsSearch}
+                      onChange={(e) => setCardsSearch(e.target.value)}
+                      className="w-full bg-transparent text-xs font-bold text-slate-800 outline-none placeholder:text-slate-400"
+                    />
+                    <button
+                      onClick={() => {
+                        setCardsSearch('')
+                        setIsSearchOpen(false)
+                      }}
+                      className="text-slate-400 hover:text-slate-600 p-0.5 cursor-pointer shrink-0"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
                   </div>
-                </div>
+                ) : (
+                  <div className="min-w-0">
+                    <h1 className="text-xs sm:text-sm font-black text-slate-900 truncate tracking-tight">
+                      {deckMeta?.title || 'Đang tải bộ thẻ...'}
+                    </h1>
+                    <div className="flex items-center gap-2 text-[10px] text-slate-400 font-bold">
+                      <span className="text-indigo-600 font-extrabold">{deckMeta?.questions_count ?? '--'} thẻ</span>
+                      {deckMeta?.creator_name && (
+                        <>
+                          <span>•</span>
+                          <span className="text-slate-600 truncate max-w-[120px]">
+                            @{deckMeta.creator_name}{isOwner ? ' (Bạn)' : ''}
+                          </span>
+                        </>
+                      )}
+                      {deckMeta?.is_public !== undefined && (
+                        <>
+                          <span>•</span>
+                          <span className="flex items-center gap-0.5 text-slate-400">
+                            {deckMeta.is_public ? <Globe className="w-2.5 h-2.5" /> : <Lock className="w-2.5 h-2.5" />}
+                            {deckMeta.is_public ? 'Public' : 'Private'}
+                          </span>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
 
-            {/* Quick Action: Start Learning CTA */}
-            {id && (
-              <Link
-                to={`/flashcard/${id}/play`}
-                className="flex items-center gap-1.5 px-3.5 h-8.5 rounded-xl bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white text-xs font-black shadow-xs shadow-orange-500/20 active:scale-95 transition-all shrink-0 cursor-pointer"
-              >
-                <Sparkles className="w-3.5 h-3.5 stroke-[2.5]" />
-                <span>Học ngay</span>
-              </Link>
-            )}
+            {/* Right: Search Toggle & Start Learning CTA */}
+            <div className="flex items-center gap-1.5 shrink-0">
+              {activeTab === 'cards' && !isSearchOpen && (
+                <button
+                  onClick={() => setIsSearchOpen(true)}
+                  className={cn(
+                    "w-8.5 h-8.5 rounded-xl border flex items-center justify-center transition-all active:scale-95 cursor-pointer shadow-2xs",
+                    cardsSearch
+                      ? "bg-indigo-50 border-indigo-200 text-indigo-600 font-bold"
+                      : "bg-slate-50 hover:bg-slate-100 border-slate-200/80 text-slate-700"
+                  )}
+                  title="Tìm kiếm thẻ từ vựng"
+                >
+                  <Search className="w-4 h-4" />
+                </button>
+              )}
+
+              {id && (
+                <Link
+                  to={`/flashcard/${id}/play`}
+                  className="flex items-center gap-1.5 px-3.5 h-8.5 rounded-xl bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white text-xs font-black shadow-xs shadow-orange-500/20 active:scale-95 transition-all shrink-0 cursor-pointer"
+                >
+                  <Sparkles className="w-3.5 h-3.5 stroke-[2.5]" />
+                  <span>Học ngay</span>
+                </Link>
+              )}
+            </div>
           </div>
         </div>
       </div>
@@ -167,6 +221,13 @@ export default function DeckDetailPage() {
                   onPageChange={setCardsPage}
                   onTotalPagesChange={setCardsTotalPages}
                   onSelectionChange={setHasCardSelection}
+                  search={cardsSearch}
+                  isQuickAddOpen={isQuickAddOpen}
+                  onCloseQuickAdd={() => setIsQuickAddOpen(false)}
+                  isBatchPasteOpen={isBatchPasteOpen}
+                  onCloseBatchPaste={() => setIsBatchPasteOpen(false)}
+                  isEditModalOpen={isEditModalOpen}
+                  onCloseEditModal={() => setIsEditModalOpen(false)}
                 />
               )}
               {activeTab === 'settings' && isOwner && (
@@ -180,34 +241,57 @@ export default function DeckDetailPage() {
         </Suspense>
       </div>
 
-      {/* ═══════════ DRAGGABLE FLOATING PAGINATION ("NÚT BAY BAY KÉO THẢ TỰ DO - NẰM CAO HƠN TAB") ═══════════ */}
-      <AnimatePresence>
-        {activeTab === 'cards' && !hasCardSelection && (
-          <motion.div
-            drag
-            dragMomentum={false}
-            dragElastic={0.1}
-            initial={{ opacity: 0, scale: 0.85, y: 8 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.85, y: 8 }}
-            transition={{ duration: 0.15 }}
-            className="fixed bottom-[110px] md:bottom-28 right-4 z-40 touch-none cursor-grab active:cursor-grabbing"
-            title="Kéo thả để di chuyển vị trí bất kỳ"
-          >
+      {/* ═══════════ FIXED ACTION & PAGINATION BAR (CHỈ HIỆN KHI Ở TAB CARDS - NẰM NGAY TRÊN 4 TABS) ═══════════ */}
+      {activeTab === 'cards' && (
+        <div className="shrink-0 z-30 bg-white/95 backdrop-blur-2xl border-t border-slate-200/80 px-3 sm:px-6 py-1.5 shadow-[0_-2px_10px_rgba(0,0,0,0.03)]">
+          <div className="max-w-5xl mx-auto flex items-center justify-between gap-2">
+            {/* Left: Pagination */}
             <DeckPagination
               currentPage={cardsPage}
               totalPages={cardsTotalPages}
               onPageChange={setCardsPage}
-              className="bg-white/95 backdrop-blur-xl shadow-xl border border-slate-200/90 rounded-2xl p-1 shadow-indigo-500/15"
             />
-          </motion.div>
-        )}
-      </AnimatePresence>
 
-      {/* ═══════════ ONE-HAND BOTTOM DOCKED CONTROL BAR (4 TABS CĂN CHÍNH GIỮA) ═══════════ */}
-      <div className="shrink-0 z-30 bg-white/95 backdrop-blur-2xl border-t border-slate-200/80 px-3 sm:px-6 py-2 shadow-[0_-4px_20px_rgba(0,0,0,0.05)]">
+            {/* Right: Quick actions (Thêm nhanh, Paste, Thêm chi tiết) */}
+            <div className="flex items-center gap-1.5">
+              <button
+                onClick={() => setIsQuickAddOpen(prev => !prev)}
+                className={cn(
+                  "h-8.5 px-3 rounded-xl border text-xs font-black transition-all flex items-center gap-1.5 active:scale-95 cursor-pointer shadow-2xs",
+                  isQuickAddOpen
+                    ? "bg-orange-500 border-orange-500 text-white shadow-orange-500/20"
+                    : "bg-orange-50 hover:bg-orange-100 border-orange-200 text-orange-700"
+                )}
+                title="Bật/tắt thanh nhập nhanh"
+              >
+                <Zap className="w-3.5 h-3.5 fill-current" />
+                <span>+ Thêm nhanh</span>
+              </button>
+
+              <button
+                onClick={() => setIsBatchPasteOpen(true)}
+                className="h-8.5 w-8.5 rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-200/80 text-slate-700 flex items-center justify-center transition-all active:scale-95 cursor-pointer shadow-2xs"
+                title="Dán nhanh nhiều thẻ từ Excel / Google Sheets"
+              >
+                <ClipboardPaste className="w-4 h-4 text-indigo-600" />
+              </button>
+
+              <button
+                onClick={() => setIsEditModalOpen(true)}
+                className="h-8.5 w-8.5 rounded-xl bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white flex items-center justify-center shadow-xs shadow-indigo-500/20 active:scale-95 transition-all cursor-pointer"
+                title="Thêm thẻ mới (đầy đủ chi tiết)"
+              >
+                <Plus className="w-4 h-4 stroke-[3]" />
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ═══════════ ONE-HAND BOTTOM DOCKED TAB BAR (4 TABS CĂN CHÍNH GIỮA) ═══════════ */}
+      <div className="shrink-0 z-30 bg-white/95 backdrop-blur-2xl border-t border-slate-200/80 px-3 sm:px-6 py-1.5 shadow-[0_-4px_20px_rgba(0,0,0,0.05)]">
         <div className="max-w-sm sm:max-w-md mx-auto flex items-center justify-center">
-          {/* Tabs Segmented Switcher (Thumb Zone) */}
+          {/* Tabs Segmented Switcher */}
           <div className="grid grid-flow-col auto-cols-fr w-full bg-slate-100/90 p-1 rounded-2xl border border-slate-200/60 shadow-2xs">
             {visibleTabs.map((tab) => {
               const Icon = tab.icon
@@ -239,3 +323,5 @@ export default function DeckDetailPage() {
     </div>
   )
 }
+
+export default DeckDetailPage
