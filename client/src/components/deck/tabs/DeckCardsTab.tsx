@@ -17,6 +17,7 @@ export interface DeckCardsTabProps {
   currentPage?: number
   onPageChange?: (page: number) => void
   onTotalPagesChange?: (total: number) => void
+  onSelectionChange?: (hasSelection: boolean) => void
 }
 
 export function DeckCardsTab({
@@ -24,7 +25,8 @@ export function DeckCardsTab({
   deckId,
   currentPage: controlledPage,
   onPageChange: controlledOnPageChange,
-  onTotalPagesChange
+  onTotalPagesChange,
+  onSelectionChange
 }: DeckCardsTabProps) {
   const { id: paramId } = useParams()
   const id = deckId ? String(deckId) : paramId
@@ -55,6 +57,12 @@ export function DeckCardsTab({
   // Multi-select state
   const [selectedCardIds, setSelectedCardIds] = useState<Set<number>>(new Set())
   const [isBulkProcessing, setIsBulkProcessing] = useState(false)
+
+  useEffect(() => {
+    if (onSelectionChange) {
+      onSelectionChange(selectedCardIds.size > 0)
+    }
+  }, [selectedCardIds.size, onSelectionChange])
 
   // 1. Fetch questions list
   const { data, isLoading } = useQuery({
@@ -144,10 +152,6 @@ export function DeckCardsTab({
 
   const handleClearSelection = () => {
     setSelectedCardIds(new Set())
-  }
-
-  const scrollToQuickAdd = () => {
-    quickAddRef.current?.scrollIntoView({ behavior: 'smooth' })
   }
 
   // Handlers
@@ -281,7 +285,7 @@ export function DeckCardsTab({
   }
 
   return (
-    <div className="max-w-5xl mx-auto px-3 sm:px-6 py-3 space-y-3 text-left animate-in fade-in duration-200 relative pb-28 md:pb-8">
+    <div className="max-w-5xl mx-auto px-3 sm:px-6 py-3 space-y-3 text-left animate-in fade-in duration-200 relative pb-36 sm:pb-32">
       {/* 1. Sticky Filter & Search Bar (Nằm trên cùng danh sách thẻ) */}
       <div className="sticky top-0 z-20 bg-[#F8FAFC]/95 backdrop-blur-md pt-1 pb-1">
         <DeckCardFilterBar
@@ -371,15 +375,15 @@ export function DeckCardsTab({
         </div>
       )}
 
-      {/* ═══════════ FLOATING BULK ACTION TOOLBAR ═══════════ */}
+      {/* ═══════════ FLOATING BULK ACTION TOOLBAR (CENTERED, CLEAN) ═══════════ */}
       <AnimatePresence>
         {selectedCardIds.size > 0 && (
           <motion.div
-            initial={{ opacity: 0, y: 30, scale: 0.95 }}
+            initial={{ opacity: 0, y: 20, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 30, scale: 0.95 }}
+            exit={{ opacity: 0, y: 20, scale: 0.95 }}
             transition={{ type: "spring", bounce: 0.15, duration: 0.3 }}
-            className="fixed bottom-[125px] md:bottom-24 left-4 right-4 max-w-lg mx-auto z-[150] bg-slate-900/95 backdrop-blur-xl text-white rounded-2xl p-2.5 sm:p-3 shadow-2xl border border-slate-700/80 flex items-center justify-between gap-2"
+            className="fixed bottom-[72px] md:bottom-20 left-3 right-3 sm:left-6 sm:right-6 max-w-md mx-auto z-[150] bg-slate-900/95 backdrop-blur-xl text-white rounded-2xl p-2.5 shadow-2xl border border-slate-700/80 flex items-center justify-between gap-2"
           >
             <div className="flex items-center gap-2 pl-1.5 min-w-0">
               <span className="w-6 h-6 rounded-lg bg-indigo-600 text-white text-xs font-black flex items-center justify-center shrink-0">

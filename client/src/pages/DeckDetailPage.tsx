@@ -34,6 +34,7 @@ export default function DeckDetailPage() {
   // Cards Pagination State (controlled from detail page)
   const [cardsPage, setCardsPage] = useState(1)
   const [cardsTotalPages, setCardsTotalPages] = useState(1)
+  const [hasCardSelection, setHasCardSelection] = useState(false)
 
   const currentTabParam = searchParams.get('tab') as DeckDetailTab
   const activeTab: DeckDetailTab = ['overview', 'cards', 'settings', 'roadmap'].includes(currentTabParam)
@@ -165,6 +166,7 @@ export default function DeckDetailPage() {
                   currentPage={cardsPage}
                   onPageChange={setCardsPage}
                   onTotalPagesChange={setCardsTotalPages}
+                  onSelectionChange={setHasCardSelection}
                 />
               )}
               {activeTab === 'settings' && isOwner && (
@@ -178,15 +180,15 @@ export default function DeckDetailPage() {
         </Suspense>
       </div>
 
-      {/* ═══════════ FLOATING PAGINATION STEPPER ("NÚT BAY BAY" PHÍA TRÊN GÓC PHẢI) ═══════════ */}
+      {/* ═══════════ FLOATING PAGINATION STEPPER ("NÚT BAY BAY" PHÍA TRÊN GÓC PHẢI - TỰ ẨN KHI CHỌN HÀNG LOẠT) ═══════════ */}
       <AnimatePresence>
-        {activeTab === 'cards' && (
+        {activeTab === 'cards' && !hasCardSelection && (
           <motion.div
-            initial={{ opacity: 0, scale: 0.9, y: 8 }}
+            initial={{ opacity: 0, scale: 0.85, y: 8 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.9, y: 8 }}
-            transition={{ duration: 0.2 }}
-            className="fixed bottom-[68px] md:bottom-16 right-4 z-40"
+            exit={{ opacity: 0, scale: 0.85, y: 8 }}
+            transition={{ duration: 0.15 }}
+            className="fixed bottom-[72px] md:bottom-20 right-3 sm:right-6 z-40"
           >
             <DeckPagination
               currentPage={cardsPage}
@@ -198,11 +200,11 @@ export default function DeckDetailPage() {
         )}
       </AnimatePresence>
 
-      {/* ═══════════ ONE-HAND BOTTOM DOCKED CONTROL BAR (4 TABS THOÁNG ĐÃNG) ═══════════ */}
+      {/* ═══════════ ONE-HAND BOTTOM DOCKED CONTROL BAR (4 TABS CĂN CHÍNH GIỮA) ═══════════ */}
       <div className="shrink-0 z-30 bg-white/95 backdrop-blur-2xl border-t border-slate-200/80 px-3 sm:px-6 py-2 shadow-[0_-4px_20px_rgba(0,0,0,0.05)]">
-        <div className="max-w-md mx-auto">
-          {/* 4 Tabs Segmented Switcher (Thumb Zone) */}
-          <div className="grid grid-flow-col auto-cols-fr w-full bg-slate-100/90 p-1 rounded-2xl border border-slate-200/60">
+        <div className="max-w-sm sm:max-w-md mx-auto flex items-center justify-center">
+          {/* Tabs Segmented Switcher (Thumb Zone) */}
+          <div className="grid grid-flow-col auto-cols-fr w-full bg-slate-100/90 p-1 rounded-2xl border border-slate-200/60 shadow-2xs">
             {visibleTabs.map((tab) => {
               const Icon = tab.icon
               const isActive = activeTab === tab.id
