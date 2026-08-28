@@ -262,15 +262,14 @@ export function DeckDetailPage() {
                 <button
                   onClick={() => setIsQuickAddOpen(prev => !prev)}
                   className={cn(
-                    "h-8.5 px-3 rounded-xl border text-xs font-black transition-all flex items-center gap-1.5 active:scale-95 cursor-pointer shadow-2xs",
+                    "h-8.5 w-8.5 rounded-xl border flex items-center justify-center transition-all active:scale-95 cursor-pointer shadow-2xs",
                     isQuickAddOpen
                       ? "bg-orange-500 border-orange-500 text-white shadow-orange-500/20"
                       : "bg-orange-50 hover:bg-orange-100 border-orange-200 text-orange-700"
                   )}
-                  title="Bật/tắt thanh nhập nhanh"
+                  title="Bật/tắt thanh thêm nhanh thẻ"
                 >
-                  <Zap className="w-3.5 h-3.5 fill-current" />
-                  <span>+ Thêm nhanh</span>
+                  <Zap className="w-4 h-4 fill-current" />
                 </button>
 
                 <button

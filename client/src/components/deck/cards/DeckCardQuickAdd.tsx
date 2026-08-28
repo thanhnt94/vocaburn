@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react'
+import { createPortal } from 'react-dom'
 import { Plus, X, Maximize2, Sparkles, Settings2, RotateCcw, Check, Layers } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useQuery } from '@tanstack/react-query'
@@ -199,15 +200,15 @@ export function DeckCardQuickAdd({
     }
   }
 
-  return (
+  return createPortal(
     <AnimatePresence>
       {isOpen && (
         <motion.div
-          initial={{ opacity: 0, y: 40 }}
+          initial={{ opacity: 0, y: 50 }}
           animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: 40 }}
-          transition={{ type: "spring", bounce: 0.15, duration: 0.3 }}
-          className="fixed bottom-[96px] md:bottom-24 left-0 right-0 z-[140] bg-white/95 backdrop-blur-2xl border-t border-slate-200/90 shadow-[0_-8px_30px_rgba(0,0,0,0.12)] p-3.5 sm:p-4 text-left"
+          exit={{ opacity: 0, y: 50 }}
+          transition={{ type: "spring", bounce: 0.15, duration: 0.25 }}
+          className="fixed bottom-0 left-0 right-0 z-[9999] bg-white/98 backdrop-blur-2xl border-t border-slate-200/90 shadow-[0_-12px_40px_rgba(0,0,0,0.18)] p-3.5 sm:p-5 text-left pb-6 sm:pb-5"
         >
           <div className="max-w-4xl mx-auto space-y-3">
             {/* 1. Header row */}
@@ -355,7 +356,8 @@ export function DeckCardQuickAdd({
           </div>
         </motion.div>
       )}
-    </AnimatePresence>
+    </AnimatePresence>,
+    document.body
   )
 }
 
