@@ -2,24 +2,33 @@ import React, { useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import axios from 'axios'
+import { motion, AnimatePresence } from 'framer-motion'
 import { useAppStore } from '@/store/useAppStore'
-import { DeckGeneralForm } from '../settings/DeckGeneralForm'
-import { DeckPracticeConfig } from '../settings/DeckPracticeConfig'
-import { DeckAutomationTools } from '../settings/DeckAutomationTools'
-import { DeckExcelManager } from '../settings/DeckExcelManager'
-import { DeckDangerZone } from '../settings/DeckDangerZone'
-import { DeckCollaboratorsModal } from '../settings/DeckCollaboratorsModal'
-import { Users } from 'lucide-react'
+import {
+  DeckGeneralForm,
+  DeckPracticeConfig,
+  DeckAISettings,
+  DeckAudioSettings,
+  DeckExcelManager,
+  DeckDangerZone,
+  DeckCollaboratorsModal
+} from '../settings'
+import { Settings, Sparkles, Volume2, Sliders, FileSpreadsheet, Users, AlertTriangle } from 'lucide-react'
+import { cn } from '@/lib/utils'
 
 export interface DeckSettingsTabProps {
   embedded?: boolean
   deckId?: string | number
 }
 
+type SettingsSubTab = 'general' | 'ai' | 'audio' | 'practice' | 'excel' | 'collab' | 'danger'
+
 export function DeckSettingsTab({ embedded = false, deckId }: DeckSettingsTabProps) {
   const { id: paramId } = useParams()
   const id = deckId ? String(deckId) : paramId
   const { user } = useAppStore()
+  
+  const [activeSubTab, setActiveSubTab] = useState<SettingsSubTab>('general')
   const [isCollabModalOpen, setIsCollabModalOpen] = useState(false)
 
   // Fetch Deck metadata
@@ -40,55 +49,121 @@ export function DeckSettingsTab({ embedded = false, deckId }: DeckSettingsTabPro
     user?.role === 'admin'
   )
 
+  const subTabs = [
+    { id: 'general' as const, label: 'Cơ bản', icon: Settings, color: 'text-indigo-600', badge: null },
+    { id: 'ai' as const, label: 'Cấu hình AI', icon: Sparkles, color: 'text-purple-600', badge: 'AI' },
+    { id: 'audio' as const, label: 'Âm thanh & TTS', icon: Volume2, color: 'text-sky-600', badge: 'TTS' },
+    { id: 'practice' as const, label: 'Luyện tập', icon: Sliders, color: 'text-amber-600', badge: null },
+    { id: 'excel' as const, label: 'Dữ liệu Excel', icon: FileSpreadsheet, color: 'text-emerald-600', badge: null },
+    { id: 'collab' as const, label: 'Cộng tác viên', icon: Users, color: 'text-blue-600', badge: null },
+    { id: 'danger' as const, label: 'Nguy hiểm', icon: AlertTriangle, color: 'text-rose-600', badge: null },
+  ]
+
   if (isLoading) {
     return (
       <div className="max-w-5xl mx-auto px-4 py-8 space-y-4">
-        {[1, 2, 3].map((n) => (
-          <div key={n} className="h-44 bg-white rounded-3xl border border-slate-100 animate-pulse" />
-        ))}
+        <div className="h-12 bg-white rounded-2xl border border-slate-100 animate-pulse" />
+        <div className="h-64 bg-white rounded-3xl border border-slate-100 animate-pulse" />
       </div>
     )
   }
 
   return (
-    <div className="max-w-5xl mx-auto px-4 py-4 sm:py-6 space-y-5 text-left animate-in fade-in duration-200">
-      {/* Top action bar: Collaborators trigger */}
-      <div className="flex items-center justify-between">
-        <span className="text-xs font-black text-slate-400 uppercase tracking-widest">
-          Cài Đặt & Quản Trị Bộ Thẻ
-        </span>
-
-        <button
-          onClick={() => setIsCollabModalOpen(true)}
-          className="h-9 px-3.5 rounded-xl bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 text-xs font-bold transition-all flex items-center gap-1.5 active:scale-95 shadow-2xs cursor-pointer"
-        >
-          <Users className="w-3.5 h-3.5 text-indigo-600" />
-          <span>Cộng tác viên</span>
-        </button>
+    <div className="max-w-5xl mx-auto px-3 sm:px-6 py-3 sm:py-5 space-y-4 text-left animate-in fade-in duration-200">
+      {/* ═══════════ SUB-TAB NAVIGATION BAR ═══════════ */}
+      <div className="bg-white/90 backdrop-blur-md p-1.5 rounded-2xl border border-slate-200/80 shadow-2xs overflow-x-auto custom-scrollbar">
+        <div className="flex items-center gap-1 min-w-max">
+          {subTabs.map((tab) => {
+            const Icon = tab.icon
+            const isActive = activeSubTab === tab.id
+            return (
+              <button
+                key={tab.id}
+                type="button"
+                onClick={() => {
+                  if (tab.id === 'collab') {
+                    setIsCollabModalOpen(true)
+                  } else {
+                    setActiveSubTab(tab.id)
+                  }
+                }}
+                className={cn(
+                  "relative px-3 sm:px-3.5 py-2 rounded-xl text-xs font-black transition-all flex items-center gap-1.5 cursor-pointer select-none",
+                  isActive
+                    ? "text-slate-900 shadow-2xs"
+                    : "text-slate-500 hover:text-slate-800 hover:bg-slate-50"
+                )}
+              >
+                {isActive && (
+                  <motion.div
+                    layoutId="activeSettingsSubTab"
+                    className="absolute inset-0 bg-slate-100/90 border border-slate-200/90 rounded-xl"
+                    transition={{ type: "spring", bounce: 0.15, duration: 0.35 }}
+                  />
+                )}
+                <Icon className={cn("w-3.5 h-3.5 relative z-10 shrink-0", isActive ? tab.color : "text-slate-400")} />
+                <span className="relative z-10">{tab.label}</span>
+                {tab.badge && (
+                  <span className="relative z-10 px-1 py-0.2 rounded text-[9px] font-black bg-slate-200/70 text-slate-700 leading-none">
+                    {tab.badge}
+                  </span>
+                )}
+              </button>
+            )
+          })}
+        </div>
       </div>
 
-      {/* 1. General Deck Information */}
-      <DeckGeneralForm
-        deckId={id!}
-        initialData={deckData}
-        onSaved={() => refetch()}
-      />
+      {/* ═══════════ SUB-TAB CONTENT AREA ═══════════ */}
+      <AnimatePresence mode="wait">
+        <motion.div
+          key={activeSubTab}
+          initial={{ opacity: 0, y: 6 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -6 }}
+          transition={{ duration: 0.15 }}
+        >
+          {activeSubTab === 'general' && (
+            <DeckGeneralForm
+              deckId={id!}
+              initialData={deckData}
+              onSaved={() => refetch()}
+            />
+          )}
 
-      {/* 2. Practice Modes Configuration */}
-      <DeckPracticeConfig
-        deckId={id!}
-        initialSettings={deckData?.practice_settings}
-        onSaved={() => refetch()}
-      />
+          {activeSubTab === 'ai' && (
+            <DeckAISettings
+              deckId={id!}
+              initialSettings={deckData?.practice_settings}
+              onSaved={() => refetch()}
+            />
+          )}
 
-      {/* 3. Automation Tools (AI / TTS / Furigana) */}
-      <DeckAutomationTools deckId={id!} />
+          {activeSubTab === 'audio' && (
+            <DeckAudioSettings
+              deckId={id!}
+              initialSettings={deckData?.practice_settings}
+              onSaved={() => refetch()}
+            />
+          )}
 
-      {/* 4. Excel Import / Export Manager */}
-      <DeckExcelManager deckId={id!} />
+          {activeSubTab === 'practice' && (
+            <DeckPracticeConfig
+              deckId={id!}
+              initialSettings={deckData?.practice_settings}
+              onSaved={() => refetch()}
+            />
+          )}
 
-      {/* 5. Danger Zone */}
-      <DeckDangerZone deckId={id!} isOwner={isOwner} />
+          {activeSubTab === 'excel' && (
+            <DeckExcelManager deckId={id!} />
+          )}
+
+          {activeSubTab === 'danger' && (
+            <DeckDangerZone deckId={id!} isOwner={isOwner} />
+          )}
+        </motion.div>
+      </AnimatePresence>
 
       {/* Collaborators Modal */}
       <DeckCollaboratorsModal

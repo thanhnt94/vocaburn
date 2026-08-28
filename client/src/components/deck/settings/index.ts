@@ -1,5 +1,7 @@
 export * from './DeckGeneralForm'
 export * from './DeckPracticeConfig'
+export * from './DeckAISettings'
+export * from './DeckAudioSettings'
 export * from './DeckAutomationTools'
 export * from './DeckExcelManager'
 export * from './DeckDangerZone'
