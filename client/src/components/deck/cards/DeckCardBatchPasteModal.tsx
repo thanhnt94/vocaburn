@@ -8,10 +8,10 @@ import {
   Plus, 
   AlertCircle, 
   Layers,
-  Check
+  RotateCcw
 } from 'lucide-react'
 import axios from 'axios'
-import { useQueryClient } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { cn } from '@/lib/utils'
 import { useAppStore } from '@/store/useAppStore'
 
@@ -32,17 +32,52 @@ export interface ColumnItem {
   placeholder: string
 }
 
-const AVAILABLE_FIELDS: Omit<ColumnItem, 'id'>[] = [
-  { key: 'front', label: 'Mặt trước (Từ vựng)', color: 'text-indigo-700', bg: 'bg-indigo-50', border: 'border-indigo-200', placeholder: '食べる' },
-  { key: 'furigana', label: 'Furigana / Cách đọc', color: 'text-purple-700', bg: 'bg-purple-50', border: 'border-purple-200', placeholder: 'たべる' },
-  { key: 'back', label: 'Mặt sau (Ý nghĩa)', color: 'text-emerald-700', bg: 'bg-emerald-50', border: 'border-emerald-200', placeholder: 'Ăn (động từ)' },
-  { key: 'hint', label: 'Gợi ý (Hint)', color: 'text-amber-700', bg: 'bg-amber-50', border: 'border-amber-200', placeholder: 'Hành động ăn uống' },
-  { key: 'mnemonic', label: 'Mẹo nhớ (Mnemonic)', color: 'text-pink-700', bg: 'bg-pink-50', border: 'border-pink-200', placeholder: 'Bộ thực Thực' },
-  { key: 'example', label: 'Ví dụ mẫu', color: 'text-blue-700', bg: 'bg-blue-50', border: 'border-blue-200', placeholder: 'ご飯を食べる' },
-  { key: 'front_audio_content', label: 'Text đọc mặt trước', color: 'text-sky-700', bg: 'bg-sky-50', border: 'border-sky-200', placeholder: 'たべる' },
-  { key: 'back_audio_content', label: 'Text đọc mặt sau', color: 'text-teal-700', bg: 'bg-teal-50', border: 'border-teal-200', placeholder: 'Ăn' },
-  { key: 'ignore', label: '🚫 Bỏ qua cột này', color: 'text-slate-500', bg: 'bg-slate-100', border: 'border-slate-200', placeholder: '123' },
-]
+const getColumnMetadata = (key: string): Omit<ColumnItem, 'id'> => {
+  const standard: Record<string, { label: string; color: string; bg: string; border: string; placeholder: string }> = {
+    front: { label: 'Mặt trước (Từ vựng)', color: 'text-indigo-700', bg: 'bg-indigo-50', border: 'border-indigo-200', placeholder: '食べる' },
+    back: { label: 'Mặt sau (Ý nghĩa)', color: 'text-emerald-700', bg: 'bg-emerald-50', border: 'border-emerald-200', placeholder: 'Ăn (động từ)' },
+    furigana: { label: 'Furigana / Cách đọc', color: 'text-purple-700', bg: 'bg-purple-50', border: 'border-purple-200', placeholder: 'たべる' },
+    hint: { label: 'Gợi ý (Hint)', color: 'text-amber-700', bg: 'bg-amber-50', border: 'border-amber-200', placeholder: 'Hành động ăn...' },
+    mnemonic: { label: 'Mẹo nhớ (Mnemonic)', color: 'text-pink-700', bg: 'bg-pink-50', border: 'border-pink-200', placeholder: 'Bộ thực Thực' },
+    example: { label: 'Ví dụ mẫu', color: 'text-blue-700', bg: 'bg-blue-50', border: 'border-blue-200', placeholder: 'ご飯を食べる' },
+    front_audio_content: { label: 'Text đọc mặt trước', color: 'text-sky-700', bg: 'bg-sky-50', border: 'border-sky-200', placeholder: 'たべる' },
+    back_audio_content: { label: 'Text đọc mặt sau', color: 'text-teal-700', bg: 'bg-teal-50', border: 'border-teal-200', placeholder: 'Ăn' },
+    front_audio_url: { label: 'URL Audio trước', color: 'text-cyan-700', bg: 'bg-cyan-50', border: 'border-cyan-200', placeholder: 'https://...' },
+    back_audio_url: { label: 'URL Audio sau', color: 'text-cyan-700', bg: 'bg-cyan-50', border: 'border-cyan-200', placeholder: 'https://...' },
+    front_img: { label: 'Ảnh mặt trước', color: 'text-rose-700', bg: 'bg-rose-50', border: 'border-rose-200', placeholder: 'https://...' },
+    back_img: { label: 'Ảnh mặt sau', color: 'text-rose-700', bg: 'bg-rose-50', border: 'border-rose-200', placeholder: 'https://...' },
+  }
+
+  if (standard[key]) {
+    return { key, ...standard[key] }
+  }
+
+  const formattedLabel = key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())
+  return {
+    key,
+    label: formattedLabel,
+    color: 'text-slate-700',
+    bg: 'bg-slate-100',
+    border: 'border-slate-300',
+    placeholder: `Nội dung ${formattedLabel}...`
+  }
+}
+
+const sanitizeColumns = (keys: string[]): ColumnItem[] => {
+  const seen = new Set<string>()
+  const uniqueKeys = (keys || []).filter(k => {
+    if (!k || seen.has(k) || k === 'ignore') return false
+    seen.add(k)
+    return true
+  })
+  if (uniqueKeys.length === 0) {
+    uniqueKeys.push('front', 'back')
+  }
+  return uniqueKeys.map((k, i) => ({
+    id: `col-${i}-${k}`,
+    ...getColumnMetadata(k)
+  }))
+}
 
 export function DeckCardBatchPasteModal({
   isOpen,
@@ -51,72 +86,114 @@ export function DeckCardBatchPasteModal({
   onSuccess
 }: DeckCardBatchPasteModalProps) {
   const { userSettings, updateUserSettings } = useAppStore()
+  const queryClient = useQueryClient()
 
-  // Columns order list (User can drag and drop to reorder, synced to DB)
-  const [columns, setColumns] = useState<ColumnItem[]>(() => {
-    const savedKeys = userSettings?.paste_columns
-    if (Array.isArray(savedKeys) && savedKeys.length > 0) {
-      return savedKeys.map((k, i) => {
-        const field = AVAILABLE_FIELDS.find(f => f.key === k) || AVAILABLE_FIELDS[0]
-        return { id: `col-${i}-${k}`, ...field }
-      })
-    }
-    return [
-      { id: 'col-1', ...AVAILABLE_FIELDS.find(f => f.key === 'front')! },
-      { id: 'col-2', ...AVAILABLE_FIELDS.find(f => f.key === 'back')! },
-    ]
+  // 1. Fetch real available columns for this deck directly from database backend
+  const { data: practiceSettingsData } = useQuery({
+    queryKey: ['deck-practice-settings', String(deckId)],
+    queryFn: async () => {
+      if (!deckId) return null
+      const res = await axios.get(`/api/v1/deck/${deckId}/practice-settings`)
+      return res.data
+    },
+    enabled: !!deckId && isOpen,
+    staleTime: 60 * 1000,
   })
 
-  // Sync state if userSettings loaded later from backend
+  // 2. Build full list of all real database columns for this deck
+  const allDbColumns = useMemo(() => {
+    const colsSet = new Set<string>([
+      'front',
+      'back',
+      'furigana',
+      'hint',
+      'mnemonic',
+      'example',
+      'front_audio_content',
+      'back_audio_content',
+      'front_audio_url',
+      'back_audio_url',
+      'front_img',
+      'back_img',
+    ])
+
+    const serverCols = practiceSettingsData?.available_columns || []
+    if (Array.isArray(serverCols)) {
+      serverCols.forEach((c: string) => {
+        if (c && typeof c === 'string' && c !== 'ignore') {
+          colsSet.add(c)
+        }
+      })
+    }
+
+    return Array.from(colsSet).map(colKey => getColumnMetadata(colKey))
+  }, [practiceSettingsData])
+
+  // 3. Active column order sequence (No duplicates allowed)
+  const [columns, setColumns] = useState<ColumnItem[]>(() => {
+    const savedKeys = userSettings?.paste_columns
+    return sanitizeColumns(savedKeys || ['front', 'back'])
+  })
+
+  // Sync when user settings load
   useEffect(() => {
     const savedKeys = userSettings?.paste_columns
     if (Array.isArray(savedKeys) && savedKeys.length > 0) {
-      setColumns(savedKeys.map((k, i) => {
-        const field = AVAILABLE_FIELDS.find(f => f.key === k) || AVAILABLE_FIELDS[0]
-        return { id: `col-${i}-${k}`, ...field }
-      }))
+      setColumns(sanitizeColumns(savedKeys))
     }
   }, [userSettings?.paste_columns])
 
   const [pasteText, setPasteText] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const queryClient = useQueryClient()
 
-  // Helper to update columns and persist to database via UserGlobalSettings API
+  // Save updated columns to DB without duplicates
   const handleUpdateColumns = (newCols: ColumnItem[]) => {
-    setColumns(newCols)
-    const keys = newCols.map(c => c.key)
+    const seen = new Set<string>()
+    const deduplicated = newCols.filter(c => {
+      if (seen.has(c.key)) return false
+      seen.add(c.key)
+      return true
+    })
+    setColumns(deduplicated)
+    const keys = deduplicated.map(c => c.key)
     updateUserSettings({ paste_columns: keys }).catch(console.error)
   }
 
-  // Preset Configurations
-  const applyPreset = (keys: string[]) => {
-    const newCols = keys.map((k, i) => {
-      const field = AVAILABLE_FIELDS.find(f => f.key === k) || AVAILABLE_FIELDS[0]
-      return { id: `col-${Date.now()}-${i}`, ...field }
-    })
-    handleUpdateColumns(newCols)
+  // Reset to default [Front, Back]
+  const handleResetDefault = () => {
+    const defaultCols = [
+      { id: `col-0-front`, ...getColumnMetadata('front') },
+      { id: `col-1-back`, ...getColumnMetadata('back') },
+    ]
+    handleUpdateColumns(defaultCols)
   }
 
-  // Add Column
+  // Add Column (Only available if not already in active columns)
   const handleAddColumn = (key: string) => {
-    const field = AVAILABLE_FIELDS.find(f => f.key === key) || AVAILABLE_FIELDS[0]
-    const newCols = [...columns, { id: `col-${Date.now()}-${columns.length}`, ...field }]
+    if (columns.some(c => c.key === key)) return // Prevent duplicates
+    const field = getColumnMetadata(key)
+    const newCols = [...columns, { id: `col-${Date.now()}-${key}`, ...field }]
     handleUpdateColumns(newCols)
   }
 
   // Remove Column
   const handleRemoveColumn = (id: string) => {
     if (columns.length <= 1) {
-      alert('Cần ít nhất 1 cột dữ liệu!')
+      alert('Cần ít nhất 1 cột dữ liệu để dán!')
       return
     }
     const newCols = columns.filter(c => c.id !== id)
     handleUpdateColumns(newCols)
   }
 
-  // Parse lines into cards according to configured columns order
+  // Pool of columns that have NOT been added yet (strictly no duplicates)
+  const availableToAdd = useMemo(() => {
+    const activeKeys = new Set(columns.map(c => c.key))
+    return allDbColumns.filter(c => !activeKeys.has(c.key))
+  }, [allDbColumns, columns])
+
+  // Parse lines into cards according to active column order
   const { parsedCards, rawLinesCount } = useMemo(() => {
     if (!pasteText.trim()) return { parsedCards: [], rawLinesCount: 0 }
 
@@ -128,30 +205,21 @@ export function DeckCardBatchPasteModal({
     if (lines.length === 0) return { parsedCards: [], rawLinesCount: 0 }
 
     const cards = lines.map(line => {
-      // Auto detect separator per line: Tab preferred, then semicolon, then pipe, then comma
       let parts: string[] = []
-      if (line.includes('\t')) {
-        parts = line.split('\t')
-      } else if (line.includes(';')) {
-        parts = line.split(';')
-      } else if (line.includes('|')) {
-        parts = line.split('|')
-      } else if (line.includes(',')) {
-        parts = line.split(',')
-      } else {
-        parts = [line]
-      }
+      if (line.includes('\t')) parts = line.split('\t')
+      else if (line.includes(';')) parts = line.split(';')
+      else if (line.includes('|')) parts = line.split('|')
+      else if (line.includes(',')) parts = line.split(',')
+      else parts = [line]
 
       const trimmedParts = parts.map(p => p.trim())
       let content = ''
       let explanation = ''
       const others: Record<string, any> = {}
-      const rowValues: Record<string, string> = {}
 
       columns.forEach((col, idx) => {
         const val = trimmedParts[idx] || ''
-        rowValues[col.key] = val
-        if (!val || col.key === 'ignore') return
+        if (!val) return
 
         if (col.key === 'front') {
           content = val
@@ -169,6 +237,14 @@ export function DeckCardBatchPasteModal({
           others['front_audio_content'] = val
         } else if (col.key === 'back_audio_content') {
           others['back_audio_content'] = val
+        } else if (col.key === 'front_audio_url') {
+          others['front_audio_url'] = val
+        } else if (col.key === 'back_audio_url') {
+          others['back_audio_url'] = val
+        } else if (col.key === 'front_img') {
+          others['front_img'] = val
+        } else if (col.key === 'back_img') {
+          others['back_img'] = val
         } else {
           others[col.key] = val
         }
@@ -185,19 +261,19 @@ export function DeckCardBatchPasteModal({
     return { parsedCards: cards, rawLinesCount: lines.length }
   }, [pasteText, columns])
 
-  // Dynamic placeholder example according to active column order
+  // Dynamic placeholder example
   const placeholderExample = useMemo(() => {
     const col1 = columns.map(c => c.placeholder).join('\t')
     const col2 = columns.map(c => {
       if (c.key === 'front') return '飲む'
       if (c.key === 'furigana') return 'のむ'
-      if (c.key === 'back') return 'Uống'
-      if (c.key === 'hint') return 'Hành động uống'
+      if (c.key === 'back') return 'Uống (động từ)'
+      if (c.key === 'hint') return 'Hành động uống...'
       if (c.key === 'mnemonic') return 'Bộ ẩm Ẩm'
       if (c.key === 'example') return '水を飲む'
       return '...'
     }).join('\t')
-    return `Ví dụ định dạng copy từ Excel:\n${col1}\n${col2}`
+    return `Ví dụ mẫu dán từ Excel theo đúng ${columns.length} cột đã chọn:\n${col1}\n${col2}`
   }, [columns])
 
   // Batch Submit
@@ -211,7 +287,6 @@ export function DeckCardBatchPasteModal({
     setError(null)
 
     try {
-      // Also ensure latest column order is persisted in DB
       await updateUserSettings({ paste_columns: columns.map(c => c.key) }).catch(console.error)
 
       await axios.post(`/api/v1/deck/${deckId}/import-text-update`, {
@@ -265,10 +340,10 @@ export function DeckCardBatchPasteModal({
               </div>
               <div>
                 <h3 className="text-base font-black text-slate-800 tracking-tight flex items-center gap-2">
-                  <span>Dán Thẻ Nhiều Cột & Tự Do Sắp Xếp Thứ Tự</span>
+                  <span>Dán Thẻ Nhiều Cột & Tự Do Sắp Xếp</span>
                 </h3>
                 <p className="text-xs text-slate-400 font-bold">
-                  Tự động ghi nhớ cấu hình thứ tự cột đã chọn vào tài khoản
+                  Chọn các cột có trong bộ thẻ & kéo thả đúng thứ tự file Excel
                 </p>
               </div>
             </div>
@@ -292,48 +367,32 @@ export function DeckCardBatchPasteModal({
           {/* Body Content */}
           <div className="p-4 sm:p-6 space-y-4 flex-1 overflow-y-auto custom-scrollbar min-h-0">
             
-            {/* ═══════════ KHU VỰC CẤU HÌNH THỨ TỰ CỘT (KÉO THẢ / CHỌN NHANH) ═══════════ */}
+            {/* ═══════════ KHU VỰC CẤU HÌNH THỨ TỰ CỘT ═══════════ */}
             <div className="space-y-3 p-4 bg-slate-50 rounded-2xl border border-slate-200/80">
-              {/* Presets & Info */}
-              <div className="flex flex-wrap items-center justify-between gap-2">
+              <div className="flex items-center justify-between gap-2">
                 <div className="flex items-center gap-1.5">
                   <Layers className="w-4 h-4 text-indigo-600" />
                   <span className="text-xs font-black text-slate-800">
-                    Thứ tự các cột khi dán ({columns.length} cột):
+                    Thứ tự {columns.length} cột khi dán:
                   </span>
                 </div>
 
-                {/* Quick Presets */}
-                <div className="flex items-center gap-1 text-[11px]">
-                  <span className="text-slate-400 font-bold mr-1">Mẫu nhanh:</span>
-                  <button
-                    type="button"
-                    onClick={() => applyPreset(['front', 'back'])}
-                    className="px-2 py-1 rounded-lg bg-white border border-slate-200 hover:border-indigo-300 text-slate-700 font-bold transition-all cursor-pointer hover:bg-indigo-50/40"
-                  >
-                    2 cột (Từ - Nghĩa)
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => applyPreset(['front', 'furigana', 'back'])}
-                    className="px-2 py-1 rounded-lg bg-white border border-slate-200 hover:border-indigo-300 text-slate-700 font-bold transition-all cursor-pointer hover:bg-indigo-50/40"
-                  >
-                    3 cột (Từ - Đọc - Nghĩa)
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => applyPreset(['front', 'furigana', 'back', 'mnemonic'])}
-                    className="px-2 py-1 rounded-lg bg-white border border-slate-200 hover:border-indigo-300 text-slate-700 font-bold transition-all cursor-pointer hover:bg-indigo-50/40"
-                  >
-                    4 cột (Đầy đủ)
-                  </button>
-                </div>
+                {/* Reset button to [Front, Back] */}
+                <button
+                  type="button"
+                  onClick={handleResetDefault}
+                  className="px-2.5 py-1 rounded-xl bg-white border border-slate-200 hover:border-slate-300 text-slate-600 hover:text-slate-900 text-xs font-bold transition-all flex items-center gap-1 cursor-pointer active:scale-95 shadow-2xs"
+                  title="Khôi phục về chỉ 2 cột Mặt trước & Mặt sau"
+                >
+                  <RotateCcw className="w-3.5 h-3.5 text-slate-500" />
+                  <span>Đặt lại (Mặt trước & Mặt sau)</span>
+                </button>
               </div>
 
               {/* DRAGGABLE REORDER LIST */}
               <div className="space-y-1">
                 <p className="text-[11px] text-slate-500 font-medium">
-                  🖐️ <em>Kéo thả các ô bên dưới để thay đổi thứ tự tương ứng với file Excel của bạn:</em>
+                  🖐️ <em>Kéo thả các thẻ để đổi thứ tự cột theo file Excel của bạn:</em>
                 </p>
 
                 <Reorder.Group 
@@ -371,32 +430,34 @@ export function DeckCardBatchPasteModal({
                 </Reorder.Group>
               </div>
 
-              {/* ADD MORE COLUMNS POOL */}
-              <div className="pt-2 border-t border-slate-200/60 flex flex-wrap items-center gap-1.5">
-                <span className="text-[11px] font-bold text-slate-400 mr-1">+ Bấm để thêm cột:</span>
-                {AVAILABLE_FIELDS.map(f => (
-                  <button
-                    key={f.key}
-                    type="button"
-                    onClick={() => handleAddColumn(f.key)}
-                    className={cn(
-                      "px-2 py-1 rounded-lg border text-[11px] font-bold flex items-center gap-1 transition-all cursor-pointer hover:shadow-2xs active:scale-95",
-                      f.bg,
-                      f.color,
-                      f.border
-                    )}
-                  >
-                    <Plus className="w-3 h-3" />
-                    <span>{f.label}</span>
-                  </button>
-                ))}
-              </div>
+              {/* ADD MORE COLUMNS FROM DB (Filtered so no duplicates can be added) */}
+              {availableToAdd.length > 0 && (
+                <div className="pt-2 border-t border-slate-200/60 flex flex-wrap items-center gap-1.5">
+                  <span className="text-[11px] font-bold text-slate-400 mr-1">+ Bấm để thêm cột từ Database:</span>
+                  {availableToAdd.map(f => (
+                    <button
+                      key={f.key}
+                      type="button"
+                      onClick={() => handleAddColumn(f.key)}
+                      className={cn(
+                        "px-2.5 py-1 rounded-lg border text-[11px] font-bold flex items-center gap-1 transition-all cursor-pointer hover:shadow-2xs active:scale-95",
+                        f.bg,
+                        f.color,
+                        f.border
+                      )}
+                    >
+                      <Plus className="w-3 h-3" />
+                      <span>{f.label}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
 
             {/* ═══════════ KHUNG NHẬP DỮ LIỆU DÁN ═══════════ */}
             <div className="space-y-1.5">
               <div className="flex items-center justify-between text-xs font-bold text-slate-600">
-                <span>Dán văn bản (Copy từ Excel / Google Sheets):</span>
+                <span>Dán văn bản từ file của bạn:</span>
                 {parsedCards.length > 0 && (
                   <span className="text-indigo-600 font-extrabold">
                     ✅ Nhận diện được {parsedCards.length} thẻ từ {rawLinesCount} dòng
@@ -449,7 +510,7 @@ export function DeckCardBatchPasteModal({
                             {columns.map((col, colIdx) => {
                               const val = card.rawParts[colIdx] || ''
                               return (
-                                <td key={col.id} className={cn("p-2.5 font-medium truncate max-w-[200px]", col.key === 'ignore' ? 'text-slate-300 line-through' : 'text-slate-800')}>
+                                <td key={col.id} className="p-2.5 font-medium truncate max-w-[200px] text-slate-800">
                                   {val || <span className="text-slate-300 italic">(Trống)</span>}
                                 </td>
                               )
