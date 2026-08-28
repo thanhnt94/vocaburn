@@ -50,7 +50,7 @@ async def get_dashboard_data(request: Request, only_created: bool = False, db: A
     
     from sqlalchemy import func, case, or_
     from sqlalchemy.orm import selectinload
-    from app.modules.deck.models import FlashcardDeck, DeckAttempt, Flashcard, UserAnswer, DeckCollaborator, UserCardMastery
+    from app.modules.deck.models import FlashcardDeck, DeckAttempt, Flashcard, UserAnswer, DeckCollaborator, UserCardMastery, UserDeckSettings
     from app.modules.auth.models import User
     from app.modules.gamification.interface import GamificationInterface
     from app.modules.notification.interface import NotificationInterface
@@ -80,14 +80,22 @@ async def get_dashboard_data(request: Request, only_created: bool = False, db: A
         or_(UserCardMastery.is_ignored == False, UserCardMastery.is_ignored.is_(None))
     ).group_by(Flashcard.deck_id)
 
+    # Query User Deck Settings in bulk to check roadmap_active
+    query_user_settings = select(
+        UserDeckSettings.deck_id,
+        UserDeckSettings.settings
+    ).where(UserDeckSettings.user_id == user_id_int)
+
     if only_created:
-        res_b, res_users, res_mastery = await asyncio.gather(
+        res_b, res_users, res_mastery, res_user_settings = await asyncio.gather(
             db.execute(query_b),
             db.execute(query_users),
-            db.execute(query_mastery)
+            db.execute(query_mastery),
+            db.execute(query_user_settings)
         )
         creator_map = {row[0]: row[1] for row in res_users.all()}
         mastery_map = {row[0]: {"learned": row[1] or 0, "mastered": row[2] or 0} for row in res_mastery.all()}
+        user_settings_map = {row[0]: row[1] for row in res_user_settings.all() if row[1]}
         
         created_decks_data = []
         for row in res_b.all():
@@ -99,6 +107,11 @@ async def get_dashboard_data(request: Request, only_created: bool = False, db: A
             pct = round((learned_cnt / total_cnt) * 100) if total_cnt > 0 else 0
             c_name = creator_map.get(q.creator_id, user.username if q.creator_id == user_id_int else ("Hệ thống" if not q.creator_id else f"user_{q.creator_id}"))
             
+            custom_setting = user_settings_map.get(q.id)
+            settings_data = custom_setting if (custom_setting and isinstance(custom_setting, dict)) else (q.practice_settings or {})
+            pipeline = settings_data.get("pipeline", [])
+            has_roadmap = bool(settings_data.get("roadmap_active", False) and isinstance(pipeline, list) and len(pipeline) > 0)
+
             deck_dict = {
                 "id": q.id,
                 "title": q.title,
@@ -112,6 +125,7 @@ async def get_dashboard_data(request: Request, only_created: bool = False, db: A
                 "is_creator": (q.creator_id == user_id_int or user.role == "admin" or getattr(user, "is_admin", False) or user_id_int == 1),
                 "is_public": q.is_public,
                 "practice_settings": q.practice_settings or {},
+                "has_roadmap": has_roadmap,
                 "learned_count": learned_cnt,
                 "mastered_count": mastered_cnt,
                 "progress_percent": pct,
@@ -182,12 +196,13 @@ async def get_dashboard_data(request: Request, only_created: bool = False, db: A
         pass
 
     # Fetch all database queries concurrently using asyncio.gather
-    res_a, res_b, res_c, res_users, res_mastery, gamify_data, stats_summary, notifications, unread_count = await asyncio.gather(
+    res_a, res_b, res_c, res_users, res_mastery, res_user_settings, gamify_data, stats_summary, notifications, unread_count = await asyncio.gather(
         db.execute(query_a),
         db.execute(query_b),
         db.execute(query_c),
         db.execute(query_users),
         db.execute(query_mastery),
+        db.execute(query_user_settings),
         GamificationInterface.get_user_stats(db, user_id_int),
         StatsInterface.get_user_summary(db, user_id_int),
         NotificationInterface.get_latest(db, user_id_int),
@@ -196,6 +211,7 @@ async def get_dashboard_data(request: Request, only_created: bool = False, db: A
 
     creator_map = {row[0]: row[1] for row in res_users.all()}
     mastery_map = {row[0]: {"learned": row[1] or 0, "mastered": row[2] or 0} for row in res_mastery.all()}
+    user_settings_map = {row[0]: row[1] for row in res_user_settings.all() if row[1]}
 
     def format_deck_item(q, count, last_studied=None):
         prog = mastery_map.get(q.id, {"learned": 0, "mastered": 0})
@@ -204,6 +220,11 @@ async def get_dashboard_data(request: Request, only_created: bool = False, db: A
         mastered_cnt = prog.get("mastered", 0)
         pct = round((learned_cnt / total_cnt) * 100) if total_cnt > 0 else 0
         c_name = creator_map.get(q.creator_id, user.username if q.creator_id == user_id_int else ("Hệ thống" if not q.creator_id else f"user_{q.creator_id}"))
+
+        custom_setting = user_settings_map.get(q.id)
+        settings_data = custom_setting if (custom_setting and isinstance(custom_setting, dict)) else (q.practice_settings or {})
+        pipeline = settings_data.get("pipeline", [])
+        has_roadmap = bool(settings_data.get("roadmap_active", False) and isinstance(pipeline, list) and len(pipeline) > 0)
 
         return {
             "id": q.id,
@@ -218,6 +239,7 @@ async def get_dashboard_data(request: Request, only_created: bool = False, db: A
             "is_creator": (q.creator_id == user_id_int or user.role == "admin" or getattr(user, "is_admin", False) or user_id_int == 1),
             "is_public": q.is_public,
             "practice_settings": q.practice_settings or {},
+            "has_roadmap": has_roadmap,
             "learned_count": learned_cnt,
             "mastered_count": mastered_cnt,
             "progress_percent": pct,

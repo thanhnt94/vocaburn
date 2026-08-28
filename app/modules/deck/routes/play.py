@@ -821,9 +821,20 @@ async def get_deck_data(request: Request, deck_id: int, db: AsyncSession = Depen
     if not deck.is_public and deck.creator_id != user_id and user_id != 1 and not is_collaborator and not is_admin:
         return JSONResponse(status_code=403, content={"error": "This is a private deck"})
     
-    from app.modules.deck.models import Flashcard
+    from app.modules.deck.models import Flashcard, UserDeckSettings
     c_count_res = await db.execute(select(func.count(Flashcard.id)).where(Flashcard.deck_id == deck_id))
     c_count = c_count_res.scalar()
+
+    user_settings_res = await db.execute(
+        select(UserDeckSettings.settings).where(
+            UserDeckSettings.user_id == user_id,
+            UserDeckSettings.deck_id == deck_id
+        )
+    )
+    user_custom_settings = user_settings_res.scalar_one_or_none()
+    settings_data = user_custom_settings if (user_custom_settings and isinstance(user_custom_settings, dict)) else (deck.practice_settings or {})
+    pipeline = settings_data.get("pipeline", [])
+    has_roadmap = bool(settings_data.get("roadmap_active", False) and isinstance(pipeline, list) and len(pipeline) > 0)
     
     return {
         "id": deck.id,
@@ -837,6 +848,7 @@ async def get_deck_data(request: Request, deck_id: int, db: AsyncSession = Depen
         "questions_count": c_count, # compatibility
         "tags": [t.name for t in deck.tags],
         "cover_image": deck.cover_image,
+        "has_roadmap": has_roadmap,
         "category_name": deck.category.name if deck.category else "General"
     }
 

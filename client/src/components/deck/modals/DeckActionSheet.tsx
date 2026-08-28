@@ -101,6 +101,30 @@ export function DeckActionSheet({
           <div className="py-3 space-y-2 flex-1 overflow-y-auto">
             {activeTab === 'my' && (
               <>
+                {/* 0. Lộ trình học (nếu đang bật) */}
+                {deck.has_roadmap && (
+                  <button
+                    onClick={() => {
+                      onClose()
+                      navigate(`/decks/${deck.id}?tab=roadmap`)
+                    }}
+                    className="w-full p-3.5 rounded-2xl bg-gradient-to-r from-teal-500 to-emerald-600 text-white flex items-center justify-between shadow-xs shadow-teal-500/20 active:scale-[0.98] transition-all cursor-pointer"
+                  >
+                    <div className="flex items-center gap-3">
+                      <span className="w-9 h-9 rounded-xl bg-white/20 flex items-center justify-center text-white">
+                        <Compass className="w-4 h-4" />
+                      </span>
+                      <div className="text-left">
+                        <span className="text-xs sm:text-sm font-black block">Lộ Trình Học Hàng Ngày</span>
+                        <span className="text-[10px] text-white/80 font-medium block">
+                          Chinh phục mục tiêu từ mới, ôn tập & kiểm tra
+                        </span>
+                      </div>
+                    </div>
+                    <ChevronRight className="w-4 h-4 text-white/70" />
+                  </button>
+                )}
+
                 {/* 1. Học Flashcard */}
                 <button
                   onClick={() => {

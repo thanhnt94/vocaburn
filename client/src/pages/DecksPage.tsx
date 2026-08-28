@@ -4,7 +4,8 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { 
   Search, Plus, ChevronRight, ChevronLeft, Archive, 
   RotateCcw, Users, Brain, Trophy, X, MoreHorizontal,
-  Play, Sparkles, BookOpen, Layers, Eye, Check, Calendar
+  Play, Sparkles, BookOpen, Layers, Eye, Check, Calendar,
+  Compass
 } from 'lucide-react'
 import { useAppStore } from '@/store/useAppStore'
 import { cn } from '@/lib/utils'
@@ -31,6 +32,7 @@ export interface Quiz {
   is_creator?: boolean
   is_public?: boolean
   owner_id?: number
+  has_roadmap?: boolean
   learned_count?: number
   mastered_count?: number
   progress_percent?: number
@@ -48,7 +50,7 @@ interface DashboardData {
 }
 
 export type DecksTab = 'my' | 'discover' | 'archived'
-export type StatusFilter = 'all' | 'learning' | 'unlearned' | 'mastered'
+export type StatusFilter = 'all' | 'roadmap' | 'learning' | 'unlearned' | 'mastered'
 
 export default function DecksPage() {
   const [searchParams, setSearchParams] = useSearchParams()
@@ -132,7 +134,9 @@ export default function DecksPage() {
       const pct = q.progress_percent ?? Math.round((learned / total) * 100)
 
       let matchesStatus = true
-      if (statusFilter === 'learning') {
+      if (statusFilter === 'roadmap') {
+        matchesStatus = Boolean(q.has_roadmap)
+      } else if (statusFilter === 'learning') {
         matchesStatus = learned > 0 && pct < 100
       } else if (statusFilter === 'unlearned') {
         matchesStatus = learned === 0
@@ -189,64 +193,61 @@ export default function DecksPage() {
   )
 
   return (
-    <div className="fixed inset-0 top-0 bottom-[60px] md:relative md:inset-auto md:top-auto md:bottom-auto md:min-h-screen flex flex-col bg-[#F8FAFC] overflow-hidden text-left select-none">
-      {/* ═══════════ TOP PREMIUM APP-LIKE HEADER (SHRINK-0) ═══════════ */}
+    <div className="min-h-[calc(100vh-60px)] md:min-h-screen flex flex-col bg-[#F8FAFC] overflow-hidden text-left select-none pb-24 md:pb-8">
+      {/* ═══════════ TOP UNIFIED HEADER ═══════════ */}
       <div className="shrink-0 z-30 bg-white/90 backdrop-blur-2xl border-b border-slate-200/70 shadow-2xs">
-        <div className="max-w-5xl mx-auto px-3.5 sm:px-6">
-          
-          {/* Row 1: Header Brand & Actions */}
+        <div className="max-w-5xl mx-auto px-3 sm:px-6">
+          {/* Row 1: Header title & Main controls */}
           <div className="flex items-center justify-between pt-2.5 pb-2">
-            <div className="flex items-center gap-2.5">
-              <div className="w-9 h-9 rounded-2xl bg-gradient-to-tr from-orange-500 via-rose-500 to-indigo-600 flex items-center justify-center text-white text-base shadow-sm shadow-orange-500/20 shrink-0 font-bold">
+            <div className="flex items-center gap-2">
+              <div className="w-8.5 h-8.5 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white text-base shadow-xs shadow-indigo-500/20 shrink-0">
                 🎴
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-baseline gap-2">
                 <h1 className="text-base sm:text-lg font-black text-slate-900 tracking-tight">
                   Bộ Thẻ
                 </h1>
-                <span className="px-2.5 py-0.5 rounded-full bg-slate-100 border border-slate-200/60 text-slate-600 text-[10px] font-black">
+                <span className="px-2 py-0.5 rounded-full bg-slate-100 border border-slate-200/80 text-slate-600 text-[11px] font-black">
                   {filteredData.length}
                 </span>
               </div>
             </div>
 
-            {/* Quick Action Group */}
+            {/* Right Action Icons */}
             <div className="flex items-center gap-1.5">
-              {/* Search Toggle */}
               <button
                 onClick={() => setIsSearchOpen(prev => !prev)}
                 className={cn(
-                  "w-8.5 h-8.5 rounded-xl border transition-all flex items-center justify-center cursor-pointer shadow-2xs active:scale-95",
-                  isSearchOpen || searchQuery
-                    ? "bg-indigo-50 border-indigo-200 text-indigo-600 shadow-indigo-100"
-                    : "bg-slate-50 border-slate-200/70 text-slate-600 hover:bg-slate-100"
+                  "w-8.5 h-8.5 rounded-xl border flex items-center justify-center transition-all active:scale-95 cursor-pointer shadow-2xs",
+                  isSearchOpen || searchQuery 
+                    ? "bg-indigo-50 border-indigo-200 text-indigo-600 font-bold" 
+                    : "bg-slate-50 hover:bg-slate-100 border-slate-200/80 text-slate-700"
                 )}
                 title="Tìm kiếm bộ thẻ"
               >
                 <Search className="w-4 h-4" />
               </button>
 
-              {/* Arena Join */}
               <button
                 onClick={() => setIsJoinModalOpen(true)}
-                className="w-8.5 h-8.5 rounded-xl bg-slate-50 hover:bg-slate-100 text-slate-600 hover:text-indigo-600 border border-slate-200/70 transition-all flex items-center justify-center cursor-pointer shadow-2xs active:scale-95"
-                title="Tham gia phòng đấu"
+                className="w-8.5 h-8.5 rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-200/80 text-slate-700 flex items-center justify-center transition-all active:scale-95 cursor-pointer shadow-2xs"
+                title="Vào phòng luyện thi"
               >
-                <Users className="w-4 h-4" />
+                <Users className="w-4 h-4 text-purple-600" />
               </button>
 
-              {/* Create Button */}
               <button
                 onClick={() => setIsCreateModalOpen(true)}
-                className="h-8.5 px-3 rounded-xl bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white text-[11px] sm:text-xs font-black shadow-xs shadow-orange-500/20 active:scale-95 transition-all flex items-center gap-1 cursor-pointer shrink-0"
+                className="h-8.5 px-3 rounded-xl bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white flex items-center gap-1 text-xs font-black shadow-xs shadow-orange-500/20 active:scale-95 transition-all cursor-pointer"
+                title="Tạo bộ thẻ mới"
               >
-                <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
-                <span className="hidden xs:inline">Tạo mới</span>
+                <Plus className="w-4 h-4 stroke-[3]" />
+                <span className="hidden sm:inline">Tạo mới</span>
               </button>
             </div>
           </div>
 
-          {/* Row 2: Collapsible Search Bar */}
+          {/* Row 2: Search Box (Collapsible) */}
           <AnimatePresence>
             {(isSearchOpen || searchQuery) && (
               <motion.div
@@ -257,19 +258,19 @@ export default function DecksPage() {
                 className="overflow-hidden pb-2"
               >
                 <div className="relative">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                  <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
                   <input
+                    autoFocus={isSearchOpen}
                     type="text"
-                    placeholder="Tìm tên bộ thẻ, tác giả, tag..."
+                    placeholder="Tìm theo tên bộ thẻ, người tạo..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    autoFocus
-                    className="w-full h-9 pl-9 pr-8 bg-slate-100/90 border border-slate-200/80 rounded-xl text-xs font-bold text-slate-800 placeholder:text-slate-400 outline-none focus:bg-white focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/15 transition-all"
+                    className="w-full pl-8 pr-8 py-1.5 rounded-xl bg-slate-100/90 border border-slate-200/80 text-xs font-bold text-slate-800 placeholder:text-slate-400 focus:outline-none focus:border-indigo-500 focus:bg-white transition-all shadow-inner"
                   />
                   {searchQuery && (
                     <button
                       onClick={() => setSearchQuery('')}
-                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 cursor-pointer"
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5 cursor-pointer"
                     >
                       <X className="w-3.5 h-3.5" />
                     </button>
@@ -285,6 +286,7 @@ export default function DecksPage() {
               <>
                 {[
                   { id: 'all' as StatusFilter, label: 'Tất cả' },
+                  { id: 'roadmap' as StatusFilter, label: '🧭 Có lộ trình' },
                   { id: 'learning' as StatusFilter, label: '⚡ Đang học' },
                   { id: 'unlearned' as StatusFilter, label: '✨ Chưa học' },
                   { id: 'mastered' as StatusFilter, label: '🌟 Đã thuộc' },
@@ -295,7 +297,9 @@ export default function DecksPage() {
                     className={cn(
                       "px-2.5 py-1 rounded-xl text-[10px] font-black transition-all shrink-0 border cursor-pointer select-none",
                       statusFilter === st.id
-                        ? "bg-indigo-600 border-indigo-600 text-white shadow-2xs"
+                        ? st.id === 'roadmap'
+                          ? "bg-teal-600 border-teal-600 text-white shadow-2xs"
+                          : "bg-indigo-600 border-indigo-600 text-white shadow-2xs"
                         : "bg-white border-slate-200/80 text-slate-600 hover:bg-slate-50"
                     )}
                   >
@@ -414,10 +418,21 @@ export default function DecksPage() {
                           onClick={() => navigate(`/decks/${quiz.id}`)}
                           className="flex-1 min-w-0 cursor-pointer text-left"
                         >
-                          {/* Title */}
-                          <h3 className="text-xs sm:text-sm font-black text-slate-800 group-hover:text-indigo-600 transition-colors line-clamp-1 leading-snug">
-                            {quiz.title}
-                          </h3>
+                          {/* Title & Roadmap Badge */}
+                          <div className="flex items-center gap-1.5 min-w-0">
+                            <h3 className="text-xs sm:text-sm font-black text-slate-800 group-hover:text-indigo-600 transition-colors line-clamp-1 leading-snug">
+                              {quiz.title}
+                            </h3>
+                            {quiz.has_roadmap && (
+                              <span 
+                                className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md bg-teal-50 border border-teal-200/80 text-teal-700 font-extrabold text-[9px] shadow-2xs shrink-0"
+                                title="Bộ thẻ này đang bật Lộ trình học"
+                              >
+                                <Compass className="w-2.5 h-2.5 text-teal-600 animate-spin-slow" />
+                                <span>Lộ trình</span>
+                              </span>
+                            )}
+                          </div>
 
                           {/* Meta line: Card count, Creator, Date */}
                           <div className="flex items-center flex-wrap gap-x-2 gap-y-0.5 mt-0.5 text-[10px] font-bold text-slate-400">
@@ -461,8 +476,22 @@ export default function DecksPage() {
                           )}
                         </div>
 
-                        {/* Right Buttons: Quick Play CTA + More Options */}
+                        {/* Right Buttons: Roadmap Shortcut + Quick Play CTA + More Options */}
                         <div className="flex items-center gap-1.5 shrink-0 self-center">
+                          {activeTab === 'my' && quiz.has_roadmap && (
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                navigate(`/decks/${quiz.id}?tab=roadmap`)
+                              }}
+                              className="h-8.5 px-2.5 rounded-xl bg-teal-50 hover:bg-teal-100 border border-teal-200 text-teal-700 font-black text-xs active:scale-95 transition-all flex items-center gap-1 cursor-pointer shadow-2xs"
+                              title="Truy cập nhanh Lộ trình học"
+                            >
+                              <Compass className="w-3.5 h-3.5 text-teal-600" />
+                              <span className="hidden sm:inline">Lộ trình</span>
+                            </button>
+                          )}
+
                           {activeTab === 'my' && (
                             <button
                               onClick={() => handleStudyTrigger(quiz, 'flashcard')}
