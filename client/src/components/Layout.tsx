@@ -173,10 +173,10 @@ export default function Layout() {
         <Outlet />
       </main>
 
-      {/* Modern Luxury Mobile Bottom Nav (4 Tabs) */}
+      {/* Modern Connected Full-Width Mobile Bottom Nav (4 Segmented Tabs) */}
       {showBottomNav && (
-        <div className="fixed bottom-0 left-0 right-0 z-[120] md:hidden bg-white/95 backdrop-blur-2xl border-t border-slate-200/70 shadow-[0_-6px_25px_rgba(0,0,0,0.03)] px-3 pt-1.5 pb-[max(0.5rem,env(safe-area-inset-bottom))]">
-          <nav className="grid grid-cols-4 items-center max-w-sm mx-auto">
+        <div className="fixed bottom-0 left-0 right-0 z-[120] md:hidden bg-white/95 backdrop-blur-2xl border-t border-slate-200/80 px-2.5 pt-1.5 pb-[max(0.45rem,env(safe-area-inset-bottom))] shadow-[0_-6px_25px_rgba(0,0,0,0.04)]">
+          <nav className="w-full bg-slate-100/90 p-1 rounded-2xl border border-slate-200/60 grid grid-cols-4 gap-1 relative shadow-inner">
             {navItems.filter(item => item.label !== 'Admin').map((item) => {
               const Icon = item.icon
               const isActive = item.path === '/' 
@@ -187,32 +187,31 @@ export default function Layout() {
                 <Link 
                   key={item.path}
                   to={item.path} 
-                  className="group relative flex flex-col items-center justify-center py-1 select-none active:scale-95 transition-transform cursor-pointer"
+                  className={cn(
+                    "relative flex flex-col items-center justify-center py-1.5 px-1 rounded-xl select-none transition-all cursor-pointer",
+                    isActive ? "text-orange-600" : "text-slate-500 hover:text-slate-800"
+                  )}
                 >
-                  {/* Top Active Indicator Bar */}
+                  {/* Elevated Active Segment Card */}
                   {isActive && (
                     <motion.div 
-                      layoutId="navActiveTopLine"
-                      className="absolute -top-1.5 w-7 h-1 bg-gradient-to-r from-orange-500 to-rose-500 rounded-full"
-                      transition={{ type: "spring", stiffness: 450, damping: 32 }}
+                      layoutId="navActiveSegment"
+                      className="absolute inset-0 bg-white rounded-xl shadow-[0_2px_8px_rgba(0,0,0,0.07)] border border-slate-200/80"
+                      transition={{ type: "spring", stiffness: 450, damping: 35 }}
                     />
                   )}
 
-                  {/* Icon with Soft Tinted Pill */}
-                  <div className={cn(
-                    "w-10 h-7 rounded-xl flex items-center justify-center transition-all duration-200",
-                    isActive ? "bg-orange-500/12 text-orange-600" : "text-slate-400 group-hover:text-slate-600"
-                  )}>
-                    <Icon className={cn(
-                      "w-5 h-5 transition-transform duration-200",
-                      isActive ? "scale-110 stroke-[2.3] text-orange-600" : "stroke-[1.8] text-slate-400"
-                    )} />
-                  </div>
-
-                  {/* Label */}
+                  <Icon className={cn(
+                    "w-5 h-5 relative z-10 transition-all duration-200",
+                    isActive 
+                      ? "text-orange-600 scale-105 stroke-[2.4]" 
+                      : "text-slate-400 stroke-[1.8]"
+                  )} />
                   <span className={cn(
-                    "text-[10px] tracking-tight mt-0.5 transition-colors duration-200 leading-none",
-                    isActive ? "font-black text-orange-600" : "font-semibold text-slate-400"
+                    "text-[10px] tracking-tight relative z-10 transition-all duration-200 mt-0.5 leading-none",
+                    isActive 
+                      ? "font-black text-slate-900" 
+                      : "font-semibold text-slate-400"
                   )}>
                     {item.label}
                   </span>
