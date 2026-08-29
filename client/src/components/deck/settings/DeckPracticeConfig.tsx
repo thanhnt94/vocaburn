@@ -5,16 +5,36 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { cn } from '@/lib/utils'
 
 export interface QuestionAnswerPair {
-  id?: string
-  prompt_col: string
-  answer_col: string
+  q: string
+  a: string
   name?: string
+  prompt_col?: string
+  answer_col?: string
 }
 
 export interface DeckPracticeConfigProps {
   deckId: string | number
   initialSettings: any
   onSaved?: () => void
+}
+
+function normalizePair(p: any): QuestionAnswerPair {
+  if (!p) return { q: 'front', a: 'back', prompt_col: 'front', answer_col: 'back' }
+  if (typeof p === 'string') {
+    const parts = p.split(/[-:>]/)
+    const q = (parts[0] || 'front').trim()
+    const a = (parts[1] || 'back').trim()
+    return { q, a, prompt_col: q, answer_col: a, name: p }
+  }
+  const q = String(p.q || p.prompt_col || p.question_col || p.question || p.from || p.source || 'front').trim()
+  const a = String(p.a || p.answer_col || p.answer || p.to || p.target || 'back').trim()
+  return {
+    q,
+    a,
+    prompt_col: q,
+    answer_col: a,
+    name: p.name || ''
+  }
 }
 
 export function DeckPracticeConfig({ deckId, initialSettings, onSaved }: DeckPracticeConfigProps) {
@@ -25,7 +45,7 @@ export function DeckPracticeConfig({ deckId, initialSettings, onSaved }: DeckPra
   const [isSaving, setIsSaving] = useState(false)
   const [saveSuccess, setSaveSuccess] = useState(false)
 
-  // Fetch available columns
+  // Fetch available columns and full practice settings from backend
   const { data: practiceSettingsData } = useQuery({
     queryKey: ['deck-practice-settings', String(deckId)],
     queryFn: async () => {
@@ -36,29 +56,43 @@ export function DeckPracticeConfig({ deckId, initialSettings, onSaved }: DeckPra
     staleTime: 30 * 1000,
   })
 
-  const availableColumns: string[] = practiceSettingsData?.available_columns || ['front', 'back', 'explanation', 'furigana']
+  // Combine available columns
+  const rawAvailableColumns: string[] = practiceSettingsData?.available_columns || [
+    'front', 'back', 'explanation', 'furigana', 'front_audio_content', 'back_audio_content'
+  ]
+
+  // Collect all unique columns mentioned in pairs + available columns
+  const availableColumns = Array.from(new Set([
+    ...rawAvailableColumns,
+    ...activePairs.map(p => p.q),
+    ...activePairs.map(p => p.a),
+    'front', 'back'
+  ])).filter(Boolean)
 
   useEffect(() => {
-    if (initialSettings) {
-      setDisabledModes(initialSettings.disabled_modes || [])
+    // Determine effective settings source: prioritize API creator_settings over prop
+    const effectiveSettings = practiceSettingsData?.creator_settings || initialSettings
+
+    if (effectiveSettings) {
+      setDisabledModes(effectiveSettings.disabled_modes || [])
       
-      const mcqConfig = initialSettings.mcq || {}
-      setNumChoices(mcqConfig.num_choices || initialSettings.num_choices || 4)
+      const mcqConfig = effectiveSettings.mcq || {}
+      setNumChoices(mcqConfig.num_choices || effectiveSettings.num_choices || 4)
       
-      const pairs = mcqConfig.active_pairs || initialSettings.active_pairs || []
+      const pairs = mcqConfig.active_pairs || effectiveSettings.active_pairs || effectiveSettings.pairs || []
       if (Array.isArray(pairs) && pairs.length > 0) {
-        setActivePairs(pairs.map((p: any) => ({
-          prompt_col: p.prompt_col || p.question_col || 'front',
-          answer_col: p.answer_col || 'back',
-          name: p.name || ''
-        })))
+        setActivePairs(pairs.map(normalizePair))
       } else {
         setActivePairs([
-          { prompt_col: 'front', answer_col: 'back', name: 'Mặt trước ➜ Mặt sau' }
+          { q: 'front', a: 'back', prompt_col: 'front', answer_col: 'back', name: 'Mặt trước ➜ Mặt sau' }
         ])
       }
+    } else {
+      setActivePairs([
+        { q: 'front', a: 'back', prompt_col: 'front', answer_col: 'back', name: 'Mặt trước ➜ Mặt sau' }
+      ])
     }
-  }, [initialSettings])
+  }, [practiceSettingsData, initialSettings])
 
   const toggleMode = (modeKey: string) => {
     setDisabledModes((prev) =>
@@ -69,7 +103,7 @@ export function DeckPracticeConfig({ deckId, initialSettings, onSaved }: DeckPra
   const handleAddPair = () => {
     setActivePairs(prev => [
       ...prev,
-      { prompt_col: 'front', answer_col: 'back', name: `Cặp #${prev.length + 1}` }
+      { q: 'front', a: 'back', prompt_col: 'front', answer_col: 'back', name: `Cặp #${prev.length + 1}` }
     ])
   }
 
@@ -77,10 +111,13 @@ export function DeckPracticeConfig({ deckId, initialSettings, onSaved }: DeckPra
     setActivePairs(prev => prev.filter((_, idx) => idx !== index))
   }
 
-  const handleUpdatePair = (index: number, field: keyof QuestionAnswerPair, value: string) => {
+  const handleUpdatePair = (index: number, field: 'q' | 'a', value: string) => {
     setActivePairs(prev => prev.map((item, idx) => {
       if (idx === index) {
-        return { ...item, [field]: value }
+        const updated = { ...item, [field]: value }
+        if (field === 'q') updated.prompt_col = value
+        if (field === 'a') updated.answer_col = value
+        return updated
       }
       return item
     }))
@@ -90,25 +127,37 @@ export function DeckPracticeConfig({ deckId, initialSettings, onSaved }: DeckPra
     e.preventDefault()
     setIsSaving(true)
     setSaveSuccess(false)
+
+    // Format pairs with all standard fields (q/a and prompt_col/answer_col)
+    const formattedPairs = activePairs.map(p => ({
+      q: p.q || 'front',
+      a: p.a || 'back',
+      prompt_col: p.q || 'front',
+      answer_col: p.a || 'back',
+      name: p.name || `${p.q} ➜ ${p.a}`
+    }))
+
+    const baseSettings = practiceSettingsData?.creator_settings || initialSettings || {}
+
     try {
       const mcqSettings = {
-        active_pairs: activePairs,
+        active_pairs: formattedPairs,
         num_choices: numChoices,
       }
       const typingSettings = {
-        active_pairs: activePairs,
+        active_pairs: formattedPairs,
       }
       const listeningSettings = {
-        active_pairs: activePairs,
+        active_pairs: formattedPairs,
         num_choices: numChoices,
       }
 
       await axios.post(`/api/v1/deck/${deckId}/practice-settings`, {
         settings: {
-          ...initialSettings,
+          ...baseSettings,
           disabled_modes: disabledModes,
           num_choices: numChoices,
-          active_pairs: activePairs,
+          active_pairs: formattedPairs,
           mcq: mcqSettings,
           typing: typingSettings,
           listening: listeningSettings,
@@ -248,64 +297,75 @@ export function DeckPracticeConfig({ deckId, initialSettings, onSaved }: DeckPra
 
         {/* Pairs List */}
         <div className="space-y-3">
-          {activePairs.map((pair, idx) => (
-            <div key={idx} className="p-4 rounded-2xl bg-slate-50/80 border border-slate-200/80 space-y-3">
-              <div className="flex items-center justify-between gap-2">
-                <span className="text-xs font-black text-indigo-900">
-                  Cặp #{idx + 1}
-                </span>
-
-                {activePairs.length > 1 && (
-                  <button
-                    type="button"
-                    onClick={() => handleRemovePair(idx)}
-                    className="w-7 h-7 rounded-lg bg-white hover:bg-rose-50 border border-slate-200 text-slate-400 hover:text-rose-600 flex items-center justify-center transition-all cursor-pointer shadow-2xs"
-                    title="Xóa cặp này"
-                  >
-                    <Trash2 className="w-3.5 h-3.5" />
-                  </button>
-                )}
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 items-center">
-                {/* Question Column */}
-                <div>
-                  <label className="text-[10px] font-black text-slate-500 uppercase tracking-wider mb-1 block">
-                    Cột Hiển Thị Làm Câu Hỏi (Question):
-                  </label>
-                  <select
-                    value={pair.prompt_col}
-                    onChange={(e) => handleUpdatePair(idx, 'prompt_col', e.target.value)}
-                    className="w-full h-9 px-2.5 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-800 outline-none focus:border-indigo-500 cursor-pointer shadow-2xs"
-                  >
-                    {availableColumns.map((col) => (
-                      <option key={col} value={col}>
-                        {col}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                {/* Answer Column */}
-                <div>
-                  <label className="text-[10px] font-black text-slate-500 uppercase tracking-wider mb-1 block">
-                    Cột Chứa Đáp Án Đúng (Answer):
-                  </label>
-                  <select
-                    value={pair.answer_col}
-                    onChange={(e) => handleUpdatePair(idx, 'answer_col', e.target.value)}
-                    className="w-full h-9 px-2.5 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-800 outline-none focus:border-indigo-500 cursor-pointer shadow-2xs"
-                  >
-                    {availableColumns.map((col) => (
-                      <option key={col} value={col}>
-                        {col}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
+          {activePairs.length === 0 ? (
+            <div className="py-8 text-center bg-slate-50 rounded-2xl border border-dashed border-slate-200 text-slate-400 text-xs font-bold">
+              Chưa có cặp câu hỏi - đáp án nào. Nhấn "+ Thêm Cặp Hỏi - Đáp" để tạo mới.
             </div>
-          ))}
+          ) : (
+            activePairs.map((pair, idx) => (
+              <div key={idx} className="p-4 rounded-2xl bg-slate-50/80 border border-slate-200/80 space-y-3">
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <span className="w-6 h-6 rounded-lg bg-indigo-600 text-white font-bold text-xs flex items-center justify-center">
+                      #{idx + 1}
+                    </span>
+                    <span className="text-xs font-black text-slate-800">
+                      Cặp: {pair.q} ➜ {pair.a}
+                    </span>
+                  </div>
+
+                  {activePairs.length > 1 && (
+                    <button
+                      type="button"
+                      onClick={() => handleRemovePair(idx)}
+                      className="w-7 h-7 rounded-lg bg-white hover:bg-rose-50 border border-slate-200 text-slate-400 hover:text-rose-600 flex items-center justify-center transition-all cursor-pointer shadow-2xs"
+                      title="Xóa cặp này"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  )}
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 items-center">
+                  {/* Question Column */}
+                  <div>
+                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-wider mb-1 block">
+                      Cột Hiển Thị Làm Câu Hỏi (Question):
+                    </label>
+                    <select
+                      value={pair.q}
+                      onChange={(e) => handleUpdatePair(idx, 'q', e.target.value)}
+                      className="w-full h-9 px-2.5 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-800 outline-none focus:border-indigo-500 cursor-pointer shadow-2xs"
+                    >
+                      {availableColumns.map((col) => (
+                        <option key={col} value={col}>
+                          {col}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* Answer Column */}
+                  <div>
+                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-wider mb-1 block">
+                      Cột Chứa Đáp Án Đúng (Answer):
+                    </label>
+                    <select
+                      value={pair.a}
+                      onChange={(e) => handleUpdatePair(idx, 'a', e.target.value)}
+                      className="w-full h-9 px-2.5 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-800 outline-none focus:border-indigo-500 cursor-pointer shadow-2xs"
+                    >
+                      {availableColumns.map((col) => (
+                        <option key={col} value={col}>
+                          {col}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+              </div>
+            ))
+          )}
         </div>
 
         <div className="pt-2 flex justify-end">

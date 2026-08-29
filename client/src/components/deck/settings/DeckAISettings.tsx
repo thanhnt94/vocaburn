@@ -72,10 +72,11 @@ export function DeckAISettings({ deckId, initialSettings, onSaved }: DeckAISetti
   const availableColumns: string[] = practiceSettingsData?.available_columns || ['front', 'back', 'explanation', 'furigana']
 
   useEffect(() => {
-    if (initialSettings && Array.isArray(initialSettings.ai_prompts) && initialSettings.ai_prompts.length > 0) {
-      setPrompts(initialSettings.ai_prompts)
-      if (initialSettings.ai_prompts[0]?.column) {
-        setSelectedColumnToRun(initialSettings.ai_prompts[0].column)
+    const effectiveSettings = practiceSettingsData?.creator_settings || initialSettings
+    if (effectiveSettings && Array.isArray(effectiveSettings.ai_prompts) && effectiveSettings.ai_prompts.length > 0) {
+      setPrompts(effectiveSettings.ai_prompts)
+      if (effectiveSettings.ai_prompts[0]?.column) {
+        setSelectedColumnToRun(effectiveSettings.ai_prompts[0].column)
       }
     } else {
       // Default initial prompt
@@ -89,7 +90,7 @@ export function DeckAISettings({ deckId, initialSettings, onSaved }: DeckAISetti
         }
       ])
     }
-  }, [initialSettings])
+  }, [practiceSettingsData, initialSettings])
 
   const handleAddPrompt = (preset?: typeof DEFAULT_PRESETS[0]) => {
     const newItem: AIPromptItem = preset ? {

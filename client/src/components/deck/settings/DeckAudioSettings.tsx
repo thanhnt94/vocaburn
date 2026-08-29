@@ -62,13 +62,14 @@ export function DeckAudioSettings({ deckId, initialSettings, onSaved }: DeckAudi
   })
 
   useEffect(() => {
-    if (initialSettings) {
-      if (initialSettings.audio_source_field) setSourceField(initialSettings.audio_source_field)
-      if (initialSettings.audio_target_field) setTargetField(initialSettings.audio_target_field)
-      if (initialSettings.audio_voice_lang) setVoiceLang(initialSettings.audio_voice_lang)
-      if (initialSettings.audio_speech_rate) setSpeechRate(String(initialSettings.audio_speech_rate))
+    const effectiveSettings = practiceSettingsData?.creator_settings || initialSettings
+    if (effectiveSettings) {
+      if (effectiveSettings.audio_source_field) setSourceField(effectiveSettings.audio_source_field)
+      if (effectiveSettings.audio_target_field) setTargetField(effectiveSettings.audio_target_field)
+      if (effectiveSettings.audio_voice_lang) setVoiceLang(effectiveSettings.audio_voice_lang)
+      if (effectiveSettings.audio_speech_rate) setSpeechRate(String(effectiveSettings.audio_speech_rate))
     }
-  }, [initialSettings])
+  }, [practiceSettingsData, initialSettings])
 
   const handleSaveAudioConfig = async () => {
     setIsSaving(true)
