@@ -9,11 +9,12 @@ import {
   DeckPracticeConfig,
   DeckAISettings,
   DeckAudioSettings,
+  DeckFuriganaSettings,
   DeckExcelManager,
   DeckDangerZone,
   DeckCollaboratorsModal
 } from '../settings'
-import { Settings, Sparkles, Volume2, Sliders, FileSpreadsheet, Users, AlertTriangle } from 'lucide-react'
+import { Settings, Sparkles, Volume2, Sliders, FileSpreadsheet, Users, AlertTriangle, Languages } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 export interface DeckSettingsTabProps {
@@ -21,9 +22,9 @@ export interface DeckSettingsTabProps {
   deckId?: string | number
 }
 
-export type SettingsSubTab = 'general' | 'ai' | 'audio' | 'practice' | 'excel' | 'collab' | 'danger'
+export type SettingsSubTab = 'general' | 'ai' | 'audio' | 'furigana' | 'practice' | 'excel' | 'collab' | 'danger'
 
-const VALID_SUB_TABS: SettingsSubTab[] = ['general', 'ai', 'audio', 'practice', 'excel', 'collab', 'danger']
+const VALID_SUB_TABS: SettingsSubTab[] = ['general', 'ai', 'audio', 'furigana', 'practice', 'excel', 'collab', 'danger']
 
 export function DeckSettingsTab({ embedded = false, deckId }: DeckSettingsTabProps) {
   const { id: paramId } = useParams()
@@ -77,6 +78,7 @@ export function DeckSettingsTab({ embedded = false, deckId }: DeckSettingsTabPro
     { id: 'general' as const, label: 'Cơ bản', shortLabel: 'Cơ bản', icon: Settings, color: 'text-indigo-600', badge: null },
     { id: 'ai' as const, label: 'Cấu hình AI', shortLabel: 'AI Prompt', icon: Sparkles, color: 'text-purple-600', badge: 'AI' },
     { id: 'audio' as const, label: 'Âm thanh & TTS', shortLabel: 'Audio TTS', icon: Volume2, color: 'text-sky-600', badge: 'TTS' },
+    { id: 'furigana' as const, label: 'Furigana Ruby', shortLabel: 'Furigana', icon: Languages, color: 'text-emerald-600', badge: 'あ' },
     { id: 'practice' as const, label: 'Luyện tập', shortLabel: 'Luyện tập', icon: Sliders, color: 'text-amber-600', badge: null },
     { id: 'excel' as const, label: 'Dữ liệu Excel', shortLabel: 'Excel', icon: FileSpreadsheet, color: 'text-emerald-600', badge: null },
     { id: 'collab' as const, label: 'Cộng tác viên', shortLabel: 'Thành viên', icon: Users, color: 'text-blue-600', badge: null },
@@ -98,10 +100,9 @@ export function DeckSettingsTab({ embedded = false, deckId }: DeckSettingsTabPro
       <div className="sticky top-0 z-30 bg-[#F8FAFC]/95 backdrop-blur-md pt-1 pb-2">
         <div className="bg-white/95 p-1 sm:p-1.5 rounded-2xl border border-slate-200/90 shadow-xs">
           <div className="grid grid-cols-4 sm:flex sm:items-center sm:gap-1">
-            {subTabs.map((tab, idx) => {
+            {subTabs.map((tab) => {
               const Icon = tab.icon
               const isActive = activeSubTab === tab.id
-              const isCollab = tab.id === 'collab'
 
               return (
                 <button
@@ -110,7 +111,6 @@ export function DeckSettingsTab({ embedded = false, deckId }: DeckSettingsTabPro
                   onClick={() => handleSelectSubTab(tab.id)}
                   className={cn(
                     "relative flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-1.5 py-2 px-1.5 sm:px-3 rounded-xl transition-all cursor-pointer select-none",
-                    idx === 6 && "col-span-2 sm:col-span-1",
                     isActive
                       ? "text-slate-900 font-black shadow-2xs"
                       : "text-slate-500 hover:text-slate-800 hover:bg-slate-50 font-bold"
@@ -167,6 +167,14 @@ export function DeckSettingsTab({ embedded = false, deckId }: DeckSettingsTabPro
 
           {activeSubTab === 'audio' && (
             <DeckAudioSettings
+              deckId={id!}
+              initialSettings={deckData?.practice_settings}
+              onSaved={() => refetch()}
+            />
+          )}
+
+          {activeSubTab === 'furigana' && (
+            <DeckFuriganaSettings
               deckId={id!}
               initialSettings={deckData?.practice_settings}
               onSaved={() => refetch()}

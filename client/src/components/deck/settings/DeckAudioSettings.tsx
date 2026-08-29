@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { Volume2, Save, RefreshCw, CheckCircle2, Wand2, Play, AlertCircle, Headphones, Mic } from 'lucide-react'
+import { Volume2, Save, RefreshCw, CheckCircle2, Headphones, Server, Sparkles } from 'lucide-react'
 import axios from 'axios'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { cn } from '@/lib/utils'
@@ -10,28 +10,62 @@ export interface DeckAudioSettingsProps {
   onSaved?: () => void
 }
 
+// Full voice options list supported by CentralAuth
+export const VOICE_OPTIONS = [
+  { group: 'Hệ thống tự động', items: [
+    { value: 'auto', label: 'Tự động chọn (Theo ngôn ngữ bộ thẻ & cấu hình máy chủ)' }
+  ]},
+  { group: '🇻🇳 Tiếng Việt (Microsoft Edge TTS & Google)', items: [
+    { value: 'vi-VN-HoaiMyNeural', label: '🇻🇳 Hoài My (Nữ - EdgeTTS Rất Tự Nhiên)' },
+    { value: 'vi-VN-NamMinhNeural', label: '🇻🇳 Nam Minh (Nam - EdgeTTS)' },
+    { value: 'vi-VN-Neural2-A', label: '🇻🇳 Vi Neural2-A (Nữ - Google Cloud)' },
+    { value: 'vi-VN-Neural2-F', label: '🇻🇳 Vi Neural2-F (Nam - Google Cloud)' },
+    { value: 'gtts:vi', label: '🇻🇳 Tiếng Việt (gTTS Backup)' }
+  ]},
+  { group: '🇯🇵 Tiếng Nhật (Japanese - EdgeTTS & Google)', items: [
+    { value: 'ja-JP-NanamiNeural', label: '🇯🇵 Nanami (Nữ - EdgeTTS Chuẩn Tokyo)' },
+    { value: 'ja-JP-KeitaNeural', label: '🇯🇵 Keita (Nam - EdgeTTS)' },
+    { value: 'ja-JP-Neural2-C', label: '🇯🇵 Ja Neural2-C (Nữ - Google Cloud)' },
+    { value: 'ja-JP-Neural2-D', label: '🇯🇵 Ja Neural2-D (Nam - Google Cloud)' },
+    { value: 'gtts:ja', label: '🇯🇵 Tiếng Nhật (gTTS Backup)' }
+  ]},
+  { group: '🇺🇸 Tiếng Anh (English US & UK)', items: [
+    { value: 'en-US-AriaNeural', label: '🇺🇸 Aria (Nữ - US - EdgeTTS)' },
+    { value: 'en-US-GuyNeural', label: '🇺🇸 Guy (Nam - US - EdgeTTS)' },
+    { value: 'en-GB-SoniaNeural', label: '🇬🇧 Sonia (Nữ - UK - EdgeTTS)' },
+    { value: 'en-US-Neural2-H', label: '🇺🇸 En Neural2-H (Nữ - Google Cloud)' },
+    { value: 'gtts:en', label: '🇺🇸 Tiếng Anh (gTTS Backup)' }
+  ]},
+  { group: '🇨🇳 Tiếng Trung & 🇰🇷 Tiếng Hàn', items: [
+    { value: 'zh-CN-XiaoxiaoNeural', label: '🇨🇳 Xiaoxiao (Nữ - Tiếng Trung EdgeTTS)' },
+    { value: 'ko-KR-SunHiNeural', label: '🇰🇷 SunHi (Nữ - Tiếng Hàn EdgeTTS)' },
+    { value: 'gtts:zh', label: '🇨🇳 Tiếng Trung (gTTS Backup)' },
+    { value: 'gtts:ko', label: '🇰🇷 Tiếng Hàn (gTTS Backup)' }
+  ]},
+  { group: '🇪🇺 Các Ngôn Ngữ Khác (Châu Âu)', items: [
+    { value: 'fr-FR-DeniseNeural', label: '🇫🇷 Denise (Pháp - EdgeTTS)' },
+    { value: 'de-DE-KillianNeural', label: '🇩🇪 Killian (Đức - EdgeTTS)' },
+    { value: 'es-ES-ElviraNeural', label: '🇪🇸 Elvira (Tây Ban Nha - EdgeTTS)' },
+    { value: 'ru-RU-SvetlanaNeural', label: '🇷🇺 Svetlana (Nga - EdgeTTS)' },
+    { value: 'it-IT-ElsaNeural', label: '🇮🇹 Elsa (Ý - EdgeTTS)' }
+  ]}
+]
+
 export function DeckAudioSettings({ deckId, initialSettings, onSaved }: DeckAudioSettingsProps) {
   const queryClient = useQueryClient()
   
   // Mapping State
   const [sourceField, setSourceField] = useState('front')
   const [targetField, setTargetField] = useState('front_audio_url')
-  const [voiceLang, setVoiceLang] = useState('ja-JP')
+  const [voiceName, setVoiceName] = useState('auto')
   const [speechRate, setSpeechRate] = useState('1.0')
   const [forceAudio, setForceAudio] = useState(false)
-
-  // Furigana State
-  const [furiganaSource, setFuriganaSource] = useState('front')
-  const [furiganaTarget, setFuriganaTarget] = useState('furigana')
-  const [forceFurigana, setForceFurigana] = useState(false)
 
   // Status & Loaders
   const [isSaving, setIsSaving] = useState(false)
   const [saveSuccess, setSaveSuccess] = useState(false)
   const [isRunningAudio, setIsRunningAudio] = useState(false)
   const [audioMessage, setAudioMessage] = useState<string | null>(null)
-  const [isRunningFurigana, setIsRunningFurigana] = useState(false)
-  const [furiganaMessage, setFuriganaMessage] = useState<string | null>(null)
 
   // Fetch available columns
   const { data: practiceSettingsData } = useQuery({
@@ -45,7 +79,7 @@ export function DeckAudioSettings({ deckId, initialSettings, onSaved }: DeckAudi
   })
 
   const availableColumns: string[] = practiceSettingsData?.available_columns || [
-    'front', 'back', 'front_audio_content', 'back_audio_content', 'front_audio_url', 'back_audio_url', 'furigana'
+    'front', 'back', 'front_audio_content', 'back_audio_content', 'front_audio_url', 'back_audio_url'
   ]
 
   // Query TTS Status
@@ -66,7 +100,12 @@ export function DeckAudioSettings({ deckId, initialSettings, onSaved }: DeckAudi
     if (effectiveSettings) {
       if (effectiveSettings.audio_source_field) setSourceField(effectiveSettings.audio_source_field)
       if (effectiveSettings.audio_target_field) setTargetField(effectiveSettings.audio_target_field)
-      if (effectiveSettings.audio_voice_lang) setVoiceLang(effectiveSettings.audio_voice_lang)
+      if (effectiveSettings.audio_voice_name) {
+        setVoiceName(effectiveSettings.audio_voice_name)
+      } else if (effectiveSettings.audio_voice_lang) {
+        // Fallback for legacy voice_lang
+        setVoiceName(effectiveSettings.audio_voice_lang)
+      }
       if (effectiveSettings.audio_speech_rate) setSpeechRate(String(effectiveSettings.audio_speech_rate))
     }
   }, [practiceSettingsData, initialSettings])
@@ -80,7 +119,8 @@ export function DeckAudioSettings({ deckId, initialSettings, onSaved }: DeckAudi
           ...initialSettings,
           audio_source_field: sourceField,
           audio_target_field: targetField,
-          audio_voice_lang: voiceLang,
+          audio_voice_name: voiceName,
+          audio_voice_lang: voiceName === 'auto' ? 'ja-JP' : voiceName,
           audio_speech_rate: speechRate,
         },
         is_creator: true,
@@ -106,36 +146,19 @@ export function DeckAudioSettings({ deckId, initialSettings, onSaved }: DeckAudi
         source_field: sourceField,
         target_field: targetField,
         force: forceAudio,
+        voice_name: voiceName !== 'auto' ? voiceName : undefined,
       })
       setAudioMessage(res.data?.message || 'Đã gửi yêu cầu tạo âm thanh TTS chạy nền thành công!')
       setTimeout(() => {
         refetchTTSStatus()
         queryClient.invalidateQueries({ queryKey: ['quiz-questions', String(deckId)] })
+        queryClient.invalidateQueries({ queryKey: ['quiz', String(deckId)] })
       }, 2000)
-      setTimeout(() => setAudioMessage(null), 6000)
+      setTimeout(() => setAudioMessage(null), 8000)
     } catch (e: any) {
       alert(e?.response?.data?.error || 'Lỗi khi kích hoạt sinh âm thanh hàng loạt')
     } finally {
       setIsRunningAudio(false)
-    }
-  }
-
-  const handleTriggerBulkFurigana = async () => {
-    setIsRunningFurigana(true)
-    setFuriganaMessage(null)
-    try {
-      const res = await axios.post(`/api/v1/deck/${deckId}/generate-all-furigana`, {
-        source_field: furiganaSource,
-        target_field: furiganaTarget,
-        force: forceFurigana,
-      })
-      setFuriganaMessage(res.data?.message || 'Đã gửi yêu cầu sinh Furigana thành công!')
-      queryClient.invalidateQueries({ queryKey: ['quiz-questions', String(deckId)] })
-      setTimeout(() => setFuriganaMessage(null), 6000)
-    } catch (e: any) {
-      alert(e?.response?.data?.error || 'Lỗi khi kích hoạt sinh Furigana')
-    } finally {
-      setIsRunningFurigana(false)
     }
   }
 
@@ -147,10 +170,10 @@ export function DeckAudioSettings({ deckId, initialSettings, onSaved }: DeckAudi
           <div>
             <h3 className="text-xs font-black text-slate-900 uppercase tracking-widest leading-none flex items-center gap-2">
               <Volume2 className="w-4 h-4 text-sky-600" />
-              <span>Cấu Hình Ánh Xạ Âm Thanh & Giọng Đọc (TTS Audio Mapping)</span>
+              <span>Cấu Hình Ánh Xạ Âm Thanh & Giọng Đọc (TTS Audio Studio)</span>
             </h3>
             <p className="text-[10px] text-slate-400 font-bold mt-0.5">
-              Chọn cột văn bản đọc và cột đích để lưu trữ URL âm thanh mp3/wav
+              Chọn cột văn bản đọc, cột lưu trữ URL âm thanh và chỉ định giọng đọc AI TTS (EdgeTTS / Google)
             </p>
           </div>
         </div>
@@ -204,22 +227,29 @@ export function DeckAudioSettings({ deckId, initialSettings, onSaved }: DeckAudi
             </span>
           </div>
 
-          {/* Voice Language */}
+          {/* Specific Voice Engine Selection */}
           <div>
             <label className="text-[11px] font-black text-slate-600 uppercase tracking-wider mb-1.5 block">
-              3. Ngôn Ngữ & Bộ Đọc Giọng AI:
+              3. Giọng Đọc & Bộ Engine AI TTS:
             </label>
             <select
-              value={voiceLang}
-              onChange={(e) => setVoiceLang(e.target.value)}
-              className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 outline-none focus:border-sky-500 focus:bg-white cursor-pointer shadow-2xs"
+              value={voiceName}
+              onChange={(e) => setVoiceName(e.target.value)}
+              className="w-full h-10 px-3 bg-slate-50 border border-sky-200 rounded-xl text-xs font-black text-sky-900 outline-none focus:border-sky-500 focus:bg-white cursor-pointer shadow-2xs"
             >
-              <option value="ja-JP">🇯🇵 Tiếng Nhật (Japanese - ja-JP)</option>
-              <option value="en-US">🇺🇸 Tiếng Anh (English US - en-US)</option>
-              <option value="vi-VN">🇻🇳 Tiếng Việt (Vietnamese - vi-VN)</option>
-              <option value="ko-KR">🇰🇷 Tiếng Hàn (Korean - ko-KR)</option>
-              <option value="zh-CN">🇨🇳 Tiếng Trung (Chinese - zh-CN)</option>
+              {VOICE_OPTIONS.map((grp, gIdx) => (
+                <optgroup key={gIdx} label={grp.group}>
+                  {grp.items.map((item) => (
+                    <option key={item.value} value={item.value}>
+                      {item.label}
+                    </option>
+                  ))}
+                </optgroup>
+              ))}
             </select>
+            <span className="text-[10px] text-slate-400 font-medium block mt-1">
+              Hỗ trợ Microsoft Edge TTS Studio, Google Cloud Neural2 và gTTS dự phòng.
+            </span>
           </div>
 
           {/* Speed Rate */}
@@ -252,16 +282,16 @@ export function DeckAudioSettings({ deckId, initialSettings, onSaved }: DeckAudi
         </div>
       </div>
 
-      {/* SECTION 2: BULK TTS AUDIO GENERATION STUDIO */}
+      {/* SECTION 2: BULK AUDIO RUNNER STUDIO */}
       <div className="bg-white rounded-3xl p-5 sm:p-6 border border-slate-100 shadow-sm space-y-4">
-        <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+        <div className="flex items-center justify-between border-b border-slate-100 pb-3 flex-wrap gap-2">
           <div>
             <h3 className="text-xs font-black text-slate-900 uppercase tracking-widest leading-none flex items-center gap-2">
-              <Headphones className="w-4 h-4 text-indigo-600" />
-              <span>Sinh Âm Thanh Hàng Loạt (Bulk Audio Generator)</span>
+              <Headphones className="w-4 h-4 text-sky-600" />
+              <span>Chạy Sinh Âm Thanh Hàng Loạt (CentralAuth Audio Queue)</span>
             </h3>
             <p className="text-[10px] text-slate-400 font-bold mt-0.5">
-              Kiểm tra trạng thái âm thanh và tạo file phát âm mp3 chuẩn cho tất cả các thẻ
+              Gửi toàn bộ danh sách thẻ tới CentralAuth để tổng hợp file âm thanh chạy ngầm
             </p>
           </div>
 
@@ -272,13 +302,14 @@ export function DeckAudioSettings({ deckId, initialSettings, onSaved }: DeckAudi
             title="Làm mới trạng thái"
           >
             <RefreshCw className={cn("w-3 h-3", isFetchingTTS && "animate-spin")} />
-            <span>Kiểm tra</span>
+            <span>Kiểm tra trạng thái</span>
           </button>
         </div>
 
         {audioMessage && (
-          <div className="p-3 bg-sky-50 border border-sky-200 text-sky-700 text-xs rounded-xl font-bold flex items-center gap-2">
-            <CheckCircle2 className="w-4 h-4" /> {audioMessage}
+          <div className="p-3 bg-sky-50 border border-sky-200 text-sky-800 text-xs rounded-xl font-bold flex items-center gap-2">
+            <CheckCircle2 className="w-4 h-4 shrink-0 text-sky-600" />
+            <span>{audioMessage}</span>
           </div>
         )}
 
@@ -292,14 +323,14 @@ export function DeckAudioSettings({ deckId, initialSettings, onSaved }: DeckAudi
           </div>
 
           <div className="p-3.5 rounded-2xl bg-amber-50 border border-amber-200/80">
-            <span className="text-[10px] font-bold text-amber-600 uppercase block">Chưa Có Audio</span>
+            <span className="text-[10px] font-bold text-amber-600 uppercase block">Chưa Có Âm Thanh</span>
             <span className="text-lg font-black text-amber-700 mt-0.5 block">
               {ttsStatus?.missing_audio_cards ?? '--'}
             </span>
           </div>
 
           <div className="p-3.5 rounded-2xl bg-emerald-50 border border-emerald-200/80 col-span-2 sm:col-span-1">
-            <span className="text-[10px] font-bold text-emerald-600 uppercase block">Đã Có Audio Đầy Đủ</span>
+            <span className="text-[10px] font-bold text-emerald-600 uppercase block">Đã Có Âm Thanh</span>
             <span className="text-lg font-black text-emerald-700 mt-0.5 block">
               {ttsStatus?.total_cards !== undefined && ttsStatus?.missing_audio_cards !== undefined
                 ? Math.max(0, ttsStatus.total_cards - ttsStatus.missing_audio_cards)
@@ -308,8 +339,8 @@ export function DeckAudioSettings({ deckId, initialSettings, onSaved }: DeckAudi
           </div>
         </div>
 
-        <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200/80 flex items-center justify-between gap-3 flex-wrap">
-          <label className="flex items-center gap-2 cursor-pointer select-none">
+        <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/80 flex items-center justify-between gap-4 flex-wrap">
+          <label className="flex items-center gap-2 cursor-pointer select-none bg-white p-3 rounded-xl border border-slate-200 flex-1 min-w-[240px]">
             <input
               type="checkbox"
               checked={forceAudio}
@@ -325,101 +356,18 @@ export function DeckAudioSettings({ deckId, initialSettings, onSaved }: DeckAudi
             type="button"
             onClick={handleTriggerBulkAudio}
             disabled={isRunningAudio}
-            className="px-5 h-9 bg-gradient-to-r from-sky-600 to-indigo-600 hover:from-sky-700 hover:to-indigo-700 text-white rounded-xl text-xs font-black shadow-xs shadow-sky-500/20 active:scale-95 transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50 ml-auto"
+            className="px-6 h-11 bg-sky-600 hover:bg-sky-700 text-white rounded-xl text-xs font-black shadow-xs shadow-sky-500/20 active:scale-95 transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50 shrink-0"
           >
             {isRunningAudio ? (
-              <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+              <RefreshCw className="w-4 h-4 animate-spin" />
             ) : (
-              <Volume2 className="w-3.5 h-3.5" />
+              <Volume2 className="w-4 h-4" />
             )}
-            <span>{isRunningAudio ? 'ĐANG KHỞI CHẠY...' : `SINH AUDIO CHO "${sourceField.toUpperCase()}" ➜ "${targetField.toUpperCase()}"`}</span>
-          </button>
-        </div>
-      </div>
-
-      {/* SECTION 3: FURIGANA RUBY STUDIO */}
-      <div className="bg-white rounded-3xl p-5 sm:p-6 border border-slate-100 shadow-sm space-y-4">
-        <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-          <div>
-            <h3 className="text-xs font-black text-slate-900 uppercase tracking-widest leading-none flex items-center gap-2">
-              <span className="w-5 h-5 rounded-md bg-emerald-600 text-white text-[11px] font-bold flex items-center justify-center">
-                あ
-              </span>
-              <span>Sinh Phiên Âm Furigana Tự Động (Ruby Text)</span>
-            </h3>
-            <p className="text-[10px] text-slate-400 font-bold mt-0.5">
-              Tự động phân tích Kanji tiếng Nhật và đính kèm cách đọc Furigana cho toàn bộ thẻ
-            </p>
-          </div>
-        </div>
-
-        {furiganaMessage && (
-          <div className="p-3 bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs rounded-xl font-bold flex items-center gap-2">
-            <CheckCircle2 className="w-4 h-4" /> {furiganaMessage}
-          </div>
-        )}
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 p-4 rounded-2xl bg-slate-50 border border-slate-200/80">
-          <div>
-            <label className="text-[11px] font-black text-slate-600 uppercase tracking-wider mb-1.5 block">
-              Cột Chứa Kanji Gốc:
-            </label>
-            <select
-              value={furiganaSource}
-              onChange={(e) => setFuriganaSource(e.target.value)}
-              className="w-full h-10 px-3 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-800 outline-none focus:border-emerald-500 cursor-pointer shadow-2xs"
-            >
-              {availableColumns.map((col) => (
-                <option key={col} value={col}>
-                  {col}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div>
-            <label className="text-[11px] font-black text-slate-600 uppercase tracking-wider mb-1.5 block">
-              Cột Lưu Furigana:
-            </label>
-            <select
-              value={furiganaTarget}
-              onChange={(e) => setFuriganaTarget(e.target.value)}
-              className="w-full h-10 px-3 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-800 outline-none focus:border-emerald-500 cursor-pointer shadow-2xs"
-            >
-              {availableColumns.map((col) => (
-                <option key={col} value={col}>
-                  {col}
-                </option>
-              ))}
-            </select>
-          </div>
-        </div>
-
-        <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200/80 flex items-center justify-between gap-3 flex-wrap">
-          <label className="flex items-center gap-2 cursor-pointer select-none">
-            <input
-              type="checkbox"
-              checked={forceFurigana}
-              onChange={(e) => setForceFurigana(e.target.checked)}
-              className="w-4 h-4 rounded text-emerald-600 focus:ring-emerald-500 cursor-pointer"
-            />
-            <span className="text-xs font-bold text-slate-700">
-              Ghi đè tất cả (Tạo lại cả những thẻ đã có Furigana)
+            <span>
+              {isRunningAudio
+                ? 'ĐANG GỬI QUEUE...'
+                : `SINH AUDIO CHO "${sourceField.toUpperCase()}" ➜ "${targetField.toUpperCase()}"`}
             </span>
-          </label>
-
-          <button
-            type="button"
-            onClick={handleTriggerBulkFurigana}
-            disabled={isRunningFurigana}
-            className="px-5 h-9 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-black shadow-xs shadow-emerald-200 active:scale-95 transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50 ml-auto"
-          >
-            {isRunningFurigana ? (
-              <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-            ) : (
-              <Wand2 className="w-3.5 h-3.5" />
-            )}
-            <span>{isRunningFurigana ? 'ĐANG XỬ LÝ...' : 'SINH FURIGANA TOÀN BỘ'}</span>
           </button>
         </div>
       </div>

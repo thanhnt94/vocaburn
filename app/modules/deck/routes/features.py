@@ -1138,14 +1138,7 @@ async def stream_dynamic_tts(text: str, lang: Optional[str] = None):
             
     return {"url": url}
 
-async def _bulk_generate_deck_audio_task(
-    deck_id: int, 
-    source_field: str, 
-    target_field: str, 
-    force: bool, 
-    base_url: str,
-    card_ids: list = None
-):
+async def _bulk_generate_deck_audio_task(deck_id: int, source_field: str, target_field: str, force: bool, base_url: str, card_ids: list = None, voice_name: str = None):
     from app.core.db import SessionLocal
     async with SessionLocal() as db:
         from app.modules.deck.models import Flashcard
@@ -1153,7 +1146,7 @@ async def _bulk_generate_deck_audio_task(
         cards = res.scalars().all()
         if card_ids is not None:
             cards = [c for c in cards if c.id in card_ids]
-        logger.info(f"[BULK TTS] Starting batch submission to CentralAuth queue for deck {deck_id} ({len(cards)} cards) Source={source_field} Target={target_field}")
+        logger.info(f"[BULK TTS] Starting batch submission to CentralAuth queue for deck {deck_id} ({len(cards)} cards) Source={source_field} Target={target_field} Voice={voice_name}")
         
         # Get CentralAuth configuration
         from app.modules.sso_module.service import SSOService
@@ -1174,9 +1167,13 @@ async def _bulk_generate_deck_audio_task(
         deck = deck_res.scalar_one_or_none()
 
         bulk_lang = None
-        if deck and deck.practice_settings and isinstance(deck.practice_settings, dict):
+        if voice_name and voice_name != "auto":
+            bulk_lang = voice_name
+        elif deck and deck.practice_settings and isinstance(deck.practice_settings, dict):
             ps = deck.practice_settings
-            if target_field == "front_audio_url":
+            if ps.get("audio_voice_name") and ps.get("audio_voice_name") != "auto":
+                bulk_lang = ps.get("audio_voice_name")
+            elif target_field == "front_audio_url":
                 cfg = ps.get("front_audio_config", {})
                 if isinstance(cfg, dict):
                     bulk_lang = cfg.get("lang")
@@ -1184,11 +1181,16 @@ async def _bulk_generate_deck_audio_task(
                 cfg = ps.get("back_audio_config", {})
                 if isinstance(cfg, dict):
                     bulk_lang = cfg.get("lang")
+            elif ps.get("audio_voice_lang"):
+                bulk_lang = ps.get("audio_voice_lang")
             else:
                 pairs = ps.get("audio_pairs", [])
                 pair = next((p for p in pairs if p.get("audio_url_col") == target_field or p.get("text_col") == target_field), None)
                 if pair:
                     bulk_lang = pair.get("lang")
+
+        if bulk_lang and bulk_lang.startswith("gtts:"):
+            bulk_lang = bulk_lang.replace("gtts:", "")
 
         for c in cards:
             await db.refresh(c)
@@ -1279,12 +1281,14 @@ async def generate_all_deck_audio(
     source_field = "front"
     target_field = "front_audio_url"
     card_ids = None
+    voice_name = None
     
     if payload:
         force = payload.get("force", False)
         source_field = payload.get("source_field", "front")
         target_field = payload.get("target_field", "front_audio_url")
         card_ids = payload.get("card_ids", None)
+        voice_name = payload.get("voice_name", None)
         
     # Detect scheme dynamically (e.g. support HTTPS behind Nginx reverse proxy)
     scheme = request.headers.get("x-forwarded-proto", request.url.scheme)
@@ -1296,7 +1300,7 @@ async def generate_all_deck_audio(
         
     base_url = f"{scheme}://{netloc}"
     
-    background_tasks.add_task(_bulk_generate_deck_audio_task, deck_id, source_field, target_field, force, base_url, card_ids)
+    background_tasks.add_task(_bulk_generate_deck_audio_task, deck_id, source_field, target_field, force, base_url, card_ids, voice_name)
     return {"status": "ok", "message": "Bulk TTS audio generation queue submission started."}
 
 @router.get("/{deck_id}/tts-status")

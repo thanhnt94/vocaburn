@@ -93,6 +93,12 @@ export function DeckAISettings({ deckId, initialSettings, onSaved }: DeckAISetti
     }
   }, [practiceSettingsData, initialSettings])
 
+  useEffect(() => {
+    if (prompts.length > 0 && !prompts.some(p => (p.column || p.target_column) === selectedColumnToRun)) {
+      setSelectedColumnToRun(prompts[0].column || prompts[0].target_column || 'explanation')
+    }
+  }, [prompts, selectedColumnToRun])
+
   // Live AI Status Check
   const { data: aiStatus, refetch: refetchAIStatus, isFetching: isFetchingAIStatus } = useQuery({
     queryKey: ['deck-ai-status', String(deckId), selectedColumnToRun],
@@ -425,14 +431,6 @@ export function DeckAISettings({ deckId, initialSettings, onSaved }: DeckAISetti
                   </option>
                 )
               })}
-              {/* Other columns not in prompts */}
-              {availableColumns
-                .filter(col => !prompts.some(p => (p.column || p.target_column) === col))
-                .map((col) => (
-                  <option key={col} value={col}>
-                    Cột: [{col}] (Chưa có prompt riêng)
-                  </option>
-                ))}
             </select>
           </div>
 
