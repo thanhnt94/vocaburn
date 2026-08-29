@@ -1,4 +1,4 @@
-import { Trophy, Crown, Zap, Flame, Target, CheckCircle2, User as UserIcon } from 'lucide-react'
+import { Trophy, Crown, Zap, Flame, Target, CheckCircle2, User as UserIcon, Clock, Calendar } from 'lucide-react'
 import { motion } from 'framer-motion'
 import { cn } from '@/lib/utils'
 
@@ -50,28 +50,30 @@ export default function LeaderboardTab({
 
   const categoryLabels: Record<LeaderboardCategory, { label: string, icon: any, unit: string, sub: string }> = {
     xp: { label: 'XP Tích Luỹ', icon: Zap, unit: 'XP', sub: 'Kinh nghiệm tổng' },
-    streak: { label: 'Chuỗi Ngày Học', icon: Flame, unit: 'ngày', sub: 'Streak liên tục' },
-    questions: { label: 'Số Thẻ Đã Học', icon: Target, unit: 'thẻ', sub: 'Lượt ôn tập' },
-    accuracy: { label: 'Độ Chính Xác', icon: CheckCircle2, unit: '%', sub: 'Tỷ lệ trả lời đúng' },
+    streak: { label: 'Chuỗi Streak', icon: Flame, unit: 'ngày', sub: 'Streak liên tục' },
+    questions: { label: 'Thẻ Đã Học', icon: Target, unit: 'thẻ', sub: 'Lượt ôn tập' },
+    accuracy: { label: 'Độ Chính Xác', icon: CheckCircle2, unit: '%', sub: 'Tỷ lệ đúng' },
   }
 
-  const timeFilterLabels: Record<LeaderboardTimeFilter, string> = {
-    today: 'Hôm Nay',
-    week: 'Tuần Này',
-    month: 'Tháng Này',
-    all_time: 'Toàn Thời Gian'
+  const timeFilterLabels: Record<LeaderboardTimeFilter, { label: string, icon: any }> = {
+    today: { label: 'Hôm Nay', icon: Clock },
+    week: { label: 'Tuần Này', icon: Calendar },
+    month: { label: 'Tháng Này', icon: Calendar },
+    all_time: { label: 'Toàn Thời Gian', icon: Crown }
   }
 
   return (
     <div className="space-y-5 text-left max-w-5xl mx-auto">
-      {/* 👑 Top Controls: Category & Time Filters */}
-      <div className="bg-white rounded-3xl border border-slate-200/80 p-4 sm:p-6 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4 relative overflow-hidden">
+      {/* 👑 Top Controls: Centered Category & Time Filters */}
+      <div className="bg-white rounded-3xl border border-slate-200/80 p-5 sm:p-6 shadow-sm space-y-4 relative overflow-hidden text-center">
         <div className="h-1 absolute top-0 inset-x-0 bg-gradient-to-r from-amber-500 via-orange-500 to-rose-500" />
-        <div className="flex items-center gap-3">
+        
+        {/* Title Header */}
+        <div className="flex items-center justify-center gap-3">
           <div className="w-10 h-10 rounded-2xl bg-amber-500 text-white flex items-center justify-center shadow-md shadow-amber-500/20 shrink-0">
             <Trophy className="w-5 h-5" />
           </div>
-          <div>
+          <div className="text-left">
             <h2 className="text-sm md:text-base font-black text-slate-900 uppercase tracking-widest italic leading-none">
               Bảng Vinh Danh Thành Viên
             </h2>
@@ -81,46 +83,57 @@ export default function LeaderboardTab({
           </div>
         </div>
 
-        {/* Filters Group */}
-        <div className="flex flex-col sm:flex-row gap-2 shrink-0">
-          {/* Time Filter */}
-          <div className="flex bg-slate-100/90 p-1 rounded-2xl border border-slate-200/60 overflow-x-auto no-scrollbar">
-            {(['today', 'week', 'month', 'all_time'] as const).map((tf) => (
-              <button
-                key={tf}
-                onClick={() => onSelectTimeFilter(tf)}
-                className={cn(
-                  "px-3 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-wider transition-all whitespace-nowrap cursor-pointer",
-                  timeFilter === tf
-                    ? "bg-slate-900 text-white shadow-sm"
-                    : "text-slate-500 hover:text-slate-900 font-bold"
-                )}
-              >
-                {timeFilterLabels[tf]}
-              </button>
-            ))}
+        {/* Cohesive Centered Filter Rows */}
+        <div className="space-y-2.5 pt-1">
+          {/* Row 1: Tiêu chí xếp hạng */}
+          <div className="flex items-center justify-center">
+            <div className="flex bg-slate-100 p-1 rounded-2xl border border-slate-200/70 overflow-x-auto no-scrollbar max-w-full gap-1">
+              {(['xp', 'streak', 'questions', 'accuracy'] as const).map((cat) => {
+                const Icon = categoryLabels[cat].icon
+                const isActive = activeCategory === cat
+                return (
+                  <button
+                    key={cat}
+                    onClick={() => onSelectCategory(cat)}
+                    className={cn(
+                      "px-3 sm:px-4 py-1.5 rounded-xl text-[9px] sm:text-[10px] font-black uppercase tracking-wider transition-all whitespace-nowrap cursor-pointer flex items-center gap-1.5",
+                      isActive
+                        ? "bg-gradient-to-r from-orange-500 to-amber-500 text-white shadow-sm font-black"
+                        : "text-slate-500 hover:text-slate-900 font-bold hover:bg-white/50"
+                    )}
+                  >
+                    <Icon className="w-3.5 h-3.5" />
+                    <span>{categoryLabels[cat].label}</span>
+                  </button>
+                )
+              })}
+            </div>
           </div>
 
-          {/* Category Tabs */}
-          <div className="flex bg-slate-100/90 p-1 rounded-2xl border border-slate-200/60 overflow-x-auto no-scrollbar">
-            {(['xp', 'streak', 'questions', 'accuracy'] as const).map((cat) => {
-              const Icon = categoryLabels[cat].icon
-              return (
-                <button
-                  key={cat}
-                  onClick={() => onSelectCategory(cat)}
-                  className={cn(
-                    "px-3 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-wider transition-all whitespace-nowrap cursor-pointer flex items-center gap-1.5",
-                    activeCategory === cat
-                      ? "bg-gradient-to-r from-orange-500 to-amber-500 text-white shadow-sm"
-                      : "text-slate-500 hover:text-slate-900 font-bold"
-                  )}
-                >
-                  <Icon className="w-3.5 h-3.5" />
-                  <span>{cat.toUpperCase()}</span>
-                </button>
-              )
-            })}
+          {/* Row 2: Mốc thời gian */}
+          <div className="flex items-center justify-center">
+            <div className="flex bg-slate-100 p-1 rounded-2xl border border-slate-200/70 overflow-x-auto no-scrollbar max-w-full gap-1">
+              {(['today', 'week', 'month', 'all_time'] as const).map((tf) => {
+                const item = timeFilterLabels[tf]
+                const Icon = item.icon
+                const isActive = timeFilter === tf
+                return (
+                  <button
+                    key={tf}
+                    onClick={() => onSelectTimeFilter(tf)}
+                    className={cn(
+                      "px-3 sm:px-4 py-1.5 rounded-xl text-[9px] sm:text-[10px] font-black uppercase tracking-wider transition-all whitespace-nowrap cursor-pointer flex items-center gap-1.5",
+                      isActive
+                        ? "bg-slate-900 text-white shadow-sm font-black"
+                        : "text-slate-500 hover:text-slate-900 font-bold hover:bg-white/50"
+                    )}
+                  >
+                    <Icon className="w-3.5 h-3.5 text-slate-400" />
+                    <span>{item.label}</span>
+                  </button>
+                )
+              })}
+            </div>
           </div>
         </div>
       </div>
@@ -130,7 +143,7 @@ export default function LeaderboardTab({
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          className="bg-gradient-to-r from-indigo-900 via-indigo-800 to-purple-900 rounded-3xl p-4 sm:p-5 text-white shadow-lg shadow-indigo-950/20 border border-indigo-700/50 flex items-center justify-between gap-4 relative overflow-hidden"
+          className="bg-gradient-to-r from-indigo-950 via-indigo-900 to-purple-950 rounded-3xl p-4 sm:p-5 text-white shadow-lg shadow-indigo-950/20 border border-indigo-700/50 flex flex-col sm:flex-row sm:items-center justify-between gap-3 relative overflow-hidden"
         >
           <div className="absolute -right-10 -bottom-10 w-32 h-32 bg-amber-400/10 rounded-full blur-xl pointer-events-none" />
           <div className="flex items-center gap-3.5 min-w-0">
@@ -138,16 +151,21 @@ export default function LeaderboardTab({
               <Trophy className="w-6 h-6 text-amber-300 animate-pulse" />
             </div>
             <div className="min-w-0">
-              <span className="text-[8.5px] font-black uppercase tracking-widest text-indigo-200 block">
-                Vị trí của bạn trên hệ thống
-              </span>
+              <div className="flex items-center gap-2 flex-wrap mb-0.5">
+                <span className="text-[8.5px] font-black uppercase tracking-widest text-indigo-300">
+                  Vị trí của bạn
+                </span>
+                <span className="px-2 py-0.5 rounded-md bg-white/10 border border-white/10 text-[8.5px] font-bold text-amber-300">
+                  {timeFilterLabels[timeFilter].label}
+                </span>
+              </div>
               <h3 className="text-sm sm:text-base font-black truncate leading-tight">
-                Bạn đang đứng thứ <span className="text-amber-300 font-extrabold text-base sm:text-lg">#{currentLeaderboard.user_rank}</span> ({timeFilterLabels[timeFilter]})
+                Bạn đang đứng thứ <span className="text-amber-300 font-extrabold text-base sm:text-lg">#{currentLeaderboard.user_rank}</span>
               </h3>
             </div>
           </div>
 
-          <div className="text-right shrink-0 bg-white/10 px-4 py-2 rounded-2xl border border-white/10 backdrop-blur-md">
+          <div className="text-left sm:text-right shrink-0 bg-white/10 px-4 py-2 rounded-2xl border border-white/10 backdrop-blur-md self-start sm:self-auto">
             <div className="text-sm sm:text-base font-black text-amber-300 tracking-tight">
               {currentLeaderboard.user_value.toLocaleString()} {categoryLabels[activeCategory].unit}
             </div>

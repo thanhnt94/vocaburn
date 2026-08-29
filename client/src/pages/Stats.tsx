@@ -141,10 +141,11 @@ export default function Stats() {
 
   const { personal, global } = detailedStatsData
 
-  const tabs: Array<{ id: StatsMainTab, label: string, icon: any, color: string, badgeBg: string }> = [
+  const tabs: Array<{ id: StatsMainTab, label: string, shortLabel: string, icon: any, color: string, badgeBg: string }> = [
     {
       id: 'leaderboard',
       label: 'Bảng Xếp Hạng',
+      shortLabel: 'Bảng Xếp Hạng',
       icon: Trophy,
       color: 'text-amber-600',
       badgeBg: 'bg-amber-50'
@@ -152,6 +153,7 @@ export default function Stats() {
     {
       id: 'personal',
       label: 'Thống Kê Cá Nhân',
+      shortLabel: 'Cá Nhân',
       icon: User,
       color: 'text-indigo-600',
       badgeBg: 'bg-indigo-50'
@@ -159,6 +161,7 @@ export default function Stats() {
     {
       id: 'global',
       label: 'Thống Kê Website',
+      shortLabel: 'Toàn Website',
       icon: Globe,
       color: 'text-emerald-600',
       badgeBg: 'bg-emerald-50'
@@ -167,44 +170,47 @@ export default function Stats() {
 
   return (
     <div className="min-h-screen bg-[#F8FAFC] pb-24 md:pb-16 text-slate-800">
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 pt-5 sm:pt-8 space-y-6">
-        {/* Page Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-200/80 text-left">
-          <div className="flex items-center gap-3.5">
-            <div className="w-11 h-11 rounded-2xl bg-gradient-to-tr from-indigo-600 via-purple-600 to-amber-500 flex items-center justify-center text-white shadow-md shadow-indigo-200 shrink-0">
-              <TrendingUp className="w-5 h-5" />
-            </div>
-            <div>
-              <h1 className="text-base sm:text-xl font-black text-slate-900 uppercase tracking-wider italic leading-none">
-                Trung Tâm Thống Kê & Bảng Vinh Danh
-              </h1>
-              <p className="text-[10px] sm:text-[11px] font-bold text-slate-400 mt-1">
-                Theo dõi tiến trình cá nhân, thứ hạng thi đua và thành tích toàn nền tảng
-              </p>
-            </div>
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 pt-4 sm:pt-6 space-y-4 sm:space-y-6">
+        {/* Page Top Title */}
+        <div className="flex items-center gap-3 pb-2 text-left">
+          <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl bg-gradient-to-tr from-indigo-600 via-purple-600 to-amber-500 flex items-center justify-center text-white shadow-md shadow-indigo-200 shrink-0">
+            <TrendingUp className="w-5 h-5" />
           </div>
+          <div>
+            <h1 className="text-sm sm:text-lg md:text-xl font-black text-slate-900 uppercase tracking-wider italic leading-none">
+              Trung Tâm Thống Kê & Bảng Vinh Danh
+            </h1>
+            <p className="text-[9px] sm:text-[11px] font-bold text-slate-400 mt-1">
+              Theo dõi tiến trình cá nhân, thứ hạng thi đua và thành tích toàn nền tảng
+            </p>
+          </div>
+        </div>
 
-          {/* 3 Main Tabs Nav (Desktop & Mobile Unified) */}
-          <div className="flex bg-slate-200/70 p-1.5 rounded-2xl border border-slate-200/90 shadow-2xs self-start sm:self-auto overflow-x-auto no-scrollbar w-full sm:w-auto">
-            {tabs.map(tab => {
-              const Icon = tab.icon
-              const isActive = activeTab === tab.id
-              return (
-                <button
-                  key={tab.id}
-                  onClick={() => setActiveTab(tab.id)}
-                  className={cn(
-                    "flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2 rounded-xl text-[10px] sm:text-xs font-black uppercase tracking-wider transition-all whitespace-nowrap cursor-pointer",
-                    isActive
-                      ? "bg-white text-slate-900 shadow-sm border border-slate-200/60"
-                      : "text-slate-500 hover:text-slate-800 font-bold"
-                  )}
-                >
-                  <Icon className={cn("w-3.5 h-3.5 sm:w-4 sm:h-4", isActive ? tab.color : "text-slate-400")} />
-                  <span>{tab.label}</span>
-                </button>
-              )
-            })}
+        {/* 📌 Sticky Top Main Tabs Bar */}
+        <div className="sticky top-0 z-40 bg-[#F8FAFC]/90 backdrop-blur-xl py-2.5 -mx-4 px-4 sm:-mx-6 sm:px-6 border-b border-slate-200/80 shadow-2xs transition-all">
+          <div className="max-w-6xl mx-auto flex items-center justify-center">
+            <div className="flex bg-slate-200/80 p-1 rounded-2xl border border-slate-300/60 shadow-inner w-full sm:w-auto max-w-lg">
+              {tabs.map(tab => {
+                const Icon = tab.icon
+                const isActive = activeTab === tab.id
+                return (
+                  <button
+                    key={tab.id}
+                    onClick={() => setActiveTab(tab.id)}
+                    className={cn(
+                      "flex-1 sm:flex-none flex items-center justify-center gap-1.5 sm:gap-2 px-2.5 sm:px-5 py-2 rounded-xl text-[10px] sm:text-xs font-black uppercase tracking-wider transition-all whitespace-nowrap cursor-pointer",
+                      isActive
+                        ? "bg-white text-slate-900 shadow-sm border border-slate-200/80 font-black"
+                        : "text-slate-500 hover:text-slate-800 font-bold"
+                    )}
+                  >
+                    <Icon className={cn("w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0", isActive ? tab.color : "text-slate-400")} />
+                    <span className="hidden sm:inline">{tab.label}</span>
+                    <span className="sm:hidden">{tab.shortLabel}</span>
+                  </button>
+                )
+              })}
+            </div>
           </div>
         </div>
 
