@@ -48,10 +48,12 @@ export interface Question {
   practice?: {
     question: string
     choices?: string[]
+    choices_data?: any[]
+    choice_item_ids?: number[]
     correct_index?: number
     correct_answer?: string
-    question_key: string
-    answer_key: string
+    question_key?: string
+    answer_key?: string
   }
 }
 

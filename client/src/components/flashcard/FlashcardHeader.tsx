@@ -40,6 +40,8 @@ export interface FlashcardHeaderProps {
   correctCount?: number
   totalCards?: number
   cardsRemaining?: number
+  onCreateNewCard?: () => void
+  rightAction?: React.ReactNode
 }
 
 export const FlashcardHeader: React.FC<FlashcardHeaderProps> = ({
@@ -77,7 +79,9 @@ export const FlashcardHeader: React.FC<FlashcardHeaderProps> = ({
   answeredCount,
   correctCount,
   totalCards,
-  cardsRemaining
+  cardsRemaining,
+  onCreateNewCard,
+  rightAction
 }) => {
   return (
     <header className="sticky top-0 flex-shrink-0 z-[120] backdrop-blur-2xl px-2.5 md:px-4 py-1.5 flex items-center justify-between gap-2.5 transition-colors duration-300 relative overflow-hidden bg-slate-950/90 border-b border-slate-800/80 text-white shadow-xl">
@@ -91,18 +95,7 @@ export const FlashcardHeader: React.FC<FlashcardHeaderProps> = ({
             className="absolute bottom-0 left-0 right-0 h-[2.5px] bg-slate-800/60 pointer-events-none z-[125]"
           >
             <motion.div 
-              className={cn(
-                "h-full rounded-r-full transition-all duration-500",
-                activeMode === 'fsrs'
-                  ? "bg-gradient-to-r from-emerald-500 via-teal-400 to-emerald-300 shadow-[0_0_12px_rgba(16,185,129,0.8)]"
-                  : activeMode === 'review'
-                  ? "bg-gradient-to-r from-teal-500 via-cyan-400 to-teal-300 shadow-[0_0_12px_rgba(20,184,166,0.8)]"
-                  : activeMode === 'new'
-                  ? "bg-gradient-to-r from-indigo-500 via-purple-500 to-indigo-300 shadow-[0_0_12px_rgba(99,102,241,0.8)]"
-                  : activeMode === 'flip'
-                  ? "bg-gradient-to-r from-amber-500 via-orange-500 to-amber-300 shadow-[0_0_12px_rgba(245,158,11,0.8)]"
-                  : "bg-gradient-to-r from-amber-500 via-rose-500 to-indigo-500 shadow-[0_0_12px_rgba(245,158,11,0.8)]"
-              )}
+              className="h-full rounded-r-full transition-all duration-500 bg-gradient-to-r from-amber-500 via-rose-500 to-indigo-500 shadow-[0_0_12px_rgba(245,158,11,0.8)]"
               initial={{ width: 0 }}
               animate={{ width: `${activePercent}%` }}
               transition={{ type: "spring", stiffness: 120, damping: 18 }}
@@ -111,42 +104,56 @@ export const FlashcardHeader: React.FC<FlashcardHeaderProps> = ({
         )}
       </AnimatePresence>
 
-      <div className="flex-1 min-w-0 relative z-[140]">
-        <StudyHeaderTracker
-          pipeline={pipeline}
-          currentStepIndex={displayStepIdx}
-          allDone={allDone}
-          deckId={deckId}
-          deckTitle={deckTitle}
-          subProgressCurr={subCurr}
-          subProgressTotal={subTotal}
-          progressPillText={progressPillText}
-          streakCount={streakCount}
-          activeMode={activeMode}
-          modeBadge={modeBadge}
-          onSurgeChange={onSurgeChange}
-          onViewModeChange={onViewModeChange}
-          onExit={onExit}
-          timeMode={timeMode}
-          onToggleTimeMode={onToggleTimeMode}
-          initialTodayTime={initialTodayTime}
-          initialAllTimeTime={initialAllTimeTime}
-          showFeedback={showFeedback}
-          hasRated={hasRated}
-          currentIndex={currentIndex}
-          timeLeftRef={timeLeftRef}
-          sessionStudyTimeRef={sessionStudyTimeRef}
-          formatHeaderTime={formatHeaderTime}
-          scoreMode={scoreMode}
-          onToggleScoreMode={onToggleScoreMode}
-          xp={xp}
-          todayXP={todayXP}
-          sessionXP={sessionXP}
-          answeredCount={answeredCount}
-          correctCount={correctCount}
-          totalCards={totalCards}
-          cardsRemaining={cardsRemaining}
-        />
+      <div className="flex-1 min-w-0 relative z-[140] flex items-center gap-2">
+        <div className="flex-1 min-w-0">
+          <StudyHeaderTracker
+            pipeline={pipeline}
+            currentStepIndex={displayStepIdx}
+            allDone={allDone}
+            deckId={deckId}
+            deckTitle={deckTitle}
+            subProgressCurr={subCurr}
+            subProgressTotal={subTotal}
+            progressPillText={progressPillText}
+            streakCount={streakCount}
+            activeMode={activeMode}
+            modeBadge={modeBadge}
+            onSurgeChange={onSurgeChange}
+            onViewModeChange={onViewModeChange}
+            onExit={onExit}
+            timeMode={timeMode}
+            onToggleTimeMode={onToggleTimeMode}
+            initialTodayTime={initialTodayTime}
+            initialAllTimeTime={initialAllTimeTime}
+            showFeedback={showFeedback}
+            hasRated={hasRated}
+            currentIndex={currentIndex}
+            timeLeftRef={timeLeftRef}
+            sessionStudyTimeRef={sessionStudyTimeRef}
+            formatHeaderTime={formatHeaderTime}
+            scoreMode={scoreMode}
+            onToggleScoreMode={onToggleScoreMode}
+            xp={xp}
+            todayXP={todayXP}
+            sessionXP={sessionXP}
+            answeredCount={answeredCount}
+            correctCount={correctCount}
+            totalCards={totalCards}
+            cardsRemaining={cardsRemaining}
+          />
+        </div>
+
+        {onCreateNewCard && (
+          <button
+            onClick={onCreateNewCard}
+            className="w-8.5 h-8.5 ml-1 flex items-center justify-center bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl shadow-md active:scale-90 transition-all flex-shrink-0 cursor-pointer"
+            title="Thêm thẻ nhanh"
+          >
+            <span className="text-lg font-bold leading-none">+</span>
+          </button>
+        )}
+
+        {rightAction}
       </div>
     </header>
   )

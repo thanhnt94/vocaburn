@@ -29,63 +29,18 @@ import { PlayStatsDrawer } from '@/components/PlayStatsDrawer'
 import { useRoadmapStatus, type PipelineStepStatus } from '@/hooks/useRoadmapStatus'
 import { RoadmapFloatingBanner } from '@/components/RoadmapFloatingBanner'
 import { StudyHeaderTracker } from '@/components/StudyHeaderTracker'
+import { FlashcardHeader } from '@/components/flashcard/FlashcardHeader'
+import {
+  PracticeMcqCard,
+  PracticeTypingCard,
+  PracticeListeningCard,
+  PracticeRoadmapTestView,
+  PracticeBottomBar
+} from '@/components/practice'
+import { usePracticeAudio } from '@/hooks/usePracticeAudio'
+import type { Question, Option } from '@/types/flashcard'
+import type { PracticeQuestionData } from '@/types/practice'
 
-interface Option {
-  id: number
-  content: string
-  is_correct: boolean
-}
-
-interface Question {
-  id: number
-  original_index?: number
-  is_ignored?: boolean
-  is_starred?: boolean
-  content: string
-  explanation: string
-  ai_explanation?: string
-  options: Option[]
-  stats?: {
-    total: number
-    correct: number
-    wrong?: number
-    avg_time: number
-    again_count?: number
-    hard_count?: number
-    good_count?: number
-    easy_count?: number
-  }
-  box_level?: number
-  image?: string | null
-  audio?: string | null
-  front_img?: string | null
-  back_img?: string | null
-  front_audio_url?: string | null
-  back_audio_url?: string | null
-  front_audio_content?: string | null
-  back_audio_content?: string | null
-  others?: Record<string, any> | null
-  fsrs?: {
-    state: number
-    stability: number | null
-    difficulty: number | null
-    due: string | null
-    last_review: string | null
-    first_learned?: string | null
-    last_reviewed?: string | null
-    intervals: Record<number, string>
-  }
-  practice?: {
-    question: string
-    choices?: string[]
-    choices_data?: any[]
-    choice_item_ids?: number[]
-    correct_index?: number
-    correct_answer?: string
-    question_key?: string
-    answer_key?: string
-  }
-}
 
 const MarkdownComponents = {
   code({ node, className, children, ...props }: any) {
@@ -3434,7 +3389,7 @@ export default function PracticePlay() {
       );
     }
 
-    const { question, choices, choice_item_ids, correct_index, correct_answer, question_key, answer_key } = practiceData;
+    const { question, correct_answer } = practiceData;
     const answered = practiceAnswers[currentIndex] !== undefined;
 
     if (!question || !correct_answer) {
@@ -3457,294 +3412,54 @@ export default function PracticePlay() {
       );
     }
 
+    if (baseMode === 'listening') {
+      return (
+        <PracticeListeningCard
+          currentIndex={currentIndex}
+          currentQuestion={currentQuestion}
+          practiceData={practiceData}
+          answered={answered}
+          selectedOption={selectedOption}
+          starredCards={starredCards}
+          onToggleStar={(cardId) => setStarredCards(prev => ({ ...prev, [cardId]: !prev[cardId] }))}
+          onSelectOption={handleMCQAnswer}
+          onPreviewInsight={setPreviewInsightCard}
+          onPlayAudio={playCardAudio}
+          sessionQuestions={session?.questions || []}
+        />
+      );
+    }
+
+    if (baseMode === 'typing') {
+      return (
+        <PracticeTypingCard
+          currentIndex={currentIndex}
+          currentQuestion={currentQuestion}
+          practiceData={practiceData}
+          answered={answered}
+          typingInput={typingInput}
+          setTypingInput={setTypingInput}
+          typingFeedback={typingFeedback}
+          starredCards={starredCards}
+          onToggleStar={(cardId) => setStarredCards(prev => ({ ...prev, [cardId]: !prev[cardId] }))}
+          onCheckTyping={handleTypingAnswer}
+        />
+      );
+    }
+
     return (
-      <div className="flex-1 bg-gradient-to-b from-slate-50 via-amber-50/15 to-slate-50 md:rounded-[2.5rem] rounded-[1.5rem] border border-slate-100/80 md:p-6 p-3 flex flex-col justify-between gap-3 md:gap-5 shadow-2xl shadow-amber-100/20 min-h-0 overflow-y-auto custom-scrollbar">
-
-        {/* ── Top Question Card (Clean Warm Amber Mesh Glassmorphism) ── */}
-        <div className="w-full max-w-2xl mx-auto my-auto animate-in fade-in slide-in-from-top-3 duration-500 shrink-0">
-          <div className="w-full bg-gradient-to-b from-amber-50/80 via-orange-50/30 to-white/95 backdrop-blur-xl rounded-[2rem] p-6 md:p-8 shadow-[0_12px_36px_rgba(245,158,11,0.08)] border border-amber-100/80 flex flex-col items-center justify-center text-center relative overflow-hidden">
-            {/* Ambient Background Glows */}
-            <div className="absolute top-0 left-1/2 -translate-x-1/2 w-48 h-24 bg-amber-200/25 blur-3xl pointer-events-none" />
-            <div className="absolute -bottom-8 -right-8 w-32 h-32 bg-orange-100/35 blur-2xl pointer-events-none" />
-
-            {/* Top Row: Question Pill on Left, Bookmark on Right */}
-            <div className="w-full flex items-center justify-between mb-4 relative z-10">
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-amber-100/80 border border-amber-200/70 text-amber-800 font-black text-xs shadow-sm">
-                <Sparkles className="w-3.5 h-3.5 text-amber-600 fill-amber-300" />
-                <span>Câu hỏi {currentIndex + 1}</span>
-              </span>
-
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  if (currentQuestion?.id) {
-                    setStarredCards(prev => ({ ...prev, [currentQuestion.id]: !prev[currentQuestion.id] }));
-                  }
-                }}
-                className="w-8 h-8 rounded-xl flex items-center justify-center text-amber-400 hover:text-amber-600 hover:bg-amber-50/80 transition-all active:scale-90 cursor-pointer"
-                title={currentQuestion?.id && starredCards[currentQuestion.id] ? "Bỏ đánh dấu" : "Đánh dấu câu hỏi"}
-              >
-                <Bookmark className={cn("w-5 h-5 transition-colors", currentQuestion?.id && starredCards[currentQuestion.id] ? "fill-amber-500 text-amber-500" : "text-amber-400")} />
-              </button>
-            </div>
-
-            {/* Question Word */}
-            {baseMode === 'listening' ? (
-              <div className="flex flex-col items-center gap-3 my-3">
-                <div
-                  onClick={() => {
-                    const { question_key: qKey } = practiceData!;
-                    playCardAudio(qKey || 'front');
-                  }}
-                  className="relative w-20 h-20 rounded-full bg-white border border-amber-200 flex items-center justify-center shadow-lg shadow-amber-100/50 hover:bg-amber-50 active:scale-95 transition-all cursor-pointer group"
-                  title="Nhấn để nghe lại"
-                >
-                  <div className="absolute inset-0 rounded-full bg-amber-400/10 animate-ping" />
-                  <div className="absolute inset-2 rounded-full bg-amber-300/20 animate-pulse" />
-                  <Play className="w-7 h-7 text-amber-600 fill-amber-600 group-hover:scale-110 transition-transform" />
-                </div>
-                <span className="text-[10px] font-black text-amber-600 tracking-widest uppercase mt-1">NHẤN ĐỂ NGHE PHÁT ÂM</span>
-              </div>
-            ) : (
-              <div className="my-3">
-                <h2 className="text-3xl md:text-4xl lg:text-5xl font-black text-slate-900 leading-tight tracking-wide font-sans px-2">
-                  <span dangerouslySetInnerHTML={{ __html: parseBBCodeToHtml(question || '') }} />
-                </h2>
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* ── MCQ Choices (A, B, C, D) ── */}
-        <div className="w-full max-w-2xl mx-auto shrink-0">
-          {['mcq', 'listening'].includes(baseMode) && choices && (
-            <div className="grid grid-cols-1 gap-2.5 md:gap-3 mb-1 md:mb-2">
-              {choices.map((choice: string, idx: number) => {
-                const isSelected = selectedOption === idx;
-                const isCorrectChoice = idx === correct_index;
-                const letter = String.fromCharCode(65 + idx); // A, B, C, D
-
-                let cardStyle = "bg-white border-slate-100 hover:border-amber-300 hover:shadow-md text-slate-800";
-                let badgeStyle = "bg-amber-50/90 text-amber-800 border-amber-100/80";
-
-                const oppositeText = answered ? (() => {
-                  const qKey = currentPracticeData?.question_key || currentQuestion?.practice?.question_key || 'front';
-                  const aKey = currentPracticeData?.answer_key || currentQuestion?.practice?.answer_key || 'back';
-
-                  // 1. Primary: Direct lookup from choices_data (matches exact distractor item)
-                  const cData = currentPracticeData?.choices_data?.[idx] || currentQuestion?.practice?.choices_data?.[idx];
-                  if (cData) {
-                    const qVal = cData.q_text || cData.front || (cData.card && (getVal(cData.card, qKey) || cData.card.content || cData.card.front));
-                    if (qVal && String(qVal).trim() && String(qVal).trim().toLowerCase() !== String(choice || "").trim().toLowerCase()) {
-                      return String(qVal).trim();
-                    }
-                  }
-
-                  // 2. Secondary: lookup by choice_item_ids
-                  const choiceIds = choice_item_ids || currentPracticeData?.choice_item_ids || currentQuestion?.practice?.choice_item_ids;
-                  let qData: any = null;
-                  if (choiceIds && session?.questions && choiceIds[idx] !== undefined) {
-                    const selectedId = choiceIds[idx];
-                    qData = session.questions.find((q: any) => String(q.id) === String(selectedId));
-                  }
-
-                  // 3. Tertiary: lookup in session.questions matching choice text in answer column
-                  if (!qData && session?.questions && session.questions.length > 0) {
-                    const choiceNorm = String(choice || "").trim().toLowerCase();
-                    qData = session.questions.find((q: any) => {
-                      const valA = (getVal(q, aKey) || "").toLowerCase();
-                      const valBack = (getVal(q, 'back') || q.explanation || "").toLowerCase();
-                      return (valA && valA === choiceNorm) || (valBack && valBack === choiceNorm);
-                    });
-                    if (!qData) {
-                      qData = session.questions.find((q: any) => {
-                        const valQ = (getVal(q, qKey) || "").toLowerCase();
-                        const valFront = (getVal(q, 'front') || q.content || "").toLowerCase();
-                        return (valQ && valQ === choiceNorm) || (valFront && valFront === choiceNorm);
-                      });
-                    }
-                  }
-
-                  if (qData) {
-                    const result = getVal(qData, qKey) || qData.content || qData.front || '';
-                    if (result && result.toLowerCase() !== String(choice || "").trim().toLowerCase()) {
-                      return result;
-                    }
-                  }
-
-                  return '';
-                })() : '';
-
-                if (answered) {
-                  if (isCorrectChoice) {
-                    cardStyle = "bg-emerald-50/80 border-emerald-300 text-emerald-950 shadow-md shadow-emerald-100/50 scale-[1.01]";
-                    badgeStyle = "bg-emerald-500 text-white border-emerald-500";
-                  } else if (isSelected) {
-                    cardStyle = "bg-rose-50/80 border-rose-300 text-rose-950 shadow-md shadow-rose-100/50";
-                    badgeStyle = "bg-rose-500 text-white border-rose-500";
-                  } else {
-                    cardStyle = "bg-slate-50/60 border-slate-100/60 opacity-60 text-slate-500";
-                    badgeStyle = "bg-slate-100 text-slate-400 border-slate-200";
-                  }
-                }
-
-                return (
-                  <button
-                    key={idx}
-                    onClick={() => {
-                      if (!answered) {
-                        handleMCQAnswer(idx);
-                      } else {
-                        let choiceObj: any = null;
-                        if (currentPracticeData?.choices_data && currentPracticeData.choices_data[idx]) {
-                          choiceObj = currentPracticeData.choices_data[idx];
-                        }
-
-                        const choiceText = choice;
-                        const choiceNorm = String(choiceText || "").trim().toLowerCase();
-                        const qKey = currentPracticeData?.question_key || 'front';
-                        const aKey = currentPracticeData?.answer_key || 'back';
-
-                        // Step 1: Try finding card by choice_item_ids[idx]
-                        let qData: any = null;
-                        if (choice_item_ids && session?.questions && choice_item_ids[idx] !== undefined) {
-                          const selectedId = choice_item_ids[idx];
-                          qData = session.questions.find((q: any) => String(q.id) === String(selectedId));
-                        }
-
-                        // Step 2: Fallback lookup in session.questions matching choiceText in aKey/back/front columns
-                        if (!qData && session?.questions && session.questions.length > 0) {
-                          qData = session.questions.find((q: any) => {
-                            const valA = getVal(q, aKey).toLowerCase();
-                            const valBack = (getVal(q, 'back') || q.explanation || "").toLowerCase();
-                            return (valA && valA === choiceNorm) || (valBack && valBack === choiceNorm);
-                          });
-
-                          if (!qData) {
-                            qData = session.questions.find((q: any) => {
-                              const valQ = getVal(q, qKey).toLowerCase();
-                              const valFront = (getVal(q, 'front') || q.content || "").toLowerCase();
-                              return (valQ && valQ === choiceNorm) || (valFront && valFront === choiceNorm);
-                            });
-                          }
-                        }
-
-                        const cardIdFromChoice = choice_item_ids?.[idx] || choiceObj?.card?.id || choiceObj?.id;
-                        let rawCardFromSession = session?.questions?.find((q: any) => String(q.id) === String(cardIdFromChoice));
-                        
-                        const targetCard = rawCardFromSession || qData || choiceObj?.card || choiceObj;
-                        if (targetCard) {
-                          setPreviewInsightCard(targetCard);
-                        } else {
-                          const wordText = getOppositeTextFromCard(null, choiceText, qKey, aKey);
-                          setPreviewInsightCard({
-                            content: choiceText,
-                            explanation: wordText,
-                            front: choiceText,
-                            back: wordText
-                          });
-                        }
-                      }
-                    }}
-                    className={cn(
-                      "group w-full p-3.5 md:p-4 rounded-2xl md:rounded-[1.25rem] border text-left font-bold text-sm md:text-base transition-all duration-200 flex items-center justify-between gap-3 shadow-[0_2px_12px_rgba(0,0,0,0.02)] active:scale-[0.99] cursor-pointer",
-                      cardStyle
-                    )}
-                  >
-                    {/* Left: Letter Badge + Choice Text */}
-                    <div className="flex items-center gap-3 min-w-0 flex-1">
-                      <div className="flex items-center gap-1.5 shrink-0">
-                        <span className={cn(
-                          "w-8.5 h-8.5 md:w-9.5 md:h-9.5 rounded-full flex items-center justify-center text-xs md:text-sm font-black border flex-shrink-0 transition-colors shadow-sm",
-                          badgeStyle
-                        )}>
-                          {letter}
-                        </span>
-                        <kbd className="hidden md:inline-flex items-center justify-center px-1.5 py-0.5 text-[8.5px] font-mono font-bold rounded border border-slate-300/80 bg-slate-100/90 text-slate-500 shadow-2xs">
-                          {idx + 1}
-                        </kbd>
-                      </div>
-                      <span className="leading-snug truncate" dangerouslySetInnerHTML={{ __html: parseBBCodeToHtml(choice) }} />
-                    </div>
-
-                    {/* Right: Split Word Badge (when answered) OR Radio Circle (when not answered) */}
-                    {answered ? (
-                      oppositeText ? (
-                        <div className="flex items-center shrink-0 pl-3 border-l border-slate-200/80">
-                          <span className={cn(
-                            "px-2.5 py-1 rounded-xl text-xs md:text-sm font-black tracking-wide shadow-sm font-sans transition-all",
-                            isCorrectChoice
-                              ? "bg-emerald-100 text-emerald-800 border border-emerald-200"
-                              : isSelected
-                              ? "bg-rose-100 text-rose-800 border border-rose-200"
-                              : "bg-slate-100 text-slate-700 border border-slate-200"
-                          )}>
-                            {oppositeText}
-                          </span>
-                        </div>
-                      ) : null
-                    ) : (
-                      <div className="w-5 h-5 rounded-full border-2 border-slate-200 group-hover:border-amber-300 flex items-center justify-center flex-shrink-0 transition-all" />
-                    )}
-                  </button>
-                );
-              })}
-            </div>
-          )}
-
-          {baseMode === 'typing' && (
-            <div className="space-y-4 mb-4">
-              {!answered ? (
-                <div className="flex gap-2">
-                  <input
-                    type="text"
-                    value={typingInput}
-                    onChange={(e) => setTypingInput(e.target.value)}
-                    placeholder="Gõ từ vựng..."
-                    autoFocus
-                    className="flex-1 bg-slate-50 border border-slate-200 rounded-2xl px-4 py-3 text-sm font-bold text-slate-800 outline-none focus:border-indigo-500 focus:bg-white transition-all shadow-inner"
-                  />
-                  <button
-                    onClick={handleTypingAnswer}
-                    className="px-6 py-3 rounded-2xl bg-indigo-600 text-white font-black text-xs uppercase hover:bg-indigo-700 hover:shadow-lg hover:shadow-indigo-100 active:scale-95 transition-all"
-                  >
-                    Kiểm tra
-                  </button>
-                </div>
-              ) : typingFeedback && (
-                <div className="space-y-3">
-                  <div className={cn(
-                    "flex items-center gap-3 p-4 rounded-2xl border",
-                    typingFeedback.isCorrect
-                      ? "bg-emerald-50/50 border-emerald-200 text-emerald-800"
-                      : "bg-rose-50/50 border-rose-200 text-rose-800"
-                  )}>
-                    <div className={cn(
-                      "w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 text-white shadow-sm",
-                      typingFeedback.isCorrect ? "bg-emerald-500" : "bg-rose-500"
-                    )}>
-                      {typingFeedback.isCorrect ? <Check className="w-4 h-4 stroke-[3]" /> : <X className="w-4 h-4 stroke-[3]" />}
-                    </div>
-                    <div className="text-xs">
-                      <p className="font-black uppercase tracking-wider text-[9px] opacity-60">Đáp án của bạn</p>
-                      <p className="font-bold text-sm">{typingInput || "(Trống)"}</p>
-                    </div>
-                  </div>
-
-                  {!typingFeedback.isCorrect && (
-                    <div className="p-4 bg-emerald-50/50 border border-emerald-100 rounded-2xl text-emerald-800 text-xs">
-                      <p className="font-black uppercase tracking-wider text-[9px] opacity-60">Đáp án chính xác</p>
-                      <p className="font-bold text-sm mt-0.5" dangerouslySetInnerHTML={{ __html: parseBBCodeToHtml(correct_answer || '') }} />
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-          )}
-
-
-        </div>
-      </div>
+      <PracticeMcqCard
+        currentIndex={currentIndex}
+        currentQuestion={currentQuestion}
+        practiceData={practiceData}
+        answered={answered}
+        selectedOption={selectedOption}
+        starredCards={starredCards}
+        onToggleStar={(cardId) => setStarredCards(prev => ({ ...prev, [cardId]: !prev[cardId] }))}
+        onSelectOption={handleMCQAnswer}
+        onPreviewInsight={setPreviewInsightCard}
+        sessionQuestions={session?.questions || []}
+      />
     );
   };
 
@@ -3930,116 +3645,16 @@ export default function PracticePlay() {
   }
 
   const renderRoadmapTestSummary = () => {
-    const totalQ = session?.questions?.length || 15;
-    const correctCount = practiceCorrectCount;
-    const scorePercent = roadmapSubmitResult?.score !== undefined 
-      ? Math.round(roadmapSubmitResult.score)
-      : (totalQ > 0 ? Math.round((correctCount / totalQ) * 100) : 0);
-    const isPassed = roadmapSubmitResult?.passed !== undefined ? roadmapSubmitResult.passed : scorePercent >= 80;
-
-    const firstUnfinishedStep = roadmapStatus?.pipeline?.find((s: any) => !s.done);
-    const isAllDone = Boolean(roadmapStatus?.all_done || !firstUnfinishedStep);
-    const targetActionUrl = firstUnfinishedStep?.url || (!isAllDone ? roadmapStatus?.next_action_url : null);
-    const targetActionLabel = firstUnfinishedStep?.label || roadmapStatus?.next_action_label || 'Tiếp theo';
-
     return (
-      <div className="flex-1 bg-white md:rounded-[2rem] rounded-[1.25rem] border border-slate-100 p-6 md:p-10 flex flex-col items-center justify-center text-center gap-6 shadow-2xl shadow-indigo-100/40 min-h-[480px]">
-        {/* Icon Badge */}
-        <div className={cn(
-          "w-20 h-20 rounded-3xl flex items-center justify-center shadow-xl border animate-in zoom-in-75 duration-500",
-          isPassed
-            ? "bg-gradient-to-tr from-emerald-400 to-teal-500 text-white border-emerald-300 shadow-emerald-200"
-            : "bg-gradient-to-tr from-amber-400 to-orange-500 text-white border-amber-300 shadow-amber-200"
-        )}>
-          {isPassed ? <Trophy className="w-10 h-10 animate-bounce" /> : <RefreshCw className="w-10 h-10 animate-spin" />}
-        </div>
-
-        {/* Title & Subtitle */}
-        <div className="space-y-2 max-w-md">
-          <h2 className="text-2xl md:text-3xl font-black text-slate-800 tracking-tight">
-            {isPassed ? "🎉 XUẤT SẮC! ĐẠT MỤC TIÊU ROADMAP" : "🎯 CHƯA ĐẠT CHỈ TIÊU (80%)"}
-          </h2>
-          <p className="text-xs md:text-sm font-medium text-slate-500 leading-relaxed">
-            {isPassed
-              ? "Chúc mừng bạn đã hoàn thành bài kiểm tra với kết quả ấn tượng!"
-              : "Bạn đạt kết quả dưới chỉ tiêu 80%. Đừng lo lắng, hãy làm lại bài test khác nhé!"}
-          </p>
-        </div>
-
-        {/* Score Grid */}
-        <div className="grid grid-cols-3 gap-3 w-full max-w-md my-2">
-          <div className="bg-slate-50 p-3.5 rounded-2xl border border-slate-100 text-center">
-            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">Điểm số</span>
-            <span className={cn(
-              "text-2xl font-black block mt-0.5",
-              isPassed ? "text-emerald-600" : "text-amber-600"
-            )}>
-              {scorePercent}%
-            </span>
-          </div>
-
-          <div className="bg-slate-50 p-3.5 rounded-2xl border border-slate-100 text-center">
-            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">Số câu đúng</span>
-            <span className="text-2xl font-black text-emerald-600 block mt-0.5">
-              {correctCount}/{totalQ}
-            </span>
-          </div>
-
-          <div className="bg-slate-50 p-3.5 rounded-2xl border border-slate-100 text-center">
-            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">Mục tiêu</span>
-            <span className="text-2xl font-black text-indigo-600 block mt-0.5">
-              ≥80%
-            </span>
-          </div>
-        </div>
-
-        {/* Action Buttons */}
-        <div className="w-full max-w-md space-y-3 pt-2">
-          {isPassed ? (
-            <>
-              {isAllDone || !targetActionUrl ? (
-                <button
-                  onClick={() => navigate('/')}
-                  className="w-full py-4 px-6 bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-600 hover:from-emerald-600 hover:to-teal-700 text-white font-black text-sm uppercase tracking-wider rounded-2xl shadow-xl shadow-emerald-500/20 active:scale-[0.98] transition-all flex items-center justify-center gap-2 cursor-pointer"
-                >
-                  <Trophy className="w-5 h-5 fill-current" />
-                  <span>🎉 HOÀN THÀNH LỘ TRÌNH HÔM NAY ➔ VỀ DASHBOARD</span>
-                </button>
-              ) : (
-                <button
-                  onClick={() => navigate(targetActionUrl)}
-                  className="w-full py-4 px-6 bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-700 hover:from-indigo-700 hover:to-purple-800 text-white font-black text-sm uppercase tracking-wider rounded-2xl shadow-xl shadow-indigo-500/20 active:scale-[0.98] transition-all flex items-center justify-center gap-2 cursor-pointer"
-                >
-                  <span>{targetActionLabel ? `🚀 SANG BƯỚC: ${targetActionLabel} ➔` : '🚀 SANG BƯỚC TIẾP THEO ➔'}</span>
-                </button>
-              )}
-
-              <button
-                onClick={handleResetRoadmapTest}
-                className="w-full py-3.5 px-4 rounded-2xl bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-700 hover:text-slate-900 font-bold text-xs active:scale-95 transition-all cursor-pointer flex items-center justify-center gap-2 shadow-sm"
-              >
-                <RefreshCw className="w-4 h-4 text-indigo-500" />
-                <span>Làm lại bài kiểm tra 🔄</span>
-              </button>
-
-              <button
-                onClick={() => navigate('/')}
-                className="w-full py-3 px-4 rounded-xl bg-slate-100/60 hover:bg-slate-100 border border-slate-200/60 text-slate-500 hover:text-slate-700 font-bold text-xs active:scale-95 transition-all cursor-pointer"
-              >
-                Về Trang Chủ
-              </button>
-            </>
-          ) : (
-            <button
-              onClick={handleResetRoadmapTest}
-              className="w-full py-4 px-6 bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-white font-black text-sm uppercase tracking-wider rounded-2xl shadow-lg shadow-orange-200 active:scale-[0.98] transition-all flex items-center justify-center gap-2"
-            >
-              <RefreshCw className="w-4.5 h-4.5" />
-              <span>🔄 Làm lại bài test khác</span>
-            </button>
-          )}
-        </div>
-      </div>
+      <PracticeRoadmapTestView
+        session={session}
+        practiceCorrectCount={practiceCorrectCount}
+        roadmapSubmitResult={roadmapSubmitResult}
+        roadmapStatus={roadmapStatus}
+        onNavigateHome={() => navigate('/')}
+        onNavigateUrl={(url) => navigate(url)}
+        onResetTest={handleResetRoadmapTest}
+      />
     );
   };
 
@@ -4235,101 +3850,66 @@ export default function PracticePlay() {
         )}
       </AnimatePresence>
 
-      <header className={cn(
-        "sticky top-0 flex-shrink-0 z-[120] backdrop-blur-2xl px-2.5 md:px-4 py-1.5 flex items-center justify-between gap-2.5 transition-colors duration-300 relative overflow-hidden bg-slate-950/90 border-b border-slate-800/80 text-white shadow-xl"
-      )}>
-        {(() => {
-          const rawPipeline: PipelineStepStatus[] = roadmapStatus?.pipeline || [
-            {
-              type: 'mcq' as any,
-              label: 'Trắc Nghiệm MCQ',
-              daily_count: session?.questions?.length || 15,
-              done: false,
-              url: `/practice/${id}/mcq`,
-              progress: {}
-            }
-          ];
+      {(() => {
+        const rawPipeline: PipelineStepStatus[] = roadmapStatus?.pipeline || [
+          {
+            type: 'mcq' as any,
+            label: 'Trắc Nghiệm MCQ',
+            daily_count: session?.questions?.length || 15,
+            done: false,
+            url: `/practice/${id}/mcq`,
+            progress: {}
+          }
+        ];
 
-          const subCurr = Object.keys(practiceAnswers).length;
-          const subTotal = session?.questions?.length || 15;
-          const activePercent = subTotal > 0 ? Math.min(100, Math.round((subCurr / subTotal) * 100)) : 0;
+        const subCurr = Object.keys(practiceAnswers).length;
+        const subTotal = session?.questions?.length || 15;
+        const activePercent = subTotal > 0 ? Math.min(100, Math.round((subCurr / subTotal) * 100)) : 0;
 
-          const answeredCount = Object.keys(practiceAnswers).length;
-          const correctCount = Object.entries(practiceAnswers).filter(([idxStr, optIdx]) => {
-            const q = session?.questions?.[Number(idxStr)];
-            return q && (q.correct_index === optIdx || q.correct_option === optIdx);
-          }).length;
-          const totalCards = session?.questions?.length || 0;
-          const cardsRemaining = Math.max(0, totalCards - currentIndex - 1);
+        const answeredCount = Object.keys(practiceAnswers).length;
+        const correctCount = Object.entries(practiceAnswers).filter(([idxStr, optIdx]) => {
+          const q = session?.questions?.[Number(idxStr)];
+          return q && (q.correct_index === optIdx || q.correct_option === optIdx);
+        }).length;
+        const totalCards = session?.questions?.length || 0;
+        const cardsRemaining = Math.max(0, totalCards - currentIndex - 1);
 
-          return (
-            <>
-              {/* Sleek Underline Progress Bar at the Bottom Edge of Header */}
-              <AnimatePresence>
-                {!isHeaderSurging && (
-                  <motion.div 
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    className="absolute bottom-0 left-0 right-0 h-[2.5px] bg-slate-800/60 pointer-events-none z-[125]"
-                  >
-                    <motion.div 
-                      className="h-full rounded-r-full transition-all duration-500 bg-gradient-to-r from-amber-500 via-rose-500 to-indigo-500 shadow-[0_0_12px_rgba(245,158,11,0.8)]"
-                      initial={{ width: 0 }}
-                      animate={{ width: `${activePercent}%` }}
-                      transition={{ type: "spring", stiffness: 120, damping: 18 }}
-                    />
-                  </motion.div>
-                )}
-              </AnimatePresence>
-
-              <div className="flex-1 min-w-0 relative z-[140]">
-                <StudyHeaderTracker
-                  pipeline={rawPipeline}
-                  currentStepIndex={roadmapStatus?.current_step_index || 0}
-                  allDone={Boolean(isRoadmapAllDone)}
-                  deckId={id || ''}
-                  deckTitle={session?.title || session?.deck_title || session?.quiz_title || 'Luyện tập'}
-                  subProgressCurr={subCurr}
-                  subProgressTotal={subTotal}
-                  streakCount={roadmapStatus?.streak || gamify.streak || 0}
-                  onSurgeChange={setIsHeaderSurging}
-                  onViewModeChange={setHeaderViewMode}
-                  onExit={() => navigate('/')}
-                  timeMode={timeMode as any}
-                  onToggleTimeMode={toggleTimeMode}
-                  initialTodayTime={initialTodayTime}
-                  initialAllTimeTime={initialAllTimeTime}
-                  showFeedback={showFeedback}
-                  currentIndex={currentIndex}
-                  formatHeaderTime={formatHeaderTime}
-                  scoreMode={scoreMode as any}
-                  onToggleScoreMode={toggleScoreMode}
-                  xp={gamify.xp}
-                  todayXP={initialTodayXP + sessionXP}
-                  sessionXP={sessionXP}
-                  answeredCount={answeredCount}
-                  correctCount={correctCount}
-                  totalCards={totalCards}
-                  cardsRemaining={cardsRemaining}
-                  activeMode={subMode || practiceSubMode || 'mcq'}
-                />
-              </div>
-            </>
-          );
-        })()}
-
-        {/* Quick Add Button (Hidden in Roadmap mode) */}
-        {!isRoadmapTestMode && (
-          <button
-            onClick={handleCreateNewCard}
-            className="w-8.5 h-8.5 ml-1.5 md:ml-2.5 flex items-center justify-center bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl shadow-md active:scale-90 transition-all flex-shrink-0"
-            title="Thêm thẻ nhanh"
-          >
-            <Plus className="w-4.5 h-4.5" />
-          </button>
-        )}
-      </header>
+        return (
+          <FlashcardHeader
+            isHeaderSurging={isHeaderSurging}
+            activePercent={activePercent}
+            pipeline={rawPipeline}
+            displayStepIdx={roadmapStatus?.current_step_index || 0}
+            allDone={Boolean(isRoadmapAllDone)}
+            deckId={id || ''}
+            deckTitle={session?.title || session?.deck_title || session?.quiz_title || 'Luyện tập'}
+            subCurr={subCurr}
+            subTotal={subTotal}
+            streakCount={roadmapStatus?.streak || gamify.streak || 0}
+            timeMode={timeMode as any}
+            scoreMode={scoreMode as any}
+            initialTodayTime={initialTodayTime}
+            initialAllTimeTime={initialAllTimeTime}
+            showFeedback={showFeedback}
+            currentIndex={currentIndex}
+            xp={gamify.xp}
+            todayXP={initialTodayXP + sessionXP}
+            sessionXP={sessionXP}
+            answeredCount={answeredCount}
+            correctCount={correctCount}
+            totalCards={totalCards}
+            cardsRemaining={cardsRemaining}
+            activeMode={subMode || practiceSubMode || 'mcq'}
+            onSurgeChange={setIsHeaderSurging}
+            onViewModeChange={setHeaderViewMode}
+            onExit={() => navigate('/')}
+            onToggleTimeMode={toggleTimeMode}
+            onToggleScoreMode={toggleScoreMode}
+            formatHeaderTime={formatHeaderTime}
+            onCreateNewCard={!isRoadmapTestMode ? handleCreateNewCard : undefined}
+          />
+        );
+      })()}
 
       {/* Dynamic Mode Switcher Bar (Hidden completely in Roadmap mode) */}
       {!isRoadmapTestMode && (
@@ -5325,234 +4905,67 @@ export default function PracticePlay() {
       </main>
 
       {!shouldShowRoadmapTestSummary && (mainTab !== 'practice' || (mainTab === 'practice' && !practiceNeedsSetup)) && (
-        <footer className="relative w-full flex-shrink-0 bg-white/95 backdrop-blur-2xl border-t border-slate-100/80 px-0 pt-0 pb-0 z-[300] shadow-[0_-4px_24px_rgba(99,102,241,0.06)]">
-          <div className="max-w-2xl mx-auto w-full flex flex-col">
-            {activeBottomTab === 'flashcard' && !isFeedbackOpen && (
-              <div className="w-full flex items-center gap-1.5 sm:gap-3 px-3 sm:px-4 pt-1 pb-2">
-            {/* Settings Button */}
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                setIsSettingsModalOpen(true);
-              }}
-              className="w-12 h-12 flex-shrink-0 flex items-center justify-center bg-indigo-50 border border-indigo-200 text-indigo-600 rounded-2xl shadow-sm active:scale-95 hover:bg-indigo-100 hover:border-indigo-300 transition-all"
-              title="Cấu hình học tập"
-            >
-              <Settings className="w-5.5 h-5.5 text-indigo-600" />
-            </button>
-
-            {(() => {
-              if (!currentQuestion) return null;
-              const hasAnswered = showFeedback || practiceAnswers[currentIndex] !== undefined;
-              if (mainTab === 'practice' && !hasAnswered) {
-                return null;
+        <PracticeBottomBar
+          isFeedbackOpen={isFeedbackOpen}
+          activeBottomTab={activeBottomTab}
+          mainTab={mainTab}
+          currentIndex={currentIndex}
+          practiceAnswers={practiceAnswers}
+          sessionAnswers={sessionAnswers}
+          currentQuestion={currentQuestion}
+          currentPracticeData={currentPracticeData}
+          isRoadmapTestMode={isRoadmapTestMode}
+          isFlipped={isFlipped}
+          hasRated={hasRated}
+          justAnswered={justAnswered}
+          showFeedback={showFeedback}
+          onOpenSettings={() => setIsSettingsModalOpen(true)}
+          onPlayAudio={async () => {
+            if (mainTab === 'practice') {
+              if (showFeedback) {
+                speakPracticeQuestionAndAnswer();
+              } else {
+                const practiceData = currentPracticeData;
+                if (practiceData) {
+                  const { question: qText } = practiceData;
+                  speakMultiLanguage(qText);
+                }
               }
-
-              return (
-                <button
-                  onClick={async (e) => {
-                    e.stopPropagation();
-                    if (mainTab === 'practice') {
-                      if (showFeedback) {
-                        speakPracticeQuestionAndAnswer();
-                      } else {
-                        const practiceData = currentPracticeData;
-                        if (practiceData) {
-                          const { question: qText } = practiceData;
-                          speakMultiLanguage(qText);
-                        }
-                      }
-                    } else {
-                      await playCardAudio(isFlipped ? 'back' : 'front');
-                    }
-                  }}
-                  className="w-12 h-12 flex-shrink-0 flex items-center justify-center bg-indigo-50 border border-indigo-200 rounded-2xl text-indigo-600 shadow-sm active:scale-95 transition-all hover:bg-indigo-100 hover:border-indigo-300"
-                  title="Phát âm"
-                >
-                  <Volume2 className="w-5.5 h-5.5 text-indigo-600 animate-pulse" />
-                </button>
-              );
-            })()}
-
-            {/* Lightbulb Explanation Button (visible in FSRS, and in practice mode after answering) */}
-            {((mainTab === 'practice' ? (showFeedback || practiceAnswers[currentIndex] !== undefined) : (isFlipped || showFeedback))) && (
-              <button
-                onClick={() => {
-                  if (mainTab === 'practice') {
-                    setShowFeedback(true);
-                  }
-                  setIsFeedbackOpen(true);
-                }}
-                className={`xl:hidden w-12 h-12 flex-shrink-0 flex items-center justify-center rounded-2xl shadow-sm active:scale-95 transition-all relative ${justAnswered
-                  ? 'bg-indigo-600 border border-indigo-600 text-white animate-[pulse_1.5s_infinite] ring-4 ring-indigo-300 ring-offset-1 drop-shadow-[0_0_12px_rgba(99,102,241,0.6)]'
-                  : 'bg-indigo-50 border border-indigo-200 text-indigo-600 hover:bg-indigo-100'
-                  }`}
-                title="Xem giải thích và hướng dẫn"
-              >
-                <Lightbulb className="w-5.5 h-5.5" />
-                {justAnswered && <span className="absolute -top-1 -right-1 w-3 h-3 bg-rose-500 rounded-full border-2 border-white animate-pulse"></span>}
-              </button>
-            )}
-
-              {/* Main Action Buttons */}
-              {mainTab === 'practice' ? (
-                practiceAnswers[currentIndex] !== undefined ? (
-                  <button
-                    onClick={() => handleNext()}
-                    className="flex-1 h-12 bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-600 text-white font-black text-xs rounded-2xl shadow-lg shadow-emerald-300/50 flex items-center justify-center gap-2.5 uppercase tracking-widest active:scale-[0.98] transition-all hover:shadow-emerald-400/60 hover:shadow-xl cursor-pointer"
-                  >
-                    <span>Continue</span>
-                    <kbd className="hidden md:inline-flex items-center justify-center px-1.5 py-0.5 text-[9px] font-mono font-bold bg-white/20 text-white rounded border border-white/30">Space / ↵</kbd>
-                    <ChevronRight className="w-4 h-4" />
-                  </button>
-                ) : (
-                  <div className="flex-1 flex gap-2 h-12">
-                    {!isRoadmapTestMode && (
-                      <button
-                        onClick={() => handleNext()}
-                        className="flex-1 h-12 bg-slate-50 border border-slate-200 text-slate-500 hover:bg-slate-100 font-black text-xs rounded-2xl flex items-center justify-center gap-1.5 uppercase tracking-widest active:scale-[0.98] transition-all cursor-pointer"
-                      >
-                        Skip <ChevronRight className="w-4 h-4" />
-                      </button>
-                    )}
-                    <div className="flex-[2] h-12 bg-slate-100/70 border border-slate-200/50 text-slate-400 font-extrabold text-xs rounded-2xl flex items-center justify-center uppercase tracking-widest pointer-events-none select-none">
-                      {isRoadmapTestMode ? "Chọn 1 đáp án bên trên 🎯" : "Waiting..."}
-                    </div>
-                  </div>
-                )
-              ) : (
-                !hasRated ? (
-                  <button
-                    onClick={() => {
-                      const nextFlipped = !isFlipped;
-                      setIsFlipped(nextFlipped);
-                      if (nextFlipped) {
-                        setShowFeedback(true);
-                        setJustAnswered(true);
-                      }
-                    }}
-                    className="flex-1 h-12 bg-gradient-to-r from-indigo-500 via-indigo-600 to-purple-600 text-white font-black text-xs rounded-2xl shadow-lg shadow-indigo-300/50 flex items-center justify-center gap-2.5 uppercase tracking-widest active:scale-[0.98] transition-all hover:shadow-indigo-400/60 hover:shadow-xl cursor-pointer"
-                  >
-                    {isFlipped ? (
-                      <>
-                        <ChevronRight className="w-4 h-4 rotate-180" />
-                        <span>FLIP BACK</span>
-                        <kbd className="hidden md:inline-flex items-center justify-center px-1.5 py-0.5 text-[9px] font-mono font-bold bg-white/20 text-white rounded border border-white/30">Space</kbd>
-                      </>
-                    ) : (
-                      <>
-                        <span>FLIP CARD</span>
-                        <kbd className="hidden md:inline-flex items-center justify-center px-1.5 py-0.5 text-[9px] font-mono font-bold bg-white/20 text-white rounded border border-white/30">Space</kbd>
-                        <ChevronRight className="w-4 h-4 rotate-90" />
-                      </>
-                    )}
-                  </button>
-                ) : (
-                  <div className="flex-1 flex gap-3 h-12">
-                    <button
-                      onClick={() => setIsFlipped(prev => !prev)}
-                      className="w-12 h-12 flex-shrink-0 bg-gradient-to-r from-indigo-50 to-indigo-100/80 hover:from-indigo-100 hover:to-indigo-200 text-indigo-600 border border-indigo-200/50 rounded-2xl flex items-center justify-center gap-2 active:scale-[0.98] transition-all cursor-pointer"
-                      title={isFlipped ? "Flip to Front" : "Flip to Back"}
-                    >
-                      <RefreshCw className="w-5 h-5 text-indigo-600 animate-[spin_4s_linear_infinite]" />
-                    </button>
-                    <button
-                      onClick={() => handleNext()}
-                      className="flex-1 h-12 bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-600 text-white font-black text-xs rounded-2xl shadow-lg shadow-emerald-300/50 flex items-center justify-center gap-2.5 uppercase tracking-widest active:scale-[0.98] transition-all hover:shadow-emerald-400/60 hover:shadow-xl cursor-pointer"
-                    >
-                      <span>NEXT CARD</span>
-                      <kbd className="hidden md:inline-flex items-center justify-center px-1.5 py-0.5 text-[9px] font-mono font-bold bg-white/20 text-white rounded border border-white/30">Space / ↵</kbd>
-                      <ChevronRight className="w-4 h-4" />
-                    </button>
-                  </div>
-                )
-              )}
-            </div>
-          )}
-
-          {/* Interactive Navigation Tabs */}
-          <div className="w-full grid grid-cols-3 bg-white border-t border-slate-100 p-0 relative md:hidden">
-            {/* 1. Card Map Tab */}
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                setIsStatsOpen(false);
-                setIsMapOpen(true);
-                setIsFeedbackOpen(false);
-              }}
-              className="relative flex items-center justify-center gap-1.5 py-3 px-1 transition-all active:scale-95 overflow-hidden"
-              title="Mở bản đồ thẻ"
-            >
-              {activeBottomTab === 'map' && (
-                <motion.div
-                  layoutId="activeBottomTabBg"
-                  className="absolute inset-0 bg-amber-500/10"
-                  transition={{ type: "spring", stiffness: 380, damping: 30 }}
-                />
-              )}
-              <span className={cn(
-                "relative z-10 flex items-center justify-center gap-1.5 text-[9px] font-black uppercase tracking-wider truncate transition-colors duration-200",
-                activeBottomTab === 'map' ? "text-amber-600 font-black" : "text-slate-400 hover:text-slate-600"
-              )}>
-                <LayoutGrid className="w-3.5 h-3.5 shrink-0" />
-                MAP
-              </span>
-            </button>
-            {/* 2. Flashcard Active View Tab */}
-            <button 
-              onClick={(e) => {
-                e.stopPropagation();
-                setIsMapOpen(false);
-                setIsStatsOpen(false);
-                setIsFeedbackOpen(false);
-              }}
-              className="relative flex items-center justify-center gap-1.5 py-3 px-1 transition-all active:scale-95 overflow-hidden"
-              title="Tiến trình học tập hiện tại"
-            >
-              {activeBottomTab === 'flashcard' && (
-                <motion.div
-                  layoutId="activeBottomTabBg"
-                  className="absolute inset-0 bg-amber-500/10"
-                  transition={{ type: "spring", stiffness: 380, damping: 30 }}
-                />
-              )}
-              <span className={cn(
-                "relative z-10 flex items-center justify-center gap-1.5 text-[9px] font-black uppercase tracking-wider truncate transition-colors duration-200",
-                activeBottomTab === 'flashcard' ? "text-amber-600 font-black" : "text-slate-400 hover:text-slate-600"
-              )}>
-                <BookOpen className="w-3.5 h-3.5 shrink-0" />
-                FLASHCARD
-              </span>
-            </button>
-            {/* 3. Stats Tab */}
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                setIsMapOpen(false);
-                setIsStatsOpen(true);
-                setIsFeedbackOpen(false);
-              }}
-              className="relative flex items-center justify-center gap-1.5 py-3 px-1 transition-all active:scale-95 overflow-hidden"
-              title="Mở thống kê tiến trình"
-            >
-              {activeBottomTab === 'stats' && (
-                <motion.div
-                  layoutId="activeBottomTabBg"
-                  className="absolute inset-0 bg-amber-500/10"
-                  transition={{ type: "spring", stiffness: 380, damping: 30 }}
-                />
-              )}
-              <span className={cn(
-                "relative z-10 flex items-center justify-center gap-1.5 text-[9px] font-black uppercase tracking-wider truncate transition-colors duration-200",
-                activeBottomTab === 'stats' ? "text-amber-600 font-black" : "text-slate-400 hover:text-slate-600"
-              )}>
-                <TrendingUp className="w-3.5 h-3.5 shrink-0" />
-                STATS
-              </span>
-            </button>
-          </div>
-        </div>
-      </footer>
+            } else {
+              await playCardAudio(isFlipped ? 'back' : 'front');
+            }
+          }}
+          onOpenFeedback={() => {
+            if (mainTab === 'practice') {
+              setShowFeedback(true);
+            }
+            setIsFeedbackOpen(true);
+          }}
+          onNext={() => handleNext()}
+          onFlip={() => {
+            const nextFlipped = !isFlipped;
+            setIsFlipped(nextFlipped);
+            if (nextFlipped) {
+              setShowFeedback(true);
+              setJustAnswered(true);
+            }
+          }}
+          onTabChange={(tab) => {
+            if (tab === 'map') {
+              setIsStatsOpen(false);
+              setIsMapOpen(true);
+              setIsFeedbackOpen(false);
+            } else if (tab === 'flashcard') {
+              setIsMapOpen(false);
+              setIsStatsOpen(false);
+              setIsFeedbackOpen(false);
+            } else if (tab === 'stats') {
+              setIsMapOpen(false);
+              setIsStatsOpen(true);
+              setIsFeedbackOpen(false);
+            }
+          }}
+        />
       )}
 
 
