@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { useAppStore } from '@/store/useAppStore'
 import {
   DeckGeneralForm,
+  DeckColumnSettings,
   DeckPracticeConfig,
   DeckAISettings,
   DeckAudioSettings,
@@ -14,7 +15,7 @@ import {
   DeckDangerZone,
   DeckCollaboratorsModal
 } from '../settings'
-import { Settings, Sparkles, Volume2, Sliders, FileSpreadsheet, Users, AlertTriangle, Languages } from 'lucide-react'
+import { Settings, Sparkles, Volume2, Sliders, FileSpreadsheet, Users, AlertTriangle, Languages, Columns3 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 export interface DeckSettingsTabProps {
@@ -22,9 +23,9 @@ export interface DeckSettingsTabProps {
   deckId?: string | number
 }
 
-export type SettingsSubTab = 'general' | 'ai' | 'audio' | 'furigana' | 'practice' | 'excel' | 'collab' | 'danger'
+export type SettingsSubTab = 'general' | 'columns' | 'ai' | 'audio' | 'furigana' | 'practice' | 'excel' | 'collab' | 'danger'
 
-const VALID_SUB_TABS: SettingsSubTab[] = ['general', 'ai', 'audio', 'furigana', 'practice', 'excel', 'collab', 'danger']
+const VALID_SUB_TABS: SettingsSubTab[] = ['general', 'columns', 'ai', 'audio', 'furigana', 'practice', 'excel', 'collab', 'danger']
 
 export function DeckSettingsTab({ embedded = false, deckId }: DeckSettingsTabProps) {
   const { id: paramId } = useParams()
@@ -76,6 +77,7 @@ export function DeckSettingsTab({ embedded = false, deckId }: DeckSettingsTabPro
 
   const subTabs = [
     { id: 'general' as const, label: 'Cơ bản', shortLabel: 'Cơ bản', icon: Settings, color: 'text-indigo-600', badge: null },
+    { id: 'columns' as const, label: 'Cột dữ liệu', shortLabel: 'Cột thẻ', icon: Columns3, color: 'text-blue-600', badge: null },
     { id: 'ai' as const, label: 'Cấu hình AI', shortLabel: 'AI Prompt', icon: Sparkles, color: 'text-purple-600', badge: 'AI' },
     { id: 'audio' as const, label: 'Âm thanh & TTS', shortLabel: 'Audio TTS', icon: Volume2, color: 'text-sky-600', badge: 'TTS' },
     { id: 'furigana' as const, label: 'Furigana Ruby', shortLabel: 'Furigana', icon: Languages, color: 'text-emerald-600', badge: 'あ' },
@@ -154,6 +156,13 @@ export function DeckSettingsTab({ embedded = false, deckId }: DeckSettingsTabPro
               deckId={id!}
               initialData={deckData}
               onSaved={() => refetch()}
+            />
+          )}
+
+          {activeSubTab === 'columns' && (
+            <DeckColumnSettings
+              deckId={id!}
+              isOwner={isOwner}
             />
           )}
 

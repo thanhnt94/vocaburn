@@ -1967,8 +1967,57 @@ async def add_deck_column(deck_id: int, payload: dict, db: AsyncSession = Depend
     if not col_name:
         return JSONResponse(status_code=400, content={"error": "column_name is required"})
     col_name = col_name.strip().lower().replace(" ", "_")
+@router.get("/{deck_id}/columns-overview")
+async def get_deck_columns_overview(deck_id: int, db: AsyncSession = Depends(get_db)):
+    deck = await DeckService.get_deck_by_id(db, deck_id)
+    if not deck:
+        return JSONResponse(status_code=404, content={"error": "Deck not found"})
+        
+    from app.modules.deck.models import Flashcard
+    res = await db.execute(select(Flashcard).where(Flashcard.deck_id == deck_id))
+    cards = res.scalars().all()
+    total_cards = len(cards)
+    
+    col_counts = {
+        "front": sum(1 for c in cards if c.front and str(c.front).strip()),
+        "back": sum(1 for c in cards if c.back and str(c.back).strip()),
+        "front_audio_content": sum(1 for c in cards if getattr(c, "front_audio_content", None) and str(c.front_audio_content).strip()),
+        "back_audio_content": sum(1 for c in cards if getattr(c, "back_audio_content", None) and str(c.back_audio_content).strip()),
+        "front_audio_url": sum(1 for c in cards if getattr(c, "front_audio_url", None) and str(c.front_audio_url).strip()),
+        "back_audio_url": sum(1 for c in cards if getattr(c, "back_audio_url", None) and str(c.back_audio_url).strip()),
+        "front_img": sum(1 for c in cards if getattr(c, "front_img", None) and str(c.front_img).strip()),
+        "back_img": sum(1 for c in cards if getattr(c, "back_img", None) and str(c.back_img).strip()),
+    }
+    
+    dynamic_cols = set()
+    for c in cards:
+        if c.others and isinstance(c.others, dict):
+            for k, v in c.others.items():
+                if k not in ("id", "item_id", "order_in_container") and k != "other_content":
+                    dynamic_cols.add(k)
+                    if k not in col_counts:
+                        col_counts[k] = 0
+                    if v is not None and str(v).strip():
+                        col_counts[k] += 1
+                        
+    custom_cols = list(deck.practice_settings.get("custom_columns", [])) if (deck.practice_settings and isinstance(deck.practice_settings, dict)) else []
+    for cc in custom_cols:
+        dynamic_cols.add(cc)
+        if cc not in col_counts:
+            col_counts[cc] = 0
+            
+    return {
+        "total_cards": total_cards,
+        "custom_columns": custom_cols,
+        "dynamic_columns": sorted(list(dynamic_cols)),
+        "column_counts": col_counts
+    }
+
+@router.post("/{deck_id}/add-column")
+async def add_deck_column(deck_id: int, payload: dict, db: AsyncSession = Depends(get_db)):
+    col_name = payload.get("column_name", "").strip().lower().replace(" ", "_")
     if not col_name:
-        return JSONResponse(status_code=400, content={"error": "Invalid column name"})
+        return JSONResponse(status_code=400, content={"error": "Tên cột không hợp lệ"})
         
     deck = await DeckService.get_deck_by_id(db, deck_id)
     if not deck:
@@ -1978,23 +2027,30 @@ async def add_deck_column(deck_id: int, payload: dict, db: AsyncSession = Depend
     if not deck.practice_settings or not isinstance(deck.practice_settings, dict):
         deck.practice_settings = {}
         
-    custom_cols = deck.practice_settings.get("custom_columns", [])
-    if col_name in custom_cols or col_name in ["front", "back", "content", "explanation"]:
-        return JSONResponse(status_code=400, content={"error": "Column already exists"})
+    custom_cols = list(deck.practice_settings.get("custom_columns", []))
+    if col_name in custom_cols or col_name in ["front", "back"]:
+        return JSONResponse(status_code=400, content={"error": "Cột này đã tồn tại trong bộ thẻ"})
         
     custom_cols.append(col_name)
     deck.practice_settings["custom_columns"] = custom_cols
-    flag_modified(deck, "practice_settings")
     
+    order = list(deck.practice_settings.get("column_order", []))
+    if col_name not in order:
+        order.append(col_name)
+        deck.practice_settings["column_order"] = order
+        
+    flag_modified(deck, "practice_settings")
     await db.commit()
     return {"status": "ok", "column_name": col_name}
 
 @router.post("/{deck_id}/rename-column")
 async def rename_deck_column(deck_id: int, payload: dict, db: AsyncSession = Depends(get_db)):
-    old_name = payload.get("old_name")
-    new_name = payload.get("new_name")
+    old_name = payload.get("old_name", "").strip()
+    new_name = payload.get("new_name", "").strip().lower().replace(" ", "_")
     if not old_name or not new_name:
-        return JSONResponse(status_code=400, content={"error": "old_name and new_name are required"})
+        return JSONResponse(status_code=400, content={"error": "Tên cột cũ và mới không được để trống"})
+    if old_name == new_name:
+        return {"status": "ok"}
         
     deck = await DeckService.get_deck_by_id(db, deck_id)
     if not deck:
@@ -2002,11 +2058,17 @@ async def rename_deck_column(deck_id: int, payload: dict, db: AsyncSession = Dep
         
     from sqlalchemy.orm.attributes import flag_modified
     if deck.practice_settings and isinstance(deck.practice_settings, dict):
-        custom_cols = deck.practice_settings.get("custom_columns", [])
+        custom_cols = list(deck.practice_settings.get("custom_columns", []))
         if old_name in custom_cols:
             idx = custom_cols.index(old_name)
             custom_cols[idx] = new_name
             deck.practice_settings["custom_columns"] = custom_cols
+            
+        order = list(deck.practice_settings.get("column_order", []))
+        if old_name in order:
+            idx = order.index(old_name)
+            order[idx] = new_name
+            deck.practice_settings["column_order"] = order
             
         prompts = deck.practice_settings.get("ai_prompts", [])
         for p in prompts:
@@ -2015,9 +2077,17 @@ async def rename_deck_column(deck_id: int, payload: dict, db: AsyncSession = Dep
                 p["id"] = new_name
                 p["title"] = new_name.upper().replace("_", " ")
         deck.practice_settings["ai_prompts"] = prompts
+        
+        audio_configs = deck.practice_settings.get("audio_configs", [])
+        for ac in audio_configs:
+            if ac.get("source_col") == old_name:
+                ac["source_col"] = new_name
+            if ac.get("url_col") == old_name:
+                ac["url_col"] = new_name
+        deck.practice_settings["audio_configs"] = audio_configs
+        
         flag_modified(deck, "practice_settings")
         
-    # Update all cards' others JSON keys
     from app.modules.deck.models import Flashcard
     res = await db.execute(select(Flashcard).where(Flashcard.deck_id == deck_id))
     cards = res.scalars().all()
@@ -2031,9 +2101,12 @@ async def rename_deck_column(deck_id: int, payload: dict, db: AsyncSession = Dep
 
 @router.post("/{deck_id}/delete-column")
 async def delete_deck_column(deck_id: int, payload: dict, db: AsyncSession = Depends(get_db)):
-    col_name = payload.get("column_name")
+    col_name = payload.get("column_name", "").strip()
     if not col_name:
         return JSONResponse(status_code=400, content={"error": "column_name is required"})
+        
+    if col_name in ["front", "back"]:
+        return JSONResponse(status_code=400, content={"error": "Không thể xóa cột mặc định cơ bản (front/back)"})
         
     deck = await DeckService.get_deck_by_id(db, deck_id)
     if not deck:
@@ -2041,13 +2114,22 @@ async def delete_deck_column(deck_id: int, payload: dict, db: AsyncSession = Dep
         
     from sqlalchemy.orm.attributes import flag_modified
     if deck.practice_settings and isinstance(deck.practice_settings, dict):
-        custom_cols = deck.practice_settings.get("custom_columns", [])
+        custom_cols = list(deck.practice_settings.get("custom_columns", []))
         if col_name in custom_cols:
             custom_cols.remove(col_name)
             deck.practice_settings["custom_columns"] = custom_cols
             
+        order = list(deck.practice_settings.get("column_order", []))
+        if col_name in order:
+            order.remove(col_name)
+            deck.practice_settings["column_order"] = order
+            
         prompts = deck.practice_settings.get("ai_prompts", [])
         deck.practice_settings["ai_prompts"] = [p for p in prompts if p.get("column") != col_name and p.get("id") != col_name]
+        
+        audio_configs = deck.practice_settings.get("audio_configs", [])
+        deck.practice_settings["audio_configs"] = [ac for ac in audio_configs if ac.get("source_col") != col_name and ac.get("url_col") != col_name]
+        
         flag_modified(deck, "practice_settings")
         
     from app.modules.deck.models import Flashcard

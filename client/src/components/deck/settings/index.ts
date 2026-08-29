@@ -1,4 +1,5 @@
 export * from './DeckGeneralForm'
+export * from './DeckColumnSettings'
 export * from './DeckPracticeConfig'
 export * from './DeckAISettings'
 export * from './DeckAudioSettings'
