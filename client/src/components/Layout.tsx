@@ -1,6 +1,6 @@
 import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom'
 import { useState } from 'react'
-import { LayoutGrid, Compass, BarChart3, User, BrainCircuit, Bell, Settings, Plus, Library, Users, FolderKanban, BookOpen, Flame, Award, Sparkles, Shield, Zap, ShoppingBag } from 'lucide-react'
+import { Home, Layers, PieChart, Settings, BrainCircuit, Flame, Award, ShoppingBag } from 'lucide-react'
 import { motion } from 'framer-motion'
 import { useAppStore } from '@/store/useAppStore'
 import { cn } from '@/lib/utils'
@@ -29,9 +29,9 @@ export default function Layout() {
   })
   
   const navItems = [
-    { label: 'Home', path: '/', icon: LayoutGrid },
-    { label: 'Decks', path: '/decks', icon: FolderKanban },
-    { label: 'Stats', path: '/stats', icon: BarChart3 },
+    { label: 'Home', path: '/', icon: Home },
+    { label: 'Decks', path: '/decks', icon: Layers },
+    { label: 'Stats', path: '/stats', icon: PieChart },
     { label: 'Settings', path: '/settings', icon: Settings },
   ]
 
@@ -173,10 +173,10 @@ export default function Layout() {
         <Outlet />
       </main>
 
-      {/* Modern Connected Full-Width Mobile Bottom Nav (4 Segmented Tabs) */}
+      {/* Reference-Styled Mobile Bottom Nav (Clean, Rounded Top, Top Active Indicator Line) */}
       {showBottomNav && (
-        <div className="fixed bottom-0 left-0 right-0 z-[120] md:hidden bg-white/95 backdrop-blur-2xl border-t border-slate-200/80 px-2.5 pt-1.5 pb-[max(0.45rem,env(safe-area-inset-bottom))] shadow-[0_-6px_25px_rgba(0,0,0,0.04)]">
-          <nav className="w-full bg-slate-100/90 p-1 rounded-2xl border border-slate-200/60 grid grid-cols-4 gap-1 relative shadow-inner">
+        <div className="fixed bottom-0 left-0 right-0 z-[120] md:hidden bg-white rounded-t-[1.75rem] border-t border-slate-100/90 shadow-[0_-8px_30px_rgba(0,0,0,0.06)] px-2 pt-0 pb-[max(0.6rem,env(safe-area-inset-bottom))]">
+          <nav className="grid grid-cols-4 items-center w-full max-w-md mx-auto">
             {navItems.filter(item => item.label !== 'Admin').map((item) => {
               const Icon = item.icon
               const isActive = item.path === '/' 
@@ -187,31 +187,31 @@ export default function Layout() {
                 <Link 
                   key={item.path}
                   to={item.path} 
-                  className={cn(
-                    "relative flex flex-col items-center justify-center py-1.5 px-1 rounded-xl select-none transition-all cursor-pointer",
-                    isActive ? "text-orange-600" : "text-slate-500 hover:text-slate-800"
-                  )}
+                  className="relative flex flex-col items-center justify-center pt-3.5 pb-1 select-none transition-colors duration-200 cursor-pointer"
                 >
-                  {/* Elevated Active Segment Card */}
+                  {/* Top Active Line Indicator (Smooth Animated) */}
                   {isActive && (
                     <motion.div 
-                      layoutId="navActiveSegment"
-                      className="absolute inset-0 bg-white rounded-xl shadow-[0_2px_8px_rgba(0,0,0,0.07)] border border-slate-200/80"
-                      transition={{ type: "spring", stiffness: 450, damping: 35 }}
+                      layoutId="navTopIndicator"
+                      className="absolute top-0 left-1/2 -translate-x-1/2 w-14 h-[3.5px] bg-gradient-to-r from-orange-500 to-amber-500 rounded-full"
+                      transition={{ type: "spring", stiffness: 450, damping: 32 }}
                     />
                   )}
 
+                  {/* Clean Icon (Filled when Active) */}
                   <Icon className={cn(
-                    "w-5 h-5 relative z-10 transition-all duration-200",
+                    "w-6 h-6 transition-all duration-200",
                     isActive 
-                      ? "text-orange-600 scale-105 stroke-[2.4]" 
-                      : "text-slate-400 stroke-[1.8]"
+                      ? "text-orange-500 fill-orange-500 stroke-[1.5]" 
+                      : "text-slate-500 stroke-[1.75]"
                   )} />
+
+                  {/* Clean Label */}
                   <span className={cn(
-                    "text-[10px] tracking-tight relative z-10 transition-all duration-200 mt-0.5 leading-none",
+                    "text-xs tracking-tight mt-1.5 transition-colors duration-200 leading-none",
                     isActive 
-                      ? "font-black text-slate-900" 
-                      : "font-semibold text-slate-400"
+                      ? "font-bold text-orange-500" 
+                      : "font-normal text-slate-500"
                   )}>
                     {item.label}
                   </span>
