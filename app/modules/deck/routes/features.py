@@ -1977,12 +1977,6 @@ async def generate_single_card_ai(
             
     return {"status": "ok", "message": f"AI generation for {field} started."}
 
-@router.post("/{deck_id}/add-column")
-async def add_deck_column(deck_id: int, payload: dict, db: AsyncSession = Depends(get_db)):
-    col_name = payload.get("column_name")
-    if not col_name:
-        return JSONResponse(status_code=400, content={"error": "column_name is required"})
-    col_name = col_name.strip().lower().replace(" ", "_")
 @router.get("/{deck_id}/columns-overview")
 async def get_deck_columns_overview(deck_id: int, db: AsyncSession = Depends(get_db)):
     deck = await DeckService.get_deck_by_id(db, deck_id)
@@ -1997,19 +1991,21 @@ async def get_deck_columns_overview(deck_id: int, db: AsyncSession = Depends(get
     col_counts = {
         "front": sum(1 for c in cards if c.front and str(c.front).strip()),
         "back": sum(1 for c in cards if c.back and str(c.back).strip()),
-        "front_audio_content": sum(1 for c in cards if getattr(c, "front_audio_content", None) and str(c.front_audio_content).strip()),
-        "back_audio_content": sum(1 for c in cards if getattr(c, "back_audio_content", None) and str(c.back_audio_content).strip()),
-        "front_audio_url": sum(1 for c in cards if getattr(c, "front_audio_url", None) and str(c.front_audio_url).strip()),
-        "back_audio_url": sum(1 for c in cards if getattr(c, "back_audio_url", None) and str(c.back_audio_url).strip()),
-        "front_img": sum(1 for c in cards if getattr(c, "front_img", None) and str(c.front_img).strip()),
-        "back_img": sum(1 for c in cards if getattr(c, "back_img", None) and str(c.back_img).strip()),
+        "front_audio_content": sum(1 for c in cards if (getattr(c, "front_audio_content", None) and str(c.front_audio_content).strip()) or (isinstance(c.others, dict) and c.others.get("front_audio_content") and str(c.others.get("front_audio_content")).strip())),
+        "back_audio_content": sum(1 for c in cards if (getattr(c, "back_audio_content", None) and str(c.back_audio_content).strip()) or (isinstance(c.others, dict) and c.others.get("back_audio_content") and str(c.others.get("back_audio_content")).strip())),
+        "front_audio_url": sum(1 for c in cards if (getattr(c, "front_audio_url", None) and str(c.front_audio_url).strip()) or (isinstance(c.others, dict) and (c.others.get("front_audio_url") or c.others.get("audio")) and str(c.others.get("front_audio_url") or c.others.get("audio")).strip())),
+        "back_audio_url": sum(1 for c in cards if (getattr(c, "back_audio_url", None) and str(c.back_audio_url).strip()) or (isinstance(c.others, dict) and c.others.get("back_audio_url") and str(c.others.get("back_audio_url")).strip())),
+        "front_img": sum(1 for c in cards if (getattr(c, "front_img", None) and str(c.front_img).strip()) or (isinstance(c.others, dict) and (c.others.get("front_img") or c.others.get("image")) and str(c.others.get("front_img") or c.others.get("image")).strip())),
+        "back_img": sum(1 for c in cards if (getattr(c, "back_img", None) and str(c.back_img).strip()) or (isinstance(c.others, dict) and c.others.get("back_img") and str(c.others.get("back_img")).strip())),
     }
     
+    system_cols = {"front", "back", "front_audio_url", "back_audio_url", "front_audio_content", "back_audio_content", "front_img", "back_img", "audio", "image"}
     dynamic_cols = set()
+    
     for c in cards:
         if c.others and isinstance(c.others, dict):
             for k, v in c.others.items():
-                if k not in ("id", "item_id", "order_in_container") and k != "other_content":
+                if k not in ("id", "item_id", "order_in_container") and k != "other_content" and k not in system_cols:
                     dynamic_cols.add(k)
                     if k not in col_counts:
                         col_counts[k] = 0
@@ -2018,9 +2014,24 @@ async def get_deck_columns_overview(deck_id: int, db: AsyncSession = Depends(get
                         
     custom_cols = list(deck.practice_settings.get("custom_columns", [])) if (deck.practice_settings and isinstance(deck.practice_settings, dict)) else []
     for cc in custom_cols:
-        dynamic_cols.add(cc)
-        if cc not in col_counts:
-            col_counts[cc] = 0
+        if cc not in system_cols:
+            dynamic_cols.add(cc)
+            if cc not in col_counts:
+                col_counts[cc] = 0
+                
+    if deck.practice_settings and isinstance(deck.practice_settings, dict):
+        for p in deck.practice_settings.get("ai_prompts", []):
+            col_id = p.get("column") or p.get("id")
+            if col_id and col_id not in system_cols:
+                dynamic_cols.add(col_id)
+                if col_id not in col_counts:
+                    col_counts[col_id] = 0
+        for ac in deck.practice_settings.get("audio_configs", []):
+            for f in (ac.get("data_col"), ac.get("source_col"), ac.get("url_col")):
+                if f and f not in system_cols:
+                    dynamic_cols.add(f)
+                    if f not in col_counts:
+                        col_counts[f] = 0
             
     return {
         "total_cards": total_cards,

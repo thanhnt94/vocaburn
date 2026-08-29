@@ -79,6 +79,17 @@ export function DeckColumnSettings({ deckId, isOwner = true }: DeckColumnSetting
     staleTime: 10 * 1000
   })
 
+  // 1b. Fetch Practice Settings as backup & column list
+  const { data: practiceSettingsData } = useQuery({
+    queryKey: ['deck-practice-settings', String(deckId)],
+    queryFn: async () => {
+      const res = await axios.get(`/api/v1/deck/${deckId}/practice-settings`)
+      return res.data
+    },
+    enabled: !!deckId,
+    staleTime: 10 * 1000,
+  })
+
   // 2. Mutations
   const addColumnMutation = useMutation({
     mutationFn: async (column_name: string) => {
@@ -87,6 +98,7 @@ export function DeckColumnSettings({ deckId, isOwner = true }: DeckColumnSetting
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['deck-columns-overview', deckId] })
+      queryClient.invalidateQueries({ queryKey: ['deck-practice-settings', String(deckId)] })
       queryClient.invalidateQueries({ queryKey: ['deck-settings', deckId] })
       queryClient.invalidateQueries({ queryKey: ['quiz', deckId] })
       setIsAddModalOpen(false)
@@ -105,6 +117,7 @@ export function DeckColumnSettings({ deckId, isOwner = true }: DeckColumnSetting
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['deck-columns-overview', deckId] })
+      queryClient.invalidateQueries({ queryKey: ['deck-practice-settings', String(deckId)] })
       queryClient.invalidateQueries({ queryKey: ['deck-settings', deckId] })
       queryClient.invalidateQueries({ queryKey: ['quiz', deckId] })
       setEditingColumn(null)
@@ -123,6 +136,7 @@ export function DeckColumnSettings({ deckId, isOwner = true }: DeckColumnSetting
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['deck-columns-overview', deckId] })
+      queryClient.invalidateQueries({ queryKey: ['deck-practice-settings', String(deckId)] })
       queryClient.invalidateQueries({ queryKey: ['deck-settings', deckId] })
       queryClient.invalidateQueries({ queryKey: ['quiz', deckId] })
       setDeleteConfirmCol(null)
@@ -135,7 +149,22 @@ export function DeckColumnSettings({ deckId, isOwner = true }: DeckColumnSetting
 
   const totalCards = overview?.total_cards || 0
   const columnCounts = overview?.column_counts || {}
-  const dynamicCols = overview?.dynamic_columns || []
+
+  const SYSTEM_CORE_COLS = new Set([
+    'front', 'back', 'front_audio_url', 'back_audio_url', 'front_audio_content', 'back_audio_content', 'front_img', 'back_img', 'audio', 'image'
+  ])
+
+  const allAvailableCols: string[] = practiceSettingsData?.available_columns || []
+  const customColsFromPractice: string[] = practiceSettingsData?.creator_settings?.custom_columns || []
+  
+  const dynamicCols = Array.from(
+    new Set([
+      ...(overview?.dynamic_columns || []),
+      ...(overview?.custom_columns || []),
+      ...customColsFromPractice,
+      ...allAvailableCols.filter(col => !SYSTEM_CORE_COLS.has(col))
+    ])
+  )
 
   // Clean formatted input to slug
   const formatSlug = (val: string) => val.trim().toLowerCase().replace(/[^a-z0-9_]/g, '_').replace(/_+/g, '_')
