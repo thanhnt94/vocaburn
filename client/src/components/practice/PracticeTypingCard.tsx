@@ -117,10 +117,47 @@ export const PracticeTypingCard: React.FC<PracticeTypingCardProps> = ({
 
             {!typingFeedback.isCorrect && (
               <div className="p-4 bg-emerald-50/80 border border-emerald-200 rounded-2xl text-emerald-800 text-xs shadow-sm">
-                <p className="font-black uppercase tracking-wider text-[9px] opacity-60">Đáp án chính xác</p>
-                <p className="font-bold text-sm mt-0.5" dangerouslySetInnerHTML={{ __html: parseBBCodeToHtml(correct_answer || '') }} />
+                <p className="font-black uppercase tracking-wider text-[9px] opacity-60 mb-1">
+                  {practiceData.acceptable_answers && practiceData.acceptable_answers.length > 1
+                    ? "Các đáp án chính xác được chấp nhận"
+                    : "Đáp án chính xác"}
+                </p>
+                {practiceData.acceptable_answers && practiceData.acceptable_answers.length > 1 ? (
+                  <div className="flex flex-wrap gap-2 mt-1.5">
+                    {practiceData.acceptable_answers.map((ans, idx) => (
+                      <span
+                        key={idx}
+                        className="px-3 py-1 bg-white/90 border border-emerald-300 rounded-xl font-bold text-sm text-emerald-900 shadow-2xs inline-flex items-center gap-1.5"
+                      >
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                        <span dangerouslySetInnerHTML={{ __html: parseBBCodeToHtml(ans || '') }} />
+                      </span>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="font-bold text-sm mt-0.5" dangerouslySetInnerHTML={{ __html: parseBBCodeToHtml(correct_answer || '') }} />
+                )}
               </div>
             )}
+
+            {typingFeedback.isCorrect && practiceData.acceptable_answers && practiceData.acceptable_answers.length > 1 && (() => {
+              const cleanInput = typingInput.trim().toLowerCase();
+              const otherAnswers = practiceData.acceptable_answers.filter(
+                a => a.replace(/<[^<]+?>/g, '').trim().toLowerCase() !== cleanInput
+              );
+              if (otherAnswers.length === 0) return null;
+              return (
+                <div className="px-3 py-2 bg-emerald-50/50 border border-emerald-100/80 rounded-xl text-[11px] text-emerald-700/90 font-medium">
+                  <span className="font-bold opacity-75">Cách trả lời hợp lệ khác: </span>
+                  {otherAnswers.map((ans, idx) => (
+                    <span key={idx} className="font-bold">
+                      {idx > 0 && " • "}
+                      <span dangerouslySetInnerHTML={{ __html: parseBBCodeToHtml(ans || '') }} />
+                    </span>
+                  ))}
+                </div>
+              );
+            })()}
           </div>
         )}
       </div>

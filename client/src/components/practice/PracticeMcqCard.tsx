@@ -90,7 +90,8 @@ export const PracticeMcqCard: React.FC<PracticeMcqCardProps> = ({
 
               const oppositeText = answered ? (() => {
                 const qKey = practiceData.question_key || currentQuestion?.practice?.question_key || 'front'
-                const aKey = practiceData.answer_key || currentQuestion?.practice?.answer_key || 'back'
+                const rawAKey = practiceData.answer_key || currentQuestion?.practice?.answer_key || 'back'
+                const aKey = Array.isArray(rawAKey) ? (rawAKey[0] || 'back') : (rawAKey || 'back')
 
                 // 1. Primary: Direct lookup from choices_data
                 const cData = practiceData.choices_data?.[idx] || currentQuestion?.practice?.choices_data?.[idx]
@@ -164,7 +165,8 @@ export const PracticeMcqCard: React.FC<PracticeMcqCardProps> = ({
                       const choiceText = choice
                       const choiceNorm = String(choiceText || "").trim().toLowerCase()
                       const qKey = practiceData.question_key || 'front'
-                      const aKey = practiceData.answer_key || 'back'
+                      const rawAKey = practiceData.answer_key || 'back'
+                      const aKey = Array.isArray(rawAKey) ? (rawAKey[0] || 'back') : (rawAKey || 'back')
 
                       let qData: any = null
                       if (choice_item_ids && sessionQuestions.length > 0 && choice_item_ids[idx] !== undefined) {

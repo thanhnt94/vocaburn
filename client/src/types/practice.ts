@@ -2,6 +2,14 @@ import type { Question, Option } from './flashcard'
 
 export type PracticeSubMode = 'mcq' | 'typing' | 'listening' | 'roadmap_test' | 'roadmap_mcq' | 'roadmap_typing' | string
 
+export interface PracticePair {
+  q: string
+  a: string | string[]
+  name?: string
+  prompt_col?: string
+  answer_col?: string | string[]
+}
+
 export interface PracticeQuestionData {
   question: string
   choices?: string[]
@@ -9,8 +17,10 @@ export interface PracticeQuestionData {
   choice_item_ids?: number[]
   correct_index?: number
   correct_answer?: string
+  acceptable_answers?: string[]
   question_key?: string
-  answer_key?: string
+  answer_key?: string | string[]
+  answer_keys?: string[]
   [key: string]: any
 }
 

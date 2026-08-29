@@ -708,7 +708,7 @@ export default function FlashcardPlay() {
     }
   }
 
-  const savePracticeSettings = async (customPairs = setupPairs, numChoices = setupNumChoices, isCreator = false) => {
+  const savePracticeSettings = async (customPairs: { q: string, a: string | string[] }[] = setupPairs, numChoices = setupNumChoices, isCreator = false) => {
     try {
       const updatedModeSettings = {
         ...modeSettings,

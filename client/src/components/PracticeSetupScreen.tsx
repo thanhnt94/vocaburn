@@ -4,7 +4,7 @@ import { cn } from '@/lib/utils'
 
 interface Pair {
   q: string
-  a: string
+  a: string | string[]
 }
 
 interface PracticeSetupScreenProps {
@@ -30,6 +30,8 @@ export const PracticeSetupScreen: React.FC<PracticeSetupScreenProps> = ({
   savePracticeSettings,
   resetPracticeSettings,
 }) => {
+  const isTyping = practiceSubMode === 'typing';
+
   return (
     <div className="flex-1 bg-white md:rounded-[3rem] rounded-[2rem] border border-slate-100 md:p-8 p-6 flex flex-col justify-between shadow-2xl shadow-indigo-100/40 min-h-0 overflow-y-auto">
       <div className="max-w-2xl mx-auto w-full py-4">
@@ -38,70 +40,147 @@ export const PracticeSetupScreen: React.FC<PracticeSetupScreenProps> = ({
             <Sliders className="w-7 h-7" />
           </div>
           <h2 className="text-xl font-black text-slate-800">
-            Practice Settings: {practiceSubMode === 'mcq' ? 'Multiple Choice' : practiceSubMode === 'typing' ? 'Typing' : 'Listening'}
+            Cài đặt Luyện tập: {practiceSubMode === 'mcq' ? 'Trắc nghiệm (MCQ)' : practiceSubMode === 'typing' ? 'Luyện gõ (Typing)' : 'Luyện nghe (Listening)'}
           </h2>
-          <p className="text-xs text-slate-400 mt-1">Select the column pairs you want to use as questions and answers.</p>
+          <p className="text-xs text-slate-400 mt-1">
+            {isTyping
+              ? 'Chọn cột câu hỏi và các cột đáp án được chấp nhận khi gõ từ vựng.'
+              : 'Chọn các cặp cột tương ứng giữa câu hỏi và đáp án.'}
+          </p>
         </div>
 
         <div className="space-y-4 mb-6">
-          <span className="text-[10px] font-black text-slate-400 tracking-wider uppercase block">Active Question-Answer Pairs</span>
-          {setupPairs.map((pair, idx) => (
-            <div key={idx} className="flex items-center gap-3 bg-slate-50 p-4 rounded-2xl border border-slate-100">
-              <div className="flex-1">
-                <label className="text-[9px] font-black text-slate-400 uppercase tracking-wider block mb-1">Question Column</label>
-                <select
-                  value={pair.q}
-                  onChange={(e) => {
-                    const newPairs = [...setupPairs];
-                    newPairs[idx].q = e.target.value;
-                    setSetupPairs(newPairs);
-                  }}
-                  className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-700 outline-none focus:border-indigo-500 transition-all"
-                >
-                  {availableColumns.map(col => (
-                    <option key={col} value={col}>{col.toUpperCase()}</option>
-                  ))}
-                </select>
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] font-black text-slate-400 tracking-wider uppercase block">
+              {isTyping ? 'Cặp Câu hỏi & Các cột Đáp án được chấp nhận' : 'Cặp Câu hỏi - Đáp án (Q&A Pairs)'}
+            </span>
+            {isTyping && (
+              <span className="text-[10px] font-bold text-amber-600 bg-amber-50 px-2 py-0.5 rounded-md border border-amber-200/60">
+                Cho phép chọn nhiều cột đáp án
+              </span>
+            )}
+          </div>
+
+          {setupPairs.map((pair, idx) => {
+            const currentSelectedAnswerCols = Array.isArray(pair.a)
+              ? pair.a
+              : (typeof pair.a === 'string' ? pair.a.split(',').map(s => s.trim()).filter(Boolean) : ['front']);
+
+            return (
+              <div key={idx} className="bg-slate-50 p-4 rounded-2xl border border-slate-100 space-y-3">
+                <div className="flex items-center gap-3">
+                  <div className="flex-1">
+                    <label className="text-[9px] font-black text-slate-400 uppercase tracking-wider block mb-1">
+                      Cột Câu hỏi (Đề bài hiển thị)
+                    </label>
+                    <select
+                      value={pair.q}
+                      onChange={(e) => {
+                        const newPairs = [...setupPairs];
+                        newPairs[idx] = { ...newPairs[idx], q: e.target.value };
+                        setSetupPairs(newPairs);
+                      }}
+                      className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-700 outline-none focus:border-indigo-500 transition-all cursor-pointer"
+                    >
+                      {availableColumns.map(col => (
+                        <option key={col} value={col}>{col.toUpperCase()}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {!isTyping && (
+                    <>
+                      <div className="text-slate-300 font-bold text-xs mt-4">➔</div>
+
+                      <div className="flex-1">
+                        <label className="text-[9px] font-black text-slate-400 uppercase tracking-wider block mb-1">
+                          Cột Đáp án
+                        </label>
+                        <select
+                          value={typeof pair.a === 'string' ? pair.a : (pair.a[0] || 'back')}
+                          onChange={(e) => {
+                            const newPairs = [...setupPairs];
+                            newPairs[idx] = { ...newPairs[idx], a: e.target.value };
+                            setSetupPairs(newPairs);
+                          }}
+                          className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-700 outline-none focus:border-indigo-500 transition-all cursor-pointer"
+                        >
+                          {availableColumns.map(col => (
+                            <option key={col} value={col}>{col.toUpperCase()}</option>
+                          ))}
+                        </select>
+                      </div>
+                    </>
+                  )}
+
+                  {setupPairs.length > 1 && (
+                    <button
+                      onClick={() => {
+                        const newPairs = setupPairs.filter((_, i) => i !== idx);
+                        setSetupPairs(newPairs);
+                      }}
+                      className="mt-4 p-2 rounded-xl bg-rose-50 text-rose-500 hover:bg-rose-100 transition-all border border-rose-100 cursor-pointer"
+                      title="Xóa cặp này"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  )}
+                </div>
+
+                {isTyping && (
+                  <div className="pt-2 border-t border-slate-200/60">
+                    <label className="text-[9px] font-black text-slate-500 uppercase tracking-wider block mb-2">
+                      Cột Đáp án được chấp nhận khi gõ (Nhấn để bật/tắt):
+                    </label>
+                    <div className="flex flex-wrap gap-1.5">
+                      {availableColumns.map((col) => {
+                        const isSelected = currentSelectedAnswerCols.includes(col);
+                        return (
+                          <button
+                            key={col}
+                            type="button"
+                            onClick={() => {
+                              let nextCols: string[];
+                              if (isSelected) {
+                                if (currentSelectedAnswerCols.length === 1) return; // keep at least 1
+                                nextCols = currentSelectedAnswerCols.filter(c => c !== col);
+                              } else {
+                                nextCols = [...currentSelectedAnswerCols, col];
+                              }
+                              const newPairs = [...setupPairs];
+                              newPairs[idx] = {
+                                ...newPairs[idx],
+                                a: nextCols.length === 1 ? nextCols[0] : nextCols
+                              };
+                              setSetupPairs(newPairs);
+                            }}
+                            className={cn(
+                              "px-3 py-1.5 rounded-xl text-xs font-bold transition-all border flex items-center gap-1.5 cursor-pointer",
+                              isSelected
+                                ? "bg-amber-500 border-amber-500 text-white shadow-xs shadow-amber-200 scale-100"
+                                : "bg-white border-slate-200 text-slate-600 hover:border-slate-300 hover:bg-slate-100/60 opacity-80"
+                            )}
+                          >
+                            <span>{isSelected ? "✓" : "+"}</span>
+                            <span>{col.toUpperCase()}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                    <p className="text-[10px] text-slate-400 mt-1.5 italic">
+                      * Khi làm bài, học viên gõ đúng nội dung của bất kỳ cột nào được chọn ở trên đều được tính là chính xác.
+                    </p>
+                  </div>
+                )}
               </div>
-
-              <div className="text-slate-300 font-bold text-xs mt-4">➔</div>
-
-              <div className="flex-1">
-                <label className="text-[9px] font-black text-slate-400 uppercase tracking-wider block mb-1">Answer Column</label>
-                <select
-                  value={pair.a}
-                  onChange={(e) => {
-                    const newPairs = [...setupPairs];
-                    newPairs[idx].a = e.target.value;
-                    setSetupPairs(newPairs);
-                  }}
-                  className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-700 outline-none focus:border-indigo-500 transition-all"
-                >
-                  {availableColumns.map(col => (
-                    <option key={col} value={col}>{col.toUpperCase()}</option>
-                  ))}
-                </select>
-              </div>
-
-              {setupPairs.length > 1 && (
-                <button
-                  onClick={() => {
-                    const newPairs = setupPairs.filter((_, i) => i !== idx);
-                    setSetupPairs(newPairs);
-                  }}
-                  className="mt-4 p-2 rounded-xl bg-rose-50 text-rose-500 hover:bg-rose-100 transition-all border border-rose-100"
-                >
-                  <X className="w-4 h-4" />
-                </button>
-              )}
-            </div>
-          ))}
+            );
+          })}
 
           <button
-            onClick={() => setSetupPairs([...setupPairs, { q: 'front', a: 'back' }])}
-            className="w-full py-3 rounded-2xl border border-dashed border-slate-200 text-slate-500 hover:text-indigo-600 hover:border-indigo-300 hover:bg-indigo-50/20 text-xs font-bold transition-all flex items-center justify-center gap-1.5"
+            onClick={() => setSetupPairs([...setupPairs, { q: isTyping ? 'back' : 'front', a: isTyping ? ['front'] : 'back' }])}
+            className="w-full py-3 rounded-2xl border border-dashed border-slate-200 text-slate-500 hover:text-indigo-600 hover:border-indigo-300 hover:bg-indigo-50/20 text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer"
           >
-            <span>+ Add Q&A Pair</span>
+            <span>+ Thêm Cặp Q&A</span>
           </button>
         </div>
 

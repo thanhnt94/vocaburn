@@ -9,10 +9,10 @@ export type PracticeModeKey = 'mcq' | 'typing' | 'listening' | 'flip'
 
 export interface QuestionAnswerPair {
   q: string
-  a: string
+  a: string | string[]
   name?: string
   prompt_col?: string
-  answer_col?: string
+  answer_col?: string | string[]
 }
 
 export interface DeckPracticeConfigProps {
@@ -30,7 +30,15 @@ function normalizePair(p: any): QuestionAnswerPair {
     return { q, a, prompt_col: q, answer_col: a, name: p }
   }
   const q = String(p.q || p.prompt_col || p.question_col || p.question || p.from || p.source || 'front').trim()
-  const a = String(p.a || p.answer_col || p.answer || p.to || p.target || 'back').trim()
+  let a: string | string[]
+  const rawA = p.a !== undefined ? p.a : (p.answer_col !== undefined ? p.answer_col : (p.answer || p.to || p.target || 'back'))
+  if (Array.isArray(rawA)) {
+    a = rawA.map(x => String(x).trim()).filter(Boolean)
+  } else if (typeof rawA === 'string' && rawA.includes(',')) {
+    a = rawA.split(',').map(x => x.trim()).filter(Boolean)
+  } else {
+    a = String(rawA || 'back').trim()
+  }
   return {
     q,
     a,
@@ -76,17 +84,29 @@ export function DeckPracticeConfig({ deckId, initialSettings, onSaved }: DeckPra
   ]
 
   // Collect all unique columns mentioned in pairs + available columns
-  const allPairCols = [
-    ...mcqPairs.map(p => p.q), ...mcqPairs.map(p => p.a),
-    ...typingPairs.map(p => p.q), ...typingPairs.map(p => p.a),
-    ...listeningPairs.map(p => p.q), ...listeningPairs.map(p => p.a),
-  ]
+  const allPairCols: string[] = []
+  const addCols = (val: string | string[] | undefined) => {
+    if (!val) return
+    if (Array.isArray(val)) {
+      val.forEach(v => { if (typeof v === 'string' && v.trim()) allPairCols.push(v.trim()) })
+    } else if (typeof val === 'string' && val.trim()) {
+      if (val.includes(',')) {
+        val.split(',').forEach(v => { if (v.trim()) allPairCols.push(v.trim()) })
+      } else {
+        allPairCols.push(val.trim())
+      }
+    }
+  }
 
-  const availableColumns = Array.from(new Set([
+  mcqPairs.forEach(p => { addCols(p.q); addCols(p.a) })
+  typingPairs.forEach(p => { addCols(p.q); addCols(p.a) })
+  listeningPairs.forEach(p => { addCols(p.q); addCols(p.a) })
+
+  const availableColumns: string[] = Array.from(new Set([
     ...rawAvailableColumns,
     ...allPairCols,
     'front', 'back'
-  ])).filter(Boolean)
+  ])).filter((c): c is string => typeof c === 'string' && Boolean(c))
 
   useEffect(() => {
     const effectiveSettings = practiceSettingsData?.creator_settings || initialSettings
@@ -166,11 +186,11 @@ export function DeckPracticeConfig({ deckId, initialSettings, onSaved }: DeckPra
     setCurrentPairs(prev => prev.filter((_, idx) => idx !== index))
   }
 
-  const handleUpdatePair = (index: number, field: 'q' | 'a', value: string) => {
+  const handleUpdatePair = (index: number, field: 'q' | 'a', value: string | string[]) => {
     setCurrentPairs(prev => prev.map((item, idx) => {
       if (idx === index) {
         const updated = { ...item, [field]: value }
-        if (field === 'q') updated.prompt_col = value
+        if (field === 'q') updated.prompt_col = typeof value === 'string' ? value : value[0]
         if (field === 'a') updated.answer_col = value
         return updated
       }
@@ -184,7 +204,7 @@ export function DeckPracticeConfig({ deckId, initialSettings, onSaved }: DeckPra
       a: p.a || 'back',
       prompt_col: p.q || 'front',
       answer_col: p.a || 'back',
-      name: p.name || `${p.q} ➜ ${p.a}`
+      name: p.name || `${p.q} ➜ ${Array.isArray(p.a) ? p.a.join('/') : p.a}`
     }))
   }
 
@@ -491,77 +511,124 @@ export function DeckPracticeConfig({ deckId, initialSettings, onSaved }: DeckPra
                   Chưa có cặp cột nào được thiết lập. Nhấn "+ Thêm Cặp Mới" để tạo.
                 </div>
               ) : (
-                currentPairs.map((pair, idx) => (
-                  <div key={idx} className="p-3.5 rounded-2xl bg-slate-50/80 border border-slate-200/80 space-y-2.5">
-                    <div className="flex items-center justify-between gap-2">
-                      <div className="flex items-center gap-2">
-                        <span className="w-5 h-5 rounded-md bg-slate-800 text-white font-bold text-[10px] flex items-center justify-center">
-                          #{idx + 1}
-                        </span>
-                        <span className="text-xs font-black text-slate-800">
-                          {pair.q} ➜ {pair.a}
-                        </span>
+                currentPairs.map((pair, idx) => {
+                  const currentSelectedAnswerCols = Array.isArray(pair.a)
+                    ? pair.a
+                    : (typeof pair.a === 'string' ? pair.a.split(',').map(s => s.trim()).filter(Boolean) : ['front']);
+
+                  return (
+                    <div key={idx} className="p-3.5 rounded-2xl bg-slate-50/80 border border-slate-200/80 space-y-2.5">
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-2">
+                          <span className="w-5 h-5 rounded-md bg-slate-800 text-white font-bold text-[10px] flex items-center justify-center">
+                            #{idx + 1}
+                          </span>
+                          <span className="text-xs font-black text-slate-800">
+                            {pair.q} ➜ {Array.isArray(pair.a) ? pair.a.join(', ') : pair.a}
+                          </span>
+                        </div>
+
+                        {currentPairs.length > 1 && (
+                          <button
+                            type="button"
+                            onClick={() => handleRemovePair(idx)}
+                            className="w-6.5 h-6.5 rounded-lg bg-white hover:bg-rose-50 border border-slate-200 text-slate-400 hover:text-rose-600 flex items-center justify-center transition-all cursor-pointer shadow-2xs"
+                            title="Xóa cặp này"
+                          >
+                            <Trash2 className="w-3 h-3" />
+                          </button>
+                        )}
                       </div>
 
-                      {currentPairs.length > 1 && (
-                        <button
-                          type="button"
-                          onClick={() => handleRemovePair(idx)}
-                          className="w-6.5 h-6.5 rounded-lg bg-white hover:bg-rose-50 border border-slate-200 text-slate-400 hover:text-rose-600 flex items-center justify-center transition-all cursor-pointer shadow-2xs"
-                          title="Xóa cặp này"
-                        >
-                          <Trash2 className="w-3 h-3" />
-                        </button>
-                      )}
+                      <div className={cn("grid gap-3 items-start", activeModeTab === 'typing' ? "grid-cols-1" : "grid-cols-1 sm:grid-cols-2")}>
+                        {/* Question / Prompt Column */}
+                        <div>
+                          <label className="text-[10px] font-black text-slate-500 uppercase tracking-wider mb-1 block">
+                            {activeModeTab === 'typing'
+                              ? '1. Cột Đề Bài Gợi Ý (Prompt):'
+                              : activeModeTab === 'listening'
+                              ? '1. Cột Kịch Bản/Giọng Đọc (Audio Text):'
+                              : '1. Cột Hiển Thị Câu Hỏi (Question):'}
+                          </label>
+                          <select
+                            value={pair.q}
+                            onChange={(e) => handleUpdatePair(idx, 'q', e.target.value)}
+                            className="w-full h-9 px-2.5 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-800 outline-none focus:border-indigo-500 cursor-pointer shadow-2xs"
+                          >
+                            {availableColumns.map((col) => (
+                              <option key={col} value={col}>
+                                {col}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+
+                        {/* Answer Column(s) */}
+                        {activeModeTab === 'typing' ? (
+                          <div>
+                            <div className="flex items-center justify-between mb-1.5">
+                              <label className="text-[10px] font-black text-slate-500 uppercase tracking-wider block">
+                                2. Các Cột Đáp Án Được Chấp Nhận (Chọn 1 hoặc nhiều):
+                              </label>
+                              <span className="text-[9px] font-bold text-amber-600 bg-amber-50 px-2 py-0.5 rounded border border-amber-200/60">
+                                Cho phép gõ bất kỳ cột nào
+                              </span>
+                            </div>
+                            <div className="flex flex-wrap gap-1.5 p-2 bg-white rounded-xl border border-slate-200">
+                              {availableColumns.map((col) => {
+                                const isSelected = currentSelectedAnswerCols.includes(col);
+                                return (
+                                  <button
+                                    key={col}
+                                    type="button"
+                                    onClick={() => {
+                                      let nextCols: string[];
+                                      if (isSelected) {
+                                        if (currentSelectedAnswerCols.length === 1) return;
+                                        nextCols = currentSelectedAnswerCols.filter(c => c !== col);
+                                      } else {
+                                        nextCols = [...currentSelectedAnswerCols, col];
+                                      }
+                                      handleUpdatePair(idx, 'a', nextCols.length === 1 ? nextCols[0] : nextCols);
+                                    }}
+                                    className={cn(
+                                      "px-2.5 py-1 rounded-lg text-xs font-bold transition-all border flex items-center gap-1 cursor-pointer",
+                                      isSelected
+                                        ? "bg-amber-500 border-amber-500 text-white shadow-2xs"
+                                        : "bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100 opacity-80"
+                                    )}
+                                  >
+                                    <span>{isSelected ? "✓" : "+"}</span>
+                                    <span>{col.toUpperCase()}</span>
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        ) : (
+                          <div>
+                            <label className="text-[10px] font-black text-slate-500 uppercase tracking-wider mb-1 block">
+                              {activeModeTab === 'listening'
+                                ? '2. Cột Đáp Án Nghĩa Đúng (Answer):'
+                                : '2. Cột Chứa Đáp Án Đúng (Answer):'}
+                            </label>
+                            <select
+                              value={typeof pair.a === 'string' ? pair.a : (pair.a[0] || 'back')}
+                              onChange={(e) => handleUpdatePair(idx, 'a', e.target.value)}
+                              className="w-full h-9 px-2.5 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-800 outline-none focus:border-indigo-500 cursor-pointer shadow-2xs"
+                            >
+                              {availableColumns.map((col) => (
+                                <option key={col} value={col}>
+                                  {col}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+                        )}
+                      </div>
                     </div>
-
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 items-center">
-                      {/* Question / Prompt Column */}
-                      <div>
-                        <label className="text-[10px] font-black text-slate-500 uppercase tracking-wider mb-1 block">
-                          {activeModeTab === 'typing'
-                            ? '1. Cột Đề Bài Gợi Ý (Prompt):'
-                            : activeModeTab === 'listening'
-                            ? '1. Cột Kịch Bản/Giọng Đọc (Audio Text):'
-                            : '1. Cột Hiển Thị Câu Hỏi (Question):'}
-                        </label>
-                        <select
-                          value={pair.q}
-                          onChange={(e) => handleUpdatePair(idx, 'q', e.target.value)}
-                          className="w-full h-9 px-2.5 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-800 outline-none focus:border-indigo-500 cursor-pointer shadow-2xs"
-                        >
-                          {availableColumns.map((col) => (
-                            <option key={col} value={col}>
-                              {col}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-
-                      {/* Answer Column */}
-                      <div>
-                        <label className="text-[10px] font-black text-slate-500 uppercase tracking-wider mb-1 block">
-                          {activeModeTab === 'typing'
-                            ? '2. Cột Mục Tiêu Cần Gõ (Target Spelling):'
-                            : activeModeTab === 'listening'
-                            ? '2. Cột Đáp Án Nghĩa Đúng (Answer):'
-                            : '2. Cột Chứa Đáp Án Đúng (Answer):'}
-                        </label>
-                        <select
-                          value={pair.a}
-                          onChange={(e) => handleUpdatePair(idx, 'a', e.target.value)}
-                          className="w-full h-9 px-2.5 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-800 outline-none focus:border-indigo-500 cursor-pointer shadow-2xs"
-                        >
-                          {availableColumns.map((col) => (
-                            <option key={col} value={col}>
-                              {col}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-                    </div>
-                  </div>
-                ))
+                  );
+                })
               )}
             </div>
           </div>

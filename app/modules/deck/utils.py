@@ -47,3 +47,34 @@ def extract_card_val(card: Any, key: Optional[str]) -> str:
         if val is not None and str(val).strip():
             return str(val).strip()
     return (getattr(card, "explanation", None) or getattr(card, "content", None) or "").strip()
+
+def extract_card_answers(card: Any, key: Any) -> list[str]:
+    """Extracts a list of non-empty text answers for a given column key or list of keys."""
+    if not key:
+        default_val = (getattr(card, "explanation", None) or getattr(card, "content", None) or "").strip()
+        return [default_val] if default_val else []
+
+    keys = []
+    if isinstance(key, (list, tuple, set)):
+        keys = [str(k).strip() for k in key if str(k).strip()]
+    elif isinstance(key, str):
+        if "," in key:
+            keys = [k.strip() for k in key.split(",") if k.strip()]
+        else:
+            keys = [key.strip()]
+    else:
+        keys = [str(key).strip()]
+
+    results = []
+    for k in keys:
+        val = extract_card_val(card, k)
+        if val and val not in results:
+            results.append(val)
+
+    if not results:
+        fallback = (getattr(card, "explanation", None) or getattr(card, "content", None) or "").strip()
+        if fallback:
+            results.append(fallback)
+
+    return results
+

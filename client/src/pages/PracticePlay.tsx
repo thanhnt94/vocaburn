@@ -580,16 +580,16 @@ export default function PracticePlay() {
   const [practiceNeedsSetup, setPracticeNeedsSetup] = useState(false)
   const [practiceDisabled, setPracticeDisabled] = useState(false)
   const [availableColumns, setAvailableColumns] = useState<string[]>([])
-  const [setupPairs, setSetupPairs] = useState<{ q: string, a: string }[]>([{ q: 'front', a: 'back' }])
+  const [setupPairs, setSetupPairs] = useState<{ q: string, a: string | string[] }[]>([{ q: 'front', a: 'back' }])
   const [setupNumChoices, setSetupNumChoices] = useState<number>(4)
   const [typingInput, setTypingInput] = useState('')
   const [typingFeedback, setTypingFeedback] = useState<{ checked: boolean; isCorrect: boolean } | null>(null)
   const [currentPracticeData, setCurrentPracticeData] = useState<any>(null)
 
   // Per-mode settings state
-  const [modeSettings, setModeSettings] = useState<Record<string, { active_pairs: { q: string, a: string }[], num_choices?: number }>>({
+  const [modeSettings, setModeSettings] = useState<Record<string, { active_pairs: { q: string, a: string | string[] }[], num_choices?: number }>>({
     mcq: { active_pairs: [{ q: 'front', a: 'back' }], num_choices: 4 },
-    typing: { active_pairs: [{ q: 'front', a: 'back' }] },
+    typing: { active_pairs: [{ q: 'back', a: ['front'] }] },
     listening: { active_pairs: [{ q: 'front', a: 'back' }], num_choices: 4 },
     roadmap_test: { active_pairs: [{ q: 'front', a: 'back' }], num_choices: 4 }
   })
@@ -771,11 +771,12 @@ export default function PracticePlay() {
       : { q: 'front', a: 'back' };
 
     const question_key = activePair.q;
-    const answer_key = activePair.a;
+    const raw_answer_key = activePair.a;
+    const primary_answer_key = Array.isArray(raw_answer_key) ? (raw_answer_key[0] || 'back') : (raw_answer_key || 'back');
     const num_choices = setupNumChoices || 4;
 
     const questionText = getVal(qObj, question_key);
-    const correctAns = getVal(qObj, answer_key);
+    const correctAns = getVal(qObj, primary_answer_key);
 
     const item_front = getVal(qObj, 'front');
     const item_back = getVal(qObj, 'back');
@@ -805,7 +806,7 @@ export default function PracticePlay() {
       for (const other of shuffled_items) {
         if (distractor_pool.length >= 20) break;
         if (other.id !== qObj.id) {
-          const d_val = getVal(other, answer_key);
+          const d_val = getVal(other, primary_answer_key);
           const d_q_val = getVal(other, question_key);
           const d_front = getVal(other, 'front');
           const d_back = getVal(other, 'back');
@@ -858,14 +859,34 @@ export default function PracticePlay() {
         correct_index: correct_index !== -1 ? correct_index : 0,
         correct_answer: correctAns,
         question_key,
-        answer_key
+        answer_key: primary_answer_key
       });
     } else if (subMode === 'typing') {
+      const rawAnswerKey = activePair.a;
+      const answer_keys: string[] = Array.isArray(rawAnswerKey)
+        ? rawAnswerKey
+        : (typeof rawAnswerKey === 'string' && rawAnswerKey.includes(',')
+            ? rawAnswerKey.split(',').map((s: string) => s.trim()).filter(Boolean)
+            : [typeof rawAnswerKey === 'string' ? rawAnswerKey : 'front']);
+
+      const acceptable_answers: string[] = [];
+      for (const aKey of answer_keys) {
+        const val = getVal(qObj, aKey);
+        if (val && !acceptable_answers.includes(val)) {
+          acceptable_answers.push(val);
+        }
+      }
+      if (correctAns && !acceptable_answers.includes(correctAns)) {
+        acceptable_answers.unshift(correctAns);
+      }
+      const primary_answer = acceptable_answers[0] || correctAns || getVal(qObj, 'front');
+
       setCurrentPracticeData({
         question: questionText,
-        correct_answer: correctAns,
+        correct_answer: primary_answer,
+        acceptable_answers: acceptable_answers.length > 0 ? acceptable_answers : [primary_answer],
         question_key,
-        answer_key
+        answer_key: answer_keys.length > 1 ? answer_keys : (answer_keys[0] || 'front')
       });
     }
   };
@@ -1670,7 +1691,7 @@ export default function PracticePlay() {
     }
   }
 
-  const savePracticeSettings = async (customPairs = setupPairs, numChoices = setupNumChoices, isCreator = false) => {
+  const savePracticeSettings = async (customPairs: { q: string, a: string | string[] }[] = setupPairs, numChoices = setupNumChoices, isCreator = false) => {
     try {
       const updatedModeSettings = {
         ...modeSettings,
@@ -2384,11 +2405,16 @@ export default function PracticePlay() {
   const handleTypingAnswer = async () => {
     if (showFeedback || !currentQuestion || !currentPracticeData) return;
 
-    const correctAns = currentPracticeData.correct_answer || '';
-    const cleanCorrect = correctAns.replace(/<[^<]+?>/g, '').trim().toLowerCase();
     const cleanInput = typingInput.trim().toLowerCase();
+    const acceptableAnswers: string[] = (currentPracticeData.acceptable_answers && currentPracticeData.acceptable_answers.length > 0)
+      ? currentPracticeData.acceptable_answers
+      : [currentPracticeData.correct_answer || ''];
 
-    const isCorrect = cleanInput === cleanCorrect;
+    const isCorrect = acceptableAnswers.some((ans: string) => {
+      if (!ans) return false;
+      const cleanAns = ans.replace(/<[^<]+?>/g, '').trim().toLowerCase();
+      return cleanInput === cleanAns;
+    });
 
     const updatedTotalAnswered = practiceTotalAnswered + 1;
     const updatedCorrectCount = isCorrect ? practiceCorrectCount + 1 : practiceCorrectCount;
