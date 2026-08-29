@@ -593,19 +593,27 @@ export function DeckAudioSettings({ deckId, initialSettings, onSaved }: DeckAudi
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
             <div className="p-3 bg-white/80 backdrop-blur-xs rounded-2xl border border-sky-100 shadow-2xs">
               <span className="text-[10px] font-bold text-slate-400 block uppercase">Tổng số thẻ</span>
-              <span className="text-sm font-black text-slate-800">{ttsStatus.total_cards || 0}</span>
+              <span className="text-sm font-black text-slate-800">
+                {(ttsStatus.total_cards || 0).toLocaleString()}
+              </span>
             </div>
             <div className="p-3 bg-white/80 backdrop-blur-xs rounded-2xl border border-sky-100 shadow-2xs">
               <span className="text-[10px] font-bold text-slate-400 block uppercase">Đã có âm thanh</span>
-              <span className="text-sm font-black text-emerald-600">{ttsStatus.total_with_audio || 0}</span>
+              <span className="text-sm font-black text-emerald-600">
+                {(ttsStatus.total_with_audio ?? ((ttsStatus.total_cards || 0) - (ttsStatus.missing_audio_cards || 0))).toLocaleString()}
+              </span>
             </div>
             <div className="p-3 bg-white/80 backdrop-blur-xs rounded-2xl border border-sky-100 shadow-2xs">
               <span className="text-[10px] font-bold text-slate-400 block uppercase">Chưa có âm thanh</span>
-              <span className="text-sm font-black text-amber-600">{ttsStatus.total_missing_audio || 0}</span>
+              <span className="text-sm font-black text-amber-600">
+                {(ttsStatus.total_missing_audio ?? (ttsStatus.missing_audio_cards || 0)).toLocaleString()}
+              </span>
             </div>
             <div className="p-3 bg-white/80 backdrop-blur-xs rounded-2xl border border-sky-100 shadow-2xs">
-              <span className="text-[10px] font-bold text-slate-400 block uppercase">Có kịch bản đọc</span>
-              <span className="text-sm font-black text-sky-600">{ttsStatus.total_with_content || 0}</span>
+              <span className="text-[10px] font-bold text-slate-400 block uppercase">Có nội dung đọc</span>
+              <span className="text-sm font-black text-sky-600">
+                {(ttsStatus.total_with_content ?? (ttsStatus.total_cards || 0)).toLocaleString()}
+              </span>
             </div>
           </div>
         )}
@@ -621,7 +629,7 @@ export function DeckAudioSettings({ deckId, initialSettings, onSaved }: DeckAudi
             >
               {audioConfigs.map(c => (
                 <option key={c.id} value={c.id}>
-                  {c.name} ({c.source_col} ➜ {c.url_col})
+                  {c.name} ({c.data_col} | {c.source_col} ➜ {c.url_col})
                 </option>
               ))}
               <option value="all">Tất cả cấu hình (Mặt trước + Mặt sau)</option>

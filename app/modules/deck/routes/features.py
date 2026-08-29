@@ -1374,46 +1374,62 @@ async def get_deck_tts_status(
     cards = res.scalars().all()
     
     total = len(cards)
-    missing = 0
+    total_with_audio = 0
+    total_missing_audio = 0
+    total_with_content = 0
     cards_list = []
     
     for c in cards:
         # Determine text
-        if source_field == "front":
-            text = c.content
-        elif source_field == "back":
-            text = c.explanation
+        if source_field in ("front", "content"):
+            text = c.content or (c.others.get("front") if isinstance(c.others, dict) else None)
+        elif source_field in ("back", "explanation"):
+            text = c.explanation or (c.others.get("back") if isinstance(c.others, dict) else None)
         elif source_field == "front_audio_content":
-            text = c.front_audio_content
+            text = c.front_audio_content or (c.others.get("front_audio_content") if isinstance(c.others, dict) else None) or c.content
         elif source_field == "back_audio_content":
-            text = c.back_audio_content
+            text = c.back_audio_content or (c.others.get("back_audio_content") if isinstance(c.others, dict) else None) or c.explanation
         else:
-            text = c.others.get(source_field) if c.others else None
+            text = c.others.get(source_field) if isinstance(c.others, dict) else None
             
-        if not text or not str(text).strip():
-            continue
+        has_content = bool(text and str(text).strip())
+        if has_content:
+            total_with_content += 1
             
-        # Check target field
+        # Check target field for audio URL
         has_audio = False
-        if target_field == "front_audio_url":
-            has_audio = bool(c.front_audio_url and c.front_audio_url.strip())
+        if target_field in ("front_audio_url", "audio"):
+            has_audio = bool(
+                (c.front_audio_url and str(c.front_audio_url).strip()) or
+                (isinstance(c.others, dict) and c.others.get("front_audio_url") and str(c.others.get("front_audio_url")).strip()) or
+                (isinstance(c.others, dict) and c.others.get("audio") and str(c.others.get("audio")).strip())
+            )
         elif target_field == "back_audio_url":
-            has_audio = bool(c.back_audio_url and c.back_audio_url.strip())
+            has_audio = bool(
+                (c.back_audio_url and str(c.back_audio_url).strip()) or
+                (isinstance(c.others, dict) and c.others.get("back_audio_url") and str(c.others.get("back_audio_url")).strip())
+            )
         else:
-            has_audio = bool(c.others and c.others.get(target_field))
+            has_audio = bool(isinstance(c.others, dict) and c.others.get(target_field) and str(c.others.get(target_field)).strip())
             
-        if not has_audio:
-            missing += 1
+        if has_audio:
+            total_with_audio += 1
+        else:
+            total_missing_audio += 1
             
         cards_list.append({
             "id": c.id,
             "content": c.content,
+            "has_audio": has_audio,
             "missing": not has_audio
         })
             
     return {
         "total_cards": total,
-        "missing_audio_cards": missing,
+        "total_with_audio": total_with_audio,
+        "total_missing_audio": total_missing_audio,
+        "total_with_content": total_with_content,
+        "missing_audio_cards": total_missing_audio,
         "cards": cards_list
     }
 
