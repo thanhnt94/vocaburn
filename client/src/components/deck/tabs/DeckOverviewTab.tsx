@@ -39,7 +39,7 @@ export function DeckOverviewTab({
     queryKey: ['quiz-mastery', id],
     queryFn: async () => {
       if (!id) return null
-      const res = await axios.get(`/api/v1/deck/decks/${id}/mastery`)
+      const res = await axios.get(`/api/v1/deck/${id}/mastery`)
       return res.data
     },
     enabled: !!id,

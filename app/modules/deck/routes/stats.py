@@ -529,6 +529,7 @@ async def get_weekly_report(request: Request, db: AsyncSession = Depends(get_db)
         "ai_insights": insights
     }
 
+@router.get("/{deck_id}/mastery")
 @router.get("/decks/{deck_id}/mastery")
 @router.get("/quizzes/{deck_id}/mastery")
 async def get_deck_mastery(deck_id: int, request: Request, db: AsyncSession = Depends(get_db)):
@@ -552,35 +553,88 @@ async def get_deck_mastery(deck_id: int, request: Request, db: AsyncSession = De
     ignored_count = ignored_res.scalar() or 0
     total_cards = max(0, total_cards_raw - ignored_count)
     
-    # Get all mastered cards for this deck
+    now_utc = datetime.utcnow()
+    
+    # Query all active UserCardMastery records for this user & deck
     mastery_stmt = select(
         UserCardMastery.box_level,
-        func.count(UserCardMastery.id)
+        UserCardMastery.state,
+        UserCardMastery.stability,
+        UserCardMastery.difficulty,
+        UserCardMastery.due,
+        UserCardMastery.last_review
     ).join(Flashcard, UserCardMastery.card_id == Flashcard.id)\
      .where(
          Flashcard.deck_id == deck_id,
          UserCardMastery.user_id == user_id,
          or_(UserCardMastery.is_ignored == False, UserCardMastery.is_ignored.is_(None))
-     )\
-     .group_by(UserCardMastery.box_level)
+     )
      
     results = await db.execute(mastery_stmt)
+    rows = results.all()
     
     mastery_counts = {1: 0, 2: 0, 3: 0, 4: 0, 5: 0}
-    for row in results.all():
-        lvl = row[0]
-        if lvl in mastery_counts:
-            mastery_counts[lvl] = row[1]
+    due_count = 0
+    stabilities = []
+    difficulties = []
+    retentions = []
+    
+    learning_count = 0
+    mastered_count = 0
+    
+    for row in rows:
+        box_lvl = row[0] or 1
+        state = row[1] or 0
+        stab = row[2]
+        diff = row[3]
+        due_dt = row[4]
+        last_rev = row[5]
+        
+        if box_lvl in mastery_counts:
+            mastery_counts[box_lvl] += 1
             
-    unattempted = max(0, total_cards - sum(mastery_counts.values()))
-    mastery_counts[1] += unattempted # Treat unattempted cards as Level 1 (New)
+        if due_dt and due_dt <= now_utc:
+            due_count += 1
+            
+        if stab is not None and stab > 0:
+            stabilities.append(stab)
+            if last_rev:
+                t_days = max(0.0, (now_utc - last_rev).total_seconds() / 86400.0)
+                r_est = (1.0 + (19.0 / 81.0) * (t_days / max(0.1, stab))) ** (-0.5)
+                retentions.append(min(1.0, max(0.0, r_est)))
+            else:
+                retentions.append(0.9)
+                
+        if diff is not None:
+            difficulties.append(diff)
+            
+        if box_lvl >= 4 or (stab is not None and stab >= 21.0):
+            mastered_count += 1
+        elif box_lvl >= 2 or state in (1, 3) or (stab is not None and stab > 0):
+            learning_count += 1
+            
+    tracked_count = len(rows)
+    new_count = max(0, total_cards - (learning_count + mastered_count))
+    mastery_counts[1] += max(0, total_cards - tracked_count)
+    
+    avg_stability = round(sum(stabilities) / len(stabilities), 1) if stabilities else None
+    avg_difficulty = round(sum(difficulties) / len(difficulties), 1) if difficulties else None
+    retention_rate = round(sum(retentions) / len(retentions), 2) if retentions else (0.9 if tracked_count > 0 else None)
     
     return {
-        "new": mastery_counts[1],
-        "learning": mastery_counts[2],
+        "new": new_count,
+        "learning": learning_count,
         "familiar": mastery_counts[3] + mastery_counts[4],
-        "mastered": mastery_counts[5],
-        "total": total_cards
+        "mastered": mastered_count,
+        "total": total_cards,
+        "new_count": new_count,
+        "learning_count": learning_count,
+        "mastered_count": mastered_count,
+        "due_count": due_count,
+        "avg_stability": avg_stability,
+        "avg_difficulty": avg_difficulty,
+        "retention_rate": retention_rate,
+        "tracked_count": tracked_count
     }
 
 @router.get("/stats/leitner")

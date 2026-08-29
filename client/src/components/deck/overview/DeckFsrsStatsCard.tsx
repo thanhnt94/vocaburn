@@ -37,9 +37,9 @@ export function DeckFsrsStatsCard({ stats, isLoading, totalCards }: DeckFsrsStat
 
   const total = totalCards || stats?.total || 0
   const due = stats?.due_count ?? 0
-  const learning = stats?.learning_count ?? 0
-  const mastered = stats?.mastered_count ?? 0
-  const newCount = stats?.new_count ?? Math.max(0, total - (learning + mastered))
+  const learning = stats?.learning_count ?? (stats as any)?.learning ?? 0
+  const mastered = stats?.mastered_count ?? (stats as any)?.mastered ?? 0
+  const newCount = stats?.new_count ?? (stats as any)?.new ?? Math.max(0, total - (learning + mastered))
   
   const masteredPct = total > 0 ? Math.round((mastered / total) * 100) : 0
   const learningPct = total > 0 ? Math.round((learning / total) * 100) : 0
