@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { Volume2, Save, RefreshCw, CheckCircle2, Headphones, Server, Sparkles, Layers, Sliders, Plus, Trash2, HelpCircle } from 'lucide-react'
+import { Volume2, Save, RefreshCw, CheckCircle2, Headphones, Server, Layers, Sliders, Plus, Trash2 } from 'lucide-react'
 import axios from 'axios'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { cn } from '@/lib/utils'
@@ -21,47 +21,47 @@ export interface DeckAudioSettingsProps {
 
 export const LANGUAGE_VOICE_OPTIONS: Record<string, { label: string; voices: { value: string; label: string }[] }> = {
   ja: {
-    label: '🇯🇵 Tiếng Nhật (Japanese - ja)',
+    label: 'Tiếng Nhật',
     voices: [
-      { value: 'ja-JP-NanamiNeural', label: 'Nanami (Nữ - EdgeTTS Chuẩn Tokyo)' },
-      { value: 'ja-JP-KeitaNeural', label: 'Keita (Nam - EdgeTTS Chuẩn Tokyo)' },
-      { value: 'ja-JP-Neural2-C', label: 'Ja Neural2-C (Nữ - Google Cloud)' },
-      { value: 'ja-JP-Neural2-D', label: 'Ja Neural2-D (Nam - Google Cloud)' },
-      { value: 'gtts:ja', label: 'Tiếng Nhật (gTTS Dự phòng)' }
+      { value: 'ja-JP-NanamiNeural', label: 'Nanami - Nữ Tokyo' },
+      { value: 'ja-JP-KeitaNeural', label: 'Keita - Nam Tokyo' },
+      { value: 'ja-JP-Neural2-C', label: 'Ja Neural2-C - Nữ Google' },
+      { value: 'ja-JP-Neural2-D', label: 'Ja Neural2-D - Nam Google' },
+      { value: 'gtts:ja', label: 'Tiếng Nhật - gTTS' }
     ]
   },
   vi: {
-    label: '🇻🇳 Tiếng Việt (Vietnamese - vi)',
+    label: 'Tiếng Việt',
     voices: [
-      { value: 'vi-VN-HoaiMyNeural', label: 'Hoài My (Nữ - EdgeTTS Tự Nhiên)' },
-      { value: 'vi-VN-NamMinhNeural', label: 'Nam Minh (Nam - EdgeTTS)' },
-      { value: 'vi-VN-Neural2-A', label: 'Vi Neural2-A (Nữ - Google Cloud)' },
-      { value: 'vi-VN-Neural2-F', label: 'Vi Neural2-F (Nam - Google Cloud)' },
-      { value: 'gtts:vi', label: 'Tiếng Việt (gTTS Dự phòng)' }
+      { value: 'vi-VN-HoaiMyNeural', label: 'Hoài My - Nữ' },
+      { value: 'vi-VN-NamMinhNeural', label: 'Nam Minh - Nam' },
+      { value: 'vi-VN-Neural2-A', label: 'Vi Neural2-A - Nữ Google' },
+      { value: 'vi-VN-Neural2-F', label: 'Vi Neural2-F - Nam Google' },
+      { value: 'gtts:vi', label: 'Tiếng Việt - gTTS' }
     ]
   },
   en: {
-    label: '🇺🇸 Tiếng Anh (English - en)',
+    label: 'Tiếng Anh',
     voices: [
-      { value: 'en-US-AriaNeural', label: 'Aria (Nữ - US - EdgeTTS)' },
-      { value: 'en-US-GuyNeural', label: 'Guy (Nam - US - EdgeTTS)' },
-      { value: 'en-GB-SoniaNeural', label: 'Sonia (Nữ - UK - EdgeTTS)' },
-      { value: 'en-US-Neural2-H', label: 'En Neural2-H (Nữ - Google Cloud)' },
-      { value: 'gtts:en', label: 'Tiếng Anh (gTTS Dự phòng)' }
+      { value: 'en-US-AriaNeural', label: 'Aria - Nữ US' },
+      { value: 'en-US-GuyNeural', label: 'Guy - Nam US' },
+      { value: 'en-GB-SoniaNeural', label: 'Sonia - Nữ UK' },
+      { value: 'en-US-Neural2-H', label: 'En Neural2-H - Nữ Google' },
+      { value: 'gtts:en', label: 'Tiếng Anh - gTTS' }
     ]
   },
   zh: {
-    label: '🇨🇳 Tiếng Trung (Chinese - zh)',
+    label: 'Tiếng Trung',
     voices: [
-      { value: 'zh-CN-XiaoxiaoNeural', label: 'Xiaoxiao (Nữ - EdgeTTS)' },
-      { value: 'gtts:zh', label: 'Tiếng Trung (gTTS Dự phòng)' }
+      { value: 'zh-CN-XiaoxiaoNeural', label: 'Xiaoxiao - Nữ' },
+      { value: 'gtts:zh', label: 'Tiếng Trung - gTTS' }
     ]
   },
   ko: {
-    label: '🇰🇷 Tiếng Hàn (Korean - ko)',
+    label: 'Tiếng Hàn',
     voices: [
-      { value: 'ko-KR-SunHiNeural', label: 'SunHi (Nữ - EdgeTTS)' },
-      { value: 'gtts:ko', label: 'Tiếng Hàn (gTTS Dự phòng)' }
+      { value: 'ko-KR-SunHiNeural', label: 'SunHi - Nữ' },
+      { value: 'gtts:ko', label: 'Tiếng Hàn - gTTS' }
     ]
   }
 }
@@ -73,7 +73,7 @@ export function DeckAudioSettings({ deckId, initialSettings, onSaved }: DeckAudi
   const [audioConfigs, setAudioConfigs] = useState<AudioConfigItem[]>([
     {
       id: 'cfg_front',
-      name: 'Mặt trước (Front Audio)',
+      name: 'Mặt trước',
       source_col: 'front_audio_content',
       url_col: 'front_audio_url',
       lang: 'multi',
@@ -81,7 +81,7 @@ export function DeckAudioSettings({ deckId, initialSettings, onSaved }: DeckAudi
     },
     {
       id: 'cfg_back',
-      name: 'Mặt sau (Back Audio)',
+      name: 'Mặt sau',
       source_col: 'back_audio_content',
       url_col: 'back_audio_url',
       lang: 'multi',
@@ -134,50 +134,34 @@ export function DeckAudioSettings({ deckId, initialSettings, onSaved }: DeckAudi
         setAudioConfigs(effectiveSettings.audio_configs.map((c: any, idx: number) => ({
           id: c.id || `cfg_${idx}_${Date.now()}`,
           name: c.name || `Cấu hình #${idx + 1}`,
-          source_col: c.source_col || c.audio_content_col || 'front_audio_content',
-          url_col: c.url_col || c.audio_url_col || 'front_audio_url',
+          source_col: c.source_col || c.audio_content_col || (idx === 0 ? 'front_audio_content' : 'back_audio_content'),
+          url_col: c.url_col || c.audio_url_col || (idx === 0 ? 'front_audio_url' : 'back_audio_url'),
           lang: c.lang || 'multi',
           enabled: c.enabled !== false,
         })))
       } else {
-        // Build initial items from legacy front_audio_config, back_audio_config, audio_pairs
-        const items: AudioConfigItem[] = []
+        // Simple default: only 2 standard items
         const frontCfg = effectiveSettings.front_audio_config
         const backCfg = effectiveSettings.back_audio_config
         
-        items.push({
-          id: 'cfg_front',
-          name: 'Mặt trước (Front Audio)',
-          source_col: frontCfg?.audio_content_col || effectiveSettings.audio_source_field || 'front_audio_content',
-          url_col: frontCfg?.audio_url_col || effectiveSettings.audio_target_field || 'front_audio_url',
-          lang: frontCfg?.lang || 'multi',
-          enabled: frontCfg?.lang !== 'none',
-        })
-
-        items.push({
-          id: 'cfg_back',
-          name: 'Mặt sau (Back Audio)',
-          source_col: backCfg?.audio_content_col || 'back_audio_content',
-          url_col: backCfg?.audio_url_col || 'back_audio_url',
-          lang: backCfg?.lang || 'multi',
-          enabled: backCfg?.lang !== 'none',
-        })
-
-        if (Array.isArray(effectiveSettings.audio_pairs)) {
-          effectiveSettings.audio_pairs.forEach((p: any, pIdx: number) => {
-            if (p && (p.text_col || p.audio_content_col)) {
-              items.push({
-                id: `cfg_custom_${pIdx}`,
-                name: p.name || `Cấu hình mở rộng #${pIdx + 1}`,
-                source_col: p.audio_content_col || p.text_col,
-                url_col: p.audio_url_col || `${p.text_col}_audio_url`,
-                lang: p.lang || 'multi',
-                enabled: p.lang !== 'none',
-              })
-            }
-          })
-        }
-        setAudioConfigs(items)
+        setAudioConfigs([
+          {
+            id: 'cfg_front',
+            name: 'Mặt trước',
+            source_col: frontCfg?.audio_content_col || effectiveSettings.audio_source_field || 'front_audio_content',
+            url_col: frontCfg?.audio_url_col || effectiveSettings.audio_target_field || 'front_audio_url',
+            lang: frontCfg?.lang || 'multi',
+            enabled: frontCfg?.lang !== 'none',
+          },
+          {
+            id: 'cfg_back',
+            name: 'Mặt sau',
+            source_col: backCfg?.audio_content_col || 'back_audio_content',
+            url_col: backCfg?.audio_url_col || 'back_audio_url',
+            lang: backCfg?.lang || 'multi',
+            enabled: backCfg?.lang !== 'none',
+          }
+        ])
       }
 
       // Voice Mapping Matrix
@@ -238,7 +222,7 @@ export function DeckAudioSettings({ deckId, initialSettings, onSaved }: DeckAudi
 
   const handleRemoveConfig = (id: string) => {
     if (audioConfigs.length <= 1) {
-      alert('Bạn cần giữ lại ít nhất 1 cấu hình âm thanh cho bộ thẻ!')
+      alert('Cần giữ lại ít nhất 1 cấu hình âm thanh.')
       return
     }
     setAudioConfigs(prev => prev.filter(item => item.id !== id))
@@ -259,14 +243,12 @@ export function DeckAudioSettings({ deckId, initialSettings, onSaved }: DeckAudi
     setIsSaving(true)
     setSaveSuccess(false)
     try {
-      // Find front & back config for backward compatibility
       const frontItem = audioConfigs.find(c => c.url_col === 'front_audio_url' || c.id === 'cfg_front') || audioConfigs[0]
       const backItem = audioConfigs.find(c => c.url_col === 'back_audio_url' || c.id === 'cfg_back') || audioConfigs[1]
 
       const updatedSettings = {
         ...initialSettings,
         audio_configs: audioConfigs,
-        // Synchronize legacy keys
         front_audio_config: frontItem ? {
           audio_content_col: frontItem.source_col,
           audio_url_col: frontItem.url_col,
@@ -303,7 +285,7 @@ export function DeckAudioSettings({ deckId, initialSettings, onSaved }: DeckAudi
       setTimeout(() => setSaveSuccess(false), 3000)
       if (onSaved) onSaved()
     } catch (e: any) {
-      alert(e?.response?.data?.error || 'Không thể lưu cấu hình âm thanh & TTS')
+      alert(e?.response?.data?.error || 'Lỗi lưu cấu hình âm thanh')
     } finally {
       setIsSaving(false)
     }
@@ -328,7 +310,7 @@ export function DeckAudioSettings({ deckId, initialSettings, onSaved }: DeckAudi
       }
 
       const res = await axios.post(`/api/v1/deck/${deckId}/generate-all-audio`, payload)
-      setAudioMessage(res.data?.message || 'Đã gửi yêu cầu tạo âm thanh TTS chạy nền tới CentralAuth Queue thành công!')
+      setAudioMessage(res.data?.message || 'Đã gửi yêu cầu sinh âm thanh.')
       setTimeout(() => {
         refetchTTSStatus()
         queryClient.invalidateQueries({ queryKey: ['quiz-questions', String(deckId)] })
@@ -336,7 +318,7 @@ export function DeckAudioSettings({ deckId, initialSettings, onSaved }: DeckAudi
       }, 2000)
       setTimeout(() => setAudioMessage(null), 8000)
     } catch (e: any) {
-      alert(e?.response?.data?.error || 'Lỗi khi kích hoạt sinh âm thanh hàng loạt')
+      alert(e?.response?.data?.error || 'Lỗi sinh âm thanh hàng loạt')
     } finally {
       setIsRunningAudio(false)
     }
@@ -350,11 +332,8 @@ export function DeckAudioSettings({ deckId, initialSettings, onSaved }: DeckAudi
           <div>
             <h3 className="text-xs font-black text-slate-900 uppercase tracking-widest leading-none flex items-center gap-2">
               <Layers className="w-4 h-4 text-sky-600" />
-              <span>Danh Sách Cấu Hình Âm Thanh (Audio Mappings)</span>
+              <span>DANH SÁCH CẤU HÌNH ÂM THANH</span>
             </h3>
-            <p className="text-[10px] text-slate-400 font-bold mt-0.5">
-              Khai báo bao nhiêu nguồn âm thanh tùy thích (Mặt trước, Mặt sau, Câu ví dụ, Giải thích...). Tự động nhận diện cấu trúc hoặc chọn ngôn ngữ cố định.
-            </p>
           </div>
 
           <button
@@ -369,7 +348,7 @@ export function DeckAudioSettings({ deckId, initialSettings, onSaved }: DeckAudi
 
         {saveSuccess && (
           <div className="p-3 bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs rounded-xl font-bold flex items-center gap-2">
-            <CheckCircle2 className="w-4 h-4" /> Đã lưu danh sách cấu hình âm thanh & giọng đọc thành công!
+            <CheckCircle2 className="w-4 h-4" /> Đã lưu cấu hình âm thanh thành công!
           </div>
         )}
 
@@ -388,7 +367,7 @@ export function DeckAudioSettings({ deckId, initialSettings, onSaved }: DeckAudi
                     type="text"
                     value={cfg.name}
                     onChange={(e) => handleUpdateConfig(cfg.id, 'name', e.target.value)}
-                    placeholder={`Tên gợi nhớ cấu hình #${idx + 1}`}
+                    placeholder={`Cấu hình #${idx + 1}`}
                     className="h-8.5 px-2.5 bg-white border border-slate-200 rounded-xl text-xs font-black text-slate-900 outline-none focus:border-sky-500 flex-1 min-w-[150px] shadow-2xs"
                   />
                 </div>
@@ -410,7 +389,7 @@ export function DeckAudioSettings({ deckId, initialSettings, onSaved }: DeckAudi
                 {/* Source Column */}
                 <div>
                   <label className="text-[10px] font-black text-slate-500 uppercase tracking-wider mb-1 block">
-                    Cột Kịch Bản / Chữ Cần Đọc:
+                    Cột nội dung đọc:
                   </label>
                   <select
                     value={cfg.source_col}
@@ -419,7 +398,7 @@ export function DeckAudioSettings({ deckId, initialSettings, onSaved }: DeckAudi
                   >
                     {availableColumns.map((col) => (
                       <option key={col} value={col}>
-                        {col} {col === 'front_audio_content' ? '★ (Kịch bản âm thanh mặt trước)' : col === 'back_audio_content' ? '★ (Kịch bản âm thanh mặt sau)' : ''}
+                        {col}
                       </option>
                     ))}
                   </select>
@@ -428,7 +407,7 @@ export function DeckAudioSettings({ deckId, initialSettings, onSaved }: DeckAudi
                 {/* Target URL Column */}
                 <div>
                   <label className="text-[10px] font-black text-slate-500 uppercase tracking-wider mb-1 block">
-                    Cột Lưu Đường Dẫn Âm Thanh (URL):
+                    Cột lưu đường dẫn âm thanh:
                   </label>
                   <select
                     value={cfg.url_col}
@@ -437,7 +416,7 @@ export function DeckAudioSettings({ deckId, initialSettings, onSaved }: DeckAudi
                   >
                     {availableColumns.map((col) => (
                       <option key={col} value={col}>
-                        {col} {col === 'front_audio_url' ? '★ (URL Audio mặt trước)' : col === 'back_audio_url' ? '★ (URL Audio mặt sau)' : ''}
+                        {col}
                       </option>
                     ))}
                   </select>
@@ -446,20 +425,20 @@ export function DeckAudioSettings({ deckId, initialSettings, onSaved }: DeckAudi
                 {/* Language Mode */}
                 <div>
                   <label className="text-[10px] font-black text-slate-500 uppercase tracking-wider mb-1 block">
-                    Chế Độ Phát / Ngôn Ngữ:
+                    Chế độ phát / Ngôn ngữ:
                   </label>
                   <select
                     value={cfg.lang}
                     onChange={(e) => handleUpdateConfig(cfg.id, 'lang', e.target.value)}
                     className="w-full h-9 px-2.5 bg-white border border-sky-200 rounded-xl text-xs font-bold text-slate-800 outline-none focus:border-sky-500 cursor-pointer shadow-2xs"
                   >
-                    <option value="multi">🌐 Tự động đa ngôn ngữ (Đọc tag [ja:..][vi:..] hoặc vi:, ja:)</option>
-                    <option value="ja">🇯🇵 Chỉ đọc Tiếng Nhật (ja - Không cần cấu trúc tag)</option>
-                    <option value="vi">🇻🇳 Chỉ đọc Tiếng Việt (vi - Không cần cấu trúc tag)</option>
-                    <option value="en">🇺🇸 Chỉ đọc Tiếng Anh (en - Không cần cấu trúc tag)</option>
-                    <option value="zh">🇨🇳 Chỉ đọc Tiếng Trung (zh)</option>
-                    <option value="ko">🇰🇷 Chỉ đọc Tiếng Hàn (ko)</option>
-                    <option value="none">🚫 Tắt âm thanh cho mục này</option>
+                    <option value="multi">Đa ngôn ngữ</option>
+                    <option value="vi">Tiếng Việt</option>
+                    <option value="ja">Tiếng Nhật</option>
+                    <option value="en">Tiếng Anh</option>
+                    <option value="zh">Tiếng Trung</option>
+                    <option value="ko">Tiếng Hàn</option>
+                    <option value="none">Tắt</option>
                   </select>
                 </div>
               </div>
@@ -474,11 +453,8 @@ export function DeckAudioSettings({ deckId, initialSettings, onSaved }: DeckAudi
           <div>
             <h3 className="text-xs font-black text-slate-900 uppercase tracking-widest leading-none flex items-center gap-2">
               <Volume2 className="w-4 h-4 text-purple-600" />
-              <span>Cấu Hình Giọng Đọc Đa Ngôn Ngữ (Multi-Language Voice Studio)</span>
+              <span>CẤU HÌNH GIỌNG ĐỌC ĐA NGÔN NGỮ</span>
             </h3>
-            <p className="text-[10px] text-slate-400 font-bold mt-0.5">
-              Khi cấu hình ở chế độ &quot;Tự động đa ngôn ngữ&quot;, hệ thống sẽ dùng các giọng AI này để đọc từng đoạn tương ứng với tag ngôn ngữ
-            </p>
           </div>
         </div>
 
@@ -506,16 +482,16 @@ export function DeckAudioSettings({ deckId, initialSettings, onSaved }: DeckAudi
           <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200/80 space-y-2">
             <label className="text-[11px] font-black text-slate-700 block flex items-center gap-1.5">
               <Sliders className="w-3.5 h-3.5 text-slate-500" />
-              <span>Tốc Độ Đọc (Speech Rate):</span>
+              <span>Tốc độ đọc</span>
             </label>
             <select
               value={speechRate}
               onChange={(e) => setSpeechRate(e.target.value)}
               className="w-full h-9 px-2.5 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-800 outline-none focus:border-sky-500 cursor-pointer shadow-2xs"
             >
-              <option value="0.75">Chậm (0.75x) - Luyện nghe sơ cấp</option>
-              <option value="1.0">Chuẩn (1.0x) - Tự nhiên hàng ngày</option>
-              <option value="1.2">Nhanh (1.2x) - Luyện phản xạ cao cấp</option>
+              <option value="0.75">0.75x</option>
+              <option value="1.0">1.0x</option>
+              <option value="1.2">1.2x</option>
             </select>
           </div>
         </div>
@@ -528,7 +504,7 @@ export function DeckAudioSettings({ deckId, initialSettings, onSaved }: DeckAudi
             className="px-5 h-10 bg-sky-600 hover:bg-sky-700 text-white rounded-xl text-xs font-black shadow-xs shadow-sky-200 active:scale-95 transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
           >
             <Save className="w-3.5 h-3.5" />
-            <span>{isSaving ? 'ĐANG LƯU...' : 'LƯU TOÀN BỘ CẤU HÌNH ÂM THANH'}</span>
+            <span>{isSaving ? 'ĐANG LƯU...' : 'LƯU CẤU HÌNH ÂM THANH'}</span>
           </button>
         </div>
       </div>
@@ -539,21 +515,18 @@ export function DeckAudioSettings({ deckId, initialSettings, onSaved }: DeckAudi
           <div>
             <h3 className="text-xs font-black text-slate-900 uppercase tracking-widest leading-none flex items-center gap-2">
               <Headphones className="w-4 h-4 text-sky-600" />
-              <span>Chạy Sinh Âm Thanh Hàng Loạt (CentralAuth Audio Queue)</span>
+              <span>SINH ÂM THANH HÀNG LOẠT</span>
             </h3>
-            <p className="text-[10px] text-slate-400 font-bold mt-0.5">
-              Gửi toàn bộ danh sách thẻ tới CentralAuth để tổng hợp file âm thanh theo ma trận giọng đọc đã cấu hình
-            </p>
           </div>
 
           <button
             type="button"
             onClick={() => refetchTTSStatus()}
             className="h-8 px-2.5 rounded-lg bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-600 text-xs font-bold transition-all flex items-center gap-1 cursor-pointer"
-            title="Làm mới trạng thái"
+            title="Làm mới"
           >
             <RefreshCw className={cn("w-3 h-3", isFetchingTTS && "animate-spin")} />
-            <span>Kiểm tra trạng thái</span>
+            <span>Làm mới</span>
           </button>
         </div>
 
@@ -567,21 +540,21 @@ export function DeckAudioSettings({ deckId, initialSettings, onSaved }: DeckAudi
         {/* Live Audio Status Stats */}
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
           <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200/80">
-            <span className="text-[10px] font-bold text-slate-400 uppercase block">Tổng Số Thẻ</span>
+            <span className="text-[10px] font-bold text-slate-400 uppercase block">Tổng số thẻ</span>
             <span className="text-lg font-black text-slate-800 mt-0.5 block">
               {ttsStatus?.total_cards ?? '--'}
             </span>
           </div>
 
           <div className="p-3.5 rounded-2xl bg-amber-50 border border-amber-200/80">
-            <span className="text-[10px] font-bold text-amber-600 uppercase block">Chưa Có Âm Thanh</span>
+            <span className="text-[10px] font-bold text-amber-600 uppercase block">Chưa có audio</span>
             <span className="text-lg font-black text-amber-700 mt-0.5 block">
               {ttsStatus?.missing_audio_cards ?? '--'}
             </span>
           </div>
 
           <div className="p-3.5 rounded-2xl bg-emerald-50 border border-emerald-200/80 col-span-2 sm:col-span-1">
-            <span className="text-[10px] font-bold text-emerald-600 uppercase block">Đã Có Âm Thanh</span>
+            <span className="text-[10px] font-bold text-emerald-600 uppercase block">Đã có audio</span>
             <span className="text-lg font-black text-emerald-700 mt-0.5 block">
               {ttsStatus?.total_cards !== undefined && ttsStatus?.missing_audio_cards !== undefined
                 ? Math.max(0, ttsStatus.total_cards - ttsStatus.missing_audio_cards)
@@ -593,7 +566,7 @@ export function DeckAudioSettings({ deckId, initialSettings, onSaved }: DeckAudi
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 p-4 rounded-2xl bg-slate-50 border border-slate-200/80">
           <div>
             <label className="text-[11px] font-black text-slate-600 uppercase tracking-wider mb-1.5 block">
-              Chọn Cấu Hình Cần Sinh Âm Thanh:
+              Chọn cấu hình cần sinh:
             </label>
             <select
               value={selectedBulkTarget}
@@ -602,18 +575,18 @@ export function DeckAudioSettings({ deckId, initialSettings, onSaved }: DeckAudi
             >
               {audioConfigs.map((cfg, cIdx) => (
                 <option key={cfg.id} value={cfg.id}>
-                  [#{cIdx + 1}] {cfg.name} ➜ [{cfg.source_col}] sang [{cfg.url_col}] ({cfg.lang === 'multi' ? 'Đa ngôn ngữ' : cfg.lang.toUpperCase()})
+                  [#{cIdx + 1}] {cfg.name} ({cfg.source_col} ➜ {cfg.url_col})
                 </option>
               ))}
               <option value="all">
-                ✨ Tất cả các cấu hình đã khai báo
+                Tất cả cấu hình
               </option>
             </select>
           </div>
 
           <div className="flex flex-col justify-between">
             <label className="text-[11px] font-black text-slate-600 uppercase tracking-wider mb-1.5 block">
-              Tùy chọn tạo lại:
+              Tùy chọn:
             </label>
             <label className="flex items-center gap-2 cursor-pointer select-none bg-white p-2.5 rounded-xl border border-slate-200">
               <input
@@ -623,7 +596,7 @@ export function DeckAudioSettings({ deckId, initialSettings, onSaved }: DeckAudi
                 className="w-4 h-4 rounded text-sky-600 focus:ring-sky-500 cursor-pointer"
               />
               <span className="text-xs font-bold text-slate-700">
-                Ghi đè tất cả (Tạo lại cả những thẻ đã có sẵn audio)
+                Ghi đè tất cả
               </span>
             </label>
           </div>
@@ -632,7 +605,7 @@ export function DeckAudioSettings({ deckId, initialSettings, onSaved }: DeckAudi
         <div className="pt-2 flex items-center justify-between gap-3 flex-wrap">
           <div className="flex items-center gap-1.5 text-[11px] text-slate-500 font-medium">
             <Server className="w-3.5 h-3.5 text-sky-600" />
-            <span>Tiến trình gửi tới CentralAuth TTS Worker (Batch 100 thẻ/lô)</span>
+            <span>CentralAuth TTS Queue</span>
           </div>
 
           <button
@@ -648,10 +621,10 @@ export function DeckAudioSettings({ deckId, initialSettings, onSaved }: DeckAudi
             )}
             <span>
               {isRunningAudio
-                ? 'ĐANG GỬI QUEUE...'
+                ? 'ĐANG XỬ LÝ...'
                 : selectedBulkTarget === 'all'
-                ? 'SINH AUDIO CHO TẤT CẢ CẤU HÌNH'
-                : `SINH AUDIO CHO: "${(activeSelectedConfig?.name || 'MỤC ĐÃ CHỌN').toUpperCase()}"`}
+                ? 'SINH TẤT CẢ AUDIO'
+                : `SINH AUDIO CHO: "${(activeSelectedConfig?.name || '').toUpperCase()}"`}
             </span>
           </button>
         </div>
