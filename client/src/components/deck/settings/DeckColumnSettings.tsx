@@ -90,6 +90,17 @@ export function DeckColumnSettings({ deckId, isOwner = true }: DeckColumnSetting
     staleTime: 10 * 1000,
   })
 
+  // 1c. Fetch Deck Data as backup
+  const { data: deckData } = useQuery({
+    queryKey: ['quiz', String(deckId)],
+    queryFn: async () => {
+      const res = await axios.get(`/api/v1/deck/${deckId}/data`)
+      return res.data
+    },
+    enabled: !!deckId,
+    staleTime: 30 * 1000,
+  })
+
   // 2. Mutations
   const addColumnMutation = useMutation({
     mutationFn: async (column_name: string) => {
@@ -147,7 +158,7 @@ export function DeckColumnSettings({ deckId, isOwner = true }: DeckColumnSetting
     }
   })
 
-  const totalCards = overview?.total_cards || 0
+  const totalCards = overview?.total_cards || deckData?.card_count || (Array.isArray(deckData?.cards) ? deckData.cards.length : 0) || 0
   const columnCounts = overview?.column_counts || {}
 
   const SYSTEM_CORE_COLS = new Set([

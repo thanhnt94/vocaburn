@@ -60,6 +60,14 @@ class Flashcard(Base):
         self.content = value
 
     @property
+    def back(self) -> str:
+        return self.explanation
+
+    @back.setter
+    def back(self, value: str):
+        self.explanation = value
+
+    @property
     def audio(self) -> str:
         return self.front_audio_url
 
