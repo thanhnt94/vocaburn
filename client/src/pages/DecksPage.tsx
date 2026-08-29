@@ -478,15 +478,24 @@ export default function DecksPage() {
                             )}
                           </div>
 
-                          {/* Meta Badges: Count, Creator */}
+                          {/* Meta Badges: Count, Creator, Compact Date */}
                           <div className="flex items-center flex-wrap gap-1.5 mt-1.5 text-[11px] font-bold text-slate-400">
                             <span className="inline-flex items-center px-2 py-0.5 rounded-lg bg-slate-100 text-slate-700 font-bold text-[10px]">
                               📚 {quiz.questions_count} từ
                             </span>
 
-                            <span className="text-slate-400 truncate max-w-[130px] font-medium text-[11px]">
-                              {quiz.is_creator ? '✨ Tạo bởi bạn' : `@${quiz.creator_name || 'Hệ thống'}`}
+                            <span className="text-slate-600 font-bold text-[11px] truncate max-w-[130px]">
+                              @{quiz.creator_name || 'thanhnt'}
                             </span>
+
+                            {formattedDate && (
+                              <>
+                                <span className="text-slate-300">•</span>
+                                <span className="text-slate-400 font-medium text-[10px]" title="Ngày tạo / cập nhật">
+                                  {formattedDate}
+                                </span>
+                              </>
+                            )}
                           </div>
                         </div>
 
@@ -546,43 +555,70 @@ export default function DecksPage() {
                         </div>
                       )}
 
-                      {/* Bottom Action Row: Play CTA & Roadmap Shortcut */}
-                      <div className="flex items-center justify-between gap-2 pt-1 border-t border-slate-100/80">
-                        <div className="flex items-center gap-1 text-[11px] font-bold text-slate-400">
-                          {formattedDate && (
-                            <span className="text-slate-400 font-medium">
-                              Cập nhật {formattedDate}
-                            </span>
+                      {/* Bottom Action Row: Practice, Roadmap, Play CTA & Archive */}
+                      <div className="flex items-center justify-between gap-2 pt-1.5 border-t border-slate-100/80">
+                        {/* Left: Quick Practice & Roadmap */}
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          {activeTab === 'my' && (
+                            <>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  handleStudyTrigger(quiz, 'practice')
+                                }}
+                                className="h-9 px-3 rounded-xl bg-emerald-50 hover:bg-emerald-100/80 border border-emerald-200 text-emerald-700 font-black text-xs active:scale-95 transition-all flex items-center gap-1.5 cursor-pointer shadow-2xs"
+                                title="Luyện tập: Trắc nghiệm, Gõ từ, Nghe chép từ"
+                              >
+                                <Trophy className="w-3.5 h-3.5 text-emerald-600" />
+                                <span>Luyện tập</span>
+                              </button>
+
+                              {quiz.has_roadmap && (
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation()
+                                    navigate(`/decks/${quiz.id}?tab=roadmap`)
+                                  }}
+                                  className="h-9 px-2.5 rounded-xl bg-teal-50 hover:bg-teal-100/80 border border-teal-200 text-teal-700 font-black text-xs active:scale-95 transition-all flex items-center gap-1 cursor-pointer shadow-2xs"
+                                  title="Truy cập Lộ trình học"
+                                >
+                                  <Compass className="w-3.5 h-3.5 text-teal-600 animate-spin-slow" />
+                                  <span className="hidden sm:inline">Lộ trình</span>
+                                </button>
+                              )}
+                            </>
                           )}
                         </div>
 
-                        <div className="flex items-center gap-2 shrink-0">
-                          {activeTab === 'my' && quiz.has_roadmap && (
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation()
-                                navigate(`/decks/${quiz.id}?tab=roadmap`)
-                              }}
-                              className="h-9 px-3 rounded-xl bg-teal-50 hover:bg-teal-100/80 border border-teal-200 text-teal-700 font-black text-xs active:scale-95 transition-all flex items-center gap-1.5 cursor-pointer shadow-2xs"
-                              title="Truy cập Lộ trình học"
-                            >
-                              <Compass className="w-3.5 h-3.5 text-teal-600" />
-                              <span className="hidden xs:inline">Lộ trình</span>
-                            </button>
-                          )}
-
+                        {/* Right: Primary Study CTA & Archive */}
+                        <div className="flex items-center gap-1.5 shrink-0">
                           {activeTab === 'my' && (
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation()
-                                handleStudyTrigger(quiz, 'flashcard')
-                              }}
-                              className="h-9 px-4 rounded-xl bg-gradient-to-r from-indigo-600 via-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-black text-xs shadow-md shadow-indigo-200 hover:shadow-indigo-300 active:scale-95 transition-all flex items-center gap-1.5 cursor-pointer"
-                              title="Học ngay bộ thẻ này"
-                            >
-                              <Play className="w-3.5 h-3.5 fill-current" />
-                              <span>Học ngay</span>
-                            </button>
+                            <>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  handleStudyTrigger(quiz, 'flashcard')
+                                }}
+                                className="h-9 px-3.5 sm:px-4 rounded-xl bg-gradient-to-r from-indigo-600 via-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-black text-xs shadow-md shadow-indigo-200 hover:shadow-indigo-300 active:scale-95 transition-all flex items-center gap-1.5 cursor-pointer"
+                                title="Học Flashcard bộ thẻ này"
+                              >
+                                <Play className="w-3.5 h-3.5 fill-current" />
+                                <span>Học ngay</span>
+                              </button>
+
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  if (window.confirm(`Ẩn bộ thẻ "${quiz.title}" vào kho lưu trữ?`)) {
+                                    archiveMutation.mutate(quiz.id)
+                                  }
+                                }}
+                                className="w-9 h-9 rounded-xl bg-slate-50 hover:bg-rose-50 border border-slate-200/80 hover:border-rose-200 text-slate-400 hover:text-rose-600 transition-all flex items-center justify-center cursor-pointer shadow-2xs active:scale-95"
+                                title="Ẩn vào kho lưu trữ"
+                              >
+                                <Archive className="w-4 h-4" />
+                              </button>
+                            </>
                           )}
 
                           {activeTab === 'discover' && (
