@@ -55,7 +55,8 @@ import {
   FloatingToasts,
   GoalCelebrationModal,
   QuitSessionModal,
-  SessionStatsWidget
+  SessionStatsWidget,
+  FlashcardHeader
 } from '@/components/flashcard'
 import { useLeaderboard } from '@/hooks/useLeaderboard'
 import { useCardAI } from '@/hooks/useCardAI'
@@ -2846,10 +2847,7 @@ export default function FlashcardPlay() {
         setLearningModeAlert={setLearningModeAlert}
       />
 
-      <header className={cn(
-        "sticky top-0 flex-shrink-0 z-[120] backdrop-blur-2xl px-2.5 md:px-4 py-1.5 flex items-center justify-between gap-2.5 transition-colors duration-300 relative overflow-hidden bg-slate-950/90 border-b border-slate-800/80 text-white shadow-xl"
-      )}>
-        {(() => {
+      {(() => {
           const rawPipeline: PipelineStepStatus[] = roadmapStatus?.pipeline || [
             {
               type: (activeMode === 'new' ? 'new_cards' : 'fsrs_review') as any,
@@ -3033,78 +3031,45 @@ export default function FlashcardPlay() {
           const cardsRemaining = Math.max(0, totalCards - currentIndex - 1);
 
           return (
-            <>
-              {/* Sleek Underline Progress Bar at the Bottom Edge of Header */}
-              <AnimatePresence>
-                {!isHeaderSurging && (
-                  <motion.div 
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    className="absolute bottom-0 left-0 right-0 h-[2.5px] bg-slate-800/60 pointer-events-none z-[125]"
-                  >
-                    <motion.div 
-                      className={cn(
-                        "h-full rounded-r-full transition-all duration-500",
-                        activeMode === 'fsrs'
-                          ? "bg-gradient-to-r from-emerald-500 via-teal-400 to-emerald-300 shadow-[0_0_12px_rgba(16,185,129,0.8)]"
-                          : activeMode === 'review'
-                          ? "bg-gradient-to-r from-teal-500 via-cyan-400 to-teal-300 shadow-[0_0_12px_rgba(20,184,166,0.8)]"
-                          : activeMode === 'new'
-                          ? "bg-gradient-to-r from-indigo-500 via-purple-500 to-indigo-300 shadow-[0_0_12px_rgba(99,102,241,0.8)]"
-                          : activeMode === 'flip'
-                          ? "bg-gradient-to-r from-amber-500 via-orange-500 to-amber-300 shadow-[0_0_12px_rgba(245,158,11,0.8)]"
-                          : "bg-gradient-to-r from-amber-500 via-rose-500 to-indigo-500 shadow-[0_0_12px_rgba(245,158,11,0.8)]"
-                      )}
-                      initial={{ width: 0 }}
-                      animate={{ width: `${activePercent}%` }}
-                      transition={{ type: "spring", stiffness: 120, damping: 18 }}
-                    />
-                  </motion.div>
-                )}
-              </AnimatePresence>
-
-              <div className="flex-1 min-w-0 relative z-[140]">
-                <StudyHeaderTracker
-                  pipeline={rawPipeline}
-                  currentStepIndex={displayStepIdx}
-                  allDone={Boolean(roadmapStatus?.all_done)}
-                  deckId={id || ''}
-                  deckTitle={session?.title}
-                  subProgressCurr={subCurr}
-                  subProgressTotal={subTotal}
-                  progressPillText={progressPillText}
-                  streakCount={roadmapStatus?.streak || gamify.streak || 0}
-                  activeMode={activeMode}
-                  modeBadge={modeBadge}
-                  onSurgeChange={setIsHeaderSurging}
-                  onViewModeChange={setHeaderViewMode}
-                  onExit={() => navigate('/')}
-                  timeMode={timeMode as any}
-                  onToggleTimeMode={toggleTimeMode}
-                  initialTodayTime={initialTodayTime}
-                  initialAllTimeTime={initialAllTimeTime}
-                  showFeedback={showFeedback}
-                  hasRated={selectedOption !== null}
-                  currentIndex={currentIndex}
-                  timeLeftRef={timeLeftRef}
-                  sessionStudyTimeRef={sessionStudyTimeRef}
-                  formatHeaderTime={formatHeaderTime}
-                  scoreMode={scoreMode as any}
-                  onToggleScoreMode={toggleScoreMode}
-                  xp={gamify.xp}
-                  todayXP={initialTodayXP + sessionXP}
-                  sessionXP={sessionXP}
-                  answeredCount={answeredCount}
-                  correctCount={correctCount}
-                  totalCards={totalCards}
-                  cardsRemaining={cardsRemaining}
-                />
-              </div>
-            </>
+            <FlashcardHeader
+              isHeaderSurging={isHeaderSurging}
+              activeMode={activeMode}
+              activePercent={activePercent}
+              pipeline={rawPipeline}
+              displayStepIdx={displayStepIdx}
+              allDone={Boolean(roadmapStatus?.all_done)}
+              deckId={id || ''}
+              deckTitle={session?.title}
+              subCurr={subCurr}
+              subTotal={subTotal}
+              progressPillText={progressPillText}
+              streakCount={roadmapStatus?.streak || gamify.streak || 0}
+              modeBadge={modeBadge}
+              onSurgeChange={setIsHeaderSurging}
+              onViewModeChange={setHeaderViewMode}
+              onExit={() => navigate('/')}
+              timeMode={timeMode as any}
+              onToggleTimeMode={toggleTimeMode}
+              initialTodayTime={initialTodayTime}
+              initialAllTimeTime={initialAllTimeTime}
+              showFeedback={showFeedback}
+              hasRated={selectedOption !== null}
+              currentIndex={currentIndex}
+              timeLeftRef={timeLeftRef}
+              sessionStudyTimeRef={sessionStudyTimeRef}
+              formatHeaderTime={formatHeaderTime}
+              scoreMode={scoreMode as any}
+              onToggleScoreMode={toggleScoreMode}
+              xp={gamify.xp}
+              todayXP={initialTodayXP + sessionXP}
+              sessionXP={sessionXP}
+              answeredCount={answeredCount}
+              correctCount={correctCount}
+              totalCards={totalCards}
+              cardsRemaining={cardsRemaining}
+            />
           );
         })()}
-      </header>
 
       {/* Decoupled - Practice mode moved to standalone /practice/:id page */}
 

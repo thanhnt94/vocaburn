@@ -429,15 +429,14 @@ export const StudyHeaderTracker: React.FC<StudyHeaderTrackerProps> = ({
                 transition={{ duration: 0.18, ease: "easeInOut" }}
                 className="w-full flex items-center justify-between gap-2 min-w-0"
               >
-                {/* Left side of Face 1: Deck Title */}
-                <div className="flex items-center gap-2 min-w-0 flex-1">
-                  <span className="text-xs shrink-0">{meta.emoji || '🎴'}</span>
+                {/* Left side of Face 1: Deck Title (Clean, no duplicate icon) */}
+                <div className="flex items-center min-w-0 flex-1 pl-0.5">
                   <h1 className="text-xs sm:text-sm font-bold text-slate-100 tracking-tight truncate" title={deckTitle}>
                     {deckTitle || 'Vocaburn Study Session'}
                   </h1>
                 </div>
 
-                {/* Right side of Face 1: Mode + Step Dots + Progress + Flip Hint */}
+                {/* Right side of Face 1: Mode + Step Dots + Progress */}
                 <div className="flex items-center gap-2 sm:gap-2.5 shrink-0">
                   {/* Step Stepper Dots */}
                   {effectivePipeline.length > 1 && (
@@ -458,10 +457,10 @@ export const StudyHeaderTracker: React.FC<StudyHeaderTrackerProps> = ({
                     </div>
                   )}
 
-                  {/* Mode Badge (Ultra-clean acronym: NEW, FSRS, REV, FLIP, MCQ, TYP, LIS, TEST, RM) */}
+                  {/* Mode Badge */}
                   <div 
                     className={cn(
-                      "flex items-center gap-1 px-1.5 py-0.5 rounded-md border text-xs font-black shrink-0 tracking-wide shadow-sm",
+                      "flex items-center gap-1 px-2 py-0.5 rounded-lg border text-xs font-black shrink-0 tracking-wide shadow-sm",
                       meta.style || "bg-amber-500/15 border-amber-500/30 text-amber-300"
                     )}
                     title={currentStep?.label || meta.label}
@@ -473,7 +472,7 @@ export const StudyHeaderTracker: React.FC<StudyHeaderTrackerProps> = ({
                   </div>
 
                   {/* Micro Progress Counter Pill */}
-                  <div className="flex items-center gap-1 text-[10px] sm:text-xs font-black font-mono tracking-tight text-slate-300 bg-slate-950/80 px-2 py-0.5 rounded-md border border-slate-800/90 shrink-0">
+                  <div className="flex items-center gap-1 text-[10px] sm:text-xs font-black font-mono tracking-tight text-slate-300 bg-slate-950/80 px-2 py-0.5 rounded-lg border border-slate-800/90 shrink-0">
                     {progressPillText ? (
                       <span className={cn(
                         isOverachieved ? "text-cyan-300" : isGoalReached ? "text-emerald-400" : "text-amber-300 font-bold"
@@ -498,7 +497,7 @@ export const StudyHeaderTracker: React.FC<StudyHeaderTrackerProps> = ({
               </motion.div>
             ) : (
               /* ========================================================================= */
-              /* FACE 2: SEGMENTED NEON DOCK (Full Live HUD Dashboard)                     */
+              /* FACE 2: SLEEK & HARMONIOUS LIVE HUD STATS                                 */
               /* ========================================================================= */
               <motion.div
                 key="face-stats-hud"
@@ -506,81 +505,93 @@ export const StudyHeaderTracker: React.FC<StudyHeaderTrackerProps> = ({
                 animate={{ opacity: 1, rotateX: 0 }}
                 exit={{ opacity: 0, rotateX: 90 }}
                 transition={{ duration: 0.18, ease: "easeInOut" }}
-                className="w-full flex items-center justify-between gap-1 sm:gap-1.5 text-xs min-w-0 font-mono"
+                className="w-full flex items-center justify-around gap-1 text-xs min-w-0 font-mono py-0.5"
               >
-                {/* 1. Segment: Timer (Card & Today) */}
+                {/* 1. Timer */}
                 <div 
-                  className="flex-1 flex items-center justify-center gap-1 sm:gap-1.5 py-1 px-1.5 sm:px-2 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/25 text-emerald-300 transition-all shadow-xs group min-w-0" 
-                  title="Card timer & Today's study time"
+                  className="flex items-center justify-center gap-1.5 px-2 py-0.5 rounded-md hover:bg-slate-800/50 transition-colors shrink-0" 
+                  title={`Card: ${displayCardTime} • Today: ${displayTodayTime}`}
                 >
-                  <Clock className="w-3.5 h-3.5 text-emerald-400 shrink-0 animate-pulse group-hover:scale-110 transition-transform" />
-                  <span className="font-black text-[11px] tracking-tight">{displayCardTime}</span>
-                  <span className="text-emerald-500/40 hidden sm:inline">•</span>
-                  <span className="text-emerald-400/80 text-[10px] hidden sm:inline font-semibold" title="Today's study time">{displayTodayTime}</span>
+                  <Clock className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                  <span className="font-black text-[11px] text-emerald-300 tracking-tight">{displayCardTime}</span>
+                  <span className="text-emerald-500/40 text-[9.5px] hidden md:inline font-semibold">({displayTodayTime})</span>
                 </div>
 
-                {/* 2. Segment: Progress & Remaining */}
+                <div className="w-[1px] h-3.5 bg-slate-800 shrink-0" />
+
+                {/* 2. Progress */}
                 <div 
-                  className="flex-1 flex items-center justify-center gap-1 sm:gap-1.5 py-1 px-1.5 sm:px-2 rounded-lg bg-indigo-500/10 hover:bg-indigo-500/20 border border-indigo-500/25 text-indigo-300 transition-all shadow-xs group min-w-0" 
+                  className="flex items-center justify-center gap-1.5 px-2 py-0.5 rounded-md hover:bg-slate-800/50 transition-colors shrink-0" 
                   title="Current card progress"
                 >
-                  <Target className="w-3.5 h-3.5 text-indigo-400 shrink-0 group-hover:scale-110 transition-transform" />
-                  <span className="font-black text-[11px] text-slate-100 tracking-tight truncate">
+                  <Target className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
+                  <span className="font-black text-[11px] text-slate-100 tracking-tight">
                     {hasSubProg ? `${subProgressCurr}/${subProgressTotal}` : `${currentIndex + 1}/${totalCards || '--'}`}
                   </span>
                   {cardsRemaining > 0 && (
-                    <span className="text-indigo-400/70 text-[9.5px] hidden md:inline font-semibold">({cardsRemaining} left)</span>
+                    <span className="text-indigo-400/60 text-[9px] hidden lg:inline font-semibold">({cardsRemaining} left)</span>
                   )}
                 </div>
 
-                {/* 3. Segment: Accuracy % */}
+                {/* 3. Accuracy (if available) */}
                 {accuracyPercent !== null && (
-                  <div 
-                    className="flex-1 hidden sm:flex items-center justify-center gap-1 sm:gap-1.5 py-1 px-1.5 sm:px-2 rounded-lg bg-teal-500/10 hover:bg-teal-500/20 border border-teal-500/25 text-teal-300 transition-all shadow-xs group min-w-0" 
-                    title={`Accuracy: ${correctCount}/${answeredCount} correct`}
-                  >
-                    <Gauge className="w-3.5 h-3.5 text-teal-400 shrink-0 group-hover:scale-110 transition-transform" />
-                    <span className={cn(
-                      "font-black text-[11px] tracking-tight",
-                      accuracyPercent >= 80 ? "text-emerald-300" : accuracyPercent >= 60 ? "text-amber-300" : "text-rose-300"
-                    )}>
-                      {accuracyPercent}%
-                    </span>
-                  </div>
+                  <>
+                    <div className="w-[1px] h-3.5 bg-slate-800 hidden sm:block shrink-0" />
+                    <div 
+                      className="hidden sm:flex items-center justify-center gap-1.5 px-2 py-0.5 rounded-md hover:bg-slate-800/50 transition-colors shrink-0" 
+                      title={`Accuracy: ${correctCount}/${answeredCount} correct`}
+                    >
+                      <Gauge className="w-3.5 h-3.5 text-teal-400 shrink-0" />
+                      <span className={cn(
+                        "font-black text-[11px] tracking-tight",
+                        accuracyPercent >= 80 ? "text-emerald-300" : accuracyPercent >= 60 ? "text-amber-300" : "text-rose-300"
+                      )}>
+                        {accuracyPercent}%
+                      </span>
+                    </div>
+                  </>
                 )}
 
-                {/* 4. Segment: Avg Speed */}
+                {/* 4. Avg Speed (large screens) */}
                 {avgSpeed && (
-                  <div 
-                    className="hidden lg:flex items-center justify-center gap-1 py-1 px-2 rounded-lg bg-cyan-500/10 hover:bg-cyan-500/20 border border-cyan-500/25 text-cyan-300 transition-all shadow-xs group shrink-0" 
-                    title="Average time per card"
-                  >
-                    <Zap className="w-3 h-3 text-cyan-400 shrink-0 group-hover:scale-110 transition-transform" />
-                    <span className="font-black text-[10px] text-cyan-200">{avgSpeed}/c</span>
-                  </div>
+                  <>
+                    <div className="w-[1px] h-3.5 bg-slate-800 hidden xl:block shrink-0" />
+                    <div 
+                      className="hidden xl:flex items-center justify-center gap-1 px-2 py-0.5 rounded-md hover:bg-slate-800/50 transition-colors shrink-0" 
+                      title="Average speed per card"
+                    >
+                      <Zap className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
+                      <span className="font-black text-[10.5px] text-cyan-200">{avgSpeed}/c</span>
+                    </div>
+                  </>
                 )}
 
-                {/* 5. Segment: XP Score */}
+                <div className="w-[1px] h-3.5 bg-slate-800 shrink-0" />
+
+                {/* 5. XP Score */}
                 <div 
-                  className="flex-1 flex items-center justify-center gap-1 sm:gap-1.5 py-1 px-1.5 sm:px-2 rounded-lg bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/25 text-amber-300 transition-all shadow-xs group min-w-0" 
+                  className="flex items-center justify-center gap-1.5 px-2 py-0.5 rounded-md hover:bg-slate-800/50 transition-colors shrink-0" 
                   title={`Session: +${sessionXP} XP | Total: ${xp.toLocaleString()} XP`}
                 >
-                  <Trophy className="w-3.5 h-3.5 text-amber-400 shrink-0 group-hover:scale-110 transition-transform" />
+                  <Trophy className="w-3.5 h-3.5 text-amber-400 shrink-0" />
                   <span className="font-black text-[11px] text-amber-300 tracking-tight">
                     {sessionXP > 0 ? `+${sessionXP}` : displayTotalXP}
                   </span>
-                  <span className="text-[9.5px] text-amber-400/80 font-bold">XP</span>
+                  <span className="text-[9px] text-amber-400/70 font-black">XP</span>
                 </div>
 
-                {/* 6. Segment: Streak Flame */}
+                {/* 6. Streak */}
                 {streakCount > 0 && (
-                  <div 
-                    className="flex-1 flex items-center justify-center gap-1 sm:gap-1.5 py-1 px-1.5 sm:px-2 rounded-lg bg-orange-500/10 hover:bg-orange-500/20 border border-orange-500/25 text-orange-300 transition-all shadow-xs group min-w-0" 
-                    title={`Streak: ${streakCount} consecutive days`}
-                  >
-                    <Flame className="w-3.5 h-3.5 text-orange-400 fill-orange-400 shrink-0 animate-pulse group-hover:scale-110 transition-transform" />
-                    <span className="font-black text-[11px] text-orange-300 tracking-tight">{streakCount}d</span>
-                  </div>
+                  <>
+                    <div className="w-[1px] h-3.5 bg-slate-800 shrink-0" />
+                    <div 
+                      className="flex items-center justify-center gap-1.5 px-2 py-0.5 rounded-md hover:bg-slate-800/50 transition-colors shrink-0" 
+                      title={`Streak: ${streakCount} consecutive days`}
+                    >
+                      <Flame className="w-3.5 h-3.5 text-orange-400 fill-orange-400 shrink-0" />
+                      <span className="font-black text-[11px] text-orange-300 tracking-tight">{streakCount}d</span>
+                    </div>
+                  </>
                 )}
               </motion.div>
             )}
