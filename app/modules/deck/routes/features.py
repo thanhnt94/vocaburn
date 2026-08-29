@@ -152,6 +152,17 @@ async def save_practice_settings(request: Request, deck_id: int, payload: dict, 
     is_creator = payload.get("is_creator", False)
     settings = payload.get("settings")
     if is_creator and settings:
+        audio_configs = settings.get("audio_configs") or []
+        for c_idx, cfg in enumerate(audio_configs):
+            cfg_url = cfg.get("url_col") or cfg.get("audio_url_col")
+            cfg_src = cfg.get("source_col") or cfg.get("audio_content_col")
+            cfg_name = cfg.get("name") or f"#{c_idx + 1}"
+            if cfg_url and cfg_src:
+                if cfg_url == cfg_src:
+                    return JSONResponse(status_code=400, content={"error": f"Cấu hình '{cfg_name}': Cột đường dẫn âm thanh không được trùng với cột kịch bản đọc."})
+                if cfg_url in ("front", "back") and cfg_src in ("front", "back"):
+                    return JSONResponse(status_code=400, content={"error": f"Cấu hình '{cfg_name}': Cột đường dẫn âm thanh không được trùng với cột nội dung chính (front/back)."})
+
         front_cfg = settings.get("front_audio_config") or {}
         back_cfg = settings.get("back_audio_config") or {}
         custom_pairs = settings.get("audio_pairs") or []
@@ -162,7 +173,7 @@ async def save_practice_settings(request: Request, deck_id: int, payload: dict, 
         if front_url_col:
             if front_url_col == front_content_col:
                 return JSONResponse(status_code=400, content={"error": "Mặt trước: Cột đường dẫn âm thanh không được trùng với cột kịch bản đọc."})
-            if front_url_col in ("front", "back"):
+            if front_url_col in ("front", "back") and front_content_col in ("front", "back"):
                 return JSONResponse(status_code=400, content={"error": "Mặt trước: Cột đường dẫn âm thanh không được trùng với cột nội dung chính (front/back)."})
                 
         # Check back_audio_config
@@ -171,7 +182,7 @@ async def save_practice_settings(request: Request, deck_id: int, payload: dict, 
         if back_url_col:
             if back_url_col == back_content_col:
                 return JSONResponse(status_code=400, content={"error": "Mặt sau: Cột đường dẫn âm thanh không được trùng với cột kịch bản đọc."})
-            if back_url_col in ("front", "back"):
+            if back_url_col in ("front", "back") and back_content_col in ("front", "back"):
                 return JSONResponse(status_code=400, content={"error": "Mặt sau: Cột đường dẫn âm thanh không được trùng với cột nội dung chính (front/back)."})
                 
         # Check custom pairs
@@ -184,7 +195,7 @@ async def save_practice_settings(request: Request, deck_id: int, payload: dict, 
                     return JSONResponse(status_code=400, content={"error": f"Cặp custom #{c_idx+1}: Cột đường dẫn âm thanh không được trùng với cột kịch bản đọc."})
                 if pair_url_col == pair_text_col:
                     return JSONResponse(status_code=400, content={"error": f"Cặp custom #{c_idx+1}: Cột đường dẫn âm thanh không được trùng với cột nội dung chính."})
-                if pair_url_col in ("front", "back"):
+                if pair_url_col in ("front", "back") and pair_content_col in ("front", "back"):
                     return JSONResponse(status_code=400, content={"error": f"Cặp custom #{c_idx+1}: Cột đường dẫn âm thanh không được trùng với cột nội dung chính (front/back)."})
 
     user_id = AuthService.get_user_id(request)
@@ -1138,15 +1149,20 @@ async def stream_dynamic_tts(text: str, lang: Optional[str] = None):
             
     return {"url": url}
 
-async def _bulk_generate_deck_audio_task(deck_id: int, source_field: str, target_field: str, force: bool, base_url: str, card_ids: list = None, voice_name: str = None):
+async def _bulk_generate_deck_audio_task(deck_id: int, target_face: str, force: bool, base_url: str, card_ids: list = None, custom_source: str = None, custom_target: str = None, voice_name: str = None):
     from app.core.db import SessionLocal
     async with SessionLocal() as db:
-        from app.modules.deck.models import Flashcard
+        from app.modules.deck.models import Flashcard, FlashcardDeck
         res = await db.execute(select(Flashcard).filter(Flashcard.deck_id == deck_id))
         cards = res.scalars().all()
         if card_ids is not None:
             cards = [c for c in cards if c.id in card_ids]
-        logger.info(f"[BULK TTS] Starting batch submission to CentralAuth queue for deck {deck_id} ({len(cards)} cards) Source={source_field} Target={target_field} Voice={voice_name}")
+
+        deck_res = await db.execute(select(FlashcardDeck).where(FlashcardDeck.id == deck_id))
+        deck = deck_res.scalar_one_or_none()
+
+        ps = deck.practice_settings if (deck and deck.practice_settings and isinstance(deck.practice_settings, dict)) else {}
+        voice_mapping = ps.get("voice_mapping", {})
         
         # Get CentralAuth configuration
         from app.modules.sso_module.service import SSOService
@@ -1162,81 +1178,122 @@ async def _bulk_generate_deck_audio_task(deck_id: int, source_field: str, target
         callback_base = settings.APP_BASE_URL if settings.APP_BASE_URL else base_url
         callback_url = f"{callback_base.rstrip('/')}/api/v1/deck/tts-callback"
 
-        from app.modules.deck.models import FlashcardDeck
-        deck_res = await db.execute(select(FlashcardDeck).where(FlashcardDeck.id == deck_id))
-        deck = deck_res.scalar_one_or_none()
+        # Determine faces to process
+        faces_to_process = []
+        audio_configs = ps.get("audio_configs", [])
 
-        bulk_lang = None
-        if voice_name and voice_name != "auto":
-            bulk_lang = voice_name
-        elif deck and deck.practice_settings and isinstance(deck.practice_settings, dict):
-            ps = deck.practice_settings
-            if ps.get("audio_voice_name") and ps.get("audio_voice_name") != "auto":
-                bulk_lang = ps.get("audio_voice_name")
-            elif target_field == "front_audio_url":
-                cfg = ps.get("front_audio_config", {})
-                if isinstance(cfg, dict):
-                    bulk_lang = cfg.get("lang")
-            elif target_field == "back_audio_url":
-                cfg = ps.get("back_audio_config", {})
-                if isinstance(cfg, dict):
-                    bulk_lang = cfg.get("lang")
-            elif ps.get("audio_voice_lang"):
-                bulk_lang = ps.get("audio_voice_lang")
+        if custom_source and custom_target:
+            faces_to_process.append({
+                "face": custom_target,
+                "src": custom_source,
+                "tgt": custom_target,
+                "lang": voice_name or "multi"
+            })
+        elif target_face == "all":
+            if audio_configs:
+                for cfg in audio_configs:
+                    src = cfg.get("source_col") or cfg.get("audio_content_col")
+                    tgt = cfg.get("url_col") or cfg.get("audio_url_col")
+                    lang = cfg.get("lang", "multi")
+                    if src and tgt and lang != "none":
+                        faces_to_process.append({"face": tgt, "src": src, "tgt": tgt, "lang": lang})
             else:
-                pairs = ps.get("audio_pairs", [])
-                pair = next((p for p in pairs if p.get("audio_url_col") == target_field or p.get("text_col") == target_field), None)
-                if pair:
-                    bulk_lang = pair.get("lang")
-
-        if bulk_lang and bulk_lang.startswith("gtts:"):
-            bulk_lang = bulk_lang.replace("gtts:", "")
+                front_cfg = ps.get("front_audio_config", {})
+                back_cfg = ps.get("back_audio_config", {})
+                faces_to_process.append({
+                    "face": "front",
+                    "src": front_cfg.get("audio_content_col") or "front_audio_content",
+                    "tgt": front_cfg.get("audio_url_col") or "front_audio_url",
+                    "lang": front_cfg.get("lang")
+                })
+                faces_to_process.append({
+                    "face": "back",
+                    "src": back_cfg.get("audio_content_col") or "back_audio_content",
+                    "tgt": back_cfg.get("audio_url_col") or "back_audio_url",
+                    "lang": back_cfg.get("lang")
+                })
+        else:
+            # Check if target_face matches an id or url_col or name in audio_configs
+            matched_cfg = next((c for c in audio_configs if c.get("id") == target_face or c.get("url_col") == target_face or c.get("audio_url_col") == target_face or c.get("source_col") == target_face), None)
+            if matched_cfg:
+                src = matched_cfg.get("source_col") or matched_cfg.get("audio_content_col")
+                tgt = matched_cfg.get("url_col") or matched_cfg.get("audio_url_col")
+                lang = matched_cfg.get("lang", "multi")
+                faces_to_process.append({"face": tgt, "src": src, "tgt": tgt, "lang": lang})
+            elif target_face == "front":
+                front_cfg = ps.get("front_audio_config", {})
+                src = custom_source or front_cfg.get("audio_content_col") or "front_audio_content"
+                tgt = custom_target or front_cfg.get("audio_url_col") or "front_audio_url"
+                faces_to_process.append({"face": "front", "src": src, "tgt": tgt, "lang": front_cfg.get("lang") or voice_name})
+            elif target_face == "back":
+                back_cfg = ps.get("back_audio_config", {})
+                src = custom_source or back_cfg.get("audio_content_col") or "back_audio_content"
+                tgt = custom_target or back_cfg.get("audio_url_col") or "back_audio_url"
+                faces_to_process.append({"face": "back", "src": src, "tgt": tgt, "lang": back_cfg.get("lang") or voice_name})
+            else:
+                faces_to_process.append({
+                    "face": custom_target or target_face,
+                    "src": custom_source or target_face,
+                    "tgt": custom_target or target_face,
+                    "lang": voice_name or "multi"
+                })
 
         for c in cards:
             await db.refresh(c)
-            
-            # Determine prompt text
-            if source_field == "front":
-                text = c.content
-            elif source_field == "back":
-                text = c.explanation
-            elif source_field == "front_audio_content":
-                text = c.front_audio_content
-            elif source_field == "back_audio_content":
-                text = c.back_audio_content
-            else:
-                text = c.others.get(source_field) if c.others else None
-                
-            if not text or not str(text).strip():
-                continue
-                
-            text = str(text).strip()
-            
-            # Check target field
-            has_audio = False
-            if target_field == "front_audio_url":
-                has_audio = bool(c.front_audio_url and c.front_audio_url.strip())
-            elif target_field == "back_audio_url":
-                has_audio = bool(c.back_audio_url and c.back_audio_url.strip())
-            else:
-                has_audio = bool(c.others and c.others.get(target_field))
-                
-            if force or not has_audio:
-                task_item = {
-                    "satellite_source": "vocaburn",
-                    "prompt": text,
-                    "callback_url": callback_url,
-                    "extra_data": json.dumps({
-                        "task_type": "tts",
-                        "card_id": c.id,
-                        "face": target_field,
-                        "deck_id": deck_id
-                    }),
-                    "max_retries": 3
-                }
-                if bulk_lang:
-                    task_item["lang"] = bulk_lang
-                tasks_to_submit.append(task_item)
+            for f_spec in faces_to_process:
+                src_col = f_spec["src"]
+                tgt_col = f_spec["tgt"]
+                face_name = f_spec["face"]
+                face_lang = f_spec.get("lang")
+
+                if face_lang == "none":
+                    continue
+
+                # Determine prompt text
+                text = ""
+                if src_col == "front_audio_content":
+                    text = c.front_audio_content or (c.others.get("front_audio_content") if c.others else None) or c.content
+                elif src_col == "back_audio_content":
+                    text = c.back_audio_content or (c.others.get("back_audio_content") if c.others else None) or c.explanation
+                elif src_col == "front":
+                    text = c.content
+                elif src_col == "back":
+                    text = c.explanation
+                elif c.others and src_col in c.others:
+                    text = c.others.get(src_col)
+                elif hasattr(c, src_col):
+                    text = getattr(c, src_col)
+
+                if not text or not str(text).strip():
+                    continue
+                text = str(text).strip()
+
+                # Check if already has audio
+                has_audio = False
+                if tgt_col == "front_audio_url":
+                    has_audio = bool(c.front_audio_url and c.front_audio_url.strip())
+                elif tgt_col == "back_audio_url":
+                    has_audio = bool(c.back_audio_url and c.back_audio_url.strip())
+                elif c.others and tgt_col in c.others:
+                    has_audio = bool(c.others.get(tgt_col) and str(c.others.get(tgt_col)).strip())
+
+                if force or not has_audio:
+                    task_item = {
+                        "satellite_source": "vocaburn",
+                        "prompt": text,
+                        "callback_url": callback_url,
+                        "extra_data": json.dumps({
+                            "task_type": "tts",
+                            "card_id": c.id,
+                            "face": tgt_col,
+                            "deck_id": deck_id,
+                            "voice_mapping": voice_mapping
+                        }),
+                        "max_retries": 3
+                    }
+                    if face_lang and face_lang != "multi" and face_lang != "auto":
+                        task_item["lang"] = face_lang.replace("gtts:", "")
+                    tasks_to_submit.append(task_item)
 
         if not tasks_to_submit:
             logger.info(f"[BULK TTS] All cards in deck {deck_id} are already fully synchronized.")
@@ -1278,17 +1335,19 @@ async def generate_all_deck_audio(
         return JSONResponse(status_code=404, content={"error": "Deck not found"})
         
     force = False
-    source_field = "front"
-    target_field = "front_audio_url"
+    target_face = "front"
+    source_field = None
+    target_field = None
     card_ids = None
     voice_name = None
     
     if payload:
         force = payload.get("force", False)
-        source_field = payload.get("source_field", "front")
-        target_field = payload.get("target_field", "front_audio_url")
-        card_ids = payload.get("card_ids", None)
-        voice_name = payload.get("voice_name", None)
+        target_face = payload.get("target_face", "front")
+        source_field = payload.get("source_field")
+        target_field = payload.get("target_field")
+        card_ids = payload.get("card_ids")
+        voice_name = payload.get("voice_name")
         
     # Detect scheme dynamically (e.g. support HTTPS behind Nginx reverse proxy)
     scheme = request.headers.get("x-forwarded-proto", request.url.scheme)
@@ -1300,7 +1359,7 @@ async def generate_all_deck_audio(
         
     base_url = f"{scheme}://{netloc}"
     
-    background_tasks.add_task(_bulk_generate_deck_audio_task, deck_id, source_field, target_field, force, base_url, card_ids, voice_name)
+    background_tasks.add_task(_bulk_generate_deck_audio_task, deck_id, target_face, force, base_url, card_ids, source_field, target_field, voice_name)
     return {"status": "ok", "message": "Bulk TTS audio generation queue submission started."}
 
 @router.get("/{deck_id}/tts-status")
