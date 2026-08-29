@@ -175,8 +175,8 @@ export default function Layout() {
 
       {/* Modern Fixed Full-Width Mobile Bottom Nav (4 Tabs) */}
       {showBottomNav && (
-        <div className="fixed bottom-0 left-0 right-0 z-[120] md:hidden bg-white/95 backdrop-blur-2xl border-t border-slate-100 shadow-[0_-4px_25px_rgba(0,0,0,0.03)] px-3 py-1.5 pb-[max(0.375rem,env(safe-area-inset-bottom))]">
-          <nav className="grid grid-cols-4 items-center max-w-md mx-auto h-13">
+        <div className="fixed bottom-0 left-0 right-0 z-[120] md:hidden bg-white/90 backdrop-blur-2xl border-t border-slate-200/80 shadow-[0_-8px_30px_rgba(0,0,0,0.06)] px-3 pt-2 pb-[max(0.5rem,env(safe-area-inset-bottom))]">
+          <nav className="max-w-md mx-auto bg-slate-100/85 p-1 rounded-2xl border border-slate-200/70 grid grid-cols-4 gap-1 relative shadow-2xs">
             {navItems.filter(item => item.label !== 'Admin').map((item) => {
               const Icon = item.icon
               const isActive = item.path === '/' 
@@ -187,28 +187,26 @@ export default function Layout() {
                 <Link 
                   key={item.path}
                   to={item.path} 
-                  className="group relative flex flex-col items-center justify-center py-1 select-none active:scale-95 transition-transform cursor-pointer"
+                  className="relative flex flex-col items-center justify-center h-12 rounded-xl select-none active:scale-95 transition-transform cursor-pointer overflow-hidden"
                 >
-                  <div className="relative flex items-center justify-center w-11 h-7">
-                    {isActive && (
-                      <motion.div 
-                        layoutId="navActivePill"
-                        className="absolute inset-0 bg-gradient-to-r from-orange-500/15 to-rose-500/15 rounded-full"
-                        transition={{ type: "spring", stiffness: 400, damping: 30 }}
-                      />
-                    )}
-                    <Icon className={cn(
-                      "w-5 h-5 relative z-10 transition-all duration-200",
-                      isActive 
-                        ? "text-orange-600 scale-110 stroke-[2.4]" 
-                        : "text-slate-400 group-hover:text-slate-600 stroke-[1.8]"
-                    )} />
-                  </div>
-                  <span className={cn(
-                    "text-[10px] tracking-tight mt-0.5 transition-all duration-200",
+                  {isActive && (
+                    <motion.div 
+                      layoutId="navSegmentActive"
+                      className="absolute inset-0 bg-gradient-to-tr from-orange-500 to-rose-500 rounded-xl shadow-xs shadow-orange-500/25"
+                      transition={{ type: "spring", stiffness: 450, damping: 35 }}
+                    />
+                  )}
+                  <Icon className={cn(
+                    "w-5 h-5 relative z-10 transition-all duration-200",
                     isActive 
-                      ? "font-black text-orange-600" 
-                      : "font-semibold text-slate-400"
+                      ? "text-white scale-105 stroke-[2.4]" 
+                      : "text-slate-500 hover:text-slate-800 stroke-[1.9]"
+                  )} />
+                  <span className={cn(
+                    "text-[10px] tracking-tight relative z-10 transition-all duration-200 mt-0.5 leading-none",
+                    isActive 
+                      ? "font-black text-white" 
+                      : "font-bold text-slate-500"
                   )}>
                     {item.label}
                   </span>
