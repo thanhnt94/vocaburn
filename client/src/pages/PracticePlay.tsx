@@ -3925,7 +3925,6 @@ export default function PracticePlay() {
             onToggleTimeMode={toggleTimeMode}
             onToggleScoreMode={toggleScoreMode}
             formatHeaderTime={formatHeaderTime}
-            onCreateNewCard={!isRoadmapTestMode ? handleCreateNewCard : undefined}
           />
         );
       })()}

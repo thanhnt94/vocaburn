@@ -281,32 +281,35 @@ export default function DecksPage() {
           </AnimatePresence>
 
           {/* Row 3: Horizontal Scrollable Filter Chips */}
-          <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-2 pt-0.5">
+          <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-2.5 pt-0.5">
             {activeTab === 'my' && (
               <>
                 {[
                   { id: 'all' as StatusFilter, label: 'Tất cả' },
-                  { id: 'roadmap' as StatusFilter, label: '🧭 Có lộ trình' },
+                  { id: 'roadmap' as StatusFilter, label: '🧭 Lộ trình' },
                   { id: 'learning' as StatusFilter, label: '⚡ Đang học' },
                   { id: 'unlearned' as StatusFilter, label: '✨ Chưa học' },
                   { id: 'mastered' as StatusFilter, label: '🌟 Đã thuộc' },
-                ].map(st => (
-                  <button
-                    key={st.id}
-                    onClick={() => setStatusFilter(st.id)}
-                    className={cn(
-                      "px-2.5 py-1 rounded-xl text-[10px] font-black transition-all shrink-0 border cursor-pointer select-none",
-                      statusFilter === st.id
-                        ? st.id === 'roadmap'
-                          ? "bg-teal-600 border-teal-600 text-white shadow-2xs"
-                          : "bg-indigo-600 border-indigo-600 text-white shadow-2xs"
-                        : "bg-white border-slate-200/80 text-slate-600 hover:bg-slate-50"
-                    )}
-                  >
-                    {st.label}
-                  </button>
-                ))}
-                <div className="w-[1px] h-4 bg-slate-200 shrink-0 mx-0.5" />
+                ].map(st => {
+                  const isSelected = statusFilter === st.id
+                  return (
+                    <button
+                      key={st.id}
+                      onClick={() => setStatusFilter(st.id)}
+                      className={cn(
+                        "px-3 py-1.5 rounded-xl text-xs font-black transition-all shrink-0 border cursor-pointer select-none",
+                        isSelected
+                          ? st.id === 'roadmap'
+                            ? "bg-teal-600 border-teal-600 text-white shadow-xs"
+                            : "bg-slate-900 border-slate-900 text-white shadow-xs"
+                          : "bg-white border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+                      )}
+                    >
+                      {st.label}
+                    </button>
+                  )
+                })}
+                <div className="w-[1px] h-4 bg-slate-200 shrink-0 mx-1" />
               </>
             )}
 
@@ -314,13 +317,13 @@ export default function DecksPage() {
             <button 
               onClick={() => setActiveTag(null)}
               className={cn(
-                "px-2.5 py-1 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all shrink-0 border cursor-pointer select-none",
+                "px-3 py-1.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all shrink-0 border cursor-pointer select-none",
                 !activeTag 
-                  ? "bg-slate-900 border-slate-900 text-white shadow-2xs" 
-                  : "bg-white border-slate-200/80 text-slate-600 hover:bg-slate-50"
+                  ? "bg-indigo-600 border-indigo-600 text-white shadow-xs" 
+                  : "bg-white border-slate-200 text-slate-600 hover:bg-slate-50"
               )}
             >
-              Tags
+              Tất cả Tags
             </button>
 
             {allAvailableTags.map(tag => {
@@ -330,10 +333,10 @@ export default function DecksPage() {
                   key={tag}
                   onClick={() => setActiveTag(isActive ? null : tag)}
                   className={cn(
-                    "px-2.5 py-1 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all shrink-0 border cursor-pointer select-none",
+                    "px-3 py-1.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all shrink-0 border cursor-pointer select-none",
                     isActive
-                      ? "bg-indigo-600 border-indigo-600 text-white shadow-2xs"
-                      : "bg-white border-slate-200/80 text-slate-600 hover:border-indigo-200 hover:bg-indigo-50/40"
+                      ? "bg-indigo-600 border-indigo-600 text-white shadow-xs"
+                      : "bg-white border-slate-200 text-slate-600 hover:border-indigo-200 hover:bg-indigo-50/40 hover:text-indigo-600"
                   )}
                 >
                   #{tag}
@@ -346,31 +349,31 @@ export default function DecksPage() {
       </div>
 
       {/* ═══════════ MAIN DECK LIST (INTERNAL SCROLLABLE - FLEX-1) ═══════════ */}
-      <div className="flex-1 overflow-y-auto custom-scrollbar px-3 sm:px-6 py-3">
+      <div className="flex-1 overflow-y-auto custom-scrollbar px-3 sm:px-6 py-4">
         <div className="max-w-5xl mx-auto">
           {/* Empty State */}
           {filteredData.length === 0 ? (
-            <div className="w-full bg-white border border-slate-200/80 rounded-3xl p-8 text-center flex flex-col items-center justify-center shadow-xs my-auto">
-              <div className="w-12 h-12 rounded-2xl bg-slate-100 flex items-center justify-center text-2xl mb-3">
+            <div className="w-full bg-white border border-slate-200/80 rounded-3xl p-10 text-center flex flex-col items-center justify-center shadow-sm my-auto">
+              <div className="w-16 h-16 rounded-3xl bg-indigo-50 flex items-center justify-center text-3xl mb-3 shadow-inner">
                 🔍
               </div>
-              <h3 className="text-sm font-black text-slate-800 uppercase tracking-wider mb-1">
-                Không tìm thấy bộ thẻ
+              <h3 className="text-base font-black text-slate-800 tracking-tight mb-1">
+                Không tìm thấy bộ thẻ phù hợp
               </h3>
-              <p className="text-xs text-slate-400 max-w-sm mb-4">
-                Hãy thử tìm kiếm với từ khóa khác hoặc bỏ chọn bộ lọc trạng thái.
+              <p className="text-xs text-slate-400 max-w-sm mb-5">
+                Hãy thử tìm kiếm với từ khóa khác hoặc chuyển bộ lọc trạng thái sang "Tất cả".
               </p>
               {activeTab === 'discover' && (
                 <button 
                   onClick={() => setIsCreateModalOpen(true)}
-                  className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xs uppercase tracking-wider rounded-xl shadow-xs transition-all cursor-pointer"
+                  className="px-5 py-2.5 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-black text-xs uppercase tracking-wider rounded-2xl shadow-md shadow-indigo-200 transition-all cursor-pointer active:scale-95"
                 >
                   + Tự tạo bộ thẻ mới
                 </button>
               )}
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
               <AnimatePresence mode="popLayout">
                 {paginatedData.map((quiz, idx) => {
                   const learned = quiz.learned_count || 0
@@ -380,36 +383,77 @@ export default function DecksPage() {
                   const isMastered = progressPct === 100
                   const formattedDate = formatDate(quiz.created_at)
 
+                  // Smart gradient & cover palette based on title / tags
+                  const getThemeGradient = (q: Quiz, i: number) => {
+                    const titleLower = q.title.toLowerCase()
+                    if (titleLower.includes('n1') || titleLower.includes('n2') || titleLower.includes('kanji')) {
+                      return {
+                        bg: 'from-rose-500 via-pink-500 to-indigo-600',
+                        accent: 'text-rose-600 bg-rose-50 border-rose-200/80',
+                        icon: '🌸'
+                      }
+                    }
+                    if (titleLower.includes('n3') || titleLower.includes('n4') || titleLower.includes('n5')) {
+                      return {
+                        bg: 'from-emerald-500 via-teal-500 to-cyan-600',
+                        accent: 'text-emerald-600 bg-emerald-50 border-emerald-200/80',
+                        icon: '🌿'
+                      }
+                    }
+                    if (titleLower.includes('ielts') || titleLower.includes('toeic') || titleLower.includes('english')) {
+                      return {
+                        bg: 'from-blue-600 via-indigo-600 to-violet-600',
+                        accent: 'text-blue-600 bg-blue-50 border-blue-200/80',
+                        icon: '🇬🇧'
+                      }
+                    }
+                    if (titleLower.includes('hội thoại') || titleLower.includes('công việc') || titleLower.includes('giao tiếp')) {
+                      return {
+                        bg: 'from-amber-500 via-orange-500 to-rose-500',
+                        accent: 'text-amber-700 bg-amber-50 border-amber-200/80',
+                        icon: '💼'
+                      }
+                    }
+                    const palettes = [
+                      { bg: 'from-indigo-600 via-purple-600 to-pink-500', accent: 'text-indigo-600 bg-indigo-50 border-indigo-200/80', icon: '🎴' },
+                      { bg: 'from-sky-500 via-blue-600 to-indigo-600', accent: 'text-sky-600 bg-sky-50 border-sky-200/80', icon: '✨' },
+                      { bg: 'from-teal-500 via-emerald-600 to-green-600', accent: 'text-teal-600 bg-teal-50 border-teal-200/80', icon: '🎯' },
+                      { bg: 'from-violet-600 via-purple-600 to-amber-500', accent: 'text-purple-600 bg-purple-50 border-purple-200/80', icon: '⚡' },
+                    ]
+                    return palettes[i % palettes.length]
+                  }
+
+                  const theme = getThemeGradient(quiz, idx)
+
                   return (
                     <motion.div
                       key={quiz.id}
                       layout
-                      initial={{ opacity: 0, y: 8 }}
+                      initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0, scale: 0.95 }}
-                      transition={{ delay: idx * 0.015 }}
-                      className="group bg-white rounded-2xl border border-slate-200/80 hover:border-indigo-300 p-3 sm:p-3.5 shadow-2xs hover:shadow-sm transition-all flex flex-col justify-between gap-2 relative"
+                      transition={{ delay: idx * 0.02 }}
+                      className="group bg-white rounded-3xl border border-slate-200/90 hover:border-indigo-300/90 p-4 shadow-[0_4px_20px_rgba(0,0,0,0.03)] hover:shadow-[0_8px_30px_rgba(99,102,241,0.08)] hover:-translate-y-0.5 transition-all duration-300 flex flex-col justify-between gap-3.5 relative overflow-hidden"
                     >
-                      {/* Card Content Row */}
-                      <div className="flex items-start gap-3 min-w-0">
-                        {/* Thumbnail */}
+                      {/* Top Row: Thumbnail + Deck Info + Menu */}
+                      <div className="flex items-start gap-3.5 min-w-0">
+                        {/* Vibrant Thumbnail */}
                         <div
                           onClick={() => navigate(`/decks/${quiz.id}`)}
-                          className="w-12 h-12 sm:w-13 sm:h-13 rounded-2xl overflow-hidden border border-slate-100 shadow-2xs shrink-0 cursor-pointer group-hover:scale-102 transition-transform flex items-center justify-center"
+                          className={cn(
+                            "w-14 h-14 sm:w-15 sm:h-15 rounded-2xl overflow-hidden shadow-md shrink-0 cursor-pointer group-hover:scale-105 transition-transform flex flex-col items-center justify-center text-white relative",
+                            !quiz.cover_image && `bg-gradient-to-br ${theme.bg}`
+                          )}
                         >
                           {quiz.cover_image ? (
                             <img src={quiz.cover_image} alt="" className="w-full h-full object-cover" />
                           ) : (
-                            <div className={cn(
-                              "w-full h-full flex items-center justify-center text-white text-base font-bold",
-                              idx % 5 === 0 ? "bg-gradient-to-br from-indigo-500 to-purple-600" :
-                              idx % 5 === 1 ? "bg-gradient-to-br from-rose-500 to-orange-500" :
-                              idx % 5 === 2 ? "bg-gradient-to-br from-emerald-500 to-teal-600" :
-                              idx % 5 === 3 ? "bg-gradient-to-br from-blue-500 to-cyan-600" :
-                              "bg-gradient-to-br from-amber-500 to-yellow-600"
-                            )}>
-                              🎴
-                            </div>
+                            <>
+                              <span className="text-xl leading-none drop-shadow-sm">{theme.icon}</span>
+                              <span className="text-[10px] font-black uppercase tracking-wider mt-0.5 opacity-90">
+                                {quiz.questions_count > 999 ? `${(quiz.questions_count / 1000).toFixed(1)}k` : quiz.questions_count}
+                              </span>
+                            </>
                           )}
                         </div>
 
@@ -419,133 +463,156 @@ export default function DecksPage() {
                           className="flex-1 min-w-0 cursor-pointer text-left"
                         >
                           {/* Title & Roadmap Badge */}
-                          <div className="flex items-center gap-1.5 min-w-0">
-                            <h3 className="text-xs sm:text-sm font-black text-slate-800 group-hover:text-indigo-600 transition-colors line-clamp-1 leading-snug">
+                          <div className="flex items-center gap-1.5 flex-wrap min-w-0">
+                            <h3 className="text-sm sm:text-base font-black text-slate-800 group-hover:text-indigo-600 transition-colors line-clamp-1 leading-snug">
                               {quiz.title}
                             </h3>
                             {quiz.has_roadmap && (
                               <span 
-                                className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md bg-teal-50 border border-teal-200/80 text-teal-700 font-extrabold text-[9px] shadow-2xs shrink-0"
-                                title="Bộ thẻ này đang bật Lộ trình học"
+                                className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-teal-50 border border-teal-200 text-teal-700 font-extrabold text-[10px] shadow-2xs shrink-0"
+                                title="Bộ thẻ này đang bật Lộ trình học thông minh"
                               >
-                                <Compass className="w-2.5 h-2.5 text-teal-600 animate-spin-slow" />
+                                <Compass className="w-3 h-3 text-teal-600 animate-spin-slow" />
                                 <span>Lộ trình</span>
                               </span>
                             )}
                           </div>
 
-                          {/* Meta line: Card count, Creator, Date */}
-                          <div className="flex items-center flex-wrap gap-x-2 gap-y-0.5 mt-0.5 text-[10px] font-bold text-slate-400">
-                            <span className="text-indigo-600 font-extrabold">{quiz.questions_count} thẻ</span>
-                            <span>•</span>
-                            <span className="text-slate-600 truncate max-w-[120px]">
-                              @{quiz.creator_name || (quiz.is_creator ? 'Bạn' : 'Hệ thống')}
+                          {/* Meta Badges: Count, Creator */}
+                          <div className="flex items-center flex-wrap gap-1.5 mt-1.5 text-[11px] font-bold text-slate-400">
+                            <span className="inline-flex items-center px-2 py-0.5 rounded-lg bg-slate-100 text-slate-700 font-bold text-[10px]">
+                              📚 {quiz.questions_count} từ
                             </span>
-                            {formattedDate && (
-                              <>
-                                <span>•</span>
-                                <span className="text-slate-400 font-medium">
-                                  {formattedDate}
+
+                            <span className="text-slate-400 truncate max-w-[130px] font-medium text-[11px]">
+                              {quiz.is_creator ? '✨ Tạo bởi bạn' : `@${quiz.creator_name || 'Hệ thống'}`}
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* 3-Dots Action Sheet Trigger */}
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            setActionSheetQuiz(quiz)
+                          }}
+                          className="w-8 h-8 rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-200/60 text-slate-400 hover:text-slate-700 transition-all flex items-center justify-center cursor-pointer shrink-0 shadow-2xs active:scale-95"
+                          title="Tùy chọn khác"
+                        >
+                          <MoreHorizontal className="w-4 h-4" />
+                        </button>
+                      </div>
+
+                      {/* Middle Row: Progress presentation (Clean, high-contrast & sleek) */}
+                      {activeTab !== 'discover' && (
+                        <div className="bg-slate-50/80 rounded-2xl p-2.5 border border-slate-100 flex flex-col gap-1.5">
+                          <div className="flex items-center justify-between text-xs font-black">
+                            {hasStudied ? (
+                              isMastered ? (
+                                <span className="inline-flex items-center gap-1.5 text-emerald-600">
+                                  <Sparkles className="w-3.5 h-3.5" />
+                                  <span>Đã hoàn thành xuất sắc!</span>
                                 </span>
-                              </>
+                              ) : (
+                                <span className="inline-flex items-center gap-1.5 text-indigo-600">
+                                  <span>⚡ Tiến độ học: {progressPct}%</span>
+                                </span>
+                              )
+                            ) : (
+                              <span className="text-slate-400 font-semibold">
+                                ✨ Chưa bắt đầu học
+                              </span>
                             )}
+
+                            <span className="text-[11px] font-mono font-bold text-slate-400">
+                              {learned} / {quiz.questions_count}
+                            </span>
                           </div>
 
-                          {/* Progress Line (Clean inline without detached floating numbers) */}
-                          {activeTab !== 'discover' && (
-                            <div className="flex items-center gap-1.5 text-[10px] font-bold mt-1">
-                              {hasStudied ? (
-                                isMastered ? (
-                                  <span className="inline-flex items-center gap-1 text-emerald-600 font-black">
-                                    <span>🌟 Thuộc 100%</span>
-                                    <span className="text-slate-400 font-medium font-mono">({quiz.questions_count}/{quiz.questions_count})</span>
-                                  </span>
-                                ) : (
-                                  <span className="inline-flex items-center gap-1 text-indigo-600 font-bold">
-                                    <span>⚡ Đang học {progressPct}%</span>
-                                    <span className="text-slate-400 font-medium font-mono">({learned}/{quiz.questions_count})</span>
-                                  </span>
-                                )
-                              ) : (
-                                <span className="inline-flex items-center gap-1 text-slate-400 font-semibold">
-                                  <span>✨ Chưa học</span>
-                                  <span className="text-slate-400 font-mono">(0/{quiz.questions_count})</span>
-                                </span>
+                          {/* Progress Track */}
+                          <div className="w-full h-2 bg-slate-200/70 rounded-full overflow-hidden p-0.5">
+                            <div
+                              className={cn(
+                                "h-full rounded-full transition-all duration-500",
+                                isMastered 
+                                  ? "bg-gradient-to-r from-emerald-400 to-teal-500 shadow-xs" 
+                                  : hasStudied
+                                  ? "bg-gradient-to-r from-indigo-500 via-purple-500 to-rose-500 shadow-xs shadow-indigo-200"
+                                  : "bg-transparent"
                               )}
-                            </div>
+                              style={{ width: `${Math.max(hasStudied ? 6 : 0, progressPct)}%` }}
+                            />
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Bottom Action Row: Play CTA & Roadmap Shortcut */}
+                      <div className="flex items-center justify-between gap-2 pt-1 border-t border-slate-100/80">
+                        <div className="flex items-center gap-1 text-[11px] font-bold text-slate-400">
+                          {formattedDate && (
+                            <span className="text-slate-400 font-medium">
+                              Cập nhật {formattedDate}
+                            </span>
                           )}
                         </div>
 
-                        {/* Right Buttons: Roadmap Shortcut + Quick Play CTA + More Options */}
-                        <div className="flex items-center gap-1.5 shrink-0 self-center">
+                        <div className="flex items-center gap-2 shrink-0">
                           {activeTab === 'my' && quiz.has_roadmap && (
                             <button
                               onClick={(e) => {
                                 e.stopPropagation()
                                 navigate(`/decks/${quiz.id}?tab=roadmap`)
                               }}
-                              className="h-8.5 px-2.5 rounded-xl bg-teal-50 hover:bg-teal-100 border border-teal-200 text-teal-700 font-black text-xs active:scale-95 transition-all flex items-center gap-1 cursor-pointer shadow-2xs"
-                              title="Truy cập nhanh Lộ trình học"
+                              className="h-9 px-3 rounded-xl bg-teal-50 hover:bg-teal-100/80 border border-teal-200 text-teal-700 font-black text-xs active:scale-95 transition-all flex items-center gap-1.5 cursor-pointer shadow-2xs"
+                              title="Truy cập Lộ trình học"
                             >
                               <Compass className="w-3.5 h-3.5 text-teal-600" />
-                              <span className="hidden sm:inline">Lộ trình</span>
+                              <span className="hidden xs:inline">Lộ trình</span>
                             </button>
                           )}
 
                           {activeTab === 'my' && (
                             <button
-                              onClick={() => handleStudyTrigger(quiz, 'flashcard')}
-                              className="h-8.5 px-3 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-black text-xs shadow-xs shadow-indigo-200 active:scale-95 transition-all flex items-center gap-1 cursor-pointer"
-                              title="Học bộ thẻ này"
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                handleStudyTrigger(quiz, 'flashcard')
+                              }}
+                              className="h-9 px-4 rounded-xl bg-gradient-to-r from-indigo-600 via-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-black text-xs shadow-md shadow-indigo-200 hover:shadow-indigo-300 active:scale-95 transition-all flex items-center gap-1.5 cursor-pointer"
+                              title="Học ngay bộ thẻ này"
                             >
                               <Play className="w-3.5 h-3.5 fill-current" />
-                              <span className="hidden xs:inline">Học</span>
+                              <span>Học ngay</span>
                             </button>
                           )}
 
                           {activeTab === 'discover' && (
                             <button
-                              onClick={() => enrollMutation.mutate(quiz.id)}
-                              className="h-8.5 px-3 rounded-xl bg-orange-500 hover:bg-orange-600 text-white font-black text-xs shadow-xs shadow-orange-200 active:scale-95 transition-all flex items-center gap-1 cursor-pointer"
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                enrollMutation.mutate(quiz.id)
+                              }}
+                              className="h-9 px-4 rounded-xl bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-black text-xs shadow-md shadow-orange-200 active:scale-95 transition-all flex items-center gap-1.5 cursor-pointer"
                             >
-                              <Plus className="w-3.5 h-3.5" />
-                              <span>Thêm</span>
+                              <Plus className="w-3.5 h-3.5 stroke-[3]" />
+                              <span>Thêm vào bộ thẻ</span>
                             </button>
                           )}
 
                           {activeTab === 'archived' && (
                             <button
-                              onClick={() => archiveMutation.mutate(quiz.id)}
-                              className="h-8.5 px-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-black text-xs active:scale-95 transition-all flex items-center gap-1 cursor-pointer"
-                              title="Khôi phục"
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                archiveMutation.mutate(quiz.id)
+                              }}
+                              className="h-9 px-3.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-black text-xs active:scale-95 transition-all flex items-center gap-1.5 cursor-pointer shadow-2xs"
+                              title="Khôi phục vào danh sách học"
                             >
                               <RotateCcw className="w-3.5 h-3.5" />
+                              <span>Khôi phục</span>
                             </button>
                           )}
-
-                          {/* 3-Dots Action Sheet Trigger */}
-                          <button
-                            onClick={() => setActionSheetQuiz(quiz)}
-                            className="w-8 h-8 rounded-xl bg-slate-50 hover:bg-slate-100 text-slate-400 hover:text-slate-700 transition-all flex items-center justify-center cursor-pointer"
-                            title="Tùy chọn khác"
-                          >
-                            <MoreHorizontal className="w-4 h-4" />
-                          </button>
                         </div>
                       </div>
-
-                      {/* Slim Bottom Progress Bar */}
-                      {activeTab !== 'discover' && (
-                        <div className="w-full h-1 bg-slate-100 rounded-full overflow-hidden">
-                          <div
-                            className={cn(
-                              "h-full transition-all duration-300 rounded-full",
-                              isMastered ? "bg-emerald-500" : "bg-indigo-600"
-                            )}
-                            style={{ width: `${Math.max(4, progressPct)}%` }}
-                          />
-                        </div>
-                      )}
                     </motion.div>
                   )
                 })}
@@ -555,10 +622,9 @@ export default function DecksPage() {
         </div>
       </div>
 
-      {/* ═══════════ ONE-HAND BOTTOM DOCKED CONTROL BAR (SHRINK-0) ═══════════ */}
-      <div className="shrink-0 z-30 bg-white/95 backdrop-blur-2xl border-t border-slate-200/80 px-3 sm:px-6 py-2 shadow-[0_-4px_20px_rgba(0,0,0,0.05)]">
+      {/* ═══════════ BOTTOM DOCK: TABS + PAGINATION ═══════════ */}
+      <div className="shrink-0 bg-white/95 backdrop-blur-2xl border-t border-slate-200/80 px-3 sm:px-6 py-2.5 z-30 shadow-[0_-4px_20px_rgba(0,0,0,0.03)]">
         <div className="max-w-5xl mx-auto flex items-center justify-between gap-3">
-          
           {/* Left/Center: Segmented Tabs (Thumb Zone) */}
           <div className="flex-1 max-w-sm">
             <div className="grid grid-cols-3 w-full bg-slate-100/90 p-1 rounded-2xl border border-slate-200/60">
@@ -569,7 +635,7 @@ export default function DecksPage() {
                     key={tab.id}
                     onClick={() => setActiveTab(tab.id)}
                     className={cn(
-                      "relative flex items-center justify-center gap-1 py-1.5 rounded-xl text-xs font-black transition-all select-none cursor-pointer",
+                      "relative flex items-center justify-center gap-1.5 py-1.5 rounded-xl text-xs font-black transition-all select-none cursor-pointer",
                       isActive ? "text-indigo-600" : "text-slate-500 hover:text-slate-800"
                     )}
                   >
@@ -593,7 +659,7 @@ export default function DecksPage() {
             </div>
           </div>
 
-          {/* Right: Distinct Standalone Pagination Stepper Component with Jump Modal */}
+          {/* Right: Standalone Pagination Stepper Component */}
           <DeckPagination
             currentPage={currentPage}
             totalPages={totalPages}
