@@ -50,67 +50,75 @@ export function DeckSettingsTab({ embedded = false, deckId }: DeckSettingsTabPro
   )
 
   const subTabs = [
-    { id: 'general' as const, label: 'Cơ bản', icon: Settings, color: 'text-indigo-600', badge: null },
-    { id: 'ai' as const, label: 'Cấu hình AI', icon: Sparkles, color: 'text-purple-600', badge: 'AI' },
-    { id: 'audio' as const, label: 'Âm thanh & TTS', icon: Volume2, color: 'text-sky-600', badge: 'TTS' },
-    { id: 'practice' as const, label: 'Luyện tập', icon: Sliders, color: 'text-amber-600', badge: null },
-    { id: 'excel' as const, label: 'Dữ liệu Excel', icon: FileSpreadsheet, color: 'text-emerald-600', badge: null },
-    { id: 'collab' as const, label: 'Cộng tác viên', icon: Users, color: 'text-blue-600', badge: null },
-    { id: 'danger' as const, label: 'Nguy hiểm', icon: AlertTriangle, color: 'text-rose-600', badge: null },
+    { id: 'general' as const, label: 'Cơ bản', shortLabel: 'Cơ bản', icon: Settings, color: 'text-indigo-600', badge: null },
+    { id: 'ai' as const, label: 'Cấu hình AI', shortLabel: 'AI Prompt', icon: Sparkles, color: 'text-purple-600', badge: 'AI' },
+    { id: 'audio' as const, label: 'Âm thanh & TTS', shortLabel: 'Audio TTS', icon: Volume2, color: 'text-sky-600', badge: 'TTS' },
+    { id: 'practice' as const, label: 'Luyện tập', shortLabel: 'Luyện tập', icon: Sliders, color: 'text-amber-600', badge: null },
+    { id: 'excel' as const, label: 'Dữ liệu Excel', shortLabel: 'Excel', icon: FileSpreadsheet, color: 'text-emerald-600', badge: null },
+    { id: 'collab' as const, label: 'Cộng tác viên', shortLabel: 'Thành viên', icon: Users, color: 'text-blue-600', badge: null },
+    { id: 'danger' as const, label: 'Nguy hiểm', shortLabel: 'Nguy hiểm', icon: AlertTriangle, color: 'text-rose-600', badge: null },
   ]
 
   if (isLoading) {
     return (
       <div className="max-w-5xl mx-auto px-4 py-8 space-y-4">
-        <div className="h-12 bg-white rounded-2xl border border-slate-100 animate-pulse" />
+        <div className="h-14 bg-white rounded-2xl border border-slate-100 animate-pulse" />
         <div className="h-64 bg-white rounded-3xl border border-slate-100 animate-pulse" />
       </div>
     )
   }
 
   return (
-    <div className="max-w-5xl mx-auto px-3 sm:px-6 py-3 sm:py-5 space-y-4 text-left animate-in fade-in duration-200">
-      {/* ═══════════ SUB-TAB NAVIGATION BAR ═══════════ */}
-      <div className="bg-white/90 backdrop-blur-md p-1.5 rounded-2xl border border-slate-200/80 shadow-2xs overflow-x-auto custom-scrollbar">
-        <div className="flex items-center gap-1 min-w-max">
-          {subTabs.map((tab) => {
-            const Icon = tab.icon
-            const isActive = activeSubTab === tab.id
-            return (
-              <button
-                key={tab.id}
-                type="button"
-                onClick={() => {
-                  if (tab.id === 'collab') {
-                    setIsCollabModalOpen(true)
-                  } else {
-                    setActiveSubTab(tab.id)
-                  }
-                }}
-                className={cn(
-                  "relative px-3 sm:px-3.5 py-2 rounded-xl text-xs font-black transition-all flex items-center gap-1.5 cursor-pointer select-none",
-                  isActive
-                    ? "text-slate-900 shadow-2xs"
-                    : "text-slate-500 hover:text-slate-800 hover:bg-slate-50"
-                )}
-              >
-                {isActive && (
-                  <motion.div
-                    layoutId="activeSettingsSubTab"
-                    className="absolute inset-0 bg-slate-100/90 border border-slate-200/90 rounded-xl"
-                    transition={{ type: "spring", bounce: 0.15, duration: 0.35 }}
-                  />
-                )}
-                <Icon className={cn("w-3.5 h-3.5 relative z-10 shrink-0", isActive ? tab.color : "text-slate-400")} />
-                <span className="relative z-10">{tab.label}</span>
-                {tab.badge && (
-                  <span className="relative z-10 px-1 py-0.2 rounded text-[9px] font-black bg-slate-200/70 text-slate-700 leading-none">
-                    {tab.badge}
+    <div className="max-w-5xl mx-auto px-3 sm:px-6 py-2 sm:py-4 space-y-4 text-left animate-in fade-in duration-200">
+      {/* ═══════════ STICKY TOP SUB-TAB NAVIGATION BAR ═══════════ */}
+      <div className="sticky top-0 z-30 bg-[#F8FAFC]/95 backdrop-blur-md pt-1 pb-2">
+        <div className="bg-white/95 p-1 sm:p-1.5 rounded-2xl border border-slate-200/90 shadow-xs">
+          <div className="grid grid-cols-4 sm:flex sm:items-center sm:gap-1">
+            {subTabs.map((tab, idx) => {
+              const Icon = tab.icon
+              const isActive = activeSubTab === tab.id
+              const isCollab = tab.id === 'collab'
+
+              return (
+                <button
+                  key={tab.id}
+                  type="button"
+                  onClick={() => {
+                    if (isCollab) {
+                      setIsCollabModalOpen(true)
+                    } else {
+                      setActiveSubTab(tab.id)
+                    }
+                  }}
+                  className={cn(
+                    "relative flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-1.5 py-2 px-1.5 sm:px-3 rounded-xl transition-all cursor-pointer select-none",
+                    idx === 6 && "col-span-2 sm:col-span-1",
+                    isActive
+                      ? "text-slate-900 font-black shadow-2xs"
+                      : "text-slate-500 hover:text-slate-800 hover:bg-slate-50 font-bold"
+                  )}
+                >
+                  {isActive && (
+                    <motion.div
+                      layoutId="activeSettingsSubTab"
+                      className="absolute inset-0 bg-slate-100/90 border border-slate-200/90 rounded-xl"
+                      transition={{ type: "spring", bounce: 0.15, duration: 0.35 }}
+                    />
+                  )}
+                  <Icon className={cn("w-4 h-4 sm:w-3.5 sm:h-3.5 relative z-10 shrink-0", isActive ? tab.color : "text-slate-400")} />
+                  <span className="relative z-10 text-[10px] sm:text-xs truncate">
+                    <span className="inline sm:hidden">{tab.shortLabel}</span>
+                    <span className="hidden sm:inline">{tab.label}</span>
                   </span>
-                )}
-              </button>
-            )
-          })}
+                  {tab.badge && (
+                    <span className="hidden sm:inline relative z-10 px-1 py-0.2 rounded text-[9px] font-black bg-slate-200/70 text-slate-700 leading-none">
+                      {tab.badge}
+                    </span>
+                  )}
+                </button>
+              )
+            })}
+          </div>
         </div>
       </div>
 
