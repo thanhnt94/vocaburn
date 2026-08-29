@@ -54,8 +54,8 @@ export default function Layout() {
         ? (isFullscreenPlay
             ? "pb-0 h-screen h-[100dvh] overflow-hidden" 
             : (isDashboard 
-                ? "pb-20 md:pb-0 md:min-h-0 md:h-screen md:w-screen md:overflow-hidden" 
-                : "pb-20 md:pb-0"))
+                ? "pb-28 md:pb-0 md:min-h-0 md:h-screen md:w-screen md:overflow-hidden" 
+                : "pb-28 md:pb-0"))
         : ""
     )}>
 
@@ -173,10 +173,10 @@ export default function Layout() {
         <Outlet />
       </main>
 
-      {/* Sleek Compact Mobile Bottom Nav (4 Tabs - Exact Height) */}
+      {/* Modern Luxury Mobile Bottom Nav (4 Tabs) */}
       {showBottomNav && (
-        <div className="fixed bottom-0 left-0 right-0 z-[120] md:hidden bg-white/95 backdrop-blur-2xl border-t border-slate-100 px-4 py-1 pb-[max(0.25rem,env(safe-area-inset-bottom))] shadow-[0_-4px_20px_rgba(0,0,0,0.03)]">
-          <nav className="flex items-center justify-around max-w-sm mx-auto h-12">
+        <div className="fixed bottom-0 left-0 right-0 z-[120] md:hidden bg-white/95 backdrop-blur-2xl border-t border-slate-200/70 shadow-[0_-6px_25px_rgba(0,0,0,0.03)] px-3 pt-1.5 pb-[max(0.5rem,env(safe-area-inset-bottom))]">
+          <nav className="grid grid-cols-4 items-center max-w-sm mx-auto">
             {navItems.filter(item => item.label !== 'Admin').map((item) => {
               const Icon = item.icon
               const isActive = item.path === '/' 
@@ -187,22 +187,32 @@ export default function Layout() {
                 <Link 
                   key={item.path}
                   to={item.path} 
-                  className="relative flex flex-col items-center justify-center w-14 h-10.5 rounded-2xl select-none active:scale-95 transition-transform"
+                  className="group relative flex flex-col items-center justify-center py-1 select-none active:scale-95 transition-transform cursor-pointer"
                 >
+                  {/* Top Active Indicator Bar */}
                   {isActive && (
                     <motion.div 
-                      layoutId="navActiveSquircle"
-                      className="absolute inset-0 bg-gradient-to-tr from-orange-500 to-rose-500 rounded-2xl shadow-md shadow-orange-500/20"
-                      transition={{ type: "spring", stiffness: 450, damping: 35 }}
+                      layoutId="navActiveTopLine"
+                      className="absolute -top-1.5 w-7 h-1 bg-gradient-to-r from-orange-500 to-rose-500 rounded-full"
+                      transition={{ type: "spring", stiffness: 450, damping: 32 }}
                     />
                   )}
-                  <Icon className={cn(
-                    "w-4.5 h-4.5 relative z-10 transition-all duration-200",
-                    isActive ? "text-white scale-105 stroke-[2.4]" : "text-slate-400 stroke-[1.8]"
-                  )} />
+
+                  {/* Icon with Soft Tinted Pill */}
+                  <div className={cn(
+                    "w-10 h-7 rounded-xl flex items-center justify-center transition-all duration-200",
+                    isActive ? "bg-orange-500/12 text-orange-600" : "text-slate-400 group-hover:text-slate-600"
+                  )}>
+                    <Icon className={cn(
+                      "w-5 h-5 transition-transform duration-200",
+                      isActive ? "scale-110 stroke-[2.3] text-orange-600" : "stroke-[1.8] text-slate-400"
+                    )} />
+                  </div>
+
+                  {/* Label */}
                   <span className={cn(
-                    "text-[9px] tracking-tight relative z-10 transition-all duration-200 mt-0.5 leading-none",
-                    isActive ? "font-black text-white" : "font-semibold text-slate-400"
+                    "text-[10px] tracking-tight mt-0.5 transition-colors duration-200 leading-none",
+                    isActive ? "font-black text-orange-600" : "font-semibold text-slate-400"
                   )}>
                     {item.label}
                   </span>
