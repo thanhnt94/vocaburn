@@ -30,20 +30,23 @@ export const PracticeSetupScreen: React.FC<PracticeSetupScreenProps> = ({
   savePracticeSettings,
   resetPracticeSettings,
 }) => {
-  const isTyping = practiceSubMode === 'typing';
+  const isInputMode = practiceSubMode === 'typing' || practiceSubMode === 'listening';
+  const isListening = practiceSubMode === 'listening';
 
   return (
     <div className="flex-1 bg-white md:rounded-[3rem] rounded-[2rem] border border-slate-100 md:p-8 p-6 flex flex-col justify-between shadow-2xl shadow-indigo-100/40 min-h-0 overflow-y-auto">
       <div className="max-w-2xl mx-auto w-full py-4">
         <div className="text-center mb-6">
-          <div className="w-14 h-14 bg-indigo-50 rounded-2xl flex items-center justify-center text-indigo-600 mx-auto mb-3 border border-indigo-100">
+          <div className="w-14 h-14 bg-indigo-50 text-indigo-600 rounded-3xl mx-auto flex items-center justify-center mb-3 shadow-inner">
             <Sliders className="w-7 h-7" />
           </div>
           <h2 className="text-xl font-black text-slate-800">
-            Cài đặt Luyện tập: {practiceSubMode === 'mcq' ? 'Trắc nghiệm (MCQ)' : practiceSubMode === 'typing' ? 'Luyện gõ (Typing)' : 'Luyện nghe (Listening)'}
+            Cài đặt Luyện tập: {practiceSubMode === 'mcq' ? 'Trắc nghiệm (MCQ)' : practiceSubMode === 'typing' ? 'Luyện gõ (Typing)' : 'Luyện nghe chép từ (Listening)'}
           </h2>
           <p className="text-xs text-slate-400 mt-1">
-            {isTyping
+            {isListening
+              ? 'Chọn cột phát âm thanh và các cột đáp án được chấp nhận khi người học gõ lại.'
+              : isInputMode
               ? 'Chọn cột câu hỏi và các cột đáp án được chấp nhận khi gõ từ vựng.'
               : 'Chọn các cặp cột tương ứng giữa câu hỏi và đáp án.'}
           </p>
@@ -52,10 +55,10 @@ export const PracticeSetupScreen: React.FC<PracticeSetupScreenProps> = ({
         <div className="space-y-4 mb-6">
           <div className="flex items-center justify-between">
             <span className="text-[10px] font-black text-slate-400 tracking-wider uppercase block">
-              {isTyping ? 'Cặp Câu hỏi & Các cột Đáp án được chấp nhận' : 'Cặp Câu hỏi - Đáp án (Q&A Pairs)'}
+              {isListening ? 'Cột Phát âm & Các cột Đáp án chấp nhận' : isInputMode ? 'Cặp Câu hỏi & Các cột Đáp án được chấp nhận' : 'Cặp Câu hỏi - Đáp án (Q&A Pairs)'}
             </span>
-            {isTyping && (
-              <span className="text-[10px] font-bold text-amber-600 bg-amber-50 px-2 py-0.5 rounded-md border border-amber-200/60">
+            {isInputMode && (
+              <span className="text-[10px] font-bold text-sky-600 bg-sky-50 px-2 py-0.5 rounded-md border border-sky-200/60">
                 Cho phép chọn nhiều cột đáp án
               </span>
             )}
@@ -71,7 +74,7 @@ export const PracticeSetupScreen: React.FC<PracticeSetupScreenProps> = ({
                 <div className="flex items-center gap-3">
                   <div className="flex-1">
                     <label className="text-[9px] font-black text-slate-400 uppercase tracking-wider block mb-1">
-                      Cột Câu hỏi (Đề bài hiển thị)
+                      {isListening ? 'Cột phát âm thanh (Audio)' : 'Cột Câu hỏi (Đề bài hiển thị)'}
                     </label>
                     <select
                       value={pair.q}
@@ -88,7 +91,7 @@ export const PracticeSetupScreen: React.FC<PracticeSetupScreenProps> = ({
                     </select>
                   </div>
 
-                  {!isTyping && (
+                  {!isInputMode && (
                     <>
                       <div className="text-slate-300 font-bold text-xs mt-4">➔</div>
 
@@ -127,7 +130,7 @@ export const PracticeSetupScreen: React.FC<PracticeSetupScreenProps> = ({
                   )}
                 </div>
 
-                {isTyping && (
+                {isInputMode && (
                   <div className="pt-2 border-t border-slate-200/60">
                     <label className="text-[9px] font-black text-slate-500 uppercase tracking-wider block mb-2">
                       Cột Đáp án được chấp nhận khi gõ (Nhấn để bật/tắt):
@@ -157,7 +160,7 @@ export const PracticeSetupScreen: React.FC<PracticeSetupScreenProps> = ({
                             className={cn(
                               "px-3 py-1.5 rounded-xl text-xs font-bold transition-all border flex items-center gap-1.5 cursor-pointer",
                               isSelected
-                                ? "bg-amber-500 border-amber-500 text-white shadow-xs shadow-amber-200 scale-100"
+                                ? (isListening ? "bg-sky-600 border-sky-600 text-white shadow-xs" : "bg-amber-500 border-amber-500 text-white shadow-xs")
                                 : "bg-white border-slate-200 text-slate-600 hover:border-slate-300 hover:bg-slate-100/60 opacity-80"
                             )}
                           >
@@ -177,14 +180,14 @@ export const PracticeSetupScreen: React.FC<PracticeSetupScreenProps> = ({
           })}
 
           <button
-            onClick={() => setSetupPairs([...setupPairs, { q: isTyping ? 'back' : 'front', a: isTyping ? ['front'] : 'back' }])}
+            onClick={() => setSetupPairs([...setupPairs, { q: isListening ? 'front' : (isInputMode ? 'back' : 'front'), a: isInputMode ? ['front'] : 'back' }])}
             className="w-full py-3 rounded-2xl border border-dashed border-slate-200 text-slate-500 hover:text-indigo-600 hover:border-indigo-300 hover:bg-indigo-50/20 text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer"
           >
             <span>+ Thêm Cặp Q&A</span>
           </button>
         </div>
 
-        {(practiceSubMode === 'mcq' || practiceSubMode === 'listening') && (
+        {practiceSubMode === 'mcq' && (
           <div className="mb-6 bg-slate-50 p-4 rounded-2xl border border-slate-100">
             <label className="text-[10px] font-black text-slate-400 tracking-wider uppercase block mb-2">Number of MCQ Choices</label>
             <div className="grid grid-cols-4 gap-2">

@@ -28,7 +28,7 @@ export function usePracticeAudio({
     }
   }
 
-  const playCardAudio = async (face: string) => {
+  const playCardAudio = async (face: string = 'front', rate: number = 1.0) => {
     if (!currentQuestion) return
     const targetQuestionId = currentQuestion.id
     currentQuestionIdRef.current = targetQuestionId
@@ -90,6 +90,7 @@ export function usePracticeAudio({
     if (audioUrl) {
       const cacheBustedUrl = `${audioUrl}${audioUrl.includes('?') ? '&' : '?'}t=${Date.now()}`
       const audio = new Audio(cacheBustedUrl)
+      audio.playbackRate = rate
       activeAudioRef.current = audio
       audio.play().catch(err => {
         console.warn(`[TTS FALLBACK] Playback failed: ${cacheBustedUrl}`, err?.message)

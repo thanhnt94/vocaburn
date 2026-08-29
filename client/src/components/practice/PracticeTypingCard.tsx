@@ -33,8 +33,12 @@ export const PracticeTypingCard: React.FC<PracticeTypingCardProps> = ({
   const { question, correct_answer } = practiceData
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter' && !answered && typingInput.trim()) {
-      onCheckTyping()
+    if (e.key === 'Enter') {
+      e.preventDefault()
+      e.stopPropagation()
+      if (!answered && typingInput.trim()) {
+        onCheckTyping()
+      }
     }
   }
 

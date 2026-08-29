@@ -540,14 +540,14 @@ export function DeckPracticeConfig({ deckId, initialSettings, onSaved }: DeckPra
                         )}
                       </div>
 
-                      <div className={cn("grid gap-3 items-start", activeModeTab === 'typing' ? "grid-cols-1" : "grid-cols-1 sm:grid-cols-2")}>
+                      <div className={cn("grid gap-3 items-start", (activeModeTab === 'typing' || activeModeTab === 'listening') ? "grid-cols-1" : "grid-cols-1 sm:grid-cols-2")}>
                         {/* Question / Prompt Column */}
                         <div>
                           <label className="text-[10px] font-black text-slate-500 uppercase tracking-wider mb-1 block">
                             {activeModeTab === 'typing'
                               ? '1. Cột Đề Bài Gợi Ý (Prompt):'
                               : activeModeTab === 'listening'
-                              ? '1. Cột Kịch Bản/Giọng Đọc (Audio Text):'
+                              ? '1. Cột Kịch Bản/Giọng Đọc Phát Âm (Audio TTS):'
                               : '1. Cột Hiển Thị Câu Hỏi (Question):'}
                           </label>
                           <select
@@ -564,13 +564,13 @@ export function DeckPracticeConfig({ deckId, initialSettings, onSaved }: DeckPra
                         </div>
 
                         {/* Answer Column(s) */}
-                        {activeModeTab === 'typing' ? (
+                        {(activeModeTab === 'typing' || activeModeTab === 'listening') ? (
                           <div>
                             <div className="flex items-center justify-between mb-1.5">
                               <label className="text-[10px] font-black text-slate-500 uppercase tracking-wider block">
-                                2. Các Cột Đáp Án Được Chấp Nhận (Chọn 1 hoặc nhiều):
+                                2. Các Cột Đáp Án Được Chấp Nhận Khi Gõ (Chọn 1 hoặc nhiều):
                               </label>
-                              <span className="text-[9px] font-bold text-amber-600 bg-amber-50 px-2 py-0.5 rounded border border-amber-200/60">
+                              <span className={cn("text-[9px] font-bold px-2 py-0.5 rounded border", activeModeTab === 'listening' ? "text-sky-600 bg-sky-50 border-sky-200/60" : "text-amber-600 bg-amber-50 border-amber-200/60")}>
                                 Cho phép gõ bất kỳ cột nào
                               </span>
                             </div>
@@ -594,7 +594,7 @@ export function DeckPracticeConfig({ deckId, initialSettings, onSaved }: DeckPra
                                     className={cn(
                                       "px-2.5 py-1 rounded-lg text-xs font-bold transition-all border flex items-center gap-1 cursor-pointer",
                                       isSelected
-                                        ? "bg-amber-500 border-amber-500 text-white shadow-2xs"
+                                        ? (activeModeTab === 'listening' ? "bg-sky-600 border-sky-600 text-white shadow-2xs" : "bg-amber-500 border-amber-500 text-white shadow-2xs")
                                         : "bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100 opacity-80"
                                     )}
                                   >
@@ -608,9 +608,7 @@ export function DeckPracticeConfig({ deckId, initialSettings, onSaved }: DeckPra
                         ) : (
                           <div>
                             <label className="text-[10px] font-black text-slate-500 uppercase tracking-wider mb-1 block">
-                              {activeModeTab === 'listening'
-                                ? '2. Cột Đáp Án Nghĩa Đúng (Answer):'
-                                : '2. Cột Chứa Đáp Án Đúng (Answer):'}
+                              2. Cột Chứa Đáp Án Đúng (Answer):
                             </label>
                             <select
                               value={typeof pair.a === 'string' ? pair.a : (pair.a[0] || 'back')}

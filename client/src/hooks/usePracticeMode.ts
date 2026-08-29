@@ -94,7 +94,7 @@ export function usePracticeMode(
     const item_front = getVal(qObj, 'front');
     const item_back = getVal(qObj, 'back');
 
-    if (subMode === 'mcq' || subMode === 'listening') {
+    if (subMode === 'mcq') {
       // Build candidate pool
       const all_items_data = session.questions.map((q: any) => ({
         id: q.id,
@@ -169,7 +169,7 @@ export function usePracticeMode(
         question_key,
         answer_key: primary_answer_key
       });
-    } else if (subMode === 'typing') {
+    } else if (subMode === 'typing' || subMode === 'listening') {
       const rawAnswerKey = activePair.a;
       const answer_keys: string[] = Array.isArray(rawAnswerKey)
         ? rawAnswerKey

@@ -292,7 +292,7 @@ export default function PracticePlay() {
   const activeAudioRef = useRef<HTMLAudioElement | null>(null)
   const currentQuestionIdRef = useRef<number | null>(null)
 
-  const playCardAudio = async (face: string) => {
+  const playCardAudio = async (face: string = 'front', rate: number = 1.0) => {
     if (!currentQuestion) return;
     const targetQuestionId = currentQuestion.id;
     currentQuestionIdRef.current = targetQuestionId;
@@ -363,6 +363,7 @@ export default function PracticePlay() {
       const cacheBustedUrl = `${audioUrl}${audioUrl.includes('?') ? '&' : '?'}t=${Date.now()}`;
       console.log(`[TTS PLAYBACK] Playing Edge TTS server audio: ${cacheBustedUrl}`);
       const audio = new Audio(cacheBustedUrl);
+      audio.playbackRate = rate;
       activeAudioRef.current = audio;
       audio.play().catch(err => {
         console.warn(`[TTS FALLBACK WARNING] Playback of generated audio file ${cacheBustedUrl} failed. Error:`, err.message);
@@ -590,7 +591,7 @@ export default function PracticePlay() {
   const [modeSettings, setModeSettings] = useState<Record<string, { active_pairs: { q: string, a: string | string[] }[], num_choices?: number }>>({
     mcq: { active_pairs: [{ q: 'front', a: 'back' }], num_choices: 4 },
     typing: { active_pairs: [{ q: 'back', a: ['front'] }] },
-    listening: { active_pairs: [{ q: 'front', a: 'back' }], num_choices: 4 },
+    listening: { active_pairs: [{ q: 'front', a: ['front'] }] },
     roadmap_test: { active_pairs: [{ q: 'front', a: 'back' }], num_choices: 4 }
   })
 
@@ -781,7 +782,7 @@ export default function PracticePlay() {
     const item_front = getVal(qObj, 'front');
     const item_back = getVal(qObj, 'back');
 
-    if (subMode === 'mcq' || subMode === 'listening') {
+    if (subMode === 'mcq') {
       // Build candidate pool
       const all_items_data = session.questions.map((q: any) => ({
         id: q.id,
@@ -861,7 +862,7 @@ export default function PracticePlay() {
         question_key,
         answer_key: primary_answer_key
       });
-    } else if (subMode === 'typing') {
+    } else if (subMode === 'typing' || subMode === 'listening') {
       const rawAnswerKey = activePair.a;
       const answer_keys: string[] = Array.isArray(rawAnswerKey)
         ? rawAnswerKey
@@ -1162,14 +1163,6 @@ export default function PracticePlay() {
       if (activeElement) {
         const tagName = activeElement.tagName.toLowerCase();
         if (tagName === 'input' || tagName === 'textarea' || activeElement.getAttribute('contenteditable') === 'true') {
-          if (e.key === 'Enter' && mainTab === 'practice' && baseMode === 'typing') {
-            e.preventDefault();
-            if (showFeedback) {
-              handleNext();
-            } else {
-              handleTypingAnswer();
-            }
-          }
           return;
         }
       }
@@ -1190,7 +1183,7 @@ export default function PracticePlay() {
       // Practice Mode Hotkeys
       if (mainTab === 'practice') {
         if (['mcq', 'listening'].includes(baseMode)) {
-          if (e.key === 'Enter' || key === 'n') {
+          if (e.key === 'Enter' || key === 'n' || e.key === ' ') {
             if (showFeedback) {
               e.preventDefault();
               handleNext();
@@ -1204,7 +1197,7 @@ export default function PracticePlay() {
             }
           }
         } else if (baseMode === 'typing') {
-          if (e.key === 'Enter' || key === 'n') {
+          if (e.key === 'Enter' || key === 'n' || e.key === ' ') {
             if (showFeedback) {
               e.preventDefault();
               handleNext();
@@ -3438,24 +3431,6 @@ export default function PracticePlay() {
       );
     }
 
-    if (baseMode === 'listening') {
-      return (
-        <PracticeListeningCard
-          currentIndex={currentIndex}
-          currentQuestion={currentQuestion}
-          practiceData={practiceData}
-          answered={answered}
-          selectedOption={selectedOption}
-          starredCards={starredCards}
-          onToggleStar={(cardId) => setStarredCards(prev => ({ ...prev, [cardId]: !prev[cardId] }))}
-          onSelectOption={handleMCQAnswer}
-          onPreviewInsight={setPreviewInsightCard}
-          onPlayAudio={playCardAudio}
-          sessionQuestions={session?.questions || []}
-        />
-      );
-    }
-
     if (baseMode === 'typing') {
       return (
         <PracticeTypingCard
@@ -3469,6 +3444,24 @@ export default function PracticePlay() {
           starredCards={starredCards}
           onToggleStar={(cardId) => setStarredCards(prev => ({ ...prev, [cardId]: !prev[cardId] }))}
           onCheckTyping={handleTypingAnswer}
+        />
+      );
+    }
+
+    if (baseMode === 'listening') {
+      return (
+        <PracticeListeningCard
+          currentIndex={currentIndex}
+          currentQuestion={currentQuestion}
+          practiceData={practiceData}
+          answered={answered}
+          typingInput={typingInput}
+          setTypingInput={setTypingInput}
+          typingFeedback={typingFeedback}
+          starredCards={starredCards}
+          onToggleStar={(cardId) => setStarredCards(prev => ({ ...prev, [cardId]: !prev[cardId] }))}
+          onCheckTyping={handleTypingAnswer}
+          onPlayAudio={playCardAudio}
         />
       );
     }
@@ -3497,7 +3490,7 @@ export default function PracticePlay() {
       const correctCount = Object.entries(practiceAnswers).filter(([idx, ansIdx]) => {
         const q = session?.questions?.[Number(idx)];
         if (!q || !q.practice) return false;
-        if (baseMode === 'typing') {
+        if (baseMode === 'typing' || baseMode === 'listening') {
           return ansIdx === 3;
         }
         return ansIdx === q.practice.correct_index;
