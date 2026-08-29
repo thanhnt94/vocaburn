@@ -49,45 +49,45 @@ export default function LeaderboardTab({
   const remainingUsers = currentLeaderboard.list.slice(3)
 
   const categoryLabels: Record<LeaderboardCategory, { label: string, icon: any, unit: string, sub: string }> = {
-    xp: { label: 'XP Tích Luỹ', icon: Zap, unit: 'XP', sub: 'Kinh nghiệm tổng' },
-    streak: { label: 'Chuỗi Streak', icon: Flame, unit: 'ngày', sub: 'Streak liên tục' },
-    questions: { label: 'Thẻ Đã Học', icon: Target, unit: 'thẻ', sub: 'Lượt ôn tập' },
-    accuracy: { label: 'Độ Chính Xác', icon: CheckCircle2, unit: '%', sub: 'Tỷ lệ đúng' },
+    xp: { label: 'XP', icon: Zap, unit: 'XP', sub: 'Total experience' },
+    streak: { label: 'Streak', icon: Flame, unit: 'days', sub: 'Daily streak' },
+    questions: { label: 'Cards', icon: Target, unit: 'cards', sub: 'Cards reviewed' },
+    accuracy: { label: 'Accuracy', icon: CheckCircle2, unit: '%', sub: 'Correct rate' },
   }
 
   const timeFilterLabels: Record<LeaderboardTimeFilter, { label: string, icon: any }> = {
-    today: { label: 'Hôm Nay', icon: Clock },
-    week: { label: 'Tuần Này', icon: Calendar },
-    month: { label: 'Tháng Này', icon: Calendar },
-    all_time: { label: 'Toàn Thời Gian', icon: Crown }
+    today: { label: 'Today', icon: Clock },
+    week: { label: 'Week', icon: Calendar },
+    month: { label: 'Month', icon: Calendar },
+    all_time: { label: 'All Time', icon: Crown }
   }
 
   return (
-    <div className="space-y-5 text-left max-w-5xl mx-auto">
+    <div className="space-y-4 text-left max-w-5xl mx-auto">
       {/* 👑 Top Controls: Centered Category & Time Filters */}
-      <div className="bg-white rounded-3xl border border-slate-200/80 p-5 sm:p-6 shadow-sm space-y-4 relative overflow-hidden text-center">
+      <div className="bg-white rounded-3xl border border-slate-200/80 p-4 sm:p-5 shadow-sm space-y-3.5 relative overflow-hidden text-center">
         <div className="h-1 absolute top-0 inset-x-0 bg-gradient-to-r from-amber-500 via-orange-500 to-rose-500" />
         
         {/* Title Header */}
-        <div className="flex items-center justify-center gap-3">
-          <div className="w-10 h-10 rounded-2xl bg-amber-500 text-white flex items-center justify-center shadow-md shadow-amber-500/20 shrink-0">
-            <Trophy className="w-5 h-5" />
+        <div className="flex items-center justify-center gap-2.5">
+          <div className="w-9 h-9 rounded-2xl bg-amber-500 text-white flex items-center justify-center shadow-md shadow-amber-500/20 shrink-0">
+            <Trophy className="w-4.5 h-4.5" />
           </div>
           <div className="text-left">
-            <h2 className="text-sm md:text-base font-black text-slate-900 uppercase tracking-widest italic leading-none">
+            <h2 className="text-xs sm:text-sm md:text-base font-black text-slate-900 uppercase tracking-widest italic leading-none">
               Bảng Vinh Danh Thành Viên
             </h2>
-            <p className="text-[9.5px] font-bold text-slate-400 mt-1">
+            <p className="text-[9px] sm:text-[10px] font-bold text-slate-400 mt-1">
               Khám phá vị trí của bạn và thi đua học tập cùng cộng đồng
             </p>
           </div>
         </div>
 
-        {/* Cohesive Centered Filter Rows */}
-        <div className="space-y-2.5 pt-1">
+        {/* Cohesive Centered Filter Rows (Optimized for Mobile) */}
+        <div className="space-y-2 pt-0.5">
           {/* Row 1: Tiêu chí xếp hạng */}
           <div className="flex items-center justify-center">
-            <div className="flex bg-slate-100 p-1 rounded-2xl border border-slate-200/70 overflow-x-auto no-scrollbar max-w-full gap-1">
+            <div className="flex bg-slate-100 p-1 rounded-2xl border border-slate-200/70 w-full sm:w-auto justify-center gap-1">
               {(['xp', 'streak', 'questions', 'accuracy'] as const).map((cat) => {
                 const Icon = categoryLabels[cat].icon
                 const isActive = activeCategory === cat
@@ -96,13 +96,13 @@ export default function LeaderboardTab({
                     key={cat}
                     onClick={() => onSelectCategory(cat)}
                     className={cn(
-                      "px-3 sm:px-4 py-1.5 rounded-xl text-[9px] sm:text-[10px] font-black uppercase tracking-wider transition-all whitespace-nowrap cursor-pointer flex items-center gap-1.5",
+                      "flex-1 sm:flex-none px-2 sm:px-4 py-1.5 rounded-xl text-[9.5px] sm:text-[11px] font-black uppercase tracking-wider transition-all whitespace-nowrap cursor-pointer flex items-center justify-center gap-1",
                       isActive
                         ? "bg-gradient-to-r from-orange-500 to-amber-500 text-white shadow-sm font-black"
                         : "text-slate-500 hover:text-slate-900 font-bold hover:bg-white/50"
                     )}
                   >
-                    <Icon className="w-3.5 h-3.5" />
+                    <Icon className="w-3 h-3 sm:w-3.5 sm:h-3.5 shrink-0" />
                     <span>{categoryLabels[cat].label}</span>
                   </button>
                 )
@@ -112,7 +112,7 @@ export default function LeaderboardTab({
 
           {/* Row 2: Mốc thời gian */}
           <div className="flex items-center justify-center">
-            <div className="flex bg-slate-100 p-1 rounded-2xl border border-slate-200/70 overflow-x-auto no-scrollbar max-w-full gap-1">
+            <div className="flex bg-slate-100 p-1 rounded-2xl border border-slate-200/70 w-full sm:w-auto justify-center gap-1">
               {(['today', 'week', 'month', 'all_time'] as const).map((tf) => {
                 const item = timeFilterLabels[tf]
                 const Icon = item.icon
@@ -122,13 +122,13 @@ export default function LeaderboardTab({
                     key={tf}
                     onClick={() => onSelectTimeFilter(tf)}
                     className={cn(
-                      "px-3 sm:px-4 py-1.5 rounded-xl text-[9px] sm:text-[10px] font-black uppercase tracking-wider transition-all whitespace-nowrap cursor-pointer flex items-center gap-1.5",
+                      "flex-1 sm:flex-none px-2 sm:px-4 py-1.5 rounded-xl text-[9.5px] sm:text-[11px] font-black uppercase tracking-wider transition-all whitespace-nowrap cursor-pointer flex items-center justify-center gap-1",
                       isActive
                         ? "bg-slate-900 text-white shadow-sm font-black"
                         : "text-slate-500 hover:text-slate-900 font-bold hover:bg-white/50"
                     )}
                   >
-                    <Icon className="w-3.5 h-3.5 text-slate-400" />
+                    <Icon className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-slate-400 shrink-0" />
                     <span>{item.label}</span>
                   </button>
                 )

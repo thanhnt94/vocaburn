@@ -144,24 +144,24 @@ export default function Stats() {
   const tabs: Array<{ id: StatsMainTab, label: string, shortLabel: string, icon: any, color: string, badgeBg: string }> = [
     {
       id: 'leaderboard',
-      label: 'Bảng Xếp Hạng',
-      shortLabel: 'Bảng Xếp Hạng',
+      label: 'Leaderboard',
+      shortLabel: 'Leaderboard',
       icon: Trophy,
       color: 'text-amber-600',
       badgeBg: 'bg-amber-50'
     },
     {
       id: 'personal',
-      label: 'Thống Kê Cá Nhân',
-      shortLabel: 'Cá Nhân',
+      label: 'Personal Stats',
+      shortLabel: 'Personal',
       icon: User,
       color: 'text-indigo-600',
       badgeBg: 'bg-indigo-50'
     },
     {
       id: 'global',
-      label: 'Thống Kê Website',
-      shortLabel: 'Toàn Website',
+      label: 'Global Stats',
+      shortLabel: 'Global',
       icon: Globe,
       color: 'text-emerald-600',
       badgeBg: 'bg-emerald-50'

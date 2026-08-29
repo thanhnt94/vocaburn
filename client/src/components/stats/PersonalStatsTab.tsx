@@ -114,11 +114,11 @@ export default function PersonalStatsTab({
   }, [filteredDailyActivity, personalStats, weeklyReport, personalPeriod])
 
   const periodLabels: Record<PersonalPeriod, string> = {
-    day: 'Hôm Nay',
-    week: '7 Ngày Qua',
-    month: '30 Ngày Qua',
-    year: 'Năm Nay',
-    all: 'Toàn Thời Gian'
+    day: 'Today',
+    week: '7 Days',
+    month: '30 Days',
+    year: 'Year',
+    all: 'All Time'
   }
 
   return (
@@ -142,16 +142,16 @@ export default function PersonalStatsTab({
           </div>
 
           {/* Time Filter Buttons */}
-          <div className="flex bg-slate-100/90 p-1 rounded-2xl border border-slate-200/60 overflow-x-auto no-scrollbar shrink-0">
+          <div className="flex bg-slate-100 p-1 rounded-2xl border border-slate-200/70 overflow-x-auto no-scrollbar shrink-0 w-full sm:w-auto justify-center gap-1">
             {(['day', 'week', 'month', 'year', 'all'] as const).map((period) => (
               <button
                 key={period}
                 onClick={() => setPersonalPeriod(period)}
                 className={cn(
-                  "px-3 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-wider transition-all cursor-pointer whitespace-nowrap",
+                  "flex-1 sm:flex-none px-2.5 sm:px-3.5 py-1.5 rounded-xl text-[9.5px] sm:text-[11px] font-black uppercase tracking-wider transition-all cursor-pointer whitespace-nowrap text-center",
                   personalPeriod === period
-                    ? "bg-indigo-600 text-white shadow-md shadow-indigo-500/20"
-                    : "text-slate-500 hover:text-slate-900 font-bold"
+                    ? "bg-indigo-600 text-white shadow-md shadow-indigo-500/20 font-black"
+                    : "text-slate-500 hover:text-slate-900 font-bold hover:bg-white/50"
                 )}
               >
                 {periodLabels[period]}
