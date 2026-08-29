@@ -13,6 +13,18 @@ import { playCorrectSound, playIncorrectSound, speakMultiLanguage, cancelAllAudi
 import { triggerHaptic } from '@/lib/haptic'
 import { parseBBCodeToHtml, stripBBCode, isJapanese, getJpPattern, extractTokens, tokensOverlapHigh } from '@/lib/text'
 import { selectDistractors } from '@/lib/distractor'
+import { MarkdownComponents } from '@/lib/markdown'
+import {
+  parseUTCDate,
+  formatRelativeTime,
+  formatOverdueTime,
+  getMapTitleInfo,
+  getCardBoxId,
+  getMasteryPill,
+  getBadgeIcon,
+  formatHeaderTime
+} from '@/lib/flashcard-utils'
+import type { Option, Question } from '@/types/flashcard'
 import { TypewriterText } from '@/components/TypewriterText'
 import { FeedbackArea } from '@/components/FeedbackArea'
 import { PracticeSetupScreen } from '@/components/PracticeSetupScreen'
@@ -33,371 +45,20 @@ import { BadgeUnlockOverlay } from '@/components/BadgeUnlockOverlay'
 import { useRoadmapStatus, type PipelineStepStatus } from '@/hooks/useRoadmapStatus'
 import { RoadmapFloatingBanner } from '@/components/RoadmapFloatingBanner'
 import { StudyHeaderTracker } from '@/components/StudyHeaderTracker'
-
-
-interface Option {
-  id: number
-  content: string
-  is_correct: boolean
-}
-
-interface Question {
-  id: number
-  original_index?: number
-  is_ignored?: boolean
-  is_starred?: boolean
-  content: string
-  explanation: string
-  ai_explanation?: string
-  hint?: string | null
-  mnemonic?: string | null
-  options: Option[]
-  stats?: { 
-    total: number
-    correct: number
-    wrong?: number
-    avg_time: number
-    again_count?: number
-    hard_count?: number
-    good_count?: number
-    easy_count?: number
-  }
-  box_level?: number
-  image?: string | null
-  audio?: string | null
-  front_img?: string | null
-  back_img?: string | null
-  front_audio_url?: string | null
-  back_audio_url?: string | null
-  front_audio_content?: string | null
-  back_audio_content?: string | null
-  others?: Record<string, any> | null
-  fsrs?: {
-    state: number
-    stability: number | null
-    difficulty: number | null
-    due: string | null
-    last_review: string | null
-    first_learned?: string | null
-    last_reviewed?: string | null
-    intervals: Record<number, string>
-  }
-  practice?: {
-    question: string
-    choices?: string[]
-    correct_index?: number
-    correct_answer?: string
-    question_key: string
-    answer_key: string
-  }
-}
-const MarkdownComponents = {
-  code({ node, className, children, ...props }: any) {
-    const value = String(children || '').replace(/\n$/, '')
-    const hasRuby = value.includes('<ruby>') || value.includes('</ruby>')
-    if (hasRuby) {
-      return (
-        <code className={className} dangerouslySetInnerHTML={{ __html: value }} {...props} />
-      )
-    }
-    return <code className={className} {...props}>{children}</code>
-  }
-}
-
-const parseUTCDate = (dateStr: string | null | undefined): Date => {
-  if (!dateStr) return new Date();
-  try {
-    let formatted = dateStr.trim().replace(' ', 'T');
-    const tIndex = formatted.indexOf('T');
-    if (tIndex !== -1) {
-      const timePart = formatted.slice(tIndex);
-      if (!timePart.includes('Z') && !timePart.includes('+') && !timePart.includes('-')) {
-        const dotIndex = formatted.indexOf('.');
-        if (dotIndex !== -1) {
-          const parts = formatted.split('.');
-          const base = parts[0];
-          let ms = parts[1] || '';
-          ms = ms.substring(0, 3);
-          formatted = `${base}.${ms}Z`;
-        } else {
-          formatted = formatted + 'Z';
-        }
-      }
-    } else {
-      if (!formatted.includes('Z')) {
-        formatted = formatted + 'T00:00:00Z';
-      }
-    }
-    const d = new Date(formatted);
-    if (!isNaN(d.getTime())) return d;
-  } catch (e) {
-    console.error("parseUTCDate error:", e);
-  }
-  return new Date();
-}
-
-function formatRelativeTime(dateStr: string | null | undefined): { relative: string; full: string } {
-  if (!dateStr) return { relative: 'never', full: 'Never learned this card' };
-  const d = parseUTCDate(dateStr);
-  if (isNaN(d.getTime())) return { relative: 'never', full: 'Never learned this card' };
-  
-  const now = new Date();
-  const diffMs = now.getTime() - d.getTime();
-  const diffSec = Math.floor(diffMs / 1000);
-  const diffMin = Math.floor(diffSec / 60);
-  const diffHour = Math.floor(diffMin / 60);
-  const diffDay = Math.floor(diffHour / 24);
-  const diffMonth = Math.floor(diffDay / 30);
-  const diffYear = Math.floor(diffDay / 365);
-  
-  let relative = '';
-  if (diffSec < 60) {
-    relative = 'just now';
-  } else if (diffMin < 60) {
-    relative = `${diffMin}m ago`;
-  } else if (diffHour < 24) {
-    relative = `${diffHour}h ago`;
-  } else if (diffDay < 30) {
-    relative = `${diffDay}d ago`;
-  } else if (diffMonth < 12) {
-    relative = `${diffMonth}mo ago`;
-  } else {
-    relative = `${diffYear}y ago`;
-  }
-  
-  const dayStr = String(d.getDate()).padStart(2, '0');
-  const monthStr = String(d.getMonth() + 1).padStart(2, '0');
-  const yearStr = d.getFullYear();
-  const hourStr = String(d.getHours()).padStart(2, '0');
-  const minStr = String(d.getMinutes()).padStart(2, '0');
-  const secStr = String(d.getSeconds()).padStart(2, '0');
-  
-  const full = `${dayStr}/${monthStr}/${yearStr} ${hourStr}:${minStr}:${secStr}`;
-  
-  return { relative, full };
-}
-
-function formatOverdueTime(dueIsoStr?: string | null): { relative: string; full: string; overdue: boolean; severe: boolean } {
-  if (!dueIsoStr) return { relative: 'none', full: 'Chưa có hạn ôn', overdue: false, severe: false };
-  const d = parseUTCDate(dueIsoStr);
-  if (isNaN(d.getTime())) return { relative: 'none', full: 'Chưa có hạn ôn', overdue: false, severe: false };
-
-  const now = new Date();
-  const diffMs = now.getTime() - d.getTime();
-  
-  const dayStr = String(d.getDate()).padStart(2, '0');
-  const monthStr = String(d.getMonth() + 1).padStart(2, '0');
-  const yearStr = d.getFullYear();
-  const hourStr = String(d.getHours()).padStart(2, '0');
-  const minStr = String(d.getMinutes()).padStart(2, '0');
-  const full = `Hạn ôn: ${dayStr}/${monthStr}/${yearStr} ${hourStr}:${minStr}`;
-
-  if (diffMs <= 0) {
-    return { relative: 'Đúng hạn', full, overdue: false, severe: false };
-  }
-
-  const diffSec = Math.floor(diffMs / 1000);
-  const diffMin = Math.floor(diffSec / 60);
-  const diffHour = Math.floor(diffMin / 60);
-  const diffDay = Math.floor(diffHour / 24);
-
-  let relative = '';
-  let severe = false;
-
-  if (diffDay >= 1) {
-    const remainingHours = diffHour % 24;
-    relative = remainingHours > 0 ? `${diffDay}d ${remainingHours}h` : `${diffDay}d`;
-    severe = diffDay >= 1;
-  } else if (diffHour >= 1) {
-    const remainingMin = diffMin % 60;
-    relative = remainingMin > 0 ? `${diffHour}h ${remainingMin}m` : `${diffHour}h`;
-    severe = diffHour >= 24;
-  } else if (diffMin >= 1) {
-    relative = `${diffMin}m`;
-    severe = false;
-  } else {
-    relative = 'Vừa đến';
-    severe = false;
-  }
-
-  return { relative, full, overdue: true, severe };
-}
-
-const getMapTitleInfo = (mode: string) => {
-  switch (mode) {
-    case 'unseen':
-      return {
-        title: "Chưa học",
-        subtitle: "Các từ vựng mới tinh chưa bao giờ bắt đầu ôn luyện"
-      };
-    case 'learning':
-      return {
-        title: "Đang học",
-        subtitle: "Các từ vựng đang học dở dang ở các cấp độ ghi nhớ"
-      };
-    case 'mastered':
-      return {
-        title: "Đã thuộc",
-        subtitle: "Các từ vựng đã học thuộc lòng hoàn toàn"
-      };
-    case 'hard':
-      return {
-        title: "Thẻ khó cần lưu ý",
-        subtitle: "Các từ vựng bạn hay gặp khó khăn hoặc trả lời sai nhiều"
-      };
-    case 'starred':
-      return {
-        title: "Đã gắn sao",
-        subtitle: "Các từ vựng quan trọng do chính bạn đánh dấu ưu tiên"
-      };
-    case 'ignored':
-      return {
-        title: "Đã bỏ qua",
-        subtitle: "Các từ vựng đã loại trừ khỏi phiên học hiện tại"
-      };
-    case 'all':
-    default:
-      return {
-        title: "Bản đồ thẻ học - Tất cả",
-        subtitle: "Theo dõi và tra cứu toàn bộ từ vựng trong phiên học"
-      };
-  }
-};
-
-interface TimerWidgetProps {
-  timeMode: 'card' | 'today' | 'all';
-  initialTodayTime: number;
-  initialAllTimeTime: number;
-  showFeedback: boolean;
-  hasRated: boolean;
-  mainTab: 'fsrs' | 'practice';
-  currentIndex: number;
-  timeLeftRef: React.MutableRefObject<number>;
-  sessionStudyTimeRef: React.MutableRefObject<number>;
-  formatHeaderTime: (secs: number) => string;
-}
-
-const TimerWidget: React.FC<TimerWidgetProps> = ({
-  timeMode,
-  initialTodayTime,
-  initialAllTimeTime,
-  showFeedback,
-  hasRated,
-  mainTab,
-  currentIndex,
-  timeLeftRef,
-  sessionStudyTimeRef,
-  formatHeaderTime
-}) => {
-  const [localTimeLeft, setLocalTimeLeft] = useState(0);
-  const [localSessionStudyTime, setLocalSessionStudyTime] = useState(0);
-
-  // Reset the card timer when the index changes
-  useEffect(() => {
-    setLocalTimeLeft(0);
-    timeLeftRef.current = 0;
-  }, [currentIndex, timeLeftRef]);
-
-  // Sync state to ref
-  useEffect(() => {
-    timeLeftRef.current = localTimeLeft;
-  }, [localTimeLeft, timeLeftRef]);
-
-  useEffect(() => {
-    sessionStudyTimeRef.current = localSessionStudyTime;
-  }, [localSessionStudyTime, sessionStudyTimeRef]);
-
-  // Ticking logic
-  useEffect(() => {
-    const timer = setInterval(() => {
-      if (document.hidden || !document.hasFocus()) return;
-      if (mainTab === 'practice') {
-        if (showFeedback) return;
-      } else {
-        if (hasRated) return;
-      }
-      setLocalTimeLeft(prev => prev + 1);
-      setLocalSessionStudyTime(prev => prev + 1);
-    }, 1000);
-
-    return () => clearInterval(timer);
-  }, [showFeedback, hasRated, mainTab]);
-
-  const displayTime = useMemo(() => {
-    if (timeMode === 'card') {
-      return `${localTimeLeft}s`;
-    }
-    const baseTime = timeMode === 'today' ? initialTodayTime : initialAllTimeTime;
-    return formatHeaderTime(baseTime + localSessionStudyTime);
-  }, [timeMode, localTimeLeft, localSessionStudyTime, initialTodayTime, initialAllTimeTime, formatHeaderTime]);
-
-  return (
-    <AnimatePresence mode="popLayout" initial={false}>
-      <motion.span
-        key={displayTime}
-        initial={{ y: 8, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-        exit={{ y: -8, opacity: 0 }}
-        transition={{ type: "spring", stiffness: 350, damping: 18 }}
-        className="text-[7.5px] md:text-[8.5px] font-black text-slate-700 leading-none block truncate"
-      >
-        {displayTime}
-      </motion.span>
-    </AnimatePresence>
-  );
-};
-
-const SessionLoadingScreen = () => {
-  const [tipIndex, setTipIndex] = useState(0);
-  const tips = [
-    "Đang tối ưu hóa thuật toán FSRS cho bộ nhớ của bạn...",
-    "Ganbare! Hôm nay nhất định sẽ thuộc thêm nhiều từ mới! 🎌",
-    "Học tập có chu kỳ giúp lưu giữ từ vựng lâu gấp 10 lần. 🧠",
-    "Đang chuẩn bị giáo án và sắp xếp các thẻ học...",
-    "Luyện tập đều đặn mỗi ngày để duy trì Streak ngọn lửa nhé! 🔥",
-    "Tiến trình học của bạn đang được đồng bộ hóa an toàn..."
-  ];
-
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setTipIndex(prev => (prev + 1) % tips.length);
-    }, 3000);
-    return () => clearInterval(timer);
-  }, []);
-
-  return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-slate-50 via-indigo-50/30 to-slate-100 text-slate-800 p-6 selection:bg-indigo-100">
-      <div className="relative flex flex-col items-center max-w-sm text-center">
-        {/* Glow backdrop */}
-        <div className="absolute -top-12 w-32 h-32 bg-indigo-400/20 rounded-full blur-2xl animate-pulse" />
-        
-        {/* Cute animated loading icon */}
-        <div className="relative mb-6 flex items-center justify-center w-16 h-16 bg-white rounded-2xl shadow-xl shadow-indigo-100/50 border border-slate-100 animate-bounce duration-1000">
-          <Brain className="w-8 h-8 text-indigo-600 animate-pulse" />
-          <Sparkles className="absolute -top-1 -right-1 w-5 h-5 text-amber-500 animate-spin duration-3000" />
-        </div>
-
-        {/* Pulsing ring spinner */}
-        <div className="relative w-10 h-10 mb-6">
-          <div className="absolute inset-0 border-4 border-indigo-100 rounded-full" />
-          <div className="absolute inset-0 border-4 border-t-indigo-600 border-r-transparent border-b-transparent border-l-transparent rounded-full animate-spin" />
-        </div>
-
-        {/* Loading text */}
-        <h2 className="text-sm font-black text-slate-700 tracking-widest uppercase mb-2">
-          Đang chuẩn bị phiên học
-        </h2>
-        
-        {/* Rotating tip */}
-        <div className="h-10 flex items-center justify-center">
-          <p className="text-xs font-semibold text-slate-500 animate-pulse px-4">
-            {tips[tipIndex]}
-          </p>
-        </div>
-      </div>
-    </div>
-  );
-};
+import {
+  TimerWidget,
+  SessionLoadingScreen,
+  FsrsCompleteScreen,
+  RoadmapCompleteScreen,
+  StudyConsoleModal,
+  ImageZoomOverlay,
+  FloatingToasts,
+  GoalCelebrationModal,
+  QuitSessionModal,
+  SessionStatsWidget
+} from '@/components/flashcard'
+import { useLeaderboard } from '@/hooks/useLeaderboard'
+import { useCardAI } from '@/hooks/useCardAI'
 
 export default function FlashcardPlay() {
   const { id, mode, subMode } = useParams()
@@ -606,23 +267,39 @@ export default function FlashcardPlay() {
     updateUserSettings({ time_mode: nextMode })
   }
 
-  const formatHeaderTime = (seconds: number) => {
-    if (seconds < 60) return `${seconds}s`
-    const mins = Math.floor(seconds / 60)
-    const hours = Math.floor(mins / 60)
-    if (hours > 0) {
-      return `${hours}h ${mins % 60}m`
-    }
-    return `${mins}m`
-  }
+  const {
+    isAskingAI,
+    personalNote,
+    setPersonalNote,
+    isEditingNote,
+    setIsEditingNote,
+    isEditingAI,
+    setIsEditingAI,
+    isEditingInsight,
+    setIsEditingInsight,
+    insightInput,
+    setInsightInput,
+    aiInput,
+    setAiInput,
+    isEditingPrompt,
+    setIsEditingPrompt,
+    promptInput,
+    setPromptInput,
+    fetchNote,
+    saveNote,
+    askAI,
+    savePrompt,
+    clearAIExplanation,
+    getInsightText,
+    saveInsight
+  } = useCardAI({
+    deckId: id,
+    session,
+    setSession,
+    currentQuestion,
+    currentIndex
+  })
 
-  const [isAskingAI, setIsAskingAI] = useState(false)
-  const [personalNote, setPersonalNote] = useState('')
-  const [isEditingNote, setIsEditingNote] = useState(false)
-  const [isEditingAI, setIsEditingAI] = useState(false)
-  const [isEditingInsight, setIsEditingInsight] = useState(false)
-  const [insightInput, setInsightInput] = useState('')
-  const [aiInput, setAiInput] = useState('')
   const [isCopyMenuOpen, setIsCopyMenuOpen] = useState(false)
   const [isCopied, setIsCopied] = useState(false)
   const [isMapOpen, setIsMapOpen] = useState(false)
@@ -641,8 +318,6 @@ export default function FlashcardPlay() {
   const [activeMasteryUpgrade, setActiveMasteryUpgrade] = useState<any | null>(null)
   const [editFormData, setEditFormData] = useState<any>(null)
   const [sessionAnswers, setSessionAnswers] = useState<Record<number, number | number[]>>({})
-  const [isEditingPrompt, setIsEditingPrompt] = useState(false)
-  const [promptInput, setPromptInput] = useState('')
   
   // ── Engagement State ──
   const [isSessionSummaryOpen, setIsSessionSummaryOpen] = useState(false)
@@ -708,9 +383,6 @@ export default function FlashcardPlay() {
   const [justAnswered, setJustAnswered] = useState(false)
   const [availableColumns, setAvailableColumns] = useState<string[]>([])
 
-
-
-
   const undoInProgressRef = useRef<boolean>(false)
   const touchStartXRef = useRef<number | null>(null)
   const touchStartYRef = useRef<number | null>(null)
@@ -747,65 +419,21 @@ export default function FlashcardPlay() {
   const [activelyRatedCurrentCard, setActivelyRatedCurrentCard] = useState<boolean>(false)
   const [prevStreakBeforeRating, setPrevStreakBeforeRating] = useState<number>(0)
   const [fsrsCompletionData, setFsrsCompletionData] = useState<any>(null)
-  const [leaderboardTimeFilter, setLeaderboardTimeFilter] = useState<'today' | 'week' | 'month' | 'all_time'>('week')
-  const [leaderboardType, setLeaderboardType] = useState<'xp' | 'streak' | 'questions' | 'accuracy'>('xp')
-  const [leaderboardData, setLeaderboardData] = useState<any>(null)
-  const [isLeaderboardLoading, setIsLeaderboardLoading] = useState<boolean>(false)
 
-  const xpLeaderboard = leaderboardData?.[leaderboardType] || { list: [], user_rank: -1, user_value: 0 }
-  const userRank = xpLeaderboard.user_rank
-  const userValue = xpLeaderboard.user_value
-
-  const getUnitName = (type: string) => {
-    if (type === 'xp') return 'XP'
-    if (type === 'streak') return 'ngày'
-    if (type === 'questions') return 'câu'
-    return '%'
-  }
-  
-  let leaderboardMsg = ""
-  if (userRank === 1) {
-    leaderboardMsg = "Bạn đang dẫn đầu Bảng xếp hạng! Hãy giữ vững ngôi vương nhé! 👑"
-  } else if (userRank > 1) {
-    const topUser = xpLeaderboard.list[0]
-    const prevUser = xpLeaderboard.list[userRank - 2]
-    const unit = getUnitName(leaderboardType)
-    if (topUser) {
-      const xpToTop = topUser.value - userValue
-      leaderboardMsg = `Cần thêm ${xpToTop.toLocaleString()} ${unit} nữa để đạt Top 1! 🚀`
-    }
-    if (prevUser) {
-      const xpToPrev = prevUser.value - userValue
-      leaderboardMsg += ` Cách Hạng #${userRank - 1} (${prevUser.username}) ${xpToPrev.toLocaleString()} ${unit}! 💪`
-    }
-  } else {
-    leaderboardMsg = `Hãy tích lũy thêm ${getUnitName(leaderboardType)} để ghi danh lên Bảng xếp hạng! 🏆`
-  }
-
-  useEffect(() => {
-    let isMounted = true
-    const loadLeaderboard = async () => {
-      setIsLeaderboardLoading(true)
-      try {
-        const res = await axios.get('/api/v1/stats/leaderboard', {
-          params: { time_filter: leaderboardTimeFilter }
-        })
-        if (isMounted) {
-          setLeaderboardData(res.data)
-        }
-      } catch (e) {
-        console.error("Failed to load leaderboard data", e)
-      } finally {
-        if (isMounted) {
-          setIsLeaderboardLoading(false)
-        }
-      }
-    }
-    loadLeaderboard()
-    return () => {
-      isMounted = false
-    }
-  }, [leaderboardTimeFilter])
+  const {
+    leaderboardTimeFilter,
+    setLeaderboardTimeFilter,
+    leaderboardType,
+    setLeaderboardType,
+    leaderboardData,
+    setLeaderboardData,
+    isLeaderboardLoading,
+    xpLeaderboard,
+    userRank,
+    userValue,
+    leaderboardMsg,
+    getUnitName
+  } = useLeaderboard()
 
 
 
@@ -863,92 +491,6 @@ export default function FlashcardPlay() {
     if (mode === 'all') return session.questions.length;
     return session.questions.filter((q: any) => getCardBoxId(q) === mode).length;
   };
-
-  const getCardBoxId = (item: any) => {
-    if (item.is_ignored) return 'ignored';
-    if (item.is_starred) return 'starred';
-    
-    const stats = item.stats || { total: 0, again_count: 0, hard_count: 0 }
-    const total = stats.total || 0
-    const again = stats.again_count || 0
-    const hard = stats.hard_count || 0
-    const isHard = (item.fsrs?.difficulty !== undefined && item.fsrs.difficulty !== null)
-      ? (
-          item.fsrs.difficulty >= 8.0 &&
-          (item.fsrs.stability === undefined || item.fsrs.stability === null || item.fsrs.stability < 5.0) &&
-          total >= 20 &&
-          ((again + hard) / total >= 0.4)
-        )
-      : (total >= 20 && (again + hard) >= 8 && ((again + hard) / total >= 0.4));
-      
-    if (isHard) return 'hard';
-    if (item.box_level === 5 && total >= 4) return 'mastered';
-    if (total === 0 || (!item.fsrs?.last_review && item.fsrs?.state === 0)) return 'unseen';
-    return 'learning';
-  };
-
-  const getMasteryPill = (q: any) => {
-    const boxId = getCardBoxId(q);
-    switch (boxId) {
-      case 'ignored':
-        return (
-          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-[10px] font-black uppercase tracking-wider bg-slate-200 text-slate-500 border border-slate-300 shadow-sm animate-fadeIn">
-            🚫 BỎ QUA
-          </span>
-        );
-      case 'starred':
-        return (
-          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-[10px] font-black uppercase tracking-wider bg-amber-500 text-white border border-amber-600 shadow-sm animate-fadeIn">
-            ★ ĐÃ GẮN SAO
-          </span>
-        );
-      case 'hard':
-        return (
-          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-[10px] font-black uppercase tracking-wider bg-rose-500/10 text-rose-600 border border-rose-500/20 shadow-sm animate-fadeIn">
-            ⚠️ THẺ KHÓ
-          </span>
-        );
-      case 'mastered':
-        return (
-          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-[10px] font-black uppercase tracking-wider bg-emerald-500/10 text-emerald-600 border border-emerald-500/20 shadow-sm animate-fadeIn">
-            🏆 ĐÃ THUỘC
-          </span>
-        );
-      case 'learning':
-        return (
-          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-[10px] font-black uppercase tracking-wider bg-amber-500/10 text-amber-600 border border-amber-500/20 shadow-sm animate-fadeIn">
-            🌱 ĐANG HỌC
-          </span>
-        );
-      default:
-        return (
-          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-[10px] font-black uppercase tracking-wider bg-slate-500/10 text-slate-650 border border-slate-500/20 shadow-sm animate-fadeIn">
-            ⭐ MỚI
-          </span>
-        );
-    }
-  };
-
-  const getBadgeIcon = (badgeId: string) => {
-    switch (badgeId) {
-      case 'first_steps':
-        return Play
-      case 'streak_starter':
-        return Flame
-      case 'streak_legend':
-        return Trophy
-      case 'perfect_score':
-        return CheckCircle2
-      case 'speed_demon':
-        return Clock
-      case 'goal_crusher':
-        return Target
-      case 'card_master':
-        return Brain
-      default:
-        return Award
-    }
-  }
 
   const canEdit = user?.role === 'admin' || user?.id === 1 || session?.creator_id === user?.id || session?.is_collaborator
 
@@ -1203,27 +745,6 @@ export default function FlashcardPlay() {
       }
     } catch (e) {
       alert("Failed to restore practice settings.")
-    }
-  }
-
-  const fetchNote = async () => {
-    if (!currentQuestion) return
-    try {
-      const res = await axios.get(`/api/v1/deck/question/${currentQuestion.id}/note`)
-      setPersonalNote(res.data.content || '')
-    } catch (e) {
-      console.error("Failed to fetch card note:", e)
-    }
-  }
-
-  const saveNote = async () => {
-    if (!currentQuestion) return
-    try {
-      await axios.post(`/api/v1/deck/question/${currentQuestion.id}/note`, { 
-        content: personalNote 
-      })
-    } catch (e) {
-      alert("Failed to save note.")
     }
   }
 
@@ -2511,217 +2032,6 @@ export default function FlashcardPlay() {
     isSettingsModalOpen
   ]);
 
-  const askAI = async (field: string = "explanation", manualText?: string) => {
-    if (!currentQuestion) return
-    setIsAskingAI(true)
-    try {
-      const payload: any = { question_id: currentQuestion.id, field }
-      if (typeof manualText === 'string') {
-        if (field === 'explanation') payload.ai_explanation = manualText
-        else if (field === 'hint') payload.hint = manualText
-        else if (field === 'mnemonic') payload.mnemonic = manualText
-        else payload.content = manualText
-      }
-      
-      const res = await axios.post(`/api/v1/deck/${id}/ask-ai`, payload)
-      
-      if (res.data.error) {
-        alert(res.data.error)
-        setIsAskingAI(false)
-        return
-      }
-      
-      if (res.data.status === 'processing') {
-        // Polling loop
-        let attempts = 0
-        const maxAttempts = 45 // 90 seconds total (45 * 2) - Gemini can be slow under load
-        const poll = setInterval(async () => {
-          attempts++
-          try {
-            // Append cache buster to completely bypass browser and proxy caching
-            const quizRes = await axios.get(`/api/v1/deck/${id}/play-data?t=${Date.now()}`)
-            const updatedQ = quizRes.data.questions?.find((q: any) => q.id === currentQuestion.id)
-            if (updatedQ) {
-              let updatedVal = null
-              if (field === 'explanation') updatedVal = updatedQ.ai_explanation
-              else if (field === 'hint') updatedVal = updatedQ.hint
-              else if (field === 'mnemonic') updatedVal = updatedQ.mnemonic
-              else updatedVal = updatedQ.others?.ai_responses?.[field] || updatedQ.others?.[field]
-
-              if (updatedVal) {
-                setSession((prev: any) => {
-                  const newQs = [...prev.questions]
-                  const targetIdx = newQs.findIndex(q => q.id === updatedQ.id)
-                  if (targetIdx !== -1) {
-                    if (field === 'explanation') newQs[targetIdx].ai_explanation = updatedVal
-                    else if (field === 'hint') newQs[targetIdx].hint = updatedVal
-                    else if (field === 'mnemonic') newQs[targetIdx].mnemonic = updatedVal
-                    else {
-                      if (!newQs[targetIdx].others) newQs[targetIdx].others = {}
-                      if (!newQs[targetIdx].others.ai_responses) newQs[targetIdx].others.ai_responses = {}
-                      newQs[targetIdx].others.ai_responses[field] = updatedVal
-                      newQs[targetIdx].others[field] = updatedVal
-                    }
-                  }
-                  return { ...prev, questions: newQs }
-                })
-                setIsAskingAI(false)
-                clearInterval(poll)
-              }
-            }
-          } catch (e) {
-            console.error("Error polling play-data for AI explanation:", e)
-          }
-          
-          if (attempts >= maxAttempts) {
-            clearInterval(poll)
-            setIsAskingAI(false)
-          }
-        }, 2000)
-      } else {
-        const updatedVal = res.data.content || res.data.ai_explanation || res.data.hint || res.data.mnemonic
-        setSession((prev: any) => {
-          const newQs = [...prev.questions]
-          if (field === 'explanation') newQs[currentIndex].ai_explanation = updatedVal
-          else if (field === 'hint') newQs[currentIndex].hint = updatedVal
-          else if (field === 'mnemonic') newQs[currentIndex].mnemonic = updatedVal
-          else {
-            if (!newQs[currentIndex].others) newQs[currentIndex].others = {}
-            if (!newQs[currentIndex].others.ai_responses) newQs[currentIndex].others.ai_responses = {}
-            newQs[currentIndex].others.ai_responses[field] = updatedVal
-          }
-          return { ...prev, questions: newQs }
-        })
-        if (typeof manualText === 'string') setIsEditingAI(false)
-        setIsAskingAI(false)
-      }
-    } catch (e) {
-      console.error("AI explanation generation failed:", e)
-      alert("AI service is currently unavailable.")
-      setIsAskingAI(false)
-    }
-  }
-
-  const savePrompt = async (field: string = "explanation") => {
-    try {
-      if (field === 'explanation' || field === 'mnemonic' || field === 'hint') {
-        const fieldMap: Record<string, string> = {
-          explanation: 'ai_prompt',
-          mnemonic: 'ai_prompt_mnemonic',
-          hint: 'ai_prompt_hint'
-        }
-        const fieldName = fieldMap[field]
-        await axios.patch(`/api/v1/deck/${id}`, { [fieldName]: promptInput })
-        setSession((prev: any) => ({ ...prev, [fieldName]: promptInput }))
-      } else {
-        const newPrompts = (session.ai_prompts || []).map((p: any) => {
-          if (p.id === field) {
-             return { ...p, prompt: promptInput }
-          }
-          return p
-        })
-        const settingsRes = await axios.get(`/api/v1/deck/${id}/practice-settings`)
-        const currentSettings = settingsRes.data.creator_settings || {}
-        currentSettings.ai_prompts = newPrompts
-        await axios.post(`/api/v1/deck/${id}/practice-settings`, {
-          settings: currentSettings,
-          is_creator: true
-        })
-        setSession((prev: any) => ({ ...prev, ai_prompts: newPrompts }))
-      }
-      setIsEditingPrompt(false)
-      alert("Prompt saved successfully!")
-    } catch (e) {
-      alert("Failed to save prompt.")
-    }
-  }
-
-  const clearAIExplanation = async (field: string = "explanation") => {
-    if (!currentQuestion) return
-    if (!window.confirm("Are you sure you want to delete this AI content?")) return
-    try {
-      if (field === 'explanation' || field === 'hint' || field === 'mnemonic') {
-        const fieldMap: Record<string, string> = {
-          explanation: 'ai_explanation',
-          mnemonic: 'mnemonic',
-          hint: 'hint'
-        }
-        const dbField = fieldMap[field]
-        await axios.patch(`/api/v1/deck/question/${currentQuestion.id}`, { [dbField]: null })
-        setSession((prev: any) => {
-          const newQs = [...prev.questions]
-          const targetIdx = newQs.findIndex(q => q.id === currentQuestion.id)
-          if (targetIdx !== -1) {
-            newQs[targetIdx][dbField] = null
-          }
-          return { ...prev, questions: newQs }
-        })
-      } else {
-        const updatedOthers = { ...(currentQuestion.others || {}) }
-        if (updatedOthers.ai_responses) {
-          delete updatedOthers.ai_responses[field]
-        }
-        await axios.patch(`/api/v1/deck/question/${currentQuestion.id}`, { others: updatedOthers })
-        setSession((prev: any) => {
-          const newQs = [...prev.questions]
-          const targetIdx = newQs.findIndex(q => q.id === currentQuestion.id)
-          if (targetIdx !== -1) {
-            newQs[targetIdx].others = updatedOthers
-          }
-          return { ...prev, questions: newQs }
-        })
-      }
-    } catch (e) {
-      alert("Failed to delete AI explanation.")
-    }
-  }
-
-  const getInsightText = () => {
-    if (!currentQuestion) return 'No detail.';
-    // 1. Prefer others.explain or others.explanation if present
-    const othersExplain = currentQuestion.others?.explain || currentQuestion.others?.explanation;
-    if (othersExplain) return othersExplain;
-    // 2. Try other_content
-    if (currentQuestion.others?.other_content && typeof currentQuestion.others.other_content === 'string') {
-      return currentQuestion.others.other_content;
-    }
-    // 3. Fallback to explanation ONLY if it has options (MCQ / Quiz)
-    // For flashcards (no options), explanation stores the back of the card, not an extra insight.
-    const isFlashcard = !currentQuestion.options || currentQuestion.options.length === 0;
-    if (isFlashcard) {
-      return 'No detail.';
-    }
-    return currentQuestion.explanation || 'No detail.';
-  }
-
-  const saveInsight = async () => {
-    if (!currentQuestion) return
-    try {
-      const targetKey = currentQuestion.others?.explanation ? 'explanation' : 'explain';
-      const updatedOthers = {
-        ...(currentQuestion.others || {}),
-        [targetKey]: insightInput
-      };
-      
-      await axios.patch(`/api/v1/deck/question/${currentQuestion.id}`, { 
-        others: { [targetKey]: insightInput } 
-      })
-      
-      setSession((prev: any) => {
-        if (!prev) return prev
-        const newQs = [...prev.questions]
-        newQs[currentIndex] = {
-          ...newQs[currentIndex],
-          others: updatedOthers
-        }
-        return { ...prev, questions: newQs }
-      })
-      setIsEditingInsight(false)
-    } catch (e) {
-      alert("Failed to save insight.")
-    }
-  }
-
   const openEditModal = () => {
     if (!currentQuestion) return
     
@@ -3224,108 +2534,14 @@ export default function FlashcardPlay() {
   };
 
   const renderSessionStats = () => {
-    const isPractice = mainTab === 'practice';
-    
-    if (isPractice) {
-      const answeredCount = Object.keys(practiceAnswers).length;
-      const correctCount = Object.entries(practiceAnswers).filter(([idx, ansIdx]) => {
-        const q = session?.questions?.[Number(idx)];
-        if (!q || !q.practice) return false;
-        if (practiceSubMode === 'typing') {
-          return ansIdx === 3;
-        }
-        return ansIdx === q.practice.correct_index;
-      }).length;
-      const wrongCount = answeredCount - correctCount;
-      const accuracy = answeredCount > 0 ? Math.round((correctCount / answeredCount) * 100) : 0;
-
-      return (
-        <div className="bg-slate-50/80 rounded-[1.5rem] p-4 mb-4 border border-slate-100">
-          <div className="flex items-center justify-between mb-3">
-            <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">PRACTICE SUMMARY</span>
-            <div className="flex items-center gap-1.5 px-2 py-0.5 bg-indigo-600 rounded-full text-white">
-              <Target className="w-2.5 h-2.5" />
-              <span className="text-[9px] font-black">ACCURACY: {accuracy}%</span>
-            </div>
-          </div>
-
-          <div className="flex items-center justify-between p-3 bg-white rounded-2xl shadow-sm border border-slate-100/50 mb-3">
-            <div className="flex items-center gap-2">
-              <div className="w-7 h-7 rounded-lg bg-indigo-50 flex items-center justify-center text-indigo-600">
-                <BookOpen className="w-4 h-4" />
-              </div>
-              <span className="text-[10px] font-bold text-slate-400 uppercase">QUESTIONS DONE</span>
-            </div>
-            <span className="text-lg font-black text-slate-700">{answeredCount}</span>
-          </div>
-
-          <div className="grid grid-cols-2 gap-2">
-            <div className="flex flex-col items-center p-2.5 bg-emerald-50 rounded-xl border border-emerald-100/40">
-              <span className="text-[14px] font-black text-emerald-600">{correctCount}</span>
-              <span className="text-[8px] font-black text-emerald-400 uppercase tracking-wider">CORRECT</span>
-            </div>
-            <div className="flex flex-col items-center p-2.5 bg-rose-50 rounded-xl border border-rose-100/40">
-              <span className="text-[14px] font-black text-rose-600">{wrongCount}</span>
-              <span className="text-[8px] font-black text-rose-400 uppercase tracking-wider">WRONG</span>
-            </div>
-          </div>
-        </div>
-      );
-    }
-
-    const answeredCount = Object.keys(sessionAnswers).length
-    const finalRatings = Object.values(sessionAnswers).map(val => Array.isArray(val) ? val[val.length - 1] : val)
-    const againCount = finalRatings.filter(val => val === 0).length
-    const hardCount = finalRatings.filter(val => val === 1).length
-    const goodCount = finalRatings.filter(val => val === 2).length
-    const easyCount = finalRatings.filter(val => val === 3).length
-    const flipCount = finalRatings.filter(val => val === -2).length
-    
-    const correctCount = hardCount + goodCount + easyCount
-    const evaluatedCount = answeredCount - flipCount
-    const accuracy = evaluatedCount > 0 ? Math.round((correctCount / evaluatedCount) * 100) : 0
-
     return (
-      <div className="bg-slate-50/80 rounded-[1.5rem] p-4 mb-4 border border-slate-100">
-        <div className="flex items-center justify-between mb-3">
-          <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">SESSION SUMMARY</span>
-          <div className="flex items-center gap-1.5 px-2 py-0.5 bg-indigo-600 rounded-full text-white">
-            <Target className="w-2.5 h-2.5" />
-            <span className="text-[9px] font-black">RETENTION: {accuracy}%</span>
-          </div>
-        </div>
-
-        {/* Total Reviewed */}
-        <div className="flex items-center justify-between p-3 bg-white rounded-2xl shadow-sm border border-slate-100/50 mb-3">
-          <div className="flex items-center gap-2">
-            <div className="w-7 h-7 rounded-lg bg-indigo-50 flex items-center justify-center text-indigo-600">
-              <BookOpen className="w-4 h-4" />
-            </div>
-            <span className="text-[10px] font-bold text-slate-400 uppercase">CARDS REVIEWED</span>
-          </div>
-          <span className="text-lg font-black text-slate-700">{answeredCount}</span>
-        </div>
-
-        {/* 4 FSRS Stats Grid */}
-        <div className="grid grid-cols-4 gap-1.5">
-          <div className="flex flex-col items-center p-2 bg-rose-50 rounded-xl border border-rose-100/40">
-            <span className="text-[13px] font-black text-rose-600">{againCount}</span>
-            <span className="text-[7px] font-black text-rose-400 uppercase tracking-wider">AGAIN</span>
-          </div>
-          <div className="flex flex-col items-center p-2 bg-amber-50 rounded-xl border border-amber-100/40">
-            <span className="text-[13px] font-black text-amber-600">{hardCount}</span>
-            <span className="text-[7px] font-black text-amber-400 uppercase tracking-wider">HARD</span>
-          </div>
-          <div className="flex flex-col items-center p-2 bg-indigo-50 rounded-xl border border-indigo-100/40">
-            <span className="text-[13px] font-black text-indigo-600">{goodCount}</span>
-            <span className="text-[7px] font-black text-indigo-400 uppercase tracking-wider">GOOD</span>
-          </div>
-          <div className="flex flex-col items-center p-2 bg-emerald-50 rounded-xl border border-emerald-100/40">
-            <span className="text-[13px] font-black text-emerald-600">{easyCount}</span>
-            <span className="text-[7px] font-black text-emerald-400 uppercase tracking-wider">EASY</span>
-          </div>
-        </div>
-      </div>
+      <SessionStatsWidget
+        isPractice={mainTab === 'practice'}
+        practiceAnswers={practiceAnswers}
+        sessionAnswers={sessionAnswers}
+        session={session}
+        practiceSubMode={practiceSubMode}
+      />
     )
   }
 
@@ -3575,119 +2791,16 @@ export default function FlashcardPlay() {
   const [isStudyConsoleOpen, setIsStudyConsoleOpen] = useState(false);
 
   const renderRoadmapStepCompleteScreen = () => {
-    const firstUnfinishedStep = roadmapStatus?.pipeline?.find((s: any) => !s.done);
-    const isAllDone = Boolean(roadmapStatus?.all_done || !firstUnfinishedStep);
-    const newTarget = roadmapStatus?.new_target_today ?? 20;
-    const newLearned = Math.min(newTarget, roadmapStatus?.new_learned_today ?? 0);
-
-    const targetActionUrl = firstUnfinishedStep?.url || (!isAllDone ? nextActionUrl : null);
-    const targetActionLabel = firstUnfinishedStep?.label || nextActionLabel || 'Tiếp theo';
-
-    const subtitleText = isAllDone
-      ? "Chúc mừng bạn đã hoàn thành tất cả các bước trong lộ trình ngày hôm nay!"
-      : firstUnfinishedStep?.type === 'mcq' || firstUnfinishedStep?.type === 'typing'
-        ? "Xuất sắc! Hãy thực hiện bài kiểm tra để đánh giá khả năng ghi nhớ & giữ Streak ngày!"
-        : firstUnfinishedStep?.type === 'fsrs_review'
-          ? "Xuất sắc! Tiếp tục với bước Ôn tập FSRS để củng cố khả năng ghi nhớ dài hạn!"
-          : "Chúc mừng bạn đã hoàn thành việc học từ mới của lộ trình hôm nay!";
-
     return (
-      <div className="flex-1 bg-white md:rounded-[2rem] rounded-[1.25rem] border border-slate-100 p-6 md:p-10 flex flex-col items-center justify-center text-center gap-6 shadow-2xl shadow-indigo-100/40 min-h-[480px] w-full max-w-xl mx-auto my-auto">
-        {/* Icon Badge */}
-        <div className="w-20 h-20 rounded-3xl flex items-center justify-center shadow-xl border animate-in zoom-in-75 duration-500 bg-gradient-to-tr from-emerald-400 to-teal-500 text-white border-emerald-300 shadow-emerald-200">
-          <Trophy className="w-10 h-10 animate-bounce" />
-        </div>
-
-        {/* Title & Subtitle */}
-        <div className="space-y-2 max-w-md">
-          <h2 className="text-2xl md:text-3xl font-black text-slate-800 tracking-tight">
-            {isAllDone ? "🎉 XUẤT SẮC! HOÀN THÀNH LỘ TRÌNH" : "🎉 XUẤT SẮC! ĐÃ HỌC XONG TỪ MỚI"}
-          </h2>
-          <p className="text-xs md:text-sm font-medium text-slate-500 leading-relaxed">
-            {subtitleText}
-          </p>
-        </div>
-
-        {/* Stats Grid */}
-        <div className="grid grid-cols-3 gap-3 w-full max-w-md my-2">
-          <div className="bg-slate-50 p-3.5 rounded-2xl border border-slate-100 text-center">
-            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">Đã học</span>
-            <span className="text-2xl font-black text-emerald-600 block mt-0.5">
-              {newLearned}/{newTarget}
-            </span>
-          </div>
-
-          <div className="bg-slate-50 p-3.5 rounded-2xl border border-slate-100 text-center">
-            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">Hoàn thành</span>
-            <span className="text-2xl font-black text-emerald-600 block mt-0.5">
-              {newTarget > 0 ? Math.min(100, Math.round((newLearned / newTarget) * 100)) : 100}%
-            </span>
-          </div>
-
-          <div className="bg-slate-50 p-3.5 rounded-2xl border border-slate-100 text-center">
-            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">Mục tiêu</span>
-            <span className="text-2xl font-black text-indigo-600 block mt-0.5">
-              100%
-            </span>
-          </div>
-        </div>
-
-        {/* Action Buttons */}
-        <div className="w-full max-w-md space-y-3 pt-2">
-          {!isAllDone && targetActionUrl && (
-            <button
-              onClick={() => navigate(targetActionUrl)}
-              className="w-full py-4 px-6 bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-700 hover:from-indigo-700 hover:to-purple-800 text-white font-black text-sm uppercase tracking-wider rounded-2xl shadow-xl shadow-indigo-500/20 active:scale-[0.98] transition-all flex items-center justify-center gap-2 cursor-pointer"
-            >
-              <Target className="w-4 h-4" />
-              <span>
-                {firstUnfinishedStep?.type === 'mcq' || firstUnfinishedStep?.type === 'typing'
-                  ? '🎯 BẮT ĐẦU BÀI KIỂM TRA ➔'
-                  : `🚀 SANG BƯỚC: ${targetActionLabel} ➔`}
-              </span>
-            </button>
-          )}
-
-          {isAllDone && (
-            <button
-              onClick={() => navigate('/')}
-              className="w-full py-4 px-6 bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-600 hover:from-emerald-600 hover:to-teal-700 text-white font-black text-sm uppercase tracking-wider rounded-2xl shadow-xl shadow-emerald-500/20 active:scale-[0.98] transition-all flex items-center justify-center gap-2 cursor-pointer"
-            >
-              <Trophy className="w-5 h-5 fill-current" />
-              <span>🎉 HOÀN THÀNH LỘ TRÌNH HÔM NAY ➔ VỀ DASHBOARD</span>
-            </button>
-          )}
-
-          <button
-            onClick={() => {
-              applyLearningMode('new');
-            }}
-            className="w-full py-3.5 px-4 rounded-2xl bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-700 hover:text-slate-900 font-bold text-xs active:scale-95 transition-all cursor-pointer flex items-center justify-center gap-2 shadow-sm"
-          >
-            <Sparkles className="w-4 h-4 text-orange-500" />
-            <span>Học tiếp từ mới 🚀</span>
-          </button>
-
-          <button
-            onClick={() => setIsStudyConsoleOpen(true)}
-            className="w-full py-3.5 px-4 rounded-2xl bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-700 hover:text-slate-900 font-bold text-xs active:scale-95 transition-all cursor-pointer flex items-center justify-between shadow-sm"
-          >
-            <span className="flex items-center gap-2">
-              <Brain className="w-4 h-4 text-indigo-500" />
-              <span>Vẫn muốn học Flashcard? Đổi chế độ</span>
-            </span>
-            <ChevronRight className="w-4 h-4 text-slate-400" />
-          </button>
-
-          <button
-            onClick={() => navigate('/')}
-            className="w-full py-3 px-4 rounded-xl bg-slate-100/60 hover:bg-slate-100 border border-slate-200/60 text-slate-500 hover:text-slate-700 font-bold text-xs active:scale-95 transition-all cursor-pointer"
-          >
-            Về Trang Chủ
-          </button>
-        </div>
-      </div>
-    );
+      <RoadmapCompleteScreen
+        roadmapStatus={roadmapStatus}
+        nextActionUrl={nextActionUrl}
+        nextActionLabel={nextActionLabel}
+        onNavigate={(url) => navigate(url)}
+        onLearnMoreNew={() => applyLearningMode('new')}
+        onOpenStudyConsole={() => setIsStudyConsoleOpen(true)}
+      />
+    )
   };
 
   const shouldShowFsrsCompleteScreen = useMemo(() => {
@@ -3701,289 +2814,37 @@ export default function FlashcardPlay() {
   }, [shouldShowFsrsCompleteScreen]);
 
   const renderFsrsCompleteScreen = () => {
-    const nextDueText = fsrsCompletionData?.next_due_text || 'Một vài giờ nữa';
-    const totalCards = fsrsCompletionData?.total_cards || session?.questions?.length || 0;
-    const learnedCards = fsrsCompletionData?.learned_cards || totalCards;
-
     return (
-      <div className="flex-1 bg-white md:rounded-[2rem] rounded-[1.25rem] border border-slate-100 p-6 md:p-10 flex flex-col items-center justify-center text-center gap-6 shadow-2xl shadow-indigo-100/40 min-h-[480px] w-full max-w-xl mx-auto my-auto animate-in zoom-in-95 duration-300">
-        {/* Brain / Glow Icon Badge */}
-        <div className="w-20 h-20 rounded-3xl flex items-center justify-center shadow-xl border bg-gradient-to-tr from-indigo-500 via-purple-500 to-pink-500 text-white border-indigo-300 shadow-indigo-200">
-          <Brain className="w-10 h-10 animate-bounce" />
-        </div>
-
-        {/* Title & Subtitle */}
-        <div className="space-y-2 max-w-md">
-          <h2 className="text-2xl md:text-3xl font-black text-slate-800 tracking-tight">
-            🎉 XUẤT SẮC! HOÀN THÀNH FSRS
-          </h2>
-          <p className="text-xs md:text-sm font-medium text-slate-500 leading-relaxed">
-            Bạn đã hoàn thành toàn bộ từ vựng cần ôn tập và từ mới của bộ thẻ này hôm nay.
-          </p>
-        </div>
-
-        {/* FSRS Waiting / Countdown Card */}
-        <div className="w-full max-w-md bg-gradient-to-br from-indigo-50/90 via-purple-50/50 to-pink-50/40 border border-indigo-100 rounded-3xl p-5 shadow-sm space-y-2">
-          <div className="flex items-center justify-center gap-1.5 text-indigo-700 font-bold text-xs">
-            <Clock className="w-4 h-4 text-indigo-600 animate-pulse" />
-            <span className="uppercase tracking-wider">Hãy quay lại ôn tập sau:</span>
-          </div>
-          <div className="text-2xl md:text-3xl font-black text-indigo-900 tracking-tight py-1">
-            ⏳ {nextDueText}
-          </div>
-          <p className="text-[11px] text-slate-500 font-medium leading-relaxed max-w-xs mx-auto">
-            Khoảng cách ôn tập được thuật toán FSRS v6 tối ưu hóa tự động theo chu kỳ ghi nhớ để đạt hiệu suất cao nhất.
-          </p>
-        </div>
-
-        {/* Mini Stats Summary */}
-        <div className="grid grid-cols-3 gap-3 w-full max-w-md">
-          <div className="bg-slate-50 p-3.5 rounded-2xl border border-slate-100 text-center">
-            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">Đã thuộc</span>
-            <span className="text-xl font-black text-emerald-600 block mt-0.5">
-              {learnedCards}/{totalCards}
-            </span>
-          </div>
-
-          <div className="bg-slate-50 p-3.5 rounded-2xl border border-slate-100 text-center">
-            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">Cần ôn</span>
-            <span className="text-xl font-black text-indigo-600 block mt-0.5">
-              0 thẻ
-            </span>
-          </div>
-
-          <div className="bg-slate-50 p-3.5 rounded-2xl border border-slate-100 text-center">
-            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">Trạng thái</span>
-            <span className="text-xl font-black text-purple-600 block mt-0.5">
-              Tối ưu 🧠
-            </span>
-          </div>
-        </div>
-
-        {/* Action Buttons */}
-        <div className="w-full max-w-md space-y-3 pt-2">
-          <button
-            onClick={() => {
-              setFsrsCompletionData(null);
-              applyLearningMode('flip');
-            }}
-            className="w-full py-4 px-6 bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-700 hover:from-indigo-700 hover:to-purple-800 text-white font-black text-sm uppercase tracking-wider rounded-2xl shadow-xl shadow-indigo-500/20 active:scale-[0.98] transition-all flex items-center justify-center gap-2 cursor-pointer"
-          >
-            <RefreshCw className="w-4 h-4" />
-            <span>🔄 ÔN TẬP TỰ DO (LẬT THẺ / FREE REVIEW)</span>
-          </button>
-
-          <button
-            onClick={() => navigate(`/decks/${id}`)}
-            className="w-full py-3.5 px-4 rounded-2xl bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-700 hover:text-slate-900 font-bold text-xs active:scale-95 transition-all cursor-pointer flex items-center justify-center gap-2 shadow-sm"
-          >
-            <BookOpen className="w-4 h-4 text-indigo-500" />
-            <span>Xem chi tiết & thống kê bộ thẻ</span>
-          </button>
-
-          <button
-            onClick={() => navigate('/decks?tab=library')}
-            className="w-full py-3 px-4 rounded-xl bg-slate-100/60 hover:bg-slate-100 border border-slate-200/60 text-slate-500 hover:text-slate-700 font-bold text-xs active:scale-95 transition-all cursor-pointer"
-          >
-            Về Thư Viện
-          </button>
-        </div>
-      </div>
-    );
+      <FsrsCompleteScreen
+        fsrsCompletionData={fsrsCompletionData}
+        session={session}
+        deckId={id}
+        onFreeReview={() => {
+          setFsrsCompletionData(null)
+          applyLearningMode('flip')
+        }}
+        onViewDeckDetail={() => navigate(`/decks/${id}`)}
+        onBackToLibrary={() => navigate('/decks?tab=library')}
+      />
+    )
   };
 
   if (!session || currentIndex < 0) return <SessionLoadingScreen />
 
   return (
     <div className="h-screen h-[100dvh] flex flex-col bg-gradient-to-br from-slate-50 via-indigo-50/20 to-slate-50 text-slate-900 font-sans overflow-hidden relative">
-      {/* Animated Feedback Badge (Floating Toast at bottom) */}
-      <AnimatePresence>
-        {badgeVisible && selectedOption !== null && currentQuestion && (() => {
-          const isCorrect = currentQuestion.options && currentQuestion.options.length > 0
-            ? currentQuestion.options[selectedOption]?.is_correct
-            : selectedOption > 0;
-          return (
-            <motion.div 
-              initial={{ opacity: 0, scale: 0.9, y: 50 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.9, y: 20 }}
-              className={cn(
-                "fixed bottom-[136px] left-1/2 -translate-x-1/2 z-[1000] px-6 py-3 rounded-2xl font-black text-[12px] uppercase tracking-[0.1em] shadow-xl flex items-center gap-3 backdrop-blur-md border whitespace-nowrap",
-                isCorrect 
-                  ? "bg-emerald-500/90 text-white border-emerald-400/30 shadow-emerald-200/20" 
-                  : "bg-amber-400/90 text-slate-800 border-amber-300/30 shadow-amber-200/20"
-              )}
-            >
-              {isCorrect ? (
-                <div className="w-5 h-5 rounded-full bg-white/20 flex items-center justify-center">
-                  <Check className="w-3 h-3 text-white stroke-[4]" />
-                </div>
-              ) : (
-                <div className="w-5 h-5 rounded-full bg-white/60 flex items-center justify-center">
-                  <Sparkles className="w-3 h-3 text-amber-700" />
-                </div>
-              )}
-              {badgeMessage}
-            </motion.div>
-          );
-        })()}
-      </AnimatePresence>
-      {/* XP Float Animation */}
-          {/* XP Float Animation */}
-      <AnimatePresence>
-        {xpFloat.visible && (() => {
-          const isLimitless = (activeGoal && activeGoal.done_today > activeGoal.daily_target) || (goalToast && goalToast.doneToday > goalToast.dailyTarget);
-          return (
-            <motion.div
-              initial={{ opacity: 0, y: 50, scale: 0.5 }}
-              animate={{ opacity: 1, y: -120, scale: isLimitless ? 1.4 : 1.2 }}
-              exit={{ opacity: 0, y: -180, scale: 0.8 }}
-              className={cn(
-                "fixed bottom-32 md:bottom-auto md:top-[35%] left-1/2 -translate-x-1/2 z-[1001] px-6 py-3 rounded-2xl font-black text-base shadow-2xl pointer-events-none transition-all duration-300",
-                isLimitless 
-                  ? "bg-gradient-to-r from-amber-500 via-orange-500 to-red-500 text-white shadow-amber-500/50 border border-amber-400 drop-shadow-[0_0_12px_rgba(245,158,11,0.6)] animate-bounce" 
-                  : "bg-gradient-to-r from-indigo-500 to-purple-600 text-white shadow-indigo-300/50"
-              )}
-            >
-              {isLimitless ? "⚡ OVERDRIVE +" : "+"}
-              {xpFloat.amount} XP ✨
-            </motion.div>
-          );
-        })()}
-      </AnimatePresence>
-
-      {/* Goal Milestone Toast */}
-      <AnimatePresence>
-        {goalToast && goalToast.visible && (() => {
-          const isLimitless = goalToast.doneToday > goalToast.dailyTarget
-          return (
-            <motion.div
-              initial={{ opacity: 0, x: 200, scale: 0.9 }}
-              animate={{ opacity: 1, x: 0, scale: 1 }}
-              exit={{ opacity: 0, x: 200, scale: 0.9 }}
-              className={cn(
-                "fixed top-24 right-6 z-[1002] max-w-sm w-82 backdrop-blur-xl rounded-[2rem] p-5 flex items-center gap-4 border transition-all duration-300",
-                isLimitless 
-                  ? "bg-slate-950/95 border-amber-500/60 shadow-[0_0_40px_rgba(245,158,11,0.35),inset_0_1px_1px_rgba(255,255,255,0.15)] text-white" 
-                  : "bg-white/95 border-slate-100 shadow-[0_20px_50px_rgba(99,102,241,0.15)] text-slate-900"
-              )}
-            >
-              {/* Circular Progress Ring or Flame Icon */}
-              <div className="relative w-14 h-14 flex-shrink-0 flex items-center justify-center">
-                {goalToast.justCompleted ? (
-                  <div className="relative w-12 h-12 rounded-2xl bg-gradient-to-tr from-orange-400 to-red-500 flex items-center justify-center shadow-lg shadow-orange-100 animate-bounce">
-                    <Flame className="w-6 h-6 text-white fill-white" />
-                  </div>
-                ) : (
-                  <>
-                    <svg className="w-14 h-14 transform -rotate-90">
-                      <circle
-                        cx="28"
-                        cy="28"
-                        r="22"
-                        className={isLimitless ? "stroke-slate-900" : "stroke-slate-100"}
-                        strokeWidth="3.5"
-                        fill="transparent"
-                      />
-                      <circle
-                        cx="28"
-                        cy="28"
-                        r="22"
-                        className={cn(
-                          "transition-all duration-1000 ease-out",
-                          isLimitless ? "stroke-amber-400 animate-pulse drop-shadow-[0_0_8px_rgba(245,158,11,0.8)]" : (goalToast.isTargetMet ? "stroke-emerald-500" : "stroke-indigo-600")
-                        )}
-                        strokeWidth="3.5"
-                        fill="transparent"
-                        strokeDasharray={2 * Math.PI * 22}
-                        strokeDashoffset={2 * Math.PI * 22 * (1 - Math.min(1, goalToast.doneToday / goalToast.dailyTarget))}
-                        strokeLinecap="round"
-                      />
-                    </svg>
-                    <span className={cn(
-                      "absolute text-[10px] font-black",
-                      isLimitless ? "text-amber-400 drop-shadow-[0_0_8px_rgba(245,158,11,0.8)] animate-pulse" : "text-slate-700"
-                    )}>
-                      {isLimitless ? `⚡${goalToast.doneToday}` : `${goalToast.doneToday}/${goalToast.dailyTarget}`}
-                    </span>
-                  </>
-                )}
-              </div>
-
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-1.5 mb-1">
-                  <span className={cn(
-                    "text-[8px] font-black tracking-widest uppercase px-2 py-0.5 rounded-md",
-                    goalToast.justCompleted ? "bg-amber-100 text-amber-700" : 
-                    isLimitless ? "bg-gradient-to-r from-amber-500 via-orange-500 to-red-500 text-white animate-pulse border border-amber-400/35 shadow-lg shadow-amber-500/25 tracking-wider" :
-                    "bg-indigo-50 text-indigo-600"
-                  )}>
-                    {goalToast.justCompleted ? "GOAL REACHED" : isLimitless ? "LIMITLESS MODE ⚡" : "DAILY GOAL"}
-                  </span>
-                  {goalToast.streakCount > 0 && (
-                    <span className={cn(
-                      "flex items-center gap-0.5 text-[9px] font-bold px-1.5 py-0.5 rounded-md",
-                      isLimitless ? "bg-amber-950 text-amber-300 border border-amber-500/20" : "bg-orange-50 text-orange-600"
-                    )}>
-                      🔥 {goalToast.streakCount}d
-                    </span>
-                  )}
-                </div>
-                <p className={cn(
-                  "font-bold text-xs leading-relaxed pr-2",
-                  isLimitless ? "text-amber-200 drop-shadow-[0_0_2px_rgba(245,158,11,0.2)]" : "text-slate-600"
-                )}>
-                  {goalToast.message}
-                </p>
-              </div>
-
-              <button
-                onClick={() => setGoalToast(prev => prev ? { ...prev, visible: false } : null)}
-                className={cn(
-                  "absolute top-4 right-4 w-6 h-6 flex items-center justify-center rounded-full transition-all",
-                  isLimitless ? "hover:bg-slate-800 text-slate-500 hover:text-slate-300" : "hover:bg-slate-50 text-slate-400 hover:text-slate-600"
-                )}
-              >
-                <X className="w-3.5 h-3.5" />
-              </button>
-            </motion.div>
-          )
-        })()}
-      </AnimatePresence>
-
-      {/* Learning Mode Alert Toast */}
-      <AnimatePresence>
-        {learningModeAlert && learningModeAlert.visible && (
-          <motion.div
-            initial={{ opacity: 0, x: 200, scale: 0.9 }}
-            animate={{ opacity: 1, x: 0, scale: 1 }}
-            exit={{ opacity: 0, x: 200, scale: 0.9 }}
-            className="fixed top-24 right-6 z-[1002] max-w-sm w-82 bg-white/95 backdrop-blur-xl border border-slate-100 shadow-[0_20px_50px_rgba(99,102,241,0.15)] rounded-[2rem] p-5 flex items-start gap-4 text-slate-900 transition-all duration-300"
-          >
-            <div className="w-10 h-10 rounded-2xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600 flex-shrink-0">
-              <Sparkles className="w-5 h-5" />
-            </div>
-
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-1.5 mb-1">
-                <span className="text-[8px] font-black tracking-widest uppercase px-2 py-0.5 rounded-md bg-indigo-50 text-indigo-600">
-                  SMART LEARNING
-                </span>
-              </div>
-              <p className="font-bold text-xs leading-relaxed pr-2 text-slate-600">
-                {learningModeAlert.message}
-              </p>
-            </div>
-
-            <button
-              onClick={() => setLearningModeAlert(prev => prev ? { ...prev, visible: false } : null)}
-              className="absolute top-4 right-4 w-6 h-6 flex items-center justify-center rounded-full hover:bg-slate-50 text-slate-400 hover:text-slate-600 transition-all"
-            >
-              <X className="w-3.5 h-3.5" />
-            </button>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      <FloatingToasts
+        badgeVisible={badgeVisible}
+        selectedOption={selectedOption}
+        currentQuestion={currentQuestion}
+        badgeMessage={badgeMessage}
+        xpFloat={xpFloat}
+        activeGoal={activeGoal}
+        goalToast={goalToast}
+        setGoalToast={setGoalToast}
+        learningModeAlert={learningModeAlert}
+        setLearningModeAlert={setLearningModeAlert}
+      />
 
       <header className={cn(
         "sticky top-0 flex-shrink-0 z-[120] backdrop-blur-2xl px-2.5 md:px-4 py-1.5 flex items-center justify-between gap-2.5 transition-colors duration-300 relative overflow-hidden bg-slate-950/90 border-b border-slate-800/80 text-white shadow-xl"
@@ -5602,79 +4463,11 @@ export default function FlashcardPlay() {
       </AnimatePresence>
 
       {/* 🏆 DAILY GOAL CELEBRATION MODAL */}
-      <AnimatePresence>
-        {showGoalCelebration && goalToast && (
-          <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4">
-            <motion.div 
-              initial={{ opacity: 0 }} 
-              animate={{ opacity: 1 }} 
-              exit={{ opacity: 0 }}
-              onClick={() => {
-                setShowGoalCelebration(false)
-                confetti({ zIndex: 9999, particleCount: 80, spread: 60, origin: { y: 0.6 } })
-              }}
-              className="absolute inset-0 bg-slate-950/80 backdrop-blur-xl pointer-events-auto"
-            />
-            
-            <motion.div 
-              initial={{ opacity: 0, scale: 0.8, y: 50 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.8, y: 50 }}
-              transition={{ type: 'spring', bounce: 0.35, duration: 0.6 }}
-              className="relative w-full max-w-md bg-white rounded-[2rem] p-8 shadow-[0_25px_60px_rgba(99,102,241,0.3)] border border-slate-100/80 overflow-hidden text-center z-10 pointer-events-auto"
-            >
-              {/* Top premium border indicator */}
-              <div className="absolute top-0 left-0 w-full h-2.5 bg-gradient-to-r from-amber-400 via-orange-500 to-rose-500"></div>
-              
-              {/* Spinning/glowing light background aura */}
-              <div className="absolute top-12 left-1/2 -translate-x-1/2 w-56 h-56 bg-gradient-to-tr from-amber-200/20 to-orange-200/20 rounded-full blur-3xl animate-pulse pointer-events-none" />
-              
-              {/* Giant Bouncing Trophy Icon */}
-              <div className="relative w-28 h-28 mx-auto mb-6 flex items-center justify-center">
-                <div className="absolute inset-0 bg-gradient-to-tr from-amber-400 to-orange-500 rounded-[2.5rem] rotate-12 scale-95 opacity-20 animate-pulse" />
-                <div className="relative w-24 h-24 bg-gradient-to-tr from-amber-400 via-orange-500 to-red-500 rounded-[2rem] flex items-center justify-center shadow-lg shadow-orange-300 transform hover:scale-105 transition-all">
-                  <Trophy className="w-12 h-12 text-white fill-white animate-bounce" />
-                </div>
-              </div>
-              
-              <span className="text-[10px] font-black text-amber-600 bg-amber-50 border border-amber-100 px-4 py-1.5 rounded-full uppercase tracking-[0.2em] mb-4 inline-block shadow-sm">
-                Daily Goal Achieved! 🏆
-              </span>
-              
-              <h3 className="text-3xl font-black text-slate-800 tracking-tight leading-tight mb-3">
-                SUPER STUDY DISCIPLINE!
-              </h3>
-              
-              <p className="text-slate-500 font-bold text-xs leading-relaxed mb-8 px-4">
-                {goalToast.message}
-              </p>
-              
-              {/* Rewards Summary Grid */}
-              <div className="grid grid-cols-2 gap-4 mb-8">
-                <div className="bg-gradient-to-br from-indigo-50/50 via-purple-50/30 to-white border border-indigo-100/50 rounded-3xl p-5 flex flex-col items-center justify-center shadow-sm">
-                  <span className="text-[9px] font-black text-indigo-400 uppercase tracking-widest mb-1.5">BONUS REWARD</span>
-                  <span className="text-xl font-black text-indigo-600">⚡ +{goalToast.bonusXP || 50} XP</span>
-                </div>
-                <div className="bg-gradient-to-br from-orange-50/50 via-amber-50/30 to-white border border-orange-100/50 rounded-3xl p-5 flex flex-col items-center justify-center shadow-sm">
-                  <span className="text-[9px] font-black text-orange-400 uppercase tracking-widest mb-1.5">DAILY STREAK</span>
-                  <span className="text-xl font-black text-orange-600">🔥 {goalToast.streakCount}d</span>
-                </div>
-              </div>
-              
-              {/* High Motivation Action Button */}
-              <button 
-                onClick={() => {
-                  setShowGoalCelebration(false)
-                  confetti({ zIndex: 9999, particleCount: 80, spread: 60, origin: { y: 0.6 } })
-                }}
-                className="w-full py-4 bg-gradient-to-r from-amber-500 via-orange-500 to-red-500 text-white font-black text-xs uppercase tracking-widest rounded-2xl shadow-xl shadow-orange-200 hover:shadow-orange-300 hover:scale-[1.02] active:scale-[0.98] transition-all"
-              >
-                AWESOME, KEEP GOING! 🚀
-              </button>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
+      <GoalCelebrationModal
+        isOpen={showGoalCelebration}
+        onClose={() => setShowGoalCelebration(false)}
+        goalToast={goalToast}
+      />
 
       {/* Smart Settings Modal */}
       <PlaySettingsModal
@@ -5705,53 +4498,11 @@ export default function FlashcardPlay() {
       />
 
       {/* Exit Confirmation Modal */}
-      <AnimatePresence>
-        {isQuitModalOpen && (
-          <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4">
-            <motion.div 
-              initial={{ opacity: 0 }} 
-              animate={{ opacity: 1 }} 
-              exit={{ opacity: 0 }}
-              onClick={() => setIsQuitModalOpen(false)}
-              className="absolute inset-0 bg-slate-900/60 backdrop-blur-md"
-            />
-            <motion.div 
-              initial={{ opacity: 0, scale: 0.9, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.9, y: 20 }}
-              className="relative w-full max-w-sm bg-white rounded-[2.5rem] p-8 shadow-2xl border border-white/20 overflow-hidden"
-            >
-              <div className="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-rose-400 via-rose-500 to-rose-400"></div>
-              
-              <div className="flex flex-col items-center text-center">
-                <div className="w-16 h-16 bg-rose-50 rounded-2xl flex items-center justify-center mb-6 border border-rose-100">
-                  <X className="w-8 h-8 text-rose-500" />
-                </div>
-                
-                <h3 className="text-xl font-black text-slate-800 mb-2 uppercase tracking-tight">End Study Session?</h3>
-                <p className="text-slate-500 font-medium text-sm leading-relaxed mb-8">Exiting now will clear the current state of this study session. Are you sure you want to exit?</p>
-                
-                <div className="grid grid-cols-2 gap-3 w-full">
-                  <button 
-                    onClick={() => setIsQuitModalOpen(false)}
-                    className="py-4 bg-slate-50 text-slate-600 font-black text-[10px] uppercase tracking-widest rounded-2xl hover:bg-slate-100 transition-all"
-                  >
-                    KEEP STUDYING
-                  </button>
-                  <button 
-                    onClick={() => {
-                      navigate(`/decks/${id}`)
-                    }}
-                    className="py-4 bg-rose-500 text-white font-black text-[10px] uppercase tracking-widest rounded-2xl shadow-lg shadow-rose-200 active:scale-95 transition-all"
-                  >
-                    CONFIRM EXIT
-                  </button>
-                </div>
-              </div>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
+      <QuitSessionModal
+        isOpen={isQuitModalOpen}
+        onClose={() => setIsQuitModalOpen(false)}
+        onConfirmQuit={() => navigate(`/decks/${id}`)}
+      />
       <FlashcardEditModal
         isOpen={isEditModalOpen}
         onClose={() => setIsEditModalOpen(false)}
@@ -5796,113 +4547,24 @@ export default function FlashcardPlay() {
       </AnimatePresence>
       
       {/* Zoomed Image Modal Overlay */}
-      <AnimatePresence>
-        {zoomedImage && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            onClick={() => setZoomedImage(null)}
-            className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-950/80 backdrop-blur-md cursor-zoom-out p-4"
-          >
-            <motion.img
-              initial={{ scale: 0.95 }}
-              animate={{ scale: 1 }}
-              exit={{ scale: 0.95 }}
-              src={zoomedImage}
-              alt="Zoomed Visual"
-              className="max-w-full max-h-[90vh] object-contain rounded-2xl shadow-2xl border border-white/10"
-            />
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-
-
-
+      <ImageZoomOverlay
+        zoomedImage={zoomedImage}
+        onClose={() => setZoomedImage(null)}
+      />
 
       {/* ── STUDY CONSOLE MODAL ── */}
-      <AnimatePresence>
-        {isStudyConsoleOpen && (
-          <div className="fixed inset-0 z-[2000] flex items-center justify-center p-4">
-            <motion.div 
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setIsStudyConsoleOpen(false)}
-              className="absolute inset-0 bg-slate-950/80 backdrop-blur-md pointer-events-auto"
-            />
-            <motion.div 
-              initial={{ opacity: 0, scale: 0.95, y: 15 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 15 }}
-              className="w-full max-w-lg bg-white rounded-[2.5rem] shadow-2xl relative z-10 p-6 sm:p-8 border border-slate-100 text-left overflow-hidden flex flex-col max-h-[90vh] pointer-events-auto text-slate-800"
-            >
-              <div className="absolute -top-12 -right-12 w-32 h-32 rounded-full bg-indigo-100/40 blur-2xl pointer-events-none" />
-              
-              <div className="flex items-center justify-between mb-5 relative z-10 flex-shrink-0">
-                <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 rounded-2xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600">
-                    <Brain className="w-6 h-6 animate-pulse" />
-                  </div>
-                  <div>
-                    <h3 className="text-base sm:text-lg font-black text-slate-800 uppercase tracking-tight leading-tight">
-                      STUDY CONSOLE
-                    </h3>
-                    <p className="text-[10px] sm:text-xs text-slate-400 font-bold uppercase tracking-wider mt-0.5">
-                      Chọn phương pháp học tập
-                    </p>
-                  </div>
-                </div>
-                <button 
-                  onClick={() => setIsStudyConsoleOpen(false)} 
-                  className="w-9 h-9 rounded-full bg-slate-50 border border-slate-200/50 flex items-center justify-center text-slate-400 hover:text-rose-500 hover:scale-105 active:scale-95 transition-all cursor-pointer"
-                >
-                   <X className="w-4.5 h-4.5" />
-                </button>
-              </div>
-
-              {session && (
-                <div className="bg-slate-50 border border-slate-100 rounded-2xl p-4 mb-4 flex-shrink-0 text-left">
-                  <h4 className="text-xs sm:text-sm font-black text-indigo-950 tracking-wide line-clamp-1">{session.title}</h4>
-                  <p className="text-[10px] text-slate-400 font-black uppercase tracking-wider mt-1 flex items-center gap-1.5">
-                    <Brain className="w-3.5 h-3.5 text-slate-400" />
-                    {session.questions?.length || 0} câu hỏi trong bộ thẻ
-                  </p>
-                </div>
-              )}
-
-              <div className="flex-1 overflow-y-auto pr-1 space-y-2.5 custom-scrollbar min-h-0">
-                {[
-                  { mode: 'fsrs', icon: '🧠', title: 'FSRS Spaced Repetition', desc: 'Học lặp lại ngắt quãng thông minh' },
-                  { mode: 'roadmap', icon: '🗺️', title: 'Roadmap Mode', desc: 'Học theo lộ trình mục tiêu mỗi ngày' },
-                  { mode: 'flip', icon: '🔄', title: 'Flip Card', desc: 'Lật thẻ ghi nhớ phản xạ tự do' },
-                  { mode: 'review', icon: '📚', title: 'Review Only', desc: 'Chỉ ôn tập lại các thẻ cũ' },
-                  { mode: 'new', icon: '✨', title: 'New Only', desc: 'Chỉ học các thẻ mới chưa biết' },
-                ].map(item => (
-                  <button
-                    key={item.mode}
-                    onClick={() => {
-                      setIsStudyConsoleOpen(false);
-                      updateUserSettings({ quiz_learning_mode: item.mode as any });
-                      navigate(`/flashcard/${id}/play?mode=${item.mode}`);
-                      setActiveMode(item.mode as any);
-                    }}
-                    className="group w-full flex items-center gap-3.5 p-3.5 sm:p-4 rounded-2xl border border-slate-100 bg-white hover:border-indigo-500/35 hover:bg-indigo-50/10 hover:shadow-md active:scale-[0.99] transition-all text-left shadow-sm cursor-pointer"
-                  >
-                    <span className="text-xl w-10 h-10 bg-slate-50 rounded-xl flex items-center justify-center group-hover:scale-105 transition-all flex-shrink-0">{item.icon}</span>
-                    <div className="min-w-0 flex-1">
-                      <span className="text-xs sm:text-sm font-extrabold text-slate-800 block group-hover:text-indigo-600 transition-colors truncate">{item.title}</span>
-                      <span className="text-[10px] sm:text-xs font-semibold text-slate-400 block mt-0.5 leading-relaxed">{item.desc}</span>
-                    </div>
-                    <ChevronRight className="w-4.5 h-4.5 text-slate-300 group-hover:text-indigo-500 group-hover:translate-x-0.5 transition-all ml-auto flex-shrink-0" />
-                  </button>
-                ))}
-              </div>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
+      <StudyConsoleModal
+        isOpen={isStudyConsoleOpen}
+        onClose={() => setIsStudyConsoleOpen(false)}
+        session={session}
+        deckId={id}
+        onSelectMode={(selectedMode) => {
+          setIsStudyConsoleOpen(false);
+          updateUserSettings({ quiz_learning_mode: selectedMode as any });
+          navigate(`/flashcard/${id}/play?mode=${selectedMode}`);
+          setActiveMode(selectedMode as any);
+        }}
+      />
     </div>
   )
 }
