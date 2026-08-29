@@ -15,13 +15,6 @@ export default function Layout() {
   const navigate = useNavigate()
   const [isShopOpen, setIsShopOpen] = useState<boolean>(false)
 
-  const handleNavClick = (e: React.MouseEvent, path: string, label: string) => {
-    if (label === 'Roadmap') {
-      e.preventDefault()
-      navigate('/roadmap')
-    }
-  }
-
   // Ensure data is loaded even if we land on subpages (only if logged in)
   const { data, refetch } = useQuery({
     queryKey: ['dashboard'],
@@ -36,11 +29,10 @@ export default function Layout() {
   })
   
   const navItems = [
-    { label: 'Home', path: '/', icon: LayoutGrid },
-    { label: 'Decks', path: '/decks', icon: FolderKanban },
-    { label: 'Roadmap', path: '/roadmap', icon: Compass },
-    { label: 'Stats', path: '/stats', icon: BarChart3 },
-    { label: 'Settings', path: '/settings', icon: Settings },
+    { label: 'Trang chủ', path: '/', icon: LayoutGrid },
+    { label: 'Bộ thẻ', path: '/decks', icon: FolderKanban },
+    { label: 'Thống kê', path: '/stats', icon: BarChart3 },
+    { label: 'Cài đặt', path: '/settings', icon: Settings },
   ]
 
   if (user?.role === 'admin') {
@@ -90,7 +82,6 @@ export default function Layout() {
                       <Link 
                         key={item.path}
                         to={item.path} 
-                        onClick={(e) => handleNavClick(e, item.path, item.label)}
                         className={cn(
                           "text-[11px] font-bold tracking-wide transition-all px-3 py-1.5 rounded-xl",
                           isActive 
@@ -182,11 +173,11 @@ export default function Layout() {
         <Outlet />
       </main>
 
-      {/* RemiNote-Style Mobile Bottom Nav */}
+      {/* Modern Fixed Full-Width Mobile Bottom Nav (4 Tabs) */}
       {showBottomNav && (
-        <div className="fixed bottom-0 left-0 right-0 z-[120] md:hidden bg-white/80 backdrop-blur-2xl border-t border-slate-100 px-4 py-1.5">
-          <nav className="flex items-center justify-between max-w-md mx-auto h-12">
-            {navItems.filter(item => item.label !== 'Admin').map((item, idx) => {
+        <div className="fixed bottom-0 left-0 right-0 z-[120] md:hidden bg-white/95 backdrop-blur-2xl border-t border-slate-100 shadow-[0_-4px_25px_rgba(0,0,0,0.03)] px-3 py-1.5 pb-[max(0.375rem,env(safe-area-inset-bottom))]">
+          <nav className="grid grid-cols-4 items-center max-w-md mx-auto h-13">
+            {navItems.filter(item => item.label !== 'Admin').map((item) => {
               const Icon = item.icon
               const isActive = item.path === '/' 
                 ? (location.pathname === '/' || location.pathname === '/dashboard')
@@ -196,20 +187,31 @@ export default function Layout() {
                 <Link 
                   key={item.path}
                   to={item.path} 
-                  onClick={(e) => handleNavClick(e, item.path, item.label)}
-                  className="relative flex items-center justify-center w-11 h-11"
+                  className="group relative flex flex-col items-center justify-center py-1 select-none active:scale-95 transition-transform cursor-pointer"
                 >
-                  {isActive && (
-                    <motion.div 
-                      layoutId="navActiveSquircle"
-                      className="absolute inset-0 bg-gradient-to-tr from-orange-500 to-rose-500 rounded-[1.25rem] shadow-lg shadow-orange-500/20"
-                      transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
-                    />
-                  )}
-                  <Icon className={cn(
-                    "w-5 h-5 relative z-10 transition-all duration-300",
-                    isActive ? "text-white scale-110" : "text-slate-400"
-                  )} />
+                  <div className="relative flex items-center justify-center w-11 h-7">
+                    {isActive && (
+                      <motion.div 
+                        layoutId="navActivePill"
+                        className="absolute inset-0 bg-gradient-to-r from-orange-500/15 to-rose-500/15 rounded-full"
+                        transition={{ type: "spring", stiffness: 400, damping: 30 }}
+                      />
+                    )}
+                    <Icon className={cn(
+                      "w-5 h-5 relative z-10 transition-all duration-200",
+                      isActive 
+                        ? "text-orange-600 scale-110 stroke-[2.4]" 
+                        : "text-slate-400 group-hover:text-slate-600 stroke-[1.8]"
+                    )} />
+                  </div>
+                  <span className={cn(
+                    "text-[10px] tracking-tight mt-0.5 transition-all duration-200",
+                    isActive 
+                      ? "font-black text-orange-600" 
+                      : "font-semibold text-slate-400"
+                  )}>
+                    {item.label}
+                  </span>
                 </Link>
               )
             })}
