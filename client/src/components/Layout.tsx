@@ -29,10 +29,10 @@ export default function Layout() {
   })
   
   const navItems = [
-    { label: 'Trang chủ', path: '/', icon: LayoutGrid },
-    { label: 'Bộ thẻ', path: '/decks', icon: FolderKanban },
-    { label: 'Thống kê', path: '/stats', icon: BarChart3 },
-    { label: 'Cài đặt', path: '/settings', icon: Settings },
+    { label: 'Home', path: '/', icon: LayoutGrid },
+    { label: 'Decks', path: '/decks', icon: FolderKanban },
+    { label: 'Stats', path: '/stats', icon: BarChart3 },
+    { label: 'Settings', path: '/settings', icon: Settings },
   ]
 
   if (user?.role === 'admin') {
@@ -173,10 +173,10 @@ export default function Layout() {
         <Outlet />
       </main>
 
-      {/* Modern Fixed Full-Width Mobile Bottom Nav (4 Tabs) */}
+      {/* Sleek Compact Mobile Bottom Nav (4 Tabs - Exact Height) */}
       {showBottomNav && (
-        <div className="fixed bottom-0 left-0 right-0 z-[120] md:hidden bg-white/90 backdrop-blur-2xl border-t border-slate-200/80 shadow-[0_-8px_30px_rgba(0,0,0,0.06)] px-3 pt-2 pb-[max(0.5rem,env(safe-area-inset-bottom))]">
-          <nav className="max-w-md mx-auto bg-slate-100/85 p-1 rounded-2xl border border-slate-200/70 grid grid-cols-4 gap-1 relative shadow-2xs">
+        <div className="fixed bottom-0 left-0 right-0 z-[120] md:hidden bg-white/95 backdrop-blur-2xl border-t border-slate-100 px-4 py-1 pb-[max(0.25rem,env(safe-area-inset-bottom))] shadow-[0_-4px_20px_rgba(0,0,0,0.03)]">
+          <nav className="flex items-center justify-around max-w-sm mx-auto h-12">
             {navItems.filter(item => item.label !== 'Admin').map((item) => {
               const Icon = item.icon
               const isActive = item.path === '/' 
@@ -187,26 +187,22 @@ export default function Layout() {
                 <Link 
                   key={item.path}
                   to={item.path} 
-                  className="relative flex flex-col items-center justify-center h-12 rounded-xl select-none active:scale-95 transition-transform cursor-pointer overflow-hidden"
+                  className="relative flex flex-col items-center justify-center w-14 h-10.5 rounded-2xl select-none active:scale-95 transition-transform"
                 >
                   {isActive && (
                     <motion.div 
-                      layoutId="navSegmentActive"
-                      className="absolute inset-0 bg-gradient-to-tr from-orange-500 to-rose-500 rounded-xl shadow-xs shadow-orange-500/25"
+                      layoutId="navActiveSquircle"
+                      className="absolute inset-0 bg-gradient-to-tr from-orange-500 to-rose-500 rounded-2xl shadow-md shadow-orange-500/20"
                       transition={{ type: "spring", stiffness: 450, damping: 35 }}
                     />
                   )}
                   <Icon className={cn(
-                    "w-5 h-5 relative z-10 transition-all duration-200",
-                    isActive 
-                      ? "text-white scale-105 stroke-[2.4]" 
-                      : "text-slate-500 hover:text-slate-800 stroke-[1.9]"
+                    "w-4.5 h-4.5 relative z-10 transition-all duration-200",
+                    isActive ? "text-white scale-105 stroke-[2.4]" : "text-slate-400 stroke-[1.8]"
                   )} />
                   <span className={cn(
-                    "text-[10px] tracking-tight relative z-10 transition-all duration-200 mt-0.5 leading-none",
-                    isActive 
-                      ? "font-black text-white" 
-                      : "font-bold text-slate-500"
+                    "text-[9px] tracking-tight relative z-10 transition-all duration-200 mt-0.5 leading-none",
+                    isActive ? "font-black text-white" : "font-semibold text-slate-400"
                   )}>
                     {item.label}
                   </span>
