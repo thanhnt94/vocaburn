@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { useParams } from 'react-router-dom'
+import { useParams, useSearchParams } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import axios from 'axios'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -21,15 +21,39 @@ export interface DeckSettingsTabProps {
   deckId?: string | number
 }
 
-type SettingsSubTab = 'general' | 'ai' | 'audio' | 'practice' | 'excel' | 'collab' | 'danger'
+export type SettingsSubTab = 'general' | 'ai' | 'audio' | 'practice' | 'excel' | 'collab' | 'danger'
+
+const VALID_SUB_TABS: SettingsSubTab[] = ['general', 'ai', 'audio', 'practice', 'excel', 'collab', 'danger']
 
 export function DeckSettingsTab({ embedded = false, deckId }: DeckSettingsTabProps) {
   const { id: paramId } = useParams()
   const id = deckId ? String(deckId) : paramId
+  const [searchParams, setSearchParams] = useSearchParams()
   const { user } = useAppStore()
   
-  const [activeSubTab, setActiveSubTab] = useState<SettingsSubTab>('general')
   const [isCollabModalOpen, setIsCollabModalOpen] = useState(false)
+
+  // URL query parameter synchronization for Sub-Tabs
+  const subtabParam = searchParams.get('subtab') as SettingsSubTab
+  const activeSubTab: SettingsSubTab = VALID_SUB_TABS.includes(subtabParam) ? subtabParam : 'general'
+
+  const handleSelectSubTab = (newSubTab: SettingsSubTab) => {
+    if (newSubTab === 'collab') {
+      setIsCollabModalOpen(true)
+      return
+    }
+
+    setSearchParams((prev) => {
+      const updated = new URLSearchParams(prev)
+      updated.set('tab', 'settings')
+      if (newSubTab === 'general') {
+        updated.delete('subtab')
+      } else {
+        updated.set('subtab', newSubTab)
+      }
+      return updated
+    }, { replace: true })
+  }
 
   // Fetch Deck metadata
   const { data: deckData, isLoading, refetch } = useQuery({
@@ -83,13 +107,7 @@ export function DeckSettingsTab({ embedded = false, deckId }: DeckSettingsTabPro
                 <button
                   key={tab.id}
                   type="button"
-                  onClick={() => {
-                    if (isCollab) {
-                      setIsCollabModalOpen(true)
-                    } else {
-                      setActiveSubTab(tab.id)
-                    }
-                  }}
+                  onClick={() => handleSelectSubTab(tab.id)}
                   className={cn(
                     "relative flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-1.5 py-2 px-1.5 sm:px-3 rounded-xl transition-all cursor-pointer select-none",
                     idx === 6 && "col-span-2 sm:col-span-1",

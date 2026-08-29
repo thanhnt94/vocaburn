@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { Sparkles, Save, Wand2, RefreshCw, CheckCircle2, Plus, Trash2, HelpCircle, Code2 } from 'lucide-react'
+import { Sparkles, Save, Wand2, RefreshCw, CheckCircle2, Plus, Trash2, HelpCircle, Code2, Server } from 'lucide-react'
 import axios from 'axios'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { cn } from '@/lib/utils'
@@ -69,7 +69,8 @@ export function DeckAISettings({ deckId, initialSettings, onSaved }: DeckAISetti
     staleTime: 30 * 1000,
   })
 
-  const availableColumns: string[] = practiceSettingsData?.available_columns || ['front', 'back', 'explanation', 'furigana']
+  const rawAvailableColumns: string[] = practiceSettingsData?.available_columns || ['front', 'back', 'explanation', 'furigana']
+  const availableColumns = Array.from(new Set([...rawAvailableColumns, ...prompts.map(p => p.column)])).filter(Boolean)
 
   useEffect(() => {
     const effectiveSettings = practiceSettingsData?.creator_settings || initialSettings
@@ -92,6 +93,19 @@ export function DeckAISettings({ deckId, initialSettings, onSaved }: DeckAISetti
     }
   }, [practiceSettingsData, initialSettings])
 
+  // Live AI Status Check
+  const { data: aiStatus, refetch: refetchAIStatus, isFetching: isFetchingAIStatus } = useQuery({
+    queryKey: ['deck-ai-status', String(deckId), selectedColumnToRun],
+    queryFn: async () => {
+      const res = await axios.get(`/api/v1/deck/${deckId}/ai-status`, {
+        params: { field: selectedColumnToRun }
+      })
+      return res.data
+    },
+    enabled: !!deckId && !!selectedColumnToRun,
+    staleTime: 10 * 1000,
+  })
+
   const handleAddPrompt = (preset?: typeof DEFAULT_PRESETS[0]) => {
     const newItem: AIPromptItem = preset ? {
       id: `prompt_${Date.now()}`,
@@ -103,7 +117,7 @@ export function DeckAISettings({ deckId, initialSettings, onSaved }: DeckAISetti
       id: `prompt_${Date.now()}`,
       column: availableColumns.find(c => !prompts.some(p => p.column === c)) || 'explanation',
       target_column: 'explanation',
-      name: 'Prompt mới',
+      name: '',
       prompt: 'Hãy phân tích và bổ sung thông tin chi tiết cho: {front}'
     }
     setPrompts(prev => [...prev, newItem])
@@ -155,10 +169,13 @@ export function DeckAISettings({ deckId, initialSettings, onSaved }: DeckAISetti
         field: selectedColumnToRun,
         force: forceRegenerate,
       })
-      setAiRunMessage(res.data?.message || 'Đã gửi yêu cầu sinh AI hàng loạt thành công!')
-      queryClient.invalidateQueries({ queryKey: ['quiz-questions', String(deckId)] })
-      queryClient.invalidateQueries({ queryKey: ['quiz', String(deckId)] })
-      setTimeout(() => setAiRunMessage(null), 6000)
+      setAiRunMessage(res.data?.message || 'Đã gửi yêu cầu xử lý hàng loạt tới CentralAuth Queue thành công!')
+      setTimeout(() => {
+        refetchAIStatus()
+        queryClient.invalidateQueries({ queryKey: ['quiz-questions', String(deckId)] })
+        queryClient.invalidateQueries({ queryKey: ['quiz', String(deckId)] })
+      }, 2000)
+      setTimeout(() => setAiRunMessage(null), 8000)
     } catch (e: any) {
       alert(e?.response?.data?.error || 'Lỗi khi kích hoạt sinh AI hàng loạt')
     } finally {
@@ -173,6 +190,15 @@ export function DeckAISettings({ deckId, initialSettings, onSaved }: DeckAISetti
     handleUpdatePrompt(index, 'prompt', newPrompt)
   }
 
+  // Selected prompt title for dynamic button text
+  const selectedPrompt = prompts.find(p => (p.column || p.target_column) === selectedColumnToRun)
+  const selectedPromptIndex = prompts.findIndex(p => (p.column || p.target_column) === selectedColumnToRun)
+  const selectedPromptTitle = selectedPrompt?.name?.trim()
+    ? selectedPrompt.name
+    : selectedPromptIndex >= 0
+    ? `#${selectedPromptIndex + 1} (${selectedColumnToRun})`
+    : `Cột "${selectedColumnToRun}"`
+
   return (
     <div className="space-y-5 text-left">
       {/* SECTION 1: PROMPT TEMPLATES & MAPPING */}
@@ -184,7 +210,7 @@ export function DeckAISettings({ deckId, initialSettings, onSaved }: DeckAISetti
               <span>Cấu Hình Prompt AI Theo Cột Dữ Liệu</span>
             </h3>
             <p className="text-[10px] text-slate-400 font-bold mt-0.5">
-              Tùy biến câu lệnh (prompt) và chỉ định cột dữ liệu sẽ lưu kết quả sinh từ Gemini AI
+              Đặt tên gợi nhớ, tùy biến câu lệnh (prompt) và chọn cột dữ liệu lưu trữ
             </p>
           </div>
 
@@ -233,19 +259,21 @@ export function DeckAISettings({ deckId, initialSettings, onSaved }: DeckAISetti
             prompts.map((item, idx) => (
               <div key={item.id || idx} className="p-4 rounded-2xl bg-slate-50/80 border border-slate-200/80 space-y-3">
                 <div className="flex items-center justify-between gap-2 flex-wrap">
-                  <div className="flex items-center gap-2 flex-1 min-w-[200px]">
-                    <span className="w-6 h-6 rounded-lg bg-purple-600 text-white font-bold text-xs flex items-center justify-center">
+                  {/* Prompt Name Input */}
+                  <div className="flex items-center gap-2 flex-1 min-w-[220px]">
+                    <span className="w-6.5 h-6.5 rounded-lg bg-purple-600 text-white font-black text-xs flex items-center justify-center shrink-0">
                       #{idx + 1}
                     </span>
                     <input
                       type="text"
-                      placeholder="Tên gợi nhớ prompt..."
+                      placeholder={`Tên gợi nhớ prompt #${idx + 1} (vd: Giải thích N2, Cách nhớ...)`}
                       value={item.name || ''}
                       onChange={(e) => handleUpdatePrompt(idx, 'name', e.target.value)}
-                      className="h-8 px-2.5 bg-white border border-slate-200 rounded-lg text-xs font-bold text-slate-800 outline-none focus:border-purple-500 flex-1"
+                      className="h-8.5 px-3 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-800 outline-none focus:border-purple-500 flex-1 shadow-2xs"
                     />
                   </div>
 
+                  {/* Target Column Selection */}
                   <div className="flex items-center gap-2">
                     <div className="flex items-center gap-1.5 text-xs font-bold text-slate-600">
                       <span className="text-[10px] text-slate-400 font-bold uppercase">Lưu vào cột:</span>
@@ -255,7 +283,7 @@ export function DeckAISettings({ deckId, initialSettings, onSaved }: DeckAISetti
                           handleUpdatePrompt(idx, 'column', e.target.value)
                           handleUpdatePrompt(idx, 'target_column', e.target.value)
                         }}
-                        className="h-8 px-2.5 bg-white border border-purple-200 rounded-lg text-xs font-black text-purple-700 outline-none focus:border-purple-500 cursor-pointer shadow-2xs"
+                        className="h-8.5 px-2.5 bg-white border border-purple-200 rounded-xl text-xs font-black text-purple-700 outline-none focus:border-purple-500 cursor-pointer shadow-2xs"
                       >
                         {availableColumns.map((col) => (
                           <option key={col} value={col}>
@@ -268,7 +296,7 @@ export function DeckAISettings({ deckId, initialSettings, onSaved }: DeckAISetti
                     <button
                       type="button"
                       onClick={() => handleRemovePrompt(idx)}
-                      className="w-8 h-8 rounded-lg bg-white hover:bg-rose-50 border border-slate-200 text-slate-400 hover:text-rose-600 flex items-center justify-center transition-all cursor-pointer shadow-2xs"
+                      className="w-8.5 h-8.5 rounded-xl bg-white hover:bg-rose-50 border border-slate-200 text-slate-400 hover:text-rose-600 flex items-center justify-center transition-all cursor-pointer shadow-2xs"
                       title="Xóa Prompt này"
                     >
                       <Trash2 className="w-3.5 h-3.5" />
@@ -322,39 +350,89 @@ export function DeckAISettings({ deckId, initialSettings, onSaved }: DeckAISetti
 
       {/* SECTION 2: BULK AI RUNNER STUDIO */}
       <div className="bg-white rounded-3xl p-5 sm:p-6 border border-slate-100 shadow-sm space-y-4">
-        <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+        <div className="flex items-center justify-between border-b border-slate-100 pb-3 flex-wrap gap-2">
           <div>
             <h3 className="text-xs font-black text-slate-900 uppercase tracking-widest leading-none flex items-center gap-2">
               <Wand2 className="w-4 h-4 text-indigo-600" />
-              <span>Chạy Sinh AI Hàng Loạt (Batch Generator)</span>
+              <span>Chạy Sinh AI Hàng Loạt (CentralAuth Batch Queue)</span>
             </h3>
             <p className="text-[10px] text-slate-400 font-bold mt-0.5">
-              Tự động gọi Gemini AI sinh dữ liệu cho toàn bộ các thẻ từ vựng trong bộ thẻ này
+              Gửi toàn bộ thẻ tới CentralAuth Queue Worker để gọi Gemini AI xử lý chạy nền
             </p>
           </div>
+
+          <button
+            type="button"
+            onClick={() => refetchAIStatus()}
+            className="h-8 px-2.5 rounded-lg bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-600 text-xs font-bold transition-all flex items-center gap-1 cursor-pointer"
+            title="Làm mới trạng thái"
+          >
+            <RefreshCw className={cn("w-3 h-3", isFetchingAIStatus && "animate-spin")} />
+            <span>Kiểm tra trạng thái</span>
+          </button>
         </div>
 
         {aiRunMessage && (
-          <div className="p-3 bg-indigo-50 border border-indigo-200 text-indigo-700 text-xs rounded-xl font-bold flex items-center gap-2">
-            <CheckCircle2 className="w-4 h-4" /> {aiRunMessage}
+          <div className="p-3 bg-purple-50 border border-purple-200 text-purple-800 text-xs rounded-xl font-bold flex items-center gap-2">
+            <CheckCircle2 className="w-4 h-4 shrink-0 text-purple-600" />
+            <span>{aiRunMessage}</span>
           </div>
         )}
 
+        {/* Live AI Status Stats */}
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+          <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200/80">
+            <span className="text-[10px] font-bold text-slate-400 uppercase block">Tổng Số Thẻ</span>
+            <span className="text-lg font-black text-slate-800 mt-0.5 block">
+              {aiStatus?.total_cards ?? '--'}
+            </span>
+          </div>
+
+          <div className="p-3.5 rounded-2xl bg-amber-50 border border-amber-200/80">
+            <span className="text-[10px] font-bold text-amber-600 uppercase block">Chưa Có Dữ Liệu AI</span>
+            <span className="text-lg font-black text-amber-700 mt-0.5 block">
+              {aiStatus?.missing_ai_cards ?? '--'}
+            </span>
+          </div>
+
+          <div className="p-3.5 rounded-2xl bg-emerald-50 border border-emerald-200/80 col-span-2 sm:col-span-1">
+            <span className="text-[10px] font-bold text-emerald-600 uppercase block">Đã Có Dữ Liệu AI</span>
+            <span className="text-lg font-black text-emerald-700 mt-0.5 block">
+              {aiStatus?.total_cards !== undefined && aiStatus?.missing_ai_cards !== undefined
+                ? Math.max(0, aiStatus.total_cards - aiStatus.missing_ai_cards)
+                : '--'}
+            </span>
+          </div>
+        </div>
+
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 p-4 rounded-2xl bg-slate-50 border border-slate-200/80">
+          {/* Prompt Selection Dropdown */}
           <div>
             <label className="text-[11px] font-black text-slate-600 uppercase tracking-wider mb-1.5 block">
-              Chọn Cột Cần Sinh Dữ Liệu AI:
+              Chọn Mẫu Prompt AI Cần Chạy:
             </label>
             <select
               value={selectedColumnToRun}
               onChange={(e) => setSelectedColumnToRun(e.target.value)}
-              className="w-full h-10 px-3 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-800 outline-none focus:border-indigo-500 cursor-pointer shadow-2xs"
+              className="w-full h-10 px-3 bg-white border border-purple-200 rounded-xl text-xs font-black text-purple-900 outline-none focus:border-purple-500 cursor-pointer shadow-2xs"
             >
-              {availableColumns.map((col) => (
-                <option key={col} value={col}>
-                  Cột: {col}
-                </option>
-              ))}
+              {prompts.map((p, idx) => {
+                const displayName = p.name?.trim() ? p.name : `#${idx + 1}`
+                const targetCol = p.column || p.target_column || 'explanation'
+                return (
+                  <option key={p.id || idx} value={targetCol}>
+                    {displayName} ➜ Lưu vào cột: [{targetCol}]
+                  </option>
+                )
+              })}
+              {/* Other columns not in prompts */}
+              {availableColumns
+                .filter(col => !prompts.some(p => (p.column || p.target_column) === col))
+                .map((col) => (
+                  <option key={col} value={col}>
+                    Cột: [{col}] (Chưa có prompt riêng)
+                  </option>
+                ))}
             </select>
           </div>
 
@@ -376,19 +454,24 @@ export function DeckAISettings({ deckId, initialSettings, onSaved }: DeckAISetti
           </div>
         </div>
 
-        <div className="pt-2 flex justify-end">
+        <div className="pt-2 flex items-center justify-between gap-3 flex-wrap">
+          <div className="flex items-center gap-1.5 text-[11px] text-slate-500 font-medium">
+            <Server className="w-3.5 h-3.5 text-indigo-500" />
+            <span>Tiến trình xử lý bởi CentralAuth Queue (Chunk 100 cards/lô)</span>
+          </div>
+
           <button
             type="button"
             onClick={handleTriggerBulkAI}
             disabled={isRunningAI}
-            className="px-6 h-10 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white rounded-xl text-xs font-black shadow-xs shadow-purple-500/20 active:scale-95 transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+            className="px-6 h-10 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white rounded-xl text-xs font-black shadow-xs shadow-purple-500/20 active:scale-95 transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50 ml-auto"
           >
             {isRunningAI ? (
               <RefreshCw className="w-4 h-4 animate-spin" />
             ) : (
               <Sparkles className="w-4 h-4" />
             )}
-            <span>{isRunningAI ? 'ĐANG XỬ LÝ...' : `SINH AI CHO CỘT "${selectedColumnToRun.toUpperCase()}"`}</span>
+            <span>{isRunningAI ? 'ĐANG GỬI QUEUE...' : `SINH AI: "${selectedPromptTitle.toUpperCase()}"`}</span>
           </button>
         </div>
       </div>
