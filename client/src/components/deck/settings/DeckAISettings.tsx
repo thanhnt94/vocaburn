@@ -3,6 +3,7 @@ import { Sparkles, Save, Wand2, RefreshCw, CheckCircle2, Plus, Trash2, HelpCircl
 import axios from 'axios'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { cn } from '@/lib/utils'
+import { DeckFuriganaSettings } from './DeckFuriganaSettings'
 
 export interface AIPromptItem {
   id?: string
@@ -473,6 +474,9 @@ export function DeckAISettings({ deckId, initialSettings, onSaved }: DeckAISetti
           </button>
         </div>
       </div>
+
+      {/* ═══════════════ SECTION 3: BULK FURIGANA RUBY GENERATOR ═══════════════ */}
+      <DeckFuriganaSettings deckId={deckId} />
     </div>
   )
 }

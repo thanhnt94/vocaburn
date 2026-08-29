@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React from 'react'
 import { useParams, useSearchParams } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import axios from 'axios'
@@ -10,12 +10,11 @@ import {
   DeckPracticeConfig,
   DeckAISettings,
   DeckAudioSettings,
-  DeckFuriganaSettings,
   DeckExcelManager,
   DeckDangerZone,
-  DeckCollaboratorsModal
+  DeckCollaboratorsSettings
 } from '../settings'
-import { Settings, Sparkles, Volume2, Sliders, FileSpreadsheet, Users, AlertTriangle, Languages, Columns3 } from 'lucide-react'
+import { Settings, Sparkles, Volume2, Sliders, FileSpreadsheet, Users, AlertTriangle, Columns3 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 export interface DeckSettingsTabProps {
@@ -23,28 +22,21 @@ export interface DeckSettingsTabProps {
   deckId?: string | number
 }
 
-export type SettingsSubTab = 'general' | 'columns' | 'ai' | 'audio' | 'furigana' | 'practice' | 'excel' | 'collab' | 'danger'
+export type SettingsSubTab = 'general' | 'columns' | 'ai' | 'audio' | 'practice' | 'excel' | 'collab' | 'danger'
 
-const VALID_SUB_TABS: SettingsSubTab[] = ['general', 'columns', 'ai', 'audio', 'furigana', 'practice', 'excel', 'collab', 'danger']
+const VALID_SUB_TABS: SettingsSubTab[] = ['general', 'columns', 'ai', 'audio', 'practice', 'excel', 'collab', 'danger']
 
 export function DeckSettingsTab({ embedded = false, deckId }: DeckSettingsTabProps) {
   const { id: paramId } = useParams()
   const id = deckId ? String(deckId) : paramId
   const [searchParams, setSearchParams] = useSearchParams()
   const { user } = useAppStore()
-  
-  const [isCollabModalOpen, setIsCollabModalOpen] = useState(false)
 
   // URL query parameter synchronization for Sub-Tabs
   const subtabParam = searchParams.get('subtab') as SettingsSubTab
   const activeSubTab: SettingsSubTab = VALID_SUB_TABS.includes(subtabParam) ? subtabParam : 'general'
 
   const handleSelectSubTab = (newSubTab: SettingsSubTab) => {
-    if (newSubTab === 'collab') {
-      setIsCollabModalOpen(true)
-      return
-    }
-
     setSearchParams((prev) => {
       const updated = new URLSearchParams(prev)
       updated.set('tab', 'settings')
@@ -76,15 +68,14 @@ export function DeckSettingsTab({ embedded = false, deckId }: DeckSettingsTabPro
   )
 
   const subTabs = [
-    { id: 'general' as const, label: 'Cơ bản', shortLabel: 'Cơ bản', icon: Settings, color: 'text-indigo-600', badge: null },
-    { id: 'columns' as const, label: 'Cột dữ liệu', shortLabel: 'Cột thẻ', icon: Columns3, color: 'text-blue-600', badge: null },
-    { id: 'ai' as const, label: 'Cấu hình AI', shortLabel: 'AI Prompt', icon: Sparkles, color: 'text-purple-600', badge: 'AI' },
-    { id: 'audio' as const, label: 'Âm thanh & TTS', shortLabel: 'Audio TTS', icon: Volume2, color: 'text-sky-600', badge: 'TTS' },
-    { id: 'furigana' as const, label: 'Furigana Ruby', shortLabel: 'Furigana', icon: Languages, color: 'text-emerald-600', badge: 'あ' },
-    { id: 'practice' as const, label: 'Luyện tập', shortLabel: 'Luyện tập', icon: Sliders, color: 'text-amber-600', badge: null },
-    { id: 'excel' as const, label: 'Dữ liệu Excel', shortLabel: 'Excel', icon: FileSpreadsheet, color: 'text-emerald-600', badge: null },
-    { id: 'collab' as const, label: 'Cộng tác viên', shortLabel: 'Thành viên', icon: Users, color: 'text-blue-600', badge: null },
-    { id: 'danger' as const, label: 'Nguy hiểm', shortLabel: 'Nguy hiểm', icon: AlertTriangle, color: 'text-rose-600', badge: null },
+    { id: 'general' as const, label: 'General', shortLabel: 'General', icon: Settings, color: 'text-indigo-600', badge: null },
+    { id: 'columns' as const, label: 'Columns', shortLabel: 'Columns', icon: Columns3, color: 'text-blue-600', badge: null },
+    { id: 'ai' as const, label: 'AI & Furigana', shortLabel: 'AI & Ruby', icon: Sparkles, color: 'text-purple-600', badge: 'AI' },
+    { id: 'audio' as const, label: 'Audio TTS', shortLabel: 'Audio', icon: Volume2, color: 'text-sky-600', badge: 'TTS' },
+    { id: 'practice' as const, label: 'Practice', shortLabel: 'Practice', icon: Sliders, color: 'text-amber-600', badge: null },
+    { id: 'excel' as const, label: 'Excel Data', shortLabel: 'Excel', icon: FileSpreadsheet, color: 'text-emerald-600', badge: null },
+    { id: 'collab' as const, label: 'Collaborators', shortLabel: 'Collab', icon: Users, color: 'text-blue-600', badge: null },
+    { id: 'danger' as const, label: 'Danger Zone', shortLabel: 'Danger', icon: AlertTriangle, color: 'text-rose-600', badge: null },
   ]
 
   if (isLoading) {
@@ -182,14 +173,6 @@ export function DeckSettingsTab({ embedded = false, deckId }: DeckSettingsTabPro
             />
           )}
 
-          {activeSubTab === 'furigana' && (
-            <DeckFuriganaSettings
-              deckId={id!}
-              initialSettings={deckData?.practice_settings}
-              onSaved={() => refetch()}
-            />
-          )}
-
           {activeSubTab === 'practice' && (
             <DeckPracticeConfig
               deckId={id!}
@@ -202,19 +185,18 @@ export function DeckSettingsTab({ embedded = false, deckId }: DeckSettingsTabPro
             <DeckExcelManager deckId={id!} />
           )}
 
+          {activeSubTab === 'collab' && (
+            <DeckCollaboratorsSettings
+              deckId={id!}
+              isOwner={isOwner}
+            />
+          )}
+
           {activeSubTab === 'danger' && (
             <DeckDangerZone deckId={id!} isOwner={isOwner} />
           )}
         </motion.div>
       </AnimatePresence>
-
-      {/* Collaborators Modal */}
-      <DeckCollaboratorsModal
-        isOpen={isCollabModalOpen}
-        onClose={() => setIsCollabModalOpen(false)}
-        deckId={id!}
-        isOwner={isOwner}
-      />
     </div>
   )
 }
