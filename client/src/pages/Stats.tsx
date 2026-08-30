@@ -251,49 +251,71 @@ export default function Stats() {
         </div>
       </div>
 
-      {/* ═══════════ TIER 1: LEADERBOARD FILTER TOOLBAR (ABOVE MAIN TABS) ═══════════ */}
+      {/* ═══════════ TIER 1: LEADERBOARD FILTER TOOLBAR (CATEGORY & TIME) ═══════════ */}
       {activeTab === 'leaderboard' && (
-        <div className="shrink-0 z-30 bg-white/95 backdrop-blur-2xl border-t border-slate-200/80 px-3 sm:px-6 py-1.5 shadow-[0_-2px_10px_rgba(0,0,0,0.03)]">
-          <div className="max-w-5xl mx-auto flex items-center justify-between gap-2 overflow-x-auto no-scrollbar">
-            {/* Category pills */}
-            <div className="flex bg-slate-100/90 p-1 rounded-xl border border-slate-200/60 shrink-0 gap-0.5">
+        <div className="shrink-0 z-30 bg-white/95 backdrop-blur-2xl border-t border-slate-200/80 px-3.5 sm:px-6 py-2 shadow-[0_-2px_10px_rgba(0,0,0,0.03)] space-y-1.5">
+          <div className="max-w-sm sm:max-w-md mx-auto space-y-1.5">
+            {/* Row 1: Category Filter */}
+            <div className="grid grid-flow-col auto-cols-fr w-full bg-slate-100/90 p-1 rounded-2xl border border-slate-200/60 shadow-2xs">
               {(['xp', 'streak', 'questions', 'accuracy'] as const).map((cat) => {
                 const isActive = leaderboardCategory === cat
-                const labels: Record<string, string> = { xp: '⚡ XP', streak: '🔥 Streak', questions: '🎯 Cards', accuracy: '⏱️ Acc' }
+                const labels: Record<string, { label: string, icon: string }> = { 
+                  xp: { label: 'XP', icon: '⚡' }, 
+                  streak: { label: 'Streak', icon: '🔥' }, 
+                  questions: { label: 'Cards', icon: '🎯' }, 
+                  accuracy: { label: 'Accuracy', icon: '⏱️' } 
+                }
                 return (
                   <button
                     key={cat}
                     onClick={() => setLeaderboardCategory(cat)}
                     className={cn(
-                      "px-2 sm:px-3 py-1 rounded-lg text-[10px] sm:text-xs font-black uppercase transition-all select-none cursor-pointer whitespace-nowrap",
-                      isActive
-                        ? "bg-gradient-to-r from-orange-500 to-amber-500 text-white shadow-xs"
-                        : "text-slate-500 hover:text-slate-800"
+                      "relative flex items-center justify-center gap-1 py-1.5 px-2 rounded-xl text-xs font-black transition-all select-none cursor-pointer",
+                      isActive ? "text-orange-600 font-black" : "text-slate-500 hover:text-slate-800 font-bold"
                     )}
                   >
-                    {labels[cat]}
+                    {isActive && (
+                      <motion.div
+                        layoutId="activeLeaderboardCategoryPill"
+                        className="absolute inset-0 bg-white rounded-xl shadow-xs border border-slate-200/80"
+                        transition={{ type: "spring", bounce: 0.15, duration: 0.4 }}
+                      />
+                    )}
+                    <span className="relative z-10 text-[11px] sm:text-xs">{labels[cat].icon}</span>
+                    <span className="relative z-10 text-[10.5px] sm:text-xs truncate">{labels[cat].label}</span>
                   </button>
                 )
               })}
             </div>
 
-            {/* Time filter pills */}
-            <div className="flex bg-slate-100/90 p-1 rounded-xl border border-slate-200/60 shrink-0 gap-0.5">
+            {/* Row 2: Time Filter */}
+            <div className="grid grid-flow-col auto-cols-fr w-full bg-slate-200/70 p-1 rounded-2xl border border-slate-300/60 shadow-inner">
               {(['all_time', 'month', 'week', 'today'] as const).map((tf) => {
                 const isActive = leaderboardTimeFilter === tf
-                const tfLabels: Record<string, string> = { all_time: '👑 All Time', month: 'Month', week: 'Week', today: 'Today' }
+                const tfLabels: Record<string, { label: string, icon: string }> = { 
+                  all_time: { label: 'All Time', icon: '👑' }, 
+                  month: { label: 'Month', icon: '🗓️' }, 
+                  week: { label: 'Week', icon: '📅' }, 
+                  today: { label: 'Today', icon: '🕒' } 
+                }
                 return (
                   <button
                     key={tf}
                     onClick={() => setLeaderboardTimeFilter(tf)}
                     className={cn(
-                      "px-2 sm:px-3 py-1 rounded-lg text-[10px] sm:text-xs font-black uppercase transition-all select-none cursor-pointer whitespace-nowrap",
-                      isActive
-                        ? "bg-slate-900 text-white shadow-xs"
-                        : "text-slate-500 hover:text-slate-800"
+                      "relative flex items-center justify-center gap-1 py-1.5 px-1.5 rounded-xl text-xs font-black transition-all select-none cursor-pointer",
+                      isActive ? "text-slate-950 font-black" : "text-slate-500 hover:text-slate-900 font-bold"
                     )}
                   >
-                    {tfLabels[tf]}
+                    {isActive && (
+                      <motion.div
+                        layoutId="activeLeaderboardTimePill"
+                        className="absolute inset-0 bg-white rounded-xl shadow-xs border border-slate-200/80"
+                        transition={{ type: "spring", bounce: 0.15, duration: 0.4 }}
+                      />
+                    )}
+                    <span className="relative z-10 text-[11px] sm:text-xs">{tfLabels[tf].icon}</span>
+                    <span className="relative z-10 text-[10px] sm:text-xs truncate">{tfLabels[tf].label}</span>
                   </button>
                 )
               })}
