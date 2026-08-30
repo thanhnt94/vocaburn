@@ -170,21 +170,24 @@ export default function Stats() {
 
   return (
     <div className="min-h-screen bg-[#F8FAFC] pb-24 md:pb-16 text-slate-800">
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 pt-4 sm:pt-6 space-y-4 sm:space-y-6">
-        {/* Page Top Title */}
-        <div className="flex items-center gap-3 pb-2 text-left">
-          <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl bg-gradient-to-tr from-indigo-600 via-purple-600 to-amber-500 flex items-center justify-center text-white shadow-md shadow-indigo-200 shrink-0">
-            <TrendingUp className="w-5 h-5" />
+      {/* ═══════════ TOP UNIFIED HEADER ═══════════ */}
+      <div className="bg-white/90 backdrop-blur-2xl border-b border-slate-200/70 shadow-2xs px-3.5 sm:px-6 py-3.5 sm:py-4 mb-4 sm:mb-6">
+        <div className="max-w-6xl mx-auto flex items-center gap-3 text-left">
+          <div className="w-10 h-10 sm:w-11 sm:h-11 bg-slate-900 rounded-2xl flex items-center justify-center text-white shadow-md shadow-slate-900/10 shrink-0">
+            <TrendingUp className="w-5 h-5 stroke-[2.2]" />
           </div>
-          <div>
-            <h1 className="text-sm sm:text-lg md:text-xl font-black text-slate-900 uppercase tracking-wider italic leading-none">
-              Trung Tâm Thống Kê & Bảng Vinh Danh
+          <div className="min-w-0">
+            <h1 className="text-base sm:text-lg md:text-xl font-black text-slate-900 uppercase tracking-tight italic leading-none truncate">
+              Stats & Leaderboard
             </h1>
-            <p className="text-[9px] sm:text-[11px] font-bold text-slate-400 mt-1">
-              Theo dõi tiến trình cá nhân, thứ hạng thi đua và thành tích toàn nền tảng
+            <p className="text-[9px] sm:text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mt-1 truncate">
+              Track Personal Progress & Global Rankings
             </p>
           </div>
         </div>
+      </div>
+
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 space-y-4 sm:space-y-6">
 
         {/* 📌 Sticky Top Main Tabs Bar */}
         <div className="sticky top-0 z-40 bg-[#F8FAFC]/90 backdrop-blur-xl py-2.5 -mx-4 px-4 sm:-mx-6 sm:px-6 border-b border-slate-200/80 shadow-2xs transition-all">

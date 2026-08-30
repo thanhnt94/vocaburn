@@ -196,29 +196,35 @@ export default function DecksPage() {
     <div className="fixed inset-0 top-0 bottom-[68px] md:relative md:inset-auto md:top-auto md:bottom-auto md:min-h-screen flex flex-col bg-[#F8FAFC] overflow-hidden text-left select-none">
       {/* ═══════════ TOP UNIFIED HEADER ═══════════ */}
       <div className="shrink-0 z-30 bg-white/90 backdrop-blur-2xl border-b border-slate-200/70 shadow-2xs">
-        <div className="max-w-5xl mx-auto px-3 sm:px-6">
+        <div className="max-w-5xl mx-auto px-3.5 sm:px-6">
           {/* Row 1: Header title & Main controls */}
-          <div className="flex items-center justify-between pt-2.5 pb-2">
-            <div className="flex items-center gap-2">
-              <div className="w-8.5 h-8.5 rounded-xl bg-slate-900 text-white flex items-center justify-center shadow-xs shadow-slate-900/15 shrink-0">
-                <Layers className="w-4 h-4 stroke-[2.5]" />
+          <div className="flex items-center justify-between pt-3 pb-2.5 gap-2">
+            {/* Left: Standard App Page Header */}
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="w-10 h-10 sm:w-11 sm:h-11 bg-slate-900 rounded-2xl flex items-center justify-center text-white shadow-md shadow-slate-900/10 shrink-0">
+                <Layers className="w-5 h-5 stroke-[2.2]" />
               </div>
-              <div className="flex items-baseline gap-2">
-                <h1 className="text-base sm:text-lg font-black text-slate-900 tracking-tight">
-                  Decks
-                </h1>
-                <span className="px-2 py-0.5 rounded-full bg-slate-100 border border-slate-200/80 text-slate-600 text-[11px] font-black">
-                  {filteredData.length}
-                </span>
+              <div className="min-w-0">
+                <div className="flex items-center gap-2">
+                  <h1 className="text-base sm:text-lg md:text-xl font-black text-slate-900 uppercase tracking-tight italic leading-none truncate">
+                    Decks Repository
+                  </h1>
+                  <span className="px-2 py-0.5 rounded-full bg-slate-100 border border-slate-200/80 text-slate-600 text-[10px] font-black not-italic shrink-0">
+                    {filteredData.length}
+                  </span>
+                </div>
+                <p className="text-[9px] sm:text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mt-1 truncate">
+                  Spaced Repetition & Roadmap Decks
+                </p>
               </div>
             </div>
 
             {/* Right Action Icons */}
-            <div className="flex items-center gap-1.5">
+            <div className="flex items-center gap-1.5 shrink-0">
               <button
                 onClick={() => setIsSearchOpen(prev => !prev)}
                 className={cn(
-                  "w-8.5 h-8.5 rounded-xl border flex items-center justify-center transition-all active:scale-95 cursor-pointer shadow-2xs",
+                  "w-9 h-9 rounded-xl border flex items-center justify-center transition-all active:scale-95 cursor-pointer shadow-2xs",
                   isSearchOpen || searchQuery 
                     ? "bg-indigo-50 border-indigo-200 text-indigo-600 font-bold" 
                     : "bg-slate-50 hover:bg-slate-100 border-slate-200/80 text-slate-700"
@@ -230,7 +236,7 @@ export default function DecksPage() {
 
               <button
                 onClick={() => setIsJoinModalOpen(true)}
-                className="w-8.5 h-8.5 rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-200/80 text-slate-700 flex items-center justify-center transition-all active:scale-95 cursor-pointer shadow-2xs"
+                className="w-9 h-9 rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-200/80 text-slate-700 flex items-center justify-center transition-all active:scale-95 cursor-pointer shadow-2xs"
                 title="Join study room"
               >
                 <Users className="w-4 h-4 text-purple-600" />
@@ -238,7 +244,7 @@ export default function DecksPage() {
 
               <button
                 onClick={() => setIsCreateModalOpen(true)}
-                className="h-8.5 px-3 rounded-xl bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white flex items-center gap-1 text-xs font-black shadow-xs shadow-orange-500/20 active:scale-95 transition-all cursor-pointer"
+                className="h-9 px-3 rounded-xl bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white flex items-center gap-1.5 text-xs font-black shadow-xs shadow-orange-500/20 active:scale-95 transition-all cursor-pointer"
                 title="Create new deck"
               >
                 <Plus className="w-4 h-4 stroke-[3]" />
