@@ -2109,18 +2109,17 @@ export default function Dashboard() {
 
                     </div>
 
-                    {/* SECTION TITLE: GAMIFIED QUEST PROGRESS BAR */}
+                    {/* SECTION TITLE: TIẾN ĐỘ HÔM NAY */}
                     <div className="px-1 shrink-0 flex items-center justify-between">
                       <div className="flex items-center gap-1.5">
-                        <Sparkles className="w-4 h-4 text-amber-500 fill-amber-400 animate-pulse" />
-                        <h3 className="text-xs sm:text-sm font-black text-slate-800 uppercase tracking-wider">
-                          Nhiệm vụ hôm nay
+                        <Sparkles className="w-4 h-4 text-amber-500 fill-amber-400" />
+                        <h3 className="text-xs sm:text-sm font-bold text-slate-800 tracking-tight">
+                          Các bước hôm nay
                         </h3>
                       </div>
 
-                      <div className="flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-gradient-to-r from-amber-500/15 via-orange-500/15 to-amber-500/20 text-amber-950 border border-amber-300/80 text-[10px] sm:text-[11px] font-black shadow-2xs">
-                        <Zap className="w-3 h-3 fill-amber-500 text-amber-500 animate-bounce" />
-                        <span>{stepsCompletedCount}/3 Bước • +100 XP</span>
+                      <div className="px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-600 border border-slate-200/70 text-[10px] sm:text-[11px] font-bold">
+                        <span>{stepsCompletedCount}/3 hoàn thành</span>
                       </div>
                     </div>
 
@@ -2131,7 +2130,7 @@ export default function Dashboard() {
                       <div className="flex items-center gap-3.5 relative">
                         {/* Number Circle 1 */}
                         <div className={cn(
-                          "w-9 h-9 rounded-full font-black text-xs flex items-center justify-center shrink-0 shadow-2xs text-white z-10 transition-transform",
+                          "w-8.5 h-8.5 rounded-full font-black text-xs flex items-center justify-center shrink-0 shadow-2xs text-white z-10 transition-all",
                           s1 ? "bg-emerald-500" : "bg-gradient-to-tr from-orange-500 to-amber-500 scale-105 ring-2 ring-orange-200"
                         )}>
                           {s1 ? '✓' : '1'}
@@ -2145,8 +2144,8 @@ export default function Dashboard() {
                           }}
                           title={s1 ? "Đã xong mục tiêu hôm nay. Bấm để xem kết quả hoặc tiếp tục học thêm từ mới!" : "Bắt đầu học từ mới hôm nay"}
                           className={cn(
-                            "flex-1 bg-white border rounded-2xl p-3 sm:p-3.5 shadow-2xs flex items-center gap-3 relative transition-all cursor-pointer hover:shadow-sm hover:scale-[1.008] active:scale-[0.99]",
-                            s1 ? "border-emerald-200/90 bg-emerald-50/30 hover:bg-emerald-50/50" : "border-orange-200/90 hover:border-orange-300 ring-1 ring-orange-100"
+                            "flex-1 bg-white border rounded-2xl p-3 sm:p-3.5 shadow-2xs flex items-center gap-3 relative transition-all cursor-pointer hover:shadow-sm active:scale-[0.99]",
+                            s1 ? "border-emerald-200/90 bg-emerald-50/20" : "border-orange-300/90 bg-orange-50/20 hover:border-orange-400"
                           )}
                         >
                           {/* Left Speech Bubble Triangle Pointer */}
@@ -2155,26 +2154,21 @@ export default function Dashboard() {
                             s1 ? "border-r-emerald-100" : "border-r-orange-200"
                           )} />
 
-                          <div className="w-11 h-11 rounded-2xl bg-orange-50/90 border border-orange-100/80 flex items-center justify-center shrink-0">
-                            <BookOpen className="w-5.5 h-5.5 text-orange-500" />
+                          <div className="w-10 h-10 rounded-xl bg-orange-50 border border-orange-100/80 flex items-center justify-center shrink-0 text-orange-500">
+                            <BookOpen className="w-5 h-5" />
                           </div>
 
                           <div className="flex-1 min-w-0 flex flex-col gap-1">
                             <div className="flex items-center justify-between gap-2">
-                              <div className="flex items-center gap-1.5 truncate">
-                                <span className="font-bold text-xs sm:text-sm text-slate-900 truncate">Học từ mới</span>
-                                <span className="px-1.5 py-0.2 bg-orange-50 text-orange-600 border border-orange-200 text-[9px] font-black rounded-md shrink-0">+20 XP</span>
-                              </div>
-                              {s1 ? (
+                              <span className="font-bold text-xs sm:text-sm text-slate-900 truncate">Học từ mới</span>
+                              {s1 && (
                                 <span className="px-2 py-0.5 bg-emerald-50 text-emerald-600 border border-emerald-200 text-[10px] font-bold rounded-full shrink-0">✓ Đã xong</span>
-                              ) : (
-                                <span className="px-2 py-0.5 bg-gradient-to-r from-orange-500 to-amber-500 text-white text-[10px] font-black rounded-full shadow-2xs shrink-0 tracking-wide uppercase">Cần làm</span>
                               )}
                             </div>
 
                             <div className="text-xs font-bold text-slate-500 flex items-baseline gap-1">
-                              <span className="text-sm font-black text-orange-600">{nL}</span>
-                              <span className="text-slate-400 font-semibold text-xs">/ {nT} từ mới</span>
+                              <span className={cn("text-sm font-black", !s1 ? "text-orange-600" : "text-slate-500")}>{nL}</span>
+                              <span className="text-slate-400 font-medium text-xs">/ {nT} từ mới</span>
                             </div>
 
                             <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden w-full my-0.5">
@@ -2182,22 +2176,20 @@ export default function Dashboard() {
                             </div>
                           </div>
 
-                          <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center shrink-0 text-slate-400">
+                          <div className="w-7 h-7 rounded-full bg-slate-50 flex items-center justify-center shrink-0 text-slate-400">
                             <ChevronRight className="w-4 h-4" />
                           </div>
                         </div>
                       </div>
 
-                      {/* Connecting Line 1 -> 2 with Flame */}
-                      <div className="absolute top-[38px] bottom-[115px] left-[17px] w-0.5 bg-slate-200 z-0 flex items-center justify-center pointer-events-none">
-                        <span className="text-[11px] animate-pulse">🔥</span>
-                      </div>
+                      {/* Connecting Line 1 -> 2 */}
+                      <div className="absolute top-[34px] bottom-[110px] left-[16px] w-0.5 bg-slate-200 z-0 pointer-events-none" />
 
                       {/* Step 2 Item */}
                       <div className="flex items-center gap-3.5 relative">
                         {/* Number Circle 2 */}
                         <div className={cn(
-                          "w-9 h-9 rounded-full font-black text-xs flex items-center justify-center shrink-0 shadow-2xs text-white z-10 transition-transform",
+                          "w-8.5 h-8.5 rounded-full font-black text-xs flex items-center justify-center shrink-0 shadow-2xs text-white z-10 transition-all",
                           s2 ? "bg-emerald-500" : s1 ? "bg-gradient-to-tr from-amber-500 to-orange-500 scale-105 ring-2 ring-amber-200" : "bg-slate-200 text-slate-400"
                         )}>
                           {s2 ? '✓' : '2'}
@@ -2214,8 +2206,8 @@ export default function Dashboard() {
                           title={!s1 ? "Cần hoàn thành Bước 1: Học từ mới trước" : s2 ? "Đã đạt chỉ tiêu! Bấm để xem kết quả hoặc làm lại bài test" : "Bắt đầu làm bài test trắc nghiệm"}
                           className={cn(
                             "flex-1 bg-white border rounded-2xl p-3 sm:p-3.5 shadow-2xs flex items-center gap-3 relative transition-all",
-                            !s1 ? "cursor-not-allowed opacity-60 bg-slate-50/70 border-slate-200/50" : "cursor-pointer hover:shadow-sm hover:scale-[1.008] active:scale-[0.99]",
-                            s2 ? "border-emerald-200/90 bg-emerald-50/30 hover:bg-emerald-50/50" : s1 ? "border-amber-300 bg-amber-50/20 hover:border-amber-400 ring-1 ring-amber-100" : ""
+                            !s1 ? "cursor-not-allowed opacity-60 bg-slate-50/60 border-slate-200/60" : "cursor-pointer hover:shadow-sm active:scale-[0.99]",
+                            s2 ? "border-emerald-200/90 bg-emerald-50/20" : s1 ? "border-amber-300/90 bg-amber-50/20 hover:border-amber-400" : ""
                           )}
                         >
                           {/* Left Speech Bubble Triangle Pointer */}
@@ -2225,36 +2217,29 @@ export default function Dashboard() {
                           )} />
 
                           <div className={cn(
-                            "w-11 h-11 rounded-2xl flex items-center justify-center shrink-0 border",
+                            "w-10 h-10 rounded-xl flex items-center justify-center shrink-0 border",
                             s2 ? "bg-emerald-50 border-emerald-100 text-emerald-600" : s1 ? "bg-amber-50 border-amber-200 text-amber-600" : "bg-slate-100 border-slate-200/60 text-slate-400"
                           )}>
                             {mcqStep?.type === 'typing' ? (
-                              <Keyboard className="w-5.5 h-5.5" />
+                              <Keyboard className="w-5 h-5" />
                             ) : (
-                              <FileText className="w-5.5 h-5.5" />
+                              <FileText className="w-5 h-5" />
                             )}
                           </div>
 
                           <div className="flex-1 min-w-0 flex flex-col gap-1">
                             <div className="flex items-center justify-between gap-2">
-                              <div className="flex items-center gap-1.5 truncate">
-                                <span className="font-bold text-xs sm:text-sm text-slate-900 truncate">
-                                  {mcqStep?.label || (mcqStep?.type === 'typing' ? 'Gõ từ vựng' : 'Trắc nghiệm MCQ')}
-                                </span>
-                                <span className="px-1.5 py-0.2 bg-amber-50 text-amber-700 border border-amber-200 text-[9px] font-black rounded-md shrink-0">+30 XP</span>
-                              </div>
-                              {s2 ? (
+                              <span className="font-bold text-xs sm:text-sm text-slate-900 truncate">
+                                {mcqStep?.label || (mcqStep?.type === 'typing' ? 'Gõ từ vựng' : 'Trắc nghiệm MCQ')}
+                              </span>
+                              {s2 && (
                                 <span className="px-2 py-0.5 bg-emerald-50 text-emerald-600 border border-emerald-200 text-[10px] font-bold rounded-full shrink-0">✓ Đã xong</span>
-                              ) : s1 ? (
-                                <span className="px-2 py-0.5 bg-gradient-to-r from-amber-500 to-orange-500 text-white text-[10px] font-black rounded-full shadow-2xs shrink-0 tracking-wide uppercase">Cần làm</span>
-                              ) : (
-                                <span className="px-2 py-0.5 bg-slate-100 text-slate-400 text-[10px] font-bold rounded-full shrink-0">🔒 Khóa</span>
                               )}
                             </div>
 
                             <div className="text-xs font-bold text-slate-500 flex items-baseline gap-1">
                               <span className={cn("text-sm font-black", s1 ? "text-amber-600" : "text-slate-400")}>{mcqDone}</span>
-                              <span className="text-slate-400 font-semibold text-xs">/ {mcqTarget} câu</span>
+                              <span className="text-slate-400 font-medium text-xs">/ {mcqTarget} câu</span>
                             </div>
 
                             {s1 && (
@@ -2264,20 +2249,20 @@ export default function Dashboard() {
                             )}
                           </div>
 
-                          <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center shrink-0 text-slate-400">
+                          <div className="w-7 h-7 rounded-full bg-slate-50 flex items-center justify-center shrink-0 text-slate-400">
                             <ChevronRight className="w-4 h-4" />
                           </div>
                         </div>
                       </div>
 
                       {/* Connecting Line 2 -> 3 */}
-                      <div className="absolute top-[115px] bottom-[38px] left-[17px] w-0.5 bg-slate-200 z-0 pointer-events-none" />
+                      <div className="absolute top-[110px] bottom-[34px] left-[16px] w-0.5 bg-slate-200 z-0 pointer-events-none" />
 
                       {/* Step 3 Item */}
                       <div className="flex items-center gap-3.5 relative">
                         {/* Number Circle 3 */}
                         <div className={cn(
-                          "w-9 h-9 rounded-full font-black text-xs flex items-center justify-center shrink-0 shadow-2xs text-white z-10 transition-transform",
+                          "w-8.5 h-8.5 rounded-full font-black text-xs flex items-center justify-center shrink-0 shadow-2xs text-white z-10 transition-all",
                           st.all_done ? "bg-emerald-500" : s2 ? "bg-gradient-to-tr from-purple-500 to-indigo-600 scale-105 ring-2 ring-purple-200" : "bg-slate-200 text-slate-400"
                         )}>
                           {st.all_done ? '✓' : '3'}
@@ -2295,8 +2280,8 @@ export default function Dashboard() {
                           title={!s1 ? "Cần hoàn thành Bước 1: Học từ mới trước" : !s2 ? "Cần hoàn thành Bước 2: Test trắc nghiệm trước" : st.all_done ? "Đã xong lộ trình FSRS. Bấm để xem kết quả hoặc tiếp tục ôn tập!" : "Bắt đầu ôn tập FSRS"}
                           className={cn(
                             "flex-1 bg-white border rounded-2xl p-3 sm:p-3.5 shadow-2xs flex items-center gap-3 relative transition-all",
-                            (!s1 || !s2) ? "cursor-not-allowed opacity-60 bg-slate-50/70 border-slate-200/50" : "cursor-pointer hover:shadow-sm hover:scale-[1.008] active:scale-[0.99]",
-                            st.all_done ? "border-emerald-200/90 bg-emerald-50/30 hover:bg-emerald-50/50" : (s1 && s2) ? "border-purple-300 bg-purple-50/20 hover:border-purple-400 ring-1 ring-purple-100" : ""
+                            (!s1 || !s2) ? "cursor-not-allowed opacity-60 bg-slate-50/60 border-slate-200/60" : "cursor-pointer hover:shadow-sm active:scale-[0.99]",
+                            st.all_done ? "border-emerald-200/90 bg-emerald-50/20" : (s1 && s2) ? "border-purple-300/90 bg-purple-50/20 hover:border-purple-400" : ""
                           )}
                         >
                           {/* Left Speech Bubble Triangle Pointer */}
@@ -2306,30 +2291,23 @@ export default function Dashboard() {
                           )} />
 
                           <div className={cn(
-                            "w-11 h-11 rounded-2xl flex items-center justify-center shrink-0 border",
+                            "w-10 h-10 rounded-xl flex items-center justify-center shrink-0 border",
                             st.all_done ? "bg-emerald-50 border-emerald-100 text-emerald-600" : s2 ? "bg-purple-50 border-purple-200 text-purple-600" : "bg-slate-100 border-slate-200/60 text-slate-400"
                           )}>
-                            <RotateCcw className="w-5.5 h-5.5" />
+                            <RotateCcw className="w-5 h-5" />
                           </div>
 
                           <div className="flex-1 min-w-0 flex flex-col gap-1">
                             <div className="flex items-center justify-between gap-2">
-                              <div className="flex items-center gap-1.5 truncate">
-                                <span className="font-bold text-xs sm:text-sm text-slate-900 truncate">Ôn tập FSRS</span>
-                                <span className="px-1.5 py-0.2 bg-purple-50 text-purple-700 border border-purple-200 text-[9px] font-black rounded-md shrink-0">+50 XP</span>
-                              </div>
-                              {st.all_done ? (
-                                <span className="px-2 py-0.5 bg-emerald-50 text-emerald-600 border border-emerald-200 text-[10px] font-bold rounded-full shrink-0">👑 Hoàn tất</span>
-                              ) : s2 ? (
-                                <span className="px-2 py-0.5 bg-gradient-to-r from-purple-500 to-indigo-600 text-white text-[10px] font-black rounded-full shadow-2xs shrink-0 tracking-wide uppercase">Cần làm</span>
-                              ) : (
-                                <span className="px-2 py-0.5 bg-slate-100 text-slate-400 text-[10px] font-bold rounded-full shrink-0">🔒 Khóa</span>
+                              <span className="font-bold text-xs sm:text-sm text-slate-900 truncate">Ôn tập FSRS</span>
+                              {st.all_done && (
+                                <span className="px-2 py-0.5 bg-emerald-50 text-emerald-600 border border-emerald-200 text-[10px] font-bold rounded-full shrink-0">✓ Đã xong</span>
                               )}
                             </div>
 
                             <div className="text-xs font-bold text-slate-500 flex items-baseline gap-1">
                               <span className={cn("text-sm font-black", s2 ? "text-purple-600" : "text-slate-400")}>{rDn}</span>
-                              <span className="text-slate-400 font-semibold text-xs">/ {rD} thẻ cần ôn</span>
+                              <span className="text-slate-400 font-medium text-xs">/ {rD} thẻ cần ôn</span>
                             </div>
 
                             {s2 && (
@@ -2339,7 +2317,7 @@ export default function Dashboard() {
                             )}
                           </div>
 
-                          <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center shrink-0 text-slate-400">
+                          <div className="w-7 h-7 rounded-full bg-slate-50 flex items-center justify-center shrink-0 text-slate-400">
                             <ChevronRight className="w-4 h-4" />
                           </div>
                         </div>
@@ -2347,7 +2325,7 @@ export default function Dashboard() {
 
                     </div>
 
-                    {/* CTA ACTION AREA (DYNAMIC QUEST BUTTON) */}
+                    {/* CTA ACTION AREA (SLEEK & REFINED) */}
                     <div className="pt-0.5 flex-shrink-0">
                       {st.all_done ? (
                         <div className="grid grid-cols-2 gap-2.5 sm:gap-3 w-full">
@@ -2365,16 +2343,16 @@ export default function Dashboard() {
                               setStudyModalTab('flashcard');
                               setIsStudyModalOpen(true);
                             }}
-                            className="relative overflow-hidden bg-gradient-to-r from-orange-500 via-amber-500 to-orange-600 hover:from-orange-600 hover:to-amber-600 text-white rounded-2xl p-3 sm:p-3.5 flex items-center gap-2.5 sm:gap-3 shadow-[0_8px_20px_-4px_rgba(249,115,22,0.45)] hover:shadow-[0_12px_28px_-4px_rgba(249,115,22,0.6)] active:scale-[0.98] transition-all duration-200 cursor-pointer group border border-amber-200/60 text-left"
+                            className="relative overflow-hidden bg-gradient-to-r from-orange-500 via-amber-500 to-orange-600 hover:from-orange-600 hover:to-amber-600 text-white rounded-2xl p-3 sm:p-3.5 flex items-center gap-2.5 sm:gap-3 shadow-md shadow-orange-500/25 active:scale-[0.98] transition-all cursor-pointer group text-left"
                           >
-                            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-white/20 backdrop-blur-xs flex items-center justify-center shrink-0 shadow-xs">
+                            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-white/20 backdrop-blur-xs flex items-center justify-center shrink-0">
                               <Brain className="w-5 h-5 text-white" />
                             </div>
                             <div className="flex-1 min-w-0">
-                              <span className="text-xs sm:text-sm font-black tracking-wider leading-tight uppercase text-white block truncate">
-                                HỌC FSRS TIẾP
+                              <span className="text-xs sm:text-sm font-black tracking-wide uppercase text-white block truncate">
+                                Học FSRS tiếp
                               </span>
-                              <span className="text-[10px] sm:text-[11px] text-orange-100 font-bold block truncate mt-0.5">
+                              <span className="text-[10px] sm:text-[11px] text-orange-100 font-medium block truncate mt-0.5">
                                 Ôn tập / Học thẻ
                               </span>
                             </div>
@@ -2394,16 +2372,16 @@ export default function Dashboard() {
                               setStudyModalTab('practice');
                               setIsStudyModalOpen(true);
                             }}
-                            className="relative overflow-hidden bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-600 hover:from-emerald-600 hover:to-teal-600 text-white rounded-2xl p-3 sm:p-3.5 flex items-center gap-2.5 sm:gap-3 shadow-[0_8px_20px_-4px_rgba(16,185,129,0.45)] hover:shadow-[0_12px_28px_-4px_rgba(16,185,129,0.6)] active:scale-[0.98] transition-all duration-200 cursor-pointer group border border-emerald-200/60 text-left"
+                            className="relative overflow-hidden bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-600 hover:from-emerald-600 hover:to-teal-600 text-white rounded-2xl p-3 sm:p-3.5 flex items-center gap-2.5 sm:gap-3 shadow-md shadow-emerald-500/25 active:scale-[0.98] transition-all cursor-pointer group text-left"
                           >
-                            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-white/20 backdrop-blur-xs flex items-center justify-center shrink-0 shadow-xs">
+                            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-white/20 backdrop-blur-xs flex items-center justify-center shrink-0">
                               <Trophy className="w-5 h-5 text-white" />
                             </div>
                             <div className="flex-1 min-w-0">
-                              <span className="text-xs sm:text-sm font-black tracking-wider leading-tight uppercase text-white block truncate">
-                                LUYỆN TẬP QUIZ
+                              <span className="text-xs sm:text-sm font-black tracking-wide uppercase text-white block truncate">
+                                Luyện tập Quiz
                               </span>
-                              <span className="text-[10px] sm:text-[11px] text-emerald-100 font-bold block truncate mt-0.5">
+                              <span className="text-[10px] sm:text-[11px] text-emerald-100 font-medium block truncate mt-0.5">
                                 Trắc nghiệm / Gõ từ
                               </span>
                             </div>
@@ -2416,37 +2394,34 @@ export default function Dashboard() {
                             if (nUrl) navigate(nUrl); 
                             else navigate(`/decks/${deck.deck_id}`); 
                           }}
-                          className="w-full relative overflow-hidden bg-gradient-to-r from-orange-600 via-amber-600 to-orange-700 hover:from-orange-700 hover:to-amber-700 text-white rounded-2xl p-3.5 sm:p-4 flex items-center justify-between shadow-[0_10px_28px_-4px_rgba(234,88,12,0.5)] hover:shadow-[0_14px_35px_-4px_rgba(234,88,12,0.65)] active:scale-[0.98] transition-all duration-200 cursor-pointer group border-2 border-amber-200/70"
+                          className="w-full relative overflow-hidden bg-gradient-to-r from-orange-500 via-orange-600 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white rounded-2xl px-4 py-3 sm:py-3.5 flex items-center justify-between shadow-lg shadow-orange-500/25 active:scale-[0.98] transition-all duration-200 cursor-pointer group"
                         >
-                          {/* Animated Light Shimmer Beam */}
-                          <div className="absolute inset-0 w-1/3 h-full bg-gradient-to-r from-transparent via-white/25 to-transparent -skew-x-12 animate-shimmer-sweep pointer-events-none" />
-
-                          {/* Left Icon */}
-                          <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-white/20 backdrop-blur-xs flex items-center justify-center shrink-0 z-10">
-                            <Play className="w-4 h-4 sm:w-5 sm:h-5 fill-white text-white ml-0.5" />
+                          {/* Left Play Icon */}
+                          <div className="w-8.5 h-8.5 rounded-xl bg-white/20 backdrop-blur-xs flex items-center justify-center shrink-0 text-white">
+                            <Play className="w-4 h-4 fill-white ml-0.5" />
                           </div>
 
                           {/* Center Text Section */}
-                          <div className="flex-1 flex flex-col items-center justify-center text-center px-3 relative z-10">
-                            <span className="text-sm sm:text-base font-black tracking-widest leading-tight uppercase text-white drop-shadow-2xs flex items-center gap-1.5">
+                          <div className="flex-1 flex flex-col items-center justify-center text-center px-3">
+                            <span className="text-sm sm:text-base font-extrabold tracking-wide uppercase text-white leading-tight">
                               {!s1
-                                ? 'BƯỚC 1: HỌC TỪ MỚI'
+                                ? 'Học từ mới'
                                 : !s2
-                                ? 'BƯỚC 2: TRẮC NGHIỆM MCQ'
-                                : 'BƯỚC 3: ÔN TẬP FSRS'}
+                                ? 'Làm bài trắc nghiệm'
+                                : 'Ôn tập FSRS'}
                             </span>
-                            <span className="text-[11px] sm:text-xs text-orange-100/90 font-bold mt-0.5 tracking-wide">
+                            <span className="text-[11px] sm:text-xs text-orange-100 font-medium mt-0.5">
                               {!s1
-                                ? `Còn ${Math.max(0, nT - nL)} từ mới (+20 XP)`
+                                ? `Còn ${Math.max(0, nT - nL)} từ hôm nay`
                                 : !s2
-                                ? `Đạt ≥80% để mở FSRS (+30 XP)`
-                                : `Còn ${Math.max(0, rD - rDn)} thẻ để giữ Streak (+50 XP)`}
+                                ? `Đạt ≥80% để qua bước`
+                                : `Còn ${Math.max(0, rD - rDn)} thẻ cần ôn`}
                             </span>
                           </div>
 
                           {/* Right Arrow */}
-                          <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-white text-orange-600 flex items-center justify-center shrink-0 shadow-md group-hover:scale-105 group-hover:translate-x-0.5 transition-transform z-10">
-                            <ChevronRight className="w-5 h-5 sm:w-6 sm:h-6 stroke-[3]" />
+                          <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center shrink-0 text-white group-hover:translate-x-0.5 transition-transform">
+                            <ChevronRight className="w-4.5 h-4.5 stroke-[2.5]" />
                           </div>
                         </button>
                       )}
