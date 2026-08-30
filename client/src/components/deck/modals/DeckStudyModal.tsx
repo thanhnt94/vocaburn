@@ -35,17 +35,17 @@ export function DeckStudyModal({
   const disabledModes = deck.practice_settings?.disabled_modes || []
 
   const flashcardModes = [
-    { mode: 'fsrs', icon: '🧠', title: 'FSRS Spaced Repetition', desc: 'Học lặp lại ngắt quãng thông minh' },
-    { mode: 'roadmap', icon: '🗺️', title: 'Roadmap Mode', desc: 'Học theo lộ trình mục tiêu mỗi ngày' },
-    { mode: 'flip', icon: '🔄', title: 'Flip Card', desc: 'Lật thẻ ghi nhớ phản xạ tự do' },
-    { mode: 'review', icon: '📚', title: 'Review Only', desc: 'Chỉ ôn tập lại các thẻ cũ' },
-    { mode: 'new', icon: '✨', title: 'New Only', desc: 'Chỉ học các thẻ mới chưa biết' },
+    { mode: 'fsrs', icon: '🧠', title: 'FSRS Spaced Repetition', desc: 'Intelligent spaced repetition algorithm' },
+    { mode: 'roadmap', icon: '🗺️', title: 'Roadmap Mode', desc: 'Daily step-by-step learning targets' },
+    { mode: 'flip', icon: '🔄', title: 'Flip Card', desc: 'Free flip flashcard rapid recall' },
+    { mode: 'review', icon: '📚', title: 'Review Only', desc: 'Review previously learned cards only' },
+    { mode: 'new', icon: '✨', title: 'New Only', desc: 'Study new unlearned cards only' },
   ].filter(item => !disabledModes.includes(item.mode))
 
   const practiceModes = [
-    { mode: 'mcq', icon: '🎯', title: 'MCQ Test', desc: 'Trắc nghiệm phản xạ 4 đáp án' },
-    { mode: 'typing', icon: '⌨️', title: 'Typing Test', desc: 'Gõ từ vựng nhớ chi tiết' },
-    { mode: 'listening', icon: '🎧', title: 'Listening Test', desc: 'Nghe audio chọn đáp án' },
+    { mode: 'mcq', icon: '🎯', title: 'MCQ Test', desc: '4-choice reflex multiple choice quiz' },
+    { mode: 'typing', icon: '⌨️', title: 'Typing Test', desc: 'Type out words for deep retention' },
+    { mode: 'listening', icon: '🎧', title: 'Listening Test', desc: 'Listen to audio and select correct answer' },
   ].filter(item => !disabledModes.includes(item.mode))
 
   return (
@@ -75,7 +75,7 @@ export function DeckStudyModal({
                   {activeTab === 'flashcard' ? 'Study Console' : 'Practice Console'}
                 </h3>
                 <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mt-0.5">
-                  {activeTab === 'flashcard' ? 'Chọn phương pháp học tập' : 'Chọn chế độ luyện tập'}
+                  {activeTab === 'flashcard' ? 'Choose flashcard learning method' : 'Choose practice exercise'}
                 </p>
               </div>
             </div>
@@ -98,7 +98,7 @@ export function DeckStudyModal({
               }`}
             >
               <Brain className="w-3.5 h-3.5" />
-              <span>Học Flashcard</span>
+              <span>Flashcards</span>
             </button>
             <button
               onClick={() => setActiveTab('practice')}
@@ -109,7 +109,7 @@ export function DeckStudyModal({
               }`}
             >
               <Trophy className="w-3.5 h-3.5" />
-              <span>Luyện tập</span>
+              <span>Practice</span>
             </button>
           </div>
 
@@ -120,7 +120,7 @@ export function DeckStudyModal({
             </h4>
             <p className="text-[10px] text-slate-400 font-black uppercase tracking-wider mt-0.5 flex items-center gap-1.5">
               <BrainCircuit className="w-3.5 h-3.5 text-slate-400" />
-              {deck.questions_count ?? '--'} thẻ trong bộ
+              {deck.questions_count ?? '--'} cards in deck
             </p>
           </div>
 
