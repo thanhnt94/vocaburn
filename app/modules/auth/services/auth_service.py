@@ -39,62 +39,58 @@ class AuthService:
         return result.scalar_one_or_none()
 
     @staticmethod
-    async def get_current_user(request, db: AsyncSession) -> Optional[User]:
-        from app.modules.sso_module.cookie_signer import verify_cookie
-        from app.core.config import settings
-
-        raw_user_id = request.cookies.get("user_id")
-        verified_id = None
-
-        if raw_user_id:
-            if "." in raw_user_id:
-                verified_id = verify_cookie(raw_user_id, settings.SECRET_KEY)
-            else:
-                verified_id = raw_user_id
-
-        if not verified_id:
-            auth_header = request.headers.get("Authorization")
-            if auth_header:
-                token_val = auth_header.split(" ")[1] if auth_header.startswith("Bearer ") else auth_header.strip()
-                if "." in token_val:
-                    verified_id = verify_cookie(token_val, settings.SECRET_KEY)
-
-        if not verified_id:
-            return None
-
-        try:
-            return await AuthService.get_user_by_id(db, int(verified_id))
-        except (ValueError, TypeError):
-            return None
-
-    @staticmethod
-    def get_user_id(request) -> int:
+    def get_user_id(request) -> Optional[int]:
         from app.modules.sso_module.cookie_signer import verify_cookie
         from app.core.config import settings
 
         raw = request.cookies.get("user_id")
-        if not raw:
-            auth_header = request.headers.get("Authorization")
-            if auth_header:
-                raw = auth_header.split(" ")[1] if auth_header.startswith("Bearer ") else auth_header.strip()
-
-        if not raw:
-            return 1
-
-        if "." in raw:
-            verified = verify_cookie(raw, settings.SECRET_KEY)
-            if verified:
+        if raw:
+            if "." in raw:
+                verified = verify_cookie(raw, settings.SECRET_KEY)
+                if verified:
+                    try:
+                        return int(verified)
+                    except (ValueError, TypeError):
+                        return None
+                return None
+            else:
+                # The clean_user_id_cookie middleware only keeps raw numeric user_id if signature was verified
                 try:
-                    return int(verified)
+                    return int(raw)
                 except (ValueError, TypeError):
-                    pass
-            try:
-                return int(raw.split(".")[0])
-            except (ValueError, TypeError):
-                return 1
+                    return None
+
+        # Check Authorization header (Bearer token)
+        auth_header = request.headers.get("Authorization")
+        if auth_header:
+            raw_token = auth_header.split(" ")[1] if auth_header.startswith("Bearer ") else auth_header.strip()
+            if "." in raw_token:
+                verified = verify_cookie(raw_token, settings.SECRET_KEY)
+                if verified:
+                    try:
+                        return int(verified)
+                    except (ValueError, TypeError):
+                        return None
+            return None
+
+        return None
+
+    @staticmethod
+    async def get_current_user(request, db: AsyncSession) -> Optional[User]:
+        user_id = AuthService.get_user_id(request)
+        if not user_id:
+            return None
 
         try:
-            return int(raw)
+            return await AuthService.get_user_by_id(db, user_id)
         except (ValueError, TypeError):
-            return 1
+            return None
+
+
+async def require_user_id(request) -> int:
+    from fastapi import HTTPException
+    uid = AuthService.get_user_id(request)
+    if uid is None:
+        raise HTTPException(status_code=401, detail="Authentication required")
+    return uid
 

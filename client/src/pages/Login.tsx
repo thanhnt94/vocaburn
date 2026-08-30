@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useAppStore } from '../store/useAppStore';
+import { VocaburnLogo } from '@/components/VocaburnLogo';
 
 export default function Login() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -102,14 +103,11 @@ export default function Login() {
       <div className="w-full max-w-md bg-white/[0.02] border border-white/5 backdrop-blur-xl rounded-2xl p-8 shadow-2xl relative z-10">
         {/* Brand Logo */}
         <div className="flex flex-col items-center mb-8">
-          <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-[#4f46e5] to-[#ec4899] flex items-center justify-center shadow-lg shadow-indigo-50/20 mb-4">
-            <span className="font-extrabold text-xl text-white">V</span>
+          <div className="mb-4">
+            <VocaburnLogo iconSize="xl" textSize="xl" variant="light" />
           </div>
-          <h2 className="font-extrabold text-3xl tracking-tight bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent">
-            Welcome to <span className="bg-gradient-to-r from-indigo-400 to-pink-400 bg-clip-text text-transparent">Vocaburn</span>
-          </h2>
-          <p className="text-sm text-gray-500 mt-2">
-            {showSSO ? 'Sign in using your Enterprise SSO credentials' : 'Access local accounts through secure backdoor'}
+          <p className="text-xs text-slate-400 font-medium text-center">
+            {showSSO ? 'Sign in using your Central Auth credentials' : 'Access local accounts through secure backdoor'}
           </p>
         </div>
 

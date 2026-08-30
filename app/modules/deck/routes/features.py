@@ -24,51 +24,8 @@ from datetime import datetime, timezone, date, timedelta
 
 router = APIRouter(tags=["Deck"])
 
-def build_fsrs_card(mastery, now_utc):
-    from fsrs import Card, State
-    state_map = {
-        0: State.Learning,
-        1: State.Learning,
-        2: State.Review,
-        3: State.Relearning
-    }
-    card_state = state_map.get(mastery.state if mastery else 0, State.Learning)
-    if card_state in (State.Review, State.Relearning) and (not mastery or mastery.stability is None or mastery.difficulty is None):
-        card_state = State.Learning
-        
-    fsrs_card = Card()
-    if mastery:
-        fsrs_card.state = card_state
-        fsrs_card.step = mastery.step
-        fsrs_card.stability = mastery.stability
-        fsrs_card.difficulty = mastery.difficulty
-        fsrs_card.due = mastery.due.replace(tzinfo=timezone.utc) if mastery.due else now_utc
-        fsrs_card.last_review = mastery.last_review.replace(tzinfo=timezone.utc) if mastery.last_review else None
-    else:
-        fsrs_card.state = State.Learning
-        fsrs_card.step = 0
-        fsrs_card.stability = None
-        fsrs_card.difficulty = None
-        fsrs_card.due = now_utc
-        fsrs_card.last_review = None
-    return fsrs_card
-
-def migrate_practice_settings(settings: Optional[dict]) -> dict:
-    if not settings:
-        return {}
-    if any(k in settings for k in ("mcq", "typing", "listening")):
-        return settings
-    active_pairs = settings.get("active_pairs", [])
-    num_choices = settings.get("num_choices", 4)
-    res = {
-        "mcq": {"active_pairs": active_pairs, "num_choices": num_choices},
-        "typing": {"active_pairs": active_pairs},
-        "listening": {"active_pairs": active_pairs, "num_choices": num_choices}
-    }
-    for k, v in settings.items():
-        if k not in ("active_pairs", "num_choices"):
-            res[k] = v
-    return res
+from app.modules.deck.services.fsrs_service import build_fsrs_card
+from app.modules.deck.utils import migrate_practice_settings
 
 @router.get("/{deck_id}/practice-settings")
 async def get_practice_settings(request: Request, deck_id: int, db: AsyncSession = Depends(get_db)):

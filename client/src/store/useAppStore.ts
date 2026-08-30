@@ -1,48 +1,8 @@
 import { create } from 'zustand'
-import axios from 'axios'
-
-// Set default credentials handling so cookies are automatically sent/received
-axios.defaults.withCredentials = true;
-
-export interface UserSettings {
-  theme: string
-  focus_timer_active: boolean
-  sfx_enabled: boolean
-  haptic_enabled: boolean
-  autoplay_audio: string
-  quick_learn_enabled: boolean
-  random_enabled: boolean
-  show_images: string
-  show_fsrs: boolean
-  quiz_learning_mode: string
-  practice_submode: string
-  practice_range: string
-  score_mode: string
-  time_mode: string
-  last_deck_id?: number | null
-  paste_columns?: string[]
-  quick_add_columns?: string[]
-}
-
-export const DEFAULT_USER_SETTINGS: UserSettings = {
-  theme: 'light',
-  focus_timer_active: true,
-  sfx_enabled: true,
-  haptic_enabled: true,
-  autoplay_audio: 'never',
-  quick_learn_enabled: false,
-  random_enabled: false,
-  show_images: 'always',
-  show_fsrs: true,
-  quiz_learning_mode: 'fsrs',
-  practice_submode: 'mcq',
-  practice_range: 'all',
-  score_mode: 'all',
-  time_mode: 'card',
-  last_deck_id: null,
-  paste_columns: ['front', 'back'],
-  quick_add_columns: ['front', 'back'],
-}
+import { authApi } from '@/lib/api/authApi'
+import { DEFAULT_USER_SETTINGS, type UserSettings } from './useSettingsStore'
+export { DEFAULT_USER_SETTINGS }
+export type { UserSettings }
 
 interface User {
   id: number;
@@ -106,7 +66,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       userSettings: { ...state.userSettings, ...partialSettings }
     }))
     try {
-      await axios.patch('/api/v1/user/settings', partialSettings)
+      await authApi.updateUserSettings(partialSettings)
     } catch (e) {
       console.error("Failed to persist user settings to DB", e)
     }
@@ -118,8 +78,8 @@ export const useAppStore = create<AppState>((set, get) => ({
 
   fetchAuthConfig: async () => {
     try {
-      const res = await axios.get('/api/v1/auth/config')
-      set({ authConfig: res.data })
+      const data = await authApi.getConfig()
+      set({ authConfig: data })
     } catch (e) {
       console.error("Failed to fetch auth configuration", e)
     }
@@ -127,9 +87,9 @@ export const useAppStore = create<AppState>((set, get) => ({
 
   fetchMe: async () => {
     try {
-      const res = await axios.get('/api/v1/auth/me')
-      if (res.data && res.data.user) {
-        const u = res.data.user
+      const data = await authApi.getMe()
+      if (data && data.user) {
+        const u = data.user
         const fetchedSettings = u.settings || {}
         set({ 
           user: u, 
@@ -148,9 +108,9 @@ export const useAppStore = create<AppState>((set, get) => ({
 
   login: async (credentials) => {
     try {
-      const res = await axios.post('/api/v1/auth/login', credentials)
-      if (res.data.status === 'success') {
-        const u = res.data.user
+      const res = await authApi.login(credentials)
+      if (res.status === 'success') {
+        const u = res.user
         const fetchedSettings = u.settings || {}
         set({ 
           user: u, 
@@ -159,7 +119,7 @@ export const useAppStore = create<AppState>((set, get) => ({
         })
         return { success: true }
       } else {
-        return { success: false, error: res.data.message || 'Login failed' }
+        return { success: false, error: res.message || 'Login failed' }
       }
     } catch (e: any) {
       console.error("Login request failed", e)

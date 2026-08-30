@@ -24,34 +24,7 @@ from datetime import datetime, timezone, date, timedelta
 
 router = APIRouter(tags=["Deck"])
 
-def build_fsrs_card(mastery, now_utc):
-    from fsrs import Card, State
-    state_map = {
-        0: State.Learning,
-        1: State.Learning,
-        2: State.Review,
-        3: State.Relearning
-    }
-    card_state = state_map.get(mastery.state if mastery else 0, State.Learning)
-    if card_state in (State.Review, State.Relearning) and (not mastery or mastery.stability is None or mastery.difficulty is None):
-        card_state = State.Learning
-        
-    fsrs_card = Card()
-    if mastery:
-        fsrs_card.state = card_state
-        fsrs_card.step = mastery.step
-        fsrs_card.stability = mastery.stability
-        fsrs_card.difficulty = mastery.difficulty
-        fsrs_card.due = mastery.due.replace(tzinfo=timezone.utc) if mastery.due else now_utc
-        fsrs_card.last_review = mastery.last_review.replace(tzinfo=timezone.utc) if mastery.last_review else None
-    else:
-        fsrs_card.state = State.Learning
-        fsrs_card.step = 0
-        fsrs_card.stability = None
-        fsrs_card.difficulty = None
-        fsrs_card.due = now_utc
-        fsrs_card.last_review = None
-    return fsrs_card
+from app.modules.deck.services.fsrs_service import build_fsrs_card
 
 
 @router.get("/template/download")

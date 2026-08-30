@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { VocaburnLogo } from '@/components/VocaburnLogo';
 
 export default function Landing() {
   const navigate = useNavigate();
@@ -142,11 +143,8 @@ export default function Landing() {
         {/* Premium Floating Header */}
         <div className="w-full px-6 py-4 z-20">
           <header className="max-w-5xl mx-auto px-6 py-3.5 flex items-center justify-between bg-white/75 backdrop-blur-lg border border-slate-200/50 rounded-3xl shadow-sm shadow-slate-100/50">
-            <div className="flex items-center gap-2.5 cursor-pointer" onClick={() => navigate('/')}>
-              <div className="w-8.5 h-8.5 rounded-2xl bg-gradient-to-tr from-indigo-500 via-purple-500 to-pink-500 flex items-center justify-center text-white shadow-md shadow-indigo-300/30">
-                <span className="font-black text-white text-sm">VB</span>
-              </div>
-              <span className="font-extrabold text-lg tracking-tight text-slate-800">Vocaburn</span>
+            <div onClick={() => navigate('/')}>
+              <VocaburnLogo iconSize="md" textSize="md" variant="dark" />
             </div>
             <div className="flex items-center gap-3">
               <button 

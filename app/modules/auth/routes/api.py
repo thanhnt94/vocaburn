@@ -33,12 +33,15 @@ async def get_user_settings(request: Request, db: AsyncSession = Depends(get_db)
     settings_obj = await UserSettingsService.get_or_create_settings(db, user.id)
     return {"status": "success", "settings": UserSettingsService.to_dict(settings_obj)}
 
+from app.modules.deck.schemas import UserSettingsUpdateRequest
+
 @router.patch("/user/settings")
-async def update_user_settings(request: Request, data: dict, db: AsyncSession = Depends(get_db)):
+async def update_user_settings(request: Request, payload: UserSettingsUpdateRequest, db: AsyncSession = Depends(get_db)):
     user = await AuthService.get_current_user(request, db)
     if not user:
         raise HTTPException(status_code=401, detail="Unauthorized")
-    updated_obj = await UserSettingsService.update_settings(db, user.id, data)
+    update_data = payload.model_dump(exclude_unset=True)
+    updated_obj = await UserSettingsService.update_settings(db, user.id, update_data)
     return {"status": "success", "settings": UserSettingsService.to_dict(updated_obj)}
 
 @router.post("/auth/login")

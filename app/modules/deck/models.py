@@ -257,6 +257,9 @@ class UserCardMastery(Base):
 
 class UserDeckSettings(Base):
     __tablename__ = "user_deck_settings"
+    __table_args__ = (
+        Index("ix_user_deck_settings_user_deck", "user_id", "deck_id"),
+    )
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id"), index=True)
     deck_id = Column(Integer, ForeignKey("flashcard_decks.id"), index=True)

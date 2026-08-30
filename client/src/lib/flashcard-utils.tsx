@@ -130,39 +130,39 @@ export const getMapTitleInfo = (mode: string) => {
   switch (mode) {
     case 'unseen':
       return {
-        title: "Chưa học",
-        subtitle: "Các từ vựng mới tinh chưa bao giờ bắt đầu ôn luyện"
+        title: "Unseen",
+        subtitle: "Brand new cards not yet studied"
       }
     case 'learning':
       return {
-        title: "Đang học",
-        subtitle: "Các từ vựng đang học dở dang ở các cấp độ ghi nhớ"
+        title: "Learning",
+        subtitle: "Cards currently in progress across retention stages"
       }
     case 'mastered':
       return {
-        title: "Đã thuộc",
-        subtitle: "Các từ vựng đã học thuộc lòng hoàn toàn"
+        title: "Mastered",
+        subtitle: "Cards fully memorized and retained"
       }
     case 'hard':
       return {
-        title: "Thẻ khó cần lưu ý",
-        subtitle: "Các từ vựng bạn hay gặp khó khăn hoặc trả lời sai nhiều"
+        title: "Difficult Cards",
+        subtitle: "Cards you frequently struggle with or answered incorrectly"
       }
     case 'starred':
       return {
-        title: "Đã gắn sao",
-        subtitle: "Các từ vựng quan trọng do chính bạn đánh dấu ưu tiên"
+        title: "Starred",
+        subtitle: "High-priority cards bookmarked by you"
       }
     case 'ignored':
       return {
-        title: "Đã bỏ qua",
-        subtitle: "Các từ vựng đã loại trừ khỏi phiên học hiện tại"
+        title: "Ignored",
+        subtitle: "Cards excluded from current study sessions"
       }
     case 'all':
     default:
       return {
-        title: "Bản đồ thẻ học - Tất cả",
-        subtitle: "Theo dõi và tra cứu toàn bộ từ vựng trong phiên học"
+        title: "Card Map - All",
+        subtitle: "Track and browse all vocabulary cards in this session"
       }
   }
 }

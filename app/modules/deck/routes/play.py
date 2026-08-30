@@ -1,30 +1,12 @@
 from app.modules.deck.services.fsrs_service import build_fsrs_card, estimate_intervals, apply_stability_boost
-from app.modules.deck.routes.roadmap import get_deck_roadmap_status_helper, get_roadmap_decks, get_deck_streak_for_user
-from app.modules.deck.utils import fix_static_urls, migrate_practice_settings
+from app.modules.deck.services.roadmap_service import RoadmapService
+from app.modules.deck.utils import (
+    fix_static_urls, migrate_practice_settings,
+    get_enabled_practice_modes, check_has_practice_setup, check_has_mcq_setup
+)
 
-def get_enabled_practice_modes(practice_settings):
-    if not practice_settings or not isinstance(practice_settings, dict):
-        return []
-    try:
-        migrated = migrate_practice_settings(practice_settings)
-        enabled = []
-        for mode_key in ("mcq", "typing", "listening"):
-            m = migrated.get(mode_key, {})
-            if isinstance(m, dict):
-                if m.get("enabled") is False:
-                    continue
-                pairs = m.get("active_pairs", [])
-                if isinstance(pairs, list) and len(pairs) > 0:
-                    enabled.append(mode_key)
-        return enabled
-    except Exception:
-        return []
-
-def check_has_practice_setup(practice_settings):
-    return len(get_enabled_practice_modes(practice_settings)) > 0
-
-def check_has_mcq_setup(practice_settings):
-    return "mcq" in get_enabled_practice_modes(practice_settings)
+get_deck_roadmap_status_helper = RoadmapService.get_deck_roadmap_status
+get_deck_streak_for_user = RoadmapService.get_deck_streak_for_user
 
 from fastapi import APIRouter, UploadFile, File, Depends, Request, BackgroundTasks, Query
 from typing import Optional
@@ -68,11 +50,16 @@ async def resolve_play_cards(cards_list, db):
     return cards_list
 
 
+from app.modules.deck.schemas import CardExplainRequest
+
 @router.post("/explain")
-async def explain_card(data: dict):
-    card_text = data.get("card") or data.get("question")
-    options = data.get("options", [])
-    correct_answer = data.get("correct_answer")
+async def explain_card(payload: CardExplainRequest, request: Request):
+    user_id = AuthService.get_user_id(request)
+    if not user_id:
+        raise HTTPException(status_code=401, detail="Authentication required")
+    card_text = payload.card or payload.question
+    options = payload.options or []
+    correct_answer = payload.correct_answer
     
     explanation = await ai_service.explain_card(card_text, options, correct_answer)
     return {"explanation": explanation}

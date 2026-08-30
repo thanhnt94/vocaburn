@@ -253,38 +253,38 @@ export default function Profile() {
         {/* Account & Navigation Settings (Grouped One-Hand Card) */}
         <div className="space-y-1.5">
           <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2">
-            Cài đặt & Tiện ích
+            Settings & Preferences
           </h3>
           
           <div className="bg-white rounded-3xl border border-slate-100 divide-y divide-slate-50 overflow-hidden shadow-xs">
             <MenuRowItem 
               icon={Settings} 
-              label="Cài đặt học tập & Giao diện" 
-              desc="Âm thanh, chế độ học, FSRS"
+              label="Study & Display Settings" 
+              desc="Audio, Study Modes, FSRS"
               href="/settings" 
             />
             <MenuRowItem 
               icon={PieChart} 
-              label="Bảng xếp hạng & Thống kê" 
-              desc="Xem thứ hạng và tiến độ tổng"
+              label="Leaderboard & Statistics" 
+              desc="View global ranks and overall progress"
               href="/stats" 
             />
             <MenuRowItem 
               icon={Layers} 
-              label="Kho bộ thẻ & Tạo thẻ mới" 
-              desc="Quản lý các bộ từ vựng"
+              label="Deck Library & Management" 
+              desc="Manage and create vocabulary decks"
               href="/decks" 
             />
             <MenuRowItem 
               icon={Shield} 
-              label="Bảo mật & Tài khoản" 
-              desc="Đổi mật khẩu, phiên đăng nhập"
+              label="Security & Account" 
+              desc="Password, active sessions"
               href="/settings" 
             />
             <MenuRowItem 
               icon={LogOut} 
-              label="Đăng xuất tài khoản" 
-              desc="Thoát khỏi phiên hiện tại"
+              label="Log Out" 
+              desc="Sign out from current session"
               variant="danger" 
               href="/logout" 
             />

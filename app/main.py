@@ -70,8 +70,8 @@ app.add_middleware(
         "http://127.0.0.1:5000",
     ],
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allow_headers=["Content-Type", "Authorization", "Cookie", "X-Requested-With"],
 )
 
 app.add_middleware(GZipMiddleware, minimum_size=1000)

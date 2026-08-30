@@ -78,3 +78,32 @@ def extract_card_answers(card: Any, key: Any) -> list[str]:
 
     return results
 
+
+def get_enabled_practice_modes(practice_settings: Optional[dict]) -> list[str]:
+    """Returns a list of enabled practice mode keys (e.g. ['mcq', 'typing'])."""
+    if not practice_settings or not isinstance(practice_settings, dict):
+        return []
+    try:
+        migrated = migrate_practice_settings(practice_settings)
+        enabled = []
+        for mode_key in ("mcq", "typing", "listening"):
+            m = migrated.get(mode_key, {})
+            if isinstance(m, dict):
+                if m.get("enabled") is False:
+                    continue
+                pairs = m.get("active_pairs", [])
+                if isinstance(pairs, list) and len(pairs) > 0:
+                    enabled.append(mode_key)
+        return enabled
+    except Exception:
+        return []
+
+
+def check_has_practice_setup(practice_settings: Optional[dict]) -> bool:
+    return len(get_enabled_practice_modes(practice_settings)) > 0
+
+
+def check_has_mcq_setup(practice_settings: Optional[dict]) -> bool:
+    return "mcq" in get_enabled_practice_modes(practice_settings)
+
+

@@ -34,3 +34,10 @@ class Settings(BaseSettings):
         case_sensitive = True
 
 settings = Settings()
+
+if settings.SECRET_KEY == "vocaburn_default_secret_key_change_me_123456789":
+    import logging
+    logging.getLogger("uvicorn.error").warning(
+        "⚠️ SECURITY WARNING: SECRET_KEY is set to default placeholder. "
+        "Please set SECRET_KEY in environment variables for production!"
+    )

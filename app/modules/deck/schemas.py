@@ -80,3 +80,51 @@ class ContributionResponse(BaseModel):
     class Config:
         from_attributes = True
 
+
+class CardExplainRequest(BaseModel):
+    card: Optional[str] = None
+    question: Optional[str] = None
+    options: Optional[List[str]] = []
+    correct_answer: Optional[str] = None
+
+
+class CardAnswerRequest(BaseModel):
+    card_id: int
+    is_correct: bool = False
+    rating: Optional[int] = None
+    active_time: float = 0.0
+    mode: Optional[str] = "fsrs"
+    practice_mode: Optional[str] = None
+
+
+class DeckSettingsUpdateRequest(BaseModel):
+    settings: Dict[str, Any]
+
+
+class RoadmapTestSubmitRequest(BaseModel):
+    answers: Optional[List[Dict[str, Any]]] = []
+    score: Optional[int] = 0
+    total: Optional[int] = 0
+    mode: Optional[str] = "roadmap_test"
+
+
+class UserSettingsUpdateRequest(BaseModel):
+    theme: Optional[str] = None
+    focus_timer_active: Optional[bool] = None
+    sfx_enabled: Optional[bool] = None
+    haptic_enabled: Optional[bool] = None
+    autoplay_audio: Optional[str] = None
+    quick_learn_enabled: Optional[bool] = None
+    random_enabled: Optional[bool] = None
+    show_images: Optional[str] = None
+    show_fsrs: Optional[bool] = None
+    quiz_learning_mode: Optional[str] = None
+    practice_submode: Optional[str] = None
+    practice_range: Optional[str] = None
+    score_mode: Optional[str] = None
+    time_mode: Optional[str] = None
+    last_deck_id: Optional[int] = None
+    paste_columns: Optional[List[str]] = None
+    quick_add_columns: Optional[List[str]] = None
+
+
