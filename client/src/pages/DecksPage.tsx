@@ -197,8 +197,8 @@ export default function DecksPage() {
       {/* ═══════════ TOP UNIFIED HEADER ═══════════ */}
       <div className="shrink-0 z-30 bg-white/90 backdrop-blur-2xl border-b border-slate-200/70 shadow-2xs">
         <div className="max-w-5xl mx-auto px-3.5 sm:px-6">
-          {/* Row 1: Header title & Main controls */}
-          <div className="flex items-center justify-between pt-3 pb-2.5 gap-2">
+          {/* Row 1: Header title */}
+          <div className="flex items-center justify-between pt-3 pb-2.5">
             {/* Left: Standard App Page Header */}
             <div className="flex items-center gap-3 min-w-0">
               <div className="w-10 h-10 sm:w-11 sm:h-11 bg-slate-900 rounded-2xl flex items-center justify-center text-white shadow-md shadow-slate-900/10 shrink-0">
@@ -218,75 +218,9 @@ export default function DecksPage() {
                 </p>
               </div>
             </div>
-
-            {/* Right Action Icons */}
-            <div className="flex items-center gap-1.5 shrink-0">
-              <button
-                onClick={() => setIsSearchOpen(prev => !prev)}
-                className={cn(
-                  "w-9 h-9 rounded-xl border flex items-center justify-center transition-all active:scale-95 cursor-pointer shadow-2xs",
-                  isSearchOpen || searchQuery 
-                    ? "bg-indigo-50 border-indigo-200 text-indigo-600 font-bold" 
-                    : "bg-slate-50 hover:bg-slate-100 border-slate-200/80 text-slate-700"
-                )}
-                title="Search decks"
-              >
-                <Search className="w-4 h-4" />
-              </button>
-
-              <button
-                onClick={() => setIsJoinModalOpen(true)}
-                className="w-9 h-9 rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-200/80 text-slate-700 flex items-center justify-center transition-all active:scale-95 cursor-pointer shadow-2xs"
-                title="Join study room"
-              >
-                <Users className="w-4 h-4 text-purple-600" />
-              </button>
-
-              <button
-                onClick={() => setIsCreateModalOpen(true)}
-                className="h-9 px-3 rounded-xl bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white flex items-center gap-1.5 text-xs font-black shadow-xs shadow-orange-500/20 active:scale-95 transition-all cursor-pointer"
-                title="Create new deck"
-              >
-                <Plus className="w-4 h-4 stroke-[3]" />
-                <span className="hidden sm:inline">New Deck</span>
-              </button>
-            </div>
           </div>
 
-          {/* Row 2: Search Box (Collapsible) */}
-          <AnimatePresence>
-            {(isSearchOpen || searchQuery) && (
-              <motion.div
-                initial={{ height: 0, opacity: 0 }}
-                animate={{ height: 'auto', opacity: 1 }}
-                exit={{ height: 0, opacity: 0 }}
-                transition={{ duration: 0.2 }}
-                className="overflow-hidden pb-2"
-              >
-                <div className="relative">
-                  <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-                  <input
-                    autoFocus={isSearchOpen}
-                    type="text"
-                    placeholder="Search by deck title, creator..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-full pl-8 pr-8 py-1.5 rounded-xl bg-slate-100/90 border border-slate-200/80 text-xs font-bold text-slate-800 placeholder:text-slate-400 focus:outline-none focus:border-indigo-500 focus:bg-white transition-all shadow-inner"
-                  />
-                  {searchQuery && (
-                    <button
-                      onClick={() => setSearchQuery('')}
-                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5 cursor-pointer"
-                    >
-                      <X className="w-3.5 h-3.5" />
-                    </button>
-                  )}
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
-
-          {/* Row 3: Horizontal Scrollable Filter Chips */}
+          {/* Row 2: Horizontal Scrollable Filter Chips */}
           <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-2.5 pt-0.5">
             {activeTab === 'my' && (
               <>
@@ -350,7 +284,6 @@ export default function DecksPage() {
               )
             })}
           </div>
-
         </div>
       </div>
 
@@ -684,47 +617,82 @@ export default function DecksPage() {
       </div>
 
       {/* ═══════════ FIXED ACTION & PAGINATION TOOLBAR (ABOVE TABS) ═══════════ */}
-      <div className="shrink-0 z-30 bg-white/95 backdrop-blur-2xl border-t border-slate-200/80 px-3 sm:px-6 py-1.5 shadow-[0_-2px_10px_rgba(0,0,0,0.03)]">
-        <div className="max-w-5xl mx-auto flex items-center justify-between gap-2">
-          {/* Left: Pagination Stepper */}
-          <DeckPagination
-            currentPage={currentPage}
-            totalPages={totalPages}
-            onPageChange={setCurrentPage}
-          />
+      <div className="shrink-0 z-30 bg-white/95 backdrop-blur-2xl border-t border-slate-200/80 px-3.5 sm:px-6 py-1.5 shadow-[0_-2px_10px_rgba(0,0,0,0.03)]">
+        <div className="max-w-5xl mx-auto flex items-center justify-between gap-2 min-h-[36px]">
+          {isSearchOpen ? (
+            <div className="flex items-center gap-2 flex-1 animate-in fade-in duration-150">
+              <div className="relative flex-1">
+                <Search className="w-4 h-4 text-indigo-500 absolute left-3 top-1/2 -translate-y-1/2" />
+                <input
+                  autoFocus
+                  type="text"
+                  placeholder="Search by title, author, tags..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full pl-9 pr-8 py-1.5 rounded-xl bg-slate-100/90 border border-indigo-200 text-xs font-bold text-slate-800 placeholder:text-slate-400 focus:outline-none focus:bg-white focus:border-indigo-500 shadow-inner"
+                />
+                {searchQuery && (
+                  <button
+                    onClick={() => setSearchQuery('')}
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5 cursor-pointer"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                )}
+              </div>
+              <button
+                onClick={() => {
+                  setSearchQuery('')
+                  setIsSearchOpen(false)
+                }}
+                className="h-8.5 px-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 text-xs font-bold transition-all cursor-pointer shrink-0"
+              >
+                Close
+              </button>
+            </div>
+          ) : (
+            <>
+              {/* Left: Pagination Stepper */}
+              <DeckPagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                onPageChange={setCurrentPage}
+              />
 
-          {/* Right: Quick Action Buttons (Search, Join Room, New Deck) */}
-          <div className="flex items-center gap-1.5">
-            <button
-              onClick={() => setIsSearchOpen(prev => !prev)}
-              className={cn(
-                "h-8.5 w-8.5 rounded-xl border flex items-center justify-center transition-all active:scale-95 cursor-pointer shadow-2xs",
-                isSearchOpen || searchQuery 
-                  ? "bg-indigo-50 border-indigo-200 text-indigo-600 font-bold" 
-                  : "bg-slate-50 hover:bg-slate-100 border-slate-200/80 text-slate-700"
-              )}
-              title="Search decks"
-            >
-              <Search className="w-4 h-4" />
-            </button>
+              {/* Right: Quick Action Buttons (Search, Join Room, New Deck) */}
+              <div className="flex items-center gap-1.5">
+                <button
+                  onClick={() => setIsSearchOpen(true)}
+                  className={cn(
+                    "h-8.5 w-8.5 rounded-xl border flex items-center justify-center transition-all active:scale-95 cursor-pointer shadow-2xs",
+                    searchQuery 
+                      ? "bg-indigo-50 border-indigo-200 text-indigo-600 font-bold" 
+                      : "bg-slate-50 hover:bg-slate-100 border-slate-200/80 text-slate-700"
+                  )}
+                  title="Search decks"
+                >
+                  <Search className="w-4 h-4" />
+                </button>
 
-            <button
-              onClick={() => setIsJoinModalOpen(true)}
-              className="h-8.5 w-8.5 rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-200/80 text-slate-700 flex items-center justify-center transition-all active:scale-95 cursor-pointer shadow-2xs"
-              title="Join study room"
-            >
-              <Users className="w-4 h-4 text-purple-600" />
-            </button>
+                <button
+                  onClick={() => setIsJoinModalOpen(true)}
+                  className="h-8.5 w-8.5 rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-200/80 text-slate-700 flex items-center justify-center transition-all active:scale-95 cursor-pointer shadow-2xs"
+                  title="Join study room"
+                >
+                  <Users className="w-4 h-4 text-purple-600" />
+                </button>
 
-            <button
-              onClick={() => setIsCreateModalOpen(true)}
-              className="h-8.5 px-3 rounded-xl bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white flex items-center gap-1 text-xs font-black shadow-xs shadow-orange-500/20 active:scale-95 transition-all cursor-pointer"
-              title="Create new deck"
-            >
-              <Plus className="w-4 h-4 stroke-[3]" />
-              <span className="hidden sm:inline">New Deck</span>
-            </button>
-          </div>
+                <button
+                  onClick={() => setIsCreateModalOpen(true)}
+                  className="h-8.5 px-3 rounded-xl bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white flex items-center gap-1 text-xs font-black shadow-xs shadow-orange-500/20 active:scale-95 transition-all cursor-pointer"
+                  title="Create new deck"
+                >
+                  <Plus className="w-4 h-4 stroke-[3]" />
+                  <span className="hidden sm:inline">New Deck</span>
+                </button>
+              </div>
+            </>
+          )}
         </div>
       </div>
 
