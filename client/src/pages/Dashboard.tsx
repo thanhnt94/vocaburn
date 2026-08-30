@@ -1240,12 +1240,12 @@ export default function Dashboard() {
   const roadmapContainerRef = useRef<HTMLDivElement>(null)
 
   const cheerQuotes = [
-    "Cố lên! Bạn đang bùng cháy với chuỗi streak này! 🔥",
-    "Mỗi từ học được hôm nay là một bước tiến lớn! 🚀",
-    "Chăm chỉ như thế này chắc chắn sớm đạt mục tiêu! 🌟",
-    "Tớ luôn đồng hành cùng bạn mỗi ngày! 💪",
-    "Đỉnh nóc kịch trần! Hãy hoàn thành các bước hôm nay nhé! 🎉",
-    "Não bộ đang hấp thu từ vựng cực kỳ mạnh mẽ! 🧠⚡"
+    "Keep it up! You're on fire with this streak! 🔥",
+    "Every word learned today is a major leap forward! 🚀",
+    "With dedication like this, you'll reach your goal in no time! 🌟",
+    "I'm here cheering you on every single day! 💪",
+    "Outstanding work! Let's conquer all today's steps! 🎉",
+    "Your brain is absorbing vocabulary at lightning speed! 🧠⚡"
   ];
 
   const handleMascotTap = () => {
@@ -1778,10 +1778,10 @@ export default function Dashboard() {
 
                   {/* Title & Introduction */}
                   <h2 className="text-lg sm:text-xl font-black text-slate-900 uppercase tracking-tight italic leading-tight">
-                    Khởi tạo Lộ Trình Học
+                    Activate Learning Roadmap
                   </h2>
                   <p className="text-xs sm:text-sm text-slate-500 font-medium leading-relaxed mt-1.5 mb-6 max-w-xs">
-                    Dashboard là trung tâm học tập theo Lộ trình hàng ngày. Kích hoạt lộ trình để hệ thống tự động lên lịch học từ mới và ôn tập FSRS mỗi ngày!
+                    Dashboard is your daily learning hub. Activate a roadmap to automatically schedule new vocabulary and FSRS reviews each day!
                   </p>
 
                   {/* 3-Step Guide Cards */}
@@ -1791,8 +1791,8 @@ export default function Dashboard() {
                         1
                       </div>
                       <div className="min-w-0 flex-1">
-                        <h4 className="text-xs font-black text-slate-900">Vào tab "Bộ Thẻ" (Decks)</h4>
-                        <p className="text-[11px] text-slate-500 font-medium">Chọn bộ thẻ có sẵn trong Thư viện hoặc bộ thẻ do bạn tự tạo.</p>
+                        <h4 className="text-xs font-black text-slate-900">Go to "Decks" tab</h4>
+                        <p className="text-[11px] text-slate-500 font-medium">Choose a deck from the Library or create your custom deck.</p>
                       </div>
                     </div>
 
@@ -1801,8 +1801,8 @@ export default function Dashboard() {
                         2
                       </div>
                       <div className="min-w-0 flex-1">
-                        <h4 className="text-xs font-black text-slate-900">Bật "Lộ trình học" (Roadmap)</h4>
-                        <p className="text-[11px] text-slate-500 font-medium">Cài đặt số từ mục tiêu mỗi ngày để kích hoạt lộ trình thông minh.</p>
+                        <h4 className="text-xs font-black text-slate-900">Turn on "Daily Roadmap"</h4>
+                        <p className="text-[11px] text-slate-500 font-medium">Set your daily target to activate intelligent spaced repetition.</p>
                       </div>
                     </div>
 
@@ -1811,8 +1811,8 @@ export default function Dashboard() {
                         3
                       </div>
                       <div className="min-w-0 flex-1">
-                        <h4 className="text-xs font-black text-slate-900">Học 3 bước & Giữ Streak mỗi ngày</h4>
-                        <p className="text-[11px] text-slate-500 font-medium">Hoàn thành: 1. Học từ mới ➔ 2. Test MCQ ➔ 3. Ôn tập FSRS.</p>
+                        <h4 className="text-xs font-black text-slate-900">Complete 3 steps & Keep streak</h4>
+                        <p className="text-[11px] text-slate-500 font-medium">Master: 1. New words ➔ 2. MCQ Quiz ➔ 3. FSRS Review.</p>
                       </div>
                     </div>
                   </div>
@@ -1827,7 +1827,7 @@ export default function Dashboard() {
                       className="w-full h-12 bg-gradient-to-r from-orange-500 via-orange-600 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white rounded-2xl text-xs sm:text-sm font-black uppercase tracking-wider transition-all active:scale-[0.98] shadow-lg shadow-orange-500/25 flex items-center justify-center gap-2 cursor-pointer"
                     >
                       <Layers className="w-4 h-4" />
-                      <span>Khám phá Bộ thẻ & Kích hoạt Lộ trình →</span>
+                      <span>Explore Decks & Activate Roadmap →</span>
                     </button>
                   </div>
                 </div>
@@ -1860,24 +1860,24 @@ export default function Dashboard() {
                   );
               const mcqPct = mcqTarget > 0 ? Math.min(100, Math.round((mcqDone / mcqTarget) * 100)) : 0;
 
-              // Mascot selection with 2-line Slogan & deck streak
+              // Mascot selection with 2-line English Slogan & deck streak
               const deckStreak = st.streak || 0;
               let mascotImg = '/mascot/sleepy.png';
-              let mascotLine1 = 'Hôm nay bạn chưa học từ nào,';
-              let mascotLine2 = 'bắt đầu thôi! 🚀';
+              let mascotLine1 = 'No cards learned yet today,';
+              let mascotLine2 = "let's get started! 🚀";
               
               if (st.all_done) {
                 mascotImg = '/mascot/celebrating.png';
-                mascotLine1 = 'Xuất sắc!';
-                mascotLine2 = 'Đã hoàn thành lộ trình hôm nay! 🎉';
+                mascotLine1 = 'Brilliant!';
+                mascotLine2 = "You've completed today's roadmap! 🎉";
               } else if (pct >= 30 || s1) {
                 mascotImg = '/mascot/excited.png';
-                mascotLine1 = 'Đang bùng cháy!';
-                mascotLine2 = 'Tiếp tục giữ vững tiến độ nhé 🔥';
+                mascotLine1 = 'On fire!';
+                mascotLine2 = 'Keep up the great momentum 🔥';
               } else if (pct > 0 || nL > 0 || rDn > 0) {
                 mascotImg = '/mascot/excited.png';
-                mascotLine1 = 'Khởi đầu tốt lắm!';
-                mascotLine2 = 'Cố gắng hoàn thành các bước hôm nay 💪';
+                mascotLine1 = 'Off to a great start!';
+                mascotLine2 = "Let's conquer today's goals 💪";
               }
 
               // Estimated completion date computation
@@ -1888,14 +1888,14 @@ export default function Dashboard() {
 
               let estimatedDateText = '—';
               if (isDeckAllLearned) {
-                estimatedDateText = 'Đã hoàn thành 🎉';
+                estimatedDateText = 'Mastered 🎉';
               } else if (st.roadmap_type === 'accumulation') {
-                estimatedDateText = 'Tích lũy vô tận';
+                estimatedDateText = 'Endless';
               } else if (st.estimated_completion_date) {
                 try {
                   const d = new Date(st.estimated_completion_date);
                   if (!isNaN(d.getTime())) {
-                    estimatedDateText = d.toLocaleDateString('vi-VN');
+                    estimatedDateText = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
                   } else {
                     estimatedDateText = st.estimated_completion_date;
                   }
@@ -1908,7 +1908,7 @@ export default function Dashboard() {
                   const daysLeft = Math.ceil(unlearnedCards / dailyNew);
                   const targetDate = new Date();
                   targetDate.setDate(targetDate.getDate() + daysLeft);
-                  estimatedDateText = targetDate.toLocaleDateString('vi-VN');
+                  estimatedDateText = targetDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
                 }
               }
 
@@ -1916,19 +1916,33 @@ export default function Dashboard() {
 
               return (
                 <div key={deck.deck_id} className="h-full w-full min-h-full snap-start snap-always flex-shrink-0 flex flex-col">
-                  {/* DECK SUBHEADER BAR: TINH GỌN & CHUẨN XÁC */}
-                  <div className="px-4 py-2 bg-white flex items-center justify-between flex-shrink-0 text-xs font-semibold text-slate-500 border-b border-slate-100">
-                    <div className="flex items-center gap-1.5">
-                      <Layers className="w-3.5 h-3.5 text-orange-500" />
-                      <span className="text-slate-900 font-black tracking-tight text-xs">
-                        {totalDecks > 1 ? `Lộ trình ${deckIdx + 1}/${totalDecks}` : 'Lộ trình học'}
-                      </span>
+                  {/* DECK SUBHEADER BAR: ROADMAP INDEX + COUNTDOWN TIMER + DETAILS LINK */}
+                  <div className="px-4 py-2 bg-white flex items-center justify-between flex-shrink-0 text-xs font-semibold text-slate-500 border-b border-slate-100/90 gap-2">
+                    <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-1.5 text-slate-900 font-black tracking-tight text-xs">
+                        <Layers className="w-3.5 h-3.5 text-orange-500" />
+                        <span>{totalDecks > 1 ? `Roadmap ${deckIdx + 1}/${totalDecks}` : 'Daily Roadmap'}</span>
+                      </div>
+
+                      {/* COUNTDOWN TIMER BADGE ON THE ROADMAP BAR */}
+                      {!st.all_done ? (
+                        <div className="inline-flex items-center gap-1 px-2.5 py-0.5 bg-amber-50 text-amber-950 border border-amber-300/80 rounded-full text-[10px] sm:text-[11px] font-black shadow-2xs">
+                          <Clock className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-amber-700 shrink-0" />
+                          <span className="tabular-nums font-extrabold">{remainingTime} left</span>
+                        </div>
+                      ) : (
+                        <div className="inline-flex items-center gap-1 px-2.5 py-0.5 bg-emerald-50 text-emerald-950 border border-emerald-300/80 rounded-full text-[10px] sm:text-[11px] font-black shadow-2xs">
+                          <span className="text-xs">✓</span>
+                          <span>Completed today</span>
+                        </div>
+                      )}
                     </div>
+
                     <Link 
                       to={`/decks/${deck.deck_id}`}
                       className="text-xs font-bold text-orange-600 hover:text-orange-700 flex items-center gap-0.5 transition-colors cursor-pointer shrink-0 ml-auto"
                     >
-                      <span>Chi tiết</span>
+                      <span>Details</span>
                       <ChevronRight className="w-3.5 h-3.5 stroke-[2.5]" />
                     </Link>
                   </div>
@@ -1936,13 +1950,13 @@ export default function Dashboard() {
                   {/* CARD BODY (EXPANDED LAYOUT WITH HERO MASCOT EXPANDING VERTICALLY) */}
                   <div className="flex-1 flex flex-col justify-between p-3.5 sm:p-4 overflow-y-auto [&::-webkit-scrollbar]:hidden gap-3 min-h-0 max-w-lg mx-auto w-full">
                     
-                    {/* HERO MASCOT CARD (INTERACTIVE & CHEERFUL) */}
-                    <div className="bg-gradient-to-br from-amber-100/90 via-orange-50/50 to-amber-100/60 border border-orange-200/90 rounded-3xl p-4 sm:p-5 relative overflow-hidden shadow-xs flex flex-row items-center justify-between flex-1 min-h-[175px] sm:min-h-[205px]">
+                    {/* HERO MASCOT CARD (PROMINENT & STUNNING) */}
+                    <div className="bg-gradient-to-br from-amber-100/95 via-orange-50/70 to-amber-200/40 border border-orange-200/90 rounded-3xl p-4 sm:p-5 relative overflow-hidden shadow-xs flex flex-row items-center justify-between flex-1 min-h-[180px] sm:min-h-[210px]">
                       
-                      {/* LEFT SIDE: DECK TITLE, CLEAN HARMONIOUS STATS & SLOGAN */}
-                      <div className="relative z-20 flex-1 max-w-[62%] sm:max-w-[66%] min-w-0 flex flex-col justify-center gap-2 py-0.5">
+                      {/* LEFT SIDE: DECK TITLE, CLEAN STATS & SLOGAN */}
+                      <div className="relative z-20 flex-1 max-w-[62%] sm:max-w-[66%] min-w-0 flex flex-col justify-center gap-2.5 py-0.5">
                         
-                        {/* 1. TÊN BỘ THẺ & LEVEL */}
+                        {/* 1. DECK TITLE & LEVEL */}
                         <button
                           type="button"
                           onClick={() => {
@@ -1970,39 +1984,28 @@ export default function Dashboard() {
                           )}
                         </button>
 
-                        {/* 2. DÃY STATS TINH GỌN (STREAK, ĐỒNG HỒ & TIẾN ĐỘ TỔNG) */}
+                        {/* 2. HARMONIOUS STATS STRIP (STREAK + MASTERY PROGRESS & EST. DATE) */}
                         <div className="flex flex-wrap items-center gap-1.5">
                           {/* 🔥 STREAK */}
-                          <div className="inline-flex items-center gap-1 px-2.5 py-0.5 bg-gradient-to-r from-orange-500 to-amber-500 text-white rounded-full text-[11px] font-black shadow-2xs shrink-0">
+                          <div className="inline-flex items-center gap-1 px-2.5 py-0.5 bg-gradient-to-r from-orange-500 to-amber-500 text-white rounded-full text-[11px] font-black shadow-2xs shrink-0 animate-pulse">
                             <Flame className="w-3 h-3 fill-amber-200 text-amber-200" />
-                            <span>{deckStreak} ngày streak</span>
+                            <span>{deckStreak} Day Streak</span>
                           </div>
 
-                          {/* ⏱️ COUNTDOWN / TRẠNG THÁI */}
-                          {!st.all_done ? (
-                            <div className="inline-flex items-center gap-1 px-2 py-0.5 bg-white/90 backdrop-blur-xs text-amber-950 border border-amber-300/70 rounded-full text-[10px] font-black shadow-2xs shrink-0">
-                              <Clock className="w-2.5 h-2.5 text-amber-700 shrink-0" />
-                              <span className="tabular-nums font-extrabold">Còn {remainingTime}</span>
-                            </div>
-                          ) : (
-                            <div className="inline-flex items-center gap-1 px-2 py-0.5 bg-emerald-500/20 text-emerald-950 border border-emerald-300/80 rounded-full text-[10px] font-black shadow-2xs shrink-0">
-                              <span>✓ Đã xong hôm nay</span>
-                            </div>
-                          )}
-
-                          {/* 🎓 TIẾN ĐỘ THUỘC & DỰ KIẾN */}
-                          <div className="inline-flex items-center gap-1.5 px-2 py-0.5 bg-white/75 backdrop-blur-xs text-slate-700 border border-orange-200/60 rounded-full text-[10px] font-bold shrink-0">
-                            <span className="font-black text-slate-900">{learnedCards}/{totalCards} từ</span>
+                          {/* 🎓 MASTERY PROGRESS & ESTIMATED DATE */}
+                          <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 bg-white/80 backdrop-blur-xs text-slate-800 border border-orange-200/80 rounded-full text-[10px] sm:text-[11px] font-bold shadow-2xs shrink-0">
+                            <span className="font-black text-slate-900">{learnedCards}/{totalCards} words</span>
+                            <span className="text-orange-600 font-black">({totalCards > 0 ? Math.round((learnedCards / totalCards) * 100) : 0}%)</span>
                             <span className="text-slate-300">•</span>
                             {isDeckAllLearned ? (
-                              <span className="text-emerald-700 font-extrabold">Đã xong 🎉</span>
+                              <span className="text-emerald-700 font-extrabold">Mastered 🎉</span>
                             ) : (
-                              <span className="text-slate-500">Dự kiến: {estimatedDateText}</span>
+                              <span className="text-slate-500">Est: {estimatedDateText}</span>
                             )}
                           </div>
                         </div>
 
-                        {/* 3. SLOGAN ĐỘNG LỰC */}
+                        {/* 3. INSPIRING SLOGAN */}
                         <div className="flex flex-col gap-0.5 pt-0.5">
                           <h2 className="text-sm sm:text-base font-black text-slate-900 tracking-tight leading-tight">
                             {mascotLine1}
@@ -2014,10 +2017,10 @@ export default function Dashboard() {
 
                       </div>
 
-                      {/* RIGHT SIDE: HUGE PROMINENT MASCOT (TAP TO CHEER INTERACTION) */}
+                      {/* RIGHT SIDE: MASCOT WITH INTERACTIVE CHEER */}
                       <div 
                         onClick={handleMascotTap}
-                        title="Chạm vào linh vật để nhận động lực học tập! 🔥"
+                        title="Tap the mascot for extra motivation! 🔥"
                         className="w-[45%] max-w-[260px] absolute right-1 sm:right-3 bottom-0 top-0 flex items-end justify-center z-10 cursor-pointer group"
                       >
                         {/* FLOATING SPEECH BUBBLE ON TAP */}
@@ -2048,7 +2051,7 @@ export default function Dashboard() {
                         />
                       </div>
 
-                      {/* 2 NÚT HỌC FLASHCARD (NÃO CAM) & QUIZ (CÚP XANH) Ở GÓC PHẢI DƯỚI */}
+                      {/* 2 ACTION BUTTONS: FLASHCARD (BRAIN) & PRACTICE (TROPHY) */}
                       {!st.all_done && (
                         <div className="absolute right-3 sm:right-4 bottom-3 sm:bottom-4 z-30 flex items-center gap-2 pointer-events-auto">
                           <button
@@ -2065,7 +2068,7 @@ export default function Dashboard() {
                               setIsStudyModalOpen(true);
                             }}
                             className="w-9 h-9 sm:w-10 sm:h-10 rounded-2xl bg-gradient-to-tr from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white flex items-center justify-center shadow-lg shadow-orange-500/30 border border-white/50 active:scale-90 transition-all cursor-pointer flex-shrink-0"
-                            title="Chọn chế độ học Flashcard"
+                            title="Study Flashcards"
                           >
                             <Brain className="w-4.5 h-4.5 text-white" />
                           </button>
@@ -2084,7 +2087,7 @@ export default function Dashboard() {
                               setIsStudyModalOpen(true);
                             }}
                             className="w-9 h-9 sm:w-10 sm:h-10 rounded-2xl bg-gradient-to-tr from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white flex items-center justify-center shadow-lg shadow-emerald-500/30 border border-white/50 active:scale-90 transition-all cursor-pointer flex-shrink-0"
-                            title="Chọn chế độ luyện tập / Quiz"
+                            title="Practice Quiz"
                           >
                             <Trophy className="w-4.5 h-4.5 text-white" />
                           </button>
@@ -2093,17 +2096,17 @@ export default function Dashboard() {
 
                     </div>
 
-                    {/* SECTION TITLE: TIẾN ĐỘ HÔM NAY */}
+                    {/* SECTION TITLE: TODAY'S STEPS */}
                     <div className="px-1 shrink-0 flex items-center justify-between">
                       <div className="flex items-center gap-1.5">
                         <Sparkles className="w-4 h-4 text-amber-500 fill-amber-400" />
                         <h3 className="text-xs sm:text-sm font-bold text-slate-800 tracking-tight">
-                          Các bước hôm nay
+                          Today's Steps
                         </h3>
                       </div>
 
                       <div className="px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-600 border border-slate-200/70 text-[10px] sm:text-[11px] font-bold">
-                        <span>{stepsCompletedCount}/3 hoàn thành</span>
+                        <span>{stepsCompletedCount}/3 completed</span>
                       </div>
                     </div>
 
@@ -2126,7 +2129,7 @@ export default function Dashboard() {
                             if (navigator.vibrate) navigator.vibrate(8);
                             navigate(st.pipeline?.[0]?.url || nUrl || `/flashcard/${deck.deck_id}/play?mode=roadmap`);
                           }}
-                          title={s1 ? "Đã xong mục tiêu hôm nay. Bấm để xem kết quả hoặc tiếp tục học thêm từ mới!" : "Bắt đầu học từ mới hôm nay"}
+                          title={s1 ? "Goal completed. Tap to review or learn more words!" : "Start learning new words today"}
                           className={cn(
                             "flex-1 bg-white border rounded-2xl p-3 sm:p-3.5 shadow-2xs flex items-center gap-3 relative transition-all cursor-pointer hover:shadow-sm active:scale-[0.99]",
                             s1 ? "border-emerald-200/90 bg-emerald-50/20" : "border-orange-300/90 bg-orange-50/20 hover:border-orange-400"
@@ -2144,15 +2147,15 @@ export default function Dashboard() {
 
                           <div className="flex-1 min-w-0 flex flex-col gap-1">
                             <div className="flex items-center justify-between gap-2">
-                              <span className="font-bold text-xs sm:text-sm text-slate-900 truncate">Học từ mới</span>
+                              <span className="font-bold text-xs sm:text-sm text-slate-900 truncate">Learn New Words</span>
                               {s1 && (
-                                <span className="px-2 py-0.5 bg-emerald-50 text-emerald-600 border border-emerald-200 text-[10px] font-bold rounded-full shrink-0">✓ Đã xong</span>
+                                <span className="px-2 py-0.5 bg-emerald-50 text-emerald-600 border border-emerald-200 text-[10px] font-bold rounded-full shrink-0">✓ Done</span>
                               )}
                             </div>
 
                             <div className="text-xs font-bold text-slate-500 flex items-baseline gap-1">
                               <span className={cn("text-sm font-black", !s1 ? "text-orange-600" : "text-slate-500")}>{nL}</span>
-                              <span className="text-slate-400 font-medium text-xs">/ {nT} từ mới</span>
+                              <span className="text-slate-400 font-medium text-xs">/ {nT} new words</span>
                             </div>
 
                             <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden w-full my-0.5">
@@ -2187,7 +2190,7 @@ export default function Dashboard() {
                             const testUrl = mcqStep?.url || `/practice/${deck.deck_id}/roadmap_mcq`;
                             navigate(testUrl);
                           }}
-                          title={!s1 ? "Cần hoàn thành Bước 1: Học từ mới trước" : s2 ? "Đã đạt chỉ tiêu! Bấm để xem kết quả hoặc làm lại bài test" : "Bắt đầu làm bài test trắc nghiệm"}
+                          title={!s1 ? "Complete Step 1 (Learn New Words) first" : s2 ? "Target achieved! Tap to review or retake test" : "Start MCQ test"}
                           className={cn(
                             "flex-1 bg-white border rounded-2xl p-3 sm:p-3.5 shadow-2xs flex items-center gap-3 relative transition-all",
                             !s1 ? "cursor-not-allowed opacity-60 bg-slate-50/60 border-slate-200/60" : "cursor-pointer hover:shadow-sm active:scale-[0.99]",
@@ -2214,16 +2217,16 @@ export default function Dashboard() {
                           <div className="flex-1 min-w-0 flex flex-col gap-1">
                             <div className="flex items-center justify-between gap-2">
                               <span className="font-bold text-xs sm:text-sm text-slate-900 truncate">
-                                {mcqStep?.label || (mcqStep?.type === 'typing' ? 'Gõ từ vựng' : 'Trắc nghiệm MCQ')}
+                                {mcqStep?.label || (mcqStep?.type === 'typing' ? 'Typing Test' : 'MCQ Quiz')}
                               </span>
                               {s2 && (
-                                <span className="px-2 py-0.5 bg-emerald-50 text-emerald-600 border border-emerald-200 text-[10px] font-bold rounded-full shrink-0">✓ Đã xong</span>
+                                <span className="px-2 py-0.5 bg-emerald-50 text-emerald-600 border border-emerald-200 text-[10px] font-bold rounded-full shrink-0">✓ Done</span>
                               )}
                             </div>
 
                             <div className="text-xs font-bold text-slate-500 flex items-baseline gap-1">
                               <span className={cn("text-sm font-black", s1 ? "text-amber-600" : "text-slate-400")}>{mcqDone}</span>
-                              <span className="text-slate-400 font-medium text-xs">/ {mcqTarget} câu</span>
+                              <span className="text-slate-400 font-medium text-xs">/ {mcqTarget} questions</span>
                             </div>
 
                             {s1 && (
@@ -2261,7 +2264,7 @@ export default function Dashboard() {
                             const fsrsUrl = fsrsStep?.url || `/flashcard/${deck.deck_id}/play?mode=roadmap`;
                             navigate(fsrsUrl);
                           }}
-                          title={!s1 ? "Cần hoàn thành Bước 1: Học từ mới trước" : !s2 ? "Cần hoàn thành Bước 2: Test trắc nghiệm trước" : st.all_done ? "Đã xong lộ trình FSRS. Bấm để xem kết quả hoặc tiếp tục ôn tập!" : "Bắt đầu ôn tập FSRS"}
+                          title={!s1 ? "Complete Step 1 (Learn New Words) first" : !s2 ? "Complete Step 2 (MCQ Quiz) first" : st.all_done ? "FSRS review finished! Tap to review or study more" : "Start FSRS review"}
                           className={cn(
                             "flex-1 bg-white border rounded-2xl p-3 sm:p-3.5 shadow-2xs flex items-center gap-3 relative transition-all",
                             (!s1 || !s2) ? "cursor-not-allowed opacity-60 bg-slate-50/60 border-slate-200/60" : "cursor-pointer hover:shadow-sm active:scale-[0.99]",
@@ -2283,15 +2286,15 @@ export default function Dashboard() {
 
                           <div className="flex-1 min-w-0 flex flex-col gap-1">
                             <div className="flex items-center justify-between gap-2">
-                              <span className="font-bold text-xs sm:text-sm text-slate-900 truncate">Ôn tập FSRS</span>
+                              <span className="font-bold text-xs sm:text-sm text-slate-900 truncate">FSRS Review</span>
                               {st.all_done && (
-                                <span className="px-2 py-0.5 bg-emerald-50 text-emerald-600 border border-emerald-200 text-[10px] font-bold rounded-full shrink-0">✓ Đã xong</span>
+                                <span className="px-2 py-0.5 bg-emerald-50 text-emerald-600 border border-emerald-200 text-[10px] font-bold rounded-full shrink-0">✓ Done</span>
                               )}
                             </div>
 
                             <div className="text-xs font-bold text-slate-500 flex items-baseline gap-1">
                               <span className={cn("text-sm font-black", s2 ? "text-purple-600" : "text-slate-400")}>{rDn}</span>
-                              <span className="text-slate-400 font-medium text-xs">/ {rD} thẻ cần ôn</span>
+                              <span className="text-slate-400 font-medium text-xs">/ {rD} cards due</span>
                             </div>
 
                             {s2 && (
@@ -2313,7 +2316,7 @@ export default function Dashboard() {
                     <div className="pt-0.5 flex-shrink-0">
                       {st.all_done ? (
                         <div className="grid grid-cols-2 gap-2.5 sm:gap-3 w-full">
-                          {/* NÚT 1: HỌC FSRS TIẾP */}
+                          {/* BUTTON 1: CONTINUE FSRS */}
                           <button
                             type="button"
                             onClick={() => {
@@ -2334,15 +2337,15 @@ export default function Dashboard() {
                             </div>
                             <div className="flex-1 min-w-0">
                               <span className="text-xs sm:text-sm font-black tracking-wide uppercase text-white block truncate">
-                                Học FSRS tiếp
+                                Continue FSRS
                               </span>
                               <span className="text-[10px] sm:text-[11px] text-orange-100 font-medium block truncate mt-0.5">
-                                Ôn tập / Học thẻ
+                                Review / Learn cards
                               </span>
                             </div>
                           </button>
 
-                          {/* NÚT 2: LUYỆN TẬP QUIZ */}
+                          {/* BUTTON 2: PRACTICE QUIZ */}
                           <button
                             type="button"
                             onClick={() => {
@@ -2363,10 +2366,10 @@ export default function Dashboard() {
                             </div>
                             <div className="flex-1 min-w-0">
                               <span className="text-xs sm:text-sm font-black tracking-wide uppercase text-white block truncate">
-                                Luyện tập Quiz
+                                Practice Quiz
                               </span>
                               <span className="text-[10px] sm:text-[11px] text-emerald-100 font-medium block truncate mt-0.5">
-                                Trắc nghiệm / Gõ từ
+                                MCQ / Typing test
                               </span>
                             </div>
                           </button>
@@ -2389,17 +2392,17 @@ export default function Dashboard() {
                           <div className="flex-1 flex flex-col items-center justify-center text-center px-3">
                             <span className="text-sm sm:text-base font-extrabold tracking-wide uppercase text-white leading-tight">
                               {!s1
-                                ? 'Học từ mới'
+                                ? 'LEARN NEW WORDS'
                                 : !s2
-                                ? 'Làm bài trắc nghiệm'
-                                : 'Ôn tập FSRS'}
+                                ? 'TAKE MCQ QUIZ'
+                                : 'FSRS REVIEW'}
                             </span>
                             <span className="text-[11px] sm:text-xs text-orange-100 font-medium mt-0.5">
                               {!s1
-                                ? `Còn ${Math.max(0, nT - nL)} từ hôm nay`
+                                ? `${Math.max(0, nT - nL)} new words left today`
                                 : !s2
-                                ? `Đạt ≥80% để qua bước`
-                                : `Còn ${Math.max(0, rD - rDn)} thẻ cần ôn`}
+                                ? 'Score ≥80% to pass'
+                                : `${Math.max(0, rD - rDn)} cards due for review`}
                             </span>
                           </div>
 
