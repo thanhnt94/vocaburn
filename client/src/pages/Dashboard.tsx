@@ -1916,30 +1916,13 @@ export default function Dashboard() {
 
               return (
                 <div key={deck.deck_id} className="h-full w-full min-h-full snap-start snap-always flex-shrink-0 flex flex-col">
-                  {/* DECK SUBHEADER BAR WITH MULTI-DECK SWITCHER */}
+                  {/* DECK SUBHEADER BAR: TINH GỌN & CHUẨN XÁC */}
                   <div className="px-4 py-2 bg-white flex items-center justify-between flex-shrink-0 text-xs font-semibold text-slate-500 border-b border-slate-100">
-                    <div className="flex items-center gap-2 max-w-[70%]">
-                      <span className="text-slate-900 font-black tracking-tight shrink-0">Roadmap</span>
-                      {totalDecks > 1 && (
-                        <div className="flex items-center gap-1 overflow-x-auto no-scrollbar py-0.5">
-                          {roadmapDecks.map((d: any, idx: number) => (
-                            <button
-                              key={d.deck_id}
-                              type="button"
-                              onClick={() => scrollToRoadmapDeck(idx)}
-                              className={cn(
-                                "px-2 py-0.5 rounded-lg text-[10px] font-black transition-all shrink-0 flex items-center gap-1 cursor-pointer",
-                                selectedRoadmapIdx === idx
-                                  ? "bg-orange-600 text-white shadow-xs"
-                                  : "bg-slate-100 text-slate-600 hover:bg-slate-200"
-                              )}
-                            >
-                              <BookOpen className="w-2.5 h-2.5 text-amber-300 shrink-0" />
-                              <span className="truncate max-w-[80px]">{d.title}</span>
-                            </button>
-                          ))}
-                        </div>
-                      )}
+                    <div className="flex items-center gap-1.5">
+                      <Layers className="w-3.5 h-3.5 text-orange-500" />
+                      <span className="text-slate-900 font-black tracking-tight text-xs">
+                        {totalDecks > 1 ? `Lộ trình ${deckIdx + 1}/${totalDecks}` : 'Lộ trình học'}
+                      </span>
                     </div>
                     <Link 
                       to={`/decks/${deck.deck_id}`}
@@ -1956,82 +1939,75 @@ export default function Dashboard() {
                     {/* HERO MASCOT CARD (INTERACTIVE & CHEERFUL) */}
                     <div className="bg-gradient-to-br from-amber-100/90 via-orange-50/50 to-amber-100/60 border border-orange-200/90 rounded-3xl p-4 sm:p-5 relative overflow-hidden shadow-xs flex flex-row items-center justify-between flex-1 min-h-[175px] sm:min-h-[205px]">
                       
-                      {/* LEFT SIDE: STREAK BADGE, DECK TITLE PILL & SLOGAN */}
-                      <div className="relative z-20 flex-1 max-w-[64%] sm:max-w-[68%] min-w-0 flex flex-col justify-center gap-2 py-0.5">
+                      {/* LEFT SIDE: DECK TITLE, CLEAN HARMONIOUS STATS & SLOGAN */}
+                      <div className="relative z-20 flex-1 max-w-[62%] sm:max-w-[66%] min-w-0 flex flex-col justify-center gap-2 py-0.5">
                         
-                        {/* TOP BADGES: 3 DISTINCT CLEAN ROWS */}
-                        <div className="flex flex-col gap-1.5">
-                          {/* DÒNG 1: 🔥 Streak & ⏱️ Thời gian còn lại */}
-                          <div className="flex flex-wrap items-center gap-1.5">
-                            {/* 🔥 STREAK BADGE */}
-                            <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-gradient-to-r from-orange-500 via-amber-500 to-orange-600 text-white rounded-full text-xs font-black shadow-xs shrink-0 animate-pulse">
-                              <Flame className="w-3.5 h-3.5 fill-amber-300 text-amber-300" />
-                              <span>{deckStreak} ngày streak</span>
-                            </div>
+                        {/* 1. TÊN BỘ THẺ & LEVEL */}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setSelectedStudyQuiz({
+                              id: deck.deck_id,
+                              title: deck.title,
+                              questions_count: st.total_cards || deck.questions_count || 0,
+                              practice_settings: deck.practice_settings
+                            });
+                            setStudyModalTab('flashcard');
+                            setIsStudyModalOpen(true);
+                          }}
+                          className="inline-flex items-center gap-1.5 max-w-full text-left group cursor-pointer"
+                        >
+                          <div className="w-6 h-6 rounded-lg bg-orange-500/15 border border-orange-300/60 flex items-center justify-center text-orange-600 shrink-0 group-hover:scale-105 transition-transform">
+                            <BookOpen className="w-3.5 h-3.5" />
+                          </div>
+                          <span className="text-xs sm:text-sm font-black text-slate-900 truncate group-hover:text-orange-600 transition-colors">
+                            {deck.title}
+                          </span>
+                          {deck.level && (
+                            <span className="px-1.5 py-0.5 rounded-md bg-orange-500/10 text-orange-700 border border-orange-200/60 text-[10px] font-black shrink-0">
+                              {deck.level}
+                            </span>
+                          )}
+                        </button>
 
-                            {/* ⏱️ COUNTDOWN / STATUS BADGE */}
-                            {!st.all_done ? (
-                              <div className="inline-flex items-center gap-1 px-2.5 py-1 bg-white/85 backdrop-blur-xs text-amber-950 border border-amber-300/80 rounded-full text-[11px] font-black shadow-2xs shrink-0">
-                                <Clock className="w-3 h-3 text-amber-700 shrink-0" />
-                                <span className="tabular-nums font-extrabold">Còn {remainingTime}</span>
-                              </div>
-                            ) : (
-                              <div className="inline-flex items-center gap-1 px-2.5 py-1 bg-emerald-500/15 text-emerald-950 border border-emerald-300/80 rounded-full text-[11px] font-black shadow-2xs shrink-0">
-                                <span className="text-xs">✓</span>
-                                <span>Đã xong hôm nay</span>
-                              </div>
-                            )}
+                        {/* 2. DÃY STATS TINH GỌN (STREAK, ĐỒNG HỒ & TIẾN ĐỘ TỔNG) */}
+                        <div className="flex flex-wrap items-center gap-1.5">
+                          {/* 🔥 STREAK */}
+                          <div className="inline-flex items-center gap-1 px-2.5 py-0.5 bg-gradient-to-r from-orange-500 to-amber-500 text-white rounded-full text-[11px] font-black shadow-2xs shrink-0">
+                            <Flame className="w-3 h-3 fill-amber-200 text-amber-200" />
+                            <span>{deckStreak} ngày streak</span>
                           </div>
 
-                          {/* DÒNG 2: 📖 Tên bộ thẻ */}
-                          <div className="flex items-center max-w-full mt-0.5">
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setSelectedStudyQuiz({
-                                  id: deck.deck_id,
-                                  title: deck.title,
-                                  questions_count: st.total_cards || deck.questions_count || 0,
-                                  practice_settings: deck.practice_settings
-                                });
-                                setStudyModalTab('flashcard');
-                                setIsStudyModalOpen(true);
-                              }}
-                              className="inline-flex items-center gap-1.5 px-3 py-1 bg-slate-900/95 hover:bg-orange-600 text-white rounded-xl text-xs font-extrabold shadow-xs max-w-full transition-colors cursor-pointer text-left group"
-                            >
-                              <BookOpen className="w-3.5 h-3.5 text-amber-400 shrink-0 group-hover:scale-110 transition-transform" />
-                              <span className="truncate max-w-[220px] sm:max-w-[300px]">{deck.title}</span>
-                              {deck.level && <span className="text-slate-300 font-normal text-[11px] shrink-0">({deck.level})</span>}
-                            </button>
-                          </div>
-
-                          {/* DÒNG 3: 🎓 Đã học / Tổng số & 📅 Ngày dự kiến xong */}
-                          <div className="flex flex-wrap items-center gap-1.5 mt-0.5">
-                            <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-emerald-500/15 text-emerald-950 border border-emerald-300/80 text-[10px] font-black" title="Từ vựng đã thuộc / Tổng số từ vựng">
-                              <span>🎓</span>
-                              <span>{learnedCards}/{totalCards}</span>
+                          {/* ⏱️ COUNTDOWN / TRẠNG THÁI */}
+                          {!st.all_done ? (
+                            <div className="inline-flex items-center gap-1 px-2 py-0.5 bg-white/90 backdrop-blur-xs text-amber-950 border border-amber-300/70 rounded-full text-[10px] font-black shadow-2xs shrink-0">
+                              <Clock className="w-2.5 h-2.5 text-amber-700 shrink-0" />
+                              <span className="tabular-nums font-extrabold">Còn {remainingTime}</span>
                             </div>
+                          ) : (
+                            <div className="inline-flex items-center gap-1 px-2 py-0.5 bg-emerald-500/20 text-emerald-950 border border-emerald-300/80 rounded-full text-[10px] font-black shadow-2xs shrink-0">
+                              <span>✓ Đã xong hôm nay</span>
+                            </div>
+                          )}
 
+                          {/* 🎓 TIẾN ĐỘ THUỘC & DỰ KIẾN */}
+                          <div className="inline-flex items-center gap-1.5 px-2 py-0.5 bg-white/75 backdrop-blur-xs text-slate-700 border border-orange-200/60 rounded-full text-[10px] font-bold shrink-0">
+                            <span className="font-black text-slate-900">{learnedCards}/{totalCards} từ</span>
+                            <span className="text-slate-300">•</span>
                             {isDeckAllLearned ? (
-                              <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-emerald-500/20 text-emerald-950 border border-emerald-300/90 text-[10px] font-black">
-                                <span>🎉</span>
-                                <span>Đã thuộc toàn bộ</span>
-                              </div>
+                              <span className="text-emerald-700 font-extrabold">Đã xong 🎉</span>
                             ) : (
-                              <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-indigo-500/15 text-indigo-950 border border-indigo-300/80 text-[10px] font-black" title="Ngày dự kiến hoàn thành">
-                                <Calendar className="w-3 h-3 text-indigo-600 shrink-0" />
-                                <span>Dự kiến: {estimatedDateText}</span>
-                              </div>
+                              <span className="text-slate-500">Dự kiến: {estimatedDateText}</span>
                             )}
                           </div>
                         </div>
 
-                        {/* SLOGAN TEXT */}
-                        <div className="flex flex-col gap-0.5 mt-0.5">
-                          <h2 className="text-base sm:text-lg font-black text-slate-900 tracking-tight leading-tight">
+                        {/* 3. SLOGAN ĐỘNG LỰC */}
+                        <div className="flex flex-col gap-0.5 pt-0.5">
+                          <h2 className="text-sm sm:text-base font-black text-slate-900 tracking-tight leading-tight">
                             {mascotLine1}
                           </h2>
-                          <p className="text-xs font-bold text-slate-600 leading-snug">
+                          <p className="text-[11px] sm:text-xs font-bold text-slate-600 leading-snug">
                             {mascotLine2}
                           </p>
                         </div>
