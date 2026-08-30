@@ -4265,7 +4265,7 @@ export default function FlashcardPlay() {
             initial={{ opacity: 0, y: 50 }} 
             animate={{ opacity: 1, y: 0 }} 
             exit={{ opacity: 0, y: 50 }} 
-            className="fixed inset-x-0 top-0 bottom-[32px] sm:bottom-[38px] z-[200] bg-[#F8FAFC] lg:hidden flex flex-col"
+            className="fixed inset-0 z-[500] bg-[#F8FAFC] lg:hidden flex flex-col"
           >
             {/* Header */}
             <header className="flex-shrink-0 z-[120] bg-white/95 backdrop-blur-2xl border-b border-slate-100/80 px-4 py-1.5 flex items-center gap-3 shadow-[0_1px_20px_rgba(99,102,241,0.04)]">
@@ -4360,7 +4360,7 @@ export default function FlashcardPlay() {
             initial={{ opacity: 0, y: 50 }} 
             animate={{ opacity: 1, y: 0 }} 
             exit={{ opacity: 0, y: 50 }} 
-            className="fixed inset-0 z-[200] bg-[#F8FAFC] xl:hidden flex flex-col"
+            className="fixed inset-0 z-[500] bg-[#F8FAFC] xl:hidden flex flex-col"
           >
             <div className="flex-1 overflow-hidden flex flex-col">
               <FeedbackArea
