@@ -1235,6 +1235,27 @@ export default function Dashboard() {
     return () => clearInterval(timer)
   }, [])
 
+  const [selectedRoadmapIdx, setSelectedRoadmapIdx] = useState(0)
+  const [mascotCheer, setMascotCheer] = useState<string | null>(null)
+
+  const cheerQuotes = [
+    "Cố lên! Bạn đang bùng cháy với chuỗi streak này! 🔥",
+    "Mỗi từ học được hôm nay là một bước tiến lớn! 🚀",
+    "Chăm chỉ như thế này chắc chắn sớm đạt mục tiêu! 🌟",
+    "Tớ luôn đồng hành cùng bạn mỗi ngày! 💪",
+    "Đỉnh nóc kịch trần! Hoàn thành 3 bước để nhận thưởng XP nhé! 🎉",
+    "Não bộ đang hấp thu từ vựng cực kỳ mạnh mẽ! 🧠⚡"
+  ];
+
+  const handleMascotTap = () => {
+    if (navigator.vibrate) navigator.vibrate([15, 30, 15]);
+    const randomQuote = cheerQuotes[Math.floor(Math.random() * cheerQuotes.length)];
+    setMascotCheer(randomQuote);
+    setTimeout(() => {
+      setMascotCheer(null);
+    }, 4000);
+  };
+
   const carouselRef = useRef<HTMLDivElement>(null)
   const scrollCarousel = (direction: 'left' | 'right') => {
     if (carouselRef.current) {
@@ -1880,19 +1901,41 @@ export default function Dashboard() {
                 }
               }
 
+              const stepsCompletedCount = (s1 ? 1 : 0) + (s2 ? 1 : 0) + (st.all_done ? 1 : 0);
+
               return (
                 <div key={deck.deck_id} className="h-full w-full snap-center flex-shrink-0 flex flex-col">
-                  {/* DECK SUBHEADER BAR */}
+                  {/* DECK SUBHEADER BAR WITH MULTI-DECK SWITCHER */}
                   <div className="px-4 py-2 bg-white flex items-center justify-between flex-shrink-0 text-xs font-semibold text-slate-500 border-b border-slate-100">
-                    <div className="flex items-center gap-1.5">
-                      <span className="text-slate-800 font-extrabold tracking-tight">Roadmap</span>
+                    <div className="flex items-center gap-2 max-w-[70%]">
+                      <span className="text-slate-900 font-black tracking-tight shrink-0">Roadmap</span>
                       {totalDecks > 1 && (
-                        <span className="text-slate-400 font-semibold">{deckIdx + 1} / {totalDecks}</span>
+                        <div className="flex items-center gap-1 overflow-x-auto no-scrollbar py-0.5">
+                          {roadmapDecks.map((d: any, idx: number) => (
+                            <button
+                              key={d.deck_id}
+                              type="button"
+                              onClick={() => {
+                                if (navigator.vibrate) navigator.vibrate(8);
+                                setSelectedRoadmapIdx(idx);
+                              }}
+                              className={cn(
+                                "px-2 py-0.5 rounded-lg text-[10px] font-black transition-all shrink-0 flex items-center gap-1 cursor-pointer",
+                                selectedRoadmapIdx === idx
+                                  ? "bg-orange-600 text-white shadow-xs"
+                                  : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                              )}
+                            >
+                              <BookOpen className="w-2.5 h-2.5 text-amber-300 shrink-0" />
+                              <span className="truncate max-w-[80px]">{d.title}</span>
+                            </button>
+                          ))}
+                        </div>
                       )}
                     </div>
                     <Link 
                       to={`/decks/${deck.deck_id}`}
-                      className="text-xs font-bold text-orange-600 hover:text-orange-700 flex items-center gap-0.5 transition-colors cursor-pointer"
+                      className="text-xs font-bold text-orange-600 hover:text-orange-700 flex items-center gap-0.5 transition-colors cursor-pointer shrink-0 ml-auto"
                     >
                       <span>Chi tiết</span>
                       <ChevronRight className="w-3.5 h-3.5 stroke-[2.5]" />
@@ -1900,27 +1943,27 @@ export default function Dashboard() {
                   </div>
 
                   {/* CARD BODY (EXPANDED LAYOUT WITH HERO MASCOT EXPANDING VERTICALLY) */}
-                  <div className="flex-1 flex flex-col justify-between p-3.5 sm:p-4 overflow-y-auto [&::-webkit-scrollbar]:hidden gap-3.5 min-h-0 max-w-lg mx-auto w-full">
+                  <div className="flex-1 flex flex-col justify-between p-3.5 sm:p-4 overflow-y-auto [&::-webkit-scrollbar]:hidden gap-3 min-h-0 max-w-lg mx-auto w-full">
                     
-                    {/* HERO MASCOT CARD (FLEX-1 EXPANDS VERTICALLY TO FILL SPACE BEAUTIFULLY) */}
+                    {/* HERO MASCOT CARD (INTERACTIVE & CHEERFUL) */}
                     <div className="bg-gradient-to-br from-amber-100/90 via-orange-50/50 to-amber-100/60 border border-orange-200/90 rounded-3xl p-4 sm:p-5 relative overflow-hidden shadow-xs flex flex-row items-center justify-between flex-1 min-h-[175px] sm:min-h-[205px]">
                       
                       {/* LEFT SIDE: STREAK BADGE, DECK TITLE PILL & SLOGAN */}
-                      <div className="relative z-20 flex-1 max-w-[65%] sm:max-w-[70%] min-w-0 flex flex-col justify-center gap-2 py-0.5">
+                      <div className="relative z-20 flex-1 max-w-[64%] sm:max-w-[68%] min-w-0 flex flex-col justify-center gap-2 py-0.5">
                         
                         {/* TOP BADGES: 3 DISTINCT CLEAN ROWS */}
                         <div className="flex flex-col gap-1.5">
                           {/* DÒNG 1: 🔥 Streak & ⏱️ Thời gian còn lại */}
                           <div className="flex flex-wrap items-center gap-1.5">
                             {/* 🔥 STREAK BADGE */}
-                            <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-gradient-to-r from-orange-500 via-amber-500 to-orange-600 text-white rounded-full text-xs font-black shadow-xs shrink-0">
+                            <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-gradient-to-r from-orange-500 via-amber-500 to-orange-600 text-white rounded-full text-xs font-black shadow-xs shrink-0 animate-pulse">
                               <Flame className="w-3.5 h-3.5 fill-amber-300 text-amber-300" />
                               <span>{deckStreak} ngày streak</span>
                             </div>
 
                             {/* ⏱️ COUNTDOWN / STATUS BADGE */}
                             {!st.all_done ? (
-                              <div className="inline-flex items-center gap-1 px-2.5 py-1 bg-white/80 backdrop-blur-xs text-amber-950 border border-amber-300/80 rounded-full text-[11px] font-black shadow-2xs shrink-0">
+                              <div className="inline-flex items-center gap-1 px-2.5 py-1 bg-white/85 backdrop-blur-xs text-amber-950 border border-amber-300/80 rounded-full text-[11px] font-black shadow-2xs shrink-0">
                                 <Clock className="w-3 h-3 text-amber-700 shrink-0" />
                                 <span className="tabular-nums font-extrabold">Còn {remainingTime}</span>
                               </div>
@@ -1946,10 +1989,10 @@ export default function Dashboard() {
                                 setStudyModalTab('flashcard');
                                 setIsStudyModalOpen(true);
                               }}
-                              className="inline-flex items-center gap-1.5 px-3 py-1 bg-slate-900/95 hover:bg-orange-600 text-white rounded-xl text-xs font-extrabold shadow-xs max-w-full transition-colors cursor-pointer text-left"
+                              className="inline-flex items-center gap-1.5 px-3 py-1 bg-slate-900/95 hover:bg-orange-600 text-white rounded-xl text-xs font-extrabold shadow-xs max-w-full transition-colors cursor-pointer text-left group"
                             >
-                              <BookOpen className="w-3.5 h-3.5 text-amber-400 shrink-0" />
-                              <span className="truncate max-w-[240px] sm:max-w-[320px]">{deck.title}</span>
+                              <BookOpen className="w-3.5 h-3.5 text-amber-400 shrink-0 group-hover:scale-110 transition-transform" />
+                              <span className="truncate max-w-[220px] sm:max-w-[300px]">{deck.title}</span>
                               {deck.level && <span className="text-slate-300 font-normal text-[11px] shrink-0">({deck.level})</span>}
                             </button>
                           </div>
@@ -1976,19 +2019,40 @@ export default function Dashboard() {
                         </div>
 
                         {/* SLOGAN TEXT */}
-                        <div className="flex flex-col gap-0.5 mt-1">
-                          <h2 className="text-lg sm:text-xl font-black text-slate-900 tracking-tight leading-tight">
+                        <div className="flex flex-col gap-0.5 mt-0.5">
+                          <h2 className="text-base sm:text-lg font-black text-slate-900 tracking-tight leading-tight">
                             {mascotLine1}
                           </h2>
-                          <p className="text-xs sm:text-sm text-slate-600 font-semibold leading-snug">
+                          <p className="text-xs font-bold text-slate-600 leading-snug">
                             {mascotLine2}
                           </p>
                         </div>
 
                       </div>
 
-                      {/* RIGHT SIDE: HUGE PROMINENT MASCOT FILLING ENTIRE HEIGHT */}
-                      <div className="w-[45%] max-w-[260px] absolute right-2 sm:right-4 bottom-0 top-0 flex items-end justify-center pointer-events-none z-10">
+                      {/* RIGHT SIDE: HUGE PROMINENT MASCOT (TAP TO CHEER INTERACTION) */}
+                      <div 
+                        onClick={handleMascotTap}
+                        title="Chạm vào linh vật để nhận động lực học tập! 🔥"
+                        className="w-[45%] max-w-[260px] absolute right-1 sm:right-3 bottom-0 top-0 flex items-end justify-center z-10 cursor-pointer group"
+                      >
+                        {/* FLOATING SPEECH BUBBLE ON TAP */}
+                        <AnimatePresence>
+                          {mascotCheer && (
+                            <motion.div
+                              initial={{ opacity: 0, y: 10, scale: 0.85 }}
+                              animate={{ opacity: 1, y: 0, scale: 1 }}
+                              exit={{ opacity: 0, y: -10, scale: 0.85 }}
+                              className="absolute top-2 right-2 bg-white/95 backdrop-blur-md border border-orange-200 text-slate-900 text-[11px] font-black p-2.5 rounded-2xl shadow-xl z-30 max-w-[170px] pointer-events-none text-center"
+                            >
+                              <div className="relative">
+                                {mascotCheer}
+                                <div className="absolute -bottom-4 right-6 w-0 h-0 border-x-[6px] border-x-transparent border-t-[8px] border-t-white" />
+                              </div>
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
+
                         <motion.img 
                           key={mascotImg}
                           initial={{ scale: 0.9, opacity: 0 }}
@@ -1996,7 +2060,7 @@ export default function Dashboard() {
                           transition={{ duration: 0.3 }}
                           src={`${mascotImg}?v=exact_blackbg_v11`} 
                           alt="Vocaburn Mascot" 
-                          className="h-[105%] max-h-[280px] w-auto max-w-none object-contain object-bottom drop-shadow-2xl translate-y-1"
+                          className="h-[105%] max-h-[280px] w-auto max-w-none object-contain object-bottom drop-shadow-2xl translate-y-1 transition-transform group-hover:scale-105 active:scale-95 select-none"
                         />
                       </div>
 
@@ -2045,23 +2109,30 @@ export default function Dashboard() {
 
                     </div>
 
-                    {/* SECTION TITLE: Các bước hôm nay */}
-                    <div className="px-0.5 pt-0.5 shrink-0 flex items-center justify-between">
-                      <h3 className="text-sm font-bold text-slate-900 flex items-center gap-1.5">
-                        <Sparkles className="w-4 h-4 text-amber-500" />
-                        Các bước hôm nay
-                      </h3>
+                    {/* SECTION TITLE: GAMIFIED QUEST PROGRESS BAR */}
+                    <div className="px-1 shrink-0 flex items-center justify-between">
+                      <div className="flex items-center gap-1.5">
+                        <Sparkles className="w-4 h-4 text-amber-500 fill-amber-400 animate-pulse" />
+                        <h3 className="text-xs sm:text-sm font-black text-slate-800 uppercase tracking-wider">
+                          Nhiệm vụ hôm nay
+                        </h3>
+                      </div>
+
+                      <div className="flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-gradient-to-r from-amber-500/15 via-orange-500/15 to-amber-500/20 text-amber-950 border border-amber-300/80 text-[10px] sm:text-[11px] font-black shadow-2xs">
+                        <Zap className="w-3 h-3 fill-amber-500 text-amber-500 animate-bounce" />
+                        <span>{stepsCompletedCount}/3 Bước • +100 XP</span>
+                      </div>
                     </div>
 
                     {/* 3 STEPS CONTAINER (TIMELINE CONNECTORS & SPEECH POINTER CARDS) */}
-                    <div className="flex flex-col gap-3 relative pt-0.5">
+                    <div className="flex flex-col gap-2.5 relative pt-0.5">
                       
                       {/* Step 1 Item */}
                       <div className="flex items-center gap-3.5 relative">
                         {/* Number Circle 1 */}
                         <div className={cn(
-                          "w-9 h-9 rounded-full font-black text-xs flex items-center justify-center shrink-0 shadow-2xs text-white z-10",
-                          s1 ? "bg-emerald-500" : "bg-gradient-to-tr from-orange-500 to-amber-500"
+                          "w-9 h-9 rounded-full font-black text-xs flex items-center justify-center shrink-0 shadow-2xs text-white z-10 transition-transform",
+                          s1 ? "bg-emerald-500" : "bg-gradient-to-tr from-orange-500 to-amber-500 scale-105 ring-2 ring-orange-200"
                         )}>
                           {s1 ? '✓' : '1'}
                         </div>
@@ -2075,13 +2146,13 @@ export default function Dashboard() {
                           title={s1 ? "Đã xong mục tiêu hôm nay. Bấm để xem kết quả hoặc tiếp tục học thêm từ mới!" : "Bắt đầu học từ mới hôm nay"}
                           className={cn(
                             "flex-1 bg-white border rounded-2xl p-3 sm:p-3.5 shadow-2xs flex items-center gap-3 relative transition-all cursor-pointer hover:shadow-sm hover:scale-[1.008] active:scale-[0.99]",
-                            s1 ? "border-emerald-200/90 bg-emerald-50/30 hover:bg-emerald-50/50" : "border-slate-100 hover:border-orange-200"
+                            s1 ? "border-emerald-200/90 bg-emerald-50/30 hover:bg-emerald-50/50" : "border-orange-200/90 hover:border-orange-300 ring-1 ring-orange-100"
                           )}
                         >
                           {/* Left Speech Bubble Triangle Pointer */}
                           <div className={cn(
                             "absolute -left-2 top-1/2 -translate-y-1/2 w-0 h-0 border-y-[6px] border-y-transparent border-r-[8px] z-20",
-                            s1 ? "border-r-emerald-100" : "border-r-white"
+                            s1 ? "border-r-emerald-100" : "border-r-orange-200"
                           )} />
 
                           <div className="w-11 h-11 rounded-2xl bg-orange-50/90 border border-orange-100/80 flex items-center justify-center shrink-0">
@@ -2090,21 +2161,24 @@ export default function Dashboard() {
 
                           <div className="flex-1 min-w-0 flex flex-col gap-1">
                             <div className="flex items-center justify-between gap-2">
-                              <span className="font-bold text-xs sm:text-sm text-slate-900 truncate">Học từ mới</span>
+                              <div className="flex items-center gap-1.5 truncate">
+                                <span className="font-bold text-xs sm:text-sm text-slate-900 truncate">Học từ mới</span>
+                                <span className="px-1.5 py-0.2 bg-orange-50 text-orange-600 border border-orange-200 text-[9px] font-black rounded-md shrink-0">+20 XP</span>
+                              </div>
                               {s1 ? (
-                                <span className="px-2.5 py-0.5 bg-emerald-50 text-emerald-600 border border-emerald-200 text-[10px] font-bold rounded-full shrink-0">✓ Đã xong</span>
+                                <span className="px-2 py-0.5 bg-emerald-50 text-emerald-600 border border-emerald-200 text-[10px] font-bold rounded-full shrink-0">✓ Đã xong</span>
                               ) : (
-                                <span className="px-2.5 py-0.5 bg-gradient-to-r from-orange-500 to-amber-500 text-white text-[10px] font-black rounded-full shadow-2xs shrink-0 tracking-wide uppercase">Cần làm</span>
+                                <span className="px-2 py-0.5 bg-gradient-to-r from-orange-500 to-amber-500 text-white text-[10px] font-black rounded-full shadow-2xs shrink-0 tracking-wide uppercase">Cần làm</span>
                               )}
                             </div>
 
                             <div className="text-xs font-bold text-slate-500 flex items-baseline gap-1">
                               <span className="text-sm font-black text-orange-600">{nL}</span>
-                              <span className="text-slate-400 font-semibold text-xs">/ {nT} từ</span>
+                              <span className="text-slate-400 font-semibold text-xs">/ {nT} từ mới</span>
                             </div>
 
                             <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden w-full my-0.5">
-                              <div className="h-full bg-gradient-to-r from-orange-500 to-amber-500 rounded-full transition-all" style={{ width: `${newPct}%` }} />
+                              <div className="h-full bg-gradient-to-r from-orange-500 via-amber-400 to-orange-500 rounded-full transition-all" style={{ width: `${newPct}%` }} />
                             </div>
                           </div>
 
@@ -2116,15 +2190,15 @@ export default function Dashboard() {
 
                       {/* Connecting Line 1 -> 2 with Flame */}
                       <div className="absolute top-[38px] bottom-[115px] left-[17px] w-0.5 bg-slate-200 z-0 flex items-center justify-center pointer-events-none">
-                        <span className="text-[11px]">🔥</span>
+                        <span className="text-[11px] animate-pulse">🔥</span>
                       </div>
 
                       {/* Step 2 Item */}
                       <div className="flex items-center gap-3.5 relative">
                         {/* Number Circle 2 */}
                         <div className={cn(
-                          "w-9 h-9 rounded-full font-black text-xs flex items-center justify-center shrink-0 shadow-2xs text-white z-10",
-                          s2 ? "bg-emerald-500" : s1 ? "bg-gradient-to-tr from-orange-500 to-amber-500" : "bg-slate-200 text-slate-400"
+                          "w-9 h-9 rounded-full font-black text-xs flex items-center justify-center shrink-0 shadow-2xs text-white z-10 transition-transform",
+                          s2 ? "bg-emerald-500" : s1 ? "bg-gradient-to-tr from-amber-500 to-orange-500 scale-105 ring-2 ring-amber-200" : "bg-slate-200 text-slate-400"
                         )}>
                           {s2 ? '✓' : '2'}
                         </div>
@@ -2140,19 +2214,19 @@ export default function Dashboard() {
                           title={!s1 ? "Cần hoàn thành Bước 1: Học từ mới trước" : s2 ? "Đã đạt chỉ tiêu! Bấm để xem kết quả hoặc làm lại bài test" : "Bắt đầu làm bài test trắc nghiệm"}
                           className={cn(
                             "flex-1 bg-white border rounded-2xl p-3 sm:p-3.5 shadow-2xs flex items-center gap-3 relative transition-all",
-                            !s1 ? "cursor-not-allowed opacity-50 bg-slate-50/80 border-slate-200/50" : "cursor-pointer hover:shadow-sm hover:scale-[1.008] active:scale-[0.99]",
-                            s2 ? "border-emerald-200/90 bg-emerald-50/30 hover:bg-emerald-50/50" : s1 ? "border-orange-200/80 hover:border-orange-300" : ""
+                            !s1 ? "cursor-not-allowed opacity-60 bg-slate-50/70 border-slate-200/50" : "cursor-pointer hover:shadow-sm hover:scale-[1.008] active:scale-[0.99]",
+                            s2 ? "border-emerald-200/90 bg-emerald-50/30 hover:bg-emerald-50/50" : s1 ? "border-amber-300 bg-amber-50/20 hover:border-amber-400 ring-1 ring-amber-100" : ""
                           )}
                         >
                           {/* Left Speech Bubble Triangle Pointer */}
                           <div className={cn(
                             "absolute -left-2 top-1/2 -translate-y-1/2 w-0 h-0 border-y-[6px] border-y-transparent border-r-[8px] z-20",
-                            s2 ? "border-r-emerald-100" : s1 ? "border-r-white" : "border-r-slate-200/60"
+                            s2 ? "border-r-emerald-100" : s1 ? "border-r-amber-200" : "border-r-slate-200/60"
                           )} />
 
                           <div className={cn(
                             "w-11 h-11 rounded-2xl flex items-center justify-center shrink-0 border",
-                            s2 ? "bg-emerald-50 border-emerald-100 text-emerald-600" : s1 ? "bg-orange-50 border-orange-100 text-orange-500" : "bg-slate-100 border-slate-200/60 text-slate-400"
+                            s2 ? "bg-emerald-50 border-emerald-100 text-emerald-600" : s1 ? "bg-amber-50 border-amber-200 text-amber-600" : "bg-slate-100 border-slate-200/60 text-slate-400"
                           )}>
                             {mcqStep?.type === 'typing' ? (
                               <Keyboard className="w-5.5 h-5.5" />
@@ -2163,26 +2237,29 @@ export default function Dashboard() {
 
                           <div className="flex-1 min-w-0 flex flex-col gap-1">
                             <div className="flex items-center justify-between gap-2">
-                              <span className="font-bold text-xs sm:text-sm text-slate-900 truncate">
-                                {mcqStep?.label || (mcqStep?.type === 'typing' ? 'Gõ từ vựng' : 'Test trắc nghiệm MCQ')}
-                              </span>
+                              <div className="flex items-center gap-1.5 truncate">
+                                <span className="font-bold text-xs sm:text-sm text-slate-900 truncate">
+                                  {mcqStep?.label || (mcqStep?.type === 'typing' ? 'Gõ từ vựng' : 'Trắc nghiệm MCQ')}
+                                </span>
+                                <span className="px-1.5 py-0.2 bg-amber-50 text-amber-700 border border-amber-200 text-[9px] font-black rounded-md shrink-0">+30 XP</span>
+                              </div>
                               {s2 ? (
-                                <span className="px-2.5 py-0.5 bg-emerald-50 text-emerald-600 border border-emerald-200 text-[10px] font-bold rounded-full shrink-0">✓ Đã xong</span>
+                                <span className="px-2 py-0.5 bg-emerald-50 text-emerald-600 border border-emerald-200 text-[10px] font-bold rounded-full shrink-0">✓ Đã xong</span>
                               ) : s1 ? (
-                                <span className="px-2.5 py-0.5 bg-gradient-to-r from-orange-500 to-amber-500 text-white text-[10px] font-black rounded-full shadow-2xs shrink-0 tracking-wide uppercase">Cần làm</span>
+                                <span className="px-2 py-0.5 bg-gradient-to-r from-amber-500 to-orange-500 text-white text-[10px] font-black rounded-full shadow-2xs shrink-0 tracking-wide uppercase">Cần làm</span>
                               ) : (
                                 <span className="px-2 py-0.5 bg-slate-100 text-slate-400 text-[10px] font-bold rounded-full shrink-0">🔒 Khóa</span>
                               )}
                             </div>
 
                             <div className="text-xs font-bold text-slate-500 flex items-baseline gap-1">
-                              <span className={cn("text-sm font-black", s1 ? "text-orange-600" : "text-slate-400")}>{mcqDone}</span>
+                              <span className={cn("text-sm font-black", s1 ? "text-amber-600" : "text-slate-400")}>{mcqDone}</span>
                               <span className="text-slate-400 font-semibold text-xs">/ {mcqTarget} câu</span>
                             </div>
 
                             {s1 && (
                               <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden w-full my-0.5">
-                                <div className="h-full bg-gradient-to-r from-orange-500 to-amber-500 rounded-full transition-all" style={{ width: `${mcqPct}%` }} />
+                                <div className="h-full bg-gradient-to-r from-amber-500 to-orange-500 rounded-full transition-all" style={{ width: `${mcqPct}%` }} />
                               </div>
                             )}
                           </div>
@@ -2200,8 +2277,8 @@ export default function Dashboard() {
                       <div className="flex items-center gap-3.5 relative">
                         {/* Number Circle 3 */}
                         <div className={cn(
-                          "w-9 h-9 rounded-full font-black text-xs flex items-center justify-center shrink-0 shadow-2xs text-white z-10",
-                          st.all_done ? "bg-emerald-500" : s2 ? "bg-gradient-to-tr from-orange-500 to-amber-500" : "bg-slate-200 text-slate-400"
+                          "w-9 h-9 rounded-full font-black text-xs flex items-center justify-center shrink-0 shadow-2xs text-white z-10 transition-transform",
+                          st.all_done ? "bg-emerald-500" : s2 ? "bg-gradient-to-tr from-purple-500 to-indigo-600 scale-105 ring-2 ring-purple-200" : "bg-slate-200 text-slate-400"
                         )}>
                           {st.all_done ? '✓' : '3'}
                         </div>
@@ -2218,43 +2295,46 @@ export default function Dashboard() {
                           title={!s1 ? "Cần hoàn thành Bước 1: Học từ mới trước" : !s2 ? "Cần hoàn thành Bước 2: Test trắc nghiệm trước" : st.all_done ? "Đã xong lộ trình FSRS. Bấm để xem kết quả hoặc tiếp tục ôn tập!" : "Bắt đầu ôn tập FSRS"}
                           className={cn(
                             "flex-1 bg-white border rounded-2xl p-3 sm:p-3.5 shadow-2xs flex items-center gap-3 relative transition-all",
-                            (!s1 || !s2) ? "cursor-not-allowed opacity-50 bg-slate-50/80 border-slate-200/50" : "cursor-pointer hover:shadow-sm hover:scale-[1.008] active:scale-[0.99]",
-                            st.all_done ? "border-emerald-200/90 bg-emerald-50/30 hover:bg-emerald-50/50" : (s1 && s2) ? "border-orange-200/80 hover:border-orange-300" : ""
+                            (!s1 || !s2) ? "cursor-not-allowed opacity-60 bg-slate-50/70 border-slate-200/50" : "cursor-pointer hover:shadow-sm hover:scale-[1.008] active:scale-[0.99]",
+                            st.all_done ? "border-emerald-200/90 bg-emerald-50/30 hover:bg-emerald-50/50" : (s1 && s2) ? "border-purple-300 bg-purple-50/20 hover:border-purple-400 ring-1 ring-purple-100" : ""
                           )}
                         >
                           {/* Left Speech Bubble Triangle Pointer */}
                           <div className={cn(
                             "absolute -left-2 top-1/2 -translate-y-1/2 w-0 h-0 border-y-[6px] border-y-transparent border-r-[8px] z-20",
-                            st.all_done ? "border-r-emerald-100" : (s1 && s2) ? "border-r-white" : "border-r-slate-200/60"
+                            st.all_done ? "border-r-emerald-100" : (s1 && s2) ? "border-r-purple-200" : "border-r-slate-200/60"
                           )} />
 
                           <div className={cn(
                             "w-11 h-11 rounded-2xl flex items-center justify-center shrink-0 border",
-                            st.all_done ? "bg-emerald-50 border-emerald-100 text-emerald-600" : s2 ? "bg-orange-50 border-orange-100 text-orange-500" : "bg-slate-100 border-slate-200/60 text-slate-400"
+                            st.all_done ? "bg-emerald-50 border-emerald-100 text-emerald-600" : s2 ? "bg-purple-50 border-purple-200 text-purple-600" : "bg-slate-100 border-slate-200/60 text-slate-400"
                           )}>
                             <RotateCcw className="w-5.5 h-5.5" />
                           </div>
 
                           <div className="flex-1 min-w-0 flex flex-col gap-1">
                             <div className="flex items-center justify-between gap-2">
-                              <span className="font-bold text-xs sm:text-sm text-slate-900 truncate">Ôn tập FSRS</span>
+                              <div className="flex items-center gap-1.5 truncate">
+                                <span className="font-bold text-xs sm:text-sm text-slate-900 truncate">Ôn tập FSRS</span>
+                                <span className="px-1.5 py-0.2 bg-purple-50 text-purple-700 border border-purple-200 text-[9px] font-black rounded-md shrink-0">+50 XP</span>
+                              </div>
                               {st.all_done ? (
-                                <span className="px-2.5 py-0.5 bg-emerald-50 text-emerald-600 border border-emerald-200 text-[10px] font-bold rounded-full shrink-0">✓ Đã xong</span>
+                                <span className="px-2 py-0.5 bg-emerald-50 text-emerald-600 border border-emerald-200 text-[10px] font-bold rounded-full shrink-0">👑 Hoàn tất</span>
                               ) : s2 ? (
-                                <span className="px-2.5 py-0.5 bg-gradient-to-r from-orange-500 to-amber-500 text-white text-[10px] font-black rounded-full shadow-2xs shrink-0 tracking-wide uppercase">Cần làm</span>
+                                <span className="px-2 py-0.5 bg-gradient-to-r from-purple-500 to-indigo-600 text-white text-[10px] font-black rounded-full shadow-2xs shrink-0 tracking-wide uppercase">Cần làm</span>
                               ) : (
                                 <span className="px-2 py-0.5 bg-slate-100 text-slate-400 text-[10px] font-bold rounded-full shrink-0">🔒 Khóa</span>
                               )}
                             </div>
 
                             <div className="text-xs font-bold text-slate-500 flex items-baseline gap-1">
-                              <span className={cn("text-sm font-black", s2 ? "text-orange-600" : "text-slate-400")}>{rDn}</span>
-                              <span className="text-slate-400 font-semibold text-xs">/ {rD} thẻ</span>
+                              <span className={cn("text-sm font-black", s2 ? "text-purple-600" : "text-slate-400")}>{rDn}</span>
+                              <span className="text-slate-400 font-semibold text-xs">/ {rD} thẻ cần ôn</span>
                             </div>
 
                             {s2 && (
                               <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden w-full my-0.5">
-                                <div className="h-full bg-gradient-to-r from-orange-500 to-amber-500 rounded-full transition-all" style={{ width: `${revPct}%` }} />
+                                <div className="h-full bg-gradient-to-r from-purple-500 to-indigo-600 rounded-full transition-all" style={{ width: `${revPct}%` }} />
                               </div>
                             )}
                           </div>
@@ -2267,8 +2347,8 @@ export default function Dashboard() {
 
                     </div>
 
-                    {/* CTA ACTION AREA (KHI HOÀN THÀNH LỘ TRÌNH THÌ TÁCH THÀNH 2 NÚT HỌC FSRS & LUYỆN TẬP) */}
-                    <div className="pt-1 flex-shrink-0">
+                    {/* CTA ACTION AREA (DYNAMIC QUEST BUTTON) */}
+                    <div className="pt-0.5 flex-shrink-0">
                       {st.all_done ? (
                         <div className="grid grid-cols-2 gap-2.5 sm:gap-3 w-full">
                           {/* NÚT 1: HỌC FSRS TIẾP */}
@@ -2350,17 +2430,17 @@ export default function Dashboard() {
                           <div className="flex-1 flex flex-col items-center justify-center text-center px-3 relative z-10">
                             <span className="text-sm sm:text-base font-black tracking-widest leading-tight uppercase text-white drop-shadow-2xs flex items-center gap-1.5">
                               {!s1
-                                ? 'HỌC TỪ MỚI'
+                                ? 'BƯỚC 1: HỌC TỪ MỚI'
                                 : !s2
-                                ? 'TRẮC NGHIỆM MCQ'
-                                : 'ÔN TẬP FSRS'}
+                                ? 'BƯỚC 2: TRẮC NGHIỆM MCQ'
+                                : 'BƯỚC 3: ÔN TẬP FSRS'}
                             </span>
                             <span className="text-[11px] sm:text-xs text-orange-100/90 font-bold mt-0.5 tracking-wide">
                               {!s1
-                                ? `Còn ${Math.max(0, nT - nL)} từ hôm nay`
+                                ? `Còn ${Math.max(0, nT - nL)} từ mới (+20 XP)`
                                 : !s2
-                                ? `Cần đạt ≥80% để qua bước`
-                                : `Còn ${Math.max(0, rD - rDn)} thẻ hôm nay`}
+                                ? `Đạt ≥80% để mở FSRS (+30 XP)`
+                                : `Còn ${Math.max(0, rD - rDn)} thẻ để giữ Streak (+50 XP)`}
                             </span>
                           </div>
 
@@ -2378,11 +2458,8 @@ export default function Dashboard() {
             };
 
             if (roadmapDecks && roadmapDecks.length > 1) {
-              return (
-                <div className="flex-1 overflow-y-auto snap-y snap-mandatory [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
-                  {roadmapDecks.map((deck: any, idx: number) => renderRoadmapCard(deck, idx, roadmapDecks.length))}
-                </div>
-              );
+              const currentDeck = roadmapDecks[selectedRoadmapIdx] || roadmapDecks[0];
+              return renderRoadmapCard(currentDeck, selectedRoadmapIdx, roadmapDecks.length);
             }
 
             if (roadmapDecks && roadmapDecks.length > 0) {
