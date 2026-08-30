@@ -1,5 +1,5 @@
 import { useAppStore } from '@/store/useAppStore'
-import { Settings, Shield, LogOut, ChevronRight, Zap, Flame, Award, CheckCircle2, Activity, Target, Trophy, X, Lock, BrainCircuit, User } from 'lucide-react'
+import { Settings, Shield, LogOut, ChevronRight, Zap, Flame, Award, CheckCircle2, Activity, Target, Trophy, X, Lock, BrainCircuit, User, PieChart, Layers } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useQuery } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
@@ -59,92 +59,135 @@ export default function Profile() {
   })
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC] pb-40">
-      {/* Mobile Header */}
-      <div className="fixed top-0 left-0 right-0 z-[150] md:hidden px-6 pt-10 pb-6 bg-white border-b border-slate-100 flex items-center justify-between">
-        <h1 className="text-xl font-black text-slate-900 tracking-tighter">My Profile</h1>
-        <Link 
-          to="/decks"
-          className="px-4 py-2 rounded-xl bg-indigo-50 border border-indigo-100/50 flex items-center gap-1.5 text-indigo-600 shadow-sm active:scale-95 transition-all text-xs font-black uppercase tracking-wider"
-        >
-          <BrainCircuit className="w-4 h-4" />
-          <span>Studio</span>
-        </Link>
-      </div>
-
-      <div className="px-6 max-w-2xl mx-auto pt-[92px] md:pt-0 mt-10 md:mt-12">
-        {/* Desktop Header */}
-        <div className="hidden md:flex items-center justify-between mb-6">
-          <h1 className="text-2xl font-black text-slate-900 tracking-tighter">My Profile</h1>
+    <div className="min-h-screen bg-[#F8FAFC] pb-28">
+      {/* Mobile Top Header */}
+      <div className="sticky top-0 left-0 right-0 z-30 md:hidden px-4 py-3 bg-white/95 backdrop-blur-md border-b border-slate-100 flex items-center justify-between">
+        <h1 className="text-base font-black text-slate-900 tracking-tight">Hồ sơ cá nhân</h1>
+        <div className="flex items-center gap-1.5">
           <Link 
             to="/decks"
-            className="px-5 py-2.5 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white flex items-center gap-2 shadow-md shadow-indigo-100 active:scale-95 transition-all text-xs font-black uppercase tracking-widest"
+            className="px-2.5 py-1.5 rounded-xl bg-orange-50 text-orange-600 flex items-center gap-1 text-[11px] font-black border border-orange-200/60 active:scale-95 transition-all"
+          >
+            <BrainCircuit className="w-3.5 h-3.5" />
+            <span>Studio</span>
+          </Link>
+          <Link 
+            to="/settings"
+            className="w-8 h-8 rounded-xl bg-slate-100 flex items-center justify-center text-slate-600 active:scale-95 transition-all"
+            title="Cài đặt"
+          >
+            <Settings className="w-4 h-4" />
+          </Link>
+        </div>
+      </div>
+
+      <div className="px-3.5 sm:px-6 max-w-lg mx-auto pt-3.5 md:pt-8 space-y-3.5">
+        {/* Desktop Header */}
+        <div className="hidden md:flex items-center justify-between mb-2">
+          <h1 className="text-2xl font-black text-slate-900 tracking-tight">Hồ sơ cá nhân</h1>
+          <Link 
+            to="/decks"
+            className="px-4 py-2 rounded-xl bg-orange-500 hover:bg-orange-600 text-white flex items-center gap-2 shadow-sm text-xs font-black uppercase tracking-wider active:scale-95 transition-all"
           >
             <BrainCircuit className="w-4 h-4" />
             <span>Creator Studio</span>
           </Link>
         </div>
-        {/* User Info Card */}
-        <div className="bg-white rounded-[2.5rem] p-10 shadow-sm text-center relative overflow-hidden mb-8 border border-slate-100">
-          <div className="absolute top-0 left-0 right-0 h-32 bg-indigo-50/50 -z-10" />
-          
-          <div className="relative inline-block mb-6">
-            <div className="w-32 h-32 rounded-[2.5rem] bg-slate-50 border-4 border-white shadow-xl flex items-center justify-center text-slate-400 mx-auto">
-              <User className="w-14 h-14" />
+
+        {/* Compact User Info Card (One-Hand Ergonomic Layout) */}
+        <div className="bg-white rounded-3xl p-4 sm:p-5 shadow-xs border border-slate-100 relative overflow-hidden">
+          <div className="flex items-center gap-3.5">
+            {/* Avatar with Level Badge */}
+            <div className="relative shrink-0">
+              <div className="w-15 h-15 sm:w-16 sm:h-16 rounded-2xl bg-gradient-to-tr from-orange-500 via-amber-500 to-orange-600 flex items-center justify-center text-white text-2xl font-black shadow-md border-2 border-white">
+                {user?.username?.charAt(0)?.toUpperCase() || 'U'}
+              </div>
+              <div className="absolute -bottom-1 -right-1 bg-slate-900 text-amber-400 text-[9px] font-black px-1.5 py-0.5 rounded-md border border-white shadow-xs">
+                Lv.{gamify.level}
+              </div>
             </div>
-            <div className="absolute -bottom-2 -right-2 bg-indigo-600 text-white text-[10px] font-black px-3 py-1.5 rounded-xl border-4 border-white shadow-lg">
-              LV. {gamify.level}
+
+            {/* User Details & Level Progress */}
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center justify-between gap-1">
+                <h2 className="text-base sm:text-lg font-black text-slate-900 truncate">
+                  {user?.username || 'Học viên'}
+                </h2>
+                <span className="px-2 py-0.5 bg-orange-50 text-orange-600 border border-orange-200 text-[10px] font-extrabold rounded-full shrink-0">
+                  {user?.role === 'admin' ? 'Quản trị viên' : 'Thành viên'}
+                </span>
+              </div>
+              
+              <p className="text-xs font-medium text-slate-400 truncate mb-1.5">
+                {user?.email || 'MindStack Learner'}
+              </p>
+
+              {/* Compact Level Progress Bar */}
+              <div className="w-full bg-slate-50 rounded-xl p-2 border border-slate-100">
+                <div className="flex items-center justify-between text-[10px] font-bold text-slate-500 mb-1">
+                  <span>Tiến độ Cấp {gamify.level}</span>
+                  <span className="text-orange-600 font-extrabold">{gamify.xp % 1000} / 1000 XP</span>
+                </div>
+                <div className="h-1.5 bg-slate-200/70 rounded-full overflow-hidden w-full">
+                  <div 
+                    className="h-full bg-gradient-to-r from-orange-500 to-amber-500 rounded-full transition-all duration-700" 
+                    style={{ width: `${progress}%` }} 
+                  />
+                </div>
+              </div>
             </div>
           </div>
 
-          <h2 className="text-3xl font-black text-slate-900 mb-1">{user?.username}</h2>
-          <p className="text-sm font-medium text-slate-400 mb-8">MindStack Learner</p>
+          {/* 3 Quick Stats Chips (One-Hand Reachable) */}
+          <div className="grid grid-cols-3 gap-2 mt-3 pt-3 border-t border-slate-100">
+            <div className="bg-orange-50/50 rounded-xl p-2 text-center border border-orange-100/60">
+              <div className="flex items-center justify-center gap-1 text-orange-600 font-black text-sm sm:text-base">
+                <Flame className="w-3.5 h-3.5 fill-orange-500 text-orange-500 shrink-0" />
+                <span>{gamify.streak}</span>
+              </div>
+              <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block mt-0.5">Ngày Streak</span>
+            </div>
 
-          <div className="bg-slate-50 rounded-3xl p-6 mb-8 text-left">
-            <div className="flex items-center justify-between mb-3">
-              <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">LEVEL PROGRESS</span>
-              <span className="text-[10px] font-black text-indigo-600 uppercase tracking-widest">{gamify.xp % 1000} / 1000 XP</span>
+            <div className="bg-amber-50/50 rounded-xl p-2 text-center border border-amber-100/60">
+              <div className="flex items-center justify-center gap-1 text-amber-600 font-black text-sm sm:text-base">
+                <Zap className="w-3.5 h-3.5 fill-amber-500 text-amber-500 shrink-0" />
+                <span>{gamify.xp}</span>
+              </div>
+              <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block mt-0.5">Tổng XP</span>
             </div>
-            <div className="h-3 bg-white border border-slate-100 rounded-full overflow-hidden">
-              <div className="h-full bg-gradient-to-r from-indigo-600 to-purple-600 transition-all duration-1000" style={{ width: `${progress}%` }} />
-            </div>
-            <p className="text-[9px] font-medium text-slate-400 mt-3">Earn <span className="font-bold">{1000 - (gamify.xp % 1000)} XP</span> more to reach Level {gamify.level + 1}!</p>
-          </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div className="p-4 bg-indigo-50/30 rounded-2xl border border-indigo-50">
-              <p className="text-xl font-black text-indigo-600">{gamify.streak}</p>
-              <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Ngày Hoạt Động</p>
-            </div>
-            <div className="p-4 bg-purple-50/30 rounded-2xl border border-purple-50">
-              <p className="text-xl font-black text-purple-600">{gamify.xp}</p>
-              <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Total XP</p>
+            <div className="bg-emerald-50/50 rounded-xl p-2 text-center border border-emerald-100/60">
+              <div className="flex items-center justify-center gap-1 text-emerald-600 font-black text-sm sm:text-base">
+                <Award className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+                <span>{badgesData?.total_unlocked || 0}/{badgesData?.total_count || 7}</span>
+              </div>
+              <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block mt-0.5">Huy hiệu</span>
             </div>
           </div>
         </div>
 
-        {/* Achievements / Badges Showcase */}
-        <div className="bg-white rounded-[2.5rem] p-8 shadow-sm border border-slate-100 mb-8">
-          <div className="flex items-center justify-between mb-6">
-            <div>
-              <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] mb-1">ACHIEVEMENTS</h3>
-              <p className="text-xl font-black text-slate-900 tracking-tighter uppercase italic">
-                Badge <span className="text-indigo-600">Showcase</span>
-              </p>
+        {/* Achievements / Badges Showcase (Compact Grid) */}
+        <div className="bg-white rounded-3xl p-4 sm:p-5 shadow-xs border border-slate-100">
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-1.5">
+              <Trophy className="w-4 h-4 text-amber-500 fill-amber-400" />
+              <h3 className="text-xs sm:text-sm font-black text-slate-900 uppercase tracking-wider">
+                Huy hiệu vinh danh
+              </h3>
             </div>
-            <div className="bg-indigo-50 text-indigo-600 text-[10px] font-black px-3.5 py-2 rounded-2xl border border-indigo-100">
-              {badgesData?.total_unlocked || 0} / {badgesData?.total_count || 7} UNLOCKED
+            <div className="bg-amber-50 text-amber-700 text-[10px] font-bold px-2.5 py-0.5 rounded-full border border-amber-200/80">
+              {badgesData?.total_unlocked || 0} / {badgesData?.total_count || 7} Đã mở
             </div>
           </div>
 
           {isLoading ? (
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 py-8">
+            <div className="grid grid-cols-3 sm:grid-cols-4 gap-2.5 py-2">
               {[...Array(4)].map((_, i) => (
-                <div key={i} className="h-28 bg-slate-50 border border-slate-100 rounded-3xl animate-pulse" />
+                <div key={i} className="h-24 bg-slate-50 border border-slate-100 rounded-2xl animate-pulse" />
               ))}
             </div>
           ) : (
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+            <div className="grid grid-cols-3 sm:grid-cols-4 gap-2.5">
               {badgesData?.badges.map((badge) => {
                 const Icon = ICON_MAP[badge.icon] || Trophy
                 const theme = BADGE_THEMES[badge.id] || BADGE_THEMES.first_steps
@@ -152,47 +195,51 @@ export default function Profile() {
                 return (
                   <motion.div
                     key={badge.id}
-                    whileHover={{ scale: 1.05 }}
-                    onClick={() => setSelectedBadge(badge)}
+                    whileHover={{ scale: 1.03 }}
+                    whileTap={{ scale: 0.97 }}
+                    onClick={() => {
+                      if (navigator.vibrate) navigator.vibrate(8);
+                      setSelectedBadge(badge);
+                    }}
                     className={cn(
-                      "p-4 rounded-3xl border text-center cursor-pointer transition-all relative overflow-hidden flex flex-col items-center justify-between min-h-[140px]",
+                      "p-2.5 rounded-2xl border text-center cursor-pointer transition-all relative overflow-hidden flex flex-col items-center justify-between min-h-[110px]",
                       badge.is_unlocked 
-                        ? cn("bg-white border-slate-100 shadow-sm shadow-slate-100", theme.glow) 
-                        : "bg-slate-50/50 border-slate-100"
+                        ? cn("bg-white border-slate-100 shadow-2xs", theme.glow) 
+                        : "bg-slate-50/50 border-slate-100 opacity-70"
                     )}
                   >
-                    <div className="absolute top-2 right-2">
-                      {!badge.is_unlocked && <Lock className="w-3.5 h-3.5 text-slate-300" />}
+                    <div className="absolute top-1.5 right-1.5">
+                      {!badge.is_unlocked && <Lock className="w-3 h-3 text-slate-300" />}
                     </div>
 
                     <div className={cn(
-                      "w-12 h-12 rounded-2xl flex items-center justify-center mb-3 transition-all",
+                      "w-9 h-9 rounded-xl flex items-center justify-center mb-1.5 transition-all shrink-0",
                       badge.is_unlocked 
-                        ? cn(theme.bg, theme.text, "shadow-md") 
+                        ? cn(theme.bg, theme.text, "shadow-xs") 
                         : "bg-slate-100 text-slate-300"
                     )}>
-                      <Icon className="w-6 h-6" />
+                      <Icon className="w-5 h-5" />
                     </div>
 
                     <div className="w-full">
                       <h4 className={cn(
-                        "text-[10px] font-black uppercase tracking-wider leading-tight mb-1 truncate px-1",
+                        "text-[9px] sm:text-[10px] font-black uppercase tracking-wider leading-tight mb-1 truncate px-0.5",
                         badge.is_unlocked ? "text-slate-800" : "text-slate-400"
                       )}>
                         {badge.name}
                       </h4>
                       
                       {/* Sub progress line */}
-                      <div className="w-full h-1 bg-slate-100 rounded-full mt-2 overflow-hidden">
+                      <div className="w-full h-1 bg-slate-100 rounded-full overflow-hidden">
                         <div 
                           className={cn(
                             "h-full rounded-full transition-all duration-500",
-                            badge.is_unlocked ? "bg-indigo-600" : "bg-slate-300"
+                            badge.is_unlocked ? "bg-orange-500" : "bg-slate-300"
                           )} 
                           style={{ width: `${Math.min(100, badge.progress)}%` }} 
                         />
                       </div>
-                      <p className="text-[8px] font-black text-slate-400 mt-1 uppercase tracking-widest">
+                      <p className="text-[8px] font-bold text-slate-400 mt-0.5">
                         {Math.round(badge.progress)}%
                       </p>
                     </div>
@@ -203,13 +250,45 @@ export default function Profile() {
           )}
         </div>
 
-        {/* Account Settings */}
-        <div className="space-y-4">
-          <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] mb-4 ml-4">ACCOUNT SETTINGS</h3>
+        {/* Account & Navigation Settings (Grouped One-Hand Card) */}
+        <div className="space-y-1.5">
+          <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2">
+            Cài đặt & Tiện ích
+          </h3>
           
-          <MenuLink icon={Settings} label="Account Preferences" href="/settings#preferences" />
-          <MenuLink icon={Shield} label="Security & Privacy" href="/settings#security" />
-          <MenuLink icon={LogOut} label="Sign Out" variant="danger" href="/logout" />
+          <div className="bg-white rounded-3xl border border-slate-100 divide-y divide-slate-50 overflow-hidden shadow-xs">
+            <MenuRowItem 
+              icon={Settings} 
+              label="Cài đặt học tập & Giao diện" 
+              desc="Âm thanh, chế độ học, FSRS"
+              href="/settings" 
+            />
+            <MenuRowItem 
+              icon={PieChart} 
+              label="Bảng xếp hạng & Thống kê" 
+              desc="Xem thứ hạng và tiến độ tổng"
+              href="/stats" 
+            />
+            <MenuRowItem 
+              icon={Layers} 
+              label="Kho bộ thẻ & Tạo thẻ mới" 
+              desc="Quản lý các bộ từ vựng"
+              href="/decks" 
+            />
+            <MenuRowItem 
+              icon={Shield} 
+              label="Bảo mật & Tài khoản" 
+              desc="Đổi mật khẩu, phiên đăng nhập"
+              href="/settings" 
+            />
+            <MenuRowItem 
+              icon={LogOut} 
+              label="Đăng xuất tài khoản" 
+              desc="Thoát khỏi phiên hiện tại"
+              variant="danger" 
+              href="/logout" 
+            />
+          </div>
         </div>
       </div>
 
@@ -224,14 +303,14 @@ export default function Profile() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="fixed inset-0 z-[200] bg-slate-900/60 backdrop-blur-md flex items-center justify-center p-4"
+              className="fixed inset-0 z-[200] bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4"
               onClick={() => setSelectedBadge(null)}
             >
               <motion.div
                 initial={{ scale: 0.9, y: 20 }}
                 animate={{ scale: 1, y: 0 }}
                 exit={{ scale: 0.9, y: 20 }}
-                className="bg-white rounded-[2.5rem] p-8 max-w-sm w-full border border-slate-100 shadow-2xl relative overflow-hidden text-center"
+                className="bg-white rounded-3xl p-6 max-w-sm w-full border border-slate-100 shadow-2xl relative overflow-hidden text-center"
                 onClick={(e) => e.stopPropagation()}
               >
                 {/* Backdrop Glow */}
@@ -243,68 +322,68 @@ export default function Profile() {
 
                 <button
                   onClick={() => setSelectedBadge(null)}
-                  className="absolute top-6 right-6 w-8 h-8 rounded-full bg-slate-50 border border-slate-100 flex items-center justify-center text-slate-400 hover:text-slate-600 transition-all"
+                  className="absolute top-4 right-4 w-8 h-8 rounded-full bg-slate-50 border border-slate-100 flex items-center justify-center text-slate-400 hover:text-slate-600 transition-all"
                 >
                   <X className="w-4 h-4" />
                 </button>
 
-                <div className="mt-4 flex flex-col items-center">
+                <div className="mt-2 flex flex-col items-center">
                   <div className={cn(
-                    "w-20 h-20 rounded-[2rem] flex items-center justify-center mb-6 shadow-xl transition-all relative",
+                    "w-16 h-16 rounded-2xl flex items-center justify-center mb-4 shadow-md transition-all relative",
                     selectedBadge.is_unlocked 
-                      ? cn(theme.bg, theme.text, theme.glow, "scale-110") 
-                      : "bg-slate-100 text-slate-300 shadow-inner"
+                      ? cn(theme.bg, theme.text, theme.glow, "scale-105") 
+                      : "bg-slate-100 text-slate-300"
                   )}>
-                    <Icon className="w-10 h-10 animate-pulse" />
+                    <Icon className="w-8 h-8" />
                     {!selectedBadge.is_unlocked && (
-                      <div className="absolute bottom-0 right-0 bg-slate-400 text-white rounded-full p-1.5 border-4 border-white shadow-lg">
-                        <Lock className="w-3.5 h-3.5" />
+                      <div className="absolute bottom-0 right-0 bg-slate-400 text-white rounded-full p-1 border-2 border-white shadow-xs">
+                        <Lock className="w-2.5 h-2.5" />
                       </div>
                     )}
                   </div>
 
-                  <h3 className="text-xl font-black text-slate-950 uppercase tracking-tighter mb-2 italic">
+                  <h3 className="text-lg font-black text-slate-900 uppercase tracking-tight mb-1">
                     {selectedBadge.name}
                   </h3>
                   
                   <div className={cn(
-                    "text-[8px] font-black px-3.5 py-1.5 rounded-full border mb-6 uppercase tracking-widest",
+                    "text-[9px] font-black px-2.5 py-0.5 rounded-full border mb-4 uppercase tracking-wider",
                     selectedBadge.is_unlocked 
-                      ? "bg-emerald-50 text-emerald-600 border-emerald-100" 
-                      : "bg-slate-50 text-slate-400 border-slate-100"
+                      ? "bg-emerald-50 text-emerald-600 border-emerald-200" 
+                      : "bg-slate-50 text-slate-400 border-slate-200"
                   )}>
-                    {selectedBadge.is_unlocked ? '🏆 UNLOCKED' : '🔒 LOCKED'}
+                    {selectedBadge.is_unlocked ? '🏆 ĐÃ MỞ KHÓA' : '🔒 CHƯA MỞ KHÓA'}
                   </div>
 
-                  <p className="text-sm font-medium text-slate-500 leading-relaxed px-4 mb-6">
+                  <p className="text-xs font-medium text-slate-500 leading-relaxed px-2 mb-4">
                     {selectedBadge.description}
                   </p>
 
                   {/* Progress Block */}
-                  <div className="w-full bg-slate-50 rounded-2xl p-5 border border-slate-100 text-left">
-                    <div className="flex justify-between items-center mb-2">
-                      <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">
-                        CRITERIA PROGRESS
+                  <div className="w-full bg-slate-50 rounded-2xl p-4 border border-slate-100 text-left">
+                    <div className="flex justify-between items-center mb-1.5">
+                      <span className="text-[9px] font-black text-slate-400 uppercase tracking-wider">
+                        TIẾN ĐỘ THỬ THÁCH
                       </span>
                       <span className="text-[10px] font-black text-slate-700">
                         {Math.round(selectedBadge.progress)}%
                       </span>
                     </div>
 
-                    <div className="w-full h-2.5 bg-white border border-slate-100 rounded-full overflow-hidden mb-2">
+                    <div className="w-full h-2 bg-white border border-slate-100 rounded-full overflow-hidden mb-2">
                       <div 
                         className={cn(
-                          "h-full rounded-full transition-all duration-1000",
-                          selectedBadge.is_unlocked ? "bg-indigo-600" : "bg-slate-300"
+                          "h-full rounded-full transition-all duration-700",
+                          selectedBadge.is_unlocked ? "bg-orange-500" : "bg-slate-300"
                         )} 
                         style={{ width: `${Math.min(100, selectedBadge.progress)}%` }} 
                       />
                     </div>
                     
-                    <p className="text-[9px] font-medium text-slate-400 mt-1">
+                    <p className="text-[10px] font-medium text-slate-400">
                       {selectedBadge.is_unlocked 
-                        ? 'Achievement unlocked! You completed the challenge. 🎉'
-                        : `Progress: ${Math.round(selectedBadge.progress)}% towards completion.`}
+                        ? 'Xuất sắc! Bạn đã hoàn thành thử thách này. 🎉'
+                        : `Tiến độ hiện tại: ${Math.round(selectedBadge.progress)}% hướng tới hoàn thành.`}
                     </p>
                   </div>
                 </div>
@@ -317,48 +396,48 @@ export default function Profile() {
   )
 }
 
-
-
-function MenuLink({ icon: Icon, label, variant = 'default', href = '#', native = false }: any) {
-  const isNative = native || href.startsWith('http') || href === '/logout';
+function MenuRowItem({ icon: Icon, label, desc, variant = 'default', href = '#' }: any) {
+  const isDanger = variant === 'danger'
+  const isLogout = href === '/logout'
   
-  const className = cn(
-    "bg-white rounded-[2.5rem] p-6 border border-slate-100 flex items-center justify-between group transition-all cursor-pointer",
-    variant === 'danger' && "border-rose-50 hover:bg-rose-50/30"
-  );
-
   const content = (
-    <>
-      <div className="flex items-center gap-4">
+    <div className={cn(
+      "p-3.5 sm:p-4 flex items-center justify-between group transition-colors cursor-pointer active:bg-slate-50",
+      isDanger ? "hover:bg-rose-50/40 text-rose-600" : "hover:bg-slate-50/80 text-slate-700"
+    )}>
+      <div className="flex items-center gap-3 min-w-0">
         <div className={cn(
-          "w-10 h-10 rounded-xl flex items-center justify-center transition-all",
-          variant === 'danger' ? "bg-rose-50 text-rose-500" : "bg-slate-50 text-slate-400 group-hover:bg-indigo-50 group-hover:text-indigo-600"
+          "w-9 h-9 rounded-xl flex items-center justify-center shrink-0 transition-colors",
+          isDanger 
+            ? "bg-rose-50 text-rose-500" 
+            : "bg-slate-50 text-slate-500 group-hover:bg-orange-50 group-hover:text-orange-600"
         )}>
-          <Icon className="w-5 h-5" />
+          <Icon className="w-4.5 h-4.5" />
         </div>
-        <span className={cn(
-          "text-sm font-bold",
-          variant === 'danger' ? "text-rose-500" : "text-slate-700"
-        )}>{label}</span>
+        <div className="min-w-0">
+          <span className={cn(
+            "text-xs sm:text-sm font-bold block truncate",
+            isDanger ? "text-rose-600" : "text-slate-800"
+          )}>
+            {label}
+          </span>
+          {desc && (
+            <span className="text-[10px] font-medium text-slate-400 block truncate mt-0.5">
+              {desc}
+            </span>
+          )}
+        </div>
       </div>
       <ChevronRight className={cn(
-        "w-4 h-4 transition-all",
-        variant === 'danger' ? "text-rose-200" : "text-slate-300"
+        "w-4 h-4 shrink-0 transition-transform group-hover:translate-x-0.5",
+        isDanger ? "text-rose-300" : "text-slate-300"
       )} />
-    </>
-  );
+    </div>
+  )
 
-  if (isNative) {
-    return (
-      <a href={href} className={className}>
-        {content}
-      </a>
-    );
+  if (isLogout) {
+    return <a href={href}>{content}</a>
   }
 
-  return (
-    <Link to={href} className={className}>
-      {content}
-    </Link>
-  );
+  return <Link to={href}>{content}</Link>
 }
