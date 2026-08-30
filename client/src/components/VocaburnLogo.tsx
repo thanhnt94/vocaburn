@@ -17,11 +17,12 @@ export function VocaburnLogo({
 }: VocaburnLogoProps) {
   const isHorizontal = mode === 'horizontal' && !iconOnly
 
+  // Extra prominent, max-fill heights so the typography is large and bold on web
   const heightClasses = {
-    sm: 'h-8 sm:h-9',
-    md: 'h-10 sm:h-11 md:h-13',
-    lg: 'h-12 sm:h-14 md:h-16',
-    xl: 'h-16 sm:h-20 md:h-24'
+    sm: 'h-10 sm:h-11',
+    md: 'h-12 sm:h-13 md:h-14',
+    lg: 'h-14 sm:h-16 md:h-18',
+    xl: 'h-20 sm:h-24 md:h-28'
   }[height]
 
   if (!isHorizontal) {
@@ -48,7 +49,7 @@ export function VocaburnLogo({
     <div className={cn("inline-flex items-center select-none group cursor-pointer", className)}>
       <div 
         className={cn(
-          "relative flex items-center shrink-0 transition-transform duration-300 ease-out group-hover:scale-[1.03] active:scale-95",
+          "relative flex items-center shrink-0 transition-transform duration-300 ease-out group-hover:scale-[1.02] active:scale-95",
           heightClasses
         )}
         style={size ? { height: size } : undefined}
