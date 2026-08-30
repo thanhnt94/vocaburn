@@ -135,19 +135,28 @@ export const FeedbackArea: React.FC<FeedbackAreaProps> = ({
 
   const insightTabs = React.useMemo(() => {
     const tabs: any[] = []
-    const insightCols = deckInfo?.practice_settings?.insight_columns
+    const rawInsightCols = deckInfo?.practice_settings?.insight_columns 
+      ?? deckInfo?.creator_settings?.insight_columns 
+      ?? deckInfo?.practice_settings?.insights_columns
+      ?? deckInfo?.creator_settings?.insights_columns;
     
-    if (Array.isArray(insightCols) && insightCols.length > 0) {
-      insightCols.forEach((col: string) => {
+    if (Array.isArray(rawInsightCols)) {
+      rawInsightCols.forEach((col: string) => {
         const customPrompt = deckInfo?.ai_prompts?.find((p: any) => p.column === col || p.id === col)
         tabs.push({
           id: col,
-          title: customPrompt?.title || (col === 'back' ? 'Giải thích chi tiết' : col === 'front' ? 'Từ vựng' : col.toUpperCase().replace(/_/g, ' ')),
+          title: customPrompt?.title || (
+            col === 'back' ? 'Giải thích chi tiết (Mặt sau)' : 
+            col === 'front' ? 'Từ vựng (Mặt trước)' : 
+            col === 'mnemonic' ? 'Mẹo ghi nhớ (Mnemonic)' : 
+            col === 'hint' ? 'Gợi ý (Hint)' : 
+            col.toUpperCase().replace(/_/g, ' ')
+          ),
           column: col
         })
       })
     } else {
-      // Fallback: Always include standard insight fields so Insight tab is always rich!
+      // Mặc định khi chưa cấu hình: Chỉ gồm Mặt sau (Đáp án/Giải thích) và Mẹo nhớ nếu có
       tabs.push({
         id: 'back',
         title: 'Giải thích chi tiết (Mặt sau)',
@@ -159,26 +168,17 @@ export const FeedbackArea: React.FC<FeedbackAreaProps> = ({
       if (currentQuestion?.hint) {
         tabs.push({ id: 'hint', title: 'Gợi ý (Hint)', column: 'hint' })
       }
-      let othersObj = currentQuestion?.others;
-      if (typeof othersObj === 'string') {
-        try { othersObj = JSON.parse(othersObj); } catch (e) {}
-      }
-      if (othersObj && typeof othersObj === 'object') {
-        Object.keys(othersObj).forEach((key) => {
-          if (key !== 'ai_responses' && key !== 'id' && key !== 'created_at' && key !== 'updated_at' && key !== 'front' && key !== 'back') {
-            if (!tabs.some(t => t.id === key)) {
-              tabs.push({
-                id: key,
-                title: key.toUpperCase().replace(/_/g, ' '),
-                column: key
-              })
-            }
-          }
-        })
-      }
     }
     return tabs
-  }, [deckInfo?.practice_settings?.insight_columns, deckInfo?.ai_prompts, currentQuestion])
+  }, [
+    deckInfo?.practice_settings?.insight_columns, 
+    deckInfo?.creator_settings?.insight_columns, 
+    deckInfo?.practice_settings?.insights_columns, 
+    deckInfo?.creator_settings?.insights_columns,
+    deckInfo?.ai_prompts, 
+    currentQuestion?.mnemonic, 
+    currentQuestion?.hint
+  ])
 
   const [activeInsightTab, setActiveInsightTab] = React.useState<string>('')
   const [openInsightTabs, setOpenInsightTabs] = React.useState<string[]>([])

@@ -9,15 +9,11 @@ import {
   Check, 
   X, 
   AlertCircle, 
-  Info, 
   Sparkles, 
-  Volume2, 
   Lock, 
   Database,
   Search,
-  CheckCircle2,
-  HelpCircle,
-  FileText
+  Lightbulb
 } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { cn } from '@/lib/utils'
@@ -63,13 +59,14 @@ export function DeckColumnSettings({ deckId, isOwner = true }: DeckColumnSetting
   const [searchTerm, setSearchTerm] = useState('')
   const [isAddModalOpen, setIsAddModalOpen] = useState(false)
   const [newColumnName, setNewColumnName] = useState('')
+  const [newColIsInsight, setNewColIsInsight] = useState(true)
   const [editingColumn, setEditingColumn] = useState<string | null>(null)
   const [renameValue, setRenameValue] = useState('')
   const [deleteConfirmCol, setDeleteConfirmCol] = useState<string | null>(null)
   const [errorMsg, setErrorMsg] = useState<string | null>(null)
 
   // 1. Fetch Column Overview
-  const { data: overview, isLoading, refetch } = useQuery<ColumnOverviewResponse>({
+  const { data: overview } = useQuery<ColumnOverviewResponse>({
     queryKey: ['deck-columns-overview', deckId],
     queryFn: async () => {
       const res = await axios.get(`/api/v1/deck/${deckId}/columns-overview`)
@@ -101,10 +98,56 @@ export function DeckColumnSettings({ deckId, isOwner = true }: DeckColumnSetting
     staleTime: 30 * 1000,
   })
 
+  // Current configured insight columns
+  const currentInsightCols: string[] = React.useMemo(() => {
+    const saved = practiceSettingsData?.creator_settings?.insight_columns 
+      ?? deckData?.practice_settings?.insight_columns
+      ?? practiceSettingsData?.creator_settings?.insights_columns
+      ?? deckData?.practice_settings?.insights_columns;
+    if (Array.isArray(saved)) return saved;
+    return ['back'];
+  }, [practiceSettingsData, deckData]);
+
   // 2. Mutations
+  const toggleInsightMutation = useMutation({
+    mutationFn: async ({ column, isInsight }: { column: string; isInsight: boolean }) => {
+      let updated: string[]
+      if (isInsight) {
+        updated = Array.from(new Set([...currentInsightCols, column]))
+      } else {
+        updated = currentInsightCols.filter(c => c !== column)
+      }
+      
+      const res = await axios.post(`/api/v1/deck/${deckId}/practice-settings`, {
+        is_creator: true,
+        settings: {
+          insight_columns: updated
+        }
+      })
+      return res.data
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['deck-practice-settings', String(deckId)] })
+      queryClient.invalidateQueries({ queryKey: ['quiz', String(deckId)] })
+      queryClient.invalidateQueries({ queryKey: ['deck-settings', deckId] })
+    },
+    onError: (err: any) => {
+      setErrorMsg(err.response?.data?.error || 'Không thể lưu cài đặt cột giải thích.')
+    }
+  })
+
   const addColumnMutation = useMutation({
-    mutationFn: async (column_name: string) => {
+    mutationFn: async ({ column_name, isInsight }: { column_name: string; isInsight: boolean }) => {
       const res = await axios.post(`/api/v1/deck/${deckId}/add-column`, { column_name })
+      if (isInsight) {
+        const updated = Array.from(new Set([...currentInsightCols, column_name]))
+        await axios.post(`/api/v1/deck/${deckId}/practice-settings`, {
+          is_creator: true,
+          settings: {
+            insight_columns: updated
+          }
+        })
+      }
       return res.data
     },
     onSuccess: () => {
@@ -114,6 +157,7 @@ export function DeckColumnSettings({ deckId, isOwner = true }: DeckColumnSetting
       queryClient.invalidateQueries({ queryKey: ['quiz', deckId] })
       setIsAddModalOpen(false)
       setNewColumnName('')
+      setNewColIsInsight(true)
       setErrorMsg(null)
     },
     onError: (err: any) => {
@@ -124,6 +168,15 @@ export function DeckColumnSettings({ deckId, isOwner = true }: DeckColumnSetting
   const renameColumnMutation = useMutation({
     mutationFn: async ({ old_name, new_name }: { old_name: string; new_name: string }) => {
       const res = await axios.post(`/api/v1/deck/${deckId}/rename-column`, { old_name, new_name })
+      if (currentInsightCols.includes(old_name)) {
+        const updated = currentInsightCols.map(c => c === old_name ? new_name : c)
+        await axios.post(`/api/v1/deck/${deckId}/practice-settings`, {
+          is_creator: true,
+          settings: {
+            insight_columns: updated
+          }
+        })
+      }
       return res.data
     },
     onSuccess: () => {
@@ -143,6 +196,15 @@ export function DeckColumnSettings({ deckId, isOwner = true }: DeckColumnSetting
   const deleteColumnMutation = useMutation({
     mutationFn: async (column_name: string) => {
       const res = await axios.post(`/api/v1/deck/${deckId}/delete-column`, { column_name })
+      if (currentInsightCols.includes(column_name)) {
+        const updated = currentInsightCols.filter(c => c !== column_name)
+        await axios.post(`/api/v1/deck/${deckId}/practice-settings`, {
+          is_creator: true,
+          settings: {
+            insight_columns: updated
+          }
+        })
+      }
       return res.data
     },
     onSuccess: () => {
@@ -187,7 +249,7 @@ export function DeckColumnSettings({ deckId, isOwner = true }: DeckColumnSetting
       setErrorMsg('Vui lòng nhập tên cột hợp lệ')
       return
     }
-    addColumnMutation.mutate(clean)
+    addColumnMutation.mutate({ column_name: clean, isInsight: newColIsInsight })
   }
 
   const handleRenameColumn = (oldName: string) => {
@@ -225,7 +287,7 @@ export function DeckColumnSettings({ deckId, isOwner = true }: DeckColumnSetting
                 </span>
               </h2>
               <p className="text-xs text-slate-500 font-medium mt-0.5">
-                Thêm cột tùy biến, đổi tên hoặc xóa các trường thông tin của thẻ trong bộ thẻ này.
+                Thêm cột tùy biến, thiết lập cột hiển thị trong tab Trợ lý Giải thích hoặc quản lý các trường thông tin thẻ.
               </p>
             </div>
           </div>
@@ -234,6 +296,7 @@ export function DeckColumnSettings({ deckId, isOwner = true }: DeckColumnSetting
             <button
               onClick={() => {
                 setNewColumnName('')
+                setNewColIsInsight(true)
                 setErrorMsg(null)
                 setIsAddModalOpen(true)
               }}
@@ -266,7 +329,7 @@ export function DeckColumnSettings({ deckId, isOwner = true }: DeckColumnSetting
               Cột Dữ liệu Mở rộng ({dynamicCols.length})
             </h3>
             <p className="text-xs text-slate-400 font-medium mt-0.5">
-              Các cột riêng của bộ thẻ phục vụ AI sinh tự động, luyện tập hoặc hiển thị chi tiết thẻ.
+              Các cột riêng của bộ thẻ phục vụ AI sinh tự động, luyện tập hoặc hiển thị trong tab Trợ lý Giải thích & Ghi nhớ.
             </p>
           </div>
 
@@ -294,7 +357,11 @@ export function DeckColumnSettings({ deckId, isOwner = true }: DeckColumnSetting
             </p>
             {isOwner && (
               <button
-                onClick={() => setIsAddModalOpen(true)}
+                onClick={() => {
+                  setNewColumnName('')
+                  setNewColIsInsight(true)
+                  setIsAddModalOpen(true)
+                }}
                 className="mt-4 px-4 py-2 rounded-xl bg-orange-50 hover:bg-orange-100 text-orange-600 text-xs font-black transition-all cursor-pointer"
               >
                 + Thêm cột đầu tiên
@@ -307,11 +374,17 @@ export function DeckColumnSettings({ deckId, isOwner = true }: DeckColumnSetting
               const count = columnCounts[colName] || 0
               const pct = totalCards > 0 ? Math.round((count / totalCards) * 100) : 0
               const isEditing = editingColumn === colName
+              const isInsightCol = currentInsightCols.includes(colName)
 
               return (
                 <div
                   key={colName}
-                  className="bg-slate-50/80 hover:bg-slate-50 border border-slate-200/70 rounded-2xl p-4 transition-all flex flex-col justify-between gap-3 group"
+                  className={cn(
+                    "border rounded-2xl p-4 transition-all flex flex-col justify-between gap-3 group",
+                    isInsightCol
+                      ? "bg-amber-50/20 border-amber-200/70 hover:bg-amber-50/30"
+                      : "bg-slate-50/80 hover:bg-slate-50 border-slate-200/70"
+                  )}
                 >
                   <div className="flex items-start justify-between gap-2">
                     <div className="flex-1 min-w-0">
@@ -378,6 +451,38 @@ export function DeckColumnSettings({ deckId, isOwner = true }: DeckColumnSetting
                     )}
                   </div>
 
+                  {/* Insight Toggle / Checkbox */}
+                  <div className="pt-2 border-t border-slate-200/60 flex items-center justify-between gap-2">
+                    <label 
+                      className="flex items-center gap-2 cursor-pointer select-none text-xs"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={isInsightCol}
+                        onChange={(e) => {
+                          if (isOwner) {
+                            toggleInsightMutation.mutate({ column: colName, isInsight: e.target.checked })
+                          }
+                        }}
+                        disabled={!isOwner || toggleInsightMutation.isPending}
+                        className="w-4 h-4 rounded border-slate-300 text-amber-500 focus:ring-amber-400 focus:ring-offset-0 transition cursor-pointer"
+                      />
+                      <span className={cn(
+                        "text-xs font-bold transition-colors flex items-center gap-1",
+                        isInsightCol ? "text-amber-800 font-extrabold" : "text-slate-500"
+                      )}>
+                        <Lightbulb className={cn("w-3.5 h-3.5", isInsightCol ? "text-amber-500 fill-amber-500" : "text-slate-400")} />
+                        Cột giải thích & ghi nhớ (Trợ lý)
+                      </span>
+                    </label>
+                    {isInsightCol && (
+                      <span className="px-2 py-0.5 rounded-md bg-amber-100/90 text-amber-800 text-[10px] font-black uppercase tracking-wider shrink-0">
+                        ✨ Trợ lý bật
+                      </span>
+                    )}
+                  </div>
+
                   {/* Data completeness progress */}
                   <div className="space-y-1 pt-1">
                     <div className="flex items-center justify-between text-[11px]">
@@ -419,11 +524,18 @@ export function DeckColumnSettings({ deckId, isOwner = true }: DeckColumnSetting
           {CORE_SYSTEM_COLUMNS.map((col) => {
             const count = columnCounts[col.name] || 0
             const pct = totalCards > 0 ? Math.round((count / totalCards) * 100) : 0
+            const isBackCol = col.name === 'back'
+            const isInsightCol = currentInsightCols.includes(col.name)
 
             return (
               <div
                 key={col.name}
-                className="bg-slate-50/60 border border-slate-200/60 rounded-2xl p-3.5 flex flex-col justify-between gap-2.5"
+                className={cn(
+                  "border rounded-2xl p-3.5 flex flex-col justify-between gap-2.5",
+                  isInsightCol
+                    ? "bg-amber-50/20 border-amber-200/70"
+                    : "bg-slate-50/60 border-slate-200/60"
+                )}
               >
                 <div className="flex items-start justify-between gap-2">
                   <div>
@@ -441,6 +553,40 @@ export function DeckColumnSettings({ deckId, isOwner = true }: DeckColumnSetting
                     <p className="text-[11px] text-slate-400 mt-0.5 leading-snug">{col.desc}</p>
                   </div>
                 </div>
+
+                {/* Insight Toggle for Back column */}
+                {isBackCol && (
+                  <div className="pt-2 border-t border-slate-200/60 flex items-center justify-between gap-2">
+                    <label 
+                      className="flex items-center gap-2 cursor-pointer select-none text-xs"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={isInsightCol}
+                        onChange={(e) => {
+                          if (isOwner) {
+                            toggleInsightMutation.mutate({ column: 'back', isInsight: e.target.checked })
+                          }
+                        }}
+                        disabled={!isOwner || toggleInsightMutation.isPending}
+                        className="w-4 h-4 rounded border-slate-300 text-amber-500 focus:ring-amber-400 focus:ring-offset-0 transition cursor-pointer"
+                      />
+                      <span className={cn(
+                        "text-xs font-bold transition-colors flex items-center gap-1",
+                        isInsightCol ? "text-amber-800 font-extrabold" : "text-slate-500"
+                      )}>
+                        <Lightbulb className={cn("w-3.5 h-3.5", isInsightCol ? "text-amber-500 fill-amber-500" : "text-slate-400")} />
+                        Cột giải thích & ghi nhớ (Trợ lý)
+                      </span>
+                    </label>
+                    {isInsightCol && (
+                      <span className="px-2 py-0.5 rounded-md bg-amber-100/90 text-amber-800 text-[10px] font-black uppercase tracking-wider shrink-0">
+                        ✨ Trợ lý bật
+                      </span>
+                    )}
+                  </div>
+                )}
 
                 {/* Progress */}
                 <div className="space-y-1 pt-1 border-t border-slate-100/80">
@@ -474,6 +620,12 @@ export function DeckColumnSettings({ deckId, isOwner = true }: DeckColumnSetting
         </h4>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
           <div className="bg-white/80 backdrop-blur-xs p-3.5 rounded-2xl border border-indigo-100/60 shadow-2xs">
+            <span className="font-black text-amber-600 block mb-1">💡 Trợ lý Giải thích & Ghi nhớ</span>
+            <p className="text-slate-500 leading-relaxed text-[11px]">
+              Tích chọn <strong>Cột giải thích</strong> để hiển thị trường dữ liệu này trong tab Trợ lý khi người dùng học thẻ.
+            </p>
+          </div>
+          <div className="bg-white/80 backdrop-blur-xs p-3.5 rounded-2xl border border-indigo-100/60 shadow-2xs">
             <span className="font-black text-indigo-600 block mb-1">✨ Tích hợp AI Prompt</span>
             <p className="text-slate-500 leading-relaxed text-[11px]">
               Vào tab <strong>AI Prompt</strong> để thiết lập kịch bản AI tự động điền nội dung hàng loạt vào cột mới tạo.
@@ -483,12 +635,6 @@ export function DeckColumnSettings({ deckId, isOwner = true }: DeckColumnSetting
             <span className="font-black text-sky-600 block mb-1">🎙️ Tạo Audio TTS</span>
             <p className="text-slate-500 leading-relaxed text-[11px]">
               Vào tab <strong>Audio TTS</strong> để chọn cột làm nguồn đọc hoặc đích lưu URL âm thanh riêng biệt.
-            </p>
-          </div>
-          <div className="bg-white/80 backdrop-blur-xs p-3.5 rounded-2xl border border-indigo-100/60 shadow-2xs">
-            <span className="font-black text-emerald-600 block mb-1">🎴 Thẻ từ & Luyện tập</span>
-            <p className="text-slate-500 leading-relaxed text-[11px]">
-              Dữ liệu của cột sẽ tự động hiển thị trong bảng thẻ từ và trong các chế độ ôn luyện.
             </p>
           </div>
         </div>
@@ -516,7 +662,7 @@ export function DeckColumnSettings({ deckId, isOwner = true }: DeckColumnSetting
                 </div>
                 <button
                   onClick={() => setIsAddModalOpen(false)}
-                  className="w-8 h-8 rounded-full hover:bg-slate-100 text-slate-400 hover:text-slate-600 flex items-center justify-center transition-colors"
+                  className="w-8 h-8 rounded-full hover:bg-slate-100 text-slate-400 hover:text-slate-600 flex items-center justify-center transition-colors cursor-pointer"
                 >
                   <X className="w-4 h-4" />
                 </button>
@@ -541,6 +687,23 @@ export function DeckColumnSettings({ deckId, isOwner = true }: DeckColumnSetting
                     </p>
                   )}
                 </div>
+
+                {/* Tùy chọn: Là cột giải thích & ghi nhớ */}
+                <label className="flex items-center gap-2.5 p-3 rounded-xl bg-amber-50/70 border border-amber-200/80 cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    checked={newColIsInsight}
+                    onChange={(e) => setNewColIsInsight(e.target.checked)}
+                    className="w-4 h-4 rounded border-amber-300 text-amber-500 focus:ring-amber-400 cursor-pointer"
+                  />
+                  <div className="text-xs">
+                    <span className="font-black text-amber-900 flex items-center gap-1">
+                      <Lightbulb className="w-3.5 h-3.5 text-amber-500 fill-amber-500" />
+                      Đặt làm Cột Giải thích & Ghi nhớ
+                    </span>
+                    <span className="text-[11px] text-amber-700 font-medium">Hiển thị trong tab Trợ lý Giải thích khi học và ôn luyện thẻ</span>
+                  </div>
+                </label>
 
                 {/* Gợi ý cột phổ biến */}
                 <div>
