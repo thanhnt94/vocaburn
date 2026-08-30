@@ -1,0 +1,193 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 320" width="1000" height="320">
+  <defs>
+    <!-- Fonts -->
+    <style>
+      @import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@700;800;900&amp;display=swap');
+      .font-voca {
+        font-family: 'Fredoka', 'Baloo 2', 'Arial Rounded MT Bold', sans-serif;
+        font-weight: 800;
+        font-size: 150px;
+        letter-spacing: -2px;
+      }
+      .font-burn {
+        font-family: 'Fredoka', 'Baloo 2', 'Arial Rounded MT Bold', sans-serif;
+        font-weight: 900;
+        font-size: 150px;
+        letter-spacing: -2px;
+      }
+    </style>
+
+    <!-- Filters for 3D Pop & Shadows -->
+    <filter id="soft-shadow" x="-10%" y="-10%" width="130%" height="130%">
+      <feDropShadow dx="0" dy="8" stdDeviation="6" flood-color="#0f172a" flood-opacity="0.18" />
+    </filter>
+    <filter id="flame-glow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="8" result="blur" />
+      <feComposite in="SourceGraphic" in2="blur" operator="over" />
+    </filter>
+
+    <!-- Gradients -->
+    <!-- VOCA Blue Gradient -->
+    <linearGradient id="voca-grad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#38BDF8" />
+      <stop offset="50%" stop-color="#0EA5E9" />
+      <stop offset="100%" stop-color="#2563EB" />
+    </linearGradient>
+
+    <!-- VOCA Stroke Gradient -->
+    <linearGradient id="voca-stroke" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#0284C7" />
+      <stop offset="100%" stop-color="#1E3A8A" />
+    </linearGradient>
+
+    <!-- BURN Fire Text Gradient -->
+    <linearGradient id="burn-grad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#FEF08A" />
+      <stop offset="35%" stop-color="#FBBF24" />
+      <stop offset="70%" stop-color="#F97316" />
+      <stop offset="100%" stop-color="#DC2626" />
+    </linearGradient>
+
+    <!-- BURN Outer Fire Gradient -->
+    <linearGradient id="fire-outer" x1="0" y1="1" x2="0" y2="0">
+      <stop offset="0%" stop-color="#DC2626" />
+      <stop offset="50%" stop-color="#EA580C" />
+      <stop offset="85%" stop-color="#F59E0B" />
+      <stop offset="100%" stop-color="#FEF08A" />
+    </linearGradient>
+
+    <!-- BURN Inner Fire Gradient -->
+    <linearGradient id="fire-inner" x1="0" y1="1" x2="0" y2="0">
+      <stop offset="0%" stop-color="#EA580C" />
+      <stop offset="60%" stop-color="#FBBF24" />
+      <stop offset="100%" stop-color="#FEF9C3" />
+    </linearGradient>
+
+    <!-- Gloss Highlight -->
+    <linearGradient id="gloss-white" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0.85" />
+      <stop offset="100%" stop-color="#FFFFFF" stop-opacity="0" />
+    </linearGradient>
+  </defs>
+
+  <g filter="url(#soft-shadow)">
+    <!-- ==================== BACKGROUND FLAMES FOR BURN ==================== -->
+    <!-- Outer Large Flames Behind B-U-R-N -->
+    <g transform="translate(420, 10)">
+      <!-- Flame silhouettes behind B, U, R, N -->
+      <!-- Red / Deep Orange Outer Layer -->
+      <path d="M 30,190 
+               C 20,130 50,80 75,30 
+               C 85,80 110,95 130,50 
+               C 150,110 180,70 210,15 
+               C 225,65 260,85 285,40 
+               C 305,90 330,75 365,20 
+               C 380,70 410,85 440,35 
+               C 460,95 490,110 520,70 
+               C 545,120 540,170 535,210 
+               L 30,210 Z" 
+            fill="url(#fire-outer)" />
+
+      <!-- Mid Golden-Yellow Layer -->
+      <path d="M 45,195 
+               C 40,145 65,100 85,60 
+               C 100,100 120,110 140,80 
+               C 160,125 185,95 210,50 
+               C 225,90 255,105 280,70 
+               C 300,110 325,95 355,55 
+               C 370,95 400,105 425,70 
+               C 445,115 470,125 500,95 
+               C 515,140 515,175 510,205 
+               L 45,205 Z" 
+            fill="url(#fire-inner)" />
+
+      <!-- Inner Core White-Yellow Sparks Layer -->
+      <path d="M 65,200 
+               C 60,165 75,130 95,95 
+               C 105,125 120,130 135,110 
+               C 150,145 175,125 195,85 
+               C 210,115 235,125 255,100 
+               C 275,130 300,120 325,90 
+               C 340,120 365,130 390,105 
+               C 410,135 435,145 460,125 
+               C 475,155 475,185 470,205 
+               L 65,205 Z" 
+            fill="#FEF9C3" opacity="0.9" />
+
+      <!-- Cute Floating Flame Sparks / Embers -->
+      <circle cx="85" cy="20" r="5" fill="#FEF08A" />
+      <circle cx="135" cy="35" r="4" fill="#FBBF24" />
+      <circle cx="215" cy="5" r="6" fill="#FEF08A" />
+      <circle cx="290" cy="25" r="5" fill="#F97316" />
+      <circle cx="370" cy="10" r="6" fill="#FEF08A" />
+      <circle cx="445" cy="25" r="4" fill="#FBBF24" />
+      <circle cx="525" cy="55" r="5" fill="#FEF08A" />
+    </g>
+
+    <!-- ==================== VOCA TEXT (COOL BUBBLY BLUE) ==================== -->
+    <g transform="translate(30, 215)">
+      <!-- 3D Extrusion / Bottom Layer -->
+      <text class="font-voca" x="0" y="8" fill="#1E3A8A" stroke="#1E3A8A" stroke-width="24" stroke-linejoin="round">Voca</text>
+      <text class="font-voca" x="0" y="4" fill="#0369A1" stroke="#0369A1" stroke-width="18" stroke-linejoin="round">Voca</text>
+      
+      <!-- Stroke Outline -->
+      <text class="font-voca" x="0" y="0" fill="url(#voca-stroke)" stroke="url(#voca-stroke)" stroke-width="14" stroke-linejoin="round">Voca</text>
+      
+      <!-- Main Letter Fill -->
+      <text class="font-voca" x="0" y="0" fill="url(#voca-grad)">Voca</text>
+
+      <!-- Cute Bubbly Specular Highlights on VOCA -->
+      <!-- V Highlight -->
+      <path d="M 18,-115 C 24,-130 38,-135 48,-125 C 42,-115 32,-110 25,-100 Z" fill="url(#gloss-white)" opacity="0.8" />
+      <ellipse cx="28" cy="-115" rx="8" ry="4" transform="rotate(-35 28 -115)" fill="#FFFFFF" opacity="0.75" />
+      
+      <!-- O Highlight -->
+      <ellipse cx="145" cy="-90" rx="14" ry="7" transform="rotate(-30 145 -90)" fill="#FFFFFF" opacity="0.75" />
+      
+      <!-- C Highlight -->
+      <ellipse cx="245" cy="-90" rx="14" ry="7" transform="rotate(-30 245 -90)" fill="#FFFFFF" opacity="0.75" />
+      
+      <!-- A Highlight -->
+      <ellipse cx="340" cy="-90" rx="12" ry="6" transform="rotate(-25 340 -90)" fill="#FFFFFF" opacity="0.75" />
+    </g>
+
+    <!-- ==================== BURN TEXT (HOT BLAZING BUBBLY CARTOON) ==================== -->
+    <g transform="translate(450, 215)">
+      <!-- 3D Extrusion / Bottom Shadow -->
+      <text class="font-burn" x="0" y="8" fill="#7F1D1D" stroke="#7F1D1D" stroke-width="24" stroke-linejoin="round">BURN</text>
+      <text class="font-burn" x="0" y="4" fill="#991B1B" stroke="#991B1B" stroke-width="18" stroke-linejoin="round">BURN</text>
+      
+      <!-- Stroke Outline -->
+      <text class="font-burn" x="0" y="0" fill="#B91C1C" stroke="#B91C1C" stroke-width="14" stroke-linejoin="round">BURN</text>
+      
+      <!-- Main Letter Fill with Radiant Fire Gradient -->
+      <text class="font-burn" x="0" y="0" fill="url(#burn-grad)">BURN</text>
+
+      <!-- Glossy Hot Highlights on B-U-R-N -->
+      <!-- B Highlight -->
+      <ellipse cx="40" cy="-95" rx="14" ry="6" transform="rotate(-25 40 -95)" fill="#FFFFFF" opacity="0.85" />
+      
+      <!-- U Highlight -->
+      <ellipse cx="160" cy="-90" rx="12" ry="6" transform="rotate(-25 160 -90)" fill="#FFFFFF" opacity="0.85" />
+      
+      <!-- R Highlight -->
+      <ellipse cx="270" cy="-95" rx="14" ry="6" transform="rotate(-25 270 -95)" fill="#FFFFFF" opacity="0.85" />
+      
+      <!-- N Highlight -->
+      <ellipse cx="380" cy="-95" rx="12" ry="6" transform="rotate(-25 380 -95)" fill="#FFFFFF" opacity="0.85" />
+
+      <!-- Cute Dancing Flame Licks Overlapping the Letters -->
+      <!-- Flame licking over B -->
+      <path d="M 75,-80 C 80,-115 100,-130 90,-150 C 110,-125 115,-100 100,-75 Z" fill="#FDE047" opacity="0.9" />
+      
+      <!-- Flame licking over U -->
+      <path d="M 195,-75 C 200,-105 220,-120 210,-140 C 230,-115 235,-95 220,-70 Z" fill="#FDE047" opacity="0.9" />
+      
+      <!-- Flame licking over R -->
+      <path d="M 305,-80 C 310,-110 330,-125 320,-145 C 340,-120 345,-100 330,-75 Z" fill="#FDE047" opacity="0.9" />
+      
+      <!-- Flame licking over N -->
+      <path d="M 415,-75 C 420,-105 440,-120 430,-140 C 450,-115 455,-95 440,-70 Z" fill="#FDE047" opacity="0.9" />
+    </g>
+  </g>
+</svg>
