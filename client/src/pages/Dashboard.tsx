@@ -1237,13 +1237,14 @@ export default function Dashboard() {
 
   const [selectedRoadmapIdx, setSelectedRoadmapIdx] = useState(0)
   const [mascotCheer, setMascotCheer] = useState<string | null>(null)
+  const roadmapContainerRef = useRef<HTMLDivElement>(null)
 
   const cheerQuotes = [
     "Cố lên! Bạn đang bùng cháy với chuỗi streak này! 🔥",
     "Mỗi từ học được hôm nay là một bước tiến lớn! 🚀",
     "Chăm chỉ như thế này chắc chắn sớm đạt mục tiêu! 🌟",
     "Tớ luôn đồng hành cùng bạn mỗi ngày! 💪",
-    "Đỉnh nóc kịch trần! Hoàn thành 3 bước để nhận thưởng XP nhé! 🎉",
+    "Đỉnh nóc kịch trần! Hãy hoàn thành các bước hôm nay nhé! 🎉",
     "Não bộ đang hấp thu từ vựng cực kỳ mạnh mẽ! 🧠⚡"
   ];
 
@@ -1256,16 +1257,26 @@ export default function Dashboard() {
     }, 4000);
   };
 
-  const carouselRef = useRef<HTMLDivElement>(null)
-  const scrollCarousel = (direction: 'left' | 'right') => {
-    if (carouselRef.current) {
-      const scrollAmount = 240;
-      carouselRef.current.scrollBy({
-        left: direction === 'left' ? -scrollAmount : scrollAmount,
+  const handleRoadmapScroll = (e: React.UIEvent<HTMLDivElement>) => {
+    const target = e.currentTarget;
+    if (target.clientHeight > 0) {
+      const idx = Math.round(target.scrollTop / target.clientHeight);
+      if (idx !== selectedRoadmapIdx) {
+        setSelectedRoadmapIdx(idx);
+      }
+    }
+  };
+
+  const scrollToRoadmapDeck = (idx: number) => {
+    if (navigator.vibrate) navigator.vibrate(8);
+    setSelectedRoadmapIdx(idx);
+    if (roadmapContainerRef.current) {
+      roadmapContainerRef.current.scrollTo({
+        top: idx * roadmapContainerRef.current.clientHeight,
         behavior: 'smooth'
       });
     }
-  }
+  };
 
   const { data: roadmapDecks, isLoading: isRoadmapDecksLoading, refetch: refetchRoadmapDecks } = useQuery<any[]>({
     queryKey: ['roadmapDecks'],
@@ -1904,7 +1915,7 @@ export default function Dashboard() {
               const stepsCompletedCount = (s1 ? 1 : 0) + (s2 ? 1 : 0) + (st.all_done ? 1 : 0);
 
               return (
-                <div key={deck.deck_id} className="h-full w-full snap-center flex-shrink-0 flex flex-col">
+                <div key={deck.deck_id} className="h-full w-full min-h-full snap-start snap-always flex-shrink-0 flex flex-col">
                   {/* DECK SUBHEADER BAR WITH MULTI-DECK SWITCHER */}
                   <div className="px-4 py-2 bg-white flex items-center justify-between flex-shrink-0 text-xs font-semibold text-slate-500 border-b border-slate-100">
                     <div className="flex items-center gap-2 max-w-[70%]">
@@ -1915,10 +1926,7 @@ export default function Dashboard() {
                             <button
                               key={d.deck_id}
                               type="button"
-                              onClick={() => {
-                                if (navigator.vibrate) navigator.vibrate(8);
-                                setSelectedRoadmapIdx(idx);
-                              }}
+                              onClick={() => scrollToRoadmapDeck(idx)}
                               className={cn(
                                 "px-2 py-0.5 rounded-lg text-[10px] font-black transition-all shrink-0 flex items-center gap-1 cursor-pointer",
                                 selectedRoadmapIdx === idx
@@ -2433,8 +2441,15 @@ export default function Dashboard() {
             };
 
             if (roadmapDecks && roadmapDecks.length > 1) {
-              const currentDeck = roadmapDecks[selectedRoadmapIdx] || roadmapDecks[0];
-              return renderRoadmapCard(currentDeck, selectedRoadmapIdx, roadmapDecks.length);
+              return (
+                <div 
+                  ref={roadmapContainerRef}
+                  onScroll={handleRoadmapScroll}
+                  className="flex-1 overflow-y-auto snap-y snap-mandatory [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] w-full h-full"
+                >
+                  {roadmapDecks.map((deck: any, idx: number) => renderRoadmapCard(deck, idx, roadmapDecks.length))}
+                </div>
+              );
             }
 
             if (roadmapDecks && roadmapDecks.length > 0) {
