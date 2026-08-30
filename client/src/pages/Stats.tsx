@@ -256,8 +256,8 @@ export default function Stats() {
 
       {/* ═══════════ TIER 1: LEADERBOARD FILTER CONTROLS (2 DISTINCT ROWS WITH LEADING ICONS) ═══════════ */}
       {activeTab === 'leaderboard' && (
-        <div className="shrink-0 z-30 bg-white/95 backdrop-blur-2xl border-t border-slate-200/80 px-3 sm:px-6 py-2 shadow-[0_-2px_10px_rgba(0,0,0,0.03)] space-y-1.5">
-          <div className="max-w-sm sm:max-w-md mx-auto space-y-1.5">
+        <div className="shrink-0 z-30 bg-white/95 backdrop-blur-2xl border-t border-slate-200/80 px-3.5 sm:px-6 py-2 shadow-[0_-2px_10px_rgba(0,0,0,0.03)] space-y-1.5">
+          <div className="max-w-5xl w-full mx-auto space-y-1.5">
             {/* Row 1: Category Filter with Leading Icon & Label */}
             <div className="flex items-center gap-2">
               <div className="flex items-center gap-1 text-[9.5px] font-black uppercase tracking-wider text-slate-400 w-12 shrink-0">
@@ -337,9 +337,9 @@ export default function Stats() {
         </div>
       )}
 
-      {/* ═══════════ ONE-HAND BOTTOM DOCKED TAB BAR (CĂN CHÍNH GIỮA) ═══════════ */}
+      {/* ═══════════ ONE-HAND BOTTOM DOCKED TAB BAR (FULL WIDTH) ═══════════ */}
       <div className="shrink-0 z-30 bg-white/95 backdrop-blur-2xl border-t border-slate-200/80 px-3.5 sm:px-6 py-1.5 shadow-[0_-4px_20px_rgba(0,0,0,0.05)]">
-        <div className="max-w-sm sm:max-w-md mx-auto flex items-center justify-center">
+        <div className="max-w-5xl w-full mx-auto flex items-center justify-center">
           <div className="grid grid-flow-col auto-cols-fr w-full bg-slate-100/90 p-1 rounded-2xl border border-slate-200/60 shadow-2xs">
             {tabs.map((tab) => {
               const Icon = tab.icon
