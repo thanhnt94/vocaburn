@@ -109,75 +109,36 @@ export function DeckDetailPage() {
                   )}
                 </div>
                 
-                {/* Search Input inline or Deck Title */}
-                {isSearchOpen && activeTab === 'cards' ? (
-                  <div className="flex items-center gap-1.5 flex-1 max-w-sm bg-slate-100/90 rounded-xl px-2.5 py-1 border border-indigo-200 animate-in fade-in zoom-in-95 duration-150">
-                    <Search className="w-3.5 h-3.5 text-indigo-500 shrink-0" />
-                    <input
-                      autoFocus
-                      type="text"
-                      placeholder="Tìm từ vựng, kanji, nghĩa..."
-                      value={cardsSearch}
-                      onChange={(e) => setCardsSearch(e.target.value)}
-                      className="w-full bg-transparent text-xs font-bold text-slate-800 outline-none placeholder:text-slate-400"
-                    />
-                    <button
-                      onClick={() => {
-                        setCardsSearch('')
-                        setIsSearchOpen(false)
-                      }}
-                      className="text-slate-400 hover:text-slate-600 p-0.5 cursor-pointer shrink-0"
-                    >
-                      <X className="w-3.5 h-3.5" />
-                    </button>
+                <div className="min-w-0">
+                  <h1 className="text-xs sm:text-sm font-black text-slate-900 truncate tracking-tight">
+                    {deckMeta?.title || 'Đang tải bộ thẻ...'}
+                  </h1>
+                  <div className="flex items-center gap-2 text-[10px] text-slate-400 font-bold">
+                    <span className="text-indigo-600 font-extrabold">{deckMeta?.questions_count ?? '--'} thẻ</span>
+                    {deckMeta?.creator_name && (
+                      <>
+                        <span>•</span>
+                        <span className="text-slate-600 truncate max-w-[120px]">
+                          @{deckMeta.creator_name}{isOwner ? ' (Bạn)' : ''}
+                        </span>
+                      </>
+                    )}
+                    {deckMeta?.is_public !== undefined && (
+                      <>
+                        <span>•</span>
+                        <span className="flex items-center gap-0.5 text-slate-400">
+                          {deckMeta.is_public ? <Globe className="w-2.5 h-2.5" /> : <Lock className="w-2.5 h-2.5" />}
+                          {deckMeta.is_public ? 'Public' : 'Private'}
+                        </span>
+                      </>
+                    )}
                   </div>
-                ) : (
-                  <div className="min-w-0">
-                    <h1 className="text-xs sm:text-sm font-black text-slate-900 truncate tracking-tight">
-                      {deckMeta?.title || 'Đang tải bộ thẻ...'}
-                    </h1>
-                    <div className="flex items-center gap-2 text-[10px] text-slate-400 font-bold">
-                      <span className="text-indigo-600 font-extrabold">{deckMeta?.questions_count ?? '--'} thẻ</span>
-                      {deckMeta?.creator_name && (
-                        <>
-                          <span>•</span>
-                          <span className="text-slate-600 truncate max-w-[120px]">
-                            @{deckMeta.creator_name}{isOwner ? ' (Bạn)' : ''}
-                          </span>
-                        </>
-                      )}
-                      {deckMeta?.is_public !== undefined && (
-                        <>
-                          <span>•</span>
-                          <span className="flex items-center gap-0.5 text-slate-400">
-                            {deckMeta.is_public ? <Globe className="w-2.5 h-2.5" /> : <Lock className="w-2.5 h-2.5" />}
-                            {deckMeta.is_public ? 'Public' : 'Private'}
-                          </span>
-                        </>
-                      )}
-                    </div>
-                  </div>
-                )}
+                </div>
               </div>
             </div>
 
-            {/* Right: Search Toggle & Start Learning CTA */}
+            {/* Right: Start Learning CTA */}
             <div className="flex items-center gap-1.5 shrink-0">
-              {activeTab === 'cards' && !isSearchOpen && (
-                <button
-                  onClick={() => setIsSearchOpen(true)}
-                  className={cn(
-                    "w-8.5 h-8.5 rounded-xl border flex items-center justify-center transition-all active:scale-95 cursor-pointer shadow-2xs",
-                    cardsSearch
-                      ? "bg-indigo-50 border-indigo-200 text-indigo-600 font-bold"
-                      : "bg-slate-50 hover:bg-slate-100 border-slate-200/80 text-slate-700"
-                  )}
-                  title="Tìm kiếm thẻ từ vựng"
-                >
-                  <Search className="w-4 h-4" />
-                </button>
-              )}
-
               {id && (
                 <Link
                   to={`/flashcard/${id}/play`}
@@ -248,46 +209,98 @@ export function DeckDetailPage() {
         const effectiveTotalPages = Math.max(cardsTotalPages, metaTotalPages)
 
         return (
-          <div className="shrink-0 z-30 bg-white/95 backdrop-blur-2xl border-t border-slate-200/80 px-3 sm:px-6 py-1.5 shadow-[0_-2px_10px_rgba(0,0,0,0.03)]">
-            <div className="max-w-5xl mx-auto flex items-center justify-between gap-2">
-              {/* Left: Pagination */}
-              <DeckPagination
-                currentPage={cardsPage}
-                totalPages={effectiveTotalPages}
-                onPageChange={setCardsPage}
-              />
+          <div className="shrink-0 z-30 bg-white/95 backdrop-blur-2xl border-t border-slate-200/80 px-3.5 sm:px-6 py-1.5 shadow-[0_-2px_10px_rgba(0,0,0,0.03)]">
+            <div className="max-w-5xl mx-auto flex items-center justify-between gap-2 min-h-[36px]">
+              {isSearchOpen ? (
+                <div className="flex items-center gap-2 flex-1 animate-in fade-in duration-150">
+                  <div className="relative flex-1">
+                    <Search className="w-4 h-4 text-indigo-500 absolute left-3 top-1/2 -translate-y-1/2" />
+                    <input
+                      autoFocus
+                      type="text"
+                      placeholder="Tìm từ vựng, kanji, nghĩa..."
+                      value={cardsSearch}
+                      onChange={(e) => setCardsSearch(e.target.value)}
+                      className="w-full pl-9 pr-8 py-1.5 rounded-xl bg-slate-100/90 border border-indigo-200 text-xs font-bold text-slate-800 placeholder:text-slate-400 focus:outline-none focus:bg-white focus:border-indigo-500 shadow-inner"
+                    />
+                    {cardsSearch && (
+                      <button
+                        onClick={() => setCardsSearch('')}
+                        className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5 cursor-pointer"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    )}
+                  </div>
+                  <button
+                    onClick={() => {
+                      setCardsSearch('')
+                      setIsSearchOpen(false)
+                    }}
+                    className="h-8.5 px-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 text-xs font-bold transition-all cursor-pointer shrink-0"
+                  >
+                    Đóng
+                  </button>
+                </div>
+              ) : (
+                <>
+                  {/* Left: Pagination */}
+                  <DeckPagination
+                    currentPage={cardsPage}
+                    totalPages={effectiveTotalPages}
+                    onPageChange={setCardsPage}
+                  />
 
-              {/* Right: Quick actions (Thêm nhanh, Paste, Thêm chi tiết) */}
-              <div className="flex items-center gap-1.5">
-                <button
-                  onClick={() => setIsQuickAddOpen(prev => !prev)}
-                  className={cn(
-                    "h-8.5 w-8.5 rounded-xl border flex items-center justify-center transition-all active:scale-95 cursor-pointer shadow-2xs",
-                    isQuickAddOpen
-                      ? "bg-orange-500 border-orange-500 text-white shadow-orange-500/20"
-                      : "bg-orange-50 hover:bg-orange-100 border-orange-200 text-orange-700"
-                  )}
-                  title="Bật/tắt thanh thêm nhanh thẻ"
-                >
-                  <Zap className="w-4 h-4 fill-current" />
-                </button>
+                  {/* Right: Quick actions (Tìm kiếm, Thêm nhanh, Paste, Thêm chi tiết) */}
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      onClick={() => setIsSearchOpen(true)}
+                      className={cn(
+                        "h-8.5 w-8.5 rounded-xl border flex items-center justify-center transition-all active:scale-95 cursor-pointer shadow-2xs",
+                        cardsSearch
+                          ? "bg-indigo-50 border-indigo-200 text-indigo-600 font-bold"
+                          : "bg-slate-50 hover:bg-slate-100 border-slate-200/80 text-slate-700"
+                      )}
+                      title="Tìm kiếm thẻ từ vựng"
+                    >
+                      <Search className="w-4 h-4" />
+                    </button>
 
-                <button
-                  onClick={() => setIsBatchPasteOpen(true)}
-                  className="h-8.5 w-8.5 rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-200/80 text-slate-700 flex items-center justify-center transition-all active:scale-95 cursor-pointer shadow-2xs"
-                  title="Dán nhanh nhiều thẻ từ Excel / Google Sheets"
-                >
-                  <ClipboardPaste className="w-4 h-4 text-indigo-600" />
-                </button>
+                    {isOwner && (
+                      <>
+                        <button
+                          onClick={() => setIsQuickAddOpen(prev => !prev)}
+                          className={cn(
+                            "h-8.5 w-8.5 rounded-xl border flex items-center justify-center transition-all active:scale-95 cursor-pointer shadow-2xs",
+                            isQuickAddOpen
+                              ? "bg-orange-500 border-orange-500 text-white shadow-orange-500/20"
+                              : "bg-orange-50 hover:bg-orange-100 border-orange-200 text-orange-700"
+                          )}
+                          title="Bật/tắt thanh thêm nhanh thẻ"
+                        >
+                          <Zap className="w-4 h-4 fill-current" />
+                        </button>
 
-                <button
-                  onClick={() => setIsEditModalOpen(true)}
-                  className="h-8.5 w-8.5 rounded-xl bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white flex items-center justify-center shadow-xs shadow-indigo-500/20 active:scale-95 transition-all cursor-pointer"
-                  title="Thêm thẻ mới (đầy đủ chi tiết)"
-                >
-                  <Plus className="w-4 h-4 stroke-[3]" />
-                </button>
-              </div>
+                        <button
+                          onClick={() => setIsBatchPasteOpen(true)}
+                          className="h-8.5 w-8.5 rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-200/80 text-slate-700 flex items-center justify-center transition-all active:scale-95 cursor-pointer shadow-2xs"
+                          title="Dán nhanh nhiều thẻ từ Excel / Google Sheets"
+                        >
+                          <ClipboardPaste className="w-4 h-4 text-indigo-600" />
+                        </button>
+
+                        <button
+                          onClick={() => setIsEditModalOpen(true)}
+                          className="h-8.5 w-8.5 rounded-xl bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white flex items-center justify-center shadow-xs shadow-indigo-500/20 active:scale-95 transition-all cursor-pointer"
+                          title="Thêm thẻ mới (đầy đủ chi tiết)"
+                        >
+                          <Plus className="w-4 h-4 stroke-[3]" />
+                        </button>
+                      </>
+                    )}
+                  </div>
+                </>
+              )}
             </div>
           </div>
         )

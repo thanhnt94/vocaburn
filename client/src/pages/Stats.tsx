@@ -169,10 +169,10 @@ export default function Stats() {
   ]
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC] pb-24 md:pb-16 text-slate-800">
+    <div className="fixed inset-0 top-0 bottom-[60px] md:relative md:inset-auto md:top-auto md:bottom-auto md:min-h-screen flex flex-col bg-[#F8FAFC] overflow-hidden text-left select-none">
       {/* ═══════════ TOP UNIFIED HEADER ═══════════ */}
-      <div className="bg-white/90 backdrop-blur-2xl border-b border-slate-200/70 shadow-2xs px-3.5 sm:px-6 py-3.5 sm:py-4 mb-4 sm:mb-6">
-        <div className="max-w-6xl mx-auto flex items-center gap-3 text-left">
+      <div className="shrink-0 z-30 bg-white/90 backdrop-blur-2xl border-b border-slate-200/70 shadow-2xs px-3.5 sm:px-6 py-3 sm:py-3.5">
+        <div className="max-w-5xl mx-auto flex items-center gap-3 text-left">
           <div className="w-10 h-10 sm:w-11 sm:h-11 bg-slate-900 rounded-2xl flex items-center justify-center text-white shadow-md shadow-slate-900/10 shrink-0">
             <TrendingUp className="w-5 h-5 stroke-[2.2]" />
           </div>
@@ -187,95 +187,100 @@ export default function Stats() {
         </div>
       </div>
 
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 space-y-4 sm:space-y-6">
+      {/* ═══════════ TAB CONTENT AREA (SCROLLABLE - FLEX-1) ═══════════ */}
+      <div className="flex-1 overflow-y-auto custom-scrollbar px-3.5 sm:px-6 py-4">
+        <div className="max-w-5xl mx-auto space-y-4 sm:space-y-6 pb-6">
+          <AnimatePresence mode="wait">
+            {activeTab === 'leaderboard' && (
+              <motion.div
+                key="tab-leaderboard"
+                initial={{ opacity: 0, y: 15 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -15 }}
+                transition={{ duration: 0.2 }}
+              >
+                <LeaderboardTab
+                  data={leaderboardData}
+                  isLoading={isLeaderboardLoading}
+                  activeCategory={leaderboardCategory}
+                  onSelectCategory={setLeaderboardCategory}
+                  timeFilter={leaderboardTimeFilter}
+                  onSelectTimeFilter={setLeaderboardTimeFilter}
+                />
+              </motion.div>
+            )}
 
-        {/* 📌 Sticky Top Main Tabs Bar */}
-        <div className="sticky top-0 z-40 bg-[#F8FAFC]/90 backdrop-blur-xl py-2.5 -mx-4 px-4 sm:-mx-6 sm:px-6 border-b border-slate-200/80 shadow-2xs transition-all">
-          <div className="max-w-6xl mx-auto flex items-center justify-center">
-            <div className="flex bg-slate-200/80 p-1 rounded-2xl border border-slate-300/60 shadow-inner w-full sm:w-auto max-w-lg">
-              {tabs.map(tab => {
-                const Icon = tab.icon
-                const isActive = activeTab === tab.id
-                return (
-                  <button
-                    key={tab.id}
-                    onClick={() => setActiveTab(tab.id)}
-                    className={cn(
-                      "flex-1 sm:flex-none flex items-center justify-center gap-1.5 sm:gap-2 px-2.5 sm:px-5 py-2 rounded-xl text-[10px] sm:text-xs font-black uppercase tracking-wider transition-all whitespace-nowrap cursor-pointer",
-                      isActive
-                        ? "bg-white text-slate-900 shadow-sm border border-slate-200/80 font-black"
-                        : "text-slate-500 hover:text-slate-800 font-bold"
-                    )}
-                  >
-                    <Icon className={cn("w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0", isActive ? tab.color : "text-slate-400")} />
-                    <span className="hidden sm:inline">{tab.label}</span>
-                    <span className="sm:hidden">{tab.shortLabel}</span>
-                  </button>
-                )
-              })}
-            </div>
+            {activeTab === 'personal' && (
+              <motion.div
+                key="tab-personal"
+                initial={{ opacity: 0, y: 15 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -15 }}
+                transition={{ duration: 0.2 }}
+              >
+                <PersonalStatsTab
+                  personalStats={personal}
+                  heatmapData={heatmapData}
+                  weeklyReport={weeklyReport}
+                  leitnerStats={leitnerStats}
+                  speedAccuracyStats={speedAccuracyStats}
+                  forecastData={forecastData}
+                  practiceStats={practiceStats}
+                  dailyComparisonData={dailyComparisonRaw?.days}
+                  dailyComparisonAvg={dailyComparisonRaw?.all_time_avg}
+                  isDailyComparisonLoading={isDailyComparisonLoading}
+                />
+              </motion.div>
+            )}
+
+            {activeTab === 'global' && (
+              <motion.div
+                key="tab-global"
+                initial={{ opacity: 0, y: 15 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -15 }}
+                transition={{ duration: 0.2 }}
+              >
+                <GlobalStatsTab
+                  globalStats={global}
+                  isLoading={isDetailedLoading}
+                />
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+      </div>
+
+      {/* ═══════════ ONE-HAND BOTTOM DOCKED TAB BAR (CĂN CHÍNH GIỮA) ═══════════ */}
+      <div className="shrink-0 z-30 bg-white/95 backdrop-blur-2xl border-t border-slate-200/80 px-3.5 sm:px-6 py-1.5 shadow-[0_-4px_20px_rgba(0,0,0,0.05)]">
+        <div className="max-w-sm sm:max-w-md mx-auto flex items-center justify-center">
+          <div className="grid grid-flow-col auto-cols-fr w-full bg-slate-100/90 p-1 rounded-2xl border border-slate-200/60 shadow-2xs">
+            {tabs.map((tab) => {
+              const Icon = tab.icon
+              const isActive = activeTab === tab.id
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  className={cn(
+                    "relative flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-xl text-xs font-black transition-all select-none cursor-pointer",
+                    isActive ? "text-indigo-600" : "text-slate-500 hover:text-slate-800"
+                  )}
+                >
+                  {isActive && (
+                    <motion.div
+                      layoutId="activeStatsBottomTabPill"
+                      className="absolute inset-0 bg-white rounded-xl shadow-xs border border-slate-200/80"
+                      transition={{ type: "spring", bounce: 0.15, duration: 0.4 }}
+                    />
+                  )}
+                  <Icon className={cn("w-3.5 h-3.5 relative z-10 shrink-0", isActive ? tab.color : "text-slate-400")} />
+                  <span className="relative z-10 text-[11px] sm:text-xs truncate">{tab.label}</span>
+                </button>
+              )
+            })}
           </div>
         </div>
-
-        {/* Tab Content Display */}
-        <AnimatePresence mode="wait">
-          {activeTab === 'leaderboard' && (
-            <motion.div
-              key="tab-leaderboard"
-              initial={{ opacity: 0, y: 15 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -15 }}
-              transition={{ duration: 0.2 }}
-            >
-              <LeaderboardTab
-                data={leaderboardData}
-                isLoading={isLeaderboardLoading}
-                activeCategory={leaderboardCategory}
-                onSelectCategory={setLeaderboardCategory}
-                timeFilter={leaderboardTimeFilter}
-                onSelectTimeFilter={setLeaderboardTimeFilter}
-              />
-            </motion.div>
-          )}
-
-          {activeTab === 'personal' && (
-            <motion.div
-              key="tab-personal"
-              initial={{ opacity: 0, y: 15 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -15 }}
-              transition={{ duration: 0.2 }}
-            >
-              <PersonalStatsTab
-                personalStats={personal}
-                heatmapData={heatmapData}
-                weeklyReport={weeklyReport}
-                leitnerStats={leitnerStats}
-                speedAccuracyStats={speedAccuracyStats}
-                forecastData={forecastData}
-                practiceStats={practiceStats}
-                dailyComparisonData={dailyComparisonRaw?.days}
-                dailyComparisonAvg={dailyComparisonRaw?.all_time_avg}
-                isDailyComparisonLoading={isDailyComparisonLoading}
-              />
-            </motion.div>
-          )}
-
-          {activeTab === 'global' && (
-            <motion.div
-              key="tab-global"
-              initial={{ opacity: 0, y: 15 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -15 }}
-              transition={{ duration: 0.2 }}
-            >
-              <GlobalStatsTab
-                globalStats={global}
-                isLoading={isDetailedLoading}
-              />
-            </motion.div>
-          )}
-        </AnimatePresence>
       </div>
     </div>
   )
