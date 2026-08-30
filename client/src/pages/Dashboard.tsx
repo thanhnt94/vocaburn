@@ -1950,69 +1950,88 @@ export default function Dashboard() {
                   {/* CARD BODY (EXPANDED LAYOUT WITH HERO MASCOT EXPANDING VERTICALLY) */}
                   <div className="flex-1 flex flex-col justify-between p-3.5 sm:p-4 overflow-y-auto [&::-webkit-scrollbar]:hidden gap-3 min-h-0 max-w-lg mx-auto w-full">
                     
-                    {/* HERO MASCOT CARD (PROMINENT & STUNNING) */}
-                    <div className="bg-gradient-to-br from-amber-100/95 via-orange-50/70 to-amber-200/40 border border-orange-200/90 rounded-3xl p-4 sm:p-5 relative overflow-hidden shadow-xs flex flex-row items-center justify-between flex-1 min-h-[180px] sm:min-h-[210px]">
+                    {/* HERO MASCOT CARD (PROMINENT, BOLD & GAMIFIED) */}
+                    <div className="bg-gradient-to-br from-amber-100/95 via-orange-50/70 to-amber-200/50 border border-orange-200/90 rounded-[2rem] p-4 sm:p-5 relative overflow-hidden shadow-xs flex flex-row items-center justify-between flex-1 min-h-[200px] sm:min-h-[225px]">
                       
-                      {/* LEFT SIDE: DECK TITLE, CLEAN STATS & SLOGAN */}
-                      <div className="relative z-20 flex-1 max-w-[62%] sm:max-w-[66%] min-w-0 flex flex-col justify-center gap-2.5 py-0.5">
+                      {/* LEFT SIDE: DECK TITLE, SLOGAN & DEDICATED PROGRESS BLOCK */}
+                      <div className="relative z-20 flex-1 max-w-[62%] sm:max-w-[66%] min-w-0 flex flex-col justify-between h-full py-0.5 gap-2.5">
                         
-                        {/* 1. DECK TITLE & LEVEL */}
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setSelectedStudyQuiz({
-                              id: deck.deck_id,
-                              title: deck.title,
-                              questions_count: st.total_cards || deck.questions_count || 0,
-                              practice_settings: deck.practice_settings
-                            });
-                            setStudyModalTab('flashcard');
-                            setIsStudyModalOpen(true);
-                          }}
-                          className="inline-flex items-center gap-1.5 max-w-full text-left group cursor-pointer"
-                        >
-                          <div className="w-6 h-6 rounded-lg bg-orange-500/15 border border-orange-300/60 flex items-center justify-center text-orange-600 shrink-0 group-hover:scale-105 transition-transform">
-                            <BookOpen className="w-3.5 h-3.5" />
-                          </div>
-                          <span className="text-xs sm:text-sm font-black text-slate-900 truncate group-hover:text-orange-600 transition-colors">
-                            {deck.title}
-                          </span>
-                          {deck.level && (
-                            <span className="px-1.5 py-0.5 rounded-md bg-orange-500/10 text-orange-700 border border-orange-200/60 text-[10px] font-black shrink-0">
-                              {deck.level}
-                            </span>
-                          )}
-                        </button>
+                        {/* 1. TOP ROW: STREAK BADGE & DECK TITLE */}
+                        <div className="space-y-1 min-w-0">
+                          <div className="flex flex-wrap items-center gap-1.5">
+                            {/* 🔥 STREAK BADGE */}
+                            <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-gradient-to-r from-orange-500 via-amber-500 to-orange-600 text-white rounded-full text-xs font-black shadow-md shadow-orange-500/25 shrink-0 animate-pulse">
+                              <Flame className="w-3.5 h-3.5 fill-amber-200 text-amber-200" />
+                              <span>{deckStreak} Day Streak</span>
+                            </div>
 
-                        {/* 2. HARMONIOUS STATS STRIP (STREAK + MASTERY PROGRESS & EST. DATE) */}
-                        <div className="flex flex-wrap items-center gap-1.5">
-                          {/* 🔥 STREAK */}
-                          <div className="inline-flex items-center gap-1 px-2.5 py-0.5 bg-gradient-to-r from-orange-500 to-amber-500 text-white rounded-full text-[11px] font-black shadow-2xs shrink-0 animate-pulse">
-                            <Flame className="w-3 h-3 fill-amber-200 text-amber-200" />
-                            <span>{deckStreak} Day Streak</span>
-                          </div>
-
-                          {/* 🎓 MASTERY PROGRESS & ESTIMATED DATE */}
-                          <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 bg-white/80 backdrop-blur-xs text-slate-800 border border-orange-200/80 rounded-full text-[10px] sm:text-[11px] font-bold shadow-2xs shrink-0">
-                            <span className="font-black text-slate-900">{learnedCards}/{totalCards} words</span>
-                            <span className="text-orange-600 font-black">({totalCards > 0 ? Math.round((learnedCards / totalCards) * 100) : 0}%)</span>
-                            <span className="text-slate-300">•</span>
-                            {isDeckAllLearned ? (
-                              <span className="text-emerald-700 font-extrabold">Mastered 🎉</span>
-                            ) : (
-                              <span className="text-slate-500">Est: {estimatedDateText}</span>
+                            {deck.level && (
+                              <span className="px-2 py-0.5 rounded-full bg-slate-900 text-amber-300 text-[10px] font-black uppercase tracking-wider shadow-2xs shrink-0">
+                                {deck.level}
+                              </span>
                             )}
                           </div>
+
+                          {/* DECK TITLE */}
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setSelectedStudyQuiz({
+                                id: deck.deck_id,
+                                title: deck.title,
+                                questions_count: st.total_cards || deck.questions_count || 0,
+                                practice_settings: deck.practice_settings
+                              });
+                              setStudyModalTab('flashcard');
+                              setIsStudyModalOpen(true);
+                            }}
+                            className="inline-flex items-center gap-1.5 max-w-full text-left group cursor-pointer pt-0.5"
+                          >
+                            <BookOpen className="w-4 h-4 text-orange-600 shrink-0 group-hover:scale-110 transition-transform" />
+                            <span className="text-xs sm:text-sm font-extrabold text-slate-800 truncate group-hover:text-orange-600 transition-colors">
+                              {deck.title}
+                            </span>
+                          </button>
                         </div>
 
-                        {/* 3. INSPIRING SLOGAN */}
-                        <div className="flex flex-col gap-0.5 pt-0.5">
-                          <h2 className="text-sm sm:text-base font-black text-slate-900 tracking-tight leading-tight">
+                        {/* 2. INSPIRING SLOGAN (BIG & BOLD) */}
+                        <div className="flex flex-col gap-0.5">
+                          <h2 className="text-base sm:text-lg font-black text-slate-900 tracking-tight leading-tight">
                             {mascotLine1}
                           </h2>
-                          <p className="text-[11px] sm:text-xs font-bold text-slate-600 leading-snug">
+                          <p className="text-xs sm:text-[13px] font-bold text-slate-600 leading-snug">
                             {mascotLine2}
                           </p>
+                        </div>
+
+                        {/* 3. DEDICATED GAMIFIED PROGRESS BOX (CLEAR NUMBERS, % BADGE & PROGRESS BAR) */}
+                        <div className="bg-white/90 backdrop-blur-md border border-orange-200/80 rounded-2xl p-2.5 sm:p-3 shadow-xs space-y-1.5">
+                          {/* Numbers & Percentage Badge */}
+                          <div className="flex items-center justify-between gap-1">
+                            <div className="flex items-baseline gap-1">
+                              <span className="text-sm sm:text-base font-black text-slate-900">{learnedCards.toLocaleString()}</span>
+                              <span className="text-[11px] font-semibold text-slate-400">/ {totalCards.toLocaleString()} words</span>
+                            </div>
+                            <span className="px-2 py-0.5 rounded-lg bg-orange-500/10 text-orange-600 font-black text-xs sm:text-sm tabular-nums border border-orange-200/60">
+                              {totalCards > 0 ? Math.round((learnedCards / totalCards) * 100) : 0}%
+                            </span>
+                          </div>
+
+                          {/* Glowing Gradient Progress Bar */}
+                          <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden p-0.5 border border-slate-200/50">
+                            <div 
+                              className="h-full rounded-full bg-gradient-to-r from-orange-500 via-amber-400 to-emerald-400 transition-all duration-500 shadow-2xs"
+                              style={{ width: `${totalCards > 0 ? Math.min(100, Math.round((learnedCards / totalCards) * 100)) : 0}%` }}
+                            />
+                          </div>
+
+                          {/* Target Date & Words Remaining */}
+                          <div className="flex items-center justify-between text-[10px] text-slate-500 font-semibold pt-0.5">
+                            <span>{isDeckAllLearned ? '🎉 Mastered' : `Est: ${estimatedDateText}`}</span>
+                            {totalCards > learnedCards && (
+                              <span className="text-orange-600 font-bold">{(totalCards - learnedCards).toLocaleString()} left</span>
+                            )}
+                          </div>
                         </div>
 
                       </div>
