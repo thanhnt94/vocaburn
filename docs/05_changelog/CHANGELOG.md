@@ -1,0 +1,97 @@
+# 📝 Nhật ký Chỉnh sửa Vocaburn (Changelog)
+
+Tài liệu này lưu lại lịch sử thay đổi cấu trúc, tính năng, và các bản vá lỗi của dự án Vocaburn.
+
+---
+
+### [2026-08-30]
+#### Rà Soát, Chuẩn Hóa 100% Codebase & Quy Hoạch Cây Thư Mục Tài Liệu (`docs/`)
+- **Quy Hoạch Cây Thư Mục Tài Liệu Thành 5 Phân Nhóm Chuyên Trách**:
+  - `docs/README.md`: Mục lục điều hướng trung tâm liên kết toàn bộ tài liệu dự án.
+  - `01_architecture/`: Chứa `MODULE_STRUCTURE.md`, `DATABASE_STRUCTURE.md`, `ECOSYSTEM_INTEGRATION.md`.
+  - `02_api_reference/`: Chứa `API_REFERENCE.md`.
+  - `03_features_and_ui/`: Chứa `STUDY_HEADER_TRACKER.md`.
+  - `04_development_and_ops/`: Chứa `DEVELOPMENT_RULES.md`, `FRONTEND_GUIDE.md`.
+  - `05_changelog/`: Chứa `CHANGELOG.md`.
+- **Khắc Phục 100% Sai Lệch Schema Cơ Sở Dữ Liệu (`DATABASE_STRUCTURE.md`)**:
+  - Bổ sung tài liệu bảng trọng tâm `user_global_settings` phục vụ chính sách Không localStorage (**No-localStorage Directive**).
+  - Loại bỏ bảng lỗi thời `user_global_goals`.
+  - Bổ sung tài liệu 7 bảng thực tế đang hoạt động: `roadmap_pipeline_history`, `deck_rooms`, `deck_room_participants`, `deck_room_chats`, `xp_transactions`, `user_daily_activities`, `user_badges`, `point_transactions`, `notifications`, `push_subscriptions`, `user_telegram_configs`, `admin_logs`.
+  - Chuẩn hóa các trường `last_due` trong `user_card_mastery`, `is_frozen` trong `user_daily_stats`, `is_rescued` trong `user_daily_progress`.
+- **Đồng Bộ Hoá Danh Mục REST API (`API_REFERENCE.md`)**:
+  - Bổ sung endpoint cấu hình cá nhân `GET /api/v1/user/settings` và `PATCH /api/v1/user/settings`.
+  - Bổ sung endpoint ôn tập ngày `GET /api/v1/deck/today-review`.
+  - Chuẩn hóa thông tin trả về của `/auth/me` kèm payload `settings`.
+- **Đồng Bộ Quy Chuẩn Phát Triển & AI Operating Rules (`DEVELOPMENT_RULES.md`)**:
+  - Cập nhật quy tắc bắt buộc về di cư database chỉ qua Alembic (`alembic upgrade head`).
+  - Cập nhật quy tắc cấm chạy `npm run build` và cấm polling SSH trong lượt của AI Agent.
+
+---
+
+### [2026-08-28]
+#### Tái Cấu Trúc & Module Hóa Toàn Diện Phân Hệ Deck (Frontend)
+- **Chuẩn hóa đặt tên Tiền tố `Deck...`**:
+  - Gom toàn bộ các component và tab của phân hệ Deck vào thư mục chuyên trách `client/src/components/deck/`.
+  - Phân rã 4 tệp khổng lồ (>7.500 dòng code) thành 4 tab tinh gọn: `DeckOverviewTab.tsx`, `DeckCardsTab.tsx`, `DeckRoadmapTab.tsx`, `DeckSettingsTab.tsx`.
+- **Tách nhỏ Sub-components độc lập & Tái sử dụng**:
+  - `cards/`: `DeckCardItem.tsx`, `DeckCardQuickAdd.tsx`, `DeckCardBatchPasteModal.tsx`, `DeckCardEditModal.tsx`, `DeckCardFilterBar.tsx`.
+  - `overview/`: `DeckFsrsStatsCard.tsx`, `DeckQuickStudyLauncher.tsx`, `DeckRecentHistory.tsx`.
+  - `roadmap/`: `DeckRoadmapPipelineCard.tsx`, `DeckRoadmapGoalForm.tsx`.
+  - `settings/`: `DeckGeneralForm.tsx`, `DeckPracticeConfig.tsx`, `DeckAutomationTools.tsx`, `DeckExcelManager.tsx`, `DeckDangerZone.tsx`, `DeckCollaboratorsModal.tsx`.
+  - `modals/`: `DeckStudyModal.tsx`, `DeckCreateModal.tsx`, `DeckJoinRoomModal.tsx`.
+- **Tối ưu hóa `DecksPage.tsx` & `DeckDetailPage.tsx`**:
+  - Tích hợp các modal dùng chung, giảm hơn 200 dòng inline modal code trong `DecksPage.tsx`.
+  - Kết nối hệ thống tab switcher mượt mà bằng Framer Motion trong `DeckDetailPage.tsx`.
+- **Dọn dẹp Dead Code**:
+  - Loại bỏ hoàn toàn 6 file cũ: `FlashcardDetail.tsx`, `EditFlashcards.tsx`, `EditFlashcard.tsx`, `DeckRoadmap.tsx`, `Library.tsx`, `ManageFlashcards.tsx`.
+  - Xác thực TypeScript không có lỗi (`npx tsc --noEmit` code 0).
+
+---
+
+### [2026-08-15]
+#### Nâng Cấp Giao Diện Header Bar Chế Độ Lộ Trình (Roadmap Pro Live HUD Header Bar)
+- **Thiết kế Pro Live HUD Header Bar (`StudyHeaderTracker.tsx`)**:
+  - Tái cấu trúc thanh Header trong chế độ Roadmap (`/flashcard/:id/play?mode=roadmap` và `/practice/:id`) sang phong cách **Dark Glassmorphism** cao cấp (`backdrop-blur-2xl`, viền neon mờ, badge sắc nét).
+  - Tích hợp cụm **Pro HUD Chips** bên phải hiển thị đầy đủ thông tin thời gian thực:
+    - **Live Card & Session Timer (⏱️)**: Đếm thời gian làm từng thẻ (reset tự động khi chuyển thẻ) và hỗ trợ click để chuyển đổi chế độ xem: Thời gian thẻ này (Card Time) ➔ Thời gian học hôm nay (Today Time) ➔ Tổng thời gian (Total Time).
+    - **Điểm XP & Gamification (🏆 / ⚡)**: Hiển thị XP đạt được trong ngày và tổng XP với hiệu ứng nhảy số động `popLayout`.
+    - **Chuỗi ngày học Streak (🔥)**: Hiệu ứng pulse và đếm ngày liên tục rực rỡ.
+  - Tích hợp **Pipeline Stepper**: Hiển thị rõ ràng các bước trong lộ trình (Học từ mới, Trắc nghiệm MCQ, Ôn tập FSRS...) với tiến độ thẻ chi tiết (`10 / 20`), icon sinh động và hiệu ứng phát sáng cho bước đang kích hoạt.
+  - Nút thoát phiên học (`X`) thiết kế phong cách glassmorphism mượt mà.
+  - Tương thích Responsive: Hiển thị pipeline đa bước trên Desktop/Tablet và tự động thu gọn thành pill active tinh gọn trên Mobile.
+- **Đồng bộ hóa giao diện FlashcardPlay & PracticePlay (`FlashcardPlay.tsx`, `PracticePlay.tsx`)**:
+  - Truyền đầy đủ trạng thái thời gian, điểm XP, streak và tiến độ thẻ sang cho `StudyHeaderTracker`.
+  - Thanh tiến trình viền dưới Header (*Glow Underline Progress Bar*) chuyển động mượt mà với dải màu gradient `amber ➔ rose ➔ indigo` phản hồi theo tiến độ hoàn thành mục tiêu ngày.
+
+---
+
+### [2026-08-08]
+#### Cập Nhật & Sửa Lỗi Lộ Trình (Roadmap & Dashboard Enhancements)
+- **Sửa Lỗi Đếm Tiến Trình Bài Học Flashcard (`FlashcardPlay.tsx`)**:
+  - Khắc phục triệt để lỗi hiển thị `20/20` ngay khi vừa bấm vào học từ mới. Loại bỏ việc cộng dồn `sessionAnswers.length` vào số đếm bài học hàng ngày.
+  - Sử dụng trực tiếp dữ liệu chuẩn hóa từ Backend API (`progress.learned`, `progress.reviewed_today`) và xử lý nullish coalescing `?? 0` chính xác cho `0/20` khi bắt đầu ngày mới.
+- **Tái Thiết Kế Nút Hành Động CTA Dashboard (`Dashboard.tsx`)**:
+  - Chuyển đổi tên bước chính ở dòng 1 sang dạng **IN HOA NỔI BẬT** (`HỌC TỪ MỚI`, `TRẮC NGHIỆM MCQ`, `ÔN TẬP FSRS`, `ĐÃ HOÀN THÀNH ✓`) với font chữ font-black tracking-widest, nâng cao tính trực quan.
+- **Bổ Sung Đếm Ngược Thời Gian Còn Lại Trong Ngày (`Dashboard.tsx`)**:
+  - Thêm thẻ đồng hồ đếm ngược thời gian thực (`⏱️ Còn HHh MMm SSs`) ngay trong Hero Mascot Card trên Dashboard để người học dễ dàng theo dõi thời gian còn lại hoàn thành chỉ tiêu trước nửa đêm.
+
+---
+
+### [2026-07-28]
+#### Chuẩn hóa và Đồng bộ Tài liệu
+- **Cập nhật `docs/API_REFERENCE.md`**:
+  - Khắc phục lỗi viết sai tiền tố URL từ `/quiz/` thành `/deck/` để khớp hoàn toàn với mã nguồn backend FastAPI.
+  - Bổ sung đầy đủ tất cả endpoint về Multiplayer Room, tương tác thẻ (Notes, Star, Ignore), đóng góp ý kiến bình luận (Card Contributions), thống kê học tập chuyên sâu, và hệ thống thông báo đẩy (Web Push/Telegram Bot).
+- **Cập nhật `docs/DATABASE_STRUCTURE.md`**:
+  - Bổ sung chi tiết schema của 12 bảng cơ sở dữ liệu thực tế đang chạy.
+
+---
+
+### [2026-07-24]
+#### Tái cấu trúc & Chuẩn hóa Hệ thống Tài liệu (.md)
+- **Chuẩn hóa `README.md` Thư mục Gốc**:
+  - Gỡ bỏ hoàn toàn tên dự án cũ QuizMind, cổng cũ 5080 và lệnh cũ `run_quizmind.py`.
+  - Cập nhật chính xác tên **Vocaburn**, cổng quy định **5090**, thuật toán **FSRS v6**, và hướng dẫn khởi chạy standalone `python run_vocaburn.py`.
+- **Hợp nhất Thư mục Tài liệu (Single Source of Truth)**:
+  - Loại bỏ hoàn toàn thư mục dư thừa `.docs/`.
+  - Quy tụ toàn bộ tài liệu kỹ thuật dự án vào thư mục duy nhất `docs/`.

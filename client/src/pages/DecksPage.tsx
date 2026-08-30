@@ -5,7 +5,7 @@ import {
   Search, Plus, ChevronRight, ChevronLeft, Archive, 
   RotateCcw, Users, Brain, Trophy, X, MoreHorizontal,
   Play, Sparkles, BookOpen, Layers, Eye, Check, Calendar,
-  Compass
+  Compass, ChevronDown
 } from 'lucide-react'
 import { useAppStore } from '@/store/useAppStore'
 import { cn } from '@/lib/utils'
@@ -499,17 +499,33 @@ export default function DecksPage() {
                           </div>
                         </div>
 
-                        {/* 3-Dots Action Sheet Trigger */}
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            setActionSheetQuiz(quiz)
-                          }}
-                          className="w-8 h-8 rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-200/60 text-slate-400 hover:text-slate-700 transition-all flex items-center justify-center cursor-pointer shrink-0 shadow-2xs active:scale-95"
-                          title="Tùy chọn khác"
-                        >
-                          <MoreHorizontal className="w-4 h-4" />
-                        </button>
+                        {/* Top-Right: Quick Archive button (Replaced redundant 3-dots button) */}
+                        {activeTab === 'my' && (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              if (window.confirm(`Ẩn bộ thẻ "${quiz.title}" vào kho lưu trữ?`)) {
+                                archiveMutation.mutate(quiz.id)
+                              }
+                            }}
+                            className="w-8 h-8 rounded-xl bg-slate-50 hover:bg-rose-50 border border-slate-200/60 hover:border-rose-200 text-slate-400 hover:text-rose-600 transition-all flex items-center justify-center cursor-pointer shrink-0 shadow-2xs active:scale-95"
+                            title="Ẩn vào kho lưu trữ"
+                          >
+                            <Archive className="w-3.5 h-3.5" />
+                          </button>
+                        )}
+                        {activeTab === 'archived' && (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              archiveMutation.mutate(quiz.id)
+                            }}
+                            className="w-8 h-8 rounded-xl bg-slate-50 hover:bg-slate-900 border border-slate-200/60 text-slate-400 hover:text-white transition-all flex items-center justify-center cursor-pointer shrink-0 shadow-2xs active:scale-95"
+                            title="Khôi phục vào danh sách học"
+                          >
+                            <RotateCcw className="w-3.5 h-3.5" />
+                          </button>
+                        )}
                       </div>
 
                       {/* Middle Row: Progress presentation (Clean, high-contrast & sleek) */}
@@ -590,35 +606,38 @@ export default function DecksPage() {
                           )}
                         </div>
 
-                        {/* Right: Primary Study CTA & Archive */}
+                        {/* Right: Primary Study CTA (Split Button with Default FSRS & Mode Selector Dropdown) */}
                         <div className="flex items-center gap-1.5 shrink-0">
                           {activeTab === 'my' && (
-                            <>
+                            <div className="inline-flex items-center rounded-xl shadow-md shadow-indigo-200 hover:shadow-indigo-300 transition-all overflow-hidden bg-gradient-to-r from-indigo-600 via-indigo-600 to-purple-600 group/btn">
+                              {/* Direct Launch Button: Default FSRS Mode */}
                               <button
                                 onClick={(e) => {
                                   e.stopPropagation()
-                                  handleStudyTrigger(quiz, 'flashcard')
+                                  navigate(`/flashcard/${quiz.id}/play?mode=fsrs`)
                                 }}
-                                className="h-9 px-3.5 sm:px-4 rounded-xl bg-gradient-to-r from-indigo-600 via-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-black text-xs shadow-md shadow-indigo-200 hover:shadow-indigo-300 active:scale-95 transition-all flex items-center gap-1.5 cursor-pointer"
-                                title="Học Flashcard bộ thẻ này"
+                                className="h-9 pl-3.5 pr-2.5 hover:bg-white/10 text-white font-black text-xs active:scale-[0.98] transition-all flex items-center gap-1.5 cursor-pointer select-none"
+                                title="Học Flashcard FSRS thông minh ngay"
                               >
                                 <Play className="w-3.5 h-3.5 fill-current" />
                                 <span>Học ngay</span>
                               </button>
 
+                              {/* Subtle Divider */}
+                              <div className="w-[1px] h-4.5 bg-white/25 shrink-0" />
+
+                              {/* Dropdown Arrow: Open Flashcard Modes Selection */}
                               <button
                                 onClick={(e) => {
                                   e.stopPropagation()
-                                  if (window.confirm(`Ẩn bộ thẻ "${quiz.title}" vào kho lưu trữ?`)) {
-                                    archiveMutation.mutate(quiz.id)
-                                  }
+                                  handleStudyTrigger(quiz, 'flashcard')
                                 }}
-                                className="w-9 h-9 rounded-xl bg-slate-50 hover:bg-rose-50 border border-slate-200/80 hover:border-rose-200 text-slate-400 hover:text-rose-600 transition-all flex items-center justify-center cursor-pointer shadow-2xs active:scale-95"
-                                title="Ẩn vào kho lưu trữ"
+                                className="h-9 px-2 hover:bg-white/15 text-white/90 hover:text-white active:scale-[0.98] transition-all flex items-center justify-center cursor-pointer select-none"
+                                title="Tùy chọn chế độ học Flashcard (FSRS, Lộ trình, Lật thẻ tự do, Ôn tập...)"
                               >
-                                <Archive className="w-4 h-4" />
+                                <ChevronDown className="w-3.5 h-3.5 stroke-[2.5]" />
                               </button>
-                            </>
+                            </div>
                           )}
 
                           {activeTab === 'discover' && (

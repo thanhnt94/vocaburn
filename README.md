@@ -20,28 +20,28 @@ Vocaburn (Root)
 │   ├── modules/                # 8 Module nghiệp vụ cô lập
 │   │   ├── admin/              # Dashboard quản lý cấu hình hệ thống & nhật ký admin
 │   │   ├── ai/                 # Tích hợp Gemini AI giải thích từ vựng/ngữ pháp
-│   │   ├── auth/               # Xác thực tài khoản local, băm mật khẩu & phiên làm việc
-│   │   ├── deck/               # Quản lý bộ Flashcard, lượt học, chấm điểm & FSRS v6
-│   │   ├── gamification/       # Quản lý XP, Cấp độ, Chuỗi ngày (Streak) & Huy hiệu (Badge)
-│   │   ├── notification/       # Quản lý thông báo đẩy & nhắc nhở qua Telegram Bot
+│   │   ├── auth/               # Xác thực tài khoản local, băm mật khẩu & đồng bộ user settings
+│   │   ├── deck/               # Quản lý bộ Flashcard, lượt học, chấm điểm, Roadmap & FSRS v6
+│   │   ├── gamification/       # Quản lý XP, Cấp độ, Chuỗi ngày (Streak), Freeze & Huy hiệu (Badge)
+│   │   ├── notification/       # Quản lý thông báo đẩy (Web Push) & nhắc nhở qua Telegram Bot
 │   │   ├── sso_module/         # Single Sign-On Client, callback & Handshake DB với CentralAuth
 │   │   └── stats/              # Phân tích & Ghi nhận thống kê tiến trình học tập hàng ngày
 │   ├── static/                 # Tài nguyên tĩnh & Thư mục đóng gói Production Frontend (`static/dist`)
 │   └── main.py                 # Core Application Router, Middleware, Lifecycle & SPA Handler
 ├── client/                     # React 19 + TypeScript + Vite + Tailwind v4 SPA Frontend
 │   ├── src/
-│   │   ├── components/         # Component UI dùng chung & layout glassmorphism
-│   │   ├── pages/              # Màn hình ứng dụng (Dashboard, FlashcardPlay, EditFlashcards...)
-│   │   ├── store/              # Zustand global state (useAppStore, useAuthStore)
+│   │   ├── components/         # Component UI dùng chung, layout glassmorphism & phân hệ deck/
+│   │   ├── pages/              # 15 Màn hình ứng dụng (Dashboard, FlashcardPlay, DecksPage...)
+│   │   ├── store/              # Zustand global state (useAppStore.ts đồng bộ DB)
 │   │   └── lib/                # Utility helpers & API Axios client
 │   └── package.json
 ├── docs/                       # Thư mục Tài liệu Kỹ thuật Duy nhất (Single Source of Truth)
-│   ├── MODULE_STRUCTURE.md     # Chi tiết cấu trúc các Module Backend & Frontend
-│   ├── DATABASE_STRUCTURE.md   # Cấu trúc Cơ sở Dữ liệu & Schema FSRS v6
-│   ├── API_REFERENCE.md        # Danh sách REST API Endpoints chuẩn (/api/v1/...)
-│   ├── DEVELOPMENT_RULES.md    # Quy tắc phát triển, Hygiene (tmp/scratch) & Deployment
-│   ├── ECOSYSTEM_INTEGRATION.md# Hướng dẫn kết nối SSO CentralAuth, Handshake & Backdoor
-│   └── CHANGELOG.md            # Lịch sử cập nhật dự án
+│   ├── README.md               # Mục lục Điều hướng Trung tâm (Documentation Hub)
+│   ├── 01_architecture/        # Kiến trúc Hệ thống & Cơ sở Dữ liệu
+│   ├── 02_api_reference/       # Danh mục REST API Endpoints chuẩn (/api/v1/...)
+│   ├── 03_features_and_ui/     # Tính năng Nghiệp vụ & Giao diện (HUD Tracker Bar)
+│   ├── 04_development_and_ops/ # Quy chuẩn Phát triển, No-localStorage, Alembic & Frontend
+│   └── 05_changelog/           # Lịch sử Nâng cấp & Nhật ký cập nhật
 ├── build_vite.py               # Script tự động biên dịch Frontend sang `app/static/dist`
 ├── run_vocaburn.py             # Script khởi chạy Standalone duy nhất cho Vocaburn
 └── requirements.txt            # Thư viện Python phụ thuộc
@@ -62,7 +62,7 @@ Vocaburn áp dụng chuẩn FSRS v6 để tối ưu hóa thời gian ôn tập t
 - **Hệ thống Điểm số (XP)**: Cộng +10 XP cho câu trả lời đúng, +2 XP cho nỗ lực trả lời sai.
 - **Chuỗi ngày học (Streak)**: Theo dõi và bảo vệ streak hàng ngày, hỗ trợ nhắc nhở qua Telegram Bot.
 - **Huy hiệu Thành tựu (Badges)**: Tự động mở khóa các danh hiệu đặc biệt (Speed Demon, Perfect Score, Goal Crusher).
-- **Lộ trình Bộ thẻ (Deck Roadmap)**: Cho phép thiết lập chỉ tiêu số thẻ mới cần học và số thẻ tối đa cần ôn tập mỗi ngày cho từng bộ flashcard.
+- **Lộ trình Bộ thẻ (Deck Roadmap)**: Cho phép thiết lập pipeline các chặng học (Từ mới ➔ MCQ ➔ FSRS ➔ Test Mode) cho từng bộ flashcard.
 
 ### 🤖 Trợ lý AI Giải thích Từ vựng Gemini AI
 - Tích hợp Google Gemini API chạy qua Background Task để tạo giải thích từ vựng và ngữ pháp chuyên sâu (`ai_explanation`).
@@ -105,11 +105,16 @@ Khi cần chỉnh sửa mã nguồn client và xem thay đổi ngay lập tức:
 
 ---
 
-## 4. Tham chiếu Tài liệu Kỹ thuật
+## 4. Tham chiếu Tài liệu Kỹ thuật Chi tiết
 
-- **Kiến trúc Module Backend & Client**: Xem [docs/MODULE_STRUCTURE.md](file:///c:/Code/Ecosystem/Vocaburn/docs/MODULE_STRUCTURE.md)
-- **Cấu trúc Cơ sở Dữ liệu & FSRS Schema**: Xem [docs/DATABASE_STRUCTURE.md](file:///c:/Code/Ecosystem/Vocaburn/docs/DATABASE_STRUCTURE.md)
-- **Danh sách REST API Endpoints**: Xem [docs/API_REFERENCE.md](file:///c:/Code/Ecosystem/Vocaburn/docs/API_REFERENCE.md)
-- **Quy tắc Phát triển & Deploy VPS**: Xem [docs/DEVELOPMENT_RULES.md](file:///c:/Code/Ecosystem/Vocaburn/docs/DEVELOPMENT_RULES.md)
-- **Tích hợp SSO CentralAuth**: Xem [docs/ECOSYSTEM_INTEGRATION.md](file:///c:/Code/Ecosystem/Vocaburn/docs/ECOSYSTEM_INTEGRATION.md)
-- **Hướng dẫn Phát triển Frontend**: Xem [client/README.md](file:///c:/Code/Ecosystem/Vocaburn/client/README.md)
+Toàn bộ tài liệu kỹ thuật đã được phân loại chuẩn tại thư mục [docs/](file:///c:/Users/thanh/OneDrive/CodeHub/Ecosystem/Vocaburn/docs/README.md):
+
+- 🧭 **Mục lục Điều hướng Trung tâm**: [docs/README.md](file:///c:/Users/thanh/OneDrive/CodeHub/Ecosystem/Vocaburn/docs/README.md)
+- 🏗️ **Kiến trúc Module Backend & Client**: [docs/01_architecture/MODULE_STRUCTURE.md](file:///c:/Users/thanh/OneDrive/CodeHub/Ecosystem/Vocaburn/docs/01_architecture/MODULE_STRUCTURE.md)
+- 🗄️ **Cấu trúc Cơ sở Dữ liệu & FSRS Schema**: [docs/01_architecture/DATABASE_STRUCTURE.md](file:///c:/Users/thanh/OneDrive/CodeHub/Ecosystem/Vocaburn/docs/01_architecture/DATABASE_STRUCTURE.md)
+- 🔌 **Tích hợp SSO CentralAuth & Handshake**: [docs/01_architecture/ECOSYSTEM_INTEGRATION.md](file:///c:/Users/thanh/OneDrive/CodeHub/Ecosystem/Vocaburn/docs/01_architecture/ECOSYSTEM_INTEGRATION.md)
+- 📡 **Danh sách REST API Endpoints**: [docs/02_api_reference/API_REFERENCE.md](file:///c:/Users/thanh/OneDrive/CodeHub/Ecosystem/Vocaburn/docs/02_api_reference/API_REFERENCE.md)
+- 🧭 **Đặc tả Live HUD Tracker Bar**: [docs/03_features_and_ui/STUDY_HEADER_TRACKER.md](file:///c:/Users/thanh/OneDrive/CodeHub/Ecosystem/Vocaburn/docs/03_features_and_ui/STUDY_HEADER_TRACKER.md)
+- ⚙️ **Quy tắc Phát triển & Deploy VPS**: [docs/04_development_and_ops/DEVELOPMENT_RULES.md](file:///c:/Users/thanh/OneDrive/CodeHub/Ecosystem/Vocaburn/docs/04_development_and_ops/DEVELOPMENT_RULES.md)
+- ⚛️ **Hướng dẫn Phát triển Frontend**: [docs/04_development_and_ops/FRONTEND_GUIDE.md](file:///c:/Users/thanh/OneDrive/CodeHub/Ecosystem/Vocaburn/docs/04_development_and_ops/FRONTEND_GUIDE.md)
+- 📝 **Nhật ký Thay đổi (Changelog)**: [docs/05_changelog/CHANGELOG.md](file:///c:/Users/thanh/OneDrive/CodeHub/Ecosystem/Vocaburn/docs/05_changelog/CHANGELOG.md)
