@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { Trophy, User, Globe, TrendingUp, Zap, BrainCircuit } from 'lucide-react'
+import { Trophy, User, Globe, TrendingUp, Zap, BrainCircuit, Clock } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import axios from 'axios'
 import { cn } from '@/lib/utils'
@@ -187,17 +187,18 @@ export default function Stats() {
         </div>
       </div>
 
-      {/* ═══════════ TAB CONTENT AREA (SCROLLABLE - FLEX-1) ═══════════ */}
-      <div className="flex-1 overflow-y-auto custom-scrollbar px-3.5 sm:px-6 py-4">
-        <div className="max-w-5xl mx-auto space-y-4 sm:space-y-6 pb-6">
+      {/* ═══════════ TAB CONTENT AREA (SCROLLABLE OR FLEX-1) ═══════════ */}
+      <div className="flex-1 min-h-0 flex flex-col overflow-hidden px-3.5 sm:px-6 py-2.5 sm:py-3">
+        <div className="max-w-5xl mx-auto w-full flex-1 min-h-0 flex flex-col overflow-hidden">
           <AnimatePresence mode="wait">
             {activeTab === 'leaderboard' && (
               <motion.div
                 key="tab-leaderboard"
-                initial={{ opacity: 0, y: 15 }}
+                initial={{ opacity: 0, y: 8 }}
                 animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -15 }}
-                transition={{ duration: 0.2 }}
+                exit={{ opacity: 0, y: -8 }}
+                transition={{ duration: 0.15 }}
+                className="h-full flex flex-col min-h-0"
               >
                 <LeaderboardTab
                   data={leaderboardData}
@@ -213,10 +214,11 @@ export default function Stats() {
             {activeTab === 'personal' && (
               <motion.div
                 key="tab-personal"
-                initial={{ opacity: 0, y: 15 }}
+                initial={{ opacity: 0, y: 8 }}
                 animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -15 }}
-                transition={{ duration: 0.2 }}
+                exit={{ opacity: 0, y: -8 }}
+                transition={{ duration: 0.15 }}
+                className="h-full overflow-y-auto custom-scrollbar space-y-4 pb-6"
               >
                 <PersonalStatsTab
                   personalStats={personal}
@@ -236,10 +238,11 @@ export default function Stats() {
             {activeTab === 'global' && (
               <motion.div
                 key="tab-global"
-                initial={{ opacity: 0, y: 15 }}
+                initial={{ opacity: 0, y: 8 }}
                 animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -15 }}
-                transition={{ duration: 0.2 }}
+                exit={{ opacity: 0, y: -8 }}
+                transition={{ duration: 0.15 }}
+                className="h-full overflow-y-auto custom-scrollbar space-y-4 pb-6"
               >
                 <GlobalStatsTab
                   globalStats={global}
@@ -251,74 +254,84 @@ export default function Stats() {
         </div>
       </div>
 
-      {/* ═══════════ TIER 1: LEADERBOARD FILTER TOOLBAR (CATEGORY & TIME) ═══════════ */}
+      {/* ═══════════ TIER 1: LEADERBOARD FILTER CONTROLS (2 DISTINCT ROWS WITH LEADING ICONS) ═══════════ */}
       {activeTab === 'leaderboard' && (
-        <div className="shrink-0 z-30 bg-white/95 backdrop-blur-2xl border-t border-slate-200/80 px-3.5 sm:px-6 py-2 shadow-[0_-2px_10px_rgba(0,0,0,0.03)] space-y-1.5">
+        <div className="shrink-0 z-30 bg-white/95 backdrop-blur-2xl border-t border-slate-200/80 px-3 sm:px-6 py-2 shadow-[0_-2px_10px_rgba(0,0,0,0.03)] space-y-1.5">
           <div className="max-w-sm sm:max-w-md mx-auto space-y-1.5">
-            {/* Row 1: Category Filter */}
-            <div className="grid grid-flow-col auto-cols-fr w-full bg-slate-100/90 p-1 rounded-2xl border border-slate-200/60 shadow-2xs">
-              {(['xp', 'streak', 'questions', 'accuracy'] as const).map((cat) => {
-                const isActive = leaderboardCategory === cat
-                const labels: Record<string, { label: string, icon: string }> = { 
-                  xp: { label: 'XP', icon: '⚡' }, 
-                  streak: { label: 'Streak', icon: '🔥' }, 
-                  questions: { label: 'Cards', icon: '🎯' }, 
-                  accuracy: { label: 'Accuracy', icon: '⏱️' } 
-                }
-                return (
-                  <button
-                    key={cat}
-                    onClick={() => setLeaderboardCategory(cat)}
-                    className={cn(
-                      "relative flex items-center justify-center gap-1 py-1.5 px-2 rounded-xl text-xs font-black transition-all select-none cursor-pointer",
-                      isActive ? "text-orange-600 font-black" : "text-slate-500 hover:text-slate-800 font-bold"
-                    )}
-                  >
-                    {isActive && (
-                      <motion.div
-                        layoutId="activeLeaderboardCategoryPill"
-                        className="absolute inset-0 bg-white rounded-xl shadow-xs border border-slate-200/80"
-                        transition={{ type: "spring", bounce: 0.15, duration: 0.4 }}
-                      />
-                    )}
-                    <span className="relative z-10 text-[11px] sm:text-xs">{labels[cat].icon}</span>
-                    <span className="relative z-10 text-[10.5px] sm:text-xs truncate">{labels[cat].label}</span>
-                  </button>
-                )
-              })}
+            {/* Row 1: Category Filter with Leading Icon & Label */}
+            <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1 text-[9.5px] font-black uppercase tracking-wider text-slate-400 w-12 shrink-0">
+                <Zap className="w-3.5 h-3.5 text-amber-500 shrink-0" />
+                <span>Type</span>
+              </div>
+              <div className="grid grid-flow-col auto-cols-fr w-full bg-slate-100/90 p-0.5 rounded-xl border border-slate-200/60 shadow-2xs">
+                {(['xp', 'streak', 'questions', 'accuracy'] as const).map((cat) => {
+                  const isActive = leaderboardCategory === cat
+                  const labels: Record<string, string> = { 
+                    xp: 'XP', 
+                    streak: 'Streak', 
+                    questions: 'Cards', 
+                    accuracy: 'Accuracy' 
+                  }
+                  return (
+                    <button
+                      key={cat}
+                      onClick={() => setLeaderboardCategory(cat)}
+                      className={cn(
+                        "relative flex items-center justify-center py-1 px-1 rounded-lg text-xs font-black transition-all select-none cursor-pointer text-center",
+                        isActive ? "text-orange-600 font-black" : "text-slate-500 hover:text-slate-800 font-bold"
+                      )}
+                    >
+                      {isActive && (
+                        <motion.div
+                          layoutId="activeLeaderboardCategoryPill"
+                          className="absolute inset-0 bg-white rounded-lg shadow-xs border border-slate-200/80"
+                          transition={{ type: "spring", bounce: 0.15, duration: 0.4 }}
+                        />
+                      )}
+                      <span className="relative z-10 text-[10.5px] sm:text-xs truncate">{labels[cat]}</span>
+                    </button>
+                  )
+                })}
+              </div>
             </div>
 
-            {/* Row 2: Time Filter */}
-            <div className="grid grid-flow-col auto-cols-fr w-full bg-slate-200/70 p-1 rounded-2xl border border-slate-300/60 shadow-inner">
-              {(['all_time', 'month', 'week', 'today'] as const).map((tf) => {
-                const isActive = leaderboardTimeFilter === tf
-                const tfLabels: Record<string, { label: string, icon: string }> = { 
-                  all_time: { label: 'All Time', icon: '👑' }, 
-                  month: { label: 'Month', icon: '🗓️' }, 
-                  week: { label: 'Week', icon: '📅' }, 
-                  today: { label: 'Today', icon: '🕒' } 
-                }
-                return (
-                  <button
-                    key={tf}
-                    onClick={() => setLeaderboardTimeFilter(tf)}
-                    className={cn(
-                      "relative flex items-center justify-center gap-1 py-1.5 px-1.5 rounded-xl text-xs font-black transition-all select-none cursor-pointer",
-                      isActive ? "text-slate-950 font-black" : "text-slate-500 hover:text-slate-900 font-bold"
-                    )}
-                  >
-                    {isActive && (
-                      <motion.div
-                        layoutId="activeLeaderboardTimePill"
-                        className="absolute inset-0 bg-white rounded-xl shadow-xs border border-slate-200/80"
-                        transition={{ type: "spring", bounce: 0.15, duration: 0.4 }}
-                      />
-                    )}
-                    <span className="relative z-10 text-[11px] sm:text-xs">{tfLabels[tf].icon}</span>
-                    <span className="relative z-10 text-[10px] sm:text-xs truncate">{tfLabels[tf].label}</span>
-                  </button>
-                )
-              })}
+            {/* Row 2: Time Filter with Leading Icon & Label */}
+            <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1 text-[9.5px] font-black uppercase tracking-wider text-slate-400 w-12 shrink-0">
+                <Clock className="w-3.5 h-3.5 text-indigo-500 shrink-0" />
+                <span>Time</span>
+              </div>
+              <div className="grid grid-flow-col auto-cols-fr w-full bg-slate-100/90 p-0.5 rounded-xl border border-slate-200/60 shadow-2xs">
+                {(['all_time', 'month', 'week', 'today'] as const).map((tf) => {
+                  const isActive = leaderboardTimeFilter === tf
+                  const tfLabels: Record<string, string> = { 
+                    all_time: 'All Time', 
+                    month: 'Month', 
+                    week: 'Week', 
+                    today: 'Today' 
+                  }
+                  return (
+                    <button
+                      key={tf}
+                      onClick={() => setLeaderboardTimeFilter(tf)}
+                      className={cn(
+                        "relative flex items-center justify-center py-1 px-1 rounded-lg text-xs font-black transition-all select-none cursor-pointer text-center",
+                        isActive ? "text-indigo-600 font-black" : "text-slate-500 hover:text-slate-800 font-bold"
+                      )}
+                    >
+                      {isActive && (
+                        <motion.div
+                          layoutId="activeLeaderboardTimePill"
+                          className="absolute inset-0 bg-white rounded-lg shadow-xs border border-slate-200/80"
+                          transition={{ type: "spring", bounce: 0.15, duration: 0.4 }}
+                        />
+                      )}
+                      <span className="relative z-10 text-[10.5px] sm:text-xs truncate">{tfLabels[tf]}</span>
+                    </button>
+                  )
+                })}
+              </div>
             </div>
           </div>
         </div>
