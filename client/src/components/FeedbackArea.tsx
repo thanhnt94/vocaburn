@@ -143,13 +143,43 @@ export const FeedbackArea: React.FC<FeedbackAreaProps> = ({
         const customPrompt = deckInfo?.ai_prompts?.find((p: any) => p.column === col || p.id === col)
         tabs.push({
           id: col,
-          title: customPrompt?.title || (col === 'back' ? 'Giải thích' : col === 'front' ? 'Từ vựng' : col.toUpperCase().replace(/_/g, ' ')),
+          title: customPrompt?.title || (col === 'back' ? 'Giải thích chi tiết' : col === 'front' ? 'Từ vựng' : col.toUpperCase().replace(/_/g, ' ')),
           column: col
         })
       })
+    } else {
+      // Fallback: Always include standard insight fields so Insight tab is always rich!
+      tabs.push({
+        id: 'back',
+        title: 'Giải thích chi tiết (Mặt sau)',
+        column: 'back'
+      })
+      if (currentQuestion?.mnemonic) {
+        tabs.push({ id: 'mnemonic', title: 'Mẹo ghi nhớ (Mnemonic)', column: 'mnemonic' })
+      }
+      if (currentQuestion?.hint) {
+        tabs.push({ id: 'hint', title: 'Gợi ý (Hint)', column: 'hint' })
+      }
+      let othersObj = currentQuestion?.others;
+      if (typeof othersObj === 'string') {
+        try { othersObj = JSON.parse(othersObj); } catch (e) {}
+      }
+      if (othersObj && typeof othersObj === 'object') {
+        Object.keys(othersObj).forEach((key) => {
+          if (key !== 'ai_responses' && key !== 'id' && key !== 'created_at' && key !== 'updated_at' && key !== 'front' && key !== 'back') {
+            if (!tabs.some(t => t.id === key)) {
+              tabs.push({
+                id: key,
+                title: key.toUpperCase().replace(/_/g, ' '),
+                column: key
+              })
+            }
+          }
+        })
+      }
     }
     return tabs
-  }, [deckInfo?.practice_settings?.insight_columns, deckInfo?.ai_prompts])
+  }, [deckInfo?.practice_settings?.insight_columns, deckInfo?.ai_prompts, currentQuestion])
 
   const [activeInsightTab, setActiveInsightTab] = React.useState<string>('')
   const [openInsightTabs, setOpenInsightTabs] = React.useState<string[]>([])
@@ -384,10 +414,10 @@ export const FeedbackArea: React.FC<FeedbackAreaProps> = ({
   }
 
   const tabs = [
-    ...(insightTabs.length > 0 ? [{ id: 'insight' as const, label: 'INSIGHT', icon: Lightbulb, color: 'text-amber-500', bg: 'bg-amber-100', hasContent: hasInsightAnyContent() }] : []),
-    { id: 'community' as const, label: 'COMMUNITY', icon: MessageSquare, color: 'text-purple-500', bg: 'bg-purple-100', hasContent: contributions.length > 0 },
-    { id: 'note' as const, label: 'PERSONAL NOTE', icon: StickyNote, color: 'text-slate-400', bg: 'bg-slate-100', hasContent: !!personalNote },
-    { id: 'card' as const, label: 'FULL CARD', icon: FileText, color: 'text-blue-500', bg: 'bg-blue-100', hasContent: allTabs.some(t => !!getTabContent(t.id)) }
+    { id: 'insight' as const, label: 'Giải thích', icon: Lightbulb, color: 'text-amber-500', bg: 'bg-amber-100', hasContent: hasInsightAnyContent() },
+    { id: 'card' as const, label: 'Toàn bộ thẻ', icon: FileText, color: 'text-blue-500', bg: 'bg-blue-100', hasContent: allTabs.some(t => !!getTabContent(t.id)) },
+    { id: 'note' as const, label: 'Ghi chú', icon: StickyNote, color: 'text-emerald-500', bg: 'bg-emerald-100', hasContent: !!personalNote },
+    { id: 'community' as const, label: 'Thảo luận', icon: MessageSquare, color: 'text-purple-500', bg: 'bg-purple-100', hasContent: contributions.length > 0 }
   ]
 
   React.useEffect(() => {
@@ -946,142 +976,145 @@ export const FeedbackArea: React.FC<FeedbackAreaProps> = ({
 
   return (
     <div className="flex flex-col h-full bg-[#F8FAFC]">
-      {!isMobile && (
-        <div className="p-6 border-b border-slate-50 flex items-center justify-center bg-white sticky top-0 z-10">
-          <span className="text-[11px] font-black text-indigo-600 uppercase tracking-[0.3em]">Learning Insights</span>
-        </div>
-      )}
-
-      <div className="flex-1 overflow-y-auto p-2 md:p-4 lg:p-8 custom-scrollbar">
-        {renderTabContent()}
-      </div>
-
-      <div className={cn(
-        "flex items-center justify-between gap-1.5 sm:gap-3 py-4 border-t border-slate-100 bg-white/95 backdrop-blur-xl sticky bottom-0 z-50 px-2 sm:px-6"
-      )}>
-        {isMobile && setIsFeedbackOpen && (
-          <button
-            onClick={() => setIsFeedbackOpen(false)}
-            className="w-10 h-10 flex-shrink-0 flex items-center justify-center bg-slate-50 border border-slate-200 text-slate-500 rounded-xl hover:bg-rose-50 hover:border-rose-100 hover:text-rose-500 active:scale-90 transition-all shadow-sm"
-          >
-            <X className="w-4 h-4" />
-          </button>
-        )}
-
-        <button
-          onClick={handleEditCurrentTab}
-          className={cn(
-            "w-10 h-10 sm:w-12 sm:h-12 flex-shrink-0 flex items-center justify-center rounded-xl sm:rounded-2xl border transition-all duration-300 active:scale-90",
-            (activeFeedbackTab === 'note' && isEditingNote)
-              ? "bg-gradient-to-r from-emerald-500 to-teal-600 border-transparent text-white shadow-lg shadow-emerald-100 scale-105"
-              : "bg-slate-50 border-slate-200/80 text-slate-500 hover:bg-indigo-50 hover:border-indigo-200 hover:text-indigo-600 shadow-sm"
-          )}
-        >
-          {(activeFeedbackTab === 'note' && isEditingNote) ? (
-            <Check className="w-4 h-4 sm:w-5 sm:h-5 stroke-[3] animate-pulse" />
-          ) : (
-            <Edit3 className="w-4 h-4 sm:w-5 sm:h-5" />
-          )}
-        </button>
-
-        <div className="flex items-center bg-slate-50 p-0.5 sm:p-1 rounded-xl sm:rounded-2xl h-11 sm:h-14 border border-slate-200/60 shadow-inner gap-0.5 sm:gap-1">
+      {/* Top Segmented Tab Switcher (Visible & Thumb-friendly on both Mobile & Desktop) */}
+      <div className="p-2 sm:p-2.5 bg-white border-b border-slate-100 flex items-center justify-between gap-1.5 sticky top-0 z-20 shrink-0 shadow-2xs">
+        <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar flex-1 py-0.5">
           {tabs.map((tab) => {
             const isActive = activeFeedbackTab === tab.id
             return (
               <button
                 key={tab.id}
-                onClick={() => setActiveFeedbackTab(tab.id)}
+                onClick={() => {
+                  if (navigator.vibrate) navigator.vibrate(8);
+                  setActiveFeedbackTab(tab.id);
+                }}
                 className={cn(
-                  "w-9 sm:w-12 h-9 sm:h-11 flex items-center justify-center rounded-lg sm:rounded-xl transition-all duration-300 relative",
+                  "px-3 py-1.5 rounded-xl text-xs font-black flex items-center gap-1.5 shrink-0 transition-all cursor-pointer",
                   isActive
-                    ? (
-                      tab.id === 'insight' ? "text-amber-500 bg-white shadow-md border border-amber-100/60 scale-105" :
-                      tab.id === 'note' ? "text-slate-600 bg-white shadow-md border border-slate-200 scale-105" :
-                      "text-blue-600 bg-white shadow-md border border-blue-100/60 scale-105"
-                    )
-                    : "text-slate-400 hover:text-slate-600 hover:bg-white/40"
+                    ? "bg-orange-500 text-white shadow-xs"
+                    : "bg-slate-100/90 text-slate-600 hover:bg-slate-200"
                 )}
               >
-                <div className="relative">
-                  <tab.icon className={cn("w-4.5 h-4.5 sm:w-5 sm:h-5 transition-transform duration-300", isActive && "scale-110")} />
-                  {tab.hasContent && (
-                    <span className={cn(
-                      "absolute -top-1 -right-1 w-1.5 sm:w-2 h-1.5 sm:h-2 rounded-full border border-white animate-pulse",
-                      tab.id === 'insight' ? "bg-amber-500" :
-                      tab.id === 'note' ? "bg-slate-400" :
-                      "bg-blue-500"
-                    )} />
-                  )}
-                </div>
+                <tab.icon className="w-3.5 h-3.5 shrink-0" />
+                <span>{tab.label}</span>
+                {tab.id === 'community' && contributions.length > 0 && (
+                  <span className={cn(
+                    "px-1.5 py-0.2 rounded-full text-[9px] font-extrabold",
+                    isActive ? "bg-white/30 text-white" : "bg-purple-100 text-purple-700"
+                  )}>
+                    {contributions.length}
+                  </span>
+                )}
+                {tab.id !== 'community' && tab.hasContent && !isActive && (
+                  <span className="w-1.5 h-1.5 rounded-full bg-orange-400" />
+                )}
               </button>
             )
           })}
         </div>
 
-        {/* Collapse/Expand Toggle Button for Insight / Card tabs, Copy Button for others */}
-        {activeFeedbackTab === 'insight' ? (
+        {/* Quick Close Button on Header for Mobile */}
+        {isMobile && setIsFeedbackOpen && (
           <button
-            onClick={() => {
-              const isAllOpen = openInsightTabs.length === insightTabs.length
-              if (isAllOpen) {
-                setOpenInsightTabs([])
-              } else {
-                setOpenInsightTabs(insightTabs.map(t => t.id))
-              }
-            }}
-            className="w-10 h-10 sm:w-12 sm:h-12 flex-shrink-0 flex items-center justify-center rounded-xl sm:rounded-2xl border border-slate-200/80 text-slate-500 hover:bg-indigo-50 hover:border-indigo-200 hover:text-indigo-600 bg-slate-50 transition-all duration-300 active:scale-90 shadow-sm"
-            title={openInsightTabs.length === insightTabs.length ? "Collapse All" : "Expand All"}
+            onClick={() => setIsFeedbackOpen(false)}
+            className="w-8 h-8 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-500 flex items-center justify-center active:scale-90 transition-all shrink-0 cursor-pointer"
+            title="Đóng trợ lý"
           >
-            {openInsightTabs.length === insightTabs.length ? (
-              <ChevronsUp className="w-4 h-4 sm:w-5 sm:h-5" />
-            ) : (
-              <ChevronsDown className="w-4 h-4 sm:w-5 sm:h-5" />
-            )}
+            <X className="w-4 h-4" />
           </button>
-        ) : activeFeedbackTab === 'card' ? (
+        )}
+      </div>
+
+      <div className="flex-1 overflow-y-auto p-2.5 md:p-4 lg:p-6 custom-scrollbar">
+        {renderTabContent()}
+      </div>
+
+      {/* Bottom Reachable Action Toolbar */}
+      <div className="flex items-center justify-between gap-2 py-3 border-t border-slate-100 bg-white/95 backdrop-blur-xl sticky bottom-0 z-50 px-3 sm:px-6">
+        {isMobile && setIsFeedbackOpen ? (
           <button
-            onClick={() => {
-              const isAllOpen = openFullCardTabs.length === allTabs.length
-              if (isAllOpen) {
-                setOpenFullCardTabs([])
-              } else {
-                setOpenFullCardTabs(allTabs.map(t => t.id))
-              }
-            }}
-            className="w-10 h-10 sm:w-12 sm:h-12 flex-shrink-0 flex items-center justify-center rounded-xl sm:rounded-2xl border border-slate-200/80 text-slate-500 hover:bg-indigo-50 hover:border-indigo-200 hover:text-indigo-600 bg-slate-50 transition-all duration-300 active:scale-90 shadow-sm"
-            title={openFullCardTabs.length === allTabs.length ? "Collapse All" : "Expand All"}
+            onClick={() => setIsFeedbackOpen(false)}
+            className="h-10 px-3 flex items-center justify-center gap-1.5 bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold text-xs rounded-xl active:scale-95 transition-all cursor-pointer"
           >
-            {openFullCardTabs.length === allTabs.length ? (
-              <ChevronsUp className="w-4 h-4 sm:w-5 sm:h-5" />
-            ) : (
-              <ChevronsDown className="w-4 h-4 sm:w-5 sm:h-5" />
-            )}
+            <X className="w-4 h-4" />
+            <span>Đóng</span>
           </button>
         ) : (
+          <div />
+        )}
+
+        <div className="flex items-center gap-2">
+          {/* Edit Button */}
+          <button
+            onClick={handleEditCurrentTab}
+            className={cn(
+              "h-10 px-3 flex items-center justify-center gap-1.5 rounded-xl border text-xs font-bold transition-all duration-200 active:scale-95 cursor-pointer",
+              (activeFeedbackTab === 'note' && isEditingNote)
+                ? "bg-emerald-500 border-emerald-500 text-white shadow-sm"
+                : "bg-slate-50 border-slate-200 text-slate-600 hover:bg-orange-50 hover:border-orange-200 hover:text-orange-600"
+            )}
+          >
+            {(activeFeedbackTab === 'note' && isEditingNote) ? (
+              <>
+                <Check className="w-3.5 h-3.5 stroke-[3]" />
+                <span>Lưu</span>
+              </>
+            ) : (
+              <>
+                <Edit3 className="w-3.5 h-3.5" />
+                <span>{activeFeedbackTab === 'note' ? 'Sửa ghi chú' : 'Chỉnh sửa'}</span>
+              </>
+            )}
+          </button>
+
+          {/* Copy Button */}
           <button
             onClick={() => copyCurrentTabContent()}
             className={cn(
-              "w-10 h-10 sm:w-12 sm:h-12 flex-shrink-0 flex items-center justify-center rounded-xl sm:rounded-2xl border transition-all duration-300 active:scale-90 shadow-sm",
+              "h-10 px-3 flex items-center justify-center gap-1.5 rounded-xl border text-xs font-bold transition-all duration-200 active:scale-95 cursor-pointer",
               isCopied
-                ? "bg-gradient-to-r from-emerald-500 to-teal-600 border-transparent text-white shadow-lg shadow-emerald-100 scale-105"
-                : "bg-slate-50 border-slate-200/80 text-slate-500 hover:bg-indigo-50 hover:border-indigo-200 hover:text-indigo-600"
+                ? "bg-emerald-500 border-emerald-500 text-white shadow-sm"
+                : "bg-slate-50 border-slate-200 text-slate-600 hover:bg-orange-50 hover:border-orange-200 hover:text-orange-600"
             )}
+            title="Sao chép nội dung"
           >
-            {isCopied ? <Check className="w-4 h-4 sm:w-5 sm:h-5 stroke-[3]" /> : <Copy className="w-4 h-4 sm:w-5 sm:h-5" />}
+            {isCopied ? <Check className="w-3.5 h-3.5 stroke-[3]" /> : <Copy className="w-3.5 h-3.5" />}
+            <span>{isCopied ? 'Đã chép' : 'Sao chép'}</span>
           </button>
-        )}
 
-        {isMobile && (
-          <button
-            onClick={() => {
-              handleNext()
-              if (setIsFeedbackOpen) setIsFeedbackOpen(false)
-            }}
-            className="w-10 h-10 flex-shrink-0 flex items-center justify-center rounded-xl bg-gradient-to-r from-indigo-500 to-purple-600 text-white shadow-lg shadow-indigo-200/60 active:scale-90 hover:scale-105 hover:rotate-3 transition-all"
-          >
-            <ChevronRight className="w-5 h-5" />
-          </button>
-        )}
+          {/* Expand/Collapse for Insight / Card */}
+          {(activeFeedbackTab === 'insight' || activeFeedbackTab === 'card') && (
+            <button
+              onClick={() => {
+                if (activeFeedbackTab === 'insight') {
+                  const isAllOpen = openInsightTabs.length === insightTabs.length;
+                  setOpenInsightTabs(isAllOpen ? [] : insightTabs.map(t => t.id));
+                } else {
+                  const isAllOpen = openFullCardTabs.length === allTabs.length;
+                  setOpenFullCardTabs(isAllOpen ? [] : allTabs.map(t => t.id));
+                }
+              }}
+              className="h-10 px-2.5 flex items-center justify-center rounded-xl bg-slate-50 border border-slate-200 text-slate-600 hover:bg-slate-100 text-xs font-bold active:scale-95 transition-all cursor-pointer"
+              title="Mở rộng / Thu gọn"
+            >
+              <ChevronsDown className="w-4 h-4" />
+            </button>
+          )}
+
+          {/* Mobile Next Card Button */}
+          {isMobile && (
+            <button
+              onClick={() => {
+                handleNext();
+                if (setIsFeedbackOpen) setIsFeedbackOpen(false);
+              }}
+              className="h-10 px-3.5 flex items-center justify-center gap-1.5 rounded-xl bg-gradient-to-r from-orange-500 to-amber-500 text-white font-black text-xs shadow-sm active:scale-95 transition-all cursor-pointer"
+            >
+              <span>Tiếp</span>
+              <ChevronRight className="w-4 h-4" />
+            </button>
+          )}
+        </div>
       </div>
     </div>
   )

@@ -5281,14 +5281,9 @@ export default function PracticePlay() {
             initial={{ opacity: 0, y: 50 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 50 }}
-            className="fixed inset-x-0 top-0 bottom-[32px] sm:bottom-[38px] z-[200] bg-[#F8FAFC] xl:hidden flex flex-col"
+            className="fixed inset-0 z-[200] bg-[#F8FAFC] xl:hidden flex flex-col"
           >
-            <div className="flex items-center justify-center p-3 border-b border-slate-100 bg-white shadow-sm flex-shrink-0">
-              <h4 className="text-[9px] font-black text-indigo-600 uppercase tracking-[0.4em]">
-                {activeFeedbackTab === 'insight' ? 'LEARNING INSIGHTS' : activeFeedbackTab === 'community' ? 'COMMUNITY DISCUSSIONS' : activeFeedbackTab === 'note' ? 'PERSONAL NOTES' : 'CARD INFO'}
-              </h4>
-            </div>
-            <div className="flex-1 overflow-y-auto custom-scrollbar">
+            <div className="flex-1 overflow-hidden flex flex-col">
               <FeedbackArea
                 showFeedback={showFeedback}
                 activeFeedbackTab={activeFeedbackTab}
