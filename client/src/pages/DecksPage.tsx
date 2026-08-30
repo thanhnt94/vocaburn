@@ -683,52 +683,86 @@ export default function DecksPage() {
         </div>
       </div>
 
-      {/* ═══════════ BOTTOM DOCK: TABS + PAGINATION ═══════════ */}
-      <div className="shrink-0 bg-white/95 backdrop-blur-2xl border-t border-slate-200/80 px-3 sm:px-6 py-2.5 z-30 shadow-[0_-4px_20px_rgba(0,0,0,0.03)]">
-        <div className="max-w-5xl mx-auto flex items-center justify-between gap-3">
-          {/* Left/Center: Segmented Tabs with Icons */}
-          <div className="flex-1 max-w-sm">
-            <div className="grid grid-cols-3 w-full bg-slate-100/90 p-1 rounded-2xl border border-slate-200/60">
-              {tabsConfig.map((tab) => {
-                const isActive = activeTab === tab.id
-                const TabIcon = tab.icon
-                return (
-                  <button
-                    key={tab.id}
-                    onClick={() => setActiveTab(tab.id)}
-                    className={cn(
-                      "relative flex items-center justify-center gap-1.5 py-1.5 px-1.5 rounded-xl text-xs font-black transition-all select-none cursor-pointer",
-                      isActive ? "text-indigo-600" : "text-slate-500 hover:text-slate-800"
-                    )}
-                  >
-                    {isActive && (
-                      <motion.div
-                        layoutId="activeDecksBottomTabPill"
-                        className="absolute inset-0 bg-white rounded-xl shadow-xs border border-slate-200/80"
-                        transition={{ type: "spring", bounce: 0.15, duration: 0.4 }}
-                      />
-                    )}
-                    <TabIcon className={cn("w-3.5 h-3.5 relative z-10 shrink-0", isActive ? "text-indigo-600" : "text-slate-400")} />
-                    <span className="relative z-10 text-[11px] sm:text-xs truncate">{tab.label}</span>
-                    <span className={cn(
-                      "relative z-10 px-1.5 py-0.2 rounded-md text-[9px] font-black leading-none",
-                      isActive ? "bg-indigo-50 text-indigo-700" : "bg-slate-200 text-slate-600"
-                    )}>
-                      {tab.count}
-                    </span>
-                  </button>
-                )
-              })}
-            </div>
-          </div>
-
-          {/* Right: Standalone Pagination Stepper Component */}
+      {/* ═══════════ FIXED ACTION & PAGINATION TOOLBAR (ABOVE TABS) ═══════════ */}
+      <div className="shrink-0 z-30 bg-white/95 backdrop-blur-2xl border-t border-slate-200/80 px-3 sm:px-6 py-1.5 shadow-[0_-2px_10px_rgba(0,0,0,0.03)]">
+        <div className="max-w-5xl mx-auto flex items-center justify-between gap-2">
+          {/* Left: Pagination Stepper */}
           <DeckPagination
             currentPage={currentPage}
             totalPages={totalPages}
             onPageChange={setCurrentPage}
           />
 
+          {/* Right: Quick Action Buttons (Search, Join Room, New Deck) */}
+          <div className="flex items-center gap-1.5">
+            <button
+              onClick={() => setIsSearchOpen(prev => !prev)}
+              className={cn(
+                "h-8.5 w-8.5 rounded-xl border flex items-center justify-center transition-all active:scale-95 cursor-pointer shadow-2xs",
+                isSearchOpen || searchQuery 
+                  ? "bg-indigo-50 border-indigo-200 text-indigo-600 font-bold" 
+                  : "bg-slate-50 hover:bg-slate-100 border-slate-200/80 text-slate-700"
+              )}
+              title="Search decks"
+            >
+              <Search className="w-4 h-4" />
+            </button>
+
+            <button
+              onClick={() => setIsJoinModalOpen(true)}
+              className="h-8.5 w-8.5 rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-200/80 text-slate-700 flex items-center justify-center transition-all active:scale-95 cursor-pointer shadow-2xs"
+              title="Join study room"
+            >
+              <Users className="w-4 h-4 text-purple-600" />
+            </button>
+
+            <button
+              onClick={() => setIsCreateModalOpen(true)}
+              className="h-8.5 px-3 rounded-xl bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white flex items-center gap-1 text-xs font-black shadow-xs shadow-orange-500/20 active:scale-95 transition-all cursor-pointer"
+              title="Create new deck"
+            >
+              <Plus className="w-4 h-4 stroke-[3]" />
+              <span className="hidden sm:inline">New Deck</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* ═══════════ ONE-HAND CENTERED BOTTOM DOCKED TAB BAR ═══════════ */}
+      <div className="shrink-0 z-30 bg-white/95 backdrop-blur-2xl border-t border-slate-200/80 px-3 sm:px-6 py-1.5 shadow-[0_-4px_20px_rgba(0,0,0,0.05)]">
+        <div className="max-w-sm sm:max-w-md mx-auto flex items-center justify-center">
+          <div className="grid grid-flow-col auto-cols-fr w-full bg-slate-100/90 p-1 rounded-2xl border border-slate-200/60 shadow-2xs">
+            {tabsConfig.map((tab) => {
+              const isActive = activeTab === tab.id
+              const TabIcon = tab.icon
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  className={cn(
+                    "relative flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-xl text-xs font-black transition-all select-none cursor-pointer",
+                    isActive ? "text-indigo-600" : "text-slate-500 hover:text-slate-800"
+                  )}
+                >
+                  {isActive && (
+                    <motion.div
+                      layoutId="activeDecksBottomTabPill"
+                      className="absolute inset-0 bg-white rounded-xl shadow-xs border border-slate-200/80"
+                      transition={{ type: "spring", bounce: 0.15, duration: 0.4 }}
+                    />
+                  )}
+                  <TabIcon className={cn("w-3.5 h-3.5 relative z-10 shrink-0", isActive ? "text-indigo-600" : "text-slate-400")} />
+                  <span className="relative z-10 text-[11px] sm:text-xs truncate">{tab.label}</span>
+                  <span className={cn(
+                    "relative z-10 px-1.5 py-0.2 rounded-md text-[9px] font-black leading-none",
+                    isActive ? "bg-indigo-50 text-indigo-700" : "bg-slate-200 text-slate-600"
+                  )}>
+                    {tab.count}
+                  </span>
+                </button>
+              )
+            })}
+          </div>
         </div>
       </div>
 
