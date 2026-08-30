@@ -1742,7 +1742,7 @@ export default function Dashboard() {
             <div className="flex items-center gap-2">
               <span 
                 className="flex items-center gap-1 px-3 py-1 bg-gradient-to-r from-orange-500 via-orange-600 to-amber-500 text-white rounded-full text-xs font-bold shadow-md shadow-orange-500/20"
-                title="Số ngày hoạt động liên tục"
+                title="Daily Streak"
               >
                 <Zap className="w-3.5 h-3.5 fill-white text-white animate-pulse" />
                 {data?.gamify?.streak || 0}d
@@ -2234,7 +2234,7 @@ export default function Dashboard() {
                           <div className="flex-1 min-w-0 flex flex-col gap-1">
                             <div className="flex items-center justify-between gap-2">
                               <span className="font-bold text-xs sm:text-sm text-slate-900 truncate">
-                                {mcqStep?.label || (mcqStep?.type === 'typing' ? 'Typing Test' : 'MCQ Quiz')}
+                                {mcqStep?.type === 'typing' ? 'Typing Test' : 'MCQ Quiz'}
                               </span>
                               {s2 && (
                                 <span className="px-2 py-0.5 bg-emerald-50 text-emerald-600 border border-emerald-200 text-[10px] font-bold rounded-full shrink-0">✓ Done</span>
@@ -2530,7 +2530,7 @@ export default function Dashboard() {
                   </div>
                   <div>
                     <h3 className="text-xs font-black text-slate-800 uppercase tracking-widest leading-none mb-1">Practice Mode</h3>
-                    <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Chọn chế độ luyện tập</p>
+                    <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Choose practice mode</p>
                   </div>
                 </div>
                 <button onClick={() => setIsPracticeModalOpen(false)} className="w-8 h-8 rounded-full bg-slate-50 border border-slate-200/50 flex items-center justify-center text-slate-400 hover:text-rose-500 transition-all">
@@ -2543,7 +2543,7 @@ export default function Dashboard() {
                   <h4 className="text-xs font-black text-indigo-600 leading-snug line-clamp-1">{selectedPracticeQuiz.title}</h4>
                   <p className="text-[9px] text-slate-400 uppercase tracking-wider font-black mt-0.5 flex items-center gap-1">
                     <BrainCircuit className="w-3 h-3 text-slate-400" />
-                    {selectedPracticeQuiz.questions_count} câu hỏi có sẵn
+                    {selectedPracticeQuiz.questions_count} questions available
                   </p>
                 </div>
 
@@ -2559,8 +2559,8 @@ export default function Dashboard() {
                       <LayoutGrid className="w-5 h-5" />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <span className="text-[11px] font-black text-slate-800 uppercase tracking-wider block mb-0.5 group-hover:text-indigo-600 transition-colors">Trắc nghiệm (MCQ)</span>
-                      <span className="text-[9px] font-medium text-slate-400 block line-clamp-1">Luyện tập phản xạ nhanh với 4 lựa chọn có sẵn</span>
+                      <span className="text-[11px] font-black text-slate-800 uppercase tracking-wider block mb-0.5 group-hover:text-indigo-600 transition-colors">Multiple Choice (MCQ)</span>
+                      <span className="text-[9px] font-medium text-slate-400 block line-clamp-1">Quick 4-choice response training</span>
                     </div>
                     <ChevronRight className="w-4 h-4 text-slate-300 group-hover:text-emerald-500 group-hover:translate-x-1 transition-all flex-shrink-0" />
                   </button>
@@ -2576,8 +2576,8 @@ export default function Dashboard() {
                       <Zap className="w-5 h-5" />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <span className="text-[11px] font-black text-slate-800 uppercase tracking-wider block mb-0.5 group-hover:text-rose-600 transition-colors">Gõ từ vựng (Typing)</span>
-                      <span className="text-[9px] font-medium text-slate-400 block line-clamp-1">Gõ trực tiếp ký tự Kanji, Hiragana hoặc Romaji để ghi nhớ sâu</span>
+                      <span className="text-[11px] font-black text-slate-800 uppercase tracking-wider block mb-0.5 group-hover:text-rose-600 transition-colors">Vocabulary Typing</span>
+                      <span className="text-[9px] font-medium text-slate-400 block line-clamp-1">Type vocabulary characters for deep memory recall</span>
                     </div>
                     <ChevronRight className="w-4 h-4 text-slate-300 group-hover:text-emerald-500 group-hover:translate-x-1 transition-all flex-shrink-0" />
                   </button>
@@ -2593,8 +2593,8 @@ export default function Dashboard() {
                       <Play className="w-5 h-5 fill-amber-600 group-hover:fill-white" />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <span className="text-[11px] font-black text-slate-800 uppercase tracking-wider block mb-0.5 group-hover:text-amber-600 transition-colors">Luyện nghe (Listening)</span>
-                      <span className="text-[9px] font-medium text-slate-400 block line-clamp-1">Nghe phát âm chuẩn và chọn đáp án đúng cực nhạy</span>
+                      <span className="text-[11px] font-black text-slate-800 uppercase tracking-wider block mb-0.5 group-hover:text-amber-600 transition-colors">Listening Test</span>
+                      <span className="text-[9px] font-medium text-slate-400 block line-clamp-1">Listen to native audio and select the correct answer</span>
                     </div>
                     <ChevronRight className="w-4 h-4 text-slate-300 group-hover:text-emerald-500 group-hover:translate-x-1 transition-all flex-shrink-0" />
                   </button>
@@ -2633,7 +2633,7 @@ export default function Dashboard() {
                       {studyModalTab === 'flashcard' ? 'Study Console' : 'Practice Console'}
                     </h3>
                     <p className="text-[10px] sm:text-xs text-slate-400 font-bold uppercase tracking-wider mt-0.5">
-                      {studyModalTab === 'flashcard' ? 'Chọn phương pháp học tập' : 'Chọn chế độ luyện tập'}
+                      {studyModalTab === 'flashcard' ? 'Choose learning method' : 'Choose practice mode'}
                     </p>
                   </div>
                 </div>
@@ -2649,7 +2649,7 @@ export default function Dashboard() {
                 <h4 className="text-xs sm:text-sm font-black text-indigo-650 tracking-wide line-clamp-1">{selectedStudyQuiz.title}</h4>
                 <p className="text-[9px] sm:text-[10px] text-slate-400 font-black uppercase tracking-wider mt-1 flex items-center gap-1.5">
                   <BrainCircuit className="w-3.5 h-3.5 text-slate-350" />
-                  {selectedStudyQuiz.questions_count} câu hỏi trong bộ thẻ
+                  {selectedStudyQuiz.questions_count} cards in this deck
                 </p>
               </div>
 
@@ -2658,11 +2658,11 @@ export default function Dashboard() {
                 {studyModalTab === 'flashcard' && (
                   <div className="space-y-3">
                     {[
-                      { mode: 'fsrs', icon: '🧠', title: 'FSRS Spaced Repetition', desc: 'Học lặp lại ngắt quãng thông minh' },
-                      { mode: 'roadmap', icon: '🗺️', title: 'Roadmap Mode', desc: 'Học theo lộ trình mục tiêu mỗi ngày' },
-                      { mode: 'flip', icon: '🔄', title: 'Flip Card', desc: 'Lật thẻ ghi nhớ phản xạ tự do' },
-                      { mode: 'review', icon: '📚', title: 'Review Only', desc: 'Chỉ ôn tập lại các thẻ cũ' },
-                      { mode: 'new', icon: '✨', title: 'New Only', desc: 'Chỉ học các thẻ mới chưa biết' },
+                      { mode: 'fsrs', icon: '🧠', title: 'FSRS Spaced Repetition', desc: 'Intelligent spaced repetition scheduling' },
+                      { mode: 'roadmap', icon: '🗺️', title: 'Roadmap Mode', desc: 'Daily goal-oriented learning pipeline' },
+                      { mode: 'flip', icon: '🔄', title: 'Flip Card', desc: 'Freestyle flashcard flipping & quick review' },
+                      { mode: 'review', icon: '📚', title: 'Review Due Cards', desc: 'Only review cards that are due' },
+                      { mode: 'new', icon: '✨', title: 'Learn New Words', desc: 'Only learn new unlearned cards' },
                     ].filter(item => {
                       const disabled = (selectedStudyQuiz as any).practice_settings?.disabled_modes || [];
                       return !disabled.includes(item.mode);
@@ -2691,9 +2691,9 @@ export default function Dashboard() {
                 {studyModalTab === 'practice' && (
                   <div className="space-y-3">
                     {[
-                      { mode: 'mcq', icon: '🎯', title: 'MCQ Test', desc: 'Trắc nghiệm phản xạ 4 đáp án' },
-                      { mode: 'typing', icon: '⌨️', title: 'Typing Test', desc: 'Gõ từ vựng nhớ chi tiết' },
-                      { mode: 'listening', icon: '🎧', title: 'Listening Test', desc: 'Nghe audio chọn đáp án' },
+                      { mode: 'mcq', icon: '🎯', title: 'MCQ Quiz', desc: '4-choice multiple choice reflex test' },
+                      { mode: 'typing', icon: '⌨️', title: 'Typing Test', desc: 'Type vocabulary for deep spelling recall' },
+                      { mode: 'listening', icon: '🎧', title: 'Listening Test', desc: 'Listen to native audio and select answers' },
                     ].filter(item => {
                       const disabled = (selectedStudyQuiz as any).practice_settings?.disabled_modes || [];
                       return !disabled.includes(item.mode);
