@@ -251,6 +251,57 @@ export default function Stats() {
         </div>
       </div>
 
+      {/* ═══════════ TIER 1: LEADERBOARD FILTER TOOLBAR (ABOVE MAIN TABS) ═══════════ */}
+      {activeTab === 'leaderboard' && (
+        <div className="shrink-0 z-30 bg-white/95 backdrop-blur-2xl border-t border-slate-200/80 px-3 sm:px-6 py-1.5 shadow-[0_-2px_10px_rgba(0,0,0,0.03)]">
+          <div className="max-w-5xl mx-auto flex items-center justify-between gap-2 overflow-x-auto no-scrollbar">
+            {/* Category pills */}
+            <div className="flex bg-slate-100/90 p-1 rounded-xl border border-slate-200/60 shrink-0 gap-0.5">
+              {(['xp', 'streak', 'questions', 'accuracy'] as const).map((cat) => {
+                const isActive = leaderboardCategory === cat
+                const labels: Record<string, string> = { xp: '⚡ XP', streak: '🔥 Streak', questions: '🎯 Cards', accuracy: '⏱️ Acc' }
+                return (
+                  <button
+                    key={cat}
+                    onClick={() => setLeaderboardCategory(cat)}
+                    className={cn(
+                      "px-2 sm:px-3 py-1 rounded-lg text-[10px] sm:text-xs font-black uppercase transition-all select-none cursor-pointer whitespace-nowrap",
+                      isActive
+                        ? "bg-gradient-to-r from-orange-500 to-amber-500 text-white shadow-xs"
+                        : "text-slate-500 hover:text-slate-800"
+                    )}
+                  >
+                    {labels[cat]}
+                  </button>
+                )
+              })}
+            </div>
+
+            {/* Time filter pills */}
+            <div className="flex bg-slate-100/90 p-1 rounded-xl border border-slate-200/60 shrink-0 gap-0.5">
+              {(['all_time', 'month', 'week', 'today'] as const).map((tf) => {
+                const isActive = leaderboardTimeFilter === tf
+                const tfLabels: Record<string, string> = { all_time: '👑 All Time', month: 'Month', week: 'Week', today: 'Today' }
+                return (
+                  <button
+                    key={tf}
+                    onClick={() => setLeaderboardTimeFilter(tf)}
+                    className={cn(
+                      "px-2 sm:px-3 py-1 rounded-lg text-[10px] sm:text-xs font-black uppercase transition-all select-none cursor-pointer whitespace-nowrap",
+                      isActive
+                        ? "bg-slate-900 text-white shadow-xs"
+                        : "text-slate-500 hover:text-slate-800"
+                    )}
+                  >
+                    {tfLabels[tf]}
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* ═══════════ ONE-HAND BOTTOM DOCKED TAB BAR (CĂN CHÍNH GIỮA) ═══════════ */}
       <div className="shrink-0 z-30 bg-white/95 backdrop-blur-2xl border-t border-slate-200/80 px-3.5 sm:px-6 py-1.5 shadow-[0_-4px_20px_rgba(0,0,0,0.05)]">
         <div className="max-w-sm sm:max-w-md mx-auto flex items-center justify-center">
