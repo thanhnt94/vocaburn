@@ -1992,10 +1992,24 @@ export default function Dashboard() {
                             <span>{deckStreak} Day Streak</span>
                           </div>
 
-                          {/* 🎓 WORDS & % */}
-                          <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-white/90 backdrop-blur-xs text-slate-800 border border-orange-200/90 rounded-full text-xs font-bold shadow-2xs shrink-0">
-                            <span className="font-black text-slate-900">{learnedCards.toLocaleString()}/{totalCards.toLocaleString()} words</span>
-                            <span className="text-orange-600 font-black">({totalCards > 0 ? Math.round((learnedCards / totalCards) * 100) : 0}%)</span>
+                          {/* 🎓 WORDS PROGRESS BAR WITH GREEN FILL & % NUMBER OUTSIDE */}
+                          <div className="inline-flex items-center gap-1.5 shrink-0">
+                            <div className="relative h-6 sm:h-6.5 min-w-[135px] sm:min-w-[155px] bg-white/90 backdrop-blur-xs border border-orange-200/90 rounded-full p-0.5 shadow-2xs overflow-hidden flex items-center">
+                              {/* Green Fill Bar */}
+                              <div 
+                                className="absolute inset-y-0.5 left-0.5 rounded-full bg-gradient-to-r from-emerald-400 to-emerald-500 transition-all duration-500 shadow-2xs"
+                                style={{ width: `${Math.max(0, Math.min(100, (learnedCards / (totalCards || 1)) * 100))}%` }}
+                              />
+                              {/* Text inside the bar */}
+                              <span className="relative z-10 font-black text-[11px] sm:text-xs text-slate-900 px-2.5 truncate">
+                                {learnedCards.toLocaleString()}/{totalCards.toLocaleString()} words
+                              </span>
+                            </div>
+
+                            {/* 21% Number Outside */}
+                            <span className="font-black text-xs sm:text-sm text-emerald-600 tabular-nums shrink-0">
+                              {totalCards > 0 ? Math.round((learnedCards / totalCards) * 100) : 0}%
+                            </span>
                           </div>
 
                           {/* 📅 EST DATE */}
