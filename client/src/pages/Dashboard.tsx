@@ -1698,27 +1698,11 @@ export default function Dashboard() {
             queryClient.invalidateQueries();
             return;
           }
-
-          // Horizontal swipe between tabs
-          if (Math.abs(diffX) > 60 && Math.abs(diffY) < 80) {
-            if (diffX < 0) {
-              if (currentSlide < 3) {
-                if (navigator.vibrate) navigator.vibrate(10);
-                setCurrentSlide(prev => prev + 1);
-              }
-            } else {
-              if (currentSlide > 0) {
-                if (navigator.vibrate) navigator.vibrate(10);
-                setCurrentSlide(prev => prev - 1);
-              }
-            }
-          }
         }}
       >
-        {/* UNIFIED TOP HEADER + NAV TABS (Seamless Solid White Header) */}
+        {/* UNIFIED TOP HEADER (Clean Header without redundant tabs) */}
         <div className="bg-white flex-shrink-0 z-20 shadow-2xs border-b border-slate-100">
-          {/* Top Status Bar */}
-          <div className="flex items-center justify-between px-4 pt-3 pb-1.5">
+          <div className="flex items-center justify-between px-4 py-3 max-w-5xl mx-auto w-full">
             <Link to="/" className="active:scale-95 transition-all">
               <VocaburnLogo iconSize="md" textSize="md" />
             </Link>
@@ -1726,7 +1710,7 @@ export default function Dashboard() {
             <div className="flex items-center gap-2">
               <span 
                 className="flex items-center gap-1 px-3 py-1 bg-gradient-to-r from-orange-500 via-orange-600 to-amber-500 text-white rounded-full text-xs font-bold shadow-md shadow-orange-500/20"
-                title="Số ngày hoạt động liên tục trên VocaBurn (Mỗi ngày học ít nhất 1 bài để tính active)"
+                title="Số ngày hoạt động liên tục"
               >
                 <Zap className="w-3.5 h-3.5 fill-white text-white animate-pulse" />
                 {data?.gamify?.streak || 0}d
@@ -1740,839 +1724,610 @@ export default function Dashboard() {
               </Link>
             </div>
           </div>
-
-          {/* Unified Tabs Bar (Directly attached to top header) */}
-          <div className="px-2 flex items-center justify-around">
-            {[
-              { id: 0, label: 'Lộ Trình', icon: Compass },
-              { id: 1, label: 'Thẻ Học', icon: BookOpen },
-              { id: 2, label: 'Thống Kê', icon: TrendingUp },
-              { id: 3, label: 'Xếp Hạng', icon: Trophy }
-            ].map(tab => {
-              const isActive = currentSlide === tab.id;
-              const Icon = tab.icon;
-              return (
-                <button
-                  key={tab.id}
-                  onClick={() => {
-                    if (navigator.vibrate) navigator.vibrate(8);
-                    setCurrentSlide(tab.id);
-                  }}
-                  className={cn(
-                    "flex-1 flex items-center justify-center gap-1.5 py-2.5 text-xs transition-all cursor-pointer relative",
-                    isActive
-                      ? "text-slate-900 font-bold"
-                      : "text-slate-400 font-medium hover:text-slate-600"
-                  )}
-                >
-                  <Icon className={cn("w-4 h-4", isActive ? "text-slate-900" : "text-slate-400")} />
-                  <span>{tab.label}</span>
-                  {isActive && (
-                    <motion.div 
-                      layoutId="underlineTab"
-                      className="absolute bottom-0 left-3 right-3 h-0.5 bg-gradient-to-r from-orange-500 via-red-500 to-amber-500 rounded-full"
-                      transition={{ type: "spring", stiffness: 500, damping: 35 }}
-                    />
-                  )}
-                </button>
-              );
-            })}
-          </div>
         </div>
 
-        {/* MAIN CONTAINER */}
+        {/* MAIN ROADMAP CONTAINER */}
         <div className="flex-1 bg-[#f3f5f8] overflow-hidden relative flex flex-col">
-          <AnimatePresence mode="wait">
+          {(() => {
+            const hasRoadmapDecks = roadmapDecks && roadmapDecks.length > 0;
             
-            {/* ═══ SLIDE 1: LỘ TRÌNH HỌC (MATCHING USER MOCKUP EXACTLY) ═══ */}
-            {currentSlide === 0 && (
-              <motion.div 
-                key="slide0"
-                initial={{ opacity: 0, x: 25 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -25 }}
-                transition={{ duration: 0.18, ease: "easeInOut" }}
-                className="absolute inset-0 flex flex-col"
-              >
-                {(() => {
-                  const hasRoadmapDecks = roadmapDecks && roadmapDecks.length > 0;
-                  
-                  if (!hasRoadmapDecks) {
-                    return (
-                      <div className="flex-1 flex flex-col items-center justify-center p-6 text-center">
-                        <div className="w-20 h-20 rounded-3xl bg-orange-50 flex items-center justify-center mb-4 border border-orange-100 shadow-inner">
-                          <Compass className="w-10 h-10 text-orange-500 animate-pulse" />
-                        </div>
-                        <h3 className="text-base font-bold text-slate-800 mb-2">Chưa có lộ trình học</h3>
-                        <p className="text-xs text-slate-500 leading-relaxed max-w-[260px] mx-auto mb-6">
-                          Hãy chọn một bộ thẻ từ thư viện và bật "Lộ trình học" để kích hoạt lộ trình hằng ngày.
-                        </p>
-                        <button
-                          onClick={() => {
-                            if (navigator.vibrate) navigator.vibrate(10);
-                            navigate('/decks?tab=library');
-                          }}
-                          className="w-full max-w-[260px] h-12 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white rounded-full text-xs font-bold uppercase tracking-wider transition-all active:scale-[0.98] shadow-md shadow-orange-200"
-                        >
-                          Đi tới Thư viện →
-                        </button>
-                      </div>
-                    );
-                  }
-
-                  const renderRoadmapCard = (deck: any, deckIdx: number, totalDecks: number) => {
-                    const st = deck?.status || {};
-                    const nT = st.new_target_today || 0;
-                    const nL = st.new_learned_today || 0;
-                    const rDn = st.review_completed_today || 0;
-                    const dueRemaining = st.review_due_today || 0;
-                    const rD = rDn + dueRemaining;
-                    const tT = nT + rD;
-                    const tD = nL + rDn;
-                    const pct = st.all_done ? 100 : (tT > 0 ? Math.min(100, Math.round((tD / tT) * 100)) : 0);
-                    const s1 = st.stage_1_done;
-                    const s2 = st.stage_2_done;
-                    const nUrl = st.next_action_url;
-
-                    const newPct = nT > 0 ? Math.min(100, Math.round((nL / nT) * 100)) : 100;
-                    const revPct = rD > 0 ? Math.min(100, Math.round((rDn / rD) * 100)) : 100;
-                    const mcqStep = st.pipeline?.find((p: any) => p.type === 'mcq' || p.type === 'typing');
-                    const mcqTarget = mcqStep?.question_count || st.roadmap_daily_new || (nT > 0 ? nT : 20);
-                    const mcqDone = s2 
-                      ? mcqTarget 
-                      : (mcqStep?.progress?.answered_today !== undefined 
-                          ? Math.min(mcqTarget, mcqStep.progress.answered_today) 
-                          : (mcqStep?.progress?.best_score ? Math.round((mcqStep.progress.best_score / 100) * mcqTarget) : 0)
-                        );
-                    const mcqPct = mcqTarget > 0 ? Math.min(100, Math.round((mcqDone / mcqTarget) * 100)) : 0;
-
-                    // Mascot selection with 2-line Slogan & deck streak
-                    const deckStreak = st.streak || 0;
-                    let mascotImg = '/mascot/sleepy.png';
-                    let mascotLine1 = 'Hôm nay bạn chưa học từ nào,';
-                    let mascotLine2 = 'bắt đầu thôi! 🚀';
-                    
-                    if (st.all_done) {
-                      mascotImg = '/mascot/celebrating.png';
-                      mascotLine1 = 'Xuất sắc!';
-                      mascotLine2 = 'Đã hoàn thành lộ trình hôm nay! 🎉';
-                    } else if (pct >= 30 || s1) {
-                      mascotImg = '/mascot/excited.png';
-                      mascotLine1 = 'Đang bùng cháy!';
-                      mascotLine2 = 'Tiếp tục giữ vững tiến độ nhé 🔥';
-                    } else if (pct > 0 || nL > 0 || rDn > 0) {
-                      mascotImg = '/mascot/excited.png';
-                      mascotLine1 = 'Khởi đầu tốt lắm!';
-                      mascotLine2 = 'Cố gắng hoàn thành các bước hôm nay 💪';
-                    }
-
-                    // Estimated completion date computation
-                    const totalCards = st.total_cards || deck.questions_count || 0;
-                    const learnedCards = st.learned_cards || 0;
-                    const unlearnedCards = st.unlearned_cards !== undefined ? st.unlearned_cards : Math.max(0, totalCards - learnedCards);
-                    const isDeckAllLearned = totalCards > 0 && (unlearnedCards === 0 || learnedCards >= totalCards);
-
-                    let estimatedDateText = '—';
-                    if (isDeckAllLearned) {
-                      estimatedDateText = 'Đã hoàn thành 🎉';
-                    } else if (st.roadmap_type === 'accumulation') {
-                      estimatedDateText = 'Tích lũy vô tận';
-                    } else if (st.estimated_completion_date) {
-                      try {
-                        const d = new Date(st.estimated_completion_date);
-                        if (!isNaN(d.getTime())) {
-                          estimatedDateText = d.toLocaleDateString('vi-VN');
-                        } else {
-                          estimatedDateText = st.estimated_completion_date;
-                        }
-                      } catch {
-                        estimatedDateText = st.estimated_completion_date;
-                      }
-                    } else {
-                      const dailyNew = st.roadmap_daily_new || st.new_target_today || 20;
-                      if (dailyNew > 0 && unlearnedCards > 0) {
-                        const daysLeft = Math.ceil(unlearnedCards / dailyNew);
-                        const targetDate = new Date();
-                        targetDate.setDate(targetDate.getDate() + daysLeft);
-                        estimatedDateText = targetDate.toLocaleDateString('vi-VN');
-                      }
-                    }
-
-                    return (
-                      <div key={deck.deck_id} className="h-full w-full snap-center flex-shrink-0 flex flex-col">
-                        
-                        {/* DECK SUBHEADER BAR */}
-                        <div className="px-4 py-2 bg-white flex items-center justify-between flex-shrink-0 text-xs font-semibold text-slate-500 border-b border-slate-100">
-                          <div className="flex items-center gap-1.5">
-                            <span className="text-slate-600 font-bold">Roadmap</span>
-                            <span className="text-slate-400 font-medium">{deckIdx + 1} / {totalDecks}</span>
-                          </div>
-                          <Link 
-                            to={`/decks/${deck.deck_id}?tab=roadmap`}
-                            className="text-xs font-bold text-orange-600 hover:text-orange-700 flex items-center gap-0.5 transition-colors cursor-pointer"
-                          >
-                            <span>Chi tiết</span>
-                            <ChevronRight className="w-3.5 h-3.5" />
-                          </Link>
-                        </div>
-
-                        {/* CARD BODY (EXPANDED LAYOUT WITH CTA PINNED AT BOTTOM) */}
-                        <div className="flex-1 flex flex-col justify-between p-3 sm:p-4 overflow-y-auto [&::-webkit-scrollbar]:hidden gap-3 min-h-0">
-                          
-                          {/* HERO MASCOT CARD (FLEX-1 EXPANDS VERTICALLY TO FILL SPACE) */}
-                          <div className="bg-gradient-to-br from-amber-50/90 via-orange-50/40 to-amber-100/50 border border-orange-100/90 rounded-3xl p-4 sm:p-5 relative overflow-hidden shadow-xs flex flex-row items-center justify-between flex-1 min-h-[160px]">
-                            
-                            {/* LEFT SIDE: STREAK BADGE, DECK TITLE PILL & SLOGAN */}
-                            <div className="relative z-20 flex-1 max-w-[68%] sm:max-w-[72%] min-w-0 flex flex-col justify-center gap-2.5 py-1">
-                              
-                              {/* TOP BADGES: 3 DISTINCT CLEAN ROWS */}
-                              <div className="flex flex-col gap-2">
-                                {/* DÒNG 1: 🔥 Streak & ⏱️ Thời gian còn lại */}
-                                <div className="flex flex-wrap items-center gap-2">
-                                  {/* 🔥 STREAK BADGE: Dynamic vibrant orange gradient pill */}
-                                  <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-gradient-to-r from-orange-500 via-amber-500 to-orange-600 text-white rounded-full text-xs font-black shadow-xs shrink-0">
-                                    <span className="text-xs">🔥</span>
-                                    <span>{deckStreak} ngày streak</span>
-                                  </div>
-
-                                  {/* ⏱️ COUNTDOWN / STATUS BADGE */}
-                                  {!st.all_done ? (
-                                    <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-amber-500/15 text-amber-900 border border-amber-300/80 rounded-full text-xs font-black shadow-2xs shrink-0">
-                                      <Clock className="w-3.5 h-3.5 text-amber-600 shrink-0" />
-                                      <span>Còn {remainingTime}</span>
-                                    </div>
-                                  ) : (
-                                    <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-emerald-500/15 text-emerald-950 border border-emerald-300/80 rounded-full text-xs font-black shadow-2xs shrink-0">
-                                      <span className="text-xs">✓</span>
-                                      <span>Đã xong hôm nay</span>
-                                    </div>
-                                  )}
-                                </div>
-
-                                {/* DÒNG 2: 📖 Tên bộ thẻ */}
-                                <div className="flex items-center max-w-full">
-                                  <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-slate-900/95 text-white rounded-xl text-xs font-bold shadow-xs max-w-full">
-                                    <BookOpen className="w-3.5 h-3.5 text-amber-400 shrink-0" />
-                                    <span className="truncate max-w-[280px] sm:max-w-[400px] font-extrabold text-white">{deck.title}</span>
-                                    {deck.level && <span className="text-slate-300 font-normal text-[11px] shrink-0">({deck.level})</span>}
-                                  </div>
-                                </div>
-
-                                {/* DÒNG 3: 🎓 Đã học / Tổng số & 📅 Ngày dự kiến xong */}
-                                <div className="flex flex-wrap items-center gap-2">
-                                  {/* 🎓 SEPARATE COMPACT LEARNED BADGE */}
-                                  <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-emerald-500/15 text-emerald-950 border border-emerald-300/80 rounded-full text-xs font-black shadow-2xs shrink-0" title="Từ vựng đã thuộc / Tổng số từ vựng">
-                                    <span className="text-xs">🎓</span>
-                                    <span>{st.learned_cards || 0}/{st.total_cards || deck.questions_count || 0}</span>
-                                  </div>
-
-                                  {/* 📅 ESTIMATED COMPLETION DATE / COMPLETED BADGE */}
-                                  {isDeckAllLearned ? (
-                                    <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-emerald-500/20 text-emerald-950 border border-emerald-300/90 rounded-full text-xs font-black shadow-2xs shrink-0" title="Đã học hết toàn bộ từ mới trong bộ thẻ">
-                                      <span className="text-xs">🎉</span>
-                                      <span>Đã thuộc toàn bộ</span>
-                                    </div>
-                                  ) : (
-                                    <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-indigo-500/15 text-indigo-950 border border-indigo-300/80 rounded-full text-xs font-black shadow-2xs shrink-0" title="Ngày dự kiến hoàn thành bộ thẻ">
-                                      <Calendar className="w-3.5 h-3.5 text-indigo-600 shrink-0" />
-                                      <span>Dự kiến: {estimatedDateText}</span>
-                                    </div>
-                                  )}
-                                </div>
-                              </div>
-
-                              {/* SLOGAN TEXT */}
-                              <div className="flex flex-col gap-1 mt-0.5">
-                                <h2 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight leading-snug">
-                                  {mascotLine1}
-                                </h2>
-                                <p className="text-xs sm:text-base text-slate-500 font-medium leading-relaxed">
-                                  {mascotLine2}
-                                </p>
-                              </div>
-
-                            </div>
-
-                            {/* RIGHT SIDE: HUGE PROMINENT MASCOT FILLING ENTIRE HEIGHT */}
-                            <div className="w-[45%] max-w-[260px] absolute right-2 sm:right-4 bottom-0 top-0 flex items-end justify-center pointer-events-none z-10">
-                              <motion.img 
-                                key={mascotImg}
-                                initial={{ scale: 0.9, opacity: 0 }}
-                                animate={{ scale: 1, opacity: 1 }}
-                                transition={{ duration: 0.3 }}
-                                src={`${mascotImg}?v=exact_blackbg_v11`} 
-                                alt="Vocaburn Mascot" 
-                                className="h-[105%] max-h-[280px] w-auto max-w-none object-contain object-bottom drop-shadow-2xl translate-y-1"
-                              />
-                            </div>
-
-                            {/* 2 NÚT HỌC FLASHCARD (NÃO CAM) & QUIZ (CÚP XANH) FIXED ABSOLUTE Ở GÓC PHẢI DƯỚI */}
-                            {!st.all_done && (
-                              <div className="absolute right-3 sm:right-4 bottom-3 sm:bottom-4 z-30 flex items-center gap-2 pointer-events-auto">
-                                <button
-                                  type="button"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    setSelectedStudyQuiz({
-                                      id: deck.deck_id,
-                                      title: deck.title,
-                                      questions_count: st.total_cards || deck.questions_count || 0,
-                                      practice_settings: deck.practice_settings
-                                    });
-                                    setStudyModalTab('flashcard');
-                                    setIsStudyModalOpen(true);
-                                  }}
-                                  className="w-9 h-9 sm:w-10 sm:h-10 rounded-2xl bg-gradient-to-tr from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white flex items-center justify-center shadow-lg shadow-orange-500/30 border border-white/50 active:scale-90 transition-all cursor-pointer flex-shrink-0"
-                                  title="Chọn chế độ học Flashcard"
-                                >
-                                  <Brain className="w-4.5 h-4.5 text-white" />
-                                </button>
-
-                                <button
-                                  type="button"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    setSelectedStudyQuiz({
-                                      id: deck.deck_id,
-                                      title: deck.title,
-                                      questions_count: st.total_cards || deck.questions_count || 0,
-                                      practice_settings: deck.practice_settings
-                                    });
-                                    setStudyModalTab('practice');
-                                    setIsStudyModalOpen(true);
-                                  }}
-                                  className="w-9 h-9 sm:w-10 sm:h-10 rounded-2xl bg-gradient-to-tr from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white flex items-center justify-center shadow-lg shadow-emerald-500/30 border border-white/50 active:scale-90 transition-all cursor-pointer flex-shrink-0"
-                                  title="Chọn chế độ luyện tập / Quiz"
-                                >
-                                  <Trophy className="w-4.5 h-4.5 text-white" />
-                                </button>
-                              </div>
-                            )}
-
-                          </div>
-
-                          {/* SECTION TITLE: Các bước hôm nay */}
-                          <div className="px-0.5 pt-0.5 shrink-0">
-                            <h3 className="text-sm font-bold text-slate-900">Các bước hôm nay</h3>
-                          </div>
-
-                          {/* 3 STEPS CONTAINER (TIMELINE CONNECTORS & SPEECH POINTER CARDS MATCHING MOCKUP 3) */}
-                          <div className="flex flex-col gap-3.5 relative pt-1">
-                            
-                            {/* Step 1 Item */}
-                            <div className="flex items-center gap-3.5 relative">
-                              {/* Number Circle 1 */}
-                              <div className={cn(
-                                "w-9 h-9 rounded-full font-black text-xs flex items-center justify-center shrink-0 shadow-2xs text-white z-10",
-                                s1 ? "bg-emerald-500" : "bg-gradient-to-tr from-orange-500 to-amber-500"
-                              )}>
-                                {s1 ? '✓' : '1'}
-                              </div>
-
-                              {/* Card with Left Speech Pointer */}
-                              <div 
-                                onClick={() => {
-                                  if (navigator.vibrate) navigator.vibrate(8);
-                                  navigate(st.pipeline?.[0]?.url || nUrl || `/flashcard/${deck.deck_id}/play?mode=roadmap`);
-                                }}
-                                title={s1 ? "Đã xong mục tiêu hôm nay. Bấm để xem kết quả hoặc tiếp tục học thêm từ mới!" : "Bắt đầu học từ mới hôm nay"}
-                                className={cn(
-                                  "flex-1 bg-white border rounded-2xl p-3 sm:p-3.5 shadow-2xs flex items-center gap-3 relative transition-all cursor-pointer hover:shadow-sm hover:scale-[1.008] active:scale-[0.99]",
-                                  s1 ? "border-emerald-200/90 bg-emerald-50/30 hover:bg-emerald-50/50" : "border-slate-100 hover:border-orange-200"
-                                )}
-                              >
-                                {/* Left Speech Bubble Triangle Pointer */}
-                                <div className={cn(
-                                  "absolute -left-2 top-1/2 -translate-y-1/2 w-0 h-0 border-y-[6px] border-y-transparent border-r-[8px] z-20",
-                                  s1 ? "border-r-emerald-100" : "border-r-white"
-                                )} />
-
-                                <div className="w-11 h-11 rounded-2xl bg-orange-50/90 border border-orange-100/80 flex items-center justify-center shrink-0">
-                                  <BookOpen className="w-5.5 h-5.5 text-orange-500" />
-                                </div>
-
-                                <div className="flex-1 min-w-0 flex flex-col gap-1">
-                                  <div className="flex items-center justify-between gap-2">
-                                    <span className="font-bold text-xs sm:text-sm text-slate-900 truncate">Học từ mới</span>
-                                    {s1 ? (
-                                      <span className="px-2.5 py-0.5 bg-emerald-50 text-emerald-600 border border-emerald-200 text-[10px] font-bold rounded-full shrink-0">✓ Đã xong</span>
-                                    ) : (
-                                      <span className="px-2.5 py-0.5 bg-gradient-to-r from-orange-500 to-amber-500 text-white text-[10px] font-black rounded-full shadow-2xs shrink-0 tracking-wide uppercase">Cần làm</span>
-                                    )}
-                                  </div>
-
-                                  <div className="text-xs font-bold text-slate-500 flex items-baseline gap-1">
-                                    <span className="text-sm font-black text-orange-600">{nL}</span>
-                                    <span className="text-slate-400 font-semibold text-xs">/ {nT} từ</span>
-                                  </div>
-
-                                  <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden w-full my-0.5">
-                                    <div className="h-full bg-gradient-to-r from-orange-500 to-amber-500 rounded-full transition-all" style={{ width: `${newPct}%` }} />
-                                  </div>
-                                </div>
-
-                                <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center shrink-0 text-slate-400">
-                                  <ChevronRight className="w-4 h-4" />
-                                </div>
-                              </div>
-                            </div>
-
-                            {/* Connecting Line 1 -> 2 with Flame */}
-                            <div className="absolute top-[38px] bottom-[115px] left-[17px] w-0.5 bg-slate-200 z-0 flex items-center justify-center pointer-events-none">
-                              <span className="text-[11px]">🔥</span>
-                            </div>
-
-                            {/* Step 2 Item */}
-                            <div className="flex items-center gap-3.5 relative">
-                              {/* Number Circle 2 */}
-                              <div className={cn(
-                                "w-9 h-9 rounded-full font-black text-xs flex items-center justify-center shrink-0 shadow-2xs text-white z-10",
-                                s2 ? "bg-emerald-500" : s1 ? "bg-gradient-to-tr from-orange-500 to-amber-500" : "bg-slate-200 text-slate-400"
-                              )}>
-                                {s2 ? '✓' : '2'}
-                              </div>
-
-                              {/* Card with Left Speech Pointer */}
-                              <div 
-                                onClick={() => {
-                                  if (!s1) return;
-                                  if (navigator.vibrate) navigator.vibrate(8);
-                                  const testUrl = mcqStep?.url || `/practice/${deck.deck_id}/roadmap_mcq`;
-                                  navigate(testUrl);
-                                }}
-                                title={!s1 ? "Cần hoàn thành Bước 1: Học từ mới trước" : s2 ? "Đã đạt chỉ tiêu! Bấm để xem kết quả hoặc làm lại bài test" : "Bắt đầu làm bài test trắc nghiệm"}
-                                className={cn(
-                                  "flex-1 bg-white border rounded-2xl p-3 sm:p-3.5 shadow-2xs flex items-center gap-3 relative transition-all",
-                                  !s1 ? "cursor-not-allowed opacity-50 bg-slate-50/80 border-slate-200/50" : "cursor-pointer hover:shadow-sm hover:scale-[1.008] active:scale-[0.99]",
-                                  s2 ? "border-emerald-200/90 bg-emerald-50/30 hover:bg-emerald-50/50" : s1 ? "border-orange-200/80 hover:border-orange-300" : ""
-                                )}
-                              >
-                                {/* Left Speech Bubble Triangle Pointer */}
-                                <div className={cn(
-                                  "absolute -left-2 top-1/2 -translate-y-1/2 w-0 h-0 border-y-[6px] border-y-transparent border-r-[8px] z-20",
-                                  s2 ? "border-r-emerald-100" : s1 ? "border-r-white" : "border-r-slate-200/60"
-                                )} />
-
-                                <div className={cn(
-                                  "w-11 h-11 rounded-2xl flex items-center justify-center shrink-0 border",
-                                  s2 ? "bg-emerald-50 border-emerald-100 text-emerald-600" : s1 ? "bg-orange-50 border-orange-100 text-orange-500" : "bg-slate-100 border-slate-200/60 text-slate-400"
-                                )}>
-                                  {mcqStep?.type === 'typing' ? (
-                                    <Keyboard className="w-5.5 h-5.5" />
-                                  ) : (
-                                    <FileText className="w-5.5 h-5.5" />
-                                  )}
-                                </div>
-
-                                <div className="flex-1 min-w-0 flex flex-col gap-1">
-                                  <div className="flex items-center justify-between gap-2">
-                                    <span className="font-bold text-xs sm:text-sm text-slate-900 truncate">
-                                      {mcqStep?.label || (mcqStep?.type === 'typing' ? 'Gõ từ vựng' : 'Test trắc nghiệm MCQ')}
-                                    </span>
-                                    {s2 ? (
-                                      <span className="px-2.5 py-0.5 bg-emerald-50 text-emerald-600 border border-emerald-200 text-[10px] font-bold rounded-full shrink-0">✓ Đã xong</span>
-                                    ) : s1 ? (
-                                      <span className="px-2.5 py-0.5 bg-gradient-to-r from-orange-500 to-amber-500 text-white text-[10px] font-black rounded-full shadow-2xs shrink-0 tracking-wide uppercase">Cần làm</span>
-                                    ) : (
-                                      <span className="px-2 py-0.5 bg-slate-100 text-slate-400 text-[10px] font-bold rounded-full shrink-0">🔒 Khóa</span>
-                                    )}
-                                  </div>
-
-                                  <div className="text-xs font-bold text-slate-500 flex items-baseline gap-1">
-                                    <span className={cn("text-sm font-black", s1 ? "text-orange-600" : "text-slate-400")}>{mcqDone}</span>
-                                    <span className="text-slate-400 font-semibold text-xs">/ {mcqTarget} câu</span>
-                                  </div>
-
-                                  {s1 && (
-                                    <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden w-full my-0.5">
-                                      <div className="h-full bg-gradient-to-r from-orange-500 to-amber-500 rounded-full transition-all" style={{ width: `${mcqPct}%` }} />
-                                    </div>
-                                  )}
-                                </div>
-
-                                <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center shrink-0 text-slate-400">
-                                  <ChevronRight className="w-4 h-4" />
-                                </div>
-                              </div>
-                            </div>
-
-                            {/* Connecting Line 2 -> 3 */}
-                            <div className="absolute top-[115px] bottom-[38px] left-[17px] w-0.5 bg-slate-200 z-0 pointer-events-none" />
-
-                            {/* Step 3 Item */}
-                            <div className="flex items-center gap-3.5 relative">
-                              {/* Number Circle 3 */}
-                              <div className={cn(
-                                "w-9 h-9 rounded-full font-black text-xs flex items-center justify-center shrink-0 shadow-2xs text-white z-10",
-                                st.all_done ? "bg-emerald-500" : s2 ? "bg-gradient-to-tr from-orange-500 to-amber-500" : "bg-slate-200 text-slate-400"
-                              )}>
-                                {st.all_done ? '✓' : '3'}
-                              </div>
-
-                              {/* Card with Left Speech Pointer */}
-                              <div 
-                                onClick={() => {
-                                  if (!s1 || !s2) return;
-                                  if (navigator.vibrate) navigator.vibrate(8);
-                                  const fsrsStep = st.pipeline?.find((p: any) => p.type === 'fsrs_review');
-                                  const fsrsUrl = fsrsStep?.url || `/flashcard/${deck.deck_id}/play?mode=roadmap`;
-                                  navigate(fsrsUrl);
-                                }}
-                                title={!s1 ? "Cần hoàn thành Bước 1: Học từ mới trước" : !s2 ? "Cần hoàn thành Bước 2: Test trắc nghiệm trước" : st.all_done ? "Đã xong lộ trình FSRS. Bấm để xem kết quả hoặc tiếp tục ôn tập!" : "Bắt đầu ôn tập FSRS"}
-                                className={cn(
-                                  "flex-1 bg-white border rounded-2xl p-3 sm:p-3.5 shadow-2xs flex items-center gap-3 relative transition-all",
-                                  (!s1 || !s2) ? "cursor-not-allowed opacity-50 bg-slate-50/80 border-slate-200/50" : "cursor-pointer hover:shadow-sm hover:scale-[1.008] active:scale-[0.99]",
-                                  st.all_done ? "border-emerald-200/90 bg-emerald-50/30 hover:bg-emerald-50/50" : (s1 && s2) ? "border-orange-200/80 hover:border-orange-300" : ""
-                                )}
-                              >
-                                {/* Left Speech Bubble Triangle Pointer */}
-                                <div className={cn(
-                                  "absolute -left-2 top-1/2 -translate-y-1/2 w-0 h-0 border-y-[6px] border-y-transparent border-r-[8px] z-20",
-                                  st.all_done ? "border-r-emerald-100" : (s1 && s2) ? "border-r-white" : "border-r-slate-200/60"
-                                )} />
-
-                                <div className={cn(
-                                  "w-11 h-11 rounded-2xl flex items-center justify-center shrink-0 border",
-                                  st.all_done ? "bg-emerald-50 border-emerald-100 text-emerald-600" : s2 ? "bg-orange-50 border-orange-100 text-orange-500" : "bg-slate-100 border-slate-200/60 text-slate-400"
-                                )}>
-                                  <RotateCcw className="w-5.5 h-5.5" />
-                                </div>
-
-                                <div className="flex-1 min-w-0 flex flex-col gap-1">
-                                  <div className="flex items-center justify-between gap-2">
-                                    <span className="font-bold text-xs sm:text-sm text-slate-900 truncate">Ôn tập FSRS</span>
-                                    {st.all_done ? (
-                                      <span className="px-2.5 py-0.5 bg-emerald-50 text-emerald-600 border border-emerald-200 text-[10px] font-bold rounded-full shrink-0">✓ Đã xong</span>
-                                    ) : s2 ? (
-                                      <span className="px-2.5 py-0.5 bg-gradient-to-r from-orange-500 to-amber-500 text-white text-[10px] font-black rounded-full shadow-2xs shrink-0 tracking-wide uppercase">Cần làm</span>
-                                    ) : (
-                                      <span className="px-2 py-0.5 bg-slate-100 text-slate-400 text-[10px] font-bold rounded-full shrink-0">🔒 Khóa</span>
-                                    )}
-                                  </div>
-
-                                  <div className="text-xs font-bold text-slate-500 flex items-baseline gap-1">
-                                    <span className={cn("text-sm font-black", s2 ? "text-orange-600" : "text-slate-400")}>{rDn}</span>
-                                    <span className="text-slate-400 font-semibold text-xs">/ {rD} thẻ</span>
-                                  </div>
-
-                                  {s2 && (
-                                    <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden w-full my-0.5">
-                                      <div className="h-full bg-gradient-to-r from-orange-500 to-amber-500 rounded-full transition-all" style={{ width: `${revPct}%` }} />
-                                    </div>
-                                  )}
-                                </div>
-
-                                <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center shrink-0 text-slate-400">
-                                  <ChevronRight className="w-4 h-4" />
-                                </div>
-                              </div>
-                            </div>
-
-                          </div>
-
-                          {/* CTA ACTION AREA (KHI HOÀN THÀNH LỘ TRÌNH THÌ TÁCH THÀNH 2 NÚT HỌC FSRS & LUYỆN TẬP) */}
-                          <div className="pt-2 flex-shrink-0">
-                            {st.all_done ? (
-                              <div className="grid grid-cols-2 gap-2.5 sm:gap-3 w-full">
-                                {/* NÚT 1: HỌC FSRS TIẾP */}
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    if (navigator.vibrate) navigator.vibrate(12);
-                                    setSelectedStudyQuiz({
-                                      id: deck.deck_id,
-                                      title: deck.title,
-                                      questions_count: st.total_cards || deck.questions_count || 0,
-                                      practice_settings: deck.practice_settings
-                                    });
-                                    setStudyModalTab('flashcard');
-                                    setIsStudyModalOpen(true);
-                                  }}
-                                  className="relative overflow-hidden bg-gradient-to-r from-orange-500 via-amber-500 to-orange-600 hover:from-orange-600 hover:to-amber-600 text-white rounded-2xl p-3 sm:p-3.5 flex items-center gap-2.5 sm:gap-3 shadow-[0_8px_20px_-4px_rgba(249,115,22,0.45)] hover:shadow-[0_12px_28px_-4px_rgba(249,115,22,0.6)] active:scale-[0.98] transition-all duration-200 cursor-pointer group border border-amber-200/60 text-left"
-                                >
-                                  <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-white/20 backdrop-blur-xs flex items-center justify-center shrink-0 shadow-xs">
-                                    <Brain className="w-5 h-5 text-white" />
-                                  </div>
-                                  <div className="flex-1 min-w-0">
-                                    <span className="text-xs sm:text-sm font-black tracking-wider leading-tight uppercase text-white block truncate">
-                                      HỌC FSRS TIẾP
-                                    </span>
-                                    <span className="text-[10px] sm:text-[11px] text-orange-100 font-bold block truncate mt-0.5">
-                                      Ôn tập / Học thẻ
-                                    </span>
-                                  </div>
-                                </button>
-
-                                {/* NÚT 2: LUYỆN TẬP QUIZ */}
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    if (navigator.vibrate) navigator.vibrate(12);
-                                    setSelectedStudyQuiz({
-                                      id: deck.deck_id,
-                                      title: deck.title,
-                                      questions_count: st.total_cards || deck.questions_count || 0,
-                                      practice_settings: deck.practice_settings
-                                    });
-                                    setStudyModalTab('practice');
-                                    setIsStudyModalOpen(true);
-                                  }}
-                                  className="relative overflow-hidden bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-600 hover:from-emerald-600 hover:to-teal-600 text-white rounded-2xl p-3 sm:p-3.5 flex items-center gap-2.5 sm:gap-3 shadow-[0_8px_20px_-4px_rgba(16,185,129,0.45)] hover:shadow-[0_12px_28px_-4px_rgba(16,185,129,0.6)] active:scale-[0.98] transition-all duration-200 cursor-pointer group border border-emerald-200/60 text-left"
-                                >
-                                  <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-white/20 backdrop-blur-xs flex items-center justify-center shrink-0 shadow-xs">
-                                    <Trophy className="w-5 h-5 text-white" />
-                                  </div>
-                                  <div className="flex-1 min-w-0">
-                                    <span className="text-xs sm:text-sm font-black tracking-wider leading-tight uppercase text-white block truncate">
-                                      LUYỆN TẬP QUIZ
-                                    </span>
-                                    <span className="text-[10px] sm:text-[11px] text-emerald-100 font-bold block truncate mt-0.5">
-                                      Trắc nghiệm / Gõ từ
-                                    </span>
-                                  </div>
-                                </button>
-                              </div>
-                            ) : (
-                              <button
-                                onClick={() => { 
-                                  if (navigator.vibrate) navigator.vibrate(12);
-                                  if (nUrl) navigate(nUrl); 
-                                  else navigate(`/decks/${deck.deck_id}`); 
-                                }}
-                                className="w-full relative overflow-hidden bg-gradient-to-r from-orange-600 via-amber-600 to-orange-700 hover:from-orange-700 hover:to-amber-700 text-white rounded-2xl p-3 sm:p-3.5 flex items-center justify-between shadow-[0_10px_28px_-4px_rgba(234,88,12,0.5)] hover:shadow-[0_14px_35px_-4px_rgba(234,88,12,0.65)] active:scale-[0.98] transition-all duration-200 cursor-pointer group border-2 border-amber-200/70"
-                              >
-                                {/* Animated Light Shimmer Beam */}
-                                <div className="absolute inset-0 w-1/3 h-full bg-gradient-to-r from-transparent via-white/25 to-transparent -skew-x-12 animate-shimmer-sweep pointer-events-none" />
-
-                                {/* Left Icon: Translucent White Glass Circle */}
-                                <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-white/20 backdrop-blur-xs flex items-center justify-center shrink-0 z-10">
-                                  <Play className="w-4 h-4 sm:w-5 sm:h-5 fill-white text-white ml-0.5" />
-                                </div>
-
-                                {/* Center Text Section with Clean Sans Typography */}
-                                <div className="flex-1 flex flex-col items-center justify-center text-center px-3 relative z-10">
-                                  <span className="text-sm sm:text-base font-black tracking-widest leading-tight uppercase text-white drop-shadow-2xs flex items-center gap-1.5">
-                                    {!s1
-                                      ? 'HỌC TỪ MỚI'
-                                      : !s2
-                                      ? 'TRẮC NGHIỆM MCQ'
-                                      : 'ÔN TẬP FSRS'}
-                                  </span>
-                                  <span className="text-[11px] sm:text-xs text-orange-100/90 font-bold mt-0.5 tracking-wide">
-                                    {!s1
-                                      ? `Còn ${Math.max(0, nT - nL)} từ hôm nay`
-                                      : !s2
-                                      ? `Cần đạt ≥80% để qua bước`
-                                      : `Còn ${Math.max(0, rD - rDn)} thẻ hôm nay`}
-                                  </span>
-                                </div>
-
-                                {/* Right Arrow Action Circle */}
-                                <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-white text-orange-600 flex items-center justify-center shrink-0 shadow-md group-hover:scale-105 group-hover:translate-x-0.5 transition-transform z-10">
-                                  <ChevronRight className="w-5 h-5 sm:w-6 sm:h-6 stroke-[3]" />
-                                </div>
-                              </button>
-                            )}
-                          </div>
-
-                        </div>
-                      </div>
-                    );
-                  };
-
-                  if (roadmapDecks.length > 1) {
-                    return (
-                      <div className="flex-1 overflow-y-auto snap-y snap-mandatory [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
-                        {roadmapDecks.map((deck: any, idx: number) => renderRoadmapCard(deck, idx, roadmapDecks.length))}
-                      </div>
-                    );
-                  }
-
-                  return renderRoadmapCard(roadmapDecks[0], 0, 1);
-                })()}
-              </motion.div>
-            )}
-
-            {/* ═══ SLIDE 2: CÁC BỘ THẺ ĐANG HỌC (APP-LIKE DESIGN WITH AUTO-SCROLL TO BOTTOM) ═══ */}
-            {currentSlide === 1 && (
-              <motion.div 
-                key="slide1"
-                initial={{ opacity: 0, x: 25 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -25 }}
-                transition={{ duration: 0.18, ease: "easeInOut" }}
-                className="absolute inset-0 flex flex-col font-sans"
-              >
-                {/* Search & Header Bar */}
-                <div className="px-4 pt-3 pb-2.5 bg-white/90 backdrop-blur border-b border-slate-200/70 flex flex-col gap-2 shrink-0 shadow-2xs">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs font-black text-slate-900 uppercase tracking-widest">Tất cả bộ thẻ</span>
-                      <span className="px-2.5 py-0.5 bg-orange-100 text-orange-800 border border-orange-200 text-[10px] font-black rounded-full">
-                        {activeDecks.length} bộ
-                      </span>
+            if (!hasRoadmapDecks) {
+              return (
+                <div className="flex-1 overflow-y-auto px-4 py-8 flex flex-col items-center justify-center text-center max-w-md mx-auto my-auto">
+                  {/* Mascot & Illustration */}
+                  <div className="relative mb-5">
+                    <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-3xl bg-gradient-to-br from-orange-100 via-amber-50 to-orange-50 flex items-center justify-center border-2 border-orange-200/80 shadow-md">
+                      <Compass className="w-10 h-10 sm:w-12 sm:h-12 text-orange-500 animate-pulse" />
                     </div>
+                    <div className="absolute -bottom-1 -right-1 w-8 h-8 rounded-full bg-gradient-to-r from-orange-500 to-amber-500 text-white flex items-center justify-center shadow-md text-sm font-bold">
+                      ✨
+                    </div>
+                  </div>
+
+                  {/* Title & Introduction */}
+                  <h2 className="text-lg sm:text-xl font-black text-slate-900 uppercase tracking-tight italic leading-tight">
+                    Khởi tạo Lộ Trình Học
+                  </h2>
+                  <p className="text-xs sm:text-sm text-slate-500 font-medium leading-relaxed mt-1.5 mb-6 max-w-xs">
+                    Dashboard là trung tâm học tập theo Lộ trình hàng ngày. Kích hoạt lộ trình để hệ thống tự động lên lịch học từ mới và ôn tập FSRS mỗi ngày!
+                  </p>
+
+                  {/* 3-Step Guide Cards */}
+                  <div className="w-full space-y-2.5 mb-6 text-left">
+                    <div className="flex items-center gap-3 p-3.5 rounded-2xl bg-white border border-slate-200/80 shadow-2xs">
+                      <div className="w-8 h-8 rounded-xl bg-orange-500 text-white flex items-center justify-center text-xs font-black shrink-0 shadow-xs">
+                        1
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <h4 className="text-xs font-black text-slate-900">Vào tab "Bộ Thẻ" (Decks)</h4>
+                        <p className="text-[11px] text-slate-500 font-medium">Chọn bộ thẻ có sẵn trong Thư viện hoặc bộ thẻ do bạn tự tạo.</p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-3 p-3.5 rounded-2xl bg-white border border-slate-200/80 shadow-2xs">
+                      <div className="w-8 h-8 rounded-xl bg-amber-500 text-white flex items-center justify-center text-xs font-black shrink-0 shadow-xs">
+                        2
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <h4 className="text-xs font-black text-slate-900">Bật "Lộ trình học" (Roadmap)</h4>
+                        <p className="text-[11px] text-slate-500 font-medium">Cài đặt số từ mục tiêu mỗi ngày để kích hoạt lộ trình thông minh.</p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-3 p-3.5 rounded-2xl bg-white border border-slate-200/80 shadow-2xs">
+                      <div className="w-8 h-8 rounded-xl bg-emerald-500 text-white flex items-center justify-center text-xs font-black shrink-0 shadow-xs">
+                        3
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <h4 className="text-xs font-black text-slate-900">Học 3 bước & Giữ Streak mỗi ngày</h4>
+                        <p className="text-[11px] text-slate-500 font-medium">Hoàn thành: 1. Học từ mới ➔ 2. Test MCQ ➔ 3. Ôn tập FSRS.</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* CTA Buttons */}
+                  <div className="w-full space-y-2">
                     <button
-                      onClick={() => navigate('/create')}
-                      className="flex items-center gap-1 text-[11px] font-black text-orange-600 hover:text-orange-700 transition cursor-pointer"
+                      onClick={() => {
+                        if (navigator.vibrate) navigator.vibrate(10);
+                        navigate('/decks');
+                      }}
+                      className="w-full h-12 bg-gradient-to-r from-orange-500 via-orange-600 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white rounded-2xl text-xs sm:text-sm font-black uppercase tracking-wider transition-all active:scale-[0.98] shadow-lg shadow-orange-500/25 flex items-center justify-center gap-2 cursor-pointer"
                     >
-                      <Plus className="w-3.5 h-3.5" />
-                      <span>Tạo mới</span>
+                      <Layers className="w-4 h-4" />
+                      <span>Khám phá Bộ thẻ & Kích hoạt Lộ trình →</span>
                     </button>
                   </div>
-
-                  {/* Search Input */}
-                  <div className="relative w-full">
-                    <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-                    <input
-                      type="text"
-                      placeholder="Tìm kiếm bộ thẻ..."
-                      value={deckSearchTerm}
-                      onChange={(e) => setDeckSearchTerm(e.target.value)}
-                      className="w-full bg-slate-100/90 border border-slate-200/80 rounded-xl pl-9 pr-8 py-1.5 text-xs font-bold text-slate-900 placeholder:text-slate-400 outline-none focus:ring-2 focus:ring-orange-500/20 focus:bg-white transition"
-                    />
-                    {deckSearchTerm && (
-                      <button
-                        onClick={() => setDeckSearchTerm('')}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
-                      >
-                        <X className="w-3.5 h-3.5" />
-                      </button>
-                    )}
-                  </div>
                 </div>
+              );
+            }
 
-                {/* Scrollable Container with Auto-Scroll to Bottom */}
-                <div 
-                  ref={deckListRef}
-                  className="flex-1 overflow-y-auto px-4 py-3 space-y-3 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
-                >
-                  {(() => {
-                    const filteredDecks = activeDecks.filter(deck => 
-                      !deckSearchTerm || deck.title?.toLowerCase().includes(deckSearchTerm.toLowerCase())
-                    )
+            const renderRoadmapCard = (deck: any, deckIdx: number, totalDecks: number) => {
+              const st = deck?.status || {};
+              const nT = st.new_target_today || 0;
+              const nL = st.new_learned_today || 0;
+              const rDn = st.review_completed_today || 0;
+              const dueRemaining = st.review_due_today || 0;
+              const rD = rDn + dueRemaining;
+              const tT = nT + rD;
+              const tD = nL + rDn;
+              const pct = st.all_done ? 100 : (tT > 0 ? Math.min(100, Math.round((tD / tT) * 100)) : 0);
+              const s1 = st.stage_1_done;
+              const s2 = st.stage_2_done;
+              const nUrl = st.next_action_url;
 
-                    if (!filteredDecks || filteredDecks.length === 0) {
-                      return (
-                        <div className="flex-1 flex flex-col items-center justify-center p-8 text-center min-h-[240px]">
-                          <BookOpen className="w-10 h-10 text-slate-300 mb-2" />
-                          <span className="text-xs font-bold text-slate-500">Không tìm thấy bộ thẻ nào</span>
-                        </div>
-                      )
-                    }
+              const newPct = nT > 0 ? Math.min(100, Math.round((nL / nT) * 100)) : 100;
+              const revPct = rD > 0 ? Math.min(100, Math.round((rDn / rD) * 100)) : 100;
+              const mcqStep = st.pipeline?.find((p: any) => p.type === 'mcq' || p.type === 'typing');
+              const mcqTarget = mcqStep?.question_count || st.roadmap_daily_new || (nT > 0 ? nT : 20);
+              const mcqDone = s2 
+                ? mcqTarget 
+                : (mcqStep?.progress?.answered_today !== undefined 
+                    ? Math.min(mcqTarget, mcqStep.progress.answered_today) 
+                    : (mcqStep?.progress?.best_score ? Math.round((mcqStep.progress.best_score / 100) * mcqTarget) : 0)
+                  );
+              const mcqPct = mcqTarget > 0 ? Math.min(100, Math.round((mcqDone / mcqTarget) * 100)) : 0;
 
-                    return (
-                      <div className="flex flex-col gap-3 pb-6">
-                        {filteredDecks.map((deck: any, idx: number) => {
-                          const isLatest = idx === filteredDecks.length - 1
-                          return (
-                            <div
-                              key={deck.deck_id}
-                              onClick={() => {
-                                if (navigator.vibrate) navigator.vibrate(8);
-                                navigate(`/decks/${deck.deck_id}`);
-                              }}
-                              className={cn(
-                                "bg-white rounded-3xl border p-3.5 sm:p-4 shadow-2xs hover:shadow-md cursor-pointer active:scale-[0.98] transition-all w-full flex items-center gap-3.5 group relative overflow-hidden",
-                                isLatest ? "border-orange-300 ring-2 ring-orange-500/10" : "border-slate-200/70"
-                              )}
-                            >
-                              {/* Left Icon / Cover */}
-                              <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-gradient-to-br from-orange-50 to-amber-50 border border-orange-100/80 flex items-center justify-center text-2xl overflow-hidden shadow-inner shrink-0">
-                                {deck.cover_image ? (
-                                  <img src={deck.cover_image} alt="" className="w-full h-full object-cover" />
-                                ) : (
-                                  <span>📘</span>
-                                )}
-                              </div>
+              // Mascot selection with 2-line Slogan & deck streak
+              const deckStreak = st.streak || 0;
+              let mascotImg = '/mascot/sleepy.png';
+              let mascotLine1 = 'Hôm nay bạn chưa học từ nào,';
+              let mascotLine2 = 'bắt đầu thôi! 🚀';
+              
+              if (st.all_done) {
+                mascotImg = '/mascot/celebrating.png';
+                mascotLine1 = 'Xuất sắc!';
+                mascotLine2 = 'Đã hoàn thành lộ trình hôm nay! 🎉';
+              } else if (pct >= 30 || s1) {
+                mascotImg = '/mascot/excited.png';
+                mascotLine1 = 'Đang bùng cháy!';
+                mascotLine2 = 'Tiếp tục giữ vững tiến độ nhé 🔥';
+              } else if (pct > 0 || nL > 0 || rDn > 0) {
+                mascotImg = '/mascot/excited.png';
+                mascotLine1 = 'Khởi đầu tốt lắm!';
+                mascotLine2 = 'Cố gắng hoàn thành các bước hôm nay 💪';
+              }
 
-                              {/* Middle Specs */}
-                              <div className="flex-1 min-w-0 flex flex-col gap-1">
-                                <div className="flex items-center gap-2">
-                                  <h4 className="text-xs sm:text-sm font-black text-slate-900 truncate group-hover:text-orange-600 transition-colors">
-                                    {deck.title}
-                                  </h4>
-                                  {isLatest && (
-                                    <span className="px-2 py-0.5 bg-gradient-to-r from-orange-500 to-amber-500 text-white text-[9px] font-black rounded-md shrink-0 shadow-2xs">
-                                      MỚI
-                                    </span>
-                                  )}
-                                </div>
+              // Estimated completion date computation
+              const totalCards = st.total_cards || deck.questions_count || 0;
+              const learnedCards = st.learned_cards || 0;
+              const unlearnedCards = st.unlearned_cards !== undefined ? st.unlearned_cards : Math.max(0, totalCards - learnedCards);
+              const isDeckAllLearned = totalCards > 0 && (unlearnedCards === 0 || learnedCards >= totalCards);
 
-                                <div className="flex items-center justify-between gap-2">
-                                  <span className="text-[11px] font-bold text-slate-400">
-                                    <strong className="text-slate-700">{deck.learned_cards}</strong> / {deck.total_cards} thẻ
-                                  </span>
-                                  <span className="text-xs font-black text-orange-600 bg-orange-50 border border-orange-100 px-2 py-0.5 rounded-lg">
-                                    {deck.total_pct}%
-                                  </span>
-                                </div>
+              let estimatedDateText = '—';
+              if (isDeckAllLearned) {
+                estimatedDateText = 'Đã hoàn thành 🎉';
+              } else if (st.roadmap_type === 'accumulation') {
+                estimatedDateText = 'Tích lũy vô tận';
+              } else if (st.estimated_completion_date) {
+                try {
+                  const d = new Date(st.estimated_completion_date);
+                  if (!isNaN(d.getTime())) {
+                    estimatedDateText = d.toLocaleDateString('vi-VN');
+                  } else {
+                    estimatedDateText = st.estimated_completion_date;
+                  }
+                } catch {
+                  estimatedDateText = st.estimated_completion_date;
+                }
+              } else {
+                const dailyNew = st.roadmap_daily_new || st.new_target_today || 20;
+                if (dailyNew > 0 && unlearnedCards > 0) {
+                  const daysLeft = Math.ceil(unlearnedCards / dailyNew);
+                  const targetDate = new Date();
+                  targetDate.setDate(targetDate.getDate() + daysLeft);
+                  estimatedDateText = targetDate.toLocaleDateString('vi-VN');
+                }
+              }
 
-                                {/* Progress Bar */}
-                                <div className="h-2 bg-slate-100 rounded-full overflow-hidden w-full mt-0.5">
-                                  <div 
-                                    className="h-full bg-gradient-to-r from-orange-500 via-amber-500 to-orange-600 rounded-full transition-all duration-500" 
-                                    style={{ width: `${deck.total_pct}%` }} 
-                                  />
-                                </div>
-                              </div>
-
-                              {/* Right Chevron */}
-                              <div className="w-8 h-8 rounded-full bg-slate-50 border border-slate-100 flex items-center justify-center text-slate-400 group-hover:text-orange-600 group-hover:bg-orange-50 group-hover:border-orange-200 transition-all shrink-0">
-                                <ChevronRight className="w-4 h-4 stroke-[3]" />
-                              </div>
-                            </div>
-                          )
-                        })}
+              return (
+                <div key={deck.deck_id} className="h-full snap-start flex flex-col px-3.5 sm:px-4 py-2 sm:py-3 justify-between overflow-y-auto no-scrollbar">
+                  <div className="flex flex-col gap-2.5 max-w-lg mx-auto w-full">
+                    
+                    {/* TOP STATUS BAR: Streak + Pagination + Details */}
+                    <div className="flex items-center justify-between text-xs font-bold text-slate-500 px-1 shrink-0">
+                      <div className="flex items-center gap-1.5">
+                        <span className="font-extrabold text-slate-900 tracking-tight">Roadmap</span>
+                        {totalDecks > 1 && (
+                          <span className="text-slate-400 font-semibold">{deckIdx + 1} / {totalDecks}</span>
+                        )}
                       </div>
-                    )
-                  })()}
-                </div>
-              </motion.div>
-            )}
+                      <Link 
+                        to={`/decks/${deck.deck_id}`} 
+                        className="text-orange-600 hover:text-orange-700 font-black flex items-center gap-0.5 text-xs transition"
+                      >
+                        Chi tiết <ChevronRight className="w-3.5 h-3.5 stroke-[2.5]" />
+                      </Link>
+                    </div>
 
-            {/* ═══ SLIDE 3: THỐNG KÊ ═══ */}
-            {currentSlide === 2 && (
-              <motion.div 
-                key="slide2"
-                initial={{ opacity: 0, x: 25 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -25 }}
-                transition={{ duration: 0.18, ease: "easeInOut" }}
-                className="absolute inset-0 flex flex-col font-sans"
-              >
-                <div className="flex-1 overflow-y-auto px-3.5 py-3 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
-                  <div className="flex flex-col gap-3">
-                    {heatmapData && heatmapData.length > 0 && <MiniHeatmap data={heatmapData} />}
-                    <ReviewForecastWidget data={forecastData} />
-                    <DailyComparisonChart data={dailyComparisonData} allTimeAvg={dailyComparisonAvg} isLoading={isDailyComparisonLoading} />
+                    {/* MAIN MASCOT BANNER CARD */}
+                    <div className="bg-white rounded-3xl p-4 sm:p-5 border border-slate-200/80 shadow-2xs relative overflow-hidden flex flex-col justify-between min-h-[175px] sm:min-h-[195px] shrink-0">
+                      <div className="absolute right-0 bottom-0 w-[185px] sm:w-[225px] h-[160px] sm:h-[190px] pointer-events-none z-0">
+                        <img 
+                          src={mascotImg} 
+                          alt="Mascot" 
+                          className="w-full h-full object-contain object-right-bottom drop-shadow-sm select-none"
+                        />
+                      </div>
+
+                      <div className="relative z-10 flex flex-col gap-1.5 max-w-[62%] sm:max-w-[65%]">
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <div className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-orange-600 text-white font-extrabold text-[10px] sm:text-[11px] shadow-xs">
+                            <Flame className="w-3 h-3 fill-amber-300 text-amber-300" />
+                            <span>{deckStreak} ngày streak</span>
+                          </div>
+
+                          <div className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-amber-50 text-amber-900 border border-amber-200/70 font-bold text-[10px] sm:text-[11px]">
+                            <Clock className="w-3 h-3 text-amber-700" />
+                            <span className="tabular-nums font-extrabold">{remainingTime}</span>
+                          </div>
+                        </div>
+
+                        <div className="mt-1">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setSelectedStudyQuiz({
+                                id: deck.deck_id,
+                                title: deck.title,
+                                questions_count: st.total_cards || deck.questions_count || 0,
+                                practice_settings: deck.practice_settings
+                              });
+                              setStudyModalTab('flashcard');
+                              setIsStudyModalOpen(true);
+                            }}
+                            className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-900 text-white text-xs font-black truncate max-w-full hover:bg-orange-600 transition-colors shadow-2xs text-left cursor-pointer"
+                          >
+                            <BookOpen className="w-3 h-3 text-orange-400 shrink-0" />
+                            <span className="truncate">{deck.title}</span>
+                          </button>
+                        </div>
+
+                        <div className="flex items-center gap-1.5 flex-wrap mt-0.5">
+                          <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-emerald-50 text-emerald-800 border border-emerald-200 text-[10px] font-extrabold">
+                            <span>🎓</span>
+                            <span>{learnedCards}/{totalCards}</span>
+                          </div>
+
+                          <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-amber-50 text-amber-800 border border-amber-200 text-[10px] font-extrabold">
+                            <span>📅</span>
+                            <span>Dự kiến: {estimatedDateText}</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="relative z-10 mt-3 sm:mt-4 max-w-[62%] sm:max-w-[65%]">
+                        <h2 className="text-base sm:text-lg font-black text-slate-900 leading-tight">
+                          {mascotLine1}
+                        </h2>
+                        <p className="text-xs sm:text-sm font-bold text-slate-500 mt-0.5 leading-snug">
+                          {mascotLine2}
+                        </p>
+                      </div>
+
+                      <div className="absolute right-3.5 bottom-3.5 z-10 flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (navigator.vibrate) navigator.vibrate(8);
+                            setSelectedStudyQuiz({
+                              id: deck.deck_id,
+                              title: deck.title,
+                              questions_count: st.total_cards || deck.questions_count || 0,
+                              practice_settings: deck.practice_settings
+                            });
+                            setStudyModalTab('flashcard');
+                            setIsStudyModalOpen(true);
+                          }}
+                          className="w-8 h-8 sm:w-9 sm:h-9 rounded-2xl bg-gradient-to-tr from-orange-500 to-amber-500 text-white flex items-center justify-center shadow-md active:scale-90 transition-transform cursor-pointer border border-amber-300"
+                          title="Menu học & ghi nhớ (Flashcard / FSRS)"
+                        >
+                          <Brain className="w-4 h-4" />
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (navigator.vibrate) navigator.vibrate(8);
+                            setSelectedStudyQuiz({
+                              id: deck.deck_id,
+                              title: deck.title,
+                              questions_count: st.total_cards || deck.questions_count || 0,
+                              practice_settings: deck.practice_settings
+                            });
+                            setStudyModalTab('practice');
+                            setIsStudyModalOpen(true);
+                          }}
+                          className="w-8 h-8 sm:w-9 sm:h-9 rounded-2xl bg-gradient-to-tr from-emerald-500 to-teal-500 text-white flex items-center justify-center shadow-md active:scale-90 transition-transform cursor-pointer border border-emerald-300"
+                          title="Menu bài tập & luyện thi (MCQ / Typing)"
+                        >
+                          <Trophy className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* SECTION TITLE: Các bước hôm nay */}
+                    <div className="px-0.5 pt-0.5 shrink-0">
+                      <h3 className="text-sm font-bold text-slate-900">Các bước hôm nay</h3>
+                    </div>
+
+                    {/* 3 STEPS CONTAINER */}
+                    <div className="flex flex-col gap-3.5 relative pt-1">
+                      
+                      {/* Step 1 Item */}
+                      <div className="flex items-center gap-3.5 relative">
+                        <div className={cn(
+                          "w-9 h-9 rounded-full font-black text-xs flex items-center justify-center shrink-0 shadow-2xs text-white z-10",
+                          s1 ? "bg-emerald-500" : "bg-gradient-to-tr from-orange-500 to-amber-500"
+                        )}>
+                          {s1 ? '✓' : '1'}
+                        </div>
+
+                        <div 
+                          onClick={() => {
+                            if (navigator.vibrate) navigator.vibrate(8);
+                            navigate(st.pipeline?.[0]?.url || nUrl || `/flashcard/${deck.deck_id}/play?mode=roadmap`);
+                          }}
+                          title={s1 ? "Đã xong mục tiêu hôm nay. Bấm để xem kết quả hoặc tiếp tục học thêm từ mới!" : "Bắt đầu học từ mới hôm nay"}
+                          className={cn(
+                            "flex-1 bg-white border rounded-2xl p-3 sm:p-3.5 shadow-2xs flex items-center gap-3 relative transition-all cursor-pointer hover:shadow-sm hover:scale-[1.008] active:scale-[0.99]",
+                            s1 ? "border-emerald-200/90 bg-emerald-50/30 hover:bg-emerald-50/50" : "border-slate-100 hover:border-orange-200"
+                          )}
+                        >
+                          <div className={cn(
+                            "absolute -left-2 top-1/2 -translate-y-1/2 w-0 h-0 border-y-[6px] border-y-transparent border-r-[8px] z-20",
+                            s1 ? "border-r-emerald-100" : "border-r-white"
+                          )} />
+
+                          <div className="w-11 h-11 rounded-2xl bg-orange-50/90 border border-orange-100/80 flex items-center justify-center shrink-0">
+                            <BookOpen className="w-5.5 h-5.5 text-orange-500" />
+                          </div>
+
+                          <div className="flex-1 min-w-0 flex flex-col gap-1">
+                            <div className="flex items-center justify-between gap-2">
+                              <span className="font-bold text-xs sm:text-sm text-slate-900 truncate">Học từ mới</span>
+                              {s1 ? (
+                                <span className="px-2.5 py-0.5 bg-emerald-50 text-emerald-600 border border-emerald-200 text-[10px] font-bold rounded-full shrink-0">✓ Đã xong</span>
+                              ) : (
+                                <span className="px-2.5 py-0.5 bg-gradient-to-r from-orange-500 to-amber-500 text-white text-[10px] font-black rounded-full shadow-2xs shrink-0 tracking-wide uppercase">Cần làm</span>
+                              )}
+                            </div>
+
+                            <div className="text-xs font-bold text-slate-500 flex items-baseline gap-1">
+                              <span className="text-sm font-black text-orange-600">{nL}</span>
+                              <span className="text-slate-400 font-semibold text-xs">/ {nT} từ</span>
+                            </div>
+
+                            <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden w-full my-0.5">
+                              <div className="h-full bg-gradient-to-r from-orange-500 to-amber-500 rounded-full transition-all" style={{ width: `${newPct}%` }} />
+                            </div>
+                          </div>
+
+                          <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center shrink-0 text-slate-400">
+                            <ChevronRight className="w-4 h-4" />
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Connecting Line 1 -> 2 */}
+                      <div className="absolute top-[38px] bottom-[115px] left-[17px] w-0.5 bg-slate-200 z-0 flex items-center justify-center pointer-events-none">
+                        <span className="text-[11px]">🔥</span>
+                      </div>
+
+                      {/* Step 2 Item */}
+                      <div className="flex items-center gap-3.5 relative">
+                        <div className={cn(
+                          "w-9 h-9 rounded-full font-black text-xs flex items-center justify-center shrink-0 shadow-2xs text-white z-10",
+                          s2 ? "bg-emerald-500" : s1 ? "bg-gradient-to-tr from-orange-500 to-amber-500" : "bg-slate-200 text-slate-400"
+                        )}>
+                          {s2 ? '✓' : '2'}
+                        </div>
+
+                        <div 
+                          onClick={() => {
+                            if (!s1) return;
+                            if (navigator.vibrate) navigator.vibrate(8);
+                            const testUrl = mcqStep?.url || `/practice/${deck.deck_id}/roadmap_mcq`;
+                            navigate(testUrl);
+                          }}
+                          title={!s1 ? "Cần hoàn thành Bước 1: Học từ mới trước" : s2 ? "Đã đạt chỉ tiêu! Bấm để xem kết quả hoặc làm lại bài test" : "Bắt đầu làm bài test trắc nghiệm"}
+                          className={cn(
+                            "flex-1 bg-white border rounded-2xl p-3 sm:p-3.5 shadow-2xs flex items-center gap-3 relative transition-all",
+                            !s1 ? "cursor-not-allowed opacity-50 bg-slate-50/80 border-slate-200/50" : "cursor-pointer hover:shadow-sm hover:scale-[1.008] active:scale-[0.99]",
+                            s2 ? "border-emerald-200/90 bg-emerald-50/30 hover:bg-emerald-50/50" : s1 ? "border-orange-200/80 hover:border-orange-300" : ""
+                          )}
+                        >
+                          <div className={cn(
+                            "absolute -left-2 top-1/2 -translate-y-1/2 w-0 h-0 border-y-[6px] border-y-transparent border-r-[8px] z-20",
+                            s2 ? "border-r-emerald-100" : s1 ? "border-r-white" : "border-r-slate-200/60"
+                          )} />
+
+                          <div className={cn(
+                            "w-11 h-11 rounded-2xl flex items-center justify-center shrink-0 border",
+                            s2 ? "bg-emerald-50 border-emerald-100 text-emerald-600" : s1 ? "bg-orange-50 border-orange-100 text-orange-500" : "bg-slate-100 border-slate-200/60 text-slate-400"
+                          )}>
+                            <FileText className="w-5.5 h-5.5" />
+                          </div>
+
+                          <div className="flex-1 min-w-0 flex flex-col gap-1">
+                            <div className="flex items-center justify-between gap-2">
+                              <span className="font-bold text-xs sm:text-sm text-slate-900 truncate">Trắc nghiệm MCQ</span>
+                              {s2 ? (
+                                <span className="px-2.5 py-0.5 bg-emerald-50 text-emerald-600 border border-emerald-200 text-[10px] font-bold rounded-full shrink-0">✓ Đã xong</span>
+                              ) : s1 ? (
+                                <span className="px-2.5 py-0.5 bg-gradient-to-r from-orange-500 to-amber-500 text-white text-[10px] font-black rounded-full shadow-2xs shrink-0 tracking-wide uppercase">Cần làm</span>
+                              ) : (
+                                <span className="px-2 py-0.5 bg-slate-100 text-slate-400 text-[10px] font-bold rounded-full shrink-0">🔒 Khóa</span>
+                              )}
+                            </div>
+
+                            <div className="text-xs font-bold text-slate-500 flex items-baseline gap-1">
+                              <span className={cn("text-sm font-black", s1 ? "text-orange-600" : "text-slate-400")}>{mcqDone}</span>
+                              <span className="text-slate-400 font-semibold text-xs">/ {mcqTarget} câu</span>
+                            </div>
+
+                            {s1 && (
+                              <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden w-full my-0.5">
+                                <div className="h-full bg-gradient-to-r from-orange-500 to-amber-500 rounded-full transition-all" style={{ width: `${mcqPct}%` }} />
+                              </div>
+                            )}
+                          </div>
+
+                          <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center shrink-0 text-slate-400">
+                            <ChevronRight className="w-4 h-4" />
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Connecting Line 2 -> 3 */}
+                      <div className="absolute top-[115px] bottom-[38px] left-[17px] w-0.5 bg-slate-200 z-0 pointer-events-none" />
+
+                      {/* Step 3 Item */}
+                      <div className="flex items-center gap-3.5 relative">
+                        <div className={cn(
+                          "w-9 h-9 rounded-full font-black text-xs flex items-center justify-center shrink-0 shadow-2xs text-white z-10",
+                          st.all_done ? "bg-emerald-500" : s2 ? "bg-gradient-to-tr from-orange-500 to-amber-500" : "bg-slate-200 text-slate-400"
+                        )}>
+                          {st.all_done ? '✓' : '3'}
+                        </div>
+
+                        <div 
+                          onClick={() => {
+                            if (!s1 || !s2) return;
+                            if (navigator.vibrate) navigator.vibrate(8);
+                            const fsrsStep = st.pipeline?.find((p: any) => p.type === 'fsrs_review');
+                            const fsrsUrl = fsrsStep?.url || `/flashcard/${deck.deck_id}/play?mode=roadmap`;
+                            navigate(fsrsUrl);
+                          }}
+                          title={!s1 ? "Cần hoàn thành Bước 1: Học từ mới trước" : !s2 ? "Cần hoàn thành Bước 2: Test trắc nghiệm trước" : st.all_done ? "Đã xong lộ trình FSRS. Bấm để xem kết quả hoặc tiếp tục ôn tập!" : "Bắt đầu ôn tập FSRS"}
+                          className={cn(
+                            "flex-1 bg-white border rounded-2xl p-3 sm:p-3.5 shadow-2xs flex items-center gap-3 relative transition-all",
+                            (!s1 || !s2) ? "cursor-not-allowed opacity-50 bg-slate-50/80 border-slate-200/50" : "cursor-pointer hover:shadow-sm hover:scale-[1.008] active:scale-[0.99]",
+                            st.all_done ? "border-emerald-200/90 bg-emerald-50/30 hover:bg-emerald-50/50" : (s1 && s2) ? "border-orange-200/80 hover:border-orange-300" : ""
+                          )}
+                        >
+                          <div className={cn(
+                            "absolute -left-2 top-1/2 -translate-y-1/2 w-0 h-0 border-y-[6px] border-y-transparent border-r-[8px] z-20",
+                            st.all_done ? "border-r-emerald-100" : (s1 && s2) ? "border-r-white" : "border-r-slate-200/60"
+                          )} />
+
+                          <div className={cn(
+                            "w-11 h-11 rounded-2xl flex items-center justify-center shrink-0 border",
+                            st.all_done ? "bg-emerald-50 border-emerald-100 text-emerald-600" : s2 ? "bg-orange-50 border-orange-100 text-orange-500" : "bg-slate-100 border-slate-200/60 text-slate-400"
+                          )}>
+                            <RotateCcw className="w-5.5 h-5.5" />
+                          </div>
+
+                          <div className="flex-1 min-w-0 flex flex-col gap-1">
+                            <div className="flex items-center justify-between gap-2">
+                              <span className="font-bold text-xs sm:text-sm text-slate-900 truncate">Ôn tập FSRS</span>
+                              {st.all_done ? (
+                                <span className="px-2.5 py-0.5 bg-emerald-50 text-emerald-600 border border-emerald-200 text-[10px] font-bold rounded-full shrink-0">✓ Đã xong</span>
+                              ) : s2 ? (
+                                <span className="px-2.5 py-0.5 bg-gradient-to-r from-orange-500 to-amber-500 text-white text-[10px] font-black rounded-full shadow-2xs shrink-0 tracking-wide uppercase">Cần làm</span>
+                              ) : (
+                                <span className="px-2 py-0.5 bg-slate-100 text-slate-400 text-[10px] font-bold rounded-full shrink-0">🔒 Khóa</span>
+                              )}
+                            </div>
+
+                            <div className="text-xs font-bold text-slate-500 flex items-baseline gap-1">
+                              <span className={cn("text-sm font-black", s2 ? "text-orange-600" : "text-slate-400")}>{rDn}</span>
+                              <span className="text-slate-400 font-semibold text-xs">/ {rD} thẻ</span>
+                            </div>
+
+                            {s2 && (
+                              <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden w-full my-0.5">
+                                <div className="h-full bg-gradient-to-r from-orange-500 to-amber-500 rounded-full transition-all" style={{ width: `${revPct}%` }} />
+                              </div>
+                            )}
+                          </div>
+
+                          <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center shrink-0 text-slate-400">
+                            <ChevronRight className="w-4 h-4" />
+                          </div>
+                        </div>
+                      </div>
+
+                    </div>
+
+                    {/* CTA ACTION AREA */}
+                    <div className="pt-2 flex-shrink-0">
+                      {st.all_done ? (
+                        <div className="grid grid-cols-2 gap-2.5 sm:gap-3 w-full">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (navigator.vibrate) navigator.vibrate(12);
+                              setSelectedStudyQuiz({
+                                id: deck.deck_id,
+                                title: deck.title,
+                                questions_count: st.total_cards || deck.questions_count || 0,
+                                practice_settings: deck.practice_settings
+                              });
+                              setStudyModalTab('flashcard');
+                              setIsStudyModalOpen(true);
+                            }}
+                            className="relative overflow-hidden bg-gradient-to-r from-orange-500 via-amber-500 to-orange-600 hover:from-orange-600 hover:to-amber-600 text-white rounded-2xl p-3 sm:p-3.5 flex items-center gap-2.5 sm:gap-3 shadow-[0_8px_20px_-4px_rgba(249,115,22,0.45)] hover:shadow-[0_12px_28px_-4px_rgba(249,115,22,0.6)] active:scale-[0.98] transition-all duration-200 cursor-pointer group border border-amber-200/60 text-left"
+                          >
+                            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-white/20 backdrop-blur-xs flex items-center justify-center shrink-0 shadow-xs">
+                              <Brain className="w-5 h-5 text-white" />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <span className="text-xs sm:text-sm font-black tracking-wider leading-tight uppercase text-white block truncate">
+                                HỌC FSRS TIẾP
+                              </span>
+                              <span className="text-[10px] sm:text-[11px] text-orange-100 font-bold block truncate mt-0.5">
+                                Ôn tập / Học thẻ
+                              </span>
+                            </div>
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (navigator.vibrate) navigator.vibrate(12);
+                              setSelectedStudyQuiz({
+                                id: deck.deck_id,
+                                title: deck.title,
+                                questions_count: st.total_cards || deck.questions_count || 0,
+                                practice_settings: deck.practice_settings
+                              });
+                              setStudyModalTab('practice');
+                              setIsStudyModalOpen(true);
+                            }}
+                            className="relative overflow-hidden bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-600 hover:from-emerald-600 hover:to-teal-600 text-white rounded-2xl p-3 sm:p-3.5 flex items-center gap-2.5 sm:gap-3 shadow-[0_8px_20px_-4px_rgba(16,185,129,0.45)] hover:shadow-[0_12px_28px_-4px_rgba(16,185,129,0.6)] active:scale-[0.98] transition-all duration-200 cursor-pointer group border border-emerald-200/60 text-left"
+                          >
+                            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-white/20 backdrop-blur-xs flex items-center justify-center shrink-0 shadow-xs">
+                              <Trophy className="w-5 h-5 text-white" />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <span className="text-xs sm:text-sm font-black tracking-wider leading-tight uppercase text-white block truncate">
+                                LUYỆN TẬP QUIZ
+                              </span>
+                              <span className="text-[10px] sm:text-[11px] text-emerald-100 font-bold block truncate mt-0.5">
+                                Trắc nghiệm / Gõ từ
+                              </span>
+                            </div>
+                          </button>
+                        </div>
+                      ) : (
+                        <button
+                          onClick={() => { 
+                            if (navigator.vibrate) navigator.vibrate(12);
+                            if (nUrl) navigate(nUrl); 
+                            else navigate(`/decks/${deck.deck_id}`); 
+                          }}
+                          className="w-full relative overflow-hidden bg-gradient-to-r from-orange-600 via-amber-600 to-orange-700 hover:from-orange-700 hover:to-amber-700 text-white rounded-2xl p-3 sm:p-3.5 flex items-center justify-between shadow-[0_10px_28px_-4px_rgba(234,88,12,0.5)] hover:shadow-[0_14px_35px_-4px_rgba(234,88,12,0.65)] active:scale-[0.98] transition-all duration-200 cursor-pointer group border-2 border-amber-200/70"
+                        >
+                          <div className="absolute inset-0 w-1/3 h-full bg-gradient-to-r from-transparent via-white/25 to-transparent -skew-x-12 animate-shimmer-sweep pointer-events-none" />
+
+                          <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-white/20 backdrop-blur-xs flex items-center justify-center shrink-0 z-10">
+                            <Play className="w-4 h-4 sm:w-5 sm:h-5 fill-white text-white ml-0.5" />
+                          </div>
+
+                          <div className="flex-1 flex flex-col items-center justify-center text-center px-3 relative z-10">
+                            <span className="text-sm sm:text-base font-black tracking-widest leading-tight uppercase text-white drop-shadow-2xs flex items-center gap-1.5">
+                              {!s1
+                                ? 'HỌC TỪ MỚI'
+                                : !s2
+                                ? 'TRẮC NGHIỆM MCQ'
+                                : 'ÔN TẬP FSRS'}
+                            </span>
+                            <span className="text-[11px] sm:text-xs text-orange-100/90 font-bold mt-0.5 tracking-wide">
+                              {!s1
+                                ? `Còn ${Math.max(0, nT - nL)} từ hôm nay`
+                                : !s2
+                                ? `Cần đạt ≥80% để qua bước`
+                                : `Còn ${Math.max(0, rD - rDn)} thẻ hôm nay`}
+                            </span>
+                          </div>
+
+                          <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-white text-orange-600 flex items-center justify-center shrink-0 shadow-md group-hover:scale-105 group-hover:translate-x-0.5 transition-transform z-10">
+                            <ChevronRight className="w-5 h-5 sm:w-6 sm:h-6 stroke-[3]" />
+                          </div>
+                        </button>
+                      )}
+                    </div>
+
                   </div>
                 </div>
-              </motion.div>
-            )}
+              );
+            };
 
-            {/* ═══ SLIDE 4: LEADERBOARD ═══ */}
-            {currentSlide === 3 && (
-              <motion.div 
-                key="slide3"
-                initial={{ opacity: 0, x: 25 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -25 }}
-                transition={{ duration: 0.18, ease: "easeInOut" }}
-                className="absolute inset-0 flex flex-col font-sans"
-              >
-                <div className="flex-1 overflow-y-auto px-3.5 py-3 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
-                  <div className="flex flex-col gap-3">
-                    {leaderboardData && leaderboardData.leaderboard?.length > 0 && (
-                      <LeaderboardWidget data={leaderboardData} activeFilter={timeFilter} onFilterChange={setTimeFilter} />
-                    )}
-                    {badgesProgress && <BadgeProgressWidget data={badgesProgress} />}
-                  </div>
+            if (roadmapDecks && roadmapDecks.length > 1) {
+              return (
+                <div className="flex-1 overflow-y-auto snap-y snap-mandatory [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+                  {roadmapDecks.map((deck: any, idx: number) => renderRoadmapCard(deck, idx, roadmapDecks.length))}
                 </div>
-              </motion.div>
-            )}
+              );
+            }
 
-          </AnimatePresence>
+            if (roadmapDecks && roadmapDecks.length > 0) {
+              return renderRoadmapCard(roadmapDecks[0], 0, 1);
+            }
+
+            return null;
+          })()}
         </div>
 
       </div>
