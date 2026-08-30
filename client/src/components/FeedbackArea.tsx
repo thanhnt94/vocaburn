@@ -890,83 +890,134 @@ export const FeedbackArea: React.FC<FeedbackAreaProps> = ({
         )
       case 'card':
         return (
-          <div className="p-1.5 md:p-3 rounded-2xl md:rounded-[2rem] bg-blue-50/10 border border-blue-100 shadow-sm animate-in fade-in slide-in-from-bottom-2">
-            <div className="flex items-center gap-2 mb-4">
-              <div className="w-6 h-6 rounded-full bg-blue-100 flex items-center justify-center">
-                <FileText className="w-3.5 h-3.5 fill-blue-500 text-blue-500" />
+          <div className="space-y-3.5 animate-in fade-in slide-in-from-bottom-2">
+            {/* Header info */}
+            <div className="bg-blue-50/60 rounded-2xl p-3 border border-blue-100/80 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-xl bg-blue-500 text-white flex items-center justify-center shadow-xs">
+                  <FileText className="w-4.5 h-4.5" />
+                </div>
+                <div>
+                  <h4 className="text-xs font-black text-blue-950 uppercase tracking-tight">
+                    Cấu trúc & Dữ liệu thẻ bài
+                  </h4>
+                  <p className="text-[10px] font-semibold text-blue-600/80">
+                    Mã thẻ: #{currentQuestion?.id || 'N/A'} • {allTabs.length} trường thông tin
+                  </p>
+                </div>
               </div>
-              <span className="text-[9px] font-black text-blue-500 uppercase tracking-widest">NỘI DUNG THẺ (FULL CARD)</span>
+              {canEdit && (
+                <button
+                  onClick={handleEditCurrentTab}
+                  className="px-2.5 py-1.5 rounded-xl bg-white hover:bg-blue-50 text-blue-600 border border-blue-200 text-[11px] font-black flex items-center gap-1 shadow-2xs active:scale-95 transition-all cursor-pointer"
+                >
+                  <Edit3 className="w-3.5 h-3.5" />
+                  <span>Sửa thẻ</span>
+                </button>
+              )}
             </div>
 
-            {allTabs.map((tab: any) => {
-              const isOpen = openFullCardTabs.includes(tab.id)
-              const content = getTabContent(tab.id)
-              const tabHasContent = !!content
+            {/* Front Face */}
+            <div className="bg-white rounded-2xl p-3.5 border border-slate-100 shadow-xs space-y-1.5">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1">
+                  <span className="w-1.5 h-1.5 rounded-full bg-slate-400" />
+                  Mặt trước (Front / Câu hỏi)
+                </span>
+                <button
+                  onClick={() => copyCurrentTabContent('question')}
+                  className="text-[10px] font-bold text-slate-400 hover:text-slate-700 flex items-center gap-1 p-1 hover:bg-slate-50 rounded-lg transition-colors cursor-pointer"
+                  title="Sao chép mặt trước"
+                >
+                  <Copy className="w-3 h-3" />
+                  <span>Chép</span>
+                </button>
+              </div>
+              <div className="text-slate-900 font-extrabold text-sm sm:text-base leading-relaxed break-words bg-slate-50/70 p-3 rounded-xl border border-slate-100 select-text">
+                <ReactMarkdown
+                  remarkPlugins={[remarkGfm]}
+                  rehypePlugins={[rehypeRaw]}
+                  components={{
+                    ...MarkdownComponents,
+                    p: ({ children }) => <span>{children}</span>
+                  }}
+                >
+                  {parseBBCodeToHtml(currentQuestion?.content || 'Chưa có nội dung')}
+                </ReactMarkdown>
+              </div>
+            </div>
 
-              return (
-                <div key={tab.id} className="border border-slate-100 rounded-xl overflow-hidden mb-3 bg-white shadow-sm transition-all duration-300">
-                  {/* Collapse Header */}
-                  <button
-                    onClick={() => {
-                      if (isOpen) {
-                        setOpenFullCardTabs(openFullCardTabs.filter(id => id !== tab.id))
-                        if (activeFullCardTab === tab.id) setActiveFullCardTab('')
-                      } else {
-                        setOpenFullCardTabs([tab.id]) // Accordion default: collapse others
-                        setActiveFullCardTab(tab.id)
-                      }
-                    }}
-                    className={cn(
-                      "w-full px-4 py-3 flex items-center justify-between text-left transition-all duration-300",
-                      isOpen ? "bg-slate-50 border-b border-slate-100" : "bg-white hover:bg-slate-50/50"
-                    )}
-                  >
-                    <div className="flex items-center gap-2">
-                      <FileText className="w-4 h-4 text-blue-500" />
-                      <span className="text-[11px] font-black text-slate-700 uppercase tracking-wider">
-                        {tab.title}
-                      </span>
-                      {tabHasContent && <span className="w-1.5 h-1.5 rounded-full bg-blue-500" />}
-                    </div>
-                    <ChevronRight className={cn("w-4 h-4 text-slate-400 transition-transform duration-300", isOpen && "rotate-90")} />
-                  </button>
+            {/* Back Face */}
+            <div className="bg-white rounded-2xl p-3.5 border border-slate-100 shadow-xs space-y-1.5">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-black text-orange-600 uppercase tracking-widest flex items-center gap-1">
+                  <span className="w-1.5 h-1.5 rounded-full bg-orange-500" />
+                  Mặt sau (Back / Đáp án gốc)
+                </span>
+                <button
+                  onClick={() => copyCurrentTabContent('default')}
+                  className="text-[10px] font-bold text-orange-500 hover:text-orange-700 flex items-center gap-1 p-1 hover:bg-orange-50 rounded-lg transition-colors cursor-pointer"
+                  title="Sao chép mặt sau"
+                >
+                  <Copy className="w-3 h-3" />
+                  <span>Chép</span>
+                </button>
+              </div>
+              <div className="text-slate-800 font-bold text-xs sm:text-sm leading-relaxed break-words bg-orange-50/30 p-3 rounded-xl border border-orange-100/50 select-text">
+                <ReactMarkdown
+                  remarkPlugins={[remarkGfm]}
+                  rehypePlugins={[rehypeRaw]}
+                  components={{
+                    ...MarkdownComponents,
+                    p: ({ children }) => <span>{children}</span>
+                  }}
+                >
+                  {parseBBCodeToHtml(currentQuestion?.explanation || currentQuestion?.ai_explanation || 'Chưa có đáp án')}
+                </ReactMarkdown>
+              </div>
+            </div>
 
-                  {/* Collapse Content */}
-                  <AnimatePresence initial={false}>
-                    {isOpen && (
-                      <motion.div
-                        initial={{ height: 0, opacity: 0 }}
-                        animate={{ height: "auto", opacity: 1 }}
-                        exit={{ height: 0, opacity: 0 }}
-                        transition={{ duration: 0.25, ease: "easeInOut" }}
-                        className="overflow-hidden"
-                      >
-                        <div className="p-4 bg-white/50 border-t border-slate-50">
-                          {content ? (
-                            <div className="text-slate-700 font-medium text-xs leading-relaxed markdown-content break-words pr-2 select-text">
-                              <ReactMarkdown
-                                remarkPlugins={[remarkGfm]}
-                                rehypePlugins={[rehypeRaw]}
-                                components={{
-                                  ...MarkdownComponents,
-                                  p: ({ children }) => <span className="inline-block">{children}</span>
-                                }}
-                              >
-                                {parseBBCodeToHtml(content)}
-                              </ReactMarkdown>
-                            </div>
-                          ) : (
-                            <div className="flex flex-col items-center justify-center py-6 text-slate-400">
-                              <p className="text-[10px] font-bold uppercase tracking-wider">Chưa có thông tin</p>
-                            </div>
+            {/* Extended Attributes & Custom Columns */}
+            <div className="bg-white rounded-2xl p-3.5 border border-slate-100 shadow-xs space-y-2">
+              <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">
+                Các thuộc tính & Cột mở rộng ({allTabs.filter(t => t.id !== 'front' && t.id !== 'back').length})
+              </span>
+
+              {allTabs.filter(t => t.id !== 'front' && t.id !== 'back').length === 0 ? (
+                <p className="text-[11px] font-medium text-slate-400 italic bg-slate-50 p-3 rounded-xl text-center">
+                  Thẻ này chỉ bao gồm 2 mặt cơ bản: Mặt trước và Mặt sau.
+                </p>
+              ) : (
+                <div className="space-y-2">
+                  {allTabs.filter(t => t.id !== 'front' && t.id !== 'back').map((tab: any) => {
+                    const val = getTabContent(tab.id)
+                    return (
+                      <div key={tab.id} className="bg-slate-50/80 rounded-xl p-2.5 border border-slate-100 space-y-1">
+                        <div className="flex items-center justify-between text-[10px] font-black text-slate-500 uppercase tracking-wider">
+                          <span>{tab.title}</span>
+                          {val && (
+                            <button
+                              onClick={() => {
+                                navigator.clipboard?.writeText(val);
+                                if (navigator.vibrate) navigator.vibrate(8);
+                              }}
+                              className="text-slate-400 hover:text-slate-600 flex items-center gap-0.5"
+                              title="Chép giá trị"
+                            >
+                              <Copy className="w-2.5 h-2.5" />
+                              <span>Chép</span>
+                            </button>
                           )}
                         </div>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
+                        <div className="text-xs font-semibold text-slate-800 break-words select-text">
+                          {val ? parseBBCodeToHtml(val) : <span className="text-slate-400 italic">Trống</span>}
+                        </div>
+                      </div>
+                    )
+                  })}
                 </div>
-              )
-            })}
+              )}
+            </div>
           </div>
         )
     }
@@ -976,11 +1027,104 @@ export const FeedbackArea: React.FC<FeedbackAreaProps> = ({
 
   return (
     <div className="flex flex-col h-full bg-[#F8FAFC]">
-      {/* Top Segmented Tab Switcher (Visible & Thumb-friendly on both Mobile & Desktop) */}
-      <div className="p-2 sm:p-2.5 bg-white border-b border-slate-100 flex items-center justify-between gap-1.5 sticky top-0 z-20 shrink-0 shadow-2xs">
-        <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar flex-1 py-0.5">
+      {/* Top Simple Mobile Header */}
+      <div className="p-3 bg-white border-b border-slate-100 flex items-center justify-between sticky top-0 z-20 shrink-0 shadow-2xs">
+        <div className="flex items-center gap-2">
+          <div className="w-7 h-7 rounded-xl bg-orange-50 text-orange-600 flex items-center justify-center font-black">
+            {activeFeedbackTab === 'insight' ? <Lightbulb className="w-4 h-4" /> :
+             activeFeedbackTab === 'card' ? <FileText className="w-4 h-4 text-blue-500" /> :
+             activeFeedbackTab === 'note' ? <StickyNote className="w-4 h-4 text-emerald-500" /> :
+             <MessageSquare className="w-4 h-4 text-purple-500" />}
+          </div>
+          <div>
+            <h3 className="text-xs font-black text-slate-900 uppercase tracking-wider">
+              {activeFeedbackTab === 'insight' ? 'Trợ lý Giải thích & Ghi nhớ' :
+               activeFeedbackTab === 'card' ? 'Toàn bộ dữ liệu thẻ' :
+               activeFeedbackTab === 'note' ? 'Sổ tay Ghi chú cá nhân' :
+               'Cộng đồng thảo luận & Góp ý'}
+            </h3>
+          </div>
+        </div>
+
+        {/* Quick Close Button */}
+        {isMobile && setIsFeedbackOpen && (
+          <button
+            onClick={() => setIsFeedbackOpen(false)}
+            className="w-8 h-8 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-500 flex items-center justify-center active:scale-90 transition-all shrink-0 cursor-pointer"
+            title="Đóng trợ lý"
+          >
+            <X className="w-4.5 h-4.5" />
+          </button>
+        )}
+      </div>
+
+      {/* Main Scrollable Content */}
+      <div className="flex-1 overflow-y-auto p-3 sm:p-4 lg:p-6 custom-scrollbar pb-6">
+        {renderTabContent()}
+      </div>
+
+      {/* Bottom Reachable Navigation Tabs Bar (Thumb Zone) */}
+      <div className="bg-white/95 backdrop-blur-xl border-t border-slate-100 sticky bottom-0 z-50 flex-shrink-0 shadow-lg">
+        {/* Quick Actions Row */}
+        <div className="px-3 py-1.5 border-b border-slate-50 flex items-center justify-between gap-1.5 text-xs">
+          <div className="flex items-center gap-1.5">
+            {/* Edit Button */}
+            <button
+              onClick={handleEditCurrentTab}
+              className={cn(
+                "h-8 px-2.5 flex items-center justify-center gap-1 rounded-lg border text-[11px] font-bold transition-all active:scale-95 cursor-pointer",
+                (activeFeedbackTab === 'note' && isEditingNote)
+                  ? "bg-emerald-500 border-emerald-500 text-white shadow-2xs"
+                  : "bg-slate-50 border-slate-200 text-slate-600 hover:bg-orange-50 hover:border-orange-200 hover:text-orange-600"
+              )}
+            >
+              {(activeFeedbackTab === 'note' && isEditingNote) ? (
+                <>
+                  <Check className="w-3 h-3 stroke-[3]" />
+                  <span>Lưu ghi chú</span>
+                </>
+              ) : (
+                <>
+                  <Edit3 className="w-3 h-3" />
+                  <span>{activeFeedbackTab === 'note' ? 'Sửa ghi chú' : 'Sửa thẻ'}</span>
+                </>
+              )}
+            </button>
+
+            {/* Copy Button */}
+            <button
+              onClick={() => copyCurrentTabContent()}
+              className={cn(
+                "h-8 px-2.5 flex items-center justify-center gap-1 rounded-lg border text-[11px] font-bold transition-all active:scale-95 cursor-pointer",
+                isCopied
+                  ? "bg-emerald-500 border-emerald-500 text-white shadow-2xs"
+                  : "bg-slate-50 border-slate-200 text-slate-600 hover:bg-orange-50 hover:border-orange-200 hover:text-orange-600"
+              )}
+            >
+              {isCopied ? <Check className="w-3 h-3 stroke-[3]" /> : <Copy className="w-3 h-3" />}
+              <span>{isCopied ? 'Đã chép' : 'Sao chép'}</span>
+            </button>
+          </div>
+
+          {/* Next Card Button */}
+          {isMobile && (
+            <button
+              onClick={() => {
+                handleNext();
+                if (setIsFeedbackOpen) setIsFeedbackOpen(false);
+              }}
+              className="h-8 px-3 flex items-center justify-center gap-1 rounded-lg bg-gradient-to-r from-orange-500 to-amber-500 text-white font-black text-[11px] shadow-2xs active:scale-95 transition-all cursor-pointer"
+            >
+              <span>Thẻ tiếp theo</span>
+              <ChevronRight className="w-3.5 h-3.5" />
+            </button>
+          )}
+        </div>
+
+        {/* 4 Bottom Segmented Tabs */}
+        <div className="w-full grid grid-cols-4 bg-white p-0 relative">
           {tabs.map((tab) => {
-            const isActive = activeFeedbackTab === tab.id
+            const isActive = activeFeedbackTab === tab.id;
             return (
               <button
                 key={tab.id}
@@ -988,132 +1132,32 @@ export const FeedbackArea: React.FC<FeedbackAreaProps> = ({
                   if (navigator.vibrate) navigator.vibrate(8);
                   setActiveFeedbackTab(tab.id);
                 }}
-                className={cn(
-                  "px-3 py-1.5 rounded-xl text-xs font-black flex items-center gap-1.5 shrink-0 transition-all cursor-pointer",
-                  isActive
-                    ? "bg-orange-500 text-white shadow-xs"
-                    : "bg-slate-100/90 text-slate-600 hover:bg-slate-200"
-                )}
+                className="relative flex flex-col items-center justify-center gap-0.5 py-2 px-1 transition-all active:scale-95 overflow-hidden cursor-pointer"
               >
-                <tab.icon className="w-3.5 h-3.5 shrink-0" />
-                <span>{tab.label}</span>
-                {tab.id === 'community' && contributions.length > 0 && (
-                  <span className={cn(
-                    "px-1.5 py-0.2 rounded-full text-[9px] font-extrabold",
-                    isActive ? "bg-white/30 text-white" : "bg-purple-100 text-purple-700"
-                  )}>
-                    {contributions.length}
-                  </span>
+                {isActive && (
+                  <motion.div
+                    layoutId="activeFeedbackBottomTab"
+                    className="absolute inset-0 bg-orange-500/10"
+                    transition={{ type: "spring", stiffness: 380, damping: 30 }}
+                  />
                 )}
-                {tab.id !== 'community' && tab.hasContent && !isActive && (
-                  <span className="w-1.5 h-1.5 rounded-full bg-orange-400" />
-                )}
+                <div className="relative z-10 flex items-center justify-center">
+                  <tab.icon className={cn("w-4 h-4 transition-colors", isActive ? "text-orange-600" : "text-slate-400")} />
+                  {tab.id === 'community' && contributions.length > 0 && (
+                    <span className="absolute -top-1.5 -right-2 px-1 py-0.2 bg-purple-600 text-white text-[8px] font-black rounded-full">
+                      {contributions.length}
+                    </span>
+                  )}
+                </div>
+                <span className={cn(
+                  "relative z-10 text-[9px] font-extrabold uppercase tracking-wider truncate transition-colors",
+                  isActive ? "text-orange-600 font-black" : "text-slate-400"
+                )}>
+                  {tab.label}
+                </span>
               </button>
-            )
+            );
           })}
-        </div>
-
-        {/* Quick Close Button on Header for Mobile */}
-        {isMobile && setIsFeedbackOpen && (
-          <button
-            onClick={() => setIsFeedbackOpen(false)}
-            className="w-8 h-8 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-500 flex items-center justify-center active:scale-90 transition-all shrink-0 cursor-pointer"
-            title="Đóng trợ lý"
-          >
-            <X className="w-4 h-4" />
-          </button>
-        )}
-      </div>
-
-      <div className="flex-1 overflow-y-auto p-2.5 md:p-4 lg:p-6 custom-scrollbar">
-        {renderTabContent()}
-      </div>
-
-      {/* Bottom Reachable Action Toolbar */}
-      <div className="flex items-center justify-between gap-2 py-3 border-t border-slate-100 bg-white/95 backdrop-blur-xl sticky bottom-0 z-50 px-3 sm:px-6">
-        {isMobile && setIsFeedbackOpen ? (
-          <button
-            onClick={() => setIsFeedbackOpen(false)}
-            className="h-10 px-3 flex items-center justify-center gap-1.5 bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold text-xs rounded-xl active:scale-95 transition-all cursor-pointer"
-          >
-            <X className="w-4 h-4" />
-            <span>Đóng</span>
-          </button>
-        ) : (
-          <div />
-        )}
-
-        <div className="flex items-center gap-2">
-          {/* Edit Button */}
-          <button
-            onClick={handleEditCurrentTab}
-            className={cn(
-              "h-10 px-3 flex items-center justify-center gap-1.5 rounded-xl border text-xs font-bold transition-all duration-200 active:scale-95 cursor-pointer",
-              (activeFeedbackTab === 'note' && isEditingNote)
-                ? "bg-emerald-500 border-emerald-500 text-white shadow-sm"
-                : "bg-slate-50 border-slate-200 text-slate-600 hover:bg-orange-50 hover:border-orange-200 hover:text-orange-600"
-            )}
-          >
-            {(activeFeedbackTab === 'note' && isEditingNote) ? (
-              <>
-                <Check className="w-3.5 h-3.5 stroke-[3]" />
-                <span>Lưu</span>
-              </>
-            ) : (
-              <>
-                <Edit3 className="w-3.5 h-3.5" />
-                <span>{activeFeedbackTab === 'note' ? 'Sửa ghi chú' : 'Chỉnh sửa'}</span>
-              </>
-            )}
-          </button>
-
-          {/* Copy Button */}
-          <button
-            onClick={() => copyCurrentTabContent()}
-            className={cn(
-              "h-10 px-3 flex items-center justify-center gap-1.5 rounded-xl border text-xs font-bold transition-all duration-200 active:scale-95 cursor-pointer",
-              isCopied
-                ? "bg-emerald-500 border-emerald-500 text-white shadow-sm"
-                : "bg-slate-50 border-slate-200 text-slate-600 hover:bg-orange-50 hover:border-orange-200 hover:text-orange-600"
-            )}
-            title="Sao chép nội dung"
-          >
-            {isCopied ? <Check className="w-3.5 h-3.5 stroke-[3]" /> : <Copy className="w-3.5 h-3.5" />}
-            <span>{isCopied ? 'Đã chép' : 'Sao chép'}</span>
-          </button>
-
-          {/* Expand/Collapse for Insight / Card */}
-          {(activeFeedbackTab === 'insight' || activeFeedbackTab === 'card') && (
-            <button
-              onClick={() => {
-                if (activeFeedbackTab === 'insight') {
-                  const isAllOpen = openInsightTabs.length === insightTabs.length;
-                  setOpenInsightTabs(isAllOpen ? [] : insightTabs.map(t => t.id));
-                } else {
-                  const isAllOpen = openFullCardTabs.length === allTabs.length;
-                  setOpenFullCardTabs(isAllOpen ? [] : allTabs.map(t => t.id));
-                }
-              }}
-              className="h-10 px-2.5 flex items-center justify-center rounded-xl bg-slate-50 border border-slate-200 text-slate-600 hover:bg-slate-100 text-xs font-bold active:scale-95 transition-all cursor-pointer"
-              title="Mở rộng / Thu gọn"
-            >
-              <ChevronsDown className="w-4 h-4" />
-            </button>
-          )}
-
-          {/* Mobile Next Card Button */}
-          {isMobile && (
-            <button
-              onClick={() => {
-                handleNext();
-                if (setIsFeedbackOpen) setIsFeedbackOpen(false);
-              }}
-              className="h-10 px-3.5 flex items-center justify-center gap-1.5 rounded-xl bg-gradient-to-r from-orange-500 to-amber-500 text-white font-black text-xs shadow-sm active:scale-95 transition-all cursor-pointer"
-            >
-              <span>Tiếp</span>
-              <ChevronRight className="w-4 h-4" />
-            </button>
-          )}
         </div>
       </div>
     </div>
