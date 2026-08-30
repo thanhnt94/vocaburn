@@ -144,7 +144,7 @@ export default function Landing() {
         <div className="w-full px-6 py-4 z-20">
           <header className="max-w-5xl mx-auto px-6 py-3.5 flex items-center justify-between bg-white/75 backdrop-blur-lg border border-slate-200/50 rounded-3xl shadow-sm shadow-slate-100/50">
             <div onClick={() => navigate('/')}>
-              <VocaburnLogo iconSize="md" textSize="md" variant="dark" />
+              <VocaburnLogo height="lg" />
             </div>
             <div className="flex items-center gap-3">
               <button 

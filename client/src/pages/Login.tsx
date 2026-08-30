@@ -103,8 +103,8 @@ export default function Login() {
       <div className="w-full max-w-md bg-white/[0.02] border border-white/5 backdrop-blur-xl rounded-2xl p-8 shadow-2xl relative z-10">
         {/* Brand Logo */}
         <div className="flex flex-col items-center mb-8">
-          <div className="mb-4">
-            <VocaburnLogo iconSize="xl" textSize="xl" variant="light" />
+          <div className="mb-4 flex justify-center">
+            <VocaburnLogo height="xl" />
           </div>
           <p className="text-xs text-slate-400 font-medium text-center">
             {showSSO ? 'Sign in using your Central Auth credentials' : 'Access local accounts through secure backdoor'}

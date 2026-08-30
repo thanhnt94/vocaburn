@@ -22,11 +22,12 @@ export function VocaburnLogo({
 }: VocaburnLogoProps) {
   const isHorizontal = mode === 'horizontal' && !iconOnly
 
+  // Prominent, well-proportioned heights for transparent PNG
   const heightClasses = {
-    sm: 'h-7 sm:h-8',
-    md: 'h-8.5 sm:h-9.5 md:h-10.5',
-    lg: 'h-10.5 sm:h-12 md:h-13',
-    xl: 'h-14 sm:h-16 md:h-18'
+    sm: 'h-8 sm:h-9',
+    md: 'h-9.5 sm:h-10.5 md:h-11.5',
+    lg: 'h-11 sm:h-13 md:h-14',
+    xl: 'h-14 sm:h-18 md:h-20'
   }[height]
 
   if (!isHorizontal) {
@@ -40,9 +41,9 @@ export function VocaburnLogo({
           style={size ? { width: size, height: size } : undefined}
         >
           <img
-            src="/mascot/vocaburn_logo.jpg"
+            src="/mascot/vocaburn_mascot_transparent.png"
             alt="Vocaburn Mascot"
-            className="w-full h-full object-contain drop-shadow-sm rounded-full"
+            className="w-full h-full object-contain drop-shadow-sm"
           />
         </div>
       </div>
@@ -59,12 +60,9 @@ export function VocaburnLogo({
         style={size ? { height: size } : undefined}
       >
         <img
-          src="/mascot/vocaburn_horizontal_logo.jpg"
+          src="/mascot/vocaburn_logo_transparent.png"
           alt="Vocaburn"
-          className="h-full w-auto max-w-[200px] sm:max-w-[260px] object-contain drop-shadow-xs mix-blend-multiply"
-          onError={(e) => {
-            (e.target as HTMLImageElement).src = '/mascot/vocaburn_brand_banner.jpg';
-          }}
+          className="h-full w-auto max-w-[220px] sm:max-w-[280px] md:max-w-[320px] object-contain drop-shadow-xs"
         />
       </div>
     </div>
