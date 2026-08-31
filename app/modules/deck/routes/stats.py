@@ -906,3 +906,221 @@ async def get_review_forecast(request: Request, db: AsyncSession = Depends(get_d
         "weekly": weekly_data
     }
 
+
+@router.get("/question/{card_id}/detailed-stats")
+async def get_card_detailed_stats(request: Request, card_id: int, db: AsyncSession = Depends(get_db)):
+    user_id = AuthService.get_user_id(request)
+    if not user_id:
+        user_id = 1
+
+    # 1. Fetch card and mastery
+    card_stmt = select(Flashcard).where(Flashcard.id == card_id)
+    mastery_stmt = select(UserCardMastery).where(
+        UserCardMastery.user_id == user_id,
+        UserCardMastery.card_id == card_id
+    )
+
+    card_res, mastery_res = await asyncio.gather(
+        db.execute(card_stmt),
+        db.execute(mastery_stmt)
+    )
+    card = card_res.scalar_one_or_none()
+    if not card:
+        return JSONResponse(status_code=404, content={"error": "Card not found"})
+    mastery = mastery_res.scalar_one_or_none()
+
+    # 2. Fetch answer logs from UserAnswer
+    answers_stmt = select(UserAnswer).join(
+        DeckAttempt, UserAnswer.attempt_id == DeckAttempt.id
+    ).where(
+        DeckAttempt.user_id == user_id,
+        UserAnswer.card_id == card_id
+    ).order_by(UserAnswer.created_at.desc())
+
+    answers_res = await db.execute(answers_stmt)
+    answers = answers_res.scalars().all()
+
+    total_reviews = len(answers)
+    total_time_seconds = sum(a.active_time or 0.0 for a in answers)
+    avg_time_seconds = (total_time_seconds / total_reviews) if total_reviews > 0 else 0.0
+    correct_count = sum(1 for a in answers if a.is_correct)
+    accuracy_percent = round((correct_count / total_reviews * 100), 1) if total_reviews > 0 else 0
+
+    again_count = sum(1 for a in answers if a.rating == 1)
+    hard_count = sum(1 for a in answers if a.rating == 2)
+    good_count = sum(1 for a in answers if a.rating == 3)
+    easy_count = sum(1 for a in answers if a.rating == 4)
+
+    # 3. Calculate FSRS retrievability if stability is known
+    now_utc = datetime.utcnow().replace(tzinfo=timezone.utc)
+    stability = mastery.stability if (mastery and mastery.stability) else None
+    difficulty = mastery.difficulty if (mastery and mastery.difficulty) else None
+    state = mastery.state if mastery else 0
+    box_level = mastery.box_level if mastery else 1
+    last_review = mastery.last_review.replace(tzinfo=timezone.utc) if (mastery and mastery.last_review) else None
+    first_learned = mastery.last_answered.replace(tzinfo=timezone.utc) if (mastery and mastery.last_answered) else None
+    due = mastery.due.replace(tzinfo=timezone.utc) if (mastery and mastery.due) else now_utc
+
+    retrievability = None
+    if stability and last_review and state == 2:
+        elapsed_days = max(0.0, (now_utc - last_review).total_seconds() / 86400.0)
+        # Standard FSRS retrievability formula: R = (1 + 19/81 * t / S)^-0.5
+        retrievability = round(math.pow(1.0 + (19.0 / 81.0) * (elapsed_days / max(0.1, stability)), -0.5) * 100, 1)
+
+    state_labels = {0: "Mới (New)", 1: "Đang học (Learning)", 2: "Ôn tập (Review)", 3: "Học lại (Relearning)"}
+
+    # Format review history list
+    history_logs = [{
+        "id": a.id,
+        "created_at": a.created_at.isoformat() if a.created_at else None,
+        "rating": a.rating,
+        "is_correct": a.is_correct,
+        "active_time": round(a.active_time or 0.0, 1)
+    } for a in answers[:30]]
+
+    return {
+        "card_id": card.id,
+        "deck_id": card.deck_id,
+        "content": card.content,
+        "explanation": card.explanation,
+        "box_level": box_level,
+        "consecutive_correct": mastery.consecutive_correct if mastery else 0,
+        "is_ignored": mastery.is_ignored if mastery else False,
+        "is_starred": mastery.is_starred if mastery else False,
+        "fsrs": {
+            "state": state,
+            "state_label": state_labels.get(state, "Mới"),
+            "stability": stability,
+            "difficulty": difficulty,
+            "retrievability": retrievability,
+            "due": due.isoformat() if due else None,
+            "last_review": last_review.isoformat() if last_review else None,
+            "first_learned": first_learned.isoformat() if first_learned else None,
+        },
+        "reviews_summary": {
+            "total_reviews": total_reviews,
+            "correct_count": correct_count,
+            "accuracy_percent": accuracy_percent,
+            "total_time_seconds": round(total_time_seconds, 1),
+            "avg_time_seconds": round(avg_time_seconds, 1),
+            "again_count": again_count,
+            "hard_count": hard_count,
+            "good_count": good_count,
+            "easy_count": easy_count,
+            "again_percent": round((again_count / total_reviews * 100), 1) if total_reviews > 0 else 0,
+            "hard_percent": round((hard_count / total_reviews * 100), 1) if total_reviews > 0 else 0,
+            "good_percent": round((good_count / total_reviews * 100), 1) if total_reviews > 0 else 0,
+            "easy_percent": round((easy_count / total_reviews * 100), 1) if total_reviews > 0 else 0,
+        },
+        "history_logs": history_logs
+    }
+
+
+@router.get("/{deck_id}/overview-stats")
+async def get_deck_overview_stats(request: Request, deck_id: int, db: AsyncSession = Depends(get_db)):
+    user_id = AuthService.get_user_id(request)
+    if not user_id:
+        user_id = 1
+
+    # 1. Fetch deck with cards
+    deck_stmt = select(FlashcardDeck).where(FlashcardDeck.id == deck_id).options(selectinload(FlashcardDeck.cards))
+    deck_res = await db.execute(deck_stmt)
+    deck = deck_res.scalar_one_or_none()
+    if not deck:
+        return JSONResponse(status_code=404, content={"error": "Deck not found"})
+
+    total_cards = len(deck.cards)
+    card_ids = [c.id for c in deck.cards]
+
+    # 2. Parallel queries: mastery records & historical answer stats
+    mastery_stmt = select(UserCardMastery).where(
+        UserCardMastery.user_id == user_id,
+        UserCardMastery.card_id.in_(card_ids)
+    )
+
+    deck_answers_stmt = select(
+        func.count(UserAnswer.id).label("total_reviews"),
+        func.sum(case((UserAnswer.is_correct == True, 1), else_=0)).label("correct_count"),
+        func.sum(UserAnswer.active_time).label("total_active_time"),
+        func.count(func.distinct(func.date(UserAnswer.created_at))).label("active_days"),
+        func.min(UserAnswer.created_at).label("first_studied_at"),
+        func.max(UserAnswer.created_at).label("last_studied_at")
+    ).join(DeckAttempt, UserAnswer.attempt_id == DeckAttempt.id).where(
+        DeckAttempt.user_id == user_id,
+        UserAnswer.card_id.in_(card_ids)
+    )
+
+    mastery_res, answers_res = await asyncio.gather(
+        db.execute(mastery_stmt),
+        db.execute(deck_answers_stmt)
+    )
+
+    mastery_list = mastery_res.scalars().all()
+    answer_stats = answers_res.first()
+
+    total_reviews = answer_stats.total_reviews or 0
+    correct_count = answer_stats.correct_count or 0
+    total_time_seconds = float(answer_stats.total_active_time or 0.0)
+    active_days = max(1, answer_stats.active_days or 1) if total_reviews > 0 else 0
+    accuracy_percent = round((correct_count / total_reviews * 100), 1) if total_reviews > 0 else 0
+
+    # 3. Box & FSRS Breakdown
+    box_counts = {1: 0, 2: 0, 3: 0, 4: 0, 5: 0}
+    now_utc = datetime.utcnow()
+    mastered_count = 0
+    learning_count = 0
+    new_count = 0
+    due_count = 0
+
+    mastery_map = {m.card_id: m for m in mastery_list}
+    for c in deck.cards:
+        m = mastery_map.get(c.id)
+        b_level = m.box_level if m else 1
+        b_level = max(1, min(5, b_level))
+        box_counts[b_level] += 1
+
+        if b_level == 5:
+            mastered_count += 1
+        elif m and m.state != 0 and m.last_review:
+            learning_count += 1
+        else:
+            new_count += 1
+
+        if m and m.due and m.due <= now_utc and not m.is_ignored and (m.state != 0 or m.last_review):
+            due_count += 1
+
+    learned_total = total_cards - new_count
+    avg_new_per_day = round(learned_total / active_days, 1) if active_days > 0 else 0
+    avg_reviews_per_day = round(total_reviews / active_days, 1) if active_days > 0 else 0
+
+    mastery_percentage = round((mastered_count / total_cards * 100), 1) if total_cards > 0 else 0
+
+    return {
+        "deck_id": deck.id,
+        "title": deck.title,
+        "total_cards": total_cards,
+        "active_days": active_days,
+        "total_study_time_seconds": round(total_time_seconds, 1),
+        "total_reviews": total_reviews,
+        "overall_accuracy": accuracy_percent,
+        "avg_new_cards_per_day": avg_new_per_day,
+        "avg_reviews_per_day": avg_reviews_per_day,
+        "first_studied_at": answer_stats.first_studied_at.isoformat() if (answer_stats and answer_stats.first_studied_at) else None,
+        "last_studied_at": answer_stats.last_studied_at.isoformat() if (answer_stats and answer_stats.last_studied_at) else None,
+        "box_distribution": {
+            "1": {"count": box_counts[1], "percent": round(box_counts[1] / total_cards * 100, 1) if total_cards > 0 else 0},
+            "2": {"count": box_counts[2], "percent": round(box_counts[2] / total_cards * 100, 1) if total_cards > 0 else 0},
+            "3": {"count": box_counts[3], "percent": round(box_counts[3] / total_cards * 100, 1) if total_cards > 0 else 0},
+            "4": {"count": box_counts[4], "percent": round(box_counts[4] / total_cards * 100, 1) if total_cards > 0 else 0},
+            "5": {"count": box_counts[5], "percent": round(box_counts[5] / total_cards * 100, 1) if total_cards > 0 else 0},
+        },
+        "fsrs_distribution": {
+            "mastered": mastered_count,
+            "learning": learning_count,
+            "new": new_count,
+            "due_today": due_count
+        },
+        "mastery_percentage": mastery_percentage
+    }
+
+
