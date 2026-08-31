@@ -13,14 +13,14 @@ import asyncio
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Initialize DB on startup
-    await init_db()
+    # Asynchronously initialize DB in background so HTTP server opens immediately
+    asyncio.create_task(init_db())
     
     # Start background reminder scheduler
     from app.modules.notification.services.reminder_scheduler import start_scheduler
     scheduler_task = start_scheduler()
     
-    # Start Telegram Bot
+    # Start Telegram Bot in background
     from app.modules.notification.services.bot_service import init_bot_app, stop_bot_app
     asyncio.create_task(init_bot_app())
     

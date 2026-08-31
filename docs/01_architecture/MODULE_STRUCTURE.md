@@ -36,12 +36,15 @@ Mỗi module nghiệp vụ tự đóng gói độc lập bao gồm: **Models** (
 
 ### 2.1. Module `deck` (Quản lý Học tập, Flashcard, FSRS v6 & Roadmap)
 *Trọng tâm nghiệp vụ của Vocaburn:*
+* **Giao diện Module Độc lập (`interface.py`)**: `DeckInterface` đóng gói toàn bộ quyền truy cập và kiểm tra phân quyền (Creator, Collaborator, Admin) cho các module khác gọi đến.
 * **Quản lý Bộ thẻ & Thẻ học**: Cấu trúc các bảng `flashcard_decks`, `flashcards`, `categories`, `tags`, `deck_collaborators`.
-* **Import & Export Excel**: Service `excel_service.py` hỗ trợ nhập/xuất tệp Excel theo mẫu chuẩn.
-* **Tự động sinh Âm thanh TTS**: Service `audio_generator.py` chuyển đổi văn bản thành âm thanh lưu trữ tại `/uploads/audio`.
+* **Import & Export Excel**: Service `excel_service.py` hỗ trợ nhập/xuất tệp Excel theo mẫu chuẩn (`Vocaburn_Template.xlsx`).
+* **Tự động sinh Âm thanh TTS & AI**: Service `audio_generator.py` và các workers hàng loạt tạo âm thanh, giải thích Gemini AI, hình ảnh và Furigana tiếng Nhật.
 * **Thuật toán Spaced Repetition FSRS v6**:
   * Chuẩn **FSRS v6** tính toán chính xác `stability`, `difficulty`, `state` (0=New, 1=Learning, 2=Review, 3=Relearning) qua 4 mức đánh giá (*Again, Hard, Good, Easy*).
   * Hỗ trợ mô hình hộp Leitner 1-5 truyền thống dự phòng.
+* **Hệ thống Thống kê Chi tiết & Drawer Phân Tách**:
+  * Route `stats.py`: Cung cấp `GET /question/{card_id}/detailed-stats` (chỉ số FSRS sâu, $R\%$, lịch sử 30 lần học) và `GET /{deck_id}/overview-stats` (phân bố 5 hộp Leitner, thời gian học).
 * **Hệ thống Lộ trình Bộ thẻ (Deck Roadmap)**:
   * Route `roadmap.py`: Quản lý pipeline các chặng học (Từ mới ➔ MCQ ➔ FSRS ➔ Test Mode), lưu lịch sử điều chỉnh pipeline (`roadmap_pipeline_history`).
 * **Đa dạng Chế độ Luyện tập**:

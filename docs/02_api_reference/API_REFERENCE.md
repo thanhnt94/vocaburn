@@ -160,6 +160,8 @@ Tất cả API Endpoints chính của Vocaburn được định nghĩa trong 8 m
 | `GET` | `/deck/stats/review-forecast` | Biểu đồ dự báo số lượng thẻ đến hạn ôn tập trong 30 ngày tới. |
 | `GET` | `/deck/stats/practice` | Lịch sử và hiệu suất làm bài theo chế độ luyện tập. |
 | `GET` | `/deck/decks/{deck_id}/mastery` | Chỉ số bộ nhớ FSRS chi tiết cho một bộ thẻ. |
+| `GET` | `/deck/question/{card_id}/detailed-stats` | Thống kê FSRS v6 chuyên sâu cho thẻ (Stability, Difficulty, Retrievability $R\%$, 4 nút Again/Hard/Good/Easy, lịch sử 30 lần học). |
+| `GET` | `/deck/{deck_id}/overview-stats` | Tổng quan thống kê bộ thẻ (Active study days, tổng thời gian, trung bình thẻ mới/ngày, phân bố 5 hộp Leitner). |
 
 ---
 

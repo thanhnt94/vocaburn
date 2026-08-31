@@ -4,6 +4,27 @@ Tài liệu này lưu lại lịch sử thay đổi cấu trúc, tính năng, v�
 
 ---
 
+### [2026-09-01]
+#### Khắc Phục Lỗ Hổng Bảo Mật (IDOR), Triệt Tiêu Concurrency AsyncSession, Đóng Gói DeckInterface & Nâng Cấp Hệ Thống Thống Kê
+- **Vá Toàn Diện Lỗ Hổng Bảo Mật & Phân Quyền (IDOR)**:
+  - Bổ sung xác thực quyền sở hữu và vai trò Admin cho các endpoint xóa bộ thẻ `DELETE /api/v1/deck/{deck_id}`, sửa/xóa thẻ `PATCH/DELETE /api/v1/deck/question/{card_id}`.
+  - Bảo vệ các thao tác quản lý cột tùy chỉnh (`/{deck_id}/add-column`, `/{deck_id}/rename-column`, `/{deck_id}/delete-column`) và các tác vụ sinh nội dung AI/TTS hàng loạt (`generate-all-audio`, `generate-all-ai`, `generate-all-images`, `generate-all-furigana`).
+- **Triệt Tiêu Concurrency Hazard (`AsyncSession`) & Tối Ưu N+1 Query**:
+  - Loại bỏ hoàn toàn việc gọi `asyncio.gather(db.execute...)` trên cùng một session `AsyncSession` (nguyên nhân gây lỗi `InterfaceError: cannot perform operation: another operation is in progress`), chuyển sang cơ chế tuần tự an toàn tuyệt đối tại `stats.py`, `play.py`, `api.py`, `analytics_service.py`.
+  - Tối ưu hóa hàm kiểm tra huy hiệu `check_badges_async` trong `background_tasks.py` theo mô hình Event-driven, giảm từ 5-8 query tuần tự mỗi lần lật thẻ xuống mức tối thiểu.
+  - Xử lý an toàn chống lỗi `NoneType` (Null Safety) cho các biến đếm `mastery.consecutive_correct` và `p_stats.correct_count`.
+- **Chuẩn Hóa Kiến Trúc Modular Monolith (`app/modules/deck/interface.py`)**:
+  - Tạo mới `DeckInterface` đóng gói ranh giới nghiệp vụ của Module `deck`, cung cấp `get_deck`, `check_user_deck_permission`, `check_card_permission`.
+  - Loại bỏ các inline import rải rác trong thân hàm và cập nhật tải tệp mẫu sang `Vocaburn_Template.xlsx`.
+- **Nâng Cấp API Thống Kê & Giao Diện Play Stats Drawer Chuyên Sâu**:
+  - Bổ sung 2 endpoint mới: `GET /api/v1/deck/question/{card_id}/detailed-stats` (chỉ số FSRS v6, Stability, Difficulty, Retrievability $R\%$, thống kê 4 mức rating và lịch sử 30 lần học) và `GET /api/v1/deck/{deck_id}/overview-stats` (tổng thời gian, ngày hoạt động, phân bố 5 hộp Leitner).
+  - Tái cấu trúc `PlayStatsDrawer.tsx` với 3 sub-tab trực quan: **Thẻ này**, **Bộ thẻ**, **Đua top**.
+  - Cố định thanh Footer 3 nút điều hướng (`MAP`, `FLASHCARD`, `STATS`) luôn hiển thị ở `bottom-0 z-[300]`, lớp Modal Bản đồ đặt ở `bottom-12 z-[200]`.
+- **Đồng Bộ Dữ Liệu & Đổi Tên Quản Trị Viên Thành `admin`**:
+  - Tạo Alembic migration `d4e5f6a7b8c9_rename_quizmind_admin_to_admin.py` đổi tên tài khoản mặc định ID 1 thành `admin`.
+
+---
+
 ### [2026-08-30]
 #### Rà Soát, Chuẩn Hóa 100% Codebase & Quy Hoạch Cây Thư Mục Tài Liệu (`docs/`)
 - **Quy Hoạch Cây Thư Mục Tài Liệu Thành 5 Phân Nhóm Chuyên Trách**:
