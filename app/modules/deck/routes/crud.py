@@ -30,10 +30,12 @@ from app.modules.deck.services.fsrs_service import build_fsrs_card
 @router.get("/template/download")
 async def download_template():
     import os
-    path = "app/static/QuizMind_Template.xlsx"
+    path = "app/static/Vocaburn_Template.xlsx"
+    if not os.path.exists(path):
+        path = "app/static/QuizMind_Template.xlsx"
     if os.path.exists(path):
-        return FileResponse(path, filename="QuizMind_Template.xlsx", media_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
-    return {"error": "Template not found"}
+        return FileResponse(path, filename="Vocaburn_Template.xlsx", media_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+    return JSONResponse(status_code=404, content={"error": "Template not found"})
 
 @router.post("/preview")
 async def preview_deck(file: UploadFile = File(...)):
@@ -451,7 +453,13 @@ async def archive_deck(request: Request, deck_id: int, db: AsyncSession = Depend
     return {"status": "ok"}
 
 @router.delete("/{deck_id}")
-async def delete_deck(deck_id: int, db: AsyncSession = Depends(get_db)):
+async def delete_deck(request: Request, deck_id: int, db: AsyncSession = Depends(get_db)):
+    user_id = AuthService.get_user_id(request)
+    from app.modules.deck.interface import DeckInterface
+    has_permission = await DeckInterface.check_user_deck_permission(db, deck_id, user_id, allow_collaborator=False)
+    if not has_permission:
+        return JSONResponse(status_code=403, content={"error": "Only deck creator or admin can delete this deck"})
+
     from app.modules.deck.models import (
         FlashcardDeck, Flashcard, DeckAttempt, 
         DeckRoom, UserDeckGoal, UserDeckSettings, DeckCollaborator,
@@ -689,7 +697,13 @@ async def create_card(request: Request, deck_id: int, data: dict, db: AsyncSessi
 @router.patch("/question/{card_id}")
 @router.patch("/flashcard/{card_id}")
 @router.patch("/card/{card_id}")
-async def update_card(card_id: int, data: dict, db: AsyncSession = Depends(get_db)):
+async def update_card(request: Request, card_id: int, data: dict, db: AsyncSession = Depends(get_db)):
+    user_id = AuthService.get_user_id(request)
+    from app.modules.deck.interface import DeckInterface
+    has_permission = await DeckInterface.check_card_permission(db, card_id, user_id)
+    if not has_permission:
+        return JSONResponse(status_code=403, content={"error": "No permission to edit this card"})
+
     from app.modules.deck.models import Flashcard
     result = await db.execute(select(Flashcard).where(Flashcard.id == card_id))
     card = result.scalar_one_or_none()
@@ -726,7 +740,13 @@ async def update_card(card_id: int, data: dict, db: AsyncSession = Depends(get_d
 @router.delete("/question/{card_id}")
 @router.delete("/flashcard/{card_id}")
 @router.delete("/card/{card_id}")
-async def delete_card(card_id: int, db: AsyncSession = Depends(get_db)):
+async def delete_card(request: Request, card_id: int, db: AsyncSession = Depends(get_db)):
+    user_id = AuthService.get_user_id(request)
+    from app.modules.deck.interface import DeckInterface
+    has_permission = await DeckInterface.check_card_permission(db, card_id, user_id)
+    if not has_permission:
+        return JSONResponse(status_code=403, content={"error": "No permission to delete this card"})
+
     from app.modules.deck.models import Flashcard, UserCardMastery, UserPracticeStats, UserCardNote, UserAnswer
     await db.execute(delete(UserCardMastery).where(UserCardMastery.card_id == card_id))
     await db.execute(delete(UserPracticeStats).where(UserPracticeStats.card_id == card_id))

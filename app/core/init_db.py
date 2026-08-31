@@ -123,19 +123,26 @@ async def init_db():
             print("Default category created.")
 
         # Check if admin exists
-        result = await db.execute(select(User).where(User.username == "admin"))
-        admin = result.scalar_one_or_none()
+        result = await db.execute(select(User).where(or_(User.username == "admin", User.id == 1, func.lower(User.username) == "quizmind admin")))
+        admin = result.scalars().first()
         if not admin:
             admin = User(
                 username="admin",
                 email="admin@mindstack.click",
-                full_name="QuizMind Admin",
+                full_name="admin",
                 hashed_password=AuthService.get_password_hash("admin"),
                 role="admin"
             )
             db.add(admin)
             await db.commit()
             print("Default admin user created (admin / admin).")
+        else:
+            # Update name if legacy QuizMind Admin
+            if admin.full_name in ["QuizMind Admin", "QUIZMIND ADMIN", "quizmind admin"] or admin.username in ["QuizMind Admin", "QUIZMIND ADMIN", "quizmind admin"]:
+                admin.username = "admin"
+                admin.full_name = "admin"
+                await db.commit()
+                print("Default admin username/full_name updated to 'admin'.")
 
         # Seed SSO Config for testing
         result = await db.execute(select(SSOConfig))

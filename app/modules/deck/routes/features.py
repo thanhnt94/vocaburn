@@ -1285,6 +1285,12 @@ async def generate_all_deck_audio(
     payload: dict = None,
     db: AsyncSession = Depends(get_db)
 ):
+    user_id = AuthService.get_user_id(request)
+    from app.modules.deck.interface import DeckInterface
+    has_permission = await DeckInterface.check_user_deck_permission(db, deck_id, user_id, allow_collaborator=True)
+    if not has_permission:
+        return JSONResponse(status_code=403, content={"error": "No permission to generate audio for this deck"})
+
     from app.modules.deck.models import FlashcardDeck
     res = await db.execute(select(FlashcardDeck).filter(FlashcardDeck.id == deck_id))
     deck = res.scalar_one_or_none()
@@ -1815,6 +1821,12 @@ async def generate_all_deck_ai(
     payload: dict = None,
     db: AsyncSession = Depends(get_db)
 ):
+    user_id = AuthService.get_user_id(request)
+    from app.modules.deck.interface import DeckInterface
+    has_permission = await DeckInterface.check_user_deck_permission(db, deck_id, user_id, allow_collaborator=True)
+    if not has_permission:
+        return JSONResponse(status_code=403, content={"error": "No permission to generate AI content for this deck"})
+
     from app.modules.deck.models import FlashcardDeck
     res = await db.execute(select(FlashcardDeck).filter(FlashcardDeck.id == deck_id))
     deck = res.scalar_one_or_none()
@@ -1998,7 +2010,13 @@ async def get_deck_columns_overview(deck_id: int, db: AsyncSession = Depends(get
     }
 
 @router.post("/{deck_id}/add-column")
-async def add_deck_column(deck_id: int, payload: dict, db: AsyncSession = Depends(get_db)):
+async def add_deck_column(request: Request, deck_id: int, payload: dict, db: AsyncSession = Depends(get_db)):
+    user_id = AuthService.get_user_id(request)
+    from app.modules.deck.interface import DeckInterface
+    has_permission = await DeckInterface.check_user_deck_permission(db, deck_id, user_id, allow_collaborator=True)
+    if not has_permission:
+        return JSONResponse(status_code=403, content={"error": "No permission to edit columns in this deck"})
+
     col_name = payload.get("column_name", "").strip().lower().replace(" ", "_")
     if not col_name:
         return JSONResponse(status_code=400, content={"error": "Tên cột không hợp lệ"})
@@ -2028,7 +2046,13 @@ async def add_deck_column(deck_id: int, payload: dict, db: AsyncSession = Depend
     return {"status": "ok", "column_name": col_name}
 
 @router.post("/{deck_id}/rename-column")
-async def rename_deck_column(deck_id: int, payload: dict, db: AsyncSession = Depends(get_db)):
+async def rename_deck_column(request: Request, deck_id: int, payload: dict, db: AsyncSession = Depends(get_db)):
+    user_id = AuthService.get_user_id(request)
+    from app.modules.deck.interface import DeckInterface
+    has_permission = await DeckInterface.check_user_deck_permission(db, deck_id, user_id, allow_collaborator=True)
+    if not has_permission:
+        return JSONResponse(status_code=403, content={"error": "No permission to rename columns in this deck"})
+
     old_name = payload.get("old_name", "").strip()
     new_name = payload.get("new_name", "").strip().lower().replace(" ", "_")
     if not old_name or not new_name:
@@ -2084,7 +2108,13 @@ async def rename_deck_column(deck_id: int, payload: dict, db: AsyncSession = Dep
     return {"status": "ok"}
 
 @router.post("/{deck_id}/delete-column")
-async def delete_deck_column(deck_id: int, payload: dict, db: AsyncSession = Depends(get_db)):
+async def delete_deck_column(request: Request, deck_id: int, payload: dict, db: AsyncSession = Depends(get_db)):
+    user_id = AuthService.get_user_id(request)
+    from app.modules.deck.interface import DeckInterface
+    has_permission = await DeckInterface.check_user_deck_permission(db, deck_id, user_id, allow_collaborator=True)
+    if not has_permission:
+        return JSONResponse(status_code=403, content={"error": "No permission to delete columns in this deck"})
+
     col_name = payload.get("column_name", "").strip()
     if not col_name:
         return JSONResponse(status_code=400, content={"error": "column_name is required"})
@@ -2172,6 +2202,12 @@ async def generate_all_deck_images(
     payload: dict = None,
     db: AsyncSession = Depends(get_db)
 ):
+    user_id = AuthService.get_user_id(request)
+    from app.modules.deck.interface import DeckInterface
+    has_permission = await DeckInterface.check_user_deck_permission(db, deck_id, user_id, allow_collaborator=True)
+    if not has_permission:
+        return JSONResponse(status_code=403, content={"error": "No permission to generate images for this deck"})
+
     from app.modules.deck.models import FlashcardDeck
     res = await db.execute(select(FlashcardDeck).filter(FlashcardDeck.id == deck_id))
     deck = res.scalar_one_or_none()
@@ -2461,6 +2497,12 @@ async def generate_all_deck_furigana(
     payload: dict = None,
     db: AsyncSession = Depends(get_db)
 ):
+    user_id = AuthService.get_user_id(request)
+    from app.modules.deck.interface import DeckInterface
+    has_permission = await DeckInterface.check_user_deck_permission(db, deck_id, user_id, allow_collaborator=True)
+    if not has_permission:
+        return JSONResponse(status_code=403, content={"error": "No permission to generate furigana for this deck"})
+
     from app.core.db import SessionLocal
     
     source_field = "front"

@@ -87,12 +87,10 @@ async def get_dashboard_data(request: Request, only_created: bool = False, db: A
     ).where(UserDeckSettings.user_id == user_id_int)
 
     if only_created:
-        res_b, res_users, res_mastery, res_user_settings = await asyncio.gather(
-            db.execute(query_b),
-            db.execute(query_users),
-            db.execute(query_mastery),
-            db.execute(query_user_settings)
-        )
+        res_b = await db.execute(query_b)
+        res_users = await db.execute(query_users)
+        res_mastery = await db.execute(query_mastery)
+        res_user_settings = await db.execute(query_user_settings)
         creator_map = {row[0]: row[1] for row in res_users.all()}
         mastery_map = {row[0]: {"learned": row[1] or 0, "mastered": row[2] or 0} for row in res_mastery.all()}
         user_settings_map = {row[0]: row[1] for row in res_user_settings.all() if row[1]}
@@ -195,19 +193,17 @@ async def get_dashboard_data(request: Request, only_created: bool = False, db: A
     except Exception:
         pass
 
-    # Fetch all database queries concurrently using asyncio.gather
-    res_a, res_b, res_c, res_users, res_mastery, res_user_settings, gamify_data, stats_summary, notifications, unread_count = await asyncio.gather(
-        db.execute(query_a),
-        db.execute(query_b),
-        db.execute(query_c),
-        db.execute(query_users),
-        db.execute(query_mastery),
-        db.execute(query_user_settings),
-        GamificationInterface.get_user_stats(db, user_id_int),
-        StatsInterface.get_user_summary(db, user_id_int),
-        NotificationInterface.get_latest(db, user_id_int),
-        NotificationInterface.get_unread_count(db, user_id_int)
-    )
+    # Fetch all database queries safely and sequentially
+    res_a = await db.execute(query_a)
+    res_b = await db.execute(query_b)
+    res_c = await db.execute(query_c)
+    res_users = await db.execute(query_users)
+    res_mastery = await db.execute(query_mastery)
+    res_user_settings = await db.execute(query_user_settings)
+    gamify_data = await GamificationInterface.get_user_stats(db, user_id_int)
+    stats_summary = await StatsInterface.get_user_summary(db, user_id_int)
+    notifications = await NotificationInterface.get_latest(db, user_id_int)
+    unread_count = await NotificationInterface.get_unread_count(db, user_id_int)
 
     creator_map = {row[0]: row[1] for row in res_users.all()}
     mastery_map = {row[0]: {"learned": row[1] or 0, "mastered": row[2] or 0} for row in res_mastery.all()}

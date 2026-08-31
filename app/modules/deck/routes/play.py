@@ -249,7 +249,7 @@ async def record_answer(request: Request, data: dict, background_tasks: Backgrou
                 
             # Update consecutive correct for compatibility
             if rating_val > 1:
-                mastery.consecutive_correct += 1
+                mastery.consecutive_correct = (mastery.consecutive_correct or 0) + 1
             else:
                 mastery.consecutive_correct = 0
                 
@@ -294,10 +294,10 @@ async def record_answer(request: Request, data: dict, background_tasks: Backgrou
                 db.add(p_stats)
             
             if is_correct:
-                p_stats.correct_count += 1
+                p_stats.correct_count = (p_stats.correct_count or 0) + 1
             else:
-                p_stats.wrong_count += 1
-            p_stats.total_time_spent += float(time_spent)
+                p_stats.wrong_count = (p_stats.wrong_count or 0) + 1
+            p_stats.total_time_spent = (p_stats.total_time_spent or 0.0) + float(time_spent)
             await db.flush()
             mastery_update_info = None
 
@@ -983,11 +983,9 @@ async def get_quick_play_data(request: Request, db: AsyncSession = Depends(get_d
         DeckAttempt.user_id == user_id
     )
     
-    today_xp_res, today_time_res, all_time_time_res = await asyncio.gather(
-        db.execute(today_xp_stmt),
-        db.execute(today_time_stmt),
-        db.execute(all_time_time_stmt)
-    )
+    today_xp_res = await db.execute(today_xp_stmt)
+    today_time_res = await db.execute(today_time_stmt)
+    all_time_time_res = await db.execute(all_time_time_stmt)
     
     user_today_xp = today_xp_res.scalar() or 0
     user_today_time = today_time_res.scalar() or 0
@@ -1166,18 +1164,16 @@ async def get_deck_play_data(request: Request, deck_id: int, mode: Optional[str]
         DeckAttempt.user_id == user_id
     )
 
-    deck_res, user_sett_res, collab_res, user_stats, today_xp_res, today_time_res, all_time_time_res = await asyncio.gather(
-        db.execute(deck_query),
-        db.execute(user_sett_stmt),
-        db.execute(collab_stmt),
-        GamificationInterface.get_user_stats(db, user_id),
-        db.execute(today_xp_stmt),
-        db.execute(today_time_stmt),
-        db.execute(all_time_time_stmt)
-    )
-
+    deck_res = await db.execute(deck_query)
     deck = deck_res.scalar_one_or_none()
     if not deck: return JSONResponse(status_code=404, content={"error": "Deck not found"})
+
+    user_sett_res = await db.execute(user_sett_stmt)
+    collab_res = await db.execute(collab_stmt)
+    user_stats = await GamificationInterface.get_user_stats(db, user_id)
+    today_xp_res = await db.execute(today_xp_stmt)
+    today_time_res = await db.execute(today_time_stmt)
+    all_time_time_res = await db.execute(all_time_time_stmt)
 
     user_sett = user_sett_res.scalar_one_or_none()
     is_collaborator = collab_res.scalar() is not None

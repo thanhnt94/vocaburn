@@ -920,13 +920,12 @@ async def get_card_detailed_stats(request: Request, card_id: int, db: AsyncSessi
         UserCardMastery.card_id == card_id
     )
 
-    card_res, mastery_res = await asyncio.gather(
-        db.execute(card_stmt),
-        db.execute(mastery_stmt)
-    )
+    card_res = await db.execute(card_stmt)
     card = card_res.scalar_one_or_none()
     if not card:
         return JSONResponse(status_code=404, content={"error": "Card not found"})
+
+    mastery_res = await db.execute(mastery_stmt)
     mastery = mastery_res.scalar_one_or_none()
 
     # 2. Fetch answer logs from UserAnswer
@@ -1050,10 +1049,8 @@ async def get_deck_overview_stats(request: Request, deck_id: int, db: AsyncSessi
         UserAnswer.card_id.in_(card_ids)
     )
 
-    mastery_res, answers_res = await asyncio.gather(
-        db.execute(mastery_stmt),
-        db.execute(deck_answers_stmt)
-    )
+    mastery_res = await db.execute(mastery_stmt)
+    answers_res = await db.execute(deck_answers_stmt)
 
     mastery_list = mastery_res.scalars().all()
     answer_stats = answers_res.first()

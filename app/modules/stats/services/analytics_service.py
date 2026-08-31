@@ -516,12 +516,10 @@ class AnalyticsService:
             func.date(first_answers.c.first_answered_at)
         )
 
-        reviews_res, new_cards_res, all_reviews_res, all_new_res = await asyncio.gather(
-            db.execute(reviews_stmt),
-            db.execute(new_cards_stmt),
-            db.execute(all_time_reviews_stmt),
-            db.execute(all_time_new_cards_stmt)
-        )
+        reviews_res = await db.execute(reviews_stmt)
+        new_cards_res = await db.execute(new_cards_stmt)
+        all_reviews_res = await db.execute(all_time_reviews_stmt)
+        all_new_res = await db.execute(all_time_new_cards_stmt)
 
         daily_map = {}
         for i in range(14):
