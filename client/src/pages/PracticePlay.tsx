@@ -5248,6 +5248,9 @@ export default function PracticePlay() {
         userRank={userRank}
         leaderboardMsg={leaderboardMsg}
         user={user}
+        currentCard={currentQuestion}
+        currentIndex={currentIndex}
+        session={session}
         practiceStatsNode={mainTab === 'practice' && renderPracticeStats()}
         sessionStatsNode={
           <div className="grid grid-cols-3 gap-2 text-center text-xs text-slate-700">

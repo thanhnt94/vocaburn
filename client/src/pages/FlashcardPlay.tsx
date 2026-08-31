@@ -4351,6 +4351,9 @@ export default function FlashcardPlay() {
         userRank={userRank}
         leaderboardMsg={leaderboardMsg}
         user={user}
+        currentCard={currentQuestion}
+        currentIndex={currentIndex}
+        session={session}
         sessionStatsNode={renderSessionStats()}
       />
 
