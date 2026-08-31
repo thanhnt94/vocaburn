@@ -232,6 +232,38 @@ export const getMasteryPill = (q: any): React.ReactElement => {
   }
 }
 
+export function getFSRSIntervals(fsrs?: any): Record<number, string> {
+  if (fsrs?.intervals && typeof fsrs.intervals === 'object' && Object.keys(fsrs.intervals).length > 0) {
+    return fsrs.intervals;
+  }
+  
+  // Dynamic FSRS estimation based on stability if in review
+  const stability = fsrs?.stability;
+  const state = fsrs?.state;
+  
+  if (state === 2 && typeof stability === 'number' && stability > 0) {
+    const again = "<10m";
+    const hardDays = Math.max(1, Math.round(stability * 1.2));
+    const goodDays = Math.max(2, Math.round(stability * 2.5));
+    const easyDays = Math.max(4, Math.round(stability * 4.0));
+    
+    return {
+      1: again,
+      2: `${hardDays}d`,
+      3: `${goodDays}d`,
+      4: `${easyDays}d`
+    };
+  }
+  
+  // Standard defaults for New / Learning cards
+  return {
+    1: "<1m",
+    2: "5m",
+    3: "10m",
+    4: "4d"
+  };
+}
+
 export const getBadgeIcon = (badgeId: string) => {
   switch (badgeId) {
     case 'first_steps':

@@ -22,7 +22,8 @@ import {
   getCardBoxId,
   getMasteryPill,
   getBadgeIcon,
-  formatHeaderTime
+  formatHeaderTime,
+  getFSRSIntervals
 } from '@/lib/flashcard-utils'
 import type { Option, Question } from '@/types/flashcard'
 import { TypewriterText } from '@/components/TypewriterText'
@@ -3820,7 +3821,7 @@ export default function FlashcardPlay() {
                         isFlipped={isFlipped}
                         hasRated={hasRated}
                         selectedOption={selectedOption}
-                        intervals={currentQuestion?.fsrs?.intervals}
+                        intervals={getFSRSIntervals(currentQuestion?.fsrs)}
                         onRate={handleReviewRating}
                       />
                     )}
@@ -3846,12 +3847,12 @@ export default function FlashcardPlay() {
                         }
                       }
                       
-                      // Fallback interval label if the API response hasn't arrived/updated the due time yet
                       if (!countdownStr) {
-                        if (selectedOption === 0) countdownStr = currentQuestion?.fsrs?.intervals?.[1] || "1m";
-                        else if (selectedOption === 1) countdownStr = currentQuestion?.fsrs?.intervals?.[2] || "5m";
-                        else if (selectedOption === 2) countdownStr = currentQuestion?.fsrs?.intervals?.[3] || "10m";
-                        else countdownStr = currentQuestion?.fsrs?.intervals?.[4] || "4d";
+                        const dynamicIntervals = getFSRSIntervals(currentQuestion?.fsrs);
+                        if (selectedOption === 0) countdownStr = dynamicIntervals[1] || "1m";
+                        else if (selectedOption === 1) countdownStr = dynamicIntervals[2] || "5m";
+                        else if (selectedOption === 2) countdownStr = dynamicIntervals[3] || "10m";
+                        else countdownStr = dynamicIntervals[4] || "4d";
                       }
                       return (
                         <div

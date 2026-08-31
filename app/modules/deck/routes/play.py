@@ -1132,33 +1132,28 @@ async def get_deck_play_data(request: Request, deck_id: int, mode: Optional[str]
 
     is_practice = mode in ("mcq", "typing", "listening")
     
-    # Load user deck settings globally for FSRS & Practice
-    user_sett_res = await db.execute(
-        select(UserDeckSettings).where(
-            UserDeckSettings.user_id == user_id,
-            UserDeckSettings.deck_id == deck_id
-        )
-    )
-    user_sett = user_sett_res.scalar_one_or_none()
-
-    deck = await DeckService.get_deck_with_stats(db, deck_id, user_id=user_id)
-    if not deck: return JSONResponse(status_code=404, content={"error": "Deck not found"})
-    
-    # Fetch user total XP and check if collaborator
-    from app.modules.gamification.interface import GamificationInterface
-    user_stats = await GamificationInterface.get_user_stats(db, user_id)
-    user_total_xp = user_stats.get("xp", 0)
-    
-    from app.modules.deck.models import DeckCollaborator
-    collab_res = await db.execute(select(DeckCollaborator).where(DeckCollaborator.deck_id == deck_id, DeckCollaborator.user_id == user_id))
-    is_collaborator = collab_res.scalar() is not None
-
-    # Query today's XP, today's time, and all-time time
+    from app.modules.deck.models import FlashcardDeck, Flashcard, Tag, DeckCollaborator, UserCardMastery, UserDeckSettings
     from app.modules.gamification.models import XPTransaction
     from app.modules.deck.models import UserAnswer, DeckAttempt
+    from app.modules.gamification.interface import GamificationInterface
+
+    # 1. Fetch deck with cards and tags in 1 optimized query
+    deck_query = select(FlashcardDeck).where(FlashcardDeck.id == deck_id).options(
+        selectinload(FlashcardDeck.cards),
+        selectinload(FlashcardDeck.tags)
+    )
     
+    # 2. Prepare parallel tasks for user stats, mastery, and settings
     today_start = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
     
+    user_sett_stmt = select(UserDeckSettings).where(
+        UserDeckSettings.user_id == user_id,
+        UserDeckSettings.deck_id == deck_id
+    )
+    collab_stmt = select(DeckCollaborator).where(
+        DeckCollaborator.deck_id == deck_id, 
+        DeckCollaborator.user_id == user_id
+    )
     today_xp_stmt = select(func.sum(XPTransaction.amount)).where(
         XPTransaction.user_id == user_id,
         XPTransaction.created_at >= today_start
@@ -1170,44 +1165,38 @@ async def get_deck_play_data(request: Request, deck_id: int, mode: Optional[str]
     all_time_time_stmt = select(func.sum(UserAnswer.active_time)).join(DeckAttempt, UserAnswer.attempt_id == DeckAttempt.id).where(
         DeckAttempt.user_id == user_id
     )
-    
-    today_xp_res, today_time_res, all_time_time_res = await asyncio.gather(
+
+    deck_res, user_sett_res, collab_res, user_stats, today_xp_res, today_time_res, all_time_time_res = await asyncio.gather(
+        db.execute(deck_query),
+        db.execute(user_sett_stmt),
+        db.execute(collab_stmt),
+        GamificationInterface.get_user_stats(db, user_id),
         db.execute(today_xp_stmt),
         db.execute(today_time_stmt),
         db.execute(all_time_time_stmt)
     )
-    
+
+    deck = deck_res.scalar_one_or_none()
+    if not deck: return JSONResponse(status_code=404, content={"error": "Deck not found"})
+
+    user_sett = user_sett_res.scalar_one_or_none()
+    is_collaborator = collab_res.scalar() is not None
+    user_total_xp = user_stats.get("xp", 0)
     user_today_xp = today_xp_res.scalar() or 0
     user_today_time = today_time_res.scalar() or 0
     user_all_time_time = all_time_time_res.scalar() or 0
 
-    
-    # Skip mastery loading for practice mode — practice doesn't use FSRS state
+    # 3. Fetch Mastery records in 1 indexed query (Skip for practice mode)
     mastery_records = {}
-    review_times_map = {}
-    if not is_practice:
-        from app.modules.deck.models import UserCardMastery, UserAnswer, DeckAttempt
+    if not is_practice and user_id and deck.cards:
+        card_ids = [c.id for c in deck.cards]
         mastery_stmt = select(UserCardMastery).where(
             UserCardMastery.user_id == user_id,
-            UserCardMastery.card_id.in_([c.id for c in deck.cards])
+            UserCardMastery.card_id.in_(card_ids)
         )
         mastery_res = await db.execute(mastery_stmt)
         mastery_records = {m.card_id: m for m in mastery_res.scalars().all()}
-        
-        # Bulk query first and last review timestamps for this user and deck's cards
-        review_times_stmt = select(
-            UserAnswer.card_id,
-            func.min(UserAnswer.created_at),
-            func.max(UserAnswer.created_at)
-        ).join(DeckAttempt, UserAnswer.attempt_id == DeckAttempt.id)\
-         .where(
-             DeckAttempt.user_id == user_id,
-             UserAnswer.card_id.in_([c.id for c in deck.cards])
-         ).group_by(UserAnswer.card_id)
-        
-        review_times_res = await db.execute(review_times_stmt)
-        review_times_map = {row[0]: (row[1], row[2]) for row in review_times_res.all()}
-    
+
     # Check settings if practice mode
     practice_needs_setup = False
     practice_disabled = False
@@ -1236,7 +1225,7 @@ async def get_deck_play_data(request: Request, deck_id: int, mode: Optional[str]
         else:
             active_pairs = mode_settings.get("active_pairs", [])
             num_choices = mode_settings.get("num_choices", 4)
-            
+
     cards_list = []
     
     if is_practice:
@@ -1250,7 +1239,7 @@ async def get_deck_play_data(request: Request, deck_id: int, mode: Optional[str]
                 "ai_explanation": c.others.get("ai_explanation") if c.others else None,
                 "hint": c.others.get("hint") if c.others else None,
                 "mnemonic": c.others.get("mnemonic") if c.others else None,
-                "stats": getattr(c, "stats", None),
+                "stats": None,
                 "box_level": 1,
                 "is_ignored": False,
                 "is_starred": False,
@@ -1262,13 +1251,14 @@ async def get_deck_play_data(request: Request, deck_id: int, mode: Optional[str]
             })
     else:
         from fsrs import Card, Scheduler, Rating, State
-        scheduler = Scheduler(enable_fuzzing=False)
         now_utc = datetime.utcnow().replace(tzinfo=timezone.utc)
         
-        # Pre-calculate brand new card intervals
-        new_card = build_fsrs_card(None, now_utc)
-        default_new_intervals = estimate_intervals(scheduler, new_card, now_utc)
-                
+        # Predefined static default intervals for new cards (Zero CPU cost)
+        default_new_intervals = {1: "<1m", 2: "5m", 3: "10m", 4: "4d"}
+        
+        # Instantiate scheduler once only if needed for review cards
+        scheduler = None
+        
         for idx, c in enumerate(deck.cards):
             m = mastery_records.get(c.id)
             
@@ -1285,14 +1275,11 @@ async def get_deck_play_data(request: Request, deck_id: int, mode: Optional[str]
             if is_new:
                 intervals = default_new_intervals
             else:
-                # Build Card for FSRS interval estimation
+                if scheduler is None:
+                    scheduler = Scheduler(enable_fuzzing=False)
                 fsrs_card = build_fsrs_card(m, now_utc)
                 intervals = estimate_intervals(scheduler, fsrs_card, now_utc)
                         
-            r_times = review_times_map.get(c.id)
-            first_learned = r_times[0] if r_times else None
-            last_reviewed = r_times[1] if r_times else None
-
             cards_list.append({
                 "id": c.id,
                 "original_index": idx + 1,
@@ -1304,7 +1291,10 @@ async def get_deck_play_data(request: Request, deck_id: int, mode: Optional[str]
                 "back_audio_url": c.back_audio_url,
                 "front_img": c.front_img,
                 "back_img": c.back_img,
-                "stats": getattr(c, 'stats', None),
+                "stats": {
+                    "total": m.consecutive_correct if m else 0,
+                    "correct": m.consecutive_correct if m else 0
+                } if m else None,
                 "box_level": m_box_level,
                 "is_ignored": m.is_ignored if m else False,
                 "is_starred": m.is_starred if m else False,
@@ -1314,8 +1304,8 @@ async def get_deck_play_data(request: Request, deck_id: int, mode: Optional[str]
                     "difficulty": m_difficulty,
                     "due": m_due.isoformat() if m_due else None,
                     "last_review": m_last_review.isoformat() if m_last_review else None,
-                    "first_learned": first_learned.isoformat() if first_learned else None,
-                    "last_reviewed": last_reviewed.isoformat() if last_reviewed else None,
+                    "first_learned": m.last_answered.isoformat() if (m and m.last_answered) else None,
+                    "last_reviewed": m_last_review.isoformat() if m_last_review else None,
                     "intervals": intervals
                 },
                 "options": [],

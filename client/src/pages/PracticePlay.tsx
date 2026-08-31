@@ -14,6 +14,7 @@ import { useAppStore } from '@/store/useAppStore'
 import { playCorrectSound, playIncorrectSound, speakMultiLanguage, stripTagsAndBBCode, speakSequentially, speakWithEdgeTTS, speakEdgeTTSSequentially, cancelAllAudio } from '@/lib/audio'
 import { parseBBCodeToHtml, stripBBCode, isJapanese, getJpPattern, extractTokens, tokensOverlapHigh } from '@/lib/text'
 import { selectDistractors } from '@/lib/distractor'
+import { getFSRSIntervals } from '@/lib/flashcard-utils'
 import { TypewriterText } from '@/components/TypewriterText'
 import { FeedbackArea } from '@/components/FeedbackArea'
 import { PracticeSetupScreen } from '@/components/PracticeSetupScreen'
@@ -4783,7 +4784,7 @@ export default function PracticePlay() {
                             >
                               <span className={cn("text-[9px] sm:text-[10px] font-black tracking-wider transition-colors duration-200", hasRated && selectedOption === 0 ? "text-white" : "text-rose-500")}>AGAIN</span>
                               <span className={cn("text-[10.5px] sm:text-xs font-black transition-colors duration-200", hasRated && selectedOption === 0 ? "text-rose-100" : "text-rose-600")}>
-                                {currentQuestion?.fsrs?.intervals?.[1] || "1m"}
+                                {getFSRSIntervals(currentQuestion?.fsrs)?.[1] || "1m"}
                               </span>
                             </button>
 
@@ -4798,7 +4799,7 @@ export default function PracticePlay() {
                             >
                               <span className={cn("text-[9px] sm:text-[10px] font-black tracking-wider transition-colors duration-200", hasRated && selectedOption === 1 ? "text-white" : "text-amber-500")}>HARD</span>
                               <span className={cn("text-[10.5px] sm:text-xs font-black transition-colors duration-200", hasRated && selectedOption === 1 ? "text-amber-100" : "text-amber-600")}>
-                                {currentQuestion?.fsrs?.intervals?.[2] || "5m"}
+                                {getFSRSIntervals(currentQuestion?.fsrs)?.[2] || "5m"}
                               </span>
                             </button>
 
@@ -4813,7 +4814,7 @@ export default function PracticePlay() {
                             >
                               <span className={cn("text-[9px] sm:text-[10px] font-black tracking-wider transition-colors duration-200", hasRated && selectedOption === 2 ? "text-white" : "text-indigo-500")}>GOOD</span>
                               <span className={cn("text-[10.5px] sm:text-xs font-black transition-colors duration-200", hasRated && selectedOption === 2 ? "text-indigo-100" : "text-indigo-600")}>
-                                {currentQuestion?.fsrs?.intervals?.[3] || "10m"}
+                                {getFSRSIntervals(currentQuestion?.fsrs)?.[3] || "10m"}
                               </span>
                             </button>
 
@@ -4828,7 +4829,7 @@ export default function PracticePlay() {
                             >
                               <span className={cn("text-[9px] sm:text-[10px] font-black tracking-wider transition-colors duration-200", hasRated && selectedOption === 3 ? "text-white" : "text-emerald-500")}>EASY</span>
                               <span className={cn("text-[10.5px] sm:text-xs font-black transition-colors duration-200", hasRated && selectedOption === 3 ? "text-emerald-100" : "text-emerald-600")}>
-                                {currentQuestion?.fsrs?.intervals?.[4] || "4d"}
+                                {getFSRSIntervals(currentQuestion?.fsrs)?.[4] || "4d"}
                               </span>
                             </button>
                           </div>
@@ -4857,10 +4858,11 @@ export default function PracticePlay() {
 
                           // Fallback interval label if the API response hasn't arrived/updated the due time yet
                           if (!countdownStr) {
-                            if (selectedOption === 0) countdownStr = currentQuestion?.fsrs?.intervals?.[1] || "1m";
-                            else if (selectedOption === 1) countdownStr = currentQuestion?.fsrs?.intervals?.[2] || "5m";
-                            else if (selectedOption === 2) countdownStr = currentQuestion?.fsrs?.intervals?.[3] || "10m";
-                            else countdownStr = currentQuestion?.fsrs?.intervals?.[4] || "4d";
+                            const dynamicIntervals = getFSRSIntervals(currentQuestion?.fsrs);
+                            if (selectedOption === 0) countdownStr = dynamicIntervals[1] || "1m";
+                            else if (selectedOption === 1) countdownStr = dynamicIntervals[2] || "5m";
+                            else if (selectedOption === 2) countdownStr = dynamicIntervals[3] || "10m";
+                            else countdownStr = dynamicIntervals[4] || "4d";
                           }
                           return (
                             <div
