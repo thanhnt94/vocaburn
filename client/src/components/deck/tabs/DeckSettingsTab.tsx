@@ -63,7 +63,9 @@ export function DeckSettingsTab({ embedded = false, deckId }: DeckSettingsTabPro
 
   const isOwner = Boolean(
     deckData?.is_creator ||
-    (user && deckData?.owner_id === user.id) ||
+    deckData?.can_edit ||
+    (user && (deckData?.owner_id === user.id || deckData?.creator_id === user.id)) ||
+    deckData?.is_collaborator ||
     user?.role === 'admin'
   )
 

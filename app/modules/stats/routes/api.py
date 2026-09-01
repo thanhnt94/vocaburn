@@ -174,6 +174,8 @@ async def get_dashboard_data(request: Request, only_created: bool = False, db: A
     attempted_sub = select(DeckAttempt.deck_id).where(DeckAttempt.user_id == user_id_int)
     created_sub = select(FlashcardDeck.id).where(FlashcardDeck.creator_id == user_id_int)
     
+    is_admin_user = bool(user.role == "admin" or getattr(user, "is_admin", False) or user_id_int == 1)
+
     query_c = select(
         FlashcardDeck,
         select(func.count(Flashcard.id)).where(Flashcard.deck_id == FlashcardDeck.id).scalar_subquery().label("c_count")
@@ -182,10 +184,10 @@ async def get_dashboard_data(request: Request, only_created: bool = False, db: A
     ).where(
         FlashcardDeck.id.not_in(attempted_sub),
         FlashcardDeck.id.not_in(created_sub),
-        FlashcardDeck.is_public == True
+        or_(FlashcardDeck.is_public == True, is_admin_user)
     ).order_by(
         FlashcardDeck.created_at.desc()
-    ).limit(12)
+    ).limit(30 if is_admin_user else 12)
 
     # Ensure streak is updated if user has recent activity
     try:

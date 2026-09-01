@@ -823,13 +823,31 @@ async def get_deck_data(request: Request, deck_id: int, db: AsyncSession = Depen
     pipeline = settings_data.get("pipeline", [])
     has_roadmap = bool(settings_data.get("roadmap_active", False) and isinstance(pipeline, list) and len(pipeline) > 0)
     
+    # Get creator username
+    creator_name = "Hệ thống"
+    if deck.creator_id:
+        c_user_res = await db.execute(select(UserDB.username).where(UserDB.id == deck.creator_id))
+        c_name_val = c_user_res.scalar()
+        if c_name_val:
+            creator_name = c_name_val
+        else:
+            creator_name = f"user_{deck.creator_id}"
+
+    is_creator = bool(deck.creator_id == user_id or user_id == 1 or is_admin)
+    can_edit = bool(is_creator or is_collaborator)
+
     return {
         "id": deck.id,
         "title": deck.title,
         "description": deck.description,
         "instruction": deck.instruction,
         "creator_id": deck.creator_id,
+        "owner_id": deck.creator_id,
+        "creator_name": creator_name,
+        "is_creator": is_creator,
         "is_collaborator": is_collaborator,
+        "can_edit": can_edit,
+        "is_admin": is_admin,
         "is_public": deck.is_public,
         "cards_count": c_count,
         "questions_count": c_count, # compatibility

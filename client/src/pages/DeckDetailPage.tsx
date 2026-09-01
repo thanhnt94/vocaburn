@@ -67,8 +67,14 @@ export function DeckDetailPage() {
 
   const isOwner = Boolean(
     deckMeta?.is_creator || 
-    (user && deckMeta?.owner_id === user.id) ||
+    deckMeta?.can_edit ||
+    (user && (deckMeta?.owner_id === user.id || deckMeta?.creator_id === user.id)) ||
+    deckMeta?.is_collaborator ||
     (user?.role === 'admin')
+  )
+
+  const isOriginalCreator = Boolean(
+    user && (deckMeta?.creator_id === user.id || deckMeta?.owner_id === user.id)
   )
 
   const handleTabChange = (tab: DeckDetailTab) => {
@@ -119,7 +125,7 @@ export function DeckDetailPage() {
                       <>
                         <span>•</span>
                         <span className="text-slate-600 truncate max-w-[120px]">
-                          @{deckMeta.creator_name}{isOwner ? ' (Bạn)' : ''}
+                          @{deckMeta.creator_name}{isOriginalCreator ? ' (Bạn)' : ''}
                         </span>
                       </>
                     )}
