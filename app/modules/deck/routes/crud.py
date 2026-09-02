@@ -140,7 +140,14 @@ async def upload_deck(request: Request, file: UploadFile = File(...), metadata_o
         await db.commit()
             
         print(f"DEBUG: Ingestion successful for {file.filename}")
-        return {"status": "ok", "message": "Deck import successfully stabilized."}
+        return {
+            "status": "ok",
+            "message": "Deck import successfully stabilized.",
+            "id": db_deck.id,
+            "deck_id": db_deck.id,
+            "title": db_deck.title,
+            "cards_count": len(cards)
+        }
         
     except Exception as e:
         import traceback
