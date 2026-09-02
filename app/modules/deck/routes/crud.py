@@ -228,10 +228,11 @@ async def import_text(request: Request, data: dict, db: AsyncSession = Depends(g
 async def create_deck_endpoint(request: Request, data: dict, db: AsyncSession = Depends(get_db)):
     try:
         user_id = AuthService.get_user_id(request)
-        title = data.get("title", "").strip()
-        description = data.get("description", "").strip()
-        cover_image = data.get("cover_image", "").strip() or None
-        is_public = data.get("is_public", True)
+        title = (data.get("title") or "").strip()
+        description = (data.get("description") or "").strip()
+        raw_cover = data.get("cover_image")
+        cover_image = str(raw_cover).strip() if (raw_cover and str(raw_cover).strip()) else None
+        is_public = bool(data.get("is_public", True))
         
         if not title:
             return JSONResponse(status_code=400, content={"error": "Deck title cannot be empty"})
