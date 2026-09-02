@@ -4,6 +4,23 @@ Tài liệu này lưu lại lịch sử thay đổi cấu trúc, tính năng, v�
 
 ---
 
+### [2026-09-03]
+#### Nâng Cấp Trình Xây Dựng Lộ Trình Động (Dynamic Step Pipeline Builder) & Bộ Lọc Quá Hạn FSRS v6
+- **Tái Thiết Kế Giao Diện Cài Đặt Mục Tiêu Lộ Trình (`DeckRoadmapGoalForm.tsx`)**:
+  - Chuyển đổi form cài đặt tĩnh cũ sang **Interactive Step Pipeline Builder**, cho phép người dùng tự do lựa chọn, cấu hình, thêm/xóa và sắp xếp thứ tự từng chặng học tập:
+    - 🎴 **Học từ mới (`new_cards`)**: Tùy chỉnh số lượng từ mới (`daily_count`, ví dụ: 20 từ) kèm các nút chọn nhanh (10, 15, 20, 30).
+    - 🎯 **Trắc nghiệm (`mcq`)**: Tùy chỉnh số câu hỏi test (`question_count`) và ngưỡng điểm % đạt (`pass_threshold`).
+    - ⌨️ **Gõ từ vựng (`typing`)**: Luyện nhớ chính xác mặt chữ với số câu và ngưỡng điểm đạt.
+    - 🔄 **Ôn tập FSRS v6 (`fsrs_review`)**: Tùy chỉnh điều kiện thẻ quá hạn: *Quá hạn trên 1 ngày* (mốc 23h59 hôm nay, đảm bảo thẻ học trong ngày không bị tính vào quá hạn, giữ mục tiêu ổn định suốt cả ngày), *Tất cả thẻ đến hạn*, hoặc *Quá hạn trên 2-3 ngày*.
+    - ⏱️ **Thời gian học (`study_time`)**: Đặt mục tiêu phút tập trung.
+  - Tích hợp điều khiển linh hoạt: ⬆️ Di chuyển lên, ⬇️ Di chuyển xuống, 🗑️ Xóa chặng.
+  - Hỗ trợ 4 bộ mẫu cấu hình nhanh (Quick Presets): *Tiêu chuẩn*, *Luyện gõ từ*, *Toàn diện*, *Chỉ ôn tập*.
+- **Đồng Bộ Trạng Thái & Hiển Thị Tiến Độ (`DeckRoadmapPipelineCard.tsx`, `DeckRoadmapTab.tsx`)**:
+  - Truyền `status` từ API `/roadmap-status` sang `DeckRoadmapGoalForm` để nạp chính xác pipeline hiện tại của người dùng.
+  - Cập nhật mô tả chặng trực quan tại tab *Tiến Độ Hôm Nay*, hiển thị rõ điều kiện quá hạn của FSRS v6.
+
+---
+
 ### [2026-09-01]
 #### Khắc Phục Lỗ Hổng Bảo Mật (IDOR), Triệt Tiêu Concurrency AsyncSession, Đóng Gói DeckInterface & Nâng Cấp Hệ Thống Thống Kê
 - **Vá Toàn Diện Lỗ Hổng Bảo Mật & Phân Quyền (IDOR)**:

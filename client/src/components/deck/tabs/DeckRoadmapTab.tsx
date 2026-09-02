@@ -87,6 +87,7 @@ export function DeckRoadmapTab({ embedded = false, deckId }: DeckRoadmapTabProps
       ) : (
         <DeckRoadmapGoalForm
           deckId={id!}
+          status={status}
           initialSettings={deckData?.practice_settings}
           onSaved={() => refetch()}
         />

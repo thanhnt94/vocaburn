@@ -10,6 +10,8 @@ export interface PipelineStepItem {
   daily_count?: number
   question_count?: number
   pass_threshold?: number
+  overdue_hours?: number
+  target_minutes?: number
 }
 
 export interface DeckRoadmapPipelineCardProps {
@@ -49,6 +51,7 @@ export function DeckRoadmapPipelineCard({
       case 'mcq': return '🎯'
       case 'typing': return '⌨️'
       case 'fsrs_review': return '🔄'
+      case 'study_time': return '⏱️'
       default: return '⚡'
     }
   }
@@ -146,9 +149,14 @@ export function DeckRoadmapPipelineCard({
                   </div>
                   <span className="text-[11px] text-slate-400 font-medium block mt-0.5">
                     {step.type === 'new_cards' && `Học ${step.daily_count || 10} từ mới qua Flashcard`}
-                    {step.type === 'mcq' && `Làm bài test trắc nghiệm (Đạt >= ${step.pass_threshold || 80}%)`}
-                    {step.type === 'typing' && `Gõ chính xác từ vựng (Đạt >= ${step.pass_threshold || 80}%)`}
-                    {step.type === 'fsrs_review' && `Ôn tập thẻ đến hạn theo FSRS v6`}
+                    {step.type === 'mcq' && `Làm bài test trắc nghiệm (${step.question_count || 20} câu, Đạt >= ${step.pass_threshold || 80}%)`}
+                    {step.type === 'typing' && `Gõ chính xác từ vựng (${step.question_count || 20} câu, Đạt >= ${step.pass_threshold || 80}%)`}
+                    {step.type === 'fsrs_review' && (
+                      (step.overdue_hours ?? 24) >= 24
+                        ? `Ôn tập thẻ FSRS v6 quá hạn trên ${Math.round((step.overdue_hours ?? 24) / 24)} ngày (mốc 23h59)`
+                        : `Ôn tập tất cả thẻ đến hạn theo FSRS v6`
+                    )}
+                    {step.type === 'study_time' && `Mục tiêu thời gian học (${step.target_minutes || 15} phút)`}
                   </span>
                 </div>
               </div>
