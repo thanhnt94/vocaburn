@@ -5,6 +5,14 @@ Tài liệu này lưu lại lịch sử thay đổi cấu trúc, tính năng, v�
 ---
 
 ### [2026-09-03]
+#### Thiết Kế Lại Bộ Favicon & Mobile App Icon Độc Quyền Theo Hình Mascot Vocaburn
+- **Tái Tạo Bộ Nhận Diện Icon Ứng Dụng (`favicon.ico`, `favicon.png`, `apple-touch-icon.png`, `manifest.json`)**:
+  - Loại bỏ hoàn toàn favicon cũ (ảnh JPEG nền trắng không rõ nét mang tai nghe từ dự án khác).
+  - Tách nền và xử lý độ nét cao cho linh vật **Vocaburn Flame Boy**: cậu bé ngọn lửa 3D đáng yêu với mái tóc lửa rực sáng, mắt to lấp lánh, nụ cười vui tươi và áo choàng siêu anh hùng kèm huy hiệu vàng.
+  - **Browser Tab Favicon (`favicon.ico`, `favicon.png`)**: Tách nền trong suốt 100%, hiển thị nổi bật và sạch sẽ trên cả Dark Mode lẫn Light Mode của trình duyệt mà không bị viền trắng.
+  - **Mobile App Icon (`apple-touch-icon.png`, `pwa-192x192.png`, `pwa-512x512.png`)**: Thiết kế chuẩn Apple Touch Icon và Google PWA với nền gradient tròn tỏa nhiệt (radial gradient) từ vàng cam ấm áp đến đỏ rực hoàng hôn, tạo chiều sâu 3D đẳng cấp khi người dùng thêm ứng dụng ra màn hình chính (Add to Home Screen) trên iPhone và Android.
+  - Cập nhật màu chủ đề `theme-color` trong `index.html` và `manifest.json` sang sắc cam lửa `#EA580C`.
+
 #### Tinh Chỉnh Kích Thước Logo Vocaburn Gọn Gàng & Bổ Sung Type Check Cho Pipeline Build
 - **Tối Ưu Kích Thước Logo Vocaburn (`VocaburnLogo.tsx`, `Dashboard.tsx`, `Layout.tsx`)**:
   - Tái cấu trúc lại thang kích thước `heightClasses` của component `VocaburnLogo`: `xs` (24px), `sm` (28px), `md` (38px - 40px), `lg` (44px - 48px), `xl` (56px - 80px).

@@ -6,11 +6,29 @@
       "src": "favicon.png",
       "type": "image/png",
       "sizes": "512x512"
+    },
+    {
+      "src": "pwa-192x192.png",
+      "type": "image/png",
+      "sizes": "192x192",
+      "purpose": "any"
+    },
+    {
+      "src": "pwa-512x512.png",
+      "type": "image/png",
+      "sizes": "512x512",
+      "purpose": "any"
+    },
+    {
+      "src": "apple-touch-icon.png",
+      "type": "image/png",
+      "sizes": "1024x1024",
+      "purpose": "maskable"
     }
   ],
   "start_url": "/dashboard",
   "background_color": "#ffffff",
-  "theme_color": "#6366f1",
+  "theme_color": "#EA580C",
   "display": "standalone",
   "orientation": "portrait"
 }
