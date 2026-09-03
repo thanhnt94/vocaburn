@@ -62,7 +62,7 @@ export function DeckOverviewTab({
   const dueCount = masteryData?.due_count ?? 0
 
   return (
-    <div className="max-w-5xl mx-auto px-4 py-4 sm:py-6 space-y-5 text-left animate-in fade-in duration-200">
+    <div className="w-full max-w-[1700px] 2xl:max-w-[1900px] mx-auto px-4 sm:px-6 lg:px-8 xl:px-10 py-4 sm:py-6 space-y-5 text-left animate-in fade-in duration-200">
       {/* Description & Tag Banner (if available) */}
       {(deckData?.description || (deckData?.tags && deckData.tags.length > 0)) && (
         <div className="p-4 bg-white rounded-3xl border border-slate-100 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-3">

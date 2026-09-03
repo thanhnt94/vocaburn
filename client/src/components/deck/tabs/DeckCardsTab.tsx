@@ -323,7 +323,7 @@ export function DeckCardsTab({
   }
 
   return (
-    <div className="max-w-5xl mx-auto px-3 sm:px-6 py-2.5 space-y-2.5 text-left animate-in fade-in duration-200 relative pb-32">
+    <div className="w-full max-w-[1700px] 2xl:max-w-[1900px] mx-auto px-3.5 sm:px-6 lg:px-8 xl:px-10 py-2.5 space-y-2.5 text-left animate-in fade-in duration-200 relative pb-32">
       {/* 1. Sticky Filter Bar (Tất cả, Có sao, Đang ẩn, Chọn tất cả, Bulk actions) */}
       <div className="sticky top-0 z-20 bg-[#F8FAFC]/95 backdrop-blur-md pt-0.5 pb-0.5">
         <DeckCardFilterBar

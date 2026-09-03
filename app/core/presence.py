@@ -55,6 +55,12 @@ class PresenceTracker:
         elif diff <= 86400:  # <= 24 hours
             hours = max(1, int(diff / 3600))
             return "offline", f"{hours}h ago"
-        else:
+        elif diff <= 2592000:  # <= 30 days
             days = max(1, int(diff / 86400))
             return "offline", f"{days}d ago"
+        elif diff <= 31536000:  # <= 365 days
+            months = max(1, int(diff / 2592000))
+            return "offline", f"{months}mo ago"
+        else:
+            years = max(1, int(diff / 31536000))
+            return "offline", f"{years}y ago"

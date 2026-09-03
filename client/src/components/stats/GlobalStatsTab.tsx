@@ -63,7 +63,7 @@ export default function GlobalStatsTab({ globalStats, isLoading }: GlobalStatsTa
   ]
 
   return (
-    <div className="space-y-6 text-left max-w-5xl mx-auto">
+    <div className="space-y-6 text-left w-full max-w-[1700px] 2xl:max-w-[1900px] mx-auto">
       {/* 🌍 Inspiring Hero Banner */}
       <div className="bg-gradient-to-br from-indigo-950 via-slate-900 to-indigo-900 rounded-3xl p-6 sm:p-8 text-white shadow-xl shadow-indigo-950/20 border border-indigo-800/40 relative overflow-hidden">
         <div className="absolute -right-12 -top-12 w-48 h-48 bg-indigo-500/10 rounded-full blur-2xl pointer-events-none" />

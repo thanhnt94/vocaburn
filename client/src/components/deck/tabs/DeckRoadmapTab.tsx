@@ -42,7 +42,7 @@ export function DeckRoadmapTab({ embedded = false, deckId }: DeckRoadmapTabProps
   })
 
   return (
-    <div className="max-w-5xl mx-auto px-4 py-4 sm:py-6 space-y-4 text-left animate-in fade-in duration-200">
+    <div className="w-full max-w-[1700px] 2xl:max-w-[1900px] mx-auto px-4 sm:px-6 lg:px-8 xl:px-10 py-4 sm:py-6 space-y-4 text-left animate-in fade-in duration-200">
       {/* Sub-tab Pills Switcher */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-1 p-1 bg-slate-100 rounded-2xl">

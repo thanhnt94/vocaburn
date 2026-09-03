@@ -1737,7 +1737,7 @@ export default function Dashboard() {
       >
         {/* UNIFIED TOP HEADER (Clean Header without redundant tabs) */}
         <div className="bg-white flex-shrink-0 z-20 shadow-2xs border-b border-slate-100">
-          <div className="flex items-center justify-between px-3.5 py-1 sm:py-1.5 max-w-5xl mx-auto w-full">
+          <div className="flex items-center justify-between px-3.5 py-1 sm:py-1.5 w-full max-w-[1700px] 2xl:max-w-[1900px] mx-auto">
             <Link to="/" className="active:scale-95 transition-all flex items-center">
               <VocaburnLogo height="md" />
             </Link>

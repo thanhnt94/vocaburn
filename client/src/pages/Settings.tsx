@@ -247,7 +247,7 @@ const Settings = () => {
     <div className="min-h-screen bg-[#F8FAFC] pb-28 md:pb-40 text-left">
       {/* ═══════════ TOP UNIFIED HEADER ═══════════ */}
       <div className="bg-white/90 backdrop-blur-2xl border-b border-slate-200/70 shadow-2xs px-3.5 sm:px-6 py-3.5 sm:py-4 mb-4 sm:mb-6">
-        <div className="max-w-4xl mx-auto flex items-center gap-3">
+        <div className="w-full max-w-[1400px] 2xl:max-w-[1600px] mx-auto flex items-center gap-3">
           <div className="w-10 h-10 sm:w-11 sm:h-11 bg-slate-900 rounded-2xl flex items-center justify-center text-white shadow-md shadow-slate-900/10 shrink-0">
             <SettingsIcon className="w-5 h-5 stroke-[2.2]" />
           </div>
@@ -262,7 +262,7 @@ const Settings = () => {
         </div>
       </div>
 
-      <div className="max-w-4xl mx-auto px-3.5 md:px-4 space-y-4 md:space-y-8">
+      <div className="w-full max-w-[1400px] 2xl:max-w-[1600px] mx-auto px-3.5 md:px-4 space-y-4 md:space-y-8">
         {/* Learning Algorithm Section */}
         <section>
           <div className="flex items-center gap-2 mb-3 md:mb-6 px-1 md:px-2">

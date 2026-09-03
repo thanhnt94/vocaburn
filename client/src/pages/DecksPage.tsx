@@ -193,10 +193,10 @@ export default function DecksPage() {
   )
 
   return (
-    <div className="fixed inset-0 top-0 bottom-[68px] md:relative md:inset-auto md:top-auto md:bottom-auto md:min-h-screen flex flex-col bg-[#F8FAFC] overflow-hidden text-left select-none">
+    <div className="fixed inset-0 top-0 bottom-[68px] md:relative md:inset-auto md:top-auto md:bottom-auto md:h-full md:min-h-0 md:w-full flex flex-col bg-[#F8FAFC] overflow-hidden text-left select-none">
       {/* ═══════════ TOP UNIFIED HEADER ═══════════ */}
       <div className="shrink-0 z-30 bg-white/90 backdrop-blur-2xl border-b border-slate-200/70 shadow-2xs">
-        <div className="max-w-5xl mx-auto px-3.5 sm:px-6">
+        <div className="w-full max-w-[1700px] 2xl:max-w-[1900px] mx-auto px-3.5 sm:px-6 lg:px-8 xl:px-10">
           {/* Row 1: Header title */}
           <div className="flex items-center justify-between pt-3 pb-2.5">
             {/* Left: Standard App Page Header */}
@@ -288,8 +288,8 @@ export default function DecksPage() {
       </div>
 
       {/* ═══════════ MAIN DECK LIST (INTERNAL SCROLLABLE - FLEX-1) ═══════════ */}
-      <div className="flex-1 overflow-y-auto custom-scrollbar px-3 sm:px-6 py-4">
-        <div className="max-w-5xl mx-auto">
+      <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar px-3.5 sm:px-6 lg:px-8 xl:px-10 py-3.5">
+        <div className="w-full max-w-[1700px] 2xl:max-w-[1900px] mx-auto">
           {/* Empty State */}
           {filteredData.length === 0 ? (
             <div className="w-full bg-white border border-slate-200/80 rounded-3xl p-10 text-center flex flex-col items-center justify-center shadow-sm my-auto">
@@ -312,7 +312,7 @@ export default function DecksPage() {
               )}
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-4 gap-4">
               <AnimatePresence mode="popLayout">
                 {paginatedData.map((quiz, idx) => {
                   const learned = quiz.learned_count || 0
@@ -618,7 +618,7 @@ export default function DecksPage() {
 
       {/* ═══════════ FIXED ACTION & PAGINATION TOOLBAR (ABOVE TABS) ═══════════ */}
       <div className="shrink-0 z-30 bg-white/95 backdrop-blur-2xl border-t border-slate-200/80 px-3.5 sm:px-6 py-1.5 shadow-[0_-2px_10px_rgba(0,0,0,0.03)]">
-        <div className="max-w-5xl mx-auto flex items-center justify-between gap-2 min-h-[36px]">
+        <div className="w-full max-w-[1700px] 2xl:max-w-[1900px] mx-auto flex items-center justify-between gap-2 min-h-[36px] px-3.5 sm:px-6 lg:px-8 xl:px-10">
           {isSearchOpen ? (
             <div className="flex items-center gap-2 flex-1 animate-in fade-in duration-150">
               <div className="relative flex-1">
@@ -698,8 +698,8 @@ export default function DecksPage() {
 
       {/* ═══════════ ONE-HAND CENTERED BOTTOM DOCKED TAB BAR ═══════════ */}
       <div className="shrink-0 z-30 bg-white/95 backdrop-blur-2xl border-t border-slate-200/80 px-3 sm:px-6 py-1.5 shadow-[0_-4px_20px_rgba(0,0,0,0.05)]">
-        <div className="max-w-sm sm:max-w-md mx-auto flex items-center justify-center">
-          <div className="grid grid-flow-col auto-cols-fr w-full bg-slate-100/90 p-1 rounded-2xl border border-slate-200/60 shadow-2xs">
+        <div className="w-full max-w-[1700px] 2xl:max-w-[1900px] mx-auto flex items-center justify-center">
+          <div className="grid grid-flow-col auto-cols-fr w-full max-w-sm sm:max-w-md bg-slate-100/90 p-1 rounded-2xl border border-slate-200/60 shadow-2xs">
             {tabsConfig.map((tab) => {
               const isActive = activeTab === tab.id
               const TabIcon = tab.icon

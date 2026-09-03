@@ -307,7 +307,7 @@ class AnalyticsService:
             xp_stmt = select(
                 User.id, User.username, User.full_name,
                 UserGamification.xp.label("value"), UserGamification.level,
-                UserGamification.last_activity
+                func.coalesce(UserGamification.last_activity, User.created_at).label("last_activity")
             ).select_from(User).join(UserGamification, User.id == UserGamification.user_id)\
              .order_by(desc(UserGamification.xp)).limit(50)
             xp_list = await execute_and_format_leaderboard(xp_stmt)
@@ -322,12 +322,12 @@ class AnalyticsService:
             xp_stmt = select(
                 User.id, User.username, User.full_name,
                 func.sum(XPTransaction.amount).label("value"), UserGamification.level,
-                UserGamification.last_activity
+                func.coalesce(UserGamification.last_activity, User.created_at).label("last_activity")
             ).select_from(XPTransaction)\
              .join(User, User.id == XPTransaction.user_id)\
              .outerjoin(UserGamification, UserGamification.user_id == XPTransaction.user_id)\
              .where(XPTransaction.created_at >= start_datetime)\
-             .group_by(User.id, User.username, User.full_name, UserGamification.level, UserGamification.last_activity)\
+             .group_by(User.id, User.username, User.full_name, UserGamification.level, func.coalesce(UserGamification.last_activity, User.created_at))\
              .order_by(desc("value")).limit(50)
             xp_list = await execute_and_format_leaderboard(xp_stmt)
 
@@ -343,7 +343,7 @@ class AnalyticsService:
         streak_stmt = select(
             User.id, User.username, User.full_name,
             UserGamification.streak_count.label("value"), UserGamification.level,
-            UserGamification.last_activity
+            func.coalesce(UserGamification.last_activity, User.created_at).label("last_activity")
         ).select_from(User).join(UserGamification, User.id == UserGamification.user_id)\
          .order_by(desc(UserGamification.streak_count)).limit(50)
         streak_list = await execute_and_format_leaderboard(streak_stmt)
@@ -370,7 +370,7 @@ class AnalyticsService:
         q_stmt = select(
             User.id, User.username, User.full_name,
             q_subq.c.total_q.label("value"), UserGamification.level,
-            UserGamification.last_activity
+            func.coalesce(UserGamification.last_activity, User.created_at).label("last_activity")
         ).select_from(User).join(q_subq, User.id == q_subq.c.user_id)\
          .outerjoin(UserGamification, User.id == UserGamification.user_id)\
          .order_by(desc(q_subq.c.total_q)).limit(50)
@@ -407,7 +407,7 @@ class AnalyticsService:
         time_stmt = select(
             User.id, User.username, User.full_name,
             time_subq.c.total_time.label("value"), UserGamification.level,
-            UserGamification.last_activity
+            func.coalesce(UserGamification.last_activity, User.created_at).label("last_activity")
         ).select_from(User).join(time_subq, User.id == time_subq.c.user_id)\
          .outerjoin(UserGamification, User.id == UserGamification.user_id)\
          .order_by(desc(time_subq.c.total_time)).limit(50)
@@ -445,7 +445,7 @@ class AnalyticsService:
         acc_stmt = select(
             User.id, User.username, User.full_name,
             acc_subq.c.acc.label("value"), UserGamification.level,
-            UserGamification.last_activity
+            func.coalesce(UserGamification.last_activity, User.created_at).label("last_activity")
         ).select_from(User).join(acc_subq, User.id == acc_subq.c.user_id)\
          .outerjoin(UserGamification, User.id == UserGamification.user_id)\
          .order_by(desc(acc_subq.c.acc)).limit(50)

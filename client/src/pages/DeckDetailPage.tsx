@@ -91,10 +91,10 @@ export function DeckDetailPage() {
   const visibleTabs = allTabs.filter(t => !t.ownerOnly || isOwner)
 
   return (
-    <div className="fixed inset-0 top-0 bottom-[60px] md:relative md:inset-auto md:top-auto md:bottom-auto md:min-h-screen flex flex-col bg-[#F8FAFC] overflow-hidden text-left select-none">
+    <div className="fixed inset-0 top-0 bottom-[60px] md:relative md:inset-auto md:top-auto md:bottom-auto md:h-full md:min-h-0 md:w-full flex flex-col bg-[#F8FAFC] overflow-hidden text-left select-none">
       {/* ═══════════ TOP UNIFIED HEADER (SHRINK-0) ═══════════ */}
       <div className="shrink-0 z-30 bg-white/90 backdrop-blur-2xl border-b border-slate-200/70 shadow-2xs">
-        <div className="max-w-7xl mx-auto px-3.5 sm:px-6 lg:px-8">
+        <div className="w-full max-w-[1700px] 2xl:max-w-[1900px] mx-auto px-3.5 sm:px-6 lg:px-8 xl:px-10">
           <div className="flex items-center justify-between pt-2.5 pb-2.5 gap-2">
             {/* Left: Back Button & Deck Info */}
             <div className="flex items-center gap-2.5 min-w-0 flex-1">
@@ -216,7 +216,7 @@ export function DeckDetailPage() {
 
         return (
           <div className="shrink-0 z-30 bg-white/95 backdrop-blur-2xl border-t border-slate-200/80 px-3.5 sm:px-6 py-1.5 shadow-[0_-2px_10px_rgba(0,0,0,0.03)]">
-            <div className="max-w-5xl mx-auto flex items-center justify-between gap-2 min-h-[36px]">
+            <div className="w-full max-w-[1700px] 2xl:max-w-[1900px] mx-auto flex items-center justify-between gap-2 min-h-[36px] px-3.5 sm:px-6 lg:px-8 xl:px-10">
               {isSearchOpen ? (
                 <div className="flex items-center gap-2 flex-1 animate-in fade-in duration-150">
                   <div className="relative flex-1">

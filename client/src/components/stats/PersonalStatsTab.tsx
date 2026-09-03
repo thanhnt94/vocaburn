@@ -122,7 +122,7 @@ export default function PersonalStatsTab({
   }
 
   return (
-    <div className="space-y-6 text-left max-w-5xl mx-auto">
+    <div className="space-y-6 text-left w-full max-w-[1700px] 2xl:max-w-[1900px] mx-auto">
       {/* 📅 Sticky Top Synchronized Time Horizon Bar */}
       <div className="bg-white rounded-3xl border border-slate-200/80 p-4 sm:p-5 shadow-sm space-y-3 relative overflow-hidden">
         <div className="h-1 absolute top-0 inset-x-0 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500" />

@@ -5,6 +5,18 @@ Tài liệu này lưu lại lịch sử thay đổi cấu trúc, tính năng, v�
 ---
 
 ### [2026-09-03]
+#### Tối Ưu Toàn Diện Giao Diện Desktop: Loại Bỏ Cuộn Tràn Viền & Mở Rộng Kích Thước Full-Width
+- **Khắc Phục Hoàn Toàn Lỗi Cuộn Cả Cửa Sổ Trên Desktop (`Layout.tsx`, `DecksPage.tsx`, `Stats.tsx`, `DeckDetailPage.tsx`)**:
+  - Sửa lỗi chiều cao cửa sổ bị cộng dồn (`pt-[60px]` + `min-h-screen` = 100vh + 60px) gây ra thanh cuộn dọc không đáng có ở toàn bộ window và làm các thanh công cụ dưới đáy (Pagination, Search, New Deck, Tabs) bị đẩy xuống khuất tầm nhìn.
+  - Thiết lập Layout desktop chuẩn native app: cố định chiều cao màn hình `md:h-screen md:w-screen md:overflow-hidden`, phần nội dung thẻ/bảng bên trong tự động co giãn (`flex-1 min-h-0 overflow-y-auto`) và các thanh công cụ hành động luôn ghim nổi ở chân trang một cách gọn gàng, 100% không bị che khuất.
+  - **Giữ nguyên 100% giao diện mobile**: Các thuộc tính màn hình điện thoại (`fixed inset-0 top-0 bottom-[68px]`, mobile bottom bar) được bảo toàn nguyên vẹn, không bị ảnh hưởng.
+- **Mở Rộng Kích Thước Ngang Full-Size Trên Desktop (Loại bỏ giới hạn `max-w-5xl`)**:
+  - Chuyển đổi các khối chứa hẹp (1024px) sang chuẩn màn ảnh rộng `w-full max-w-[1700px] 2xl:max-w-[1900px] px-4 sm:px-6 lg:px-8 xl:px-10` trên tất cả các trang:
+    - **Kho bộ thẻ (`DecksPage.tsx`)**: Chuyển lưới từ 2 cột (`grid-cols-2`) thành lưới đáp ứng 4 cột (`grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-4`). 8 bộ thẻ trên trang giờ đây hiển thị trọn vẹn trong 2 hàng ngang cân đối, lấp đầy không gian màn hình lớn mà không cần phải cuộn chuột.
+    - **Thống kê & Xếp hạng (`Stats.tsx`, `LeaderboardTab.tsx`, `PersonalStatsTab.tsx`, `GlobalStatsTab.tsx`)**: Bảng xếp hạng từ hạng 4 đến 50 tự động chia 2 cột đối xứng trên desktop (`grid-cols-1 xl:grid-cols-2`), tối ưu hóa toàn bộ diện tích hiển thị.
+    - **Chi tiết bộ thẻ (`DeckDetailPage.tsx`, `DeckCardsTab.tsx`, `DeckRoadmapTab.tsx`, `DeckOverviewTab.tsx`, `DeckSettingsTab.tsx`)**: Mở rộng toàn bộ chiều ngang hiển thị bảng thẻ từ, lộ trình và cài đặt.
+    - **Bảng điều khiển & Cài đặt (`Dashboard.tsx`, `Settings.tsx`, `Landing.tsx`)**: Mở rộng thanh điều hướng và bố cục biểu đồ theo độ rộng màn hình.
+
 #### Nâng Cấp Bảng Xếp Hạng: Thời Gian Học (Study Time) & Trạng Thái Hoạt Động (Active / Away / Offline)
 - **Thay Thế Accuracy Bằng Bảng Xếp Hạng Thời Gian Học (`LeaderboardTab.tsx`, `Stats.tsx`, `analytics_service.py`)**:
   - Loại bỏ chỉ số `Accuracy` trên bộ lọc danh mục của Leaderboard và thay thế bằng **`Time` (Thời gian học)**.
@@ -15,8 +27,8 @@ Tài liệu này lưu lại lịch sử thay đổi cấu trúc, tính năng, v�
   - Phân cấp 3 trạng thái rõ ràng:
     - 🟢 **Active now / Đang hoạt động (Xanh lá)**: Hoạt động trong vòng 5 phút trở lại (có hiệu ứng vòng hào quang `animate-ping` tinh tế trên avatar).
     - 🟡 **Away / Vừa mới active (Vàng/Cam)**: Không tương tác trong khoảng 5 - 30 phút (kèm thông tin thời gian như `12m ago`).
-    - ⚪ **Offline (Xám nhạt)**: Không hoạt động quá 30 phút.
-  - Hiển thị đồng bộ trên cả bục vinh danh Top 3 (Podium) và danh sách xếp hạng thành viên từ #4 đến #50.
+    - ⚪ **Offline (Xám nhạt)**: Hiển thị chính xác khoảng cách thời gian từ lần active gần nhất cho tất cả các tài khoản (ví dụ: `2h ago`, `3d ago`, `1mo ago`), kết hợp `func.coalesce(UserGamification.last_activity, User.created_at)` đảm bảo 100% tài khoản đều có mốc thời gian rõ ràng.
+  - Hiển thị đồng bộ khoảng cách active trên cả bục vinh danh Top 3 (Podium) và danh sách xếp hạng thành viên từ #4 đến #50 (ngay cạnh Level của tài khoản: `Lv.X • 3h ago`).
   - Tương thích hoàn toàn với widget Bảng xếp hạng mini trong chế độ học flashcard (`FlashcardPlay.tsx`).
 
 #### Thiết Kế Lại Bộ Favicon & Mobile App Icon Độc Quyền Theo Hình Mascot Vocaburn

@@ -53,9 +53,7 @@ export default function Layout() {
       isLoggedIn 
         ? (isFullscreenPlay
             ? "pb-0 h-screen h-[100dvh] overflow-hidden" 
-            : (isDashboard 
-                ? "pb-28 md:pb-0 md:min-h-0 md:h-screen md:w-screen md:overflow-hidden" 
-                : "pb-28 md:pb-0"))
+            : "pb-28 md:pb-0 md:h-screen md:w-screen md:overflow-hidden")
         : ""
     )}>
 
@@ -67,7 +65,7 @@ export default function Layout() {
             ? "bg-white/90 border-slate-100/80 text-slate-900 shadow-2xs" 
             : "bg-slate-950/80 border-white/5 text-white"
         )}>
-          <div className="max-w-[1600px] w-full mx-auto px-8 py-3 flex items-center justify-between">
+          <div className="w-full max-w-[1700px] 2xl:max-w-[1900px] mx-auto px-4 sm:px-6 lg:px-8 xl:px-10 py-2.5 flex items-center justify-between">
             <div className="flex items-center gap-8">
               <Link to="/" className="active:scale-95 transition-all flex items-center">
                 <VocaburnLogo height="md" />
@@ -161,13 +159,11 @@ export default function Layout() {
       )}
 
       <main className={cn(
-        "flex-1 w-full",
+        "flex-1 w-full min-h-0",
         isLoggedIn 
-          ? (isDashboard 
-              ? "pt-0 md:pt-20 md:h-full md:overflow-hidden" 
-              : (isFullscreenPlay 
-                  ? "pt-0 h-full overflow-hidden" 
-                  : "pt-0 md:pt-20"))
+          ? (isFullscreenPlay 
+              ? "pt-0 h-full overflow-hidden" 
+              : "pt-0 md:pt-[60px] md:h-full md:min-h-0 md:overflow-hidden")
           : ""
       )}>
         <Outlet />

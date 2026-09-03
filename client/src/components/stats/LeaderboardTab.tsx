@@ -73,7 +73,7 @@ export default function LeaderboardTab({
   }
 
   return (
-    <div className="space-y-2.5 text-left w-full max-w-5xl mx-auto flex flex-col h-full min-h-0 overflow-hidden">
+    <div className="space-y-2.5 text-left w-full mx-auto flex flex-col h-full min-h-0 overflow-hidden">
       {/* 🌟 Your Rank Banner (Full-Width Fixed Top) */}
       {currentLeaderboard.user_rank !== -1 && (
         <motion.div
@@ -210,7 +210,7 @@ export default function LeaderboardTab({
             )}
 
             {/* List Top 4 - 50 (Full-Width Dedicated Internal Scroll) */}
-            <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar space-y-1.5 pr-1 w-full">
+            <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar pr-1 w-full">
               {remainingUsers.length === 0 && topThree.length === 0 ? (
                 <div className="py-10 text-center text-slate-400 font-bold text-xs bg-slate-50 rounded-2xl">
                   No leaderboard data for this period.
@@ -220,8 +220,9 @@ export default function LeaderboardTab({
                   All top members displayed above
                 </div>
               ) : (
-                remainingUsers.map((user) => {
-                  const initial = (user.full_name || user.username || '?').charAt(0).toUpperCase()
+                <div className="grid grid-cols-1 xl:grid-cols-2 gap-2">
+                  {remainingUsers.map((user) => {
+                    const initial = (user.full_name || user.username || '?').charAt(0).toUpperCase()
                   return (
                     <div
                       key={user.user_id}
@@ -268,9 +269,22 @@ export default function LeaderboardTab({
                             </span>
                           )}
                         </div>
-                        <p className="text-[8px] font-bold text-slate-400 uppercase tracking-wider mt-0.5">
-                          Lv.{user.level || 1}
-                        </p>
+                        <div className="flex items-center gap-1.5 mt-0.5">
+                          <span className="text-[8px] font-bold text-slate-400 uppercase tracking-wider">
+                            Lv.{user.level || 1}
+                          </span>
+                          <span className="text-slate-300 text-[8px]">•</span>
+                          <span className={cn(
+                            "text-[8px] font-semibold leading-none",
+                            user.active_status === 'online'
+                              ? "text-emerald-600 font-bold"
+                              : user.active_status === 'away'
+                                ? "text-amber-600 font-bold"
+                                : "text-slate-400 font-medium"
+                          )}>
+                            {user.active_status === 'online' ? 'Active now' : user.active_text || 'Offline'}
+                          </span>
+                        </div>
                       </div>
                       <div className="text-right shrink-0">
                         <div className="text-xs sm:text-sm font-black text-orange-600 tracking-tight">
@@ -281,7 +295,8 @@ export default function LeaderboardTab({
                       </div>
                     </div>
                   )
-                })
+                })}
+                </div>
               )}
             </div>
           </>

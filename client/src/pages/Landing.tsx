@@ -142,7 +142,7 @@ export default function Landing() {
 
         {/* Premium Floating Header */}
         <div className="w-full px-6 py-4 z-20">
-          <header className="max-w-5xl mx-auto px-6 py-3.5 flex items-center justify-between bg-white/75 backdrop-blur-lg border border-slate-200/50 rounded-3xl shadow-sm shadow-slate-100/50">
+          <header className="w-full max-w-[1400px] 2xl:max-w-[1600px] mx-auto px-6 py-3.5 flex items-center justify-between bg-white/75 backdrop-blur-lg border border-slate-200/50 rounded-3xl shadow-sm shadow-slate-100/50">
             <div onClick={() => navigate('/')}>
               <VocaburnLogo height="lg" />
             </div>
@@ -164,7 +164,7 @@ export default function Landing() {
         </div>
 
         {/* Main Split Screen Container */}
-        <main className="max-w-5xl mx-auto w-full px-6 flex flex-col md:flex-row items-center justify-between flex-grow z-10 py-6 gap-8">
+        <main className="w-full max-w-[1400px] 2xl:max-w-[1600px] mx-auto w-full px-6 flex flex-col md:flex-row items-center justify-between flex-grow z-10 py-6 gap-8">
           
           {/* Left Column: Headline, Description & Navigation */}
           <div className="w-full md:w-1/2 text-left flex flex-col justify-center">
@@ -297,7 +297,7 @@ export default function Landing() {
 
         {/* Floating Premium Bottom Footer */}
         <div className="w-full px-6 py-4 z-20">
-          <footer className="max-w-5xl mx-auto px-6 py-3 flex items-center justify-between bg-white/50 backdrop-blur-md border border-slate-200/50 rounded-2xl text-slate-400 text-xs font-semibold shadow-sm">
+          <footer className="w-full max-w-[1400px] 2xl:max-w-[1600px] mx-auto px-6 py-3 flex items-center justify-between bg-white/50 backdrop-blur-md border border-slate-200/50 rounded-2xl text-slate-400 text-xs font-semibold shadow-sm">
             <span>© {new Date().getFullYear()} Vocaburn. Intelligent Spaced Repetition Platform.</span>
             <div className="flex gap-4">
               <a href="#" className="hover:text-slate-600 transition-colors">Terms</a>
