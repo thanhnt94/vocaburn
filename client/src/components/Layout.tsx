@@ -70,7 +70,7 @@ export default function Layout() {
           <div className="max-w-[1600px] w-full mx-auto px-8 py-3 flex items-center justify-between">
             <div className="flex items-center gap-8">
               <Link to="/" className="active:scale-95 transition-all flex items-center">
-                <VocaburnLogo height="lg" />
+                <VocaburnLogo height="md" />
               </Link>
               {isLoggedIn && (
                 <nav className="flex items-center gap-2">

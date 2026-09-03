@@ -1739,7 +1739,7 @@ export default function Dashboard() {
         <div className="bg-white flex-shrink-0 z-20 shadow-2xs border-b border-slate-100">
           <div className="flex items-center justify-between px-4 py-2 sm:py-2.5 max-w-5xl mx-auto w-full">
             <Link to="/" className="active:scale-95 transition-all flex items-center">
-              <VocaburnLogo height="lg" />
+              <VocaburnLogo height="sm" />
             </Link>
             
             <div className="flex items-center gap-2">
