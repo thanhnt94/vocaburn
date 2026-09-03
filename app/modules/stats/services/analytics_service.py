@@ -265,29 +265,40 @@ class AnalyticsService:
         # Current user's daily stats aggregates
         curr_stats_stmt = select(
             func.sum(UserDailyStats.questions_attempted).label("total_q"),
-            func.sum(UserDailyStats.correct_answers).label("total_c")
+            func.sum(UserDailyStats.correct_answers).label("total_c"),
+            func.sum(UserDailyStats.total_time_seconds).label("total_time")
         ).where(UserDailyStats.user_id == current_user_id)
         if local_start_datetime:
             curr_stats_stmt = curr_stats_stmt.where(UserDailyStats.date >= local_start_datetime)
         
         curr_stats_res = await db.execute(curr_stats_stmt)
         curr_stats = curr_stats_res.one_or_none()
-        curr_total_q = curr_stats.total_q if curr_stats else 0
-        curr_total_c = curr_stats.total_c if curr_stats else 0
+        curr_total_q = (curr_stats.total_q if curr_stats else 0) or 0
+        curr_total_c = (curr_stats.total_c if curr_stats else 0) or 0
+        curr_total_time = (curr_stats.total_time if curr_stats else 0) or 0
         curr_acc = (curr_total_c * 100.0 / curr_total_q) if curr_total_q > 0 else 0.0
 
-        # Helper to format rows
+        # Touch current user presence
+        from app.core.presence import PresenceTracker
+        PresenceTracker.touch(current_user_id)
+
+        # Helper to format rows with active presence status
         async def execute_and_format_leaderboard(stmt):
             res = await db.execute(stmt)
             out = []
             for rank_idx, row in enumerate(res.all(), 1):
+                u_id = row[0]
+                db_last_act = row[5] if len(row) > 5 else None
+                status, status_text = PresenceTracker.get_status_info(u_id, db_last_act)
                 out.append({
                     "rank": rank_idx,
-                    "user_id": row[0],
+                    "user_id": u_id,
                     "username": row[1],
                     "full_name": row[2] or row[1],
                     "value": row[3] or 0,
-                    "level": row[4] or 1
+                    "level": row[4] or 1,
+                    "active_status": status,
+                    "active_text": status_text
                 })
             return out
 
@@ -295,7 +306,8 @@ class AnalyticsService:
         if time_filter == "all_time":
             xp_stmt = select(
                 User.id, User.username, User.full_name,
-                UserGamification.xp.label("value"), UserGamification.level
+                UserGamification.xp.label("value"), UserGamification.level,
+                UserGamification.last_activity
             ).select_from(User).join(UserGamification, User.id == UserGamification.user_id)\
              .order_by(desc(UserGamification.xp)).limit(50)
             xp_list = await execute_and_format_leaderboard(xp_stmt)
@@ -309,12 +321,13 @@ class AnalyticsService:
         else:
             xp_stmt = select(
                 User.id, User.username, User.full_name,
-                func.sum(XPTransaction.amount).label("value"), UserGamification.level
+                func.sum(XPTransaction.amount).label("value"), UserGamification.level,
+                UserGamification.last_activity
             ).select_from(XPTransaction)\
              .join(User, User.id == XPTransaction.user_id)\
              .outerjoin(UserGamification, UserGamification.user_id == XPTransaction.user_id)\
              .where(XPTransaction.created_at >= start_datetime)\
-             .group_by(User.id, User.username, User.full_name, UserGamification.level)\
+             .group_by(User.id, User.username, User.full_name, UserGamification.level, UserGamification.last_activity)\
              .order_by(desc("value")).limit(50)
             xp_list = await execute_and_format_leaderboard(xp_stmt)
 
@@ -329,7 +342,8 @@ class AnalyticsService:
         # --- STREAK LEADERBOARD ---
         streak_stmt = select(
             User.id, User.username, User.full_name,
-            UserGamification.streak_count.label("value"), UserGamification.level
+            UserGamification.streak_count.label("value"), UserGamification.level,
+            UserGamification.last_activity
         ).select_from(User).join(UserGamification, User.id == UserGamification.user_id)\
          .order_by(desc(UserGamification.streak_count)).limit(50)
         streak_list = await execute_and_format_leaderboard(streak_stmt)
@@ -355,7 +369,8 @@ class AnalyticsService:
 
         q_stmt = select(
             User.id, User.username, User.full_name,
-            q_subq.c.total_q.label("value"), UserGamification.level
+            q_subq.c.total_q.label("value"), UserGamification.level,
+            UserGamification.last_activity
         ).select_from(User).join(q_subq, User.id == q_subq.c.user_id)\
          .outerjoin(UserGamification, User.id == UserGamification.user_id)\
          .order_by(desc(q_subq.c.total_q)).limit(50)
@@ -371,6 +386,45 @@ class AnalyticsService:
             ).group_by(UserDailyStats.user_id).having(func.sum(UserDailyStats.questions_attempted) > curr_total_q).subquery()
         q_rank_res = await db.execute(select(func.count()).select_from(q_rank_sub))
         q_rank = q_rank_res.scalar() + 1
+
+        # --- TIME LEADERBOARD (Study Time in Seconds) ---
+        if local_start_datetime:
+            time_subq = select(
+                UserDailyStats.user_id,
+                func.sum(UserDailyStats.total_time_seconds).label("total_time")
+            ).where(
+                UserDailyStats.date >= local_start_datetime,
+                UserDailyStats.total_time_seconds > 0
+            ).group_by(UserDailyStats.user_id).subquery()
+        else:
+            time_subq = select(
+                UserDailyStats.user_id,
+                func.sum(UserDailyStats.total_time_seconds).label("total_time")
+            ).where(
+                UserDailyStats.total_time_seconds > 0
+            ).group_by(UserDailyStats.user_id).subquery()
+
+        time_stmt = select(
+            User.id, User.username, User.full_name,
+            time_subq.c.total_time.label("value"), UserGamification.level,
+            UserGamification.last_activity
+        ).select_from(User).join(time_subq, User.id == time_subq.c.user_id)\
+         .outerjoin(UserGamification, User.id == UserGamification.user_id)\
+         .order_by(desc(time_subq.c.total_time)).limit(50)
+        time_list = await execute_and_format_leaderboard(time_stmt)
+
+        if local_start_datetime:
+            time_rank_sub = select(
+                UserDailyStats.user_id
+            ).where(
+                UserDailyStats.date >= local_start_datetime
+            ).group_by(UserDailyStats.user_id).having(func.sum(UserDailyStats.total_time_seconds) > curr_total_time).subquery()
+        else:
+            time_rank_sub = select(
+                UserDailyStats.user_id
+            ).group_by(UserDailyStats.user_id).having(func.sum(UserDailyStats.total_time_seconds) > curr_total_time).subquery()
+        time_rank_res = await db.execute(select(func.count()).select_from(time_rank_sub))
+        time_rank = time_rank_res.scalar() + 1
 
         # --- ACCURACY LEADERBOARD (min 20 questions) ---
         if local_start_datetime:
@@ -390,7 +444,8 @@ class AnalyticsService:
 
         acc_stmt = select(
             User.id, User.username, User.full_name,
-            acc_subq.c.acc.label("value"), UserGamification.level
+            acc_subq.c.acc.label("value"), UserGamification.level,
+            UserGamification.last_activity
         ).select_from(User).join(acc_subq, User.id == acc_subq.c.user_id)\
          .outerjoin(UserGamification, User.id == UserGamification.user_id)\
          .order_by(desc(acc_subq.c.acc)).limit(50)
@@ -398,13 +453,18 @@ class AnalyticsService:
         acc_res = await db.execute(acc_stmt)
         acc_list = []
         for rank_idx, row in enumerate(acc_res.all(), 1):
+            u_id = row[0]
+            db_last_act = row[5] if len(row) > 5 else None
+            status, status_text = PresenceTracker.get_status_info(u_id, db_last_act)
             acc_list.append({
                 "rank": rank_idx,
-                "user_id": row[0],
+                "user_id": u_id,
                 "username": row[1],
                 "full_name": row[2] or row[1],
                 "value": round(row[3] or 0.0, 1),
-                "level": row[4] or 1
+                "level": row[4] or 1,
+                "active_status": status,
+                "active_text": status_text
             })
 
         if curr_total_q >= 20:
@@ -444,6 +504,11 @@ class AnalyticsService:
                 "list": q_list,
                 "user_rank": q_rank,
                 "user_value": curr_total_q
+            },
+            "time": {
+                "list": time_list,
+                "user_rank": time_rank,
+                "user_value": curr_total_time
             },
             "accuracy": {
                 "list": acc_list,

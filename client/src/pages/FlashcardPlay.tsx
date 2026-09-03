@@ -3242,7 +3242,7 @@ export default function FlashcardPlay() {
                     </div>
                     <div>
                       <h4 className="text-xs font-black text-slate-700">
-                        Bảng xếp hạng {leaderboardType === 'xp' ? 'XP' : leaderboardType === 'streak' ? 'Streak' : leaderboardType === 'questions' ? 'câu hỏi' : 'chính xác'}
+                        Bảng xếp hạng {leaderboardType === 'xp' ? 'XP' : leaderboardType === 'streak' ? 'Streak' : leaderboardType === 'questions' ? 'thẻ học' : 'thời gian học'}
                       </h4>
                       <p className="text-[10px] text-slate-400 font-medium">
                         Đua top {leaderboardTimeFilter === 'today' ? 'hôm nay' : leaderboardTimeFilter === 'week' ? 'tuần này' : leaderboardTimeFilter === 'month' ? 'tháng này' : 'mọi lúc'}
@@ -3252,7 +3252,7 @@ export default function FlashcardPlay() {
 
                   {/* Metric Switcher */}
                   <div className="flex bg-slate-50 p-0.5 rounded-xl border border-slate-100 overflow-x-auto no-scrollbar gap-0.5">
-                    {(['xp', 'streak', 'questions', 'accuracy'] as const).map((type) => (
+                    {(['xp', 'streak', 'questions', 'time'] as const).map((type) => (
                       <button
                         key={type}
                         onClick={() => setLeaderboardType(type)}
@@ -3263,7 +3263,7 @@ export default function FlashcardPlay() {
                             : "text-slate-400 hover:text-indigo-650"
                         )}
                       >
-                        {type === 'xp' ? 'XP' : type === 'streak' ? 'Streak' : type === 'questions' ? 'Questions' : 'Accuracy'}
+                        {type === 'xp' ? 'XP' : type === 'streak' ? 'Streak' : type === 'questions' ? 'Cards' : 'Time'}
                       </button>
                     ))}
                   </div>

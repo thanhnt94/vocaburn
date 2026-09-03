@@ -1,8 +1,8 @@
-import { Trophy, Crown, Zap, Flame, Target, CheckCircle2, User as UserIcon, Clock, Calendar } from 'lucide-react'
+import { Trophy, Crown, Zap, Flame, Target, Clock, Calendar } from 'lucide-react'
 import { motion } from 'framer-motion'
 import { cn } from '@/lib/utils'
 
-export type LeaderboardCategory = 'xp' | 'streak' | 'questions' | 'accuracy'
+export type LeaderboardCategory = 'xp' | 'streak' | 'questions' | 'time'
 export type LeaderboardTimeFilter = 'today' | 'week' | 'month' | 'all_time'
 
 export interface LeaderboardUser {
@@ -12,6 +12,8 @@ export interface LeaderboardUser {
   full_name: string
   value: number
   level: number
+  active_status?: 'online' | 'away' | 'offline'
+  active_text?: string
 }
 
 export interface LeaderboardCategoryData {
@@ -24,7 +26,22 @@ export interface LeaderboardResponse {
   xp?: LeaderboardCategoryData
   streak?: LeaderboardCategoryData
   questions?: LeaderboardCategoryData
+  time?: LeaderboardCategoryData
   accuracy?: LeaderboardCategoryData
+}
+
+export function formatStudyTime(seconds: number): string {
+  if (!seconds || seconds <= 0) return '0m'
+  const totalMinutes = Math.floor(seconds / 60)
+  if (totalMinutes < 60) {
+    return totalMinutes === 0 ? `${seconds}s` : `${totalMinutes}m`
+  }
+  const hours = Math.floor(totalMinutes / 60)
+  const remainingMinutes = totalMinutes % 60
+  if (remainingMinutes === 0) {
+    return `${hours}h`
+  }
+  return `${hours}h ${remainingMinutes}m`
 }
 
 interface LeaderboardTabProps {
@@ -40,9 +57,9 @@ export default function LeaderboardTab({
   data,
   isLoading,
   activeCategory,
-  onSelectCategory,
-  timeFilter,
-  onSelectTimeFilter
+  onSelectCategory: _onSelectCategory,
+  timeFilter: _timeFilter,
+  onSelectTimeFilter: _onSelectTimeFilter
 }: LeaderboardTabProps) {
   const currentLeaderboard = data?.[activeCategory] || { list: [], user_rank: -1, user_value: 0 }
   const topThree = currentLeaderboard.list.slice(0, 3)
@@ -52,14 +69,7 @@ export default function LeaderboardTab({
     xp: { label: 'XP', icon: Zap, unit: 'XP', sub: 'Total experience' },
     streak: { label: 'Streak', icon: Flame, unit: 'days', sub: 'Daily streak' },
     questions: { label: 'Cards', icon: Target, unit: 'cards', sub: 'Cards reviewed' },
-    accuracy: { label: 'Accuracy', icon: CheckCircle2, unit: '%', sub: 'Correct rate' },
-  }
-
-  const timeFilterLabels: Record<LeaderboardTimeFilter, { label: string, icon: any }> = {
-    today: { label: 'Today', icon: Clock },
-    week: { label: 'Week', icon: Calendar },
-    month: { label: 'Month', icon: Calendar },
-    all_time: { label: 'All Time', icon: Crown }
+    time: { label: 'Time', icon: Clock, unit: '', sub: 'Study time' },
   }
 
   return (
@@ -83,7 +93,9 @@ export default function LeaderboardTab({
 
           <div className="text-right shrink-0">
             <span className="text-xs sm:text-sm font-black text-amber-300 tracking-tight">
-              {currentLeaderboard.user_value.toLocaleString()} {categoryLabels[activeCategory].unit}
+              {activeCategory === 'time'
+                ? formatStudyTime(currentLeaderboard.user_value)
+                : `${currentLeaderboard.user_value.toLocaleString()} ${categoryLabels[activeCategory].unit}`}
             </span>
             <span className="text-[7.5px] font-bold uppercase tracking-wider text-slate-400 block -mt-0.5">
               {categoryLabels[activeCategory].sub}
@@ -129,11 +141,30 @@ export default function LeaderboardTab({
                             pod.ring
                           )}>
                             {initial}
+                            {/* Rank Badge */}
                             <div className={cn(
                               "absolute -bottom-1 -right-1 w-5 h-5 sm:w-6 sm:h-6 rounded-full border-2 border-white flex items-center justify-center text-[9px] sm:text-[10px] font-black text-white shadow-xs",
                               pod.badgeBg
                             )}>
                               {pod.pos}
+                            </div>
+
+                            {/* Active Status Indicator Dot */}
+                            <div
+                              className={cn(
+                                "absolute -top-1 -right-0.5 rounded-full border-2 border-white shadow-xs flex items-center justify-center",
+                                pod.pos === 1 ? "w-4.5 h-4.5" : "w-3.5 h-3.5",
+                                user.active_status === 'online'
+                                  ? "bg-emerald-500"
+                                  : user.active_status === 'away'
+                                    ? "bg-amber-400"
+                                    : "bg-slate-300"
+                              )}
+                              title={user.active_text || (user.active_status === 'online' ? 'Active now' : user.active_status === 'away' ? 'Away' : 'Offline')}
+                            >
+                              {user.active_status === 'online' && (
+                                <span className="w-1.5 h-1.5 bg-white rounded-full animate-ping opacity-75" />
+                              )}
                             </div>
                           </div>
                         </div>
@@ -142,8 +173,21 @@ export default function LeaderboardTab({
                           <div className="text-xs sm:text-sm font-black text-slate-900 truncate leading-tight">
                             {user.full_name || user.username}
                           </div>
-                          <div className="text-[8.5px] sm:text-[9.5px] font-bold text-slate-400 uppercase mt-0.5 tracking-wider">
-                            Lv.{user.level || 1}
+                          <div className="flex items-center justify-center gap-1.5 mt-0.5">
+                            <span className="text-[8.5px] sm:text-[9.5px] font-bold text-slate-400 uppercase tracking-wider">
+                              Lv.{user.level || 1}
+                            </span>
+                            <span className="text-slate-300 text-[8px]">•</span>
+                            <span className={cn(
+                              "text-[8px] sm:text-[8.5px] font-black tracking-tight",
+                              user.active_status === 'online'
+                                ? "text-emerald-600"
+                                : user.active_status === 'away'
+                                  ? "text-amber-600"
+                                  : "text-slate-400"
+                            )}>
+                              {user.active_status === 'online' ? 'Online' : user.active_text || 'Offline'}
+                            </span>
                           </div>
                         </div>
 
@@ -152,7 +196,7 @@ export default function LeaderboardTab({
                           pod.height, pod.color
                         )}>
                           <span className={cn("text-[10.5px] sm:text-xs font-black tracking-tight leading-none mb-0.5", pod.text)}>
-                            {user.value.toLocaleString()}
+                            {activeCategory === 'time' ? formatStudyTime(user.value) : user.value.toLocaleString()}
                           </span>
                           <span className="text-[7.5px] font-bold text-slate-500 uppercase tracking-widest leading-none">
                             {categoryLabels[activeCategory].unit}
@@ -186,20 +230,53 @@ export default function LeaderboardTab({
                       <div className="w-6 text-xs font-black text-slate-400 text-center shrink-0">
                         #{user.rank}
                       </div>
-                      <div className="w-8 h-8 rounded-xl bg-white border border-slate-200 flex items-center justify-center text-xs font-black text-slate-700 shrink-0 shadow-2xs">
-                        {initial}
+                      <div className="relative shrink-0">
+                        <div className="w-8.5 h-8.5 rounded-xl bg-white border border-slate-200 flex items-center justify-center text-xs font-black text-slate-700 shadow-2xs">
+                          {initial}
+                        </div>
+                        {/* Active Status Badge Dot */}
+                        <span
+                          className={cn(
+                            "absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-white shadow-xs flex items-center justify-center",
+                            user.active_status === 'online'
+                              ? "bg-emerald-500"
+                              : user.active_status === 'away'
+                                ? "bg-amber-400"
+                                : "bg-slate-300"
+                          )}
+                          title={user.active_text || (user.active_status === 'online' ? 'Active now' : user.active_status === 'away' ? 'Away' : 'Offline')}
+                        >
+                          {user.active_status === 'online' && (
+                            <span className="w-1 h-1 bg-white rounded-full animate-ping opacity-75" />
+                          )}
+                        </span>
                       </div>
                       <div className="flex-1 min-w-0">
-                        <h4 className="text-xs font-black text-slate-900 truncate uppercase">
-                          {user.full_name || user.username}
-                        </h4>
-                        <p className="text-[8px] font-bold text-slate-400 uppercase tracking-wider">
+                        <div className="flex items-center gap-1.5">
+                          <h4 className="text-xs font-black text-slate-900 truncate uppercase">
+                            {user.full_name || user.username}
+                          </h4>
+                          {user.active_status === 'online' && (
+                            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[8px] font-black bg-emerald-50 text-emerald-600 border border-emerald-200/60 leading-none">
+                              <span className="w-1 h-1 rounded-full bg-emerald-500 animate-pulse" />
+                              Active
+                            </span>
+                          )}
+                          {user.active_status === 'away' && (
+                            <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[8px] font-bold bg-amber-50 text-amber-600 border border-amber-200/60 leading-none">
+                              {user.active_text || 'Away'}
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-[8px] font-bold text-slate-400 uppercase tracking-wider mt-0.5">
                           Lv.{user.level || 1}
                         </p>
                       </div>
                       <div className="text-right shrink-0">
                         <div className="text-xs sm:text-sm font-black text-orange-600 tracking-tight">
-                          {user.value.toLocaleString()} {categoryLabels[activeCategory].unit}
+                          {activeCategory === 'time'
+                            ? formatStudyTime(user.value)
+                            : `${user.value.toLocaleString()} ${categoryLabels[activeCategory].unit}`}
                         </div>
                       </div>
                     </div>

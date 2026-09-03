@@ -5,6 +5,20 @@ Tài liệu này lưu lại lịch sử thay đổi cấu trúc, tính năng, v�
 ---
 
 ### [2026-09-03]
+#### Nâng Cấp Bảng Xếp Hạng: Thời Gian Học (Study Time) & Trạng Thái Hoạt Động (Active / Away / Offline)
+- **Thay Thế Accuracy Bằng Bảng Xếp Hạng Thời Gian Học (`LeaderboardTab.tsx`, `Stats.tsx`, `analytics_service.py`)**:
+  - Loại bỏ chỉ số `Accuracy` trên bộ lọc danh mục của Leaderboard và thay thế bằng **`Time` (Thời gian học)**.
+  - Backend tính toán tổng thời gian học tập (`total_time_seconds`) từ bảng `user_daily_stats` tương ứng với từng mốc thời gian: *Hôm nay (Today)*, *Tuần này (Week)*, *Tháng này (Month)* và *Mọi lúc (All Time)*.
+  - Tự động định dạng thời gian trực quan, thẩm mỹ: `< 60s` hiện số giây (`45s`), `< 60m` hiện số phút (`35m`), `> 1h` hiện giờ và phút (`2h 15m`).
+- **Hiển Thị Trạng Thái Hoạt Động Của Người Dùng (Real-time Presence Status Indicator)**:
+  - Bổ sung `PresenceTracker` (`app/core/presence.py`) ghi nhận thời điểm hoạt động gần nhất của từng người dùng qua middleware xác thực và dữ liệu hoạt động trong database.
+  - Phân cấp 3 trạng thái rõ ràng:
+    - 🟢 **Active now / Đang hoạt động (Xanh lá)**: Hoạt động trong vòng 5 phút trở lại (có hiệu ứng vòng hào quang `animate-ping` tinh tế trên avatar).
+    - 🟡 **Away / Vừa mới active (Vàng/Cam)**: Không tương tác trong khoảng 5 - 30 phút (kèm thông tin thời gian như `12m ago`).
+    - ⚪ **Offline (Xám nhạt)**: Không hoạt động quá 30 phút.
+  - Hiển thị đồng bộ trên cả bục vinh danh Top 3 (Podium) và danh sách xếp hạng thành viên từ #4 đến #50.
+  - Tương thích hoàn toàn với widget Bảng xếp hạng mini trong chế độ học flashcard (`FlashcardPlay.tsx`).
+
 #### Thiết Kế Lại Bộ Favicon & Mobile App Icon Độc Quyền Theo Hình Mascot Vocaburn
 - **Tái Tạo Bộ Nhận Diện Icon Ứng Dụng (`favicon.ico`, `favicon.png`, `apple-touch-icon.png`, `manifest.json`)**:
   - Loại bỏ hoàn toàn favicon cũ (ảnh JPEG nền trắng không rõ nét mang tai nghe từ dự án khác).

@@ -100,6 +100,11 @@ async def clean_user_id_cookie(request: Request, call_next):
                 verified_id = verify_cookie(val, settings.SECRET_KEY)
                 if verified_id:
                     new_items.append(f"user_id={verified_id}")
+                    try:
+                        from app.core.presence import PresenceTracker
+                        PresenceTracker.touch(int(verified_id))
+                    except Exception:
+                        pass
                 modified = True
                 continue
             new_items.append(item.strip())

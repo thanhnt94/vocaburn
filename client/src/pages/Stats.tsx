@@ -265,13 +265,13 @@ export default function Stats() {
                 <span>Type</span>
               </div>
               <div className="grid grid-flow-col auto-cols-fr w-full bg-slate-100/90 p-0.5 rounded-xl border border-slate-200/60 shadow-2xs">
-                {(['xp', 'streak', 'questions', 'accuracy'] as const).map((cat) => {
+                {(['xp', 'streak', 'questions', 'time'] as const).map((cat) => {
                   const isActive = leaderboardCategory === cat
                   const labels: Record<string, string> = { 
                     xp: 'XP', 
                     streak: 'Streak', 
                     questions: 'Cards', 
-                    accuracy: 'Accuracy' 
+                    time: 'Time' 
                   }
                   return (
                     <button
