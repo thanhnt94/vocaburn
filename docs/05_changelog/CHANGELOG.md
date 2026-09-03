@@ -7,9 +7,9 @@ Tài liệu này lưu lại lịch sử thay đổi cấu trúc, tính năng, v�
 ### [2026-09-03]
 #### Tinh Chỉnh Kích Thước Logo Vocaburn Gọn Gàng & Bổ Sung Type Check Cho Pipeline Build
 - **Tối Ưu Kích Thước Logo Vocaburn (`VocaburnLogo.tsx`, `Dashboard.tsx`, `Layout.tsx`)**:
-  - Tái cấu trúc lại thang kích thước `heightClasses` của component `VocaburnLogo`, hỗ trợ các mức từ `xs` (24px) đến `xl` (56px-80px).
-  - Giảm kích thước logo trên thanh Header chính tại Dashboard từ mức cồng kềnh `height="lg"` (56px) xuống mức nhỏ gọn xinh xắn `height="sm"` (28px - 32px), cân đối hoàn hảo với pill streak (`24px-28px`) và avatar người dùng (`34px`), mang lại giao diện thanh thoát và chuẩn Mobile-first.
-  - Chuẩn hóa logo desktop header tại `Layout.tsx` về `height="md"` (32px - 36px).
+  - Tái cấu trúc lại thang kích thước `heightClasses` của component `VocaburnLogo`: `xs` (24px), `sm` (28px), `md` (38px - 40px), `lg` (44px - 48px), `xl` (56px - 80px).
+  - Tinh chỉnh thanh Header Dashboard: Giảm padding trên dưới xuống mức tối thiểu `py-1 sm:py-1.5` và tăng kích thước logo lên `height="md"` (`38px`). Nhờ đó, chữ "VOCABURN" to rõ, sống động và dễ đọc hơn 35%, trong khi tổng chiều cao toàn bộ div Header vẫn giữ nguyên mỏng nhẹ (~45px).
+  - Chuẩn hóa logo desktop header tại `Layout.tsx` về `height="md"` (38px - 40px).
 - **Thực Thi Type Check Trước Build (`build_vite.py`)**:
   - Bổ sung lệnh kiểm tra kiểu TypeScript `npx tsc -p tsconfig.app.json --noEmit` trước khi chạy `vite build` theo đúng Quy chuẩn Phòng ngừa Trắng màn hình.
 

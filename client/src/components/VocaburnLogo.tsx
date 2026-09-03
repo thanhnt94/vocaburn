@@ -19,12 +19,12 @@ export function VocaburnLogo({
 
   // Compact, balanced & cute heights for modern app UI
   const heightClasses = {
-    xs: 'h-6 sm:h-7',          // 24px - 28px (ultra compact)
-    sm: 'h-7 sm:h-8',          // 28px - 32px (compact & cute - perfect for mobile header)
-    md: 'h-8 sm:h-9',          // 32px - 36px (balanced navbar)
-    lg: 'h-9 sm:h-10 md:h-11', // 36px - 44px (prominent)
-    xl: 'h-14 sm:h-16 md:h-20' // 56px - 80px (hero / login / landing)
-  }[height] || 'h-7 sm:h-8'
+    xs: 'h-6 sm:h-7',             // 24px - 28px (ultra compact)
+    sm: 'h-7 sm:h-8',             // 28px - 32px (small)
+    md: 'h-[38px] sm:h-[40px]',    // 38px - 40px (fills compact bar with big, readable letters)
+    lg: 'h-11 sm:h-12',           // 44px - 48px
+    xl: 'h-14 sm:h-16 md:h-20'    // 56px - 80px
+  }[height] || 'h-[38px] sm:h-[40px]'
 
   if (!isHorizontal) {
     return (
