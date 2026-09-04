@@ -494,8 +494,8 @@ function LeaderboardWidget({
         </div>
       )}
 
-      {/* User Rank List (Scrollable with Presence Indicators) */}
-      <div className="flex flex-col gap-1.5 max-h-[220px] overflow-y-auto custom-scrollbar pr-1">
+      {/* User Rank List (Natural Unconstrained Height with Presence Indicators) */}
+      <div className="flex flex-col gap-1.5">
         {currentList.map((entry: any) => {
           const isRank1 = entry.rank === 1
           const isRank2 = entry.rank === 2
@@ -1745,13 +1745,13 @@ export default function Dashboard() {
             </div>
           </div>
 
-          {/* Heatmap */}
-          {heatmapData && heatmapData.length > 0 && <MiniHeatmap data={heatmapData} />}
-
           {/* Rich Leaderboard */}
           {leaderboardData && (
             <LeaderboardWidget data={leaderboardData} activeFilter={timeFilter} onFilterChange={setTimeFilter} />
           )}
+
+          {/* Heatmap (Study History) */}
+          {heatmapData && heatmapData.length > 0 && <MiniHeatmap data={heatmapData} />}
         </aside>
 
         {/* COLUMN 2: Roadmap Hub (Center Stage - Col 5 of 12) */}
