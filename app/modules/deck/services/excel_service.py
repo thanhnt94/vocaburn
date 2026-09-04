@@ -1,5 +1,6 @@
+from __future__ import annotations
 import pandas as pd
-from typing import List, Dict, Any, Tuple
+from typing import List, Dict, Any, Tuple, Optional, Union, Set
 from io import BytesIO
 import json
 import re
