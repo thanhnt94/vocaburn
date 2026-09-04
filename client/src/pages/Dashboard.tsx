@@ -2281,7 +2281,7 @@ export default function Dashboard() {
                             if (!s1 || !s2) return;
                             if (navigator.vibrate) navigator.vibrate(8);
                             const fsrsStep = st.pipeline?.find((p: any) => p.type === 'fsrs_review');
-                            const fsrsUrl = fsrsStep?.url || `/flashcard/${deck.deck_id}/play?mode=roadmap`;
+                            const fsrsUrl = fsrsStep?.url || `/flashcard/${deck.deck_id}/play?mode=roadmap&step=fsrs_review`;
                             navigate(fsrsUrl);
                           }}
                           title={!s1 ? "Complete Step 1 (Learn New Words) first" : !s2 ? "Complete Step 2 (MCQ Quiz) first" : st.all_done ? "FSRS review finished! Tap to review or study more" : "Start FSRS review"}

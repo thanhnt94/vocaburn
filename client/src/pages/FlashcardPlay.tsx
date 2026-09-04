@@ -470,14 +470,27 @@ export default function FlashcardPlay() {
   })()
 
   const dueCardsCount = useMemo(() => {
-    const isFsrsMode = activeMode === 'fsrs' || (activeMode === 'roadmap' && roadmapStatus?.pipeline?.[roadmapStatus?.current_step_index || 0]?.type === 'fsrs_review');
+    const searchParams = new URLSearchParams(window.location.search);
+    const urlStep = searchParams.get('step');
+    const isFsrsMode = activeMode === 'fsrs' || (activeMode === 'roadmap' && (urlStep === 'fsrs_review' || roadmapStatus?.pipeline?.[roadmapStatus?.current_step_index || 0]?.type === 'fsrs_review'));
     if (!session || !session.questions || !isFsrsMode) return 0;
     const now = currentTime.getTime();
+    const currentStep = roadmapStatus?.pipeline?.find((s: any) => s.type === 'fsrs_review');
+    const overdueHours = currentStep?.overdue_hours ?? 24;
+    const todayStart = new Date();
+    todayStart.setHours(0, 0, 0, 0);
+
     return session.questions.filter((q: any, idx: number) => {
       if (q.is_ignored) return false;
       const isFsrsRecord = q.fsrs && q.fsrs.state !== 0 && q.fsrs.stability !== null;
       if (!isFsrsRecord) return false;
       
+      // Exclude cards first learned today if overdueHours >= 24
+      if (overdueHours >= 24 && q.fsrs?.first_learned) {
+        const firstLearnedDate = parseUTCDate(q.fsrs.first_learned).getTime();
+        if (firstLearnedDate >= todayStart.getTime()) return false;
+      }
+
       const isDue = parseUTCDate(q.fsrs.due).getTime() - 30000 <= now;
       const hasAnswered = sessionAnswers[idx] !== undefined;
       
@@ -634,16 +647,19 @@ export default function FlashcardPlay() {
         const rawStep = rmStatus?.pipeline?.[rawIdx];
         const searchParams = new URLSearchParams(window.location.search);
         const urlMode = searchParams.get('mode');
+        const urlStep = searchParams.get('step');
         const effectiveMode = urlMode || activeMode || userSettings.quiz_learning_mode || 'fsrs';
         let savedMode = effectiveMode;
+        const activeStepType = urlStep || rawStep?.type;
         if (effectiveMode === 'roadmap') {
-          savedMode = rawStep?.type === 'fsrs_review' ? 'fsrs' : 'new';
+          savedMode = activeStepType === 'fsrs_review' ? 'fsrs' : 'new';
         }
 
         let curIdx = 0;
         try {
           const res = await axios.post(`/api/v1/deck/${id}/next-card`, {
             mode: savedMode,
+            step_type: activeStepType,
             answered_indexes: [],
             current_index: 0,
             random_enabled: !!userSettings.random_enabled
@@ -1784,14 +1800,17 @@ export default function FlashcardPlay() {
       const rawStep = rmStatus?.pipeline?.[rawIdx];
       const searchParams = new URLSearchParams(window.location.search);
       const urlMode = searchParams.get('mode');
+      const urlStep = searchParams.get('step');
       const effectiveMode = urlMode || activeMode || userSettings.quiz_learning_mode || 'fsrs';
       let targetMode = effectiveMode;
+      const activeStepType = urlStep || rawStep?.type;
       if (effectiveMode === 'roadmap') {
-        targetMode = rawStep?.type === 'fsrs_review' ? 'fsrs' : 'new';
+        targetMode = activeStepType === 'fsrs_review' ? 'fsrs' : 'new';
       }
 
       const res = await axios.post(`/api/v1/deck/${id}/next-card`, {
         mode: targetMode,
+        step_type: activeStepType,
         answered_indexes: answeredIndexes,
         current_index: currentIndex,
         random_enabled: !!userSettings.random_enabled
@@ -2806,7 +2825,7 @@ export default function FlashcardPlay() {
   };
 
   const shouldShowFsrsCompleteScreen = useMemo(() => {
-    return Boolean((activeMode === 'fsrs' || activeMode === 'review') && fsrsCompletionData?.is_all_completed);
+    return Boolean((activeMode === 'fsrs' || activeMode === 'review' || activeMode === 'roadmap') && fsrsCompletionData?.is_all_completed);
   }, [activeMode, fsrsCompletionData]);
 
   useEffect(() => {
@@ -2966,7 +2985,12 @@ export default function FlashcardPlay() {
             subCurr = currentIndex + 1;
           } else {
             // Standard guided Roadmap mode (mode === 'roadmap')
-            if (!isStage1Done || isNewCardSession || !isStage2Done) {
+            const searchParams = new URLSearchParams(window.location.search);
+            const urlStep = searchParams.get('step');
+            if (urlStep) {
+              const explicitIdx = rawPipeline.findIndex((s: any) => s.type === urlStep);
+              if (explicitIdx !== -1) displayStepIdx = explicitIdx;
+            } else if (!isStage1Done || isNewCardSession || !isStage2Done) {
               const newCardsIdx = rawPipeline.findIndex((s: any) => s.type === 'new_cards');
               if (newCardsIdx !== -1) displayStepIdx = newCardsIdx;
             } else {
@@ -3005,10 +3029,19 @@ export default function FlashcardPlay() {
 
               // Đếm số thẻ ôn tập đến hạn còn lại chưa được đánh giá trong phiên này
               const nowTime = new Date().getTime();
+              const overdueHours = currentStep?.overdue_hours ?? 24;
+              const todayStart = new Date();
+              todayStart.setHours(0, 0, 0, 0);
+
               const dueCardsIndices = session?.questions ? session.questions.map((q: any, idx: number) => {
                 if (q.is_ignored) return -1;
                 const box = getCardBoxId(q);
                 if (box === 'unseen' || !q.fsrs?.due) return -1;
+                // Exclude cards first learned today if overdueHours >= 24
+                if (overdueHours >= 24 && q.fsrs?.first_learned) {
+                  const firstLearnedDate = parseUTCDate(q.fsrs.first_learned).getTime();
+                  if (firstLearnedDate >= todayStart.getTime()) return -1;
+                }
                 const isDue = (parseUTCDate(q.fsrs.due).getTime() - 30000) <= nowTime;
                 return isDue ? idx : -1;
               }).filter((idx: number) => idx !== -1) : [];

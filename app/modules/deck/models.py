@@ -28,7 +28,7 @@ class FlashcardDeck(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
     
     category = relationship("Category", back_populates="decks")
-    cards = relationship("Flashcard", back_populates="deck", cascade="all, delete-orphan")
+    cards = relationship("Flashcard", back_populates="deck", cascade="all, delete-orphan", order_by="Flashcard.id.asc()")
     tags = relationship("Tag", secondary="deck_tags", back_populates="decks")
     collaborators = relationship("DeckCollaborator", back_populates="deck", cascade="all, delete-orphan")
 

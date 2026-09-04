@@ -186,7 +186,8 @@ export const getCardBoxId = (item: any): CardBoxId => {
     
   if (isHard) return 'hard'
   if (item.box_level === 5 && total >= 4) return 'mastered'
-  if (total === 0 || (!item.fsrs?.last_review && item.fsrs?.state === 0)) return 'unseen'
+  const hasLearned = Boolean(item.fsrs?.last_review || (item.fsrs?.state !== undefined && item.fsrs?.state > 0) || total > 0);
+  if (!hasLearned) return 'unseen'
   return 'learning'
 }
 

@@ -158,7 +158,13 @@ class RoadmapService:
                     ), 1
                 ))).label("completed"),
                 func.count(case((
-                    UserCardMastery.due <= cutoff_time, 1
+                    and_(
+                        UserCardMastery.due <= cutoff_time,
+                        or_(
+                            min_answer_sub.c.min_created == None,
+                            min_answer_sub.c.min_created < day_start
+                        ) if fsrs_overdue_hours >= 24 else True
+                    ), 1
                 ))).label("still_due")
             )
             .join(Flashcard, UserCardMastery.card_id == Flashcard.id)
@@ -296,7 +302,7 @@ class RoadmapService:
                         "unlearned_cards": unlearned_cards,
                         "all_learned": is_all_learned
                     },
-                    "url": f"/flashcard/{deck_id}/play?mode=roadmap",
+                    "url": f"/flashcard/{deck_id}/play?mode=roadmap&step=new_cards",
                     "label": "All new cards learned" if is_all_learned else "Learn New Words"
                 })
             elif stype == "fsrs_review":
@@ -310,7 +316,7 @@ class RoadmapService:
                         "still_due": review_still_due,
                         "reviewed_today": review_completed_today
                     },
-                    "url": f"/flashcard/{deck_id}/play?mode=roadmap",
+                    "url": f"/flashcard/{deck_id}/play?mode=roadmap&step=fsrs_review",
                     "label": "FSRS Review"
                 })
             elif stype == "mcq":
@@ -408,7 +414,7 @@ class RoadmapService:
                     "target_minutes": target_mins,
                     "done": is_done,
                     "progress": {"studied_minutes": today_studied_minutes, "target_minutes": target_mins},
-                    "url": f"/flashcard/{deck_id}/play?mode=roadmap",
+                    "url": f"/flashcard/{deck_id}/play?mode=roadmap&step=study_time",
                     "label": f"Study Time ({target_mins}m)"
                 })
 
