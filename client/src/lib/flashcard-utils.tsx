@@ -243,7 +243,7 @@ export function getFSRSIntervals(fsrs?: any): Record<number, string> {
   const state = fsrs?.state;
   
   if (state === 2 && typeof stability === 'number' && stability > 0) {
-    const again = "<10m";
+    const again = "10m";
     const hardDays = Math.max(1, Math.round(stability * 1.2));
     const goodDays = Math.max(2, Math.round(stability * 2.5));
     const easyDays = Math.max(4, Math.round(stability * 4.0));
@@ -258,7 +258,7 @@ export function getFSRSIntervals(fsrs?: any): Record<number, string> {
   
   // Standard defaults for New / Learning cards
   return {
-    1: "<1m",
+    1: "1m",
     2: "5m",
     3: "10m",
     4: "4d"

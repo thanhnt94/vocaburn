@@ -42,7 +42,7 @@ def estimate_intervals(scheduler, card, now_utc) -> dict:
                 if float_interval_days < 1.0:
                     total_seconds = float_interval_days * 86400
                     if total_seconds < 60:
-                        intervals[r_val] = "<1m"
+                        intervals[r_val] = "1m"
                     elif total_seconds < 3600:
                         intervals[r_val] = f"{int(total_seconds / 60)}m"
                     else:
@@ -62,7 +62,7 @@ def estimate_intervals(scheduler, card, now_utc) -> dict:
             else:
                 delta = card_copy.due - now_utc
                 if delta.total_seconds() < 60:
-                    intervals[r_val] = "<1m"
+                    intervals[r_val] = "1m"
                 elif delta.total_seconds() < 3600:
                     intervals[r_val] = f"{int(delta.total_seconds() / 60)}m"
                 elif delta.total_seconds() < 86400:

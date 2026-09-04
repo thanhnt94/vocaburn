@@ -1268,7 +1268,7 @@ async def get_deck_play_data(request: Request, deck_id: int, mode: Optional[str]
         now_utc = datetime.utcnow().replace(tzinfo=timezone.utc)
         
         # Predefined static default intervals for new cards (Zero CPU cost)
-        default_new_intervals = {1: "<1m", 2: "5m", 3: "10m", 4: "4d"}
+        default_new_intervals = {1: "1m", 2: "5m", 3: "10m", 4: "4d"}
         
         # Instantiate scheduler once only if needed for review cards
         scheduler = None
