@@ -22,6 +22,10 @@ async def get_leaderboard(request: Request, time_filter: str = "all_time", db: A
     current_user = await AuthService.get_current_user(request, db)
     current_user_id = current_user.id if current_user else None
     
+    from app.core.presence import PresenceTracker
+    if current_user_id:
+        PresenceTracker.touch(current_user_id)
+    
     # Determine date range based on time_filter
     start_date = None
     today = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
@@ -35,7 +39,14 @@ async def get_leaderboard(request: Request, time_filter: str = "all_time", db: A
     # 1. Fetch XP Leaderboard
     if time_filter == "all_time":
         stmt_xp = (
-            select(UserGamification.user_id, User.username, UserGamification.xp.label("xp"), UserGamification.level, UserGamification.streak_count)
+            select(
+                UserGamification.user_id, 
+                User.username, 
+                UserGamification.xp.label("xp"), 
+                UserGamification.level, 
+                UserGamification.streak_count,
+                func.coalesce(UserGamification.last_activity, User.created_at).label("last_activity")
+            )
             .join(User, User.id == UserGamification.user_id)
             .order_by(UserGamification.xp.desc())
             .limit(5)
@@ -47,12 +58,13 @@ async def get_leaderboard(request: Request, time_filter: str = "all_time", db: A
                 User.username, 
                 func.sum(XPTransaction.amount).label("xp"),
                 UserGamification.level,
-                UserGamification.streak_count
+                UserGamification.streak_count,
+                func.coalesce(UserGamification.last_activity, User.created_at).label("last_activity")
             )
             .join(User, User.id == XPTransaction.user_id)
             .outerjoin(UserGamification, UserGamification.user_id == XPTransaction.user_id)
             .where(XPTransaction.created_at >= start_date)
-            .group_by(XPTransaction.user_id, User.username, UserGamification.level, UserGamification.streak_count)
+            .group_by(XPTransaction.user_id, User.username, UserGamification.level, UserGamification.streak_count, func.coalesce(UserGamification.last_activity, User.created_at))
             .order_by(func.sum(XPTransaction.amount).desc())
             .limit(5)
         )
@@ -63,6 +75,7 @@ async def get_leaderboard(request: Request, time_filter: str = "all_time", db: A
     leaderboard = []
     current_user_rank = None
     for rank, row in enumerate(rows_xp, start=1):
+        status, status_text = PresenceTracker.get_status_info(row.user_id, getattr(row, 'last_activity', None))
         entry = {
             "rank": rank,
             "user_id": row.user_id,
@@ -71,6 +84,8 @@ async def get_leaderboard(request: Request, time_filter: str = "all_time", db: A
             "level": row.level or 1,
             "streak": row.streak_count or 0,
             "is_current_user": row.user_id == current_user_id,
+            "active_status": status,
+            "active_text": status_text,
         }
         leaderboard.append(entry)
         if row.user_id == current_user_id:
@@ -109,17 +124,29 @@ async def get_leaderboard(request: Request, time_filter: str = "all_time", db: A
             "streak": cur_gam.streak_count if cur_gam else 0,
             "is_current_user": True,
             "out_of_top_5": True,
+            "active_status": "online",
+            "active_text": "Active now",
         })
 
     # 2. Fetch Time Leaderboard
     stmt_time = (
-        select(UserDailyStats.user_id, User.username, func.sum(UserDailyStats.total_time_seconds).label("total_time"))
+        select(
+            UserDailyStats.user_id, 
+            User.username, 
+            func.sum(UserDailyStats.total_time_seconds).label("total_time"),
+            func.coalesce(UserGamification.last_activity, User.created_at).label("last_activity")
+        )
         .join(User, User.id == UserDailyStats.user_id)
+        .outerjoin(UserGamification, User.id == UserGamification.user_id)
     )
     if start_date:
         stmt_time = stmt_time.where(UserDailyStats.date >= start_date)
         
-    stmt_time = stmt_time.group_by(UserDailyStats.user_id, User.username).order_by(func.sum(UserDailyStats.total_time_seconds).desc()).limit(5)
+    stmt_time = (
+        stmt_time.group_by(UserDailyStats.user_id, User.username, func.coalesce(UserGamification.last_activity, User.created_at))
+        .order_by(func.sum(UserDailyStats.total_time_seconds).desc())
+        .limit(5)
+    )
     
     time_results = await db.execute(stmt_time)
     time_rows = time_results.all()
@@ -128,12 +155,15 @@ async def get_leaderboard(request: Request, time_filter: str = "all_time", db: A
     current_user_time_rank = None
     for rank, row in enumerate(time_rows, start=1):
         uid = row.user_id
+        status, status_text = PresenceTracker.get_status_info(uid, getattr(row, 'last_activity', None))
         time_leaderboard.append({
             "rank": rank,
             "user_id": uid,
             "username": row.username,
             "total_time": int(row.total_time or 0),
             "is_current_user": uid == current_user_id,
+            "active_status": status,
+            "active_text": status_text,
         })
         if uid == current_user_id:
             current_user_time_rank = rank
@@ -159,17 +189,29 @@ async def get_leaderboard(request: Request, time_filter: str = "all_time", db: A
             "total_time": user_time,
             "is_current_user": True,
             "out_of_top_5": True,
+            "active_status": "online",
+            "active_text": "Active now",
         })
 
     # 3. Fetch Cards Leaderboard (Total Reviews/Attempts)
     stmt_cards = (
-        select(UserDailyStats.user_id, User.username, func.sum(UserDailyStats.questions_attempted).label("total_cards"))
+        select(
+            UserDailyStats.user_id, 
+            User.username, 
+            func.sum(UserDailyStats.questions_attempted).label("total_cards"),
+            func.coalesce(UserGamification.last_activity, User.created_at).label("last_activity")
+        )
         .join(User, User.id == UserDailyStats.user_id)
+        .outerjoin(UserGamification, User.id == UserGamification.user_id)
     )
     if start_date:
         stmt_cards = stmt_cards.where(UserDailyStats.date >= start_date)
         
-    stmt_cards = stmt_cards.group_by(UserDailyStats.user_id, User.username).order_by(func.sum(UserDailyStats.questions_attempted).desc()).limit(5)
+    stmt_cards = (
+        stmt_cards.group_by(UserDailyStats.user_id, User.username, func.coalesce(UserGamification.last_activity, User.created_at))
+        .order_by(func.sum(UserDailyStats.questions_attempted).desc())
+        .limit(5)
+    )
     
     cards_results = await db.execute(stmt_cards)
     cards_rows = cards_results.all()
@@ -178,12 +220,15 @@ async def get_leaderboard(request: Request, time_filter: str = "all_time", db: A
     current_user_cards_rank = None
     for rank, row in enumerate(cards_rows, start=1):
         uid = row.user_id
+        status, status_text = PresenceTracker.get_status_info(uid, getattr(row, 'last_activity', None))
         cards_leaderboard.append({
             "rank": rank,
             "user_id": uid,
             "username": row.username,
             "total_cards": int(row.total_cards or 0),
             "is_current_user": uid == current_user_id,
+            "active_status": status,
+            "active_text": status_text,
         })
         if uid == current_user_id:
             current_user_cards_rank = rank
@@ -209,6 +254,8 @@ async def get_leaderboard(request: Request, time_filter: str = "all_time", db: A
             "total_cards": user_cards,
             "is_current_user": True,
             "out_of_top_5": True,
+            "active_status": "online",
+            "active_text": "Active now",
         })
 
     # 4. Fetch New Cards Leaderboard (First-time Reviews)
@@ -228,15 +275,17 @@ async def get_leaderboard(request: Request, time_filter: str = "all_time", db: A
         select(
             subq.c.user_id,
             User.username,
-            func.count(subq.c.card_id).label("new_cards")
+            func.count(subq.c.card_id).label("new_cards"),
+            func.coalesce(UserGamification.last_activity, User.created_at).label("last_activity")
         )
         .join(User, User.id == subq.c.user_id)
+        .outerjoin(UserGamification, User.id == UserGamification.user_id)
     )
     if start_date:
         stmt_new_cards = stmt_new_cards.where(subq.c.first_answer_time >= start_date)
         
     stmt_new_cards = (
-        stmt_new_cards.group_by(subq.c.user_id, User.username)
+        stmt_new_cards.group_by(subq.c.user_id, User.username, func.coalesce(UserGamification.last_activity, User.created_at))
         .order_by(func.count(subq.c.card_id).desc())
         .limit(5)
     )
@@ -248,12 +297,15 @@ async def get_leaderboard(request: Request, time_filter: str = "all_time", db: A
     current_user_new_cards_rank = None
     for rank, row in enumerate(new_cards_rows, start=1):
         uid = row.user_id
+        status, status_text = PresenceTracker.get_status_info(uid, getattr(row, 'last_activity', None))
         new_cards_leaderboard.append({
             "rank": rank,
             "user_id": uid,
             "username": row.username,
             "new_cards": int(row.new_cards or 0),
             "is_current_user": uid == current_user_id,
+            "active_status": status,
+            "active_text": status_text,
         })
         if uid == current_user_id:
             current_user_new_cards_rank = rank
@@ -286,6 +338,8 @@ async def get_leaderboard(request: Request, time_filter: str = "all_time", db: A
             "new_cards": user_new_cards,
             "is_current_user": True,
             "out_of_top_5": True,
+            "active_status": "online",
+            "active_text": "Active now",
         })
 
     return {

@@ -13,6 +13,8 @@ import { TelegramRoadmapReminderToggle } from '@/components/TelegramRoadmapRemin
 import { JoinRoomModal } from '@/components/dashboard/JoinRoomModal'
 import { PracticeModeModal } from '@/components/dashboard/PracticeModeModal'
 import { StudyModeModal } from '@/components/dashboard/StudyModeModal'
+import { DashboardRoadmapSection } from '@/components/dashboard/DashboardRoadmapSection'
+import { DashboardQuickDecksWidget } from '@/components/dashboard/DashboardQuickDecksWidget'
 
 
 
@@ -62,6 +64,8 @@ interface LeaderboardEntry {
   streak: number
   is_current_user: boolean
   out_of_top_10?: boolean
+  active_status?: string
+  active_text?: string
 }
 
 interface Challenge {
@@ -375,7 +379,7 @@ function LeaderboardWidget({
   }
 
   const currentList = activeTab === 'xp' 
-    ? data.leaderboard 
+    ? (data.leaderboard || [])
     : activeTab === 'time' 
       ? (data.time_leaderboard || []) 
       : activeTab === 'new_cards' 
@@ -391,27 +395,27 @@ function LeaderboardWidget({
         : data.current_user_cards_rank
 
   return (
-    <div className="bg-white border border-neutral-100 rounded-3xl p-4 shadow-[0_4px_25px_rgba(0,0,0,0.03)] flex flex-col gap-3.5 text-left flex-shrink-0">
+    <div className="bg-white/80 backdrop-blur-md border border-slate-200/70 rounded-3xl p-4 shadow-xs flex flex-col gap-3 text-left flex-shrink-0">
       
       {/* Header & Controls */}
-      <div className="flex flex-col gap-2.5 pb-2.5 border-b border-neutral-100">
+      <div className="flex flex-col gap-2.5 pb-2.5 border-b border-slate-100">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <div className="w-7 h-7 rounded-xl bg-amber-50 border border-amber-200/50 flex items-center justify-center text-amber-500 shadow-2xs">
+            <div className="w-7 h-7 rounded-xl bg-amber-50 border border-amber-200/60 flex items-center justify-center text-amber-500 shadow-2xs">
               <Trophy className="w-3.5 h-3.5" />
             </div>
-            <h3 className="text-xs font-bold text-slate-800">
-              Bảng Xếp Hạng
+            <h3 className="text-xs font-black text-slate-800 tracking-tight">
+              Leaderboard
             </h3>
           </div>
 
           {/* Metric Switcher Segmented Control */}
-          <div className="flex items-center bg-neutral-100/80 p-0.5 rounded-full border border-neutral-200/40">
+          <div className="flex items-center bg-slate-100/90 p-0.5 rounded-full border border-slate-200/50">
             {[
               { id: 'xp', label: 'XP' },
-              { id: 'time', label: 'Thời gian' },
-              { id: 'new_cards', label: 'Từ mới' },
-              { id: 'cards', label: 'Ôn tập' }
+              { id: 'time', label: 'Time' },
+              { id: 'new_cards', label: 'New' },
+              { id: 'cards', label: 'Review' }
             ].map(tab => (
               <button
                 key={tab.id}
@@ -420,10 +424,10 @@ function LeaderboardWidget({
                   setActiveTab(tab.id as any);
                 }}
                 className={cn(
-                  "px-2.5 py-0.5 rounded-full text-[9px] font-medium transition-all cursor-pointer",
+                  "px-2 py-0.5 rounded-full text-[9px] font-bold transition-all cursor-pointer",
                   activeTab === tab.id
-                    ? "bg-white text-slate-900 shadow-2xs font-bold"
-                    : "text-neutral-500 hover:text-slate-700"
+                    ? "bg-white text-slate-900 shadow-2xs"
+                    : "text-slate-500 hover:text-slate-800"
                 )}
               >
                 {tab.label}
@@ -435,9 +439,9 @@ function LeaderboardWidget({
         {/* Time Filters Pills */}
         <div className="flex items-center gap-1.5 self-start">
           {[
-            { id: 'today', label: 'Hôm nay' },
-            { id: 'week', label: 'Tuần này' },
-            { id: 'all_time', label: 'Tất cả' }
+            { id: 'today', label: 'Today' },
+            { id: 'week', label: 'This Week' },
+            { id: 'all_time', label: 'All Time' }
           ].map(filter => (
             <button
               key={filter.id}
@@ -446,10 +450,10 @@ function LeaderboardWidget({
                 onFilterChange(filter.id);
               }}
               className={cn(
-                "px-3 py-0.5 rounded-full text-[10px] font-medium transition-all cursor-pointer",
+                "px-2.5 py-0.5 rounded-full text-[10px] font-semibold transition-all cursor-pointer",
                 activeFilter === filter.id
-                  ? "bg-amber-500 text-white font-bold shadow-xs shadow-amber-200"
-                  : "bg-neutral-100/70 text-neutral-500 hover:bg-neutral-200/60"
+                  ? "bg-amber-500 text-white font-bold shadow-2xs shadow-amber-200"
+                  : "bg-slate-100 text-slate-500 hover:bg-slate-200/70"
               )}
             >
               {filter.label}
@@ -458,8 +462,8 @@ function LeaderboardWidget({
         </div>
       </div>
 
-      {/* User Rank List (Subtle Luxury Cards) */}
-      <div className="flex flex-col gap-2">
+      {/* User Rank List (Scrollable with Presence Indicators) */}
+      <div className="flex flex-col gap-2 max-h-[260px] overflow-y-auto custom-scrollbar pr-1">
         {currentList.map((entry: any) => {
           const isRank1 = entry.rank === 1;
           const isRank2 = entry.rank === 2;
@@ -470,20 +474,20 @@ function LeaderboardWidget({
             <div
               key={entry.user_id}
               className={cn(
-                'flex items-center gap-3 px-3 py-2 rounded-2xl border transition-all relative overflow-hidden',
+                'flex items-center gap-2.5 px-3 py-2 rounded-2xl border transition-all relative overflow-hidden',
                 isCurrentUser
-                  ? 'bg-amber-50/70 border-amber-300/80 shadow-xs ring-1 ring-amber-400/30'
+                  ? 'bg-amber-50/80 border-amber-300 shadow-xs ring-1 ring-amber-400/30'
                   : isRank1
                     ? 'bg-amber-50/40 border-amber-200/60 shadow-2xs'
                     : isRank2
-                      ? 'bg-neutral-50/60 border-neutral-200/50'
+                      ? 'bg-slate-50/70 border-slate-200/60'
                       : isRank3
                         ? 'bg-amber-900/5 border-amber-900/10'
-                        : 'bg-white border-neutral-100 hover:border-neutral-200'
+                        : 'bg-white border-slate-100 hover:border-slate-200'
               )}
             >
               {/* Rank Icon Badge */}
-              <div className="w-6 h-6 rounded-lg flex items-center justify-center font-bold shrink-0 text-xs">
+              <div className="w-5 h-5 rounded-lg flex items-center justify-center font-black shrink-0 text-xs">
                 {isRank1 ? (
                   <span className="text-sm">👑</span>
                 ) : isRank2 ? (
@@ -491,24 +495,42 @@ function LeaderboardWidget({
                 ) : isRank3 ? (
                   <span className="text-sm">🥉</span>
                 ) : (
-                  <span className="text-[10px] font-medium text-neutral-400">#{entry.rank}</span>
+                  <span className="text-[10px] font-bold text-slate-400">#{entry.rank}</span>
                 )}
               </div>
 
-              {/* Avatar Circle */}
-              <div className={cn(
-                'w-8 h-8 rounded-full flex items-center justify-center text-[11px] font-bold shrink-0 shadow-2xs',
-                isCurrentUser
-                  ? 'bg-amber-500 text-white'
-                  : isRank1
-                    ? 'bg-amber-400 text-white'
-                    : isRank2
-                      ? 'bg-slate-300 text-slate-700'
-                      : isRank3
-                        ? 'bg-amber-700 text-white'
-                        : 'bg-neutral-200 text-slate-600'
-              )}>
-                {entry.username.slice(0, 2).toUpperCase()}
+              {/* Avatar Circle with Presence Dot */}
+              <div className="relative shrink-0">
+                <div className={cn(
+                  'w-8 h-8 rounded-full flex items-center justify-center text-[11px] font-black shrink-0 shadow-2xs',
+                  isCurrentUser
+                    ? 'bg-amber-500 text-white'
+                    : isRank1
+                      ? 'bg-amber-400 text-white'
+                      : isRank2
+                        ? 'bg-slate-300 text-slate-700'
+                        : isRank3
+                          ? 'bg-amber-700 text-white'
+                          : 'bg-slate-200 text-slate-600'
+                )}>
+                  {entry.username.slice(0, 2).toUpperCase()}
+                </div>
+                {/* Active Status Badge Dot */}
+                <span
+                  className={cn(
+                    "absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 border-white shadow-2xs flex items-center justify-center",
+                    entry.active_status === 'online'
+                      ? "bg-emerald-500"
+                      : entry.active_status === 'away'
+                        ? "bg-amber-400"
+                        : "bg-slate-300"
+                  )}
+                  title={entry.active_text || (entry.active_status === 'online' ? 'Active now' : entry.active_status === 'away' ? 'Away' : 'Offline')}
+                >
+                  {entry.active_status === 'online' && (
+                    <span className="w-full h-full rounded-full bg-emerald-400 animate-ping opacity-75" />
+                  )}
+                </span>
               </div>
 
               {/* User Details */}
@@ -521,20 +543,33 @@ function LeaderboardWidget({
                     {entry.username}
                   </span>
                   {isCurrentUser && (
-                    <span className="text-[8px] font-bold px-1.5 py-0.2 bg-amber-500 text-white rounded-full uppercase tracking-wider">
-                      Bạn
+                    <span className="text-[8px] font-black px-1.5 py-0.2 bg-amber-500 text-white rounded-full uppercase tracking-wider">
+                      You
                     </span>
                   )}
                 </div>
-                <span className="text-[10px] font-medium text-neutral-400 flex items-center gap-1 mt-0.5">
-                  Lv {entry.level} · 🔥 {entry.streak}d
-                </span>
+                <div className="flex items-center gap-1.5 mt-0.5">
+                  <span className="text-[9.5px] font-semibold text-slate-400">
+                    Lv {entry.level} · 🔥 {entry.streak}d
+                  </span>
+                  <span className="text-slate-300 text-[8px]">•</span>
+                  <span className={cn(
+                    "text-[8.5px] font-bold tracking-tight",
+                    entry.active_status === 'online'
+                      ? "text-emerald-600 font-bold"
+                      : entry.active_status === 'away'
+                        ? "text-amber-600"
+                        : "text-slate-400"
+                  )}>
+                    {entry.active_status === 'online' ? 'Online' : entry.active_text || 'Offline'}
+                  </span>
+                </div>
               </div>
 
               {/* Value Badge */}
               <div className="shrink-0 text-right">
                 <span className={cn(
-                  'text-xs font-bold block',
+                  'text-xs font-black block leading-tight',
                   isRank1 ? 'text-amber-600' : isCurrentUser ? 'text-amber-600' : 'text-slate-800'
                 )}>
                   {activeTab === 'xp' 
@@ -545,8 +580,8 @@ function LeaderboardWidget({
                         ? `${entry.new_cards || 0}` 
                         : `${entry.total_cards || 0}`}
                 </span>
-                <span className="text-[7px] font-semibold text-neutral-400 uppercase tracking-wider">
-                  {activeTab === 'xp' ? 'XP' : activeTab === 'time' ? 'HỌC' : activeTab === 'new_cards' ? 'THẺ MỚI' : 'ÔN TẬP'}
+                <span className="text-[7px] font-bold text-slate-400 uppercase tracking-wider">
+                  {activeTab === 'xp' ? 'XP' : activeTab === 'time' ? 'TIME' : activeTab === 'new_cards' ? 'NEW' : 'REVIEWS'}
                 </span>
               </div>
             </div>
@@ -554,16 +589,16 @@ function LeaderboardWidget({
         })}
         
         {currentList.length === 0 && (
-          <div className="py-5 text-center text-xs font-medium text-neutral-400">
-            Chưa có dữ liệu xếp hạng
+          <div className="py-5 text-center text-xs font-medium text-slate-400">
+            No ranking data available
           </div>
         )}
       </div>
 
       {currentRank && (
-        <div className="pt-2 border-t border-neutral-100 text-center">
-          <span className="text-[10px] font-medium text-neutral-400">
-            Hạng hiện tại của bạn: <strong className="text-amber-600 font-bold">#{currentRank}</strong> toàn hệ thống
+        <div className="pt-2 border-t border-slate-100 text-center">
+          <span className="text-[10px] font-medium text-slate-400">
+            Your rank: <strong className="text-amber-600 font-bold">#{currentRank}</strong> overall
           </span>
         </div>
       )}
@@ -1464,17 +1499,31 @@ export default function Dashboard() {
     }
   }, [])
 
-  const handleJoinRoom = async () => {
-    if (!roomCode) return
+  const handleJoinRoom = async (code?: string) => {
+    const targetCode = (typeof code === 'string' && code.trim()) ? code.trim() : roomCode
+    if (!targetCode) return
     setIsJoining(true)
     try {
-      await axios.post('/api/v1/deck/room/join', { room_code: roomCode })
-      navigate(`/room/${roomCode.toUpperCase()}`)
+      await axios.post('/api/v1/deck/room/join', { room_code: targetCode })
+      navigate(`/room/${targetCode.toUpperCase()}`)
     } catch (e) {
       alert("Room not found or expired")
     } finally {
       setIsJoining(false)
     }
+  }
+
+  const handleOpenStudyModal = (deck: any, tab: 'flashcard' | 'practice') => {
+    const id = deck.deck_id || deck.id
+    const status = deck.status || {}
+    setSelectedStudyQuiz({
+      id: id,
+      title: deck.title,
+      questions_count: status.total_cards || deck.total_cards || deck.questions_count || 0,
+      practice_settings: deck.practice_settings
+    })
+    setStudyModalTab(tab)
+    setIsStudyModalOpen(true)
   }
 
   const renderTodayReviewWidget = () => {
@@ -1623,54 +1672,53 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* DESKTOP LAYOUT */}
-      <div className="hidden md:flex w-full h-full overflow-hidden px-8 py-6 gap-8">
+      {/* DESKTOP 3-COLUMN ZERO-WINDOW-SCROLL LAYOUT */}
+      <div className="hidden md:grid md:grid-cols-12 w-full h-full overflow-hidden px-6 py-4 gap-6">
 
-        {/* LEFT COLUMN: Sidebar */}
-        <aside className="w-80 flex-shrink-0 flex flex-col gap-5 h-full overflow-y-auto pr-2 pb-6 scrollbar-thin">
-
+        {/* COLUMN 1: Profile, Level/Streak/XP, Heatmap, Leaderboard with Online Status (Col 3 of 12) */}
+        <aside className="col-span-3 h-full overflow-y-auto custom-scrollbar flex flex-col gap-4 pr-1 pb-4">
           {/* User profile card */}
-          <div className="bg-white/40 backdrop-blur-md border border-white/40 rounded-[2rem] p-6 shadow-sm shadow-slate-100/40 flex flex-col gap-4 text-left relative overflow-hidden flex-shrink-0">
-            <div className="absolute -right-8 -top-8 w-24 h-24 rounded-full bg-indigo-50/40 blur-md pointer-events-none" />
+          <div className="bg-white/80 backdrop-blur-md border border-slate-200/70 rounded-3xl p-5 shadow-xs flex flex-col gap-3.5 text-left relative overflow-hidden flex-shrink-0">
+            <div className="absolute -right-8 -top-8 w-24 h-24 rounded-full bg-orange-100/40 blur-xl pointer-events-none" />
 
-            <div className="flex items-center gap-3.5 z-10">
-              <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-indigo-500 via-purple-500 to-pink-500 flex items-center justify-center text-white shadow-md text-2xl shadow-indigo-100">
+            <div className="flex items-center gap-3 z-10">
+              <div className="w-11 h-11 rounded-2xl bg-gradient-to-tr from-orange-500 via-amber-500 to-rose-500 flex items-center justify-center text-white shadow-md text-xl shadow-orange-200">
                 👋
               </div>
-              <div>
+              <div className="min-w-0 flex-1">
                 <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none">Welcome back</span>
-                <h2 className="text-base font-black text-slate-800 leading-tight mt-0.5 truncate max-w-[170px]">
+                <h2 className="text-sm font-black text-slate-800 leading-tight mt-0.5 truncate">
                   {data.user?.username}
                 </h2>
               </div>
             </div>
 
-            <div className="flex flex-col gap-2 mt-1">
-              <div className="flex items-center justify-between p-3.5 bg-[#F8FAFC]/75 border-none rounded-2xl transition-colors hover:bg-[#F8FAFC]">
+            <div className="flex flex-col gap-2 mt-0.5">
+              <div className="flex items-center justify-between p-2.5 bg-slate-50/80 border border-slate-100/80 rounded-2xl">
                 <div className="flex items-center gap-2">
                   <Flame className="w-4 h-4 text-orange-500 animate-pulse" />
                   <span className="text-[10px] font-black text-slate-500 uppercase tracking-wider">Streak</span>
                 </div>
-                <span className="text-xs font-black text-orange-655 bg-white px-3 py-1 rounded-xl shadow-sm border border-slate-100/50">{data.gamify?.streak} ngày 🔥</span>
+                <span className="text-xs font-black text-orange-600 bg-white px-2.5 py-0.5 rounded-xl shadow-2xs border border-orange-100">{data.gamify?.streak} days 🔥</span>
               </div>
 
-              <div className="flex items-center justify-between p-3.5 bg-[#F8FAFC]/75 border-none rounded-2xl transition-colors hover:bg-[#F8FAFC]">
+              <div className="flex items-center justify-between p-2.5 bg-slate-50/80 border border-slate-100/80 rounded-2xl">
                 <div className="flex items-center gap-2">
                   <Zap className="w-4 h-4 text-indigo-500" />
                   <span className="text-[10px] font-black text-slate-500 uppercase tracking-wider">Level</span>
                 </div>
-                <span className="text-xs font-black text-indigo-650 bg-white px-3 py-1 rounded-xl shadow-sm border border-slate-100/50">Lvl {data.gamify?.level} ⭐</span>
+                <span className="text-xs font-black text-indigo-600 bg-white px-2.5 py-0.5 rounded-xl shadow-2xs border border-indigo-100">Lvl {data.gamify?.level} ⭐</span>
               </div>
 
               {/* XP progress to next level */}
-              <div className="px-1 mt-1.5">
-                <div className="flex justify-between text-[8px] font-black text-slate-400 mb-1.5">
-                  <span>{data.gamify?.xp} XP</span>
-                  <span>{(data.gamify?.level || 1) * 1000} XP next lv</span>
+              <div className="px-1 mt-1">
+                <div className="flex justify-between text-[8px] font-black text-slate-400 mb-1">
+                  <span>{data.gamify?.xp?.toLocaleString()} XP</span>
+                  <span>{((data.gamify?.level || 1) * 1000).toLocaleString()} XP next lv</span>
                 </div>
                 <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden">
                   <div
-                    className="h-full bg-gradient-to-r from-indigo-500 to-purple-500 rounded-full transition-all"
+                    className="h-full bg-gradient-to-r from-orange-500 via-amber-500 to-indigo-500 rounded-full transition-all duration-500"
                     style={{ width: `${Math.min(100, ((data.gamify?.xp || 0) % 1000) / 10)}%` }}
                   />
                 </div>
@@ -1682,32 +1730,34 @@ export default function Dashboard() {
           {heatmapData && heatmapData.length > 0 && <MiniHeatmap data={heatmapData} />}
 
           {/* Leaderboard */}
-          {leaderboardData && leaderboardData.leaderboard?.length > 0 && (
+          {leaderboardData && (
             <LeaderboardWidget data={leaderboardData} activeFilter={timeFilter} onFilterChange={setTimeFilter} />
           )}
-
         </aside>
 
-        {/* MAIN FEED: Scrollable container */}
-        <section className="flex-1 h-full flex flex-col gap-5 overflow-y-auto pr-2 scrollbar-thin text-left pb-8">
-          
-          <TodayFocusWidget
+        {/* COLUMN 2: Roadmap Hub (Center Stage - 100% matched with Mobile - Col 5 of 12) */}
+        <section className="col-span-5 h-full overflow-hidden flex flex-col">
+          <DashboardRoadmapSection
             roadmapDecks={roadmapDecks}
-            onStartPractice={(quiz) => {
-              setSelectedPracticeQuiz(quiz)
-              setIsPracticeModalOpen(true)
-            }}
+            remainingTime={remainingTime}
+            selectedRoadmapIdx={selectedRoadmapIdx}
+            onSelectRoadmapIdx={setSelectedRoadmapIdx}
+            onOpenStudyModal={handleOpenStudyModal}
+            navigate={navigate}
+            isDesktop={true}
+          />
+        </section>
+
+        {/* COLUMN 3: Option C - Quick Decks Hub & Multiplayer Arena (Col 4 of 12) */}
+        <section className="col-span-4 h-full overflow-hidden flex flex-col">
+          <DashboardQuickDecksWidget
+            todayReview={todayReview}
+            activeDecks={activeDecks}
+            onOpenStudyModal={handleOpenStudyModal}
+            onJoinRoom={handleJoinRoom}
+            isJoiningRoom={isJoining}
             navigate={navigate}
           />
-
-          {/* Charts Side-by-Side Grid */}
-          <div className="grid grid-cols-1 xl:grid-cols-2 gap-5 w-full">
-            <ReviewForecastWidget data={forecastData} />
-            <DailyComparisonChart data={dailyComparisonData} allTimeAvg={dailyComparisonAvg} isLoading={isDailyComparisonLoading} />
-          </div>
-
-          {/* Badge Progress Roadmap Footer */}
-          {badgesProgress && <BadgeProgressWidget data={badgesProgress} />}
         </section>
       </div>
 
