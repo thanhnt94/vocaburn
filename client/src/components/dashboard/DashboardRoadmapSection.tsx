@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useRef } from 'react'
 import { Link } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { 
@@ -48,6 +48,8 @@ export function DashboardRoadmapSection({
   isDesktop = false
 }: DashboardRoadmapSectionProps) {
   const [mascotCheer, setMascotCheer] = useState<string | null>(null)
+  const [slideDir, setSlideDir] = useState<'down' | 'up'>('down')
+  const isScrollingRef = useRef(false)
 
   const handleMascotTap = () => {
     if (typeof window !== 'undefined' && window.navigator && window.navigator.vibrate) {
@@ -135,6 +137,34 @@ export function DashboardRoadmapSection({
   const safeIdx = Math.min(Math.max(0, selectedRoadmapIdx), roadmapDecks.length - 1)
   const deck = roadmapDecks[safeIdx] || roadmapDecks[0]
   const totalDecks = roadmapDecks.length
+
+  const handleWheel = (e: React.WheelEvent<HTMLDivElement>) => {
+    if (totalDecks <= 1) return
+    if (Math.abs(e.deltaY) < 25) return
+    if (isScrollingRef.current) return
+
+    if (e.deltaY > 0) {
+      if (safeIdx < totalDecks - 1) {
+        isScrollingRef.current = true
+        setSlideDir('down')
+        if (typeof window !== 'undefined' && window.navigator?.vibrate) window.navigator.vibrate(8)
+        onSelectRoadmapIdx(safeIdx + 1)
+        setTimeout(() => {
+          isScrollingRef.current = false
+        }, 350)
+      }
+    } else {
+      if (safeIdx > 0) {
+        isScrollingRef.current = true
+        setSlideDir('up')
+        if (typeof window !== 'undefined' && window.navigator?.vibrate) window.navigator.vibrate(8)
+        onSelectRoadmapIdx(safeIdx - 1)
+        setTimeout(() => {
+          isScrollingRef.current = false
+        }, 350)
+      }
+    }
+  }
 
   const st = deck?.status || {}
   const nT = st.new_target_today || 0
@@ -255,6 +285,13 @@ export function DashboardRoadmapSection({
             </div>
           )}
 
+          {totalDecks > 1 && (
+            <span className="text-[9px] font-bold text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded-md hidden sm:inline-flex items-center gap-1" title="Roll mouse wheel over roadmap to switch">
+              <span>Scroll</span>
+              <span>🖱️</span>
+            </span>
+          )}
+
           {/* COUNTDOWN TIMER BADGE ON THE ROADMAP BAR */}
           {!st.all_done ? (
             <div className="inline-flex items-center gap-1 px-2.5 py-0.5 bg-amber-50 text-amber-950 border border-amber-300/80 rounded-full text-[10px] sm:text-[11px] font-black shadow-2xs shrink-0">
@@ -278,40 +315,54 @@ export function DashboardRoadmapSection({
         </Link>
       </div>
 
-      {/* ═══════════ ROADMAP BODY (CONTAINER WITH DEDICATED INNER SCROLL) ═══════════ */}
-      <div className="flex-1 flex flex-col justify-between p-3 sm:p-4 overflow-y-auto [&::-webkit-scrollbar]:hidden gap-3 min-h-0 w-full">
-        
-        {/* ═══════════ HERO MASCOT CARD (CLEAN & BOLD 3D AESTHETICS) ═══════════ */}
-        <div className="bg-gradient-to-br from-amber-100/95 via-orange-50/70 to-amber-200/40 border border-orange-200/90 rounded-3xl p-4 sm:p-5 relative overflow-hidden shadow-xs flex flex-row items-center justify-between flex-1 min-h-[185px] sm:min-h-[210px] shrink-0">
-          
-          {/* LEFT SIDE: DECK TITLE, CLEAN PILLS & SLOGAN */}
-          <div className="relative z-20 flex-1 max-w-[62%] sm:max-w-[66%] min-w-0 flex flex-col justify-center gap-2.5 py-0.5">
-            
-            {/* 1. DECK TITLE & LEVEL */}
-            <button
-              type="button"
-              onClick={() => {
-                onOpenStudyModal({
-                  id: deck.deck_id,
-                  title: deck.title,
-                  questions_count: st.total_cards || deck.questions_count || 0,
-                  practice_settings: deck.practice_settings
-                }, 'flashcard')
-              }}
-              className="inline-flex items-center gap-2 max-w-full text-left group cursor-pointer"
-            >
-              <div className="w-7 h-7 rounded-xl bg-orange-500/15 border border-orange-300/70 flex items-center justify-center text-orange-600 shrink-0 group-hover:scale-105 transition-transform">
-                <BookOpen className="w-4 h-4" />
-              </div>
-              <span className="text-sm sm:text-base font-black text-slate-900 truncate group-hover:text-orange-600 transition-colors">
-                {deck.title}
-              </span>
-              {deck.level && (
-                <span className="px-2 py-0.5 rounded-lg bg-orange-500/15 text-orange-700 border border-orange-200/80 text-[11px] font-black shrink-0">
-                  {deck.level}
-                </span>
-              )}
-            </button>
+      {/* ═══════════ ROADMAP BODY (CONTAINER WITH DEDICATED INNER SCROLL & MOUSE WHEEL FLIP) ═══════════ */}
+      <div 
+        onWheel={handleWheel}
+        className="flex-1 flex flex-col justify-between p-3 sm:p-4 overflow-y-auto [&::-webkit-scrollbar]:hidden gap-3 min-h-0 w-full"
+      >
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={safeIdx}
+            initial={{ opacity: 0, y: slideDir === 'down' ? 14 : -14 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: slideDir === 'down' ? -14 : 14 }}
+            transition={{ duration: 0.22, ease: "easeOut" }}
+            className="flex-1 flex flex-col justify-between gap-3 min-h-0 w-full"
+          >
+            {/* ═══════════ HERO MASCOT CARD (CLEAN & BOLD 3D AESTHETICS - BALANCED PROPORTIONS) ═══════════ */}
+            <div className={cn(
+              "bg-gradient-to-br from-amber-100/95 via-orange-50/70 to-amber-200/40 border border-orange-200/90 rounded-3xl p-4 sm:p-5 relative overflow-hidden shadow-xs flex flex-row items-center justify-between shrink-0",
+              isDesktop ? "h-[180px]" : "flex-1 min-h-[185px] sm:min-h-[210px]"
+            )}>
+              
+              {/* LEFT SIDE: DECK TITLE, CLEAN PILLS & SLOGAN */}
+              <div className="relative z-20 flex-1 max-w-[62%] sm:max-w-[66%] min-w-0 flex flex-col justify-center gap-2 py-0.5">
+                
+                {/* 1. DECK TITLE & LEVEL */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    onOpenStudyModal({
+                      id: deck.deck_id,
+                      title: deck.title,
+                      questions_count: st.total_cards || deck.questions_count || 0,
+                      practice_settings: deck.practice_settings
+                    }, 'flashcard')
+                  }}
+                  className="inline-flex items-center gap-2 max-w-full text-left group cursor-pointer"
+                >
+                  <div className="w-7 h-7 rounded-xl bg-orange-500/15 border border-orange-300/70 flex items-center justify-center text-orange-600 shrink-0 group-hover:scale-105 transition-transform">
+                    <BookOpen className="w-4 h-4" />
+                  </div>
+                  <span className="text-sm sm:text-base font-black text-slate-900 truncate group-hover:text-orange-600 transition-colors">
+                    {deck.title}
+                  </span>
+                  {deck.level && (
+                    <span className="px-2 py-0.5 rounded-lg bg-orange-500/15 text-orange-700 border border-orange-200/80 text-[11px] font-black shrink-0">
+                      {deck.level}
+                    </span>
+                  )}
+                </button>
 
             {/* 2. PROMINENT PILLS (STREAK, PROGRESS, EST DATE) */}
             <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
@@ -363,39 +414,45 @@ export function DashboardRoadmapSection({
 
           </div>
 
-          {/* RIGHT SIDE: MASCOT WITH INTERACTIVE CHEER */}
-          <div 
-            onClick={handleMascotTap}
-            title="Tap the mascot for extra motivation! 🔥"
-            className="w-[45%] max-w-[260px] absolute right-1 sm:right-3 bottom-0 top-0 flex items-end justify-center z-10 cursor-pointer group"
-          >
-            {/* FLOATING SPEECH BUBBLE ON TAP */}
-            <AnimatePresence>
-              {mascotCheer && (
-                <motion.div
-                  initial={{ opacity: 0, y: 10, scale: 0.85 }}
-                  animate={{ opacity: 1, y: 0, scale: 1 }}
-                  exit={{ opacity: 0, y: -10, scale: 0.85 }}
-                  className="absolute top-2 right-2 bg-white/95 backdrop-blur-md border border-orange-200 text-slate-900 text-[11px] font-black p-2.5 rounded-2xl shadow-xl z-30 max-w-[170px] pointer-events-none text-center"
-                >
-                  <div className="relative">
-                    {mascotCheer}
-                    <div className="absolute -bottom-4 right-6 w-0 h-0 border-x-[6px] border-x-transparent border-t-[8px] border-t-white" />
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
+              {/* RIGHT SIDE: MASCOT WITH INTERACTIVE CHEER */}
+              <div 
+                onClick={handleMascotTap}
+                title="Tap the mascot for extra motivation! 🔥"
+                className={cn(
+                  "absolute right-1 sm:right-3 bottom-0 top-0 flex items-end justify-center z-10 cursor-pointer group",
+                  isDesktop ? "w-[36%] max-w-[190px]" : "w-[45%] max-w-[260px]"
+                )}
+              >
+                {/* FLOATING SPEECH BUBBLE ON TAP */}
+                <AnimatePresence>
+                  {mascotCheer && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 10, scale: 0.85 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, y: -10, scale: 0.85 }}
+                      className="absolute top-2 right-2 bg-white/95 backdrop-blur-md border border-orange-200 text-slate-900 text-[10px] font-black p-2 rounded-2xl shadow-xl z-30 max-w-[160px] pointer-events-none text-center"
+                    >
+                      <div className="relative">
+                        {mascotCheer}
+                        <div className="absolute -bottom-3.5 right-5 w-0 h-0 border-x-[5px] border-x-transparent border-t-[7px] border-t-white" />
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
 
-            <motion.img 
-              key={mascotImg}
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              transition={{ duration: 0.3 }}
-              src={`${mascotImg}?v=exact_blackbg_v11`} 
-              alt="Vocaburn Mascot" 
-              className="h-[105%] max-h-[280px] w-auto max-w-none object-contain object-bottom drop-shadow-2xl translate-y-1 transition-transform group-hover:scale-105 active:scale-95 select-none"
-            />
-          </div>
+                <motion.img 
+                  key={mascotImg}
+                  initial={{ scale: 0.9, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  transition={{ duration: 0.3 }}
+                  src={`${mascotImg}?v=exact_blackbg_v11`} 
+                  alt="Vocaburn Mascot" 
+                  className={cn(
+                    "w-auto max-w-none object-contain object-bottom drop-shadow-2xl translate-y-1 transition-transform group-hover:scale-105 active:scale-95 select-none",
+                    isDesktop ? "max-h-[160px]" : "h-[105%] max-h-[280px]"
+                  )}
+                />
+              </div>
 
           {/* 2 ACTION BUTTONS: FLASHCARD (BRAIN) & PRACTICE (TROPHY) */}
           {!st.all_done && (
@@ -741,6 +798,8 @@ export function DashboardRoadmapSection({
           )}
         </div>
 
+          </motion.div>
+        </AnimatePresence>
       </div>
     </div>
   )

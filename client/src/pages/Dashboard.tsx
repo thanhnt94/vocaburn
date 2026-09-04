@@ -359,46 +359,62 @@ function MiniHeatmap({ data }: { data: HeatmapDay[] }) {
 // ─── Leaderboard Widget ────────────────────────────────────────────────────────
 // ─── Ultra-Modern App Leaderboard Widget ───────────────────────────────────────
 // ─── Luxury Minimalist Leaderboard Widget (White & Flame Gold) ──────────────────
+export type LeaderboardCategory = 'xp' | 'streak' | 'questions' | 'time'
+export type LeaderboardTimeFilter = 'today' | 'week' | 'month' | 'all_time'
+
+// ─── Ultra-Modern App Leaderboard Widget (Matching Stats Leaderboard) ───────────
 function LeaderboardWidget({ 
   data, 
   activeFilter, 
   onFilterChange 
 }: { 
   data: any, 
-  activeFilter: string, 
-  onFilterChange: (f: any) => void 
+  activeFilter: LeaderboardTimeFilter, 
+  onFilterChange: (f: LeaderboardTimeFilter) => void 
 }) {
-  const [activeTab, setActiveTab] = useState<'xp' | 'time' | 'new_cards' | 'cards'>('xp')
+  const [activeCategory, setActiveCategory] = useState<LeaderboardCategory>('xp')
 
-  const formatTime = (seconds: number) => {
-    if (seconds < 60) return `${seconds}s`
-    const mins = Math.floor(seconds / 60)
-    const hours = Math.floor(mins / 60)
-    if (hours > 0) return `${hours}h ${mins % 60}m`
-    return `${mins}m`
+  const formatStudyTime = (seconds: number): string => {
+    if (!seconds || seconds <= 0) return '0m'
+    const totalMinutes = Math.floor(seconds / 60)
+    if (totalMinutes < 60) {
+      return totalMinutes === 0 ? `${seconds}s` : `${totalMinutes}m`
+    }
+    const hours = Math.floor(totalMinutes / 60)
+    const remainingMinutes = totalMinutes % 60
+    if (remainingMinutes === 0) {
+      return `${hours}h`
+    }
+    return `${hours}h ${remainingMinutes}m`
   }
 
-  const currentList = activeTab === 'xp' 
-    ? (data.leaderboard || [])
-    : activeTab === 'time' 
-      ? (data.time_leaderboard || []) 
-      : activeTab === 'new_cards' 
-        ? (data.new_cards_leaderboard || []) 
-        : (data.cards_leaderboard || [])
+  const categoryMeta: Record<LeaderboardCategory, { label: string, icon: any, unit: string }> = {
+    xp: { label: 'XP', icon: Zap, unit: 'XP' },
+    streak: { label: 'Streak', icon: Flame, unit: 'days' },
+    questions: { label: 'Cards', icon: Target, unit: 'cards' },
+    time: { label: 'Time', icon: Clock, unit: '' }
+  }
 
-  const currentRank = activeTab === 'xp' 
-    ? data.current_user_rank 
-    : activeTab === 'time' 
-      ? data.current_user_time_rank 
-      : activeTab === 'new_cards' 
-        ? data.current_user_new_cards_rank 
-        : data.current_user_cards_rank
+  // Handle both data formats (Stats format: data[category] = { list, user_rank, user_value } or legacy fallback)
+  const categoryData = data?.[activeCategory] || (
+    activeCategory === 'xp'
+      ? { list: data?.leaderboard || [], user_rank: data?.current_user_rank, user_value: 0 }
+      : activeCategory === 'time'
+        ? { list: data?.time_leaderboard || [], user_rank: data?.current_user_time_rank, user_value: 0 }
+        : activeCategory === 'questions'
+          ? { list: data?.cards_leaderboard || [], user_rank: data?.current_user_cards_rank, user_value: 0 }
+          : { list: data?.new_cards_leaderboard || [], user_rank: data?.current_user_new_cards_rank, user_value: 0 }
+  )
+
+  const currentList = categoryData.list || []
+  const userRank = categoryData.user_rank
+  const userValue = categoryData.user_value
 
   return (
-    <div className="bg-white/80 backdrop-blur-md border border-slate-200/70 rounded-3xl p-4 shadow-xs flex flex-col gap-3 text-left flex-shrink-0">
+    <div className="bg-white/90 backdrop-blur-md border border-slate-200/80 rounded-3xl p-3.5 shadow-xs flex flex-col gap-2.5 text-left flex-shrink-0">
       
       {/* Header & Controls */}
-      <div className="flex flex-col gap-2.5 pb-2.5 border-b border-slate-100">
+      <div className="flex flex-col gap-2 pb-2 border-b border-slate-100">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <div className="w-7 h-7 rounded-xl bg-amber-50 border border-amber-200/60 flex items-center justify-center text-amber-500 shadow-2xs">
@@ -409,51 +425,54 @@ function LeaderboardWidget({
             </h3>
           </div>
 
-          {/* Metric Switcher Segmented Control */}
-          <div className="flex items-center bg-slate-100/90 p-0.5 rounded-full border border-slate-200/50">
-            {[
-              { id: 'xp', label: 'XP' },
-              { id: 'time', label: 'Time' },
-              { id: 'new_cards', label: 'New' },
-              { id: 'cards', label: 'Review' }
-            ].map(tab => (
-              <button
-                key={tab.id}
-                onClick={() => {
-                  if (navigator.vibrate) navigator.vibrate(6);
-                  setActiveTab(tab.id as any);
-                }}
-                className={cn(
-                  "px-2 py-0.5 rounded-full text-[9px] font-bold transition-all cursor-pointer",
-                  activeTab === tab.id
-                    ? "bg-white text-slate-900 shadow-2xs"
-                    : "text-slate-500 hover:text-slate-800"
-                )}
-              >
-                {tab.label}
-              </button>
-            ))}
+          {/* Metric Switcher Segmented Control (XP, Streak, Cards, Time) */}
+          <div className="grid grid-cols-4 bg-slate-100/90 p-0.5 rounded-xl border border-slate-200/50">
+            {(['xp', 'streak', 'questions', 'time'] as const).map(cat => {
+              const meta = categoryMeta[cat]
+              const Icon = meta.icon
+              const isActive = activeCategory === cat
+              return (
+                <button
+                  key={cat}
+                  onClick={() => {
+                    if (navigator.vibrate) navigator.vibrate(6)
+                    setActiveCategory(cat)
+                  }}
+                  className={cn(
+                    "flex items-center justify-center gap-1 px-2 py-0.5 rounded-lg text-[9px] font-black transition-all cursor-pointer",
+                    isActive
+                      ? "bg-white text-orange-600 shadow-2xs"
+                      : "text-slate-500 hover:text-slate-800"
+                  )}
+                  title={meta.label}
+                >
+                  <Icon className="w-2.5 h-2.5 shrink-0" />
+                  <span>{meta.label}</span>
+                </button>
+              )
+            })}
           </div>
         </div>
 
-        {/* Time Filters Pills */}
-        <div className="flex items-center gap-1.5 self-start">
+        {/* Time Filters Pills (Today, Week, Month, All Time) */}
+        <div className="flex items-center gap-1 self-start w-full">
           {[
             { id: 'today', label: 'Today' },
-            { id: 'week', label: 'This Week' },
+            { id: 'week', label: 'Week' },
+            { id: 'month', label: 'Month' },
             { id: 'all_time', label: 'All Time' }
           ].map(filter => (
             <button
               key={filter.id}
               onClick={() => {
-                if (navigator.vibrate) navigator.vibrate(6);
-                onFilterChange(filter.id);
+                if (navigator.vibrate) navigator.vibrate(6)
+                onFilterChange(filter.id as LeaderboardTimeFilter)
               }}
               className={cn(
-                "px-2.5 py-0.5 rounded-full text-[10px] font-semibold transition-all cursor-pointer",
+                "flex-1 text-center py-0.5 rounded-lg text-[9.5px] font-bold transition-all cursor-pointer",
                 activeFilter === filter.id
-                  ? "bg-amber-500 text-white font-bold shadow-2xs shadow-amber-200"
-                  : "bg-slate-100 text-slate-500 hover:bg-slate-200/70"
+                  ? "bg-slate-900 text-white shadow-2xs"
+                  : "bg-slate-100/80 text-slate-500 hover:bg-slate-200/70"
               )}
             >
               {filter.label}
@@ -462,19 +481,36 @@ function LeaderboardWidget({
         </div>
       </div>
 
+      {/* 🌟 Your Rank Banner */}
+      {userRank && userRank > 0 && (
+        <div className="bg-slate-900 rounded-2xl px-3 py-1.5 text-white border border-slate-800 shadow-xs flex items-center justify-between gap-2 shrink-0">
+          <div className="flex items-center gap-2 min-w-0">
+            <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Your Rank:</span>
+            <span className="text-xs font-black text-amber-400 leading-none">#{userRank}</span>
+          </div>
+          {userValue !== undefined && userValue > 0 && (
+            <span className="text-[10px] font-black text-amber-300">
+              {activeCategory === 'time' ? formatStudyTime(userValue) : `${userValue.toLocaleString()} ${categoryMeta[activeCategory].unit}`}
+            </span>
+          )}
+        </div>
+      )}
+
       {/* User Rank List (Scrollable with Presence Indicators) */}
-      <div className="flex flex-col gap-2 max-h-[260px] overflow-y-auto custom-scrollbar pr-1">
+      <div className="flex flex-col gap-1.5 max-h-[220px] overflow-y-auto custom-scrollbar pr-1">
         {currentList.map((entry: any) => {
-          const isRank1 = entry.rank === 1;
-          const isRank2 = entry.rank === 2;
-          const isRank3 = entry.rank === 3;
-          const isCurrentUser = entry.is_current_user;
+          const isRank1 = entry.rank === 1
+          const isRank2 = entry.rank === 2
+          const isRank3 = entry.rank === 3
+          const isCurrentUser = entry.is_current_user || entry.user_id === data?.current_user_id
+          const displayName = entry.full_name || entry.username || 'User'
+          const val = entry.value !== undefined ? entry.value : (activeCategory === 'xp' ? entry.xp : activeCategory === 'time' ? entry.total_time : entry.total_cards || 0)
 
           return (
             <div
               key={entry.user_id}
               className={cn(
-                'flex items-center gap-2.5 px-3 py-2 rounded-2xl border transition-all relative overflow-hidden',
+                'flex items-center gap-2 px-2.5 py-1.5 rounded-2xl border transition-all relative overflow-hidden',
                 isCurrentUser
                   ? 'bg-amber-50/80 border-amber-300 shadow-xs ring-1 ring-amber-400/30'
                   : isRank1
@@ -502,7 +538,7 @@ function LeaderboardWidget({
               {/* Avatar Circle with Presence Dot */}
               <div className="relative shrink-0">
                 <div className={cn(
-                  'w-8 h-8 rounded-full flex items-center justify-center text-[11px] font-black shrink-0 shadow-2xs',
+                  'w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-black shrink-0 shadow-2xs',
                   isCurrentUser
                     ? 'bg-amber-500 text-white'
                     : isRank1
@@ -513,7 +549,7 @@ function LeaderboardWidget({
                           ? 'bg-amber-700 text-white'
                           : 'bg-slate-200 text-slate-600'
                 )}>
-                  {entry.username.slice(0, 2).toUpperCase()}
+                  {displayName.slice(0, 2).toUpperCase()}
                 </div>
                 {/* Active Status Badge Dot */}
                 <span
@@ -535,26 +571,26 @@ function LeaderboardWidget({
 
               {/* User Details */}
               <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-1.5">
+                <div className="flex items-center gap-1">
                   <span className={cn(
                     'text-xs font-bold truncate',
                     isCurrentUser ? 'text-amber-950' : 'text-slate-800'
                   )}>
-                    {entry.username}
+                    {displayName}
                   </span>
                   {isCurrentUser && (
-                    <span className="text-[8px] font-black px-1.5 py-0.2 bg-amber-500 text-white rounded-full uppercase tracking-wider">
+                    <span className="text-[7px] font-black px-1.5 py-0.2 bg-amber-500 text-white rounded-full uppercase tracking-wider">
                       You
                     </span>
                   )}
                 </div>
-                <div className="flex items-center gap-1.5 mt-0.5">
-                  <span className="text-[9.5px] font-semibold text-slate-400">
-                    Lv {entry.level} · 🔥 {entry.streak}d
+                <div className="flex items-center gap-1 mt-0.5">
+                  <span className="text-[9px] font-semibold text-slate-400">
+                    Lv {entry.level || 1}
                   </span>
                   <span className="text-slate-300 text-[8px]">•</span>
                   <span className={cn(
-                    "text-[8.5px] font-bold tracking-tight",
+                    "text-[8px] font-bold tracking-tight",
                     entry.active_status === 'online'
                       ? "text-emerald-600 font-bold"
                       : entry.active_status === 'away'
@@ -572,36 +608,21 @@ function LeaderboardWidget({
                   'text-xs font-black block leading-tight',
                   isRank1 ? 'text-amber-600' : isCurrentUser ? 'text-amber-600' : 'text-slate-800'
                 )}>
-                  {activeTab === 'xp' 
-                    ? entry.xp.toLocaleString() 
-                    : activeTab === 'time' 
-                      ? formatTime(entry.total_time || 0) 
-                      : activeTab === 'new_cards' 
-                        ? `${entry.new_cards || 0}` 
-                        : `${entry.total_cards || 0}`}
-                </span>
-                <span className="text-[7px] font-bold text-slate-400 uppercase tracking-wider">
-                  {activeTab === 'xp' ? 'XP' : activeTab === 'time' ? 'TIME' : activeTab === 'new_cards' ? 'NEW' : 'REVIEWS'}
+                  {activeCategory === 'time'
+                    ? formatStudyTime(val)
+                    : `${val.toLocaleString()} ${categoryMeta[activeCategory].unit}`}
                 </span>
               </div>
             </div>
-          );
+          )
         })}
         
         {currentList.length === 0 && (
-          <div className="py-5 text-center text-xs font-medium text-slate-400">
-            No ranking data available
+          <div className="py-4 text-center text-xs font-medium text-slate-400">
+            No leaderboard data for this period.
           </div>
         )}
       </div>
-
-      {currentRank && (
-        <div className="pt-2 border-t border-slate-100 text-center">
-          <span className="text-[10px] font-medium text-slate-400">
-            Your rank: <strong className="text-amber-600 font-bold">#{currentRank}</strong> overall
-          </span>
-        </div>
-      )}
     </div>
   )
 }
@@ -1232,7 +1253,7 @@ export default function Dashboard() {
   const [isJoining, setIsJoining] = useState(false)
   const [currentSlide, setCurrentSlide] = useState(0)
   const [mobileRoadmapIdx, setMobileRoadmapIdx] = useState(0)
-  const [timeFilter, setTimeFilter] = useState<'all' | 'month' | 'week'>('week')
+  const [timeFilter, setTimeFilter] = useState<LeaderboardTimeFilter>('week')
   const [remainingTime, setRemainingTime] = useState<string>('')
   const [deckSearchTerm, setDeckSearchTerm] = useState('')
   const deckListRef = useRef<HTMLDivElement>(null)
@@ -1438,12 +1459,12 @@ export default function Dashboard() {
   })
 
   const { data: leaderboardData } = useQuery({
-    queryKey: ['leaderboard', timeFilter],
+    queryKey: ['stats-leaderboard', timeFilter],
     queryFn: async () => {
-      const res = await axios.get('/api/v1/gamification/leaderboard', { params: { time_filter: timeFilter } })
+      const res = await axios.get('/api/v1/stats/leaderboard', { params: { time_filter: timeFilter } })
       return res.data
     },
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: 30 * 1000,
   })
 
   const { data: badgesProgress } = useQuery<BadgeProgress[]>({
@@ -1672,17 +1693,17 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* DESKTOP 3-COLUMN ZERO-WINDOW-SCROLL LAYOUT */}
-      <div className="hidden md:grid md:grid-cols-12 w-full h-full overflow-hidden px-6 py-4 gap-6">
+      {/* DESKTOP 3-COLUMN ZERO-WINDOW-SCROLL LAYOUT (BALANCED 4-4-4 PROPORTIONS) */}
+      <div className="hidden md:grid md:grid-cols-12 w-full h-full overflow-hidden px-5 py-3 gap-5">
 
-        {/* COLUMN 1: Profile, Level/Streak/XP, Heatmap, Leaderboard with Online Status (Col 3 of 12) */}
-        <aside className="col-span-3 h-full overflow-y-auto custom-scrollbar flex flex-col gap-4 pr-1 pb-4">
+        {/* COLUMN 1: Profile, Level/Streak/XP, Heatmap, Rich Leaderboard (Col 4 of 12) */}
+        <aside className="col-span-4 h-full overflow-y-auto custom-scrollbar flex flex-col gap-3 pr-1 pb-2">
           {/* User profile card */}
-          <div className="bg-white/80 backdrop-blur-md border border-slate-200/70 rounded-3xl p-5 shadow-xs flex flex-col gap-3.5 text-left relative overflow-hidden flex-shrink-0">
+          <div className="bg-white/80 backdrop-blur-md border border-slate-200/70 rounded-3xl p-4 shadow-xs flex flex-col gap-3 text-left relative overflow-hidden flex-shrink-0">
             <div className="absolute -right-8 -top-8 w-24 h-24 rounded-full bg-orange-100/40 blur-xl pointer-events-none" />
 
             <div className="flex items-center gap-3 z-10">
-              <div className="w-11 h-11 rounded-2xl bg-gradient-to-tr from-orange-500 via-amber-500 to-rose-500 flex items-center justify-center text-white shadow-md text-xl shadow-orange-200">
+              <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-orange-500 via-amber-500 to-rose-500 flex items-center justify-center text-white shadow-md text-lg shadow-orange-200">
                 👋
               </div>
               <div className="min-w-0 flex-1">
@@ -1693,25 +1714,25 @@ export default function Dashboard() {
               </div>
             </div>
 
-            <div className="flex flex-col gap-2 mt-0.5">
-              <div className="flex items-center justify-between p-2.5 bg-slate-50/80 border border-slate-100/80 rounded-2xl">
+            <div className="flex flex-col gap-1.5 mt-0.5">
+              <div className="flex items-center justify-between p-2 bg-slate-50/80 border border-slate-100/80 rounded-2xl">
                 <div className="flex items-center gap-2">
-                  <Flame className="w-4 h-4 text-orange-500 animate-pulse" />
-                  <span className="text-[10px] font-black text-slate-500 uppercase tracking-wider">Streak</span>
+                  <Flame className="w-3.5 h-3.5 text-orange-500 animate-pulse" />
+                  <span className="text-[9.5px] font-black text-slate-500 uppercase tracking-wider">Streak</span>
                 </div>
-                <span className="text-xs font-black text-orange-600 bg-white px-2.5 py-0.5 rounded-xl shadow-2xs border border-orange-100">{data.gamify?.streak} days 🔥</span>
+                <span className="text-xs font-black text-orange-600 bg-white px-2 py-0.5 rounded-xl shadow-2xs border border-orange-100">{data.gamify?.streak} days 🔥</span>
               </div>
 
-              <div className="flex items-center justify-between p-2.5 bg-slate-50/80 border border-slate-100/80 rounded-2xl">
+              <div className="flex items-center justify-between p-2 bg-slate-50/80 border border-slate-100/80 rounded-2xl">
                 <div className="flex items-center gap-2">
-                  <Zap className="w-4 h-4 text-indigo-500" />
-                  <span className="text-[10px] font-black text-slate-500 uppercase tracking-wider">Level</span>
+                  <Zap className="w-3.5 h-3.5 text-indigo-500" />
+                  <span className="text-[9.5px] font-black text-slate-500 uppercase tracking-wider">Level</span>
                 </div>
-                <span className="text-xs font-black text-indigo-600 bg-white px-2.5 py-0.5 rounded-xl shadow-2xs border border-indigo-100">Lvl {data.gamify?.level} ⭐</span>
+                <span className="text-xs font-black text-indigo-600 bg-white px-2 py-0.5 rounded-xl shadow-2xs border border-indigo-100">Lvl {data.gamify?.level} ⭐</span>
               </div>
 
               {/* XP progress to next level */}
-              <div className="px-1 mt-1">
+              <div className="px-1 mt-0.5">
                 <div className="flex justify-between text-[8px] font-black text-slate-400 mb-1">
                   <span>{data.gamify?.xp?.toLocaleString()} XP</span>
                   <span>{((data.gamify?.level || 1) * 1000).toLocaleString()} XP next lv</span>
@@ -1729,14 +1750,14 @@ export default function Dashboard() {
           {/* Heatmap */}
           {heatmapData && heatmapData.length > 0 && <MiniHeatmap data={heatmapData} />}
 
-          {/* Leaderboard */}
+          {/* Rich Leaderboard */}
           {leaderboardData && (
             <LeaderboardWidget data={leaderboardData} activeFilter={timeFilter} onFilterChange={setTimeFilter} />
           )}
         </aside>
 
-        {/* COLUMN 2: Roadmap Hub (Center Stage - 100% matched with Mobile - Col 5 of 12) */}
-        <section className="col-span-5 h-full overflow-hidden flex flex-col">
+        {/* COLUMN 2: Roadmap Hub (Proportional Center Stage - Col 4 of 12) */}
+        <section className="col-span-4 h-full overflow-hidden flex flex-col">
           <DashboardRoadmapSection
             roadmapDecks={roadmapDecks}
             remainingTime={remainingTime}
