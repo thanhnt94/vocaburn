@@ -239,13 +239,35 @@ export default function FlashcardPlay() {
   } = usePracticeMode(session, currentIndex, mainTab)
 
   const {
+    sfxEnabled,
+    setSfxEnabled,
+    quickLearnEnabled,
+    setQuickLearnEnabled,
+    hapticEnabled,
+    setHapticEnabled,
+    showImages,
+    setShowImages,
+    showFsrs,
+    setShowFsrs,
+    randomEnabled,
+    setRandomEnabled,
     autoPlayAudio,
     setAutoPlayAudio,
+    learningMode,
+    setLearningMode,
+    creatorDefaults,
+    isCustomized,
+    syncStudySettings,
+    saveGeneralSettings,
+    resetToCreatorDefaults
+  } = usePlaySettings(id || '', modeSettings, setModeSettings);
+
+  const {
     playCardAudio,
     stopAudio,
     activeAudioRef,
     isAudioEnabled
-  } = useFlashcardAudio(currentQuestion, modeSettings)
+  } = useFlashcardAudio(currentQuestion, modeSettings, autoPlayAudio, setAutoPlayAudio)
 
   const [initialTotalXP, setInitialTotalXP] = useState(0)
   const timeLeftRef = useRef(0)
@@ -362,21 +384,6 @@ export default function FlashcardPlay() {
 
   const activeBottomTab = isMapOpen ? 'map' : (isStatsOpen ? 'stats' : 'flashcard');
 
-  const {
-    sfxEnabled,
-    setSfxEnabled,
-    quickLearnEnabled,
-    setQuickLearnEnabled,
-    hapticEnabled,
-    setHapticEnabled,
-    showImages,
-    setShowImages,
-    showFsrs,
-    setShowFsrs,
-    randomEnabled,
-    setRandomEnabled,
-    saveGeneralSettings
-  } = usePlaySettings(id || '', modeSettings, setModeSettings, activeMode, autoPlayAudio);
   const [learningModeAlert, setLearningModeAlert] = useState<{
     visible: boolean;
     message: string;
@@ -580,27 +587,19 @@ export default function FlashcardPlay() {
       const questions = quizRes.data.questions || []
       setSession({ ...quizRes.data, questions })
 
-      if (quizRes.data.user_settings) {
-        const uSet = quizRes.data.user_settings;
-        if (uSet.sfx_enabled !== undefined) {
-          setSfxEnabled(uSet.sfx_enabled);
-          updateUserSettings({ sfx_enabled: uSet.sfx_enabled });
-        }
-        if (uSet.autoplay_audio !== undefined) {
-          setAutoPlayAudio(uSet.autoplay_audio);
-          updateUserSettings({ autoplay_audio: uSet.autoplay_audio });
-        }
-        if (uSet.learning_mode !== undefined) {
-          const searchParams = new URLSearchParams(window.location.search);
-          const urlMode = searchParams.get('mode');
-          const finalMode = (urlMode === 'new' || urlMode === 'fsrs' || urlMode === 'roadmap' || urlMode === 'review') ? urlMode : uSet.learning_mode;
-          setActiveMode(finalMode);
-          updateUserSettings({ quiz_learning_mode: finalMode as any });
-        }
-        if (uSet.quick_learn_enabled !== undefined) {
-          setQuickLearnEnabled(uSet.quick_learn_enabled);
-          updateUserSettings({ quick_learn_enabled: uSet.quick_learn_enabled });
-        }
+      const effectiveStudy = quizRes.data.effective_study_settings || quizRes.data.user_settings || {};
+      const creatorStudyDefs = quizRes.data.creator_study_defaults || quizRes.data.study_defaults || {};
+      const userStudyOverrides = quizRes.data.user_study_settings || quizRes.data.user_settings || {};
+      const isCustom = quizRes.data.is_study_customized;
+
+      syncStudySettings(effectiveStudy, creatorStudyDefs, userStudyOverrides, isCustom);
+
+      const searchParams = new URLSearchParams(window.location.search);
+      const urlMode = searchParams.get('mode');
+      if (urlMode === 'new' || urlMode === 'fsrs' || urlMode === 'roadmap' || urlMode === 'review') {
+        setActiveMode(urlMode);
+      } else if (effectiveStudy.learning_mode) {
+        setActiveMode(effectiveStudy.learning_mode);
       }
       
       const hasLearned = questions.some((q: any) => (q.stats?.total || 0) > 0);
@@ -4484,6 +4483,8 @@ export default function FlashcardPlay() {
         setShowFsrs={setShowFsrs}
         randomEnabled={randomEnabled}
         setRandomEnabled={setRandomEnabled}
+        isCustomized={isCustomized}
+        onResetToCreatorDefaults={resetToCreatorDefaults}
       />
 
       {/* Exit Confirmation Modal */}

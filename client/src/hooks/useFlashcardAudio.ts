@@ -5,15 +5,21 @@ import { useAppStore } from '@/store/useAppStore';
 
 export type AutoPlayMode = 'always' | 'front' | 'back' | 'none';
 
-export function useFlashcardAudio(currentQuestion: any, practiceSettings?: any) {
+export function useFlashcardAudio(
+  currentQuestion: any,
+  practiceSettings?: any,
+  scopedAutoPlayAudio?: AutoPlayMode,
+  scopedSetAutoPlayAudio?: (mode: AutoPlayMode) => void
+) {
   const activeAudioRef = useRef<HTMLAudioElement | null>(null);
   const currentQuestionIdRef = useRef<number | null>(null);
-  const { userSettings, updateUserSettings } = useAppStore();
 
-  const autoPlayAudio = (userSettings.autoplay_audio as AutoPlayMode) || 'none';
+  const autoPlayAudio = scopedAutoPlayAudio !== undefined ? scopedAutoPlayAudio : 'none';
 
   const setAutoPlayAudio = (mode: AutoPlayMode) => {
-    updateUserSettings({ autoplay_audio: mode });
+    if (scopedSetAutoPlayAudio) {
+      scopedSetAutoPlayAudio(mode);
+    }
   };
 
   const stopAudio = () => {

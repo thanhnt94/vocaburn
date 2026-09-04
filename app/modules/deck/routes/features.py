@@ -25,7 +25,7 @@ from datetime import datetime, timezone, date, timedelta
 router = APIRouter(tags=["Deck"])
 
 from app.modules.deck.services.fsrs_service import build_fsrs_card
-from app.modules.deck.utils import migrate_practice_settings
+from app.modules.deck.utils import migrate_practice_settings, resolve_effective_study_settings, STUDY_SETTINGS_KEYS
 
 @router.get("/{deck_id}/practice-settings")
 async def get_practice_settings(request: Request, deck_id: int, db: AsyncSession = Depends(get_db)):
@@ -96,12 +96,22 @@ async def get_practice_settings(request: Request, deck_id: int, db: AsyncSession
             if c not in ordered_cols:
                 ordered_cols.append(c)
 
+    study_resolved = resolve_effective_study_settings(
+        deck.practice_settings,
+        user_sett.settings if user_sett else None
+    )
+
     return {
         "creator_settings": creator_settings,
         "user_settings": merged_user_settings,
         "available_columns": ordered_cols,
         "column_order": ordered_cols,
-        "deck_name": deck.title
+        "deck_name": deck.title,
+        "study_defaults": study_resolved["creator_study_defaults"],
+        "creator_study_defaults": study_resolved["creator_study_defaults"],
+        "user_study_settings": study_resolved["user_study_settings"],
+        "effective_study_settings": study_resolved["effective_study_settings"],
+        "is_study_customized": study_resolved["is_customized"]
     }
 
 @router.post("/{deck_id}/practice-settings")
@@ -181,18 +191,24 @@ async def save_practice_settings(request: Request, deck_id: int, payload: dict, 
             
         from sqlalchemy.orm.attributes import flag_modified
         if not deck.practice_settings or not settings:
-            deck.practice_settings = settings
+            deck.practice_settings = settings or {}
         else:
             merged = {}
             if isinstance(deck.practice_settings, dict):
                 merged.update(deck.practice_settings)
             if isinstance(settings, dict):
                 merged.update(settings)
+                # Deep merge study_defaults if both present
+                if "study_defaults" in deck.practice_settings and isinstance(deck.practice_settings["study_defaults"], dict) and "study_defaults" in settings and isinstance(settings["study_defaults"], dict):
+                    merged_sd = dict(deck.practice_settings["study_defaults"])
+                    merged_sd.update(settings["study_defaults"])
+                    merged["study_defaults"] = merged_sd
             deck.practice_settings = merged
         flag_modified(deck, "practice_settings")
         await db.commit()
     else:
         # Save user settings for roadmap pipeline, roadmap_active, and user preferences
+        reset_study_defaults = payload.get("reset_study_defaults", False)
         user_sett_res = await db.execute(
             select(UserDeckSettings).where(
                 UserDeckSettings.user_id == user_id,
@@ -201,6 +217,16 @@ async def save_practice_settings(request: Request, deck_id: int, payload: dict, 
         )
         user_sett = user_sett_res.scalar_one_or_none()
         from sqlalchemy.orm.attributes import flag_modified
+        
+        if reset_study_defaults and user_sett and isinstance(user_sett.settings, dict):
+            for k in STUDY_SETTINGS_KEYS:
+                user_sett.settings.pop(k, None)
+            if "study_settings" in user_sett.settings:
+                user_sett.settings.pop("study_settings", None)
+            flag_modified(user_sett, "settings")
+            await db.commit()
+            return {"status": "ok", "message": "Reset to creator defaults"}
+
         if not user_sett:
             cleaned_settings = dict(settings) if isinstance(settings, dict) else {}
             user_sett = UserDeckSettings(user_id=user_id, deck_id=deck_id, settings=cleaned_settings)
@@ -536,7 +562,7 @@ async def export_deck(deck_id: int, request: Request, exclude_ids: bool = False,
         tags=tags,
         practice_settings=deck.practice_settings,
         cards=cards,
-        exclude_ids=exclude_ids,
+        exclude_ids=False,
         cover_image=deck.cover_image or "",
         instruction=deck.instruction or "",
         is_public=deck.is_public if deck.is_public is not None else True,
@@ -663,7 +689,13 @@ async def import_update_deck(request: Request, deck_id: int, file: UploadFile = 
             
         if "practice_settings" in metadata:
             existing_ps = dict(deck.practice_settings) if deck.practice_settings else {}
-            existing_ps.update(metadata["practice_settings"])
+            for k, v in metadata["practice_settings"].items():
+                if isinstance(v, dict) and isinstance(existing_ps.get(k), dict):
+                    merged_sub = dict(existing_ps[k])
+                    merged_sub.update(v)
+                    existing_ps[k] = merged_sub
+                else:
+                    existing_ps[k] = v
             deck.practice_settings = existing_ps
             
         if metadata.get("tags"):
@@ -716,7 +748,9 @@ async def import_update_deck(request: Request, deck_id: int, file: UploadFile = 
                 db_c.back_audio_url = back_audio_url
                 db_c.front_img = front_img
                 db_c.back_img = back_img
-                db_c.others = others
+                merged_others = dict(db_c.others) if isinstance(db_c.others, dict) else {}
+                merged_others.update(others)
+                db_c.others = merged_others
             else:
                 db_c = Flashcard(
                     deck_id=deck_id,

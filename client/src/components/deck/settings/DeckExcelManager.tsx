@@ -34,6 +34,9 @@ export function DeckExcelManager({ deckId }: DeckExcelManagerProps) {
         })
         queryClient.invalidateQueries({ queryKey: ['quiz-questions', String(deckId)] })
         queryClient.invalidateQueries({ queryKey: ['quiz', String(deckId)] })
+        queryClient.invalidateQueries({ queryKey: ['deck', String(deckId)] })
+        queryClient.invalidateQueries({ queryKey: ['deck-practice-settings', String(deckId)] })
+        queryClient.invalidateQueries({ queryKey: ['deck-study-settings', String(deckId)] })
       } else {
         setUploadMessage({
           type: 'error',
@@ -115,7 +118,7 @@ export function DeckExcelManager({ deckId }: DeckExcelManagerProps) {
               <span className="text-xs font-black text-slate-900">Xuất Bộ Thẻ Hiện Tại</span>
             </div>
             <p className="text-[10px] text-slate-500 font-medium leading-relaxed">
-              Sao lưu toàn bộ danh sách thẻ, nghĩa và thông số FSRS ra tệp Excel.
+              Sao lưu toàn bộ danh sách thẻ, nghĩa, thông số và cấu hình học mặc định ra tệp Excel.
             </p>
           </div>
           <span className="text-xs font-black text-indigo-600 flex items-center gap-1 group-hover:translate-x-0.5 transition-transform">
@@ -133,7 +136,7 @@ export function DeckExcelManager({ deckId }: DeckExcelManagerProps) {
               <span className="text-xs font-black text-slate-900">Cập Nhật Qua Excel</span>
             </div>
             <p className="text-[10px] text-slate-500 font-medium leading-relaxed">
-              Tải lên file Excel để thêm mới hoặc cập nhật nội dung hàng loạt thẻ.
+              Tải lên file Excel để thêm mới, sửa thẻ và cập nhật cài đặt học mặc định của bộ thẻ.
             </p>
           </div>
 

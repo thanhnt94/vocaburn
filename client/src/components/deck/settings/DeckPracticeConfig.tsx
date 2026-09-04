@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { Sliders, Save, Check, Trophy, Keyboard, Headphones, Brain, Plus, Trash2, RotateCcw, HelpCircle } from 'lucide-react'
+import { Sliders, Save, Check, Trophy, Keyboard, Headphones, Brain, Plus, Trash2, RotateCcw, HelpCircle, Volume2, VolumeX, Image, ImageOff, Shuffle, Music, Sparkles } from 'lucide-react'
 import axios from 'axios'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -63,6 +63,14 @@ export function DeckPracticeConfig({ deckId, initialSettings, onSaved }: DeckPra
 
   const [listeningPairs, setListeningPairs] = useState<QuestionAnswerPair[]>([])
   const [listeningNumChoices, setListeningNumChoices] = useState<number>(4)
+
+  // Creator Default Study Settings for Learners
+  const [studyAutoplayAudio, setStudyAutoplayAudio] = useState<'none' | 'front' | 'back' | 'always'>('none')
+  const [studyShowImages, setStudyShowImages] = useState<'always' | 'front' | 'back' | 'none'>('always')
+  const [studyLearningMode, setStudyLearningMode] = useState<string>('fsrs')
+  const [studyRandomEnabled, setStudyRandomEnabled] = useState<boolean>(false)
+  const [studySfxEnabled, setStudySfxEnabled] = useState<boolean>(true)
+  const [studyQuickLearnEnabled, setStudyQuickLearnEnabled] = useState<boolean>(false)
 
   const [isSaving, setIsSaving] = useState(false)
   const [saveSuccess, setSaveSuccess] = useState(false)
@@ -141,6 +149,17 @@ export function DeckPracticeConfig({ deckId, initialSettings, onSaved }: DeckPra
         setListeningPairs(rawListeningPairs.map(normalizePair))
       } else {
         setListeningPairs([{ q: 'front', a: 'back', prompt_col: 'front', answer_col: 'back', name: 'Nghe phát âm ➜ Chọn nghĩa' }])
+      }
+
+      // Creator Study Defaults
+      const studyDefs = practiceSettingsData?.creator_study_defaults || practiceSettingsData?.study_defaults || effectiveSettings?.study_defaults || {}
+      if (studyDefs && typeof studyDefs === 'object') {
+        if (studyDefs.autoplay_audio) setStudyAutoplayAudio(studyDefs.autoplay_audio)
+        if (studyDefs.show_images) setStudyShowImages(studyDefs.show_images)
+        if (studyDefs.learning_mode) setStudyLearningMode(studyDefs.learning_mode)
+        if (studyDefs.random_enabled !== undefined) setStudyRandomEnabled(Boolean(studyDefs.random_enabled))
+        if (studyDefs.sfx_enabled !== undefined) setStudySfxEnabled(Boolean(studyDefs.sfx_enabled))
+        if (studyDefs.quick_learn_enabled !== undefined) setStudyQuickLearnEnabled(Boolean(studyDefs.quick_learn_enabled))
       }
     } else {
       setMcqPairs([{ q: 'front', a: 'back', prompt_col: 'front', answer_col: 'back' }])
@@ -241,6 +260,14 @@ export function DeckPracticeConfig({ deckId, initialSettings, onSaved }: DeckPra
           mcq: mcqSettings,
           typing: typingSettings,
           listening: listeningSettings,
+          study_defaults: {
+            autoplay_audio: studyAutoplayAudio,
+            show_images: studyShowImages,
+            learning_mode: studyLearningMode,
+            random_enabled: studyRandomEnabled,
+            sfx_enabled: studySfxEnabled,
+            quick_learn_enabled: studyQuickLearnEnabled
+          }
         },
         is_creator: true,
       })
@@ -310,6 +337,181 @@ export function DeckPracticeConfig({ deckId, initialSettings, onSaved }: DeckPra
 
   return (
     <form onSubmit={handleSave} className="space-y-4 text-left">
+      {/* ═══════════ CREATOR STUDY DEFAULTS FOR LEARNERS ═══════════ */}
+      <div className="bg-white rounded-3xl p-4 sm:p-5 border border-slate-200/80 shadow-xs space-y-4">
+        <div className="flex items-center justify-between">
+          <div className="space-y-0.5">
+            <h3 className="text-xs font-black text-slate-900 uppercase tracking-wider flex items-center gap-2">
+              <Sliders className="w-4 h-4 text-indigo-600" />
+              <span>Cài Đặt Học Mặc Định Đầu Vào (Creator Study Defaults)</span>
+            </h3>
+            <p className="text-[11px] text-slate-400 font-medium">
+              Thiết lập cấu hình khởi đầu cho tất cả người học khi mở bộ thẻ này (người học có thể tự chỉnh lại sau trên tài khoản của họ)
+            </p>
+          </div>
+          <span className="px-2.5 py-1 rounded-full text-[9px] font-black uppercase tracking-wider bg-indigo-50 text-indigo-600 border border-indigo-100">
+            Tác giả bộ thẻ
+          </span>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+          {/* 1. Autoplay Audio Default */}
+          <div className="p-3 bg-slate-50/80 rounded-2xl border border-slate-200/60 space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-black text-slate-800 flex items-center gap-1.5">
+                <Volume2 className="w-3.5 h-3.5 text-indigo-600" />
+                Âm thanh đọc TTS
+              </span>
+              <span className="text-[9px] font-bold text-slate-400">Mặc định</span>
+            </div>
+            <div className="grid grid-cols-4 gap-1 p-1 bg-white rounded-xl border border-slate-200/50">
+              {[
+                { id: 'none', label: 'Tắt', icon: VolumeX },
+                { id: 'front', label: 'Mặt trước', icon: Volume2 },
+                { id: 'back', label: 'Mặt sau', icon: Volume2 },
+                { id: 'always', label: 'Cả hai', icon: Volume2 }
+              ].map(opt => {
+                const active = studyAutoplayAudio === opt.id
+                const Icon = opt.icon
+                return (
+                  <button
+                    key={opt.id}
+                    type="button"
+                    onClick={() => setStudyAutoplayAudio(opt.id as any)}
+                    className={cn(
+                      "py-1.5 px-1 rounded-lg text-[10px] font-black transition-all flex flex-col items-center justify-center gap-0.5 cursor-pointer active:scale-95",
+                      active
+                        ? "bg-indigo-600 text-white shadow-xs"
+                        : "text-slate-500 hover:text-slate-800 hover:bg-slate-100"
+                    )}
+                  >
+                    <Icon className="w-3 h-3" />
+                    <span className="truncate">{opt.label}</span>
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+
+          {/* 2. Image Visibility Default */}
+          <div className="p-3 bg-slate-50/80 rounded-2xl border border-slate-200/60 space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-black text-slate-800 flex items-center gap-1.5">
+                <Image className="w-3.5 h-3.5 text-indigo-600" />
+                Hình ảnh minh họa
+              </span>
+              <span className="text-[9px] font-bold text-slate-400">Mặc định</span>
+            </div>
+            <div className="grid grid-cols-4 gap-1 p-1 bg-white rounded-xl border border-slate-200/50">
+              {[
+                { id: 'always', label: 'Cả hai', icon: Image },
+                { id: 'front', label: 'Mặt trước', icon: Image },
+                { id: 'back', label: 'Mặt sau', icon: Image },
+                { id: 'none', label: 'Tắt', icon: ImageOff }
+              ].map(opt => {
+                const active = studyShowImages === opt.id
+                const Icon = opt.icon
+                return (
+                  <button
+                    key={opt.id}
+                    type="button"
+                    onClick={() => setStudyShowImages(opt.id as any)}
+                    className={cn(
+                      "py-1.5 px-1 rounded-lg text-[10px] font-black transition-all flex flex-col items-center justify-center gap-0.5 cursor-pointer active:scale-95",
+                      active
+                        ? "bg-indigo-600 text-white shadow-xs"
+                        : "text-slate-500 hover:text-slate-800 hover:bg-slate-100"
+                    )}
+                  >
+                    <Icon className="w-3 h-3" />
+                    <span className="truncate">{opt.label}</span>
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+
+          {/* 3. Initial Learning Mode Default */}
+          <div className="p-3 bg-slate-50/80 rounded-2xl border border-slate-200/60 space-y-2 sm:col-span-2 lg:col-span-1">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-black text-slate-800 flex items-center gap-1.5">
+                <Brain className="w-3.5 h-3.5 text-indigo-600" />
+                Chế độ học ban đầu
+              </span>
+              <span className="text-[9px] font-bold text-slate-400">Khởi đầu</span>
+            </div>
+            <select
+              value={studyLearningMode}
+              onChange={(e) => setStudyLearningMode(e.target.value)}
+              className="w-full h-9 px-3 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-800 outline-none focus:border-indigo-500 cursor-pointer shadow-2xs"
+            >
+              <option value="fsrs">FSRS v6 (Lặp lại ngắt quãng)</option>
+              <option value="roadmap">Lộ trình học tập (Roadmap)</option>
+              <option value="new">Học từ mới (New Cards)</option>
+              <option value="review">Ôn tập thẻ đến hạn (Review)</option>
+              <option value="flip">Lật nhanh (Flip Cards)</option>
+            </select>
+          </div>
+        </div>
+
+        {/* Sensory & Toggles Row */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 pt-1">
+          {/* Random Shuffle Toggle */}
+          <div className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50/60 border border-slate-200/50">
+            <div className="flex items-center gap-2 min-w-0 mr-2">
+              <Shuffle className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+              <span className="text-xs font-bold text-slate-700 truncate">Mặc định xáo trộn (Shuffle)</span>
+            </div>
+            <button
+              type="button"
+              onClick={() => setStudyRandomEnabled(!studyRandomEnabled)}
+              className={cn(
+                "w-9 h-5 rounded-full transition-all relative p-0.5 shrink-0 cursor-pointer",
+                studyRandomEnabled ? "bg-indigo-600" : "bg-slate-200"
+              )}
+            >
+              <div className={cn("w-4 h-4 rounded-full bg-white shadow-sm transition-transform", studyRandomEnabled ? "translate-x-4" : "translate-x-0")} />
+            </button>
+          </div>
+
+          {/* SFX Toggle */}
+          <div className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50/60 border border-slate-200/50">
+            <div className="flex items-center gap-2 min-w-0 mr-2">
+              <Music className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+              <span className="text-xs font-bold text-slate-700 truncate">Âm thanh hiệu ứng (SFX)</span>
+            </div>
+            <button
+              type="button"
+              onClick={() => setStudySfxEnabled(!studySfxEnabled)}
+              className={cn(
+                "w-9 h-5 rounded-full transition-all relative p-0.5 shrink-0 cursor-pointer",
+                studySfxEnabled ? "bg-indigo-600" : "bg-slate-200"
+              )}
+            >
+              <div className={cn("w-4 h-4 rounded-full bg-white shadow-sm transition-transform", studySfxEnabled ? "translate-x-4" : "translate-x-0")} />
+            </button>
+          </div>
+
+          {/* Quick Learn (Auto Advance) Toggle */}
+          <div className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50/60 border border-slate-200/50">
+            <div className="flex items-center gap-2 min-w-0 mr-2">
+              <Sparkles className="w-3.5 h-3.5 text-purple-600 shrink-0" />
+              <span className="text-xs font-bold text-slate-700 truncate">Tự động chuyển câu</span>
+            </div>
+            <button
+              type="button"
+              onClick={() => setStudyQuickLearnEnabled(!studyQuickLearnEnabled)}
+              className={cn(
+                "w-9 h-5 rounded-full transition-all relative p-0.5 shrink-0 cursor-pointer",
+                studyQuickLearnEnabled ? "bg-indigo-600" : "bg-slate-200"
+              )}
+            >
+              <div className={cn("w-4 h-4 rounded-full bg-white shadow-sm transition-transform", studyQuickLearnEnabled ? "translate-x-4" : "translate-x-0")} />
+            </button>
+          </div>
+        </div>
+      </div>
+
       {/* ═══════════ PRACTICE MODES SEGMENTED SELECTOR ═══════════ */}
       <div className="bg-white rounded-3xl p-3 sm:p-4 border border-slate-100 shadow-sm space-y-3">
         <div className="flex items-center justify-between px-1">

@@ -2,7 +2,8 @@ from app.modules.deck.services.fsrs_service import build_fsrs_card, estimate_int
 from app.modules.deck.services.roadmap_service import RoadmapService
 from app.modules.deck.utils import (
     fix_static_urls, migrate_practice_settings,
-    get_enabled_practice_modes, check_has_practice_setup, check_has_mcq_setup
+    get_enabled_practice_modes, check_has_practice_setup, check_has_mcq_setup,
+    resolve_effective_study_settings
 )
 
 get_deck_roadmap_status_helper = RoadmapService.get_deck_roadmap_status
@@ -1328,6 +1329,11 @@ async def get_deck_play_data(request: Request, deck_id: int, mode: Optional[str]
                 "others": fix_static_urls(c.others)
             })
         
+    study_resolved = resolve_effective_study_settings(
+        deck.practice_settings,
+        user_sett.settings if user_sett else None
+    )
+
     await resolve_play_cards(cards_list, db)
     return {
         "id": deck.id,
@@ -1350,7 +1356,12 @@ async def get_deck_play_data(request: Request, deck_id: int, mode: Optional[str]
         "cards": cards_list,
         "questions": cards_list, # compatibility
         "practice_settings": deck.practice_settings,
-        "user_settings": user_sett.settings if user_sett else None
+        "user_settings": user_sett.settings if user_sett else None,
+        "study_defaults": study_resolved["creator_study_defaults"],
+        "creator_study_defaults": study_resolved["creator_study_defaults"],
+        "user_study_settings": study_resolved["user_study_settings"],
+        "effective_study_settings": study_resolved["effective_study_settings"],
+        "is_study_customized": study_resolved["is_customized"]
     }
 
 

@@ -55,6 +55,8 @@ interface PlaySettingsModalProps {
   setShowFsrs?: (enabled: boolean) => void;
   randomEnabled?: boolean;
   setRandomEnabled?: (enabled: boolean) => void;
+  isCustomized?: boolean;
+  onResetToCreatorDefaults?: () => Promise<void> | void;
 }
 
 export const PlaySettingsModal: React.FC<PlaySettingsModalProps> = ({
@@ -81,7 +83,9 @@ export const PlaySettingsModal: React.FC<PlaySettingsModalProps> = ({
   showFsrs = true,
   setShowFsrs,
   randomEnabled = false,
-  setRandomEnabled
+  setRandomEnabled,
+  isCustomized = false,
+  onResetToCreatorDefaults
 }) => {
   const navigate = useNavigate()
   const { id } = useParams<{ id: string }>()
@@ -211,11 +215,22 @@ export const PlaySettingsModal: React.FC<PlaySettingsModalProps> = ({
                   <Sliders className="w-4 h-4" />
                 </div>
                 <div>
-                  <h3 className="text-sm font-black uppercase tracking-wider text-slate-900 leading-tight">
-                    Cấu hình học tập
-                  </h3>
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-sm font-black uppercase tracking-wider text-slate-900 leading-tight">
+                      Cấu hình học tập
+                    </h3>
+                    {isCustomized ? (
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[8.5px] font-black uppercase tracking-wider bg-indigo-50 text-indigo-600 border border-indigo-200/80">
+                        Tùy chỉnh riêng
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[8.5px] font-black uppercase tracking-wider bg-emerald-50 text-emerald-600 border border-emerald-200/80">
+                        Mặc định bộ thẻ
+                      </span>
+                    )}
+                  </div>
                   <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest leading-none mt-0.5">
-                    Tùy biến trải nghiệm & công cụ
+                    Tùy biến trải nghiệm & công cụ cho bộ thẻ này
                   </p>
                 </div>
               </div>
@@ -570,10 +585,28 @@ export const PlaySettingsModal: React.FC<PlaySettingsModalProps> = ({
             </div>
 
             {/* Footer Agree / Close Button */}
-            <div className="px-5 py-3.5 bg-white border-t border-slate-100 flex items-center justify-between shrink-0">
-              <span className="text-[10px] font-bold text-slate-400">
-                Tự động lưu cấu hình
-              </span>
+            <div className="px-5 py-3.5 bg-white border-t border-slate-100 flex items-center justify-between gap-2 shrink-0">
+              <div className="flex items-center gap-2">
+                {onResetToCreatorDefaults && isCustomized && (
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      if (window.confirm("Khôi phục toàn bộ cài đặt học của bộ thẻ này về mặc định ban đầu của người tạo?")) {
+                        await onResetToCreatorDefaults();
+                      }
+                    }}
+                    className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-[10.5px] font-black uppercase tracking-wider text-slate-600 hover:text-indigo-600 bg-slate-50 hover:bg-indigo-50/80 border border-slate-200 transition-all active:scale-95 cursor-pointer"
+                    title="Khôi phục lại thiết lập gốc của người tạo bộ thẻ"
+                  >
+                    <RotateCcw className="w-3.5 h-3.5" />
+                    <span className="hidden sm:inline">Khôi phục mặc định bộ thẻ</span>
+                    <span className="sm:hidden">Mặc định</span>
+                  </button>
+                )}
+                <span className="text-[10px] font-bold text-slate-400 hidden sm:inline">
+                  Tự động lưu cấu hình
+                </span>
+              </div>
               <button 
                 type="button"
                 onClick={onClose}

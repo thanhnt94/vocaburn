@@ -413,11 +413,6 @@ export default function PracticePlay() {
   const [session, setSession] = useState<any>(null)
   const [editingFlashcard, setEditingFlashcard] = useState<any>(null)
   const [isSaving, setIsSaving] = useState(false)
-  const autoPlayAudio = (userSettings.autoplay_audio as any) || 'none';
-  const setAutoPlayAudio = (val: any) => {
-    updateUserSettings({ autoplay_audio: val });
-    saveGeneralSettings({ autoplay_audio: val });
-  };
   const [isHeaderSurging, setIsHeaderSurging] = useState(false)
   const [currentIndex, setCurrentIndex] = useState(-1)
   const [showAbsoluteFirst, setShowAbsoluteFirst] = useState(false)
@@ -597,6 +592,30 @@ export default function PracticePlay() {
   })
 
   const {
+    sfxEnabled,
+    setSfxEnabled,
+    quickLearnEnabled,
+    setQuickLearnEnabled,
+    hapticEnabled,
+    setHapticEnabled,
+    showImages,
+    setShowImages,
+    showFsrs,
+    setShowFsrs,
+    randomEnabled,
+    setRandomEnabled,
+    autoPlayAudio,
+    setAutoPlayAudio,
+    learningMode,
+    setLearningMode,
+    creatorDefaults,
+    isCustomized,
+    syncStudySettings,
+    saveGeneralSettings,
+    resetToCreatorDefaults
+  } = usePlaySettings(id || '', modeSettings, setModeSettings);
+
+  const {
     status: roadmapStatus,
     refetchRoadmap,
     showBanner,
@@ -618,20 +637,6 @@ export default function PracticePlay() {
     if (isRoadmapTestMode && isStage2AlreadyDone) return true;
     return false;
   }, [isRetakingTest, isRoadmapTestFinished, isRoadmapTestMode, isStage2AlreadyDone]);
-
-  const {
-    sfxEnabled,
-    setSfxEnabled,
-    hapticEnabled,
-    setHapticEnabled,
-    showImages,
-    setShowImages,
-    showFsrs,
-    setShowFsrs,
-    randomEnabled,
-    setRandomEnabled,
-    saveGeneralSettings
-  } = usePlaySettings(id || '', modeSettings, setModeSettings, activeMode, autoPlayAudio);
 
   // Practice stats tracking
   const [practiceTotalAnswered, setPracticeTotalAnswered] = useState(0)
@@ -1321,6 +1326,13 @@ export default function PracticePlay() {
 
       const questions = quizRes.data.questions || []
       setSession({ ...quizRes.data, questions })
+
+      const effectiveStudy = quizRes.data.effective_study_settings || quizRes.data.user_settings || {};
+      const creatorStudyDefs = quizRes.data.creator_study_defaults || quizRes.data.study_defaults || {};
+      const userStudyOverrides = quizRes.data.user_study_settings || quizRes.data.user_settings || {};
+      const isCustom = quizRes.data.is_study_customized;
+
+      syncStudySettings(effectiveStudy, creatorStudyDefs, userStudyOverrides, isCustom);
 
       const hasLearned = questions.some((q: any) => (q.stats?.total || 0) > 0);
       if (activeTab === 'practice' && practiceRange === 'learned' && !hasLearned) {
@@ -5550,9 +5562,8 @@ export default function PracticePlay() {
                           onClick={() => {
                             const isFrontOn = autoPlayAudio === 'always' || autoPlayAudio === 'front';
                             const isBackOn = autoPlayAudio === 'always' || autoPlayAudio === 'back';
-                            const nextState = isFrontOn ? (isBackOn ? 'back' : 'never') : (isBackOn ? 'always' : 'front');
-                            updateUserSettings({ autoplay_audio: nextState as any });
-                            saveGeneralSettings({ autoplay_audio: nextState });
+                            const nextState = isFrontOn ? (isBackOn ? 'back' : 'none') : (isBackOn ? 'always' : 'front');
+                            setAutoPlayAudio(nextState);
                           }}
                           className={cn(
                             "flex flex-col items-center justify-center gap-1.5 py-2 px-1 rounded-xl text-[10px] font-bold transition-all active:scale-95",
@@ -5575,9 +5586,8 @@ export default function PracticePlay() {
                           onClick={() => {
                             const isFrontOn = autoPlayAudio === 'always' || autoPlayAudio === 'front';
                             const isBackOn = autoPlayAudio === 'always' || autoPlayAudio === 'back';
-                            const nextState = isBackOn ? (isFrontOn ? 'front' : 'never') : (isFrontOn ? 'always' : 'back');
-                            updateUserSettings({ autoplay_audio: nextState as any });
-                            saveGeneralSettings({ autoplay_audio: nextState });
+                            const nextState = isBackOn ? (isFrontOn ? 'front' : 'none') : (isFrontOn ? 'always' : 'back');
+                            setAutoPlayAudio(nextState);
                           }}
                           className={cn(
                             "flex flex-col items-center justify-center gap-1.5 py-2 px-1 rounded-xl text-[10px] font-bold transition-all active:scale-95",
@@ -6312,6 +6322,8 @@ export default function PracticePlay() {
         setShowFsrs={setShowFsrs}
         randomEnabled={randomEnabled}
         setRandomEnabled={setRandomEnabled}
+        isCustomized={isCustomized}
+        onResetToCreatorDefaults={resetToCreatorDefaults}
       />
     </div>
   )
