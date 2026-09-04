@@ -414,48 +414,46 @@ function LeaderboardWidget({
     <div className="bg-white/90 backdrop-blur-md border border-slate-200/80 rounded-3xl p-3.5 shadow-xs flex flex-col gap-2.5 text-left flex-shrink-0">
       
       {/* Header & Controls */}
-      <div className="flex flex-col gap-2 pb-2 border-b border-slate-100">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="w-7 h-7 rounded-xl bg-amber-50 border border-amber-200/60 flex items-center justify-center text-amber-500 shadow-2xs">
-              <Trophy className="w-3.5 h-3.5" />
-            </div>
-            <h3 className="text-xs font-black text-slate-800 tracking-tight">
-              Leaderboard
-            </h3>
+      <div className="flex flex-col gap-2.5 pb-2.5 border-b border-slate-100">
+        <div className="flex items-center gap-2">
+          <div className="w-7 h-7 rounded-xl bg-amber-50 border border-amber-200/60 flex items-center justify-center text-amber-500 shadow-2xs">
+            <Trophy className="w-3.5 h-3.5" />
           </div>
-
-          {/* Metric Switcher Segmented Control (XP, Streak, Cards, Time) */}
-          <div className="grid grid-cols-4 bg-slate-100/90 p-0.5 rounded-xl border border-slate-200/50">
-            {(['xp', 'streak', 'questions', 'time'] as const).map(cat => {
-              const meta = categoryMeta[cat]
-              const Icon = meta.icon
-              const isActive = activeCategory === cat
-              return (
-                <button
-                  key={cat}
-                  onClick={() => {
-                    if (navigator.vibrate) navigator.vibrate(6)
-                    setActiveCategory(cat)
-                  }}
-                  className={cn(
-                    "flex items-center justify-center gap-1 px-2 py-0.5 rounded-lg text-[9px] font-black transition-all cursor-pointer",
-                    isActive
-                      ? "bg-white text-orange-600 shadow-2xs"
-                      : "text-slate-500 hover:text-slate-800"
-                  )}
-                  title={meta.label}
-                >
-                  <Icon className="w-2.5 h-2.5 shrink-0" />
-                  <span>{meta.label}</span>
-                </button>
-              )
-            })}
-          </div>
+          <h3 className="text-xs font-black text-slate-800 tracking-tight">
+            Leaderboard
+          </h3>
         </div>
 
-        {/* Time Filters Pills (Today, Week, Month, All Time) */}
-        <div className="flex items-center gap-1 self-start w-full">
+        {/* Row 1: Metric Switcher Segmented Control (XP, Streak, Cards, Time) - Full Width */}
+        <div className="grid grid-cols-4 bg-slate-100/90 p-1 rounded-xl border border-slate-200/50 gap-1 w-full">
+          {(['xp', 'streak', 'questions', 'time'] as const).map(cat => {
+            const meta = categoryMeta[cat]
+            const Icon = meta.icon
+            const isActive = activeCategory === cat
+            return (
+              <button
+                key={cat}
+                onClick={() => {
+                  if (navigator.vibrate) navigator.vibrate(6)
+                  setActiveCategory(cat)
+                }}
+                className={cn(
+                  "flex items-center justify-center gap-1 py-1 rounded-lg text-[9.5px] font-black transition-all cursor-pointer",
+                  isActive
+                    ? "bg-white text-orange-600 shadow-2xs"
+                    : "text-slate-500 hover:text-slate-800"
+                )}
+                title={meta.label}
+              >
+                <Icon className="w-2.5 h-2.5 shrink-0" />
+                <span>{meta.label}</span>
+              </button>
+            )
+          })}
+        </div>
+
+        {/* Row 2: Time Filters Pills (Today, Week, Month, All Time) - Full Width */}
+        <div className="grid grid-cols-4 bg-slate-50/90 p-1 rounded-xl border border-slate-100 gap-1 w-full">
           {[
             { id: 'today', label: 'Today' },
             { id: 'week', label: 'Week' },
@@ -469,10 +467,10 @@ function LeaderboardWidget({
                 onFilterChange(filter.id as LeaderboardTimeFilter)
               }}
               className={cn(
-                "flex-1 text-center py-0.5 rounded-lg text-[9.5px] font-bold transition-all cursor-pointer",
+                "text-center py-1 rounded-lg text-[9.5px] font-bold transition-all cursor-pointer",
                 activeFilter === filter.id
                   ? "bg-slate-900 text-white shadow-2xs"
-                  : "bg-slate-100/80 text-slate-500 hover:bg-slate-200/70"
+                  : "text-slate-500 hover:bg-white hover:text-slate-800"
               )}
             >
               {filter.label}
@@ -1693,17 +1691,17 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* DESKTOP 3-COLUMN ZERO-WINDOW-SCROLL LAYOUT (BALANCED 4-4-4 PROPORTIONS) */}
-      <div className="hidden md:grid md:grid-cols-12 w-full h-full overflow-hidden px-5 py-3 gap-5">
+      {/* DESKTOP 3-COLUMN ZERO-WINDOW-SCROLL LAYOUT */}
+      <div className="hidden md:grid md:grid-cols-12 w-full h-full overflow-hidden px-6 py-4 gap-6">
 
-        {/* COLUMN 1: Profile, Level/Streak/XP, Heatmap, Rich Leaderboard (Col 4 of 12) */}
-        <aside className="col-span-4 h-full overflow-y-auto custom-scrollbar flex flex-col gap-3 pr-1 pb-2">
+        {/* COLUMN 1: Profile, Level/Streak/XP, Heatmap, Rich Leaderboard (Col 3 of 12) */}
+        <aside className="col-span-3 h-full overflow-y-auto custom-scrollbar flex flex-col gap-4 pr-1 pb-4">
           {/* User profile card */}
-          <div className="bg-white/80 backdrop-blur-md border border-slate-200/70 rounded-3xl p-4 shadow-xs flex flex-col gap-3 text-left relative overflow-hidden flex-shrink-0">
+          <div className="bg-white/80 backdrop-blur-md border border-slate-200/70 rounded-3xl p-5 shadow-xs flex flex-col gap-3.5 text-left relative overflow-hidden flex-shrink-0">
             <div className="absolute -right-8 -top-8 w-24 h-24 rounded-full bg-orange-100/40 blur-xl pointer-events-none" />
 
             <div className="flex items-center gap-3 z-10">
-              <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-orange-500 via-amber-500 to-rose-500 flex items-center justify-center text-white shadow-md text-lg shadow-orange-200">
+              <div className="w-11 h-11 rounded-2xl bg-gradient-to-tr from-orange-500 via-amber-500 to-rose-500 flex items-center justify-center text-white shadow-md text-xl shadow-orange-200">
                 👋
               </div>
               <div className="min-w-0 flex-1">
@@ -1714,25 +1712,25 @@ export default function Dashboard() {
               </div>
             </div>
 
-            <div className="flex flex-col gap-1.5 mt-0.5">
-              <div className="flex items-center justify-between p-2 bg-slate-50/80 border border-slate-100/80 rounded-2xl">
+            <div className="flex flex-col gap-2 mt-0.5">
+              <div className="flex items-center justify-between p-2.5 bg-slate-50/80 border border-slate-100/80 rounded-2xl">
                 <div className="flex items-center gap-2">
-                  <Flame className="w-3.5 h-3.5 text-orange-500 animate-pulse" />
-                  <span className="text-[9.5px] font-black text-slate-500 uppercase tracking-wider">Streak</span>
+                  <Flame className="w-4 h-4 text-orange-500 animate-pulse" />
+                  <span className="text-[10px] font-black text-slate-500 uppercase tracking-wider">Streak</span>
                 </div>
-                <span className="text-xs font-black text-orange-600 bg-white px-2 py-0.5 rounded-xl shadow-2xs border border-orange-100">{data.gamify?.streak} days 🔥</span>
+                <span className="text-xs font-black text-orange-600 bg-white px-2.5 py-0.5 rounded-xl shadow-2xs border border-orange-100">{data.gamify?.streak} days 🔥</span>
               </div>
 
-              <div className="flex items-center justify-between p-2 bg-slate-50/80 border border-slate-100/80 rounded-2xl">
+              <div className="flex items-center justify-between p-2.5 bg-slate-50/80 border border-slate-100/80 rounded-2xl">
                 <div className="flex items-center gap-2">
-                  <Zap className="w-3.5 h-3.5 text-indigo-500" />
-                  <span className="text-[9.5px] font-black text-slate-500 uppercase tracking-wider">Level</span>
+                  <Zap className="w-4 h-4 text-indigo-500" />
+                  <span className="text-[10px] font-black text-slate-500 uppercase tracking-wider">Level</span>
                 </div>
-                <span className="text-xs font-black text-indigo-600 bg-white px-2 py-0.5 rounded-xl shadow-2xs border border-indigo-100">Lvl {data.gamify?.level} ⭐</span>
+                <span className="text-xs font-black text-indigo-600 bg-white px-2.5 py-0.5 rounded-xl shadow-2xs border border-indigo-100">Lvl {data.gamify?.level} ⭐</span>
               </div>
 
               {/* XP progress to next level */}
-              <div className="px-1 mt-0.5">
+              <div className="px-1 mt-1">
                 <div className="flex justify-between text-[8px] font-black text-slate-400 mb-1">
                   <span>{data.gamify?.xp?.toLocaleString()} XP</span>
                   <span>{((data.gamify?.level || 1) * 1000).toLocaleString()} XP next lv</span>
@@ -1756,8 +1754,8 @@ export default function Dashboard() {
           )}
         </aside>
 
-        {/* COLUMN 2: Roadmap Hub (Proportional Center Stage - Col 4 of 12) */}
-        <section className="col-span-4 h-full overflow-hidden flex flex-col">
+        {/* COLUMN 2: Roadmap Hub (Center Stage - Col 5 of 12) */}
+        <section className="col-span-5 h-full overflow-hidden flex flex-col">
           <DashboardRoadmapSection
             roadmapDecks={roadmapDecks}
             remainingTime={remainingTime}

@@ -329,14 +329,11 @@ export function DashboardRoadmapSection({
             transition={{ duration: 0.22, ease: "easeOut" }}
             className="flex-1 flex flex-col justify-between gap-3 min-h-0 w-full"
           >
-            {/* ═══════════ HERO MASCOT CARD (CLEAN & BOLD 3D AESTHETICS - BALANCED PROPORTIONS) ═══════════ */}
-            <div className={cn(
-              "bg-gradient-to-br from-amber-100/95 via-orange-50/70 to-amber-200/40 border border-orange-200/90 rounded-3xl p-4 sm:p-5 relative overflow-hidden shadow-xs flex flex-row items-center justify-between shrink-0",
-              isDesktop ? "h-[180px]" : "flex-1 min-h-[185px] sm:min-h-[210px]"
-            )}>
+            {/* ═══════════ HERO MASCOT CARD (GENEROUS & HEROIC) ═══════════ */}
+            <div className="bg-gradient-to-br from-amber-100/95 via-orange-50/70 to-amber-200/40 border border-orange-200/90 rounded-3xl p-5 sm:p-6 relative overflow-hidden shadow-xs flex flex-row items-center justify-between flex-1 min-h-[230px] sm:min-h-[260px] shrink-0">
               
               {/* LEFT SIDE: DECK TITLE, CLEAN PILLS & SLOGAN */}
-              <div className="relative z-20 flex-1 max-w-[62%] sm:max-w-[66%] min-w-0 flex flex-col justify-center gap-2 py-0.5">
+              <div className="relative z-20 flex-1 max-w-[56%] sm:max-w-[58%] min-w-0 flex flex-col justify-center gap-3 py-1">
                 
                 {/* 1. DECK TITLE & LEVEL */}
                 <button
@@ -351,10 +348,10 @@ export function DashboardRoadmapSection({
                   }}
                   className="inline-flex items-center gap-2 max-w-full text-left group cursor-pointer"
                 >
-                  <div className="w-7 h-7 rounded-xl bg-orange-500/15 border border-orange-300/70 flex items-center justify-center text-orange-600 shrink-0 group-hover:scale-105 transition-transform">
-                    <BookOpen className="w-4 h-4" />
+                  <div className="w-8 h-8 rounded-xl bg-orange-500/15 border border-orange-300/70 flex items-center justify-center text-orange-600 shrink-0 group-hover:scale-105 transition-transform">
+                    <BookOpen className="w-4.5 h-4.5" />
                   </div>
-                  <span className="text-sm sm:text-base font-black text-slate-900 truncate group-hover:text-orange-600 transition-colors">
+                  <span className="text-base sm:text-lg font-black text-slate-900 truncate group-hover:text-orange-600 transition-colors">
                     {deck.title}
                   </span>
                   {deck.level && (
@@ -364,64 +361,61 @@ export function DashboardRoadmapSection({
                   )}
                 </button>
 
-            {/* 2. PROMINENT PILLS (STREAK, PROGRESS, EST DATE) */}
-            <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
-              {/* 🔥 STREAK */}
-              <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-gradient-to-r from-orange-500 to-amber-500 text-white rounded-full text-xs font-black shadow-xs shrink-0">
-                <Flame className="w-3.5 h-3.5 fill-amber-200 text-amber-200" />
-                <span>{deckStreak} Day Streak</span>
-              </div>
+                {/* 2. PROMINENT PILLS (STREAK, PROGRESS, EST DATE) */}
+                <div className="flex flex-wrap items-center gap-2">
+                  {/* 🔥 STREAK */}
+                  <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-gradient-to-r from-orange-500 to-amber-500 text-white rounded-full text-xs font-black shadow-xs shrink-0">
+                    <Flame className="w-3.5 h-3.5 fill-amber-200 text-amber-200" />
+                    <span>{deckStreak} Day Streak</span>
+                  </div>
 
-              {/* 🎓 WORDS PROGRESS BAR WITH GREEN FILL & % NUMBER OUTSIDE */}
-              <div className="inline-flex items-center gap-1.5 shrink-0">
-                <div className="relative h-6 sm:h-6.5 min-w-[135px] sm:min-w-[155px] bg-white/90 backdrop-blur-xs border border-orange-200/90 rounded-full p-0.5 shadow-2xs overflow-hidden flex items-center">
-                  {/* Green Fill Bar */}
-                  <div 
-                    className="absolute inset-y-0.5 left-0.5 rounded-full bg-gradient-to-r from-emerald-400 to-emerald-500 transition-all duration-500 shadow-2xs"
-                    style={{ width: `${Math.max(0, Math.min(100, (learnedCards / (totalCards || 1)) * 100))}%` }}
-                  />
-                  {/* Text inside the bar */}
-                  <span className="relative z-10 font-black text-[11px] sm:text-xs text-slate-900 px-2.5 truncate">
-                    {learnedCards.toLocaleString()}/{totalCards.toLocaleString()} words
-                  </span>
+                  {/* 🎓 WORDS PROGRESS BAR WITH GREEN FILL & % NUMBER OUTSIDE */}
+                  <div className="inline-flex items-center gap-1.5 shrink-0">
+                    <div className="relative h-6 sm:h-6.5 min-w-[135px] sm:min-w-[155px] bg-white/90 backdrop-blur-xs border border-orange-200/90 rounded-full p-0.5 shadow-2xs overflow-hidden flex items-center">
+                      {/* Green Fill Bar */}
+                      <div 
+                        className="absolute inset-y-0.5 left-0.5 rounded-full bg-gradient-to-r from-emerald-400 to-emerald-500 transition-all duration-500 shadow-2xs"
+                        style={{ width: `${Math.max(0, Math.min(100, (learnedCards / (totalCards || 1)) * 100))}%` }}
+                      />
+                      {/* Text inside the bar */}
+                      <span className="relative z-10 font-black text-[11px] sm:text-xs text-slate-900 px-2.5 truncate">
+                        {learnedCards.toLocaleString()}/{totalCards.toLocaleString()} words
+                      </span>
+                    </div>
+
+                    {/* % Number Outside */}
+                    <span className="font-black text-xs sm:text-sm text-emerald-600 tabular-nums shrink-0">
+                      {totalCards > 0 ? Math.round((learnedCards / totalCards) * 100) : 0}%
+                    </span>
+                  </div>
+
+                  {/* 📅 EST DATE */}
+                  <div className="inline-flex items-center gap-1 px-2.5 py-1 bg-white/80 backdrop-blur-xs text-slate-600 border border-orange-200/70 rounded-full text-[11px] sm:text-xs font-semibold shadow-2xs shrink-0">
+                    {isDeckAllLearned ? (
+                      <span className="text-emerald-700 font-black">Mastered 🎉</span>
+                    ) : (
+                      <span>Est: {estimatedDateText}</span>
+                    )}
+                  </div>
                 </div>
 
-                {/* % Number Outside */}
-                <span className="font-black text-xs sm:text-sm text-emerald-600 tabular-nums shrink-0">
-                  {totalCards > 0 ? Math.round((learnedCards / totalCards) * 100) : 0}%
-                </span>
+                {/* 3. INSPIRING SLOGAN */}
+                <div className="flex flex-col gap-1 pt-1">
+                  <h2 className="text-base sm:text-xl font-black text-slate-900 tracking-tight leading-tight">
+                    {mascotLine1}
+                  </h2>
+                  <p className="text-xs sm:text-sm font-bold text-slate-600 leading-snug">
+                    {mascotLine2}
+                  </p>
+                </div>
+
               </div>
 
-              {/* 📅 EST DATE */}
-              <div className="inline-flex items-center gap-1 px-2.5 py-1 bg-white/80 backdrop-blur-xs text-slate-600 border border-orange-200/70 rounded-full text-[11px] sm:text-xs font-semibold shadow-2xs shrink-0">
-                {isDeckAllLearned ? (
-                  <span className="text-emerald-700 font-black">Mastered 🎉</span>
-                ) : (
-                  <span>Est: {estimatedDateText}</span>
-                )}
-              </div>
-            </div>
-
-            {/* 3. INSPIRING SLOGAN */}
-            <div className="flex flex-col gap-0.5 pt-0.5">
-              <h2 className="text-base sm:text-lg font-black text-slate-900 tracking-tight leading-tight">
-                {mascotLine1}
-              </h2>
-              <p className="text-xs sm:text-sm font-bold text-slate-600 leading-snug">
-                {mascotLine2}
-              </p>
-            </div>
-
-          </div>
-
-              {/* RIGHT SIDE: MASCOT WITH INTERACTIVE CHEER */}
+              {/* RIGHT SIDE: MASCOT WITH INTERACTIVE CHEER (BIG & HEROIC) */}
               <div 
                 onClick={handleMascotTap}
                 title="Tap the mascot for extra motivation! 🔥"
-                className={cn(
-                  "absolute right-1 sm:right-3 bottom-0 top-0 flex items-end justify-center z-10 cursor-pointer group",
-                  isDesktop ? "w-[36%] max-w-[190px]" : "w-[45%] max-w-[260px]"
-                )}
+                className="w-[46%] max-w-[360px] absolute right-1 sm:right-3 bottom-0 top-0 flex items-end justify-center z-10 cursor-pointer group"
               >
                 {/* FLOATING SPEECH BUBBLE ON TAP */}
                 <AnimatePresence>
@@ -430,11 +424,11 @@ export function DashboardRoadmapSection({
                       initial={{ opacity: 0, y: 10, scale: 0.85 }}
                       animate={{ opacity: 1, y: 0, scale: 1 }}
                       exit={{ opacity: 0, y: -10, scale: 0.85 }}
-                      className="absolute top-2 right-2 bg-white/95 backdrop-blur-md border border-orange-200 text-slate-900 text-[10px] font-black p-2 rounded-2xl shadow-xl z-30 max-w-[160px] pointer-events-none text-center"
+                      className="absolute top-2 right-2 bg-white/95 backdrop-blur-md border border-orange-200 text-slate-900 text-[11px] font-black p-2.5 rounded-2xl shadow-xl z-30 max-w-[190px] pointer-events-none text-center"
                     >
                       <div className="relative">
                         {mascotCheer}
-                        <div className="absolute -bottom-3.5 right-5 w-0 h-0 border-x-[5px] border-x-transparent border-t-[7px] border-t-white" />
+                        <div className="absolute -bottom-4 right-6 w-0 h-0 border-x-[6px] border-x-transparent border-t-[8px] border-t-white" />
                       </div>
                     </motion.div>
                   )}
@@ -447,10 +441,7 @@ export function DashboardRoadmapSection({
                   transition={{ duration: 0.3 }}
                   src={`${mascotImg}?v=exact_blackbg_v11`} 
                   alt="Vocaburn Mascot" 
-                  className={cn(
-                    "w-auto max-w-none object-contain object-bottom drop-shadow-2xl translate-y-1 transition-transform group-hover:scale-105 active:scale-95 select-none",
-                    isDesktop ? "max-h-[160px]" : "h-[105%] max-h-[280px]"
-                  )}
+                  className="h-[110%] sm:h-[118%] max-h-[360px] w-auto max-w-none object-contain object-bottom drop-shadow-2xl translate-y-1 sm:translate-y-2 transition-transform group-hover:scale-105 active:scale-95 select-none"
                 />
               </div>
 
