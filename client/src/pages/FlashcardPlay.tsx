@@ -472,7 +472,8 @@ export default function FlashcardPlay() {
   const dueCardsCount = useMemo(() => {
     const searchParams = new URLSearchParams(window.location.search);
     const urlStep = searchParams.get('step');
-    const isFsrsMode = activeMode === 'fsrs' || (activeMode === 'roadmap' && (urlStep === 'fsrs_review' || roadmapStatus?.pipeline?.[roadmapStatus?.current_step_index || 0]?.type === 'fsrs_review'));
+    const isRoadmapReview = activeMode === 'roadmap' && (urlStep === 'fsrs_review' || roadmapStatus?.pipeline?.[roadmapStatus?.current_step_index || 0]?.type === 'fsrs_review');
+    const isFsrsMode = activeMode === 'fsrs' || isRoadmapReview;
     if (!session || !session.questions || !isFsrsMode) return 0;
     const now = currentTime.getTime();
     const currentStep = roadmapStatus?.pipeline?.find((s: any) => s.type === 'fsrs_review');
@@ -485,8 +486,8 @@ export default function FlashcardPlay() {
       const isFsrsRecord = q.fsrs && q.fsrs.state !== 0 && q.fsrs.stability !== null;
       if (!isFsrsRecord) return false;
       
-      // Exclude cards first learned today if overdueHours >= 24
-      if (overdueHours >= 24 && q.fsrs?.first_learned) {
+      // Exclude cards first learned today ONLY if in roadmap review with overdueHours >= 24
+      if (isRoadmapReview && overdueHours >= 24 && q.fsrs?.first_learned) {
         const firstLearnedDate = parseUTCDate(q.fsrs.first_learned).getTime();
         if (firstLearnedDate >= todayStart.getTime()) return false;
       }
@@ -649,16 +650,12 @@ export default function FlashcardPlay() {
         const urlMode = searchParams.get('mode');
         const urlStep = searchParams.get('step');
         const effectiveMode = urlMode || activeMode || userSettings.quiz_learning_mode || 'fsrs';
-        let savedMode = effectiveMode;
-        const activeStepType = urlStep || rawStep?.type;
-        if (effectiveMode === 'roadmap') {
-          savedMode = activeStepType === 'fsrs_review' ? 'fsrs' : 'new';
-        }
+        const activeStepType = effectiveMode === 'roadmap' ? (urlStep || rawStep?.type) : undefined;
 
         let curIdx = 0;
         try {
           const res = await axios.post(`/api/v1/deck/${id}/next-card`, {
-            mode: savedMode,
+            mode: effectiveMode,
             step_type: activeStepType,
             answered_indexes: [],
             current_index: 0,
@@ -1802,14 +1799,10 @@ export default function FlashcardPlay() {
       const urlMode = searchParams.get('mode');
       const urlStep = searchParams.get('step');
       const effectiveMode = urlMode || activeMode || userSettings.quiz_learning_mode || 'fsrs';
-      let targetMode = effectiveMode;
-      const activeStepType = urlStep || rawStep?.type;
-      if (effectiveMode === 'roadmap') {
-        targetMode = activeStepType === 'fsrs_review' ? 'fsrs' : 'new';
-      }
+      const activeStepType = effectiveMode === 'roadmap' ? (urlStep || rawStep?.type) : undefined;
 
       const res = await axios.post(`/api/v1/deck/${id}/next-card`, {
-        mode: targetMode,
+        mode: effectiveMode,
         step_type: activeStepType,
         answered_indexes: answeredIndexes,
         current_index: currentIndex,

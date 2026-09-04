@@ -1422,7 +1422,7 @@ async def get_next_card(request: Request, deck_id: int, data: dict, db: AsyncSes
     step_type = data.get("step_type")
     original_mode = mode
     target_mode = mode
-    is_roadmap = (mode == "roadmap") or bool(step_type)
+    is_roadmap = (mode == "roadmap")
 
     from app.modules.deck.models import UserDeckSettings
     user_sett_res = await db.execute(
@@ -1433,7 +1433,7 @@ async def get_next_card(request: Request, deck_id: int, data: dict, db: AsyncSes
     )
     user_settings_dict = user_sett_res.scalar_one_or_none() or {}
 
-    if mode == "roadmap" or step_type:
+    if mode == "roadmap":
         st_helper = await get_deck_roadmap_status_helper(db, user_id, deck_id, user_settings_dict)
         current_step_idx = st_helper.get("current_step_index", 0)
         pipeline = st_helper.get("pipeline", [])
@@ -1479,7 +1479,7 @@ async def get_next_card(request: Request, deck_id: int, data: dict, db: AsyncSes
     elif target_mode in ("fsrs", "fsrs_review"):
         pipeline = user_settings_dict.get("pipeline", []) if isinstance(user_settings_dict, dict) else []
         fsrs_step = next((st for st in pipeline if st.get("type") == "fsrs_review"), None)
-        is_roadmap_review = (target_mode == "fsrs_review") or (step_type == "fsrs_review") or (original_mode == "roadmap")
+        is_roadmap_review = (target_mode == "fsrs_review") or (original_mode == "roadmap")
 
         overdue_hours = int(fsrs_step.get("overdue_hours", 24)) if fsrs_step else (24 if is_roadmap_review else 0)
 
@@ -1494,18 +1494,17 @@ async def get_next_card(request: Request, deck_id: int, data: dict, db: AsyncSes
         cards_learned_today = set()
         if is_roadmap_review and overdue_hours >= 24:
             from app.modules.deck.models import UserAnswer, DeckAttempt
-            today_learned_res = await db.execute(
+            first_answer_res = await db.execute(
                 select(UserAnswer.card_id)
                 .join(DeckAttempt, UserAnswer.attempt_id == DeckAttempt.id)
                 .where(
                     DeckAttempt.user_id == user_id,
-                    DeckAttempt.deck_id == deck_id,
-                    UserAnswer.created_at >= today_start
+                    DeckAttempt.deck_id == deck_id
                 )
                 .group_by(UserAnswer.card_id)
                 .having(func.min(UserAnswer.created_at) >= today_start)
             )
-            cards_learned_today = set(today_learned_res.scalars().all())
+            cards_learned_today = set(first_answer_res.scalars().all())
 
         due_cards = []
         all_new_cards = []
@@ -1563,40 +1562,25 @@ async def get_next_card(request: Request, deck_id: int, data: dict, db: AsyncSes
                 "learned_cards": len(all_learned_cards)
             }
 
-        # If in roadmap review (or any review mode), NEVER fall back to new cards!
-        if is_roadmap_review or target_mode in ("fsrs_review", "review"):
-            return {
-                "next_index": -1,
-                "phase": "completed",
-                "is_all_completed": True,
-                "due_count": 0,
-                "total_due": len(due_cards),
-                "unlearned_count": len(all_new_cards),
-                "total_cards": total,
-                "learned_cards": len(all_learned_cards),
-                "message": "All due review cards completed!"
-            }
-
-        # 2. PRIORITY 2: Only for general FSRS outside roadmap: New Cards if no cards are due
-        elif not is_roadmap_review and all_new_cards:
+        # 2. PRIORITY 2: Deck has NEVER been learned before (0 learned cards total)
+        if len(all_learned_cards) == 0 and all_new_cards and not is_roadmap_review:
             unanswered_new = [i for i in all_new_cards if i not in effective_answered]
             if unanswered_new:
                 if random_enabled:
                     import random
                     next_idx = random.choice(unanswered_new)
                 else:
-                    forward_new = [i for i in unanswered_new if i > current_index]
-                    next_idx = forward_new[0] if forward_new else unanswered_new[0]
+                    next_idx = unanswered_new[0]
                 return {
                     "next_index": next_idx,
                     "phase": "new",
                     "due_count": 0,
                     "unlearned_count": len(all_new_cards),
                     "total_cards": total,
-                    "learned_cards": len(all_learned_cards)
+                    "learned_cards": 0
                 }
 
-        # 3. PRIORITY 3: All due cards and new cards completed!
+        # 3. PRIORITY 3: All due review cards completed! (Never silently switch to new cards)
         min_future_due = min(future_due_dates) if future_due_dates else (all_learned_cards[0]["due"] if all_learned_cards and all_learned_cards[0].get("due") else None)
 
         wait_sec = 600
@@ -1625,9 +1609,11 @@ async def get_next_card(request: Request, deck_id: int, data: dict, db: AsyncSes
             "next_due_text": wait_text,
             "next_due_date": min_future_due.isoformat() if min_future_due else None,
             "due_count": 0,
+            "total_due": len(due_cards),
             "unlearned_count": len(all_new_cards),
             "total_cards": total,
-            "learned_cards": len(all_learned_cards)
+            "learned_cards": len(all_learned_cards),
+            "message": "All due review cards completed!"
         }
 
     elif mode == "review":
