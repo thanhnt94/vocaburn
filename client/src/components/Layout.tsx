@@ -66,13 +66,14 @@ export default function Layout() {
             : "bg-slate-950/80 border-white/5 text-white"
         )}>
           <div className="w-full max-w-[1700px] 2xl:max-w-[1900px] mx-auto px-4 sm:px-6 lg:px-8 xl:px-10 py-2.5 flex items-center justify-between">
-            <div className="flex items-center gap-8">
-              <Link to="/" className="active:scale-95 transition-all flex items-center">
+            <div className="flex items-center gap-6 lg:gap-8">
+              <Link to="/" className="active:scale-95 transition-all flex items-center shrink-0">
                 <VocaburnLogo height="md" />
               </Link>
               {isLoggedIn && (
-                <nav className="flex items-center gap-2">
+                <nav className="flex items-center p-1 bg-slate-100/90 border border-slate-200/80 rounded-2xl shadow-[inset_0_1px_2px_rgba(0,0,0,0.04)] gap-0.5 sm:gap-1">
                   {navItems.map((item) => {
+                    const Icon = item.icon
                     const isActive = item.path === '/' 
                       ? (location.pathname === '/' || location.pathname === '/dashboard')
                       : location.pathname.startsWith(item.path)
@@ -81,13 +82,28 @@ export default function Layout() {
                         key={item.path}
                         to={item.path} 
                         className={cn(
-                          "text-[11px] font-bold tracking-wide transition-all px-3 py-1.5 rounded-xl",
+                          "relative flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-[13px] lg:text-sm tracking-tight transition-all duration-200 select-none group cursor-pointer",
                           isActive 
-                            ? "text-indigo-600 bg-indigo-50/80 font-black" 
-                            : "text-slate-500 hover:text-slate-900 hover:bg-slate-100/70"
+                            ? "text-orange-600 font-extrabold" 
+                            : "text-slate-600 hover:text-slate-900 hover:bg-white/60 font-semibold"
                         )}
                       >
-                        {item.label}
+                        {isActive && (
+                          <motion.div 
+                            layoutId="desktopNavActive"
+                            className="absolute inset-0 bg-white rounded-xl shadow-xs border border-slate-200/80"
+                            transition={{ type: "spring", stiffness: 450, damping: 32 }}
+                          />
+                        )}
+                        <span className="relative z-10 flex items-center gap-2">
+                          <Icon className={cn(
+                            "w-4 h-4 transition-all duration-200 group-hover:scale-110",
+                            isActive 
+                              ? "text-orange-500 fill-orange-500/20 stroke-[2.2]" 
+                              : "text-slate-400 group-hover:text-slate-600 stroke-[1.8]"
+                          )} />
+                          <span>{item.label}</span>
+                        </span>
                       </Link>
                     )
                   })}
