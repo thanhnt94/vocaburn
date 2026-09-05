@@ -1575,25 +1575,61 @@ async def get_next_card(request: Request, deck_id: int, data: dict, db: AsyncSes
                 "learned_cards": len(all_learned_cards)
             }
 
-        # 2. PRIORITY 2: Deck has NEVER been learned before (0 learned cards total)
-        if len(all_learned_cards) == 0 and all_new_cards and not is_roadmap_review:
+        # If in review-only mode (roadmap review step or fsrs_review), NEVER introduce new cards!
+        if is_roadmap_review or target_mode in ("fsrs_review", "review"):
+            min_future_due = min(future_due_dates) if future_due_dates else (all_learned_cards[0]["due"] if all_learned_cards and all_learned_cards[0].get("due") else None)
+            wait_sec = 600
+            wait_text = "10 phút nữa"
+            if min_future_due:
+                diff_sec = int((min_future_due - now_utc).total_seconds())
+                wait_sec = max(60, diff_sec)
+                hours = wait_sec // 3600
+                minutes = (wait_sec % 3600) // 60
+                days = hours // 24
+                if days > 0:
+                    rem_h = hours % 24
+                    wait_text = f"{days} ngày {rem_h} giờ nữa" if rem_h > 0 else f"{days} ngày nữa"
+                elif hours > 0:
+                    wait_text = f"{hours} giờ {minutes} phút nữa" if minutes > 0 else f"{hours} giờ nữa"
+                else:
+                    wait_text = f"{max(1, minutes)} phút nữa"
+
+            return {
+                "next_index": -1,
+                "phase": "completed",
+                "is_all_completed": True,
+                "next_due_in_seconds": wait_sec,
+                "next_due_text": wait_text,
+                "next_due_date": min_future_due.isoformat() if min_future_due else None,
+                "due_count": 0,
+                "total_due": len(due_cards),
+                "unlearned_count": len(all_new_cards),
+                "total_cards": total,
+                "learned_cards": len(all_learned_cards),
+                "message": "All due review cards completed!"
+            }
+
+        # 2. PRIORITY 2: New Cards (Chế độ FSRS tự do: tiếp tục nạp từ mới nếu chưa có từ nào đến hạn ôn)
+        if all_new_cards:
             unanswered_new = [i for i in all_new_cards if i not in effective_answered]
             if unanswered_new:
                 if random_enabled:
                     import random
                     next_idx = random.choice(unanswered_new)
                 else:
-                    next_idx = unanswered_new[0]
+                    forward_new = [i for i in unanswered_new if i > current_index]
+                    next_idx = forward_new[0] if forward_new else unanswered_new[0]
                 return {
                     "next_index": next_idx,
                     "phase": "new",
                     "due_count": 0,
+                    "total_due": len(due_cards),
                     "unlearned_count": len(all_new_cards),
                     "total_cards": total,
-                    "learned_cards": 0
+                    "learned_cards": len(all_learned_cards)
                 }
 
-        # 3. PRIORITY 3: All due review cards completed! (Never silently switch to new cards)
+        # 3. PRIORITY 3: All due review cards and all new cards completed! (Đã ôn hết thẻ đến hạn và đã học hết từ mới trong bộ thẻ)
         min_future_due = min(future_due_dates) if future_due_dates else (all_learned_cards[0]["due"] if all_learned_cards and all_learned_cards[0].get("due") else None)
 
         wait_sec = 600
@@ -1626,7 +1662,7 @@ async def get_next_card(request: Request, deck_id: int, data: dict, db: AsyncSes
             "unlearned_count": len(all_new_cards),
             "total_cards": total,
             "learned_cards": len(all_learned_cards),
-            "message": "All due review cards completed!"
+            "message": "All cards in deck learned and no cards due for review!"
         }
 
     elif mode == "review":

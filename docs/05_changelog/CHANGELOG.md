@@ -3,6 +3,14 @@
 Tài liệu này lưu lại lịch sử thay đổi cấu trúc, tính năng, và các bản vá lỗi của dự án Vocaburn.
 
 ### [2026-09-05]
+#### Khắc Phục Lỗi FSRS Bị Dừng Sau 1 Thẻ: Cho Phép Tiếp Tục Học Từ Mới
+- **Sửa Điều Kiện Ưu Tiên Thẻ Tiếp Theo Trong Chế Độ FSRS (`app/modules/deck/routes/play.py`)**:
+  - Khắc phục lỗi điều kiện `len(all_learned_cards) == 0` khiến hệ thống dừng phiên học FSRS ngay lập tức sau khi người dùng đánh giá thẻ đầu tiên (do số thẻ đã học tăng lên 1 và thẻ đó chưa đến hạn ôn tập trong 4-10 phút tiếp theo).
+  - Tách bạch rõ ràng logic giữa các chế độ:
+    - **Chế độ Ôn tập FSRS (`fsrs_review`, hoặc chặng ôn tập trong Roadmap)**: Giữ nguyên tắc chỉ ôn thẻ đến hạn (`due <= now`), không tự ý nạp từ mới. Khi hết thẻ đến hạn sẽ hoàn thành chặng.
+    - **Chế độ FSRS Tự Do (`fsrs`)**: Sau khi ôn xong các thẻ đến hạn, hệ thống tiếp tục nạp các thẻ mới còn lại trong bộ thẻ (`all_new_cards`) để người học tiếp tục tiến trình cho đến khi hoàn thành toàn bộ thẻ của bộ.
+    - **Màn hình Hoàn thành FSRS (`FsrsCompleteScreen`)**: Chỉ kích hoạt khi bộ thẻ **thực sự đã học hết từ mới** VÀ **không còn thẻ nào đến hạn ôn tập**, hiển thị thời gian đếm ngược chính xác đến thẻ sắp đến hạn tiếp theo.
+
 #### Tối Ưu Hóa Giao Diện Di Động Cho Chế Độ Typing (Gõ Từ Vựng): Thu Gọn Thành 1 Hàng Duy Nhất
 - **Di Chuyển Ô Nhập Liệu Xuống Thanh Điều Khiển Dưới Cùng (`PracticeBottomBar.tsx`, `PracticeTypingCard.tsx`, `PracticePlay.tsx`)**:
   - Loại bỏ hoàn toàn thanh tab điều hướng di động (`MAP | PLAY | STATS`) riêng biệt trong chế độ gõ từ (`baseMode === 'typing'`).
