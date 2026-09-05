@@ -111,6 +111,10 @@ SYSTEM_STUDY_DEFAULTS = {
     "autoplay_audio": "none",       # 'none' | 'front' | 'back' | 'always'
     "show_images": "always",        # 'always' | 'front' | 'back' | 'none'
     "learning_mode": "fsrs",        # 'fsrs' | 'roadmap' | 'new' | 'review' | 'hardest' | 'flip'
+    "front_valign": "center",       # 'center' | 'top'
+    "front_halign": "center",       # 'center' | 'left'
+    "back_valign": "center",        # 'center' | 'top'
+    "back_halign": "left",          # 'left' | 'center'
     "random_enabled": False,        # boolean
     "sfx_enabled": True,            # boolean
     "haptic_enabled": True,         # boolean
@@ -124,6 +128,16 @@ STUDY_SETTINGS_KEYS = set(SYSTEM_STUDY_DEFAULTS.keys())
 def normalize_study_setting_value(key: str, val: Any) -> Any:
     if val is None:
         return None
+    if key in ("front_valign", "back_valign"):
+        val_str = str(val).lower().strip()
+        if val_str in ("top", "đỉnh", "trên", "start", "flex-start"):
+            return "top"
+        return "center"
+    if key in ("front_halign", "back_halign"):
+        val_str = str(val).lower().strip()
+        if val_str in ("left", "trái", "trai", "start"):
+            return "left"
+        return "center"
     if key == "autoplay_audio":
         val_str = str(val).lower().strip()
         if val_str in ("never", "off", "disabled", "none", "false", "tắt", "không", "ko"):

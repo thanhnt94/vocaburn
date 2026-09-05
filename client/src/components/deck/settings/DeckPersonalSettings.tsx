@@ -15,7 +15,8 @@ import {
   RotateCcw as ResetIcon,
   Save,
   User,
-  ShieldAlert
+  ShieldAlert,
+  Sliders
 } from 'lucide-react'
 import axios from 'axios'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
@@ -72,6 +73,10 @@ export function DeckPersonalSettings({
   const [preferredMode, setPreferredMode] = useState<PreferredMode>('fsrs')
   const [autoplayAudio, setAutoplayAudio] = useState<AudioChoice>('none')
   const [showImages, setShowImages] = useState<ImageChoice>('always')
+  const [frontValign, setFrontValign] = useState<'center' | 'top'>('center')
+  const [frontHalign, setFrontHalign] = useState<'center' | 'left'>('center')
+  const [backValign, setBackValign] = useState<'center' | 'top'>('center')
+  const [backHalign, setBackHalign] = useState<'left' | 'center'>('left')
   const [randomEnabled, setRandomEnabled] = useState<boolean>(false)
   const [sfxEnabled, setSfxEnabled] = useState<boolean>(true)
   const [quickLearnEnabled, setQuickLearnEnabled] = useState<boolean>(false)
@@ -86,6 +91,10 @@ export function DeckPersonalSettings({
       const initialMode = (userOverrides.learning_mode || creatorDefs.learning_mode || 'fsrs') as PreferredMode
       const initialAudio = (userOverrides.autoplay_audio || creatorDefs.autoplay_audio || 'none') as AudioChoice
       const initialImages = (userOverrides.show_images || creatorDefs.show_images || 'always') as ImageChoice
+      const initialFrontValign = (userOverrides.front_valign || creatorDefs.front_valign || 'center') as 'center' | 'top'
+      const initialFrontHalign = (userOverrides.front_halign || creatorDefs.front_halign || 'center') as 'center' | 'left'
+      const initialBackValign = (userOverrides.back_valign || creatorDefs.back_valign || 'center') as 'center' | 'top'
+      const initialBackHalign = (userOverrides.back_halign || creatorDefs.back_halign || 'left') as 'left' | 'center'
       const initialRandom = userOverrides.random_enabled !== undefined
         ? Boolean(userOverrides.random_enabled)
         : Boolean(creatorDefs.random_enabled ?? false)
@@ -99,6 +108,10 @@ export function DeckPersonalSettings({
       setPreferredMode(initialMode)
       setAutoplayAudio(initialAudio)
       setShowImages(initialImages)
+      setFrontValign(initialFrontValign)
+      setFrontHalign(initialFrontHalign)
+      setBackValign(initialBackValign)
+      setBackHalign(initialBackHalign)
       setRandomEnabled(initialRandom)
       setSfxEnabled(initialSfx)
       setQuickLearnEnabled(initialQuickLearn)
@@ -181,6 +194,10 @@ export function DeckPersonalSettings({
       learning_mode: preferredMode,
       autoplay_audio: autoplayAudio,
       show_images: showImages,
+      front_valign: frontValign,
+      front_halign: frontHalign,
+      back_valign: backValign,
+      back_halign: backHalign,
       random_enabled: randomEnabled,
       sfx_enabled: sfxEnabled,
       quick_learn_enabled: quickLearnEnabled,
@@ -216,6 +233,10 @@ export function DeckPersonalSettings({
     const creatorMode = (creatorDefs.learning_mode || 'fsrs') as PreferredMode
     const creatorAudio = (creatorDefs.autoplay_audio || 'none') as AudioChoice
     const creatorImages = (creatorDefs.show_images || 'always') as ImageChoice
+    const creatorFrontValign = (creatorDefs.front_valign || 'center') as 'center' | 'top'
+    const creatorFrontHalign = (creatorDefs.front_halign || 'center') as 'center' | 'left'
+    const creatorBackValign = (creatorDefs.back_valign || 'center') as 'center' | 'top'
+    const creatorBackHalign = (creatorDefs.back_halign || 'left') as 'left' | 'center'
     const creatorRandom = Boolean(creatorDefs.random_enabled ?? false)
     const creatorSfx = Boolean(creatorDefs.sfx_enabled ?? true)
     const creatorQuickLearn = Boolean(creatorDefs.quick_learn_enabled ?? false)
@@ -223,6 +244,10 @@ export function DeckPersonalSettings({
     setPreferredMode(creatorMode)
     setAutoplayAudio(creatorAudio)
     setShowImages(creatorImages)
+    setFrontValign(creatorFrontValign)
+    setFrontHalign(creatorFrontHalign)
+    setBackValign(creatorBackValign)
+    setBackHalign(creatorBackHalign)
     setRandomEnabled(creatorRandom)
     setSfxEnabled(creatorSfx)
     setQuickLearnEnabled(creatorQuickLearn)
@@ -453,6 +478,164 @@ export function DeckPersonalSettings({
                     </button>
                   )
                 })}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* ═══════════ CARD ALIGNMENT (2-AXIS: FRONT & BACK) ═══════════ */}
+        <div className="pt-2 border-t border-slate-100 space-y-3">
+          <span className="text-xs font-black text-slate-900 uppercase tracking-wider flex items-center gap-1.5">
+            <Sliders className="w-3.5 h-3.5 text-orange-600" />
+            Căn Lề Nội Dung Thẻ (Mặt trước & Mặt sau)
+          </span>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {/* Front Card Alignment */}
+            <div className="p-3 bg-slate-50/80 rounded-2xl border border-slate-200/70 space-y-2.5">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold text-slate-800 flex items-center gap-1">
+                  🎴 Mặt trước (Front Card)
+                </span>
+                <span className="text-[10px] font-bold text-slate-400">
+                  Gốc: {creatorDefs.front_valign === 'top' ? 'Trên' : 'Giữa'} / {creatorDefs.front_halign === 'left' ? 'Trái' : 'Giữa'}
+                </span>
+              </div>
+              
+              <div className="space-y-2">
+                <div>
+                  <span className="text-[10px] font-bold text-slate-400 block mb-1">Chiều dọc:</span>
+                  <div className="grid grid-cols-2 gap-1 p-1 bg-white rounded-xl border border-slate-200/60">
+                    <button
+                      type="button"
+                      onClick={() => setFrontValign('center')}
+                      className={cn(
+                        "py-1.5 px-2 rounded-lg text-xs font-black transition-all text-center cursor-pointer active:scale-95",
+                        frontValign === 'center'
+                          ? "bg-orange-500 text-white shadow-xs"
+                          : "text-slate-500 hover:text-slate-800 hover:bg-slate-100"
+                      )}
+                    >
+                      Căn giữa
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setFrontValign('top')}
+                      className={cn(
+                        "py-1.5 px-2 rounded-lg text-xs font-black transition-all text-center cursor-pointer active:scale-95",
+                        frontValign === 'top'
+                          ? "bg-orange-500 text-white shadow-xs"
+                          : "text-slate-500 hover:text-slate-800 hover:bg-slate-100"
+                      )}
+                    >
+                      Căn trên
+                    </button>
+                  </div>
+                </div>
+
+                <div>
+                  <span className="text-[10px] font-bold text-slate-400 block mb-1">Chiều ngang:</span>
+                  <div className="grid grid-cols-2 gap-1 p-1 bg-white rounded-xl border border-slate-200/60">
+                    <button
+                      type="button"
+                      onClick={() => setFrontHalign('center')}
+                      className={cn(
+                        "py-1.5 px-2 rounded-lg text-xs font-black transition-all text-center cursor-pointer active:scale-95",
+                        frontHalign === 'center'
+                          ? "bg-orange-500 text-white shadow-xs"
+                          : "text-slate-500 hover:text-slate-800 hover:bg-slate-100"
+                      )}
+                    >
+                      Căn giữa
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setFrontHalign('left')}
+                      className={cn(
+                        "py-1.5 px-2 rounded-lg text-xs font-black transition-all text-center cursor-pointer active:scale-95",
+                        frontHalign === 'left'
+                          ? "bg-orange-500 text-white shadow-xs"
+                          : "text-slate-500 hover:text-slate-800 hover:bg-slate-100"
+                      )}
+                    >
+                      Căn trái
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Back Card Alignment */}
+            <div className="p-3 bg-slate-50/80 rounded-2xl border border-slate-200/70 space-y-2.5">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold text-slate-800 flex items-center gap-1">
+                  📖 Mặt sau (Back Card)
+                </span>
+                <span className="text-[10px] font-bold text-slate-400">
+                  Gốc: {creatorDefs.back_valign === 'top' ? 'Trên' : 'Giữa'} / {creatorDefs.back_halign === 'center' ? 'Giữa' : 'Trái'}
+                </span>
+              </div>
+              
+              <div className="space-y-2">
+                <div>
+                  <span className="text-[10px] font-bold text-slate-400 block mb-1">Chiều dọc:</span>
+                  <div className="grid grid-cols-2 gap-1 p-1 bg-white rounded-xl border border-slate-200/60">
+                    <button
+                      type="button"
+                      onClick={() => setBackValign('center')}
+                      className={cn(
+                        "py-1.5 px-2 rounded-lg text-xs font-black transition-all text-center cursor-pointer active:scale-95",
+                        backValign === 'center'
+                          ? "bg-orange-500 text-white shadow-xs"
+                          : "text-slate-500 hover:text-slate-800 hover:bg-slate-100"
+                      )}
+                    >
+                      Căn giữa
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setBackValign('top')}
+                      className={cn(
+                        "py-1.5 px-2 rounded-lg text-xs font-black transition-all text-center cursor-pointer active:scale-95",
+                        backValign === 'top'
+                          ? "bg-orange-500 text-white shadow-xs"
+                          : "text-slate-500 hover:text-slate-800 hover:bg-slate-100"
+                      )}
+                    >
+                      Căn trên
+                    </button>
+                  </div>
+                </div>
+
+                <div>
+                  <span className="text-[10px] font-bold text-slate-400 block mb-1">Chiều ngang:</span>
+                  <div className="grid grid-cols-2 gap-1 p-1 bg-white rounded-xl border border-slate-200/60">
+                    <button
+                      type="button"
+                      onClick={() => setBackHalign('left')}
+                      className={cn(
+                        "py-1.5 px-2 rounded-lg text-xs font-black transition-all text-center cursor-pointer active:scale-95",
+                        backHalign === 'left'
+                          ? "bg-orange-500 text-white shadow-xs"
+                          : "text-slate-500 hover:text-slate-800 hover:bg-slate-100"
+                      )}
+                    >
+                      Căn trái
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setBackHalign('center')}
+                      className={cn(
+                        "py-1.5 px-2 rounded-lg text-xs font-black transition-all text-center cursor-pointer active:scale-95",
+                        backHalign === 'center'
+                          ? "bg-orange-500 text-white shadow-xs"
+                          : "text-slate-500 hover:text-slate-800 hover:bg-slate-100"
+                      )}
+                    >
+                      Căn giữa
+                    </button>
+                  </div>
+                </div>
               </div>
             </div>
           </div>

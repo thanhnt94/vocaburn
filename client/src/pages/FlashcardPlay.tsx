@@ -255,6 +255,10 @@ export default function FlashcardPlay() {
     setAutoPlayAudio,
     learningMode,
     setLearningMode,
+    frontValign,
+    frontHalign,
+    backValign,
+    backHalign,
     creatorDefaults,
     isCustomized,
     syncStudySettings,
@@ -3550,28 +3554,36 @@ export default function FlashcardPlay() {
                     </div>
 
                     {/* Word / Question Content */}
-                    <div className="flex-1 flex flex-col items-center justify-center text-center gap-6 overflow-y-auto custom-scrollbar my-2 py-2">
-                      {(showImages as any === 'always' || showImages as any === 'front' || showImages as any === true || showImages as any === 'true') && (currentQuestion?.front_img || currentQuestion?.others?.front_img) && (
-                        <img 
-                          src={currentQuestion.front_img || currentQuestion.others?.front_img || undefined} 
-                          alt="Front Visual" 
-                          className="max-h-40 md:max-h-48 object-contain rounded-3xl border border-slate-100/80 shadow-md bg-slate-50/50 p-1.5 animate-in zoom-in-95 duration-500 cursor-zoom-in hover:opacity-95 transition-opacity"
-                          onClick={() => setZoomedImage(currentQuestion.front_img || currentQuestion.others?.front_img || null)}
-                        />
-                      )}
-                      <div className="text-3xl md:text-4xl font-black text-slate-800 tracking-tight leading-normal max-w-2xl markdown-content text-center flex flex-col items-center justify-center whitespace-pre-wrap">
-                        <ReactMarkdown 
-                          remarkPlugins={[remarkGfm]} 
-                          rehypePlugins={[rehypeRaw]} 
-                          components={{
-                            ...MarkdownComponents,
-                            p: ({ children }) => <p className="mb-2 last:mb-0 whitespace-pre-wrap">{children}</p>
-                          }}
-                        >
-                          {parseBBCodeToHtml(currentQuestion?.content || '')}
-                        </ReactMarkdown>
+                    <div className="flex-1 overflow-y-auto custom-scrollbar my-2 py-2 flex flex-col">
+                      <div className={cn(
+                        "w-full flex flex-col gap-6",
+                        frontValign === 'top' ? "mt-0 mb-auto" : "my-auto",
+                        frontHalign === 'left' ? "items-start text-left" : "items-center text-center"
+                      )}>
+                        {(showImages as any === 'always' || showImages as any === 'front' || showImages as any === true || showImages as any === 'true') && (currentQuestion?.front_img || currentQuestion?.others?.front_img) && (
+                          <img 
+                            src={currentQuestion.front_img || currentQuestion.others?.front_img || undefined} 
+                            alt="Front Visual" 
+                            className="max-h-40 md:max-h-48 object-contain rounded-3xl border border-slate-100/80 shadow-md bg-slate-50/50 p-1.5 animate-in zoom-in-95 duration-500 cursor-zoom-in hover:opacity-95 transition-opacity"
+                            onClick={() => setZoomedImage(currentQuestion.front_img || currentQuestion.others?.front_img || null)}
+                          />
+                        )}
+                        <div className={cn(
+                          "text-3xl md:text-4xl font-black text-slate-800 tracking-tight leading-normal max-w-2xl markdown-content whitespace-pre-wrap flex flex-col",
+                          frontHalign === 'left' ? "items-start text-left" : "items-center text-center"
+                        )}>
+                          <ReactMarkdown 
+                            remarkPlugins={[remarkGfm]} 
+                            rehypePlugins={[rehypeRaw]} 
+                            components={{
+                              ...MarkdownComponents,
+                              p: ({ children }) => <p className="mb-2 last:mb-0 whitespace-pre-wrap">{children}</p>
+                            }}
+                          >
+                            {parseBBCodeToHtml(currentQuestion?.content || '')}
+                          </ReactMarkdown>
+                        </div>
                       </div>
-
                     </div>
                   </div>
 
@@ -3623,15 +3635,67 @@ export default function FlashcardPlay() {
                     </div>
 
                     {/* Definition & explanation */}
-                    <div className="flex-1 overflow-y-auto custom-scrollbar my-3 md:my-4 flex flex-col gap-3 md:gap-4 text-left pr-1 md:pr-2">
-                       {/* Show the correct options or direct explanation */}
-                       {currentQuestion?.options && currentQuestion.options.length > 0 && (
-                        <div className="space-y-2">
-                          <div className="md:p-6 p-4 rounded-3xl bg-emerald-50/50 border border-emerald-100/80 flex items-start gap-4">
-                            <div className="w-8 h-8 rounded-xl bg-emerald-500 flex items-center justify-center text-white font-black text-lg shadow-md shrink-0 mt-0.5">
-                              ✓
+                    <div className="flex-1 overflow-y-auto custom-scrollbar my-3 md:my-4 flex flex-col pr-1 md:pr-2">
+                      <div className={cn(
+                        "w-full flex flex-col gap-3 md:gap-4",
+                        backValign === 'top' ? "mt-0 mb-auto" : "my-auto",
+                        backHalign === 'center' ? "items-center text-center" : "items-start text-left"
+                      )}>
+                        {/* Show the correct options or direct explanation */}
+                        {currentQuestion?.options && currentQuestion.options.length > 0 && (
+                          <div className={cn("space-y-2 w-full", backHalign === 'center' ? "flex justify-center" : "")}>
+                            <div className="md:p-6 p-4 rounded-3xl bg-emerald-50/50 border border-emerald-100/80 flex items-start gap-4 w-full">
+                              <div className="w-8 h-8 rounded-xl bg-emerald-500 flex items-center justify-center text-white font-black text-lg shadow-md shrink-0 mt-0.5">
+                                ✓
+                              </div>
+                              <div className={cn(
+                                "text-slate-800 font-extrabold text-2xl md:text-3xl lg:text-4xl leading-snug markdown-content flex-1 whitespace-pre-wrap",
+                                backHalign === 'center' ? "text-center" : "text-left"
+                              )}>
+                                <ReactMarkdown 
+                                  remarkPlugins={[remarkGfm]} 
+                                  rehypePlugins={[rehypeRaw]} 
+                                  components={{
+                                    ...MarkdownComponents,
+                                    p: ({ children }) => <p className="mb-2 last:mb-0 whitespace-pre-wrap">{children}</p>
+                                  }}
+                                >
+                                  {parseBBCodeToHtml(currentQuestion.options.find(o => o.is_correct)?.content || "Definition revealed.")}
+                                </ReactMarkdown>
+                              </div>
                             </div>
-                            <div className="text-slate-800 font-extrabold text-2xl md:text-3xl lg:text-4xl leading-snug markdown-content flex-1 whitespace-pre-wrap">
+                          </div>
+                        )}
+
+                        {(showImages as any === 'always' || showImages as any === 'back' || showImages as any === true || showImages as any === 'true') && (currentQuestion?.back_img || currentQuestion?.others?.back_img) && (
+                          <div className="space-y-2 flex justify-center w-full">
+                            <img 
+                              src={currentQuestion.back_img || currentQuestion.others?.back_img || undefined} 
+                              alt="Back Visual" 
+                              className="max-h-40 md:max-h-48 object-contain rounded-3xl border border-slate-100/80 shadow-md bg-slate-50/50 p-1.5 animate-in zoom-in-95 duration-500 cursor-zoom-in hover:opacity-95 transition-opacity"
+                              onClick={() => setZoomedImage(currentQuestion.back_img || currentQuestion?.others?.back_img || null)}
+                            />
+                          </div>
+                        )}
+
+                        {currentQuestion?.mnemonic && (
+                          <div className="p-4 rounded-2xl bg-amber-50/50 border border-amber-100/60 flex items-start gap-3 shadow-inner mt-2 animate-in slide-in-from-bottom-3 duration-500 w-full text-left">
+                            <div className="w-7 h-7 rounded-xl bg-amber-500 flex items-center justify-center text-white font-black text-sm shadow-md shrink-0 mt-0.5">
+                              💡
+                            </div>
+                            <div className="text-slate-700 font-bold text-xs md:text-sm leading-relaxed flex-1 whitespace-pre-wrap">
+                              <span className="font-black text-[9px] uppercase tracking-wider text-amber-500 block mb-0.5">Cách nhớ (AI Mnemonic)</span>
+                              {currentQuestion.mnemonic}
+                            </div>
+                          </div>
+                        )}
+
+                        {currentQuestion?.explanation && (
+                          <div className={cn("w-full bg-white flex flex-col min-h-0", backHalign === 'center' ? "text-center items-center" : "text-left items-start")}>
+                            <div className={cn(
+                              "text-slate-700 font-bold text-xl md:text-2xl leading-relaxed markdown-content w-full whitespace-pre-wrap",
+                              backHalign === 'center' ? "text-center" : "text-left"
+                            )}>
                               <ReactMarkdown 
                                 remarkPlugins={[remarkGfm]} 
                                 rehypePlugins={[rehypeRaw]} 
@@ -3640,52 +3704,12 @@ export default function FlashcardPlay() {
                                   p: ({ children }) => <p className="mb-2 last:mb-0 whitespace-pre-wrap">{children}</p>
                                 }}
                               >
-                                {parseBBCodeToHtml(currentQuestion.options.find(o => o.is_correct)?.content || "Definition revealed.")}
+                                {parseBBCodeToHtml(currentQuestion.explanation)}
                               </ReactMarkdown>
                             </div>
                           </div>
-                        </div>
-                      )}
-
-                      {(showImages as any === 'always' || showImages as any === 'back' || showImages as any === true || showImages as any === 'true') && (currentQuestion?.back_img || currentQuestion?.others?.back_img) && (
-                        <div className="space-y-2 flex justify-center">
-                          <img 
-                            src={currentQuestion.back_img || currentQuestion.others?.back_img || undefined} 
-                            alt="Back Visual" 
-                            className="max-h-40 md:max-h-48 object-contain rounded-3xl border border-slate-100/80 shadow-md bg-slate-50/50 p-1.5 animate-in zoom-in-95 duration-500 cursor-zoom-in hover:opacity-95 transition-opacity"
-                            onClick={() => setZoomedImage(currentQuestion.back_img || currentQuestion?.others?.back_img || null)}
-                          />
-                        </div>
-                      )}
-
-                      {currentQuestion?.mnemonic && (
-                        <div className="p-4 rounded-2xl bg-amber-50/50 border border-amber-100/60 flex items-start gap-3 shadow-inner mt-2 animate-in slide-in-from-bottom-3 duration-500">
-                          <div className="w-7 h-7 rounded-xl bg-amber-500 flex items-center justify-center text-white font-black text-sm shadow-md shrink-0 mt-0.5">
-                            💡
-                          </div>
-                          <div className="text-slate-700 font-bold text-xs md:text-sm leading-relaxed flex-1 whitespace-pre-wrap">
-                            <span className="font-black text-[9px] uppercase tracking-wider text-amber-500 block mb-0.5">Cách nhớ (AI Mnemonic)</span>
-                            {currentQuestion.mnemonic}
-                          </div>
-                        </div>
-                      )}
-
-                      {currentQuestion?.explanation && (
-                        <div className="flex-1 w-full bg-white text-left flex flex-col min-h-0">
-                          <div className="text-slate-700 font-bold text-xl md:text-2xl leading-relaxed markdown-content flex-1 overflow-y-auto custom-scrollbar whitespace-pre-wrap">
-                            <ReactMarkdown 
-                              remarkPlugins={[remarkGfm]} 
-                              rehypePlugins={[rehypeRaw]} 
-                              components={{
-                                ...MarkdownComponents,
-                                p: ({ children }) => <p className="mb-2 last:mb-0 whitespace-pre-wrap">{children}</p>
-                              }}
-                            >
-                              {parseBBCodeToHtml(currentQuestion.explanation)}
-                            </ReactMarkdown>
-                          </div>
-                        </div>
-                      )}
+                        )}
+                      </div>
                     </div>
 
                     {/* Card Answer Frequency & Statistics Bar */}

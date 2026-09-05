@@ -44,6 +44,10 @@ export function DeckGeneralForm({ deckId, initialData, onSaved }: DeckGeneralFor
   const [defaultMode, setDefaultMode] = useState<DeckStudyMode>('fsrs')
   const [autoplayAudio, setAutoplayAudio] = useState<'none' | 'front' | 'back' | 'always'>('none')
   const [showImages, setShowImages] = useState<'always' | 'front' | 'back' | 'none'>('always')
+  const [frontValign, setFrontValign] = useState<'center' | 'top'>('center')
+  const [frontHalign, setFrontHalign] = useState<'center' | 'left'>('center')
+  const [backValign, setBackValign] = useState<'center' | 'top'>('center')
+  const [backHalign, setBackHalign] = useState<'left' | 'center'>('left')
   const [randomEnabled, setRandomEnabled] = useState(false)
   const [sfxEnabled, setSfxEnabled] = useState(true)
   const [quickLearnEnabled, setQuickLearnEnabled] = useState(false)
@@ -64,6 +68,10 @@ export function DeckGeneralForm({ deckId, initialData, onSaved }: DeckGeneralFor
       if (studyDefs.learning_mode) setDefaultMode(studyDefs.learning_mode)
       if (studyDefs.autoplay_audio) setAutoplayAudio(studyDefs.autoplay_audio)
       if (studyDefs.show_images) setShowImages(studyDefs.show_images)
+      if (studyDefs.front_valign) setFrontValign(studyDefs.front_valign)
+      if (studyDefs.front_halign) setFrontHalign(studyDefs.front_halign)
+      if (studyDefs.back_valign) setBackValign(studyDefs.back_valign)
+      if (studyDefs.back_halign) setBackHalign(studyDefs.back_halign)
       if (studyDefs.random_enabled !== undefined) setRandomEnabled(Boolean(studyDefs.random_enabled))
       if (studyDefs.sfx_enabled !== undefined) setSfxEnabled(Boolean(studyDefs.sfx_enabled))
       if (studyDefs.quick_learn_enabled !== undefined) setQuickLearnEnabled(Boolean(studyDefs.quick_learn_enabled))
@@ -90,6 +98,10 @@ export function DeckGeneralForm({ deckId, initialData, onSaved }: DeckGeneralFor
       learning_mode: defaultMode,
       autoplay_audio: autoplayAudio,
       show_images: showImages,
+      front_valign: frontValign,
+      front_halign: frontHalign,
+      back_valign: backValign,
+      back_halign: backHalign,
       random_enabled: randomEnabled,
       sfx_enabled: sfxEnabled,
       quick_learn_enabled: quickLearnEnabled
@@ -429,6 +441,154 @@ export function DeckGeneralForm({ deckId, initialData, onSaved }: DeckGeneralFor
                   </button>
                 )
               })}
+            </div>
+          </div>
+        </div>
+
+        {/* Card Alignment (2-Axis: Front & Back) */}
+        <div className="space-y-2.5 pt-1">
+          <span className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+            <Sliders className="w-3.5 h-3.5 text-indigo-600" />
+            Căn lề nội dung thẻ (Mặt trước & Mặt sau)
+          </span>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {/* Front Card Alignment */}
+            <div className="p-3 bg-white rounded-2xl border border-slate-200/70 space-y-2.5">
+              <span className="text-xs font-bold text-indigo-900 flex items-center gap-1">
+                🎴 Mặt trước (Front Card)
+              </span>
+              
+              <div className="space-y-2">
+                <div>
+                  <span className="text-[10px] font-bold text-slate-400 block mb-1">Chiều dọc:</span>
+                  <div className="grid grid-cols-2 gap-1 p-1 bg-slate-50 rounded-xl border border-slate-200/50">
+                    <button
+                      type="button"
+                      onClick={() => setFrontValign('center')}
+                      className={cn(
+                        "py-1.5 px-2 rounded-lg text-xs font-black transition-all text-center cursor-pointer",
+                        frontValign === 'center'
+                          ? "bg-indigo-600 text-white shadow-xs"
+                          : "text-slate-500 hover:text-slate-800 hover:bg-white"
+                      )}
+                    >
+                      Căn giữa
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setFrontValign('top')}
+                      className={cn(
+                        "py-1.5 px-2 rounded-lg text-xs font-black transition-all text-center cursor-pointer",
+                        frontValign === 'top'
+                          ? "bg-indigo-600 text-white shadow-xs"
+                          : "text-slate-500 hover:text-slate-800 hover:bg-white"
+                      )}
+                    >
+                      Căn trên
+                    </button>
+                  </div>
+                </div>
+
+                <div>
+                  <span className="text-[10px] font-bold text-slate-400 block mb-1">Chiều ngang:</span>
+                  <div className="grid grid-cols-2 gap-1 p-1 bg-slate-50 rounded-xl border border-slate-200/50">
+                    <button
+                      type="button"
+                      onClick={() => setFrontHalign('center')}
+                      className={cn(
+                        "py-1.5 px-2 rounded-lg text-xs font-black transition-all text-center cursor-pointer",
+                        frontHalign === 'center'
+                          ? "bg-indigo-600 text-white shadow-xs"
+                          : "text-slate-500 hover:text-slate-800 hover:bg-white"
+                      )}
+                    >
+                      Căn giữa
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setFrontHalign('left')}
+                      className={cn(
+                        "py-1.5 px-2 rounded-lg text-xs font-black transition-all text-center cursor-pointer",
+                        frontHalign === 'left'
+                          ? "bg-indigo-600 text-white shadow-xs"
+                          : "text-slate-500 hover:text-slate-800 hover:bg-white"
+                      )}
+                    >
+                      Căn trái
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Back Card Alignment */}
+            <div className="p-3 bg-white rounded-2xl border border-slate-200/70 space-y-2.5">
+              <span className="text-xs font-bold text-emerald-900 flex items-center gap-1">
+                📖 Mặt sau (Back Card)
+              </span>
+              
+              <div className="space-y-2">
+                <div>
+                  <span className="text-[10px] font-bold text-slate-400 block mb-1">Chiều dọc:</span>
+                  <div className="grid grid-cols-2 gap-1 p-1 bg-slate-50 rounded-xl border border-slate-200/50">
+                    <button
+                      type="button"
+                      onClick={() => setBackValign('center')}
+                      className={cn(
+                        "py-1.5 px-2 rounded-lg text-xs font-black transition-all text-center cursor-pointer",
+                        backValign === 'center'
+                          ? "bg-emerald-600 text-white shadow-xs"
+                          : "text-slate-500 hover:text-slate-800 hover:bg-white"
+                      )}
+                    >
+                      Căn giữa
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setBackValign('top')}
+                      className={cn(
+                        "py-1.5 px-2 rounded-lg text-xs font-black transition-all text-center cursor-pointer",
+                        backValign === 'top'
+                          ? "bg-emerald-600 text-white shadow-xs"
+                          : "text-slate-500 hover:text-slate-800 hover:bg-white"
+                      )}
+                    >
+                      Căn trên
+                    </button>
+                  </div>
+                </div>
+
+                <div>
+                  <span className="text-[10px] font-bold text-slate-400 block mb-1">Chiều ngang:</span>
+                  <div className="grid grid-cols-2 gap-1 p-1 bg-slate-50 rounded-xl border border-slate-200/50">
+                    <button
+                      type="button"
+                      onClick={() => setBackHalign('left')}
+                      className={cn(
+                        "py-1.5 px-2 rounded-lg text-xs font-black transition-all text-center cursor-pointer",
+                        backHalign === 'left'
+                          ? "bg-emerald-600 text-white shadow-xs"
+                          : "text-slate-500 hover:text-slate-800 hover:bg-white"
+                      )}
+                    >
+                      Căn trái
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setBackHalign('center')}
+                      className={cn(
+                        "py-1.5 px-2 rounded-lg text-xs font-black transition-all text-center cursor-pointer",
+                        backHalign === 'center'
+                          ? "bg-emerald-600 text-white shadow-xs"
+                          : "text-slate-500 hover:text-slate-800 hover:bg-white"
+                      )}
+                    >
+                      Căn giữa
+                    </button>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>

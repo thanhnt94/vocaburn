@@ -3,11 +3,17 @@ import axios from 'axios'
 
 export type AutoPlayMode = 'always' | 'front' | 'back' | 'none'
 export type ImageDisplayMode = 'always' | 'front' | 'back' | 'none'
+export type VAlignMode = 'center' | 'top'
+export type HAlignMode = 'center' | 'left'
 
 export interface StudySettingsState {
   autoplay_audio: AutoPlayMode
   show_images: ImageDisplayMode
   learning_mode: string
+  front_valign: VAlignMode
+  front_halign: HAlignMode
+  back_valign: VAlignMode
+  back_halign: HAlignMode
   random_enabled: boolean
   sfx_enabled: boolean
   haptic_enabled: boolean
@@ -19,6 +25,10 @@ export const DEFAULT_STUDY_SETTINGS: StudySettingsState = {
   autoplay_audio: 'none',
   show_images: 'always',
   learning_mode: 'fsrs',
+  front_valign: 'center',
+  front_halign: 'center',
+  back_valign: 'center',
+  back_halign: 'left',
   random_enabled: false,
   sfx_enabled: true,
   haptic_enabled: true,
@@ -40,6 +50,10 @@ export function usePlaySettings(
   const [randomEnabled, setRandomEnabledState] = useState<boolean>(DEFAULT_STUDY_SETTINGS.random_enabled)
   const [autoPlayAudio, setAutoPlayAudioState] = useState<AutoPlayMode>(DEFAULT_STUDY_SETTINGS.autoplay_audio)
   const [learningMode, setLearningModeState] = useState<string>(DEFAULT_STUDY_SETTINGS.learning_mode)
+  const [frontValign, setFrontValignState] = useState<VAlignMode>(DEFAULT_STUDY_SETTINGS.front_valign)
+  const [frontHalign, setFrontHalignState] = useState<HAlignMode>(DEFAULT_STUDY_SETTINGS.front_halign)
+  const [backValign, setBackValignState] = useState<VAlignMode>(DEFAULT_STUDY_SETTINGS.back_valign)
+  const [backHalign, setBackHalignState] = useState<HAlignMode>(DEFAULT_STUDY_SETTINGS.back_halign)
 
   // Creator baseline & user customization status
   const [creatorDefaults, setCreatorDefaults] = useState<Partial<StudySettingsState>>({})
@@ -101,6 +115,18 @@ export function usePlaySettings(
       if (effectiveSettings.learning_mode !== undefined) {
         setLearningModeState(String(effectiveSettings.learning_mode))
       }
+      if (effectiveSettings.front_valign !== undefined) {
+        setFrontValignState(effectiveSettings.front_valign === 'top' ? 'top' : 'center')
+      }
+      if (effectiveSettings.front_halign !== undefined) {
+        setFrontHalignState(effectiveSettings.front_halign === 'left' ? 'left' : 'center')
+      }
+      if (effectiveSettings.back_valign !== undefined) {
+        setBackValignState(effectiveSettings.back_valign === 'top' ? 'top' : 'center')
+      }
+      if (effectiveSettings.back_halign !== undefined) {
+        setBackHalignState(effectiveSettings.back_halign === 'center' ? 'center' : 'left')
+      }
     }
   }, [])
 
@@ -115,6 +141,10 @@ export function usePlaySettings(
     if (updates.random_enabled !== undefined) setRandomEnabledState(updates.random_enabled)
     if (updates.autoplay_audio !== undefined) setAutoPlayAudioState(updates.autoplay_audio as AutoPlayMode)
     if (updates.learning_mode !== undefined) setLearningModeState(updates.learning_mode)
+    if (updates.front_valign !== undefined) setFrontValignState(updates.front_valign)
+    if (updates.front_halign !== undefined) setFrontHalignState(updates.front_halign)
+    if (updates.back_valign !== undefined) setBackValignState(updates.back_valign)
+    if (updates.back_halign !== undefined) setBackHalignState(updates.back_halign)
 
     setIsCustomized(true)
 
@@ -174,6 +204,22 @@ export function usePlaySettings(
     saveGeneralSettings({ learning_mode: mode })
   }, [saveGeneralSettings])
 
+  const setFrontValign = useCallback((mode: VAlignMode) => {
+    saveGeneralSettings({ front_valign: mode })
+  }, [saveGeneralSettings])
+
+  const setFrontHalign = useCallback((mode: HAlignMode) => {
+    saveGeneralSettings({ front_halign: mode })
+  }, [saveGeneralSettings])
+
+  const setBackValign = useCallback((mode: VAlignMode) => {
+    saveGeneralSettings({ back_valign: mode })
+  }, [saveGeneralSettings])
+
+  const setBackHalign = useCallback((mode: HAlignMode) => {
+    saveGeneralSettings({ back_halign: mode })
+  }, [saveGeneralSettings])
+
   // Reset learner overrides back to the deck creator's baseline
   const resetToCreatorDefaults = useCallback(async () => {
     if (!deckId || deckId === 'quick') return
@@ -198,6 +244,10 @@ export function usePlaySettings(
       setRandomEnabledState(baseline.random_enabled)
       setAutoPlayAudioState(baseline.autoplay_audio)
       setLearningModeState(baseline.learning_mode)
+      setFrontValignState(baseline.front_valign)
+      setFrontHalignState(baseline.front_halign)
+      setBackValignState(baseline.back_valign)
+      setBackHalignState(baseline.back_halign)
 
       setIsCustomized(false)
     } catch (err) {
@@ -222,6 +272,14 @@ export function usePlaySettings(
     setAutoPlayAudio,
     learningMode,
     setLearningMode,
+    frontValign,
+    setFrontValign,
+    frontHalign,
+    setFrontHalign,
+    backValign,
+    setBackValign,
+    backHalign,
+    setBackHalign,
     creatorDefaults,
     isCustomized,
     syncStudySettings,
