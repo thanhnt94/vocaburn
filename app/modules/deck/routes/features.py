@@ -550,7 +550,8 @@ async def export_deck(deck_id: int, request: Request, exclude_ids: bool = False,
     collab_res = await db.execute(collab_stmt)
     collaborators_list = []
     for c_row, username, email in collab_res.all():
-        collaborators_list.append({"username": username or email, "role": c_row.role})
+        role = getattr(c_row, "role", "editor") or "editor"
+        collaborators_list.append({"username": username or email, "role": role})
     
     category_name = deck.category.name if deck.category else "General"
     tags = [t.name for t in deck.tags]
@@ -717,9 +718,10 @@ async def import_update_deck(request: Request, deck_id: int, file: UploadFile = 
                     ))
                     existing_collab = c_check.scalar_one_or_none()
                     if existing_collab:
-                        existing_collab.role = role
+                        if hasattr(existing_collab, "role"):
+                            setattr(existing_collab, "role", role)
                     else:
-                        db.add(DeckCollaborator(deck_id=deck_id, user_id=target_user.id, role=role))
+                        db.add(DeckCollaborator(deck_id=deck_id, user_id=target_user.id))
             
         from app.modules.deck.models import Flashcard
         
