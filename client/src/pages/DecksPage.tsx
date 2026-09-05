@@ -195,7 +195,7 @@ export default function DecksPage() {
   return (
     <div className="fixed inset-0 top-0 bottom-[68px] md:relative md:inset-auto md:top-auto md:bottom-auto md:h-full md:min-h-0 md:w-full flex flex-col bg-[#F8FAFC] overflow-hidden text-left select-none">
       {/* ═══════════ TOP UNIFIED HEADER ═══════════ */}
-      <div className="shrink-0 z-30 bg-white/90 backdrop-blur-2xl border-b border-slate-200/70 shadow-2xs">
+      <div className="shrink-0 z-30 bg-white/95 md:bg-[#F8FAFC]/95 md:backdrop-blur-md border-b border-slate-200/80 md:border-slate-200/60 shadow-2xs md:shadow-none">
         <div className="w-full max-w-[1700px] 2xl:max-w-[1900px] mx-auto px-3.5 sm:px-6 lg:px-8 xl:px-10">
           {/* Row 1: Mobile Header Title / Desktop Navigation Tabs & Quick Actions */}
           <div className="flex items-center justify-between pt-3 pb-2.5 md:py-2.5">
@@ -272,7 +272,7 @@ export default function DecksPage() {
                   placeholder="Search decks..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-8 pr-7 py-1.5 rounded-xl bg-slate-100/80 hover:bg-slate-100 border border-slate-200/70 text-xs font-bold text-slate-800 placeholder:text-slate-400 focus:outline-none focus:bg-white focus:border-orange-500 focus:ring-2 focus:ring-orange-500/10 transition-all shadow-2xs"
+                  className="w-full pl-8 pr-7 py-1.5 rounded-xl bg-white hover:border-slate-300 border border-slate-200 text-xs font-bold text-slate-800 placeholder:text-slate-400 focus:outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-500/10 transition-all shadow-2xs"
                 />
                 {searchQuery && (
                   <button
@@ -287,7 +287,7 @@ export default function DecksPage() {
               {/* Room */}
               <button
                 onClick={() => setIsJoinModalOpen(true)}
-                className="h-8.5 px-3 rounded-xl bg-slate-50 hover:bg-purple-50 border border-slate-200/70 hover:border-purple-200 text-slate-700 hover:text-purple-700 flex items-center gap-1.5 text-xs font-bold transition-all active:scale-95 cursor-pointer shadow-2xs"
+                className="h-8.5 px-3 rounded-xl bg-white hover:bg-purple-50/80 border border-slate-200 hover:border-purple-200 text-slate-700 hover:text-purple-700 flex items-center gap-1.5 text-xs font-bold transition-all active:scale-95 cursor-pointer shadow-2xs"
                 title="Join study room"
               >
                 <Users className="w-4 h-4 text-purple-600" />

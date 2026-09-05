@@ -60,9 +60,9 @@ export default function Layout() {
       {/* Desktop Header */}
       {showDesktopHeader && (
         <header className={cn(
-          "fixed top-0 left-0 right-0 z-[110] backdrop-blur-2xl border-b hidden md:flex items-center transition-all duration-300",
+          "fixed top-0 left-0 right-0 z-[110] border-b hidden md:flex items-center transition-all duration-300",
           isLoggedIn 
-            ? "bg-white/90 border-slate-100/80 text-slate-900 shadow-2xs" 
+            ? "bg-white border-slate-200/90 text-slate-900 shadow-[0_4px_25px_-5px_rgba(0,0,0,0.06)]" 
             : "bg-slate-950/80 border-white/5 text-white"
         )}>
           <div className="w-full max-w-[1700px] 2xl:max-w-[1900px] mx-auto px-4 sm:px-6 lg:px-8 xl:px-10 py-2.5 flex items-center justify-between">
@@ -71,7 +71,7 @@ export default function Layout() {
                 <VocaburnLogo height="md" />
               </Link>
               {isLoggedIn && (
-                <nav className="flex items-center p-1 bg-slate-100/90 border border-slate-200/80 rounded-2xl shadow-[inset_0_1px_2px_rgba(0,0,0,0.04)] gap-0.5 sm:gap-1">
+                <nav className="flex items-center p-1 bg-slate-100 border border-slate-200/90 rounded-2xl shadow-[inset_0_1px_2px_rgba(0,0,0,0.04)] gap-0.5 sm:gap-1">
                   {navItems.map((item) => {
                     const Icon = item.icon
                     const isActive = item.path === '/' 
@@ -91,7 +91,7 @@ export default function Layout() {
                         {isActive && (
                           <motion.div 
                             layoutId="desktopNavActive"
-                            className="absolute inset-0 bg-white rounded-xl shadow-xs border border-slate-200/80"
+                            className="absolute inset-0 bg-white rounded-xl shadow-xs border border-slate-200/90"
                             transition={{ type: "spring", stiffness: 450, damping: 32 }}
                           />
                         )}
@@ -114,33 +114,33 @@ export default function Layout() {
             {isLoggedIn ? (
               <div className="flex items-center gap-3">
                 {/* Streak Badge */}
-                <div className="flex items-center gap-1.5 px-3 py-1.5 bg-orange-50/80 border border-orange-200/60 rounded-xl">
+                <div className="flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-orange-50 to-amber-50/80 border border-orange-200/90 rounded-xl shadow-2xs">
                   <Flame className="w-4 h-4 text-orange-500 fill-orange-500 animate-pulse" />
-                  <span className="text-xs font-black text-orange-700">{gamify.streak}</span>
+                  <span className="text-xs font-black text-orange-800">{gamify.streak}</span>
                 </div>
 
                 {/* Level / XP Badge */}
-                <div className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-50/80 border border-indigo-200/60 rounded-xl">
-                  <Award className="w-4 h-4 text-indigo-500" />
-                  <span className="text-xs font-black text-indigo-700">Lv.{gamify.level}</span>
+                <div className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-50 border border-indigo-200/90 rounded-xl shadow-2xs">
+                  <Award className="w-4 h-4 text-indigo-600 stroke-[2.2]" />
+                  <span className="text-xs font-black text-indigo-800">Lv.{gamify.level}</span>
                 </div>
 
                 {/* Shop Button */}
                 <button
                   onClick={() => setIsShopOpen(true)}
-                  className="flex items-center gap-1.5 px-3 py-1.5 bg-pink-50/80 hover:bg-pink-100/80 border border-pink-200/60 rounded-xl text-xs font-black text-pink-700 transition-all active:scale-95 cursor-pointer"
+                  className="flex items-center gap-1.5 px-3.5 py-1.5 bg-pink-50 hover:bg-pink-100/90 border border-pink-200/90 rounded-xl text-xs font-black text-pink-700 shadow-2xs transition-all active:scale-95 cursor-pointer"
                   title="Cửa hàng & Kho đồ"
                 >
-                  <ShoppingBag className="w-4 h-4 text-pink-500" />
+                  <ShoppingBag className="w-4 h-4 text-pink-500 stroke-[2.2]" />
                   <span>Shop</span>
                 </button>
 
                 {/* User Info / Avatar */}
                 <Link to="/profile" className="flex items-center gap-2 pl-2 border-l border-slate-200 hover:opacity-80 transition-opacity">
-                  <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-indigo-500 to-purple-500 flex items-center justify-center text-white font-bold text-xs shadow-sm">
+                  <div className="w-8.5 h-8.5 rounded-full bg-gradient-to-tr from-indigo-500 to-purple-500 flex items-center justify-center text-white font-black text-xs shadow-xs ring-2 ring-slate-100">
                     {user?.username?.charAt(0)?.toUpperCase() || 'U'}
                   </div>
-                  <span className="text-xs font-bold text-slate-700 max-w-[120px] truncate hidden lg:inline">
+                  <span className="text-xs font-extrabold text-slate-800 max-w-[120px] truncate hidden lg:inline">
                     {user?.username || 'User'}
                   </span>
                 </Link>
