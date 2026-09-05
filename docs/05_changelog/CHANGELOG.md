@@ -2,6 +2,33 @@
 
 Tài liệu này lưu lại lịch sử thay đổi cấu trúc, tính năng, và các bản vá lỗi của dự án Vocaburn.
 
+### [2026-09-06]
+#### Hệ Thống Tùy Biến Thao Tác Lật Thẻ & Cử Chỉ Đánh Giá FSRS La Bàn 4 Hướng (Card Flip & 4-Way Compass Rating Gestures)
+- **Tùy Biến Thao Tác Lật Thẻ (`card_flip_trigger`)**:
+  - `both` (Mặc định - Tap & Swipe): Chạm vào bất kỳ vị trí nào trên thẻ mặt trước HOẶC vuốt ngang để lật thẻ (kèm phím Space / nút "FLIP CARD").
+  - `tap` (Tap to Flip): Chạm vào thẻ để lật, vô hiệu hóa cử chỉ vuốt tránh lật nhầm khi cuộn trang.
+  - `button_only` (Button & Space Only): Chỉ lật thẻ khi bấm nút "FLIP CARD" ở thanh điều khiển hoặc phím Space. Không lật khi chạm/vuốt trên thẻ, giúp người học dễ dàng bôi đen, chọn hoặc tra cứu từ vựng trên thẻ mà không bị gián đoạn.
+- **Hệ Thống Đánh Giá FSRS Đa Năng (`card_rating_mode`)**:
+  - `both` (Mặc định - Hybrid): Kích hoạt song song cả 4 nút FSRS truyền thống và cử chỉ vuốt 4 hướng la bàn (4-Way Compass Swipe).
+  - `swipe_4way` (4-Way Compass Gesture): Đánh giá 100% bằng cử chỉ vuốt 4 hướng chuẩn công thái học:
+    - **Vuốt Trái (←)**: 🔴 **Again** (Học lại, Grade 1)
+    - **Vuốt Xuống (↓)**: 🟡 **Hard** (Khó nhớ, Grade 2)
+    - **Vuốt Phải (→)**: 🔵 **Good** (Nhớ tốt, Grade 3)
+    - **Vuốt Lên (↑)**: 🟢 **Easy** (Dễ nhớ, Grade 4)
+    - Thanh điều khiển dưới đáy chuyển thành thanh chỉ dẫn la bàn tối giản, hiển thị các mũi tên định hướng và thời gian giãn cách FSRS thực tế (`1m`, `5m`, `10m`, `4d`).
+  - `swipe_2way` (2-Way Horizontal Swipe): Cử chỉ vuốt 2 hướng kinh điển (Trái = Again 🔴, Phải = Good 🔵).
+  - `buttons` (Buttons Only): Giữ nguyên 4 nút bấm FSRS cố định, vô hiệu hóa cử chỉ vuốt thẻ.
+- **Hiệu Ứng Micro-Interactions & Con Dấu Đánh Giá Động (Dynamic Stamp Badges)**:
+  - Tích hợp con dấu đánh giá nổi sống động (`AGAIN`, `HARD`, `GOOD`, `EASY`) xuất hiện ngay trên mặt thẻ khi kéo, xoay nghiêng tự nhiên theo lực quán tính (`-12deg`, `+12deg`) và tăng dần độ đậm nét theo quãng đường kéo.
+  - Viền và bóng đổ thẻ tự động phát sáng tương ứng với màu trạng thái mục tiêu (Đỏ, Vàng, Xanh dương, Xanh ngọc).
+  - Hoạt cảnh bay thẻ (`Fly-out Animation`) cực mượt khi vượt ngưỡng kéo 65px hoặc vận tốc vẩy tay > 400px/s; tự động bật nảy đàn hồi (`rubber-band spring back`) về tâm khi kéo chưa đủ ngưỡng.
+  - Xử lý chuẩn xác không gian 3D: Đặt `motion.div` bao bọc bên ngoài container `preserve-3d`, giải quyết triệt để lỗi đảo ngược trục tọa độ X (`rotateY(180deg)`) vốn có của hiệu ứng lật thẻ CSS 3D.
+- **Lưu Trữ Đồng Bộ Database & Phân Cấp Cài Đặt Chuẩn Rule 4 (No LocalStorage)**:
+  - Tạo Alembic migration `e1f2a3b4c5d6_add_card_flip_and_rating_settings.py` bổ sung 2 cột `card_flip_trigger` và `card_rating_mode` vào bảng `user_global_settings`.
+  - Đồng bộ toàn diện qua Zustand store `useSettingsStore` và endpoint `/api/v1/user/settings`.
+  - Hỗ trợ ghi đè cài đặt riêng biệt cho từng bộ thẻ (`DeckPersonalSettings` & `usePlaySettings` `user_deck_settings.study_overrides`).
+  - Trang Cài đặt tài khoản (`Settings.tsx`) bổ sung khu vực **Flashcard Gestures & Interaction** kèm bộ mô phỏng cử chỉ la bàn 4 hướng tương tác sinh động (Interactive 4-Way Compass Visualizer) chuẩn tiếng Anh 100% theo Rule 7.
+
 ### [2026-09-05]
 #### Kiến Trúc Workbook Đa Sheet Trực Quan Cho Excel Import & Export (Multi-Sheet Workbook Architecture)
 - **Tách Biệt Dữ Liệu & Cấu Hình Thành 6 Sheet Chuyên Biệt (`excel_service.py`)**:

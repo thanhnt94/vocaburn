@@ -63,4 +63,6 @@ class UserSettingsService:
             "last_deck_id": settings_obj.last_deck_id,
             "paste_columns": settings_obj.paste_columns or ["front", "back"],
             "quick_add_columns": settings_obj.quick_add_columns or ["front", "back"],
+            "card_flip_trigger": getattr(settings_obj, 'card_flip_trigger', 'both') or "both",
+            "card_rating_mode": getattr(settings_obj, 'card_rating_mode', 'both') or "both",
         }

@@ -17,7 +17,10 @@ import {
   Moon,
   Send,
   Lock,
-  ExternalLink
+  ExternalLink,
+  Move,
+  MousePointer,
+  Compass
 } from 'lucide-react'
 import { useAppStore } from '@/store/useAppStore'
 import { cn } from '@/lib/utils'
@@ -346,6 +349,210 @@ const Settings = () => {
                 )}
               </button>
             ))}
+          </div>
+        </section>
+
+        {/* Flashcard Gestures & Interaction Section */}
+        <section className="bg-white rounded-3xl md:rounded-[2.5rem] border border-slate-100 p-5 md:p-8 shadow-2xs space-y-6">
+          <div className="flex items-center justify-between border-b border-slate-100 pb-4">
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center">
+                <Move className="w-4 h-4" />
+              </div>
+              <div>
+                <h2 className="text-xs font-black text-slate-900 uppercase tracking-widest italic">
+                  Flashcard Gestures & Interaction
+                </h2>
+                <p className="text-[10px] font-medium text-slate-400">
+                  Configure card flipping triggers and FSRS rating gesture controls
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Sub-section 1: Card Flipping Trigger */}
+          <div className="space-y-3">
+            <div className="flex items-center gap-2">
+              <MousePointer className="w-3.5 h-3.5 text-indigo-500" />
+              <h3 className="text-[11px] font-black text-slate-700 uppercase tracking-wider">
+                Card Flip Trigger
+              </h3>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+              {[
+                {
+                  id: 'both',
+                  title: 'Tap & Swipe (Hybrid)',
+                  desc: 'Tap card body or flick/swipe to flip between front and back.',
+                  icon: Sparkles,
+                  color: 'text-indigo-600',
+                  bg: 'bg-indigo-50'
+                },
+                {
+                  id: 'tap',
+                  title: 'Tap Card Body',
+                  desc: 'Click or touch anywhere on the card to flip immediately.',
+                  icon: MousePointer,
+                  color: 'text-blue-600',
+                  bg: 'bg-blue-50'
+                },
+                {
+                  id: 'button_only',
+                  title: 'Bottom Button Only',
+                  desc: 'Flip strictly using the bottom button (prevents accidental flips when reading long text).',
+                  icon: Lock,
+                  color: 'text-slate-600',
+                  bg: 'bg-slate-50'
+                }
+              ].map((opt) => {
+                const isSelected = (userSettings.card_flip_trigger || 'both') === opt.id;
+                const Icon = opt.icon;
+                return (
+                  <button
+                    key={opt.id}
+                    onClick={() => updateUserSettings({ card_flip_trigger: opt.id as any })}
+                    className={cn(
+                      "p-4 rounded-2xl border-2 text-left transition-all relative cursor-pointer",
+                      isSelected
+                        ? "border-indigo-600 bg-indigo-50/20 shadow-sm"
+                        : "border-slate-100 bg-slate-50/50 hover:border-slate-200 hover:bg-white"
+                    )}
+                  >
+                    <div className="flex items-center justify-between mb-2">
+                      <div className={cn("p-2 rounded-xl", opt.bg, opt.color)}>
+                        <Icon className="w-4 h-4" />
+                      </div>
+                      <div className={cn(
+                        "w-4 h-4 rounded-full border flex items-center justify-center transition-all",
+                        isSelected ? "border-indigo-600 bg-indigo-600 text-white" : "border-slate-300 bg-white"
+                      )}>
+                        {isSelected && <Zap className="w-2 h-2 fill-current" />}
+                      </div>
+                    </div>
+                    <h4 className="text-xs font-black text-slate-800 uppercase tracking-tight mb-1">{opt.title}</h4>
+                    <p className="text-[10px] text-slate-400 font-medium leading-relaxed">{opt.desc}</p>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Sub-section 2: FSRS Rating Mode */}
+          <div className="space-y-3 pt-2">
+            <div className="flex items-center gap-2">
+              <Compass className="w-3.5 h-3.5 text-purple-500" />
+              <h3 className="text-[11px] font-black text-slate-700 uppercase tracking-wider">
+                FSRS Rating Control
+              </h3>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+              {[
+                {
+                  id: 'both',
+                  title: 'Hybrid (Gestures & Buttons)',
+                  badge: 'Recommended',
+                  desc: 'Full freedom: swipe card in 4 directions OR tap the 4 action buttons.',
+                  color: 'border-purple-500 text-purple-600',
+                  bg: 'bg-purple-50'
+                },
+                {
+                  id: 'swipe_4way',
+                  title: '4-Way Compass Swipe',
+                  badge: 'Gamified',
+                  desc: 'Swipe Left (Again), Down (Hard), Right (Good), Up (Easy) with 3D fly-out.',
+                  color: 'border-indigo-500 text-indigo-600',
+                  bg: 'bg-indigo-50'
+                },
+                {
+                  id: 'swipe_2way',
+                  title: '2-Way Quick Swipe',
+                  badge: 'High Speed',
+                  desc: 'Swipe Left (Again) & Right (Good). Helper buttons for Hard/Easy.',
+                  color: 'border-emerald-500 text-emerald-600',
+                  bg: 'bg-emerald-50'
+                },
+                {
+                  id: 'buttons',
+                  title: '4-Button Grid Only',
+                  badge: 'Classic',
+                  desc: 'Traditional Anki-style 4 buttons at the bottom. Disables swipe rating.',
+                  color: 'border-slate-500 text-slate-600',
+                  bg: 'bg-slate-50'
+                }
+              ].map((opt) => {
+                const isSelected = (userSettings.card_rating_mode || 'both') === opt.id;
+                return (
+                  <button
+                    key={opt.id}
+                    onClick={() => updateUserSettings({ card_rating_mode: opt.id as any })}
+                    className={cn(
+                      "p-4 rounded-2xl border-2 text-left transition-all relative cursor-pointer flex flex-col justify-between",
+                      isSelected
+                        ? "border-purple-600 bg-purple-50/20 shadow-sm"
+                        : "border-slate-100 bg-slate-50/50 hover:border-slate-200 hover:bg-white"
+                    )}
+                  >
+                    <div>
+                      <div className="flex items-center justify-between mb-2">
+                        <span className={cn("text-[9px] font-black uppercase px-2 py-0.5 rounded-md", opt.bg, opt.color)}>
+                          {opt.badge}
+                        </span>
+                        <div className={cn(
+                          "w-4 h-4 rounded-full border flex items-center justify-center transition-all",
+                          isSelected ? "border-purple-600 bg-purple-600 text-white" : "border-slate-300 bg-white"
+                        )}>
+                          {isSelected && <Zap className="w-2 h-2 fill-current" />}
+                        </div>
+                      </div>
+                      <h4 className="text-xs font-black text-slate-800 uppercase tracking-tight mb-1">{opt.title}</h4>
+                      <p className="text-[10px] text-slate-400 font-medium leading-relaxed">{opt.desc}</p>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Visual 4-Way Compass Guide Preview */}
+            <div className="bg-slate-50 rounded-2xl border border-slate-200/60 p-4 mt-3">
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-[10px] font-black text-slate-500 uppercase tracking-wider">
+                  4-Way Gesture Mapping Legend
+                </span>
+                <span className="text-[9px] font-bold text-slate-400">
+                  Swipe past 70px to trigger
+                </span>
+              </div>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                <div className="bg-white p-2.5 rounded-xl border border-rose-200 shadow-xs flex items-center gap-2">
+                  <span className="text-base">⬅️</span>
+                  <div>
+                    <span className="text-[10px] font-black text-rose-600 uppercase block">Swipe Left</span>
+                    <span className="text-[9px] text-slate-500 font-bold">Again (Grade 1)</span>
+                  </div>
+                </div>
+                <div className="bg-white p-2.5 rounded-xl border border-amber-200 shadow-xs flex items-center gap-2">
+                  <span className="text-base">⬇️</span>
+                  <div>
+                    <span className="text-[10px] font-black text-amber-600 uppercase block">Swipe Down</span>
+                    <span className="text-[9px] text-slate-500 font-bold">Hard (Grade 2)</span>
+                  </div>
+                </div>
+                <div className="bg-white p-2.5 rounded-xl border border-indigo-200 shadow-xs flex items-center gap-2">
+                  <span className="text-base">➡️</span>
+                  <div>
+                    <span className="text-[10px] font-black text-indigo-600 uppercase block">Swipe Right</span>
+                    <span className="text-[9px] text-slate-500 font-bold">Good (Grade 3)</span>
+                  </div>
+                </div>
+                <div className="bg-white p-2.5 rounded-xl border border-emerald-200 shadow-xs flex items-center gap-2">
+                  <span className="text-base">⬆️</span>
+                  <div>
+                    <span className="text-[10px] font-black text-emerald-600 uppercase block">Swipe Up</span>
+                    <span className="text-[9px] text-slate-500 font-bold">Easy (Grade 4)</span>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </section>
 

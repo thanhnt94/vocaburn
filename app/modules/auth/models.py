@@ -33,6 +33,8 @@ class UserGlobalSettings(Base):
     random_enabled = Column(Boolean, default=False)
     show_images = Column(String(20), default="always")
     show_fsrs = Column(Boolean, default=True)
+    card_flip_trigger = Column(String(20), default="both") # 'both' | 'tap' | 'button_only'
+    card_rating_mode = Column(String(20), default="both") # 'both' | 'buttons' | 'swipe_4way' | 'swipe_2way'
     
     # Study Modes & Preferences
     quiz_learning_mode = Column(String(50), default="fsrs") # 'fsrs' | 'leitner' | 'practice'

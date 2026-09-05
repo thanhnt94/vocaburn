@@ -1,8 +1,8 @@
 import { useState, useEffect, useRef, useMemo } from 'react'
 import confetti from 'canvas-confetti'
 import { useParams, useNavigate } from 'react-router-dom'
-import { ChevronLeft, ChevronRight, ChevronDown, LayoutGrid, Timer, Flame, Trophy, Check, X, Sparkles, Lightbulb, StickyNote, Play, Target, CheckCircle2, XCircle, Clock, BookOpen, Hash, Copy, Edit3, Brain, FileText, HelpCircle, Sliders, ListOrdered, Shuffle, Eye, EyeOff, AlertCircle, TrendingUp, Award, Lock, Keyboard, Volume2, VolumeX, RefreshCw, Undo2, Settings, Star, Zap, ArrowRight } from 'lucide-react'
-import { motion, AnimatePresence } from 'framer-motion'
+import { ChevronLeft, ChevronRight, ChevronDown, LayoutGrid, Timer, Flame, Trophy, Check, X, Sparkles, Lightbulb, StickyNote, Play, Target, CheckCircle2, XCircle, Clock, BookOpen, Hash, Copy, Edit3, Brain, FileText, HelpCircle, Sliders, ListOrdered, Shuffle, Eye, EyeOff, AlertCircle, TrendingUp, Award, Lock, Keyboard, Volume2, VolumeX, RefreshCw, Undo2, Settings, Star, Zap, ArrowRight, RotateCcw } from 'lucide-react'
+import { motion, AnimatePresence, useAnimationControls } from 'framer-motion'
 import axios from 'axios'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
@@ -259,12 +259,17 @@ export default function FlashcardPlay() {
     frontHalign,
     backValign,
     backHalign,
+    cardFlipTrigger: deckCardFlipTrigger,
+    cardRatingMode: deckCardRatingMode,
     creatorDefaults,
     isCustomized,
     syncStudySettings,
     saveGeneralSettings,
     resetToCreatorDefaults
   } = usePlaySettings(id || '', modeSettings, setModeSettings);
+
+  const effectiveCardFlipTrigger = deckCardFlipTrigger || userSettings.card_flip_trigger || 'both';
+  const effectiveCardRatingMode = deckCardRatingMode || userSettings.card_rating_mode || 'both';
 
   const {
     playCardAudio,
@@ -400,6 +405,24 @@ export default function FlashcardPlay() {
   const touchStartXRef = useRef<number | null>(null)
   const touchStartYRef = useRef<number | null>(null)
 
+  const cardDragControls = useAnimationControls()
+  const [dragOffset, setDragOffset] = useState<{ x: number; y: number }>({ x: 0, y: 0 })
+  const [activeDragGrade, setActiveDragGrade] = useState<{
+    direction: 'again' | 'hard' | 'good' | 'easy';
+    grade: number;
+    label: string;
+    color: string;
+  } | null>(null)
+  const [isFlyingOut, setIsFlyingOut] = useState(false)
+
+  // Reset drag and flyout states whenever card or flip state changes
+  useEffect(() => {
+    setDragOffset({ x: 0, y: 0 })
+    setActiveDragGrade(null)
+    setIsFlyingOut(false)
+    cardDragControls.set({ x: 0, y: 0, opacity: 1, rotate: 0 })
+  }, [currentIndex, isFlipped])
+
   const handleTouchStart = (e: React.TouchEvent) => {
     const touch = e.touches[0];
     touchStartXRef.current = touch.clientX;
@@ -413,21 +436,20 @@ export default function FlashcardPlay() {
     const diffX = touch.clientX - touchStartXRef.current;
     const diffY = touch.clientY - touchStartYRef.current;
     
-    // Swipe horizontal of at least 60px and vertical movement less than 50px
-    if (Math.abs(diffX) > 60 && Math.abs(diffY) < 50) {
-      setIsFlipped(prev => {
-        const nextFlipped = !prev;
-        if (nextFlipped) {
-          setShowFeedback(true);
-          setJustAnswered(true);
-        }
-        return nextFlipped;
-      });
+    // Swipe horizontal to flip card (only if not flipped and flip trigger allows swipe)
+    if (!isFlipped && effectiveCardFlipTrigger === 'both') {
+      if (Math.abs(diffX) > 60 && Math.abs(diffY) < 50) {
+        setIsFlipped(true);
+        setShowFeedback(true);
+        setJustAnswered(true);
+      }
     }
     
     touchStartXRef.current = null;
     touchStartYRef.current = null;
   };
+
+
 
   const [activelyRatedCurrentCard, setActivelyRatedCurrentCard] = useState<boolean>(false)
   const [prevStreakBeforeRating, setPrevStreakBeforeRating] = useState<number>(0)
@@ -1316,6 +1338,100 @@ export default function FlashcardPlay() {
       showLocalToast("Warning: Your answer was not saved to the server.", "warning")
     }
   }
+
+  const canDragRate = isFlipped && !hasRated && activeMode !== 'flip' && effectiveCardRatingMode !== 'buttons' && !isFlyingOut;
+
+  const handleCardDrag = (
+    _event: MouseEvent | TouchEvent | PointerEvent,
+    info: { offset: { x: number; y: number }; velocity: { x: number; y: number } }
+  ) => {
+    if (!canDragRate) return;
+    const dx = info.offset.x;
+    const dy = info.offset.y;
+    setDragOffset({ x: dx, y: dy });
+
+    const absX = Math.abs(dx);
+    const absY = Math.abs(dy);
+    const dist = Math.hypot(dx, dy);
+
+    if (effectiveCardRatingMode === 'swipe_2way') {
+      if (absX < 25) {
+        setActiveDragGrade(null);
+      } else if (dx < 0) {
+        setActiveDragGrade({ direction: 'again', grade: 1, label: 'AGAIN', color: 'rose' });
+      } else {
+        setActiveDragGrade({ direction: 'good', grade: 3, label: 'GOOD', color: 'indigo' });
+      }
+    } else {
+      // 4-Way Compass Swipe
+      if (dist < 25) {
+        setActiveDragGrade(null);
+      } else if (absX > absY) {
+        if (dx < 0) {
+          setActiveDragGrade({ direction: 'again', grade: 1, label: 'AGAIN', color: 'rose' });
+        } else {
+          setActiveDragGrade({ direction: 'good', grade: 3, label: 'GOOD', color: 'indigo' });
+        }
+      } else {
+        if (dy > 0) {
+          setActiveDragGrade({ direction: 'hard', grade: 2, label: 'HARD', color: 'amber' });
+        } else {
+          setActiveDragGrade({ direction: 'easy', grade: 4, label: 'EASY', color: 'emerald' });
+        }
+      }
+    }
+  };
+
+  const handleCardDragEnd = async (
+    _event: MouseEvent | TouchEvent | PointerEvent,
+    info: { offset: { x: number; y: number }; velocity: { x: number; y: number } }
+  ) => {
+    if (!canDragRate || !activeDragGrade) {
+      cardDragControls.start({ x: 0, y: 0, rotate: 0, transition: { type: 'spring', stiffness: 500, damping: 30 } });
+      setDragOffset({ x: 0, y: 0 });
+      setActiveDragGrade(null);
+      return;
+    }
+
+    const dx = info.offset.x;
+    const dy = info.offset.y;
+    const dist = Math.hypot(dx, dy);
+    const vel = Math.hypot(info.velocity.x, info.velocity.y);
+
+    const isTriggered = dist >= 65 || vel > 400;
+
+    if (isTriggered && activeDragGrade) {
+      setIsFlyingOut(true);
+      const targetGrade = activeDragGrade.grade;
+      const direction = activeDragGrade.direction;
+
+      let targetX = 0;
+      let targetY = 0;
+      if (direction === 'again') targetX = -window.innerWidth * 0.8;
+      else if (direction === 'good') targetX = window.innerWidth * 0.8;
+      else if (direction === 'hard') targetY = window.innerHeight * 0.6;
+      else if (direction === 'easy') targetY = -window.innerHeight * 0.6;
+
+      await cardDragControls.start({
+        x: targetX,
+        y: targetY,
+        opacity: 0,
+        rotate: direction === 'again' ? -15 : direction === 'good' ? 15 : 0,
+        transition: { duration: 0.22, ease: 'easeOut' }
+      });
+
+      handleReviewRating(targetGrade);
+      
+      cardDragControls.set({ x: 0, y: 0, opacity: 1, rotate: 0 });
+      setIsFlyingOut(false);
+      setActiveDragGrade(null);
+      setDragOffset({ x: 0, y: 0 });
+    } else {
+      cardDragControls.start({ x: 0, y: 0, rotate: 0, transition: { type: 'spring', stiffness: 500, damping: 30 } });
+      setDragOffset({ x: 0, y: 0 });
+      setActiveDragGrade(null);
+    }
+  };
 
   const handleUndoRating = async () => {
     if (!currentQuestion || undoInProgressRef.current) return;
@@ -3495,20 +3611,46 @@ export default function FlashcardPlay() {
                 renderFsrsCompleteScreen()
               ) : (
                 <div 
-                  className="perspective-1000 w-full h-full flex-1 relative min-h-0"
+                  className="perspective-1000 w-full h-full flex-1 relative min-h-0 select-none flex items-center justify-center"
                   onTouchStart={handleTouchStart}
                   onTouchEnd={handleTouchEnd}
                 >
-                <div
-                  className="preserve-3d w-full h-full relative transition-transform duration-700 ease-out-quint"
-                  style={{
-                    transform: isFlipped ? 'rotateY(180deg)' : 'rotateY(0deg)',
-                    transformStyle: 'preserve-3d',
-                  }}
-                >
-                   {/* FRONT SIDE */}
-                  <div
-                    className="absolute inset-0 backface-hidden bg-white md:rounded-[2rem] rounded-[1.25rem] border border-slate-100 px-3 md:px-8 pt-2.5 md:pt-2 pb-2.5 md:pb-4 flex flex-col justify-between shadow-2xl shadow-indigo-100/40"
+                  <motion.div
+                    className="w-full h-full relative"
+                    drag={canDragRate ? (effectiveCardRatingMode === 'swipe_2way' ? 'x' : true) : false}
+                    dragConstraints={{ left: 0, right: 0, top: 0, bottom: 0 }}
+                    dragElastic={0.65}
+                    onDrag={handleCardDrag}
+                    onDragEnd={handleCardDragEnd}
+                    animate={cardDragControls}
+                    style={{
+                      touchAction: canDragRate ? 'none' : 'auto',
+                    }}
+                  >
+                    <div
+                      className="preserve-3d w-full h-full relative transition-transform duration-700 ease-out-quint"
+                      style={{
+                        transform: isFlipped ? 'rotateY(180deg)' : 'rotateY(0deg)',
+                        transformStyle: 'preserve-3d',
+                      }}
+                    >
+                       {/* FRONT SIDE */}
+                      <div
+                        onClick={(e) => {
+                          const target = e.target as HTMLElement;
+                          if (target.closest('button') || target.closest('a') || target.closest('input') || target.closest('[data-no-flip]')) {
+                            return;
+                          }
+                          if (effectiveCardFlipTrigger !== 'button_only') {
+                            setIsFlipped(true);
+                            setShowFeedback(true);
+                            setJustAnswered(true);
+                          }
+                        }}
+                        className={cn(
+                          "absolute inset-0 backface-hidden bg-white md:rounded-[2rem] rounded-[1.25rem] border border-slate-100 px-3 md:px-8 pt-2.5 md:pt-2 pb-2.5 md:pb-4 flex flex-col justify-between shadow-2xl shadow-indigo-100/40",
+                          effectiveCardFlipTrigger !== 'button_only' && "cursor-pointer"
+                        )}
                     style={{
                       backfaceVisibility: 'hidden',
                       transform: 'none',
@@ -3589,7 +3731,14 @@ export default function FlashcardPlay() {
 
                   {/* BACK SIDE */}
                   <div
-                    className="absolute inset-0 backface-hidden bg-white md:rounded-[2rem] rounded-[1.25rem] border border-slate-200 px-3 md:px-8 pt-2.5 md:pt-2 pb-2.5 md:pb-4 flex flex-col justify-between shadow-2xl shadow-indigo-100/40"
+                    className={cn(
+                      "absolute inset-0 backface-hidden bg-white md:rounded-[2rem] rounded-[1.25rem] border px-3 md:px-8 pt-2.5 md:pt-2 pb-2.5 md:pb-4 flex flex-col justify-between shadow-2xl transition-all duration-200",
+                      activeDragGrade?.direction === 'again' ? "border-rose-400 shadow-rose-200/60 ring-2 ring-rose-400/20" :
+                      activeDragGrade?.direction === 'good' ? "border-indigo-400 shadow-indigo-200/60 ring-2 ring-indigo-400/20" :
+                      activeDragGrade?.direction === 'hard' ? "border-amber-400 shadow-amber-200/60 ring-2 ring-amber-400/20" :
+                      activeDragGrade?.direction === 'easy' ? "border-emerald-400 shadow-emerald-200/60 ring-2 ring-emerald-400/20" :
+                      "border-slate-200 shadow-indigo-100/40"
+                    )}
                     style={{
                       backfaceVisibility: 'hidden',
                       transform: 'rotateY(180deg)',
@@ -3864,15 +4013,71 @@ export default function FlashcardPlay() {
                     })()}
 
 
-                    {/* FSRS Buttons Grid (Visible inside card back, hidden after rating until it unlocks) */}
-                    {activeMode !== 'flip' && (
-                      <FSRSActionButtons
-                        isFlipped={isFlipped}
-                        hasRated={hasRated}
-                        selectedOption={selectedOption}
-                        intervals={getFSRSIntervals(currentQuestion?.fsrs)}
-                        onRate={handleReviewRating}
-                      />
+                    {/* FSRS Buttons / Compass Gestures Guide */}
+                    {activeMode !== 'flip' && !hasRated && (
+                      effectiveCardRatingMode === 'swipe_4way' ? (
+                        <div className="mt-4 p-2.5 rounded-2xl bg-slate-50/90 border border-slate-200/60 shadow-xs flex items-center justify-between gap-1.5 text-[11px] font-black uppercase tracking-wider select-none">
+                          <button
+                            onClick={() => handleReviewRating(1)}
+                            className="flex-1 py-2 px-1 flex flex-col items-center rounded-xl bg-white border border-rose-100 text-rose-600 hover:bg-rose-50 active:scale-95 transition-all shadow-xs cursor-pointer"
+                            title="Swipe Left or Tap to rate Again"
+                          >
+                            <span className="text-xs">← Again</span>
+                            <span className="text-[9px] font-bold text-rose-400">{getFSRSIntervals(currentQuestion?.fsrs)[1] || '1m'}</span>
+                          </button>
+                          <button
+                            onClick={() => handleReviewRating(2)}
+                            className="flex-1 py-2 px-1 flex flex-col items-center rounded-xl bg-white border border-amber-100 text-amber-600 hover:bg-amber-50 active:scale-95 transition-all shadow-xs cursor-pointer"
+                            title="Swipe Down or Tap to rate Hard"
+                          >
+                            <span className="text-xs">↓ Hard</span>
+                            <span className="text-[9px] font-bold text-amber-400">{getFSRSIntervals(currentQuestion?.fsrs)[2] || '5m'}</span>
+                          </button>
+                          <button
+                            onClick={() => handleReviewRating(3)}
+                            className="flex-1 py-2 px-1 flex flex-col items-center rounded-xl bg-white border border-indigo-100 text-indigo-600 hover:bg-indigo-50 active:scale-95 transition-all shadow-xs cursor-pointer"
+                            title="Swipe Right or Tap to rate Good"
+                          >
+                            <span className="text-xs">Good →</span>
+                            <span className="text-[9px] font-bold text-indigo-400">{getFSRSIntervals(currentQuestion?.fsrs)[3] || '10m'}</span>
+                          </button>
+                          <button
+                            onClick={() => handleReviewRating(4)}
+                            className="flex-1 py-2 px-1 flex flex-col items-center rounded-xl bg-white border border-emerald-100 text-emerald-600 hover:bg-emerald-50 active:scale-95 transition-all shadow-xs cursor-pointer"
+                            title="Swipe Up or Tap to rate Easy"
+                          >
+                            <span className="text-xs">Easy ↑</span>
+                            <span className="text-[9px] font-bold text-emerald-400">{getFSRSIntervals(currentQuestion?.fsrs)[4] || '4d'}</span>
+                          </button>
+                        </div>
+                      ) : effectiveCardRatingMode === 'swipe_2way' ? (
+                        <div className="mt-4 p-2.5 rounded-2xl bg-slate-50/90 border border-slate-200/60 shadow-xs flex items-center justify-between gap-2 text-[11px] font-black uppercase tracking-wider select-none">
+                          <button
+                            onClick={() => handleReviewRating(1)}
+                            className="flex-1 py-2 px-2 flex items-center justify-center gap-2 rounded-xl bg-white border border-rose-100 text-rose-600 hover:bg-rose-50 active:scale-95 transition-all shadow-xs cursor-pointer"
+                            title="Swipe Left or Tap to rate Again"
+                          >
+                            <span>← Again</span>
+                            <span className="text-[9px] font-bold text-rose-400">{getFSRSIntervals(currentQuestion?.fsrs)[1] || '1m'}</span>
+                          </button>
+                          <button
+                            onClick={() => handleReviewRating(3)}
+                            className="flex-1 py-2 px-2 flex items-center justify-center gap-2 rounded-xl bg-white border border-indigo-100 text-indigo-600 hover:bg-indigo-50 active:scale-95 transition-all shadow-xs cursor-pointer"
+                            title="Swipe Right or Tap to rate Good"
+                          >
+                            <span>Good →</span>
+                            <span className="text-[9px] font-bold text-indigo-400">{getFSRSIntervals(currentQuestion?.fsrs)[3] || '10m'}</span>
+                          </button>
+                        </div>
+                      ) : (
+                        <FSRSActionButtons
+                          isFlipped={isFlipped}
+                          hasRated={hasRated}
+                          selectedOption={selectedOption}
+                          intervals={getFSRSIntervals(currentQuestion?.fsrs)}
+                          onRate={handleReviewRating}
+                        />
+                      )
                     )}
 
                     {/* After rating: show colorful dynamic rated badge with real-time unlocking countdown */}
@@ -3942,6 +4147,31 @@ export default function FlashcardPlay() {
                     })()}
                   </div>
                 </div>
+
+                {/* Floating Dynamic Stamp Badge */}
+                {activeDragGrade && (
+                  <div 
+                    className="absolute inset-0 pointer-events-none z-50 flex items-center justify-center"
+                    style={{ opacity: Math.min(Math.max((Math.hypot(dragOffset.x, dragOffset.y) - 20) / 45, 0), 1) }}
+                  >
+                    <div
+                      className={cn(
+                        "px-6 py-3 rounded-2xl border-4 font-black text-2xl md:text-3xl tracking-widest shadow-2xl backdrop-blur-md transform uppercase flex items-center gap-3",
+                        activeDragGrade.direction === 'again' && "border-rose-500 text-rose-600 bg-rose-50/95 -rotate-12 shadow-rose-500/30",
+                        activeDragGrade.direction === 'good' && "border-indigo-500 text-indigo-600 bg-indigo-50/95 rotate-12 shadow-indigo-500/30",
+                        activeDragGrade.direction === 'hard' && "border-amber-500 text-amber-600 bg-amber-50/95 shadow-amber-500/30",
+                        activeDragGrade.direction === 'easy' && "border-emerald-500 text-emerald-600 bg-emerald-50/95 -rotate-6 shadow-emerald-500/30",
+                      )}
+                    >
+                      {activeDragGrade.direction === 'again' && <RotateCcw className="w-7 h-7 stroke-[2.5]" />}
+                      {activeDragGrade.direction === 'good' && <Check className="w-7 h-7 stroke-[2.5]" />}
+                      {activeDragGrade.direction === 'hard' && <AlertCircle className="w-7 h-7 stroke-[2.5]" />}
+                      {activeDragGrade.direction === 'easy' && <Zap className="w-7 h-7 stroke-[2.5]" />}
+                      <span>{activeDragGrade.label}</span>
+                    </div>
+                  </div>
+                )}
+                </motion.div>
               </div>
               )}
             </motion.div>

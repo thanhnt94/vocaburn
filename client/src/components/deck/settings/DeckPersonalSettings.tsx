@@ -80,6 +80,8 @@ export function DeckPersonalSettings({
   const [randomEnabled, setRandomEnabled] = useState<boolean>(false)
   const [sfxEnabled, setSfxEnabled] = useState<boolean>(true)
   const [quickLearnEnabled, setQuickLearnEnabled] = useState<boolean>(false)
+  const [cardFlipTrigger, setCardFlipTrigger] = useState<'both' | 'tap' | 'button_only'>('both')
+  const [cardRatingMode, setCardRatingMode] = useState<'both' | 'buttons' | 'swipe_4way' | 'swipe_2way'>('both')
 
   const [isSaving, setIsSaving] = useState(false)
   const [isResetting, setIsResetting] = useState(false)
@@ -104,6 +106,8 @@ export function DeckPersonalSettings({
       const initialQuickLearn = userOverrides.quick_learn_enabled !== undefined
         ? Boolean(userOverrides.quick_learn_enabled)
         : Boolean(creatorDefs.quick_learn_enabled ?? false)
+      const initialFlip = (userOverrides.card_flip_trigger || creatorDefs.card_flip_trigger || 'both') as 'both' | 'tap' | 'button_only'
+      const initialRating = (userOverrides.card_rating_mode || creatorDefs.card_rating_mode || 'both') as 'both' | 'buttons' | 'swipe_4way' | 'swipe_2way'
 
       setPreferredMode(initialMode)
       setAutoplayAudio(initialAudio)
@@ -115,6 +119,8 @@ export function DeckPersonalSettings({
       setRandomEnabled(initialRandom)
       setSfxEnabled(initialSfx)
       setQuickLearnEnabled(initialQuickLearn)
+      setCardFlipTrigger(initialFlip)
+      setCardRatingMode(initialRating)
     }
   }, [settingsData])
 
@@ -201,6 +207,8 @@ export function DeckPersonalSettings({
       random_enabled: randomEnabled,
       sfx_enabled: sfxEnabled,
       quick_learn_enabled: quickLearnEnabled,
+      card_flip_trigger: cardFlipTrigger,
+      card_rating_mode: cardRatingMode,
     }
 
     try {
@@ -701,6 +709,115 @@ export function DeckPersonalSettings({
               >
                 <div className={cn("w-4 h-4 rounded-full bg-white shadow-sm transition-transform", quickLearnEnabled ? "translate-x-4" : "translate-x-0")} />
               </button>
+            </div>
+          </div>
+        </div>
+
+        {/* ═══════════ 4. FLASHCARD GESTURE & INTERACTION ═══════════ */}
+        <div className="pt-2 border-t border-slate-100 space-y-3">
+          <span className="text-xs font-black text-slate-900 uppercase tracking-wider flex items-center gap-1.5">
+            <Sliders className="w-3.5 h-3.5 text-indigo-600" />
+            Cử Chỉ Lật Thẻ & Đánh Giá FSRS
+          </span>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {/* Card Flip Trigger */}
+            <div className="p-3 bg-slate-50/80 rounded-2xl border border-slate-200/70 space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold text-slate-800">
+                  Thao tác lật thẻ (Flip Trigger)
+                </span>
+              </div>
+              <div className="grid grid-cols-3 gap-1 p-1 bg-white rounded-xl border border-slate-200/60">
+                <button
+                  type="button"
+                  onClick={() => setCardFlipTrigger('both')}
+                  className={cn(
+                    "py-1.5 px-1 rounded-lg text-[11px] font-black transition-all text-center cursor-pointer active:scale-95",
+                    cardFlipTrigger === 'both' ? "bg-indigo-600 text-white shadow-xs" : "text-slate-500 hover:text-slate-800 hover:bg-slate-100"
+                  )}
+                  title="Chạm hoặc vuốt lướt nhẹ thẻ để lật"
+                >
+                  Chạm & Vuốt
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setCardFlipTrigger('tap')}
+                  className={cn(
+                    "py-1.5 px-1 rounded-lg text-[11px] font-black transition-all text-center cursor-pointer active:scale-95",
+                    cardFlipTrigger === 'tap' ? "bg-indigo-600 text-white shadow-xs" : "text-slate-500 hover:text-slate-800 hover:bg-slate-100"
+                  )}
+                  title="Chỉ chạm thân thẻ để lật"
+                >
+                  Chỉ Chạm
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setCardFlipTrigger('button_only')}
+                  className={cn(
+                    "py-1.5 px-1 rounded-lg text-[11px] font-black transition-all text-center cursor-pointer active:scale-95",
+                    cardFlipTrigger === 'button_only' ? "bg-indigo-600 text-white shadow-xs" : "text-slate-500 hover:text-slate-800 hover:bg-slate-100"
+                  )}
+                  title="Chỉ bấm nút FLIP CARD bên dưới"
+                >
+                  Chỉ Nút
+                </button>
+              </div>
+            </div>
+
+            {/* FSRS Rating Mode */}
+            <div className="p-3 bg-slate-50/80 rounded-2xl border border-slate-200/70 space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold text-slate-800">
+                  Đánh giá FSRS (Rating Mode)
+                </span>
+              </div>
+              <div className="grid grid-cols-2 gap-1 p-1 bg-white rounded-xl border border-slate-200/60">
+                <button
+                  type="button"
+                  onClick={() => setCardRatingMode('both')}
+                  className={cn(
+                    "py-1.5 px-1 rounded-lg text-[11px] font-black transition-all text-center cursor-pointer active:scale-95",
+                    cardRatingMode === 'both' ? "bg-purple-600 text-white shadow-xs" : "text-slate-500 hover:text-slate-800 hover:bg-slate-100"
+                  )}
+                  title="Vừa vuốt 4 hướng vừa có 4 nút FSRS"
+                >
+                  Cả Hai (Gợi ý)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setCardRatingMode('swipe_4way')}
+                  className={cn(
+                    "py-1.5 px-1 rounded-lg text-[11px] font-black transition-all text-center cursor-pointer active:scale-95",
+                    cardRatingMode === 'swipe_4way' ? "bg-purple-600 text-white shadow-xs" : "text-slate-500 hover:text-slate-800 hover:bg-slate-100"
+                  )}
+                  title="Vuốt 4 hướng: Trái (Again), Xuống (Hard), Phải (Good), Lên (Easy)"
+                >
+                  Vuốt 4 Hướng
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setCardRatingMode('swipe_2way')}
+                  className={cn(
+                    "py-1.5 px-1 rounded-lg text-[11px] font-black transition-all text-center cursor-pointer active:scale-95",
+                    cardRatingMode === 'swipe_2way' ? "bg-purple-600 text-white shadow-xs" : "text-slate-500 hover:text-slate-800 hover:bg-slate-100"
+                  )}
+                  title="Vuốt 2 chiều nhanh: Trái (Again), Phải (Good)"
+                >
+                  Vuốt 2 Chiều
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setCardRatingMode('buttons')}
+                  className={cn(
+                    "py-1.5 px-1 rounded-lg text-[11px] font-black transition-all text-center cursor-pointer active:scale-95",
+                    cardRatingMode === 'buttons' ? "bg-purple-600 text-white shadow-xs" : "text-slate-500 hover:text-slate-800 hover:bg-slate-100"
+                  )}
+                  title="Chỉ bấm 4 nút FSRS truyền thống"
+                >
+                  4 Nút Bấm
+                </button>
+              </div>
             </div>
           </div>
         </div>

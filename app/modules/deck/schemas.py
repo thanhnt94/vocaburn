@@ -126,5 +126,7 @@ class UserSettingsUpdateRequest(BaseModel):
     last_deck_id: Optional[int] = None
     paste_columns: Optional[List[str]] = None
     quick_add_columns: Optional[List[str]] = None
+    card_flip_trigger: Optional[str] = None
+    card_rating_mode: Optional[str] = None
 
 

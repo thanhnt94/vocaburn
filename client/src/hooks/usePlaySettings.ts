@@ -5,6 +5,8 @@ export type AutoPlayMode = 'always' | 'front' | 'back' | 'none'
 export type ImageDisplayMode = 'always' | 'front' | 'back' | 'none'
 export type VAlignMode = 'center' | 'top'
 export type HAlignMode = 'center' | 'left'
+export type CardFlipTrigger = 'both' | 'tap' | 'button_only'
+export type CardRatingMode = 'both' | 'swipe_4way' | 'swipe_2way' | 'buttons'
 
 export interface StudySettingsState {
   autoplay_audio: AutoPlayMode
@@ -19,6 +21,8 @@ export interface StudySettingsState {
   haptic_enabled: boolean
   quick_learn_enabled: boolean
   show_fsrs: boolean
+  card_flip_trigger?: CardFlipTrigger
+  card_rating_mode?: CardRatingMode
 }
 
 export const DEFAULT_STUDY_SETTINGS: StudySettingsState = {
@@ -33,7 +37,9 @@ export const DEFAULT_STUDY_SETTINGS: StudySettingsState = {
   sfx_enabled: true,
   haptic_enabled: true,
   quick_learn_enabled: false,
-  show_fsrs: true
+  show_fsrs: true,
+  card_flip_trigger: 'both',
+  card_rating_mode: 'both'
 }
 
 export function usePlaySettings(
@@ -54,6 +60,8 @@ export function usePlaySettings(
   const [frontHalign, setFrontHalignState] = useState<HAlignMode>(DEFAULT_STUDY_SETTINGS.front_halign)
   const [backValign, setBackValignState] = useState<VAlignMode>(DEFAULT_STUDY_SETTINGS.back_valign)
   const [backHalign, setBackHalignState] = useState<HAlignMode>(DEFAULT_STUDY_SETTINGS.back_halign)
+  const [cardFlipTrigger, setCardFlipTriggerState] = useState<CardFlipTrigger | undefined>(undefined)
+  const [cardRatingMode, setCardRatingModeState] = useState<CardRatingMode | undefined>(undefined)
 
   // Creator baseline & user customization status
   const [creatorDefaults, setCreatorDefaults] = useState<Partial<StudySettingsState>>({})
@@ -127,6 +135,12 @@ export function usePlaySettings(
       if (effectiveSettings.back_halign !== undefined) {
         setBackHalignState(effectiveSettings.back_halign === 'center' ? 'center' : 'left')
       }
+      if (effectiveSettings.card_flip_trigger !== undefined) {
+        setCardFlipTriggerState(effectiveSettings.card_flip_trigger)
+      }
+      if (effectiveSettings.card_rating_mode !== undefined) {
+        setCardRatingModeState(effectiveSettings.card_rating_mode)
+      }
     }
   }, [])
 
@@ -145,6 +159,8 @@ export function usePlaySettings(
     if (updates.front_halign !== undefined) setFrontHalignState(updates.front_halign)
     if (updates.back_valign !== undefined) setBackValignState(updates.back_valign)
     if (updates.back_halign !== undefined) setBackHalignState(updates.back_halign)
+    if (updates.card_flip_trigger !== undefined) setCardFlipTriggerState(updates.card_flip_trigger)
+    if (updates.card_rating_mode !== undefined) setCardRatingModeState(updates.card_rating_mode)
 
     setIsCustomized(true)
 
@@ -280,6 +296,10 @@ export function usePlaySettings(
     setBackValign,
     backHalign,
     setBackHalign,
+    cardFlipTrigger,
+    setCardFlipTrigger: setCardFlipTriggerState,
+    cardRatingMode,
+    setCardRatingMode: setCardRatingModeState,
     creatorDefaults,
     isCustomized,
     syncStudySettings,

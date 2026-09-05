@@ -119,7 +119,9 @@ SYSTEM_STUDY_DEFAULTS = {
     "sfx_enabled": True,            # boolean
     "haptic_enabled": True,         # boolean
     "quick_learn_enabled": False,   # boolean
-    "show_fsrs": True               # boolean
+    "show_fsrs": True,              # boolean
+    "card_flip_trigger": "both",    # 'both' | 'tap' | 'button_only'
+    "card_rating_mode": "both"      # 'both' | 'buttons' | 'swipe_4way' | 'swipe_2way'
 }
 
 STUDY_SETTINGS_KEYS = set(SYSTEM_STUDY_DEFAULTS.keys())
@@ -128,6 +130,17 @@ STUDY_SETTINGS_KEYS = set(SYSTEM_STUDY_DEFAULTS.keys())
 def normalize_study_setting_value(key: str, val: Any) -> Any:
     if val is None:
         return None
+    if key == "card_flip_trigger":
+        val_str = str(val).lower().strip()
+        if val_str in ("tap", "chạm"): return "tap"
+        if val_str in ("button_only", "button", "nút"): return "button_only"
+        return "both"
+    if key == "card_rating_mode":
+        val_str = str(val).lower().strip()
+        if val_str in ("buttons", "button", "nút"): return "buttons"
+        if val_str in ("swipe_4way", "4way", "4 hướng", "vuốt 4 hướng"): return "swipe_4way"
+        if val_str in ("swipe_2way", "2way", "vuốt 2 hướng"): return "swipe_2way"
+        return "both"
     if key in ("front_valign", "back_valign"):
         val_str = str(val).lower().strip()
         if val_str in ("top", "đỉnh", "trên", "start", "flex-start"):

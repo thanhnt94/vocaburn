@@ -19,6 +19,8 @@ export interface UserSettings {
   last_deck_id?: number | null
   paste_columns?: string[]
   quick_add_columns?: string[]
+  card_flip_trigger?: 'both' | 'tap' | 'button_only'
+  card_rating_mode?: 'both' | 'buttons' | 'swipe_4way' | 'swipe_2way'
 }
 
 export const DEFAULT_USER_SETTINGS: UserSettings = {
@@ -39,6 +41,8 @@ export const DEFAULT_USER_SETTINGS: UserSettings = {
   last_deck_id: null,
   paste_columns: ['front', 'back'],
   quick_add_columns: ['front', 'back'],
+  card_flip_trigger: 'both',
+  card_rating_mode: 'both',
 }
 
 interface SettingsState {
