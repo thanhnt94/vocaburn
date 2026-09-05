@@ -490,24 +490,34 @@ export function DeckDetailPage() {
       })()}
 
       {/* ═══════════ ONE-HAND BOTTOM DOCKED TAB BAR (MOBILE ONLY) ═══════════ */}
-      <div className="md:hidden shrink-0 z-30 bg-white/95 backdrop-blur-2xl border-t border-slate-200/80 px-3 sm:px-6 py-1.5 shadow-[0_-4px_20px_rgba(0,0,0,0.05)]">
+      <div className="md:hidden shrink-0 z-30 bg-white/95 backdrop-blur-2xl border-t border-slate-200/80 px-2 sm:px-4 py-1.5 shadow-[0_-4px_20px_rgba(0,0,0,0.05)]">
         <div className="max-w-sm sm:max-w-md mx-auto flex items-center justify-center">
           {/* Tabs Segmented Switcher */}
-          <div className="grid grid-flow-col auto-cols-fr w-full bg-slate-100/90 p-1 rounded-2xl border border-slate-200/60 shadow-2xs">
+          <div className="flex items-center w-full bg-slate-100/90 p-1 rounded-2xl border border-slate-200/60 shadow-2xs gap-0.5">
             {visibleTabs.map((tab) => {
               const isSettingsTab = tab.id === 'settings'
               const Icon = isSettingsTab ? getSettingsTabIcon() : tab.icon
               const label = isSettingsTab ? getSettingsTabLabel() : tab.label
               const isActive = activeTab === tab.id
 
+              const getTabFlexClass = () => {
+                if (tab.id === 'settings' && isOwner && activeTab === 'settings') {
+                  return 'flex-[1.35] min-w-0'
+                }
+                if (tab.id === 'cards' && activeTab === 'settings' && isOwner) {
+                  return 'flex-[0.85] min-w-0'
+                }
+                return 'flex-1 min-w-0'
+              }
+
               if (isSettingsTab && isOwner) {
                 return (
-                  <div key={tab.id} className="relative">
+                  <div key={tab.id} className={cn("relative", getTabFlexClass())}>
                     <button
                       type="button"
                       onClick={() => setIsSettingsMenuOpen((prev) => !prev)}
                       className={cn(
-                        "relative w-full flex items-center justify-center gap-1 py-1.5 rounded-xl text-xs font-black transition-all select-none cursor-pointer",
+                        "relative w-full flex items-center justify-center gap-1 py-1.5 px-1 rounded-xl text-xs font-black transition-all select-none cursor-pointer",
                         isActive ? "text-indigo-600" : "text-slate-500 hover:text-slate-800"
                       )}
                     >
@@ -518,9 +528,9 @@ export function DeckDetailPage() {
                           transition={{ type: "spring", bounce: 0.15, duration: 0.4 }}
                         />
                       )}
-                      <Icon className={cn("w-3.5 h-3.5 relative z-10", isActive ? "text-indigo-600" : "text-slate-400")} />
-                      <span className="relative z-10 text-[11px] sm:text-xs truncate">{label}</span>
-                      <ChevronDown className={cn("w-2.5 h-2.5 relative z-10 text-slate-400 transition-transform duration-200", isSettingsMenuOpen && "rotate-180")} />
+                      <Icon className={cn("w-3.5 h-3.5 shrink-0 relative z-10", isActive ? "text-indigo-600" : "text-slate-400")} />
+                      <span className="relative z-10 text-[10.5px] sm:text-xs font-black tracking-tight whitespace-nowrap">{label}</span>
+                      <ChevronDown className={cn("w-2.5 h-2.5 shrink-0 relative z-10 text-slate-400 transition-transform duration-200", isSettingsMenuOpen && "rotate-180")} />
                     </button>
 
                     {/* Pull Dropdown Menu (Pops Upwards on Mobile) */}
@@ -596,7 +606,8 @@ export function DeckDetailPage() {
                   type="button"
                   onClick={() => handleTabChange(tab.id)}
                   className={cn(
-                    "relative flex items-center justify-center gap-1.5 py-1.5 rounded-xl text-xs font-black transition-all select-none cursor-pointer",
+                    "relative flex items-center justify-center gap-1 py-1.5 px-1 rounded-xl text-xs font-black transition-all select-none cursor-pointer",
+                    getTabFlexClass(),
                     isActive ? "text-indigo-600" : "text-slate-500 hover:text-slate-800"
                   )}
                 >
@@ -607,8 +618,8 @@ export function DeckDetailPage() {
                       transition={{ type: "spring", bounce: 0.15, duration: 0.4 }}
                     />
                   )}
-                  <Icon className={cn("w-3.5 h-3.5 relative z-10", isActive ? "text-indigo-600" : "text-slate-400")} />
-                  <span className="relative z-10 text-[11px] sm:text-xs truncate">{label}</span>
+                  <Icon className={cn("w-3.5 h-3.5 shrink-0 relative z-10", isActive ? "text-indigo-600" : "text-slate-400")} />
+                  <span className="relative z-10 text-[10.5px] sm:text-xs font-black tracking-tight whitespace-nowrap">{label}</span>
                 </button>
               )
             })}
