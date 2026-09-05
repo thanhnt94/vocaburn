@@ -111,50 +111,6 @@ export function DeckSettingsTab({ embedded = false, deckId }: DeckSettingsTabPro
 
   return (
     <div className="w-full max-w-[1700px] 2xl:max-w-[1900px] mx-auto px-3 sm:px-6 lg:px-8 xl:px-10 py-2 sm:py-4 space-y-4 text-left animate-in fade-in duration-200">
-      {/* ═══════════ SCOPE SWITCHER (FOR OWNER / CREATOR / ADMIN) ═══════════ */}
-      {isOwner ? (
-        <div className="bg-white/95 p-1.5 rounded-2xl border border-slate-200/90 shadow-2xs flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
-          <div className="flex items-center gap-1.5 p-1 bg-slate-100/90 rounded-xl border border-slate-200/70">
-            <button
-              type="button"
-              onClick={() => handleSelectScope('deck')}
-              className={cn(
-                "relative flex items-center gap-2 py-1.5 px-3.5 rounded-lg text-xs font-black transition-all cursor-pointer select-none",
-                settingsScope === 'deck'
-                  ? "bg-white text-slate-900 shadow-xs border border-slate-200/60 font-black"
-                  : "text-slate-500 hover:text-slate-800 font-bold"
-              )}
-            >
-              <Settings className="w-3.5 h-3.5 text-indigo-600" />
-              <span>Cài Đặt Bộ Thẻ (Deck Settings)</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => handleSelectScope('personal')}
-              className={cn(
-                "relative flex items-center gap-2 py-1.5 px-3.5 rounded-lg text-xs font-black transition-all cursor-pointer select-none",
-                settingsScope === 'personal'
-                  ? "bg-white text-slate-900 shadow-xs border border-slate-200/60 font-black"
-                  : "text-slate-500 hover:text-slate-800 font-bold"
-              )}
-            >
-              <User className="w-3.5 h-3.5 text-orange-600" />
-              <span>Cài Đặt Cá Nhân (My Settings)</span>
-            </button>
-          </div>
-
-          <div className="px-2 text-[11px] font-bold text-slate-400 hidden sm:flex items-center gap-1">
-            <span>•</span>
-            <span>
-              {settingsScope === 'deck'
-                ? 'Cấu hình tổng quan & mặc định áp dụng cho tất cả người học'
-                : 'Tùy chỉnh trải nghiệm học cho riêng tài khoản của bạn'}
-            </span>
-          </div>
-        </div>
-      ) : null}
-
       {/* ═══════════ VIEW A: PERSONAL SETTINGS ═══════════ */}
       {settingsScope === 'personal' ? (
         <DeckPersonalSettings

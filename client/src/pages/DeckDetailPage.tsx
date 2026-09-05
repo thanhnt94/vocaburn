@@ -14,7 +14,10 @@ import {
   X,
   Zap,
   ClipboardPaste,
-  Plus
+  Plus,
+  ChevronDown,
+  User,
+  Check
 } from 'lucide-react'
 import axios from 'axios'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -28,7 +31,7 @@ const DeckCardsTab = lazy(() => import('@/components/deck/tabs/DeckCardsTab'))
 const DeckSettingsTab = lazy(() => import('@/components/deck/tabs/DeckSettingsTab'))
 const DeckRoadmapTab = lazy(() => import('@/components/deck/tabs/DeckRoadmapTab'))
 
-export type DeckDetailTab = 'overview' | 'cards' | 'settings' | 'roadmap'
+export type DeckDetailTab = 'overview' | 'cards' | 'roadmap' | 'settings'
 
 export function DeckDetailPage() {
   const { id } = useParams<{ id: string }>()
@@ -36,25 +39,27 @@ export function DeckDetailPage() {
   const [searchParams, setSearchParams] = useSearchParams()
   const { user } = useAppStore()
 
-  // Cards Pagination & Search State (Controlled from detail page)
+  // Active Tab from URL
+  const tabParam = searchParams.get('tab') as DeckDetailTab
+  const activeTab: DeckDetailTab = (tabParam && ['overview', 'cards', 'roadmap', 'settings'].includes(tabParam)) 
+    ? tabParam 
+    : 'overview'
+
+  // Manage Card Selection & Modals for sticky bar
   const [cardsPage, setCardsPage] = useState(1)
   const [cardsTotalPages, setCardsTotalPages] = useState(1)
   const [hasCardSelection, setHasCardSelection] = useState(false)
   const [cardsSearch, setCardsSearch] = useState('')
   const [isSearchOpen, setIsSearchOpen] = useState(false)
-
-  // Modals state controlled from fixed action bar
   const [isQuickAddOpen, setIsQuickAddOpen] = useState(false)
   const [isBatchPasteOpen, setIsBatchPasteOpen] = useState(false)
   const [isEditModalOpen, setIsEditModalOpen] = useState(false)
 
-  const currentTabParam = searchParams.get('tab') as DeckDetailTab
-  const activeTab: DeckDetailTab = ['overview', 'cards', 'settings', 'roadmap'].includes(currentTabParam)
-    ? currentTabParam
-    : 'overview'
+  // Settings Pull Dropdown Menu State
+  const [isSettingsMenuOpen, setIsSettingsMenuOpen] = useState(false)
 
-  // Fetch basic deck metadata to determine role & display header
-  const { data: deckMeta, isLoading: isMetaLoading } = useQuery({
+  // Fetch Deck Metadata
+  const { data: deckMeta, isLoading } = useQuery({
     queryKey: ['quiz', id],
     queryFn: async () => {
       if (!id) return null
@@ -77,11 +82,49 @@ export function DeckDetailPage() {
     user && (deckMeta?.creator_id === user.id || deckMeta?.owner_id === user.id)
   )
 
-  const handleTabChange = (tab: DeckDetailTab) => {
-    setSearchParams({ tab }, { replace: true })
+  const scopeParam = searchParams.get('scope')
+  const settingsScope = (!isOwner || scopeParam === 'personal') ? 'personal' : 'deck'
+
+  const handleSelectScope = (newScope: 'deck' | 'personal') => {
+    setSearchParams((prev) => {
+      const updated = new URLSearchParams(prev)
+      updated.set('tab', 'settings')
+      if (newScope === 'personal') {
+        updated.set('scope', 'personal')
+      } else {
+        updated.set('scope', 'deck')
+      }
+      return updated
+    }, { replace: true })
+    setIsSettingsMenuOpen(false)
   }
 
-  const allTabs: { id: DeckDetailTab; label: string; icon: React.ComponentType<{ className?: string }>; ownerOnly?: boolean }[] = [
+  const handleTabChange = (tab: DeckDetailTab) => {
+    if (tab === 'settings' && isOwner) {
+      setIsSettingsMenuOpen((prev) => !prev)
+      return
+    }
+    setIsSettingsMenuOpen(false)
+    setSearchParams((prev) => {
+      const updated = new URLSearchParams(prev)
+      updated.set('tab', tab)
+      return updated
+    }, { replace: true })
+  }
+
+  const getSettingsTabLabel = () => {
+    if (activeTab !== 'settings') return 'Settings'
+    if (!isOwner) return 'Settings'
+    return settingsScope === 'personal' ? 'My Settings' : 'Deck Settings'
+  }
+
+  const getSettingsTabIcon = () => {
+    if (activeTab !== 'settings') return SettingsIcon
+    if (!isOwner) return SettingsIcon
+    return settingsScope === 'personal' ? User : SettingsIcon
+  }
+
+  const allTabs: { id: DeckDetailTab; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
     { id: 'overview', label: 'Overview', icon: BookOpen },
     { id: 'cards', label: 'Cards', icon: Layers },
     { id: 'roadmap', label: 'Roadmap', icon: Compass },
@@ -146,11 +189,105 @@ export function DeckDetailPage() {
             {/* Center: Desktop Segmented Tab Switcher */}
             <div className="hidden md:flex items-center bg-slate-100/90 p-1 rounded-2xl border border-slate-200/70 shadow-[inset_0_1px_2px_rgba(0,0,0,0.04)] gap-1">
               {visibleTabs.map((tab) => {
-                const Icon = tab.icon
+                const isSettingsTab = tab.id === 'settings'
+                const Icon = isSettingsTab ? getSettingsTabIcon() : tab.icon
+                const label = isSettingsTab ? getSettingsTabLabel() : tab.label
                 const isActive = activeTab === tab.id
+
+                if (isSettingsTab && isOwner) {
+                  return (
+                    <div key={tab.id} className="relative">
+                      <button
+                        type="button"
+                        onClick={() => setIsSettingsMenuOpen((prev) => !prev)}
+                        className={cn(
+                          "relative flex items-center gap-1.5 py-1.5 px-3 rounded-xl text-xs lg:text-sm font-bold transition-all select-none cursor-pointer",
+                          isActive ? "text-orange-600 font-extrabold" : "text-slate-600 hover:text-slate-900 hover:bg-white/50 font-semibold"
+                        )}
+                      >
+                        {isActive && (
+                          <motion.div
+                            layoutId="desktopDeckDetailTabPill"
+                            className="absolute inset-0 bg-white rounded-xl shadow-xs border border-slate-200/80"
+                            transition={{ type: "spring", stiffness: 450, damping: 32 }}
+                          />
+                        )}
+                        <Icon className={cn("w-4 h-4 relative z-10 shrink-0", isActive ? "text-orange-500 stroke-[2.2]" : "text-slate-400 stroke-[1.8]")} />
+                        <span className="relative z-10">{label}</span>
+                        <ChevronDown className={cn("w-3 h-3 relative z-10 text-slate-400 transition-transform duration-200", isSettingsMenuOpen && "rotate-180")} />
+                      </button>
+
+                      {/* Pull Dropdown Menu */}
+                      <AnimatePresence>
+                        {isSettingsMenuOpen && (
+                          <>
+                            <div className="fixed inset-0 z-40" onClick={() => setIsSettingsMenuOpen(false)} />
+                            <motion.div
+                              initial={{ opacity: 0, y: 6, scale: 0.95 }}
+                              animate={{ opacity: 1, y: 0, scale: 1 }}
+                              exit={{ opacity: 0, y: 6, scale: 0.95 }}
+                              transition={{ duration: 0.12 }}
+                              className="absolute top-full mt-2 left-1/2 -translate-x-1/2 bg-white rounded-2xl border border-slate-200/90 shadow-xl p-1.5 min-w-[210px] z-50 space-y-1 text-left"
+                            >
+                              <button
+                                type="button"
+                                onClick={() => handleSelectScope('deck')}
+                                className={cn(
+                                  "w-full flex items-center justify-between p-2 rounded-xl text-xs font-bold transition-all cursor-pointer",
+                                  isActive && settingsScope === 'deck'
+                                    ? "bg-indigo-50 text-indigo-900 font-black"
+                                    : "hover:bg-slate-50 text-slate-700"
+                                )}
+                              >
+                                <div className="flex items-center gap-2">
+                                  <span className="w-7 h-7 rounded-lg bg-indigo-100/70 text-indigo-600 flex items-center justify-center shrink-0">
+                                    <SettingsIcon className="w-3.5 h-3.5" />
+                                  </span>
+                                  <div>
+                                    <span className="block text-xs font-black">Deck Settings</span>
+                                    <span className="block text-[10px] text-slate-400 font-medium">Cài đặt bộ thẻ</span>
+                                  </div>
+                                </div>
+                                {isActive && settingsScope === 'deck' && (
+                                  <Check className="w-4 h-4 text-indigo-600" />
+                                )}
+                              </button>
+
+                              <button
+                                type="button"
+                                onClick={() => handleSelectScope('personal')}
+                                className={cn(
+                                  "w-full flex items-center justify-between p-2 rounded-xl text-xs font-bold transition-all cursor-pointer",
+                                  isActive && settingsScope === 'personal'
+                                    ? "bg-orange-50 text-orange-950 font-black"
+                                    : "hover:bg-slate-50 text-slate-700"
+                                )}
+                              >
+                                <div className="flex items-center gap-2">
+                                  <span className="w-7 h-7 rounded-lg bg-orange-100/70 text-orange-600 flex items-center justify-center shrink-0">
+                                    <User className="w-3.5 h-3.5" />
+                                  </span>
+                                  <div>
+                                    <span className="block text-xs font-black">My Settings</span>
+                                    <span className="block text-[10px] text-slate-400 font-medium">Cài đặt cá nhân</span>
+                                  </div>
+                                </div>
+                                {isActive && settingsScope === 'personal' && (
+                                  <Check className="w-4 h-4 text-orange-600" />
+                                )}
+                              </button>
+                            </motion.div>
+                          </>
+                        )}
+                      </AnimatePresence>
+                    </div>
+                  )
+                }
+
                 return (
                   <button
                     key={tab.id}
+                    type="button"
                     onClick={() => handleTabChange(tab.id)}
                     className={cn(
                       "relative flex items-center gap-2 py-1.5 px-3.5 rounded-xl text-xs lg:text-sm font-bold transition-all select-none cursor-pointer",
@@ -165,7 +302,7 @@ export function DeckDetailPage() {
                       />
                     )}
                     <Icon className={cn("w-4 h-4 relative z-10 shrink-0", isActive ? "text-orange-500 stroke-[2.2]" : "text-slate-400 stroke-[1.8]")} />
-                    <span className="relative z-10">{tab.label}</span>
+                    <span className="relative z-10">{label}</span>
                   </button>
                 )
               })}
@@ -358,11 +495,105 @@ export function DeckDetailPage() {
           {/* Tabs Segmented Switcher */}
           <div className="grid grid-flow-col auto-cols-fr w-full bg-slate-100/90 p-1 rounded-2xl border border-slate-200/60 shadow-2xs">
             {visibleTabs.map((tab) => {
-              const Icon = tab.icon
+              const isSettingsTab = tab.id === 'settings'
+              const Icon = isSettingsTab ? getSettingsTabIcon() : tab.icon
+              const label = isSettingsTab ? getSettingsTabLabel() : tab.label
               const isActive = activeTab === tab.id
+
+              if (isSettingsTab && isOwner) {
+                return (
+                  <div key={tab.id} className="relative">
+                    <button
+                      type="button"
+                      onClick={() => setIsSettingsMenuOpen((prev) => !prev)}
+                      className={cn(
+                        "relative w-full flex items-center justify-center gap-1 py-1.5 rounded-xl text-xs font-black transition-all select-none cursor-pointer",
+                        isActive ? "text-indigo-600" : "text-slate-500 hover:text-slate-800"
+                      )}
+                    >
+                      {isActive && (
+                        <motion.div
+                          layoutId="activeDeckDetailBottomTabPill"
+                          className="absolute inset-0 bg-white rounded-xl shadow-xs border border-slate-200/80"
+                          transition={{ type: "spring", bounce: 0.15, duration: 0.4 }}
+                        />
+                      )}
+                      <Icon className={cn("w-3.5 h-3.5 relative z-10", isActive ? "text-indigo-600" : "text-slate-400")} />
+                      <span className="relative z-10 text-[11px] sm:text-xs truncate">{label}</span>
+                      <ChevronDown className={cn("w-2.5 h-2.5 relative z-10 text-slate-400 transition-transform duration-200", isSettingsMenuOpen && "rotate-180")} />
+                    </button>
+
+                    {/* Pull Dropdown Menu (Pops Upwards on Mobile) */}
+                    <AnimatePresence>
+                      {isSettingsMenuOpen && (
+                        <>
+                          <div className="fixed inset-0 z-40" onClick={() => setIsSettingsMenuOpen(false)} />
+                          <motion.div
+                            initial={{ opacity: 0, y: 6, scale: 0.95 }}
+                            animate={{ opacity: 1, y: 0, scale: 1 }}
+                            exit={{ opacity: 0, y: 6, scale: 0.95 }}
+                            transition={{ duration: 0.12 }}
+                            className="absolute bottom-full mb-3 right-0 bg-white rounded-2xl border border-slate-200/90 shadow-2xl p-1.5 min-w-[210px] z-50 space-y-1 text-left"
+                          >
+                            <button
+                              type="button"
+                              onClick={() => handleSelectScope('deck')}
+                              className={cn(
+                                "w-full flex items-center justify-between p-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer",
+                                isActive && settingsScope === 'deck'
+                                  ? "bg-indigo-50 text-indigo-900 font-black"
+                                  : "hover:bg-slate-50 text-slate-700"
+                              )}
+                            >
+                              <div className="flex items-center gap-2">
+                                <span className="w-7 h-7 rounded-lg bg-indigo-100/70 text-indigo-600 flex items-center justify-center shrink-0">
+                                  <SettingsIcon className="w-3.5 h-3.5" />
+                                </span>
+                                <div>
+                                  <span className="block text-xs font-black">Deck Settings</span>
+                                  <span className="block text-[10px] text-slate-400 font-medium">Cài đặt bộ thẻ</span>
+                                </div>
+                              </div>
+                              {isActive && settingsScope === 'deck' && (
+                                <Check className="w-4 h-4 text-indigo-600" />
+                              )}
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() => handleSelectScope('personal')}
+                              className={cn(
+                                "w-full flex items-center justify-between p-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer",
+                                isActive && settingsScope === 'personal'
+                                  ? "bg-orange-50 text-orange-950 font-black"
+                                  : "hover:bg-slate-50 text-slate-700"
+                              )}
+                            >
+                              <div className="flex items-center gap-2">
+                                <span className="w-7 h-7 rounded-lg bg-orange-100/70 text-orange-600 flex items-center justify-center shrink-0">
+                                  <User className="w-3.5 h-3.5" />
+                                </span>
+                                <div>
+                                  <span className="block text-xs font-black">My Settings</span>
+                                  <span className="block text-[10px] text-slate-400 font-medium">Cài đặt cá nhân</span>
+                                </div>
+                              </div>
+                              {isActive && settingsScope === 'personal' && (
+                                <Check className="w-4 h-4 text-orange-600" />
+                              )}
+                            </button>
+                          </motion.div>
+                        </>
+                      )}
+                    </AnimatePresence>
+                  </div>
+                )
+              }
+
               return (
                 <button
                   key={tab.id}
+                  type="button"
                   onClick={() => handleTabChange(tab.id)}
                   className={cn(
                     "relative flex items-center justify-center gap-1.5 py-1.5 rounded-xl text-xs font-black transition-all select-none cursor-pointer",
@@ -377,7 +608,7 @@ export function DeckDetailPage() {
                     />
                   )}
                   <Icon className={cn("w-3.5 h-3.5 relative z-10", isActive ? "text-indigo-600" : "text-slate-400")} />
-                  <span className="relative z-10 text-[11px] sm:text-xs truncate">{tab.label}</span>
+                  <span className="relative z-10 text-[11px] sm:text-xs truncate">{label}</span>
                 </button>
               )
             })}
