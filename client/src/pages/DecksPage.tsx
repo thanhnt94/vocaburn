@@ -197,8 +197,8 @@ export default function DecksPage() {
       {/* ═══════════ TOP UNIFIED HEADER ═══════════ */}
       <div className="shrink-0 z-30 bg-white/90 backdrop-blur-2xl border-b border-slate-200/70 shadow-2xs">
         <div className="w-full max-w-[1700px] 2xl:max-w-[1900px] mx-auto px-3.5 sm:px-6 lg:px-8 xl:px-10">
-          {/* Row 1: Header title */}
-          <div className="flex items-center justify-between pt-3 pb-2.5">
+          {/* Row 1: Header title, desktop tabs, and desktop actions */}
+          <div className="flex flex-col md:flex-row md:items-center justify-between pt-3 pb-2.5 gap-2.5">
             {/* Left: Standard App Page Header */}
             <div className="flex items-center gap-3 min-w-0">
               <div className="w-10 h-10 sm:w-11 sm:h-11 bg-slate-900 rounded-2xl flex items-center justify-center text-white shadow-md shadow-slate-900/10 shrink-0">
@@ -217,6 +217,83 @@ export default function DecksPage() {
                   Spaced Repetition & Roadmap Decks
                 </p>
               </div>
+            </div>
+
+            {/* Center / Desktop Tab Switcher (My Decks, Discover, Archived) */}
+            <div className="hidden md:flex items-center bg-slate-100/90 p-1 rounded-2xl border border-slate-200/70 shadow-[inset_0_1px_2px_rgba(0,0,0,0.04)] gap-1">
+              {tabsConfig.map((tab) => {
+                const isActive = activeTab === tab.id
+                const TabIcon = tab.icon
+                return (
+                  <button
+                    key={tab.id}
+                    onClick={() => setActiveTab(tab.id)}
+                    className={cn(
+                      "relative flex items-center gap-2 py-1.5 px-3.5 rounded-xl text-xs lg:text-sm font-bold transition-all select-none cursor-pointer",
+                      isActive ? "text-orange-600 font-extrabold" : "text-slate-600 hover:text-slate-900 hover:bg-white/50 font-semibold"
+                    )}
+                  >
+                    {isActive && (
+                      <motion.div
+                        layoutId="desktopDecksTabPill"
+                        className="absolute inset-0 bg-white rounded-xl shadow-xs border border-slate-200/80"
+                        transition={{ type: "spring", stiffness: 450, damping: 32 }}
+                      />
+                    )}
+                    <TabIcon className={cn("w-4 h-4 relative z-10 shrink-0", isActive ? "text-orange-500 fill-orange-500/20 stroke-[2.2]" : "text-slate-400 stroke-[1.8]")} />
+                    <span className="relative z-10">{tab.label}</span>
+                    <span className={cn(
+                      "relative z-10 px-1.5 py-0.5 rounded-md text-[10px] font-black leading-none",
+                      isActive ? "bg-orange-50 text-orange-700" : "bg-slate-200 text-slate-600"
+                    )}>
+                      {tab.count}
+                    </span>
+                  </button>
+                )
+              })}
+            </div>
+
+            {/* Right: Quick actions on desktop (Search, Join Room, New Deck) */}
+            <div className="hidden md:flex items-center gap-2">
+              {/* Quick Search */}
+              <div className="relative w-44 lg:w-60">
+                <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                <input
+                  type="text"
+                  placeholder="Search decks..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full pl-8 pr-7 py-1.5 rounded-xl bg-slate-100/90 border border-slate-200/80 text-xs font-bold text-slate-800 placeholder:text-slate-400 focus:outline-none focus:bg-white focus:border-orange-500 transition-all shadow-2xs"
+                />
+                {searchQuery && (
+                  <button
+                    onClick={() => setSearchQuery('')}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5 cursor-pointer"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                )}
+              </div>
+
+              {/* Room */}
+              <button
+                onClick={() => setIsJoinModalOpen(true)}
+                className="h-8.5 px-3 rounded-xl bg-slate-100/80 hover:bg-purple-50 border border-slate-200/70 hover:border-purple-200 text-slate-700 hover:text-purple-700 flex items-center gap-1.5 text-xs font-bold transition-all active:scale-95 cursor-pointer shadow-2xs"
+                title="Join study room"
+              >
+                <Users className="w-4 h-4 text-purple-600" />
+                <span className="hidden xl:inline">Room</span>
+              </button>
+
+              {/* New Deck */}
+              <button
+                onClick={() => setIsCreateModalOpen(true)}
+                className="h-8.5 px-3.5 rounded-xl bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white flex items-center gap-1.5 text-xs font-black shadow-xs shadow-orange-500/20 active:scale-95 transition-all cursor-pointer"
+                title="Create new deck"
+              >
+                <Plus className="w-4 h-4 stroke-[3]" />
+                <span>New Deck</span>
+              </button>
             </div>
           </div>
 
@@ -652,15 +729,20 @@ export default function DecksPage() {
             </div>
           ) : (
             <>
-              {/* Left: Pagination Stepper */}
-              <DeckPagination
-                currentPage={currentPage}
-                totalPages={totalPages}
-                onPageChange={setCurrentPage}
-              />
+              {/* Left: Pagination Stepper & Results Summary */}
+              <div className="flex items-center gap-3">
+                <DeckPagination
+                  currentPage={currentPage}
+                  totalPages={totalPages}
+                  onPageChange={setCurrentPage}
+                />
+                <span className="text-xs font-semibold text-slate-500 hidden sm:inline">
+                  Showing {filteredData.length === 0 ? 0 : (currentPage - 1) * itemsPerPage + 1} - {Math.min(currentPage * itemsPerPage, filteredData.length)} of {filteredData.length} decks
+                </span>
+              </div>
 
-              {/* Right: Quick Action Buttons (Search, Join Room, New Deck) */}
-              <div className="flex items-center gap-1.5">
+              {/* Right: Quick Action Buttons (On Mobile: Search, Join Room, New Deck; Hidden on desktop) */}
+              <div className="flex items-center gap-1.5 md:hidden">
                 <button
                   onClick={() => setIsSearchOpen(true)}
                   className={cn(
@@ -696,8 +778,8 @@ export default function DecksPage() {
         </div>
       </div>
 
-      {/* ═══════════ ONE-HAND CENTERED BOTTOM DOCKED TAB BAR ═══════════ */}
-      <div className="shrink-0 z-30 bg-white/95 backdrop-blur-2xl border-t border-slate-200/80 px-3 sm:px-6 py-1.5 shadow-[0_-4px_20px_rgba(0,0,0,0.05)]">
+      {/* ═══════════ ONE-HAND CENTERED BOTTOM DOCKED TAB BAR (MOBILE ONLY) ═══════════ */}
+      <div className="md:hidden shrink-0 z-30 bg-white/95 backdrop-blur-2xl border-t border-slate-200/80 px-3 sm:px-6 py-1.5 shadow-[0_-4px_20px_rgba(0,0,0,0.05)]">
         <div className="w-full max-w-[1700px] 2xl:max-w-[1900px] mx-auto flex items-center justify-center">
           <div className="grid grid-flow-col auto-cols-fr w-full max-w-sm sm:max-w-md bg-slate-100/90 p-1 rounded-2xl border border-slate-200/60 shadow-2xs">
             {tabsConfig.map((tab) => {

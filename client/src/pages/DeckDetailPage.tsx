@@ -82,10 +82,10 @@ export function DeckDetailPage() {
   }
 
   const allTabs: { id: DeckDetailTab; label: string; icon: React.ComponentType<{ className?: string }>; ownerOnly?: boolean }[] = [
-    { id: 'overview', label: 'Tổng quan', icon: BookOpen },
-    { id: 'cards', label: 'Thẻ từ', icon: Layers },
-    { id: 'roadmap', label: 'Lộ trình', icon: Compass },
-    { id: 'settings', label: 'Cài đặt', icon: SettingsIcon, ownerOnly: true },
+    { id: 'overview', label: 'Overview', icon: BookOpen },
+    { id: 'cards', label: 'Cards', icon: Layers },
+    { id: 'roadmap', label: 'Roadmap', icon: Compass },
+    { id: 'settings', label: 'Settings', icon: SettingsIcon, ownerOnly: true },
   ]
 
   const visibleTabs = allTabs.filter(t => !t.ownerOnly || isOwner)
@@ -95,18 +95,18 @@ export function DeckDetailPage() {
       {/* ═══════════ TOP UNIFIED HEADER (SHRINK-0) ═══════════ */}
       <div className="shrink-0 z-30 bg-white/90 backdrop-blur-2xl border-b border-slate-200/70 shadow-2xs">
         <div className="w-full max-w-[1700px] 2xl:max-w-[1900px] mx-auto px-3.5 sm:px-6 lg:px-8 xl:px-10">
-          <div className="flex items-center justify-between pt-2.5 pb-2.5 gap-2">
+          <div className="flex items-center justify-between pt-2.5 pb-2.5 gap-3">
             {/* Left: Back Button & Deck Info */}
-            <div className="flex items-center gap-2.5 min-w-0 flex-1">
+            <div className="flex items-center gap-2.5 min-w-0">
               <button
                 onClick={() => navigate('/decks')}
                 className="w-8.5 h-8.5 rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-200/80 text-slate-700 flex items-center justify-center transition-all active:scale-95 shrink-0 cursor-pointer shadow-2xs"
-                title="Quay lại danh sách bộ thẻ"
+                title="Back to Decks"
               >
                 <ChevronLeft className="w-4 h-4" />
               </button>
 
-              <div className="flex items-center gap-2.5 min-w-0 flex-1">
+              <div className="flex items-center gap-2.5 min-w-0">
                 <div className="w-9 h-9 rounded-2xl bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 flex items-center justify-center text-white font-bold text-base shrink-0 overflow-hidden shadow-sm shadow-indigo-500/20">
                   {deckMeta?.cover_image ? (
                     <img src={deckMeta.cover_image} alt="" className="w-full h-full object-cover" />
@@ -117,15 +117,15 @@ export function DeckDetailPage() {
                 
                 <div className="min-w-0">
                   <h1 className="text-xs sm:text-sm font-black text-slate-900 truncate tracking-tight">
-                    {deckMeta?.title || 'Đang tải bộ thẻ...'}
+                    {deckMeta?.title || 'Loading deck...'}
                   </h1>
                   <div className="flex items-center gap-2 text-[10px] text-slate-400 font-bold">
-                    <span className="text-indigo-600 font-extrabold">{deckMeta?.questions_count ?? '--'} thẻ</span>
+                    <span className="text-indigo-600 font-extrabold">{deckMeta?.questions_count ?? '--'} cards</span>
                     {deckMeta?.creator_name && (
                       <>
                         <span>•</span>
                         <span className="text-slate-600 truncate max-w-[120px]">
-                          @{deckMeta.creator_name}{isOriginalCreator ? ' (Bạn)' : ''}
+                          @{deckMeta.creator_name}{isOriginalCreator ? ' (You)' : ''}
                         </span>
                       </>
                     )}
@@ -143,6 +143,34 @@ export function DeckDetailPage() {
               </div>
             </div>
 
+            {/* Center: Desktop Segmented Tab Switcher */}
+            <div className="hidden md:flex items-center bg-slate-100/90 p-1 rounded-2xl border border-slate-200/70 shadow-[inset_0_1px_2px_rgba(0,0,0,0.04)] gap-1">
+              {visibleTabs.map((tab) => {
+                const Icon = tab.icon
+                const isActive = activeTab === tab.id
+                return (
+                  <button
+                    key={tab.id}
+                    onClick={() => handleTabChange(tab.id)}
+                    className={cn(
+                      "relative flex items-center gap-2 py-1.5 px-3.5 rounded-xl text-xs lg:text-sm font-bold transition-all select-none cursor-pointer",
+                      isActive ? "text-orange-600 font-extrabold" : "text-slate-600 hover:text-slate-900 hover:bg-white/50 font-semibold"
+                    )}
+                  >
+                    {isActive && (
+                      <motion.div
+                        layoutId="desktopDeckDetailTabPill"
+                        className="absolute inset-0 bg-white rounded-xl shadow-xs border border-slate-200/80"
+                        transition={{ type: "spring", stiffness: 450, damping: 32 }}
+                      />
+                    )}
+                    <Icon className={cn("w-4 h-4 relative z-10 shrink-0", isActive ? "text-orange-500 stroke-[2.2]" : "text-slate-400 stroke-[1.8]")} />
+                    <span className="relative z-10">{tab.label}</span>
+                  </button>
+                )
+              })}
+            </div>
+
             {/* Right: Start Learning CTA */}
             <div className="flex items-center gap-1.5 shrink-0">
               {id && (
@@ -151,7 +179,7 @@ export function DeckDetailPage() {
                   className="flex items-center gap-1.5 px-3.5 h-8.5 rounded-xl bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white text-xs font-black shadow-xs shadow-orange-500/20 active:scale-95 transition-all shrink-0 cursor-pointer"
                 >
                   <Sparkles className="w-3.5 h-3.5 stroke-[2.5]" />
-                  <span>Học ngay</span>
+                  <span>Study Now</span>
                 </Link>
               )}
             </div>
@@ -312,8 +340,8 @@ export function DeckDetailPage() {
         )
       })()}
 
-      {/* ═══════════ ONE-HAND BOTTOM DOCKED TAB BAR (4 TABS CĂN CHÍNH GIỮA) ═══════════ */}
-      <div className="shrink-0 z-30 bg-white/95 backdrop-blur-2xl border-t border-slate-200/80 px-3 sm:px-6 py-1.5 shadow-[0_-4px_20px_rgba(0,0,0,0.05)]">
+      {/* ═══════════ ONE-HAND BOTTOM DOCKED TAB BAR (MOBILE ONLY) ═══════════ */}
+      <div className="md:hidden shrink-0 z-30 bg-white/95 backdrop-blur-2xl border-t border-slate-200/80 px-3 sm:px-6 py-1.5 shadow-[0_-4px_20px_rgba(0,0,0,0.05)]">
         <div className="max-w-sm sm:max-w-md mx-auto flex items-center justify-center">
           {/* Tabs Segmented Switcher */}
           <div className="grid grid-flow-col auto-cols-fr w-full bg-slate-100/90 p-1 rounded-2xl border border-slate-200/60 shadow-2xs">

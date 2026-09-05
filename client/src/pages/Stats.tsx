@@ -172,17 +172,47 @@ export default function Stats() {
     <div className="fixed inset-0 top-0 bottom-[60px] md:relative md:inset-auto md:top-auto md:bottom-auto md:h-full md:min-h-0 md:w-full flex flex-col bg-[#F8FAFC] overflow-hidden text-left select-none">
       {/* ═══════════ TOP UNIFIED HEADER ═══════════ */}
       <div className="shrink-0 z-30 bg-white/90 backdrop-blur-2xl border-b border-slate-200/70 shadow-2xs px-3.5 sm:px-6 lg:px-8 xl:px-10 py-3 sm:py-3.5">
-        <div className="w-full max-w-[1700px] 2xl:max-w-[1900px] mx-auto flex items-center gap-3 text-left">
-          <div className="w-10 h-10 sm:w-11 sm:h-11 bg-slate-900 rounded-2xl flex items-center justify-center text-white shadow-md shadow-slate-900/10 shrink-0">
-            <TrendingUp className="w-5 h-5 stroke-[2.2]" />
+        <div className="w-full max-w-[1700px] 2xl:max-w-[1900px] mx-auto flex items-center justify-between gap-3 text-left">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 sm:w-11 sm:h-11 bg-slate-900 rounded-2xl flex items-center justify-center text-white shadow-md shadow-slate-900/10 shrink-0">
+              <TrendingUp className="w-5 h-5 stroke-[2.2]" />
+            </div>
+            <div className="min-w-0">
+              <h1 className="text-base sm:text-lg md:text-xl font-black text-slate-900 uppercase tracking-tight italic leading-none truncate">
+                Stats & Leaderboard
+              </h1>
+              <p className="text-[9px] sm:text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mt-1 truncate">
+                Track Personal Progress & Global Rankings
+              </p>
+            </div>
           </div>
-          <div className="min-w-0">
-            <h1 className="text-base sm:text-lg md:text-xl font-black text-slate-900 uppercase tracking-tight italic leading-none truncate">
-              Stats & Leaderboard
-            </h1>
-            <p className="text-[9px] sm:text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mt-1 truncate">
-              Track Personal Progress & Global Rankings
-            </p>
+
+          {/* Desktop Tab Switcher */}
+          <div className="hidden md:flex items-center bg-slate-100/90 p-1 rounded-2xl border border-slate-200/70 shadow-[inset_0_1px_2px_rgba(0,0,0,0.04)] gap-1">
+            {tabs.map((tab) => {
+              const Icon = tab.icon
+              const isActive = activeTab === tab.id
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  className={cn(
+                    "relative flex items-center gap-2 py-1.5 px-3.5 rounded-xl text-xs lg:text-sm font-bold transition-all select-none cursor-pointer",
+                    isActive ? "text-orange-600 font-extrabold" : "text-slate-600 hover:text-slate-900 hover:bg-white/50 font-semibold"
+                  )}
+                >
+                  {isActive && (
+                    <motion.div
+                      layoutId="desktopStatsTabPill"
+                      className="absolute inset-0 bg-white rounded-xl shadow-xs border border-slate-200/80"
+                      transition={{ type: "spring", stiffness: 450, damping: 32 }}
+                    />
+                  )}
+                  <Icon className={cn("w-4 h-4 relative z-10 shrink-0", isActive ? "text-orange-500 stroke-[2.2]" : "text-slate-400 stroke-[1.8]")} />
+                  <span className="relative z-10">{tab.label}</span>
+                </button>
+              )
+            })}
           </div>
         </div>
       </div>
@@ -337,8 +367,8 @@ export default function Stats() {
         </div>
       )}
 
-      {/* ═══════════ ONE-HAND BOTTOM DOCKED TAB BAR (FULL WIDTH) ═══════════ */}
-      <div className="shrink-0 z-30 bg-white/95 backdrop-blur-2xl border-t border-slate-200/80 px-3.5 sm:px-6 lg:px-8 xl:px-10 py-1.5 shadow-[0_-4px_20px_rgba(0,0,0,0.05)]">
+      {/* ═══════════ ONE-HAND BOTTOM DOCKED TAB BAR (MOBILE ONLY) ═══════════ */}
+      <div className="md:hidden shrink-0 z-30 bg-white/95 backdrop-blur-2xl border-t border-slate-200/80 px-3.5 sm:px-6 lg:px-8 xl:px-10 py-1.5 shadow-[0_-4px_20px_rgba(0,0,0,0.05)]">
         <div className="w-full max-w-[1700px] 2xl:max-w-[1900px] mx-auto flex items-center justify-center">
           <div className="grid grid-flow-col auto-cols-fr w-full max-w-sm sm:max-w-md bg-slate-100/90 p-1 rounded-2xl border border-slate-200/60 shadow-2xs">
             {tabs.map((tab) => {
