@@ -8,17 +8,14 @@ import {
   Headphones,
   Sparkles,
   Volume2,
-  VolumeX,
   Image as ImageIcon,
-  ImageOff,
   Shuffle,
   Music,
   Check,
   RotateCcw as ResetIcon,
   Save,
   User,
-  ShieldAlert,
-  Layers
+  ShieldAlert
 } from 'lucide-react'
 import axios from 'axios'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
@@ -31,14 +28,27 @@ export interface DeckPersonalSettingsProps {
   onSaved?: () => void
 }
 
-type PreferredMode = 'inherit' | 'fsrs' | 'roadmap' | 'flip' | 'mcq' | 'typing' | 'listening'
-type AudioChoice = 'inherit' | 'none' | 'front' | 'back' | 'always'
-type ImageChoice = 'inherit' | 'always' | 'front' | 'back' | 'none'
+type PreferredMode = 'fsrs' | 'roadmap' | 'flip' | 'mcq' | 'typing' | 'listening'
+type AudioChoice = 'none' | 'front' | 'back' | 'always'
+type ImageChoice = 'always' | 'front' | 'back' | 'none'
+
+const audioLabelMap: Record<string, string> = {
+  none: 'Tắt',
+  front: 'Mặt trước',
+  back: 'Mặt sau',
+  always: 'Cả hai mặt'
+}
+
+const imageLabelMap: Record<string, string> = {
+  always: 'Cả hai mặt',
+  front: 'Mặt trước',
+  back: 'Mặt sau',
+  none: 'Tắt'
+}
 
 export function DeckPersonalSettings({
   deckId,
   deckTitle,
-  isOwner = false,
   onSaved
 }: DeckPersonalSettingsProps) {
   const queryClient = useQueryClient()
@@ -58,70 +68,44 @@ export function DeckPersonalSettings({
   const userOverrides = settingsData?.user_study_settings || {}
   const isCustomized = Boolean(settingsData?.is_study_customized)
 
-  // Local state
-  const [preferredMode, setPreferredMode] = useState<PreferredMode>('inherit')
-  const [autoplayAudio, setAutoplayAudio] = useState<AudioChoice>('inherit')
-  const [showImages, setShowImages] = useState<ImageChoice>('inherit')
-  const [randomEnabled, setRandomEnabled] = useState<boolean | 'inherit'>('inherit')
-  const [sfxEnabled, setSfxEnabled] = useState<boolean | 'inherit'>('inherit')
-  const [quickLearnEnabled, setQuickLearnEnabled] = useState<boolean | 'inherit'>('inherit')
+  // Local state: automatically copies exact original values from deck defaults if not customized
+  const [preferredMode, setPreferredMode] = useState<PreferredMode>('fsrs')
+  const [autoplayAudio, setAutoplayAudio] = useState<AudioChoice>('none')
+  const [showImages, setShowImages] = useState<ImageChoice>('always')
+  const [randomEnabled, setRandomEnabled] = useState<boolean>(false)
+  const [sfxEnabled, setSfxEnabled] = useState<boolean>(true)
+  const [quickLearnEnabled, setQuickLearnEnabled] = useState<boolean>(false)
 
   const [isSaving, setIsSaving] = useState(false)
   const [isResetting, setIsResetting] = useState(false)
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
 
-  // Sync state when data loads
+  // Sync state when data loads: copy user settings if customized, otherwise copy deck's original default settings
   useEffect(() => {
     if (settingsData) {
-      if (userOverrides.learning_mode) {
-        setPreferredMode(userOverrides.learning_mode as PreferredMode)
-      } else {
-        setPreferredMode('inherit')
-      }
+      const initialMode = (userOverrides.learning_mode || creatorDefs.learning_mode || 'fsrs') as PreferredMode
+      const initialAudio = (userOverrides.autoplay_audio || creatorDefs.autoplay_audio || 'none') as AudioChoice
+      const initialImages = (userOverrides.show_images || creatorDefs.show_images || 'always') as ImageChoice
+      const initialRandom = userOverrides.random_enabled !== undefined
+        ? Boolean(userOverrides.random_enabled)
+        : Boolean(creatorDefs.random_enabled ?? false)
+      const initialSfx = userOverrides.sfx_enabled !== undefined
+        ? Boolean(userOverrides.sfx_enabled)
+        : Boolean(creatorDefs.sfx_enabled ?? true)
+      const initialQuickLearn = userOverrides.quick_learn_enabled !== undefined
+        ? Boolean(userOverrides.quick_learn_enabled)
+        : Boolean(creatorDefs.quick_learn_enabled ?? false)
 
-      if (userOverrides.autoplay_audio) {
-        setAutoplayAudio(userOverrides.autoplay_audio as AudioChoice)
-      } else {
-        setAutoplayAudio('inherit')
-      }
-
-      if (userOverrides.show_images) {
-        setShowImages(userOverrides.show_images as ImageChoice)
-      } else {
-        setShowImages('inherit')
-      }
-
-      if (userOverrides.random_enabled !== undefined) {
-        setRandomEnabled(Boolean(userOverrides.random_enabled))
-      } else {
-        setRandomEnabled('inherit')
-      }
-
-      if (userOverrides.sfx_enabled !== undefined) {
-        setSfxEnabled(Boolean(userOverrides.sfx_enabled))
-      } else {
-        setSfxEnabled('inherit')
-      }
-
-      if (userOverrides.quick_learn_enabled !== undefined) {
-        setQuickLearnEnabled(Boolean(userOverrides.quick_learn_enabled))
-      } else {
-        setQuickLearnEnabled('inherit')
-      }
+      setPreferredMode(initialMode)
+      setAutoplayAudio(initialAudio)
+      setShowImages(initialImages)
+      setRandomEnabled(initialRandom)
+      setSfxEnabled(initialSfx)
+      setQuickLearnEnabled(initialQuickLearn)
     }
   }, [settingsData])
 
-  const creatorMode = creatorDefs.learning_mode || 'fsrs'
-  const creatorModeLabel = {
-    fsrs: 'Flashcard FSRS',
-    roadmap: 'Flashcard Lộ Trình',
-    flip: 'Lật Thẻ Phản Xạ',
-    mcq: 'Trắc Nghiệm MCQ',
-    typing: 'Gõ Từ Vựng',
-    listening: 'Luyện Nghe',
-    new: 'Học Từ Mới',
-    review: 'Ôn Tập Thẻ Đến Hạn'
-  }[creatorMode as string] || creatorMode
+  const defaultCreatorMode = creatorDefs.learning_mode || 'fsrs'
 
   const studyModes: {
     id: PreferredMode
@@ -131,18 +115,7 @@ export function DeckPersonalSettings({
     icon: React.ComponentType<{ className?: string }>
     color: string
     border: string
-    badge?: string
   }[] = [
-    {
-      id: 'inherit',
-      title: 'Theo mặc định bộ thẻ',
-      sublabel: `Tác giả: ${creatorModeLabel}`,
-      desc: 'Tự động kế thừa chế độ học do người quản lý bộ thẻ thiết lập',
-      icon: Layers,
-      color: 'text-indigo-600 bg-indigo-50',
-      border: 'border-indigo-500',
-      badge: 'Mặc định'
-    },
     {
       id: 'fsrs',
       title: 'Flashcard FSRS',
@@ -204,14 +177,14 @@ export function DeckPersonalSettings({
     setIsSaving(true)
     setMessage(null)
 
-    const studyOverrides: Record<string, any> = {}
-
-    if (preferredMode !== 'inherit') studyOverrides.learning_mode = preferredMode
-    if (autoplayAudio !== 'inherit') studyOverrides.autoplay_audio = autoplayAudio
-    if (showImages !== 'inherit') studyOverrides.show_images = showImages
-    if (randomEnabled !== 'inherit') studyOverrides.random_enabled = randomEnabled
-    if (sfxEnabled !== 'inherit') studyOverrides.sfx_enabled = sfxEnabled
-    if (quickLearnEnabled !== 'inherit') studyOverrides.quick_learn_enabled = quickLearnEnabled
+    const studyOverrides = {
+      learning_mode: preferredMode,
+      autoplay_audio: autoplayAudio,
+      show_images: showImages,
+      random_enabled: randomEnabled,
+      sfx_enabled: sfxEnabled,
+      quick_learn_enabled: quickLearnEnabled,
+    }
 
     try {
       await axios.post(`/api/v1/deck/${deckId}/practice-settings`, {
@@ -234,10 +207,25 @@ export function DeckPersonalSettings({
   }
 
   const handleResetDefaults = async () => {
-    if (!confirm('Bạn có chắc muốn khôi phục toàn bộ cài đặt về mặc định của tác giả bộ thẻ?')) return
+    if (!confirm('Bạn có chắc muốn khôi phục toàn bộ cài đặt về thiết lập gốc của bộ thẻ?')) return
 
     setIsResetting(true)
     setMessage(null)
+
+    // Copy original deck settings directly into the form
+    const creatorMode = (creatorDefs.learning_mode || 'fsrs') as PreferredMode
+    const creatorAudio = (creatorDefs.autoplay_audio || 'none') as AudioChoice
+    const creatorImages = (creatorDefs.show_images || 'always') as ImageChoice
+    const creatorRandom = Boolean(creatorDefs.random_enabled ?? false)
+    const creatorSfx = Boolean(creatorDefs.sfx_enabled ?? true)
+    const creatorQuickLearn = Boolean(creatorDefs.quick_learn_enabled ?? false)
+
+    setPreferredMode(creatorMode)
+    setAutoplayAudio(creatorAudio)
+    setShowImages(creatorImages)
+    setRandomEnabled(creatorRandom)
+    setSfxEnabled(creatorSfx)
+    setQuickLearnEnabled(creatorQuickLearn)
 
     try {
       await axios.post(`/api/v1/deck/${deckId}/practice-settings`, {
@@ -247,7 +235,7 @@ export function DeckPersonalSettings({
 
       queryClient.invalidateQueries({ queryKey: ['deck-practice-settings', String(deckId)] })
       queryClient.invalidateQueries({ queryKey: ['quiz', String(deckId)] })
-      setMessage({ type: 'success', text: 'Đã khôi phục cài đặt theo mặc định của bộ thẻ thành công!' })
+      setMessage({ type: 'success', text: 'Đã khôi phục toàn bộ cài đặt về thiết lập gốc của bộ thẻ!' })
       if (onSaved) onSaved()
       setTimeout(() => setMessage(null), 3500)
     } catch (err: any) {
@@ -269,7 +257,7 @@ export function DeckPersonalSettings({
 
   return (
     <form onSubmit={handleSave} className="space-y-4 text-left animate-in fade-in duration-200">
-      {/* ═══════════ HEADER & INHERITANCE STATUS BANNER ═══════════ */}
+      {/* ═══════════ HEADER & STATUS BANNER ═══════════ */}
       <div className="bg-white rounded-3xl p-5 sm:p-6 border border-slate-200/80 shadow-xs space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-3.5">
           <div className="space-y-0.5">
@@ -290,14 +278,14 @@ export function DeckPersonalSettings({
 
           <div className="flex items-center gap-2">
             {isCustomized ? (
-              <span className="px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-purple-50 text-purple-700 border border-purple-200/80 flex items-center gap-1">
-                <Sparkles className="w-3 h-3 text-purple-600" />
-                Đang dùng cài đặt cá nhân
+              <span className="px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-orange-50 text-orange-700 border border-orange-200/80 flex items-center gap-1">
+                <Sparkles className="w-3 h-3 text-orange-600" />
+                Đang dùng tùy chỉnh riêng
               </span>
             ) : (
-              <span className="px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-emerald-50 text-emerald-700 border border-emerald-200/80 flex items-center gap-1">
+              <span className="px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-slate-100 text-slate-600 border border-slate-200 flex items-center gap-1">
                 <Check className="w-3 h-3 text-emerald-600" />
-                Đang kế thừa mặc định bộ thẻ
+                Đang dùng mặc định bộ thẻ
               </span>
             )}
           </div>
@@ -329,6 +317,7 @@ export function DeckPersonalSettings({
             {studyModes.map((mode) => {
               const Icon = mode.icon
               const isSelected = preferredMode === mode.id
+              const isDeckDefault = mode.id === defaultCreatorMode
 
               return (
                 <button
@@ -338,7 +327,7 @@ export function DeckPersonalSettings({
                   className={cn(
                     "p-3 rounded-2xl border text-left transition-all relative flex flex-col justify-between gap-2 cursor-pointer select-none group",
                     isSelected
-                      ? `bg-orange-50/40 border-orange-500 shadow-xs ring-1 ring-orange-500/30`
+                      ? `bg-orange-50/50 border-orange-500 shadow-xs ring-1 ring-orange-500/30`
                       : "bg-slate-50/60 border-slate-200/70 hover:bg-slate-50 hover:border-slate-300"
                   )}
                 >
@@ -360,15 +349,18 @@ export function DeckPersonalSettings({
                       </div>
                     </div>
 
-                    {isSelected ? (
-                      <span className="w-5 h-5 rounded-full bg-orange-500 text-white flex items-center justify-center shrink-0 text-[10px] shadow-xs">
-                        <Check className="w-3 h-3 stroke-[3]" />
-                      </span>
-                    ) : mode.badge ? (
-                      <span className="px-1.5 py-0.2 rounded text-[9px] font-black uppercase tracking-wider bg-indigo-50 text-indigo-700 border border-indigo-100 shrink-0">
-                        {mode.badge}
-                      </span>
-                    ) : null}
+                    <div className="flex items-center gap-1 shrink-0">
+                      {isDeckDefault && (
+                        <span className="px-1.5 py-0.5 rounded text-[9px] font-black uppercase tracking-wider bg-indigo-50 text-indigo-700 border border-indigo-100 shrink-0">
+                          Mặc định
+                        </span>
+                      )}
+                      {isSelected && (
+                        <span className="w-5 h-5 rounded-full bg-orange-500 text-white flex items-center justify-center shrink-0 text-[10px] shadow-xs">
+                          <Check className="w-3 h-3 stroke-[3]" />
+                        </span>
+                      )}
+                    </div>
                   </div>
 
                   <p className="text-[10px] text-slate-500 font-medium line-clamp-2 leading-relaxed">
@@ -383,7 +375,7 @@ export function DeckPersonalSettings({
         {/* ═══════════ 2. SENSORY & DISPLAY CUSTOMIZATIONS ═══════════ */}
         <div className="pt-2 border-t border-slate-100 space-y-3">
           <span className="text-xs font-black text-slate-900 uppercase tracking-wider flex items-center gap-1.5">
-            <Volume2 className="w-3.5 h-3.5 text-indigo-600" />
+            <Volume2 className="w-3.5 h-3.5 text-orange-600" />
             Tùy Chỉnh Âm Thanh & Hình Ảnh
           </span>
 
@@ -396,12 +388,11 @@ export function DeckPersonalSettings({
                   Tự động phát âm thanh TTS
                 </span>
                 <span className="text-[10px] font-bold text-slate-400">
-                  Mặc định: {creatorDefs.autoplay_audio || 'none'}
+                  Gốc: {audioLabelMap[creatorDefs.autoplay_audio || 'none'] || 'Tắt'}
                 </span>
               </div>
-              <div className="grid grid-cols-5 gap-1 p-1 bg-white rounded-xl border border-slate-200/60">
+              <div className="grid grid-cols-4 gap-1 p-1 bg-white rounded-xl border border-slate-200/60">
                 {[
-                  { id: 'inherit', label: 'Kế thừa' },
                   { id: 'none', label: 'Tắt' },
                   { id: 'front', label: 'Trước' },
                   { id: 'back', label: 'Sau' },
@@ -412,11 +403,11 @@ export function DeckPersonalSettings({
                     <button
                       key={opt.id}
                       type="button"
-                      onClick={() => setAutoplayAudio(opt.id as any)}
+                      onClick={() => setAutoplayAudio(opt.id as AudioChoice)}
                       className={cn(
-                        "py-1.5 px-1 rounded-lg text-[10px] font-black transition-all text-center cursor-pointer active:scale-95 truncate",
+                        "py-1.5 px-1 rounded-lg text-[11px] font-black transition-all text-center cursor-pointer active:scale-95",
                         active
-                          ? "bg-indigo-600 text-white shadow-xs"
+                          ? "bg-orange-500 text-white shadow-xs"
                           : "text-slate-500 hover:text-slate-800 hover:bg-slate-100"
                       )}
                     >
@@ -435,12 +426,11 @@ export function DeckPersonalSettings({
                   Hiển thị hình ảnh minh họa
                 </span>
                 <span className="text-[10px] font-bold text-slate-400">
-                  Mặc định: {creatorDefs.show_images || 'always'}
+                  Gốc: {imageLabelMap[creatorDefs.show_images || 'always'] || 'Cả hai mặt'}
                 </span>
               </div>
-              <div className="grid grid-cols-5 gap-1 p-1 bg-white rounded-xl border border-slate-200/60">
+              <div className="grid grid-cols-4 gap-1 p-1 bg-white rounded-xl border border-slate-200/60">
                 {[
-                  { id: 'inherit', label: 'Kế thừa' },
                   { id: 'always', label: 'Cả hai' },
                   { id: 'front', label: 'Trước' },
                   { id: 'back', label: 'Sau' },
@@ -451,11 +441,11 @@ export function DeckPersonalSettings({
                     <button
                       key={opt.id}
                       type="button"
-                      onClick={() => setShowImages(opt.id as any)}
+                      onClick={() => setShowImages(opt.id as ImageChoice)}
                       className={cn(
-                        "py-1.5 px-1 rounded-lg text-[10px] font-black transition-all text-center cursor-pointer active:scale-95 truncate",
+                        "py-1.5 px-1 rounded-lg text-[11px] font-black transition-all text-center cursor-pointer active:scale-95",
                         active
-                          ? "bg-indigo-600 text-white shadow-xs"
+                          ? "bg-orange-500 text-white shadow-xs"
                           : "text-slate-500 hover:text-slate-800 hover:bg-slate-100"
                       )}
                     >
@@ -484,13 +474,13 @@ export function DeckPersonalSettings({
               </div>
               <button
                 type="button"
-                onClick={() => setRandomEnabled(prev => prev === true ? false : true)}
+                onClick={() => setRandomEnabled(prev => !prev)}
                 className={cn(
                   "w-9 h-5 rounded-full transition-all relative p-0.5 shrink-0 cursor-pointer",
-                  randomEnabled === true ? "bg-orange-500" : "bg-slate-200"
+                  randomEnabled ? "bg-orange-500" : "bg-slate-200"
                 )}
               >
-                <div className={cn("w-4 h-4 rounded-full bg-white shadow-sm transition-transform", randomEnabled === true ? "translate-x-4" : "translate-x-0")} />
+                <div className={cn("w-4 h-4 rounded-full bg-white shadow-sm transition-transform", randomEnabled ? "translate-x-4" : "translate-x-0")} />
               </button>
             </div>
 
@@ -502,13 +492,13 @@ export function DeckPersonalSettings({
               </div>
               <button
                 type="button"
-                onClick={() => setSfxEnabled(prev => prev === false ? true : false)}
+                onClick={() => setSfxEnabled(prev => !prev)}
                 className={cn(
                   "w-9 h-5 rounded-full transition-all relative p-0.5 shrink-0 cursor-pointer",
-                  sfxEnabled !== false ? "bg-orange-500" : "bg-slate-200"
+                  sfxEnabled ? "bg-orange-500" : "bg-slate-200"
                 )}
               >
-                <div className={cn("w-4 h-4 rounded-full bg-white shadow-sm transition-transform", sfxEnabled !== false ? "translate-x-4" : "translate-x-0")} />
+                <div className={cn("w-4 h-4 rounded-full bg-white shadow-sm transition-transform", sfxEnabled ? "translate-x-4" : "translate-x-0")} />
               </button>
             </div>
 
@@ -520,13 +510,13 @@ export function DeckPersonalSettings({
               </div>
               <button
                 type="button"
-                onClick={() => setQuickLearnEnabled(prev => prev === true ? false : true)}
+                onClick={() => setQuickLearnEnabled(prev => !prev)}
                 className={cn(
                   "w-9 h-5 rounded-full transition-all relative p-0.5 shrink-0 cursor-pointer",
-                  quickLearnEnabled === true ? "bg-orange-500" : "bg-slate-200"
+                  quickLearnEnabled ? "bg-orange-500" : "bg-slate-200"
                 )}
               >
-                <div className={cn("w-4 h-4 rounded-full bg-white shadow-sm transition-transform", quickLearnEnabled === true ? "translate-x-4" : "translate-x-0")} />
+                <div className={cn("w-4 h-4 rounded-full bg-white shadow-sm transition-transform", quickLearnEnabled ? "translate-x-4" : "translate-x-0")} />
               </button>
             </div>
           </div>
@@ -534,21 +524,16 @@ export function DeckPersonalSettings({
 
         {/* ═══════════ ACTION BUTTONS ═══════════ */}
         <div className="pt-3 border-t border-slate-100 flex flex-col-reverse sm:flex-row sm:items-center justify-between gap-2.5">
-          {isCustomized ? (
-            <button
-              type="button"
-              onClick={handleResetDefaults}
-              disabled={isResetting || isSaving}
-              className="px-4 h-10 rounded-xl border border-slate-200 text-slate-600 hover:text-slate-900 hover:bg-slate-50 text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
-            >
-              <ResetIcon className={cn("w-3.5 h-3.5", isResetting && "animate-spin")} />
-              <span>{isResetting ? 'Đang khôi phục...' : 'Khôi phục mặc định bộ thẻ'}</span>
-            </button>
-          ) : (
-            <span className="text-[11px] text-slate-400 font-medium">
-              Chưa có tùy chỉnh cá nhân (đang dùng toàn bộ mặc định của tác giả)
-            </span>
-          )}
+          <button
+            type="button"
+            onClick={handleResetDefaults}
+            disabled={isResetting || isSaving}
+            className="px-4 h-10 rounded-xl border border-slate-200 text-slate-600 hover:text-slate-900 hover:bg-slate-50 text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
+            title="Khôi phục toàn bộ cài đặt về thiết lập mặc định ban đầu của tác giả bộ thẻ"
+          >
+            <ResetIcon className={cn("w-3.5 h-3.5", isResetting && "animate-spin")} />
+            <span>{isResetting ? 'Đang khôi phục...' : 'Khôi phục mặc định bộ thẻ'}</span>
+          </button>
 
           <button
             type="submit"
