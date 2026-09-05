@@ -197,22 +197,25 @@ export default function DecksPage() {
       {/* ═══════════ TOP UNIFIED HEADER ═══════════ */}
       <div className="shrink-0 z-30 bg-white/90 backdrop-blur-2xl border-b border-slate-200/70 shadow-2xs">
         <div className="w-full max-w-[1700px] 2xl:max-w-[1900px] mx-auto px-3.5 sm:px-6 lg:px-8 xl:px-10">
-          {/* Row 1: Desktop Navigation Tabs & Quick Actions */}
-          <div className="flex items-center justify-between pt-2.5 pb-2">
-            {/* Mobile Header (Hidden on Desktop to keep desktop clean & spacious) */}
-            <div className="md:hidden flex items-center gap-2.5 min-w-0">
-              <div className="w-8.5 h-8.5 bg-slate-900 rounded-xl flex items-center justify-center text-white shadow-sm shrink-0">
-                <Layers className="w-4 h-4 stroke-[2.2]" />
+          {/* Row 1: Mobile Header Title / Desktop Navigation Tabs & Quick Actions */}
+          <div className="flex items-center justify-between pt-3 pb-2.5 md:py-2.5">
+            {/* Mobile Header (Exact original styling restored) */}
+            <div className="md:hidden flex items-center gap-3 min-w-0">
+              <div className="w-10 h-10 sm:w-11 sm:h-11 bg-slate-900 rounded-2xl flex items-center justify-center text-white shadow-md shadow-slate-900/10 shrink-0">
+                <Layers className="w-5 h-5 stroke-[2.2]" />
               </div>
               <div className="min-w-0">
-                <div className="flex items-center gap-1.5">
-                  <h1 className="text-xs font-black text-slate-900 uppercase tracking-tight italic leading-none truncate">
-                    Decks
+                <div className="flex items-center gap-2">
+                  <h1 className="text-base sm:text-lg md:text-xl font-black text-slate-900 uppercase tracking-tight italic leading-none truncate">
+                    Decks Repository
                   </h1>
-                  <span className="px-1.5 py-0.2 rounded-full bg-slate-100 border border-slate-200/80 text-slate-600 text-[10px] font-black not-italic shrink-0">
+                  <span className="px-2 py-0.5 rounded-full bg-slate-100 border border-slate-200/80 text-slate-600 text-[10px] font-black not-italic shrink-0">
                     {filteredData.length}
                   </span>
                 </div>
+                <p className="text-[9px] sm:text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mt-1 truncate">
+                  Spaced Repetition & Roadmap Decks
+                </p>
               </div>
             </div>
 
@@ -304,7 +307,7 @@ export default function DecksPage() {
           </div>
 
           {/* Row 2: Horizontal Scrollable Filter Chips */}
-          <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-2 pt-1.5 border-t border-slate-100">
+          <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-2.5 pt-0.5 md:border-t md:border-slate-100 md:pt-1.5 md:pb-2">
             {activeTab === 'my' && (
               <>
                 {[
@@ -735,15 +738,25 @@ export default function DecksPage() {
             </div>
           ) : (
             <>
-              {/* Left: Results Summary on Desktop */}
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-bold text-slate-500 hidden sm:inline">
+              {/* Left on Mobile: Pagination Stepper; Left on Desktop: Results Summary */}
+              <div className="flex items-center gap-3">
+                {/* Mobile: Standard Left Stepper Pagination (Exactly as original) */}
+                <div className="md:hidden">
+                  <DeckPagination
+                    currentPage={currentPage}
+                    totalPages={totalPages}
+                    onPageChange={setCurrentPage}
+                  />
+                </div>
+
+                {/* Desktop: Results Summary */}
+                <span className="text-xs font-bold text-slate-500 hidden md:inline">
                   Showing <span className="font-extrabold text-slate-800">{filteredData.length === 0 ? 0 : (currentPage - 1) * itemsPerPage + 1} - {Math.min(currentPage * itemsPerPage, filteredData.length)}</span> of <span className="font-extrabold text-slate-800">{filteredData.length}</span> decks
                 </span>
               </div>
 
-              {/* Center: Numbered Pagination Stepper */}
-              <div className="flex items-center justify-center">
+              {/* Center on Desktop: Numbered Pagination Stepper */}
+              <div className="hidden md:flex items-center justify-center">
                 <DeckPagination
                   currentPage={currentPage}
                   totalPages={totalPages}
@@ -751,7 +764,7 @@ export default function DecksPage() {
                 />
               </div>
 
-              {/* Right: Quick Action Buttons (On Mobile: Search, Join Room, New Deck; Hidden on desktop) */}
+              {/* Right: Quick Action Buttons on Mobile (Exact original styling and position) */}
               <div className="flex items-center gap-1.5 md:hidden">
                 <button
                   onClick={() => setIsSearchOpen(true)}
@@ -785,7 +798,7 @@ export default function DecksPage() {
               </div>
 
               {/* Desktop Spacer to balance center alignment */}
-              <div className="hidden sm:block w-36" />
+              <div className="hidden md:block w-36" />
             </>
           )}
         </div>

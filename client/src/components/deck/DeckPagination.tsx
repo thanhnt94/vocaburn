@@ -34,7 +34,7 @@ export function DeckPagination({
     }
   }
 
-  // Generate numbered pages list: e.g. [1, 2, 3, 4] or [1, 2, 3, '...', 10]
+  // Generate numbered pages list for desktop: e.g. [1, 2, 3, 4] or [1, 2, 3, '...', 10]
   const pageNumbers = useMemo(() => {
     if (totalPages <= 7) {
       return Array.from({ length: totalPages }, (_, i) => i + 1)
@@ -51,27 +51,25 @@ export function DeckPagination({
     return [1, '...', currentPage - 1, currentPage, currentPage + 1, '...', totalPages]
   }, [currentPage, totalPages])
 
-  if (totalPages <= 1) return null
-
   return (
     <>
-      {/* Mobile Compact Stepper (< 1 / 5 >) */}
-      <div className={cn("flex sm:hidden items-center gap-1.5 shrink-0 select-none", className)}>
+      {/* Mobile Compact Stepper (< 1 / 5 >) - Preserved exactly for mobile */}
+      <div className={cn("flex md:hidden items-center gap-1.5 shrink-0 select-none", className)}>
         <button
           onClick={() => onPageChange(Math.max(1, currentPage - 1))}
           disabled={currentPage <= 1}
-          className="w-8 h-8 rounded-xl bg-white border border-slate-200 text-slate-700 disabled:opacity-30 disabled:border-slate-150 shadow-2xs hover:border-orange-300 hover:text-orange-600 flex items-center justify-center transition-all cursor-pointer disabled:cursor-not-allowed active:scale-95"
-          title="Previous page"
+          className="w-8 h-8 rounded-xl bg-white border border-slate-200 text-slate-700 disabled:opacity-30 disabled:border-slate-150 shadow-2xs hover:border-indigo-300 hover:text-indigo-600 flex items-center justify-center transition-all cursor-pointer disabled:cursor-not-allowed active:scale-95"
+          title="Trang trước"
         >
           <ChevronLeft className="w-4 h-4" />
         </button>
 
         <button
           onClick={handleOpenJump}
-          className="px-3 h-8 rounded-xl bg-gradient-to-b from-white to-slate-50 border border-slate-200/90 hover:border-orange-400 hover:shadow-xs flex items-center justify-center gap-1 transition-all cursor-pointer active:scale-95 group shadow-2xs"
-          title="Jump to page"
+          className="px-3 h-8 rounded-xl bg-gradient-to-b from-white to-slate-50 border border-slate-200/90 hover:border-indigo-400 hover:shadow-xs flex items-center justify-center gap-1 transition-all cursor-pointer active:scale-95 group shadow-2xs"
+          title="Bấm để nhảy tới trang bất kỳ"
         >
-          <span className="text-[11px] font-black text-slate-800 group-hover:text-orange-600 tracking-wider">
+          <span className="text-[11px] font-black text-slate-800 group-hover:text-indigo-600 tracking-wider">
             {currentPage}
           </span>
           <span className="text-[10px] text-slate-400 font-bold">/</span>
@@ -83,15 +81,15 @@ export function DeckPagination({
         <button
           onClick={() => onPageChange(Math.min(totalPages, currentPage + 1))}
           disabled={currentPage >= totalPages}
-          className="w-8 h-8 rounded-xl bg-white border border-slate-200 text-slate-700 disabled:opacity-30 disabled:border-slate-150 shadow-2xs hover:border-orange-300 hover:text-orange-600 flex items-center justify-center transition-all cursor-pointer disabled:cursor-not-allowed active:scale-95"
-          title="Next page"
+          className="w-8 h-8 rounded-xl bg-white border border-slate-200 text-slate-700 disabled:opacity-30 disabled:border-slate-150 shadow-2xs hover:border-indigo-300 hover:text-indigo-600 flex items-center justify-center transition-all cursor-pointer disabled:cursor-not-allowed active:scale-95"
+          title="Trang sau"
         >
           <ChevronRight className="w-4 h-4" />
         </button>
       </div>
 
       {/* Desktop & Tablet Full Numbered Pagination (< 1 2 3 4 ... >) */}
-      <div className={cn("hidden sm:flex items-center gap-1.5 shrink-0 select-none", className)}>
+      <div className={cn("hidden md:flex items-center gap-1.5 shrink-0 select-none", className)}>
         {/* Previous Button */}
         <button
           onClick={() => onPageChange(Math.max(1, currentPage - 1))}
