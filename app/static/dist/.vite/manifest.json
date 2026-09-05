@@ -17,8 +17,8 @@
       "_charts-vendor-legacy-BXv00XNe.js",
       "_rolldown-runtime-legacy-Djb2rrqm.js",
       "index-legacy.html",
-      "_vendor-legacy-BgbEAJ4Q.js",
       "_animations-vendor-legacy-C84tHauM.js",
+      "_vendor-legacy-BgbEAJ4Q.js",
       "_FlashcardEditModal-legacy-CpeVtx8Q.js",
       "_DeckPagination-legacy-Cd8vkMxo.js",
       "_text-legacy-7ifFusew.js",
@@ -31,8 +31,8 @@
     "imports": [
       "_react-core-vendor-legacy-Dgl6TLFC.js",
       "_rolldown-runtime-legacy-Djb2rrqm.js",
-      "_vendor-legacy-BgbEAJ4Q.js",
-      "_animations-vendor-legacy-C84tHauM.js"
+      "_animations-vendor-legacy-C84tHauM.js",
+      "_vendor-legacy-BgbEAJ4Q.js"
     ]
   },
   "_DeckPagination-legacy-Cd8vkMxo.js": {
@@ -52,8 +52,8 @@
     "imports": [
       "_react-core-vendor-legacy-Dgl6TLFC.js",
       "_rolldown-runtime-legacy-Djb2rrqm.js",
-      "_vendor-legacy-BgbEAJ4Q.js",
       "_animations-vendor-legacy-C84tHauM.js",
+      "_vendor-legacy-BgbEAJ4Q.js",
       "_TelegramRoadmapReminderToggle-legacy-BIqrnBZB.js"
     ]
   },
@@ -64,8 +64,8 @@
       "_react-core-vendor-legacy-Dgl6TLFC.js",
       "_rolldown-runtime-legacy-Djb2rrqm.js",
       "index-legacy.html",
-      "_vendor-legacy-BgbEAJ4Q.js",
       "_animations-vendor-legacy-C84tHauM.js",
+      "_vendor-legacy-BgbEAJ4Q.js",
       "_utils-legacy-s2htjltX.js"
     ]
   },
@@ -76,8 +76,8 @@
       "_react-core-vendor-legacy-Dgl6TLFC.js",
       "_charts-vendor-legacy-BXv00XNe.js",
       "_rolldown-runtime-legacy-Djb2rrqm.js",
-      "_vendor-legacy-BgbEAJ4Q.js",
       "_animations-vendor-legacy-C84tHauM.js",
+      "_vendor-legacy-BgbEAJ4Q.js",
       "_utils-legacy-s2htjltX.js"
     ]
   },
@@ -87,8 +87,8 @@
     "imports": [
       "_react-core-vendor-legacy-Dgl6TLFC.js",
       "_rolldown-runtime-legacy-Djb2rrqm.js",
-      "_vendor-legacy-BgbEAJ4Q.js",
       "_animations-vendor-legacy-C84tHauM.js",
+      "_vendor-legacy-BgbEAJ4Q.js",
       "_DailyComparisonChart-legacy-BsyHJpA4.js",
       "_text-legacy-7ifFusew.js",
       "_utils-legacy-s2htjltX.js"
@@ -100,8 +100,8 @@
     "imports": [
       "_react-core-vendor-legacy-Dgl6TLFC.js",
       "_rolldown-runtime-legacy-Djb2rrqm.js",
-      "_vendor-legacy-BgbEAJ4Q.js",
       "_animations-vendor-legacy-C84tHauM.js",
+      "_vendor-legacy-BgbEAJ4Q.js",
       "_utils-legacy-s2htjltX.js"
     ]
   },
@@ -161,8 +161,8 @@
     "imports": [
       "_react-core-vendor-legacy-Dgl6TLFC.js",
       "_rolldown-runtime-legacy-Djb2rrqm.js",
-      "_vendor-legacy-BgbEAJ4Q.js",
       "_animations-vendor-legacy-C84tHauM.js",
+      "_vendor-legacy-BgbEAJ4Q.js",
       "_utils-legacy-s2htjltX.js"
     ],
     "dynamicImports": [
@@ -189,8 +189,8 @@
       "_react-core-vendor-legacy-Dgl6TLFC.js",
       "_rolldown-runtime-legacy-Djb2rrqm.js",
       "index-legacy.html",
-      "_vendor-legacy-BgbEAJ4Q.js",
-      "_animations-vendor-legacy-C84tHauM.js"
+      "_animations-vendor-legacy-C84tHauM.js",
+      "_vendor-legacy-BgbEAJ4Q.js"
     ]
   },
   "src/pages/Dashboard-legacy.tsx": {
@@ -202,8 +202,8 @@
       "_react-core-vendor-legacy-Dgl6TLFC.js",
       "_rolldown-runtime-legacy-Djb2rrqm.js",
       "index-legacy.html",
-      "_vendor-legacy-BgbEAJ4Q.js",
       "_animations-vendor-legacy-C84tHauM.js",
+      "_vendor-legacy-BgbEAJ4Q.js",
       "_DailyComparisonChart-legacy-BsyHJpA4.js",
       "_TelegramRoadmapReminderToggle-legacy-BIqrnBZB.js",
       "_utils-legacy-s2htjltX.js"
@@ -218,8 +218,8 @@
       "_react-core-vendor-legacy-Dgl6TLFC.js",
       "_rolldown-runtime-legacy-Djb2rrqm.js",
       "index-legacy.html",
-      "_vendor-legacy-BgbEAJ4Q.js",
       "_animations-vendor-legacy-C84tHauM.js",
+      "_vendor-legacy-BgbEAJ4Q.js",
       "_DeckPagination-legacy-Cd8vkMxo.js",
       "_utils-legacy-s2htjltX.js"
     ],
@@ -239,8 +239,8 @@
       "_react-core-vendor-legacy-Dgl6TLFC.js",
       "_rolldown-runtime-legacy-Djb2rrqm.js",
       "index-legacy.html",
-      "_vendor-legacy-BgbEAJ4Q.js",
       "_animations-vendor-legacy-C84tHauM.js",
+      "_vendor-legacy-BgbEAJ4Q.js",
       "_DeckPagination-legacy-Cd8vkMxo.js",
       "_DeckCardsTab-legacy-CBvcfIin.js",
       "_DeckOverviewTab-legacy-CVhnSYZL.js",
@@ -258,8 +258,8 @@
       "_react-core-vendor-legacy-Dgl6TLFC.js",
       "_rolldown-runtime-legacy-Djb2rrqm.js",
       "index-legacy.html",
-      "_vendor-legacy-BgbEAJ4Q.js",
       "_animations-vendor-legacy-C84tHauM.js",
+      "_vendor-legacy-BgbEAJ4Q.js",
       "_DailyComparisonChart-legacy-BsyHJpA4.js",
       "_FlashcardHeader-legacy-Bt4kL_4w.js",
       "_FlashcardEditModal-legacy-CpeVtx8Q.js",
@@ -275,8 +275,8 @@
     "imports": [
       "_react-core-vendor-legacy-Dgl6TLFC.js",
       "_rolldown-runtime-legacy-Djb2rrqm.js",
-      "_vendor-legacy-BgbEAJ4Q.js",
       "_animations-vendor-legacy-C84tHauM.js",
+      "_vendor-legacy-BgbEAJ4Q.js",
       "_text-legacy-7ifFusew.js",
       "_utils-legacy-s2htjltX.js"
     ]
@@ -290,8 +290,8 @@
       "_react-core-vendor-legacy-Dgl6TLFC.js",
       "_rolldown-runtime-legacy-Djb2rrqm.js",
       "index-legacy.html",
-      "_vendor-legacy-BgbEAJ4Q.js",
       "_animations-vendor-legacy-C84tHauM.js",
+      "_vendor-legacy-BgbEAJ4Q.js",
       "_DailyComparisonChart-legacy-BsyHJpA4.js",
       "_FlashcardHeader-legacy-Bt4kL_4w.js",
       "_FlashcardEditModal-legacy-CpeVtx8Q.js",
@@ -308,8 +308,8 @@
       "_react-core-vendor-legacy-Dgl6TLFC.js",
       "_rolldown-runtime-legacy-Djb2rrqm.js",
       "index-legacy.html",
-      "_vendor-legacy-BgbEAJ4Q.js",
       "_animations-vendor-legacy-C84tHauM.js",
+      "_vendor-legacy-BgbEAJ4Q.js",
       "_utils-legacy-s2htjltX.js"
     ]
   },
@@ -321,8 +321,8 @@
     "imports": [
       "_react-core-vendor-legacy-Dgl6TLFC.js",
       "_rolldown-runtime-legacy-Djb2rrqm.js",
-      "_vendor-legacy-BgbEAJ4Q.js",
       "_animations-vendor-legacy-C84tHauM.js",
+      "_vendor-legacy-BgbEAJ4Q.js",
       "_TelegramRoadmapReminderToggle-legacy-BIqrnBZB.js",
       "_utils-legacy-s2htjltX.js"
     ]
@@ -335,8 +335,8 @@
     "imports": [
       "_react-core-vendor-legacy-Dgl6TLFC.js",
       "_rolldown-runtime-legacy-Djb2rrqm.js",
-      "_vendor-legacy-BgbEAJ4Q.js",
       "_animations-vendor-legacy-C84tHauM.js",
+      "_vendor-legacy-BgbEAJ4Q.js",
       "_utils-legacy-s2htjltX.js"
     ]
   },
@@ -349,8 +349,8 @@
       "_react-core-vendor-legacy-Dgl6TLFC.js",
       "_rolldown-runtime-legacy-Djb2rrqm.js",
       "index-legacy.html",
-      "_vendor-legacy-BgbEAJ4Q.js",
       "_animations-vendor-legacy-C84tHauM.js",
+      "_vendor-legacy-BgbEAJ4Q.js",
       "_utils-legacy-s2htjltX.js"
     ]
   },
@@ -363,8 +363,8 @@
       "_react-core-vendor-legacy-Dgl6TLFC.js",
       "_charts-vendor-legacy-BXv00XNe.js",
       "_rolldown-runtime-legacy-Djb2rrqm.js",
-      "_vendor-legacy-BgbEAJ4Q.js",
       "_animations-vendor-legacy-C84tHauM.js",
+      "_vendor-legacy-BgbEAJ4Q.js",
       "_DailyComparisonChart-legacy-BsyHJpA4.js",
       "_utils-legacy-s2htjltX.js"
     ]
@@ -393,8 +393,8 @@
       "_charts-vendor-DtEHlSYM.js",
       "_rolldown-runtime-BYbx6iT9.js",
       "index.html",
-      "_vendor-CdUknM6_.js",
       "_animations-vendor-ZnnRDFcw.js",
+      "_vendor-CdUknM6_.js",
       "_FlashcardEditModal-D5FNyAG7.js",
       "_DeckPagination-DBeyAGms.js",
       "_text-DODzR70U.js",
@@ -407,8 +407,8 @@
     "imports": [
       "_react-core-vendor-B5-HgSun.js",
       "_rolldown-runtime-BYbx6iT9.js",
-      "_vendor-CdUknM6_.js",
-      "_animations-vendor-ZnnRDFcw.js"
+      "_animations-vendor-ZnnRDFcw.js",
+      "_vendor-CdUknM6_.js"
     ]
   },
   "_DeckPagination-DBeyAGms.js": {
@@ -428,8 +428,8 @@
     "imports": [
       "_react-core-vendor-B5-HgSun.js",
       "_rolldown-runtime-BYbx6iT9.js",
-      "_vendor-CdUknM6_.js",
       "_animations-vendor-ZnnRDFcw.js",
+      "_vendor-CdUknM6_.js",
       "_TelegramRoadmapReminderToggle-BsHdUvdD.js"
     ]
   },
@@ -440,8 +440,8 @@
       "_react-core-vendor-B5-HgSun.js",
       "_rolldown-runtime-BYbx6iT9.js",
       "index.html",
-      "_vendor-CdUknM6_.js",
       "_animations-vendor-ZnnRDFcw.js",
+      "_vendor-CdUknM6_.js",
       "_utils-CDwrzg8c.js"
     ]
   },
@@ -452,8 +452,8 @@
       "_react-core-vendor-B5-HgSun.js",
       "_charts-vendor-DtEHlSYM.js",
       "_rolldown-runtime-BYbx6iT9.js",
-      "_vendor-CdUknM6_.js",
       "_animations-vendor-ZnnRDFcw.js",
+      "_vendor-CdUknM6_.js",
       "_utils-CDwrzg8c.js"
     ]
   },
@@ -463,8 +463,8 @@
     "imports": [
       "_react-core-vendor-B5-HgSun.js",
       "_rolldown-runtime-BYbx6iT9.js",
-      "_vendor-CdUknM6_.js",
       "_animations-vendor-ZnnRDFcw.js",
+      "_vendor-CdUknM6_.js",
       "_DailyComparisonChart-DP9K7O7S.js",
       "_text-DODzR70U.js",
       "_utils-CDwrzg8c.js"
@@ -476,8 +476,8 @@
     "imports": [
       "_react-core-vendor-B5-HgSun.js",
       "_rolldown-runtime-BYbx6iT9.js",
-      "_vendor-CdUknM6_.js",
       "_animations-vendor-ZnnRDFcw.js",
+      "_vendor-CdUknM6_.js",
       "_utils-CDwrzg8c.js"
     ]
   },
@@ -537,8 +537,8 @@
     "imports": [
       "_react-core-vendor-B5-HgSun.js",
       "_rolldown-runtime-BYbx6iT9.js",
-      "_vendor-CdUknM6_.js",
       "_animations-vendor-ZnnRDFcw.js",
+      "_vendor-CdUknM6_.js",
       "_utils-CDwrzg8c.js"
     ],
     "dynamicImports": [
@@ -568,8 +568,8 @@
       "_react-core-vendor-B5-HgSun.js",
       "_rolldown-runtime-BYbx6iT9.js",
       "index.html",
-      "_vendor-CdUknM6_.js",
-      "_animations-vendor-ZnnRDFcw.js"
+      "_animations-vendor-ZnnRDFcw.js",
+      "_vendor-CdUknM6_.js"
     ]
   },
   "src/pages/Dashboard.tsx": {
@@ -581,8 +581,8 @@
       "_react-core-vendor-B5-HgSun.js",
       "_rolldown-runtime-BYbx6iT9.js",
       "index.html",
-      "_vendor-CdUknM6_.js",
       "_animations-vendor-ZnnRDFcw.js",
+      "_vendor-CdUknM6_.js",
       "_DailyComparisonChart-DP9K7O7S.js",
       "_TelegramRoadmapReminderToggle-BsHdUvdD.js",
       "_utils-CDwrzg8c.js"
@@ -597,8 +597,8 @@
       "_react-core-vendor-B5-HgSun.js",
       "_rolldown-runtime-BYbx6iT9.js",
       "index.html",
-      "_vendor-CdUknM6_.js",
       "_animations-vendor-ZnnRDFcw.js",
+      "_vendor-CdUknM6_.js",
       "_DeckPagination-DBeyAGms.js",
       "_utils-CDwrzg8c.js"
     ],
@@ -618,8 +618,8 @@
       "_react-core-vendor-B5-HgSun.js",
       "_rolldown-runtime-BYbx6iT9.js",
       "index.html",
-      "_vendor-CdUknM6_.js",
       "_animations-vendor-ZnnRDFcw.js",
+      "_vendor-CdUknM6_.js",
       "_DeckPagination-DBeyAGms.js",
       "_DeckCardsTab-QBqtsyFn.js",
       "_DeckOverviewTab-CoIFu4pm.js",
@@ -637,8 +637,8 @@
       "_react-core-vendor-B5-HgSun.js",
       "_rolldown-runtime-BYbx6iT9.js",
       "index.html",
-      "_vendor-CdUknM6_.js",
       "_animations-vendor-ZnnRDFcw.js",
+      "_vendor-CdUknM6_.js",
       "_DailyComparisonChart-DP9K7O7S.js",
       "_FlashcardHeader-CHfmYYvm.js",
       "_FlashcardEditModal-D5FNyAG7.js",
@@ -654,8 +654,8 @@
     "imports": [
       "_react-core-vendor-B5-HgSun.js",
       "_rolldown-runtime-BYbx6iT9.js",
-      "_vendor-CdUknM6_.js",
       "_animations-vendor-ZnnRDFcw.js",
+      "_vendor-CdUknM6_.js",
       "_text-DODzR70U.js",
       "_utils-CDwrzg8c.js"
     ]
@@ -669,8 +669,8 @@
       "_react-core-vendor-B5-HgSun.js",
       "_rolldown-runtime-BYbx6iT9.js",
       "index.html",
-      "_vendor-CdUknM6_.js",
       "_animations-vendor-ZnnRDFcw.js",
+      "_vendor-CdUknM6_.js",
       "_DailyComparisonChart-DP9K7O7S.js",
       "_FlashcardHeader-CHfmYYvm.js",
       "_FlashcardEditModal-D5FNyAG7.js",
@@ -687,8 +687,8 @@
       "_react-core-vendor-B5-HgSun.js",
       "_rolldown-runtime-BYbx6iT9.js",
       "index.html",
-      "_vendor-CdUknM6_.js",
       "_animations-vendor-ZnnRDFcw.js",
+      "_vendor-CdUknM6_.js",
       "_utils-CDwrzg8c.js"
     ]
   },
@@ -700,8 +700,8 @@
     "imports": [
       "_react-core-vendor-B5-HgSun.js",
       "_rolldown-runtime-BYbx6iT9.js",
-      "_vendor-CdUknM6_.js",
       "_animations-vendor-ZnnRDFcw.js",
+      "_vendor-CdUknM6_.js",
       "_TelegramRoadmapReminderToggle-BsHdUvdD.js",
       "_utils-CDwrzg8c.js"
     ]
@@ -714,8 +714,8 @@
     "imports": [
       "_react-core-vendor-B5-HgSun.js",
       "_rolldown-runtime-BYbx6iT9.js",
-      "_vendor-CdUknM6_.js",
       "_animations-vendor-ZnnRDFcw.js",
+      "_vendor-CdUknM6_.js",
       "_utils-CDwrzg8c.js"
     ]
   },
@@ -728,8 +728,8 @@
       "_react-core-vendor-B5-HgSun.js",
       "_rolldown-runtime-BYbx6iT9.js",
       "index.html",
-      "_vendor-CdUknM6_.js",
       "_animations-vendor-ZnnRDFcw.js",
+      "_vendor-CdUknM6_.js",
       "_utils-CDwrzg8c.js"
     ]
   },
@@ -742,8 +742,8 @@
       "_react-core-vendor-B5-HgSun.js",
       "_charts-vendor-DtEHlSYM.js",
       "_rolldown-runtime-BYbx6iT9.js",
-      "_vendor-CdUknM6_.js",
       "_animations-vendor-ZnnRDFcw.js",
+      "_vendor-CdUknM6_.js",
       "_DailyComparisonChart-DP9K7O7S.js",
       "_utils-CDwrzg8c.js"
     ]
