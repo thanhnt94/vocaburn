@@ -197,30 +197,27 @@ export default function DecksPage() {
       {/* ═══════════ TOP UNIFIED HEADER ═══════════ */}
       <div className="shrink-0 z-30 bg-white/90 backdrop-blur-2xl border-b border-slate-200/70 shadow-2xs">
         <div className="w-full max-w-[1700px] 2xl:max-w-[1900px] mx-auto px-3.5 sm:px-6 lg:px-8 xl:px-10">
-          {/* Row 1: Header title, desktop tabs, and desktop actions */}
-          <div className="flex flex-col md:flex-row md:items-center justify-between pt-3 pb-2.5 gap-2.5">
-            {/* Left: Standard App Page Header */}
-            <div className="flex items-center gap-3 min-w-0">
-              <div className="w-10 h-10 sm:w-11 sm:h-11 bg-slate-900 rounded-2xl flex items-center justify-center text-white shadow-md shadow-slate-900/10 shrink-0">
-                <Layers className="w-5 h-5 stroke-[2.2]" />
+          {/* Row 1: Desktop Navigation Tabs & Quick Actions */}
+          <div className="flex items-center justify-between pt-2.5 pb-2">
+            {/* Mobile Header (Hidden on Desktop to keep desktop clean & spacious) */}
+            <div className="md:hidden flex items-center gap-2.5 min-w-0">
+              <div className="w-8.5 h-8.5 bg-slate-900 rounded-xl flex items-center justify-center text-white shadow-sm shrink-0">
+                <Layers className="w-4 h-4 stroke-[2.2]" />
               </div>
               <div className="min-w-0">
-                <div className="flex items-center gap-2">
-                  <h1 className="text-base sm:text-lg md:text-xl font-black text-slate-900 uppercase tracking-tight italic leading-none truncate">
-                    Decks Repository
+                <div className="flex items-center gap-1.5">
+                  <h1 className="text-xs font-black text-slate-900 uppercase tracking-tight italic leading-none truncate">
+                    Decks
                   </h1>
-                  <span className="px-2 py-0.5 rounded-full bg-slate-100 border border-slate-200/80 text-slate-600 text-[10px] font-black not-italic shrink-0">
+                  <span className="px-1.5 py-0.2 rounded-full bg-slate-100 border border-slate-200/80 text-slate-600 text-[10px] font-black not-italic shrink-0">
                     {filteredData.length}
                   </span>
                 </div>
-                <p className="text-[9px] sm:text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mt-1 truncate">
-                  Spaced Repetition & Roadmap Decks
-                </p>
               </div>
             </div>
 
-            {/* Center / Desktop Tab Switcher (My Decks, Discover, Archived) */}
-            <div className="hidden md:flex items-center bg-slate-100/90 p-1 rounded-2xl border border-slate-200/70 shadow-[inset_0_1px_2px_rgba(0,0,0,0.04)] gap-1">
+            {/* Desktop Modern Underline Tabs (My Decks, Discover, Archived) */}
+            <div className="hidden md:flex items-center gap-8">
               {tabsConfig.map((tab) => {
                 const isActive = activeTab === tab.id
                 const TabIcon = tab.icon
@@ -229,41 +226,50 @@ export default function DecksPage() {
                     key={tab.id}
                     onClick={() => setActiveTab(tab.id)}
                     className={cn(
-                      "relative flex items-center gap-2 py-1.5 px-3.5 rounded-xl text-xs lg:text-sm font-bold transition-all select-none cursor-pointer",
-                      isActive ? "text-orange-600 font-extrabold" : "text-slate-600 hover:text-slate-900 hover:bg-white/50 font-semibold"
+                      "relative flex items-center gap-2 pb-2 px-0.5 text-sm transition-all select-none cursor-pointer group",
+                      isActive 
+                        ? "text-slate-900 font-extrabold" 
+                        : "text-slate-500 hover:text-slate-900 font-semibold"
                     )}
                   >
-                    {isActive && (
-                      <motion.div
-                        layoutId="desktopDecksTabPill"
-                        className="absolute inset-0 bg-white rounded-xl shadow-xs border border-slate-200/80"
-                        transition={{ type: "spring", stiffness: 450, damping: 32 }}
-                      />
-                    )}
-                    <TabIcon className={cn("w-4 h-4 relative z-10 shrink-0", isActive ? "text-orange-500 fill-orange-500/20 stroke-[2.2]" : "text-slate-400 stroke-[1.8]")} />
-                    <span className="relative z-10">{tab.label}</span>
+                    <TabIcon className={cn(
+                      "w-4.5 h-4.5 transition-colors shrink-0",
+                      isActive 
+                        ? "text-orange-500 stroke-[2.4]" 
+                        : "text-slate-400 group-hover:text-slate-600 stroke-[1.8]"
+                    )} />
+                    <span className="tracking-tight">{tab.label}</span>
                     <span className={cn(
-                      "relative z-10 px-1.5 py-0.5 rounded-md text-[10px] font-black leading-none",
-                      isActive ? "bg-orange-50 text-orange-700" : "bg-slate-200 text-slate-600"
+                      "px-2 py-0.5 rounded-full text-[11px] font-black leading-none transition-all",
+                      isActive 
+                        ? "bg-orange-500 text-white shadow-xs shadow-orange-500/20" 
+                        : "bg-slate-100 text-slate-500 group-hover:bg-slate-200 group-hover:text-slate-700"
                     )}>
                       {tab.count}
                     </span>
+                    {isActive && (
+                      <motion.div
+                        layoutId="desktopDecksUnderline"
+                        className="absolute bottom-0 left-0 right-0 h-[2.5px] bg-gradient-to-r from-orange-500 to-amber-500 rounded-full"
+                        transition={{ type: "spring", stiffness: 450, damping: 32 }}
+                      />
+                    )}
                   </button>
                 )
               })}
             </div>
 
             {/* Right: Quick actions on desktop (Search, Join Room, New Deck) */}
-            <div className="hidden md:flex items-center gap-2">
+            <div className="hidden md:flex items-center gap-2.5">
               {/* Quick Search */}
-              <div className="relative w-44 lg:w-60">
+              <div className="relative w-48 lg:w-64">
                 <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
                 <input
                   type="text"
                   placeholder="Search decks..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-8 pr-7 py-1.5 rounded-xl bg-slate-100/90 border border-slate-200/80 text-xs font-bold text-slate-800 placeholder:text-slate-400 focus:outline-none focus:bg-white focus:border-orange-500 transition-all shadow-2xs"
+                  className="w-full pl-8 pr-7 py-1.5 rounded-xl bg-slate-100/80 hover:bg-slate-100 border border-slate-200/70 text-xs font-bold text-slate-800 placeholder:text-slate-400 focus:outline-none focus:bg-white focus:border-orange-500 focus:ring-2 focus:ring-orange-500/10 transition-all shadow-2xs"
                 />
                 {searchQuery && (
                   <button
@@ -278,7 +284,7 @@ export default function DecksPage() {
               {/* Room */}
               <button
                 onClick={() => setIsJoinModalOpen(true)}
-                className="h-8.5 px-3 rounded-xl bg-slate-100/80 hover:bg-purple-50 border border-slate-200/70 hover:border-purple-200 text-slate-700 hover:text-purple-700 flex items-center gap-1.5 text-xs font-bold transition-all active:scale-95 cursor-pointer shadow-2xs"
+                className="h-8.5 px-3 rounded-xl bg-slate-50 hover:bg-purple-50 border border-slate-200/70 hover:border-purple-200 text-slate-700 hover:text-purple-700 flex items-center gap-1.5 text-xs font-bold transition-all active:scale-95 cursor-pointer shadow-2xs"
                 title="Join study room"
               >
                 <Users className="w-4 h-4 text-purple-600" />
@@ -298,7 +304,7 @@ export default function DecksPage() {
           </div>
 
           {/* Row 2: Horizontal Scrollable Filter Chips */}
-          <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-2.5 pt-0.5">
+          <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-2 pt-1.5 border-t border-slate-100">
             {activeTab === 'my' && (
               <>
                 {[
@@ -729,16 +735,20 @@ export default function DecksPage() {
             </div>
           ) : (
             <>
-              {/* Left: Pagination Stepper & Results Summary */}
-              <div className="flex items-center gap-3">
+              {/* Left: Results Summary on Desktop */}
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-bold text-slate-500 hidden sm:inline">
+                  Showing <span className="font-extrabold text-slate-800">{filteredData.length === 0 ? 0 : (currentPage - 1) * itemsPerPage + 1} - {Math.min(currentPage * itemsPerPage, filteredData.length)}</span> of <span className="font-extrabold text-slate-800">{filteredData.length}</span> decks
+                </span>
+              </div>
+
+              {/* Center: Numbered Pagination Stepper */}
+              <div className="flex items-center justify-center">
                 <DeckPagination
                   currentPage={currentPage}
                   totalPages={totalPages}
                   onPageChange={setCurrentPage}
                 />
-                <span className="text-xs font-semibold text-slate-500 hidden sm:inline">
-                  Showing {filteredData.length === 0 ? 0 : (currentPage - 1) * itemsPerPage + 1} - {Math.min(currentPage * itemsPerPage, filteredData.length)} of {filteredData.length} decks
-                </span>
               </div>
 
               {/* Right: Quick Action Buttons (On Mobile: Search, Join Room, New Deck; Hidden on desktop) */}
@@ -773,6 +783,9 @@ export default function DecksPage() {
                   <span className="hidden sm:inline">New Deck</span>
                 </button>
               </div>
+
+              {/* Desktop Spacer to balance center alignment */}
+              <div className="hidden sm:block w-36" />
             </>
           )}
         </div>

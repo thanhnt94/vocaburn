@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useMemo } from 'react'
 import { createPortal } from 'react-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { ChevronLeft, ChevronRight, X, ArrowRight } from 'lucide-react'
@@ -34,26 +34,44 @@ export function DeckPagination({
     }
   }
 
+  // Generate numbered pages list: e.g. [1, 2, 3, 4] or [1, 2, 3, '...', 10]
+  const pageNumbers = useMemo(() => {
+    if (totalPages <= 7) {
+      return Array.from({ length: totalPages }, (_, i) => i + 1)
+    }
+
+    if (currentPage <= 4) {
+      return [1, 2, 3, 4, 5, '...', totalPages]
+    }
+
+    if (currentPage >= totalPages - 3) {
+      return [1, '...', totalPages - 4, totalPages - 3, totalPages - 2, totalPages - 1, totalPages]
+    }
+
+    return [1, '...', currentPage - 1, currentPage, currentPage + 1, '...', totalPages]
+  }, [currentPage, totalPages])
+
+  if (totalPages <= 1) return null
+
   return (
     <>
-      <div className={cn("flex items-center gap-1.5 shrink-0 select-none", className)}>
-        {/* Previous Button */}
+      {/* Mobile Compact Stepper (< 1 / 5 >) */}
+      <div className={cn("flex sm:hidden items-center gap-1.5 shrink-0 select-none", className)}>
         <button
           onClick={() => onPageChange(Math.max(1, currentPage - 1))}
           disabled={currentPage <= 1}
-          className="w-8 h-8 rounded-xl bg-white border border-slate-200 text-slate-700 disabled:opacity-30 disabled:border-slate-150 shadow-2xs hover:border-indigo-300 hover:text-indigo-600 flex items-center justify-center transition-all cursor-pointer disabled:cursor-not-allowed active:scale-95"
-          title="Trang trước"
+          className="w-8 h-8 rounded-xl bg-white border border-slate-200 text-slate-700 disabled:opacity-30 disabled:border-slate-150 shadow-2xs hover:border-orange-300 hover:text-orange-600 flex items-center justify-center transition-all cursor-pointer disabled:cursor-not-allowed active:scale-95"
+          title="Previous page"
         >
           <ChevronLeft className="w-4 h-4" />
         </button>
 
-        {/* Center Clickable Page Badge (Opens Custom Jump Modal) */}
         <button
           onClick={handleOpenJump}
-          className="px-3 h-8 rounded-xl bg-gradient-to-b from-white to-slate-50 border border-slate-200/90 hover:border-indigo-400 hover:shadow-xs flex items-center justify-center gap-1 transition-all cursor-pointer active:scale-95 group shadow-2xs"
-          title="Bấm để nhảy tới trang bất kỳ"
+          className="px-3 h-8 rounded-xl bg-gradient-to-b from-white to-slate-50 border border-slate-200/90 hover:border-orange-400 hover:shadow-xs flex items-center justify-center gap-1 transition-all cursor-pointer active:scale-95 group shadow-2xs"
+          title="Jump to page"
         >
-          <span className="text-[11px] font-black text-slate-800 group-hover:text-indigo-600 tracking-wider">
+          <span className="text-[11px] font-black text-slate-800 group-hover:text-orange-600 tracking-wider">
             {currentPage}
           </span>
           <span className="text-[10px] text-slate-400 font-bold">/</span>
@@ -62,18 +80,74 @@ export function DeckPagination({
           </span>
         </button>
 
-        {/* Next Button */}
         <button
           onClick={() => onPageChange(Math.min(totalPages, currentPage + 1))}
           disabled={currentPage >= totalPages}
-          className="w-8 h-8 rounded-xl bg-white border border-slate-200 text-slate-700 disabled:opacity-30 disabled:border-slate-150 shadow-2xs hover:border-indigo-300 hover:text-indigo-600 flex items-center justify-center transition-all cursor-pointer disabled:cursor-not-allowed active:scale-95"
-          title="Trang sau"
+          className="w-8 h-8 rounded-xl bg-white border border-slate-200 text-slate-700 disabled:opacity-30 disabled:border-slate-150 shadow-2xs hover:border-orange-300 hover:text-orange-600 flex items-center justify-center transition-all cursor-pointer disabled:cursor-not-allowed active:scale-95"
+          title="Next page"
         >
           <ChevronRight className="w-4 h-4" />
         </button>
       </div>
 
-      {/* Custom App-like Page Jump Modal (Portaled to document.body for true center) */}
+      {/* Desktop & Tablet Full Numbered Pagination (< 1 2 3 4 ... >) */}
+      <div className={cn("hidden sm:flex items-center gap-1.5 shrink-0 select-none", className)}>
+        {/* Previous Button */}
+        <button
+          onClick={() => onPageChange(Math.max(1, currentPage - 1))}
+          disabled={currentPage <= 1}
+          className="w-8.5 h-8.5 rounded-xl bg-white border border-slate-200 text-slate-700 disabled:opacity-30 disabled:border-slate-150 shadow-2xs hover:border-orange-300 hover:text-orange-600 flex items-center justify-center transition-all cursor-pointer disabled:cursor-not-allowed active:scale-95"
+          title="Previous page"
+        >
+          <ChevronLeft className="w-4 h-4" />
+        </button>
+
+        {/* Number Buttons & Ellipsis */}
+        {pageNumbers.map((p, idx) => {
+          if (p === '...') {
+            return (
+              <button
+                key={`ellipsis-${idx}`}
+                onClick={handleOpenJump}
+                className="w-8.5 h-8.5 rounded-xl flex items-center justify-center text-slate-400 hover:text-orange-600 hover:bg-orange-50/60 font-black text-xs transition-all cursor-pointer select-none"
+                title="Jump to page"
+              >
+                ...
+              </button>
+            )
+          }
+
+          const pageNum = p as number
+          const isCurrent = pageNum === currentPage
+
+          return (
+            <button
+              key={pageNum}
+              onClick={() => onPageChange(pageNum)}
+              className={cn(
+                "min-w-[34px] h-8.5 px-2.5 rounded-xl text-xs font-black transition-all cursor-pointer select-none active:scale-95 flex items-center justify-center",
+                isCurrent
+                  ? "bg-gradient-to-r from-orange-500 to-amber-500 text-white shadow-xs shadow-orange-500/25"
+                  : "bg-white border border-slate-200/80 text-slate-700 hover:border-orange-300 hover:text-orange-600 hover:bg-orange-50/30 shadow-2xs"
+              )}
+            >
+              {pageNum}
+            </button>
+          )
+        })}
+
+        {/* Next Button */}
+        <button
+          onClick={() => onPageChange(Math.min(totalPages, currentPage + 1))}
+          disabled={currentPage >= totalPages}
+          className="w-8.5 h-8.5 rounded-xl bg-white border border-slate-200 text-slate-700 disabled:opacity-30 disabled:border-slate-150 shadow-2xs hover:border-orange-300 hover:text-orange-600 flex items-center justify-center transition-all cursor-pointer disabled:cursor-not-allowed active:scale-95"
+          title="Next page"
+        >
+          <ChevronRight className="w-4 h-4" />
+        </button>
+      </div>
+
+      {/* Custom App-like Page Jump Modal */}
       {typeof document !== 'undefined' && createPortal(
         <AnimatePresence>
           {isJumpModalOpen && (
@@ -99,10 +173,10 @@ export function DeckPagination({
                 <div className="flex items-center justify-between">
                   <div>
                     <h3 className="text-sm font-black text-slate-800 tracking-tight">
-                      Chuyển Đến Trang
+                      Jump to Page
                     </h3>
                     <p className="text-[10px] text-slate-400 font-bold">
-                      Tổng cộng có {totalPages} trang (1 - {totalPages})
+                      Total {totalPages} pages (1 - {totalPages})
                     </p>
                   </div>
                   <button
@@ -123,8 +197,8 @@ export function DeckPagination({
                       value={targetPageInput}
                       onChange={(e) => setTargetPageInput(e.target.value)}
                       autoFocus
-                      placeholder="Nhập số trang..."
-                      className="w-full h-12 bg-slate-50 border-2 border-slate-200 rounded-2xl px-4 text-lg font-black text-center text-indigo-600 focus:border-indigo-500 focus:bg-white outline-none transition-all"
+                      placeholder="Enter page number..."
+                      className="w-full h-12 bg-slate-50 border-2 border-slate-200 rounded-2xl px-4 text-lg font-black text-center text-orange-600 focus:border-orange-500 focus:bg-white outline-none transition-all"
                     />
                   </div>
 
@@ -136,7 +210,7 @@ export function DeckPagination({
                         onClick={() => setTargetPageInput('1')}
                         className="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 text-[10px] font-bold transition-all cursor-pointer"
                       >
-                        Trang 1
+                        Page 1
                       </button>
                       {totalPages > 4 && (
                         <button
@@ -144,7 +218,7 @@ export function DeckPagination({
                           onClick={() => setTargetPageInput(String(Math.ceil(totalPages / 2)))}
                           className="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 text-[10px] font-bold transition-all cursor-pointer"
                         >
-                          Trang {Math.ceil(totalPages / 2)}
+                          Page {Math.ceil(totalPages / 2)}
                         </button>
                       )}
                       <button
@@ -152,7 +226,7 @@ export function DeckPagination({
                         onClick={() => setTargetPageInput(String(totalPages))}
                         className="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 text-[10px] font-bold transition-all cursor-pointer"
                       >
-                        Trang {totalPages}
+                        Page {totalPages}
                       </button>
                     </div>
                   )}
@@ -160,9 +234,9 @@ export function DeckPagination({
                   {/* Action Submit */}
                   <button
                     type="submit"
-                    className="w-full h-10 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-black text-xs shadow-xs shadow-indigo-200 hover:from-indigo-700 hover:to-purple-700 active:scale-95 transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                    className="w-full h-10 rounded-xl bg-gradient-to-r from-orange-500 to-amber-500 text-white font-black text-xs shadow-xs shadow-orange-500/20 hover:from-orange-600 hover:to-amber-600 active:scale-95 transition-all flex items-center justify-center gap-1.5 cursor-pointer"
                   >
-                    <span>Chuyển Trang</span>
+                    <span>Go to Page</span>
                     <ArrowRight className="w-3.5 h-3.5" />
                   </button>
                 </form>
