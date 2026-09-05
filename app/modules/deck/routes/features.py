@@ -617,21 +617,34 @@ async def import_analyze_deck(request: Request, deck_id: int, file: UploadFile =
         
         updated_count = 0
         added_count = 0
+        matched_ids = set()
         
         for c_data in cards:
-            c_id = c_data.get("id")
+            raw_id = c_data.get("id")
+            c_id = None
+            if raw_id is not None:
+                try:
+                    c_id = int(float(str(raw_id).strip()))
+                except (ValueError, TypeError):
+                    c_id = None
+
             if c_id and c_id in existing_ids:
                 updated_count += 1
+                matched_ids.add(c_id)
             else:
                 added_count += 1
                 
+        deleted_count_if_replace = len(existing_ids - matched_ids)
+
         return {
             "status": "ok",
             "title": metadata.get("title", deck.title),
             "description": metadata.get("description", deck.description),
             "total_excel_rows": len(cards),
             "updated_count": updated_count,
-            "added_count": added_count
+            "added_count": added_count,
+            "deleted_count_if_replace": deleted_count_if_replace,
+            "existing_total": len(existing_ids)
         }
     except Exception as e:
         import traceback
@@ -728,17 +741,29 @@ async def import_update_deck(request: Request, deck_id: int, file: UploadFile = 
         existing_c_res = await db.execute(select(Flashcard).filter(Flashcard.deck_id == deck_id))
         existing_c_map = {c.id: c for c in existing_c_res.scalars().all()}
         
+        updated_ids = set()
+        updated_count = 0
+        added_count = 0
+        deleted_count = 0
+        
         for c_data in cards:
-            c_id = c_data.get("id")
+            raw_id = c_data.get("id")
+            c_id = None
+            if raw_id is not None:
+                try:
+                    c_id = int(float(str(raw_id).strip()))
+                except (ValueError, TypeError):
+                    c_id = None
+            
             others = dict(c_data.get("others") or {})
             
-            # Map standard keys in others to physical columns on Flashcard
-            front_audio_content = others.pop("front_audio_content", None)
-            back_audio_content = others.pop("back_audio_content", None)
-            front_audio_url = others.pop("front_audio_url", None) or c_data.get("audio")
-            back_audio_url = others.pop("back_audio_url", None)
-            front_img = others.pop("front_img", None) or c_data.get("image")
-            back_img = others.pop("back_img", None)
+            # Extract standard keys cleanly from c_data or others
+            front_audio_content = c_data.get("front_audio_content") or others.pop("front_audio_content", None)
+            back_audio_content = c_data.get("back_audio_content") or others.pop("back_audio_content", None)
+            front_audio_url = c_data.get("front_audio_url") or others.pop("front_audio_url", None) or c_data.get("audio")
+            back_audio_url = c_data.get("back_audio_url") or others.pop("back_audio_url", None)
+            front_img = c_data.get("front_img") or others.pop("front_img", None) or c_data.get("image")
+            back_img = c_data.get("back_img") or others.pop("back_img", None)
             
             if c_id and c_id in existing_c_map:
                 db_c = existing_c_map[c_id]
@@ -753,6 +778,8 @@ async def import_update_deck(request: Request, deck_id: int, file: UploadFile = 
                 merged_others = dict(db_c.others) if isinstance(db_c.others, dict) else {}
                 merged_others.update(others)
                 db_c.others = merged_others
+                updated_ids.add(c_id)
+                updated_count += 1
             else:
                 db_c = Flashcard(
                     deck_id=deck_id,
@@ -768,9 +795,31 @@ async def import_update_deck(request: Request, deck_id: int, file: UploadFile = 
                     others=others
                 )
                 db.add(db_c)
+                added_count += 1
+                
+        # Support replace mode: clean up cards not in the incoming Excel list
+        if mode == "replace":
+            to_delete_ids = [c_id for c_id in existing_c_map.keys() if c_id not in updated_ids]
+            if to_delete_ids:
+                from app.modules.deck.models import UserCardMastery, UserPracticeStats, UserCardNote, UserAnswer
+                await db.execute(delete(UserCardMastery).where(UserCardMastery.card_id.in_(to_delete_ids)))
+                await db.execute(delete(UserPracticeStats).where(UserPracticeStats.card_id.in_(to_delete_ids)))
+                await db.execute(delete(UserCardNote).where(UserCardNote.card_id.in_(to_delete_ids)))
+                await db.execute(delete(UserAnswer).where(UserAnswer.card_id.in_(to_delete_ids)))
+                await db.execute(delete(Flashcard).where(Flashcard.id.in_(to_delete_ids)))
+                deleted_count = len(to_delete_ids)
                 
         await db.commit()
-        return {"status": "ok", "message": "Deck updated successfully."}
+        
+        total_cards = len(existing_c_map) - deleted_count + added_count
+        return {
+            "status": "ok",
+            "message": "Deck updated successfully.",
+            "updated_count": updated_count,
+            "added_count": added_count,
+            "deleted_count": deleted_count,
+            "total_cards": total_cards
+        }
         
     except Exception as e:
         import traceback

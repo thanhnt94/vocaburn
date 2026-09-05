@@ -39,6 +39,27 @@ COLUMN_ALIASES = {
     'other_content': {'other_content', 'other content', 'nội dung khác', 'noi dung khac', 'custom_data', 'others', 'other_data'}
 }
 
+EXCEL_ERROR_VALUES = {'#ref!', '#value!', '#n/a!', '#n/a', '#div/0!', '#name?', '#num!', '#null!', '#spill!', '#calc!'}
+
+def clean_cell_value(cell_value: Any) -> str:
+    """
+    Sanitizes raw Excel cell values:
+    - Filters out Excel formula calculation error strings (#REF!, #VALUE!, etc.)
+    - Removes NaN
+    - Converts whole floats (e.g. 1.0) to clean integers ('1')
+    - Strips whitespace and carriage return escape artifacts
+    """
+    if cell_value is None:
+        return ""
+    if isinstance(cell_value, float) and cell_value.is_integer():
+        cell_value = int(cell_value)
+    s_val = str(cell_value).strip()
+    if not s_val or s_val.lower() in EXCEL_ERROR_VALUES or s_val.lower() == "nan":
+        return ""
+    s_val = s_val.replace('_x000D_', '').replace('_x000d_', '')
+    s_val = s_val.replace('\\r\\n', '\n').replace('\\n', '\n')
+    return s_val
+
 def normalize_column_headers(columns: List[str]) -> Dict[str, str]:
     """
     Map raw column names to standardized field names based on aliases.
@@ -258,6 +279,8 @@ class ExcelDeckService:
                         if "practice_settings" not in metadata or not isinstance(metadata["practice_settings"], dict):
                             metadata["practice_settings"] = {}
                         metadata["practice_settings"][key] = parsed_val
+                        if key in ("custom_columns", "insight_columns", "column_order", "study_modes"):
+                            metadata[key] = parsed_val
                     elif key in ("ai_prompt", "ai_prompt_explanation", "prompt_explanation"):
                         metadata["ai_prompt"] = value
                         if "practice_settings" not in metadata: metadata["practice_settings"] = {}
@@ -360,13 +383,226 @@ class ExcelDeckService:
                                 collabs.append({"username": part.strip(), "role": "editor"})
                         if collabs:
                             metadata["collaborators"] = collabs
+
+        # 2. Parse dedicated sheets if present (Priority over Info JSON)
+        sheet_name_map = {str(s).strip().lower(): s for s in excel_file.sheet_names}
+
+        # 2.1. Dedicated Sheet: Practice
+        practice_sheet_name = next((sheet_name_map[s] for s in ('practice', 'practice_modes', 'practice settings', 'luyện tập', 'luyen tap') if s in sheet_name_map), None)
+        if practice_sheet_name:
+            print(f"DEBUG: Parsing dedicated '{practice_sheet_name}' sheet...")
+            try:
+                df_prac = excel_file.parse(practice_sheet_name)
+                df_prac.columns = [str(c).strip().lower() for c in df_prac.columns]
+                
+                if "practice_settings" not in metadata or not isinstance(metadata["practice_settings"], dict):
+                    metadata["practice_settings"] = {}
+                if "mcq" not in metadata["practice_settings"] or not isinstance(metadata["practice_settings"]["mcq"], dict):
+                    metadata["practice_settings"]["mcq"] = {"active_pairs": [], "num_choices": 4}
+                if "typing" not in metadata["practice_settings"] or not isinstance(metadata["practice_settings"]["typing"], dict):
+                    metadata["practice_settings"]["typing"] = {"active_pairs": []}
+                if "listening" not in metadata["practice_settings"] or not isinstance(metadata["practice_settings"]["listening"], dict):
+                    metadata["practice_settings"]["listening"] = {"active_pairs": [], "num_choices": 4}
+
+                mcq_pairs = []
+                typing_pairs = []
+                listening_pairs = []
+
+                for _, row in df_prac.iterrows():
+                    mode = str(row.get("mode", "")).strip().lower()
+                    q_col = str(row.get("question_column") or row.get("question") or row.get("cột câu hỏi") or row.get("q", "")).strip()
+                    a_col = str(row.get("answer_column") or row.get("answer") or row.get("cột đáp án") or row.get("a", "")).strip()
+                    num_c = row.get("num_choices") or row.get("choices") or row.get("số lựa chọn")
+                    enabled_raw = row.get("enabled") if "enabled" in row else row.get("kích hoạt", True)
+
+                    if not q_col or not a_col or q_col.lower() == "nan" or a_col.lower() == "nan":
+                        continue
+
+                    enabled = True
+                    if pd.notna(enabled_raw):
+                        enabled = str(enabled_raw).strip().lower() not in ("false", "0", "no", "n", "tắt")
+                    if not enabled:
+                        continue
+
+                    num_choices = 4
+                    if pd.notna(num_c):
+                        try:
+                            num_int = int(float(num_c))
+                            if 3 <= num_int <= 8:
+                                num_choices = num_int
+                        except Exception:
+                            pass
+
+                    if mode in ("mcq", "trắc nghiệm", "multiple choice"):
+                        mcq_pairs.append({
+                            "q": q_col,
+                            "a": a_col,
+                            "prompt_col": q_col,
+                            "answer_col": a_col,
+                            "name": f"{q_col} ➜ {a_col}"
+                        })
+                        metadata["practice_settings"]["mcq"]["num_choices"] = num_choices
+                        metadata["practice_settings"]["num_choices"] = num_choices
+                    elif mode in ("typing", "gõ từ", "type"):
+                        if "," in a_col:
+                            a_targets = [col.strip() for col in a_col.split(",") if col.strip()]
+                            typing_pairs.append({
+                                "q": q_col,
+                                "a": a_targets,
+                                "prompt_col": q_col,
+                                "answer_col": a_targets,
+                                "name": f"{q_col} ➜ {'/'.join(a_targets)}"
+                            })
+                        else:
+                            typing_pairs.append({
+                                "q": q_col,
+                                "a": a_col,
+                                "prompt_col": q_col,
+                                "answer_col": a_col,
+                                "name": f"{q_col} ➜ {a_col}"
+                            })
+                    elif mode in ("listening", "nghe", "listen"):
+                        listening_pairs.append({
+                            "q": q_col,
+                            "a": a_col,
+                            "prompt_col": q_col,
+                            "answer_col": a_col,
+                            "name": f"{q_col} ➜ {a_col}"
+                        })
+                        metadata["practice_settings"]["listening"]["num_choices"] = num_choices
+
+                if mcq_pairs:
+                    metadata["practice_settings"]["mcq"]["active_pairs"] = mcq_pairs
+                    metadata["practice_settings"]["active_pairs"] = mcq_pairs
+                if typing_pairs:
+                    metadata["practice_settings"]["typing"]["active_pairs"] = typing_pairs
+                if listening_pairs:
+                    metadata["practice_settings"]["listening"]["active_pairs"] = listening_pairs
+            except Exception as e:
+                print(f"DEBUG: Error parsing Practice sheet: {e}")
+
+        # 2.2. Dedicated Sheet: AI_Prompts
+        ai_sheet_name = next((sheet_name_map[s] for s in ('ai_prompts', 'ai prompts', 'ai_prompt', 'prompts', 'prompt ai', 'ai') if s in sheet_name_map), None)
+        if ai_sheet_name:
+            print(f"DEBUG: Parsing dedicated '{ai_sheet_name}' sheet...")
+            try:
+                df_ai = excel_file.parse(ai_sheet_name)
+                df_ai.columns = [str(c).strip().lower() for c in df_ai.columns]
+                ai_prompts = []
+                for _, row in df_ai.iterrows():
+                    target_col = str(row.get("column_target") or row.get("column") or row.get("cột kết quả") or row.get("id", "")).strip()
+                    title = str(row.get("button_title") or row.get("title") or row.get("tiêu đề nút") or target_col).strip()
+                    prompt = str(row.get("prompt_template") or row.get("prompt") or row.get("câu lệnh") or "").strip()
+
+                    if not target_col or not prompt or target_col.lower() == "nan" or prompt.lower() == "nan":
+                        continue
+
+                    prompt = prompt.replace('_x000D_', '').replace('\\r\\n', '\n').replace('\\n', '\n')
+                    ai_prompts.append({
+                        "id": target_col,
+                        "column": target_col,
+                        "title": title or target_col,
+                        "prompt": prompt
+                    })
+                if ai_prompts:
+                    if "practice_settings" not in metadata or not isinstance(metadata["practice_settings"], dict):
+                        metadata["practice_settings"] = {}
+                    metadata["practice_settings"]["ai_prompts"] = ai_prompts
+            except Exception as e:
+                print(f"DEBUG: Error parsing AI_Prompts sheet: {e}")
+
+        # 2.3. Dedicated Sheet: Audio
+        audio_sheet_name = next((sheet_name_map[s] for s in ('audio', 'audio_config', 'audio config', 'audio_pairs', 'âm thanh') if s in sheet_name_map), None)
+        if audio_sheet_name:
+            print(f"DEBUG: Parsing dedicated '{audio_sheet_name}' sheet...")
+            try:
+                df_aud = excel_file.parse(audio_sheet_name)
+                df_aud.columns = [str(c).strip().lower() for c in df_aud.columns]
+                audio_pairs = []
+                audio_configs = []
+                for _, row in df_aud.iterrows():
+                    name = str(row.get("config_name") or row.get("name") or row.get("tên cấu hình") or "Audio").strip()
+                    src_col = str(row.get("source_text_column") or row.get("source_col") or row.get("text_col") or row.get("cột văn bản nguồn") or "").strip()
+                    url_col = str(row.get("target_audio_url_column") or row.get("url_col") or row.get("audio_url_col") or row.get("cột url audio") or "").strip()
+                    lang = str(row.get("language_or_voice") or row.get("lang") or row.get("voice") or row.get("ngôn ngữ") or "multi").strip()
+                    enabled_raw = row.get("enabled") if "enabled" in row else row.get("kích hoạt", True)
+
+                    if not src_col or src_col.lower() == "nan":
+                        continue
+                    if not url_col or url_col.lower() == "nan":
+                        url_col = f"{src_col}_url" if not src_col.endswith("_url") else src_col
+
+                    enabled = True
+                    if pd.notna(enabled_raw):
+                        enabled = str(enabled_raw).strip().lower() not in ("false", "0", "no", "n", "tắt")
+
+                    audio_pairs.append({
+                        "text_col": src_col,
+                        "audio_content_col": src_col,
+                        "audio_url_col": url_col,
+                        "lang": lang
+                    })
+                    cfg_id = f"cfg_{src_col}"
+                    audio_configs.append({
+                        "id": cfg_id,
+                        "name": name,
+                        "source_col": src_col,
+                        "url_col": url_col,
+                        "lang": lang,
+                        "enabled": enabled
+                    })
+                    if "front" in src_col.lower() or "front" in name.lower():
+                        if "practice_settings" not in metadata or not isinstance(metadata["practice_settings"], dict):
+                            metadata["practice_settings"] = {}
+                        metadata["practice_settings"]["front_audio_config"] = {
+                            "audio_content_col": src_col,
+                            "audio_url_col": url_col,
+                            "lang": lang,
+                            "enabled": enabled
+                        }
+                    elif "back" in src_col.lower() or "back" in name.lower():
+                        if "practice_settings" not in metadata or not isinstance(metadata["practice_settings"], dict):
+                            metadata["practice_settings"] = {}
+                        metadata["practice_settings"]["back_audio_config"] = {
+                            "audio_content_col": src_col,
+                            "audio_url_col": url_col,
+                            "lang": lang,
+                            "enabled": enabled
+                        }
+
+                if "practice_settings" not in metadata or not isinstance(metadata["practice_settings"], dict):
+                    metadata["practice_settings"] = {}
+                if audio_pairs:
+                    metadata["practice_settings"]["audio_pairs"] = audio_pairs
+                if audio_configs:
+                    metadata["practice_settings"]["audio_configs"] = audio_configs
+            except Exception as e:
+                print(f"DEBUG: Error parsing Audio sheet: {e}")
+
+        # 2.4. Dedicated Sheet: Collaborators
+        collab_sheet_name = next((sheet_name_map[s] for s in ('collaborators', 'collaborator', 'cộng tác viên', 'contributors') if s in sheet_name_map), None)
+        if collab_sheet_name:
+            print(f"DEBUG: Parsing dedicated '{collab_sheet_name}' sheet...")
+            try:
+                df_collab = excel_file.parse(collab_sheet_name)
+                df_collab.columns = [str(c).strip().lower() for c in df_collab.columns]
+                collabs = []
+                for _, row in df_collab.iterrows():
+                    uname = str(row.get("username_or_email") or row.get("username") or row.get("email") or row.get("tên người dùng") or "").strip()
+                    role = str(row.get("role") or row.get("vai trò") or "editor").strip().lower()
+                    if uname and uname.lower() != "nan":
+                        collabs.append({"username": uname, "role": role or "editor"})
+                if collabs:
+                    metadata["collaborators"] = collabs
+            except Exception as e:
+                print(f"DEBUG: Error parsing Collaborators sheet: {e}")
         
         try:
             print(f"DEBUG: Metadata extracted: {metadata.get('title', '')}")
         except Exception:
             pass
 
-        # 2. Parse 'Data_Formula' or 'Data' sheet for questions / cards
+        # 3. Parse 'Data_Formula' or 'Data' sheet for questions / cards
         questions = []
         if not excel_file.sheet_names:
             return metadata, []
@@ -422,13 +658,10 @@ class ExcelDeckService:
                         else:
                             cell_value = val_cell if val_cell is not None else raw_cell
 
-                        if cell_value is not None:
-                            s_val = str(cell_value).strip()
-                            s_val = s_val.replace('_x000D_', '').replace('_x000d_', '')
-                            s_val = s_val.replace('\\r\\n', '\n').replace('\\n', '\n')
-                            if s_val and s_val.lower() != "nan":
-                                row_dict[col_name] = s_val
-                                has_data = True
+                        s_val = clean_cell_value(cell_value)
+                        if s_val:
+                            row_dict[col_name] = s_val
+                            has_data = True
 
                     if not has_data:
                         continue
@@ -499,10 +732,7 @@ class ExcelDeckService:
                     try:
                         val = row.get(col)
                         if pd.notna(val):
-                            s_val = str(val).strip()
-                            s_val = s_val.replace('_x000D_', '').replace('_x000d_', '')
-                            s_val = s_val.replace('\\r\\n', '\n').replace('\\n', '\n')
-                            return s_val
+                            return clean_cell_value(val)
                         return default
                     except Exception:
                         return default
@@ -586,7 +816,7 @@ class ExcelDeckService:
         output = BytesIO()
         ps = practice_settings or {}
         
-        # 1. Prepare Info sheet key-value data covering all 7 Edit Collection tabs
+        # 1. Prepare Info sheet key-value data covering core deck info and creator study defaults
         info_data = [
             {"key": "title", "value": deck_title or ""},
             {"key": "description", "value": deck_description or ""},
@@ -611,60 +841,8 @@ class ExcelDeckService:
             info_data.append({"key": "study_modes", "value": ", ".join(ps["study_modes"])})
         if "default_mode" in ps:
             info_data.append({"key": "default_mode", "value": str(ps["default_mode"])})
-            
-        # Practice Defaults
-        mcq = ps.get("mcq", {})
-        if isinstance(mcq, dict):
-            mcq_pairs = mcq.get("active_pairs", [])
-            if mcq_pairs:
-                info_data.append({"key": "mcq_active_pairs", "value": ", ".join([f"{p.get('q')}-{p.get('a')}" for p in mcq_pairs if isinstance(p, dict)])})
-            if "num_choices" in mcq:
-                info_data.append({"key": "mcq_num_choices", "value": str(mcq["num_choices"])})
-                
-        typing = ps.get("typing", {})
-        if isinstance(typing, dict):
-            typing_pairs = typing.get("active_pairs", [])
-            if typing_pairs:
-                info_data.append({"key": "typing_active_pairs", "value": ", ".join([f"{p.get('q')}-{p.get('a')}" for p in typing_pairs if isinstance(p, dict)])})
-                
-        listening = ps.get("listening", {})
-        if isinstance(listening, dict):
-            listening_pairs = listening.get("active_pairs", [])
-            if listening_pairs:
-                info_data.append({"key": "listening_active_pairs", "value": ", ".join([f"{p.get('q')}-{p.get('a')}" for p in listening_pairs if isinstance(p, dict)])})
-            if "num_choices" in listening:
-                info_data.append({"key": "listening_num_choices", "value": str(listening["num_choices"])})
 
-        # AI Intelligence
-        exp_prompt = ai_prompt or ps.get("ai_prompt", "")
-        hint_prompt = ai_prompt_hint or ps.get("ai_prompt_hint", "")
-        mne_prompt = ai_prompt_mnemonic or ps.get("ai_prompt_mnemonic", "")
-        if exp_prompt: info_data.append({"key": "ai_prompt_explanation", "value": str(exp_prompt)})
-        if hint_prompt: info_data.append({"key": "ai_prompt_hint", "value": str(hint_prompt)})
-        if mne_prompt: info_data.append({"key": "ai_prompt_mnemonic", "value": str(mne_prompt)})
-        if "ai_prompts" in ps and ps["ai_prompts"]:
-            info_data.append({"key": "ai_prompts", "value": json.dumps(ps["ai_prompts"], ensure_ascii=False)})
-
-        # Audio Pairs & Config
-        if "audio_pairs" in ps and ps["audio_pairs"]:
-            info_data.append({"key": "audio_pairs", "value": json.dumps(ps["audio_pairs"], ensure_ascii=False)})
-        if "front_audio_config" in ps and ps["front_audio_config"]:
-            info_data.append({"key": "front_audio_config", "value": json.dumps(ps["front_audio_config"], ensure_ascii=False)})
-        if "back_audio_config" in ps and ps["back_audio_config"]:
-            info_data.append({"key": "back_audio_config", "value": json.dumps(ps["back_audio_config"], ensure_ascii=False)})
-
-        # Collaboration
-        if collaborators:
-            collab_strs = []
-            for c in collaborators:
-                uname = c.get("username") or c.get("email") or ""
-                role = c.get("role") or "editor"
-                if uname:
-                    collab_strs.append(f"{uname}:{role}")
-            if collab_strs:
-                info_data.append({"key": "collaborators", "value": ", ".join(collab_strs)})
-
-        # Creator Study Defaults (Human-readable rows & JSON)
+        # Creator Study Defaults (Human-readable rows)
         study_defaults = {}
         if isinstance(ps, dict):
             if isinstance(ps.get("study_defaults"), dict):
@@ -675,20 +853,211 @@ class ExcelDeckService:
                     study_defaults[sk] = ps[sk]
 
         if study_defaults:
-            info_data.append({"key": "study_defaults", "value": json.dumps(study_defaults, ensure_ascii=False)})
             for sk, sv in study_defaults.items():
                 if sv is not None:
                     val_str = str(sv).lower() if isinstance(sv, bool) else str(sv)
                     info_data.append({"key": f"study_{sk}", "value": val_str})
 
-        # Full Practice Settings JSON (Backup / Advanced)
-        if ps:
-            info_data.append({"key": "practice_settings", "value": json.dumps(ps, ensure_ascii=False)})
-                
+        # Audio speech rate if present
+        if "speech_rate" in ps and ps["speech_rate"] is not None:
+            info_data.append({"key": "audio_speech_rate", "value": str(ps["speech_rate"])})
+            
         df_info = pd.DataFrame(info_data)
         
-        # 2. Prepare Data sheet rows
-        # Discover all custom keys present in any question's others dict (excluding internal _formulas)
+        # 2. Prepare Practice sheet rows (MCQ, Typing, Listening)
+        practice_rows = []
+        
+        # MCQ
+        mcq = ps.get("mcq", {})
+        if isinstance(mcq, dict):
+            mcq_pairs = mcq.get("active_pairs", []) or []
+            mcq_choices = mcq.get("num_choices", 4)
+            for p in mcq_pairs:
+                if isinstance(p, dict):
+                    q = p.get("q") or p.get("prompt_col", "")
+                    a = p.get("a") or p.get("answer_col", "")
+                    if q and a:
+                        practice_rows.append({
+                            "Mode": "mcq",
+                            "Question_Column": q,
+                            "Answer_Column": a,
+                            "Num_Choices": mcq_choices,
+                            "Enabled": "TRUE",
+                            "Description": "Multiple Choice Quiz"
+                        })
+        # If no mcq active_pairs but ps has root active_pairs
+        if not any(r["Mode"] == "mcq" for r in practice_rows):
+            root_pairs = ps.get("active_pairs", [])
+            root_choices = ps.get("num_choices", 4)
+            if isinstance(root_pairs, list):
+                for p in root_pairs:
+                    if isinstance(p, dict):
+                        q = p.get("q") or p.get("prompt_col", "")
+                        a = p.get("a") or p.get("answer_col", "")
+                        if q and a:
+                            practice_rows.append({
+                                "Mode": "mcq",
+                                "Question_Column": q,
+                                "Answer_Column": a,
+                                "Num_Choices": root_choices,
+                                "Enabled": "TRUE",
+                                "Description": "Multiple Choice Quiz"
+                            })
+                            
+        # Typing
+        typing = ps.get("typing", {})
+        if isinstance(typing, dict):
+            typing_pairs = typing.get("active_pairs", []) or []
+            for p in typing_pairs:
+                if isinstance(p, dict):
+                    q = p.get("q") or p.get("prompt_col", "")
+                    a = p.get("a") or p.get("answer_col", "")
+                    if isinstance(a, list):
+                        a_str = ", ".join([str(x).strip() for x in a if str(x).strip()])
+                    else:
+                        a_str = str(a or "").strip()
+                    if q and a_str:
+                        practice_rows.append({
+                            "Mode": "typing",
+                            "Question_Column": q,
+                            "Answer_Column": a_str,
+                            "Num_Choices": "",
+                            "Enabled": "TRUE",
+                            "Description": "Typing Practice"
+                        })
+                        
+        # Listening
+        listening = ps.get("listening", {})
+        if isinstance(listening, dict):
+            listening_pairs = listening.get("active_pairs", []) or []
+            listening_choices = listening.get("num_choices", 4)
+            for p in listening_pairs:
+                if isinstance(p, dict):
+                    q = p.get("q") or p.get("prompt_col", "")
+                    a = p.get("a") or p.get("answer_col", "")
+                    if q and a:
+                        practice_rows.append({
+                            "Mode": "listening",
+                            "Question_Column": q,
+                            "Answer_Column": a,
+                            "Num_Choices": listening_choices,
+                            "Enabled": "TRUE",
+                            "Description": "Listening Practice"
+                        })
+                        
+        practice_cols = ["Mode", "Question_Column", "Answer_Column", "Num_Choices", "Enabled", "Description"]
+        df_practice = pd.DataFrame(practice_rows, columns=practice_cols) if practice_rows else pd.DataFrame(columns=practice_cols)
+        
+        # 3. Prepare AI_Prompts sheet rows
+        ai_rows = []
+        raw_prompts = ps.get("ai_prompts", [])
+        if isinstance(raw_prompts, list):
+            for p in raw_prompts:
+                if isinstance(p, dict):
+                    col = p.get("column") or p.get("column_target") or p.get("id", "")
+                    title = p.get("title") or p.get("button_title") or col
+                    prompt = p.get("prompt") or p.get("prompt_template", "")
+                    if col and prompt:
+                        ai_rows.append({
+                            "Column_Target": col,
+                            "Button_Title": title,
+                            "Prompt_Template": prompt
+                        })
+                        
+        # Legacy fallback
+        if not ai_rows:
+            if ai_prompt or ps.get("ai_prompt"):
+                ai_rows.append({
+                    "Column_Target": "explanation",
+                    "Button_Title": "Giải thích AI",
+                    "Prompt_Template": ai_prompt or ps.get("ai_prompt")
+                })
+            if ai_prompt_hint or ps.get("ai_prompt_hint"):
+                ai_rows.append({
+                    "Column_Target": "hint",
+                    "Button_Title": "Gợi ý AI",
+                    "Prompt_Template": ai_prompt_hint or ps.get("ai_prompt_hint")
+                })
+            if ai_prompt_mnemonic or ps.get("ai_prompt_mnemonic"):
+                ai_rows.append({
+                    "Column_Target": "mnemonic",
+                    "Button_Title": "Mẹo nhớ AI",
+                    "Prompt_Template": ai_prompt_mnemonic or ps.get("ai_prompt_mnemonic")
+                })
+                
+        ai_cols = ["Column_Target", "Button_Title", "Prompt_Template"]
+        df_ai = pd.DataFrame(ai_rows, columns=ai_cols) if ai_rows else pd.DataFrame(columns=ai_cols)
+        
+        # 4. Prepare Audio sheet rows
+        audio_rows = []
+        raw_configs = ps.get("audio_configs", [])
+        if isinstance(raw_configs, list) and raw_configs:
+            for ac in raw_configs:
+                if isinstance(ac, dict):
+                    audio_rows.append({
+                        "Config_Name": ac.get("name") or "Audio",
+                        "Source_Text_Column": ac.get("source_col") or ac.get("text_col", ""),
+                        "Target_Audio_URL_Column": ac.get("url_col") or ac.get("audio_url_col", ""),
+                        "Language_Or_Voice": ac.get("lang") or ac.get("voice", "multi"),
+                        "Speech_Rate": str(ac.get("speech_rate", 1.0)),
+                        "Enabled": "TRUE" if ac.get("enabled", True) else "FALSE"
+                    })
+        elif "audio_pairs" in ps and isinstance(ps["audio_pairs"], list):
+            for ap in ps["audio_pairs"]:
+                if isinstance(ap, dict):
+                    src = ap.get("text_col") or ap.get("audio_content_col", "")
+                    url_col = ap.get("audio_url_col", f"{src}_url")
+                    lang = ap.get("lang", "multi")
+                    audio_rows.append({
+                        "Config_Name": f"TTS_{src}",
+                        "Source_Text_Column": src,
+                        "Target_Audio_URL_Column": url_col,
+                        "Language_Or_Voice": lang,
+                        "Speech_Rate": "1.0",
+                        "Enabled": "TRUE"
+                    })
+                    
+        # Check front/back audio config
+        front_cfg = ps.get("front_audio_config")
+        if isinstance(front_cfg, dict) and not any("front" in r["Config_Name"].lower() for r in audio_rows):
+            audio_rows.append({
+                "Config_Name": "Front Audio",
+                "Source_Text_Column": front_cfg.get("audio_content_col") or front_cfg.get("source_col", "front"),
+                "Target_Audio_URL_Column": front_cfg.get("audio_url_col", "front_audio_url"),
+                "Language_Or_Voice": front_cfg.get("lang") or front_cfg.get("voice", "ja-JP"),
+                "Speech_Rate": str(front_cfg.get("speed", 1.0)),
+                "Enabled": "TRUE" if front_cfg.get("enabled", True) else "FALSE"
+            })
+        back_cfg = ps.get("back_audio_config")
+        if isinstance(back_cfg, dict) and not any("back" in r["Config_Name"].lower() for r in audio_rows):
+            audio_rows.append({
+                "Config_Name": "Back Audio",
+                "Source_Text_Column": back_cfg.get("audio_content_col") or back_cfg.get("source_col", "back"),
+                "Target_Audio_URL_Column": back_cfg.get("audio_url_col", "back_audio_url"),
+                "Language_Or_Voice": back_cfg.get("lang") or back_cfg.get("voice", "vi-VN"),
+                "Speech_Rate": str(back_cfg.get("speed", 1.0)),
+                "Enabled": "TRUE" if back_cfg.get("enabled", True) else "FALSE"
+            })
+            
+        audio_cols = ["Config_Name", "Source_Text_Column", "Target_Audio_URL_Column", "Language_Or_Voice", "Speech_Rate", "Enabled"]
+        df_audio = pd.DataFrame(audio_rows, columns=audio_cols) if audio_rows else pd.DataFrame(columns=audio_cols)
+        
+        # 5. Prepare Collaborators sheet rows
+        collab_rows = []
+        if collaborators and isinstance(collaborators, list):
+            for c in collaborators:
+                if isinstance(c, dict):
+                    uname = c.get("username") or c.get("email") or ""
+                    role = c.get("role") or "editor"
+                    if uname:
+                        collab_rows.append({
+                            "Username_Or_Email": uname,
+                            "Role": role
+                        })
+        collab_cols = ["Username_Or_Email", "Role"]
+        df_collab = pd.DataFrame(collab_rows, columns=collab_cols) if collab_rows else pd.DataFrame(columns=collab_cols)
+
+        # 6. Prepare Data sheet rows
         custom_cols = set()
         for q in cards:
             if hasattr(q, 'others') and q.others and isinstance(q.others, dict):
@@ -766,24 +1135,87 @@ class ExcelDeckService:
                         row_form[col_key] = transpile_formula(tok_form, excel_row_num, col_name_to_letter)
                 rows_formula.append(row_form)
             
-        df_data = pd.DataFrame(rows_data)
+        df_data = pd.DataFrame(rows_data) if rows_data else pd.DataFrame(columns=export_cols)
         
-        # Write to Excel
+        # 7. Write all sheets using openpyxl engine
         with pd.ExcelWriter(output, engine='openpyxl') as writer:
             df_info.to_excel(writer, sheet_name="Info", index=False)
             df_data.to_excel(writer, sheet_name="Data", index=False)
+            df_practice.to_excel(writer, sheet_name="Practice", index=False)
+            df_ai.to_excel(writer, sheet_name="AI_Prompts", index=False)
+            df_audio.to_excel(writer, sheet_name="Audio", index=False)
+            df_collab.to_excel(writer, sheet_name="Collaborators", index=False)
             if has_any_formulas:
                 df_formula = pd.DataFrame(rows_formula)
                 df_formula.to_excel(writer, sheet_name="Data_Formula", index=False)
+                
+            wb = writer.book
+            from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
+
+            header_font = Font(name="Calibri", size=11, bold=True, color="FFFFFF")
+            body_font = Font(name="Calibri", size=10, color="111827")
+            key_font = Font(name="Consolas", size=10, bold=True, color="3730A3")
+            thin_border = Border(
+                left=Side(style="thin", color="E5E7EB"),
+                right=Side(style="thin", color="E5E7EB"),
+                top=Side(style="thin", color="E5E7EB"),
+                bottom=Side(style="thin", color="E5E7EB")
+            )
+
+            sheet_colors = {
+                "Info": "4F46E5",        # Indigo
+                "Data": "059669",        # Emerald
+                "Practice": "2563EB",    # Blue
+                "AI_Prompts": "D97706",  # Amber
+                "Audio": "0D9488",       # Teal
+                "Collaborators": "475569", # Slate
+                "Data_Formula": "7C3AED" # Violet
+            }
+
+            for sheet_name in wb.sheetnames:
+                ws = wb[sheet_name]
+                color = sheet_colors.get(sheet_name, "4F46E5")
+                fill = PatternFill(start_color=color, end_color=color, fill_type="solid")
+
+                ws.row_dimensions[1].height = 26
+                for cell in ws[1]:
+                    cell.font = header_font
+                    cell.fill = fill
+                    cell.alignment = Alignment(horizontal="center", vertical="center")
+
+                for row in ws.iter_rows(min_row=2, max_row=ws.max_row, min_col=1, max_col=ws.max_column):
+                    ws.row_dimensions[row[0].row].height = 20
+                    for cell in row:
+                        cell.border = thin_border
+                        if sheet_name == "Info" and cell.column == 1:
+                            cell.font = key_font
+                        else:
+                            cell.font = body_font
+                        cell.alignment = Alignment(horizontal="left", vertical="center", wrap_text=False)
+
+                for col in ws.columns:
+                    col_letter = get_column_letter(col[0].column)
+                    max_len = 0
+                    for cell in col:
+                        val_str = str(cell.value or '')
+                        if '\n' in val_str:
+                            val_str = max(val_str.split('\n'), key=len)
+                        if len(val_str) > max_len:
+                            max_len = len(val_str)
+                    ws.column_dimensions[col_letter].width = max(min(max_len + 4, 60), 12)
             
         return output.getvalue()
 
     @staticmethod
     def generate_template_excel(output_path: Optional[str] = None) -> bytes:
         """
-        Generates a standardized Vocaburn Excel Template containing a comprehensive Info sheet
-        (with all possible metadata & study settings fields + guides in columns C, D, E)
-        and an example Data sheet.
+        Generates a comprehensive 6-Sheet Vocaburn Excel Template containing:
+        1. Info: Core metadata, creator study defaults, and human-friendly guide.
+        2. Data: Japanese N2 vocabulary flashcards with rich custom columns.
+        3. Practice: Row-by-row configuration for MCQ, Typing (multi-target), and Listening.
+        4. AI_Prompts: Multiline custom prompts for mnemonic, kanji breakdown, and pronunciation.
+        5. Audio: TTS configs for Japanese front audio and Vietnamese back audio.
+        6. Collaborators: Role-based collaborator management.
         """
         import openpyxl
         from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
@@ -791,12 +1223,7 @@ class ExcelDeckService:
 
         wb = openpyxl.Workbook()
 
-        # 1. SHEET: Info
-        ws_info = wb.active
-        ws_info.title = "Info"
-
         header_font = Font(name="Calibri", size=11, bold=True, color="FFFFFF")
-        header_fill = PatternFill(start_color="4F46E5", end_color="4F46E5", fill_type="solid")
         section_font = Font(name="Calibri", size=11, bold=True, color="1E1B4B")
         section_fill = PatternFill(start_color="EEF2FF", end_color="EEF2FF", fill_type="solid")
         key_font = Font(name="Consolas", size=10, bold=True, color="3730A3")
@@ -811,67 +1238,64 @@ class ExcelDeckService:
             bottom=Side(style="thin", color="E5E7EB")
         )
 
-        headers = [
+        # ----------------------------------------------------
+        # 1. SHEET: Info (Indigo #4F46E5)
+        # ----------------------------------------------------
+        ws_info = wb.active
+        ws_info.title = "Info"
+        info_header_fill = PatternFill(start_color="4F46E5", end_color="4F46E5", fill_type="solid")
+
+        info_headers = [
             "Key",
             "Value",
             "Tên Tiếng Việt",
             "Tùy Chọn Hợp Lệ",
             "Hướng Dẫn & Giải Thích Chi Tiết"
         ]
-
-        ws_info.append(headers)
+        ws_info.append(info_headers)
         for col_idx in range(1, 6):
             cell = ws_info.cell(row=1, column=col_idx)
             cell.font = header_font
-            cell.fill = header_fill
+            cell.fill = info_header_fill
             cell.alignment = Alignment(horizontal="center", vertical="center")
         ws_info.row_dimensions[1].height = 28
 
         info_rows = [
             # Section 1
             ("--- THÔNG TIN CHUNG BỘ THẺ (General Information) ---", "", "", "", ""),
-            ("title", "500 Từ Vựng N2 Cơ Bản", "Tên bộ thẻ", "Văn bản tự do", "BẮT BUỘC: Tiêu đề hiển thị của bộ thẻ flashcard"),
-            ("description", "Bộ thẻ luyện từ vựng N2 tiếng Nhật có audio và ví dụ minh họa", "Mô tả bộ thẻ", "Văn bản tự do", "Mô tả tóm tắt nội dung, đối tượng học và mục tiêu"),
+            ("title", "Từ vựng N2 (From Thảo Lê)", "Tên bộ thẻ", "Văn bản tự do", "BẮT BUỘC: Tiêu đề hiển thị của bộ thẻ flashcard"),
+            ("description", "Bộ thẻ luyện thi từ vựng JLPT N2 kèm Kanji, cách nhớ, audio và ví dụ thực tế", "Mô tả bộ thẻ", "Văn bản tự do", "Mô tả tóm tắt nội dung, đối tượng học và mục tiêu"),
             ("category", "Tiếng Nhật", "Danh mục", "General, Tiếng Nhật, Tiếng Anh, Y Khoa...", "Tên danh mục phân loại bộ thẻ (hệ thống tự tạo nếu chưa có)"),
-            ("tags", "JLPT, N2, Từ vựng, Kanji", "Thẻ phân loại", "Các từ khóa cách nhau bằng dấu phẩy (,)", "Thẻ tìm kiếm giúp người dùng dễ dàng lọc và khám phá"),
+            ("tags", "JLPT, N2, THAOLE", "Thẻ phân loại", "Các từ khóa cách nhau bằng dấu phẩy (,)", "Thẻ tìm kiếm giúp người dùng dễ dàng lọc và khám phá"),
             ("cover_image", "https://images.unsplash.com/photo-1528164344705-475426879c0d", "URL Ảnh bìa", "URL ảnh hợp lệ (jpg, png, webp)", "Ảnh minh họa bìa hiển thị trên danh sách bộ thẻ"),
-            ("instruction", "Hãy đọc to từ vựng trước khi lật mặt sau kiểm tra nghĩa.", "Hướng dẫn học", "Văn bản tự do", "Ghi chú, mẹo hoặc chỉ dẫn của giáo viên dành cho học viên"),
+            ("instruction", "Hãy ghi nhớ Kanji và cách đọc trước khi lật thẻ kiểm tra nghĩa và mẹo nhớ!", "Hướng dẫn học", "Văn bản tự do", "Ghi chú, mẹo hoặc chỉ dẫn của giáo viên dành cho học viên"),
             ("is_public", "TRUE", "Công khai", "TRUE | FALSE", "TRUE: Mọi người đều có thể tìm và học. FALSE: Chỉ riêng bạn xem được"),
             ("time_limit", "0", "Giới hạn thời gian", "Số nguyên (phút), 0 = Không giới hạn", "Thời gian làm bài tối đa khi người học luyện tập bộ thẻ này"),
 
             # Section 2
             ("--- CÀI ĐẶT HỌC MẶC ĐỊNH ĐẦU VÀO (Creator Study Defaults) ---", "", "", "", ""),
+            ("study_learning_mode", "fsrs", "Chế độ học mặc định", "fsrs | roadmap | new | review | hardest | flip", "Chế độ khởi đầu khi người học bấm học thẻ: fsrs (giãn cách), roadmap (lộ trình), flip (lật nhanh)..."),
             ("study_autoplay_audio", "front", "Tự động phát âm thanh", "none | front | back | always", "Tự động phát TTS/Audio: none (tắt), front (mặt trước), back (mặt sau), always (cả hai)"),
             ("study_show_images", "always", "Hiển thị hình ảnh", "always | front | back | none", "Chế độ ảnh: always (luôn hiện), front (chỉ mặt trước), back (chỉ mặt sau), none (ẩn ảnh)"),
-            ("study_learning_mode", "fsrs", "Chế độ học mặc định", "fsrs | roadmap | new | review | hardest | flip", "Chế độ khởi đầu khi người học bấm học thẻ: fsrs (giãn cách), roadmap (lộ trình), flip (lật nhanh)..."),
             ("study_random_enabled", "FALSE", "Xáo trộn thứ tự thẻ", "TRUE | FALSE", "TRUE: Ngẫu nhiên thứ tự thẻ khi bắt đầu học; FALSE: Theo thứ tự gốc trong bảng"),
             ("study_sfx_enabled", "TRUE", "Âm thanh hiệu ứng", "TRUE | FALSE", "TRUE: Bật âm thanh chúc mừng / âm thanh phản hồi thao tác"),
             ("study_quick_learn_enabled", "FALSE", "Chế độ học nhanh", "TRUE | FALSE", "TRUE: Tự động chuyển thẻ kế tiếp ngay khi người học chọn hoặc đánh giá"),
             ("study_haptic_enabled", "TRUE", "Rung phản hồi (Điện thoại)", "TRUE | FALSE", "TRUE: Rung nhẹ thiết bị khi thao tác trên ứng dụng di động"),
             ("study_show_fsrs", "TRUE", "Nút đánh giá FSRS", "TRUE | FALSE", "TRUE: Hiển thị 4 nút đánh giá FSRS (Again, Hard, Good, Easy)"),
+            ("audio_speech_rate", "1.0", "Tốc độ đọc giọng nói", "0.5 đến 2.0 (mặc định 1.0)", "Tốc độ phát âm Text-to-Speech khi luyện tập"),
 
             # Section 3
-            ("--- CẤU HÌNH LUYỆN TẬP ĐA CHẾ ĐỘ (Practice Modes & Pairs) ---", "", "", "", ""),
-            ("mcq_active_pairs", "front-back, back-front", "Cặp luyện tập trắc nghiệm", "Cặp tên cột dạng: q-a, q2-a2", "Cột câu hỏi và cột đáp án tạo đề trắc nghiệm 4 đáp án"),
-            ("mcq_num_choices", "4", "Số lựa chọn trắc nghiệm", "Từ 3 đến 8 (mặc định 4)", "Số lượng đáp án A, B, C, D... hiển thị cho mỗi câu hỏi"),
-            ("typing_active_pairs", "back-front", "Cặp luyện tập gõ từ", "Cặp tên cột dạng: q-a", "Hiển thị cột q (gợi ý nghĩa) và yêu cầu người học gõ chính xác cột a"),
-            ("listening_active_pairs", "front_audio-back", "Cặp luyện tập nghe hiểu", "Cặp tên cột dạng: q-a", "Chế độ nghe audio phát ra và bấm chọn đáp án đúng"),
-            ("listening_num_choices", "4", "Số lựa chọn bài nghe", "Từ 3 đến 8 (mặc định 4)", "Số lựa chọn đáp án hiển thị trong bài luyện tập nghe"),
+            ("--- CẤU HÌNH CỘT ĐỘNG (Dynamic Columns) ---", "", "", "", ""),
+            ("custom_columns", "pos, cách đọc, hán việt, nghĩa, câu ví dụ, cách đọc câu ví dụ, nghĩa câu ví dụ, english, từ vựng, Cách nhớ cách đọc", "Danh sách cột tùy chỉnh", "Tên cột cách nhau dấu phẩy (,)", "Các cột dữ liệu bổ sung trong sheet Data phục vụ hiển thị và luyện tập"),
+            ("insight_columns", "Cách Nhớ Từ Vựng, Cách nhớ Hán Tự, Cách nhớ cách đọc", "Cột thẻ ghi nhớ (Insight)", "Tên cột cách nhau dấu phẩy (,)", "Các cột đặc biệt sẽ hiển thị dưới dạng khung mẹo ghi nhớ (Insight box) khi lật thẻ"),
 
             # Section 4
-            ("--- CẤU HÌNH TRÍ TUỆ NHÂN TẠO AI (AI Prompts) ---", "", "", "", ""),
-            ("ai_prompt_explanation", "Hãy giải thích chi tiết ý nghĩa và ngữ cảnh sử dụng của từ này.", "Prompt giải thích từ vựng", "Câu lệnh AI tự do", "Lời nhắc gửi tới AI khi người học bấm nút 'Giải thích bằng AI'"),
-            ("ai_prompt_hint", "Hãy tạo 1 câu đố ngắn không chứa từ khóa để người học tự đoán.", "Prompt gợi ý (Hint)", "Câu lệnh AI tự do", "Lời nhắc gửi tới AI để sinh gợi ý khi người học gặp khó"),
-            ("ai_prompt_mnemonic", "Hãy tạo mẹo ghi nhớ vui nhộn hoặc chiết tự chữ Hán cho từ này.", "Prompt mẹo ghi nhớ", "Câu lệnh AI tự do", "Lời nhắc gửi tới AI để tạo câu chuyện ghi nhớ từ vựng"),
-
-            # Section 5
-            ("--- QUẢN LÝ CỘNG TÁC VIÊN (Collaborators) ---", "", "", "", ""),
-            ("collaborators", "teacher_minh:editor, trogiang_nam:editor", "Cộng tác viên biên tập", "username:role (editor | viewer)", "Danh sách người dùng được quyền xem hoặc cùng sửa bộ thẻ, cách nhau dấu phẩy"),
-
-            # Section 6
-            ("--- CẤU HÌNH NÂNG CAO (Advanced JSON Backup) ---", "", "", "", ""),
-            ("study_defaults", "{}", "JSON cấu hình học mặc định", "Chuỗi JSON hợp lệ", "Chuỗi JSON chứa tất cả study_defaults (tự động cập nhật nếu nhập lẻ bên trên)"),
-            ("practice_settings", "{}", "JSON toàn bộ practice settings", "Chuỗi JSON hợp lệ", "Chuỗi JSON sao lưu toàn diện tất cả các tab cấu hình bộ thẻ")
+            ("--- HƯỚNG DẪN CÁC SHEET CHUYÊN BIỆT (Specialized Sheets Guide) ---", "", "", "", ""),
+            ("sheet_practice", "Xem sheet 'Practice'", "Cấu hình luyện tập đa chế độ", "MCQ | Typing | Listening", "Cấu hình trắc nghiệm (MCQ), gõ từ (Typing), luyện nghe (Listening) theo từng dòng trực quan"),
+            ("sheet_ai_prompts", "Xem sheet 'AI_Prompts'", "Cấu hình AI Prompt mẫu", "Mẫu câu lệnh tùy biến", "Viết prompt tự nhiên nhiều dòng cho từng cột kết quả, dùng {tên_cột} để lấy dữ liệu thẻ"),
+            ("sheet_audio", "Xem sheet 'Audio'", "Cấu hình Text-to-Speech", "TTS đa ngôn ngữ", "Chỉ định cột văn bản nguồn, ngôn ngữ phát âm và cột chứa file âm thanh"),
+            ("sheet_collaborators", "Xem sheet 'Collaborators'", "Cộng tác viên biên tập", "editor | viewer", "Tên tài khoản hoặc email kèm vai trò biên tập viên hoặc người xem"),
+            ("sheet_data", "Xem sheet 'Data'", "Bảng dữ liệu thẻ flashcard", "front, back + dynamic cols", "Bảng chứa toàn bộ từ vựng flashcard và các cột tùy chỉnh phong phú")
         ]
 
         current_row = 2
@@ -914,28 +1338,39 @@ class ExcelDeckService:
             current_row += 1
 
         ws_info.column_dimensions["A"].width = 28
-        ws_info.column_dimensions["B"].width = 24
+        ws_info.column_dimensions["B"].width = 28
         ws_info.column_dimensions["C"].width = 28
         ws_info.column_dimensions["D"].width = 36
         ws_info.column_dimensions["E"].width = 65
 
-        # 2. SHEET: Data
+        # ----------------------------------------------------
+        # 2. SHEET: Data (Emerald #059669)
+        # ----------------------------------------------------
         ws_data = wb.create_sheet(title="Data")
         data_header_fill = PatternFill(start_color="059669", end_color="059669", fill_type="solid")
 
         data_headers = [
+            "id",
             "front",
             "back",
-            "explanation",
+            "pos",
+            "cách đọc",
+            "hán việt",
+            "nghĩa",
+            "câu ví dụ",
+            "cách đọc câu ví dụ",
+            "nghĩa câu ví dụ",
+            "english",
+            "từ vựng",
+            "Cách Nhớ Từ Vựng",
+            "Cách nhớ Hán Tự",
+            "Cách nhớ cách đọc",
             "front_audio_content",
             "back_audio_content",
             "front_audio_url",
             "back_audio_url",
             "front_img",
-            "back_img",
-            "kanji",
-            "furigana",
-            "example"
+            "back_img"
         ]
 
         ws_data.append(data_headers)
@@ -946,52 +1381,79 @@ class ExcelDeckService:
             cell.alignment = Alignment(horizontal="center", vertical="center")
         ws_data.row_dimensions[1].height = 28
 
-        sample_rows = [
+        sample_cards = [
             [
-                "こんにちは",
-                "Xin chào",
-                "Lời chào thông dụng buổi sáng/chiều trong giao tiếp tiếng Nhật.",
-                "こんにちは",
-                "Xin chào",
+                "",
+                "契機",
+                "Cơ hội, động cơ, bước ngoặt",
+                "Danh từ",
+                "けいき",
+                "KHẾ CƠ",
+                "Cơ hội, động cơ, thời cơ để thay đổi hoặc bắt đầu điều gì đó",
+                "転職を契機に、新しい生活を始めた。",
+                "てんしょくをけいきに、あたらしいせいかつをはじめた。",
+                "Nhân cơ hội chuyển việc, tôi đã bắt đầu một cuộc sống mới.",
+                "opportunity, occasion, turning point",
+                "契機",
+                "KHẾ ước gặp thời CƠ tạo nên bước ngoặt lớn.",
+                "Chữ 契 (Khế) gồm chữ Đại và Đao, chữ 機 (Cơ) gồm bộ Mộc và Cơ.",
+                "Keiki giống bánh cake: Ăn bánh cake vào thời cơ bước ngoặt.",
+                "けいき",
+                "Cơ hội, động cơ, bước ngoặt",
                 "",
                 "",
-                "https://images.unsplash.com/photo-1528164344705-475426879c0d",
-                "",
-                "今日",
-                "konnichiwa",
-                "皆さん、こんにちは！"
+                "https://images.unsplash.com/photo-1507679799987-c73779587ccf",
+                ""
             ],
             [
-                "ありがとう",
-                "Cảm ơn",
-                "Lời cảm ơn lịch sự cơ bản.",
-                "ありがとう",
-                "Cảm ơn",
+                "",
+                "抱く",
+                "Ôm ấp, nuôi dưỡng (ước mơ, hoài bão)",
+                "Động từ nhóm 1 (Tha động từ)",
+                "いだく",
+                "BÃO",
+                "Ôm ấp, ấp ủ (hoài bão, ước mơ, cảm xúc hoặc nghi ngờ trong lòng)",
+                "大志を抱いて日本へ留学した。",
+                "たいしをいだいてにほんへりゅうがくした。",
+                "Tôi đã ôm ấp hoài bão lớn sang Nhật Bản du học.",
+                "to embrace, to harbor (a feeling, dream)",
+                "抱く",
+                "BÃO gồm bộ Thủ (tay) và Bao (bao bọc): Dùng tay ôm ấp lấy ước mơ.",
+                "Bộ Thủ (扌) + chữ Bao (包).",
+                "Idaku: Yêu da cưng nên ôm ấp nuôi dưỡng.",
+                "いだく",
+                "Ôm ấp, nuôi dưỡng ước mơ",
                 "",
                 "",
                 "",
-                "",
-                "有難う",
-                "arigatou",
-                "どうもありがとうございます。"
+                ""
             ],
             [
-                "勉強 (べんきょう)",
-                "Học tập, học hỏi",
-                "Danh từ hoặc động từ Suru: học tập chuyên cần.",
-                "べんきょう",
-                "Học tập",
+                "",
+                "克服",
+                "Khắc phục, vượt qua khó khăn",
+                "Danh từ, Động từ Suru",
+                "こくふく",
+                "KHẮC PHỤC",
+                "Khắc phục khó khăn, chiến thắng bệnh tật hoặc nhược điểm của bản thân",
+                "弱点を克服するために毎日特訓している。",
+                "じゃくてんをこくふくするためにまいにちとっくんしている。",
+                "Để khắc phục điểm yếu, tôi luyện tập đặc biệt mỗi ngày.",
+                "overcome, conquer (difficulties)",
+                "克服",
+                "KHẮC chế được mọi việc thì người khác sẽ thán PHỤC.",
+                "Khắc (克) + Phục (服).",
+                "Kokufuku: Cố cùng Phúc sẽ khắc phục được mọi trở ngại.",
+                "こくふく",
+                "Khắc phục, vượt qua khó khăn",
                 "",
                 "",
                 "",
-                "",
-                "勉強",
-                "benkyou",
-                "毎日日本語を勉強しています。"
+                ""
             ]
         ]
 
-        for r_idx, row_vals in enumerate(sample_rows, start=2):
+        for r_idx, row_vals in enumerate(sample_cards, start=2):
             for c_idx, val in enumerate(row_vals, start=1):
                 cell = ws_data.cell(row=r_idx, column=c_idx, value=val)
                 cell.font = val_font
@@ -1001,7 +1463,170 @@ class ExcelDeckService:
 
         for col_idx, h in enumerate(data_headers, start=1):
             col_letter = get_column_letter(col_idx)
-            ws_data.column_dimensions[col_letter].width = max(len(h) + 6, 20)
+            ws_data.column_dimensions[col_letter].width = max(len(h) + 4, 18)
+
+        # ----------------------------------------------------
+        # 3. SHEET: Practice (Blue #2563EB)
+        # ----------------------------------------------------
+        ws_practice = wb.create_sheet(title="Practice")
+        practice_header_fill = PatternFill(start_color="2563EB", end_color="2563EB", fill_type="solid")
+
+        practice_headers = [
+            "Mode",
+            "Question_Column",
+            "Answer_Column",
+            "Num_Choices",
+            "Enabled",
+            "Description"
+        ]
+        ws_practice.append(practice_headers)
+        for col_idx in range(1, len(practice_headers) + 1):
+            cell = ws_practice.cell(row=1, column=col_idx)
+            cell.font = header_font
+            cell.fill = practice_header_fill
+            cell.alignment = Alignment(horizontal="center", vertical="center")
+        ws_practice.row_dimensions[1].height = 28
+
+        sample_practice = [
+            ["mcq", "front", "nghĩa", "4", "TRUE", "Trắc nghiệm: Nhìn từ vựng chọn nghĩa tiếng Việt"],
+            ["mcq", "nghĩa", "front", "4", "TRUE", "Trắc nghiệm: Nhìn nghĩa tiếng Việt chọn từ vựng tương ứng"],
+            ["typing", "nghĩa", "front, từ vựng, cách đọc, english", "", "TRUE", "Gõ từ: Chấp nhận từ vựng, cách đọc hoặc tiếng Anh"],
+            ["listening", "front", "nghĩa", "4", "TRUE", "Luyện nghe: Nghe phát âm tiếng Nhật chọn đáp án đúng"]
+        ]
+
+        for r_idx, row_vals in enumerate(sample_practice, start=2):
+            for c_idx, val in enumerate(row_vals, start=1):
+                cell = ws_practice.cell(row=r_idx, column=c_idx, value=val)
+                cell.font = val_font
+                cell.border = thin_border
+                cell.alignment = Alignment(horizontal="left", vertical="center")
+            ws_practice.row_dimensions[r_idx].height = 20
+
+        for col_idx, h in enumerate(practice_headers, start=1):
+            col_letter = get_column_letter(col_idx)
+            ws_practice.column_dimensions[col_letter].width = max(len(h) + 4, 20)
+
+        # ----------------------------------------------------
+        # 4. SHEET: AI_Prompts (Amber #D97706)
+        # ----------------------------------------------------
+        ws_ai = wb.create_sheet(title="AI_Prompts")
+        ai_header_fill = PatternFill(start_color="D97706", end_color="D97706", fill_type="solid")
+
+        ai_headers = [
+            "Column_Target",
+            "Button_Title",
+            "Prompt_Template"
+        ]
+        ws_ai.append(ai_headers)
+        for col_idx in range(1, len(ai_headers) + 1):
+            cell = ws_ai.cell(row=1, column=col_idx)
+            cell.font = header_font
+            cell.fill = ai_header_fill
+            cell.alignment = Alignment(horizontal="center", vertical="center")
+        ws_ai.row_dimensions[1].height = 28
+
+        sample_ai_prompts = [
+            [
+                "Cách Nhớ Từ Vựng",
+                "Gợi Ý Cách Nhớ",
+                "Từ vựng: {từ vựng}\nCách đọc: {cách đọc}\nHán tự: {hán việt}\nNghĩa: {nghĩa}\n\nHãy giúp tôi tạo cách nhớ từ vựng trên thật sinh động, hài hước và dễ thuộc nhất."
+            ],
+            [
+                "Cách nhớ Hán Tự",
+                "Gợi Ý Cách Nhớ Hán Tự",
+                "Từ vựng: {từ vựng}\nHán tự: {hán việt}\nNghĩa: {nghĩa}\n\nHãy phân tích chiết tự các bộ thủ cấu tạo nên chữ Hán này và đưa ra câu chuyện ghi nhớ dễ hiểu."
+            ],
+            [
+                "Cách nhớ cách đọc",
+                "Mẹo Nhớ Cách Đọc",
+                "Từ vựng: {từ vựng}\nCách đọc: {cách đọc}\n\nHãy đưa ra mẹo nhớ cách phát âm bằng cách liên tưởng âm thanh tương tự hoặc quy tắc chuyển âm Hán Việt."
+            ]
+        ]
+
+        for r_idx, row_vals in enumerate(sample_ai_prompts, start=2):
+            for c_idx, val in enumerate(row_vals, start=1):
+                cell = ws_ai.cell(row=r_idx, column=c_idx, value=val)
+                cell.font = val_font
+                cell.border = thin_border
+                cell.alignment = Alignment(horizontal="left", vertical="top", wrap_text=True)
+            ws_ai.row_dimensions[r_idx].height = 65
+
+        ws_ai.column_dimensions["A"].width = 24
+        ws_ai.column_dimensions["B"].width = 26
+        ws_ai.column_dimensions["C"].width = 80
+
+        # ----------------------------------------------------
+        # 5. SHEET: Audio (Teal #0D9488)
+        # ----------------------------------------------------
+        ws_audio = wb.create_sheet(title="Audio")
+        audio_header_fill = PatternFill(start_color="0D9488", end_color="0D9488", fill_type="solid")
+
+        audio_headers = [
+            "Config_Name",
+            "Source_Text_Column",
+            "Target_Audio_URL_Column",
+            "Language_Or_Voice",
+            "Speech_Rate",
+            "Enabled"
+        ]
+        ws_audio.append(audio_headers)
+        for col_idx in range(1, len(audio_headers) + 1):
+            cell = ws_audio.cell(row=1, column=col_idx)
+            cell.font = header_font
+            cell.fill = audio_header_fill
+            cell.alignment = Alignment(horizontal="center", vertical="center")
+        ws_audio.row_dimensions[1].height = 28
+
+        sample_audio = [
+            ["Front Audio (Tiếng Nhật)", "cách đọc", "front_audio_url", "ja-JP", "1.0", "TRUE"],
+            ["Back Audio (Tiếng Việt)", "nghĩa", "back_audio_url", "vi-VN", "1.0", "TRUE"]
+        ]
+
+        for r_idx, row_vals in enumerate(sample_audio, start=2):
+            for c_idx, val in enumerate(row_vals, start=1):
+                cell = ws_audio.cell(row=r_idx, column=c_idx, value=val)
+                cell.font = val_font
+                cell.border = thin_border
+                cell.alignment = Alignment(horizontal="left", vertical="center")
+            ws_audio.row_dimensions[r_idx].height = 20
+
+        for col_idx, h in enumerate(audio_headers, start=1):
+            col_letter = get_column_letter(col_idx)
+            ws_audio.column_dimensions[col_letter].width = max(len(h) + 4, 22)
+
+        # ----------------------------------------------------
+        # 6. SHEET: Collaborators (Slate #475569)
+        # ----------------------------------------------------
+        ws_collab = wb.create_sheet(title="Collaborators")
+        collab_header_fill = PatternFill(start_color="475569", end_color="475569", fill_type="solid")
+
+        collab_headers = [
+            "Username_Or_Email",
+            "Role"
+        ]
+        ws_collab.append(collab_headers)
+        for col_idx in range(1, len(collab_headers) + 1):
+            cell = ws_collab.cell(row=1, column=col_idx)
+            cell.font = header_font
+            cell.fill = collab_header_fill
+            cell.alignment = Alignment(horizontal="center", vertical="center")
+        ws_collab.row_dimensions[1].height = 28
+
+        sample_collab = [
+            ["thaole_sensei", "editor"],
+            ["trogiang_viet", "viewer"]
+        ]
+
+        for r_idx, row_vals in enumerate(sample_collab, start=2):
+            for c_idx, val in enumerate(row_vals, start=1):
+                cell = ws_collab.cell(row=r_idx, column=c_idx, value=val)
+                cell.font = val_font
+                cell.border = thin_border
+                cell.alignment = Alignment(horizontal="left", vertical="center")
+            ws_collab.row_dimensions[r_idx].height = 20
+
+        ws_collab.column_dimensions["A"].width = 30
+        ws_collab.column_dimensions["B"].width = 16
 
         out_stream = BytesIO()
         wb.save(out_stream)
@@ -1012,3 +1637,4 @@ class ExcelDeckService:
                 f.write(tmpl_bytes)
 
         return tmpl_bytes
+

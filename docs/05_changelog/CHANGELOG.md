@@ -3,6 +3,41 @@
 Tài liệu này lưu lại lịch sử thay đổi cấu trúc, tính năng, và các bản vá lỗi của dự án Vocaburn.
 
 ### [2026-09-05]
+#### Kiến Trúc Workbook Đa Sheet Trực Quan Cho Excel Import & Export (Multi-Sheet Workbook Architecture)
+- **Tách Biệt Dữ Liệu & Cấu Hình Thành 6 Sheet Chuyên Biệt (`excel_service.py`)**:
+  - Loại bỏ hoàn toàn việc nhồi nhét mã JSON thô vào một ô duy nhất trong sheet `Info` (`ai_prompts`, `audio_pairs`, `mcq_active_pairs`, `typing_active_pairs`, `collaborators`, `practice_settings`).
+  - Chuyển đổi toàn diện sang mô hình bảng tính đa sheet chuẩn văn phòng:
+    - **Sheet `Info`** (Indigo `#4F46E5`): Chứa metadata cơ bản (tiêu đề, mô tả, danh mục, nhãn, ảnh bìa, cài đặt học mặc định `study_*`, danh sách cột tùy chỉnh `custom_columns`, cột mẹo ghi nhớ `insight_columns`). 100% sạch mã JSON thô.
+    - **Sheet `Data`** (Emerald `#059669`): Bảng dữ liệu thẻ flashcard với các cột lõi và toàn bộ các cột tùy chỉnh phong phú (`pos`, `cách đọc`, `hán việt`, `câu ví dụ`, `english`, v.v.).
+    - **Sheet `Practice`** (Blue `#2563EB`): Bảng cấu hình từng dòng cho trắc nghiệm (MCQ), luyện gõ từ (Typing) và luyện nghe (Listening) gồm các cột: `Mode`, `Question_Column`, `Answer_Column`, `Num_Choices`, `Enabled`, `Description`. Riêng chế độ Typing hỗ trợ danh sách nhiều cột đáp án chấp nhận được bằng cách phân tách dấu phẩy (ví dụ: `front, từ vựng, cách đọc, english`).
+    - **Sheet `AI_Prompts`** (Amber `#D97706`): Bảng cấu hình prompt AI cho từng cột mục tiêu (`Column_Target`, `Button_Title`, `Prompt_Template`), cho phép người dùng viết câu lệnh nhiều dòng tự nhiên mà không cần bọc chuỗi JSON hay escape dấu nháy.
+    - **Sheet `Audio`** (Teal `#0D9488`): Bảng cấu hình Text-to-Speech đa ngôn ngữ (`Config_Name`, `Source_Text_Column`, `Target_Audio_URL_Column`, `Language_Or_Voice`, `Speech_Rate`, `Enabled`).
+    - **Sheet `Collaborators`** (Slate `#475569`): Bảng quản lý cộng tác viên theo hàng ngang (`Username_Or_Email`, `Role`).
+- **Tương Thích Ngược 100% Cho Mọi File Excel Cũ (`parse_deck_excel`)**:
+  - Bộ bóc tách thông minh kiểm tra sự hiện diện của các sheet chuyên biệt (`Practice`, `AI_Prompts`, `Audio`, `Collaborators`). Nếu tìm thấy, ưu tiên sử dụng cấu hình từ các sheet này.
+  - Nếu người dùng tải lên file Excel 1 hoặc 2 sheet kiểu cũ, hệ thống tự động fallback đọc từ chuỗi JSON hoặc cặp chuỗi trong sheet `Info` mà không làm gián đoạn quy trình import.
+- **Tạo Mẫu Excel Tải Xuống Chuẩn N2 Nhật Ngữ Mới (`generate_template_excel`)**:
+  - File mẫu được sinh ra trực tiếp dưới định dạng 6 sheet với đầy đủ định dạng OpenPyXL chuyên nghiệp: tiêu đề màu sắc theo từng chủ đề, viền mỏng tinh tế, độ rộng cột tự căn chỉnh, hỗ trợ ngắt dòng (wrap text) cho prompt.
+  - Tích hợp bộ từ vựng JLPT N2 thực tế kèm Kanji, cách đọc, âm Hán Việt, ví dụ câu, mẹo nhớ cách đọc và mẫu prompt AI phân tích chiết tự Hán tự chi tiết.
+
+#### Nâng Cấp Toàn Diện Hệ Thống Excel Import & Export: Khắc Phục Lỗi Ánh Xạ Media, Bổ Sung Chế Độ Merge / Replace & Modal Xác Nhận Trực Quan
+- **Sửa Lỗi Ánh Xạ Thuộc Tính Media & Audio Khi Cập Nhật Qua Excel (`features.py`)**:
+  - Khắc phục lỗi `others.pop(...)` trả về `None` do các trường `front_audio_content`, `back_audio_content`, `front_audio_url`, `back_audio_url`, `front_img`, `back_img` đã được tách ra ở cấp root của object card. Giờ đây hệ thống ưu tiên đọc trực tiếp từ `c_data.get(...)`, bảo toàn trọn vẹn toàn bộ link audio và ảnh minh họa khi người dùng cập nhật thẻ qua file Excel.
+  - Xử lý ép kiểu an toàn cho trường ID (`int(float(str(raw_id).strip()))`), sửa triệt để lỗi so sánh chuỗi với số nguyên (`str` vs `int`) khiến hệ thống không nhận diện được thẻ đã có sẵn trong cơ sở dữ liệu.
+- **Hiện Thực Hóa Tham Số `mode` Cho Import Update (`merge` vs `replace`)**:
+  - `mode == "merge"`: Giữ nguyên các thẻ hiện có trong bộ thẻ, cập nhật các thẻ trùng ID và thêm mới các thẻ chưa có ID.
+  - `mode == "replace"`: Đồng bộ chính xác 1:1 theo file Excel. Tự động xóa sạch các thẻ trong cơ sở dữ liệu không còn xuất hiện trong file Excel (đồng thời dọn dẹp các bảng con `UserCardMastery`, `UserPracticeStats`, `UserCardNote`, `UserAnswer` an toàn).
+  - Trả về số liệu thống kê chi tiết trong response: `updated_count`, `added_count`, `deleted_count`, `total_cards`.
+- **Lọc Sạch Mã Lỗi Công Thức Excel & Chuẩn Hóa Dữ Liệu Số (`excel_service.py`)**:
+  - Tự động phát hiện và loại bỏ các mã lỗi tính toán công thức Excel phổ biến (`#REF!`, `#VALUE!`, `#N/A!`, `#N/A`, `#DIV/0!`, `#NAME?`, `#NUM!`, `#NULL!`, `#SPILL!`, `#CALC!`), tránh gây ô nhiễm dữ liệu từ vựng.
+  - Chuẩn hóa số nguyên, ngăn chặn hiện tượng số/mã bị chuyển thành số thập phân (như `1.0` thành `"1"`).
+- **Thêm Modal Phân Tích & Xác Nhận Diff Trước Khi Cập Nhật Thẻ (`DeckExcelManager.tsx`)**:
+  - Khi người dùng tải file lên, hệ thống gọi trước API `/{deck_id}/import-analyze` và mở Modal xem trước:
+    - Hiển thị trực quan số lượng thẻ mới sẽ thêm (`+New Cards`), số thẻ sẽ cập nhật (`Matched Cards`), và số thẻ sẽ xóa (`Missing Cards`).
+    - Cho phép chọn chế độ đồng bộ ngay trên giao diện: **Merge (Safe)** hoặc **Replace (Exact Sync)** với giải thích rõ ràng trước khi bấm **Apply Changes**.
+- **Chuẩn Hóa 100% Giao Diện Sang Tiếng Anh Theo Rule 7 (`DeckExcelManager.tsx`, `ImportFlashcard.tsx`)**:
+  - Chuyển toàn bộ các nhãn, placeholder, mô tả và thông báo từ tiếng Việt sang chuẩn tiếng Anh chuyên nghiệp trên cả trang Import độc lập lẫn component quản lý Excel trong Deck Settings.
+
 #### Khắc Phục Lỗi FSRS Bị Dừng Sau 1 Thẻ: Cho Phép Tiếp Tục Học Từ Mới
 - **Sửa Điều Kiện Ưu Tiên Thẻ Tiếp Theo Trong Chế Độ FSRS (`app/modules/deck/routes/play.py`)**:
   - Khắc phục lỗi điều kiện `len(all_learned_cards) == 0` khiến hệ thống dừng phiên học FSRS ngay lập tức sau khi người dùng đánh giá thẻ đầu tiên (do số thẻ đã học tăng lên 1 và thẻ đó chưa đến hạn ôn tập trong 4-10 phút tiếp theo).

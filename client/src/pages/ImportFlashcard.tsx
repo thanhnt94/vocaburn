@@ -88,8 +88,8 @@ const ImportFlashcard = ({ embedded = false, onImportSuccess }: ImportFlashcardP
   const [parsedCards, setParsedCards] = useState<{ content: string; explanation: string }[]>([])
   
   const [textMeta, setTextMeta] = useState({
-    title: 'Mục nhập văn bản nhanh',
-    description: 'Bộ thẻ được tạo bằng cách dán văn bản trực tiếp.',
+    title: 'Quick Text Import',
+    description: 'Deck created via direct text copy-paste.',
     category: 'General',
     tags: ''
   })
@@ -145,13 +145,13 @@ const ImportFlashcard = ({ embedded = false, onImportSuccess }: ImportFlashcardP
 
   const handleParseText = () => {
     if (!rawText.trim()) {
-      setError("Vui lòng nhập hoặc dán văn bản trước.")
+      setError("Please input or paste text first.")
       return
     }
     setError(null)
     const cards = parseRawText(rawText, delimiter)
     if (cards.length === 0) {
-      setError("Không tìm thấy dòng thẻ nào hợp lệ.")
+      setError("No valid card rows found.")
       return
     }
     setParsedCards(cards)
@@ -430,20 +430,20 @@ const ImportFlashcard = ({ embedded = false, onImportSuccess }: ImportFlashcardP
               <div className="bg-white rounded-[2.5rem] p-8 border border-slate-100 shadow-sm space-y-6 text-left">
                 <div>
                   <h3 className="text-lg font-black text-slate-900 uppercase tracking-tight italic">Quick Copy-Paste Ingestion</h3>
-                  <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mt-1">Dán văn bản trực tiếp để tạo bộ thẻ nhanh chóng</p>
+                  <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mt-1">Paste raw text directly to create flashcard decks rapidly</p>
                 </div>
 
                 <div className="space-y-4">
                   <div>
-                    <label className="text-[9px] font-black text-slate-400 uppercase tracking-wider block mb-2">Định dạng phân tách (Delimiter)</label>
+                    <label className="text-[9px] font-black text-slate-400 uppercase tracking-wider block mb-2">Delimiter Format</label>
                     <div className="flex flex-wrap gap-2">
                       {([
-                        { key: 'auto', label: 'Tự động phát hiện ⚙️' },
+                        { key: 'auto', label: 'Auto-detect ⚙️' },
                         { key: 'tab', label: 'Tab ⇥' },
-                        { key: 'space', label: 'Khoảng trắng ␣' },
-                        { key: 'comma', label: 'Dấu phẩy (,) ⎎' },
-                        { key: 'semicolon', label: 'Dấu chấm phẩy (;) ⎏' },
-                        { key: 'pipe', label: 'Dấu gạch đứng (|)' }
+                        { key: 'space', label: 'Space ␣' },
+                        { key: 'comma', label: 'Comma (,) ⎎' },
+                        { key: 'semicolon', label: 'Semicolon (;) ⎏' },
+                        { key: 'pipe', label: 'Pipe (|)' }
                       ] as const).map(item => (
                         <button
                           key={item.key}
@@ -463,13 +463,13 @@ const ImportFlashcard = ({ embedded = false, onImportSuccess }: ImportFlashcardP
                   </div>
 
                   <div>
-                    <label className="text-[9px] font-black text-slate-400 uppercase tracking-wider block mb-2">Nhập hoặc dán danh sách từ (Mỗi dòng một thẻ)</label>
+                    <label className="text-[9px] font-black text-slate-400 uppercase tracking-wider block mb-2">Input or Paste Vocabulary List (One card per line)</label>
                     <textarea
                       rows={10}
                       value={rawText}
                       onChange={(e) => setRawText(e.target.value)}
                       className="w-full bg-slate-50 border border-slate-200 rounded-[1.75rem] p-5 text-xs font-mono font-bold text-slate-800 outline-none focus:ring-4 focus:ring-indigo-500/5 transition-all"
-                      placeholder={`Ví dụ (sử dụng Tab):\napple\tquả táo\nbanana\tquả chuối\n\nVí dụ (sử dụng Dấu gạch đứng):\n猫\tcon mèo\n犬\tcon chó`}
+                      placeholder={`Example (Tab separated):\napple\tfruit\nbanana\tyellow fruit\n\nExample (Pipe separated):\ncat|feline pet\ndog|faithful animal`}
                     />
                   </div>
                 </div>
@@ -487,7 +487,7 @@ const ImportFlashcard = ({ embedded = false, onImportSuccess }: ImportFlashcardP
                     onClick={handleParseText}
                     className="px-8 py-4 bg-indigo-600 text-white text-[10px] font-black rounded-xl hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-100 uppercase tracking-[0.2em] active:scale-95"
                   >
-                    Tách từ vựng & Xem trước
+                    Parse Vocabulary & Preview
                   </button>
                 </div>
               </div>
@@ -512,7 +512,7 @@ const ImportFlashcard = ({ embedded = false, onImportSuccess }: ImportFlashcardP
                         onClick={() => { setParsedCards([]); setError(null); }}
                         className="flex-1 md:flex-none px-6 py-3 bg-slate-50 text-slate-400 text-[10px] font-black rounded-xl hover:bg-slate-100 transition-all uppercase tracking-widest"
                       >
-                        Hủy bỏ
+                        Discard
                       </button>
                       <button
                         onClick={handleTextImportSubmit}
@@ -595,7 +595,7 @@ const ImportFlashcard = ({ embedded = false, onImportSuccess }: ImportFlashcardP
                               type="text"
                               value={card.content}
                               onChange={(e) => handleUpdateCard(idx, 'content', e.target.value)}
-                              placeholder="Mặt trước (Từ vựng)"
+                              placeholder="Front Face (Term / Word)"
                               className="w-full h-10 bg-white border border-slate-200 rounded-xl px-3.5 text-xs font-bold text-slate-850 outline-none focus:border-indigo-500 transition-all"
                             />
                           </div>
@@ -604,7 +604,7 @@ const ImportFlashcard = ({ embedded = false, onImportSuccess }: ImportFlashcardP
                               type="text"
                               value={card.explanation}
                               onChange={(e) => handleUpdateCard(idx, 'explanation', e.target.value)}
-                              placeholder="Mặt sau (Định nghĩa / Giải nghĩa)"
+                              placeholder="Back Face (Definition & Explanation)"
                               className="w-full h-10 bg-white border border-slate-200 rounded-xl px-3.5 text-xs font-bold text-slate-850 outline-none focus:border-indigo-500 transition-all"
                             />
                           </div>
@@ -613,7 +613,7 @@ const ImportFlashcard = ({ embedded = false, onImportSuccess }: ImportFlashcardP
                           type="button"
                           onClick={() => handleDeleteCard(idx)}
                           className="w-9 h-9 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center hover:bg-rose-100 hover:text-rose-700 transition-all shrink-0"
-                          title="Xóa dòng"
+                          title="Delete row"
                         >
                           <Trash2 className="w-4 h-4" />
                         </button>
@@ -625,7 +625,7 @@ const ImportFlashcard = ({ embedded = false, onImportSuccess }: ImportFlashcardP
                       onClick={handleAddCardRow}
                       className="w-full py-3.5 border-2 border-dashed border-slate-200 hover:border-indigo-500 rounded-2xl flex items-center justify-center gap-2 text-slate-500 hover:text-indigo-600 transition-all text-xs font-black uppercase tracking-wider bg-white active:scale-[0.99]"
                     >
-                      <Plus className="w-4 h-4" /> Thêm dòng mới
+                      <Plus className="w-4 h-4" /> Add New Row
                     </button>
                   </div>
                 </div>
