@@ -855,7 +855,9 @@ async def get_deck_data(request: Request, deck_id: int, db: AsyncSession = Depen
         "tags": [t.name for t in deck.tags],
         "cover_image": deck.cover_image,
         "has_roadmap": has_roadmap,
-        "category_name": deck.category.name if deck.category else "General"
+        "category_name": deck.category.name if deck.category else "General",
+        "practice_settings": deck.practice_settings or {},
+        "default_mode": (deck.practice_settings or {}).get("study_defaults", {}).get("learning_mode", "fsrs")
     }
 
 def migrate_practice_settings(settings: Optional[dict]) -> dict:

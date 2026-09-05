@@ -38,6 +38,8 @@ export interface Quiz {
   progress_percent?: number
   created_at?: string | null
   last_studied_at?: string | null
+  practice_settings?: any
+  default_mode?: string
 }
 
 interface DashboardData {
@@ -635,14 +637,20 @@ export default function DecksPage() {
                         <div className="flex items-center gap-1.5 shrink-0">
                           {activeTab === 'my' && (
                             <div className="inline-flex items-center rounded-xl shadow-md shadow-indigo-200 hover:shadow-indigo-300 transition-all overflow-hidden bg-gradient-to-r from-indigo-600 via-indigo-600 to-purple-600 group/btn">
-                              {/* Direct Launch Button: Default FSRS Mode */}
+                              {/* Direct Launch Button: Default Deck Mode */}
                               <button
                                 onClick={(e) => {
                                   e.stopPropagation()
-                                  navigate(`/flashcard/${quiz.id}/play?mode=fsrs`)
+                                  const defMode = quiz.practice_settings?.study_defaults?.learning_mode || quiz.default_mode || 'fsrs'
+                                  if (defMode === 'mcq') navigate(`/practice/${quiz.id}/mcq`)
+                                  else if (defMode === 'typing') navigate(`/practice/${quiz.id}/typing`)
+                                  else if (defMode === 'listening') navigate(`/practice/${quiz.id}/listening`)
+                                  else if (defMode === 'roadmap') navigate(`/flashcard/${quiz.id}/play?mode=roadmap`)
+                                  else if (defMode === 'flip') navigate(`/flashcard/${quiz.id}/play?mode=flip`)
+                                  else navigate(`/flashcard/${quiz.id}/play?mode=fsrs`)
                                 }}
                                 className="h-9 pl-3.5 pr-2.5 hover:bg-white/10 text-white font-black text-xs active:scale-[0.98] transition-all flex items-center gap-1.5 cursor-pointer select-none"
-                                title="Study now with FSRS spaced repetition"
+                                title="Study now with configured deck mode"
                               >
                                 <Play className="w-3.5 h-3.5 fill-current" />
                                 <span>Study</span>

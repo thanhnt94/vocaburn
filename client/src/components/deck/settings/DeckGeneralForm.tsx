@@ -1,13 +1,36 @@
 import React, { useState, useEffect } from 'react'
-import { Save, Globe, Lock, Image as ImageIcon, Sparkles, Tag, Check } from 'lucide-react'
+import {
+  Save,
+  Globe,
+  Lock,
+  Image as ImageIcon,
+  Sparkles,
+  Tag,
+  Check,
+  Brain,
+  Compass,
+  RotateCcw,
+  Trophy,
+  Keyboard,
+  Headphones,
+  Volume2,
+  VolumeX,
+  ImageOff,
+  Shuffle,
+  Music,
+  Sliders
+} from 'lucide-react'
 import axios from 'axios'
 import { useQueryClient } from '@tanstack/react-query'
+import { cn } from '@/lib/utils'
 
 export interface DeckGeneralFormProps {
   deckId: string | number
   initialData: any
   onSaved?: () => void
 }
+
+export type DeckStudyMode = 'fsrs' | 'roadmap' | 'flip' | 'mcq' | 'typing' | 'listening'
 
 export function DeckGeneralForm({ deckId, initialData, onSaved }: DeckGeneralFormProps) {
   const queryClient = useQueryClient()
@@ -16,6 +39,15 @@ export function DeckGeneralForm({ deckId, initialData, onSaved }: DeckGeneralFor
   const [coverImage, setCoverImage] = useState('')
   const [isPublic, setIsPublic] = useState(true)
   const [tagsInput, setTagsInput] = useState('')
+
+  // Deck Creator Study Defaults
+  const [defaultMode, setDefaultMode] = useState<DeckStudyMode>('fsrs')
+  const [autoplayAudio, setAutoplayAudio] = useState<'none' | 'front' | 'back' | 'always'>('none')
+  const [showImages, setShowImages] = useState<'always' | 'front' | 'back' | 'none'>('always')
+  const [randomEnabled, setRandomEnabled] = useState(false)
+  const [sfxEnabled, setSfxEnabled] = useState(true)
+  const [quickLearnEnabled, setQuickLearnEnabled] = useState(false)
+
   const [isSaving, setIsSaving] = useState(false)
   const [saveSuccess, setSaveSuccess] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -27,6 +59,14 @@ export function DeckGeneralForm({ deckId, initialData, onSaved }: DeckGeneralFor
       setCoverImage(initialData.cover_image || '')
       setIsPublic(initialData.is_public !== false)
       setTagsInput(Array.isArray(initialData.tags) ? initialData.tags.join(', ') : '')
+
+      const studyDefs = initialData?.practice_settings?.study_defaults || {}
+      if (studyDefs.learning_mode) setDefaultMode(studyDefs.learning_mode)
+      if (studyDefs.autoplay_audio) setAutoplayAudio(studyDefs.autoplay_audio)
+      if (studyDefs.show_images) setShowImages(studyDefs.show_images)
+      if (studyDefs.random_enabled !== undefined) setRandomEnabled(Boolean(studyDefs.random_enabled))
+      if (studyDefs.sfx_enabled !== undefined) setSfxEnabled(Boolean(studyDefs.sfx_enabled))
+      if (studyDefs.quick_learn_enabled !== undefined) setQuickLearnEnabled(Boolean(studyDefs.quick_learn_enabled))
     }
   }, [initialData])
 
@@ -46,6 +86,15 @@ export function DeckGeneralForm({ deckId, initialData, onSaved }: DeckGeneralFor
       .map((t) => t.trim())
       .filter(Boolean)
 
+    const studyDefaults = {
+      learning_mode: defaultMode,
+      autoplay_audio: autoplayAudio,
+      show_images: showImages,
+      random_enabled: randomEnabled,
+      sfx_enabled: sfxEnabled,
+      quick_learn_enabled: quickLearnEnabled
+    }
+
     try {
       await axios.patch(`/api/v1/deck/${deckId}`, {
         title: title.trim(),
@@ -53,9 +102,19 @@ export function DeckGeneralForm({ deckId, initialData, onSaved }: DeckGeneralFor
         cover_image: coverImage.trim() || null,
         is_public: isPublic,
         tags: parsedTags,
+        study_defaults: studyDefaults
+      })
+
+      // Also sync to practice-settings with is_creator: true for complete consistency
+      await axios.post(`/api/v1/deck/${deckId}/practice-settings`, {
+        is_creator: true,
+        settings: {
+          study_defaults: studyDefaults
+        }
       })
 
       queryClient.invalidateQueries({ queryKey: ['quiz', String(deckId)] })
+      queryClient.invalidateQueries({ queryKey: ['deck-practice-settings', String(deckId)] })
       queryClient.invalidateQueries({ queryKey: ['dashboard'] })
       setSaveSuccess(true)
       setTimeout(() => setSaveSuccess(false), 3000)
@@ -181,6 +240,252 @@ export function DeckGeneralForm({ deckId, initialData, onSaved }: DeckGeneralFor
             }`}
           />
         </button>
+      </div>
+
+      {/* ═══════════ CHẾ ĐỘ HỌC MẶC ĐỊNH CỦA BỘ THẺ (DECK DEFAULT STUDY MODE) ═══════════ */}
+      <div className="p-4 sm:p-5 rounded-3xl bg-slate-50/70 border border-slate-200/80 space-y-4">
+        <div className="flex items-center justify-between border-b border-slate-200/60 pb-3">
+          <div className="space-y-0.5">
+            <h3 className="text-xs font-black text-slate-900 uppercase tracking-wider flex items-center gap-2">
+              <Sliders className="w-4 h-4 text-orange-500" />
+              <span>Chế Độ Học Mặc Định Bộ Thẻ (Default Study Mode)</span>
+            </h3>
+            <p className="text-[11px] text-slate-500 font-medium">
+              Chỉ định chế độ học và trải nghiệm khởi đầu khi người học bấm "Study Now" mở bộ thẻ này
+            </p>
+          </div>
+          <span className="px-2.5 py-1 rounded-full text-[9px] font-black uppercase tracking-wider bg-orange-100/80 text-orange-800 border border-orange-200/70">
+            Cài đặt tác giả
+          </span>
+        </div>
+
+        {/* 6 Modes Grid */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
+          {[
+            {
+              id: 'fsrs' as const,
+              title: 'Flashcard FSRS',
+              sublabel: 'Lặp lại ngắt quãng v6',
+              desc: 'Ôn luyện ghi nhớ thông minh theo thuật toán FSRS hiện đại',
+              icon: Brain,
+              color: 'text-purple-600 bg-purple-50',
+            },
+            {
+              id: 'roadmap' as const,
+              title: 'Flashcard Lộ Trình',
+              sublabel: 'Roadmap hàng ngày',
+              desc: 'Học thẻ mới và ôn tập đúng hạn theo chỉ tiêu mỗi ngày',
+              icon: Compass,
+              color: 'text-amber-600 bg-amber-50',
+            },
+            {
+              id: 'flip' as const,
+              title: 'Lật Thẻ Phản Xạ',
+              sublabel: 'Flip Cards tự do',
+              desc: 'Chế độ lật thẻ 2 mặt truyền thống, thích hợp xem lướt phản xạ',
+              icon: RotateCcw,
+              color: 'text-emerald-600 bg-emerald-50',
+            },
+            {
+              id: 'mcq' as const,
+              title: 'Trắc Nghiệm MCQ',
+              sublabel: 'Chọn 1 trong 4 đáp án',
+              desc: 'Hỏi mặt trước và chọn nhanh đáp án mặt sau từ các phương án ngẫu nhiên',
+              icon: Trophy,
+              color: 'text-amber-600 bg-amber-50',
+            },
+            {
+              id: 'typing' as const,
+              title: 'Gõ Từ Vựng',
+              sublabel: 'Luyện nhớ mặt chữ',
+              desc: 'Bắt buộc gõ chuẩn xác từng ký tự của từ vựng để ghi nhớ sâu',
+              icon: Keyboard,
+              color: 'text-indigo-600 bg-indigo-50',
+            },
+            {
+              id: 'listening' as const,
+              title: 'Luyện Nghe',
+              sublabel: 'Nghe TTS chọn nghĩa',
+              desc: 'Phát âm thanh đọc mẫu và chọn đáp án dịch nghĩa chuẩn',
+              icon: Headphones,
+              color: 'text-sky-600 bg-sky-50',
+            },
+          ].map(m => {
+            const Icon = m.icon
+            const isSelected = defaultMode === m.id
+            return (
+              <button
+                key={m.id}
+                type="button"
+                onClick={() => setDefaultMode(m.id)}
+                className={cn(
+                  "p-3 rounded-2xl border text-left transition-all relative flex flex-col justify-between gap-2 cursor-pointer select-none group",
+                  isSelected
+                    ? "bg-white border-orange-500 shadow-xs ring-1 ring-orange-500/30"
+                    : "bg-white/80 border-slate-200/70 hover:bg-white hover:border-slate-300"
+                )}
+              >
+                <div className="flex items-start justify-between gap-2">
+                  <div className="flex items-center gap-2.5">
+                    <div className={cn(
+                      "w-8 h-8 rounded-xl flex items-center justify-center text-xs shrink-0 shadow-2xs transition-transform group-hover:scale-105",
+                      m.color
+                    )}>
+                      <Icon className="w-4 h-4" />
+                    </div>
+                    <div className="min-w-0">
+                      <span className={cn("text-xs font-black block truncate", isSelected ? "text-orange-950" : "text-slate-800")}>
+                        {m.title}
+                      </span>
+                      <span className="text-[10px] text-slate-400 font-bold block truncate">
+                        {m.sublabel}
+                      </span>
+                    </div>
+                  </div>
+
+                  {isSelected && (
+                    <span className="w-5 h-5 rounded-full bg-orange-500 text-white flex items-center justify-center shrink-0 text-[10px] shadow-xs">
+                      <Check className="w-3 h-3 stroke-[3]" />
+                    </span>
+                  )}
+                </div>
+
+                <p className="text-[10px] text-slate-500 font-medium line-clamp-2 leading-relaxed">
+                  {m.desc}
+                </p>
+              </button>
+            )
+          })}
+        </div>
+
+        {/* Sensory & Input Defaults Row */}
+        <div className="pt-2 border-t border-slate-200/60 grid grid-cols-1 md:grid-cols-2 gap-3">
+          {/* TTS Autoplay */}
+          <div className="p-3 bg-white rounded-2xl border border-slate-200/70 space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                <Volume2 className="w-3.5 h-3.5 text-indigo-600" />
+                Âm thanh đọc TTS mặc định
+              </span>
+            </div>
+            <div className="grid grid-cols-4 gap-1 p-1 bg-slate-50 rounded-xl border border-slate-200/50">
+              {[
+                { id: 'none', label: 'Tắt', icon: VolumeX },
+                { id: 'front', label: 'Mặt trước', icon: Volume2 },
+                { id: 'back', label: 'Mặt sau', icon: Volume2 },
+                { id: 'always', label: 'Cả hai', icon: Volume2 }
+              ].map(opt => {
+                const active = autoplayAudio === opt.id
+                return (
+                  <button
+                    key={opt.id}
+                    type="button"
+                    onClick={() => setAutoplayAudio(opt.id as any)}
+                    className={cn(
+                      "py-1.5 px-1 rounded-lg text-[10px] font-black transition-all flex flex-col items-center justify-center gap-0.5 cursor-pointer active:scale-95",
+                      active
+                        ? "bg-indigo-600 text-white shadow-xs"
+                        : "text-slate-500 hover:text-slate-800 hover:bg-white"
+                    )}
+                  >
+                    <opt.icon className="w-3 h-3" />
+                    <span className="truncate">{opt.label}</span>
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+
+          {/* Show Images */}
+          <div className="p-3 bg-white rounded-2xl border border-slate-200/70 space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                <ImageIcon className="w-3.5 h-3.5 text-indigo-600" />
+                Hình ảnh minh họa mặc định
+              </span>
+            </div>
+            <div className="grid grid-cols-4 gap-1 p-1 bg-slate-50 rounded-xl border border-slate-200/50">
+              {[
+                { id: 'always', label: 'Cả hai', icon: ImageIcon },
+                { id: 'front', label: 'Mặt trước', icon: ImageIcon },
+                { id: 'back', label: 'Mặt sau', icon: ImageIcon },
+                { id: 'none', label: 'Tắt', icon: ImageOff }
+              ].map(opt => {
+                const active = showImages === opt.id
+                return (
+                  <button
+                    key={opt.id}
+                    type="button"
+                    onClick={() => setShowImages(opt.id as any)}
+                    className={cn(
+                      "py-1.5 px-1 rounded-lg text-[10px] font-black transition-all flex flex-col items-center justify-center gap-0.5 cursor-pointer active:scale-95",
+                      active
+                        ? "bg-indigo-600 text-white shadow-xs"
+                        : "text-slate-500 hover:text-slate-800 hover:bg-white"
+                    )}
+                  >
+                    <opt.icon className="w-3 h-3" />
+                    <span className="truncate">{opt.label}</span>
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+        </div>
+
+        {/* Sensory Toggles */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 pt-1">
+          <div className="flex items-center justify-between p-2.5 rounded-xl bg-white border border-slate-200/60">
+            <div className="flex items-center gap-2 min-w-0 mr-2">
+              <Shuffle className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+              <span className="text-xs font-bold text-slate-700 truncate">Mặc định xáo trộn (Shuffle)</span>
+            </div>
+            <button
+              type="button"
+              onClick={() => setRandomEnabled(!randomEnabled)}
+              className={cn(
+                "w-9 h-5 rounded-full transition-all relative p-0.5 shrink-0 cursor-pointer",
+                randomEnabled ? "bg-orange-500" : "bg-slate-200"
+              )}
+            >
+              <div className={cn("w-4 h-4 rounded-full bg-white shadow-sm transition-transform", randomEnabled ? "translate-x-4" : "translate-x-0")} />
+            </button>
+          </div>
+
+          <div className="flex items-center justify-between p-2.5 rounded-xl bg-white border border-slate-200/60">
+            <div className="flex items-center gap-2 min-w-0 mr-2">
+              <Music className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+              <span className="text-xs font-bold text-slate-700 truncate">Âm thanh SFX</span>
+            </div>
+            <button
+              type="button"
+              onClick={() => setSfxEnabled(!sfxEnabled)}
+              className={cn(
+                "w-9 h-5 rounded-full transition-all relative p-0.5 shrink-0 cursor-pointer",
+                sfxEnabled ? "bg-orange-500" : "bg-slate-200"
+              )}
+            >
+              <div className={cn("w-4 h-4 rounded-full bg-white shadow-sm transition-transform", sfxEnabled ? "translate-x-4" : "translate-x-0")} />
+            </button>
+          </div>
+
+          <div className="flex items-center justify-between p-2.5 rounded-xl bg-white border border-slate-200/60">
+            <div className="flex items-center gap-2 min-w-0 mr-2">
+              <Sparkles className="w-3.5 h-3.5 text-purple-600 shrink-0" />
+              <span className="text-xs font-bold text-slate-700 truncate">Tự động chuyển câu</span>
+            </div>
+            <button
+              type="button"
+              onClick={() => setQuickLearnEnabled(!quickLearnEnabled)}
+              className={cn(
+                "w-9 h-5 rounded-full transition-all relative p-0.5 shrink-0 cursor-pointer",
+                quickLearnEnabled ? "bg-orange-500" : "bg-slate-200"
+              )}
+            >
+              <div className={cn("w-4 h-4 rounded-full bg-white shadow-sm transition-transform", quickLearnEnabled ? "translate-x-4" : "translate-x-0")} />
+            </button>
+          </div>
+        </div>
       </div>
 
       <div className="pt-2 flex justify-end">

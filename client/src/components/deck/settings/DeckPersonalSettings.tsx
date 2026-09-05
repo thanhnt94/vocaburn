@@ -1,0 +1,567 @@
+import React, { useState, useEffect } from 'react'
+import {
+  Brain,
+  Compass,
+  RotateCcw,
+  Trophy,
+  Keyboard,
+  Headphones,
+  Sparkles,
+  Volume2,
+  VolumeX,
+  Image as ImageIcon,
+  ImageOff,
+  Shuffle,
+  Music,
+  Check,
+  RotateCcw as ResetIcon,
+  Save,
+  User,
+  ShieldAlert,
+  Layers
+} from 'lucide-react'
+import axios from 'axios'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { cn } from '@/lib/utils'
+
+export interface DeckPersonalSettingsProps {
+  deckId: string | number
+  deckTitle?: string
+  isOwner?: boolean
+  onSaved?: () => void
+}
+
+type PreferredMode = 'inherit' | 'fsrs' | 'roadmap' | 'flip' | 'mcq' | 'typing' | 'listening'
+type AudioChoice = 'inherit' | 'none' | 'front' | 'back' | 'always'
+type ImageChoice = 'inherit' | 'always' | 'front' | 'back' | 'none'
+
+export function DeckPersonalSettings({
+  deckId,
+  deckTitle,
+  isOwner = false,
+  onSaved
+}: DeckPersonalSettingsProps) {
+  const queryClient = useQueryClient()
+
+  // 1. Fetch practice & study settings (both creator defaults and user overrides)
+  const { data: settingsData, isLoading } = useQuery({
+    queryKey: ['deck-practice-settings', String(deckId)],
+    queryFn: async () => {
+      const res = await axios.get(`/api/v1/deck/${deckId}/practice-settings`)
+      return res.data
+    },
+    enabled: !!deckId,
+    staleTime: 30 * 1000,
+  })
+
+  const creatorDefs = settingsData?.creator_study_defaults || settingsData?.study_defaults || {}
+  const userOverrides = settingsData?.user_study_settings || {}
+  const isCustomized = Boolean(settingsData?.is_study_customized)
+
+  // Local state
+  const [preferredMode, setPreferredMode] = useState<PreferredMode>('inherit')
+  const [autoplayAudio, setAutoplayAudio] = useState<AudioChoice>('inherit')
+  const [showImages, setShowImages] = useState<ImageChoice>('inherit')
+  const [randomEnabled, setRandomEnabled] = useState<boolean | 'inherit'>('inherit')
+  const [sfxEnabled, setSfxEnabled] = useState<boolean | 'inherit'>('inherit')
+  const [quickLearnEnabled, setQuickLearnEnabled] = useState<boolean | 'inherit'>('inherit')
+
+  const [isSaving, setIsSaving] = useState(false)
+  const [isResetting, setIsResetting] = useState(false)
+  const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
+
+  // Sync state when data loads
+  useEffect(() => {
+    if (settingsData) {
+      if (userOverrides.learning_mode) {
+        setPreferredMode(userOverrides.learning_mode as PreferredMode)
+      } else {
+        setPreferredMode('inherit')
+      }
+
+      if (userOverrides.autoplay_audio) {
+        setAutoplayAudio(userOverrides.autoplay_audio as AudioChoice)
+      } else {
+        setAutoplayAudio('inherit')
+      }
+
+      if (userOverrides.show_images) {
+        setShowImages(userOverrides.show_images as ImageChoice)
+      } else {
+        setShowImages('inherit')
+      }
+
+      if (userOverrides.random_enabled !== undefined) {
+        setRandomEnabled(Boolean(userOverrides.random_enabled))
+      } else {
+        setRandomEnabled('inherit')
+      }
+
+      if (userOverrides.sfx_enabled !== undefined) {
+        setSfxEnabled(Boolean(userOverrides.sfx_enabled))
+      } else {
+        setSfxEnabled('inherit')
+      }
+
+      if (userOverrides.quick_learn_enabled !== undefined) {
+        setQuickLearnEnabled(Boolean(userOverrides.quick_learn_enabled))
+      } else {
+        setQuickLearnEnabled('inherit')
+      }
+    }
+  }, [settingsData])
+
+  const creatorMode = creatorDefs.learning_mode || 'fsrs'
+  const creatorModeLabel = {
+    fsrs: 'Flashcard FSRS',
+    roadmap: 'Flashcard Lộ Trình',
+    flip: 'Lật Thẻ Phản Xạ',
+    mcq: 'Trắc Nghiệm MCQ',
+    typing: 'Gõ Từ Vựng',
+    listening: 'Luyện Nghe',
+    new: 'Học Từ Mới',
+    review: 'Ôn Tập Thẻ Đến Hạn'
+  }[creatorMode as string] || creatorMode
+
+  const studyModes: {
+    id: PreferredMode
+    title: string
+    sublabel: string
+    desc: string
+    icon: React.ComponentType<{ className?: string }>
+    color: string
+    border: string
+    badge?: string
+  }[] = [
+    {
+      id: 'inherit',
+      title: 'Theo mặc định bộ thẻ',
+      sublabel: `Tác giả: ${creatorModeLabel}`,
+      desc: 'Tự động kế thừa chế độ học do người quản lý bộ thẻ thiết lập',
+      icon: Layers,
+      color: 'text-indigo-600 bg-indigo-50',
+      border: 'border-indigo-500',
+      badge: 'Mặc định'
+    },
+    {
+      id: 'fsrs',
+      title: 'Flashcard FSRS',
+      sublabel: 'Lặp lại ngắt quãng v6',
+      desc: 'Ôn luyện thông minh theo thuật toán lặp lại ngắt quãng hiện đại nhất',
+      icon: Brain,
+      color: 'text-purple-600 bg-purple-50',
+      border: 'border-purple-500'
+    },
+    {
+      id: 'roadmap',
+      title: 'Flashcard Lộ Trình',
+      sublabel: 'Roadmap hàng ngày',
+      desc: 'Học thẻ mới và ôn tập đúng hạn theo chỉ tiêu mỗi ngày',
+      icon: Compass,
+      color: 'text-amber-600 bg-amber-50',
+      border: 'border-amber-500'
+    },
+    {
+      id: 'flip',
+      title: 'Lật Thẻ Phản Xạ',
+      sublabel: 'Flip Cards tự do',
+      desc: 'Chế độ lật thẻ 2 mặt truyền thống, thích hợp xem lướt phản xạ',
+      icon: RotateCcw,
+      color: 'text-emerald-600 bg-emerald-50',
+      border: 'border-emerald-500'
+    },
+    {
+      id: 'mcq',
+      title: 'Trắc Nghiệm MCQ',
+      sublabel: 'Chọn 1 trong 4 đáp án',
+      desc: 'Hỏi mặt trước và chọn nhanh đáp án mặt sau từ các phương án ngẫu nhiên',
+      icon: Trophy,
+      color: 'text-amber-600 bg-amber-50',
+      border: 'border-amber-500'
+    },
+    {
+      id: 'typing',
+      title: 'Gõ Từ Vựng',
+      sublabel: 'Luyện nhớ mặt chữ',
+      desc: 'Bắt buộc gõ chuẩn xác từng ký tự của từ vựng để ghi nhớ sâu',
+      icon: Keyboard,
+      color: 'text-indigo-600 bg-indigo-50',
+      border: 'border-indigo-500'
+    },
+    {
+      id: 'listening',
+      title: 'Luyện Nghe',
+      sublabel: 'Nghe TTS chọn nghĩa',
+      desc: 'Phát âm thanh đọc mẫu và chọn đáp án dịch nghĩa chuẩn',
+      icon: Headphones,
+      color: 'text-sky-600 bg-sky-50',
+      border: 'border-sky-500'
+    }
+  ]
+
+  const handleSave = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setIsSaving(true)
+    setMessage(null)
+
+    const studyOverrides: Record<string, any> = {}
+
+    if (preferredMode !== 'inherit') studyOverrides.learning_mode = preferredMode
+    if (autoplayAudio !== 'inherit') studyOverrides.autoplay_audio = autoplayAudio
+    if (showImages !== 'inherit') studyOverrides.show_images = showImages
+    if (randomEnabled !== 'inherit') studyOverrides.random_enabled = randomEnabled
+    if (sfxEnabled !== 'inherit') studyOverrides.sfx_enabled = sfxEnabled
+    if (quickLearnEnabled !== 'inherit') studyOverrides.quick_learn_enabled = quickLearnEnabled
+
+    try {
+      await axios.post(`/api/v1/deck/${deckId}/practice-settings`, {
+        is_creator: false,
+        settings: {
+          study_settings: studyOverrides
+        }
+      })
+
+      queryClient.invalidateQueries({ queryKey: ['deck-practice-settings', String(deckId)] })
+      queryClient.invalidateQueries({ queryKey: ['quiz', String(deckId)] })
+      setMessage({ type: 'success', text: 'Đã lưu cài đặt cá nhân cho bộ thẻ thành công!' })
+      if (onSaved) onSaved()
+      setTimeout(() => setMessage(null), 3500)
+    } catch (err: any) {
+      setMessage({ type: 'error', text: err?.response?.data?.error || 'Không thể lưu cài đặt cá nhân' })
+    } finally {
+      setIsSaving(false)
+    }
+  }
+
+  const handleResetDefaults = async () => {
+    if (!confirm('Bạn có chắc muốn khôi phục toàn bộ cài đặt về mặc định của tác giả bộ thẻ?')) return
+
+    setIsResetting(true)
+    setMessage(null)
+
+    try {
+      await axios.post(`/api/v1/deck/${deckId}/practice-settings`, {
+        is_creator: false,
+        reset_study_defaults: true
+      })
+
+      queryClient.invalidateQueries({ queryKey: ['deck-practice-settings', String(deckId)] })
+      queryClient.invalidateQueries({ queryKey: ['quiz', String(deckId)] })
+      setMessage({ type: 'success', text: 'Đã khôi phục cài đặt theo mặc định của bộ thẻ thành công!' })
+      if (onSaved) onSaved()
+      setTimeout(() => setMessage(null), 3500)
+    } catch (err: any) {
+      setMessage({ type: 'error', text: err?.response?.data?.error || 'Không thể khôi phục cài đặt mặc định' })
+    } finally {
+      setIsResetting(false)
+    }
+  }
+
+  if (isLoading) {
+    return (
+      <div className="bg-white rounded-3xl p-6 border border-slate-100 shadow-sm space-y-4 animate-pulse">
+        <div className="h-6 w-48 bg-slate-200 rounded-lg" />
+        <div className="h-24 bg-slate-100 rounded-2xl" />
+        <div className="h-48 bg-slate-100 rounded-2xl" />
+      </div>
+    )
+  }
+
+  return (
+    <form onSubmit={handleSave} className="space-y-4 text-left animate-in fade-in duration-200">
+      {/* ═══════════ HEADER & INHERITANCE STATUS BANNER ═══════════ */}
+      <div className="bg-white rounded-3xl p-5 sm:p-6 border border-slate-200/80 shadow-xs space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-3.5">
+          <div className="space-y-0.5">
+            <div className="flex items-center gap-2">
+              <span className="w-8 h-8 rounded-xl bg-orange-50 border border-orange-100 flex items-center justify-center text-orange-600 shadow-2xs shrink-0">
+                <User className="w-4 h-4" />
+              </span>
+              <div>
+                <h3 className="text-xs sm:text-sm font-black text-slate-900 uppercase tracking-wide">
+                  Cài Đặt Học Cá Nhân (My Study Preferences)
+                </h3>
+                <p className="text-[11px] text-slate-500 font-medium">
+                  {deckTitle ? `Tùy chỉnh trải nghiệm học cho bộ thẻ "${deckTitle}"` : 'Tùy chỉnh trải nghiệm học cho riêng tài khoản của bạn'}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2">
+            {isCustomized ? (
+              <span className="px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-purple-50 text-purple-700 border border-purple-200/80 flex items-center gap-1">
+                <Sparkles className="w-3 h-3 text-purple-600" />
+                Đang dùng cài đặt cá nhân
+              </span>
+            ) : (
+              <span className="px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-emerald-50 text-emerald-700 border border-emerald-200/80 flex items-center gap-1">
+                <Check className="w-3 h-3 text-emerald-600" />
+                Đang kế thừa mặc định bộ thẻ
+              </span>
+            )}
+          </div>
+        </div>
+
+        {message && (
+          <div className={cn(
+            "p-3 rounded-2xl text-xs font-bold flex items-center gap-2 border animate-in fade-in",
+            message.type === 'success'
+              ? "bg-emerald-50 border-emerald-200 text-emerald-700"
+              : "bg-rose-50 border-rose-200 text-rose-700"
+          )}>
+            {message.type === 'success' ? <Check className="w-4 h-4 shrink-0" /> : <ShieldAlert className="w-4 h-4 shrink-0" />}
+            <span>{message.text}</span>
+          </div>
+        )}
+
+        {/* ═══════════ 1. PREFERRED STUDY MODE ═══════════ */}
+        <div className="space-y-2.5 pt-1">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-black text-slate-900 uppercase tracking-wider flex items-center gap-1.5">
+              <Brain className="w-3.5 h-3.5 text-orange-500" />
+              Chế độ học ưa thích cho bộ thẻ này
+            </span>
+            <span className="text-[10px] font-bold text-slate-400">Ưu tiên khi bấm "Study Now"</span>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
+            {studyModes.map((mode) => {
+              const Icon = mode.icon
+              const isSelected = preferredMode === mode.id
+
+              return (
+                <button
+                  key={mode.id}
+                  type="button"
+                  onClick={() => setPreferredMode(mode.id)}
+                  className={cn(
+                    "p-3 rounded-2xl border text-left transition-all relative flex flex-col justify-between gap-2 cursor-pointer select-none group",
+                    isSelected
+                      ? `bg-orange-50/40 border-orange-500 shadow-xs ring-1 ring-orange-500/30`
+                      : "bg-slate-50/60 border-slate-200/70 hover:bg-slate-50 hover:border-slate-300"
+                  )}
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex items-center gap-2.5">
+                      <div className={cn(
+                        "w-8 h-8 rounded-xl flex items-center justify-center text-xs shrink-0 shadow-2xs transition-transform group-hover:scale-105",
+                        mode.color
+                      )}>
+                        <Icon className="w-4 h-4" />
+                      </div>
+                      <div className="min-w-0">
+                        <span className={cn("text-xs font-black block truncate", isSelected ? "text-orange-950" : "text-slate-800")}>
+                          {mode.title}
+                        </span>
+                        <span className="text-[10px] text-slate-400 font-bold block truncate">
+                          {mode.sublabel}
+                        </span>
+                      </div>
+                    </div>
+
+                    {isSelected ? (
+                      <span className="w-5 h-5 rounded-full bg-orange-500 text-white flex items-center justify-center shrink-0 text-[10px] shadow-xs">
+                        <Check className="w-3 h-3 stroke-[3]" />
+                      </span>
+                    ) : mode.badge ? (
+                      <span className="px-1.5 py-0.2 rounded text-[9px] font-black uppercase tracking-wider bg-indigo-50 text-indigo-700 border border-indigo-100 shrink-0">
+                        {mode.badge}
+                      </span>
+                    ) : null}
+                  </div>
+
+                  <p className="text-[10px] text-slate-500 font-medium line-clamp-2 leading-relaxed">
+                    {mode.desc}
+                  </p>
+                </button>
+              )
+            })}
+          </div>
+        </div>
+
+        {/* ═══════════ 2. SENSORY & DISPLAY CUSTOMIZATIONS ═══════════ */}
+        <div className="pt-2 border-t border-slate-100 space-y-3">
+          <span className="text-xs font-black text-slate-900 uppercase tracking-wider flex items-center gap-1.5">
+            <Volume2 className="w-3.5 h-3.5 text-indigo-600" />
+            Tùy Chỉnh Âm Thanh & Hình Ảnh
+          </span>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {/* Audio Autoplay */}
+            <div className="p-3 bg-slate-50/80 rounded-2xl border border-slate-200/70 space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                  <Volume2 className="w-3.5 h-3.5 text-indigo-600" />
+                  Tự động phát âm thanh TTS
+                </span>
+                <span className="text-[10px] font-bold text-slate-400">
+                  Mặc định: {creatorDefs.autoplay_audio || 'none'}
+                </span>
+              </div>
+              <div className="grid grid-cols-5 gap-1 p-1 bg-white rounded-xl border border-slate-200/60">
+                {[
+                  { id: 'inherit', label: 'Kế thừa' },
+                  { id: 'none', label: 'Tắt' },
+                  { id: 'front', label: 'Trước' },
+                  { id: 'back', label: 'Sau' },
+                  { id: 'always', label: 'Cả hai' },
+                ].map(opt => {
+                  const active = autoplayAudio === opt.id
+                  return (
+                    <button
+                      key={opt.id}
+                      type="button"
+                      onClick={() => setAutoplayAudio(opt.id as any)}
+                      className={cn(
+                        "py-1.5 px-1 rounded-lg text-[10px] font-black transition-all text-center cursor-pointer active:scale-95 truncate",
+                        active
+                          ? "bg-indigo-600 text-white shadow-xs"
+                          : "text-slate-500 hover:text-slate-800 hover:bg-slate-100"
+                      )}
+                    >
+                      {opt.label}
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+
+            {/* Image Visibility */}
+            <div className="p-3 bg-slate-50/80 rounded-2xl border border-slate-200/70 space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                  <ImageIcon className="w-3.5 h-3.5 text-indigo-600" />
+                  Hiển thị hình ảnh minh họa
+                </span>
+                <span className="text-[10px] font-bold text-slate-400">
+                  Mặc định: {creatorDefs.show_images || 'always'}
+                </span>
+              </div>
+              <div className="grid grid-cols-5 gap-1 p-1 bg-white rounded-xl border border-slate-200/60">
+                {[
+                  { id: 'inherit', label: 'Kế thừa' },
+                  { id: 'always', label: 'Cả hai' },
+                  { id: 'front', label: 'Trước' },
+                  { id: 'back', label: 'Sau' },
+                  { id: 'none', label: 'Tắt' },
+                ].map(opt => {
+                  const active = showImages === opt.id
+                  return (
+                    <button
+                      key={opt.id}
+                      type="button"
+                      onClick={() => setShowImages(opt.id as any)}
+                      className={cn(
+                        "py-1.5 px-1 rounded-lg text-[10px] font-black transition-all text-center cursor-pointer active:scale-95 truncate",
+                        active
+                          ? "bg-indigo-600 text-white shadow-xs"
+                          : "text-slate-500 hover:text-slate-800 hover:bg-slate-100"
+                      )}
+                    >
+                      {opt.label}
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* ═══════════ 3. BEHAVIOR & INTERACTION TOGGLES ═══════════ */}
+        <div className="pt-2 border-t border-slate-100 space-y-2.5">
+          <span className="text-xs font-black text-slate-900 uppercase tracking-wider flex items-center gap-1.5">
+            <Sparkles className="w-3.5 h-3.5 text-purple-600" />
+            Tùy Chọn Thao Tác & Trải Nghiệm
+          </span>
+
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+            {/* Shuffle */}
+            <div className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50/70 border border-slate-200/60">
+              <div className="flex items-center gap-2 min-w-0 mr-2">
+                <Shuffle className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                <span className="text-xs font-bold text-slate-700 truncate">Xáo trộn thẻ (Shuffle)</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setRandomEnabled(prev => prev === true ? false : true)}
+                className={cn(
+                  "w-9 h-5 rounded-full transition-all relative p-0.5 shrink-0 cursor-pointer",
+                  randomEnabled === true ? "bg-orange-500" : "bg-slate-200"
+                )}
+              >
+                <div className={cn("w-4 h-4 rounded-full bg-white shadow-sm transition-transform", randomEnabled === true ? "translate-x-4" : "translate-x-0")} />
+              </button>
+            </div>
+
+            {/* SFX */}
+            <div className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50/70 border border-slate-200/60">
+              <div className="flex items-center gap-2 min-w-0 mr-2">
+                <Music className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                <span className="text-xs font-bold text-slate-700 truncate">Âm thanh SFX</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setSfxEnabled(prev => prev === false ? true : false)}
+                className={cn(
+                  "w-9 h-5 rounded-full transition-all relative p-0.5 shrink-0 cursor-pointer",
+                  sfxEnabled !== false ? "bg-orange-500" : "bg-slate-200"
+                )}
+              >
+                <div className={cn("w-4 h-4 rounded-full bg-white shadow-sm transition-transform", sfxEnabled !== false ? "translate-x-4" : "translate-x-0")} />
+              </button>
+            </div>
+
+            {/* Auto Advance */}
+            <div className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50/70 border border-slate-200/60">
+              <div className="flex items-center gap-2 min-w-0 mr-2">
+                <Sparkles className="w-3.5 h-3.5 text-purple-600 shrink-0" />
+                <span className="text-xs font-bold text-slate-700 truncate">Tự động chuyển câu</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setQuickLearnEnabled(prev => prev === true ? false : true)}
+                className={cn(
+                  "w-9 h-5 rounded-full transition-all relative p-0.5 shrink-0 cursor-pointer",
+                  quickLearnEnabled === true ? "bg-orange-500" : "bg-slate-200"
+                )}
+              >
+                <div className={cn("w-4 h-4 rounded-full bg-white shadow-sm transition-transform", quickLearnEnabled === true ? "translate-x-4" : "translate-x-0")} />
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* ═══════════ ACTION BUTTONS ═══════════ */}
+        <div className="pt-3 border-t border-slate-100 flex flex-col-reverse sm:flex-row sm:items-center justify-between gap-2.5">
+          {isCustomized ? (
+            <button
+              type="button"
+              onClick={handleResetDefaults}
+              disabled={isResetting || isSaving}
+              className="px-4 h-10 rounded-xl border border-slate-200 text-slate-600 hover:text-slate-900 hover:bg-slate-50 text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
+            >
+              <ResetIcon className={cn("w-3.5 h-3.5", isResetting && "animate-spin")} />
+              <span>{isResetting ? 'Đang khôi phục...' : 'Khôi phục mặc định bộ thẻ'}</span>
+            </button>
+          ) : (
+            <span className="text-[11px] text-slate-400 font-medium">
+              Chưa có tùy chỉnh cá nhân (đang dùng toàn bộ mặc định của tác giả)
+            </span>
+          )}
+
+          <button
+            type="submit"
+            disabled={isSaving || isResetting}
+            className="px-5 h-10 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white rounded-xl text-xs font-black shadow-xs shadow-orange-500/20 active:scale-95 transition-all flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
+          >
+            <Save className="w-3.5 h-3.5" />
+            <span>{isSaving ? 'ĐANG LƯU...' : 'LƯU CÀI ĐẶT CÁ NHÂN'}</span>
+          </button>
+        </div>
+      </div>
+    </form>
+  )
+}
+
+export default DeckPersonalSettings

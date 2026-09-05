@@ -85,10 +85,10 @@ export function DeckDetailPage() {
     { id: 'overview', label: 'Overview', icon: BookOpen },
     { id: 'cards', label: 'Cards', icon: Layers },
     { id: 'roadmap', label: 'Roadmap', icon: Compass },
-    { id: 'settings', label: 'Settings', icon: SettingsIcon, ownerOnly: true },
+    { id: 'settings', label: 'Settings', icon: SettingsIcon },
   ]
 
-  const visibleTabs = allTabs.filter(t => !t.ownerOnly || isOwner)
+  const visibleTabs = allTabs
 
   return (
     <div className="fixed inset-0 top-0 bottom-[60px] md:relative md:inset-auto md:top-auto md:bottom-auto md:h-full md:min-h-0 md:w-full flex flex-col bg-[#F8FAFC] overflow-hidden text-left select-none">
@@ -173,15 +173,27 @@ export function DeckDetailPage() {
 
             {/* Right: Start Learning CTA */}
             <div className="flex items-center gap-1.5 shrink-0">
-              {id && (
-                <Link
-                  to={`/flashcard/${id}/play`}
-                  className="flex items-center gap-1.5 px-3.5 h-8.5 rounded-xl bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white text-xs font-black shadow-xs shadow-orange-500/20 active:scale-95 transition-all shrink-0 cursor-pointer"
-                >
-                  <Sparkles className="w-3.5 h-3.5 stroke-[2.5]" />
-                  <span>Study Now</span>
-                </Link>
-              )}
+              {id && (() => {
+                const targetMode = deckMeta?.practice_settings?.study_defaults?.learning_mode || deckMeta?.default_mode || 'fsrs'
+                let targetUrl = `/flashcard/${id}/play?mode=fsrs`
+                if (targetMode === 'mcq') targetUrl = `/practice/${id}/mcq`
+                else if (targetMode === 'typing') targetUrl = `/practice/${id}/typing`
+                else if (targetMode === 'listening') targetUrl = `/practice/${id}/listening`
+                else if (targetMode === 'roadmap') targetUrl = `/flashcard/${id}/play?mode=roadmap`
+                else if (targetMode === 'flip') targetUrl = `/flashcard/${id}/play?mode=flip`
+                else if (targetMode === 'new') targetUrl = `/flashcard/${id}/play?mode=new`
+                else if (targetMode === 'review') targetUrl = `/flashcard/${id}/play?mode=review`
+
+                return (
+                  <Link
+                    to={targetUrl}
+                    className="flex items-center gap-1.5 px-3.5 h-8.5 rounded-xl bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white text-xs font-black shadow-xs shadow-orange-500/20 active:scale-95 transition-all shrink-0 cursor-pointer"
+                  >
+                    <Sparkles className="w-3.5 h-3.5 stroke-[2.5]" />
+                    <span>Study Now</span>
+                  </Link>
+                )
+              })()}
             </div>
           </div>
         </div>
@@ -225,7 +237,7 @@ export function DeckDetailPage() {
                   onCloseEditModal={() => setIsEditModalOpen(false)}
                 />
               )}
-              {activeTab === 'settings' && isOwner && (
+              {activeTab === 'settings' && (
                 <DeckSettingsTab embedded deckId={id} />
               )}
               {activeTab === 'roadmap' && (

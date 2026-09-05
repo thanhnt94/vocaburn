@@ -445,11 +445,14 @@ export function DeckPracticeConfig({ deckId, initialSettings, onSaved }: DeckPra
               onChange={(e) => setStudyLearningMode(e.target.value)}
               className="w-full h-9 px-3 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-800 outline-none focus:border-indigo-500 cursor-pointer shadow-2xs"
             >
-              <option value="fsrs">FSRS v6 (Lặp lại ngắt quãng)</option>
-              <option value="roadmap">Lộ trình học tập (Roadmap)</option>
+              <option value="fsrs">Flashcard FSRS (Lặp lại ngắt quãng)</option>
+              <option value="roadmap">Flashcard Lộ trình (Roadmap)</option>
+              <option value="flip">Lật nhanh (Flip Cards)</option>
+              <option value="mcq">Trắc nghiệm (MCQ Quiz)</option>
+              <option value="typing">Gõ từ vựng (Typing Practice)</option>
+              <option value="listening">Luyện nghe (Listening Practice)</option>
               <option value="new">Học từ mới (New Cards)</option>
               <option value="review">Ôn tập thẻ đến hạn (Review)</option>
-              <option value="flip">Lật nhanh (Flip Cards)</option>
             </select>
           </div>
         </div>

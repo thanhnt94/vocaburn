@@ -527,9 +527,22 @@ async def update_deck(request: Request, deck_id: int, data: dict, db: AsyncSessi
     if "category_id" in data: deck.category_id = data["category_id"]
     if "instruction" in data: deck.instruction = data["instruction"]
     if "is_public" in data: deck.is_public = data["is_public"]
+    if "cover_image" in data: deck.cover_image = data["cover_image"]
     
     if "tags" in data:
         await DeckService.set_deck_tags(db, deck_id, data["tags"])
+    
+    if "study_defaults" in data or "practice_settings" in data:
+        from sqlalchemy.orm.attributes import flag_modified
+        merged = dict(deck.practice_settings) if isinstance(deck.practice_settings, dict) else {}
+        if "practice_settings" in data and isinstance(data["practice_settings"], dict):
+            merged.update(data["practice_settings"])
+        if "study_defaults" in data and isinstance(data["study_defaults"], dict):
+            existing_sd = dict(merged.get("study_defaults", {})) if isinstance(merged.get("study_defaults"), dict) else {}
+            existing_sd.update(data["study_defaults"])
+            merged["study_defaults"] = existing_sd
+        deck.practice_settings = merged
+        flag_modified(deck, "practice_settings")
     
     await db.commit()
     return {"status": "ok"}
