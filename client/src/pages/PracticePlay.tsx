@@ -4966,6 +4966,10 @@ export default function PracticePlay() {
           isFeedbackOpen={isFeedbackOpen}
           activeBottomTab={activeBottomTab}
           mainTab={mainTab}
+          baseMode={baseMode}
+          typingInput={typingInput}
+          setTypingInput={setTypingInput}
+          onCheckTyping={handleTypingAnswer}
           currentIndex={currentIndex}
           practiceAnswers={practiceAnswers}
           sessionAnswers={sessionAnswers}

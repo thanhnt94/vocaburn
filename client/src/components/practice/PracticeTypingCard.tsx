@@ -32,16 +32,6 @@ export const PracticeTypingCard: React.FC<PracticeTypingCardProps> = ({
 }) => {
   const { question, correct_answer } = practiceData
 
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter') {
-      e.preventDefault()
-      e.stopPropagation()
-      if (!answered && typingInput.trim()) {
-        onCheckTyping()
-      }
-    }
-  }
-
   return (
     <div className="flex-1 bg-gradient-to-b from-slate-50 via-amber-50/15 to-slate-50 md:rounded-[2.5rem] rounded-[1.5rem] border border-slate-100/80 md:p-6 p-3 flex flex-col justify-between gap-3 md:gap-5 shadow-2xl shadow-amber-100/20 min-h-0 overflow-y-auto custom-scrollbar">
       {/* ── Top Question Card ── */}
@@ -78,93 +68,72 @@ export const PracticeTypingCard: React.FC<PracticeTypingCardProps> = ({
         </div>
       </div>
 
-      {/* ── Typing Input Section ── */}
-      <div className="w-full max-w-2xl mx-auto shrink-0 space-y-4 mb-4">
-        {!answered ? (
-          <div className="flex gap-2">
-            <input
-              type="text"
-              value={typingInput}
-              onChange={(e) => setTypingInput(e.target.value)}
-              onKeyDown={handleKeyDown}
-              placeholder="Gõ từ vựng..."
-              autoFocus
-              className="flex-1 bg-white border border-slate-200 focus:border-amber-500 focus:ring-2 focus:ring-amber-200/50 rounded-2xl px-4 py-3 text-sm font-bold text-slate-800 outline-none transition-all shadow-sm"
-            />
-            <button
-              onClick={onCheckTyping}
-              disabled={!typingInput.trim()}
-              className="px-6 py-3 rounded-2xl bg-amber-500 hover:bg-amber-600 disabled:opacity-50 text-white font-black text-xs uppercase hover:shadow-lg hover:shadow-amber-100 active:scale-95 transition-all cursor-pointer"
-            >
-              Kiểm tra
-            </button>
-          </div>
-        ) : typingFeedback && (
-          <div className="space-y-3">
+      {/* ── Typing Feedback Section (Hiển thị kết quả sau khi kiểm tra) ── */}
+      {answered && typingFeedback && (
+        <div className="w-full max-w-2xl mx-auto shrink-0 space-y-3 mb-2 animate-in fade-in slide-in-from-bottom-2 duration-300">
+          <div className={cn(
+            "flex items-center gap-3 p-4 rounded-2xl border",
+            typingFeedback.isCorrect
+              ? "bg-emerald-50/80 border-emerald-200 text-emerald-800 shadow-sm"
+              : "bg-rose-50/80 border-rose-200 text-rose-800 shadow-sm"
+          )}>
             <div className={cn(
-              "flex items-center gap-3 p-4 rounded-2xl border",
-              typingFeedback.isCorrect
-                ? "bg-emerald-50/80 border-emerald-200 text-emerald-800 shadow-sm"
-                : "bg-rose-50/80 border-rose-200 text-rose-800 shadow-sm"
+              "w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 text-white shadow-sm",
+              typingFeedback.isCorrect ? "bg-emerald-500" : "bg-rose-500"
             )}>
-              <div className={cn(
-                "w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 text-white shadow-sm",
-                typingFeedback.isCorrect ? "bg-emerald-500" : "bg-rose-500"
-              )}>
-                {typingFeedback.isCorrect ? <Check className="w-4 h-4 stroke-[3]" /> : <X className="w-4 h-4 stroke-[3]" />}
-              </div>
-              <div className="text-xs">
-                <p className="font-black uppercase tracking-wider text-[9px] opacity-60">Đáp án của bạn</p>
-                <p className="font-bold text-sm">{typingInput || "(Trống)"}</p>
-              </div>
+              {typingFeedback.isCorrect ? <Check className="w-4 h-4 stroke-[3]" /> : <X className="w-4 h-4 stroke-[3]" />}
             </div>
+            <div className="text-xs">
+              <p className="font-black uppercase tracking-wider text-[9px] opacity-60">Đáp án của bạn</p>
+              <p className="font-bold text-sm">{typingInput || "(Trống)"}</p>
+            </div>
+          </div>
 
-            {!typingFeedback.isCorrect && (
-              <div className="p-4 bg-emerald-50/80 border border-emerald-200 rounded-2xl text-emerald-800 text-xs shadow-sm">
-                <p className="font-black uppercase tracking-wider text-[9px] opacity-60 mb-1">
-                  {practiceData.acceptable_answers && practiceData.acceptable_answers.length > 1
-                    ? "Các đáp án chính xác được chấp nhận"
-                    : "Đáp án chính xác"}
-                </p>
-                {practiceData.acceptable_answers && practiceData.acceptable_answers.length > 1 ? (
-                  <div className="flex flex-wrap gap-2 mt-1.5">
-                    {practiceData.acceptable_answers.map((ans, idx) => (
-                      <span
-                        key={idx}
-                        className="px-3 py-1 bg-white/90 border border-emerald-300 rounded-xl font-bold text-sm text-emerald-900 shadow-2xs inline-flex items-center gap-1.5"
-                      >
-                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                        <span dangerouslySetInnerHTML={{ __html: parseBBCodeToHtml(ans || '') }} />
-                      </span>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="font-bold text-sm mt-0.5" dangerouslySetInnerHTML={{ __html: parseBBCodeToHtml(correct_answer || '') }} />
-                )}
-              </div>
-            )}
-
-            {typingFeedback.isCorrect && practiceData.acceptable_answers && practiceData.acceptable_answers.length > 1 && (() => {
-              const cleanInput = typingInput.trim().toLowerCase();
-              const otherAnswers = practiceData.acceptable_answers.filter(
-                a => a.replace(/<[^<]+?>/g, '').trim().toLowerCase() !== cleanInput
-              );
-              if (otherAnswers.length === 0) return null;
-              return (
-                <div className="px-3 py-2 bg-emerald-50/50 border border-emerald-100/80 rounded-xl text-[11px] text-emerald-700/90 font-medium">
-                  <span className="font-bold opacity-75">Cách trả lời hợp lệ khác: </span>
-                  {otherAnswers.map((ans, idx) => (
-                    <span key={idx} className="font-bold">
-                      {idx > 0 && " • "}
+          {!typingFeedback.isCorrect && (
+            <div className="p-4 bg-emerald-50/80 border border-emerald-200 rounded-2xl text-emerald-800 text-xs shadow-sm">
+              <p className="font-black uppercase tracking-wider text-[9px] opacity-60 mb-1">
+                {practiceData.acceptable_answers && practiceData.acceptable_answers.length > 1
+                  ? "Các đáp án chính xác được chấp nhận"
+                  : "Đáp án chính xác"}
+              </p>
+              {practiceData.acceptable_answers && practiceData.acceptable_answers.length > 1 ? (
+                <div className="flex flex-wrap gap-2 mt-1.5">
+                  {practiceData.acceptable_answers.map((ans, idx) => (
+                    <span
+                      key={idx}
+                      className="px-3 py-1 bg-white/90 border border-emerald-300 rounded-xl font-bold text-sm text-emerald-900 shadow-2xs inline-flex items-center gap-1.5"
+                    >
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
                       <span dangerouslySetInnerHTML={{ __html: parseBBCodeToHtml(ans || '') }} />
                     </span>
                   ))}
                 </div>
-              );
-            })()}
-          </div>
-        )}
-      </div>
+              ) : (
+                <p className="font-bold text-sm mt-0.5" dangerouslySetInnerHTML={{ __html: parseBBCodeToHtml(correct_answer || '') }} />
+              )}
+            </div>
+          )}
+
+          {typingFeedback.isCorrect && practiceData.acceptable_answers && practiceData.acceptable_answers.length > 1 && (() => {
+            const cleanInput = typingInput.trim().toLowerCase();
+            const otherAnswers = practiceData.acceptable_answers.filter(
+              a => a.replace(/<[^<]+?>/g, '').trim().toLowerCase() !== cleanInput
+            );
+            if (otherAnswers.length === 0) return null;
+            return (
+              <div className="px-3 py-2 bg-emerald-50/50 border border-emerald-100/80 rounded-xl text-[11px] text-emerald-700/90 font-medium">
+                <span className="font-bold opacity-75">Cách trả lời hợp lệ khác: </span>
+                {otherAnswers.map((ans, idx) => (
+                  <span key={idx} className="font-bold">
+                    {idx > 0 && " • "}
+                    <span dangerouslySetInnerHTML={{ __html: parseBBCodeToHtml(ans || '') }} />
+                  </span>
+                ))}
+              </div>
+            );
+          })()}
+        </div>
+      )}
     </div>
   )
 }

@@ -2,6 +2,19 @@
 
 Tài liệu này lưu lại lịch sử thay đổi cấu trúc, tính năng, và các bản vá lỗi của dự án Vocaburn.
 
+### [2026-09-05]
+#### Tối Ưu Hóa Giao Diện Di Động Cho Chế Độ Typing (Gõ Từ Vựng): Thu Gọn Thành 1 Hàng Duy Nhất
+- **Di Chuyển Ô Nhập Liệu Xuống Thanh Điều Khiển Dưới Cùng (`PracticeBottomBar.tsx`, `PracticeTypingCard.tsx`, `PracticePlay.tsx`)**:
+  - Loại bỏ hoàn toàn thanh tab điều hướng di động (`MAP | PLAY | STATS`) riêng biệt trong chế độ gõ từ (`baseMode === 'typing'`).
+  - Đưa khung nhập từ vựng (`input`) từ thân card xuống vị trí của thanh action bar dưới cùng (`PracticeBottomBar.tsx`), khắc phục triệt để hiện tượng bàn phím ảo đẩy card câu hỏi lên quá cao trên màn hình điện thoại.
+  - Bố cục 1 hàng duy nhất (`Single-row docked bottom bar`):
+    - **Bên trái**: Nút Option / Cài đặt (`⚙️`) gọn gàng.
+    - **Ở giữa**: Ô nhập liệu từ vựng (`flex-1`) tự động lấy nét (`autoFocus` và tự động focus lại khi chuyển câu hỏi mới).
+    - **Bên phải**: Nút **Kiểm tra** nhỏ gọn, tự động sáng màu khi có văn bản và hỗ trợ phím **Enter** gửi đáp án ngay lập tức.
+    - **Loại bỏ hoàn toàn nút Skip**: Không cho phép bỏ qua câu hỏi trong chế độ typing.
+  - **Trạng thái sau khi nộp đáp án**: Khối phản hồi (Feedback) hiển thị rõ ràng trên thân card; thanh điều khiển dưới đáy chuyển thành nút **Tiếp tục (Continue)** chiếm toàn bộ không gian kèm nút nghe phát âm âm thanh (Audio).
+  - **Bảo Toàn 100% Các Chế Độ Luyện Tập Khác**: Các chế độ trắc nghiệm (`mcq`), nghe (`listening`), lật thẻ (`flip`), thi thử lộ trình (`roadmap_test`) hoàn toàn giữ nguyên thanh điều khiển cũ, nút skip và 3 tab chân trang (`MAP | PLAY | STATS`).
+
 ---
 
 ### [2026-09-03]
