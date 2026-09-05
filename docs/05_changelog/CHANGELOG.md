@@ -3,6 +3,22 @@
 Tài liệu này lưu lại lịch sử thay đổi cấu trúc, tính năng, và các bản vá lỗi của dự án Vocaburn.
 
 ### [2026-09-06]
+#### Tái Cấu Trúc Giao Diện Cài Đặt Phân Tầng Tab Đa Năng & Thanh Sub-Tab Neo Đáy Di Động (Settings Mobile-First Tab Architecture)
+- **Giải Quyết Triệt Để Vấn Đề Cuộn Trang Dài Vô Tận Trên Di Động (Rule 6: Mobile-First App-Like UI)**:
+  - Loại bỏ hoàn toàn mô hình 1 trang cuộn dọc vô tận ("dài cả mét") chứa dồn dập toàn bộ cài đặt thuật toán, cử chỉ, telegram, thông báo, giao diện và bảo mật.
+  - Phân chia có hệ thống thành 4 tab chuyên biệt với độ tập trung cao:
+    - **Tab 1: Gestures (`Move`)**: Flashcard Gestures & Interaction (Cấu hình lật thẻ, nấc đánh giá FSRS, bảng chỉ dẫn cử chỉ la bàn 4 hướng).
+    - **Tab 2: Algorithm (`Brain`)**: Learning Algorithm (Orderly Progression, Expansion Mode, Mastery Cycle, Neural Entropy).
+    - **Tab 3: Alerts (`Send`)**: Telegram Bot Integration & Browser Web Push Notifications.
+    - **Tab 4: General (`ShieldCheck`)**: System Preferences (Dark Matrix Mode, Focus Timer) & Account Security (SSO CentralAuth / Đổi mật khẩu).
+- **Thanh Sub-Tab Neo Đáy 1 Tay Cực Kỳ Tiện Lợi Trên Di Động (`One-Hand Bottom Docked Sub-Tab Bar`)**:
+  - Neo cố định ngay phía trên thanh điều hướng chính (`Home | Decks | Stats | Settings`), chuẩn công thái học ngón tay cái giúp chuyển đổi giữa các tab cài đặt tức thì chỉ bằng 1 chạm mà không cần phải cuộn lên xuống.
+  - Hiệu ứng chuyển động con nhộng (`motion.div layoutId="activeSettingsBottomTabPill"`) mượt mà chuẩn native app.
+- **Thanh Chuyển Tab Phân Đoạn Hiện Đại Trên Máy Tính (`Desktop Segmented Switcher`)**:
+  - Trên màn hình lớn (desktop), thanh tab tự động biến thành bộ chuyển phân đoạn thanh lịch ngay cạnh tiêu đề trang.
+- **Khung Chứa Nội Dung Khép Kín (`Contained Flex Scrollable Viewport`)**:
+  - Giới hạn chiều cao vừa khít khung nhìn di động (`fixed inset-0 top-0 bottom-[68px]`), cuộn mượt mà độc lập trong từng tab, hoàn toàn triệt tiêu hiện tượng tràn cuộn toàn trang.
+
 #### Hệ Thống Tùy Biến Thao Tác Lật Thẻ & Cử Chỉ Đánh Giá FSRS La Bàn 4 Hướng (Card Flip & 4-Way Compass Rating Gestures)
 - **Tùy Biến Thao Tác Lật Thẻ (`card_flip_trigger`)**:
   - `both` (Mặc định - Tap & Swipe): Chạm vào bất kỳ vị trí nào trên thẻ mặt trước HOẶC vuốt ngang để lật thẻ (kèm phím Space / nút "FLIP CARD").
