@@ -11,7 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.db import get_db
 from app.core.config import settings
 from app.modules.auth.services.auth_service import AuthService
-from app.modules.auth.services.sso_service import SSOService
+from app.modules.sso_module.service import SSOService
 
 logger = logging.getLogger(__name__)
 
