@@ -141,9 +141,18 @@ export const PlaySettingsModal: React.FC<PlaySettingsModalProps> = ({
   const { id } = useParams<{ id: string }>()
   const [activeTab, setActiveTab] = useState<'modes' | 'audio' | 'display' | 'gestures'>('modes')
   const [isSyncing, setIsSyncing] = useState<boolean>(false)
-  const [isProfileMenuOpen, setIsProfileMenuOpen] = useState<boolean>(false)
+  const [selectedProfileId, setSelectedProfileId] = useState<string>(activeProfileId || studyProfiles[0]?.id || '')
+  const [toastMessage, setToastMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
   const [isSaveModalOpen, setIsSaveModalOpen] = useState<boolean>(false)
   const [newProfileName, setNewProfileName] = useState<string>('')
+
+  React.useEffect(() => {
+    if (activeProfileId) {
+      setSelectedProfileId(activeProfileId)
+    } else if (studyProfiles.length > 0 && !selectedProfileId) {
+      setSelectedProfileId(studyProfiles[0].id)
+    }
+  }, [activeProfileId, studyProfiles])
 
   // Parse audio mode
   const currentAudioMode: 'always' | 'front' | 'back' | 'none' = autoPlayAudio || 'none'
@@ -263,10 +272,31 @@ export const PlaySettingsModal: React.FC<PlaySettingsModalProps> = ({
     </div>
   )
 
+  const handleLoadSelectedTemplate = async () => {
+    if (!onApplyProfile || !selectedProfileId) return
+    const target = studyProfiles.find(p => p.id === selectedProfileId)
+    setIsSyncing(true)
+    try {
+      await onApplyProfile(selectedProfileId)
+      setToastMessage({
+        type: 'success',
+        text: `Đã nạp mẫu "${target?.name || 'Cấu hình'}" thành công!`
+      })
+      setTimeout(() => setToastMessage(null), 3500)
+    } catch (err) {
+      console.error('Failed to load template', err)
+      setToastMessage({
+        type: 'error',
+        text: 'Không thể nạp mẫu. Vui lòng thử lại!'
+      })
+    } finally {
+      setIsSyncing(false)
+    }
+  }
+
   const handleApplyProfile = async (profileId: string) => {
     if (!onApplyProfile) return
     setIsSyncing(true)
-    setIsProfileMenuOpen(false)
     try {
       await onApplyProfile(profileId)
     } finally {
@@ -385,101 +415,87 @@ export const PlaySettingsModal: React.FC<PlaySettingsModalProps> = ({
               </button>
             </div>
 
-            {/* Smart Profile Quick Bar */}
-            <div className="px-4 py-2 bg-slate-50 border-b border-slate-100 flex items-center justify-between gap-2 shrink-0 relative">
-              {/* Profile Dropdown Toggle */}
-              <div className="relative">
+            {/* Smart Profile Quick Bar with Explicit "Load Mẫu" Action */}
+            <div className="px-4 py-2.5 bg-slate-50 border-b border-slate-100 flex flex-wrap items-center justify-between gap-2 shrink-0">
+              <div className="flex items-center gap-2 flex-1 min-w-[240px]">
+                <div className="flex items-center gap-1 shrink-0 text-slate-500">
+                  <Sparkles className="w-3.5 h-3.5 text-indigo-500" />
+                  <span className="text-[10.5px] font-black uppercase text-slate-400">Mẫu:</span>
+                </div>
+                <select
+                  value={selectedProfileId}
+                  onChange={(e) => setSelectedProfileId(e.target.value)}
+                  className="bg-white border border-slate-200 text-xs font-bold text-slate-800 rounded-xl px-2.5 py-1.5 outline-none focus:border-indigo-500 shadow-2xs cursor-pointer flex-1 truncate"
+                >
+                  <optgroup label="Mẫu hệ thống (System Presets)">
+                    {studyProfiles.filter(p => p.is_system).map(p => (
+                      <option key={p.id} value={p.id}>
+                        {p.name} {p.id === activeProfileId ? '★ (Đang dùng)' : ''}
+                      </option>
+                    ))}
+                  </optgroup>
+                  {studyProfiles.some(p => !p.is_system) && (
+                    <optgroup label="Mẫu cá nhân của tôi (My Templates)">
+                      {studyProfiles.filter(p => !p.is_system).map(p => (
+                        <option key={p.id} value={p.id}>
+                          {p.name} {p.id === activeProfileId ? '★ (Đang dùng)' : ''}
+                        </option>
+                      ))}
+                    </optgroup>
+                  )}
+                </select>
+
                 <button
                   type="button"
-                  onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)}
-                  className="flex items-center gap-1.5 px-3 py-1.5 bg-white hover:bg-indigo-50/60 border border-slate-200/80 hover:border-indigo-200 rounded-xl text-xs font-black text-slate-700 hover:text-indigo-600 transition-all shadow-2xs cursor-pointer active:scale-95"
+                  disabled={isSyncing || !selectedProfileId}
+                  onClick={handleLoadSelectedTemplate}
+                  className="px-3.5 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-black uppercase tracking-wider shadow-xs hover:shadow transition-all active:scale-95 cursor-pointer shrink-0 flex items-center gap-1.5 disabled:opacity-50"
+                  title="Nạp và áp dụng cấu hình mẫu đã chọn"
                 >
-                  <Sparkles className="w-3.5 h-3.5 text-indigo-500" />
-                  <span className="truncate max-w-[140px] sm:max-w-[200px]">
-                    {currentProfile ? currentProfile.name : 'Chọn Profile mẫu'}
-                  </span>
-                  <ChevronDown className={cn("w-3.5 h-3.5 text-slate-400 transition-transform", isProfileMenuOpen && "rotate-180")} />
+                  <Sparkles className="w-3.5 h-3.5" />
+                  <span>Load mẫu</span>
                 </button>
-
-                {/* Profile Dropdown Menu */}
-                {isProfileMenuOpen && (
-                  <div className="absolute top-full left-0 mt-1.5 w-72 bg-white rounded-2xl shadow-xl border border-slate-200/80 p-2 z-50 space-y-1">
-                    <div className="px-2 py-1 text-[9.5px] font-black text-slate-400 uppercase tracking-wider flex items-center justify-between">
-                      <span>Chọn Profile mẫu</span>
-                      <span className="text-[8.5px] font-medium text-slate-300">1-click áp dụng</span>
-                    </div>
-
-                    <div className="max-h-56 overflow-y-auto space-y-1">
-                      {studyProfiles.map(prof => {
-                        const Icon = getProfileIcon(prof.icon)
-                        const isCurrent = (prof.id === activeProfileId) || (settingOrigin === `profile:${prof.id}:${prof.name}`)
-                        return (
-                          <div 
-                            key={prof.id}
-                            className={cn(
-                              "flex items-center justify-between p-2 rounded-xl transition-all group",
-                              isCurrent ? "bg-indigo-50 border border-indigo-100" : "hover:bg-slate-50 cursor-pointer"
-                            )}
-                          >
-                            <button
-                              type="button"
-                              onClick={() => handleApplyProfile(prof.id)}
-                              className="flex items-center gap-2.5 flex-1 min-w-0 text-left cursor-pointer"
-                            >
-                              <div className={cn(
-                                "w-6 h-6 rounded-lg flex items-center justify-center shrink-0",
-                                isCurrent ? "bg-indigo-600 text-white" : "bg-slate-100 text-slate-600 group-hover:bg-indigo-100 group-hover:text-indigo-600"
-                              )}>
-                                <Icon className="w-3 h-3" />
-                              </div>
-                              <div className="min-w-0">
-                                <span className={cn("text-xs font-black block truncate", isCurrent ? "text-indigo-900" : "text-slate-800")}>
-                                  {prof.name}
-                                </span>
-                                {prof.description && (
-                                  <span className="text-[9px] font-medium text-slate-400 block truncate">
-                                    {prof.description}
-                                  </span>
-                                )}
-                              </div>
-                            </button>
-
-                            {!prof.is_system && onDeleteCustomProfile && (
-                              <button
-                                type="button"
-                                onClick={(e) => {
-                                  e.stopPropagation()
-                                  if (window.confirm(`Xóa profile "${prof.name}"?`)) {
-                                    onDeleteCustomProfile(prof.id)
-                                  }
-                                }}
-                                className="p-1 text-slate-300 hover:text-rose-500 rounded-lg hover:bg-rose-50 transition-colors ml-1 cursor-pointer"
-                                title="Xóa template này"
-                              >
-                                <Trash2 className="w-3 h-3" />
-                              </button>
-                            )}
-                          </div>
-                        )
-                      })}
-                    </div>
-                  </div>
-                )}
               </div>
 
-              {/* Save As Template Button */}
               {onCreateCustomProfile && (
                 <button
                   type="button"
                   onClick={() => setIsSaveModalOpen(true)}
-                  className="flex items-center gap-1.5 px-2.5 py-1.5 bg-indigo-50/80 hover:bg-indigo-100 text-indigo-600 border border-indigo-200/60 rounded-xl text-xs font-black uppercase tracking-wider transition-all cursor-pointer active:scale-95"
+                  className="px-3 py-1.5 bg-white hover:bg-indigo-50 text-indigo-700 border border-indigo-200 rounded-xl text-xs font-black uppercase tracking-wider shadow-2xs transition-all active:scale-95 cursor-pointer shrink-0 flex items-center gap-1.5"
+                  title="Lưu cấu hình hiện tại thành mẫu cá nhân mới"
                 >
-                  <BookmarkPlus className="w-3.5 h-3.5" />
-                  <span className="hidden sm:inline">Lưu làm Template</span>
-                  <span className="sm:hidden">Lưu mẫu</span>
+                  <BookmarkPlus className="w-3.5 h-3.5 text-indigo-600" />
+                  <span>Lưu mẫu</span>
                 </button>
               )}
             </div>
+
+            {/* Notification Toast */}
+            {toastMessage && (
+              <motion.div
+                initial={{ opacity: 0, y: -6 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -6 }}
+                className={cn(
+                  "mx-4 mt-2 p-2.5 rounded-xl text-xs font-bold flex items-center justify-between shadow-2xs border shrink-0",
+                  toastMessage.type === 'success' 
+                    ? "bg-emerald-50 text-emerald-800 border-emerald-200" 
+                    : "bg-rose-50 text-rose-800 border-rose-200"
+                )}
+              >
+                <div className="flex items-center gap-2 min-w-0">
+                  <Check className="w-4 h-4 text-emerald-600 shrink-0" />
+                  <span className="truncate">{toastMessage.text}</span>
+                </div>
+                <button 
+                  type="button" 
+                  onClick={() => setToastMessage(null)}
+                  className="text-slate-400 hover:text-slate-600 cursor-pointer shrink-0 ml-2"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              </motion.div>
+            )}
 
             {/* Segmented Top Tabs (4 Tabs) */}
             <div className="px-4 pt-2.5 pb-2 bg-white shrink-0 border-b border-slate-100">
@@ -606,17 +622,7 @@ export const PlaySettingsModal: React.FC<PlaySettingsModalProps> = ({
                       />
                     )}
 
-                    {setShowFsrs && (
-                      <ToggleSwitch 
-                        checked={showFsrs}
-                        onChange={() => setShowFsrs(!showFsrs)}
-                        label="Chỉ số ghi nhớ FSRS v6"
-                        sub="Hiện độ ổn định (S) và độ khó (D) trên mặt thẻ"
-                        icon={Brain}
-                        color="text-indigo-600"
-                        bg="bg-indigo-50"
-                      />
-                    )}
+
 
                     {setQuickLearnEnabled && (
                       <ToggleSwitch 
@@ -684,7 +690,25 @@ export const PlaySettingsModal: React.FC<PlaySettingsModalProps> = ({
               {/* TAB 3: HIỂN THỊ & CĂN LỀ */}
               {activeTab === 'display' && (
                 <div className="space-y-4">
-                  <div>
+                  {/* FSRS Metrics badge toggle moved to Display tab */}
+                  {setShowFsrs && (
+                    <div className="space-y-2">
+                      <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">
+                        Chỉ số ghi nhớ trên mặt thẻ
+                      </span>
+                      <ToggleSwitch 
+                        checked={showFsrs}
+                        onChange={() => setShowFsrs(!showFsrs)}
+                        label="Chỉ số ghi nhớ FSRS v6"
+                        sub="Hiện độ ổn định (S), độ khó (D) và khoảng cách ngày trên mặt thẻ"
+                        icon={Brain}
+                        color="text-indigo-600"
+                        bg="bg-indigo-50"
+                      />
+                    </div>
+                  )}
+
+                  <div className="pt-2 border-t border-slate-100">
                     <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-2">
                       Căn lề nội dung mặt trước
                     </span>
@@ -895,33 +919,31 @@ export const PlaySettingsModal: React.FC<PlaySettingsModalProps> = ({
             {/* Clean, Minimalist Footer */}
             <div className="px-5 py-3 bg-white border-t border-slate-100 flex items-center justify-between gap-3 shrink-0">
               <div className="flex items-center gap-2">
-                {/* Reset to creator baseline */}
+                {/* Reset to creator baseline: ONLY shown if customized away from creator default */}
                 {onResetToCreatorDefaults && (isCustomized || settingOrigin !== 'deck_default') && (
                   <button
                     type="button"
                     disabled={isSyncing}
                     onClick={handleResetToCreator}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[10.5px] font-black uppercase tracking-wider text-slate-600 hover:text-indigo-600 bg-slate-50 hover:bg-indigo-50 border border-slate-200 transition-all active:scale-95 cursor-pointer disabled:opacity-50"
-                    title="Khôi phục lại toàn bộ cấu hình học về mặc định ban đầu của người tạo bộ thẻ"
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-slate-600 hover:text-slate-900 bg-slate-50 hover:bg-slate-100 border border-slate-200 transition-all active:scale-95 cursor-pointer disabled:opacity-50"
+                    title="Khôi phục cấu hình học của bộ thẻ về mặc định ban đầu của người tạo"
                   >
-                    <RotateCcw className="w-3 h-3" />
-                    <span className="hidden sm:inline">Mặc định bộ thẻ</span>
-                    <span className="sm:hidden">Mặc định</span>
+                    <RotateCcw className="w-3.5 h-3.5" />
+                    <span>Khôi phục gốc</span>
                   </button>
                 )}
 
-                {/* Save as creator deck defaults */}
+                {/* Save as creator deck defaults: ONLY visible for deck creator / editor */}
                 {onSaveAsCreatorDefaults && isCreator && (
                   <button
                     type="button"
                     disabled={isSyncing}
                     onClick={handleSaveAsCreator}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[10.5px] font-black uppercase tracking-wider text-emerald-700 hover:text-emerald-800 bg-emerald-50 hover:bg-emerald-100/80 border border-emerald-200 transition-all active:scale-95 cursor-pointer disabled:opacity-50"
-                    title="Lưu cấu hình này thành mặc định chung của bộ thẻ cho tất cả người học"
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-emerald-700 hover:text-emerald-800 bg-emerald-50 hover:bg-emerald-100/80 border border-emerald-200 transition-all active:scale-95 cursor-pointer disabled:opacity-50"
+                    title="Chỉ dành cho người tạo: Lưu cấu hình này làm mặc định chung của bộ thẻ cho tất cả người học"
                   >
-                    <Check className="w-3 h-3 text-emerald-600" />
-                    <span className="hidden sm:inline">Đặt mặc định bộ thẻ</span>
-                    <span className="sm:hidden">Đặt mặc định</span>
+                    <Check className="w-3.5 h-3.5 text-emerald-600" />
+                    <span>Lưu làm mặc định bộ thẻ</span>
                   </button>
                 )}
               </div>
