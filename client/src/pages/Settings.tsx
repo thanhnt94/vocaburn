@@ -36,6 +36,8 @@ import {
   Copy,
   Edit3,
   Eye,
+  ChevronDown,
+  X,
   Image as ImageIcon
 } from 'lucide-react'
 import { useAppStore } from '@/store/useAppStore'
@@ -230,6 +232,86 @@ const getPresetDetails = (preset: any) => {
   ]
 }
 
+interface SegmentedOption<T extends string | boolean> {
+  id: T
+  label: string
+  icon?: React.ComponentType<{ className?: string }>
+}
+
+interface SegmentedControlProps<T extends string | boolean> {
+  value: T
+  onChange: (val: T) => void
+  options: SegmentedOption<T>[]
+  className?: string
+}
+
+function SegmentedControl<T extends string | boolean>({
+  value,
+  onChange,
+  options,
+  className
+}: SegmentedControlProps<T>) {
+  return (
+    <div
+      className={cn("grid gap-1 p-1 bg-slate-100/90 rounded-2xl border border-slate-200/80 shadow-2xs", className)}
+      style={{ gridTemplateColumns: `repeat(${options.length}, minmax(0, 1fr))` }}
+    >
+      {options.map((opt) => {
+        const isSelected = value === opt.id
+        const Icon = opt.icon
+        return (
+          <button
+            key={String(opt.id)}
+            type="button"
+            onClick={() => onChange(opt.id)}
+            className={cn(
+              "relative flex items-center justify-center gap-1.5 py-2 px-1.5 rounded-xl text-xs font-black transition-all select-none cursor-pointer truncate",
+              isSelected
+                ? "bg-white text-indigo-600 shadow-xs border border-slate-200/90 font-black"
+                : "text-slate-500 hover:text-slate-800 hover:bg-white/50"
+            )}
+          >
+            {Icon && <Icon className="w-3.5 h-3.5 shrink-0" />}
+            <span className="truncate">{opt.label}</span>
+          </button>
+        )
+      })}
+    </div>
+  )
+}
+
+interface ToggleRowProps {
+  icon?: React.ComponentType<{ className?: string }>
+  label: string
+  desc: string
+  checked: boolean
+  onChange: (checked: boolean) => void
+}
+
+function ToggleRow({ icon: Icon, label, desc, checked, onChange }: ToggleRowProps) {
+  return (
+    <div
+      onClick={() => onChange(!checked)}
+      className="flex items-center justify-between p-3 sm:p-3.5 rounded-2xl bg-white border border-slate-200/70 hover:border-indigo-200 transition-all cursor-pointer group shadow-2xs"
+    >
+      <div className="flex items-center gap-3 min-w-0 pr-2">
+        {Icon && (
+          <div className="w-8 h-8 rounded-xl bg-slate-50 group-hover:bg-indigo-50 text-slate-400 group-hover:text-indigo-600 flex items-center justify-center transition-colors shrink-0">
+            <Icon className="w-4 h-4" />
+          </div>
+        )}
+        <div className="min-w-0">
+          <span className="text-xs font-black text-slate-800 uppercase tracking-tight block truncate">{label}</span>
+          <p className="text-[10px] font-medium text-slate-400 mt-0.5 truncate">{desc}</p>
+        </div>
+      </div>
+      <div className={cn("w-10 h-6 rounded-full transition-colors flex items-center px-1 shrink-0", checked ? "bg-indigo-600" : "bg-slate-200")}>
+        <div className={cn("w-4 h-4 rounded-full bg-white transition-transform shadow-xs", checked ? "translate-x-4" : "translate-x-0")} />
+      </div>
+    </div>
+  )
+}
+
 export const Settings = () => {
   const [searchParams, setSearchParams] = useSearchParams()
   const location = useLocation()
@@ -266,7 +348,12 @@ export const Settings = () => {
     setSearchParams({ tab }, { replace: true })
   }
 
-  // Sub-Tab State for Deck Templates Tab: System Presets | My Custom Templates | Live Customizer
+  // Scope and Filter State for Study Templates & Direct Preferences
+  const [selectedDeckId, setSelectedDeckId] = useState<string>(searchParams.get('deck_id') || 'global')
+  const [userDecks, setUserDecks] = useState<Array<{ id: string | number; title: string }>>([])
+  const [isResettingCreator, setIsResettingCreator] = useState(false)
+  const [templateFilter, setTemplateFilter] = useState<'all' | 'system' | 'custom'>('all')
+  const [toastMessage, setToastMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
   const [templateTab, setTemplateTab] = useState<'system' | 'custom' | 'customize'>('system')
   const [activeTunerTab, setActiveTunerTab] = useState<'gestures' | 'display' | 'media' | 'algorithm'>('gestures')
 
@@ -454,6 +541,88 @@ export const Settings = () => {
       active_profile_id: profileId,
       ...profSettings
     } as any)
+  }
+
+  useEffect(() => {
+    const fetchDecks = async () => {
+      try {
+        const res = await axios.get('/api/v1/deck/roadmap/decks')
+        const decks = res.data?.decks || []
+        setUserDecks(decks.map((d: any) => ({ id: d.id, title: d.title || d.name || `Deck #${d.id}` })))
+      } catch (e) {
+        console.error('Failed to fetch user decks for settings scope', e)
+      }
+    }
+    fetchDecks()
+  }, [])
+
+  const handleResetToCreator = async () => {
+    setIsResettingCreator(true)
+    try {
+      if (selectedDeckId === 'global') {
+        const standardPreset = systemProfiles.find(p => p.id === 'preset-standard') || systemProfiles[0]
+        await updateUserSettings({
+          active_profile_id: standardPreset.id,
+          ...standardPreset.settings
+        })
+        setToastMessage({ type: 'success', text: 'Global study settings restored to factory Standard template.' })
+      } else {
+        const res = await axios.post(`/api/v1/deck/${selectedDeckId}/practice-settings`, {
+          is_creator: false,
+          reset_study_defaults: true
+        })
+        if (res.data?.effective_study_settings) {
+          await updateUserSettings(res.data.effective_study_settings)
+        }
+        setToastMessage({ type: 'success', text: "Successfully reset to the deck creator's original template!" })
+      }
+    } catch (err) {
+      console.error('Failed to reset template', err)
+      setToastMessage({ type: 'error', text: 'Failed to reset settings. Please try again.' })
+    } finally {
+      setIsResettingCreator(false)
+    }
+  }
+
+  const handleApplyTemplate = async (profile: any) => {
+    try {
+      const s = profile.settings || {}
+      if (selectedDeckId === 'global') {
+        await updateUserSettings({
+          active_profile_id: profile.id,
+          ...s
+        })
+        setToastMessage({ type: 'success', text: `Applied "${profile.name}" template to account defaults.` })
+      } else {
+        await axios.post(`/api/v1/deck/${selectedDeckId}/practice-settings`, {
+          is_creator: false,
+          active_profile_id: profile.id,
+          ...s
+        })
+        await updateUserSettings({
+          active_profile_id: profile.id,
+          ...s
+        })
+        setToastMessage({ type: 'success', text: `Applied "${profile.name}" template to this deck!` })
+      }
+    } catch (err) {
+      console.error('Failed to apply template', err)
+      setToastMessage({ type: 'error', text: 'Failed to apply template. Please try again.' })
+    }
+  }
+
+  const handleUpdateStudySetting = async (key: string, value: any) => {
+    try {
+      await updateUserSettings({ [key]: value })
+      if (selectedDeckId !== 'global') {
+        await axios.post(`/api/v1/deck/${selectedDeckId}/practice-settings`, {
+          is_creator: false,
+          [key]: value
+        })
+      }
+    } catch (err) {
+      console.error(`Failed to update ${key}`, err)
+    }
   }
 
   const [pushActive, setPushActive] = useState(false)
@@ -657,309 +826,200 @@ export const Settings = () => {
     }
   ]
 
-  // ══════════════ TAB 0: ALL-IN-ONE DECK TEMPLATES (PROFILES + GESTURES + ALGORITHM + ALIGNMENT) ══════════════
+  // ══════════════ TAB 0: STREAMLINED STUDY TEMPLATES & LIVE PREFERENCES ══════════════
   const renderDeckTemplateTab = () => {
     const customProfiles: StudyProfile[] = (userSettings.study_profiles || []).filter((p: any) => !p.is_system)
     const activeId = userSettings.active_profile_id || 'preset-standard'
     const allProfiles = [...systemProfiles, ...customProfiles]
     const activeProfileObj = allProfiles.find(p => p.id === activeId)
+    const selectedDeck = userDecks.find(d => String(d.id) === String(selectedDeckId))
 
-    // Current gesture labels for summary
-    const flipLabel = (userSettings.card_flip_trigger || 'both') === 'both' 
-      ? 'Tap & Swipe' 
-      : (userSettings.card_flip_trigger === 'tap' ? 'Tap Body' : 'Button Only')
-    const ratingLabel = (userSettings.card_rating_mode || 'both') === 'both'
-      ? 'Hybrid'
-      : (userSettings.card_rating_mode === 'swipe_4way' ? '4-Way Swipe' : (userSettings.card_rating_mode === 'swipe_2way' ? '2-Way Swipe' : '4 Buttons'))
-    const algoLabel = modes.find(m => m.id === learningMode)?.name || 'Sequential'
-    const audioLabel = (userSettings.autoplay_audio || 'always') === 'always'
-      ? 'Always'
-      : (userSettings.autoplay_audio === 'none' ? 'Off' : (userSettings.autoplay_audio === 'back' ? 'Back Only' : 'Front Only'))
+    const filteredProfiles = templateFilter === 'system' 
+      ? systemProfiles 
+      : templateFilter === 'custom' 
+        ? customProfiles 
+        : allProfiles
 
     return (
-      <div className="space-y-4 md:space-y-6">
-        {/* Banner Card: Active Profile Overview */}
-        <section className="bg-gradient-to-r from-indigo-600 via-indigo-700 to-purple-700 rounded-3xl md:rounded-[2.5rem] p-5 sm:p-7 text-white shadow-xl shadow-indigo-500/15 relative overflow-hidden">
-          <div className="absolute top-0 right-0 -mt-8 -mr-8 w-48 h-48 bg-white/10 rounded-full blur-2xl pointer-events-none" />
-          <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-5">
-            <div className="space-y-2">
-              <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-white/20 backdrop-blur-md text-[10px] font-black uppercase tracking-wider">
-                <Sparkles className="w-3 h-3 text-amber-300" />
-                <span>All-in-One Deck Profile System</span>
+      <div className="space-y-6">
+        {/* Toast Alert */}
+        {toastMessage && (
+          <motion.div
+            initial={{ opacity: 0, y: -8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            className={cn(
+              "p-3.5 rounded-2xl text-xs font-bold flex items-center justify-between shadow-sm border",
+              toastMessage.type === 'success' 
+                ? "bg-emerald-50 text-emerald-800 border-emerald-200"
+                : "bg-rose-50 text-rose-800 border-rose-200"
+            )}
+          >
+            <div className="flex items-center gap-2.5">
+              <Check className="w-4 h-4 text-emerald-600 shrink-0" />
+              <span>{toastMessage.text}</span>
+            </div>
+            <button 
+              type="button" 
+              onClick={() => setToastMessage(null)}
+              className="text-slate-400 hover:text-slate-600 cursor-pointer"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          </motion.div>
+        )}
+
+        {/* 1. TOP HERO & SCOPE SELECTOR */}
+        <section className="bg-white rounded-3xl md:rounded-[2.5rem] border border-slate-200/80 p-5 sm:p-7 shadow-xs space-y-5">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div className="space-y-1">
+              <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-indigo-50 text-indigo-700 text-[10px] font-black uppercase tracking-wider">
+                <Sparkles className="w-3 h-3 text-indigo-600" />
+                <span>Study Experience Settings</span>
               </div>
-              <h2 className="text-base sm:text-xl font-black uppercase tracking-tight">
-                Deck Templates & Profiles
+              <h2 className="text-lg sm:text-xl font-black text-slate-900 uppercase tracking-tight">
+                Study Templates & Preferences
               </h2>
-              <p className="text-xs text-indigo-100 max-w-2xl font-medium leading-relaxed">
-                Full flashcard configuration (gestures, FSRS rating, queue algorithm, layout alignment & audio) packaged into 1-click reusable templates.
+              <p className="text-xs text-slate-500 font-medium">
+                Switch or customize gestures, card alignments, pronunciation, and algorithms for your study sessions.
               </p>
-
-              {/* Active Profile Pill & Quick Summary Badges */}
-              <div className="pt-2 flex flex-wrap items-center gap-2 text-xs">
-                <span className="font-bold text-white/80 text-[11px]">Active Globally:</span>
-                <span className="px-2.5 py-1 rounded-xl bg-white text-indigo-700 font-black text-xs shadow-xs flex items-center gap-1.5">
-                  <BookmarkCheck className="w-3.5 h-3.5 text-indigo-600" />
-                  {activeProfileObj ? activeProfileObj.name : 'Standard'}
-                </span>
-
-                <div className="hidden sm:flex items-center gap-1.5 text-[10px] text-white/90">
-                  <span className="px-2 py-0.5 rounded-lg bg-white/20 font-bold backdrop-blur-xs">Flip: {flipLabel}</span>
-                  <span className="px-2 py-0.5 rounded-lg bg-white/20 font-bold backdrop-blur-xs">Rating: {ratingLabel}</span>
-                  <span className="px-2 py-0.5 rounded-lg bg-white/20 font-bold backdrop-blur-xs">Order: {algoLabel}</span>
-                  <span className="px-2 py-0.5 rounded-lg bg-white/20 font-bold backdrop-blur-xs">Audio: {audioLabel}</span>
-                </div>
-              </div>
             </div>
 
-            <div className="flex items-center gap-2.5 shrink-0 self-start lg:self-center">
+            {/* Scope Switcher Pill */}
+            <div className="flex items-center gap-1 p-1 bg-slate-100 rounded-2xl border border-slate-200/80 self-start md:self-center shrink-0">
+              <button
+                type="button"
+                onClick={() => setSelectedDeckId('global')}
+                className={cn(
+                  "py-1.5 px-3 rounded-xl text-xs font-black transition-all cursor-pointer",
+                  selectedDeckId === 'global'
+                    ? "bg-white text-indigo-600 shadow-xs border border-slate-200/80"
+                    : "text-slate-500 hover:text-slate-800"
+                )}
+              >
+                Global Account
+              </button>
               <button
                 type="button"
                 onClick={() => {
-                  setNewProfileName('')
-                  setNewProfileIcon('sparkles')
-                  loadBaseSettings('current')
-                  setIsCreateModalOpen(true)
+                  if (userDecks.length > 0 && selectedDeckId === 'global') {
+                    setSelectedDeckId(String(userDecks[0].id))
+                  }
                 }}
-                className="inline-flex items-center justify-center gap-2 px-4 py-2.5 sm:py-3 bg-white text-indigo-700 font-black text-xs uppercase tracking-wider rounded-2xl shadow-lg hover:bg-indigo-50 active:scale-95 transition-all cursor-pointer shrink-0"
+                className={cn(
+                  "py-1.5 px-3 rounded-xl text-xs font-black transition-all cursor-pointer",
+                  selectedDeckId !== 'global'
+                    ? "bg-white text-indigo-600 shadow-xs border border-slate-200/80"
+                    : "text-slate-500 hover:text-slate-800"
+                )}
               >
-                <Plus className="w-4 h-4" />
-                <span>New Template</span>
+                Specific Deck
               </button>
             </div>
+          </div>
+
+          {/* Scope Detail Card */}
+          <div className="p-4 rounded-2xl bg-slate-50/80 border border-slate-200/60 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="w-9 h-9 rounded-xl bg-white border border-slate-200/80 flex items-center justify-center text-indigo-600 font-black shrink-0">
+                {selectedDeckId === 'global' ? <Sliders className="w-4 h-4" /> : <BookOpen className="w-4 h-4" />}
+              </div>
+              <div className="min-w-0">
+                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">
+                  Current Target Scope
+                </span>
+                {selectedDeckId === 'global' ? (
+                  <span className="text-xs font-black text-slate-800 truncate block">
+                    All Decks (Default Account Profile: <span className="text-indigo-600">{activeProfileObj?.name || 'Standard'}</span>)
+                  </span>
+                ) : (
+                  <div className="flex items-center gap-2 mt-0.5">
+                    <select
+                      value={selectedDeckId}
+                      onChange={(e) => setSelectedDeckId(e.target.value)}
+                      className="bg-white border border-slate-200 text-xs font-bold text-slate-800 rounded-lg px-2 py-1 outline-none focus:border-indigo-500 cursor-pointer"
+                    >
+                      {userDecks.map((d) => (
+                        <option key={d.id} value={String(d.id)}>
+                          {d.title}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Reset Action Button */}
+            <button
+              type="button"
+              disabled={isResettingCreator}
+              onClick={handleResetToCreator}
+              className={cn(
+                "inline-flex items-center justify-center gap-2 py-2 px-3.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all cursor-pointer shrink-0 border",
+                selectedDeckId !== 'global'
+                  ? "bg-amber-500 text-white border-amber-600 hover:bg-amber-600 shadow-xs"
+                  : "bg-white text-slate-700 border-slate-200 hover:bg-slate-100"
+              )}
+            >
+              <RotateCcw className={cn("w-3.5 h-3.5", isResettingCreator && "animate-spin")} />
+              <span>
+                {selectedDeckId !== 'global'
+                  ? "↺ Reset to Creator's Template"
+                  : "↺ Reset to Standard Defaults"}
+              </span>
+            </button>
           </div>
         </section>
 
-        {/* ══════════ SUB-TAB SWITCHER: SYSTEM PRESETS | CUSTOM TEMPLATES | LIVE CUSTOMIZER ══════════ */}
-        <div className="bg-slate-100/90 p-1 sm:p-1.5 rounded-2xl md:rounded-3xl border border-slate-200/80 shadow-2xs">
-          <div className="grid grid-cols-3 gap-1 sm:gap-1.5">
-            <button
-              type="button"
-              onClick={() => setTemplateTab('system')}
-              className={cn(
-                "py-2 sm:py-2.5 px-2 rounded-xl transition-all select-none cursor-pointer flex items-center justify-center gap-1.5 sm:gap-2 font-black text-[11px] sm:text-xs uppercase tracking-wider",
-                templateTab === 'system'
-                  ? "bg-white text-indigo-700 shadow-xs border border-slate-200/80"
-                  : "text-slate-500 hover:text-slate-800 hover:bg-white/60"
-              )}
-            >
-              <Sparkles className={cn("w-3.5 h-3.5 shrink-0", templateTab === 'system' ? "text-indigo-600" : "text-slate-400")} />
-              <span className="truncate">System Presets (4)</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setTemplateTab('custom')}
-              className={cn(
-                "py-2 sm:py-2.5 px-2 rounded-xl transition-all select-none cursor-pointer flex items-center justify-center gap-1.5 sm:gap-2 font-black text-[11px] sm:text-xs uppercase tracking-wider",
-                templateTab === 'custom'
-                  ? "bg-white text-indigo-700 shadow-xs border border-slate-200/80"
-                  : "text-slate-500 hover:text-slate-800 hover:bg-white/60"
-              )}
-            >
-              <User className={cn("w-3.5 h-3.5 shrink-0", templateTab === 'custom' ? "text-indigo-600" : "text-slate-400")} />
-              <span className="truncate">My Templates ({customProfiles.length})</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setTemplateTab('customize')}
-              className={cn(
-                "py-2 sm:py-2.5 px-2 rounded-xl transition-all select-none cursor-pointer flex items-center justify-center gap-1.5 sm:gap-2 font-black text-[11px] sm:text-xs uppercase tracking-wider",
-                templateTab === 'customize'
-                  ? "bg-white text-indigo-700 shadow-xs border border-slate-200/80"
-                  : "text-slate-500 hover:text-slate-800 hover:bg-white/60"
-              )}
-            >
-              <Sliders className={cn("w-3.5 h-3.5 shrink-0", templateTab === 'customize' ? "text-indigo-600" : "text-slate-400")} />
-              <span className="truncate">Live Customizer</span>
-            </button>
-          </div>
-        </div>
-
-        {/* ══════════ TAB 1: SYSTEM PRESETS ══════════ */}
-        {templateTab === 'system' && (
-          <section className="space-y-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="text-base font-black text-slate-900 uppercase tracking-tight">
-                  System Preset Library
-                </h3>
-                <p className="text-xs text-slate-400 font-medium">
-                  Optimized, battle-tested templates pre-configured for every learning scenario
-                </p>
-              </div>
-              <span className="text-[10px] font-black px-3 py-1 rounded-full bg-indigo-50 text-indigo-600 uppercase border border-indigo-100/50">
-                {systemProfiles.length} Optimized Presets
-              </span>
+        {/* 2. LOAD TEMPLATE HUB */}
+        <section className="bg-white rounded-3xl md:rounded-[2.5rem] border border-slate-200/80 p-5 sm:p-7 shadow-xs space-y-5">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div>
+              <h3 className="text-base font-black text-slate-900 uppercase tracking-tight">
+                Load Study Template
+              </h3>
+              <p className="text-xs text-slate-400 font-medium">
+                Choose a pre-configured profile or apply your saved template.
+              </p>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-              {systemProfiles.map((preset: any) => {
-                const isDefaultActive = activeId === preset.id
-                const IconComp = preset.icon === 'zap' ? Zap : (preset.icon === 'headphones' ? Headphones : (preset.icon === 'book' ? BookOpen : Sparkles))
-                const sett = preset.settings as any
-
-                return (
-                  <div
-                    key={preset.id}
-                    className={cn(
-                      "p-4 sm:p-5 rounded-3xl border-2 transition-all flex flex-col justify-between relative bg-white",
-                      isDefaultActive
-                        ? "border-indigo-600 bg-indigo-50/15 shadow-md shadow-indigo-500/5"
-                        : "border-slate-100 hover:border-slate-200 shadow-2xs"
-                    )}
-                  >
-                    <div className="space-y-3">
-                      {/* Header */}
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                          <div className={cn(
-                            "w-10 h-10 rounded-2xl flex items-center justify-center font-bold shrink-0",
-                            isDefaultActive ? "bg-indigo-600 text-white" : "bg-indigo-50 text-indigo-600"
-                          )}>
-                            <IconComp className="w-5 h-5" />
-                          </div>
-                          <div>
-                            <div className="flex items-center gap-2">
-                              <h4 className="text-xs sm:text-sm font-black text-slate-900 uppercase tracking-tight">
-                                {preset.name}
-                              </h4>
-                              <span className="text-[9px] font-black px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 uppercase">
-                                {preset.badge}
-                              </span>
-                            </div>
-                            <span className="text-[9px] font-bold text-slate-400 uppercase">System Preset</span>
-                          </div>
-                        </div>
-
-                        {isDefaultActive && (
-                          <span className="inline-flex items-center gap-1 text-[10px] font-black text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-full shrink-0">
-                            <Check className="w-3.5 h-3.5" /> Active
-                          </span>
-                        )}
-                      </div>
-
-                      <p className="text-[11px] text-slate-500 font-medium leading-relaxed">
-                        {preset.desc}
-                      </p>
-
-                      {/* 4 Compact Tiles (2x2 Grid) */}
-                      <div className="grid grid-cols-2 gap-2 pt-1">
-                        {/* 1. Gestures & Feedback */}
-                        <div className="p-2.5 rounded-2xl bg-purple-50/60 border border-purple-100/80 flex flex-col justify-between">
-                          <span className="text-[9px] font-black text-purple-700 uppercase tracking-wider flex items-center gap-1">
-                            <Move className="w-2.5 h-2.5 text-purple-600 shrink-0" /> Gestures & SFX
-                          </span>
-                          <div className="text-[11px] font-black text-slate-800 truncate mt-1">
-                            {sett.card_flip_trigger === 'both' ? 'Tap & Swipe' : (sett.card_flip_trigger === 'tap' ? 'Tap Body' : 'Button Only')}
-                          </div>
-                          <div className="text-[9px] text-slate-500 font-bold truncate mt-0.5">
-                            {sett.card_rating_mode === 'both' ? 'Swipe & 4 Buttons' : (sett.card_rating_mode === 'swipe_4way' ? '4-Way Swipe' : (sett.card_rating_mode === 'swipe_2way' ? '2-Way Swipe' : '4 Buttons'))}
-                            {' • '}
-                            <span className={sett.sfx_enabled !== false ? "text-purple-700 font-black" : "text-slate-400"}>
-                              {sett.sfx_enabled !== false ? 'SFX On' : 'SFX Off'}
-                            </span>
-                          </div>
-                        </div>
-
-                        {/* 2. Display & Alignment */}
-                        <div className="p-2.5 rounded-2xl bg-amber-50/60 border border-amber-100/80 flex flex-col justify-between">
-                          <span className="text-[9px] font-black text-amber-700 uppercase tracking-wider flex items-center gap-1">
-                            <Layers className="w-2.5 h-2.5 text-amber-600 shrink-0" /> Display & Align
-                          </span>
-                          <div className="text-[11px] font-black text-slate-800 truncate flex items-center gap-1.5 mt-1">
-                            <span>FSRS:</span>
-                            <span className={cn(
-                              "font-black px-1.5 py-0.2 rounded text-[8.5px]",
-                              sett.show_fsrs !== false ? "text-emerald-700 bg-emerald-100/80 border border-emerald-200/60" : "text-slate-400 bg-slate-100 border border-slate-200/60"
-                            )}>
-                              {sett.show_fsrs !== false ? 'Visible' : 'Hidden'}
-                            </span>
-                          </div>
-                          <div className="text-[9px] text-slate-500 font-bold truncate mt-0.5">
-                            F: {sett.front_valign === 'top' ? 'Top' : 'Center'}/{sett.front_halign === 'center' ? 'Center' : 'Left'}
-                            {' • '}
-                            B: {sett.back_valign === 'top' ? 'Top' : 'Center'}/{sett.back_halign === 'center' ? 'Center' : 'Left'}
-                          </div>
-                        </div>
-
-                        {/* 3. Media & Audio */}
-                        <div className="p-2.5 rounded-2xl bg-emerald-50/60 border border-emerald-100/80 flex flex-col justify-between">
-                          <span className="text-[9px] font-black text-emerald-700 uppercase tracking-wider flex items-center gap-1">
-                            <Volume2 className="w-2.5 h-2.5 text-emerald-600 shrink-0" /> Media & Audio
-                          </span>
-                          <div className="text-[11px] font-black text-slate-800 truncate mt-1">
-                            TTS: {sett.autoplay_audio === 'always' ? 'Always' : (sett.autoplay_audio === 'none' ? 'Off' : (sett.autoplay_audio === 'front' ? 'Front Only' : (sett.autoplay_audio === 'back' ? 'Back Only' : sett.autoplay_audio)))}
-                          </div>
-                          <div className="text-[9px] text-slate-500 font-bold truncate mt-0.5">
-                            Images: {sett.show_images === 'none' ? 'Hidden' : ((sett.show_images === 'back_only' || sett.show_images === 'back') ? 'Back Only' : (sett.show_images === 'front' ? 'Front Only' : 'Both Sides'))}
-                          </div>
-                        </div>
-
-                        {/* 4. Default Algorithm */}
-                        <div className="p-2.5 rounded-2xl bg-indigo-50/60 border border-indigo-100/80 flex flex-col justify-between">
-                          <span className="text-[9px] font-black text-indigo-700 uppercase tracking-wider flex items-center gap-1">
-                            <Brain className="w-2.5 h-2.5 text-indigo-600 shrink-0" /> Algorithm
-                          </span>
-                          <div className="text-[11px] font-black text-slate-800 truncate mt-1">
-                            {sett.quiz_learning_mode === 'fsrs' ? 'FSRS v6' : (sett.quiz_learning_mode === 'random' ? 'Random' : (sett.quiz_learning_mode === 'unseen' ? 'New Cards' : (sett.quiz_learning_mode === 'review' ? 'Reviews' : 'Sequential')))}
-                          </div>
-                          <div className="text-[9px] text-slate-500 font-bold truncate mt-0.5">
-                            {sett.random_enabled ? 'Random Shuffle' : 'Standard Order'}
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Actions */}
-                    <div className="pt-3 mt-3 border-t border-slate-100 flex items-center justify-between gap-2">
-                      <button
-                        type="button"
-                        onClick={() => handleClonePreset(preset)}
-                        className="px-3 py-1.5 rounded-xl bg-slate-50 hover:bg-slate-100 text-slate-600 font-black text-[11px] uppercase transition-all flex items-center gap-1.5 cursor-pointer"
-                        title="Create a custom copy of this preset to customize"
-                      >
-                        <Copy className="w-3 h-3 text-slate-500" />
-                        <span>Clone</span>
-                      </button>
-
-                      {isDefaultActive ? (
-                        <button
-                          disabled
-                          className="px-3.5 py-1.5 rounded-xl bg-emerald-100 text-emerald-800 font-black text-[11px] uppercase cursor-default flex items-center gap-1.5"
-                        >
-                          <Check className="w-3.5 h-3.5" /> Active Globally
-                        </button>
-                      ) : (
-                        <button
-                          type="button"
-                          onClick={() => handleSetActiveProfile(preset.id)}
-                          className="px-3.5 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-black text-[11px] uppercase transition-all flex items-center gap-1.5 cursor-pointer shadow-xs shadow-indigo-600/20 active:scale-95"
-                        >
-                          <BookmarkCheck className="w-3.5 h-3.5" />
-                          <span>Apply Globally</span>
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                )
-              })}
-            </div>
-          </section>
-        )}
-
-        {/* ══════════ TAB 2: USER CUSTOM TEMPLATES ══════════ */}
-        {templateTab === 'custom' && (
-          <section className="space-y-4">
-            <div className="flex items-center justify-between px-1">
-              <div>
-                <h3 className="text-xs font-black text-slate-900 uppercase tracking-wider">
-                  My Templates
-                </h3>
-                <p className="text-[10px] text-slate-400 font-medium">
-                  Custom templates created by you or cloned from system presets
-                </p>
+            <div className="flex items-center gap-2 self-start sm:self-center">
+              {/* Filter Tabs */}
+              <div className="flex items-center gap-1 p-0.5 bg-slate-100 rounded-xl border border-slate-200/70 text-[11px] font-black">
+                <button
+                  type="button"
+                  onClick={() => setTemplateFilter('all')}
+                  className={cn(
+                    "px-2.5 py-1 rounded-lg transition-all cursor-pointer",
+                    templateFilter === 'all' ? "bg-white text-indigo-700 shadow-2xs" : "text-slate-500 hover:text-slate-800"
+                  )}
+                >
+                  All ({allProfiles.length})
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setTemplateFilter('system')}
+                  className={cn(
+                    "px-2.5 py-1 rounded-lg transition-all cursor-pointer",
+                    templateFilter === 'system' ? "bg-white text-indigo-700 shadow-2xs" : "text-slate-500 hover:text-slate-800"
+                  )}
+                >
+                  System ({systemProfiles.length})
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setTemplateFilter('custom')}
+                  className={cn(
+                    "px-2.5 py-1 rounded-lg transition-all cursor-pointer",
+                    templateFilter === 'custom' ? "bg-white text-indigo-700 shadow-2xs" : "text-slate-500 hover:text-slate-800"
+                  )}
+                >
+                  My Templates ({customProfiles.length})
+                </button>
               </div>
+
+              {/* Save As Template Button */}
               <button
                 type="button"
                 onClick={() => {
@@ -967,707 +1027,324 @@ export const Settings = () => {
                   setNewProfileName('')
                   setNewProfileIcon('sparkles')
                   loadBaseSettings('current')
-                  setModalTab('gestures')
                   setIsCreateModalOpen(true)
                 }}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xs uppercase transition-all cursor-pointer shadow-xs shadow-indigo-600/20"
-              >
-                <Plus className="w-3.5 h-3.5" /> Create Template
-              </button>
-            </div>
-
-            {customProfiles.length === 0 ? (
-              <div className="p-8 sm:p-12 rounded-3xl border-2 border-dashed border-slate-200 text-center space-y-3 bg-slate-50/50">
-                <div className="w-12 h-12 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center mx-auto">
-                  <Sparkles className="w-6 h-6" />
-                </div>
-                <h4 className="text-sm font-black text-slate-800 uppercase tracking-wide">
-                  No Custom Templates Yet
-                </h4>
-                <p className="text-xs text-slate-500 font-medium max-w-md mx-auto leading-relaxed">
-                  Create a new template or clone any system preset to package your custom gestures, algorithms, alignment, and audio preferences.
-                </p>
-                <div className="pt-2 flex items-center justify-center gap-3">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setEditingProfileId(null)
-                      setNewProfileName('')
-                      setNewProfileIcon('sparkles')
-                      loadBaseSettings('current')
-                      setModalTab('gestures')
-                      setIsCreateModalOpen(true)
-                    }}
-                    className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xs uppercase transition-all flex items-center gap-1.5 shadow-xs cursor-pointer"
-                  >
-                    <Plus className="w-3.5 h-3.5" /> Create New Template
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setTemplateTab('system')}
-                    className="px-4 py-2 rounded-xl bg-white border border-slate-200 text-slate-700 font-black text-xs uppercase transition-all hover:bg-slate-50 cursor-pointer"
-                  >
-                    View System Presets (4)
-                  </button>
-                </div>
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                {customProfiles.map((prof) => {
-                  const isDefaultActive = activeId === prof.id
-                  const IconComp = prof.icon === 'zap' ? Zap : (prof.icon === 'headphones' ? Headphones : (prof.icon === 'book' ? BookOpen : Sparkles))
-                  const sett = prof.settings || {}
-
-                  return (
-                    <div
-                      key={prof.id}
-                      className={cn(
-                        "p-4 sm:p-5 rounded-3xl border-2 transition-all flex flex-col justify-between relative bg-white",
-                        isDefaultActive
-                          ? "border-amber-500 bg-amber-50/15 shadow-md shadow-amber-500/5"
-                          : "border-slate-100 hover:border-slate-200 shadow-2xs"
-                      )}
-                    >
-                      <div className="space-y-3">
-                        {/* Header */}
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-3">
-                            <div className={cn(
-                              "w-10 h-10 rounded-2xl flex items-center justify-center font-bold shrink-0",
-                              isDefaultActive ? "bg-amber-500 text-white" : "bg-amber-50 text-amber-600"
-                            )}>
-                              <IconComp className="w-5 h-5" />
-                            </div>
-                            <div>
-                              <div className="flex items-center gap-2">
-                                <h4 className="text-xs sm:text-sm font-black text-slate-900 uppercase tracking-tight">
-                                  {prof.name}
-                                </h4>
-                                <span className="text-[9px] font-black px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 uppercase">
-                                  Custom
-                                </span>
-                              </div>
-                              <span className="text-[9px] font-bold text-slate-400 uppercase">User Template</span>
-                            </div>
-                          </div>
-
-                          {isDefaultActive && (
-                            <span className="inline-flex items-center gap-1 text-[10px] font-black text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-full shrink-0">
-                              <Check className="w-3.5 h-3.5" /> Active
-                            </span>
-                          )}
-                        </div>
-
-                        {/* 4 Compact Tiles (2x2 Grid) */}
-                        <div className="grid grid-cols-2 gap-2 pt-1">
-                          {/* 1. Gestures & SFX */}
-                          <div className="p-2.5 rounded-2xl bg-purple-50/60 border border-purple-100/80 flex flex-col justify-between">
-                            <span className="text-[9px] font-black text-purple-700 uppercase tracking-wider flex items-center gap-1">
-                              <Move className="w-2.5 h-2.5 text-purple-600 shrink-0" /> Gestures & SFX
-                            </span>
-                            <div className="text-[11px] font-black text-slate-800 truncate mt-1">
-                              {sett.card_flip_trigger === 'both' ? 'Tap & Swipe' : (sett.card_flip_trigger === 'tap' ? 'Tap Body' : 'Button Only')}
-                            </div>
-                            <div className="text-[9px] text-slate-500 font-bold truncate mt-0.5">
-                              {sett.card_rating_mode === 'both' ? 'Swipe & 4 Buttons' : (sett.card_rating_mode === 'swipe_4way' ? '4-Way Swipe' : (sett.card_rating_mode === 'swipe_2way' ? '2-Way Swipe' : '4 Buttons'))}
-                              {' • '}
-                              <span className={sett.sfx_enabled !== false ? "text-purple-700 font-black" : "text-slate-400"}>
-                                {sett.sfx_enabled !== false ? 'SFX On' : 'SFX Off'}
-                              </span>
-                            </div>
-                          </div>
-
-                          {/* 2. Display & Alignment */}
-                          <div className="p-2.5 rounded-2xl bg-amber-50/60 border border-amber-100/80 flex flex-col justify-between">
-                            <span className="text-[9px] font-black text-amber-700 uppercase tracking-wider flex items-center gap-1">
-                              <Layers className="w-2.5 h-2.5 text-amber-600 shrink-0" /> Display & Align
-                            </span>
-                            <div className="text-[11px] font-black text-slate-800 truncate flex items-center gap-1.5 mt-1">
-                              <span>FSRS:</span>
-                              <span className={cn(
-                                "font-black px-1.5 py-0.2 rounded text-[8.5px]",
-                                sett.show_fsrs !== false ? "text-emerald-700 bg-emerald-100/80 border border-emerald-200/60" : "text-slate-400 bg-slate-100 border border-slate-200/60"
-                              )}>
-                                {sett.show_fsrs !== false ? 'Visible' : 'Hidden'}
-                              </span>
-                            </div>
-                            <div className="text-[9px] text-slate-500 font-bold truncate mt-0.5">
-                              F: {sett.front_valign === 'top' ? 'Top' : 'Center'}/{sett.front_halign === 'center' ? 'Center' : 'Left'}
-                              {' • '}
-                              B: {sett.back_valign === 'top' ? 'Top' : 'Center'}/{sett.back_halign === 'center' ? 'Center' : 'Left'}
-                            </div>
-                          </div>
-
-                          {/* 3. Media & Audio */}
-                          <div className="p-2.5 rounded-2xl bg-emerald-50/60 border border-emerald-100/80 flex flex-col justify-between">
-                            <span className="text-[9px] font-black text-emerald-700 uppercase tracking-wider flex items-center gap-1">
-                              <Volume2 className="w-2.5 h-2.5 text-emerald-600 shrink-0" /> Media & Audio
-                            </span>
-                            <div className="text-[11px] font-black text-slate-800 truncate mt-1">
-                              TTS: {sett.autoplay_audio === 'always' ? 'Always' : (sett.autoplay_audio === 'none' ? 'Off' : (sett.autoplay_audio === 'front' ? 'Front Only' : (sett.autoplay_audio === 'back' ? 'Back Only' : sett.autoplay_audio)))}
-                            </div>
-                            <div className="text-[9px] text-slate-500 font-bold truncate mt-0.5">
-                              Images: {sett.show_images === 'none' ? 'Hidden' : ((sett.show_images === 'back_only' || sett.show_images === 'back') ? 'Back Only' : (sett.show_images === 'front' ? 'Front Only' : 'Both Sides'))}
-                            </div>
-                          </div>
-
-                          {/* 4. Default Algorithm */}
-                          <div className="p-2.5 rounded-2xl bg-indigo-50/60 border border-indigo-100/80 flex flex-col justify-between">
-                            <span className="text-[9px] font-black text-indigo-700 uppercase tracking-wider flex items-center gap-1">
-                              <Brain className="w-2.5 h-2.5 text-indigo-600 shrink-0" /> Algorithm
-                            </span>
-                            <div className="text-[11px] font-black text-slate-800 truncate mt-1">
-                              {sett.quiz_learning_mode === 'fsrs' ? 'FSRS v6' : (sett.quiz_learning_mode === 'random' ? 'Random' : (sett.quiz_learning_mode === 'unseen' ? 'New Cards' : (sett.quiz_learning_mode === 'review' ? 'Reviews' : 'Sequential')))}
-                            </div>
-                            <div className="text-[9px] text-slate-500 font-bold truncate mt-0.5">
-                              {sett.random_enabled ? 'Random Shuffle' : 'Standard Order'}
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Actions */}
-                      <div className="pt-3 mt-3 border-t border-slate-100 flex items-center justify-between gap-2">
-                        <div className="flex items-center gap-1.5">
-                          <button
-                            type="button"
-                            onClick={() => handleEditCustomProfile(prof)}
-                            className="px-2.5 py-1.5 rounded-xl text-indigo-600 hover:bg-indigo-50 font-black text-[11px] uppercase transition-all flex items-center gap-1 cursor-pointer"
-                          >
-                            <Edit3 className="w-3 h-3" /> Edit
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              if (confirm(`Are you sure you want to delete template "${prof.name}"?`)) {
-                                handleDeleteProfile(prof.id)
-                              }
-                            }}
-                            className="px-2.5 py-1.5 rounded-xl text-rose-500 hover:bg-rose-50 font-black text-[11px] uppercase transition-all flex items-center gap-1 cursor-pointer"
-                          >
-                            <Trash2 className="w-3 h-3" /> Delete
-                          </button>
-                        </div>
-
-                        {isDefaultActive ? (
-                          <button
-                            disabled
-                            className="px-3.5 py-1.5 rounded-xl bg-emerald-100 text-emerald-800 font-black text-[11px] uppercase cursor-default flex items-center gap-1.5"
-                          >
-                            <Check className="w-3.5 h-3.5" /> Active Globally
-                          </button>
-                        ) : (
-                          <button
-                            type="button"
-                            onClick={() => handleSetActiveProfile(prof.id)}
-                            className="px-3.5 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-black text-[11px] uppercase transition-all flex items-center gap-1.5 cursor-pointer shadow-xs shadow-amber-500/20 active:scale-95"
-                          >
-                            <BookmarkCheck className="w-3.5 h-3.5" />
-                            <span>Set as Default</span>
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                  )
-                })}
-              </div>
-            )}
-          </section>
-        )}
-
-        {/* ══════════ TAB 3: LIVE CUSTOMIZER FOR ACTIVE TEMPLATE ══════════ */}
-        {templateTab === 'customize' && (
-          <div className="space-y-4 md:space-y-6">
-            <div className="p-4 sm:p-5 bg-gradient-to-r from-indigo-50/80 via-purple-50/50 to-indigo-50/80 rounded-3xl border border-indigo-100/90 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-2xs">
-              <div className="space-y-1">
-                <div className="flex items-center gap-2">
-                  <Sliders className="w-4 h-4 text-indigo-600" />
-                  <h4 className="text-xs sm:text-sm font-black text-indigo-950 uppercase tracking-tight">
-                    Active Template Configuration
-                  </h4>
-                  <span className="px-2 py-0.5 rounded-full bg-indigo-600 text-white font-black text-[10px] uppercase">
-                    {activeProfileObj?.name || 'Standard'}
-                  </span>
-                </div>
-                <p className="text-[11px] text-indigo-700/80 font-medium">
-                  This template includes Gestures, Display & Alignment, Media (Audio & Images), and Algorithm. Changes apply directly to your active configuration.
-                </p>
-              </div>
-
-              <button
-                type="button"
-                onClick={() => {
-                  setEditingProfileId(null)
-                  setNewProfileName(`${activeProfileObj?.name || 'Template'} (Custom)`)
-                  setNewProfileIcon(activeProfileObj?.icon || 'sparkles')
-                  loadBaseSettings('current')
-                  setModalTab('gestures')
-                  setIsCreateModalOpen(true)
-                }}
-                className="px-3.5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-black uppercase rounded-xl shadow-xs shrink-0 cursor-pointer flex items-center gap-1.5 self-start sm:self-auto active:scale-95 transition-all"
+                className="inline-flex items-center gap-1.5 py-1.5 px-3 rounded-xl bg-indigo-600 text-white text-xs font-black uppercase tracking-wider hover:bg-indigo-700 transition-all cursor-pointer shadow-xs shrink-0"
               >
                 <Plus className="w-3.5 h-3.5" />
-                <span>Save as New Template</span>
+                <span className="hidden sm:inline">Save as Template</span>
               </button>
             </div>
+          </div>
 
-            {/* 4 Internal Sub-tabs for the 4 facets of this Template */}
-            <div className="bg-slate-100/90 p-1 rounded-2xl border border-slate-200/80 shadow-2xs">
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-1">
-                {[
-                  { id: 'gestures', label: '1. Gestures & SFX', icon: Move, desc: 'Flip trigger, swipe & SFX' },
-                  { id: 'display', label: '2. Display & Align', icon: Layers, desc: 'FSRS metrics & alignment' },
-                  { id: 'media', label: '3. Media & Audio', icon: Volume2, desc: 'TTS voice & illustrations' },
-                  { id: 'algorithm', label: '4. Default Algorithm', icon: Brain, desc: 'FSRS v6 & card order' }
-                ].map((t) => {
-                  const Icon = t.icon
-                  const isCur = activeTunerTab === t.id
-                  return (
-                    <button
-                      key={t.id}
-                      type="button"
-                      onClick={() => setActiveTunerTab(t.id as any)}
-                      className={cn(
-                        "py-2 sm:py-2.5 px-2 rounded-xl transition-all select-none cursor-pointer flex items-center justify-center gap-1.5 text-center font-black text-xs uppercase tracking-tight",
-                        isCur
-                          ? "bg-white text-indigo-700 shadow-xs border border-slate-200/80"
-                          : "text-slate-500 hover:text-slate-800 hover:bg-white/50"
-                      )}
-                    >
-                      <Icon className={cn("w-3.5 h-3.5 shrink-0", isCur ? "text-indigo-600" : "text-slate-400")} />
-                      <span className="truncate">{t.label}</span>
-                    </button>
-                  )
-                })}
+          {/* Template Cards Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+            {filteredProfiles.map((prof: any) => {
+              const isActive = activeId === prof.id
+              const IconComp = prof.icon === 'zap' ? Zap : prof.icon === 'headphones' ? Headphones : prof.icon === 'book' ? BookOpen : Sparkles
+              const s = prof.settings || {}
+
+              return (
+                <div
+                  key={prof.id}
+                  className={cn(
+                    "p-4 rounded-2xl border transition-all flex flex-col justify-between gap-3 relative",
+                    isActive
+                      ? "border-indigo-500 bg-indigo-50/20 shadow-xs"
+                      : "border-slate-200/80 bg-white hover:border-slate-300"
+                  )}
+                >
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <div className={cn(
+                          "w-8 h-8 rounded-xl flex items-center justify-center shrink-0",
+                          isActive ? "bg-indigo-600 text-white" : "bg-slate-100 text-slate-600"
+                        )}>
+                          <IconComp className="w-4 h-4" />
+                        </div>
+                        <div className="min-w-0">
+                          <h4 className="text-xs font-black text-slate-900 uppercase tracking-tight truncate">
+                            {prof.name}
+                          </h4>
+                          <span className="text-[10px] text-slate-400 font-bold block truncate">
+                            {prof.is_system ? 'System Preset' : 'Custom Template'}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        {isActive && (
+                          <span className="px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-700 text-[9.5px] font-black uppercase tracking-wider">
+                            Active
+                          </span>
+                        )}
+                        {!prof.is_system && (
+                          <div className="flex items-center gap-1">
+                            <button
+                              type="button"
+                              onClick={() => handleEditCustomProfile(prof)}
+                              className="p-1 rounded-lg text-slate-400 hover:text-indigo-600 hover:bg-slate-100 cursor-pointer"
+                              title="Edit Template"
+                            >
+                              <Edit3 className="w-3.5 h-3.5" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteProfile(prof.id)}
+                              className="p-1 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-slate-100 cursor-pointer"
+                              title="Delete Template"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Quick Specs Chips */}
+                    <div className="grid grid-cols-2 gap-1.5 text-[10px] font-bold text-slate-600 bg-slate-50/80 p-2 rounded-xl border border-slate-100">
+                      <div className="truncate">
+                        <span className="text-slate-400 font-medium">Flip: </span>
+                        {s.card_flip_trigger === 'button_only' ? 'Button' : s.card_flip_trigger === 'tap' ? 'Tap Body' : 'Tap & Swipe'}
+                      </div>
+                      <div className="truncate">
+                        <span className="text-slate-400 font-medium">Rating: </span>
+                        {s.card_rating_mode === 'buttons' ? '4 Buttons' : s.card_rating_mode === 'swipe_4way' ? '4-Way' : s.card_rating_mode === 'swipe_2way' ? '2-Way' : 'Hybrid'}
+                      </div>
+                      <div className="truncate">
+                        <span className="text-slate-400 font-medium">Audio: </span>
+                        {s.autoplay_audio === 'none' ? 'Muted' : s.autoplay_audio === 'back' ? 'Back' : 'Always'}
+                      </div>
+                      <div className="truncate">
+                        <span className="text-slate-400 font-medium">Align: </span>
+                        {s.front_valign === 'top' ? 'Top' : 'Center'}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Apply Template Button */}
+                  <button
+                    type="button"
+                    onClick={() => handleApplyTemplate(prof)}
+                    className={cn(
+                      "w-full py-2 px-3 rounded-xl text-xs font-black uppercase tracking-wider transition-all cursor-pointer flex items-center justify-center gap-1.5",
+                      isActive
+                        ? "bg-slate-100 text-slate-500 hover:bg-slate-200"
+                        : "bg-indigo-600 text-white hover:bg-indigo-700 shadow-xs"
+                    )}
+                  >
+                    {isActive ? (
+                      <>
+                        <Check className="w-3.5 h-3.5 text-emerald-600" />
+                        <span>Currently Active</span>
+                      </>
+                    ) : (
+                      <>
+                        <Sparkles className="w-3.5 h-3.5" />
+                        <span>Apply to {selectedDeckId === 'global' ? 'Account Defaults' : 'This Deck'}</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              )
+            })}
+          </div>
+        </section>
+
+        {/* 3. DIRECT PREFERENCES (LIVE ADJUSTMENTS) */}
+        <section className="bg-white rounded-3xl md:rounded-[2.5rem] border border-slate-200/80 p-5 sm:p-7 shadow-xs space-y-6">
+          <div className="border-b border-slate-100 pb-4">
+            <h3 className="text-base font-black text-slate-900 uppercase tracking-tight">
+              Direct Preferences Tuning
+            </h3>
+            <p className="text-xs text-slate-400 font-medium">
+              Fine-tune study controls for {selectedDeckId === 'global' ? 'your entire account' : `deck: ${selectedDeck?.title || selectedDeckId}`}.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+            {/* GROUP 1: Gestures & Feedback */}
+            <div className="space-y-3.5 p-4 sm:p-5 rounded-2xl bg-slate-50/70 border border-slate-200/70">
+              <div className="flex items-center gap-2 text-indigo-600">
+                <Move className="w-4 h-4" />
+                <h4 className="text-xs font-black text-slate-900 uppercase tracking-wider">
+                  Gestures & Controls
+                </h4>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-slate-700 block">
+                  Card Flip Trigger
+                </label>
+                <SegmentedControl
+                  value={userSettings.card_flip_trigger || 'both'}
+                  onChange={(val) => handleUpdateStudySetting('card_flip_trigger', val)}
+                  options={[
+                    { id: 'both', label: 'Tap & Swipe' },
+                    { id: 'tap', label: 'Tap Card Body' },
+                    { id: 'button_only', label: 'Button Only' }
+                  ]}
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-slate-700 block">
+                  FSRS Rating Mode
+                </label>
+                <SegmentedControl
+                  value={userSettings.card_rating_mode || 'both'}
+                  onChange={(val) => handleUpdateStudySetting('card_rating_mode', val)}
+                  options={[
+                    { id: 'both', label: 'Hybrid' },
+                    { id: 'swipe_4way', label: '4-Way Swipe' },
+                    { id: 'swipe_2way', label: '2-Way Swipe' },
+                    { id: 'buttons', label: 'Buttons Only' }
+                  ]}
+                />
+              </div>
+
+              <ToggleRow
+                icon={Volume2}
+                label="Sound Effects (SFX)"
+                desc="Play audio feedback on card flips and answer ratings"
+                checked={userSettings.sfx_enabled ?? true}
+                onChange={(val) => handleUpdateStudySetting('sfx_enabled', val)}
+              />
+
+              <ToggleRow
+                icon={Zap}
+                label="Haptic Feedback"
+                desc="Vibrate on mobile devices when swiping cards"
+                checked={userSettings.haptic_enabled ?? true}
+                onChange={(val) => handleUpdateStudySetting('haptic_enabled', val)}
+              />
+            </div>
+
+            {/* GROUP 2: Display & Alignment */}
+            <div className="space-y-3.5 p-4 sm:p-5 rounded-2xl bg-slate-50/70 border border-slate-200/70">
+              <div className="flex items-center gap-2 text-indigo-600">
+                <Layers className="w-4 h-4" />
+                <h4 className="text-xs font-black text-slate-900 uppercase tracking-wider">
+                  Display & Card Alignment
+                </h4>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <div className="space-y-1.5">
+                  <label className="text-[11px] font-bold text-slate-700 block">
+                    Front Card Alignment
+                  </label>
+                  <SegmentedControl
+                    value={userSettings.front_valign || 'center'}
+                    onChange={(val) => handleUpdateStudySetting('front_valign', val)}
+                    options={[
+                      { id: 'center', label: 'Center' },
+                      { id: 'top', label: 'Top' }
+                    ]}
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-[11px] font-bold text-slate-700 block">
+                    Back Card Alignment
+                  </label>
+                  <SegmentedControl
+                    value={userSettings.back_valign || 'center'}
+                    onChange={(val) => handleUpdateStudySetting('back_valign', val)}
+                    options={[
+                      { id: 'center', label: 'Center' },
+                      { id: 'top', label: 'Top' }
+                    ]}
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-slate-700 block">
+                  Illustration Images
+                </label>
+                <SegmentedControl
+                  value={userSettings.show_images || 'both'}
+                  onChange={(val) => handleUpdateStudySetting('show_images', val)}
+                  options={[
+                    { id: 'both', label: 'Both Sides' },
+                    { id: 'back_only', label: 'Back Only' },
+                    { id: 'none', label: 'Hidden' }
+                  ]}
+                />
+              </div>
+
+              <ToggleRow
+                icon={Eye}
+                label="FSRS Algorithm Metrics"
+                desc="Show memory stability, retrievability, and interval on card"
+                checked={userSettings.show_fsrs ?? true}
+                onChange={(val) => handleUpdateStudySetting('show_fsrs', val)}
+              />
+            </div>
+
+            {/* GROUP 3: Audio & Speech */}
+            <div className="space-y-3.5 p-4 sm:p-5 rounded-2xl bg-slate-50/70 border border-slate-200/70">
+              <div className="flex items-center gap-2 text-indigo-600">
+                <Headphones className="w-4 h-4" />
+                <h4 className="text-xs font-black text-slate-900 uppercase tracking-wider">
+                  Audio & Pronunciation
+                </h4>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-slate-700 block">
+                  Autoplay Pronunciation
+                </label>
+                <SegmentedControl
+                  value={userSettings.autoplay_audio || 'always'}
+                  onChange={(val) => handleUpdateStudySetting('autoplay_audio', val)}
+                  options={[
+                    { id: 'always', label: 'Always' },
+                    { id: 'back', label: 'Back Only' },
+                    { id: 'front', label: 'Front Only' },
+                    { id: 'none', label: 'Off' }
+                  ]}
+                />
               </div>
             </div>
 
-            {/* Facet 1: Gestures & SFX */}
-            {activeTunerTab === 'gestures' && (
-              <section className="bg-white rounded-3xl border border-slate-100 p-4 sm:p-6 shadow-2xs space-y-4 animate-in fade-in duration-150">
-                <div className="flex items-center gap-2.5 border-b border-slate-100 pb-3">
-                  <div className="w-8 h-8 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center shrink-0">
-                    <Move className="w-4 h-4" />
-                  </div>
-                  <div>
-                    <h3 className="text-xs font-black text-slate-900 uppercase tracking-widest italic">
-                      1. Gestures & Interaction Feedback
-                    </h3>
-                    <p className="text-[10px] font-medium text-slate-400">
-                      Configure card flip triggers, directional FSRS swipe ratings, sound effects, and haptic feedback
-                    </p>
-                  </div>
-                </div>
+            {/* GROUP 4: Queue & Algorithm */}
+            <div className="space-y-3.5 p-4 sm:p-5 rounded-2xl bg-slate-50/70 border border-slate-200/70">
+              <div className="flex items-center gap-2 text-indigo-600">
+                <Brain className="w-4 h-4" />
+                <h4 className="text-xs font-black text-slate-900 uppercase tracking-wider">
+                  Queue & Review Order
+                </h4>
+              </div>
 
-                {/* Flip Trigger */}
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2">
-                    <MousePointer className="w-3.5 h-3.5 text-indigo-500" />
-                    <h4 className="text-[11px] font-black text-slate-700 uppercase tracking-wider">
-                      Card Flip Trigger
-                    </h4>
-                  </div>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-2.5">
-                    {[
-                      { id: 'both', title: 'Hybrid (Tap & Swipe)', desc: 'Tap anywhere on the card or swipe lightly to flip.', icon: Sparkles },
-                      { id: 'tap', title: 'Tap Card Body', desc: 'Tap anywhere on the card body to flip immediately.', icon: MousePointer },
-                      { id: 'button_only', title: 'Button Only', desc: 'Strict button-only flipping (prevents accidental flips when selecting text).', icon: Lock }
-                    ].map((opt) => {
-                      const isSelected = (userSettings.card_flip_trigger || 'both') === opt.id
-                      return (
-                        <button
-                          key={opt.id}
-                          onClick={() => updateUserSettings({ card_flip_trigger: opt.id as any })}
-                          className={cn(
-                            "p-3 rounded-2xl border-2 text-left transition-all relative cursor-pointer",
-                            isSelected ? "border-indigo-600 bg-indigo-50/30 shadow-xs" : "border-slate-100 bg-slate-50/50 hover:border-slate-200 hover:bg-white"
-                          )}
-                        >
-                          <div className="flex items-center justify-between mb-1.5">
-                            <h5 className="text-xs font-black text-slate-800 uppercase tracking-tight">{opt.title}</h5>
-                            {isSelected && <Zap className="w-3 h-3 text-indigo-600 fill-current" />}
-                          </div>
-                          <p className="text-[10px] text-slate-400 font-medium leading-relaxed">{opt.desc}</p>
-                        </button>
-                      )
-                    })}
-                  </div>
-                </div>
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-slate-700 block">
+                  Card Order Mode
+                </label>
+                <SegmentedControl
+                  value={userSettings.quiz_learning_mode || 'fsrs'}
+                  onChange={(val) => handleUpdateStudySetting('quiz_learning_mode', val)}
+                  options={[
+                    { id: 'fsrs', label: 'FSRS v6' },
+                    { id: 'sequential', label: 'Sequential' },
+                    { id: 'unseen', label: 'New First' },
+                    { id: 'random', label: 'Shuffle' }
+                  ]}
+                />
+              </div>
 
-                {/* Rating Mode */}
-                <div className="space-y-2 pt-2">
-                  <div className="flex items-center gap-2">
-                    <Compass className="w-3.5 h-3.5 text-purple-500" />
-                    <h4 className="text-[11px] font-black text-slate-700 uppercase tracking-wider">
-                      FSRS Rating Mode
-                    </h4>
-                  </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5">
-                    {[
-                      { id: 'both', title: 'Hybrid (Swipe & Buttons)', badge: 'Recommended', desc: 'Both 4-directional swipe gestures AND 4 bottom rating buttons.' },
-                      { id: 'swipe_4way', title: '4-Way Swipe Compass', badge: 'Gamified', desc: 'Swipe Left (Again), Down (Hard), Right (Good), Up (Easy).' },
-                      { id: 'swipe_2way', title: '2-Way Fast Swipe', badge: 'Speed', desc: 'Swipe Left (Again) & Right (Good). Secondary buttons for Hard/Easy.' },
-                      { id: 'buttons', title: '4 Buttons Only', badge: 'Classic', desc: 'Traditional Anki-style 4 buttons. Swipe gestures disabled.' }
-                    ].map((opt) => {
-                      const isSelected = (userSettings.card_rating_mode || 'both') === opt.id
-                      return (
-                        <button
-                          key={opt.id}
-                          onClick={() => updateUserSettings({ card_rating_mode: opt.id as any })}
-                          className={cn(
-                            "p-3 rounded-2xl border-2 text-left transition-all relative cursor-pointer flex flex-col justify-between",
-                            isSelected ? "border-purple-600 bg-purple-50/30 shadow-xs" : "border-slate-100 bg-slate-50/50 hover:border-slate-200 hover:bg-white"
-                          )}
-                        >
-                          <div>
-                            <div className="flex items-center justify-between mb-1.5">
-                              <span className="text-[9px] font-black uppercase px-2 py-0.5 rounded-md bg-purple-50 text-purple-700">
-                                {opt.badge}
-                              </span>
-                              {isSelected && <Zap className="w-3 h-3 text-purple-600 fill-current" />}
-                            </div>
-                            <h5 className="text-xs font-black text-slate-800 uppercase tracking-tight mb-1">{opt.title}</h5>
-                            <p className="text-[10px] text-slate-400 font-medium leading-relaxed">{opt.desc}</p>
-                          </div>
-                        </button>
-                      )
-                    })}
-                  </div>
-                </div>
-
-                {/* SFX & Haptic Feedback */}
-                <div className="space-y-1.5 pt-2 border-t border-slate-100">
-                  <SettingItem 
-                    icon={Volume2} 
-                    label="Sound Effects (SFX)" 
-                    desc="Play audio feedback when flipping cards and rating review outcomes" 
-                    active={userSettings.sfx_enabled ?? true} 
-                    onClick={() => updateUserSettings({ sfx_enabled: !(userSettings.sfx_enabled ?? true) })}
-                  />
-                  <SettingItem 
-                    icon={Zap} 
-                    label="Haptic Feedback" 
-                    desc="Subtle tactile vibration feedback on mobile touch devices during gestures and taps" 
-                    active={userSettings.haptic_enabled ?? true} 
-                    onClick={() => updateUserSettings({ haptic_enabled: !(userSettings.haptic_enabled ?? true) })}
-                  />
-                </div>
-              </section>
-            )}
-
-            {/* Facet 2: Display & Alignment */}
-            {activeTunerTab === 'display' && (
-              <section className="bg-white rounded-3xl border border-slate-100 p-4 sm:p-6 shadow-2xs space-y-4 animate-in fade-in duration-150">
-                <div className="flex items-center gap-2.5 border-b border-slate-100 pb-3">
-                  <div className="w-8 h-8 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center shrink-0">
-                    <Layers className="w-4 h-4" />
-                  </div>
-                  <div>
-                    <h3 className="text-xs font-black text-slate-900 uppercase tracking-widest italic">
-                      2. Card Display & Alignment
-                    </h3>
-                    <p className="text-[10px] font-medium text-slate-400">
-                      Toggle FSRS algorithm metrics and configure content alignment for front and back cards
-                    </p>
-                  </div>
-                </div>
-
-                {/* FSRS Metrics Display Toggle */}
-                <div className="p-3.5 bg-slate-50/70 rounded-2xl border border-slate-100 space-y-2">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[10.5px] font-black text-slate-700 uppercase tracking-wider flex items-center gap-1.5">
-                      <Brain className="w-3.5 h-3.5 text-indigo-500" /> FSRS v6 Algorithm Metrics
-                    </span>
-                    <span className={cn(
-                      "text-[9.5px] font-black px-2 py-0.5 rounded-full",
-                      (userSettings.show_fsrs ?? true) ? "text-emerald-700 bg-emerald-100" : "text-slate-500 bg-slate-200"
-                    )}>
-                      {(userSettings.show_fsrs ?? true) ? 'Visible' : 'Hidden'}
-                    </span>
-                  </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                    {[
-                      { 
-                        id: true, 
-                        label: 'Show FSRS Metrics', 
-                        desc: 'Display stability (S), difficulty (D), and next review intervals directly on cards.' 
-                      },
-                      { 
-                        id: false, 
-                        label: 'Hide FSRS Metrics (Clean)', 
-                        desc: 'Hide all algorithm numbers for a completely clean, distraction-free study card.' 
-                      }
-                    ].map(opt => {
-                      const isCur = (userSettings.show_fsrs ?? true) === opt.id
-                      return (
-                        <button
-                          key={String(opt.id)}
-                          type="button"
-                          onClick={() => updateUserSettings({ show_fsrs: opt.id })}
-                          className={cn(
-                            "p-3 rounded-2xl border-2 text-left transition-all relative cursor-pointer",
-                            isCur ? "border-indigo-600 bg-indigo-50/40 shadow-xs" : "border-slate-100 bg-white hover:border-slate-200"
-                          )}
-                        >
-                          <div className="flex items-center justify-between mb-1">
-                            <h5 className="text-[11px] font-black text-slate-800 uppercase tracking-tight">{opt.label}</h5>
-                            {isCur && <Check className="w-3 h-3 text-indigo-600 shrink-0" />}
-                          </div>
-                          <p className="text-[9.5px] text-slate-400 font-medium leading-relaxed">{opt.desc}</p>
-                        </button>
-                      )
-                    })}
-                  </div>
-                </div>
-
-                {/* Alignment */}
-                <div className="space-y-2">
-                  <span className="text-[11px] font-black text-slate-700 uppercase tracking-wider block">
-                    Card Content Alignment
-                  </span>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                    <div className="p-3.5 bg-slate-50/70 rounded-2xl border border-slate-100 space-y-2">
-                      <span className="text-[10.5px] font-black text-slate-700 uppercase tracking-wider block">
-                        Front Card
-                      </span>
-                      <div className="grid grid-cols-2 gap-2">
-                        <div>
-                          <span className="text-[9.5px] font-bold text-slate-400 block mb-1">Vertical:</span>
-                          <div className="grid grid-cols-2 gap-1 bg-white p-1 rounded-xl border border-slate-200/60">
-                            {(['center', 'top'] as const).map(mode => (
-                              <button
-                                key={mode}
-                                type="button"
-                                onClick={() => updateUserSettings({ front_valign: mode })}
-                                className={cn(
-                                  "py-1 px-1 rounded-lg text-[10px] font-black uppercase transition-all cursor-pointer text-center",
-                                  (userSettings.front_valign || 'center') === mode ? "bg-indigo-600 text-white shadow-xs" : "text-slate-500 hover:text-slate-800"
-                                )}
-                              >
-                                {mode === 'center' ? 'Center' : 'Top'}
-                              </button>
-                            ))}
-                          </div>
-                        </div>
-                        <div>
-                          <span className="text-[9.5px] font-bold text-slate-400 block mb-1">Horizontal:</span>
-                          <div className="grid grid-cols-2 gap-1 bg-white p-1 rounded-xl border border-slate-200/60">
-                            {(['left', 'center'] as const).map(mode => (
-                              <button
-                                key={mode}
-                                type="button"
-                                onClick={() => updateUserSettings({ front_halign: mode })}
-                                className={cn(
-                                  "py-1 px-1 rounded-lg text-[10px] font-black uppercase transition-all cursor-pointer text-center",
-                                  (userSettings.front_halign || 'left') === mode ? "bg-indigo-600 text-white shadow-xs" : "text-slate-500 hover:text-slate-800"
-                                )}
-                              >
-                                {mode === 'left' ? 'Left' : 'Center'}
-                              </button>
-                            ))}
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="p-3.5 bg-slate-50/70 rounded-2xl border border-slate-100 space-y-2">
-                      <span className="text-[10.5px] font-black text-slate-700 uppercase tracking-wider block">
-                        Back Card
-                      </span>
-                      <div className="grid grid-cols-2 gap-2">
-                        <div>
-                          <span className="text-[9.5px] font-bold text-slate-400 block mb-1">Vertical:</span>
-                          <div className="grid grid-cols-2 gap-1 bg-white p-1 rounded-xl border border-slate-200/60">
-                            {(['center', 'top'] as const).map(mode => (
-                              <button
-                                key={mode}
-                                type="button"
-                                onClick={() => updateUserSettings({ back_valign: mode })}
-                                className={cn(
-                                  "py-1 px-1 rounded-lg text-[10px] font-black uppercase transition-all cursor-pointer text-center",
-                                  (userSettings.back_valign || 'center') === mode ? "bg-indigo-600 text-white shadow-xs" : "text-slate-500 hover:text-slate-800"
-                                )}
-                              >
-                                {mode === 'center' ? 'Center' : 'Top'}
-                              </button>
-                            ))}
-                          </div>
-                        </div>
-                        <div>
-                          <span className="text-[9.5px] font-bold text-slate-400 block mb-1">Horizontal:</span>
-                          <div className="grid grid-cols-2 gap-1 bg-white p-1 rounded-xl border border-slate-200/60">
-                            {(['left', 'center'] as const).map(mode => (
-                              <button
-                                key={mode}
-                                type="button"
-                                onClick={() => updateUserSettings({ back_halign: mode })}
-                                className={cn(
-                                  "py-1 px-1 rounded-lg text-[10px] font-black uppercase transition-all cursor-pointer text-center",
-                                  (userSettings.back_halign || 'left') === mode ? "bg-indigo-600 text-white shadow-xs" : "text-slate-500 hover:text-slate-800"
-                                )}
-                              >
-                                {mode === 'left' ? 'Left' : 'Center'}
-                              </button>
-                            ))}
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </section>
-            )}
-
-            {/* Facet 3: Media & Audio */}
-            {activeTunerTab === 'media' && (
-              <section className="bg-white rounded-3xl border border-slate-100 p-4 sm:p-6 shadow-2xs space-y-4 animate-in fade-in duration-150">
-                <div className="flex items-center gap-2.5 border-b border-slate-100 pb-3">
-                  <div className="w-8 h-8 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
-                    <Volume2 className="w-4 h-4" />
-                  </div>
-                  <div>
-                    <h3 className="text-xs font-black text-slate-900 uppercase tracking-widest italic">
-                      3. Card Media Content (Audio & Images)
-                    </h3>
-                    <p className="text-[10px] font-medium text-slate-400">
-                      Configure automatic text-to-speech pronunciation (TTS) and flashcard illustration display modes
-                    </p>
-                  </div>
-                </div>
-
-                <div className="space-y-3">
-                  {/* TTS Autoplay */}
-                  <div className="p-3.5 bg-slate-50/70 rounded-2xl border border-slate-100 space-y-2">
-                    <div className="flex items-center justify-between">
-                      <span className="text-[10.5px] font-black text-slate-700 uppercase tracking-wider flex items-center gap-1.5">
-                        <Volume2 className="w-3.5 h-3.5 text-emerald-600" /> Automatic Audio / TTS Autoplay
-                      </span>
-                      <span className="text-[9.5px] font-bold text-slate-400">
-                        {userSettings.autoplay_audio === 'always' ? 'Always Play' : (userSettings.autoplay_audio === 'none' ? 'Off' : (userSettings.autoplay_audio === 'front' ? 'Front Only' : 'Back Only'))}
-                      </span>
-                    </div>
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-1 bg-white p-1 rounded-xl border border-slate-200/60">
-                      {[
-                        { id: 'always', label: 'Always Play' },
-                        { id: 'front', label: 'Front Only' },
-                        { id: 'back', label: 'Back Only' },
-                        { id: 'none', label: 'Off' }
-                      ].map(opt => (
-                        <button
-                          key={opt.id}
-                          type="button"
-                          onClick={() => updateUserSettings({ autoplay_audio: opt.id })}
-                          className={cn(
-                            "py-1.5 px-1 rounded-lg text-[10px] font-black uppercase transition-all cursor-pointer text-center",
-                            (userSettings.autoplay_audio || 'always') === opt.id ? "bg-emerald-600 text-white shadow-xs" : "text-slate-500 hover:text-slate-800"
-                          )}
-                        >
-                          {opt.label}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Image Display Mode */}
-                  <div className="p-3.5 bg-slate-50/70 rounded-2xl border border-slate-100 space-y-2">
-                    <div className="flex items-center justify-between">
-                      <span className="text-[10.5px] font-black text-slate-700 uppercase tracking-wider flex items-center gap-1.5">
-                        <ImageIcon className="w-3.5 h-3.5 text-rose-500" /> Illustration Images
-                      </span>
-                      <span className="text-[9.5px] font-bold text-slate-400">
-                        {userSettings.show_images === 'none' ? 'Hidden' : ((userSettings.show_images === 'back_only' || userSettings.show_images === 'back') ? 'Back Only' : (userSettings.show_images === 'front' ? 'Front Only' : 'Both Sides'))}
-                      </span>
-                    </div>
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                      {[
-                        { id: 'both', label: 'Both Sides (Front & Back)', desc: 'Show illustration images on both sides of the flashcard.' },
-                        { id: 'back_only', label: 'Back Only (Answer Side)', desc: 'Hide images on the front side to test recall; reveal only on the answer side.' },
-                        { id: 'none', label: 'Hide Images (Minimalist)', desc: 'Do not load images; display clean typography and definitions only.' }
-                      ].map(opt => {
-                        const isCur = (userSettings.show_images || 'both') === opt.id
-                        return (
-                          <button
-                            key={opt.id}
-                            type="button"
-                            onClick={() => updateUserSettings({ show_images: opt.id })}
-                            className={cn(
-                              "p-3 rounded-2xl border-2 text-left transition-all relative cursor-pointer",
-                              isCur ? "border-rose-500 bg-rose-50/40 shadow-xs" : "border-slate-100 bg-white hover:border-slate-200"
-                            )}
-                          >
-                            <div className="flex items-center justify-between mb-1">
-                              <h5 className="text-[11px] font-black text-slate-800 uppercase tracking-tight">{opt.label}</h5>
-                              {isCur && <Check className="w-3 h-3 text-rose-600 shrink-0" />}
-                            </div>
-                            <p className="text-[9.5px] text-slate-400 font-medium leading-relaxed">{opt.desc}</p>
-                          </button>
-                        )
-                      })}
-                    </div>
-                  </div>
-                </div>
-              </section>
-            )}
-
-            {/* Facet 4: Default Algorithm */}
-            {activeTunerTab === 'algorithm' && (
-              <section className="bg-white rounded-3xl border border-slate-100 p-4 sm:p-6 shadow-2xs space-y-4 animate-in fade-in duration-150">
-                <div className="flex items-center gap-2.5 border-b border-slate-100 pb-3">
-                  <div className="w-8 h-8 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0">
-                    <Brain className="w-4 h-4" />
-                  </div>
-                  <div>
-                    <h3 className="text-xs font-black text-slate-900 uppercase tracking-widest italic">
-                      4. Default Algorithm & Review Order
-                    </h3>
-                    <p className="text-[10px] font-medium text-slate-400">
-                      Select how flashcards are scheduled, queued, and distributed during study sessions
-                    </p>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-2.5">
-                  {modes.map((mode) => {
-                    const isSelected = learningMode === mode.id
-                    const Icon = mode.icon
-                    return (
-                      <button
-                        key={mode.id}
-                        onClick={() => updateLearningMode(mode.id as LearningMode)}
-                        className={cn(
-                          "p-3.5 rounded-2xl border-2 transition-all text-left flex flex-col justify-between cursor-pointer",
-                          isSelected ? "border-indigo-600 bg-indigo-50/20 shadow-xs" : "border-slate-100 bg-slate-50/40 hover:bg-white hover:border-slate-200"
-                        )}
-                      >
-                        <div className="space-y-2">
-                          <div className="flex items-center justify-between">
-                            <div className={cn("p-2 rounded-xl", mode.bg, mode.color)}>
-                              <Icon className="w-4 h-4" />
-                            </div>
-                            {isSelected && <Zap className="w-3 h-3 text-indigo-600 fill-current" />}
-                          </div>
-                          <h4 className="text-xs font-black text-slate-900 uppercase tracking-tight">{mode.name}</h4>
-                          <p className="text-[10px] font-medium text-slate-400 leading-relaxed">{mode.desc}</p>
-                        </div>
-                      </button>
-                    )
-                  })}
-                </div>
-
-                <div className="pt-2 border-t border-slate-100">
-                  <SettingItem
-                    icon={Shuffle}
-                    label="Random Shuffle Card Order"
-                    desc="Randomly shuffle the card order in each study session"
-                    active={userSettings.random_enabled ?? false}
-                    onClick={() => updateUserSettings({ random_enabled: !(userSettings.random_enabled ?? false) })}
-                  />
-                </div>
-              </section>
-            )}
+              <ToggleRow
+                icon={Shuffle}
+                label="Randomize Card Order"
+                desc="Shuffle cards within the review queue"
+                checked={userSettings.random_enabled ?? false}
+                onChange={(val) => handleUpdateStudySetting('random_enabled', val)}
+              />
+            </div>
           </div>
-        )}
+        </section>
       </div>
     )
   }
@@ -2022,16 +1699,15 @@ export const Settings = () => {
         </div>
       </div>
 
-      {/* Create / Edit Template Modal with 4-Part Internal Sub-Tabs */}
+      {/* Sleek, Compact Save as Custom Template Modal */}
       {isCreateModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in">
-          <div className="bg-white rounded-3xl p-5 sm:p-6 w-full max-w-lg shadow-2xl border border-slate-100 space-y-4 max-h-[90vh] flex flex-col">
-            {/* Modal Header */}
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in">
+          <div className="bg-white rounded-3xl p-5 sm:p-6 w-full max-w-md shadow-2xl border border-slate-100 space-y-4">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3 shrink-0">
               <div className="flex items-center gap-2">
                 <Sparkles className="w-5 h-5 text-indigo-600" />
                 <h3 className="text-sm font-black text-slate-900 uppercase tracking-wider">
-                  {editingProfileId ? 'Edit Study Template' : 'Create New Template'}
+                  {editingProfileId ? 'Edit Template' : 'Save as My Template'}
                 </h3>
               </div>
               <button
@@ -2043,461 +1719,61 @@ export const Settings = () => {
               </button>
             </div>
 
-            {/* Scrollable Modal Body */}
-            <div className="space-y-3.5 overflow-y-auto custom-scrollbar flex-1 pr-1">
-              {/* Template Name & Icon */}
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                <div className="sm:col-span-2 space-y-1">
-                  <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                    Template Name
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="e.g. Speedrun Morning, Deep Focus..."
-                    value={newProfileName}
-                    onChange={(e) => setNewProfileName(e.target.value)}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-900 focus:outline-none focus:border-indigo-500 font-bold"
-                  />
-                </div>
-
-                <div className="space-y-1">
-                  <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                    Icon
-                  </label>
-                  <div className="grid grid-cols-4 gap-1">
-                    {[
-                      { id: 'sparkles', icon: Sparkles },
-                      { id: 'zap', icon: Zap },
-                      { id: 'headphones', icon: Headphones },
-                      { id: 'book', icon: BookOpen },
-                    ].map((ic) => {
-                      const isSel = newProfileIcon === ic.id
-                      const IconComp = ic.icon
-                      return (
-                        <button
-                          key={ic.id}
-                          type="button"
-                          onClick={() => setNewProfileIcon(ic.id)}
-                          className={cn(
-                            "py-2 rounded-xl border flex items-center justify-center transition-all cursor-pointer",
-                            isSel
-                              ? "border-indigo-600 bg-indigo-50 text-indigo-700 shadow-xs"
-                              : "border-slate-200 bg-white text-slate-400 hover:bg-slate-50"
-                          )}
-                        >
-                          <IconComp className="w-3.5 h-3.5" />
-                        </button>
-                      )
-                    })}
-                  </div>
-                </div>
+            <div className="space-y-3">
+              <div>
+                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">
+                  Template Name *
+                </label>
+                <input
+                  type="text"
+                  placeholder="e.g. Speedrun Morning, Deep Focus..."
+                  value={newProfileName}
+                  onChange={(e) => setNewProfileName(e.target.value)}
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 focus:outline-none focus:border-indigo-500 font-bold"
+                  autoFocus
+                />
               </div>
 
-              {!editingProfileId && (
-                <div className="space-y-1">
-                  <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                    Baseline Preset
-                  </label>
-                  <select
-                    value={newProfileBase}
-                    onChange={(e) => loadBaseSettings(e.target.value)}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-900 focus:outline-none focus:border-indigo-500 font-bold cursor-pointer"
-                  >
-                    <option value="current">⚡ Copy from your current active settings</option>
-                    <option value="preset-minimal">Minimalist - Zero distractions, swipe-only, no media</option>
-                    <option value="preset-full">Full Experience - Dual images, autoplay TTS, FSRS & hybrid controls</option>
-                    <option value="preset-standard">Standard - Balanced recall, clean front, audio & images on back side</option>
-                    <option value="preset-classic">Classic - 4 buttons only, button flip, easy text selection</option>
-                  </select>
-                </div>
-              )}
-
-              {/* 4 Internal Sub-tabs for the 4 facets of this Template */}
-              <div className="bg-slate-100 p-1 rounded-2xl border border-slate-200/80 shadow-2xs">
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-1">
+              <div>
+                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">
+                  Icon
+                </label>
+                <div className="grid grid-cols-4 gap-2">
                   {[
-                    { id: 'gestures', label: '1. Gestures & SFX', icon: Move },
-                    { id: 'display', label: '2. Display & Align', icon: Layers },
-                    { id: 'media', label: '3. Media & Audio', icon: Volume2 },
-                    { id: 'algorithm', label: '4. Algorithm', icon: Brain }
-                  ].map((t) => {
-                    const Icon = t.icon
-                    const isCur = modalTab === t.id
+                    { id: 'sparkles', label: 'Sparkles', icon: Sparkles },
+                    { id: 'zap', label: 'Speed', icon: Zap },
+                    { id: 'headphones', label: 'Audio', icon: Headphones },
+                    { id: 'book', label: 'Focus', icon: BookOpen },
+                  ].map((ic) => {
+                    const isSel = newProfileIcon === ic.id
+                    const IconComp = ic.icon
                     return (
                       <button
-                        key={t.id}
+                        key={ic.id}
                         type="button"
-                        onClick={() => setModalTab(t.id as any)}
+                        onClick={() => setNewProfileIcon(ic.id)}
                         className={cn(
-                          "py-1.5 px-1 rounded-xl transition-all select-none cursor-pointer flex items-center justify-center gap-1 text-center font-black text-[11px] uppercase tracking-tight",
-                          isCur
-                            ? "bg-white text-indigo-700 shadow-xs border border-slate-200/80"
-                            : "text-slate-500 hover:text-slate-800"
+                          "py-2 px-1 rounded-xl border flex flex-col items-center justify-center gap-1 transition-all cursor-pointer",
+                          isSel
+                            ? "border-indigo-600 bg-indigo-50 text-indigo-700 shadow-xs font-black"
+                            : "border-slate-200 bg-white text-slate-500 hover:bg-slate-50 font-medium"
                         )}
                       >
-                        <Icon className={cn("w-3 h-3 shrink-0", isCur ? "text-indigo-600" : "text-slate-400")} />
-                        <span className="truncate">{t.label}</span>
+                        <IconComp className="w-4 h-4" />
+                        <span className="text-[9.5px] truncate">{ic.label}</span>
                       </button>
                     )
                   })}
                 </div>
               </div>
 
-              {/* Modal Tab 1: Gestures & SFX */}
-              {modalTab === 'gestures' && (
-                <div className="p-3.5 bg-purple-50/40 border border-purple-100 rounded-2xl space-y-3 animate-in fade-in duration-150">
-                  <span className="text-[10px] font-black uppercase tracking-wider text-purple-700 flex items-center gap-1.5">
-                    <Move className="w-3 h-3" /> 1. Gestures & Feedback Setup
-                  </span>
-
-                  <div className="space-y-2.5">
-                    <div>
-                      <span className="text-[9.5px] font-bold text-slate-500 block mb-1">Card Flip Trigger</span>
-                      <div className="grid grid-cols-3 gap-1 bg-white p-1 rounded-xl border border-purple-100">
-                        {[
-                          { id: 'both', label: 'Tap & Swipe' },
-                          { id: 'tap', label: 'Tap Body' },
-                          { id: 'button_only', label: 'Button Only' },
-                        ].map((opt) => (
-                          <button
-                            key={opt.id}
-                            type="button"
-                            onClick={() => setTemplateSettings(prev => ({ ...prev, card_flip_trigger: opt.id as any }))}
-                            className={cn(
-                              "py-1 px-1 rounded-lg text-[10px] font-black uppercase transition-all cursor-pointer text-center",
-                              templateSettings.card_flip_trigger === opt.id
-                                ? "bg-purple-600 text-white shadow-xs"
-                                : "text-slate-500 hover:text-slate-800"
-                            )}
-                          >
-                            {opt.label}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-
-                    <div>
-                      <span className="text-[9.5px] font-bold text-slate-500 block mb-1">FSRS Rating Mode</span>
-                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-1 bg-white p-1 rounded-xl border border-purple-100">
-                        {[
-                          { id: 'both', label: 'Hybrid' },
-                          { id: 'swipe_4way', label: '4-Way Swipe' },
-                          { id: 'swipe_2way', label: '2-Way Swipe' },
-                          { id: 'buttons', label: '4 Buttons' },
-                        ].map((opt) => (
-                          <button
-                            key={opt.id}
-                            type="button"
-                            onClick={() => setTemplateSettings(prev => ({ ...prev, card_rating_mode: opt.id as any }))}
-                            className={cn(
-                              "py-1 px-0.5 rounded-lg text-[9.5px] font-black uppercase transition-all cursor-pointer text-center truncate",
-                              templateSettings.card_rating_mode === opt.id
-                                ? "bg-purple-600 text-white shadow-xs"
-                                : "text-slate-500 hover:text-slate-800"
-                            )}
-                          >
-                            {opt.label}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-2 pt-1 border-t border-purple-100/60">
-                      <div>
-                        <span className="text-[9.5px] font-bold text-slate-500 block mb-1">Sound Effects (SFX)</span>
-                        <div className="grid grid-cols-2 gap-1 bg-white p-1 rounded-xl border border-purple-100">
-                          {[
-                            { id: true, label: 'SFX On' },
-                            { id: false, label: 'SFX Off' },
-                          ].map((opt) => (
-                            <button
-                              key={String(opt.id)}
-                              type="button"
-                              onClick={() => setTemplateSettings(prev => ({ ...prev, sfx_enabled: opt.id }))}
-                              className={cn(
-                                "py-1 px-1 rounded-lg text-[9.5px] font-black uppercase transition-all cursor-pointer text-center",
-                                templateSettings.sfx_enabled === opt.id
-                                  ? "bg-purple-600 text-white shadow-xs"
-                                  : "text-slate-500 hover:text-slate-800"
-                              )}
-                            >
-                              {opt.label}
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-
-                      <div>
-                        <span className="text-[9.5px] font-bold text-slate-500 block mb-1">Haptic Feedback</span>
-                        <div className="grid grid-cols-2 gap-1 bg-white p-1 rounded-xl border border-purple-100">
-                          {[
-                            { id: true, label: 'Haptic On' },
-                            { id: false, label: 'Haptic Off' },
-                          ].map((opt) => (
-                            <button
-                              key={String(opt.id)}
-                              type="button"
-                              onClick={() => setTemplateSettings(prev => ({ ...prev, haptic_enabled: opt.id }))}
-                              className={cn(
-                                "py-1 px-1 rounded-lg text-[9.5px] font-black uppercase transition-all cursor-pointer text-center",
-                                templateSettings.haptic_enabled === opt.id
-                                  ? "bg-purple-600 text-white shadow-xs"
-                                  : "text-slate-500 hover:text-slate-800"
-                              )}
-                            >
-                              {opt.label}
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Modal Tab 2: Display & Alignment */}
-              {modalTab === 'display' && (
-                <div className="p-3.5 bg-amber-50/40 border border-amber-100 rounded-2xl space-y-3 animate-in fade-in duration-150">
-                  <span className="text-[10px] font-black uppercase tracking-wider text-amber-700 flex items-center gap-1.5">
-                    <Layers className="w-3 h-3" /> 2. Display & Alignment Setup
-                  </span>
-
-                  <div className="space-y-2.5">
-                    {/* FSRS Metrics */}
-                    <div>
-                      <span className="text-[9.5px] font-bold text-slate-500 block mb-1">FSRS Algorithm Metrics on Card</span>
-                      <div className="grid grid-cols-2 gap-1 bg-white p-1 rounded-xl border border-amber-100">
-                        {[
-                          { id: true, label: 'Show FSRS Metrics' },
-                          { id: false, label: 'Hide FSRS Metrics' },
-                        ].map((opt) => (
-                          <button
-                            key={String(opt.id)}
-                            type="button"
-                            onClick={() => setTemplateSettings(prev => ({ ...prev, show_fsrs: opt.id }))}
-                            className={cn(
-                              "py-1.5 px-1 rounded-lg text-[9.5px] font-black uppercase transition-all cursor-pointer text-center",
-                              templateSettings.show_fsrs === opt.id
-                                ? "bg-amber-600 text-white shadow-xs"
-                                : "text-slate-500 hover:text-slate-800"
-                            )}
-                          >
-                            {opt.label}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-
-                    {/* Alignment */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                      {/* Front */}
-                      <div className="p-2.5 bg-white rounded-xl border border-amber-100 space-y-2">
-                        <span className="text-[10px] font-black text-slate-700 uppercase block">Front Card</span>
-                        <div className="grid grid-cols-2 gap-1.5">
-                          <div>
-                            <span className="text-[9px] font-bold text-slate-400 block mb-0.5">Vertical:</span>
-                            <div className="grid grid-cols-2 gap-0.5 bg-slate-50 p-0.5 rounded-lg border border-slate-200/60">
-                              {(['center', 'top'] as const).map(v => (
-                                <button
-                                  key={v}
-                                  type="button"
-                                  onClick={() => setTemplateSettings(prev => ({ ...prev, front_valign: v }))}
-                                  className={cn(
-                                    "py-1 text-[9.5px] font-black uppercase rounded cursor-pointer text-center",
-                                    templateSettings.front_valign === v ? "bg-amber-500 text-white shadow-2xs" : "text-slate-500"
-                                  )}
-                                >
-                                  {v === 'center' ? 'Center' : 'Top'}
-                                </button>
-                              ))}
-                            </div>
-                          </div>
-                          <div>
-                            <span className="text-[9px] font-bold text-slate-400 block mb-0.5">Horizontal:</span>
-                            <div className="grid grid-cols-2 gap-0.5 bg-slate-50 p-0.5 rounded-lg border border-slate-200/60">
-                              {(['left', 'center'] as const).map(h => (
-                                <button
-                                  key={h}
-                                  type="button"
-                                  onClick={() => setTemplateSettings(prev => ({ ...prev, front_halign: h }))}
-                                  className={cn(
-                                    "py-1 text-[9.5px] font-black uppercase rounded cursor-pointer text-center",
-                                    templateSettings.front_halign === h ? "bg-amber-500 text-white shadow-2xs" : "text-slate-500"
-                                  )}
-                                >
-                                  {h === 'left' ? 'Left' : 'Center'}
-                                </button>
-                              ))}
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Back */}
-                      <div className="p-2.5 bg-white rounded-xl border border-amber-100 space-y-2">
-                        <span className="text-[10px] font-black text-slate-700 uppercase block">Back Card</span>
-                        <div className="grid grid-cols-2 gap-1.5">
-                          <div>
-                            <span className="text-[9px] font-bold text-slate-400 block mb-0.5">Vertical:</span>
-                            <div className="grid grid-cols-2 gap-0.5 bg-slate-50 p-0.5 rounded-lg border border-slate-200/60">
-                              {(['center', 'top'] as const).map(v => (
-                                <button
-                                  key={v}
-                                  type="button"
-                                  onClick={() => setTemplateSettings(prev => ({ ...prev, back_valign: v }))}
-                                  className={cn(
-                                    "py-1 text-[9.5px] font-black uppercase rounded cursor-pointer text-center",
-                                    templateSettings.back_valign === v ? "bg-amber-500 text-white shadow-2xs" : "text-slate-500"
-                                  )}
-                                >
-                                  {v === 'center' ? 'Center' : 'Top'}
-                                </button>
-                              ))}
-                            </div>
-                          </div>
-                          <div>
-                            <span className="text-[9px] font-bold text-slate-400 block mb-0.5">Horizontal:</span>
-                            <div className="grid grid-cols-2 gap-0.5 bg-slate-50 p-0.5 rounded-lg border border-slate-200/60">
-                              {(['left', 'center'] as const).map(h => (
-                                <button
-                                  key={h}
-                                  type="button"
-                                  onClick={() => setTemplateSettings(prev => ({ ...prev, back_halign: h }))}
-                                  className={cn(
-                                    "py-1 text-[9.5px] font-black uppercase rounded cursor-pointer text-center",
-                                    templateSettings.back_halign === h ? "bg-amber-500 text-white shadow-2xs" : "text-slate-500"
-                                  )}
-                                >
-                                  {h === 'left' ? 'Left' : 'Center'}
-                                </button>
-                              ))}
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Modal Tab 3: Media (Audio & Images) */}
-              {modalTab === 'media' && (
-                <div className="p-3.5 bg-emerald-50/40 border border-emerald-100 rounded-2xl space-y-3 animate-in fade-in duration-150">
-                  <span className="text-[10px] font-black uppercase tracking-wider text-emerald-700 flex items-center gap-1.5">
-                    <Volume2 className="w-3 h-3" /> 3. Media Content Setup (Audio & Images)
-                  </span>
-
-                  <div className="space-y-3">
-                    <div>
-                      <span className="text-[9.5px] font-bold text-slate-500 block mb-1">Automatic Audio (TTS)</span>
-                      <div className="grid grid-cols-4 gap-1 bg-white p-1 rounded-xl border border-emerald-100">
-                        {[
-                          { id: 'always', label: 'Always' },
-                          { id: 'front', label: 'Front Only' },
-                          { id: 'back', label: 'Back Only' },
-                          { id: 'none', label: 'Off' },
-                        ].map((opt) => (
-                          <button
-                            key={opt.id}
-                            type="button"
-                            onClick={() => setTemplateSettings(prev => ({ ...prev, autoplay_audio: opt.id as any }))}
-                            className={cn(
-                              "py-1.5 px-1 rounded-lg text-[9.5px] font-black uppercase transition-all cursor-pointer text-center",
-                              templateSettings.autoplay_audio === opt.id
-                                ? "bg-emerald-600 text-white shadow-xs"
-                                : "text-slate-500 hover:text-slate-800"
-                            )}
-                          >
-                            {opt.label}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-
-                    <div>
-                      <span className="text-[9.5px] font-bold text-slate-500 block mb-1">Illustration Images</span>
-                      <div className="grid grid-cols-3 gap-1 bg-white p-1 rounded-xl border border-emerald-100">
-                        {[
-                          { id: 'both', label: 'Both Sides' },
-                          { id: 'back_only', label: 'Back Only' },
-                          { id: 'none', label: 'Hidden' },
-                        ].map((opt) => (
-                          <button
-                            key={opt.id}
-                            type="button"
-                            onClick={() => setTemplateSettings(prev => ({ ...prev, show_images: opt.id as any }))}
-                            className={cn(
-                              "py-1.5 px-1 rounded-lg text-[9.5px] font-black uppercase transition-all cursor-pointer text-center truncate",
-                              templateSettings.show_images === opt.id
-                                ? "bg-emerald-600 text-white shadow-xs"
-                                : "text-slate-500 hover:text-slate-800"
-                            )}
-                          >
-                            {opt.label}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Modal Tab 4: Algorithm */}
-              {modalTab === 'algorithm' && (
-                <div className="p-3.5 bg-indigo-50/40 border border-indigo-100 rounded-2xl space-y-3 animate-in fade-in duration-150">
-                  <span className="text-[10px] font-black uppercase tracking-wider text-indigo-700 flex items-center gap-1.5">
-                    <Brain className="w-3 h-3" /> 4. Default Algorithm & Review Order
-                  </span>
-
-                  <div className="space-y-2">
-                    <div>
-                      <span className="text-[9.5px] font-bold text-slate-500 block mb-1">Card Queue Algorithm</span>
-                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-1 bg-white p-1 rounded-xl border border-indigo-100">
-                        {[
-                          { id: 'fsrs', label: 'FSRS v6' },
-                          { id: 'sequential', label: 'Sequential' },
-                          { id: 'unseen', label: 'New Cards' },
-                          { id: 'random', label: 'Random' },
-                        ].map((opt) => (
-                          <button
-                            key={opt.id}
-                            type="button"
-                            onClick={() => setTemplateSettings(prev => ({ ...prev, quiz_learning_mode: opt.id as any }))}
-                            className={cn(
-                              "py-1 px-1 rounded-lg text-[10px] font-black uppercase transition-all cursor-pointer text-center",
-                              templateSettings.quiz_learning_mode === opt.id
-                                ? "bg-indigo-600 text-white shadow-xs"
-                                : "text-slate-500 hover:text-slate-800"
-                            )}
-                          >
-                            {opt.label}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-
-                    <div className="pt-1">
-                      <div className="flex items-center justify-between p-2 rounded-xl bg-white border border-indigo-100">
-                        <span className="text-[10.5px] font-bold text-slate-700">Random Shuffle Card Order</span>
-                        <button
-                          type="button"
-                          onClick={() => setTemplateSettings(prev => ({ ...prev, random_enabled: !prev.random_enabled }))}
-                          className={cn(
-                            "w-8 h-4.5 rounded-full transition-colors relative p-0.5 cursor-pointer shrink-0",
-                            templateSettings.random_enabled ? "bg-indigo-600" : "bg-slate-200"
-                          )}
-                        >
-                          <div className={cn("w-3.5 h-3.5 rounded-full bg-white transition-transform", templateSettings.random_enabled ? "translate-x-3.5" : "translate-x-0")} />
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
+              <div className="p-3 bg-indigo-50/50 rounded-2xl border border-indigo-100 text-[11px] text-slate-600 font-medium leading-relaxed">
+                <span className="font-bold text-indigo-700 block mb-0.5">Captures Your Live Settings:</span>
+                This template will snapshot your currently selected swipe triggers, FSRS rating style, card alignment, and audio preferences.
+              </div>
             </div>
 
-            {/* Modal Footer Actions */}
-            <div className="pt-3 border-t border-slate-100 flex items-center justify-end gap-2 shrink-0">
+            <div className="pt-2 border-t border-slate-100 flex items-center justify-end gap-2 shrink-0">
               <button
                 type="button"
                 onClick={() => setIsCreateModalOpen(false)}
@@ -2512,15 +1788,25 @@ export const Settings = () => {
                   if (!newProfileName.trim()) return
                   setIsSavingProfile(true)
                   try {
-                    const basePreset = systemProfiles.find(p => p.id === newProfileBase) || systemProfiles[0]
-                    const finalSettings = {
-                      ...basePreset.settings,
-                      ...templateSettings
+                    const capturedSettings = {
+                      card_flip_trigger: userSettings.card_flip_trigger || 'both',
+                      card_rating_mode: userSettings.card_rating_mode || 'both',
+                      quiz_learning_mode: userSettings.quiz_learning_mode || 'fsrs',
+                      front_valign: userSettings.front_valign || 'center',
+                      front_halign: userSettings.front_halign || 'center',
+                      back_valign: userSettings.back_valign || 'center',
+                      back_halign: userSettings.back_halign || 'center',
+                      autoplay_audio: userSettings.autoplay_audio || 'always',
+                      show_images: userSettings.show_images || 'both',
+                      show_fsrs: userSettings.show_fsrs ?? true,
+                      sfx_enabled: userSettings.sfx_enabled ?? true,
+                      haptic_enabled: userSettings.haptic_enabled ?? true,
+                      random_enabled: userSettings.random_enabled ?? false
                     }
                     if (editingProfileId) {
-                      await handleUpdateCustomProfile(editingProfileId, newProfileName.trim(), newProfileIcon, finalSettings)
+                      await handleUpdateCustomProfile(editingProfileId, newProfileName.trim(), newProfileIcon, capturedSettings)
                     } else {
-                      await handleCreateProfile(newProfileName.trim(), newProfileIcon, finalSettings)
+                      await handleCreateProfile(newProfileName.trim(), newProfileIcon, capturedSettings)
                     }
                     setIsCreateModalOpen(false)
                   } catch (e) {
@@ -2529,9 +1815,9 @@ export const Settings = () => {
                     setIsSavingProfile(false)
                   }
                 }}
-                className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 text-white text-xs font-black uppercase tracking-wider hover:from-indigo-700 hover:to-purple-700 disabled:opacity-50 transition-all cursor-pointer shadow-md shadow-indigo-500/20"
+                className="px-4 py-2 rounded-xl bg-indigo-600 text-white text-xs font-black uppercase tracking-wider hover:bg-indigo-700 disabled:opacity-50 transition-all cursor-pointer shadow-sm"
               >
-                {isSavingProfile ? 'Saving...' : (editingProfileId ? 'Save Template Changes' : 'Create Template')}
+                {isSavingProfile ? 'Saving...' : (editingProfileId ? 'Save Changes' : 'Save Template')}
               </button>
             </div>
           </div>
