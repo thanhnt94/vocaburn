@@ -6,6 +6,7 @@ import { useQuery } from '@tanstack/react-query'
 import axios from 'axios'
 import { useAppStore } from '@/store/useAppStore'
 import { cn } from '@/lib/utils'
+import { MediaUrlInput } from '../../common/MediaUrlInput'
 
 export interface QuickAddCardPayload {
   content: string
@@ -325,17 +326,35 @@ export function DeckCardQuickAdd({
                   activeColumns.length >= 4 && "grid-cols-1 sm:grid-cols-2 md:grid-cols-4"
                 )}
               >
-                {activeColumns.map((colKey, idx) => (
-                  <input
-                    key={colKey}
-                    ref={idx === 0 ? firstInputRef : undefined}
-                    type="text"
-                    placeholder={`[${colKey}]...`}
-                    value={fieldValues[colKey] || ''}
-                    onChange={(e) => handleFieldChange(colKey, e.target.value)}
-                    className="w-full h-10 bg-slate-50 border border-slate-200 rounded-xl px-3.5 text-xs font-mono text-slate-800 focus:border-indigo-500 focus:bg-white outline-none transition-all placeholder:text-slate-400"
-                  />
-                ))}
+                {activeColumns.map((colKey, idx) => {
+                  const lower = colKey.toLowerCase()
+                  const isImg = lower.includes('img') || lower.includes('image')
+                  const isAud = lower.includes('audio') || lower.includes('sound') || lower.includes('pronun')
+                  if (isImg || isAud) {
+                    return (
+                      <div key={colKey} className="min-w-0">
+                        <MediaUrlInput
+                          mediaType={isImg ? 'image' : 'audio'}
+                          placeholder={`[${colKey}]...`}
+                          value={fieldValues[colKey] || ''}
+                          onChange={(val) => handleFieldChange(colKey, val)}
+                          showPreview={false}
+                        />
+                      </div>
+                    )
+                  }
+                  return (
+                    <input
+                      key={colKey}
+                      ref={idx === 0 ? firstInputRef : undefined}
+                      type="text"
+                      placeholder={`[${colKey}]...`}
+                      value={fieldValues[colKey] || ''}
+                      onChange={(e) => handleFieldChange(colKey, e.target.value)}
+                      className="w-full h-10 bg-slate-50 border border-slate-200 rounded-xl px-3.5 text-xs font-mono text-slate-800 focus:border-indigo-500 focus:bg-white outline-none transition-all placeholder:text-slate-400"
+                    />
+                  )
+                })}
               </div>
 
               <div className="flex items-center justify-between gap-2">

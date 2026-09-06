@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { X, Save, Pencil, Sparkles, RefreshCw, Volume2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import axios from 'axios'
+import { MediaUrlInput, resolveMediaUrl } from './common/MediaUrlInput'
 
 interface Option {
   id?: number
@@ -46,12 +47,14 @@ const STRUCTURED_KEYS = new Set([
 
 const unresolveUrl = (url: string | null | undefined): string => {
   if (!url) return '';
-  const ssoUrl = 'https://auth.mindstack.click';
-  if (url.startsWith(`${ssoUrl}/static/uploads/media/`)) {
-    return 'central-media://' + url.slice(`${ssoUrl}/static/uploads/media/`.length);
-  }
-  if (url.startsWith(`${ssoUrl}/static/uploads/tts/`)) {
-    return 'central-tts://' + url.slice(`${ssoUrl}/static/uploads/tts/`.length);
+  const ssoUrls = ['https://auth.inmind.site', 'https://auth.mindstack.click'];
+  for (const sso of ssoUrls) {
+    if (url.startsWith(`${sso}/static/uploads/media/`)) {
+      return 'central-media://' + url.slice(`${sso}/static/uploads/media/`.length);
+    }
+    if (url.startsWith(`${sso}/static/uploads/tts/`)) {
+      return 'central-tts://' + url.slice(`${sso}/static/uploads/tts/`.length);
+    }
   }
   if (url.startsWith('/static/uploads/media/')) {
     return 'central-media://' + url.slice('/static/uploads/media/'.length);
@@ -63,15 +66,7 @@ const unresolveUrl = (url: string | null | undefined): string => {
 };
 
 const resolveUrl = (url: string | null | undefined): string => {
-  if (!url) return '';
-  const ssoUrl = 'https://auth.mindstack.click';
-  if (url.startsWith('central-media://')) {
-    return `${ssoUrl}/static/uploads/media/` + url.slice('central-media://'.length);
-  }
-  if (url.startsWith('central-tts://')) {
-    return `${ssoUrl}/static/uploads/tts/` + url.slice('central-tts://'.length);
-  }
-  return url;
+  return resolveMediaUrl(url);
 };
 
 const unresolveDict = (obj: any) => {
@@ -793,27 +788,14 @@ export const FlashcardEditModal: React.FC<FlashcardEditModalProps> = ({
                   <span className="text-[10px] font-black text-indigo-600 uppercase tracking-[0.2em] block mb-2">3. Hình ảnh minh họa</span>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {imageCols.map(col => (
-                      <div key={col} className="space-y-1.5">
-                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{col.replace(/_/g, ' ')}</label>
-                        <input
-                          type="text"
+                      <div key={col}>
+                        <MediaUrlInput
+                          mediaType="image"
+                          label={col.replace(/_/g, ' ')}
                           value={getFieldValue(col)}
-                          onChange={(e) => setFieldValue(col, e.target.value)}
-                          className="w-full p-3 bg-white rounded-xl border border-slate-200/80 focus:ring-2 focus:ring-indigo-500 text-xs font-semibold text-slate-600 outline-none"
-                          placeholder={`Đường dẫn hình ảnh cho ${col.replace(/_/g, ' ')}...`}
+                          onChange={(newVal) => setFieldValue(col, newVal)}
+                          placeholder={`Dán link hoặc Ctrl+V để tải ảnh cho ${col.replace(/_/g, ' ')}...`}
                         />
-                        {getFieldValue(col) && (
-                          <div className="mt-2.5 relative w-full h-32 rounded-2xl overflow-hidden border border-slate-100 bg-slate-900/5 flex items-center justify-center">
-                            <img
-                              src={resolveUrl(getFieldValue(col))}
-                              alt={col}
-                              className="max-w-full max-h-full object-contain"
-                              onError={(e) => {
-                                (e.target as HTMLElement).style.display = 'none';
-                              }}
-                            />
-                          </div>
-                        )}
                       </div>
                     ))}
                   </div>
@@ -846,24 +828,12 @@ export const FlashcardEditModal: React.FC<FlashcardEditModalProps> = ({
                                 placeholder="Ví dụ ja:こんにちは"
                               />
                             ) : (
-                              <>
-                                <input
-                                  type="text"
-                                  value={val}
-                                  onChange={(e) => setFieldValue(col, e.target.value)}
-                                  className="w-full p-3 bg-white rounded-xl border border-slate-200/80 focus:ring-2 focus:ring-indigo-500 text-xs font-semibold text-slate-600 outline-none"
-                                  placeholder="Đường dẫn file âm thanh..."
-                                />
-                                {val && (
-                                  <div className="mt-1.5">
-                                    <audio 
-                                      controls 
-                                      src={resolveUrl(val)} 
-                                      className="w-full h-8 rounded-lg"
-                                    />
-                                  </div>
-                                )}
-                              </>
+                              <MediaUrlInput
+                                mediaType="audio"
+                                value={val}
+                                onChange={(newVal) => setFieldValue(col, newVal)}
+                                placeholder="Dán link hoặc bấm nút upload file âm thanh..."
+                              />
                             )}
                           </div>
                         );
@@ -891,24 +861,12 @@ export const FlashcardEditModal: React.FC<FlashcardEditModalProps> = ({
                                 placeholder="Ví dụ ja:こんにちは"
                               />
                             ) : (
-                              <>
-                                <input
-                                  type="text"
-                                  value={val}
-                                  onChange={(e) => setFieldValue(col, e.target.value)}
-                                  className="w-full p-3 bg-white rounded-xl border border-slate-200/80 focus:ring-2 focus:ring-indigo-500 text-xs font-semibold text-slate-600 outline-none"
-                                  placeholder="Đường dẫn file âm thanh..."
-                                />
-                                {val && (
-                                  <div className="mt-1.5">
-                                    <audio 
-                                      controls 
-                                      src={resolveUrl(val)} 
-                                      className="w-full h-8 rounded-lg"
-                                    />
-                                  </div>
-                                )}
-                              </>
+                              <MediaUrlInput
+                                mediaType="audio"
+                                value={val}
+                                onChange={(newVal) => setFieldValue(col, newVal)}
+                                placeholder="Dán link hoặc bấm nút upload file âm thanh..."
+                              />
                             )}
                           </div>
                         );

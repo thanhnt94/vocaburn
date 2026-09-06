@@ -23,6 +23,7 @@ import {
 import axios from 'axios'
 import { useQueryClient } from '@tanstack/react-query'
 import { cn } from '@/lib/utils'
+import { MediaUrlInput } from '../../common/MediaUrlInput'
 
 export interface DeckGeneralFormProps {
   deckId: string | number
@@ -235,26 +236,13 @@ export function DeckGeneralForm({ deckId, initialData, onSaved }: DeckGeneralFor
       </div>
 
       <div>
-        <label className="text-[11px] font-black text-slate-500 uppercase tracking-wider mb-1 block">
-          URL Ảnh Bìa (Cover Image)
-        </label>
-        <div className="flex items-center gap-3">
-          <div className="relative flex-1">
-            <input
-              type="url"
-              placeholder="https://example.com/cover.jpg"
-              value={coverImage}
-              onChange={(e) => setCoverImage(e.target.value)}
-              className="w-full h-10 bg-slate-50 border border-slate-200 rounded-xl pl-8 pr-3 text-xs font-medium text-slate-800 focus:border-indigo-500 focus:bg-white outline-none transition-all"
-            />
-            <ImageIcon className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-3.5" />
-          </div>
-          {coverImage && (
-            <div className="w-10 h-10 rounded-xl border border-slate-200 overflow-hidden shrink-0">
-              <img src={coverImage} alt="" className="w-full h-full object-cover" />
-            </div>
-          )}
-        </div>
+        <MediaUrlInput
+          mediaType="image"
+          label="URL Ảnh Bìa (Cover Image)"
+          placeholder="Dán link hoặc Ctrl+V để tải ảnh bìa lên CentralAuth..."
+          value={coverImage}
+          onChange={(val) => setCoverImage(val)}
+        />
       </div>
 
       {/* Visibility Toggle */}
