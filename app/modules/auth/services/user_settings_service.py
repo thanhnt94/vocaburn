@@ -28,7 +28,7 @@ class UserSettingsService:
             "practice_submode", "practice_range", "score_mode", "time_mode",
             "last_deck_id", "paste_columns", "quick_add_columns",
             "card_flip_trigger", "card_rating_mode",
-            "front_valign", "front_halign", "back_valign", "back_halign",
+            "front_valign", "front_halign", "front_font_size", "back_valign", "back_halign",
             "study_profiles", "active_profile_id"
         }
         
@@ -85,6 +85,7 @@ class UserSettingsService:
             "card_rating_mode": getattr(settings_obj, 'card_rating_mode', 'both') or "both",
             "front_valign": getattr(settings_obj, 'front_valign', 'center') or "center",
             "front_halign": getattr(settings_obj, 'front_halign', 'left') or "left",
+            "front_font_size": getattr(settings_obj, 'front_font_size', '100%') or "100%",
             "back_valign": getattr(settings_obj, 'back_valign', 'center') or "center",
             "back_halign": getattr(settings_obj, 'back_halign', 'left') or "left",
             "study_profiles": get_all_study_profiles(custom_profiles),

@@ -25,6 +25,7 @@ import { MilestoneCelebration } from '@/components/MilestoneCelebration'
 import DailyComparisonChart from '@/components/DailyComparisonChart'
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts'
 import { usePlaySettings } from '@/hooks/usePlaySettings'
+import { getFrontFontSizeStyle } from '@/components/common/study'
 import { PlaySettingsModal } from '@/components/PlaySettingsModal'
 import { PlaySessionSummary } from '@/components/PlaySessionSummary'
 import { PlayStatsDrawer } from '@/components/PlayStatsDrawer'
@@ -614,6 +615,8 @@ export default function PracticePlay() {
     setFrontValign,
     frontHalign,
     setFrontHalign,
+    frontFontSize,
+    setFrontFontSize,
     backValign,
     setBackValign,
     backHalign,
@@ -4551,10 +4554,15 @@ export default function PracticePlay() {
                                 onClick={() => setZoomedImage(resolveMediaUrl(currentQuestion.front_img || currentQuestion.others?.front_img) || null)}
                               />
                             )}
-                            <div className={cn(
-                              "text-3xl md:text-4xl font-black text-slate-800 tracking-tight leading-normal max-w-2xl markdown-content whitespace-pre-wrap flex flex-col",
-                              frontHalign === 'center' ? "items-center text-center" : "items-start text-left"
-                            )}>
+                            <div 
+                              className={cn(
+                                "font-black text-slate-800 tracking-tight leading-normal max-w-2xl markdown-content whitespace-pre-wrap flex flex-col",
+                                frontHalign === 'center' ? "items-center text-center" : "items-start text-left"
+                              )}
+                              style={{
+                                fontSize: getFrontFontSizeStyle(frontFontSize)
+                              }}
+                            >
                               <ReactMarkdown
                                 remarkPlugins={[remarkGfm]}
                                 rehypePlugins={[rehypeRaw]}
@@ -6427,6 +6435,8 @@ export default function PracticePlay() {
         onDeleteCustomProfile={deleteCustomProfile}
         frontHalign={frontHalign}
         setFrontHalign={setFrontHalign}
+        frontFontSize={frontFontSize}
+        setFrontFontSize={setFrontFontSize}
         backHalign={backHalign}
         setBackHalign={setBackHalign}
         frontValign={frontValign}

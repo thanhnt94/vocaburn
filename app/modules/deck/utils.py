@@ -113,6 +113,7 @@ SYSTEM_STUDY_DEFAULTS = {
     "learning_mode": "fsrs",        # 'fsrs' | 'roadmap' | 'new' | 'review' | 'hardest' | 'flip'
     "front_valign": "center",       # 'center' | 'top'
     "front_halign": "left",         # 'left' | 'center'
+    "front_font_size": "100%",      # '85%' | '100%' | '125%' | '150%' | '175%' | '200%'
     "back_valign": "center",        # 'center' | 'top'
     "back_halign": "left",          # 'left' | 'center'
     "random_enabled": False,        # boolean
@@ -266,6 +267,24 @@ def normalize_study_setting_value(key: str, val: Any) -> Any:
         if val_str in ("center", "giữa", "giua", "centre"):
             return "center"
         return "left"
+    if key == "front_font_size":
+        if val is None:
+            return "100%"
+        val_str = str(val).lower().strip()
+        if val_str in ("compact", "nhỏ", "nho", "small"): return "85%"
+        if val_str in ("normal", "mặc định", "mac dinh", "vừa", "vua", "default", "standard"): return "100%"
+        if val_str in ("large", "to", "lớn", "lon"): return "125%"
+        if val_str in ("xlarge", "xl", "to hơn", "to hon", "extra_large"): return "150%"
+        if val_str in ("huge", "cực to", "cuc to", "rất to", "rat to", "xxl"): return "175%"
+        if val_str in ("massive", "tối đa", "max"): return "200%"
+        clean_num = val_str.replace("%", "").strip()
+        try:
+            num = int(float(clean_num))
+            if num < 50: num = 50
+            if num > 250: num = 250
+            return f"{num}%"
+        except Exception:
+            return "100%"
     if key == "autoplay_audio":
         val_str = str(val).lower().strip()
         if val_str in ("never", "off", "disabled", "none", "false", "tắt", "không", "ko"):

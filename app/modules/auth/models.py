@@ -37,6 +37,7 @@ class UserGlobalSettings(Base):
     card_rating_mode = Column(String(20), default="both") # 'both' | 'buttons' | 'swipe_4way' | 'swipe_2way'
     front_valign = Column(String(20), default="center") # 'center' | 'top'
     front_halign = Column(String(20), default="left") # 'left' | 'center'
+    front_font_size = Column(String(20), default="100%") # '85%' | '100%' | '125%' | '150%' | '175%' | '200%'
     back_valign = Column(String(20), default="center") # 'center' | 'top'
     back_halign = Column(String(20), default="left") # 'left' | 'center'
     

@@ -16,6 +16,7 @@ export interface StudySettingsState {
   learning_mode: string
   front_valign: VAlignMode
   front_halign: HAlignMode
+  front_font_size?: string
   back_valign: VAlignMode
   back_halign: HAlignMode
   random_enabled: boolean
@@ -33,6 +34,7 @@ export const DEFAULT_STUDY_SETTINGS: StudySettingsState = {
   learning_mode: 'fsrs',
   front_valign: 'center',
   front_halign: 'left',
+  front_font_size: '100%',
   back_valign: 'center',
   back_halign: 'left',
   random_enabled: false,
@@ -60,6 +62,7 @@ export function usePlaySettings(
   const [learningMode, setLearningModeState] = useState<string>(DEFAULT_STUDY_SETTINGS.learning_mode)
   const [frontValign, setFrontValignState] = useState<VAlignMode>(DEFAULT_STUDY_SETTINGS.front_valign)
   const [frontHalign, setFrontHalignState] = useState<HAlignMode>(DEFAULT_STUDY_SETTINGS.front_halign)
+  const [frontFontSize, setFrontFontSizeState] = useState<string>(DEFAULT_STUDY_SETTINGS.front_font_size || '100%')
   const [backValign, setBackValignState] = useState<VAlignMode>(DEFAULT_STUDY_SETTINGS.back_valign)
   const [backHalign, setBackHalignState] = useState<HAlignMode>(DEFAULT_STUDY_SETTINGS.back_halign)
   const [cardFlipTrigger, setCardFlipTriggerState] = useState<CardFlipTrigger | undefined>(undefined)
@@ -156,6 +159,9 @@ export function usePlaySettings(
       if (effectiveSettings.front_halign !== undefined) {
         setFrontHalignState(effectiveSettings.front_halign === 'center' ? 'center' : 'left')
       }
+      if (effectiveSettings.front_font_size !== undefined) {
+        setFrontFontSizeState(effectiveSettings.front_font_size)
+      }
       if (effectiveSettings.back_valign !== undefined) {
         setBackValignState(effectiveSettings.back_valign === 'top' ? 'top' : 'center')
       }
@@ -198,6 +204,7 @@ export function usePlaySettings(
     if (updates.learning_mode !== undefined) setLearningModeState(updates.learning_mode)
     if (updates.front_valign !== undefined) setFrontValignState(updates.front_valign)
     if (updates.front_halign !== undefined) setFrontHalignState(updates.front_halign)
+    if (updates.front_font_size !== undefined) setFrontFontSizeState(updates.front_font_size)
     if (updates.back_valign !== undefined) setBackValignState(updates.back_valign)
     if (updates.back_halign !== undefined) setBackHalignState(updates.back_halign)
     if (updates.card_flip_trigger !== undefined) setCardFlipTriggerState(updates.card_flip_trigger)
@@ -273,6 +280,10 @@ export function usePlaySettings(
     saveGeneralSettings({ front_halign: mode })
   }, [saveGeneralSettings])
 
+  const setFrontFontSize = useCallback((size: string) => {
+    saveGeneralSettings({ front_font_size: size })
+  }, [saveGeneralSettings])
+
   const setBackValign = useCallback((mode: VAlignMode) => {
     saveGeneralSettings({ back_valign: mode })
   }, [saveGeneralSettings])
@@ -315,6 +326,7 @@ export function usePlaySettings(
         setLearningModeState(baseline.learning_mode)
         setFrontValignState(baseline.front_valign)
         setFrontHalignState(baseline.front_halign)
+        setFrontFontSizeState(baseline.front_font_size || '100%')
         setBackValignState(baseline.back_valign)
         setBackHalignState(baseline.back_halign)
         setCardFlipTriggerState(baseline.card_flip_trigger)
@@ -362,6 +374,7 @@ export function usePlaySettings(
       learning_mode: learningMode,
       front_valign: frontValign,
       front_halign: frontHalign,
+      front_font_size: frontFontSize,
       back_valign: backValign,
       back_halign: backHalign,
       random_enabled: randomEnabled,
@@ -403,6 +416,7 @@ export function usePlaySettings(
       learning_mode: learningMode,
       front_valign: frontValign,
       front_halign: frontHalign,
+      front_font_size: frontFontSize,
       back_valign: backValign,
       back_halign: backHalign,
       random_enabled: randomEnabled,
@@ -477,6 +491,7 @@ export function usePlaySettings(
       learning_mode: learningMode,
       front_valign: frontValign,
       front_halign: frontHalign,
+      front_font_size: frontFontSize,
       back_valign: backValign,
       back_halign: backHalign,
       random_enabled: randomEnabled,
@@ -550,6 +565,8 @@ export function usePlaySettings(
     setFrontValign,
     frontHalign,
     setFrontHalign,
+    frontFontSize,
+    setFrontFontSize,
     backValign,
     setBackValign,
     backHalign,

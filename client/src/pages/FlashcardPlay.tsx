@@ -40,6 +40,7 @@ import { resolveMediaUrl } from '@/components/common/MediaUrlInput'
 import DailyComparisonChart from '@/components/DailyComparisonChart'
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts'
 import { usePlaySettings } from '@/hooks/usePlaySettings'
+import { getFrontFontSizeStyle } from '@/components/common/study'
 import { PlaySettingsModal } from '@/components/PlaySettingsModal'
 import { PlaySessionSummary } from '@/components/PlaySessionSummary'
 import { PlayStatsDrawer } from '@/components/PlayStatsDrawer'
@@ -261,6 +262,8 @@ export default function FlashcardPlay() {
     setFrontValign,
     frontHalign,
     setFrontHalign,
+    frontFontSize,
+    setFrontFontSize,
     backValign,
     setBackValign,
     backHalign,
@@ -3781,10 +3784,13 @@ export default function FlashcardPlay() {
                         )}
                         <div 
                           className={cn(
-                            "text-3xl md:text-4xl font-black text-slate-800 tracking-tight leading-normal max-w-2xl markdown-content whitespace-pre-wrap flex flex-col w-full",
+                            "font-black text-slate-800 tracking-tight leading-normal max-w-2xl markdown-content whitespace-pre-wrap flex flex-col w-full",
                             frontHalign === 'center' ? "items-center text-center" : "items-start text-left"
                           )}
-                          style={{ textAlign: frontHalign === 'center' ? 'center' : 'left' }}
+                          style={{
+                            textAlign: frontHalign === 'center' ? 'center' : 'left',
+                            fontSize: getFrontFontSizeStyle(frontFontSize)
+                          }}
                         >
                           <ReactMarkdown 
                             remarkPlugins={[remarkGfm]} 
@@ -4847,6 +4853,8 @@ export default function FlashcardPlay() {
         onDeleteCustomProfile={deleteCustomProfile}
         frontHalign={frontHalign}
         setFrontHalign={setFrontHalign}
+        frontFontSize={frontFontSize}
+        setFrontFontSize={setFrontFontSize}
         backHalign={backHalign}
         setBackHalign={setBackHalign}
         frontValign={frontValign}

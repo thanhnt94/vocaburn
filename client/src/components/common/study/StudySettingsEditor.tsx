@@ -8,10 +8,12 @@ import {
   Zap,
   Shuffle,
   Eye,
+  Type,
 } from 'lucide-react'
+import { cn } from '@/lib/utils'
 import { SegmentedControl } from './SegmentedControl'
 import { ToggleRow } from './ToggleRow'
-import type { StudySettings } from './StudyConstants'
+import { type StudySettings, getFrontFontSizeStyle } from './StudyConstants'
 
 interface StudySettingsEditorProps {
   settings: Partial<StudySettings>
@@ -29,6 +31,18 @@ export function StudySettingsEditor({
 }: StudySettingsEditorProps) {
   const gap = compact ? "gap-3" : "gap-5"
   const sectionPadding = compact ? "p-3" : "p-4 sm:p-5"
+
+  const rawFontSize = settings.front_font_size || '100%'
+  const numMatch = String(rawFontSize).match(/\d+/)
+  const currentFontPercent = numMatch ? parseInt(numMatch[0], 10) : 100
+
+  const getFontLabel = (pct: number) => {
+    if (pct <= 85) return 'Compact'
+    if (pct <= 105) return 'Normal'
+    if (pct <= 135) return 'Large'
+    if (pct <= 165) return 'Extra Large'
+    return 'Huge'
+  }
 
   return (
     <div className={`grid grid-cols-1 lg:grid-cols-2 ${gap}`}>
@@ -148,6 +162,77 @@ export function StudySettingsEditor({
             ]}
             compact={compact}
           />
+        </div>
+
+        {/* Front Font Size Scale */}
+        <div className="space-y-2 pt-2 border-t border-slate-200/60">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-1.5">
+              <Type className="w-3.5 h-3.5 text-indigo-600" />
+              <label className="text-xs font-bold text-slate-800">
+                Front Font Size
+              </label>
+            </div>
+            <span className="text-[11px] font-black px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-100">
+              {currentFontPercent}% • {getFontLabel(currentFontPercent)}
+            </span>
+          </div>
+
+          {/* Quick Presets */}
+          <div className="grid grid-cols-5 gap-1">
+            {[
+              { id: '85%', label: '85%', sub: 'Compact' },
+              { id: '100%', label: '100%', sub: 'Normal' },
+              { id: '125%', label: '125%', sub: 'Large' },
+              { id: '150%', label: '150%', sub: 'XL' },
+              { id: '175%', label: '175%', sub: 'Huge' },
+            ].map((p) => {
+              const active = currentFontPercent === parseInt(p.id, 10)
+              return (
+                <button
+                  key={p.id}
+                  type="button"
+                  onClick={() => onChange('front_font_size', p.id)}
+                  className={cn(
+                    "flex flex-col items-center justify-center py-1.5 px-0.5 rounded-xl transition-all cursor-pointer border text-center",
+                    active
+                      ? "bg-indigo-600 text-white border-indigo-600 shadow-xs font-black"
+                      : "bg-white text-slate-600 border-slate-200/90 hover:bg-slate-50 hover:text-slate-900"
+                  )}
+                >
+                  <span className="text-xs font-black leading-tight">{p.label}</span>
+                  <span className={cn("text-[9px] tracking-tight leading-none mt-0.5", active ? "text-indigo-100" : "text-slate-400")}>
+                    {p.sub}
+                  </span>
+                </button>
+              )
+            })}
+          </div>
+
+          {/* Fine-Tuning Slider */}
+          <div className="flex items-center gap-2.5 px-1 pt-0.5">
+            <span className="text-[10px] font-bold text-slate-400">75%</span>
+            <input
+              type="range"
+              min={75}
+              max={200}
+              step={5}
+              value={currentFontPercent}
+              onChange={(e) => onChange('front_font_size', `${e.target.value}%`)}
+              className="flex-1 h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-indigo-600"
+            />
+            <span className="text-[10px] font-bold text-slate-400">200%</span>
+          </div>
+
+          {/* Live Preview Box */}
+          <div className="p-2.5 rounded-xl bg-white border border-slate-200/90 shadow-2xs flex flex-col items-center justify-center overflow-hidden min-h-[50px]">
+            <span
+              className="font-black text-slate-800 tracking-tight transition-all duration-150 truncate max-w-full text-center"
+              style={{ fontSize: getFrontFontSizeStyle(`${currentFontPercent}%`) }}
+            >
+              Aa Vocabulary
+            </span>
+          </div>
         </div>
 
         <ToggleRow

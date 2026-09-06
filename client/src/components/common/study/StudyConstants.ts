@@ -9,6 +9,7 @@ export interface StudySettings {
   learning_mode?: string
   front_valign: 'center' | 'top'
   front_halign: 'left' | 'center'
+  front_font_size?: string
   back_valign: 'center' | 'top'
   back_halign: 'left' | 'center'
   autoplay_audio: 'always' | 'front' | 'back' | 'none'
@@ -38,6 +39,7 @@ export const DEFAULT_STUDY_SETTINGS: StudySettings = {
   quiz_learning_mode: 'fsrs',
   front_valign: 'center',
   front_halign: 'left',
+  front_font_size: '100%',
   back_valign: 'center',
   back_halign: 'left',
   autoplay_audio: 'back',
@@ -183,6 +185,26 @@ export function getSettingsSpecPills(s: Partial<StudySettings>): { label: string
     { label: 'Audio', val: audio },
     { label: 'Images', val: img },
   ]
+}
+
+/** Calculate responsive clamped font size for card front side */
+export function getFrontFontSizeStyle(scale?: string | number): string {
+  if (!scale) return 'clamp(1.75rem, 4.5vw, 2.25rem)'
+  const str = String(scale).trim().toLowerCase()
+  let percent = 100
+  if (str === 'compact' || str === 'small') percent = 85
+  else if (str === 'normal' || str === 'default') percent = 100
+  else if (str === 'large') percent = 125
+  else if (str === 'xlarge' || str === 'xl') percent = 150
+  else if (str === 'huge') percent = 175
+  else if (str === 'massive' || str === 'max') percent = 200
+  else {
+    const num = parseFloat(str.replace('%', ''))
+    if (!isNaN(num) && num > 0) percent = num
+  }
+  const ratio = Math.max(0.5, Math.min(2.5, percent / 100))
+  if (ratio === 1) return 'clamp(1.75rem, 4.5vw, 2.25rem)'
+  return `calc(clamp(1.75rem, 4.5vw, 2.25rem) * ${ratio})`
 }
 
 /** Merge partial settings onto defaults */

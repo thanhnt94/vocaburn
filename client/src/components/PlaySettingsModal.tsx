@@ -25,6 +25,7 @@ import {
   Shuffle,
   Eye,
   Star,
+  Type,
 } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useNavigate, useParams } from 'react-router-dom'
@@ -35,6 +36,7 @@ import {
   StudyTemplateSelector,
   SegmentedControl,
   ToggleRow,
+  getFrontFontSizeStyle,
   type StudySettings,
   type StudyTemplateItem,
 } from '@/components/common/study'
@@ -79,6 +81,8 @@ interface PlaySettingsModalProps {
   onSaveAsCreatorDefaults?: () => Promise<void> | void;
   frontHalign?: 'center' | 'left';
   setFrontHalign?: (val: 'center' | 'left') => void;
+  frontFontSize?: string;
+  setFrontFontSize?: (val: string) => void;
   backHalign?: 'center' | 'left';
   setBackHalign?: (val: 'center' | 'left') => void;
   frontValign?: 'center' | 'top';
@@ -128,6 +132,8 @@ export const PlaySettingsModal: React.FC<PlaySettingsModalProps> = ({
   onSaveAsCreatorDefaults,
   frontHalign = 'left',
   setFrontHalign,
+  frontFontSize = '100%',
+  setFrontFontSize,
   backHalign = 'left',
   setBackHalign,
   frontValign = 'center',
@@ -171,6 +177,7 @@ export const PlaySettingsModal: React.FC<PlaySettingsModalProps> = ({
         showImages,
         frontValign,
         frontHalign,
+        frontFontSize,
         backValign,
         backHalign,
         randomEnabled,
@@ -185,7 +192,7 @@ export const PlaySettingsModal: React.FC<PlaySettingsModalProps> = ({
     if (!isOpen) {
       customSnapshotRef.current = null
     }
-  }, [isOpen, isCustomized, selectedProfileId, activeMode, autoPlayAudio, showImages, frontValign, frontHalign, backValign, backHalign, randomEnabled, sfxEnabled, hapticEnabled, quickLearnEnabled, showFsrs, cardFlipTrigger, cardRatingMode])
+  }, [isOpen, isCustomized, selectedProfileId, activeMode, autoPlayAudio, showImages, frontValign, frontHalign, frontFontSize, backValign, backHalign, randomEnabled, sfxEnabled, hapticEnabled, quickLearnEnabled, showFsrs, cardFlipTrigger, cardRatingMode])
 
   useEffect(() => {
     if (activeProfileId) {
@@ -232,6 +239,7 @@ export const PlaySettingsModal: React.FC<PlaySettingsModalProps> = ({
     learning_mode: activeMode,
     front_valign: frontValign || 'center',
     front_halign: frontHalign || 'left',
+    front_font_size: frontFontSize || '100%',
     back_valign: backValign || 'center',
     back_halign: backHalign || 'left',
     autoplay_audio: autoPlayAudio || 'always',
@@ -252,6 +260,7 @@ export const PlaySettingsModal: React.FC<PlaySettingsModalProps> = ({
       if (setShowImages && s.showImages) setShowImages(s.showImages)
       if (setFrontValign && s.frontValign) setFrontValign(s.frontValign)
       if (setFrontHalign && s.frontHalign) setFrontHalign(s.frontHalign)
+      if (setFrontFontSize && s.frontFontSize) setFrontFontSize(s.frontFontSize)
       if (setBackValign && s.backValign) setBackValign(s.backValign)
       if (setBackHalign && s.backHalign) setBackHalign(s.backHalign)
       if (setRandomEnabled && s.randomEnabled !== undefined) setRandomEnabled(s.randomEnabled)
@@ -738,6 +747,87 @@ export const PlaySettingsModal: React.FC<PlaySettingsModalProps> = ({
                           ]}
                           compact={true}
                         />
+                      </div>
+                    </div>
+
+                    {/* Front Font Size Scale */}
+                    <div className="space-y-2 pt-2 border-t border-slate-200/60">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-1.5">
+                          <Type className="w-3.5 h-3.5 text-indigo-600" />
+                          <label className="text-xs font-bold text-slate-800">
+                            Front Font Size
+                          </label>
+                        </div>
+                        <span className="text-[11px] font-black px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-100">
+                          {(() => {
+                            const match = String(frontFontSize || '100%').match(/\d+/)
+                            const pct = match ? parseInt(match[0], 10) : 100
+                            const lbl = pct <= 85 ? 'Compact' : pct <= 105 ? 'Normal' : pct <= 135 ? 'Large' : pct <= 165 ? 'Extra Large' : 'Huge'
+                            return `${pct}% • ${lbl}`
+                          })()}
+                        </span>
+                      </div>
+
+                      {/* Quick Presets */}
+                      <div className="grid grid-cols-5 gap-1">
+                        {[
+                          { id: '85%', label: '85%', sub: 'Compact' },
+                          { id: '100%', label: '100%', sub: 'Normal' },
+                          { id: '125%', label: '125%', sub: 'Large' },
+                          { id: '150%', label: '150%', sub: 'XL' },
+                          { id: '175%', label: '175%', sub: 'Huge' },
+                        ].map((p) => {
+                          const match = String(frontFontSize || '100%').match(/\d+/)
+                          const currentPct = match ? parseInt(match[0], 10) : 100
+                          const active = currentPct === parseInt(p.id, 10)
+                          return (
+                            <button
+                              key={p.id}
+                              type="button"
+                              onClick={() => setFrontFontSize && setFrontFontSize(p.id)}
+                              className={cn(
+                                "flex flex-col items-center justify-center py-1.5 px-0.5 rounded-xl transition-all cursor-pointer border text-center",
+                                active
+                                  ? "bg-indigo-600 text-white border-indigo-600 shadow-xs font-black"
+                                  : "bg-white text-slate-600 border-slate-200/90 hover:bg-slate-50 hover:text-slate-900"
+                              )}
+                            >
+                              <span className="text-xs font-black leading-tight">{p.label}</span>
+                              <span className={cn("text-[9px] tracking-tight leading-none mt-0.5", active ? "text-indigo-100" : "text-slate-400")}>
+                                {p.sub}
+                              </span>
+                            </button>
+                          )
+                        })}
+                      </div>
+
+                      {/* Fine-Tuning Slider */}
+                      <div className="flex items-center gap-2.5 px-1 pt-0.5">
+                        <span className="text-[10px] font-bold text-slate-400">75%</span>
+                        <input
+                          type="range"
+                          min={75}
+                          max={200}
+                          step={5}
+                          value={(() => {
+                            const match = String(frontFontSize || '100%').match(/\d+/)
+                            return match ? parseInt(match[0], 10) : 100
+                          })()}
+                          onChange={(e) => setFrontFontSize && setFrontFontSize(`${e.target.value}%`)}
+                          className="flex-1 h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-indigo-600"
+                        />
+                        <span className="text-[10px] font-bold text-slate-400">200%</span>
+                      </div>
+
+                      {/* Live Preview Box */}
+                      <div className="p-2.5 rounded-xl bg-white border border-slate-200/90 shadow-2xs flex flex-col items-center justify-center overflow-hidden min-h-[50px]">
+                        <span
+                          className="font-black text-slate-800 tracking-tight transition-all duration-150 truncate max-w-full text-center"
+                          style={{ fontSize: getFrontFontSizeStyle(frontFontSize || '100%') }}
+                        >
+                          Aa Vocabulary
+                        </span>
                       </div>
                     </div>
                   </div>
