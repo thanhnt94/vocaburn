@@ -119,12 +119,10 @@ SYSTEM_STUDY_DEFAULTS = {
     "sfx_enabled": True,            # boolean
     "haptic_enabled": True,         # boolean
     "quick_learn_enabled": False,   # boolean
-    "show_fsrs": True,              # boolean
-    "card_flip_trigger": "both",    # 'both' | 'tap' | 'button_only'
-    "card_rating_mode": "both"      # 'both' | 'buttons' | 'swipe_4way' | 'swipe_2way'
+    "show_fsrs": True               # boolean
 }
 
-STUDY_SETTINGS_KEYS = set(SYSTEM_STUDY_DEFAULTS.keys())
+STUDY_SETTINGS_KEYS = set(SYSTEM_STUDY_DEFAULTS.keys()) | {"card_flip_trigger", "card_rating_mode"}
 
 
 def normalize_study_setting_value(key: str, val: Any) -> Any:

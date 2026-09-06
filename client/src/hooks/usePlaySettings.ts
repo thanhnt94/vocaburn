@@ -135,11 +135,21 @@ export function usePlaySettings(
       if (effectiveSettings.back_halign !== undefined) {
         setBackHalignState(effectiveSettings.back_halign === 'center' ? 'center' : 'left')
       }
-      if (effectiveSettings.card_flip_trigger !== undefined) {
-        setCardFlipTriggerState(effectiveSettings.card_flip_trigger)
+      // Only apply deck-scoped interaction override if user or creator explicitly set it on this deck
+      if (userStudySettings && userStudySettings.card_flip_trigger !== undefined) {
+        setCardFlipTriggerState(userStudySettings.card_flip_trigger)
+      } else if (creatorStudyDefaults && creatorStudyDefaults.card_flip_trigger !== undefined) {
+        setCardFlipTriggerState(creatorStudyDefaults.card_flip_trigger)
+      } else {
+        setCardFlipTriggerState(undefined)
       }
-      if (effectiveSettings.card_rating_mode !== undefined) {
-        setCardRatingModeState(effectiveSettings.card_rating_mode)
+
+      if (userStudySettings && userStudySettings.card_rating_mode !== undefined) {
+        setCardRatingModeState(userStudySettings.card_rating_mode)
+      } else if (creatorStudyDefaults && creatorStudyDefaults.card_rating_mode !== undefined) {
+        setCardRatingModeState(creatorStudyDefaults.card_rating_mode)
+      } else {
+        setCardRatingModeState(undefined)
       }
     }
   }, [])

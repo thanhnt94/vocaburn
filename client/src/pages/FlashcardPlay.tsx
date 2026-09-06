@@ -268,8 +268,8 @@ export default function FlashcardPlay() {
     resetToCreatorDefaults
   } = usePlaySettings(id || '', modeSettings, setModeSettings);
 
-  const effectiveCardFlipTrigger = deckCardFlipTrigger || userSettings.card_flip_trigger || 'both';
-  const effectiveCardRatingMode = deckCardRatingMode || userSettings.card_rating_mode || 'both';
+  const effectiveCardFlipTrigger = (isCustomized && deckCardFlipTrigger) ? deckCardFlipTrigger : (userSettings.card_flip_trigger || 'both');
+  const effectiveCardRatingMode = (isCustomized && deckCardRatingMode) ? deckCardRatingMode : (userSettings.card_rating_mode || 'both');
   const effectiveShowFsrs = userSettings.show_fsrs !== undefined ? userSettings.show_fsrs : showFsrs;
 
   const {
