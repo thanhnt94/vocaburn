@@ -4,6 +4,8 @@ from typing import List, Dict, Any, Tuple, Optional, Union, Set
 from io import BytesIO
 import json
 import re
+import zipfile
+import html
 
 # MindStack COLUMN_ALIASES
 COLUMN_ALIASES = {
@@ -159,6 +161,62 @@ def transpile_formula(tokenized_formula: str, target_row: int, col_name_to_lette
         return f"{target_col_letter}{row_str}"
 
     return pattern.sub(replacer, tokenized_formula)
+
+
+def inject_cached_values(excel_bytes: bytes, formula_cached_map: Dict[Tuple[str, int], str]) -> bytes:
+    """
+    Injects cached string values into OpenXML <v> tags for formula cells in the 'Data_Formula' sheet.
+    This guarantees that Excel, Google Sheets, LibreOffice, and mobile viewers immediately display
+    the evaluated text upon opening, without displaying blank cells.
+    """
+    if not formula_cached_map:
+        return excel_bytes
+    try:
+        zin_buf = BytesIO(excel_bytes)
+        zout_buf = BytesIO()
+        with zipfile.ZipFile(zin_buf, 'r') as zin, zipfile.ZipFile(zout_buf, 'w') as zout:
+            wb_xml = zin.read('xl/workbook.xml').decode('utf-8')
+            sheet_target = None
+            m = re.search(r'<sheet[^>]+name="Data_Formula"[^>]+r:id="([^"]+)"', wb_xml)
+            if not m:
+                m = re.search(r'<sheet[^>]+r:id="([^"]+)"[^>]+name="Data_Formula"', wb_xml)
+            if m:
+                r_id = m.group(1)
+                rels_xml = zin.read('xl/_rels/workbook.xml.rels').decode('utf-8')
+                m_rel = re.search(rf'Id="{r_id}"[^>]+Target="([^"]+)"', rels_xml)
+                if not m_rel:
+                    m_rel = re.search(rf'Target="([^"]+)"[^>]+Id="{r_id}"', rels_xml)
+                if m_rel:
+                    t = m_rel.group(1).lstrip('/')
+                    sheet_target = t if t.startswith('xl/') else f"xl/{t}"
+            
+            for item in zin.infolist():
+                content = zin.read(item.filename)
+                if sheet_target and item.filename == sheet_target:
+                    xml_str = content.decode('utf-8')
+                    for (col_let, r_num), cached_val in formula_cached_map.items():
+                        coord = f"{col_let}{r_num}"
+                        escaped_val = html.escape(str(cached_val or ''))
+                        def repl_cell(match):
+                            cell_xml = match.group(0)
+                            if ' t="' not in cell_xml:
+                                cell_xml = cell_xml.replace(f'<c r="{coord}"', f'<c r="{coord}" t="str"')
+                            else:
+                                cell_xml = re.sub(r't="[^"]*"', 't="str"', cell_xml)
+                            if '<v' in cell_xml:
+                                cell_xml = re.sub(r'<v\s*/>|<v[^>]*>.*?</v>', f'<v>{escaped_val}</v>', cell_xml)
+                            else:
+                                cell_xml = cell_xml.replace('</c>', f'<v>{escaped_val}</v></c>')
+                            return cell_xml
+
+                        pat = re.compile(rf'<c r="{coord}"[^>]*><f>.*?</c>')
+                        xml_str = pat.sub(repl_cell, xml_str)
+                    content = xml_str.encode('utf-8')
+                zout.writestr(item, content)
+        return zout_buf.getvalue()
+    except Exception as e:
+        print(f"Error injecting cached formula values: {e}")
+        return excel_bytes
 
 
 class ExcelDeckService:
@@ -1123,6 +1181,7 @@ class ExcelDeckService:
         # Prepare rows for Data and Data_Formula
         rows_data = []
         rows_formula = []
+        formula_cached_map: Dict[Tuple[str, int], str] = {}
 
         for idx, q in enumerate(cards, start=1):
             excel_row_num = idx + 1 # Header is row 1
@@ -1170,6 +1229,10 @@ class ExcelDeckService:
                 for col_key, tok_form in card_formulas.items():
                     if col_key in col_name_to_letter:
                         row_form[col_key] = transpile_formula(tok_form, excel_row_num, col_name_to_letter)
+                        col_let = col_name_to_letter[col_key]
+                        cached_val = row.get(col_key, "")
+                        if cached_val:
+                            formula_cached_map[(col_let, excel_row_num)] = str(cached_val)
                 rows_formula.append(row_form)
             
         df_data = pd.DataFrame(rows_data) if rows_data else pd.DataFrame(columns=export_cols)
@@ -1187,6 +1250,9 @@ class ExcelDeckService:
                 df_formula.to_excel(writer, sheet_name="Data_Formula", index=False)
                 
             wb = writer.book
+            wb.calculation.fullCalcOnLoad = True
+            wb.calculation.forceFullCalc = True
+            wb.calculation.calcMode = 'auto'
             from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
 
             header_font = Font(name="Calibri", size=11, bold=True, color="FFFFFF")
@@ -1241,7 +1307,10 @@ class ExcelDeckService:
                             max_len = len(val_str)
                     ws.column_dimensions[col_letter].width = max(min(max_len + 4, 60), 12)
             
-        return output.getvalue()
+        raw_bytes = output.getvalue()
+        if has_any_formulas and formula_cached_map:
+            return inject_cached_values(raw_bytes, formula_cached_map)
+        return raw_bytes
 
     @staticmethod
     def generate_template_excel(output_path: Optional[str] = None) -> bytes:
