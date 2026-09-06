@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useMemo } from 'react'
 import confetti from 'canvas-confetti'
 import { useParams, useNavigate } from 'react-router-dom'
-import { ChevronLeft, ChevronRight, ChevronDown, LayoutGrid, Timer, Flame, Trophy, Check, X, Sparkles, Lightbulb, StickyNote, Play, Target, CheckCircle2, XCircle, Clock, BookOpen, Hash, Copy, Edit3, Brain, FileText, HelpCircle, Sliders, ListOrdered, Shuffle, Eye, EyeOff, AlertCircle, TrendingUp, Award, Lock, Keyboard, Volume2, VolumeX, RefreshCw, Undo2, Settings, Star, Zap, ArrowRight, RotateCcw } from 'lucide-react'
+import { ChevronLeft, ChevronRight, ChevronDown, LayoutGrid, Timer, Flame, Trophy, Check, X, Sparkles, Lightbulb, StickyNote, Play, Target, CheckCircle2, XCircle, Clock, BookOpen, Hash, Copy, MousePointer, Edit3, Brain, FileText, HelpCircle, Sliders, ListOrdered, Shuffle, Eye, EyeOff, AlertCircle, TrendingUp, Award, Lock, Keyboard, Volume2, VolumeX, RefreshCw, Undo2, Settings, Star, Zap, ArrowRight, RotateCcw } from 'lucide-react'
 import { motion, AnimatePresence, useAnimationControls } from 'framer-motion'
 import axios from 'axios'
 import ReactMarkdown from 'react-markdown'
@@ -158,6 +158,7 @@ export default function FlashcardPlay() {
   const [zoomedImage, setZoomedImage] = useState<string | null>(null)
   const [badgeVisible, setBadgeVisible] = useState(false)
   const [badgeMessage, setBadgeMessage] = useState("")
+  const [isSelectMode, setIsSelectMode] = useState(false)
 
   useEffect(() => {
     if (isFlipped) {
@@ -445,13 +446,14 @@ export default function FlashcardPlay() {
   }, [isFlipped, currentIndex, currentQuestion?.id, effectiveShowFsrs])
 
   const handleTouchStart = (e: React.TouchEvent) => {
+    if (isSelectMode) return;
     const touch = e.touches[0];
     touchStartXRef.current = touch.clientX;
     touchStartYRef.current = touch.clientY;
   };
 
   const handleTouchEnd = (e: React.TouchEvent) => {
-    if (touchStartXRef.current === null || touchStartYRef.current === null) return;
+    if (isSelectMode || touchStartXRef.current === null || touchStartYRef.current === null) return;
     
     const touch = e.changedTouches[0];
     const diffX = touch.clientX - touchStartXRef.current;
@@ -1373,13 +1375,13 @@ export default function FlashcardPlay() {
     }
   }
 
-  const canDragRate = isFlipped && !hasRated && activeMode !== 'flip' && effectiveCardRatingMode !== 'buttons' && !isFlyingOut;
+  const canDragRate = !isSelectMode && isFlipped && !hasRated && activeMode !== 'flip' && effectiveCardRatingMode !== 'buttons' && !isFlyingOut;
 
   const handleCardDrag = (
     _event: MouseEvent | TouchEvent | PointerEvent,
     info: { offset: { x: number; y: number }; velocity: { x: number; y: number } }
   ) => {
-    if (!canDragRate) return;
+    if (isSelectMode || !canDragRate) return;
     const dx = info.offset.x;
     const dy = info.offset.y;
     setDragOffset({ x: dx, y: dy });
@@ -3647,22 +3649,36 @@ export default function FlashcardPlay() {
                 renderFsrsCompleteScreen()
               ) : (
                 <div 
-                  className="perspective-1000 w-full h-full flex-1 relative min-h-0 select-none flex items-center justify-center"
+                  className={cn(
+                    "perspective-1000 w-full h-full flex-1 relative min-h-0 flex items-center justify-center",
+                    isSelectMode ? "select-text" : "select-none"
+                  )}
                   onTouchStart={handleTouchStart}
                   onTouchEnd={handleTouchEnd}
                 >
+                  {isSelectMode && (
+                    <div 
+                      onClick={() => setIsSelectMode(false)}
+                      className="absolute top-2 left-1/2 -translate-x-1/2 z-30 bg-amber-500/95 hover:bg-amber-600 text-white px-3.5 py-1 rounded-full text-[11px] font-black shadow-lg shadow-amber-500/30 flex items-center gap-1.5 animate-in fade-in zoom-in-95 cursor-pointer pointer-events-auto"
+                      title="Click to exit Select Mode"
+                    >
+                      <MousePointer className="w-3.5 h-3.5" />
+                      <span>Select Mode ON (Tap / Swipe paused)</span>
+                      <span className="ml-1 text-[10px] opacity-80 underline">Exit</span>
+                    </div>
+                  )}
                   <motion.div
-                    className="w-full h-full relative"
-                    drag={canDragRate ? (effectiveCardRatingMode === 'swipe_2way' ? 'x' : true) : false}
+                    className={cn("w-full h-full relative", isSelectMode && "select-text")}
+                    drag={!isSelectMode && canDragRate ? (effectiveCardRatingMode === 'swipe_2way' ? 'x' : true) : false}
                     dragConstraints={{ left: 0, right: 0, top: 0, bottom: 0 }}
                     dragElastic={0.65}
                     onDrag={handleCardDrag}
                     onDragEnd={handleCardDragEnd}
                     animate={cardDragControls}
                     style={{
-                      touchAction: canDragRate 
-                        ? (hasBackOverflow ? 'pan-y' : 'none') 
-                        : 'pan-y',
+                      touchAction: isSelectMode 
+                        ? 'auto' 
+                        : (canDragRate ? (hasBackOverflow ? 'pan-y' : 'none') : 'pan-y'),
                     }}
                   >
                     <div
@@ -3675,6 +3691,7 @@ export default function FlashcardPlay() {
                        {/* FRONT SIDE */}
                       <div
                         onClick={(e) => {
+                          if (isSelectMode) return;
                           const target = e.target as HTMLElement;
                           if (target.closest('button') || target.closest('a') || target.closest('input') || target.closest('[data-no-flip]')) {
                             return;
@@ -3687,7 +3704,8 @@ export default function FlashcardPlay() {
                         }}
                         className={cn(
                           "absolute inset-0 backface-hidden bg-white md:rounded-[2rem] rounded-[1.25rem] border border-slate-100 px-3 md:px-8 pt-2.5 md:pt-2 pb-2.5 md:pb-4 flex flex-col justify-between shadow-2xl shadow-indigo-100/40",
-                          effectiveCardFlipTrigger !== 'button_only' && "cursor-pointer"
+                          !isSelectMode && effectiveCardFlipTrigger !== 'button_only' && "cursor-pointer",
+                          isSelectMode && "cursor-text select-text"
                         )}
                     style={{
                       backfaceVisibility: 'hidden',
@@ -3770,6 +3788,7 @@ export default function FlashcardPlay() {
                   {/* BACK SIDE */}
                   <div
                     onClick={(e) => {
+                      if (isSelectMode) return;
                       const target = e.target as HTMLElement;
                       if (target.closest('button') || target.closest('a') || target.closest('input') || target.closest('textarea') || target.closest('[data-no-flip]')) {
                         return;
@@ -3783,7 +3802,8 @@ export default function FlashcardPlay() {
                     }}
                     className={cn(
                       "absolute inset-0 backface-hidden bg-white md:rounded-[2rem] rounded-[1.25rem] border px-3 md:px-8 pt-2.5 md:pt-2 pb-2.5 md:pb-4 flex flex-col justify-between shadow-2xl transition-all duration-200",
-                      effectiveCardFlipTrigger !== 'button_only' && "cursor-pointer",
+                      !isSelectMode && effectiveCardFlipTrigger !== 'button_only' && "cursor-pointer",
+                      isSelectMode && "cursor-text select-text",
                       activeDragGrade?.direction === 'again' ? "border-rose-400 shadow-rose-200/60 ring-2 ring-rose-400/20" :
                       activeDragGrade?.direction === 'good' ? "border-indigo-400 shadow-indigo-200/60 ring-2 ring-indigo-400/20" :
                       activeDragGrade?.direction === 'hard' ? "border-amber-400 shadow-amber-200/60 ring-2 ring-amber-400/20" :
@@ -3840,9 +3860,9 @@ export default function FlashcardPlay() {
                     {/* Definition & explanation */}
                     <div 
                       ref={backScrollRef}
-                      className="flex-1 overflow-y-auto custom-scrollbar my-2 md:my-3 flex flex-col pr-1 md:pr-2"
+                      className={cn("flex-1 overflow-y-auto custom-scrollbar my-2 md:my-3 flex flex-col pr-1 md:pr-2", isSelectMode && "select-text cursor-text")}
                       style={{
-                        touchAction: hasBackOverflow ? 'pan-y' : (canDragRate ? 'none' : 'pan-y'),
+                        touchAction: isSelectMode ? 'auto' : (hasBackOverflow ? 'pan-y' : (canDragRate ? 'none' : 'pan-y')),
                         WebkitOverflowScrolling: 'touch',
                         overscrollBehavior: 'contain'
                       }}
@@ -3850,7 +3870,8 @@ export default function FlashcardPlay() {
                       <div className={cn(
                         "w-full flex flex-col gap-3 md:gap-4",
                         backValign === 'top' ? "mt-0 mb-auto" : "my-auto",
-                        backHalign === 'center' ? "items-center text-center" : "items-start text-left"
+                        backHalign === 'center' ? "items-center text-center" : "items-start text-left",
+                        isSelectMode && "select-text cursor-text"
                       )}>
                         {/* Show the correct options or direct explanation */}
                         {currentQuestion?.options && currentQuestion.options.length > 0 && (
@@ -3861,14 +3882,15 @@ export default function FlashcardPlay() {
                               </div>
                               <div className={cn(
                                 "text-slate-800 font-extrabold text-2xl md:text-3xl lg:text-4xl leading-snug markdown-content flex-1 whitespace-pre-wrap",
-                                backHalign === 'center' ? "text-center" : "text-left"
+                                backHalign === 'center' ? "text-center" : "text-left",
+                                isSelectMode && "select-text cursor-text"
                               )}>
                                 <ReactMarkdown 
                                   remarkPlugins={[remarkGfm]} 
                                   rehypePlugins={[rehypeRaw]} 
                                   components={{
                                     ...MarkdownComponents,
-                                    p: ({ children }) => <p className="mb-2 last:mb-0 whitespace-pre-wrap">{children}</p>
+                                    p: ({ children }) => <p className={cn("mb-2 last:mb-0 whitespace-pre-wrap w-full", backHalign === 'center' ? "text-center" : "text-left")}>{children}</p>
                                   }}
                                 >
                                   {parseBBCodeToHtml(currentQuestion.options.find(o => o.is_correct)?.content || "Definition revealed.")}
@@ -3890,11 +3912,11 @@ export default function FlashcardPlay() {
                         )}
 
                         {currentQuestion?.mnemonic && (
-                          <div className="p-4 rounded-2xl bg-amber-50/50 border border-amber-100/60 flex items-start gap-3 shadow-inner mt-2 animate-in slide-in-from-bottom-3 duration-500 w-full text-left">
+                          <div className={cn("p-4 rounded-2xl bg-amber-50/50 border border-amber-100/60 flex items-start gap-3 shadow-inner mt-2 animate-in slide-in-from-bottom-3 duration-500 w-full text-left", isSelectMode && "select-text cursor-text")}>
                             <div className="w-7 h-7 rounded-xl bg-amber-500 flex items-center justify-center text-white font-black text-sm shadow-md shrink-0 mt-0.5">
                               💡
                             </div>
-                            <div className="text-slate-700 font-bold text-xs md:text-sm leading-relaxed flex-1 whitespace-pre-wrap">
+                            <div className={cn("text-slate-700 font-bold text-xs md:text-sm leading-relaxed flex-1 whitespace-pre-wrap", isSelectMode && "select-text cursor-text")}>
                               <span className="font-black text-[9px] uppercase tracking-wider text-amber-500 block mb-0.5">Cách nhớ (AI Mnemonic)</span>
                               {currentQuestion.mnemonic}
                             </div>
@@ -3902,17 +3924,18 @@ export default function FlashcardPlay() {
                         )}
 
                         {currentQuestion?.explanation && (
-                          <div className={cn("w-full bg-white flex flex-col min-h-0", backHalign === 'center' ? "text-center items-center" : "text-left items-start")}>
+                          <div className={cn("w-full bg-white flex flex-col min-h-0", backHalign === 'center' ? "text-center items-center" : "text-left items-start", isSelectMode && "select-text cursor-text")}>
                             <div className={cn(
                               "text-slate-700 font-bold text-xl md:text-2xl leading-relaxed markdown-content w-full whitespace-pre-wrap",
-                              backHalign === 'center' ? "text-center" : "text-left"
+                              backHalign === 'center' ? "text-center" : "text-left",
+                              isSelectMode && "select-text cursor-text"
                             )}>
                               <ReactMarkdown 
                                 remarkPlugins={[remarkGfm]} 
                                 rehypePlugins={[rehypeRaw]} 
                                 components={{
                                   ...MarkdownComponents,
-                                  p: ({ children }) => <p className="mb-2 last:mb-0 whitespace-pre-wrap">{children}</p>
+                                  p: ({ children }) => <p className={cn("mb-2 last:mb-0 whitespace-pre-wrap w-full", backHalign === 'center' ? "text-center" : "text-left")}>{children}</p>
                                 }}
                               >
                                 {parseBBCodeToHtml(currentQuestion.explanation)}
@@ -4372,6 +4395,24 @@ export default function FlashcardPlay() {
                   {justAnswered && <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-rose-500 rounded-full border-2 border-white animate-pulse"></span>}
                 </button>
               )}
+
+              {/* Select Mode Toggle Button (Disables swipe/tap so user can highlight and copy text) */}
+              <button
+                type="button"
+                onClick={() => setIsSelectMode(prev => !prev)}
+                className={cn(
+                  "w-12 h-12 flex-shrink-0 flex items-center justify-center rounded-2xl shadow-sm active:scale-95 transition-all cursor-pointer border relative",
+                  isSelectMode
+                    ? "bg-amber-500 border-amber-600 text-white ring-2 ring-amber-300 shadow-amber-200 drop-shadow-[0_0_10px_rgba(245,158,11,0.5)]"
+                    : "bg-indigo-50 border-indigo-200 text-indigo-600 hover:bg-indigo-100 hover:border-indigo-300"
+                )}
+                title={isSelectMode ? "Select Mode: ON (Click to resume swipe & tap)" : "Select Mode: OFF (Click to pause swipe & tap to select/copy text)"}
+              >
+                <MousePointer className={cn("w-5 h-5 transition-transform", isSelectMode ? "scale-110 text-white" : "text-indigo-600")} />
+                {isSelectMode && (
+                  <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-emerald-400 rounded-full border-2 border-white animate-pulse" />
+                )}
+              </button>
 
               {/* Main Action Buttons */}
               {mainTab === 'practice' ? (

@@ -205,6 +205,29 @@ async def save_practice_settings(request: Request, deck_id: int, payload: dict, 
                     merged["study_defaults"] = merged_sd
             deck.practice_settings = merged
         flag_modified(deck, "practice_settings")
+        
+        # When creator updates deck study defaults, clear any conflicting overrides in their UserDeckSettings
+        from app.modules.deck.utils import STUDY_SETTINGS_KEYS
+        user_sett_res = await db.execute(
+            select(UserDeckSettings).where(
+                UserDeckSettings.user_id == user_id,
+                UserDeckSettings.deck_id == deck_id
+            )
+        )
+        creator_user_sett = user_sett_res.scalar_one_or_none()
+        if creator_user_sett and isinstance(creator_user_sett.settings, dict):
+            modified_user_sett = False
+            for k in STUDY_SETTINGS_KEYS:
+                if k in creator_user_sett.settings:
+                    creator_user_sett.settings.pop(k, None)
+                    modified_user_sett = True
+            if "study_settings" in creator_user_sett.settings and isinstance(creator_user_sett.settings["study_settings"], dict):
+                for k in STUDY_SETTINGS_KEYS:
+                    if k in creator_user_sett.settings["study_settings"]:
+                        creator_user_sett.settings["study_settings"].pop(k, None)
+                        modified_user_sett = True
+            if modified_user_sett:
+                flag_modified(creator_user_sett, "settings")
         await db.commit()
     else:
         # Save user settings for roadmap pipeline, roadmap_active, and user preferences

@@ -64,7 +64,7 @@ export function DeckGeneralForm({ deckId, initialData, onSaved }: DeckGeneralFor
       setIsPublic(initialData.is_public !== false)
       setTagsInput(Array.isArray(initialData.tags) ? initialData.tags.join(', ') : '')
 
-      const studyDefs = initialData?.practice_settings?.study_defaults || {}
+      const studyDefs = initialData?.study_defaults || initialData?.practice_settings?.study_defaults || {}
       if (studyDefs.learning_mode) setDefaultMode(studyDefs.learning_mode)
       if (studyDefs.autoplay_audio) setAutoplayAudio(studyDefs.autoplay_audio)
       if (studyDefs.show_images) setShowImages(studyDefs.show_images)
@@ -77,6 +77,37 @@ export function DeckGeneralForm({ deckId, initialData, onSaved }: DeckGeneralFor
       if (studyDefs.quick_learn_enabled !== undefined) setQuickLearnEnabled(Boolean(studyDefs.quick_learn_enabled))
     }
   }, [initialData])
+
+  const saveStudySettingImmediate = async (partial: Partial<Record<string, any>>) => {
+    const currentStudyDefaults = {
+      learning_mode: defaultMode,
+      autoplay_audio: autoplayAudio,
+      show_images: showImages,
+      front_valign: frontValign,
+      front_halign: frontHalign,
+      back_valign: backValign,
+      back_halign: backHalign,
+      random_enabled: randomEnabled,
+      sfx_enabled: sfxEnabled,
+      quick_learn_enabled: quickLearnEnabled,
+      ...partial
+    }
+    try {
+      await axios.patch(`/api/v1/deck/${deckId}`, {
+        study_defaults: currentStudyDefaults
+      })
+      await axios.post(`/api/v1/deck/${deckId}/practice-settings`, {
+        is_creator: true,
+        settings: {
+          study_defaults: currentStudyDefaults
+        }
+      })
+      queryClient.invalidateQueries({ queryKey: ['quiz', String(deckId)] })
+      queryClient.invalidateQueries({ queryKey: ['deck-practice-settings', String(deckId)] })
+    } catch (err) {
+      console.error('[DeckGeneralForm] Failed to auto-save study setting:', err)
+    }
+  }
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -465,7 +496,7 @@ export function DeckGeneralForm({ deckId, initialData, onSaved }: DeckGeneralFor
                   <div className="grid grid-cols-2 gap-1 p-1 bg-slate-50 rounded-xl border border-slate-200/50">
                     <button
                       type="button"
-                      onClick={() => setFrontValign('center')}
+                      onClick={() => { setFrontValign('center'); saveStudySettingImmediate({ front_valign: 'center' }); }}
                       className={cn(
                         "py-1.5 px-2 rounded-lg text-xs font-black transition-all text-center cursor-pointer",
                         frontValign === 'center'
@@ -477,7 +508,7 @@ export function DeckGeneralForm({ deckId, initialData, onSaved }: DeckGeneralFor
                     </button>
                     <button
                       type="button"
-                      onClick={() => setFrontValign('top')}
+                      onClick={() => { setFrontValign('top'); saveStudySettingImmediate({ front_valign: 'top' }); }}
                       className={cn(
                         "py-1.5 px-2 rounded-lg text-xs font-black transition-all text-center cursor-pointer",
                         frontValign === 'top'
@@ -495,7 +526,7 @@ export function DeckGeneralForm({ deckId, initialData, onSaved }: DeckGeneralFor
                   <div className="grid grid-cols-2 gap-1 p-1 bg-slate-50 rounded-xl border border-slate-200/50">
                     <button
                       type="button"
-                      onClick={() => setFrontHalign('center')}
+                      onClick={() => { setFrontHalign('center'); saveStudySettingImmediate({ front_halign: 'center' }); }}
                       className={cn(
                         "py-1.5 px-2 rounded-lg text-xs font-black transition-all text-center cursor-pointer",
                         frontHalign === 'center'
@@ -507,7 +538,7 @@ export function DeckGeneralForm({ deckId, initialData, onSaved }: DeckGeneralFor
                     </button>
                     <button
                       type="button"
-                      onClick={() => setFrontHalign('left')}
+                      onClick={() => { setFrontHalign('left'); saveStudySettingImmediate({ front_halign: 'left' }); }}
                       className={cn(
                         "py-1.5 px-2 rounded-lg text-xs font-black transition-all text-center cursor-pointer",
                         frontHalign === 'left'
@@ -534,7 +565,7 @@ export function DeckGeneralForm({ deckId, initialData, onSaved }: DeckGeneralFor
                   <div className="grid grid-cols-2 gap-1 p-1 bg-slate-50 rounded-xl border border-slate-200/50">
                     <button
                       type="button"
-                      onClick={() => setBackValign('center')}
+                      onClick={() => { setBackValign('center'); saveStudySettingImmediate({ back_valign: 'center' }); }}
                       className={cn(
                         "py-1.5 px-2 rounded-lg text-xs font-black transition-all text-center cursor-pointer",
                         backValign === 'center'
@@ -546,7 +577,7 @@ export function DeckGeneralForm({ deckId, initialData, onSaved }: DeckGeneralFor
                     </button>
                     <button
                       type="button"
-                      onClick={() => setBackValign('top')}
+                      onClick={() => { setBackValign('top'); saveStudySettingImmediate({ back_valign: 'top' }); }}
                       className={cn(
                         "py-1.5 px-2 rounded-lg text-xs font-black transition-all text-center cursor-pointer",
                         backValign === 'top'
@@ -564,7 +595,7 @@ export function DeckGeneralForm({ deckId, initialData, onSaved }: DeckGeneralFor
                   <div className="grid grid-cols-2 gap-1 p-1 bg-slate-50 rounded-xl border border-slate-200/50">
                     <button
                       type="button"
-                      onClick={() => setBackHalign('left')}
+                      onClick={() => { setBackHalign('left'); saveStudySettingImmediate({ back_halign: 'left' }); }}
                       className={cn(
                         "py-1.5 px-2 rounded-lg text-xs font-black transition-all text-center cursor-pointer",
                         backHalign === 'left'
@@ -576,7 +607,7 @@ export function DeckGeneralForm({ deckId, initialData, onSaved }: DeckGeneralFor
                     </button>
                     <button
                       type="button"
-                      onClick={() => setBackHalign('center')}
+                      onClick={() => { setBackHalign('center'); saveStudySettingImmediate({ back_halign: 'center' }); }}
                       className={cn(
                         "py-1.5 px-2 rounded-lg text-xs font-black transition-all text-center cursor-pointer",
                         backHalign === 'center'
@@ -602,7 +633,11 @@ export function DeckGeneralForm({ deckId, initialData, onSaved }: DeckGeneralFor
             </div>
             <button
               type="button"
-              onClick={() => setRandomEnabled(!randomEnabled)}
+              onClick={() => {
+                const next = !randomEnabled;
+                setRandomEnabled(next);
+                saveStudySettingImmediate({ random_enabled: next });
+              }}
               className={cn(
                 "w-9 h-5 rounded-full transition-all relative p-0.5 shrink-0 cursor-pointer",
                 randomEnabled ? "bg-orange-500" : "bg-slate-200"
@@ -619,7 +654,11 @@ export function DeckGeneralForm({ deckId, initialData, onSaved }: DeckGeneralFor
             </div>
             <button
               type="button"
-              onClick={() => setSfxEnabled(!sfxEnabled)}
+              onClick={() => {
+                const next = !sfxEnabled;
+                setSfxEnabled(next);
+                saveStudySettingImmediate({ sfx_enabled: next });
+              }}
               className={cn(
                 "w-9 h-5 rounded-full transition-all relative p-0.5 shrink-0 cursor-pointer",
                 sfxEnabled ? "bg-orange-500" : "bg-slate-200"
@@ -636,7 +675,11 @@ export function DeckGeneralForm({ deckId, initialData, onSaved }: DeckGeneralFor
             </div>
             <button
               type="button"
-              onClick={() => setQuickLearnEnabled(!quickLearnEnabled)}
+              onClick={() => {
+                const next = !quickLearnEnabled;
+                setQuickLearnEnabled(next);
+                saveStudySettingImmediate({ quick_learn_enabled: next });
+              }}
               className={cn(
                 "w-9 h-5 rounded-full transition-all relative p-0.5 shrink-0 cursor-pointer",
                 quickLearnEnabled ? "bg-orange-500" : "bg-slate-200"

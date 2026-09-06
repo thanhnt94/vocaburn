@@ -857,6 +857,7 @@ async def get_deck_data(request: Request, deck_id: int, db: AsyncSession = Depen
         "has_roadmap": has_roadmap,
         "category_name": deck.category.name if deck.category else "General",
         "practice_settings": deck.practice_settings or {},
+        "study_defaults": (deck.practice_settings or {}).get("study_defaults", {}),
         "default_mode": (deck.practice_settings or {}).get("study_defaults", {}).get("learning_mode", "fsrs")
     }
 

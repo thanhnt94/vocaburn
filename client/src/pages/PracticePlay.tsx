@@ -4617,7 +4617,7 @@ export default function PracticePlay() {
                                       rehypePlugins={[rehypeRaw]}
                                       components={{
                                         ...MarkdownComponents,
-                                        p: ({ children }) => <p className="mb-2 last:mb-0 whitespace-pre-wrap">{children}</p>
+                                        p: ({ children }) => <p className={cn("mb-2 last:mb-0 whitespace-pre-wrap w-full", backHalign === 'center' ? "text-center" : "text-left")}>{children}</p>
                                       }}
                                     >
                                       {parseBBCodeToHtml(currentQuestion.options.find(o => o.is_correct)?.content || "Definition revealed.")}
@@ -4630,7 +4630,7 @@ export default function PracticePlay() {
                             {(showImages as any === 'always' || showImages as any === 'back' || showImages as any === true || showImages as any === 'true') && (currentQuestion?.back_img || currentQuestion?.others?.back_img) && (
                               <div className="space-y-2 flex justify-center w-full">
                                 <img
-                                  src={currentQuestion.back_img || currentQuestion.others?.back_img || undefined}
+                                  src={currentQuestion.back_img || currentQuestion?.others?.back_img || undefined}
                                   alt="Back Visual"
                                   className="max-h-40 md:max-h-48 object-contain rounded-3xl border border-slate-100/80 shadow-md bg-slate-50/50 p-1.5 animate-in zoom-in-95 duration-500 cursor-zoom-in hover:opacity-95 transition-opacity"
                                   onClick={() => setZoomedImage(currentQuestion.back_img || currentQuestion?.others?.back_img || null)}
@@ -4649,7 +4649,7 @@ export default function PracticePlay() {
                                     rehypePlugins={[rehypeRaw]}
                                     components={{
                                       ...MarkdownComponents,
-                                      p: ({ children }) => <p className="mb-2 last:mb-0 whitespace-pre-wrap">{children}</p>
+                                      p: ({ children }) => <p className={cn("mb-2 last:mb-0 whitespace-pre-wrap w-full", backHalign === 'center' ? "text-center" : "text-left")}>{children}</p>
                                     }}
                                   >
                                     {parseBBCodeToHtml(currentQuestion.explanation)}
