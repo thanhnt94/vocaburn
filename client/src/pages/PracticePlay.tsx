@@ -6399,9 +6399,14 @@ export default function PracticePlay() {
         hapticEnabled={hapticEnabled}
         setHapticEnabled={setHapticEnabled}
         showFeedback={showFeedback}
-        copyQuestionToClipboard={() => {}}
+        copyQuestionToClipboard={copyQuestionToClipboard}
         currentQuestion={currentQuestion}
-        handleIgnoreQuestion={() => {}}
+        handleStarQuestion={() => {
+          if (currentQuestion?.id) {
+            setStarredCards(prev => ({ ...prev, [currentQuestion.id]: !prev[currentQuestion.id] }));
+          }
+        }}
+        isStarred={Boolean(currentQuestion?.id && starredCards[currentQuestion.id])}
         openEditModal={() => setIsEditModalOpen(true)}
         setIsQuitModalOpen={() => navigate('/')}
         showImages={showImages}

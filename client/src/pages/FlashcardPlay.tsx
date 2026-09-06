@@ -4821,6 +4821,8 @@ export default function FlashcardPlay() {
         copyQuestionToClipboard={copyQuestionToClipboard}
         currentQuestion={currentQuestion}
         handleIgnoreQuestion={handleIgnoreQuestion}
+        handleStarQuestion={handleStarQuestion}
+        isStarred={Boolean(currentQuestion?.is_starred)}
         openEditModal={openEditModal}
         setIsQuitModalOpen={setIsQuitModalOpen}
         quickLearnEnabled={quickLearnEnabled}

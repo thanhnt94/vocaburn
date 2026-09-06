@@ -1,7 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { 
-  Sliders, 
-  SlidersHorizontal,
   Brain, 
   Route, 
   Sparkles, 
@@ -19,6 +17,14 @@ import {
   BookOpen,
   BookmarkPlus,
   BookmarkCheck,
+  Move,
+  Layers,
+  Headphones,
+  Volume2,
+  Zap,
+  Shuffle,
+  Eye,
+  Star,
 } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useNavigate, useParams } from 'react-router-dom'
@@ -27,10 +33,13 @@ import type { StudyProfile } from '@/store/useSettingsStore'
 import {
   SYSTEM_TEMPLATES,
   StudyTemplateSelector,
-  StudySettingsEditor,
+  SegmentedControl,
+  ToggleRow,
   type StudySettings,
   type StudyTemplateItem,
 } from '@/components/common/study'
+
+export type PlaySettingsTab = 'mode' | 'gestures' | 'display' | 'audio' | 'templates'
 
 interface PlaySettingsModalProps {
   isOpen: boolean;
@@ -47,6 +56,8 @@ interface PlaySettingsModalProps {
   copyQuestionToClipboard?: () => void;
   currentQuestion?: any;
   handleIgnoreQuestion?: () => void;
+  handleStarQuestion?: () => void;
+  isStarred?: boolean;
   openEditModal?: () => void;
   setIsQuitModalOpen?: (open: boolean) => void;
   quickLearnEnabled?: boolean;
@@ -93,7 +104,10 @@ export const PlaySettingsModal: React.FC<PlaySettingsModalProps> = ({
   hapticEnabled,
   setHapticEnabled,
   copyQuestionToClipboard,
+  currentQuestion,
   handleIgnoreQuestion,
+  handleStarQuestion,
+  isStarred,
   openEditModal,
   setIsQuitModalOpen,
   quickLearnEnabled = false,
@@ -129,11 +143,14 @@ export const PlaySettingsModal: React.FC<PlaySettingsModalProps> = ({
   const navigate = useNavigate()
   const { id } = useParams<{ id: string }>()
 
-  // View Mode: Simple Mode (Templates) vs Advanced Mode (Fine-Tuning)
-  const [modalViewMode, setModalViewMode] = useState<'simple' | 'advanced'>('simple')
+  // Active Tab - Default to 'mode' as requested by user
+  const [activeTab, setActiveTab] = useState<PlaySettingsTab>('mode')
   const [isSyncing, setIsSyncing] = useState<boolean>(false)
   const [isSaveModalOpen, setIsSaveModalOpen] = useState<boolean>(false)
   const [newProfileName, setNewProfileName] = useState<string>('')
+  const [copied, setCopied] = useState<boolean>(false)
+
+  const starred = isStarred ?? Boolean(currentQuestion?.is_starred)
 
   // Track selected template id
   const [selectedProfileId, setSelectedProfileId] = useState<string>(() => {
@@ -200,12 +217,12 @@ export const PlaySettingsModal: React.FC<PlaySettingsModalProps> = ({
   }, [studyProfiles])
 
   const MODES_LIST = [
-    { id: 'fsrs', label: 'FSRS v6', desc: 'Spaced repetition algorithm', icon: Brain, color: 'text-indigo-600', bg: 'bg-indigo-50/80', border: 'border-indigo-200' },
-    { id: 'roadmap', label: 'Roadmap', desc: 'Step-by-step daily journey', icon: Route, color: 'text-emerald-600', bg: 'bg-emerald-50/80', border: 'border-emerald-200' },
-    { id: 'new', label: 'New Cards', desc: 'Cards never studied before', icon: Sparkles, color: 'text-amber-600', bg: 'bg-amber-50/80', border: 'border-amber-200' },
-    { id: 'review', label: 'Review', desc: 'Cards due for revision', icon: AlertCircle, color: 'text-rose-600', bg: 'bg-rose-50/80', border: 'border-rose-200' },
-    { id: 'hardest', label: 'Hardest', desc: 'Frequently forgotten cards', icon: TrendingUp, color: 'text-purple-600', bg: 'bg-purple-50/80', border: 'border-purple-200' },
-    { id: 'flip', label: 'Quick Flip', desc: 'Free-form flashcard flip', icon: RotateCcw, color: 'text-sky-600', bg: 'bg-sky-50/80', border: 'border-sky-200' }
+    { id: 'fsrs', label: 'Flashcard FSRS', desc: 'Spaced repetition v6', icon: Brain, color: 'text-indigo-600', bg: 'bg-indigo-50/80', border: 'border-indigo-200' },
+    { id: 'roadmap', label: 'Daily Roadmap', desc: 'Step-by-step goals', icon: Route, color: 'text-emerald-600', bg: 'bg-emerald-50/80', border: 'border-emerald-200' },
+    { id: 'new', label: 'New Cards', desc: 'Cards never seen before', icon: Sparkles, color: 'text-amber-600', bg: 'bg-amber-50/80', border: 'border-amber-200' },
+    { id: 'review', label: 'Review Due', desc: 'Cards due for revision', icon: AlertCircle, color: 'text-rose-600', bg: 'bg-rose-50/80', border: 'border-rose-200' },
+    { id: 'hardest', label: 'Hardest Cards', desc: 'Frequently forgotten', icon: TrendingUp, color: 'text-purple-600', bg: 'bg-purple-50/80', border: 'border-purple-200' },
+    { id: 'flip', label: 'Quick Flip', desc: 'Free-form flip cards', icon: RotateCcw, color: 'text-sky-600', bg: 'bg-sky-50/80', border: 'border-sky-200' }
   ]
 
   const currentSettings: StudySettings = {
@@ -224,54 +241,6 @@ export const PlaySettingsModal: React.FC<PlaySettingsModalProps> = ({
     haptic_enabled: hapticEnabled ?? true,
     random_enabled: randomEnabled ?? false,
     quick_learn_enabled: quickLearnEnabled ?? false,
-  }
-
-  const handleSettingChange = (key: string, val: any) => {
-    switch (key) {
-      case 'card_flip_trigger':
-        if (setCardFlipTrigger) setCardFlipTrigger(val)
-        break
-      case 'card_rating_mode':
-        if (setCardRatingMode) setCardRatingMode(val)
-        break
-      case 'front_valign':
-        if (setFrontValign) setFrontValign(val)
-        break
-      case 'front_halign':
-        if (setFrontHalign) setFrontHalign(val)
-        break
-      case 'back_valign':
-        if (setBackValign) setBackValign(val)
-        break
-      case 'back_halign':
-        if (setBackHalign) setBackHalign(val)
-        break
-      case 'autoplay_audio':
-        if (setAutoPlayAudio) setAutoPlayAudio(val)
-        break
-      case 'show_images':
-        if (setShowImages) setShowImages(val)
-        break
-      case 'show_fsrs':
-        if (setShowFsrs) setShowFsrs(val)
-        break
-      case 'sfx_enabled':
-        if (setSfxEnabled) setSfxEnabled(val)
-        break
-      case 'haptic_enabled':
-        if (setHapticEnabled) setHapticEnabled(val)
-        break
-      case 'random_enabled':
-        if (setRandomEnabled) setRandomEnabled(val)
-        break
-      case 'quick_learn_enabled':
-        if (setQuickLearnEnabled) setQuickLearnEnabled(val)
-        break
-      case 'quiz_learning_mode':
-      case 'learning_mode':
-        if (applyLearningMode) applyLearningMode(val)
-        break
-    }
   }
 
   const handleSelectCurrentCustom = () => {
@@ -421,7 +390,23 @@ export const PlaySettingsModal: React.FC<PlaySettingsModalProps> = ({
     }
   }
 
+  const handleCopy = () => {
+    if (copyQuestionToClipboard) {
+      copyQuestionToClipboard()
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    }
+  }
+
   const isDeckDefaultActive = selectedProfileId === 'deck-default'
+
+  const TABS: { id: PlaySettingsTab; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
+    { id: 'mode', label: 'Mode', icon: Brain },
+    { id: 'gestures', label: 'Gestures', icon: Move },
+    { id: 'display', label: 'Display', icon: Layers },
+    { id: 'audio', label: 'Audio', icon: Volume2 },
+    { id: 'templates', label: 'Presets', icon: BookmarkCheck },
+  ]
 
   return (
     <AnimatePresence>
@@ -450,7 +435,7 @@ export const PlaySettingsModal: React.FC<PlaySettingsModalProps> = ({
             <div className="flex items-center justify-between px-5 pt-4 pb-3 bg-white border-b border-slate-100 shrink-0">
               <div className="flex items-center gap-2.5">
                 <div className="w-8 h-8 rounded-xl bg-orange-50 border border-orange-100 flex items-center justify-center text-orange-600">
-                  <Sliders className="w-4 h-4" />
+                  <BookmarkCheck className="w-4 h-4" />
                 </div>
                 <div>
                   <div className="flex items-center gap-2">
@@ -475,60 +460,54 @@ export const PlaySettingsModal: React.FC<PlaySettingsModalProps> = ({
                     )}
                   </div>
                   <p className="text-[9.5px] font-bold text-slate-400 leading-none mt-0.5">
-                    Configure gestures, display & flow for this session
+                    Configure mode, gestures, display & audio for this session
                   </p>
                 </div>
               </div>
 
-              <div className="flex items-center gap-2">
-                {/* Simple / Advanced Switch */}
-                <div className="flex items-center p-0.5 bg-slate-100 rounded-xl border border-slate-200/70">
-                  <button
-                    type="button"
-                    onClick={() => setModalViewMode('simple')}
-                    className={cn(
-                      "py-1 px-2.5 rounded-lg text-[10.5px] font-black transition-all flex items-center gap-1 cursor-pointer",
-                      modalViewMode === 'simple'
-                        ? "bg-white text-orange-600 shadow-xs"
-                        : "text-slate-500 hover:text-slate-800"
-                    )}
-                  >
-                    <BookmarkCheck className="w-3 h-3" />
-                    <span>Simple</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setModalViewMode('advanced')}
-                    className={cn(
-                      "py-1 px-2.5 rounded-lg text-[10.5px] font-black transition-all flex items-center gap-1 cursor-pointer",
-                      modalViewMode === 'advanced'
-                        ? "bg-white text-indigo-600 shadow-xs"
-                        : "text-slate-500 hover:text-slate-800"
-                    )}
-                  >
-                    <SlidersHorizontal className="w-3 h-3" />
-                    <span>Advanced</span>
-                  </button>
-                </div>
+              <button
+                type="button"
+                onClick={onClose}
+                className="w-8 h-8 rounded-xl bg-slate-50 hover:bg-slate-100 text-slate-400 hover:text-slate-700 flex items-center justify-center transition-colors cursor-pointer border border-slate-100 active:scale-95"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
 
-                <button
-                  type="button"
-                  onClick={onClose}
-                  className="w-8 h-8 rounded-xl bg-slate-50 hover:bg-slate-100 text-slate-400 hover:text-slate-700 flex items-center justify-center transition-colors cursor-pointer border border-slate-100 active:scale-95"
-                >
-                  <X className="w-4 h-4" />
-                </button>
+            {/* TAB NAVIGATION BAR */}
+            <div className="px-4 pt-3 pb-1 bg-white border-b border-slate-100 shrink-0">
+              <div className="grid grid-cols-5 gap-1 p-1 bg-slate-100/90 rounded-2xl border border-slate-200/60">
+                {TABS.map((tab) => {
+                  const Icon = tab.icon
+                  const isActive = activeTab === tab.id
+                  return (
+                    <button
+                      key={tab.id}
+                      type="button"
+                      onClick={() => setActiveTab(tab.id)}
+                      className={cn(
+                        "py-2 px-1 rounded-xl text-[10.5px] sm:text-xs font-black transition-all flex flex-col sm:flex-row items-center justify-center gap-1 cursor-pointer select-none",
+                        isActive
+                          ? "bg-white text-indigo-600 shadow-xs font-black"
+                          : "text-slate-500 hover:text-slate-800"
+                      )}
+                    >
+                      <Icon className={cn("w-3.5 h-3.5", isActive ? "text-indigo-600" : "text-slate-400")} />
+                      <span className="truncate">{tab.label}</span>
+                    </button>
+                  )
+                })}
               </div>
             </div>
 
             {/* MODAL BODY */}
             <div className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-4">
-              {/* ═══════════ VIEW A: SIMPLE MODE (TEMPLATES) ═══════════ */}
-              {modalViewMode === 'simple' ? (
-                <div className="space-y-3">
+              {/* ═══════════ TAB 1: TEMPLATES ═══════════ */}
+              {activeTab === 'templates' && (
+                <div className="space-y-3 animate-in fade-in duration-150">
                   <div className="flex items-center justify-between px-1">
                     <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">
-                      Choose a study template (instant apply)
+                      Choose study template (instant apply)
                     </span>
                     {onCreateCustomProfile && (
                       <button
@@ -549,13 +528,14 @@ export const PlaySettingsModal: React.FC<PlaySettingsModalProps> = ({
                     compact={true}
                   />
                 </div>
-              ) : (
-                /* ═══════════ VIEW B: ADVANCED MODE (DETAILED CONTROLS) ═══════════ */
-                <div className="space-y-4">
-                  {/* Learning Mode Selection */}
+              )}
+
+              {/* ═══════════ TAB 2: MODE ═══════════ */}
+              {activeTab === 'mode' && (
+                <div className="space-y-4 animate-in fade-in duration-150">
                   <div>
-                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-2">
-                      Learning Mode
+                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-2 px-1">
+                      Choose Learning Mode
                     </span>
                     <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                       {MODES_LIST.map((mode) => {
@@ -593,115 +573,380 @@ export const PlaySettingsModal: React.FC<PlaySettingsModalProps> = ({
                     </div>
                   </div>
 
-                  {/* Fine-Tuning Controls */}
-                  <StudySettingsEditor
-                    settings={currentSettings}
-                    onChange={handleSettingChange}
-                    compact={true}
-                    hideQueue={false}
-                  />
-
-                  {/* Quick in-session tools */}
                   <div className="space-y-2 pt-2 border-t border-slate-100">
-                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">
-                      Current Card Actions
+                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block px-1">
+                      Queue Order & Flow
                     </span>
 
-                    <div className="grid grid-cols-2 gap-2">
-                      {copyQuestionToClipboard && (
-                        <button
-                          type="button"
-                          onClick={copyQuestionToClipboard}
-                          className="flex items-center gap-2 p-2.5 bg-white hover:bg-slate-50 border border-slate-100 rounded-xl text-slate-700 transition-all shadow-2xs active:scale-95 cursor-pointer text-left"
-                        >
-                          <Copy className="w-3.5 h-3.5 text-slate-500 shrink-0" />
-                          <span className="text-xs font-black truncate">Copy Question</span>
-                        </button>
-                      )}
+                    {setRandomEnabled && (
+                      <ToggleRow
+                        icon={Shuffle}
+                        label="Shuffle Queue Questions"
+                        desc="Randomize the study card order within the active queue"
+                        checked={randomEnabled}
+                        onChange={(val) => setRandomEnabled(val)}
+                        compact={true}
+                      />
+                    )}
 
-                      {handleIgnoreQuestion && (
-                        <button
-                          type="button"
-                          onClick={handleIgnoreQuestion}
-                          className="flex items-center gap-2 p-2.5 bg-white hover:bg-amber-50/50 border border-slate-100 hover:border-amber-200 rounded-xl text-slate-700 transition-all shadow-2xs active:scale-95 cursor-pointer text-left"
-                        >
-                          <EyeOff className="w-3.5 h-3.5 text-amber-500 shrink-0" />
-                          <span className="text-xs font-black truncate">Skip Question</span>
-                        </button>
-                      )}
+                    {setQuickLearnEnabled && (
+                      <ToggleRow
+                        icon={Sparkles}
+                        label="Auto Advance (Quick Learn)"
+                        desc="Instantly move to the next card after rating"
+                        checked={quickLearnEnabled}
+                        onChange={(val) => setQuickLearnEnabled(val)}
+                        compact={true}
+                      />
+                    )}
+                  </div>
+                </div>
+              )}
 
-                      {openEditModal && (
-                        <button
-                          type="button"
-                          onClick={openEditModal}
-                          className="flex items-center gap-2 p-2.5 bg-white hover:bg-indigo-50/50 border border-slate-100 hover:border-indigo-200 rounded-xl text-slate-700 transition-all shadow-2xs active:scale-95 cursor-pointer text-left col-span-2"
-                        >
-                          <Edit3 className="w-3.5 h-3.5 text-indigo-500 shrink-0" />
-                          <span className="text-xs font-black truncate">Quick Edit This Card</span>
-                        </button>
-                      )}
+              {/* ═══════════ TAB 3: GESTURES ═══════════ */}
+              {activeTab === 'gestures' && (
+                <div className="space-y-4 animate-in fade-in duration-150">
+                  <div className="p-3.5 rounded-2xl bg-slate-50/70 border border-slate-200/70 space-y-3">
+                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">
+                      Card Interaction Triggers
+                    </span>
+
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-bold text-slate-700 block">
+                        Card Flip Trigger
+                      </label>
+                      <SegmentedControl
+                        value={cardFlipTrigger || 'both'}
+                        onChange={(val) => setCardFlipTrigger && setCardFlipTrigger(val)}
+                        options={[
+                          { id: 'both', label: 'Tap & Swipe' },
+                          { id: 'tap', label: 'Tap Card Body' },
+                          { id: 'button_only', label: 'Button Only' },
+                        ]}
+                        compact={true}
+                      />
                     </div>
 
-                    {id && (
-                      <div className="grid grid-cols-2 gap-2 pt-1">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            onClose()
-                            navigate(`/decks/${id}?tab=settings`)
-                          }}
-                          className="flex items-center gap-2 p-2.5 bg-white hover:bg-indigo-50/50 border border-slate-100 hover:border-indigo-200 rounded-xl text-slate-700 transition-all shadow-2xs active:scale-95 cursor-pointer text-left"
-                        >
-                          <Settings className="w-3.5 h-3.5 text-indigo-500 shrink-0" />
-                          <span className="text-xs font-black truncate">Deck Settings</span>
-                        </button>
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-bold text-slate-700 block">
+                        FSRS Recall Rating Mode
+                      </label>
+                      <SegmentedControl
+                        value={cardRatingMode || 'both'}
+                        onChange={(val) => setCardRatingMode && setCardRatingMode(val)}
+                        options={[
+                          { id: 'both', label: 'Hybrid' },
+                          { id: 'swipe_4way', label: '4-Way Swipe' },
+                          { id: 'swipe_2way', label: '2-Way Swipe' },
+                          { id: 'buttons', label: 'Buttons Only' },
+                        ]}
+                        compact={true}
+                      />
+                    </div>
+                  </div>
 
-                        <button
-                          type="button"
-                          onClick={() => {
-                            onClose()
-                            navigate(`/decks/${id}?tab=cards`)
-                          }}
-                          className="flex items-center gap-2 p-2.5 bg-white hover:bg-emerald-50/50 border border-slate-100 hover:border-emerald-200 rounded-xl text-slate-700 transition-all shadow-2xs active:scale-95 cursor-pointer text-left"
-                        >
-                          <BookOpen className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
-                          <span className="text-xs font-black truncate">Card Manager</span>
-                        </button>
-                      </div>
-                    )}
+                  <div className="p-3.5 rounded-2xl bg-slate-50/70 border border-slate-200/70 space-y-2">
+                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">
+                      Sensory Feedback
+                    </span>
 
-                    {setIsQuitModalOpen && (
-                      <div className="pt-2">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            onClose()
-                            setIsQuitModalOpen(true)
-                          }}
-                          className="w-full flex items-center justify-center gap-2 py-2.5 px-4 bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200/80 rounded-xl font-black text-xs uppercase tracking-wider transition-all active:scale-95 cursor-pointer shadow-2xs"
-                        >
-                          <LogOut className="w-3.5 h-3.5" />
-                          <span>Quit Session</span>
-                        </button>
+                    <ToggleRow
+                      icon={Volume2}
+                      label="Sound Effects (SFX)"
+                      desc="Play audio feedback on card flips and answer ratings"
+                      checked={sfxEnabled}
+                      onChange={(val) => setSfxEnabled(val)}
+                      compact={true}
+                    />
+
+                    <ToggleRow
+                      icon={Zap}
+                      label="Haptic Feedback"
+                      desc="Vibrate on mobile devices when swiping cards"
+                      checked={hapticEnabled}
+                      onChange={(val) => setHapticEnabled(val)}
+                      compact={true}
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* ═══════════ TAB 4: DISPLAY ═══════════ */}
+              {activeTab === 'display' && (
+                <div className="space-y-4 animate-in fade-in duration-150">
+                  <div className="p-3.5 rounded-2xl bg-slate-50/70 border border-slate-200/70 space-y-3">
+                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">
+                      Card Alignment (2-Axis)
+                    </span>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div className="space-y-1.5">
+                        <label className="text-[11px] font-bold text-slate-700 block">
+                          Front Card Vertical
+                        </label>
+                        <SegmentedControl
+                          value={frontValign || 'center'}
+                          onChange={(val) => setFrontValign && setFrontValign(val)}
+                          options={[
+                            { id: 'center', label: 'Center' },
+                            { id: 'top', label: 'Top' },
+                          ]}
+                          compact={true}
+                        />
                       </div>
+
+                      <div className="space-y-1.5">
+                        <label className="text-[11px] font-bold text-slate-700 block">
+                          Front Card Horizontal
+                        </label>
+                        <SegmentedControl
+                          value={frontHalign || 'left'}
+                          onChange={(val) => setFrontHalign && setFrontHalign(val)}
+                          options={[
+                            { id: 'left', label: 'Left' },
+                            { id: 'center', label: 'Center' },
+                          ]}
+                          compact={true}
+                        />
+                      </div>
+
+                      <div className="space-y-1.5">
+                        <label className="text-[11px] font-bold text-slate-700 block">
+                          Back Card Vertical
+                        </label>
+                        <SegmentedControl
+                          value={backValign || 'center'}
+                          onChange={(val) => setBackValign && setBackValign(val)}
+                          options={[
+                            { id: 'center', label: 'Center' },
+                            { id: 'top', label: 'Top' },
+                          ]}
+                          compact={true}
+                        />
+                      </div>
+
+                      <div className="space-y-1.5">
+                        <label className="text-[11px] font-bold text-slate-700 block">
+                          Back Card Horizontal
+                        </label>
+                        <SegmentedControl
+                          value={backHalign || 'left'}
+                          onChange={(val) => setBackHalign && setBackHalign(val)}
+                          options={[
+                            { id: 'left', label: 'Left' },
+                            { id: 'center', label: 'Center' },
+                          ]}
+                          compact={true}
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="p-3.5 rounded-2xl bg-slate-50/70 border border-slate-200/70 space-y-3">
+                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">
+                      Visual Content & Stats
+                    </span>
+
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-bold text-slate-700 block">
+                        Illustration Images
+                      </label>
+                      <SegmentedControl
+                        value={showImages === true || showImages === 'true' ? 'always' : showImages || 'both'}
+                        onChange={(val) => setShowImages && setShowImages(val)}
+                        options={[
+                          { id: 'always', label: 'Both Sides' },
+                          { id: 'front', label: 'Front' },
+                          { id: 'back', label: 'Back' },
+                          { id: 'none', label: 'Off' },
+                        ]}
+                        compact={true}
+                      />
+                    </div>
+
+                    {setShowFsrs && (
+                      <ToggleRow
+                        icon={Eye}
+                        label="FSRS Algorithm Metrics"
+                        desc="Show memory stability, retrievability & review interval on card"
+                        checked={showFsrs}
+                        onChange={(val) => setShowFsrs(val)}
+                        compact={true}
+                      />
                     )}
+                  </div>
+                </div>
+              )}
+
+              {/* ═══════════ TAB 5: AUDIO ═══════════ */}
+              {activeTab === 'audio' && (
+                <div className="space-y-4 animate-in fade-in duration-150">
+                  <div className="p-3.5 rounded-2xl bg-slate-50/70 border border-slate-200/70 space-y-3">
+                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">
+                      Pronunciation & Audio
+                    </span>
+
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-bold text-slate-700 block">
+                        TTS Audio Autoplay
+                      </label>
+                      <SegmentedControl
+                        value={autoPlayAudio || 'always'}
+                        onChange={(val) => setAutoPlayAudio(val)}
+                        options={[
+                          { id: 'always', label: 'Always (Both)' },
+                          { id: 'back', label: 'Back Only' },
+                          { id: 'front', label: 'Front Only' },
+                          { id: 'none', label: 'Off' },
+                        ]}
+                        compact={true}
+                      />
+                    </div>
+
+                    <p className="text-[11px] text-slate-500 font-medium leading-relaxed">
+                      Choose whether vocabulary audio automatically speaks when turning the card over or presenting a new word.
+                    </p>
                   </div>
                 </div>
               )}
             </div>
 
-            {/* Footer */}
-            <div className="px-5 py-3 bg-white border-t border-slate-100 flex items-center justify-between gap-3 shrink-0">
-              <div className="flex items-center gap-2">
+            {/* FOOTER: QUICK ACTION ICONS ON LEFT, RESET & DONE ON RIGHT */}
+            <div className="px-4 py-3 bg-white border-t border-slate-100 flex items-center justify-between gap-2 shrink-0">
+              {/* Left: Quick Card Action Icons Row */}
+              <div className="flex items-center gap-1 sm:gap-1.5 overflow-x-auto no-scrollbar py-0.5 shrink min-w-0">
+                {/* 1. Edit Card */}
+                {openEditModal && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onClose()
+                      openEditModal()
+                    }}
+                    title="Quick Edit Card (Sửa nhanh thẻ)"
+                    aria-label="Quick Edit Card"
+                    className="w-9 h-9 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-600 border border-indigo-200/80 flex items-center justify-center transition-all active:scale-95 cursor-pointer shrink-0 shadow-2xs"
+                  >
+                    <Edit3 className="w-4 h-4" />
+                  </button>
+                )}
+
+                {/* 2. Star / Bookmark Card */}
+                {handleStarQuestion && (
+                  <button
+                    type="button"
+                    onClick={handleStarQuestion}
+                    title={starred ? "Unstar Card (Bỏ đánh dấu)" : "Star / Bookmark Card (Đánh dấu thẻ)"}
+                    aria-label="Star / Bookmark Card"
+                    className={cn(
+                      "w-9 h-9 rounded-xl border flex items-center justify-center transition-all active:scale-95 cursor-pointer shrink-0 shadow-2xs",
+                      starred
+                        ? "bg-amber-50 text-amber-500 border-amber-300 ring-2 ring-amber-400/20"
+                        : "bg-slate-50 hover:bg-amber-50 text-slate-400 hover:text-amber-500 border-slate-200/80"
+                    )}
+                  >
+                    <Star className={cn("w-4 h-4 transition-transform", starred && "fill-amber-400 text-amber-500 scale-110")} />
+                  </button>
+                )}
+
+                {/* 3. Copy Card */}
+                {copyQuestionToClipboard && (
+                  <button
+                    type="button"
+                    onClick={handleCopy}
+                    title={copied ? "Copied! (Đã sao chép)" : "Copy Card Content (Sao chép thẻ)"}
+                    aria-label="Copy Card Content"
+                    className={cn(
+                      "w-9 h-9 rounded-xl border flex items-center justify-center transition-all active:scale-95 cursor-pointer shrink-0 shadow-2xs",
+                      copied
+                        ? "bg-emerald-50 text-emerald-600 border-emerald-300 ring-2 ring-emerald-400/20"
+                        : "bg-slate-50 hover:bg-slate-100 text-slate-600 hover:text-slate-900 border-slate-200/80"
+                    )}
+                  >
+                    {copied ? <Check className="w-4 h-4 text-emerald-600" /> : <Copy className="w-4 h-4" />}
+                  </button>
+                )}
+
+                {/* 4. Ignore / Skip Card */}
+                {handleIgnoreQuestion && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      handleIgnoreQuestion()
+                      onClose()
+                    }}
+                    title="Skip / Ignore Card (Ẩn / Bỏ qua thẻ)"
+                    aria-label="Ignore Card"
+                    className="w-9 h-9 rounded-xl bg-slate-50 hover:bg-rose-50 text-slate-400 hover:text-rose-600 border border-slate-200/80 flex items-center justify-center transition-all active:scale-95 cursor-pointer shrink-0 shadow-2xs"
+                  >
+                    <EyeOff className="w-4 h-4" />
+                  </button>
+                )}
+
+                {/* Divider between card actions and navigation */}
+                <div className="h-4 w-px bg-slate-200 mx-0.5 shrink-0" />
+
+                {/* 5. Deck Settings */}
+                {id && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onClose()
+                      navigate(`/decks/${id}?tab=settings`)
+                    }}
+                    title="Deck Settings"
+                    aria-label="Deck Settings"
+                    className="w-9 h-9 rounded-xl bg-slate-50 hover:bg-slate-100 text-slate-500 hover:text-slate-800 border border-slate-200/80 flex items-center justify-center transition-all active:scale-95 cursor-pointer shrink-0 shadow-2xs"
+                  >
+                    <Settings className="w-4 h-4" />
+                  </button>
+                )}
+
+                {/* 6. Card Manager */}
+                {id && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onClose()
+                      navigate(`/decks/${id}?tab=cards`)
+                    }}
+                    title="Card Manager"
+                    aria-label="Card Manager"
+                    className="w-9 h-9 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-600 border border-emerald-200/80 flex items-center justify-center transition-all active:scale-95 cursor-pointer shrink-0 shadow-2xs"
+                  >
+                    <BookOpen className="w-4 h-4" />
+                  </button>
+                )}
+
+                {/* 7. Quit Session */}
+                {setIsQuitModalOpen && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onClose()
+                      setIsQuitModalOpen(true)
+                    }}
+                    title="Quit Session"
+                    aria-label="Quit Session"
+                    className="w-9 h-9 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200/80 flex items-center justify-center transition-all active:scale-95 cursor-pointer shrink-0 shadow-2xs"
+                  >
+                    <LogOut className="w-4 h-4" />
+                  </button>
+                )}
+              </div>
+
+              {/* Right: Reset/Save defaults & Done */}
+              <div className="flex items-center gap-1.5 shrink-0 ml-auto pl-1">
                 {onResetToCreatorDefaults && (isCustomized || settingOrigin !== 'deck_default') && (
                   <button
                     type="button"
                     disabled={isSyncing}
                     onClick={handleResetToCreator}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-slate-600 hover:text-slate-900 bg-slate-50 hover:bg-slate-100 border border-slate-200 transition-all active:scale-95 cursor-pointer disabled:opacity-50"
+                    title="Reset to Deck Default"
+                    className="h-9 px-2.5 rounded-xl text-xs font-bold text-slate-600 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 border border-slate-200 transition-all active:scale-95 cursor-pointer disabled:opacity-50 flex items-center gap-1"
                   >
                     <RotateCcw className="w-3.5 h-3.5" />
-                    <span>Reset to Deck Default</span>
+                    <span className="hidden md:inline">Reset</span>
                   </button>
                 )}
 
@@ -710,21 +955,23 @@ export const PlaySettingsModal: React.FC<PlaySettingsModalProps> = ({
                     type="button"
                     disabled={isSyncing}
                     onClick={handleSaveAsCreator}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-emerald-700 hover:text-emerald-800 bg-emerald-50 hover:bg-emerald-100/80 border border-emerald-200 transition-all active:scale-95 cursor-pointer disabled:opacity-50"
+                    title="Save as Official Deck Default"
+                    className="h-9 px-2.5 rounded-xl text-xs font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 transition-all active:scale-95 cursor-pointer disabled:opacity-50 flex items-center gap-1"
                   >
-                    <Check className="w-3.5 h-3.5 text-emerald-600" />
-                    <span>Save as Deck Default</span>
+                    <ShieldCheck className="w-3.5 h-3.5" />
+                    <span className="hidden md:inline">Default</span>
                   </button>
                 )}
-              </div>
 
-              <button 
-                type="button"
-                onClick={onClose}
-                className="px-6 py-2 bg-gradient-to-r from-orange-500 via-rose-500 to-indigo-600 hover:from-orange-600 hover:to-indigo-700 text-white rounded-xl font-black text-xs uppercase tracking-wider shadow-md hover:shadow-lg active:scale-95 transition-all flex items-center justify-center gap-1.5 cursor-pointer shrink-0"
-              >
-                <span>Done</span>
-              </button>
+                <button 
+                  type="button"
+                  onClick={onClose}
+                  className="h-9 px-4 sm:px-5 bg-gradient-to-r from-orange-500 via-rose-500 to-indigo-600 hover:from-orange-600 hover:to-indigo-700 text-white rounded-xl font-black text-xs uppercase tracking-wider shadow-md hover:shadow-lg active:scale-95 transition-all flex items-center justify-center gap-1.5 cursor-pointer shrink-0"
+                >
+                  <Check className="w-3.5 h-3.5" />
+                  <span>Done</span>
+                </button>
+              </div>
             </div>
 
             {/* Save New Template Modal */}
