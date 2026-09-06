@@ -128,63 +128,83 @@ STUDY_SETTINGS_KEYS = set(SYSTEM_STUDY_DEFAULTS.keys())
 
 SYSTEM_STUDY_PROFILES = [
     {
-        "id": "preset-standard",
-        "name": "Tiêu chuẩn (Cân bằng)",
-        "description": "FSRS v6, căn giữa, hiển thị hình ảnh, hỗ trợ cả nút bấm & vuốt cử chỉ",
+        "id": "preset-minimal",
+        "name": "Minimalist",
+        "description": "Zero distractions: no images, no audio autoplay, hidden FSRS metrics, and swipe-only without button clutter.",
         "icon": "sparkles",
         "is_system": True,
-        "settings": dict(SYSTEM_STUDY_DEFAULTS)
+        "settings": {
+            **SYSTEM_STUDY_DEFAULTS,
+            "learning_mode": "fsrs",
+            "autoplay_audio": "none",
+            "show_images": "none",
+            "show_fsrs": False,
+            "card_flip_trigger": "tap",
+            "card_rating_mode": "swipe_4way",
+            "sfx_enabled": False,
+            "haptic_enabled": False,
+            "random_enabled": False
+        }
     },
     {
-        "id": "preset-speedrun",
-        "name": "Tốc độ cao (Lướt nhanh)",
-        "description": "Học nhanh, chạm lật thẻ, vuốt 2 hướng, tắt hình ảnh, tối đa tốc độ",
+        "id": "preset-full",
+        "name": "Full Experience",
+        "description": "All features enabled: dual-sided images, autoplay TTS audio, FSRS metrics, and combined swipe & buttons.",
         "icon": "zap",
         "is_system": True,
         "settings": {
             **SYSTEM_STUDY_DEFAULTS,
-            "learning_mode": "flip",
-            "quick_learn_enabled": True,
-            "card_flip_trigger": "tap",
-            "card_rating_mode": "swipe_2way",
-            "show_images": "none",
-            "show_fsrs": False
+            "learning_mode": "fsrs",
+            "autoplay_audio": "always",
+            "show_images": "both",
+            "show_fsrs": True,
+            "card_flip_trigger": "both",
+            "card_rating_mode": "both",
+            "sfx_enabled": True,
+            "haptic_enabled": True,
+            "random_enabled": False
         }
     },
     {
-        "id": "preset-audio",
-        "name": "Luyện nghe (Audio Immersion)",
-        "description": "Tự động phát giọng đọc TTS cả 2 mặt thẻ, bật toàn bộ hiệu ứng âm thanh",
-        "icon": "headphones",
+        "id": "preset-standard",
+        "name": "Standard",
+        "description": "Balanced recall: clean question on the front side; audio pronunciation and illustration appear only on the back side.",
+        "icon": "sparkles",
         "is_system": True,
         "settings": {
             **SYSTEM_STUDY_DEFAULTS,
-            "autoplay_audio": "always",
+            "learning_mode": "fsrs",
+            "autoplay_audio": "back",
+            "show_images": "back_only",
+            "show_fsrs": True,
+            "card_flip_trigger": "both",
+            "card_rating_mode": "both",
             "sfx_enabled": True,
             "haptic_enabled": True,
-            "front_valign": "center",
-            "front_halign": "center",
-            "back_valign": "center",
-            "back_halign": "center"
+            "random_enabled": False
         }
     },
     {
-        "id": "preset-focus",
-        "name": "Đọc sâu (Deep Study)",
-        "description": "Căn lề trên/trái chuẩn sách giáo khoa, hiện FSRS chi tiết, dùng 4 nút đánh giá",
+        "id": "preset-classic",
+        "name": "Classic",
+        "description": "Traditional 4-button workflow: flip strictly via button so you can easily select and copy text without accidental flips.",
         "icon": "book",
         "is_system": True,
         "settings": {
             **SYSTEM_STUDY_DEFAULTS,
             "learning_mode": "fsrs",
+            "autoplay_audio": "back",
+            "show_images": "both",
+            "show_fsrs": True,
+            "card_flip_trigger": "button_only",
+            "card_rating_mode": "buttons",
+            "sfx_enabled": True,
+            "haptic_enabled": True,
             "front_valign": "top",
             "front_halign": "left",
             "back_valign": "top",
             "back_halign": "left",
-            "show_images": "always",
-            "show_fsrs": True,
-            "card_flip_trigger": "both",
-            "card_rating_mode": "buttons"
+            "random_enabled": False
         }
     }
 ]

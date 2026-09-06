@@ -78,16 +78,46 @@ const SETTINGS_TABS: TabConfig[] = [
 
 const SYSTEM_PROFILES = [
   {
-    id: 'preset-standard',
-    name: 'Tiêu chuẩn (FSRS)',
+    id: 'preset-minimal',
+    name: 'Minimalist',
     icon: 'sparkles',
-    badge: 'Khuyên dùng',
-    desc: 'Lật thẻ cả 2 chiều, thuật toán FSRS v6 đầy đủ kèm chỉ số, ảnh 2 mặt & TTS phát âm tự động.',
+    badge: 'Zero Distraction',
+    desc: 'Pure minimalist study: no images, no audio autoplay, hidden FSRS metrics, and swipe-only without button clutter.',
     details: [
-      { label: 'Lật thẻ', val: 'Chạm & Vuốt' },
-      { label: 'Đánh giá', val: '4 hướng FSRS' },
-      { label: 'Âm thanh', val: 'Luôn phát' },
-      { label: 'Thứ tự', val: 'Tuần tự' },
+      { label: 'Flip', val: 'Tap Body' },
+      { label: 'Rating', val: '4-Way Swipe' },
+      { label: 'Audio', val: 'Off' },
+      { label: 'Order', val: 'Standard' },
+    ],
+    settings: {
+      autoplay_audio: 'none',
+      show_images: 'none',
+      quiz_learning_mode: 'fsrs',
+      learning_mode: 'fsrs',
+      front_valign: 'center',
+      front_halign: 'center',
+      back_valign: 'center',
+      back_halign: 'center',
+      random_enabled: false,
+      sfx_enabled: false,
+      haptic_enabled: false,
+      quick_learn_enabled: false,
+      show_fsrs: false,
+      card_flip_trigger: 'tap',
+      card_rating_mode: 'swipe_4way',
+    }
+  },
+  {
+    id: 'preset-full',
+    name: 'Full Experience',
+    icon: 'zap',
+    badge: 'All Features',
+    desc: 'Everything enabled: dual-sided images, autoplay TTS audio, FSRS metrics, and combined swipe & buttons.',
+    details: [
+      { label: 'Flip', val: 'Tap & Swipe' },
+      { label: 'Rating', val: 'Swipe & 4 Buttons' },
+      { label: 'Audio', val: 'Always Play' },
+      { label: 'Order', val: 'Standard' },
     ],
     settings: {
       autoplay_audio: 'always',
@@ -108,56 +138,26 @@ const SYSTEM_PROFILES = [
     }
   },
   {
-    id: 'preset-speedrun',
-    name: 'Tốc độ cao (Speedrun)',
-    icon: 'zap',
-    badge: 'Tốc độ',
-    desc: 'Bỏ qua hiệu ứng rườm rà và ẩn chỉ số FSRS, lướt 2 chiều nhanh gọn, tối ưu tốc độ.',
+    id: 'preset-standard',
+    name: 'Standard',
+    icon: 'sparkles',
+    badge: 'Recommended',
+    desc: 'Balanced recall: clean question on the front side; audio pronunciation and illustration appear only on the back side.',
     details: [
-      { label: 'Lật thẻ', val: 'Chạm thân thẻ' },
-      { label: 'Đánh giá', val: 'Vuốt 2 chiều' },
-      { label: 'Âm thanh', val: 'Tắt' },
-      { label: 'Thứ tự', val: 'Xáo trộn' },
+      { label: 'Flip', val: 'Tap & Swipe' },
+      { label: 'Rating', val: 'Swipe & 4 Buttons' },
+      { label: 'Audio', val: 'Back Side Only' },
+      { label: 'Order', val: 'Standard' },
     ],
     settings: {
-      autoplay_audio: 'none',
-      show_images: 'both',
-      quiz_learning_mode: 'random',
-      learning_mode: 'fsrs',
-      front_valign: 'center',
-      front_halign: 'center',
-      back_valign: 'center',
-      back_halign: 'center',
-      random_enabled: true,
-      sfx_enabled: true,
-      haptic_enabled: true,
-      quick_learn_enabled: true,
-      show_fsrs: false,
-      card_flip_trigger: 'tap',
-      card_rating_mode: 'swipe_2way',
-    }
-  },
-  {
-    id: 'preset-audio',
-    name: 'Luyện nghe phản xạ (Audio-First)',
-    icon: 'headphones',
-    badge: 'Phát âm',
-    desc: 'Tự động phát audio ngay khi vào thẻ, hiện ảnh mặt sau, tối ưu luyện nghe phát âm.',
-    details: [
-      { label: 'Lật thẻ', val: 'Cả 2 chiều' },
-      { label: 'Đánh giá', val: 'Hỗn hợp' },
-      { label: 'Âm thanh', val: 'Tự động phát' },
-      { label: 'Thứ tự', val: 'Thẻ chưa học' },
-    ],
-    settings: {
-      autoplay_audio: 'always',
+      autoplay_audio: 'back',
       show_images: 'back_only',
-      quiz_learning_mode: 'unseen',
+      quiz_learning_mode: 'fsrs',
       learning_mode: 'fsrs',
       front_valign: 'center',
-      front_halign: 'center',
+      front_halign: 'left',
       back_valign: 'center',
-      back_halign: 'center',
+      back_halign: 'left',
       random_enabled: false,
       sfx_enabled: true,
       haptic_enabled: true,
@@ -168,32 +168,32 @@ const SYSTEM_PROFILES = [
     }
   },
   {
-    id: 'preset-focus',
-    name: 'Tập trung tối giản (Deep Focus)',
+    id: 'preset-classic',
+    name: 'Classic',
     icon: 'book',
-    badge: 'Tối giản',
-    desc: 'Tắt toàn bộ âm thanh và chỉ số FSRS, tắt hình ảnh, tập trung 100% vào ngữ nghĩa và mặt chữ.',
+    badge: 'Anki Style',
+    desc: 'Traditional 4-button workflow: flip strictly via button so you can easily select and copy text without accidental flips.',
     details: [
-      { label: 'Lật thẻ', val: 'Cả 2 chiều' },
-      { label: 'Đánh giá', val: '4 nút bấm' },
-      { label: 'Âm thanh', val: 'Tắt hoàn toàn' },
-      { label: 'Thứ tự', val: 'Ôn tập' },
+      { label: 'Flip', val: 'Button Only' },
+      { label: 'Rating', val: '4 Buttons Only' },
+      { label: 'Audio', val: 'Back Side Only' },
+      { label: 'Order', val: 'Standard' },
     ],
     settings: {
-      autoplay_audio: 'none',
-      show_images: 'none',
-      quiz_learning_mode: 'review',
+      autoplay_audio: 'back',
+      show_images: 'both',
+      quiz_learning_mode: 'fsrs',
       learning_mode: 'fsrs',
-      front_valign: 'center',
+      front_valign: 'top',
       front_halign: 'left',
-      back_valign: 'center',
+      back_valign: 'top',
       back_halign: 'left',
       random_enabled: false,
-      sfx_enabled: false,
-      haptic_enabled: false,
+      sfx_enabled: true,
+      haptic_enabled: true,
       quick_learn_enabled: false,
-      show_fsrs: false,
-      card_flip_trigger: 'both',
+      show_fsrs: true,
+      card_flip_trigger: 'button_only',
       card_rating_mode: 'buttons',
     }
   }
@@ -634,15 +634,15 @@ export const Settings = () => {
 
     // Current gesture labels for summary
     const flipLabel = (userSettings.card_flip_trigger || 'both') === 'both' 
-      ? 'Chạm & Vuốt' 
-      : (userSettings.card_flip_trigger === 'tap' ? 'Chạm thẻ' : 'Nút bấm')
+      ? 'Tap & Swipe' 
+      : (userSettings.card_flip_trigger === 'tap' ? 'Tap Body' : 'Button Only')
     const ratingLabel = (userSettings.card_rating_mode || 'both') === 'both'
-      ? 'Hỗn hợp'
-      : (userSettings.card_rating_mode === 'swipe_4way' ? 'Vuốt 4 hướng' : (userSettings.card_rating_mode === 'swipe_2way' ? 'Vuốt 2 chiều' : '4 Nút'))
-    const algoLabel = modes.find(m => m.id === learningMode)?.name || 'Tuần tự'
+      ? 'Hybrid'
+      : (userSettings.card_rating_mode === 'swipe_4way' ? '4-Way Swipe' : (userSettings.card_rating_mode === 'swipe_2way' ? '2-Way Swipe' : '4 Buttons'))
+    const algoLabel = modes.find(m => m.id === learningMode)?.name || 'Sequential'
     const audioLabel = (userSettings.autoplay_audio || 'always') === 'always'
-      ? 'Luôn phát'
-      : (userSettings.autoplay_audio === 'none' ? 'Tắt' : userSettings.autoplay_audio)
+      ? 'Always'
+      : (userSettings.autoplay_audio === 'none' ? 'Off' : (userSettings.autoplay_audio === 'back' ? 'Back Only' : 'Front Only'))
 
     return (
       <div className="space-y-4 md:space-y-6">
@@ -656,24 +656,24 @@ export const Settings = () => {
                 <span>All-in-One Deck Profile System</span>
               </div>
               <h2 className="text-base sm:text-xl font-black uppercase tracking-tight">
-                Mẫu Cấu Hình Bộ Thẻ (Deck Templates)
+                Deck Templates & Profiles
               </h2>
               <p className="text-xs text-indigo-100 max-w-2xl font-medium leading-relaxed">
-                Toàn bộ thiết lập bộ thẻ (Cử chỉ lật, Đánh giá FSRS, Thuật toán thứ tự, Căn lề thẻ & Âm thanh) được gói gọn trong một Template duy nhất để áp dụng nhanh chỉ với 1-click.
+                Full flashcard configuration (gestures, FSRS rating, queue algorithm, layout alignment & audio) packaged into 1-click reusable templates.
               </p>
 
               {/* Active Profile Pill & Quick Summary Badges */}
               <div className="pt-2 flex flex-wrap items-center gap-2 text-xs">
-                <span className="font-bold text-white/80 text-[11px]">Đang áp dụng toàn cục:</span>
+                <span className="font-bold text-white/80 text-[11px]">Active Globally:</span>
                 <span className="px-2.5 py-1 rounded-xl bg-white text-indigo-700 font-black text-xs shadow-xs flex items-center gap-1.5">
                   <BookmarkCheck className="w-3.5 h-3.5 text-indigo-600" />
-                  {activeProfileObj ? activeProfileObj.name : 'Tiêu chuẩn (FSRS)'}
+                  {activeProfileObj ? activeProfileObj.name : 'Standard'}
                 </span>
 
                 <div className="hidden sm:flex items-center gap-1.5 text-[10px] text-white/90">
-                  <span className="px-2 py-0.5 rounded-lg bg-white/20 font-bold backdrop-blur-xs">Lật: {flipLabel}</span>
-                  <span className="px-2 py-0.5 rounded-lg bg-white/20 font-bold backdrop-blur-xs">Đánh giá: {ratingLabel}</span>
-                  <span className="px-2 py-0.5 rounded-lg bg-white/20 font-bold backdrop-blur-xs">Thứ tự: {algoLabel}</span>
+                  <span className="px-2 py-0.5 rounded-lg bg-white/20 font-bold backdrop-blur-xs">Flip: {flipLabel}</span>
+                  <span className="px-2 py-0.5 rounded-lg bg-white/20 font-bold backdrop-blur-xs">Rating: {ratingLabel}</span>
+                  <span className="px-2 py-0.5 rounded-lg bg-white/20 font-bold backdrop-blur-xs">Order: {algoLabel}</span>
                   <span className="px-2 py-0.5 rounded-lg bg-white/20 font-bold backdrop-blur-xs">Audio: {audioLabel}</span>
                 </div>
               </div>
@@ -691,7 +691,7 @@ export const Settings = () => {
                 className="inline-flex items-center justify-center gap-2 px-4 py-2.5 sm:py-3 bg-white text-indigo-700 font-black text-xs uppercase tracking-wider rounded-2xl shadow-lg hover:bg-indigo-50 active:scale-95 transition-all cursor-pointer shrink-0"
               >
                 <Plus className="w-4 h-4" />
-                <span>Tạo Template Mới</span>
+                <span>New Template</span>
               </button>
             </div>
           </div>
@@ -711,7 +711,7 @@ export const Settings = () => {
               )}
             >
               <Sparkles className={cn("w-3.5 h-3.5 shrink-0", templateTab === 'system' ? "text-indigo-600" : "text-slate-400")} />
-              <span className="truncate">Presets Hệ Thống (4)</span>
+              <span className="truncate">System Presets (4)</span>
             </button>
 
             <button
@@ -725,7 +725,7 @@ export const Settings = () => {
               )}
             >
               <User className={cn("w-3.5 h-3.5 shrink-0", templateTab === 'custom' ? "text-indigo-600" : "text-slate-400")} />
-              <span className="truncate">Template Cá Nhân ({customProfiles.length})</span>
+              <span className="truncate">My Templates ({customProfiles.length})</span>
             </button>
 
             <button
@@ -739,7 +739,7 @@ export const Settings = () => {
               )}
             >
               <Sliders className={cn("w-3.5 h-3.5 shrink-0", templateTab === 'customize' ? "text-indigo-600" : "text-slate-400")} />
-              <span className="truncate">Tinh Chỉnh Nhanh</span>
+              <span className="truncate">Live Customizer</span>
             </button>
           </div>
         </div>
@@ -750,14 +750,14 @@ export const Settings = () => {
             <div className="flex items-center justify-between px-1">
               <div>
                 <h3 className="text-xs font-black text-slate-900 uppercase tracking-wider">
-                  Mẫu Cấu Hình Chuẩn Hệ Thống (System Presets)
+                  System Deck Presets
                 </h3>
                 <p className="text-[10px] text-slate-400 font-medium">
-                  Mỗi template bao gồm trọn gói: Cử chỉ lật & đánh giá, Thuật toán phân phối, Căn lề thẻ và Âm thanh
+                  Carefully balanced presets for common study styles, gesture preferences, and media configurations.
                 </p>
               </div>
               <span className="text-[9.5px] font-black text-indigo-600 bg-indigo-50 border border-indigo-100 px-2.5 py-1 rounded-full shrink-0">
-                4 mẫu tối ưu
+                4 Optimized Presets
               </span>
             </div>
 
@@ -796,13 +796,13 @@ export const Settings = () => {
                                 {preset.badge}
                               </span>
                             </div>
-                            <span className="text-[9px] font-bold text-slate-400 uppercase">Mẫu hệ thống</span>
+                            <span className="text-[9px] font-bold text-slate-400 uppercase">System Preset</span>
                           </div>
                         </div>
 
                         {isDefaultActive && (
                           <span className="inline-flex items-center gap-1 text-[10px] font-black text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-full shrink-0">
-                            <Check className="w-3.5 h-3.5" /> Đang dùng
+                            <Check className="w-3.5 h-3.5" /> Active
                           </span>
                         )}
                       </div>
@@ -811,69 +811,69 @@ export const Settings = () => {
                         {preset.desc}
                       </p>
 
-                      {/* 4 Phân đoạn chuẩn: Cử chỉ & SFX | Hiển thị & Căn lề | Âm thanh & Ảnh Media | Thuật toán */}
-                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 pt-1">
-                        {/* 1. Cử chỉ & Hiệu ứng */}
-                        <div className="p-2.5 rounded-xl bg-purple-50/50 border border-purple-100/80 space-y-1">
+                      {/* 4 Compact Tiles (2x2 Grid) */}
+                      <div className="grid grid-cols-2 gap-2 pt-1">
+                        {/* 1. Gestures & Feedback */}
+                        <div className="p-2.5 rounded-2xl bg-purple-50/60 border border-purple-100/80 flex flex-col justify-between">
                           <span className="text-[9px] font-black text-purple-700 uppercase tracking-wider flex items-center gap-1">
-                            <Move className="w-3 h-3 text-purple-600" /> 1. Cử chỉ & Hiệu ứng
+                            <Move className="w-2.5 h-2.5 text-purple-600 shrink-0" /> Gestures & SFX
                           </span>
-                          <div className="text-[10.5px] font-black text-slate-800 truncate">
-                            {sett.card_flip_trigger === 'both' ? 'Chạm & Vuốt' : (sett.card_flip_trigger === 'tap' ? 'Chạm thân thẻ' : 'Chỉ bấm nút')}
+                          <div className="text-[11px] font-black text-slate-800 truncate mt-1">
+                            {sett.card_flip_trigger === 'both' ? 'Tap & Swipe' : (sett.card_flip_trigger === 'tap' ? 'Tap Body' : 'Button Only')}
                           </div>
-                          <div className="text-[9px] text-slate-600 font-bold truncate">
-                            {sett.card_rating_mode === 'both' ? 'Vuốt & 4 nút' : (sett.card_rating_mode === 'swipe_4way' ? 'Vuốt 4 hướng' : (sett.card_rating_mode === 'swipe_2way' ? 'Vuốt 2 chiều' : '4 Nút bấm'))}
+                          <div className="text-[9px] text-slate-500 font-bold truncate mt-0.5">
+                            {sett.card_rating_mode === 'both' ? 'Swipe & 4 Buttons' : (sett.card_rating_mode === 'swipe_4way' ? '4-Way Swipe' : (sett.card_rating_mode === 'swipe_2way' ? '2-Way Swipe' : '4 Buttons'))}
                             {' • '}
                             <span className={sett.sfx_enabled !== false ? "text-purple-700 font-black" : "text-slate-400"}>
-                              {sett.sfx_enabled !== false ? 'SFX bật' : 'SFX tắt'}
+                              {sett.sfx_enabled !== false ? 'SFX On' : 'SFX Off'}
                             </span>
                           </div>
                         </div>
 
-                        {/* 2. Hiển thị & Căn lề */}
-                        <div className="p-2.5 rounded-xl bg-amber-50/50 border border-amber-100/80 space-y-1">
+                        {/* 2. Display & Alignment */}
+                        <div className="p-2.5 rounded-2xl bg-amber-50/60 border border-amber-100/80 flex flex-col justify-between">
                           <span className="text-[9px] font-black text-amber-700 uppercase tracking-wider flex items-center gap-1">
-                            <Layers className="w-3 h-3 text-amber-600" /> 2. Hiển thị & Căn lề
+                            <Layers className="w-2.5 h-2.5 text-amber-600 shrink-0" /> Display & Align
                           </span>
-                          <div className="text-[10.5px] font-black text-slate-800 truncate flex items-center gap-1.5">
+                          <div className="text-[11px] font-black text-slate-800 truncate flex items-center gap-1.5 mt-1">
                             <span>FSRS:</span>
                             <span className={cn(
-                              "font-black px-1.5 py-0.5 rounded text-[8.5px]",
-                              sett.show_fsrs !== false ? "text-emerald-700 bg-emerald-100 border border-emerald-200/60" : "text-slate-400 bg-slate-100 border border-slate-200/60"
+                              "font-black px-1.5 py-0.2 rounded text-[8.5px]",
+                              sett.show_fsrs !== false ? "text-emerald-700 bg-emerald-100/80 border border-emerald-200/60" : "text-slate-400 bg-slate-100 border border-slate-200/60"
                             )}>
-                              {sett.show_fsrs !== false ? 'Hiện trên thẻ' : 'Ẩn chỉ số'}
+                              {sett.show_fsrs !== false ? 'Visible' : 'Hidden'}
                             </span>
                           </div>
-                          <div className="text-[9px] text-slate-600 font-bold truncate">
-                            T: {sett.front_valign === 'top' ? 'Trên' : 'Giữa'}/{sett.front_halign === 'center' ? 'Giữa' : 'Trái'}
+                          <div className="text-[9px] text-slate-500 font-bold truncate mt-0.5">
+                            F: {sett.front_valign === 'top' ? 'Top' : 'Center'}/{sett.front_halign === 'center' ? 'Center' : 'Left'}
                             {' • '}
-                            S: {sett.back_valign === 'top' ? 'Trên' : 'Giữa'}/{sett.back_halign === 'center' ? 'Giữa' : 'Trái'}
+                            B: {sett.back_valign === 'top' ? 'Top' : 'Center'}/{sett.back_halign === 'center' ? 'Center' : 'Left'}
                           </div>
                         </div>
 
-                        {/* 3. Âm thanh & Hình ảnh (Media) */}
-                        <div className="p-2.5 rounded-xl bg-emerald-50/50 border border-emerald-100/80 space-y-1">
+                        {/* 3. Media & Audio */}
+                        <div className="p-2.5 rounded-2xl bg-emerald-50/60 border border-emerald-100/80 flex flex-col justify-between">
                           <span className="text-[9px] font-black text-emerald-700 uppercase tracking-wider flex items-center gap-1">
-                            <Volume2 className="w-3 h-3 text-emerald-600" /> 3. Media (Âm thanh & Ảnh)
+                            <Volume2 className="w-2.5 h-2.5 text-emerald-600 shrink-0" /> Media & Audio
                           </span>
-                          <div className="text-[10.5px] font-black text-slate-800 truncate">
-                            TTS: {sett.autoplay_audio === 'always' ? 'Luôn phát' : (sett.autoplay_audio === 'none' ? 'Tắt phát' : (sett.autoplay_audio === 'front' ? 'Mặt trước' : (sett.autoplay_audio === 'back' ? 'Mặt sau' : sett.autoplay_audio)))}
+                          <div className="text-[11px] font-black text-slate-800 truncate mt-1">
+                            TTS: {sett.autoplay_audio === 'always' ? 'Always' : (sett.autoplay_audio === 'none' ? 'Off' : (sett.autoplay_audio === 'front' ? 'Front Only' : (sett.autoplay_audio === 'back' ? 'Back Only' : sett.autoplay_audio)))}
                           </div>
-                          <div className="text-[9px] text-slate-600 font-bold truncate">
-                            Ảnh: {sett.show_images === 'none' ? 'Tắt hình' : ((sett.show_images === 'back_only' || sett.show_images === 'back') ? 'Chỉ mặt sau' : (sett.show_images === 'front' ? 'Chỉ mặt trước' : 'Cả 2 mặt'))}
+                          <div className="text-[9px] text-slate-500 font-bold truncate mt-0.5">
+                            Images: {sett.show_images === 'none' ? 'Hidden' : ((sett.show_images === 'back_only' || sett.show_images === 'back') ? 'Back Only' : (sett.show_images === 'front' ? 'Front Only' : 'Both Sides'))}
                           </div>
                         </div>
 
-                        {/* 4. Thuật toán mặc định */}
-                        <div className="p-2.5 rounded-xl bg-indigo-50/50 border border-indigo-100/80 space-y-1">
+                        {/* 4. Default Algorithm */}
+                        <div className="p-2.5 rounded-2xl bg-indigo-50/60 border border-indigo-100/80 flex flex-col justify-between">
                           <span className="text-[9px] font-black text-indigo-700 uppercase tracking-wider flex items-center gap-1">
-                            <Brain className="w-3 h-3 text-indigo-600" /> 4. Thuật toán mặc định
+                            <Brain className="w-2.5 h-2.5 text-indigo-600 shrink-0" /> Algorithm
                           </span>
-                          <div className="text-[10.5px] font-black text-slate-800 truncate">
-                            {sett.quiz_learning_mode === 'fsrs' ? 'FSRS v6' : (sett.quiz_learning_mode === 'random' ? 'Ngẫu nhiên' : (sett.quiz_learning_mode === 'unseen' ? 'Chưa học' : (sett.quiz_learning_mode === 'review' ? 'Ôn tập' : 'Tuần tự')))}
+                          <div className="text-[11px] font-black text-slate-800 truncate mt-1">
+                            {sett.quiz_learning_mode === 'fsrs' ? 'FSRS v6' : (sett.quiz_learning_mode === 'random' ? 'Random' : (sett.quiz_learning_mode === 'unseen' ? 'New Cards' : (sett.quiz_learning_mode === 'review' ? 'Reviews' : 'Sequential')))}
                           </div>
-                          <div className="text-[9px] text-slate-600 font-bold truncate">
-                            {sett.random_enabled ? 'Xáo trộn ngẫu nhiên' : 'Thứ tự chuẩn'}
+                          <div className="text-[9px] text-slate-500 font-bold truncate mt-0.5">
+                            {sett.random_enabled ? 'Random Shuffle' : 'Standard Order'}
                           </div>
                         </div>
                       </div>
@@ -885,10 +885,10 @@ export const Settings = () => {
                         type="button"
                         onClick={() => handleClonePreset(preset)}
                         className="px-3 py-1.5 rounded-xl bg-slate-50 hover:bg-slate-100 text-slate-600 font-black text-[11px] uppercase transition-all flex items-center gap-1.5 cursor-pointer"
-                        title="Tạo bản sao từ preset này để tùy chỉnh theo ý bạn"
+                        title="Create a custom copy of this preset to customize"
                       >
                         <Copy className="w-3 h-3 text-slate-500" />
-                        <span>Nhân bản</span>
+                        <span>Clone</span>
                       </button>
 
                       {isDefaultActive ? (
@@ -896,7 +896,7 @@ export const Settings = () => {
                           disabled
                           className="px-3.5 py-1.5 rounded-xl bg-emerald-100 text-emerald-800 font-black text-[11px] uppercase cursor-default flex items-center gap-1.5"
                         >
-                          <Check className="w-3.5 h-3.5" /> Đang áp dụng toàn cục
+                          <Check className="w-3.5 h-3.5" /> Active Globally
                         </button>
                       ) : (
                         <button
@@ -905,7 +905,7 @@ export const Settings = () => {
                           className="px-3.5 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-black text-[11px] uppercase transition-all flex items-center gap-1.5 cursor-pointer shadow-xs shadow-indigo-600/20 active:scale-95"
                         >
                           <BookmarkCheck className="w-3.5 h-3.5" />
-                          <span>Đặt làm Mặc định</span>
+                          <span>Apply Globally</span>
                         </button>
                       )}
                     </div>
@@ -922,10 +922,10 @@ export const Settings = () => {
             <div className="flex items-center justify-between px-1">
               <div>
                 <h3 className="text-xs font-black text-slate-900 uppercase tracking-wider">
-                  Template Cá Nhân Của Bạn (My Templates)
+                  My Templates
                 </h3>
                 <p className="text-[10px] text-slate-400 font-medium">
-                  Các mẫu template do bạn tự thiết lập hoặc nhân bản từ presets
+                  Custom templates created by you or cloned from system presets
                 </p>
               </div>
               <button
@@ -940,7 +940,7 @@ export const Settings = () => {
                 }}
                 className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xs uppercase transition-all cursor-pointer shadow-xs shadow-indigo-600/20"
               >
-                <Plus className="w-3.5 h-3.5" /> Tạo Template Mới
+                <Plus className="w-3.5 h-3.5" /> Create Template
               </button>
             </div>
 
@@ -950,10 +950,10 @@ export const Settings = () => {
                   <Sparkles className="w-6 h-6" />
                 </div>
                 <h4 className="text-sm font-black text-slate-800 uppercase tracking-wide">
-                  Chưa có Template cá nhân nào
+                  No Custom Templates Yet
                 </h4>
                 <p className="text-xs text-slate-500 font-medium max-w-md mx-auto leading-relaxed">
-                  Bạn có thể tạo template mới hoặc nhân bản từ bất kỳ Preset hệ thống nào để đóng gói trọn bộ Cử chỉ, Thuật toán, Căn lề & Âm thanh mang tên bạn.
+                  Create a new template or clone any system preset to package your custom gestures, algorithms, alignment, and audio preferences.
                 </p>
                 <div className="pt-2 flex items-center justify-center gap-3">
                   <button
@@ -968,14 +968,14 @@ export const Settings = () => {
                     }}
                     className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xs uppercase transition-all flex items-center gap-1.5 shadow-xs cursor-pointer"
                   >
-                    <Plus className="w-3.5 h-3.5" /> Tạo Template Mới
+                    <Plus className="w-3.5 h-3.5" /> Create New Template
                   </button>
                   <button
                     type="button"
                     onClick={() => setTemplateTab('system')}
                     className="px-4 py-2 rounded-xl bg-white border border-slate-200 text-slate-700 font-black text-xs uppercase transition-all hover:bg-slate-50 cursor-pointer"
                   >
-                    Xem 4 Presets Hệ Thống
+                    View System Presets (4)
                   </button>
                 </div>
               </div>
@@ -1012,83 +1012,83 @@ export const Settings = () => {
                                   {prof.name}
                                 </h4>
                                 <span className="text-[9px] font-black px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 uppercase">
-                                  Cá nhân
+                                  Custom
                                 </span>
                               </div>
-                              <span className="text-[9px] font-bold text-slate-400 uppercase">Template người dùng</span>
+                              <span className="text-[9px] font-bold text-slate-400 uppercase">User Template</span>
                             </div>
                           </div>
 
                           {isDefaultActive && (
                             <span className="inline-flex items-center gap-1 text-[10px] font-black text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-full shrink-0">
-                              <Check className="w-3.5 h-3.5" /> Đang dùng
+                              <Check className="w-3.5 h-3.5" /> Active
                             </span>
                           )}
                         </div>
 
-                        {/* 4 Phân đoạn chuẩn: Cử chỉ & SFX | Hiển thị & Căn lề | Âm thanh & Ảnh Media | Thuật toán */}
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 pt-1">
-                          {/* 1. Cử chỉ & Hiệu ứng */}
-                          <div className="p-2.5 rounded-xl bg-purple-50/50 border border-purple-100/80 space-y-1">
+                        {/* 4 Compact Tiles (2x2 Grid) */}
+                        <div className="grid grid-cols-2 gap-2 pt-1">
+                          {/* 1. Gestures & SFX */}
+                          <div className="p-2.5 rounded-2xl bg-purple-50/60 border border-purple-100/80 flex flex-col justify-between">
                             <span className="text-[9px] font-black text-purple-700 uppercase tracking-wider flex items-center gap-1">
-                              <Move className="w-3 h-3 text-purple-600" /> 1. Cử chỉ & Hiệu ứng
+                              <Move className="w-2.5 h-2.5 text-purple-600 shrink-0" /> Gestures & SFX
                             </span>
-                            <div className="text-[10.5px] font-black text-slate-800 truncate">
-                              {sett.card_flip_trigger === 'both' ? 'Chạm & Vuốt' : (sett.card_flip_trigger === 'tap' ? 'Chạm thân thẻ' : 'Chỉ bấm nút')}
+                            <div className="text-[11px] font-black text-slate-800 truncate mt-1">
+                              {sett.card_flip_trigger === 'both' ? 'Tap & Swipe' : (sett.card_flip_trigger === 'tap' ? 'Tap Body' : 'Button Only')}
                             </div>
-                            <div className="text-[9px] text-slate-600 font-bold truncate">
-                              {sett.card_rating_mode === 'both' ? 'Vuốt & 4 nút' : (sett.card_rating_mode === 'swipe_4way' ? 'Vuốt 4 hướng' : (sett.card_rating_mode === 'swipe_2way' ? 'Vuốt 2 chiều' : '4 Nút bấm'))}
+                            <div className="text-[9px] text-slate-500 font-bold truncate mt-0.5">
+                              {sett.card_rating_mode === 'both' ? 'Swipe & 4 Buttons' : (sett.card_rating_mode === 'swipe_4way' ? '4-Way Swipe' : (sett.card_rating_mode === 'swipe_2way' ? '2-Way Swipe' : '4 Buttons'))}
                               {' • '}
                               <span className={sett.sfx_enabled !== false ? "text-purple-700 font-black" : "text-slate-400"}>
-                                {sett.sfx_enabled !== false ? 'SFX bật' : 'SFX tắt'}
+                                {sett.sfx_enabled !== false ? 'SFX On' : 'SFX Off'}
                               </span>
                             </div>
                           </div>
 
-                          {/* 2. Hiển thị & Căn lề */}
-                          <div className="p-2.5 rounded-xl bg-amber-50/50 border border-amber-100/80 space-y-1">
+                          {/* 2. Display & Alignment */}
+                          <div className="p-2.5 rounded-2xl bg-amber-50/60 border border-amber-100/80 flex flex-col justify-between">
                             <span className="text-[9px] font-black text-amber-700 uppercase tracking-wider flex items-center gap-1">
-                              <Layers className="w-3 h-3 text-amber-600" /> 2. Hiển thị & Căn lề
+                              <Layers className="w-2.5 h-2.5 text-amber-600 shrink-0" /> Display & Align
                             </span>
-                            <div className="text-[10.5px] font-black text-slate-800 truncate flex items-center gap-1.5">
+                            <div className="text-[11px] font-black text-slate-800 truncate flex items-center gap-1.5 mt-1">
                               <span>FSRS:</span>
                               <span className={cn(
-                                "font-black px-1.5 py-0.5 rounded text-[8.5px]",
-                                sett.show_fsrs !== false ? "text-emerald-700 bg-emerald-100 border border-emerald-200/60" : "text-slate-400 bg-slate-100 border border-slate-200/60"
+                                "font-black px-1.5 py-0.2 rounded text-[8.5px]",
+                                sett.show_fsrs !== false ? "text-emerald-700 bg-emerald-100/80 border border-emerald-200/60" : "text-slate-400 bg-slate-100 border border-slate-200/60"
                               )}>
-                                {sett.show_fsrs !== false ? 'Hiện trên thẻ' : 'Ẩn chỉ số'}
+                                {sett.show_fsrs !== false ? 'Visible' : 'Hidden'}
                               </span>
                             </div>
-                            <div className="text-[9px] text-slate-600 font-bold truncate">
-                              T: {sett.front_valign === 'top' ? 'Trên' : 'Giữa'}/{sett.front_halign === 'center' ? 'Giữa' : 'Trái'}
+                            <div className="text-[9px] text-slate-500 font-bold truncate mt-0.5">
+                              F: {sett.front_valign === 'top' ? 'Top' : 'Center'}/{sett.front_halign === 'center' ? 'Center' : 'Left'}
                               {' • '}
-                              S: {sett.back_valign === 'top' ? 'Trên' : 'Giữa'}/{sett.back_halign === 'center' ? 'Giữa' : 'Trái'}
+                              B: {sett.back_valign === 'top' ? 'Top' : 'Center'}/{sett.back_halign === 'center' ? 'Center' : 'Left'}
                             </div>
                           </div>
 
-                          {/* 3. Âm thanh & Hình ảnh (Media) */}
-                          <div className="p-2.5 rounded-xl bg-emerald-50/50 border border-emerald-100/80 space-y-1">
+                          {/* 3. Media & Audio */}
+                          <div className="p-2.5 rounded-2xl bg-emerald-50/60 border border-emerald-100/80 flex flex-col justify-between">
                             <span className="text-[9px] font-black text-emerald-700 uppercase tracking-wider flex items-center gap-1">
-                              <Volume2 className="w-3 h-3 text-emerald-600" /> 3. Media (Âm thanh & Ảnh)
+                              <Volume2 className="w-2.5 h-2.5 text-emerald-600 shrink-0" /> Media & Audio
                             </span>
-                            <div className="text-[10.5px] font-black text-slate-800 truncate">
-                              TTS: {sett.autoplay_audio === 'always' ? 'Luôn phát' : (sett.autoplay_audio === 'none' ? 'Tắt phát' : (sett.autoplay_audio === 'front' ? 'Mặt trước' : (sett.autoplay_audio === 'back' ? 'Mặt sau' : sett.autoplay_audio)))}
+                            <div className="text-[11px] font-black text-slate-800 truncate mt-1">
+                              TTS: {sett.autoplay_audio === 'always' ? 'Always' : (sett.autoplay_audio === 'none' ? 'Off' : (sett.autoplay_audio === 'front' ? 'Front Only' : (sett.autoplay_audio === 'back' ? 'Back Only' : sett.autoplay_audio)))}
                             </div>
-                            <div className="text-[9px] text-slate-600 font-bold truncate">
-                              Ảnh: {sett.show_images === 'none' ? 'Tắt hình' : ((sett.show_images === 'back_only' || sett.show_images === 'back') ? 'Chỉ mặt sau' : (sett.show_images === 'front' ? 'Chỉ mặt trước' : 'Cả 2 mặt'))}
+                            <div className="text-[9px] text-slate-500 font-bold truncate mt-0.5">
+                              Images: {sett.show_images === 'none' ? 'Hidden' : ((sett.show_images === 'back_only' || sett.show_images === 'back') ? 'Back Only' : (sett.show_images === 'front' ? 'Front Only' : 'Both Sides'))}
                             </div>
                           </div>
 
-                          {/* 4. Thuật toán mặc định */}
-                          <div className="p-2.5 rounded-xl bg-indigo-50/50 border border-indigo-100/80 space-y-1">
+                          {/* 4. Default Algorithm */}
+                          <div className="p-2.5 rounded-2xl bg-indigo-50/60 border border-indigo-100/80 flex flex-col justify-between">
                             <span className="text-[9px] font-black text-indigo-700 uppercase tracking-wider flex items-center gap-1">
-                              <Brain className="w-3 h-3 text-indigo-600" /> 4. Thuật toán mặc định
+                              <Brain className="w-2.5 h-2.5 text-indigo-600 shrink-0" /> Algorithm
                             </span>
-                            <div className="text-[10.5px] font-black text-slate-800 truncate">
-                              {sett.quiz_learning_mode === 'fsrs' ? 'FSRS v6' : (sett.quiz_learning_mode === 'random' ? 'Ngẫu nhiên' : (sett.quiz_learning_mode === 'unseen' ? 'Chưa học' : (sett.quiz_learning_mode === 'review' ? 'Ôn tập' : 'Tuần tự')))}
+                            <div className="text-[11px] font-black text-slate-800 truncate mt-1">
+                              {sett.quiz_learning_mode === 'fsrs' ? 'FSRS v6' : (sett.quiz_learning_mode === 'random' ? 'Random' : (sett.quiz_learning_mode === 'unseen' ? 'New Cards' : (sett.quiz_learning_mode === 'review' ? 'Reviews' : 'Sequential')))}
                             </div>
-                            <div className="text-[9px] text-slate-600 font-bold truncate">
-                              {sett.random_enabled ? 'Xáo trộn ngẫu nhiên' : 'Thứ tự chuẩn'}
+                            <div className="text-[9px] text-slate-500 font-bold truncate mt-0.5">
+                              {sett.random_enabled ? 'Random Shuffle' : 'Standard Order'}
                             </div>
                           </div>
                         </div>
@@ -1102,18 +1102,18 @@ export const Settings = () => {
                             onClick={() => handleEditCustomProfile(prof)}
                             className="px-2.5 py-1.5 rounded-xl text-indigo-600 hover:bg-indigo-50 font-black text-[11px] uppercase transition-all flex items-center gap-1 cursor-pointer"
                           >
-                            <Edit3 className="w-3 h-3" /> Sửa
+                            <Edit3 className="w-3 h-3" /> Edit
                           </button>
                           <button
                             type="button"
                             onClick={() => {
-                              if (confirm(`Bạn có chắc muốn xoá template "${prof.name}"?`)) {
+                              if (confirm(`Are you sure you want to delete template "${prof.name}"?`)) {
                                 handleDeleteProfile(prof.id)
                               }
                             }}
                             className="px-2.5 py-1.5 rounded-xl text-rose-500 hover:bg-rose-50 font-black text-[11px] uppercase transition-all flex items-center gap-1 cursor-pointer"
                           >
-                            <Trash2 className="w-3 h-3" /> Xóa
+                            <Trash2 className="w-3 h-3" /> Delete
                           </button>
                         </div>
 
@@ -1122,7 +1122,7 @@ export const Settings = () => {
                             disabled
                             className="px-3.5 py-1.5 rounded-xl bg-emerald-100 text-emerald-800 font-black text-[11px] uppercase cursor-default flex items-center gap-1.5"
                           >
-                            <Check className="w-3.5 h-3.5" /> Đang áp dụng toàn cục
+                            <Check className="w-3.5 h-3.5" /> Active Globally
                           </button>
                         ) : (
                           <button
@@ -1131,7 +1131,7 @@ export const Settings = () => {
                             className="px-3.5 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-black text-[11px] uppercase transition-all flex items-center gap-1.5 cursor-pointer shadow-xs shadow-amber-500/20 active:scale-95"
                           >
                             <BookmarkCheck className="w-3.5 h-3.5" />
-                            <span>Đặt làm Mặc định</span>
+                            <span>Set as Default</span>
                           </button>
                         )}
                       </div>
@@ -1151,14 +1151,14 @@ export const Settings = () => {
                 <div className="flex items-center gap-2">
                   <Sliders className="w-4 h-4 text-indigo-600" />
                   <h4 className="text-xs sm:text-sm font-black text-indigo-950 uppercase tracking-tight">
-                    Cấu Hình Template Đang Dùng
+                    Active Template Configuration
                   </h4>
                   <span className="px-2 py-0.5 rounded-full bg-indigo-600 text-white font-black text-[10px] uppercase">
-                    {activeProfileObj?.name || 'Tiêu chuẩn'}
+                    {activeProfileObj?.name || 'Standard'}
                   </span>
                 </div>
                 <p className="text-[11px] text-indigo-700/80 font-medium">
-                  Template bao gồm đầy đủ 4 phần: Cử chỉ, Thuật toán, Căn lề và Hiển thị âm thanh. Thay đổi sẽ cập nhật trực tiếp vào hệ thống.
+                  This template includes Gestures, Display & Alignment, Media (Audio & Images), and Algorithm. Changes apply directly to your active configuration.
                 </p>
               </div>
 
@@ -1166,7 +1166,7 @@ export const Settings = () => {
                 type="button"
                 onClick={() => {
                   setEditingProfileId(null)
-                  setNewProfileName(`${activeProfileObj?.name || 'Mẫu'} (Tùy chỉnh)`)
+                  setNewProfileName(`${activeProfileObj?.name || 'Template'} (Custom)`)
                   setNewProfileIcon(activeProfileObj?.icon || 'sparkles')
                   loadBaseSettings('current')
                   setModalTab('gestures')
@@ -1175,7 +1175,7 @@ export const Settings = () => {
                 className="px-3.5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-black uppercase rounded-xl shadow-xs shrink-0 cursor-pointer flex items-center gap-1.5 self-start sm:self-auto active:scale-95 transition-all"
               >
                 <Plus className="w-3.5 h-3.5" />
-                <span>Lưu thành Template mới</span>
+                <span>Save as New Template</span>
               </button>
             </div>
 
@@ -1183,10 +1183,10 @@ export const Settings = () => {
             <div className="bg-slate-100/90 p-1 rounded-2xl border border-slate-200/80 shadow-2xs">
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-1">
                 {[
-                  { id: 'gestures', label: '1. Cử Chỉ & Hiệu Ứng', icon: Move, desc: 'Lật thẻ, Vuốt & SFX' },
-                  { id: 'display', label: '2. Hiển Thị & Căn Lề', icon: Layers, desc: 'Chỉ số FSRS & Căn lề' },
-                  { id: 'media', label: '3. Âm Thanh & Hình Ảnh', icon: Volume2, desc: 'TTS & Ảnh minh họa' },
-                  { id: 'algorithm', label: '4. Thuật Toán Mặc Định', icon: Brain, desc: 'FSRS v6 & Xáo trộn' }
+                  { id: 'gestures', label: '1. Gestures & SFX', icon: Move, desc: 'Flip trigger, swipe & SFX' },
+                  { id: 'display', label: '2. Display & Align', icon: Layers, desc: 'FSRS metrics & alignment' },
+                  { id: 'media', label: '3. Media & Audio', icon: Volume2, desc: 'TTS voice & illustrations' },
+                  { id: 'algorithm', label: '4. Default Algorithm', icon: Brain, desc: 'FSRS v6 & card order' }
                 ].map((t) => {
                   const Icon = t.icon
                   const isCur = activeTunerTab === t.id
@@ -1210,7 +1210,7 @@ export const Settings = () => {
               </div>
             </div>
 
-            {/* Phân đoạn 1: Cử Chỉ & Hiệu Ứng (Vuốt chạm & SFX) */}
+            {/* Facet 1: Gestures & SFX */}
             {activeTunerTab === 'gestures' && (
               <section className="bg-white rounded-3xl border border-slate-100 p-4 sm:p-6 shadow-2xs space-y-4 animate-in fade-in duration-150">
                 <div className="flex items-center gap-2.5 border-b border-slate-100 pb-3">
@@ -1219,10 +1219,10 @@ export const Settings = () => {
                   </div>
                   <div>
                     <h3 className="text-xs font-black text-slate-900 uppercase tracking-widest italic">
-                      1. Cử Chỉ & Hiệu Ứng Thao Tác (Gestures & Feedback)
+                      1. Gestures & Interaction Feedback
                     </h3>
                     <p className="text-[10px] font-medium text-slate-400">
-                      Cách lật mặt thẻ, vuốt các hướng chấm điểm FSRS và hiệu ứng âm thanh, rung phản hồi
+                      Configure card flip triggers, directional FSRS swipe ratings, sound effects, and haptic feedback
                     </p>
                   </div>
                 </div>
@@ -1232,14 +1232,14 @@ export const Settings = () => {
                   <div className="flex items-center gap-2">
                     <MousePointer className="w-3.5 h-3.5 text-indigo-500" />
                     <h4 className="text-[11px] font-black text-slate-700 uppercase tracking-wider">
-                      Cách Lật Thẻ (Flip Trigger)
+                      Card Flip Trigger
                     </h4>
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-2.5">
                     {[
-                      { id: 'both', title: 'Chạm & Vuốt (Hybrid)', desc: 'Chạm thân thẻ hoặc hất nhẹ để lật giữa 2 mặt.', icon: Sparkles },
-                      { id: 'tap', title: 'Chạm Thân Thẻ', desc: 'Chạm vào bất cứ vị trí nào trên thẻ để lật ngay lập tức.', icon: MousePointer },
-                      { id: 'button_only', title: 'Chỉ Bấm Nút Dưới', desc: 'Lật nghiêm ngặt bằng nút (tránh lật nhầm khi chọn chữ).', icon: Lock }
+                      { id: 'both', title: 'Hybrid (Tap & Swipe)', desc: 'Tap anywhere on the card or swipe lightly to flip.', icon: Sparkles },
+                      { id: 'tap', title: 'Tap Card Body', desc: 'Tap anywhere on the card body to flip immediately.', icon: MousePointer },
+                      { id: 'button_only', title: 'Button Only', desc: 'Strict button-only flipping (prevents accidental flips when selecting text).', icon: Lock }
                     ].map((opt) => {
                       const isSelected = (userSettings.card_flip_trigger || 'both') === opt.id
                       return (
@@ -1267,15 +1267,15 @@ export const Settings = () => {
                   <div className="flex items-center gap-2">
                     <Compass className="w-3.5 h-3.5 text-purple-500" />
                     <h4 className="text-[11px] font-black text-slate-700 uppercase tracking-wider">
-                      Đánh Giá Kết Quả FSRS (Rating Mode)
+                      FSRS Rating Mode
                     </h4>
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5">
                     {[
-                      { id: 'both', title: 'Hỗn Hợp (Vuốt & Nút)', badge: 'Khuyên dùng', desc: 'Vừa vuốt thẻ 4 hướng VỪA bấm 4 nút bên dưới.' },
-                      { id: 'swipe_4way', title: 'Vuốt La Bàn 4 Hướng', badge: 'Gamified', desc: 'Vuốt Trái (Again), Dưới (Hard), Phải (Good), Lên (Easy).' },
-                      { id: 'swipe_2way', title: 'Vuốt Nhanh 2 Chiều', badge: 'Tốc độ', desc: 'Vuốt Trái (Again) & Phải (Good). Có nút phụ cho Hard/Easy.' },
-                      { id: 'buttons', title: 'Chỉ 4 Nút Bấm', badge: 'Cổ điển', desc: 'Chuẩn 4 nút kiểu Anki truyền thống. Tắt cử chỉ vuốt.' }
+                      { id: 'both', title: 'Hybrid (Swipe & Buttons)', badge: 'Recommended', desc: 'Both 4-directional swipe gestures AND 4 bottom rating buttons.' },
+                      { id: 'swipe_4way', title: '4-Way Swipe Compass', badge: 'Gamified', desc: 'Swipe Left (Again), Down (Hard), Right (Good), Up (Easy).' },
+                      { id: 'swipe_2way', title: '2-Way Fast Swipe', badge: 'Speed', desc: 'Swipe Left (Again) & Right (Good). Secondary buttons for Hard/Easy.' },
+                      { id: 'buttons', title: '4 Buttons Only', badge: 'Classic', desc: 'Traditional Anki-style 4 buttons. Swipe gestures disabled.' }
                     ].map((opt) => {
                       const isSelected = (userSettings.card_rating_mode || 'both') === opt.id
                       return (
@@ -1307,15 +1307,15 @@ export const Settings = () => {
                 <div className="space-y-1.5 pt-2 border-t border-slate-100">
                   <SettingItem 
                     icon={Volume2} 
-                    label="Hiệu Ứng Âm Thanh (SFX)" 
-                    desc="Phát âm thanh phản hồi khi lật thẻ và đánh giá kết quả" 
+                    label="Sound Effects (SFX)" 
+                    desc="Play audio feedback when flipping cards and rating review outcomes" 
                     active={userSettings.sfx_enabled ?? true} 
                     onClick={() => updateUserSettings({ sfx_enabled: !(userSettings.sfx_enabled ?? true) })}
                   />
                   <SettingItem 
                     icon={Zap} 
-                    label="Rung Phản Hồi (Haptic Feedback)" 
-                    desc="Rung nhẹ khi vuốt và chạm nút trên điện thoại" 
+                    label="Haptic Feedback" 
+                    desc="Subtle tactile vibration feedback on mobile touch devices during gestures and taps" 
                     active={userSettings.haptic_enabled ?? true} 
                     onClick={() => updateUserSettings({ haptic_enabled: !(userSettings.haptic_enabled ?? true) })}
                   />
@@ -1323,7 +1323,7 @@ export const Settings = () => {
               </section>
             )}
 
-            {/* Phân đoạn 2: Hiển Thị & Căn Lề (Thông số FSRS & Căn lề) */}
+            {/* Facet 2: Display & Alignment */}
             {activeTunerTab === 'display' && (
               <section className="bg-white rounded-3xl border border-slate-100 p-4 sm:p-6 shadow-2xs space-y-4 animate-in fade-in duration-150">
                 <div className="flex items-center gap-2.5 border-b border-slate-100 pb-3">
@@ -1332,10 +1332,10 @@ export const Settings = () => {
                   </div>
                   <div>
                     <h3 className="text-xs font-black text-slate-900 uppercase tracking-widest italic">
-                      2. Hiển Thị & Căn Lề Thẻ (Display & Alignment)
+                      2. Card Display & Alignment
                     </h3>
                     <p className="text-[10px] font-medium text-slate-400">
-                      Tùy chọn hiển thị thông số thuật toán FSRS và vị trí căn lề các mặt thẻ flashcard
+                      Toggle FSRS algorithm metrics and configure content alignment for front and back cards
                     </p>
                   </div>
                 </div>
@@ -1344,13 +1344,13 @@ export const Settings = () => {
                 <div className="p-3.5 bg-slate-50/70 rounded-2xl border border-slate-100 space-y-2">
                   <div className="flex items-center justify-between">
                     <span className="text-[10.5px] font-black text-slate-700 uppercase tracking-wider flex items-center gap-1.5">
-                      <Brain className="w-3.5 h-3.5 text-indigo-500" /> Chỉ Số & Thông Số FSRS v6 (FSRS Metrics)
+                      <Brain className="w-3.5 h-3.5 text-indigo-500" /> FSRS v6 Algorithm Metrics
                     </span>
                     <span className={cn(
                       "text-[9.5px] font-black px-2 py-0.5 rounded-full",
                       (userSettings.show_fsrs ?? true) ? "text-emerald-700 bg-emerald-100" : "text-slate-500 bg-slate-200"
                     )}>
-                      {(userSettings.show_fsrs ?? true) ? 'Đang bật' : 'Đang tắt'}
+                      {(userSettings.show_fsrs ?? true) ? 'Visible' : 'Hidden'}
                     </span>
                   </div>
 
@@ -1358,13 +1358,13 @@ export const Settings = () => {
                     {[
                       { 
                         id: true, 
-                        label: 'Bật Hiển Thị Chỉ Số FSRS', 
-                        desc: 'Hiển thị độ ổn định (Stability - S), độ khó (Difficulty - D) và khoảng thời gian ôn tập tiếp theo trên mặt thẻ.' 
+                        label: 'Show FSRS Metrics', 
+                        desc: 'Display stability (S), difficulty (D), and next review intervals directly on cards.' 
                       },
                       { 
                         id: false, 
-                        label: 'Ẩn Thông Số FSRS (Gọn gàng)', 
-                        desc: 'Ẩn toàn bộ các chỉ số thuật toán, giữ cho giao diện học sạch sẽ và tối giản nhất.' 
+                        label: 'Hide FSRS Metrics (Clean)', 
+                        desc: 'Hide all algorithm numbers for a completely clean, distraction-free study card.' 
                       }
                     ].map(opt => {
                       const isCur = (userSettings.show_fsrs ?? true) === opt.id
@@ -1392,16 +1392,16 @@ export const Settings = () => {
                 {/* Alignment */}
                 <div className="space-y-2">
                   <span className="text-[11px] font-black text-slate-700 uppercase tracking-wider block">
-                    Căn Lề Vị Trí Thẻ (Alignment)
+                    Card Content Alignment
                   </span>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                     <div className="p-3.5 bg-slate-50/70 rounded-2xl border border-slate-100 space-y-2">
                       <span className="text-[10.5px] font-black text-slate-700 uppercase tracking-wider block">
-                        Mặt Trước (Front Card)
+                        Front Card
                       </span>
                       <div className="grid grid-cols-2 gap-2">
                         <div>
-                          <span className="text-[9.5px] font-bold text-slate-400 block mb-1">Dọc:</span>
+                          <span className="text-[9.5px] font-bold text-slate-400 block mb-1">Vertical:</span>
                           <div className="grid grid-cols-2 gap-1 bg-white p-1 rounded-xl border border-slate-200/60">
                             {(['center', 'top'] as const).map(mode => (
                               <button
@@ -1419,7 +1419,7 @@ export const Settings = () => {
                           </div>
                         </div>
                         <div>
-                          <span className="text-[9.5px] font-bold text-slate-400 block mb-1">Ngang:</span>
+                          <span className="text-[9.5px] font-bold text-slate-400 block mb-1">Horizontal:</span>
                           <div className="grid grid-cols-2 gap-1 bg-white p-1 rounded-xl border border-slate-200/60">
                             {(['left', 'center'] as const).map(mode => (
                               <button
@@ -1441,11 +1441,11 @@ export const Settings = () => {
 
                     <div className="p-3.5 bg-slate-50/70 rounded-2xl border border-slate-100 space-y-2">
                       <span className="text-[10.5px] font-black text-slate-700 uppercase tracking-wider block">
-                        Mặt Sau (Back Card)
+                        Back Card
                       </span>
                       <div className="grid grid-cols-2 gap-2">
                         <div>
-                          <span className="text-[9.5px] font-bold text-slate-400 block mb-1">Dọc:</span>
+                          <span className="text-[9.5px] font-bold text-slate-400 block mb-1">Vertical:</span>
                           <div className="grid grid-cols-2 gap-1 bg-white p-1 rounded-xl border border-slate-200/60">
                             {(['center', 'top'] as const).map(mode => (
                               <button
@@ -1463,7 +1463,7 @@ export const Settings = () => {
                           </div>
                         </div>
                         <div>
-                          <span className="text-[9.5px] font-bold text-slate-400 block mb-1">Ngang:</span>
+                          <span className="text-[9.5px] font-bold text-slate-400 block mb-1">Horizontal:</span>
                           <div className="grid grid-cols-2 gap-1 bg-white p-1 rounded-xl border border-slate-200/60">
                             {(['left', 'center'] as const).map(mode => (
                               <button
@@ -1487,7 +1487,7 @@ export const Settings = () => {
               </section>
             )}
 
-            {/* Phân đoạn 3: Âm Thanh & Hình Ảnh (Nội dung Media) */}
+            {/* Facet 3: Media & Audio */}
             {activeTunerTab === 'media' && (
               <section className="bg-white rounded-3xl border border-slate-100 p-4 sm:p-6 shadow-2xs space-y-4 animate-in fade-in duration-150">
                 <div className="flex items-center gap-2.5 border-b border-slate-100 pb-3">
@@ -1496,10 +1496,10 @@ export const Settings = () => {
                   </div>
                   <div>
                     <h3 className="text-xs font-black text-slate-900 uppercase tracking-widest italic">
-                      3. Âm Thanh & Hình Ảnh Thẻ (Media Content)
+                      3. Card Media Content (Audio & Images)
                     </h3>
                     <p className="text-[10px] font-medium text-slate-400">
-                      Tùy chọn tự động phát giọng đọc phát âm (TTS) và hiển thị hình ảnh minh họa của bộ thẻ
+                      Configure automatic text-to-speech pronunciation (TTS) and flashcard illustration display modes
                     </p>
                   </div>
                 </div>
@@ -1509,18 +1509,18 @@ export const Settings = () => {
                   <div className="p-3.5 bg-slate-50/70 rounded-2xl border border-slate-100 space-y-2">
                     <div className="flex items-center justify-between">
                       <span className="text-[10.5px] font-black text-slate-700 uppercase tracking-wider flex items-center gap-1.5">
-                        <Volume2 className="w-3.5 h-3.5 text-emerald-600" /> Tự Động Phát Âm Thanh (TTS / Audio Autoplay)
+                        <Volume2 className="w-3.5 h-3.5 text-emerald-600" /> Automatic Audio / TTS Autoplay
                       </span>
                       <span className="text-[9.5px] font-bold text-slate-400">
-                        {userSettings.autoplay_audio === 'always' ? 'Luôn phát' : (userSettings.autoplay_audio === 'none' ? 'Tắt phát' : (userSettings.autoplay_audio === 'front' ? 'Mặt trước' : 'Mặt sau'))}
+                        {userSettings.autoplay_audio === 'always' ? 'Always Play' : (userSettings.autoplay_audio === 'none' ? 'Off' : (userSettings.autoplay_audio === 'front' ? 'Front Only' : 'Back Only'))}
                       </span>
                     </div>
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-1 bg-white p-1 rounded-xl border border-slate-200/60">
                       {[
-                        { id: 'always', label: 'Luôn phát' },
-                        { id: 'front', label: 'Mặt trước' },
-                        { id: 'back', label: 'Mặt sau' },
-                        { id: 'none', label: 'Tắt' }
+                        { id: 'always', label: 'Always Play' },
+                        { id: 'front', label: 'Front Only' },
+                        { id: 'back', label: 'Back Only' },
+                        { id: 'none', label: 'Off' }
                       ].map(opt => (
                         <button
                           key={opt.id}
@@ -1541,17 +1541,17 @@ export const Settings = () => {
                   <div className="p-3.5 bg-slate-50/70 rounded-2xl border border-slate-100 space-y-2">
                     <div className="flex items-center justify-between">
                       <span className="text-[10.5px] font-black text-slate-700 uppercase tracking-wider flex items-center gap-1.5">
-                        <ImageIcon className="w-3.5 h-3.5 text-rose-500" /> Hiển Thị Hình Ảnh Minh Họa (Images)
+                        <ImageIcon className="w-3.5 h-3.5 text-rose-500" /> Illustration Images
                       </span>
                       <span className="text-[9.5px] font-bold text-slate-400">
-                        {userSettings.show_images === 'none' ? 'Đang tắt hình' : ((userSettings.show_images === 'back_only' || userSettings.show_images === 'back') ? 'Chỉ mặt sau' : (userSettings.show_images === 'front' ? 'Chỉ mặt trước' : 'Cả hai mặt'))}
+                        {userSettings.show_images === 'none' ? 'Hidden' : ((userSettings.show_images === 'back_only' || userSettings.show_images === 'back') ? 'Back Only' : (userSettings.show_images === 'front' ? 'Front Only' : 'Both Sides'))}
                       </span>
                     </div>
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                       {[
-                        { id: 'both', label: 'Cả 2 Mặt (Trước & Sau)', desc: 'Hiện hình ảnh minh họa ở cả 2 mặt thẻ flashcard.' },
-                        { id: 'back_only', label: 'Chỉ Mặt Sau (Ẩn mặt trước)', desc: 'Giấu ảnh ở câu hỏi để gợi nhớ, chỉ hiện khi đã lật sang đáp án.' },
-                        { id: 'none', label: 'Tắt Hình Ảnh (Tối giản)', desc: 'Không tải hình ảnh, chỉ hiển thị mặt chữ và ngữ nghĩa.' }
+                        { id: 'both', label: 'Both Sides (Front & Back)', desc: 'Show illustration images on both sides of the flashcard.' },
+                        { id: 'back_only', label: 'Back Only (Answer Side)', desc: 'Hide images on the front side to test recall; reveal only on the answer side.' },
+                        { id: 'none', label: 'Hide Images (Minimalist)', desc: 'Do not load images; display clean typography and definitions only.' }
                       ].map(opt => {
                         const isCur = (userSettings.show_images || 'both') === opt.id
                         return (
@@ -1578,7 +1578,7 @@ export const Settings = () => {
               </section>
             )}
 
-            {/* Phân đoạn 4: Thuật Toán Mặc Định */}
+            {/* Facet 4: Default Algorithm */}
             {activeTunerTab === 'algorithm' && (
               <section className="bg-white rounded-3xl border border-slate-100 p-4 sm:p-6 shadow-2xs space-y-4 animate-in fade-in duration-150">
                 <div className="flex items-center gap-2.5 border-b border-slate-100 pb-3">
@@ -1587,10 +1587,10 @@ export const Settings = () => {
                   </div>
                   <div>
                     <h3 className="text-xs font-black text-slate-900 uppercase tracking-widest italic">
-                      4. Thuật Toán & Trình Tự Học Mặc Định (Default Algorithm)
+                      4. Default Algorithm & Review Order
                     </h3>
                     <p className="text-[10px] font-medium text-slate-400">
-                      Lựa chọn cách thẻ được phân phối và sắp xếp trong các phiên học
+                      Select how flashcards are scheduled, queued, and distributed during study sessions
                     </p>
                   </div>
                 </div>
@@ -1626,8 +1626,8 @@ export const Settings = () => {
                 <div className="pt-2 border-t border-slate-100">
                   <SettingItem
                     icon={Shuffle}
-                    label="Xáo Trộn Thẻ (Random Shuffle)"
-                    desc="Xáo trộn ngẫu nhiên thứ tự các thẻ trong mỗi lần học"
+                    label="Random Shuffle Card Order"
+                    desc="Randomly shuffle the card order in each study session"
                     active={userSettings.random_enabled ?? false}
                     onClick={() => updateUserSettings({ random_enabled: !(userSettings.random_enabled ?? false) })}
                   />
@@ -1999,7 +1999,7 @@ export const Settings = () => {
               <div className="flex items-center gap-2">
                 <Sparkles className="w-5 h-5 text-indigo-600" />
                 <h3 className="text-sm font-black text-slate-900 uppercase tracking-wider">
-                  {editingProfileId ? 'Chỉnh Sửa Template Cá Nhân' : 'Tạo Template Mới'}
+                  {editingProfileId ? 'Edit Study Template' : 'Create New Template'}
                 </h3>
               </div>
               <button
@@ -2017,11 +2017,11 @@ export const Settings = () => {
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div className="sm:col-span-2 space-y-1">
                   <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                    Tên Template
+                    Template Name
                   </label>
                   <input
                     type="text"
-                    placeholder="Ví dụ: Ôn thi JLPT N2, Luyện phát âm..."
+                    placeholder="e.g. Speedrun Morning, Deep Focus..."
                     value={newProfileName}
                     onChange={(e) => setNewProfileName(e.target.value)}
                     className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-900 focus:outline-none focus:border-indigo-500 font-bold"
@@ -2064,18 +2064,18 @@ export const Settings = () => {
               {!editingProfileId && (
                 <div className="space-y-1">
                   <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                    Mẫu Cấu Hình Gốc (Baseline)
+                    Baseline Preset
                   </label>
                   <select
                     value={newProfileBase}
                     onChange={(e) => loadBaseSettings(e.target.value)}
                     className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-900 focus:outline-none focus:border-indigo-500 font-bold cursor-pointer"
                   >
-                    <option value="current">⚡ Sao chép toàn bộ Cử chỉ & Cài đặt hiện tại của bạn</option>
-                    <option value="preset-standard">Tiêu chuẩn (FSRS) - Đầy đủ 2 chiều & âm thanh</option>
-                    <option value="preset-speedrun">Tốc độ cao (Speedrun) - Vuốt nhanh 2 chiều, tắt audio</option>
-                    <option value="preset-audio">Luyện nghe (Audio-First) - Tự động phát âm thanh</option>
-                    <option value="preset-focus">Tập trung tối giản (Deep Focus) - Tắt âm thanh & FSRS</option>
+                    <option value="current">⚡ Copy from your current active settings</option>
+                    <option value="preset-minimal">Minimalist - Zero distractions, swipe-only, no media</option>
+                    <option value="preset-full">Full Experience - Dual images, autoplay TTS, FSRS & hybrid controls</option>
+                    <option value="preset-standard">Standard - Balanced recall, clean front, audio & images on back side</option>
+                    <option value="preset-classic">Classic - 4 buttons only, button flip, easy text selection</option>
                   </select>
                 </div>
               )}
@@ -2084,10 +2084,10 @@ export const Settings = () => {
               <div className="bg-slate-100 p-1 rounded-2xl border border-slate-200/80 shadow-2xs">
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-1">
                   {[
-                    { id: 'gestures', label: '1. Cử chỉ & SFX', icon: Move },
-                    { id: 'display', label: '2. Hiển thị & Căn lề', icon: Layers },
-                    { id: 'media', label: '3. Âm thanh & Ảnh', icon: Volume2 },
-                    { id: 'algorithm', label: '4. Thuật toán', icon: Brain }
+                    { id: 'gestures', label: '1. Gestures & SFX', icon: Move },
+                    { id: 'display', label: '2. Display & Align', icon: Layers },
+                    { id: 'media', label: '3. Media & Audio', icon: Volume2 },
+                    { id: 'algorithm', label: '4. Algorithm', icon: Brain }
                   ].map((t) => {
                     const Icon = t.icon
                     const isCur = modalTab === t.id
@@ -2115,17 +2115,17 @@ export const Settings = () => {
               {modalTab === 'gestures' && (
                 <div className="p-3.5 bg-purple-50/40 border border-purple-100 rounded-2xl space-y-3 animate-in fade-in duration-150">
                   <span className="text-[10px] font-black uppercase tracking-wider text-purple-700 flex items-center gap-1.5">
-                    <Move className="w-3 h-3" /> 1. Thiết lập Cử chỉ & Hiệu ứng (Gestures & SFX)
+                    <Move className="w-3 h-3" /> 1. Gestures & Feedback Setup
                   </span>
 
                   <div className="space-y-2.5">
                     <div>
-                      <span className="text-[9.5px] font-bold text-slate-500 block mb-1">Cách lật thẻ (Flip Trigger)</span>
+                      <span className="text-[9.5px] font-bold text-slate-500 block mb-1">Card Flip Trigger</span>
                       <div className="grid grid-cols-3 gap-1 bg-white p-1 rounded-xl border border-purple-100">
                         {[
-                          { id: 'both', label: 'Chạm & Vuốt' },
-                          { id: 'tap', label: 'Chạm thân thẻ' },
-                          { id: 'button_only', label: 'Chỉ nút' },
+                          { id: 'both', label: 'Tap & Swipe' },
+                          { id: 'tap', label: 'Tap Body' },
+                          { id: 'button_only', label: 'Button Only' },
                         ].map((opt) => (
                           <button
                             key={opt.id}
@@ -2145,13 +2145,13 @@ export const Settings = () => {
                     </div>
 
                     <div>
-                      <span className="text-[9.5px] font-bold text-slate-500 block mb-1">Đánh giá kết quả FSRS (Rating Mode)</span>
+                      <span className="text-[9.5px] font-bold text-slate-500 block mb-1">FSRS Rating Mode</span>
                       <div className="grid grid-cols-2 sm:grid-cols-4 gap-1 bg-white p-1 rounded-xl border border-purple-100">
                         {[
-                          { id: 'both', label: 'Hỗn hợp' },
-                          { id: 'swipe_4way', label: 'Vuốt 4 hướng' },
-                          { id: 'swipe_2way', label: 'Vuốt 2 chiều' },
-                          { id: 'buttons', label: '4 Nút' },
+                          { id: 'both', label: 'Hybrid' },
+                          { id: 'swipe_4way', label: '4-Way Swipe' },
+                          { id: 'swipe_2way', label: '2-Way Swipe' },
+                          { id: 'buttons', label: '4 Buttons' },
                         ].map((opt) => (
                           <button
                             key={opt.id}
@@ -2172,11 +2172,11 @@ export const Settings = () => {
 
                     <div className="grid grid-cols-2 gap-2 pt-1 border-t border-purple-100/60">
                       <div>
-                        <span className="text-[9.5px] font-bold text-slate-500 block mb-1">Hiệu ứng âm thanh (SFX)</span>
+                        <span className="text-[9.5px] font-bold text-slate-500 block mb-1">Sound Effects (SFX)</span>
                         <div className="grid grid-cols-2 gap-1 bg-white p-1 rounded-xl border border-purple-100">
                           {[
-                            { id: true, label: 'Bật SFX' },
-                            { id: false, label: 'Tắt SFX' },
+                            { id: true, label: 'SFX On' },
+                            { id: false, label: 'SFX Off' },
                           ].map((opt) => (
                             <button
                               key={String(opt.id)}
@@ -2196,11 +2196,11 @@ export const Settings = () => {
                       </div>
 
                       <div>
-                        <span className="text-[9.5px] font-bold text-slate-500 block mb-1">Rung phản hồi (Haptic)</span>
+                        <span className="text-[9.5px] font-bold text-slate-500 block mb-1">Haptic Feedback</span>
                         <div className="grid grid-cols-2 gap-1 bg-white p-1 rounded-xl border border-purple-100">
                           {[
-                            { id: true, label: 'Bật Rung' },
-                            { id: false, label: 'Tắt Rung' },
+                            { id: true, label: 'Haptic On' },
+                            { id: false, label: 'Haptic Off' },
                           ].map((opt) => (
                             <button
                               key={String(opt.id)}
@@ -2227,17 +2227,17 @@ export const Settings = () => {
               {modalTab === 'display' && (
                 <div className="p-3.5 bg-amber-50/40 border border-amber-100 rounded-2xl space-y-3 animate-in fade-in duration-150">
                   <span className="text-[10px] font-black uppercase tracking-wider text-amber-700 flex items-center gap-1.5">
-                    <Layers className="w-3 h-3" /> 2. Thiết lập Hiển thị & Căn lề (Display & Alignment)
+                    <Layers className="w-3 h-3" /> 2. Display & Alignment Setup
                   </span>
 
                   <div className="space-y-2.5">
                     {/* FSRS Metrics */}
                     <div>
-                      <span className="text-[9.5px] font-bold text-slate-500 block mb-1">Chỉ số thuật toán FSRS trên mặt thẻ</span>
+                      <span className="text-[9.5px] font-bold text-slate-500 block mb-1">FSRS Algorithm Metrics on Card</span>
                       <div className="grid grid-cols-2 gap-1 bg-white p-1 rounded-xl border border-amber-100">
                         {[
-                          { id: true, label: 'Hiện chỉ số FSRS' },
-                          { id: false, label: 'Ẩn chỉ số FSRS' },
+                          { id: true, label: 'Show FSRS Metrics' },
+                          { id: false, label: 'Hide FSRS Metrics' },
                         ].map((opt) => (
                           <button
                             key={String(opt.id)}
@@ -2260,10 +2260,10 @@ export const Settings = () => {
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                       {/* Front */}
                       <div className="p-2.5 bg-white rounded-xl border border-amber-100 space-y-2">
-                        <span className="text-[10px] font-black text-slate-700 uppercase block">Mặt Trước (Front)</span>
+                        <span className="text-[10px] font-black text-slate-700 uppercase block">Front Card</span>
                         <div className="grid grid-cols-2 gap-1.5">
                           <div>
-                            <span className="text-[9px] font-bold text-slate-400 block mb-0.5">Dọc:</span>
+                            <span className="text-[9px] font-bold text-slate-400 block mb-0.5">Vertical:</span>
                             <div className="grid grid-cols-2 gap-0.5 bg-slate-50 p-0.5 rounded-lg border border-slate-200/60">
                               {(['center', 'top'] as const).map(v => (
                                 <button
@@ -2275,13 +2275,13 @@ export const Settings = () => {
                                     templateSettings.front_valign === v ? "bg-amber-500 text-white shadow-2xs" : "text-slate-500"
                                   )}
                                 >
-                                  {v === 'center' ? 'Giữa' : 'Trên'}
+                                  {v === 'center' ? 'Center' : 'Top'}
                                 </button>
                               ))}
                             </div>
                           </div>
                           <div>
-                            <span className="text-[9px] font-bold text-slate-400 block mb-0.5">Ngang:</span>
+                            <span className="text-[9px] font-bold text-slate-400 block mb-0.5">Horizontal:</span>
                             <div className="grid grid-cols-2 gap-0.5 bg-slate-50 p-0.5 rounded-lg border border-slate-200/60">
                               {(['left', 'center'] as const).map(h => (
                                 <button
@@ -2293,7 +2293,7 @@ export const Settings = () => {
                                     templateSettings.front_halign === h ? "bg-amber-500 text-white shadow-2xs" : "text-slate-500"
                                   )}
                                 >
-                                  {h === 'left' ? 'Trái' : 'Giữa'}
+                                  {h === 'left' ? 'Left' : 'Center'}
                                 </button>
                               ))}
                             </div>
@@ -2303,10 +2303,10 @@ export const Settings = () => {
 
                       {/* Back */}
                       <div className="p-2.5 bg-white rounded-xl border border-amber-100 space-y-2">
-                        <span className="text-[10px] font-black text-slate-700 uppercase block">Mặt Sau (Back)</span>
+                        <span className="text-[10px] font-black text-slate-700 uppercase block">Back Card</span>
                         <div className="grid grid-cols-2 gap-1.5">
                           <div>
-                            <span className="text-[9px] font-bold text-slate-400 block mb-0.5">Dọc:</span>
+                            <span className="text-[9px] font-bold text-slate-400 block mb-0.5">Vertical:</span>
                             <div className="grid grid-cols-2 gap-0.5 bg-slate-50 p-0.5 rounded-lg border border-slate-200/60">
                               {(['center', 'top'] as const).map(v => (
                                 <button
@@ -2318,13 +2318,13 @@ export const Settings = () => {
                                     templateSettings.back_valign === v ? "bg-amber-500 text-white shadow-2xs" : "text-slate-500"
                                   )}
                                 >
-                                  {v === 'center' ? 'Giữa' : 'Trên'}
+                                  {v === 'center' ? 'Center' : 'Top'}
                                 </button>
                               ))}
                             </div>
                           </div>
                           <div>
-                            <span className="text-[9px] font-bold text-slate-400 block mb-0.5">Ngang:</span>
+                            <span className="text-[9px] font-bold text-slate-400 block mb-0.5">Horizontal:</span>
                             <div className="grid grid-cols-2 gap-0.5 bg-slate-50 p-0.5 rounded-lg border border-slate-200/60">
                               {(['left', 'center'] as const).map(h => (
                                 <button
@@ -2336,7 +2336,7 @@ export const Settings = () => {
                                     templateSettings.back_halign === h ? "bg-amber-500 text-white shadow-2xs" : "text-slate-500"
                                   )}
                                 >
-                                  {h === 'left' ? 'Trái' : 'Giữa'}
+                                  {h === 'left' ? 'Left' : 'Center'}
                                 </button>
                               ))}
                             </div>
@@ -2352,18 +2352,18 @@ export const Settings = () => {
               {modalTab === 'media' && (
                 <div className="p-3.5 bg-emerald-50/40 border border-emerald-100 rounded-2xl space-y-3 animate-in fade-in duration-150">
                   <span className="text-[10px] font-black uppercase tracking-wider text-emerald-700 flex items-center gap-1.5">
-                    <Volume2 className="w-3 h-3" /> 3. Thiết lập Âm thanh & Hình ảnh (Media Content)
+                    <Volume2 className="w-3 h-3" /> 3. Media Content Setup (Audio & Images)
                   </span>
 
                   <div className="space-y-3">
                     <div>
-                      <span className="text-[9.5px] font-bold text-slate-500 block mb-1">Tự động phát âm thanh (Audio TTS)</span>
+                      <span className="text-[9.5px] font-bold text-slate-500 block mb-1">Automatic Audio (TTS)</span>
                       <div className="grid grid-cols-4 gap-1 bg-white p-1 rounded-xl border border-emerald-100">
                         {[
-                          { id: 'always', label: 'Luôn phát' },
-                          { id: 'front', label: 'Mặt trước' },
-                          { id: 'back', label: 'Mặt sau' },
-                          { id: 'none', label: 'Tắt' },
+                          { id: 'always', label: 'Always' },
+                          { id: 'front', label: 'Front Only' },
+                          { id: 'back', label: 'Back Only' },
+                          { id: 'none', label: 'Off' },
                         ].map((opt) => (
                           <button
                             key={opt.id}
@@ -2383,12 +2383,12 @@ export const Settings = () => {
                     </div>
 
                     <div>
-                      <span className="text-[9.5px] font-bold text-slate-500 block mb-1">Hiển thị hình ảnh minh họa (Images)</span>
+                      <span className="text-[9.5px] font-bold text-slate-500 block mb-1">Illustration Images</span>
                       <div className="grid grid-cols-3 gap-1 bg-white p-1 rounded-xl border border-emerald-100">
                         {[
-                          { id: 'both', label: 'Cả 2 mặt' },
-                          { id: 'back_only', label: 'Chỉ mặt sau' },
-                          { id: 'none', label: 'Tắt hình' },
+                          { id: 'both', label: 'Both Sides' },
+                          { id: 'back_only', label: 'Back Only' },
+                          { id: 'none', label: 'Hidden' },
                         ].map((opt) => (
                           <button
                             key={opt.id}
@@ -2414,18 +2414,18 @@ export const Settings = () => {
               {modalTab === 'algorithm' && (
                 <div className="p-3.5 bg-indigo-50/40 border border-indigo-100 rounded-2xl space-y-3 animate-in fade-in duration-150">
                   <span className="text-[10px] font-black uppercase tracking-wider text-indigo-700 flex items-center gap-1.5">
-                    <Brain className="w-3 h-3" /> 4. Thuật toán & Trình tự học mặc định (Default Algorithm)
+                    <Brain className="w-3 h-3" /> 4. Default Algorithm & Review Order
                   </span>
 
                   <div className="space-y-2">
                     <div>
-                      <span className="text-[9.5px] font-bold text-slate-500 block mb-1">Thuật toán phân phối thẻ</span>
+                      <span className="text-[9.5px] font-bold text-slate-500 block mb-1">Card Queue Algorithm</span>
                       <div className="grid grid-cols-2 sm:grid-cols-4 gap-1 bg-white p-1 rounded-xl border border-indigo-100">
                         {[
                           { id: 'fsrs', label: 'FSRS v6' },
-                          { id: 'sequential', label: 'Tuần tự' },
-                          { id: 'unseen', label: 'Chưa học' },
-                          { id: 'random', label: 'Ngẫu nhiên' },
+                          { id: 'sequential', label: 'Sequential' },
+                          { id: 'unseen', label: 'New Cards' },
+                          { id: 'random', label: 'Random' },
                         ].map((opt) => (
                           <button
                             key={opt.id}
@@ -2446,7 +2446,7 @@ export const Settings = () => {
 
                     <div className="pt-1">
                       <div className="flex items-center justify-between p-2 rounded-xl bg-white border border-indigo-100">
-                        <span className="text-[10.5px] font-bold text-slate-700">Xáo trộn ngẫu nhiên thứ tự thẻ</span>
+                        <span className="text-[10.5px] font-bold text-slate-700">Random Shuffle Card Order</span>
                         <button
                           type="button"
                           onClick={() => setTemplateSettings(prev => ({ ...prev, random_enabled: !prev.random_enabled }))}
@@ -2471,7 +2471,7 @@ export const Settings = () => {
                 onClick={() => setIsCreateModalOpen(false)}
                 className="px-4 py-2 rounded-xl text-xs font-bold text-slate-500 hover:bg-slate-100 transition-all cursor-pointer"
               >
-                Hủy
+                Cancel
               </button>
               <button
                 type="button"
@@ -2499,7 +2499,7 @@ export const Settings = () => {
                 }}
                 className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 text-white text-xs font-black uppercase tracking-wider hover:from-indigo-700 hover:to-purple-700 disabled:opacity-50 transition-all cursor-pointer shadow-md shadow-indigo-500/20"
               >
-                {isSavingProfile ? 'Đang lưu...' : (editingProfileId ? 'Lưu Thay Đổi Template' : 'Tạo & Lưu Template Mới')}
+                {isSavingProfile ? 'Saving...' : (editingProfileId ? 'Save Template Changes' : 'Create Template')}
               </button>
             </div>
           </div>

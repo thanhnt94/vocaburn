@@ -38,8 +38,26 @@ type ImageChoice = 'always' | 'front' | 'back' | 'none'
 
 const SYSTEM_TEMPLATES = [
   {
-    id: 'preset-standard',
-    name: 'Tiêu chuẩn (FSRS)',
+    id: 'preset-minimal',
+    name: 'Minimalist',
+    settings: {
+      learning_mode: 'fsrs',
+      autoplay_audio: 'none',
+      show_images: 'none',
+      front_valign: 'center',
+      front_halign: 'center',
+      back_valign: 'center',
+      back_halign: 'center',
+      random_enabled: false,
+      sfx_enabled: false,
+      quick_learn_enabled: false,
+      card_flip_trigger: 'tap',
+      card_rating_mode: 'swipe_4way',
+    }
+  },
+  {
+    id: 'preset-full',
+    name: 'Full Experience',
     settings: {
       learning_mode: 'fsrs',
       autoplay_audio: 'always',
@@ -56,30 +74,12 @@ const SYSTEM_TEMPLATES = [
     }
   },
   {
-    id: 'preset-speedrun',
-    name: 'Tốc độ cao (Speedrun)',
+    id: 'preset-standard',
+    name: 'Standard',
     settings: {
-      learning_mode: 'flip',
-      autoplay_audio: 'none',
-      show_images: 'none',
-      front_valign: 'center',
-      front_halign: 'center',
-      back_valign: 'center',
-      back_halign: 'center',
-      random_enabled: true,
-      sfx_enabled: true,
-      quick_learn_enabled: true,
-      card_flip_trigger: 'tap',
-      card_rating_mode: 'swipe_2way',
-    }
-  },
-  {
-    id: 'preset-audio',
-    name: 'Luyện nghe (Audio-First)',
-    settings: {
-      learning_mode: 'listening',
-      autoplay_audio: 'always',
-      show_images: 'always',
+      learning_mode: 'fsrs',
+      autoplay_audio: 'back',
+      show_images: 'back',
       front_valign: 'center',
       front_halign: 'left',
       back_valign: 'center',
@@ -92,37 +92,37 @@ const SYSTEM_TEMPLATES = [
     }
   },
   {
-    id: 'preset-focus',
-    name: 'Tập trung tối giản (Deep Focus)',
+    id: 'preset-classic',
+    name: 'Classic',
     settings: {
-      learning_mode: 'flip',
-      autoplay_audio: 'none',
-      show_images: 'none',
-      front_valign: 'center',
+      learning_mode: 'fsrs',
+      autoplay_audio: 'back',
+      show_images: 'always',
+      front_valign: 'top',
       front_halign: 'left',
-      back_valign: 'center',
+      back_valign: 'top',
       back_halign: 'left',
       random_enabled: false,
-      sfx_enabled: false,
+      sfx_enabled: true,
       quick_learn_enabled: false,
-      card_flip_trigger: 'both',
+      card_flip_trigger: 'button_only',
       card_rating_mode: 'buttons',
     }
   },
 ]
 
 const audioLabelMap: Record<string, string> = {
-  none: 'Tắt',
-  front: 'Mặt trước',
-  back: 'Mặt sau',
-  always: 'Cả hai mặt'
+  none: 'Off',
+  front: 'Front Only',
+  back: 'Back Only',
+  always: 'Always Play'
 }
 
 const imageLabelMap: Record<string, string> = {
-  always: 'Cả hai mặt',
-  front: 'Mặt trước',
-  back: 'Mặt sau',
-  none: 'Tắt'
+  always: 'Both Sides',
+  front: 'Front Only',
+  back: 'Back Only',
+  none: 'Hidden'
 }
 
 export function DeckPersonalSettings({
@@ -327,18 +327,18 @@ export function DeckPersonalSettings({
 
       queryClient.invalidateQueries({ queryKey: ['deck-practice-settings', String(deckId)] })
       queryClient.invalidateQueries({ queryKey: ['quiz', String(deckId)] })
-      setMessage({ type: 'success', text: 'Đã lưu cài đặt cá nhân cho bộ thẻ thành công!' })
+      setMessage({ type: 'success', text: 'Personal study preferences saved successfully!' })
       if (onSaved) onSaved()
       setTimeout(() => setMessage(null), 3500)
     } catch (err: any) {
-      setMessage({ type: 'error', text: err?.response?.data?.error || 'Không thể lưu cài đặt cá nhân' })
+      setMessage({ type: 'error', text: err?.response?.data?.error || 'Failed to save personal preferences' })
     } finally {
       setIsSaving(false)
     }
   }
 
   const handleResetDefaults = async () => {
-    if (!confirm('Bạn có chắc muốn khôi phục toàn bộ cài đặt về thiết lập gốc của bộ thẻ?')) return
+    if (!confirm('Are you sure you want to reset all settings to the original deck defaults?')) return
 
     setIsResetting(true)
     setMessage(null)
@@ -378,11 +378,11 @@ export function DeckPersonalSettings({
 
       queryClient.invalidateQueries({ queryKey: ['deck-practice-settings', String(deckId)] })
       queryClient.invalidateQueries({ queryKey: ['quiz', String(deckId)] })
-      setMessage({ type: 'success', text: 'Đã khôi phục toàn bộ cài đặt về thiết lập gốc của bộ thẻ!' })
+      setMessage({ type: 'success', text: 'Reset all settings to original deck defaults!' })
       if (onSaved) onSaved()
       setTimeout(() => setMessage(null), 3500)
     } catch (err: any) {
-      setMessage({ type: 'error', text: err?.response?.data?.error || 'Không thể khôi phục cài đặt mặc định' })
+      setMessage({ type: 'error', text: err?.response?.data?.error || 'Failed to reset default settings' })
     } finally {
       setIsResetting(false)
     }
@@ -410,10 +410,10 @@ export function DeckPersonalSettings({
               </span>
               <div>
                 <h3 className="text-xs sm:text-sm font-black text-slate-900 uppercase tracking-wide">
-                  Cài Đặt Học Cá Nhân (My Study Preferences)
+                  Personal Study Preferences
                 </h3>
                 <p className="text-[11px] text-slate-500 font-medium">
-                  {deckTitle ? `Tùy chỉnh trải nghiệm học cho bộ thẻ "${deckTitle}"` : 'Tùy chỉnh trải nghiệm học cho riêng tài khoản của bạn'}
+                  {deckTitle ? `Customize study experience for "${deckTitle}"` : 'Customize study experience for your account'}
                 </p>
               </div>
             </div>
@@ -423,12 +423,12 @@ export function DeckPersonalSettings({
             {isCustomized ? (
               <span className="px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-orange-50 text-orange-700 border border-orange-200/80 flex items-center gap-1">
                 <Sparkles className="w-3 h-3 text-orange-600" />
-                Đang dùng tùy chỉnh riêng
+                Custom Overrides Active
               </span>
             ) : (
               <span className="px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-slate-100 text-slate-600 border border-slate-200 flex items-center gap-1">
                 <Check className="w-3 h-3 text-emerald-600" />
-                Đang dùng mặc định bộ thẻ
+                Using Deck Defaults
               </span>
             )}
           </div>
@@ -451,10 +451,10 @@ export function DeckPersonalSettings({
           <div className="flex items-center justify-between">
             <span className="text-xs font-black text-indigo-900 uppercase tracking-wide flex items-center gap-1.5">
               <Sparkles className="w-3.5 h-3.5 text-indigo-600" />
-              Áp Dụng Nhanh Từ Mẫu Template (Quick Apply)
+              Quick Apply Template
             </span>
             <span className="text-[10px] font-bold text-indigo-600/80">
-              1-click điền toàn bộ cử chỉ & thuật toán
+              1-click populate gestures & algorithm
             </span>
           </div>
 
@@ -478,9 +478,9 @@ export function DeckPersonalSettings({
           <div className="flex items-center justify-between">
             <span className="text-xs font-black text-slate-900 uppercase tracking-wider flex items-center gap-1.5">
               <Brain className="w-3.5 h-3.5 text-orange-500" />
-              Chế độ học ưa thích cho bộ thẻ này
+              Preferred Study Mode
             </span>
-            <span className="text-[10px] font-bold text-slate-400">Ưu tiên khi bấm "Study Now"</span>
+            <span className="text-[10px] font-bold text-slate-400">Default mode for "Study Now"</span>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
@@ -522,7 +522,7 @@ export function DeckPersonalSettings({
                     <div className="flex items-center gap-1 shrink-0">
                       {isDeckDefault && (
                         <span className="px-1.5 py-0.5 rounded text-[9px] font-black uppercase tracking-wider bg-indigo-50 text-indigo-700 border border-indigo-100 shrink-0">
-                          Mặc định
+                          Default
                         </span>
                       )}
                       {isSelected && (
@@ -546,7 +546,7 @@ export function DeckPersonalSettings({
         <div className="pt-2 border-t border-slate-100 space-y-3">
           <span className="text-xs font-black text-slate-900 uppercase tracking-wider flex items-center gap-1.5">
             <Volume2 className="w-3.5 h-3.5 text-orange-600" />
-            Tùy Chỉnh Âm Thanh & Hình Ảnh
+            Media & Display Preferences
           </span>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -555,18 +555,18 @@ export function DeckPersonalSettings({
               <div className="flex items-center justify-between">
                 <span className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
                   <Volume2 className="w-3.5 h-3.5 text-indigo-600" />
-                  Tự động phát âm thanh TTS
+                  Automatic Audio (TTS)
                 </span>
                 <span className="text-[10px] font-bold text-slate-400">
-                  Gốc: {audioLabelMap[creatorDefs.autoplay_audio || 'none'] || 'Tắt'}
+                  Original: {audioLabelMap[creatorDefs.autoplay_audio || 'none'] || 'Off'}
                 </span>
               </div>
               <div className="grid grid-cols-4 gap-1 p-1 bg-white rounded-xl border border-slate-200/60">
                 {[
-                  { id: 'none', label: 'Tắt' },
-                  { id: 'front', label: 'Trước' },
-                  { id: 'back', label: 'Sau' },
-                  { id: 'always', label: 'Cả hai' },
+                  { id: 'none', label: 'Off' },
+                  { id: 'front', label: 'Front' },
+                  { id: 'back', label: 'Back' },
+                  { id: 'always', label: 'Always' },
                 ].map(opt => {
                   const active = autoplayAudio === opt.id
                   return (
@@ -593,18 +593,18 @@ export function DeckPersonalSettings({
               <div className="flex items-center justify-between">
                 <span className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
                   <ImageIcon className="w-3.5 h-3.5 text-indigo-600" />
-                  Hiển thị hình ảnh minh họa
+                  Illustration Images
                 </span>
                 <span className="text-[10px] font-bold text-slate-400">
-                  Gốc: {imageLabelMap[creatorDefs.show_images || 'always'] || 'Cả hai mặt'}
+                  Original: {imageLabelMap[creatorDefs.show_images || 'always'] || 'Both Sides'}
                 </span>
               </div>
               <div className="grid grid-cols-4 gap-1 p-1 bg-white rounded-xl border border-slate-200/60">
                 {[
-                  { id: 'always', label: 'Cả hai' },
-                  { id: 'front', label: 'Trước' },
-                  { id: 'back', label: 'Sau' },
-                  { id: 'none', label: 'Tắt' },
+                  { id: 'always', label: 'Both' },
+                  { id: 'front', label: 'Front' },
+                  { id: 'back', label: 'Back' },
+                  { id: 'none', label: 'Off' },
                 ].map(opt => {
                   const active = showImages === opt.id
                   return (
@@ -632,7 +632,7 @@ export function DeckPersonalSettings({
         <div className="pt-2 border-t border-slate-100 space-y-3">
           <span className="text-xs font-black text-slate-900 uppercase tracking-wider flex items-center gap-1.5">
             <Sliders className="w-3.5 h-3.5 text-orange-600" />
-            Căn Lề Nội Dung Thẻ (Mặt trước & Mặt sau)
+            Card Content Alignment (Front & Back)
           </span>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -640,16 +640,16 @@ export function DeckPersonalSettings({
             <div className="p-3 bg-slate-50/80 rounded-2xl border border-slate-200/70 space-y-2.5">
               <div className="flex items-center justify-between">
                 <span className="text-xs font-bold text-slate-800 flex items-center gap-1">
-                  🎴 Mặt trước (Front Card)
+                  🎴 Front Card
                 </span>
                 <span className="text-[10px] font-bold text-slate-400">
-                  Gốc: {creatorDefs.front_valign === 'top' ? 'Trên' : 'Giữa'} / {creatorDefs.front_halign === 'center' ? 'Giữa' : 'Trái'}
+                  Original: {creatorDefs.front_valign === 'top' ? 'Top' : 'Center'} / {creatorDefs.front_halign === 'center' ? 'Center' : 'Left'}
                 </span>
               </div>
               
               <div className="space-y-2">
                 <div>
-                  <span className="text-[10px] font-bold text-slate-400 block mb-1">Chiều dọc:</span>
+                  <span className="text-[10px] font-bold text-slate-400 block mb-1">Vertical:</span>
                   <div className="grid grid-cols-2 gap-1 p-1 bg-white rounded-xl border border-slate-200/60">
                     <button
                       type="button"
@@ -661,7 +661,7 @@ export function DeckPersonalSettings({
                           : "text-slate-500 hover:text-slate-800 hover:bg-slate-100"
                       )}
                     >
-                      Căn giữa
+                      Center
                     </button>
                     <button
                       type="button"
@@ -673,13 +673,13 @@ export function DeckPersonalSettings({
                           : "text-slate-500 hover:text-slate-800 hover:bg-slate-100"
                       )}
                     >
-                      Căn trên
+                      Top
                     </button>
                   </div>
                 </div>
 
                 <div>
-                  <span className="text-[10px] font-bold text-slate-400 block mb-1">Chiều ngang:</span>
+                  <span className="text-[10px] font-bold text-slate-400 block mb-1">Horizontal:</span>
                   <div className="grid grid-cols-2 gap-1 p-1 bg-white rounded-xl border border-slate-200/60">
                     <button
                       type="button"
@@ -691,7 +691,7 @@ export function DeckPersonalSettings({
                           : "text-slate-500 hover:text-slate-800 hover:bg-slate-100"
                       )}
                     >
-                      Căn giữa
+                      Center
                     </button>
                     <button
                       type="button"
@@ -703,7 +703,7 @@ export function DeckPersonalSettings({
                           : "text-slate-500 hover:text-slate-800 hover:bg-slate-100"
                       )}
                     >
-                      Căn trái
+                      Left
                     </button>
                   </div>
                 </div>
@@ -714,16 +714,16 @@ export function DeckPersonalSettings({
             <div className="p-3 bg-slate-50/80 rounded-2xl border border-slate-200/70 space-y-2.5">
               <div className="flex items-center justify-between">
                 <span className="text-xs font-bold text-slate-800 flex items-center gap-1">
-                  📖 Mặt sau (Back Card)
+                  📖 Back Card
                 </span>
                 <span className="text-[10px] font-bold text-slate-400">
-                  Gốc: {creatorDefs.back_valign === 'top' ? 'Trên' : 'Giữa'} / {creatorDefs.back_halign === 'center' ? 'Giữa' : 'Trái'}
+                  Original: {creatorDefs.back_valign === 'top' ? 'Top' : 'Center'} / {creatorDefs.back_halign === 'center' ? 'Center' : 'Left'}
                 </span>
               </div>
               
               <div className="space-y-2">
                 <div>
-                  <span className="text-[10px] font-bold text-slate-400 block mb-1">Chiều dọc:</span>
+                  <span className="text-[10px] font-bold text-slate-400 block mb-1">Vertical:</span>
                   <div className="grid grid-cols-2 gap-1 p-1 bg-white rounded-xl border border-slate-200/60">
                     <button
                       type="button"
@@ -735,7 +735,7 @@ export function DeckPersonalSettings({
                           : "text-slate-500 hover:text-slate-800 hover:bg-slate-100"
                       )}
                     >
-                      Căn giữa
+                      Center
                     </button>
                     <button
                       type="button"
@@ -747,13 +747,13 @@ export function DeckPersonalSettings({
                           : "text-slate-500 hover:text-slate-800 hover:bg-slate-100"
                       )}
                     >
-                      Căn trên
+                      Top
                     </button>
                   </div>
                 </div>
 
                 <div>
-                  <span className="text-[10px] font-bold text-slate-400 block mb-1">Chiều ngang:</span>
+                  <span className="text-[10px] font-bold text-slate-400 block mb-1">Horizontal:</span>
                   <div className="grid grid-cols-2 gap-1 p-1 bg-white rounded-xl border border-slate-200/60">
                     <button
                       type="button"
@@ -765,7 +765,7 @@ export function DeckPersonalSettings({
                           : "text-slate-500 hover:text-slate-800 hover:bg-slate-100"
                       )}
                     >
-                      Căn trái
+                      Left
                     </button>
                     <button
                       type="button"
@@ -777,7 +777,7 @@ export function DeckPersonalSettings({
                           : "text-slate-500 hover:text-slate-800 hover:bg-slate-100"
                       )}
                     >
-                      Căn giữa
+                      Center
                     </button>
                   </div>
                 </div>
@@ -790,7 +790,7 @@ export function DeckPersonalSettings({
         <div className="pt-2 border-t border-slate-100 space-y-2.5">
           <span className="text-xs font-black text-slate-900 uppercase tracking-wider flex items-center gap-1.5">
             <Sparkles className="w-3.5 h-3.5 text-purple-600" />
-            Tùy Chọn Thao Tác & Trải Nghiệm
+            Study Behavior & Interaction
           </span>
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
@@ -798,7 +798,7 @@ export function DeckPersonalSettings({
             <div className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50/70 border border-slate-200/60">
               <div className="flex items-center gap-2 min-w-0 mr-2">
                 <Shuffle className="w-3.5 h-3.5 text-amber-600 shrink-0" />
-                <span className="text-xs font-bold text-slate-700 truncate">Xáo trộn thẻ (Shuffle)</span>
+                <span className="text-xs font-bold text-slate-700 truncate">Random Shuffle</span>
               </div>
               <button
                 type="button"
@@ -816,7 +816,7 @@ export function DeckPersonalSettings({
             <div className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50/70 border border-slate-200/60">
               <div className="flex items-center gap-2 min-w-0 mr-2">
                 <Music className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-                <span className="text-xs font-bold text-slate-700 truncate">Âm thanh SFX</span>
+                <span className="text-xs font-bold text-slate-700 truncate">Sound Effects (SFX)</span>
               </div>
               <button
                 type="button"
@@ -834,7 +834,7 @@ export function DeckPersonalSettings({
             <div className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50/70 border border-slate-200/60">
               <div className="flex items-center gap-2 min-w-0 mr-2">
                 <Sparkles className="w-3.5 h-3.5 text-purple-600 shrink-0" />
-                <span className="text-xs font-bold text-slate-700 truncate">Tự động chuyển câu</span>
+                <span className="text-xs font-bold text-slate-700 truncate">Auto Advance</span>
               </div>
               <button
                 type="button"
@@ -854,7 +854,7 @@ export function DeckPersonalSettings({
         <div className="pt-2 border-t border-slate-100 space-y-3">
           <span className="text-xs font-black text-slate-900 uppercase tracking-wider flex items-center gap-1.5">
             <Sliders className="w-3.5 h-3.5 text-indigo-600" />
-            Cử Chỉ Lật Thẻ & Đánh Giá FSRS
+            Flashcard Gestures & FSRS Rating
           </span>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -862,7 +862,7 @@ export function DeckPersonalSettings({
             <div className="p-3 bg-slate-50/80 rounded-2xl border border-slate-200/70 space-y-2">
               <div className="flex items-center justify-between">
                 <span className="text-xs font-bold text-slate-800">
-                  Thao tác lật thẻ (Flip Trigger)
+                  Card Flip Trigger
                 </span>
               </div>
               <div className="grid grid-cols-3 gap-1 p-1 bg-white rounded-xl border border-slate-200/60">
@@ -873,9 +873,9 @@ export function DeckPersonalSettings({
                     "py-1.5 px-1 rounded-lg text-[11px] font-black transition-all text-center cursor-pointer active:scale-95",
                     cardFlipTrigger === 'both' ? "bg-indigo-600 text-white shadow-xs" : "text-slate-500 hover:text-slate-800 hover:bg-slate-100"
                   )}
-                  title="Chạm hoặc vuốt lướt nhẹ thẻ để lật"
+                  title="Tap card body or swipe to flip"
                 >
-                  Chạm & Vuốt
+                  Tap & Swipe
                 </button>
                 <button
                   type="button"
@@ -884,9 +884,9 @@ export function DeckPersonalSettings({
                     "py-1.5 px-1 rounded-lg text-[11px] font-black transition-all text-center cursor-pointer active:scale-95",
                     cardFlipTrigger === 'tap' ? "bg-indigo-600 text-white shadow-xs" : "text-slate-500 hover:text-slate-800 hover:bg-slate-100"
                   )}
-                  title="Chỉ chạm thân thẻ để lật"
+                  title="Tap card body to flip"
                 >
-                  Chỉ Chạm
+                  Tap Only
                 </button>
                 <button
                   type="button"
@@ -895,9 +895,9 @@ export function DeckPersonalSettings({
                     "py-1.5 px-1 rounded-lg text-[11px] font-black transition-all text-center cursor-pointer active:scale-95",
                     cardFlipTrigger === 'button_only' ? "bg-indigo-600 text-white shadow-xs" : "text-slate-500 hover:text-slate-800 hover:bg-slate-100"
                   )}
-                  title="Chỉ bấm nút FLIP CARD bên dưới"
+                  title="Strict button-only flipping"
                 >
-                  Chỉ Nút
+                  Button Only
                 </button>
               </div>
             </div>
@@ -906,7 +906,7 @@ export function DeckPersonalSettings({
             <div className="p-3 bg-slate-50/80 rounded-2xl border border-slate-200/70 space-y-2">
               <div className="flex items-center justify-between">
                 <span className="text-xs font-bold text-slate-800">
-                  Đánh giá FSRS (Rating Mode)
+                  FSRS Rating Mode
                 </span>
               </div>
               <div className="grid grid-cols-2 gap-1 p-1 bg-white rounded-xl border border-slate-200/60">
@@ -917,9 +917,9 @@ export function DeckPersonalSettings({
                     "py-1.5 px-1 rounded-lg text-[11px] font-black transition-all text-center cursor-pointer active:scale-95",
                     cardRatingMode === 'both' ? "bg-purple-600 text-white shadow-xs" : "text-slate-500 hover:text-slate-800 hover:bg-slate-100"
                   )}
-                  title="Vừa vuốt 4 hướng vừa có 4 nút FSRS"
+                  title="Both 4-directional swipe and 4 bottom buttons"
                 >
-                  Cả Hai (Gợi ý)
+                  Hybrid (Both)
                 </button>
                 <button
                   type="button"
@@ -928,9 +928,9 @@ export function DeckPersonalSettings({
                     "py-1.5 px-1 rounded-lg text-[11px] font-black transition-all text-center cursor-pointer active:scale-95",
                     cardRatingMode === 'swipe_4way' ? "bg-purple-600 text-white shadow-xs" : "text-slate-500 hover:text-slate-800 hover:bg-slate-100"
                   )}
-                  title="Vuốt 4 hướng: Trái (Again), Xuống (Hard), Phải (Good), Lên (Easy)"
+                  title="Swipe 4 directions: Left (Again), Down (Hard), Right (Good), Up (Easy)"
                 >
-                  Vuốt 4 Hướng
+                  4-Way Swipe
                 </button>
                 <button
                   type="button"
@@ -939,9 +939,9 @@ export function DeckPersonalSettings({
                     "py-1.5 px-1 rounded-lg text-[11px] font-black transition-all text-center cursor-pointer active:scale-95",
                     cardRatingMode === 'swipe_2way' ? "bg-purple-600 text-white shadow-xs" : "text-slate-500 hover:text-slate-800 hover:bg-slate-100"
                   )}
-                  title="Vuốt 2 chiều nhanh: Trái (Again), Phải (Good)"
+                  title="Fast 2-way swipe: Left (Again), Right (Good)"
                 >
-                  Vuốt 2 Chiều
+                  2-Way Swipe
                 </button>
                 <button
                   type="button"
@@ -950,9 +950,9 @@ export function DeckPersonalSettings({
                     "py-1.5 px-1 rounded-lg text-[11px] font-black transition-all text-center cursor-pointer active:scale-95",
                     cardRatingMode === 'buttons' ? "bg-purple-600 text-white shadow-xs" : "text-slate-500 hover:text-slate-800 hover:bg-slate-100"
                   )}
-                  title="Chỉ bấm 4 nút FSRS truyền thống"
+                  title="Traditional 4 Anki-style buttons"
                 >
-                  4 Nút Bấm
+                  4 Buttons
                 </button>
               </div>
             </div>
@@ -966,10 +966,10 @@ export function DeckPersonalSettings({
             onClick={handleResetDefaults}
             disabled={isResetting || isSaving}
             className="px-4 h-10 rounded-xl border border-slate-200 text-slate-600 hover:text-slate-900 hover:bg-slate-50 text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
-            title="Khôi phục toàn bộ cài đặt về thiết lập mặc định ban đầu của tác giả bộ thẻ"
+            title="Reset all settings to the creator original defaults"
           >
             <ResetIcon className={cn("w-3.5 h-3.5", isResetting && "animate-spin")} />
-            <span>{isResetting ? 'Đang khôi phục...' : 'Khôi phục mặc định bộ thẻ'}</span>
+            <span>{isResetting ? 'Resetting...' : 'Reset to Deck Defaults'}</span>
           </button>
 
           <button
@@ -978,7 +978,7 @@ export function DeckPersonalSettings({
             className="px-5 h-10 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white rounded-xl text-xs font-black shadow-xs shadow-orange-500/20 active:scale-95 transition-all flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
           >
             <Save className="w-3.5 h-3.5" />
-            <span>{isSaving ? 'ĐANG LƯU...' : 'LƯU CÀI ĐẶT CÁ NHÂN'}</span>
+            <span>{isSaving ? 'SAVING...' : 'SAVE PERSONAL SETTINGS'}</span>
           </button>
         </div>
       </div>
