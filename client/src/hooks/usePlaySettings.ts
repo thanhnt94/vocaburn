@@ -187,7 +187,10 @@ export function usePlaySettings(
 
     try {
       await axios.post(`/api/v1/deck/${deckId}/practice-settings`, {
-        settings: updates,
+        settings: {
+          ...updates,
+          study_settings: updates
+        },
         is_creator: false
       })
     } catch (err) {
@@ -304,6 +307,7 @@ export function usePlaySettings(
       await axios.post(`/api/v1/deck/${deckId}/practice-settings`, {
         is_creator: true,
         settings: {
+          ...currentDefaults,
           study_defaults: currentDefaults
         }
       })

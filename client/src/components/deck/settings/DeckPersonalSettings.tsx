@@ -215,6 +215,7 @@ export function DeckPersonalSettings({
       await axios.post(`/api/v1/deck/${deckId}/practice-settings`, {
         is_creator: false,
         settings: {
+          ...studyOverrides,
           study_settings: studyOverrides
         }
       })

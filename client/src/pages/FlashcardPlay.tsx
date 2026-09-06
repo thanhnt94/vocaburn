@@ -577,11 +577,6 @@ export default function FlashcardPlay() {
 
 
   useEffect(() => {
-    const searchParams = new URLSearchParams(window.location.search);
-    const urlMode = searchParams.get('mode');
-    if (urlMode === 'new' || urlMode === 'fsrs' || urlMode === 'roadmap') {
-      saveGeneralSettings({ learning_mode: urlMode });
-    }
     fetchSession()
     fetchRoadmapStatus()
   }, [id])
@@ -3771,16 +3766,26 @@ export default function FlashcardPlay() {
                             onClick={() => setZoomedImage(currentQuestion.front_img || currentQuestion.others?.front_img || null)}
                           />
                         )}
-                        <div className={cn(
-                          "text-3xl md:text-4xl font-black text-slate-800 tracking-tight leading-normal max-w-2xl markdown-content whitespace-pre-wrap flex flex-col",
-                          frontHalign === 'center' ? "items-center text-center" : "items-start text-left"
-                        )}>
+                        <div 
+                          className={cn(
+                            "text-3xl md:text-4xl font-black text-slate-800 tracking-tight leading-normal max-w-2xl markdown-content whitespace-pre-wrap flex flex-col w-full",
+                            frontHalign === 'center' ? "items-center text-center" : "items-start text-left"
+                          )}
+                          style={{ textAlign: frontHalign === 'center' ? 'center' : 'left' }}
+                        >
                           <ReactMarkdown 
                             remarkPlugins={[remarkGfm]} 
                             rehypePlugins={[rehypeRaw]} 
                             components={{
                               ...MarkdownComponents,
-                              p: ({ children }) => <p className="mb-2 last:mb-0 whitespace-pre-wrap">{children}</p>
+                              p: ({ children }) => (
+                                <p 
+                                  className={cn("mb-2 last:mb-0 whitespace-pre-wrap w-full", frontHalign === 'center' ? "text-center" : "text-left")}
+                                  style={{ textAlign: frontHalign === 'center' ? 'center' : 'left' }}
+                                >
+                                  {children}
+                                </p>
+                              )
                             }}
                           >
                             {parseBBCodeToHtml(currentQuestion?.content || '')}

@@ -252,15 +252,26 @@ async def save_practice_settings(request: Request, deck_id: int, payload: dict, 
 
         if not user_sett:
             cleaned_settings = dict(settings) if isinstance(settings, dict) else {}
+            if "study_settings" in cleaned_settings and isinstance(cleaned_settings["study_settings"], dict):
+                for k, v in cleaned_settings["study_settings"].items():
+                    if k not in cleaned_settings:
+                        cleaned_settings[k] = v
             user_sett = UserDeckSettings(user_id=user_id, deck_id=deck_id, settings=cleaned_settings)
             db.add(user_sett)
-        elif not settings:
+        elif not settings and payload.get("clear_all", False):
             user_sett.settings = {}
             flag_modified(user_sett, "settings")
         else:
             merged = dict(user_sett.settings) if isinstance(user_sett.settings, dict) else {}
             if isinstance(settings, dict):
+                if "study_settings" in settings and isinstance(settings["study_settings"], dict):
+                    for k, v in settings["study_settings"].items():
+                        merged[k] = v
                 merged.update(settings)
+                if "study_settings" in merged and isinstance(merged["study_settings"], dict):
+                    for k in STUDY_SETTINGS_KEYS:
+                        if k in settings:
+                            merged["study_settings"][k] = settings[k]
             user_sett.settings = merged
             flag_modified(user_sett, "settings")
             

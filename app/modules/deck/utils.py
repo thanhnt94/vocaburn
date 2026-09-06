@@ -223,15 +223,16 @@ def resolve_effective_study_settings(
                     norm = normalize_study_setting_value(k, raw_cd[k])
                     if norm is not None:
                         creator_defaults[k] = norm
-        # Also check top-level keys in deck.practice_settings for backwards compatibility
+        # Top-level keys in deck.practice_settings take precedence over nested study_defaults
         for k in STUDY_SETTINGS_KEYS:
-            if k not in creator_defaults and k in deck_practice_settings and deck_practice_settings[k] is not None:
+            if k in deck_practice_settings and deck_practice_settings[k] is not None:
                 norm = normalize_study_setting_value(k, deck_practice_settings[k])
                 if norm is not None:
                     creator_defaults[k] = norm
 
     user_overrides = {}
     if user_deck_settings and isinstance(user_deck_settings, dict):
+        # 1. Fallback: check legacy nested study_settings if present
         raw_ud = user_deck_settings.get("study_settings")
         if isinstance(raw_ud, dict):
             for k in STUDY_SETTINGS_KEYS:
@@ -239,9 +240,9 @@ def resolve_effective_study_settings(
                     norm = normalize_study_setting_value(k, raw_ud[k])
                     if norm is not None:
                         user_overrides[k] = norm
-        # Also check top-level keys in user_deck_settings
+        # 2. Top-level keys in user_deck_settings ALWAYS take precedence over nested legacy settings!
         for k in STUDY_SETTINGS_KEYS:
-            if k not in user_overrides and k in user_deck_settings and user_deck_settings[k] is not None:
+            if k in user_deck_settings and user_deck_settings[k] is not None:
                 norm = normalize_study_setting_value(k, user_deck_settings[k])
                 if norm is not None:
                     user_overrides[k] = norm
