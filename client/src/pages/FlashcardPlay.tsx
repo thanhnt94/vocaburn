@@ -863,8 +863,8 @@ export default function FlashcardPlay() {
     }
   };
 
-  const handleReviewRating = async (rating: number) => {
-    console.log("DEBUG: handleReviewRating called with rating:", rating, "currentIndex:", currentIndex);
+  const handleReviewRating = async (rating: number, autoAdvance?: boolean) => {
+    console.log("DEBUG: handleReviewRating called with rating:", rating, "currentIndex:", currentIndex, "autoAdvance:", autoAdvance);
     if (!currentQuestion) {
       console.log("DEBUG: currentQuestion is null, returning!");
       return
@@ -1067,6 +1067,15 @@ export default function FlashcardPlay() {
     })
 
     saveSession(newAnswers, currentIndex, updatedXP, updatedStreak)
+
+    const isPureSwipeMode = effectiveCardRatingMode === 'swipe_4way' || effectiveCardRatingMode === 'swipe_2way';
+    const shouldAutoAdvance = Boolean(autoAdvance || isPureSwipeMode);
+
+    if (shouldAutoAdvance) {
+      setTimeout(() => {
+        handleNext(newAnswers);
+      }, 50);
+    }
 
     try {
       const res = await axios.post('/api/v1/deck/record_answer', {
@@ -1353,7 +1362,7 @@ export default function FlashcardPlay() {
                             !!(goalUpdate && goalUpdate.just_completed) || 
                             (updatedStreak === 10) || 
                             isHalfwayMilestone
-      if (quickLearnEnabled && quickAnswersCount < quickTotalCount && !hasMilestone) {
+      if (!shouldAutoAdvance && quickLearnEnabled && quickAnswersCount < quickTotalCount && !hasMilestone) {
         setTimeout(() => {
           handleNext(newAnswers)
         }, 200)
@@ -1432,25 +1441,27 @@ export default function FlashcardPlay() {
 
       let targetX = 0;
       let targetY = 0;
-      if (direction === 'again') targetX = -window.innerWidth * 0.8;
-      else if (direction === 'good') targetX = window.innerWidth * 0.8;
-      else if (direction === 'hard') targetY = window.innerHeight * 0.6;
-      else if (direction === 'easy') targetY = -window.innerHeight * 0.6;
+      if (direction === 'again') targetX = -window.innerWidth * 0.85;
+      else if (direction === 'good') targetX = window.innerWidth * 0.85;
+      else if (direction === 'hard') targetY = window.innerHeight * 0.65;
+      else if (direction === 'easy') targetY = -window.innerHeight * 0.65;
 
       await cardDragControls.start({
         x: targetX,
         y: targetY,
         opacity: 0,
         rotate: direction === 'again' ? -15 : direction === 'good' ? 15 : 0,
-        transition: { duration: 0.22, ease: 'easeOut' }
+        transition: { duration: 0.18, ease: 'easeOut' }
       });
 
-      handleReviewRating(targetGrade);
+      handleReviewRating(targetGrade, true);
       
-      cardDragControls.set({ x: 0, y: 0, opacity: 1, rotate: 0 });
-      setIsFlyingOut(false);
-      setActiveDragGrade(null);
-      setDragOffset({ x: 0, y: 0 });
+      setTimeout(() => {
+        setIsFlyingOut(false);
+        setActiveDragGrade(null);
+        setDragOffset({ x: 0, y: 0 });
+        cardDragControls.set({ x: 0, y: 0, opacity: 1, rotate: 0 });
+      }, 300);
     } else {
       cardDragControls.start({ x: 0, y: 0, rotate: 0, transition: { type: 'spring', stiffness: 500, damping: 30 } });
       setDragOffset({ x: 0, y: 0 });
