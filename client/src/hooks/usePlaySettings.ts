@@ -281,6 +281,39 @@ export function usePlaySettings(
     }
   }, [deckId, creatorDefaults])
 
+  // Save current settings as the creator's deck defaults (baseline for all learners)
+  const saveAsCreatorDefaults = useCallback(async () => {
+    if (!deckId || deckId === 'quick') return
+    const currentDefaults = {
+      autoplay_audio: autoPlayAudio,
+      show_images: showImages,
+      learning_mode: learningMode,
+      front_valign: frontValign,
+      front_halign: frontHalign,
+      back_valign: backValign,
+      back_halign: backHalign,
+      random_enabled: randomEnabled,
+      sfx_enabled: sfxEnabled,
+      quick_learn_enabled: quickLearnEnabled,
+      show_fsrs: showFsrs
+    }
+    try {
+      await axios.patch(`/api/v1/deck/${deckId}`, {
+        study_defaults: currentDefaults
+      })
+      await axios.post(`/api/v1/deck/${deckId}/practice-settings`, {
+        is_creator: true,
+        settings: {
+          study_defaults: currentDefaults
+        }
+      })
+      setCreatorDefaults(currentDefaults)
+      setIsCustomized(false)
+    } catch (err) {
+      console.error('[usePlaySettings] Failed to save creator defaults:', err)
+    }
+  }, [deckId, autoPlayAudio, showImages, learningMode, frontValign, frontHalign, backValign, backHalign, randomEnabled, sfxEnabled, quickLearnEnabled, showFsrs])
+
   return {
     sfxEnabled,
     setSfxEnabled,
@@ -314,6 +347,7 @@ export function usePlaySettings(
     isCustomized,
     syncStudySettings,
     saveGeneralSettings,
-    resetToCreatorDefaults
+    resetToCreatorDefaults,
+    saveAsCreatorDefaults
   }
 }

@@ -360,7 +360,10 @@ export function DeckGeneralForm({ deckId, initialData, onSaved }: DeckGeneralFor
               <button
                 key={m.id}
                 type="button"
-                onClick={() => setDefaultMode(m.id)}
+                onClick={() => {
+                  setDefaultMode(m.id)
+                  saveStudySettingImmediate({ learning_mode: m.id })
+                }}
                 className={cn(
                   "p-3 rounded-2xl border text-left transition-all relative flex flex-col justify-between gap-2 cursor-pointer select-none group",
                   isSelected
@@ -423,7 +426,10 @@ export function DeckGeneralForm({ deckId, initialData, onSaved }: DeckGeneralFor
                   <button
                     key={opt.id}
                     type="button"
-                    onClick={() => setAutoplayAudio(opt.id as any)}
+                    onClick={() => {
+                      setAutoplayAudio(opt.id as any)
+                      saveStudySettingImmediate({ autoplay_audio: opt.id })
+                    }}
                     className={cn(
                       "py-1.5 px-1 rounded-lg text-[10px] font-black transition-all flex flex-col items-center justify-center gap-0.5 cursor-pointer active:scale-95",
                       active
@@ -459,7 +465,10 @@ export function DeckGeneralForm({ deckId, initialData, onSaved }: DeckGeneralFor
                   <button
                     key={opt.id}
                     type="button"
-                    onClick={() => setShowImages(opt.id as any)}
+                    onClick={() => {
+                      setShowImages(opt.id as any)
+                      saveStudySettingImmediate({ show_images: opt.id })
+                    }}
                     className={cn(
                       "py-1.5 px-1 rounded-lg text-[10px] font-black transition-all flex flex-col items-center justify-center gap-0.5 cursor-pointer active:scale-95",
                       active

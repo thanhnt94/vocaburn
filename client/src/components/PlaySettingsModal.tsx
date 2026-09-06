@@ -57,6 +57,16 @@ interface PlaySettingsModalProps {
   setRandomEnabled?: (enabled: boolean) => void;
   isCustomized?: boolean;
   onResetToCreatorDefaults?: () => Promise<void> | void;
+  frontHalign?: 'center' | 'left';
+  setFrontHalign?: (val: 'center' | 'left') => void;
+  backHalign?: 'center' | 'left';
+  setBackHalign?: (val: 'center' | 'left') => void;
+  frontValign?: 'center' | 'top';
+  setFrontValign?: (val: 'center' | 'top') => void;
+  backValign?: 'center' | 'top';
+  setBackValign?: (val: 'center' | 'top') => void;
+  isCreator?: boolean;
+  onSaveAsCreatorDefaults?: () => Promise<void> | void;
 }
 
 export const PlaySettingsModal: React.FC<PlaySettingsModalProps> = ({
@@ -85,7 +95,17 @@ export const PlaySettingsModal: React.FC<PlaySettingsModalProps> = ({
   randomEnabled = false,
   setRandomEnabled,
   isCustomized = false,
-  onResetToCreatorDefaults
+  onResetToCreatorDefaults,
+  frontHalign = 'left',
+  setFrontHalign,
+  backHalign = 'left',
+  setBackHalign,
+  frontValign = 'center',
+  setFrontValign,
+  backValign = 'center',
+  setBackValign,
+  isCreator = false,
+  onSaveAsCreatorDefaults
 }) => {
   const navigate = useNavigate()
   const { id } = useParams<{ id: string }>()
@@ -383,6 +403,161 @@ export const PlaySettingsModal: React.FC<PlaySettingsModalProps> = ({
                     ]}
                   />
 
+                  {/* Card Alignment (Front & Back) */}
+                  {(setBackHalign || setFrontHalign) && (
+                    <div className="p-3 bg-white rounded-2xl border border-slate-100 shadow-2xs space-y-3">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-black text-slate-800 flex items-center gap-1.5">
+                          <Sliders className="w-3.5 h-3.5 text-indigo-600" />
+                          Căn lề nội dung thẻ (Alignment)
+                        </span>
+                        <span className="text-[9.5px] font-bold text-slate-400">Tự động lưu</span>
+                      </div>
+
+                      {/* Back card alignment */}
+                      {setBackHalign && (
+                        <div className="p-2.5 bg-slate-50/70 rounded-xl border border-slate-100 space-y-2">
+                          <span className="text-[11px] font-black text-emerald-800 flex items-center gap-1">
+                            📖 Mặt sau (Back Card)
+                          </span>
+                          <div className="grid grid-cols-2 gap-1.5">
+                            <div>
+                              <span className="text-[9.5px] font-bold text-slate-400 block mb-1">Chiều ngang:</span>
+                              <div className="grid grid-cols-2 gap-1 p-0.5 bg-white rounded-lg border border-slate-200/60">
+                                <button
+                                  type="button"
+                                  onClick={() => setBackHalign('left')}
+                                  className={cn(
+                                    "py-1.5 px-2 rounded-md text-[10.5px] font-black transition-all cursor-pointer text-center",
+                                    (backHalign || 'left') === 'left'
+                                      ? "bg-emerald-600 text-white shadow-2xs"
+                                      : "text-slate-500 hover:text-slate-800"
+                                  )}
+                                >
+                                  Căn trái
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => setBackHalign('center')}
+                                  className={cn(
+                                    "py-1.5 px-2 rounded-md text-[10.5px] font-black transition-all cursor-pointer text-center",
+                                    backHalign === 'center'
+                                      ? "bg-emerald-600 text-white shadow-2xs"
+                                      : "text-slate-500 hover:text-slate-800"
+                                  )}
+                                >
+                                  Căn giữa
+                                </button>
+                              </div>
+                            </div>
+                            {setBackValign && (
+                              <div>
+                                <span className="text-[9.5px] font-bold text-slate-400 block mb-1">Chiều dọc:</span>
+                                <div className="grid grid-cols-2 gap-1 p-0.5 bg-white rounded-lg border border-slate-200/60">
+                                  <button
+                                    type="button"
+                                    onClick={() => setBackValign('center')}
+                                    className={cn(
+                                      "py-1.5 px-2 rounded-md text-[10.5px] font-black transition-all cursor-pointer text-center",
+                                      (backValign || 'center') === 'center'
+                                        ? "bg-emerald-600 text-white shadow-2xs"
+                                        : "text-slate-500 hover:text-slate-800"
+                                    )}
+                                  >
+                                    Căn giữa
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => setBackValign('top')}
+                                    className={cn(
+                                      "py-1.5 px-2 rounded-md text-[10.5px] font-black transition-all cursor-pointer text-center",
+                                      backValign === 'top'
+                                        ? "bg-emerald-600 text-white shadow-2xs"
+                                        : "text-slate-500 hover:text-slate-800"
+                                    )}
+                                  >
+                                    Căn trên
+                                  </button>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Front card alignment */}
+                      {setFrontHalign && (
+                        <div className="p-2.5 bg-slate-50/70 rounded-xl border border-slate-100 space-y-2">
+                          <span className="text-[11px] font-black text-indigo-800 flex items-center gap-1">
+                            🎴 Mặt trước (Front Card)
+                          </span>
+                          <div className="grid grid-cols-2 gap-1.5">
+                            <div>
+                              <span className="text-[9.5px] font-bold text-slate-400 block mb-1">Chiều ngang:</span>
+                              <div className="grid grid-cols-2 gap-1 p-0.5 bg-white rounded-lg border border-slate-200/60">
+                                <button
+                                  type="button"
+                                  onClick={() => setFrontHalign('left')}
+                                  className={cn(
+                                    "py-1.5 px-2 rounded-md text-[10.5px] font-black transition-all cursor-pointer text-center",
+                                    (frontHalign || 'left') === 'left'
+                                      ? "bg-indigo-600 text-white shadow-2xs"
+                                      : "text-slate-500 hover:text-slate-800"
+                                  )}
+                                >
+                                  Căn trái
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => setFrontHalign('center')}
+                                  className={cn(
+                                    "py-1.5 px-2 rounded-md text-[10.5px] font-black transition-all cursor-pointer text-center",
+                                    frontHalign === 'center'
+                                      ? "bg-indigo-600 text-white shadow-2xs"
+                                      : "text-slate-500 hover:text-slate-800"
+                                  )}
+                                >
+                                  Căn giữa
+                                </button>
+                              </div>
+                            </div>
+                            {setFrontValign && (
+                              <div>
+                                <span className="text-[9.5px] font-bold text-slate-400 block mb-1">Chiều dọc:</span>
+                                <div className="grid grid-cols-2 gap-1 p-0.5 bg-white rounded-lg border border-slate-200/60">
+                                  <button
+                                    type="button"
+                                    onClick={() => setFrontValign('center')}
+                                    className={cn(
+                                      "py-1.5 px-2 rounded-md text-[10.5px] font-black transition-all cursor-pointer text-center",
+                                      (frontValign || 'center') === 'center'
+                                        ? "bg-indigo-600 text-white shadow-2xs"
+                                        : "text-slate-500 hover:text-slate-800"
+                                    )}
+                                  >
+                                    Căn giữa
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => setFrontValign('top')}
+                                    className={cn(
+                                      "py-1.5 px-2 rounded-md text-[10.5px] font-black transition-all cursor-pointer text-center",
+                                      frontValign === 'top'
+                                        ? "bg-indigo-600 text-white shadow-2xs"
+                                        : "text-slate-500 hover:text-slate-800"
+                                    )}
+                                  >
+                                    Căn trên
+                                  </button>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
                   {/* Effects & Sensory Toggles */}
                   <div className="space-y-2 pt-1">
                     <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">
@@ -587,6 +762,24 @@ export const PlaySettingsModal: React.FC<PlaySettingsModalProps> = ({
             {/* Footer Agree / Close Button */}
             <div className="px-5 py-3.5 bg-white border-t border-slate-100 flex items-center justify-between gap-2 shrink-0">
               <div className="flex items-center gap-2">
+                {onSaveAsCreatorDefaults && isCreator && (
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      if (window.confirm("Lưu cấu hình học hiện tại làm MẶC ĐỊNH GỐC của bộ thẻ này cho tất cả người học?")) {
+                        await onSaveAsCreatorDefaults();
+                        alert("Đã lưu làm mặc định của bộ thẻ thành công!");
+                      }
+                    }}
+                    className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-[10.5px] font-black uppercase tracking-wider text-emerald-700 hover:text-emerald-800 bg-emerald-50 hover:bg-emerald-100/80 border border-emerald-200 transition-all active:scale-95 cursor-pointer"
+                    title="Lưu cấu hình này thành mặc định chung của bộ thẻ cho tất cả người học"
+                  >
+                    <Check className="w-3.5 h-3.5 text-emerald-600" />
+                    <span className="hidden sm:inline">Lưu làm mặc định bộ thẻ</span>
+                    <span className="sm:hidden">Lưu mặc định</span>
+                  </button>
+                )}
+
                 {onResetToCreatorDefaults && isCustomized && (
                   <button
                     type="button"

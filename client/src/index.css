@@ -93,6 +93,13 @@ html, body, #root {
   @apply text-slate-600 font-medium; 
 }
 
+.markdown-content.text-left, .markdown-content.text-left * {
+  text-align: left !important;
+}
+.markdown-content.text-center, .markdown-content.text-center * {
+  text-align: center !important;
+}
+
 .markdown-content h1, .markdown-content h2, .markdown-content h3 { 
   @apply font-black text-slate-900 tracking-tight mt-10 mb-5 flex items-center gap-3;
 }

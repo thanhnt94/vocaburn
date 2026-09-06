@@ -609,14 +609,19 @@ export default function PracticePlay() {
     learningMode,
     setLearningMode,
     frontValign,
+    setFrontValign,
     frontHalign,
+    setFrontHalign,
     backValign,
+    setBackValign,
     backHalign,
+    setBackHalign,
     creatorDefaults,
     isCustomized,
     syncStudySettings,
     saveGeneralSettings,
-    resetToCreatorDefaults
+    resetToCreatorDefaults,
+    saveAsCreatorDefaults
   } = usePlaySettings(id || '', modeSettings, setModeSettings);
 
   const {
@@ -4608,16 +4613,26 @@ export default function PracticePlay() {
                                   <div className="w-8 h-8 rounded-xl bg-emerald-500 flex items-center justify-center text-white font-black text-lg shadow-md shrink-0 mt-0.5">
                                     ✓
                                   </div>
-                                  <div className={cn(
-                                    "text-slate-800 font-extrabold text-2xl md:text-3xl lg:text-4xl leading-snug markdown-content flex-1 whitespace-pre-wrap",
-                                    backHalign === 'center' ? "text-center" : "text-left"
-                                  )}>
+                                  <div 
+                                    className={cn(
+                                      "text-slate-800 font-extrabold text-2xl md:text-3xl lg:text-4xl leading-snug markdown-content flex-1 whitespace-pre-wrap",
+                                      backHalign === 'center' ? "text-center" : "text-left"
+                                    )}
+                                    style={{ textAlign: backHalign === 'center' ? 'center' : 'left' }}
+                                  >
                                     <ReactMarkdown
                                       remarkPlugins={[remarkGfm]}
                                       rehypePlugins={[rehypeRaw]}
                                       components={{
                                         ...MarkdownComponents,
-                                        p: ({ children }) => <p className={cn("mb-2 last:mb-0 whitespace-pre-wrap w-full", backHalign === 'center' ? "text-center" : "text-left")}>{children}</p>
+                                        p: ({ children }) => (
+                                          <p 
+                                            className={cn("mb-2 last:mb-0 whitespace-pre-wrap w-full", backHalign === 'center' ? "text-center" : "text-left")}
+                                            style={{ textAlign: backHalign === 'center' ? 'center' : 'left' }}
+                                          >
+                                            {children}
+                                          </p>
+                                        )
                                       }}
                                     >
                                       {parseBBCodeToHtml(currentQuestion.options.find(o => o.is_correct)?.content || "Definition revealed.")}
@@ -4639,17 +4654,30 @@ export default function PracticePlay() {
                             )}
 
                             {currentQuestion?.explanation && (
-                              <div className={cn("w-full bg-white flex flex-col min-h-0", backHalign === 'center' ? "text-center items-center" : "text-left items-start")}>
-                                <div className={cn(
-                                  "text-slate-700 font-bold text-xl md:text-2xl leading-relaxed markdown-content w-full whitespace-pre-wrap",
-                                  backHalign === 'center' ? "text-center" : "text-left"
-                                )}>
+                              <div 
+                                className={cn("w-full bg-white flex flex-col min-h-0", backHalign === 'center' ? "text-center items-center" : "text-left items-start")}
+                                style={{ textAlign: backHalign === 'center' ? 'center' : 'left' }}
+                              >
+                                <div 
+                                  className={cn(
+                                    "text-slate-700 font-bold text-xl md:text-2xl leading-relaxed markdown-content w-full whitespace-pre-wrap",
+                                    backHalign === 'center' ? "text-center" : "text-left"
+                                  )}
+                                  style={{ textAlign: backHalign === 'center' ? 'center' : 'left' }}
+                                >
                                   <ReactMarkdown
                                     remarkPlugins={[remarkGfm]}
                                     rehypePlugins={[rehypeRaw]}
                                     components={{
                                       ...MarkdownComponents,
-                                      p: ({ children }) => <p className={cn("mb-2 last:mb-0 whitespace-pre-wrap w-full", backHalign === 'center' ? "text-center" : "text-left")}>{children}</p>
+                                      p: ({ children }) => (
+                                        <p 
+                                          className={cn("mb-2 last:mb-0 whitespace-pre-wrap w-full", backHalign === 'center' ? "text-center" : "text-left")}
+                                          style={{ textAlign: backHalign === 'center' ? 'center' : 'left' }}
+                                        >
+                                          {children}
+                                        </p>
+                                      )
                                     }}
                                   >
                                     {parseBBCodeToHtml(currentQuestion.explanation)}
@@ -6363,6 +6391,16 @@ export default function PracticePlay() {
         setRandomEnabled={setRandomEnabled}
         isCustomized={isCustomized}
         onResetToCreatorDefaults={resetToCreatorDefaults}
+        frontHalign={frontHalign}
+        setFrontHalign={setFrontHalign}
+        backHalign={backHalign}
+        setBackHalign={setBackHalign}
+        frontValign={frontValign}
+        setFrontValign={setFrontValign}
+        backValign={backValign}
+        setBackValign={setBackValign}
+        isCreator={Boolean(session?.is_creator || session?.creator_id === user?.id || user?.role === 'admin')}
+        onSaveAsCreatorDefaults={saveAsCreatorDefaults}
       />
     </div>
   )
