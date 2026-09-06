@@ -35,6 +35,10 @@ class UserGlobalSettings(Base):
     show_fsrs = Column(Boolean, default=True)
     card_flip_trigger = Column(String(20), default="both") # 'both' | 'tap' | 'button_only'
     card_rating_mode = Column(String(20), default="both") # 'both' | 'buttons' | 'swipe_4way' | 'swipe_2way'
+    front_valign = Column(String(20), default="center") # 'center' | 'top'
+    front_halign = Column(String(20), default="left") # 'left' | 'center'
+    back_valign = Column(String(20), default="center") # 'center' | 'top'
+    back_halign = Column(String(20), default="left") # 'left' | 'center'
     
     # Study Modes & Preferences
     quiz_learning_mode = Column(String(50), default="fsrs") # 'fsrs' | 'leitner' | 'practice'

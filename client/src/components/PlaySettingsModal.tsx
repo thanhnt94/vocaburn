@@ -5,11 +5,10 @@ import {
   Route, 
   Sparkles, 
   Shuffle, 
-  EyeOff, 
   AlertCircle, 
   TrendingUp, 
   Copy, 
-  Eye, 
+  EyeOff, 
   Edit3, 
   LogOut, 
   Volume2, 
@@ -18,17 +17,25 @@ import {
   Zap, 
   Image, 
   ImageOff,
-  Settings, 
-  BookOpen, 
-  RotateCcw, 
-  X,
   Layers,
-  Sparkle,
-  Check
+  Check, 
+  X,
+  Globe,
+  User,
+  ShieldCheck,
+  RotateCcw,
+  Settings,
+  BookOpen,
+  AlignLeft,
+  AlignCenter,
+  AlignVerticalSpaceAround,
+  MousePointerClick
 } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useNavigate, useParams } from 'react-router-dom'
 import { cn } from '@/lib/utils'
+
+export type SettingOrigin = 'deck_override' | 'user_global' | 'deck_default'
 
 interface PlaySettingsModalProps {
   isOpen: boolean;
@@ -41,12 +48,12 @@ interface PlaySettingsModalProps {
   setSfxEnabled: (enabled: boolean) => void;
   hapticEnabled: boolean;
   setHapticEnabled: (enabled: boolean) => void;
-  showFeedback: boolean;
-  copyQuestionToClipboard: () => void;
-  currentQuestion: any;
-  handleIgnoreQuestion: () => void;
-  openEditModal: () => void;
-  setIsQuitModalOpen: (open: boolean) => void;
+  showFeedback?: boolean;
+  copyQuestionToClipboard?: () => void;
+  currentQuestion?: any;
+  handleIgnoreQuestion?: () => void;
+  openEditModal?: () => void;
+  setIsQuitModalOpen?: (open: boolean) => void;
   quickLearnEnabled?: boolean;
   setQuickLearnEnabled?: (enabled: boolean) => void;
   showImages: any;
@@ -56,7 +63,11 @@ interface PlaySettingsModalProps {
   randomEnabled?: boolean;
   setRandomEnabled?: (enabled: boolean) => void;
   isCustomized?: boolean;
+  settingOrigin?: SettingOrigin;
   onResetToCreatorDefaults?: () => Promise<void> | void;
+  onApplyGlobalSettings?: () => Promise<void> | void;
+  onSaveAsGlobalSettings?: () => Promise<void> | void;
+  onSaveAsCreatorDefaults?: () => Promise<void> | void;
   frontHalign?: 'center' | 'left';
   setFrontHalign?: (val: 'center' | 'left') => void;
   backHalign?: 'center' | 'left';
@@ -65,8 +76,11 @@ interface PlaySettingsModalProps {
   setFrontValign?: (val: 'center' | 'top') => void;
   backValign?: 'center' | 'top';
   setBackValign?: (val: 'center' | 'top') => void;
+  cardFlipTrigger?: 'both' | 'tap' | 'button_only';
+  setCardFlipTrigger?: (val: 'both' | 'tap' | 'button_only') => void;
+  cardRatingMode?: 'both' | 'buttons' | 'swipe_4way' | 'swipe_2way';
+  setCardRatingMode?: (val: 'both' | 'buttons' | 'swipe_4way' | 'swipe_2way') => void;
   isCreator?: boolean;
-  onSaveAsCreatorDefaults?: () => Promise<void> | void;
 }
 
 export const PlaySettingsModal: React.FC<PlaySettingsModalProps> = ({
@@ -80,7 +94,7 @@ export const PlaySettingsModal: React.FC<PlaySettingsModalProps> = ({
   setSfxEnabled,
   hapticEnabled,
   setHapticEnabled,
-  showFeedback,
+  showFeedback = false,
   copyQuestionToClipboard,
   currentQuestion,
   handleIgnoreQuestion,
@@ -95,7 +109,11 @@ export const PlaySettingsModal: React.FC<PlaySettingsModalProps> = ({
   randomEnabled = false,
   setRandomEnabled,
   isCustomized = false,
+  settingOrigin = 'deck_default',
   onResetToCreatorDefaults,
+  onApplyGlobalSettings,
+  onSaveAsGlobalSettings,
+  onSaveAsCreatorDefaults,
   frontHalign = 'left',
   setFrontHalign,
   backHalign = 'left',
@@ -104,15 +122,19 @@ export const PlaySettingsModal: React.FC<PlaySettingsModalProps> = ({
   setFrontValign,
   backValign = 'center',
   setBackValign,
-  isCreator = false,
-  onSaveAsCreatorDefaults
+  cardFlipTrigger = 'both',
+  setCardFlipTrigger,
+  cardRatingMode = 'both',
+  setCardRatingMode,
+  isCreator = false
 }) => {
   const navigate = useNavigate()
   const { id } = useParams<{ id: string }>()
-  const [activeTab, setActiveTab] = useState<'modes' | 'display' | 'actions'>('modes')
+  const [activeTab, setActiveTab] = useState<'modes' | 'audio' | 'display' | 'gestures'>('modes')
+  const [isSyncing, setIsSyncing] = useState<boolean>(false)
 
   // Parse audio mode
-  const currentAudioMode = autoPlayAudio || 'none'
+  const currentAudioMode: 'always' | 'front' | 'back' | 'none' = autoPlayAudio || 'none'
   
   // Parse image mode
   const currentImageMode: 'always' | 'front' | 'back' | 'none' = (() => {
@@ -141,7 +163,7 @@ export const PlaySettingsModal: React.FC<PlaySettingsModalProps> = ({
         )}
         <div className="min-w-0">
           <span className="text-xs font-black text-slate-800 block truncate">{label}</span>
-          {sub && <span className="text-[9.5px] font-bold text-slate-400 block truncate">{sub}</span>}
+          {sub && <span className="text-[10px] font-bold text-slate-400 block truncate">{sub}</span>}
         </div>
       </div>
       <button
@@ -169,18 +191,23 @@ export const PlaySettingsModal: React.FC<PlaySettingsModalProps> = ({
     onChange, 
     options 
   }: { 
-    label: string; 
+    label?: string; 
     sub?: string;
     value: string; 
     onChange: (val: any) => void; 
-    options: { id: string; label: string; icon?: any }[] 
+    options: { id: string; label: string; sub?: string; icon?: any }[] 
   }) => (
     <div className="p-3 bg-white rounded-2xl border border-slate-100 shadow-2xs space-y-2">
-      <div className="flex items-center justify-between">
-        <span className="text-xs font-black text-slate-800">{label}</span>
-        {sub && <span className="text-[9.5px] font-bold text-slate-400">{sub}</span>}
-      </div>
-      <div className="grid grid-cols-4 gap-1 p-1 bg-slate-100/80 rounded-xl">
+      {(label || sub) && (
+        <div className="flex items-center justify-between">
+          {label && <span className="text-xs font-black text-slate-800">{label}</span>}
+          {sub && <span className="text-[10px] font-bold text-slate-400">{sub}</span>}
+        </div>
+      )}
+      <div className={cn(
+        "grid gap-1 p-1 bg-slate-100/80 rounded-xl",
+        options.length === 2 ? "grid-cols-2" : options.length === 3 ? "grid-cols-3" : "grid-cols-4"
+      )}>
         {options.map(opt => {
           const active = value === opt.id
           const IconComp = opt.icon
@@ -190,20 +217,69 @@ export const PlaySettingsModal: React.FC<PlaySettingsModalProps> = ({
               type="button"
               onClick={() => onChange(opt.id)}
               className={cn(
-                "py-2 px-1 rounded-lg text-[10px] font-black tracking-tight transition-all text-center flex flex-col sm:flex-row items-center justify-center gap-1 active:scale-95 cursor-pointer",
+                "py-2 px-1 rounded-lg text-[10.5px] font-black tracking-tight transition-all text-center flex flex-col items-center justify-center gap-0.5 active:scale-95 cursor-pointer",
                 active 
                   ? "bg-white text-indigo-600 shadow-sm font-black" 
                   : "text-slate-500 hover:text-slate-800"
               )}
             >
-              {IconComp && <IconComp className={cn("w-3 h-3 shrink-0", active ? "text-indigo-600" : "text-slate-400")} />}
-              <span className="truncate">{opt.label}</span>
+              <div className="flex items-center gap-1">
+                {IconComp && <IconComp className={cn("w-3 h-3 shrink-0", active ? "text-indigo-600" : "text-slate-400")} />}
+                <span className="truncate">{opt.label}</span>
+              </div>
+              {opt.sub && <span className="text-[8.5px] font-medium text-slate-400 truncate">{opt.sub}</span>}
             </button>
           )
         })}
       </div>
     </div>
   )
+
+  const handleApplyGlobal = async () => {
+    if (!onApplyGlobalSettings) return
+    setIsSyncing(true)
+    try {
+      await onApplyGlobalSettings()
+    } finally {
+      setIsSyncing(false)
+    }
+  }
+
+  const handleSaveAsGlobal = async () => {
+    if (!onSaveAsGlobalSettings) return
+    setIsSyncing(true)
+    try {
+      await onSaveAsGlobalSettings()
+      alert("Đã lưu cấu hình học hiện tại thành cài đặt toàn cục thành công!")
+    } finally {
+      setIsSyncing(false)
+    }
+  }
+
+  const handleResetToCreator = async () => {
+    if (!onResetToCreatorDefaults) return
+    if (window.confirm("Khôi phục toàn bộ cài đặt học của bộ thẻ này về mặc định ban đầu của người tạo?")) {
+      setIsSyncing(true)
+      try {
+        await onResetToCreatorDefaults()
+      } finally {
+        setIsSyncing(false)
+      }
+    }
+  }
+
+  const handleSaveAsCreator = async () => {
+    if (!onSaveAsCreatorDefaults) return
+    if (window.confirm("Lưu cấu hình học hiện tại làm MẶC ĐỊNH GỐC của bộ thẻ này cho tất cả người học?")) {
+      setIsSyncing(true)
+      try {
+        await onSaveAsCreatorDefaults()
+        alert("Đã lưu làm mặc định của bộ thẻ thành công!")
+      } finally {
+        setIsSyncing(false)
+      }
+    }
+  }
 
   return (
     <AnimatePresence>
@@ -223,7 +299,7 @@ export const PlaySettingsModal: React.FC<PlaySettingsModalProps> = ({
             initial={{ opacity: 0, scale: 0.94, y: 16 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.94, y: 16 }}
-            className="relative w-full max-w-lg bg-[#F8FAFC] rounded-[2rem] shadow-2xl border border-white/40 overflow-hidden text-slate-800 max-h-[90vh] flex flex-col"
+            className="relative w-full max-w-lg bg-[#F8FAFC] rounded-[2rem] shadow-2xl border border-white/40 overflow-hidden text-slate-800 max-h-[88vh] flex flex-col"
           >
             {/* Top Accent Line */}
             <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-orange-500 via-rose-500 to-indigo-500"></div>
@@ -239,18 +315,34 @@ export const PlaySettingsModal: React.FC<PlaySettingsModalProps> = ({
                     <h3 className="text-sm font-black uppercase tracking-wider text-slate-900 leading-tight">
                       Cấu hình học tập
                     </h3>
-                    {isCustomized ? (
-                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[8.5px] font-black uppercase tracking-wider bg-indigo-50 text-indigo-600 border border-indigo-200/80">
+                    {settingOrigin === 'deck_override' || (isCustomized && settingOrigin !== 'user_global') ? (
+                      <span 
+                        title="Đang áp dụng cấu hình riêng cho bộ thẻ này (ưu tiên cao nhất)"
+                        className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider bg-purple-50 text-purple-700 border border-purple-200/80"
+                      >
+                        <Sparkles className="w-2.5 h-2.5 text-purple-600" />
                         Tùy chỉnh riêng
                       </span>
+                    ) : settingOrigin === 'user_global' ? (
+                      <span 
+                        title="Đang đồng bộ theo cấu hình mặc định tài khoản toàn cục của bạn"
+                        className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider bg-blue-50 text-blue-700 border border-blue-200/80"
+                      >
+                        <Globe className="w-2.5 h-2.5 text-blue-600" />
+                        Cài đặt toàn cục
+                      </span>
                     ) : (
-                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[8.5px] font-black uppercase tracking-wider bg-emerald-50 text-emerald-600 border border-emerald-200/80">
+                      <span 
+                        title="Đang dùng cấu hình mặc định gốc do người tạo bộ thẻ thiết lập"
+                        className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider bg-emerald-50 text-emerald-700 border border-emerald-200/80"
+                      >
+                        <ShieldCheck className="w-2.5 h-2.5 text-emerald-600" />
                         Mặc định bộ thẻ
                       </span>
                     )}
                   </div>
-                  <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest leading-none mt-0.5">
-                    Tùy biến trải nghiệm & công cụ cho bộ thẻ này
+                  <p className="text-[9.5px] font-bold text-slate-400 leading-none mt-0.5">
+                    Bộ thẻ phân cấp: Tùy chỉnh riêng &gt; Toàn cục &gt; Mặc định
                   </p>
                 </div>
               </div>
@@ -263,462 +355,381 @@ export const PlaySettingsModal: React.FC<PlaySettingsModalProps> = ({
               </button>
             </div>
 
-            {/* Segmented Top Tabs */}
-            <div className="px-5 pt-3 pb-1 bg-white shrink-0">
-              <div className="grid grid-cols-3 gap-1 p-1 bg-slate-100/90 rounded-2xl border border-slate-200/60">
+            {/* Segmented Top Tabs (4 Tabs) */}
+            <div className="px-4 pt-2.5 pb-2 bg-white shrink-0 border-b border-slate-100">
+              <div className="grid grid-cols-4 gap-1 p-1 bg-slate-100/90 rounded-2xl border border-slate-200/60">
                 <button
                   type="button"
                   onClick={() => setActiveTab('modes')}
                   className={cn(
-                    "py-2 px-2 rounded-xl text-[10.5px] font-black uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 active:scale-95 cursor-pointer",
+                    "py-1.5 px-1 rounded-xl text-[10px] font-black tracking-tight transition-all flex flex-col sm:flex-row items-center justify-center gap-1 active:scale-95 cursor-pointer",
                     activeTab === 'modes' 
                       ? "bg-white text-orange-600 shadow-sm shadow-slate-200/50" 
                       : "text-slate-500 hover:text-slate-800"
                   )}
                 >
-                  <Brain className="w-3.5 h-3.5" />
-                  <span>Chế độ học</span>
+                  <Brain className="w-3.5 h-3.5 shrink-0" />
+                  <span className="truncate">Chế độ học</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('audio')}
+                  className={cn(
+                    "py-1.5 px-1 rounded-xl text-[10px] font-black tracking-tight transition-all flex flex-col sm:flex-row items-center justify-center gap-1 active:scale-95 cursor-pointer",
+                    activeTab === 'audio' 
+                      ? "bg-white text-indigo-600 shadow-sm shadow-slate-200/50" 
+                      : "text-slate-500 hover:text-slate-800"
+                  )}
+                >
+                  <Volume2 className="w-3.5 h-3.5 shrink-0" />
+                  <span className="truncate">Âm thanh</span>
                 </button>
 
                 <button
                   type="button"
                   onClick={() => setActiveTab('display')}
                   className={cn(
-                    "py-2 px-2 rounded-xl text-[10.5px] font-black uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 active:scale-95 cursor-pointer",
+                    "py-1.5 px-1 rounded-xl text-[10px] font-black tracking-tight transition-all flex flex-col sm:flex-row items-center justify-center gap-1 active:scale-95 cursor-pointer",
                     activeTab === 'display' 
-                      ? "bg-white text-indigo-600 shadow-sm shadow-slate-200/50" 
+                      ? "bg-white text-blue-600 shadow-sm shadow-slate-200/50" 
                       : "text-slate-500 hover:text-slate-800"
                   )}
                 >
-                  <Layers className="w-3.5 h-3.5" />
-                  <span>Hiển thị</span>
+                  <Layers className="w-3.5 h-3.5 shrink-0" />
+                  <span className="truncate">Hiển thị</span>
                 </button>
 
                 <button
                   type="button"
-                  onClick={() => setActiveTab('actions')}
+                  onClick={() => setActiveTab('gestures')}
                   className={cn(
-                    "py-2 px-2 rounded-xl text-[10.5px] font-black uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 active:scale-95 cursor-pointer",
-                    activeTab === 'actions' 
+                    "py-1.5 px-1 rounded-xl text-[10px] font-black tracking-tight transition-all flex flex-col sm:flex-row items-center justify-center gap-1 active:scale-95 cursor-pointer",
+                    activeTab === 'gestures' 
                       ? "bg-white text-rose-600 shadow-sm shadow-slate-200/50" 
                       : "text-slate-500 hover:text-slate-800"
                   )}
                 >
-                  <Zap className="w-3.5 h-3.5" />
-                  <span>Thao tác</span>
+                  <MousePointerClick className="w-3.5 h-3.5 shrink-0" />
+                  <span className="truncate">Thao tác</span>
                 </button>
               </div>
             </div>
 
-            {/* Scrollable Tab Content */}
-            <div className="overflow-y-auto px-5 py-4 space-y-3.5 flex-1 custom-scrollbar">
-
-              {/* ── TAB 1: CHẾ ĐỘ HỌC (MODES) ── */}
+            {/* Modal Body - Tab Contents */}
+            <div className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-4">
+              {/* TAB 1: CHẾ ĐỘ HỌC */}
               {activeTab === 'modes' && (
-                <div className="space-y-3 animate-in fade-in duration-200">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                      Chọn thuật toán & phương pháp
+                <div className="space-y-4">
+                  <div>
+                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-2">
+                      Chọn thuật toán & tiến trình
                     </span>
-                    <span className="text-[9px] font-bold text-orange-600 bg-orange-50 px-2 py-0.5 rounded-full border border-orange-200/60 uppercase">
-                      Đang bật: {MODES_LIST.find(m => m.id === activeMode)?.label || activeMode}
-                    </span>
-                  </div>
-
-                  {/* 6 Modes Grid */}
-                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                    {MODES_LIST.map(m => {
-                      const IconComp = m.icon
-                      const active = activeMode === m.id
-                      return (
-                        <button
-                          key={m.id}
-                          type="button"
-                          onClick={() => applyLearningMode(m.id)}
-                          className={cn(
-                            "flex flex-col items-start p-3 rounded-2xl text-left transition-all active:scale-95 border cursor-pointer relative overflow-hidden",
-                            active 
-                              ? "bg-white border-orange-400 shadow-md ring-2 ring-orange-500/20" 
-                              : "bg-white/80 border-slate-100 hover:border-slate-200/80 hover:bg-white"
-                          )}
-                        >
-                          {active && (
-                            <div className="absolute top-2 right-2 w-4 h-4 rounded-full bg-orange-500 text-white flex items-center justify-center text-[9px] shadow-xs">
-                              <Check className="w-2.5 h-2.5 stroke-[3]" />
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                      {MODES_LIST.map((mode) => {
+                        const Icon = mode.icon
+                        const isSelected = activeMode === mode.id
+                        return (
+                          <button
+                            key={mode.id}
+                            type="button"
+                            onClick={() => applyLearningMode(mode.id)}
+                            className={cn(
+                              "p-3 rounded-2xl border text-left transition-all flex flex-col justify-between relative group cursor-pointer active:scale-95 shadow-2xs",
+                              isSelected 
+                                ? cn("bg-white border-2 shadow-sm ring-1 ring-orange-400/30", mode.border) 
+                                : "bg-white/80 border-slate-100 hover:border-slate-200 hover:bg-white"
+                            )}
+                          >
+                            <div className="flex items-center justify-between w-full mb-1.5">
+                              <div className={cn("w-7 h-7 rounded-xl flex items-center justify-center shrink-0 border border-slate-100", mode.bg)}>
+                                <Icon className={cn("w-3.5 h-3.5", mode.color)} />
+                              </div>
+                              {isSelected && (
+                                <span className="w-2 h-2 rounded-full bg-orange-500 ring-4 ring-orange-100 shrink-0" />
+                              )}
                             </div>
-                          )}
-                          <div className={cn("w-7 h-7 rounded-xl flex items-center justify-center mb-2 border border-slate-100/60", m.bg)}>
-                            <IconComp className={cn("w-3.5 h-3.5", m.color)} />
-                          </div>
-                          <span className="text-xs font-black text-slate-800 leading-tight block">{m.label}</span>
-                          <span className="text-[9.5px] font-bold text-slate-400 leading-tight block mt-0.5">{m.desc}</span>
-                        </button>
-                      )
-                    })}
+                            <div>
+                              <span className={cn("text-xs font-black block truncate", isSelected ? "text-slate-900" : "text-slate-700")}>
+                                {mode.label}
+                              </span>
+                              <span className="text-[9.5px] font-bold text-slate-400 block truncate">
+                                {mode.desc}
+                              </span>
+                            </div>
+                          </button>
+                        )
+                      })}
+                    </div>
                   </div>
 
-                  {/* Shuffle Toggle */}
-                  <div className="pt-1">
-                    <ToggleSwitch
-                      checked={randomEnabled}
-                      onChange={() => setRandomEnabled?.(!randomEnabled)}
-                      label="Xáo trộn thẻ (Shuffle)"
-                      sub="Học ngẫu nhiên thay vì thứ tự tuần tự"
-                      icon={Shuffle}
-                      color="text-amber-600"
-                      bg="bg-amber-50"
-                    />
+                  <div className="space-y-2 pt-2 border-t border-slate-100">
+                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">
+                      Tùy chọn học tập
+                    </span>
+
+                    {setRandomEnabled && (
+                      <ToggleSwitch 
+                        checked={randomEnabled}
+                        onChange={() => setRandomEnabled(!randomEnabled)}
+                        label="Xáo trộn câu hỏi ngẫu nhiên"
+                        sub="Đảo thứ tự các thẻ xuất hiện trong phiên"
+                        icon={Shuffle}
+                        color="text-amber-600"
+                        bg="bg-amber-50"
+                      />
+                    )}
+
+                    {setShowFsrs && (
+                      <ToggleSwitch 
+                        checked={showFsrs}
+                        onChange={() => setShowFsrs(!showFsrs)}
+                        label="Chỉ số ghi nhớ FSRS v6"
+                        sub="Hiện độ ổn định (S) và độ khó (D) trên mặt thẻ"
+                        icon={Brain}
+                        color="text-indigo-600"
+                        bg="bg-indigo-50"
+                      />
+                    )}
+
+                    {setQuickLearnEnabled && (
+                      <ToggleSwitch 
+                        checked={quickLearnEnabled}
+                        onChange={() => setQuickLearnEnabled(!quickLearnEnabled)}
+                        label="Chế độ học nhanh"
+                        sub="Tự động ghi nhận Good, lướt nhanh nội dung"
+                        icon={Zap}
+                        color="text-orange-600"
+                        bg="bg-orange-50"
+                      />
+                    )}
                   </div>
                 </div>
               )}
 
-              {/* ── TAB 2: HIỂN THỊ & ÂM THANH (DISPLAY) ── */}
-              {activeTab === 'display' && (
-                <div className="space-y-3 animate-in fade-in duration-200">
-                  {/* Auto Audio Segmented */}
-                  <SegmentedGroup
-                    label="Âm thanh tự động đọc (TTS)"
-                    sub="Tự động phát khi đổi thẻ / lật thẻ"
-                    value={currentAudioMode}
-                    onChange={(val) => setAutoPlayAudio(val)}
-                    options={[
-                      { id: 'none', label: 'Tắt', icon: VolumeX },
-                      { id: 'front', label: 'Mặt trước', icon: Volume2 },
-                      { id: 'back', label: 'Mặt sau', icon: Volume2 },
-                      { id: 'always', label: 'Cả hai', icon: Volume2 }
-                    ]}
-                  />
+              {/* TAB 2: ÂM THANH & TTS */}
+              {activeTab === 'audio' && (
+                <div className="space-y-4">
+                  <div>
+                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-2">
+                      Tự động phát âm thanh (TTS / Audio)
+                    </span>
+                    <SegmentedGroup 
+                      sub="Tự động phát giọng đọc khi chuyển mặt thẻ"
+                      value={currentAudioMode}
+                      onChange={(val) => setAutoPlayAudio(val)}
+                      options={[
+                        { id: 'none', label: 'Tắt', icon: VolumeX },
+                        { id: 'front', label: 'Mặt trước', icon: Volume2 },
+                        { id: 'back', label: 'Mặt sau', icon: Volume2 },
+                        { id: 'always', label: 'Cả hai', icon: Volume2 }
+                      ]}
+                    />
+                  </div>
 
-                  {/* Image Display Segmented */}
-                  <SegmentedGroup
-                    label="Hiển thị hình ảnh minh họa"
-                    sub="Bật/tắt ảnh ở từng mặt thẻ"
-                    value={currentImageMode}
-                    onChange={(val) => setShowImages(val)}
-                    options={[
-                      { id: 'none', label: 'Tắt', icon: ImageOff },
-                      { id: 'front', label: 'Mặt trước', icon: Image },
-                      { id: 'back', label: 'Mặt sau', icon: Image },
-                      { id: 'always', label: 'Cả hai', icon: Image }
-                    ]}
-                  />
-
-                  {/* Card Alignment (Front & Back) */}
-                  {(setBackHalign || setFrontHalign) && (
-                    <div className="p-3 bg-white rounded-2xl border border-slate-100 shadow-2xs space-y-3">
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs font-black text-slate-800 flex items-center gap-1.5">
-                          <Sliders className="w-3.5 h-3.5 text-indigo-600" />
-                          Căn lề nội dung thẻ (Alignment)
-                        </span>
-                        <span className="text-[9.5px] font-bold text-slate-400">Tự động lưu</span>
-                      </div>
-
-                      {/* Back card alignment */}
-                      {setBackHalign && (
-                        <div className="p-2.5 bg-slate-50/70 rounded-xl border border-slate-100 space-y-2">
-                          <span className="text-[11px] font-black text-emerald-800 flex items-center gap-1">
-                            📖 Mặt sau (Back Card)
-                          </span>
-                          <div className="grid grid-cols-2 gap-1.5">
-                            <div>
-                              <span className="text-[9.5px] font-bold text-slate-400 block mb-1">Chiều ngang:</span>
-                              <div className="grid grid-cols-2 gap-1 p-0.5 bg-white rounded-lg border border-slate-200/60">
-                                <button
-                                  type="button"
-                                  onClick={() => setBackHalign('left')}
-                                  className={cn(
-                                    "py-1.5 px-2 rounded-md text-[10.5px] font-black transition-all cursor-pointer text-center",
-                                    (backHalign || 'left') === 'left'
-                                      ? "bg-emerald-600 text-white shadow-2xs"
-                                      : "text-slate-500 hover:text-slate-800"
-                                  )}
-                                >
-                                  Căn trái
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={() => setBackHalign('center')}
-                                  className={cn(
-                                    "py-1.5 px-2 rounded-md text-[10.5px] font-black transition-all cursor-pointer text-center",
-                                    backHalign === 'center'
-                                      ? "bg-emerald-600 text-white shadow-2xs"
-                                      : "text-slate-500 hover:text-slate-800"
-                                  )}
-                                >
-                                  Căn giữa
-                                </button>
-                              </div>
-                            </div>
-                            {setBackValign && (
-                              <div>
-                                <span className="text-[9.5px] font-bold text-slate-400 block mb-1">Chiều dọc:</span>
-                                <div className="grid grid-cols-2 gap-1 p-0.5 bg-white rounded-lg border border-slate-200/60">
-                                  <button
-                                    type="button"
-                                    onClick={() => setBackValign('center')}
-                                    className={cn(
-                                      "py-1.5 px-2 rounded-md text-[10.5px] font-black transition-all cursor-pointer text-center",
-                                      (backValign || 'center') === 'center'
-                                        ? "bg-emerald-600 text-white shadow-2xs"
-                                        : "text-slate-500 hover:text-slate-800"
-                                    )}
-                                  >
-                                    Căn giữa
-                                  </button>
-                                  <button
-                                    type="button"
-                                    onClick={() => setBackValign('top')}
-                                    className={cn(
-                                      "py-1.5 px-2 rounded-md text-[10.5px] font-black transition-all cursor-pointer text-center",
-                                      backValign === 'top'
-                                        ? "bg-emerald-600 text-white shadow-2xs"
-                                        : "text-slate-500 hover:text-slate-800"
-                                    )}
-                                  >
-                                    Căn trên
-                                  </button>
-                                </div>
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Front card alignment */}
-                      {setFrontHalign && (
-                        <div className="p-2.5 bg-slate-50/70 rounded-xl border border-slate-100 space-y-2">
-                          <span className="text-[11px] font-black text-indigo-800 flex items-center gap-1">
-                            🎴 Mặt trước (Front Card)
-                          </span>
-                          <div className="grid grid-cols-2 gap-1.5">
-                            <div>
-                              <span className="text-[9.5px] font-bold text-slate-400 block mb-1">Chiều ngang:</span>
-                              <div className="grid grid-cols-2 gap-1 p-0.5 bg-white rounded-lg border border-slate-200/60">
-                                <button
-                                  type="button"
-                                  onClick={() => setFrontHalign('left')}
-                                  className={cn(
-                                    "py-1.5 px-2 rounded-md text-[10.5px] font-black transition-all cursor-pointer text-center",
-                                    (frontHalign || 'left') === 'left'
-                                      ? "bg-indigo-600 text-white shadow-2xs"
-                                      : "text-slate-500 hover:text-slate-800"
-                                  )}
-                                >
-                                  Căn trái
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={() => setFrontHalign('center')}
-                                  className={cn(
-                                    "py-1.5 px-2 rounded-md text-[10.5px] font-black transition-all cursor-pointer text-center",
-                                    frontHalign === 'center'
-                                      ? "bg-indigo-600 text-white shadow-2xs"
-                                      : "text-slate-500 hover:text-slate-800"
-                                  )}
-                                >
-                                  Căn giữa
-                                </button>
-                              </div>
-                            </div>
-                            {setFrontValign && (
-                              <div>
-                                <span className="text-[9.5px] font-bold text-slate-400 block mb-1">Chiều dọc:</span>
-                                <div className="grid grid-cols-2 gap-1 p-0.5 bg-white rounded-lg border border-slate-200/60">
-                                  <button
-                                    type="button"
-                                    onClick={() => setFrontValign('center')}
-                                    className={cn(
-                                      "py-1.5 px-2 rounded-md text-[10.5px] font-black transition-all cursor-pointer text-center",
-                                      (frontValign || 'center') === 'center'
-                                        ? "bg-indigo-600 text-white shadow-2xs"
-                                        : "text-slate-500 hover:text-slate-800"
-                                    )}
-                                  >
-                                    Căn giữa
-                                  </button>
-                                  <button
-                                    type="button"
-                                    onClick={() => setFrontValign('top')}
-                                    className={cn(
-                                      "py-1.5 px-2 rounded-md text-[10.5px] font-black transition-all cursor-pointer text-center",
-                                      frontValign === 'top'
-                                        ? "bg-indigo-600 text-white shadow-2xs"
-                                        : "text-slate-500 hover:text-slate-800"
-                                    )}
-                                  >
-                                    Căn trên
-                                  </button>
-                                </div>
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  )}
-
-                  {/* Effects & Sensory Toggles */}
-                  <div className="space-y-2 pt-1">
+                  <div className="space-y-2 pt-2 border-t border-slate-100">
                     <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">
-                      Hiệu ứng & Trải nghiệm
+                      Phản hồi cảm giác & Hiệu ứng
                     </span>
 
-                    <ToggleSwitch
+                    <ToggleSwitch 
                       checked={sfxEnabled}
                       onChange={() => setSfxEnabled(!sfxEnabled)}
-                      label="Âm hiệu ứng (SFX)"
-                      sub="Âm thanh khi lật thẻ, chấm điểm, thăng cấp"
+                      label="Hiệu ứng âm thanh (SFX)"
+                      sub="Âm thanh khi lật thẻ, chấm điểm đúng / sai"
                       icon={Music}
-                      color="text-emerald-600"
-                      bg="bg-emerald-50"
-                    />
-
-                    <ToggleSwitch
-                      checked={hapticEnabled}
-                      onChange={() => setHapticEnabled(!hapticEnabled)}
-                      label="Rung phản hồi (Haptic)"
-                      sub="Rung nhẹ khi thao tác trên thiết bị di động"
-                      icon={Zap}
                       color="text-indigo-600"
                       bg="bg-indigo-50"
                     />
 
-                    {setQuickLearnEnabled !== undefined && (
-                      <ToggleSwitch
-                        checked={quickLearnEnabled}
-                        onChange={() => setQuickLearnEnabled(!quickLearnEnabled)}
-                        label="Tự động chuyển câu"
-                        sub="Tự động sang thẻ kế tiếp ngay sau khi đánh giá"
-                        icon={Sparkles}
-                        color="text-purple-600"
-                        bg="bg-purple-50"
-                      />
-                    )}
-
-                    {setShowFsrs !== undefined && (
-                      <ToggleSwitch
-                        checked={showFsrs}
-                        onChange={() => setShowFsrs(!showFsrs)}
-                        label="Hiển thị chỉ số FSRS"
-                        sub="Xem độ nhớ, độ khó và khoảng thời gian ôn tập"
-                        icon={Brain}
-                        color="text-rose-600"
-                        bg="bg-rose-50"
-                      />
-                    )}
+                    <ToggleSwitch 
+                      checked={hapticEnabled}
+                      onChange={() => setHapticEnabled(!hapticEnabled)}
+                      label="Rung phản hồi cảm ứng (Haptic)"
+                      sub="Rung nhẹ trên điện thoại khi bấm nút hoặc lật thẻ"
+                      icon={Zap}
+                      color="text-emerald-600"
+                      bg="bg-emerald-50"
+                    />
                   </div>
                 </div>
               )}
 
-              {/* ── TAB 3: THAO TÁC NHANH (ACTIONS) ── */}
-              {activeTab === 'actions' && (
-                <div className="space-y-3.5 animate-in fade-in duration-200">
-                  {/* Current Card Actions */}
-                  <div className="space-y-2">
-                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">
-                      Thao tác trên thẻ hiện tại
+              {/* TAB 3: HIỂN THỊ & CĂN LỀ */}
+              {activeTab === 'display' && (
+                <div className="space-y-4">
+                  <div>
+                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-2">
+                      Căn lề nội dung mặt trước
                     </span>
-
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          onClose()
-                          openEditModal()
-                        }}
-                        className="flex items-center gap-3 p-3 bg-white hover:bg-indigo-50/50 border border-slate-100 hover:border-indigo-200 rounded-2xl transition-all shadow-2xs active:scale-95 cursor-pointer text-left group"
-                      >
-                        <div className="w-8 h-8 rounded-xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600 shrink-0 group-hover:scale-105 transition-transform">
-                          <Edit3 className="w-4 h-4" />
-                        </div>
-                        <div className="min-w-0">
-                          <span className="text-xs font-black text-slate-800 block truncate group-hover:text-indigo-600 transition-colors">
-                            Sửa nhanh thẻ này
-                          </span>
-                          <span className="text-[9.5px] font-bold text-slate-400 block truncate">
-                            Thay đổi từ, nghĩa, audio, ảnh
-                          </span>
-                        </div>
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={() => {
-                          onClose()
-                          handleIgnoreQuestion()
-                        }}
-                        className={cn(
-                          "flex items-center gap-3 p-3 bg-white border rounded-2xl transition-all shadow-2xs active:scale-95 cursor-pointer text-left group",
-                          currentQuestion?.is_ignored 
-                            ? "hover:bg-indigo-50/50 border-indigo-200" 
-                            : "hover:bg-slate-50 border-slate-100 hover:border-slate-200"
-                        )}
-                      >
-                        <div className={cn(
-                          "w-8 h-8 rounded-xl border flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform",
-                          currentQuestion?.is_ignored ? "bg-indigo-50 border-indigo-100 text-indigo-600" : "bg-slate-50 border-slate-100 text-slate-500"
-                        )}>
-                          {currentQuestion?.is_ignored ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
-                        </div>
-                        <div className="min-w-0">
-                          <span className="text-xs font-black text-slate-800 block truncate">
-                            {currentQuestion?.is_ignored ? "Hủy bỏ qua thẻ" : "Bỏ qua thẻ này"}
-                          </span>
-                          <span className="text-[9.5px] font-bold text-slate-400 block truncate">
-                            {currentQuestion?.is_ignored ? "Khôi phục thẻ vào vòng lặp" : "Tạm ẩn khỏi phiên học"}
-                          </span>
-                        </div>
-                      </button>
-
-                      {showFeedback && (
-                        <button
-                          type="button"
-                          onClick={() => {
-                            copyQuestionToClipboard()
-                            onClose()
-                          }}
-                          className="flex items-center gap-3 p-3 bg-white hover:bg-slate-50 border border-slate-100 hover:border-slate-200 rounded-2xl transition-all shadow-2xs active:scale-95 cursor-pointer text-left group sm:col-span-2"
-                        >
-                          <div className="w-8 h-8 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-center text-slate-500 shrink-0 group-hover:scale-105 transition-transform">
-                            <Copy className="w-4 h-4" />
-                          </div>
-                          <div className="min-w-0">
-                            <span className="text-xs font-black text-slate-800 block truncate">
-                              Sao chép nội dung thẻ
-                            </span>
-                            <span className="text-[9.5px] font-bold text-slate-400 block truncate">
-                              Lưu mặt trước & mặt sau vào Clipboard
-                            </span>
-                          </div>
-                        </button>
+                    <div className="grid grid-cols-2 gap-2">
+                      {setFrontValign && (
+                        <SegmentedGroup 
+                          label="Căn dọc"
+                          value={frontValign}
+                          onChange={(v) => setFrontValign(v)}
+                          options={[
+                            { id: 'center', label: 'Giữa' },
+                            { id: 'top', label: 'Trên cùng' }
+                          ]}
+                        />
+                      )}
+                      {setFrontHalign && (
+                        <SegmentedGroup 
+                          label="Căn ngang"
+                          value={frontHalign}
+                          onChange={(v) => setFrontHalign(v)}
+                          options={[
+                            { id: 'left', label: 'Căn trái', icon: AlignLeft },
+                            { id: 'center', label: 'Căn giữa', icon: AlignCenter }
+                          ]}
+                        />
                       )}
                     </div>
                   </div>
 
-                  {/* Deck Management Actions */}
-                  {id && (
-                    <div className="space-y-2 pt-2 border-t border-slate-200/60">
-                      <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">
-                        Quản lý bộ thẻ
-                      </span>
+                  <div>
+                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-2">
+                      Căn lề nội dung mặt sau
+                    </span>
+                    <div className="grid grid-cols-2 gap-2">
+                      {setBackValign && (
+                        <SegmentedGroup 
+                          label="Căn dọc"
+                          value={backValign}
+                          onChange={(v) => setBackValign(v)}
+                          options={[
+                            { id: 'center', label: 'Giữa' },
+                            { id: 'top', label: 'Trên cùng' }
+                          ]}
+                        />
+                      )}
+                      {setBackHalign && (
+                        <SegmentedGroup 
+                          label="Căn ngang"
+                          value={backHalign}
+                          onChange={(v) => setBackHalign(v)}
+                          options={[
+                            { id: 'left', label: 'Căn trái', icon: AlignLeft },
+                            { id: 'center', label: 'Căn giữa', icon: AlignCenter }
+                          ]}
+                        />
+                      )}
+                    </div>
+                  </div>
 
-                      <div className="grid grid-cols-2 gap-2">
+                  <div className="pt-2 border-t border-slate-100">
+                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-2">
+                      Hiển thị hình ảnh minh họa
+                    </span>
+                    <SegmentedGroup 
+                      sub="Tùy chọn mặt thẻ hiển thị hình minh họa"
+                      value={currentImageMode}
+                      onChange={(val) => setShowImages(val)}
+                      options={[
+                        { id: 'none', label: 'Tắt', icon: ImageOff },
+                        { id: 'front', label: 'Mặt trước', icon: Image },
+                        { id: 'back', label: 'Mặt sau', icon: Image },
+                        { id: 'always', label: 'Cả hai', icon: Image }
+                      ]}
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* TAB 4: THAO TÁC & CỬ CHỈ */}
+              {activeTab === 'gestures' && (
+                <div className="space-y-4">
+                  <div>
+                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-2">
+                      Thao tác lật thẻ
+                    </span>
+                    {setCardFlipTrigger && (
+                      <SegmentedGroup 
+                        sub="Cách thức kích hoạt lật mặt thẻ"
+                        value={cardFlipTrigger}
+                        onChange={(v) => setCardFlipTrigger(v)}
+                        options={[
+                          { id: 'both', label: 'Cả hai', sub: 'Chạm / Nút' },
+                          { id: 'tap', label: 'Chạm thẻ', sub: 'Tap vùng thẻ' },
+                          { id: 'button_only', label: 'Chỉ nút', sub: 'Nút Lật' }
+                        ]}
+                      />
+                    )}
+                  </div>
+
+                  <div>
+                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-2">
+                      Phương thức đánh giá kết quả
+                    </span>
+                    {setCardRatingMode && (
+                      <SegmentedGroup 
+                        sub="Giao diện chấm điểm độ nhớ"
+                        value={cardRatingMode}
+                        onChange={(v) => setCardRatingMode(v)}
+                        options={[
+                          { id: 'both', label: 'Cả hai', sub: 'Nút & Vuốt' },
+                          { id: 'buttons', label: '4 Nút', sub: 'Thanh nút' },
+                          { id: 'swipe_4way', label: 'Vuốt 4 hướng', sub: '4 chiều' },
+                          { id: 'swipe_2way', label: 'Vuốt 2 hướng', sub: 'Trái / Phải' }
+                        ]}
+                      />
+                    )}
+                  </div>
+
+                  {/* Study Actions & Management */}
+                  <div className="space-y-2 pt-2 border-t border-slate-100">
+                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">
+                      Thao tác trên thẻ hiện tại
+                    </span>
+
+                    <div className="grid grid-cols-2 gap-2">
+                      {copyQuestionToClipboard && (
+                        <button
+                          type="button"
+                          onClick={copyQuestionToClipboard}
+                          className="flex items-center gap-2 p-2.5 bg-white hover:bg-slate-50 border border-slate-100 rounded-xl text-slate-700 transition-all shadow-2xs active:scale-95 cursor-pointer text-left"
+                        >
+                          <Copy className="w-3.5 h-3.5 text-slate-500 shrink-0" />
+                          <span className="text-xs font-black truncate">Sao chép câu</span>
+                        </button>
+                      )}
+
+                      {handleIgnoreQuestion && (
+                        <button
+                          type="button"
+                          onClick={handleIgnoreQuestion}
+                          className="flex items-center gap-2 p-2.5 bg-white hover:bg-amber-50/50 border border-slate-100 hover:border-amber-200 rounded-xl text-slate-700 transition-all shadow-2xs active:scale-95 cursor-pointer text-left"
+                        >
+                          <EyeOff className="w-3.5 h-3.5 text-amber-500 shrink-0" />
+                          <span className="text-xs font-black truncate">Bỏ qua câu này</span>
+                        </button>
+                      )}
+
+                      {openEditModal && (
+                        <button
+                          type="button"
+                          onClick={openEditModal}
+                          className="flex items-center gap-2 p-2.5 bg-white hover:bg-indigo-50/50 border border-slate-100 hover:border-indigo-200 rounded-xl text-slate-700 transition-all shadow-2xs active:scale-95 cursor-pointer text-left col-span-2"
+                        >
+                          <Edit3 className="w-3.5 h-3.5 text-indigo-500 shrink-0" />
+                          <span className="text-xs font-black truncate">Chỉnh sửa nhanh nội dung thẻ này</span>
+                        </button>
+                      )}
+                    </div>
+
+                    {id && (
+                      <div className="grid grid-cols-2 gap-2 pt-1">
                         <button
                           type="button"
                           onClick={() => {
                             onClose()
                             navigate(`/decks/${id}?tab=settings`)
                           }}
-                          className="flex items-center gap-2.5 p-3 bg-white hover:bg-indigo-50/50 border border-slate-100 hover:border-indigo-200 rounded-2xl text-slate-700 transition-all shadow-2xs active:scale-95 cursor-pointer text-left group"
+                          className="flex items-center gap-2 p-2.5 bg-white hover:bg-indigo-50/50 border border-slate-100 hover:border-indigo-200 rounded-xl text-slate-700 transition-all shadow-2xs active:scale-95 cursor-pointer text-left"
                         >
-                          <Settings className="w-4 h-4 text-indigo-500 shrink-0 group-hover:rotate-45 transition-transform" />
-                          <div className="min-w-0">
-                            <span className="text-xs font-black text-slate-800 block truncate group-hover:text-indigo-600 transition-colors">
-                              Cài đặt bộ
-                            </span>
-                            <span className="text-[9px] font-bold text-slate-400 block truncate">Cấu hình & AI</span>
-                          </div>
+                          <Settings className="w-3.5 h-3.5 text-indigo-500 shrink-0" />
+                          <span className="text-xs font-black truncate">Cài đặt bộ thẻ</span>
                         </button>
 
                         <button
@@ -727,83 +738,98 @@ export const PlaySettingsModal: React.FC<PlaySettingsModalProps> = ({
                             onClose()
                             navigate(`/decks/${id}?tab=cards`)
                           }}
-                          className="flex items-center gap-2.5 p-3 bg-white hover:bg-emerald-50/50 border border-slate-100 hover:border-emerald-200 rounded-2xl text-slate-700 transition-all shadow-2xs active:scale-95 cursor-pointer text-left group"
+                          className="flex items-center gap-2 p-2.5 bg-white hover:bg-emerald-50/50 border border-slate-100 hover:border-emerald-200 rounded-xl text-slate-700 transition-all shadow-2xs active:scale-95 cursor-pointer text-left"
                         >
-                          <BookOpen className="w-4 h-4 text-emerald-500 shrink-0 group-hover:scale-110 transition-transform" />
-                          <div className="min-w-0">
-                            <span className="text-xs font-black text-slate-800 block truncate group-hover:text-emerald-600 transition-colors">
-                              Quản lý thẻ
-                            </span>
-                            <span className="text-[9px] font-bold text-slate-400 block truncate">Thêm / Sửa / Xóa</span>
-                          </div>
+                          <BookOpen className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+                          <span className="text-xs font-black truncate">Quản lý thẻ</span>
                         </button>
                       </div>
-                    </div>
-                  )}
+                    )}
 
-                  {/* Exit Study Session */}
-                  <div className="pt-2 border-t border-slate-200/60">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        onClose()
-                        setIsQuitModalOpen(true)
-                      }}
-                      className="w-full flex items-center justify-center gap-2 py-3 px-4 bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200/80 rounded-2xl font-black text-xs uppercase tracking-wider transition-all active:scale-95 cursor-pointer shadow-2xs"
-                    >
-                      <LogOut className="w-4 h-4" />
-                      <span>Rời phiên học (Thoát ra ngoài)</span>
-                    </button>
+                    {setIsQuitModalOpen && (
+                      <div className="pt-2">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            onClose()
+                            setIsQuitModalOpen(true)
+                          }}
+                          className="w-full flex items-center justify-center gap-2 py-2.5 px-4 bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200/80 rounded-xl font-black text-xs uppercase tracking-wider transition-all active:scale-95 cursor-pointer shadow-2xs"
+                        >
+                          <LogOut className="w-3.5 h-3.5" />
+                          <span>Rời phiên học</span>
+                        </button>
+                      </div>
+                    )}
                   </div>
                 </div>
               )}
             </div>
 
-            {/* Footer Agree / Close Button */}
-            <div className="px-5 py-3.5 bg-white border-t border-slate-100 flex items-center justify-between gap-2 shrink-0">
-              <div className="flex items-center gap-2">
-                {onSaveAsCreatorDefaults && isCreator && (
+            {/* Footer Action Bar: 3-Tier Synchronization Controls */}
+            <div className="px-4 py-3 bg-white border-t border-slate-100 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2 shrink-0">
+              <div className="flex flex-wrap items-center gap-1.5">
+                {/* Reset to creator defaults */}
+                {onResetToCreatorDefaults && (
                   <button
                     type="button"
-                    onClick={async () => {
-                      if (window.confirm("Lưu cấu hình học hiện tại làm MẶC ĐỊNH GỐC của bộ thẻ này cho tất cả người học?")) {
-                        await onSaveAsCreatorDefaults();
-                        alert("Đã lưu làm mặc định của bộ thẻ thành công!");
-                      }
-                    }}
-                    className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-[10.5px] font-black uppercase tracking-wider text-emerald-700 hover:text-emerald-800 bg-emerald-50 hover:bg-emerald-100/80 border border-emerald-200 transition-all active:scale-95 cursor-pointer"
-                    title="Lưu cấu hình này thành mặc định chung của bộ thẻ cho tất cả người học"
+                    disabled={isSyncing}
+                    onClick={handleResetToCreator}
+                    className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-wider text-slate-600 hover:text-indigo-600 bg-slate-50 hover:bg-indigo-50 border border-slate-200 transition-all active:scale-95 cursor-pointer disabled:opacity-50"
+                    title="Khôi phục lại toàn bộ cấu hình học về mặc định ban đầu của người tạo bộ thẻ"
                   >
-                    <Check className="w-3.5 h-3.5 text-emerald-600" />
-                    <span className="hidden sm:inline">Lưu làm mặc định bộ thẻ</span>
-                    <span className="sm:hidden">Lưu mặc định</span>
+                    <RotateCcw className="w-3 h-3" />
+                    <span>Mặc định bộ thẻ</span>
                   </button>
                 )}
 
-                {onResetToCreatorDefaults && isCustomized && (
+                {/* Apply global settings */}
+                {onApplyGlobalSettings && (
                   <button
                     type="button"
-                    onClick={async () => {
-                      if (window.confirm("Khôi phục toàn bộ cài đặt học của bộ thẻ này về mặc định ban đầu của người tạo?")) {
-                        await onResetToCreatorDefaults();
-                      }
-                    }}
-                    className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-[10.5px] font-black uppercase tracking-wider text-slate-600 hover:text-indigo-600 bg-slate-50 hover:bg-indigo-50/80 border border-slate-200 transition-all active:scale-95 cursor-pointer"
-                    title="Khôi phục lại thiết lập gốc của người tạo bộ thẻ"
+                    disabled={isSyncing}
+                    onClick={handleApplyGlobal}
+                    className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-wider text-blue-700 hover:text-blue-800 bg-blue-50 hover:bg-blue-100/80 border border-blue-200 transition-all active:scale-95 cursor-pointer disabled:opacity-50"
+                    title="Áp dụng cấu hình mặc định tài khoản toàn cục của bạn vào bộ thẻ này"
                   >
-                    <RotateCcw className="w-3.5 h-3.5" />
-                    <span className="hidden sm:inline">Khôi phục mặc định bộ thẻ</span>
-                    <span className="sm:hidden">Mặc định</span>
+                    <Globe className="w-3 h-3 text-blue-600" />
+                    <span>Áp dụng toàn cục</span>
                   </button>
                 )}
-                <span className="text-[10px] font-bold text-slate-400 hidden sm:inline">
-                  Tự động lưu cấu hình
-                </span>
+
+                {/* Save as global settings */}
+                {onSaveAsGlobalSettings && (
+                  <button
+                    type="button"
+                    disabled={isSyncing}
+                    onClick={handleSaveAsGlobal}
+                    className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-wider text-purple-700 hover:text-purple-800 bg-purple-50 hover:bg-purple-100/80 border border-purple-200 transition-all active:scale-95 cursor-pointer disabled:opacity-50"
+                    title="Lưu cấu hình của bộ thẻ này thành cấu hình toàn cục mặc định của tài khoản"
+                  >
+                    <User className="w-3 h-3 text-purple-600" />
+                    <span>Lưu làm toàn cục</span>
+                  </button>
+                )}
+
+                {/* Save as creator deck defaults */}
+                {onSaveAsCreatorDefaults && isCreator && (
+                  <button
+                    type="button"
+                    disabled={isSyncing}
+                    onClick={handleSaveAsCreator}
+                    className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-wider text-emerald-700 hover:text-emerald-800 bg-emerald-50 hover:bg-emerald-100/80 border border-emerald-200 transition-all active:scale-95 cursor-pointer disabled:opacity-50"
+                    title="Lưu cấu hình này thành mặc định chung của bộ thẻ cho tất cả người học"
+                  >
+                    <Check className="w-3 h-3 text-emerald-600" />
+                    <span>Đặt mặc định bộ thẻ</span>
+                  </button>
+                )}
               </div>
+
               <button 
                 type="button"
                 onClick={onClose}
-                className="px-6 py-2.5 bg-gradient-to-r from-orange-500 via-rose-500 to-indigo-600 hover:from-orange-600 hover:to-indigo-700 text-white rounded-xl font-black text-xs uppercase tracking-wider shadow-md hover:shadow-lg active:scale-95 transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                className="px-5 py-2 bg-gradient-to-r from-orange-500 via-rose-500 to-indigo-600 hover:from-orange-600 hover:to-indigo-700 text-white rounded-xl font-black text-xs uppercase tracking-wider shadow-md hover:shadow-lg active:scale-95 transition-all flex items-center justify-center gap-1.5 cursor-pointer shrink-0"
               >
                 <span>Xong / Đóng</span>
               </button>

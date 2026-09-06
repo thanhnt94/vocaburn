@@ -27,7 +27,8 @@ class UserSettingsService:
             "show_images", "show_fsrs", "quiz_learning_mode",
             "practice_submode", "practice_range", "score_mode", "time_mode",
             "last_deck_id", "paste_columns", "quick_add_columns",
-            "card_flip_trigger", "card_rating_mode"
+            "card_flip_trigger", "card_rating_mode",
+            "front_valign", "front_halign", "back_valign", "back_halign"
         }
         
         updated = False
@@ -66,4 +67,8 @@ class UserSettingsService:
             "quick_add_columns": settings_obj.quick_add_columns or ["front", "back"],
             "card_flip_trigger": getattr(settings_obj, 'card_flip_trigger', 'both') or "both",
             "card_rating_mode": getattr(settings_obj, 'card_rating_mode', 'both') or "both",
+            "front_valign": getattr(settings_obj, 'front_valign', 'center') or "center",
+            "front_halign": getattr(settings_obj, 'front_halign', 'left') or "left",
+            "back_valign": getattr(settings_obj, 'back_valign', 'center') or "center",
+            "back_halign": getattr(settings_obj, 'back_halign', 'left') or "left",
         }

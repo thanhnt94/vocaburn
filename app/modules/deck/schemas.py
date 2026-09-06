@@ -128,5 +128,9 @@ class UserSettingsUpdateRequest(BaseModel):
     quick_add_columns: Optional[List[str]] = None
     card_flip_trigger: Optional[str] = None
     card_rating_mode: Optional[str] = None
+    front_valign: Optional[str] = None
+    front_halign: Optional[str] = None
+    back_valign: Optional[str] = None
+    back_halign: Optional[str] = None
 
 

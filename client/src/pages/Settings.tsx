@@ -19,7 +19,12 @@ import {
   ExternalLink,
   Move,
   MousePointer,
-  Compass
+  Compass,
+  Layers,
+  AlignLeft,
+  AlignCenter,
+  Volume2,
+  VolumeX
 } from 'lucide-react'
 import { useAppStore } from '@/store/useAppStore'
 import { cn } from '@/lib/utils'
@@ -538,6 +543,119 @@ const Settings = () => {
               active={userSettings.show_fsrs ?? true} 
               onClick={() => updateUserSettings({ show_fsrs: !(userSettings.show_fsrs ?? true) })}
             />
+          </div>
+        </div>
+
+        {/* Sub-section 4: Global Card Layout & Alignment Defaults */}
+        <div className="space-y-4 pt-3 border-t border-slate-100">
+          <div className="flex items-center gap-2">
+            <Layers className="w-3.5 h-3.5 text-indigo-500" />
+            <h3 className="text-[11px] font-black text-slate-700 uppercase tracking-wider">
+              Global Card Alignment & Display Defaults
+            </h3>
+          </div>
+          <p className="text-[10px] text-slate-400 font-medium">
+            Default alignment preferences applied across all decks unless overridden per deck.
+          </p>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {/* Front Card Alignment */}
+            <div className="p-3.5 bg-slate-50/70 rounded-2xl border border-slate-100 space-y-2.5">
+              <span className="text-[10.5px] font-black text-slate-700 uppercase tracking-wider block">
+                Front Card Alignment
+              </span>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <span className="text-[9.5px] font-bold text-slate-400 block mb-1">Vertical</span>
+                  <div className="grid grid-cols-2 gap-1 bg-white p-1 rounded-xl border border-slate-200/60">
+                    {(['center', 'top'] as const).map(mode => (
+                      <button
+                        key={mode}
+                        type="button"
+                        onClick={() => updateUserSettings({ front_valign: mode })}
+                        className={cn(
+                          "py-1 px-2 rounded-lg text-[10px] font-black uppercase transition-all cursor-pointer text-center",
+                          (userSettings.front_valign || 'center') === mode
+                            ? "bg-indigo-600 text-white shadow-xs"
+                            : "text-slate-500 hover:text-slate-800"
+                        )}
+                      >
+                        {mode === 'center' ? 'Center' : 'Top'}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div>
+                  <span className="text-[9.5px] font-bold text-slate-400 block mb-1">Horizontal</span>
+                  <div className="grid grid-cols-2 gap-1 bg-white p-1 rounded-xl border border-slate-200/60">
+                    {(['left', 'center'] as const).map(mode => (
+                      <button
+                        key={mode}
+                        type="button"
+                        onClick={() => updateUserSettings({ front_halign: mode })}
+                        className={cn(
+                          "py-1 px-2 rounded-lg text-[10px] font-black uppercase transition-all cursor-pointer text-center",
+                          (userSettings.front_halign || 'left') === mode
+                            ? "bg-indigo-600 text-white shadow-xs"
+                            : "text-slate-500 hover:text-slate-800"
+                        )}
+                      >
+                        {mode === 'left' ? 'Left' : 'Center'}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Back Card Alignment */}
+            <div className="p-3.5 bg-slate-50/70 rounded-2xl border border-slate-100 space-y-2.5">
+              <span className="text-[10.5px] font-black text-slate-700 uppercase tracking-wider block">
+                Back Card Alignment
+              </span>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <span className="text-[9.5px] font-bold text-slate-400 block mb-1">Vertical</span>
+                  <div className="grid grid-cols-2 gap-1 bg-white p-1 rounded-xl border border-slate-200/60">
+                    {(['center', 'top'] as const).map(mode => (
+                      <button
+                        key={mode}
+                        type="button"
+                        onClick={() => updateUserSettings({ back_valign: mode })}
+                        className={cn(
+                          "py-1 px-2 rounded-lg text-[10px] font-black uppercase transition-all cursor-pointer text-center",
+                          (userSettings.back_valign || 'center') === mode
+                            ? "bg-indigo-600 text-white shadow-xs"
+                            : "text-slate-500 hover:text-slate-800"
+                        )}
+                      >
+                        {mode === 'center' ? 'Center' : 'Top'}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div>
+                  <span className="text-[9.5px] font-bold text-slate-400 block mb-1">Horizontal</span>
+                  <div className="grid grid-cols-2 gap-1 bg-white p-1 rounded-xl border border-slate-200/60">
+                    {(['left', 'center'] as const).map(mode => (
+                      <button
+                        key={mode}
+                        type="button"
+                        onClick={() => updateUserSettings({ back_halign: mode })}
+                        className={cn(
+                          "py-1 px-2 rounded-lg text-[10px] font-black uppercase transition-all cursor-pointer text-center",
+                          (userSettings.back_halign || 'left') === mode
+                            ? "bg-indigo-600 text-white shadow-xs"
+                            : "text-slate-500 hover:text-slate-800"
+                        )}
+                      >
+                        {mode === 'left' ? 'Left' : 'Center'}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </section>

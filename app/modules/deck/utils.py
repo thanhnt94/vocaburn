@@ -119,10 +119,12 @@ SYSTEM_STUDY_DEFAULTS = {
     "sfx_enabled": True,            # boolean
     "haptic_enabled": True,         # boolean
     "quick_learn_enabled": False,   # boolean
-    "show_fsrs": True               # boolean
+    "show_fsrs": True,              # boolean
+    "card_flip_trigger": "both",    # 'both' | 'tap' | 'button_only'
+    "card_rating_mode": "both"      # 'both' | 'buttons' | 'swipe_4way' | 'swipe_2way'
 }
 
-STUDY_SETTINGS_KEYS = set(SYSTEM_STUDY_DEFAULTS.keys()) | {"card_flip_trigger", "card_rating_mode"}
+STUDY_SETTINGS_KEYS = set(SYSTEM_STUDY_DEFAULTS.keys())
 
 
 def normalize_study_setting_value(key: str, val: Any) -> Any:
@@ -205,14 +207,15 @@ def normalize_study_setting_value(key: str, val: Any) -> Any:
 
 
 def resolve_effective_study_settings(
-    deck_practice_settings: Optional[dict],
-    user_deck_settings: Optional[dict]
+    deck_practice_settings: Optional[dict] = None,
+    user_deck_settings: Optional[dict] = None,
+    user_global_settings: Optional[dict] = None
 ) -> dict:
     """
-    Resolves study settings using 3-tier inheritance:
-    Level 1: User Deck Overrides (UserDeckSettings.settings)
-    Level 2: Creator Deck Defaults (deck.practice_settings.study_defaults)
-    Level 3: System Global Defaults (SYSTEM_STUDY_DEFAULTS)
+    Resolves study settings using 3-tier hierarchy:
+    Tier 1 (Base): Creator Deck Defaults (deck.practice_settings.study_defaults)
+    Tier 2 (User Default): User Global Account Settings (user_global_settings)
+    Tier 3 (King / Highest): User Deck Overrides (UserDeckSettings.settings)
     """
     creator_defaults = {}
     if deck_practice_settings and isinstance(deck_practice_settings, dict):
@@ -229,6 +232,14 @@ def resolve_effective_study_settings(
                 norm = normalize_study_setting_value(k, deck_practice_settings[k])
                 if norm is not None:
                     creator_defaults[k] = norm
+
+    global_defaults = {}
+    if user_global_settings and isinstance(user_global_settings, dict):
+        for k in STUDY_SETTINGS_KEYS:
+            if k in user_global_settings and user_global_settings[k] is not None:
+                norm = normalize_study_setting_value(k, user_global_settings[k])
+                if norm is not None:
+                    global_defaults[k] = norm
 
     user_overrides = {}
     if user_deck_settings and isinstance(user_deck_settings, dict):
@@ -253,11 +264,20 @@ def resolve_effective_study_settings(
     effective.update(user_overrides)
 
     is_customized = len(user_overrides) > 0
+    
+    # Determine setting origin
+    if is_customized:
+        is_from_global = isinstance(user_deck_settings, dict) and user_deck_settings.get("_origin") == "user_global"
+        setting_origin = "user_global" if is_from_global else "deck_override"
+    else:
+        setting_origin = "deck_default"
 
     return {
         "effective_study_settings": effective,
         "creator_study_defaults": creator_defaults,
         "user_study_settings": user_overrides,
+        "user_global_settings": global_defaults,
+        "setting_origin": setting_origin,
         "is_customized": is_customized
     }
 

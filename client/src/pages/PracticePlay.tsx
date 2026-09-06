@@ -617,10 +617,17 @@ export default function PracticePlay() {
     backHalign,
     setBackHalign,
     creatorDefaults,
+    cardFlipTrigger: deckCardFlipTrigger,
+    setCardFlipTrigger,
+    cardRatingMode: deckCardRatingMode,
+    setCardRatingMode,
     isCustomized,
+    settingOrigin,
     syncStudySettings,
     saveGeneralSettings,
     resetToCreatorDefaults,
+    applyGlobalSettings,
+    saveAsGlobalSettings,
     saveAsCreatorDefaults
   } = usePlaySettings(id || '', modeSettings, setModeSettings);
 
@@ -1340,8 +1347,10 @@ export default function PracticePlay() {
       const creatorStudyDefs = quizRes.data.creator_study_defaults || quizRes.data.study_defaults || {};
       const userStudyOverrides = quizRes.data.user_study_settings || quizRes.data.user_settings || {};
       const isCustom = quizRes.data.is_study_customized;
+      const origin = quizRes.data.setting_origin;
+      const userGlobal = quizRes.data.user_global_settings;
 
-      syncStudySettings(effectiveStudy, creatorStudyDefs, userStudyOverrides, isCustom);
+      syncStudySettings(effectiveStudy, creatorStudyDefs, userStudyOverrides, isCustom, origin, userGlobal);
 
       const hasLearned = questions.some((q: any) => (q.stats?.total || 0) > 0);
       if (activeTab === 'practice' && practiceRange === 'learned' && !hasLearned) {
@@ -6390,7 +6399,10 @@ export default function PracticePlay() {
         randomEnabled={randomEnabled}
         setRandomEnabled={setRandomEnabled}
         isCustomized={isCustomized}
+        settingOrigin={settingOrigin}
         onResetToCreatorDefaults={resetToCreatorDefaults}
+        onApplyGlobalSettings={applyGlobalSettings}
+        onSaveAsGlobalSettings={saveAsGlobalSettings}
         frontHalign={frontHalign}
         setFrontHalign={setFrontHalign}
         backHalign={backHalign}
@@ -6399,6 +6411,16 @@ export default function PracticePlay() {
         setFrontValign={setFrontValign}
         backValign={backValign}
         setBackValign={setBackValign}
+        cardFlipTrigger={deckCardFlipTrigger || userSettings.card_flip_trigger || 'both'}
+        setCardFlipTrigger={(val) => {
+          setCardFlipTrigger(val);
+          saveGeneralSettings({ card_flip_trigger: val });
+        }}
+        cardRatingMode={deckCardRatingMode || userSettings.card_rating_mode || 'both'}
+        setCardRatingMode={(val) => {
+          setCardRatingMode(val);
+          saveGeneralSettings({ card_rating_mode: val });
+        }}
         isCreator={Boolean(session?.is_creator || session?.creator_id === user?.id || user?.role === 'admin')}
         onSaveAsCreatorDefaults={saveAsCreatorDefaults}
       />

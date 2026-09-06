@@ -14,8 +14,8 @@ from typing import Optional
 import logging
 
 logger = logging.getLogger(__name__)
-from fastapi.responses import RedirectResponse, JSONResponse, FileResponse
 from app.modules.auth.services.auth_service import AuthService
+from app.modules.auth.services.user_settings_service import UserSettingsService
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, delete, func, Integer, or_
 from sqlalchemy.orm import selectinload
@@ -1332,9 +1332,13 @@ async def get_deck_play_data(request: Request, deck_id: int, mode: Optional[str]
                 "others": fix_static_urls(c.others)
             })
         
+    user_global_sett_obj = await UserSettingsService.get_or_create_settings(db, user_id)
+    user_global_sett_dict = UserSettingsService.to_dict(user_global_sett_obj)
+
     study_resolved = resolve_effective_study_settings(
         deck.practice_settings,
-        user_sett.settings if user_sett else None
+        user_sett.settings if user_sett else None,
+        user_global_sett_dict
     )
 
     await resolve_play_cards(cards_list, db)
@@ -1363,7 +1367,9 @@ async def get_deck_play_data(request: Request, deck_id: int, mode: Optional[str]
         "study_defaults": study_resolved["creator_study_defaults"],
         "creator_study_defaults": study_resolved["creator_study_defaults"],
         "user_study_settings": study_resolved["user_study_settings"],
+        "user_global_settings": study_resolved["user_global_settings"],
         "effective_study_settings": study_resolved["effective_study_settings"],
+        "setting_origin": study_resolved["setting_origin"],
         "is_study_customized": study_resolved["is_customized"]
     }
 

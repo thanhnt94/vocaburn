@@ -1,5 +1,6 @@
 import { useState, useCallback } from 'react'
 import axios from 'axios'
+import { useSettingsStore } from '@/store/useSettingsStore'
 
 export type AutoPlayMode = 'always' | 'front' | 'back' | 'none'
 export type ImageDisplayMode = 'always' | 'front' | 'back' | 'none'
@@ -7,6 +8,7 @@ export type VAlignMode = 'center' | 'top'
 export type HAlignMode = 'center' | 'left'
 export type CardFlipTrigger = 'both' | 'tap' | 'button_only'
 export type CardRatingMode = 'both' | 'swipe_4way' | 'swipe_2way' | 'buttons'
+export type SettingOrigin = 'deck_override' | 'user_global' | 'deck_default'
 
 export interface StudySettingsState {
   autoplay_audio: AutoPlayMode
@@ -63,19 +65,34 @@ export function usePlaySettings(
   const [cardFlipTrigger, setCardFlipTriggerState] = useState<CardFlipTrigger | undefined>(undefined)
   const [cardRatingMode, setCardRatingModeState] = useState<CardRatingMode | undefined>(undefined)
 
-  // Creator baseline & user customization status
+  // Creator baseline & user customization status & 3-tier origin
   const [creatorDefaults, setCreatorDefaults] = useState<Partial<StudySettingsState>>({})
+  const [userGlobalSettings, setUserGlobalSettings] = useState<Partial<StudySettingsState>>({})
   const [isCustomized, setIsCustomized] = useState<boolean>(false)
+  const [settingOrigin, setSettingOrigin] = useState<SettingOrigin>('deck_default')
 
   // Synchronize settings from /play-data or /practice-settings response
   const syncStudySettings = useCallback((
     effectiveSettings?: Partial<StudySettingsState>,
     creatorStudyDefaults?: Partial<StudySettingsState>,
     userStudySettings?: Partial<StudySettingsState>,
-    customizedFlag?: boolean
+    customizedFlag?: boolean,
+    origin?: SettingOrigin,
+    globalSettings?: Partial<StudySettingsState>
   ) => {
     if (creatorStudyDefaults && typeof creatorStudyDefaults === 'object') {
       setCreatorDefaults(creatorStudyDefaults)
+    }
+    if (globalSettings && typeof globalSettings === 'object') {
+      setUserGlobalSettings(globalSettings)
+    }
+
+    if (origin) {
+      setSettingOrigin(origin)
+    } else if (customizedFlag) {
+      setSettingOrigin('deck_override')
+    } else {
+      setSettingOrigin('deck_default')
     }
 
     if (customizedFlag !== undefined) {
@@ -173,6 +190,7 @@ export function usePlaySettings(
     if (updates.card_rating_mode !== undefined) setCardRatingModeState(updates.card_rating_mode)
 
     setIsCustomized(true)
+    setSettingOrigin('deck_override')
 
     // 2. Update parent modeSettings if available
     if (modeSettings && setModeSettings) {
@@ -254,35 +272,111 @@ export function usePlaySettings(
     if (!deckId || deckId === 'quick') return
 
     try {
-      await axios.post(`/api/v1/deck/${deckId}/practice-settings`, {
+      const res = await axios.post(`/api/v1/deck/${deckId}/practice-settings`, {
         is_creator: false,
         reset_study_defaults: true
       })
 
-      // Revert local state to creator defaults or system defaults
-      const baseline: StudySettingsState = {
-        ...DEFAULT_STUDY_SETTINGS,
-        ...creatorDefaults
+      if (res.data?.effective_study_settings) {
+        syncStudySettings(
+          res.data.effective_study_settings,
+          res.data.creator_study_defaults,
+          res.data.user_study_settings,
+          res.data.is_study_customized,
+          res.data.setting_origin,
+          res.data.user_global_settings
+        )
+      } else {
+        const baseline: StudySettingsState = {
+          ...DEFAULT_STUDY_SETTINGS,
+          ...creatorDefaults
+        }
+        setSfxEnabledState(baseline.sfx_enabled)
+        setQuickLearnEnabledState(baseline.quick_learn_enabled)
+        setHapticEnabledState(baseline.haptic_enabled)
+        setShowImagesState(baseline.show_images)
+        setShowFsrsState(baseline.show_fsrs)
+        setRandomEnabledState(baseline.random_enabled)
+        setAutoPlayAudioState(baseline.autoplay_audio)
+        setLearningModeState(baseline.learning_mode)
+        setFrontValignState(baseline.front_valign)
+        setFrontHalignState(baseline.front_halign)
+        setBackValignState(baseline.back_valign)
+        setBackHalignState(baseline.back_halign)
+        setIsCustomized(false)
+        setSettingOrigin('deck_default')
       }
-
-      setSfxEnabledState(baseline.sfx_enabled)
-      setQuickLearnEnabledState(baseline.quick_learn_enabled)
-      setHapticEnabledState(baseline.haptic_enabled)
-      setShowImagesState(baseline.show_images)
-      setShowFsrsState(baseline.show_fsrs)
-      setRandomEnabledState(baseline.random_enabled)
-      setAutoPlayAudioState(baseline.autoplay_audio)
-      setLearningModeState(baseline.learning_mode)
-      setFrontValignState(baseline.front_valign)
-      setFrontHalignState(baseline.front_halign)
-      setBackValignState(baseline.back_valign)
-      setBackHalignState(baseline.back_halign)
-
-      setIsCustomized(false)
     } catch (err) {
       console.error('[usePlaySettings] Failed to reset to creator defaults:', err)
     }
-  }, [deckId, creatorDefaults])
+  }, [deckId, creatorDefaults, syncStudySettings])
+
+  // Apply personal user global settings into this deck
+  const applyGlobalSettings = useCallback(async () => {
+    if (!deckId || deckId === 'quick') return
+    try {
+      const res = await axios.post(`/api/v1/deck/${deckId}/practice-settings`, {
+        is_creator: false,
+        apply_global_settings: true
+      })
+      if (res.data?.effective_study_settings) {
+        syncStudySettings(
+          res.data.effective_study_settings,
+          res.data.creator_study_defaults,
+          res.data.user_study_settings,
+          res.data.is_study_customized,
+          res.data.setting_origin,
+          res.data.user_global_settings
+        )
+      } else {
+        setSettingOrigin('user_global')
+        setIsCustomized(true)
+      }
+    } catch (err) {
+      console.error('[usePlaySettings] Failed to apply global settings:', err)
+    }
+  }, [deckId, syncStudySettings])
+
+  // Save current deck study settings as personal user global settings
+  const saveAsGlobalSettings = useCallback(async () => {
+    if (!deckId || deckId === 'quick') return
+    const currentStudySettings = {
+      autoplay_audio: autoPlayAudio,
+      show_images: showImages,
+      learning_mode: learningMode,
+      front_valign: frontValign,
+      front_halign: frontHalign,
+      back_valign: backValign,
+      back_halign: backHalign,
+      random_enabled: randomEnabled,
+      sfx_enabled: sfxEnabled,
+      haptic_enabled: hapticEnabled,
+      quick_learn_enabled: quickLearnEnabled,
+      show_fsrs: showFsrs,
+      card_flip_trigger: cardFlipTrigger || 'both',
+      card_rating_mode: cardRatingMode || 'both'
+    }
+    try {
+      const res = await axios.post(`/api/v1/deck/${deckId}/practice-settings`, {
+        is_creator: false,
+        save_as_global_settings: true,
+        settings: currentStudySettings
+      })
+      useSettingsStore.getState().setUserSettings(currentStudySettings)
+      if (res.data?.effective_study_settings) {
+        syncStudySettings(
+          res.data.effective_study_settings,
+          res.data.creator_study_defaults,
+          res.data.user_study_settings,
+          res.data.is_study_customized,
+          res.data.setting_origin,
+          res.data.user_global_settings
+        )
+      }
+    } catch (err) {
+      console.error('[usePlaySettings] Failed to save as global settings:', err)
+    }
+  }, [deckId, autoPlayAudio, showImages, learningMode, frontValign, frontHalign, backValign, backHalign, randomEnabled, sfxEnabled, hapticEnabled, quickLearnEnabled, showFsrs, cardFlipTrigger, cardRatingMode, syncStudySettings])
 
   // Save current settings as the creator's deck defaults (baseline for all learners)
   const saveAsCreatorDefaults = useCallback(async () => {
@@ -297,14 +391,17 @@ export function usePlaySettings(
       back_halign: backHalign,
       random_enabled: randomEnabled,
       sfx_enabled: sfxEnabled,
+      haptic_enabled: hapticEnabled,
       quick_learn_enabled: quickLearnEnabled,
-      show_fsrs: showFsrs
+      show_fsrs: showFsrs,
+      card_flip_trigger: cardFlipTrigger || 'both',
+      card_rating_mode: cardRatingMode || 'both'
     }
     try {
       await axios.patch(`/api/v1/deck/${deckId}`, {
         study_defaults: currentDefaults
       })
-      await axios.post(`/api/v1/deck/${deckId}/practice-settings`, {
+      const res = await axios.post(`/api/v1/deck/${deckId}/practice-settings`, {
         is_creator: true,
         settings: {
           ...currentDefaults,
@@ -313,10 +410,21 @@ export function usePlaySettings(
       })
       setCreatorDefaults(currentDefaults)
       setIsCustomized(false)
+      setSettingOrigin('deck_default')
+      if (res.data?.effective_study_settings) {
+        syncStudySettings(
+          res.data.effective_study_settings,
+          res.data.creator_study_defaults,
+          res.data.user_study_settings,
+          res.data.is_study_customized,
+          res.data.setting_origin,
+          res.data.user_global_settings
+        )
+      }
     } catch (err) {
       console.error('[usePlaySettings] Failed to save creator defaults:', err)
     }
-  }, [deckId, autoPlayAudio, showImages, learningMode, frontValign, frontHalign, backValign, backHalign, randomEnabled, sfxEnabled, quickLearnEnabled, showFsrs])
+  }, [deckId, autoPlayAudio, showImages, learningMode, frontValign, frontHalign, backValign, backHalign, randomEnabled, sfxEnabled, hapticEnabled, quickLearnEnabled, showFsrs, cardFlipTrigger, cardRatingMode, syncStudySettings])
 
   return {
     sfxEnabled,
@@ -348,10 +456,15 @@ export function usePlaySettings(
     cardRatingMode,
     setCardRatingMode: setCardRatingModeState,
     creatorDefaults,
+    userGlobalSettings,
     isCustomized,
+    settingOrigin,
+    setSettingOrigin,
     syncStudySettings,
     saveGeneralSettings,
     resetToCreatorDefaults,
+    applyGlobalSettings,
+    saveAsGlobalSettings,
     saveAsCreatorDefaults
   }
 }
