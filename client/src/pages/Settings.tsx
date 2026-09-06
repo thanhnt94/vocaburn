@@ -236,12 +236,12 @@ export const Settings = () => {
 
   // Sub-Tab State for Deck Templates Tab: System Presets | My Custom Templates | Live Customizer
   const [templateTab, setTemplateTab] = useState<'system' | 'custom' | 'customize'>('system')
-  const [activeTunerTab, setActiveTunerTab] = useState<'gestures' | 'algorithm' | 'alignment' | 'display' | 'audio'>('gestures')
+  const [activeTunerTab, setActiveTunerTab] = useState<'gestures' | 'display' | 'media' | 'algorithm'>('gestures')
 
   // Profile / Template Creation & Editing State
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
   const [editingProfileId, setEditingProfileId] = useState<string | null>(null)
-  const [modalTab, setModalTab] = useState<'gestures' | 'algorithm' | 'alignment' | 'display' | 'audio'>('gestures')
+  const [modalTab, setModalTab] = useState<'gestures' | 'display' | 'media' | 'algorithm'>('gestures')
   const [newProfileName, setNewProfileName] = useState('')
   const [newProfileIcon, setNewProfileIcon] = useState('sparkles')
   const [newProfileBase, setNewProfileBase] = useState('preset-standard')
@@ -261,6 +261,7 @@ export const Settings = () => {
     show_fsrs: boolean;
     sfx_enabled: boolean;
     haptic_enabled: boolean;
+    random_enabled: boolean;
   }>({
     card_flip_trigger: 'both',
     card_rating_mode: 'both',
@@ -273,7 +274,8 @@ export const Settings = () => {
     show_images: 'both',
     show_fsrs: true,
     sfx_enabled: true,
-    haptic_enabled: true
+    haptic_enabled: true,
+    random_enabled: false
   })
 
   const loadBaseSettings = (baseId: string) => {
@@ -291,7 +293,8 @@ export const Settings = () => {
         show_images: (userSettings.show_images as any) || 'both',
         show_fsrs: userSettings.show_fsrs ?? true,
         sfx_enabled: userSettings.sfx_enabled ?? true,
-        haptic_enabled: userSettings.haptic_enabled ?? true
+        haptic_enabled: userSettings.haptic_enabled ?? true,
+        random_enabled: userSettings.random_enabled ?? false
       })
     } else {
       const preset = SYSTEM_PROFILES.find(p => p.id === baseId) || SYSTEM_PROFILES[0]
@@ -308,7 +311,8 @@ export const Settings = () => {
         show_images: s.show_images || 'both',
         show_fsrs: s.show_fsrs ?? true,
         sfx_enabled: s.sfx_enabled ?? true,
-        haptic_enabled: s.haptic_enabled ?? true
+        haptic_enabled: s.haptic_enabled ?? true,
+        random_enabled: s.random_enabled ?? false
       })
     }
   }
@@ -367,7 +371,8 @@ export const Settings = () => {
       show_images: (preset.settings.show_images as any) || 'both',
       show_fsrs: preset.settings.show_fsrs ?? true,
       sfx_enabled: preset.settings.sfx_enabled ?? true,
-      haptic_enabled: preset.settings.haptic_enabled ?? true
+      haptic_enabled: preset.settings.haptic_enabled ?? true,
+      random_enabled: preset.settings.random_enabled ?? false
     })
     setModalTab('gestures')
     setIsCreateModalOpen(true)
@@ -390,7 +395,8 @@ export const Settings = () => {
       show_images: (s.show_images as any) || 'both',
       show_fsrs: s.show_fsrs ?? true,
       sfx_enabled: s.sfx_enabled ?? true,
-      haptic_enabled: s.haptic_enabled ?? true
+      haptic_enabled: s.haptic_enabled ?? true,
+      random_enabled: s.random_enabled ?? false
     })
     setModalTab('gestures')
     setIsCreateModalOpen(true)
@@ -805,76 +811,69 @@ export const Settings = () => {
                         {preset.desc}
                       </p>
 
-                      {/* 5 Complete Settings Dimensions Contained Inside this Template */}
-                      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 pt-1">
-                        {/* 1. Gestures */}
-                        <div className="p-2 rounded-xl bg-slate-50/80 border border-slate-100 space-y-1">
-                          <span className="text-[9px] font-black text-slate-400 uppercase tracking-wider flex items-center gap-1">
-                            <Move className="w-3 h-3 text-purple-500" /> Cử chỉ
+                      {/* 4 Phân đoạn chuẩn: Cử chỉ & SFX | Hiển thị & Căn lề | Âm thanh & Ảnh Media | Thuật toán */}
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 pt-1">
+                        {/* 1. Cử chỉ & Hiệu ứng */}
+                        <div className="p-2.5 rounded-xl bg-purple-50/50 border border-purple-100/80 space-y-1">
+                          <span className="text-[9px] font-black text-purple-700 uppercase tracking-wider flex items-center gap-1">
+                            <Move className="w-3 h-3 text-purple-600" /> 1. Cử chỉ & Hiệu ứng
                           </span>
                           <div className="text-[10.5px] font-black text-slate-800 truncate">
-                            {sett.card_flip_trigger === 'both' ? 'Chạm & Vuốt' : (sett.card_flip_trigger === 'tap' ? 'Chạm thẻ' : 'Chỉ nút')}
+                            {sett.card_flip_trigger === 'both' ? 'Chạm & Vuốt' : (sett.card_flip_trigger === 'tap' ? 'Chạm thân thẻ' : 'Chỉ bấm nút')}
                           </div>
-                          <div className="text-[9px] text-slate-500 font-bold truncate">
-                            {sett.card_rating_mode === 'both' ? 'Vuốt & 4 nút' : (sett.card_rating_mode === 'swipe_4way' ? 'Vuốt 4 hướng' : (sett.card_rating_mode === 'swipe_2way' ? 'Vuốt 2 chiều' : '4 Nút'))}
-                          </div>
-                        </div>
-
-                        {/* 2. Algorithm */}
-                        <div className="p-2 rounded-xl bg-slate-50/80 border border-slate-100 space-y-1">
-                          <span className="text-[9px] font-black text-slate-400 uppercase tracking-wider flex items-center gap-1">
-                            <Brain className="w-3 h-3 text-indigo-500" /> Thuật toán
-                          </span>
-                          <div className="text-[10.5px] font-black text-slate-800 truncate">
-                            {sett.quiz_learning_mode === 'fsrs' ? 'FSRS v6' : (sett.quiz_learning_mode === 'random' ? 'Ngẫu nhiên' : (sett.quiz_learning_mode === 'unseen' ? 'Chưa học' : (sett.quiz_learning_mode === 'review' ? 'Ôn tập' : 'Tuần tự')))}
-                          </div>
-                          <div className="text-[9px] text-slate-500 font-bold truncate">
-                            {sett.random_enabled ? 'Xáo trộn thẻ' : 'Thứ tự chuẩn'}
-                          </div>
-                        </div>
-
-                        {/* 3. Alignment */}
-                        <div className="p-2 rounded-xl bg-slate-50/80 border border-slate-100 space-y-1">
-                          <span className="text-[9px] font-black text-slate-400 uppercase tracking-wider flex items-center gap-1">
-                            <Layers className="w-3 h-3 text-amber-500" /> Căn lề
-                          </span>
-                          <div className="text-[10.5px] font-black text-slate-800 truncate">
-                            Trước: {sett.front_valign === 'top' ? 'Trên' : 'Giữa'} / {sett.front_halign === 'center' ? 'Giữa' : 'Trái'}
-                          </div>
-                          <div className="text-[9px] text-slate-500 font-bold truncate">
-                            Sau: {sett.back_valign === 'top' ? 'Trên' : 'Giữa'} / {sett.back_halign === 'center' ? 'Giữa' : 'Trái'}
-                          </div>
-                        </div>
-
-                        {/* 4. Display & FSRS */}
-                        <div className="p-2 rounded-xl bg-slate-50/80 border border-slate-100 space-y-1">
-                          <span className="text-[9px] font-black text-slate-400 uppercase tracking-wider flex items-center gap-1">
-                            <Eye className="w-3 h-3 text-rose-500" /> Hình ảnh & FSRS
-                          </span>
-                          <div className="text-[10.5px] font-black text-slate-800 truncate">
-                            Ảnh: {sett.show_images === 'none' ? 'Tắt ảnh' : ((sett.show_images === 'back_only' || sett.show_images === 'back') ? 'Chỉ mặt sau' : (sett.show_images === 'front' ? 'Chỉ mặt trước' : 'Cả 2 mặt'))}
-                          </div>
-                          <div className="text-[9px] text-slate-500 font-bold truncate flex items-center gap-1">
-                            <span>Thông số FSRS:</span>
-                            <span className={cn(
-                              "font-black px-1 rounded text-[8.5px]",
-                              sett.show_fsrs !== false ? "text-emerald-700 bg-emerald-50 border border-emerald-200/60" : "text-slate-400 bg-slate-100 border border-slate-200/60"
-                            )}>
-                              {sett.show_fsrs !== false ? 'Hiện trên thẻ' : 'Ẩn chỉ số'}
+                          <div className="text-[9px] text-slate-600 font-bold truncate">
+                            {sett.card_rating_mode === 'both' ? 'Vuốt & 4 nút' : (sett.card_rating_mode === 'swipe_4way' ? 'Vuốt 4 hướng' : (sett.card_rating_mode === 'swipe_2way' ? 'Vuốt 2 chiều' : '4 Nút bấm'))}
+                            {' • '}
+                            <span className={sett.sfx_enabled !== false ? "text-purple-700 font-black" : "text-slate-400"}>
+                              {sett.sfx_enabled !== false ? 'SFX bật' : 'SFX tắt'}
                             </span>
                           </div>
                         </div>
 
-                        {/* 5. Audio & SFX */}
-                        <div className="p-2 rounded-xl bg-slate-50/80 border border-slate-100 space-y-1 col-span-2 sm:col-span-1">
-                          <span className="text-[9px] font-black text-slate-400 uppercase tracking-wider flex items-center gap-1">
-                            <Volume2 className="w-3 h-3 text-emerald-500" /> Âm thanh & SFX
+                        {/* 2. Hiển thị & Căn lề */}
+                        <div className="p-2.5 rounded-xl bg-amber-50/50 border border-amber-100/80 space-y-1">
+                          <span className="text-[9px] font-black text-amber-700 uppercase tracking-wider flex items-center gap-1">
+                            <Layers className="w-3 h-3 text-amber-600" /> 2. Hiển thị & Căn lề
+                          </span>
+                          <div className="text-[10.5px] font-black text-slate-800 truncate flex items-center gap-1.5">
+                            <span>FSRS:</span>
+                            <span className={cn(
+                              "font-black px-1.5 py-0.5 rounded text-[8.5px]",
+                              sett.show_fsrs !== false ? "text-emerald-700 bg-emerald-100 border border-emerald-200/60" : "text-slate-400 bg-slate-100 border border-slate-200/60"
+                            )}>
+                              {sett.show_fsrs !== false ? 'Hiện trên thẻ' : 'Ẩn chỉ số'}
+                            </span>
+                          </div>
+                          <div className="text-[9px] text-slate-600 font-bold truncate">
+                            T: {sett.front_valign === 'top' ? 'Trên' : 'Giữa'}/{sett.front_halign === 'center' ? 'Giữa' : 'Trái'}
+                            {' • '}
+                            S: {sett.back_valign === 'top' ? 'Trên' : 'Giữa'}/{sett.back_halign === 'center' ? 'Giữa' : 'Trái'}
+                          </div>
+                        </div>
+
+                        {/* 3. Âm thanh & Hình ảnh (Media) */}
+                        <div className="p-2.5 rounded-xl bg-emerald-50/50 border border-emerald-100/80 space-y-1">
+                          <span className="text-[9px] font-black text-emerald-700 uppercase tracking-wider flex items-center gap-1">
+                            <Volume2 className="w-3 h-3 text-emerald-600" /> 3. Media (Âm thanh & Ảnh)
                           </span>
                           <div className="text-[10.5px] font-black text-slate-800 truncate">
-                            TTS: {sett.autoplay_audio === 'always' ? 'Luôn phát' : (sett.autoplay_audio === 'none' ? 'Tắt' : (sett.autoplay_audio === 'front' ? 'Mặt trước' : (sett.autoplay_audio === 'back' ? 'Mặt sau' : sett.autoplay_audio)))}
+                            TTS: {sett.autoplay_audio === 'always' ? 'Luôn phát' : (sett.autoplay_audio === 'none' ? 'Tắt phát' : (sett.autoplay_audio === 'front' ? 'Mặt trước' : (sett.autoplay_audio === 'back' ? 'Mặt sau' : sett.autoplay_audio)))}
                           </div>
-                          <div className="text-[9px] text-slate-500 font-bold truncate">
-                            Hiệu ứng: {sett.sfx_enabled !== false ? 'Bật SFX & Rung' : 'Tắt hiệu ứng'}
+                          <div className="text-[9px] text-slate-600 font-bold truncate">
+                            Ảnh: {sett.show_images === 'none' ? 'Tắt hình' : ((sett.show_images === 'back_only' || sett.show_images === 'back') ? 'Chỉ mặt sau' : (sett.show_images === 'front' ? 'Chỉ mặt trước' : 'Cả 2 mặt'))}
+                          </div>
+                        </div>
+
+                        {/* 4. Thuật toán mặc định */}
+                        <div className="p-2.5 rounded-xl bg-indigo-50/50 border border-indigo-100/80 space-y-1">
+                          <span className="text-[9px] font-black text-indigo-700 uppercase tracking-wider flex items-center gap-1">
+                            <Brain className="w-3 h-3 text-indigo-600" /> 4. Thuật toán mặc định
+                          </span>
+                          <div className="text-[10.5px] font-black text-slate-800 truncate">
+                            {sett.quiz_learning_mode === 'fsrs' ? 'FSRS v6' : (sett.quiz_learning_mode === 'random' ? 'Ngẫu nhiên' : (sett.quiz_learning_mode === 'unseen' ? 'Chưa học' : (sett.quiz_learning_mode === 'review' ? 'Ôn tập' : 'Tuần tự')))}
+                          </div>
+                          <div className="text-[9px] text-slate-600 font-bold truncate">
+                            {sett.random_enabled ? 'Xáo trộn ngẫu nhiên' : 'Thứ tự chuẩn'}
                           </div>
                         </div>
                       </div>
@@ -1027,76 +1026,69 @@ export const Settings = () => {
                           )}
                         </div>
 
-                        {/* 5 Complete Settings Dimensions Contained Inside this Template */}
-                        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 pt-1">
-                          {/* 1. Gestures */}
-                          <div className="p-2 rounded-xl bg-slate-50/80 border border-slate-100 space-y-1">
-                            <span className="text-[9px] font-black text-slate-400 uppercase tracking-wider flex items-center gap-1">
-                              <Move className="w-3 h-3 text-purple-500" /> Cử chỉ
+                        {/* 4 Phân đoạn chuẩn: Cử chỉ & SFX | Hiển thị & Căn lề | Âm thanh & Ảnh Media | Thuật toán */}
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 pt-1">
+                          {/* 1. Cử chỉ & Hiệu ứng */}
+                          <div className="p-2.5 rounded-xl bg-purple-50/50 border border-purple-100/80 space-y-1">
+                            <span className="text-[9px] font-black text-purple-700 uppercase tracking-wider flex items-center gap-1">
+                              <Move className="w-3 h-3 text-purple-600" /> 1. Cử chỉ & Hiệu ứng
                             </span>
                             <div className="text-[10.5px] font-black text-slate-800 truncate">
-                              {sett.card_flip_trigger === 'both' ? 'Chạm & Vuốt' : (sett.card_flip_trigger === 'tap' ? 'Chạm thẻ' : 'Chỉ nút')}
+                              {sett.card_flip_trigger === 'both' ? 'Chạm & Vuốt' : (sett.card_flip_trigger === 'tap' ? 'Chạm thân thẻ' : 'Chỉ bấm nút')}
                             </div>
-                            <div className="text-[9px] text-slate-500 font-bold truncate">
-                              {sett.card_rating_mode === 'both' ? 'Vuốt & 4 nút' : (sett.card_rating_mode === 'swipe_4way' ? 'Vuốt 4 hướng' : (sett.card_rating_mode === 'swipe_2way' ? 'Vuốt 2 chiều' : '4 Nút'))}
-                            </div>
-                          </div>
-
-                          {/* 2. Algorithm */}
-                          <div className="p-2 rounded-xl bg-slate-50/80 border border-slate-100 space-y-1">
-                            <span className="text-[9px] font-black text-slate-400 uppercase tracking-wider flex items-center gap-1">
-                              <Brain className="w-3 h-3 text-indigo-500" /> Thuật toán
-                            </span>
-                            <div className="text-[10.5px] font-black text-slate-800 truncate">
-                              {sett.quiz_learning_mode === 'fsrs' ? 'FSRS v6' : (sett.quiz_learning_mode === 'random' ? 'Ngẫu nhiên' : (sett.quiz_learning_mode === 'unseen' ? 'Chưa học' : (sett.quiz_learning_mode === 'review' ? 'Ôn tập' : 'Tuần tự')))}
-                            </div>
-                            <div className="text-[9px] text-slate-500 font-bold truncate">
-                              {sett.random_enabled ? 'Xáo trộn thẻ' : 'Thứ tự chuẩn'}
-                            </div>
-                          </div>
-
-                          {/* 3. Alignment */}
-                          <div className="p-2 rounded-xl bg-slate-50/80 border border-slate-100 space-y-1">
-                            <span className="text-[9px] font-black text-slate-400 uppercase tracking-wider flex items-center gap-1">
-                              <Layers className="w-3 h-3 text-amber-500" /> Căn lề
-                            </span>
-                            <div className="text-[10.5px] font-black text-slate-800 truncate">
-                              Trước: {sett.front_valign === 'top' ? 'Trên' : 'Giữa'} / {sett.front_halign === 'center' ? 'Giữa' : 'Trái'}
-                            </div>
-                            <div className="text-[9px] text-slate-500 font-bold truncate">
-                              Sau: {sett.back_valign === 'top' ? 'Trên' : 'Giữa'} / {sett.back_halign === 'center' ? 'Giữa' : 'Trái'}
-                            </div>
-                          </div>
-
-                          {/* 4. Display & FSRS */}
-                          <div className="p-2 rounded-xl bg-slate-50/80 border border-slate-100 space-y-1">
-                            <span className="text-[9px] font-black text-slate-400 uppercase tracking-wider flex items-center gap-1">
-                              <Eye className="w-3 h-3 text-rose-500" /> Hình ảnh & FSRS
-                            </span>
-                            <div className="text-[10.5px] font-black text-slate-800 truncate">
-                              Ảnh: {sett.show_images === 'none' ? 'Tắt ảnh' : ((sett.show_images === 'back_only' || sett.show_images === 'back') ? 'Chỉ mặt sau' : (sett.show_images === 'front' ? 'Chỉ mặt trước' : 'Cả 2 mặt'))}
-                            </div>
-                            <div className="text-[9px] text-slate-500 font-bold truncate flex items-center gap-1">
-                              <span>Thông số FSRS:</span>
-                              <span className={cn(
-                                "font-black px-1 rounded text-[8.5px]",
-                                sett.show_fsrs !== false ? "text-emerald-700 bg-emerald-50 border border-emerald-200/60" : "text-slate-400 bg-slate-100 border border-slate-200/60"
-                              )}>
-                                {sett.show_fsrs !== false ? 'Hiện trên thẻ' : 'Ẩn chỉ số'}
+                            <div className="text-[9px] text-slate-600 font-bold truncate">
+                              {sett.card_rating_mode === 'both' ? 'Vuốt & 4 nút' : (sett.card_rating_mode === 'swipe_4way' ? 'Vuốt 4 hướng' : (sett.card_rating_mode === 'swipe_2way' ? 'Vuốt 2 chiều' : '4 Nút bấm'))}
+                              {' • '}
+                              <span className={sett.sfx_enabled !== false ? "text-purple-700 font-black" : "text-slate-400"}>
+                                {sett.sfx_enabled !== false ? 'SFX bật' : 'SFX tắt'}
                               </span>
                             </div>
                           </div>
 
-                          {/* 5. Audio & SFX */}
-                          <div className="p-2 rounded-xl bg-slate-50/80 border border-slate-100 space-y-1 col-span-2 sm:col-span-1">
-                            <span className="text-[9px] font-black text-slate-400 uppercase tracking-wider flex items-center gap-1">
-                              <Volume2 className="w-3 h-3 text-emerald-500" /> Âm thanh & SFX
+                          {/* 2. Hiển thị & Căn lề */}
+                          <div className="p-2.5 rounded-xl bg-amber-50/50 border border-amber-100/80 space-y-1">
+                            <span className="text-[9px] font-black text-amber-700 uppercase tracking-wider flex items-center gap-1">
+                              <Layers className="w-3 h-3 text-amber-600" /> 2. Hiển thị & Căn lề
+                            </span>
+                            <div className="text-[10.5px] font-black text-slate-800 truncate flex items-center gap-1.5">
+                              <span>FSRS:</span>
+                              <span className={cn(
+                                "font-black px-1.5 py-0.5 rounded text-[8.5px]",
+                                sett.show_fsrs !== false ? "text-emerald-700 bg-emerald-100 border border-emerald-200/60" : "text-slate-400 bg-slate-100 border border-slate-200/60"
+                              )}>
+                                {sett.show_fsrs !== false ? 'Hiện trên thẻ' : 'Ẩn chỉ số'}
+                              </span>
+                            </div>
+                            <div className="text-[9px] text-slate-600 font-bold truncate">
+                              T: {sett.front_valign === 'top' ? 'Trên' : 'Giữa'}/{sett.front_halign === 'center' ? 'Giữa' : 'Trái'}
+                              {' • '}
+                              S: {sett.back_valign === 'top' ? 'Trên' : 'Giữa'}/{sett.back_halign === 'center' ? 'Giữa' : 'Trái'}
+                            </div>
+                          </div>
+
+                          {/* 3. Âm thanh & Hình ảnh (Media) */}
+                          <div className="p-2.5 rounded-xl bg-emerald-50/50 border border-emerald-100/80 space-y-1">
+                            <span className="text-[9px] font-black text-emerald-700 uppercase tracking-wider flex items-center gap-1">
+                              <Volume2 className="w-3 h-3 text-emerald-600" /> 3. Media (Âm thanh & Ảnh)
                             </span>
                             <div className="text-[10.5px] font-black text-slate-800 truncate">
-                              TTS: {sett.autoplay_audio === 'always' ? 'Luôn phát' : (sett.autoplay_audio === 'none' ? 'Tắt' : (sett.autoplay_audio === 'front' ? 'Mặt trước' : (sett.autoplay_audio === 'back' ? 'Mặt sau' : sett.autoplay_audio)))}
+                              TTS: {sett.autoplay_audio === 'always' ? 'Luôn phát' : (sett.autoplay_audio === 'none' ? 'Tắt phát' : (sett.autoplay_audio === 'front' ? 'Mặt trước' : (sett.autoplay_audio === 'back' ? 'Mặt sau' : sett.autoplay_audio)))}
                             </div>
-                            <div className="text-[9px] text-slate-500 font-bold truncate">
-                              Hiệu ứng: {sett.sfx_enabled !== false ? 'Bật SFX & Rung' : 'Tắt hiệu ứng'}
+                            <div className="text-[9px] text-slate-600 font-bold truncate">
+                              Ảnh: {sett.show_images === 'none' ? 'Tắt hình' : ((sett.show_images === 'back_only' || sett.show_images === 'back') ? 'Chỉ mặt sau' : (sett.show_images === 'front' ? 'Chỉ mặt trước' : 'Cả 2 mặt'))}
+                            </div>
+                          </div>
+
+                          {/* 4. Thuật toán mặc định */}
+                          <div className="p-2.5 rounded-xl bg-indigo-50/50 border border-indigo-100/80 space-y-1">
+                            <span className="text-[9px] font-black text-indigo-700 uppercase tracking-wider flex items-center gap-1">
+                              <Brain className="w-3 h-3 text-indigo-600" /> 4. Thuật toán mặc định
+                            </span>
+                            <div className="text-[10.5px] font-black text-slate-800 truncate">
+                              {sett.quiz_learning_mode === 'fsrs' ? 'FSRS v6' : (sett.quiz_learning_mode === 'random' ? 'Ngẫu nhiên' : (sett.quiz_learning_mode === 'unseen' ? 'Chưa học' : (sett.quiz_learning_mode === 'review' ? 'Ôn tập' : 'Tuần tự')))}
+                            </div>
+                            <div className="text-[9px] text-slate-600 font-bold truncate">
+                              {sett.random_enabled ? 'Xáo trộn ngẫu nhiên' : 'Thứ tự chuẩn'}
                             </div>
                           </div>
                         </div>
@@ -1187,15 +1179,14 @@ export const Settings = () => {
               </button>
             </div>
 
-            {/* 5 Internal Sub-tabs for the 5 facets of this Template */}
+            {/* 4 Internal Sub-tabs for the 4 facets of this Template */}
             <div className="bg-slate-100/90 p-1 rounded-2xl border border-slate-200/80 shadow-2xs">
-              <div className="grid grid-cols-2 sm:grid-cols-5 gap-1">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-1">
                 {[
-                  { id: 'gestures', label: '1. Cử Chỉ', icon: Move, desc: 'Lật thẻ & Vuốt' },
-                  { id: 'algorithm', label: '2. Thuật Toán', icon: Brain, desc: 'Thứ tự & Xáo trộn' },
-                  { id: 'alignment', label: '3. Căn Lề', icon: Layers, desc: 'Mặt trước & Sau' },
-                  { id: 'display', label: '4. Hình Ảnh & FSRS', icon: Eye, desc: 'Ảnh & Chỉ số FSRS' },
-                  { id: 'audio', label: '5. Âm Thanh', icon: Volume2, desc: 'TTS & Hiệu ứng' }
+                  { id: 'gestures', label: '1. Cử Chỉ & Hiệu Ứng', icon: Move, desc: 'Lật thẻ, Vuốt & SFX' },
+                  { id: 'display', label: '2. Hiển Thị & Căn Lề', icon: Layers, desc: 'Chỉ số FSRS & Căn lề' },
+                  { id: 'media', label: '3. Âm Thanh & Hình Ảnh', icon: Volume2, desc: 'TTS & Ảnh minh họa' },
+                  { id: 'algorithm', label: '4. Thuật Toán Mặc Định', icon: Brain, desc: 'FSRS v6 & Xáo trộn' }
                 ].map((t) => {
                   const Icon = t.icon
                   const isCur = activeTunerTab === t.id
@@ -1219,7 +1210,7 @@ export const Settings = () => {
               </div>
             </div>
 
-            {/* Sub-tab 1: Gestures */}
+            {/* Phân đoạn 1: Cử Chỉ & Hiệu Ứng (Vuốt chạm & SFX) */}
             {activeTunerTab === 'gestures' && (
               <section className="bg-white rounded-3xl border border-slate-100 p-4 sm:p-6 shadow-2xs space-y-4 animate-in fade-in duration-150">
                 <div className="flex items-center gap-2.5 border-b border-slate-100 pb-3">
@@ -1228,10 +1219,10 @@ export const Settings = () => {
                   </div>
                   <div>
                     <h3 className="text-xs font-black text-slate-900 uppercase tracking-widest italic">
-                      Thao Tác Cử Chỉ Flashcard (Gestures)
+                      1. Cử Chỉ & Hiệu Ứng Thao Tác (Gestures & Feedback)
                     </h3>
                     <p className="text-[10px] font-medium text-slate-400">
-                      Cách lật mặt thẻ và vuốt các hướng để chấm điểm FSRS
+                      Cách lật mặt thẻ, vuốt các hướng chấm điểm FSRS và hiệu ứng âm thanh, rung phản hồi
                     </p>
                   </div>
                 </div>
@@ -1311,10 +1302,283 @@ export const Settings = () => {
                     })}
                   </div>
                 </div>
+
+                {/* SFX & Haptic Feedback */}
+                <div className="space-y-1.5 pt-2 border-t border-slate-100">
+                  <SettingItem 
+                    icon={Volume2} 
+                    label="Hiệu Ứng Âm Thanh (SFX)" 
+                    desc="Phát âm thanh phản hồi khi lật thẻ và đánh giá kết quả" 
+                    active={userSettings.sfx_enabled ?? true} 
+                    onClick={() => updateUserSettings({ sfx_enabled: !(userSettings.sfx_enabled ?? true) })}
+                  />
+                  <SettingItem 
+                    icon={Zap} 
+                    label="Rung Phản Hồi (Haptic Feedback)" 
+                    desc="Rung nhẹ khi vuốt và chạm nút trên điện thoại" 
+                    active={userSettings.haptic_enabled ?? true} 
+                    onClick={() => updateUserSettings({ haptic_enabled: !(userSettings.haptic_enabled ?? true) })}
+                  />
+                </div>
               </section>
             )}
 
-            {/* Sub-tab 2: Algorithm */}
+            {/* Phân đoạn 2: Hiển Thị & Căn Lề (Thông số FSRS & Căn lề) */}
+            {activeTunerTab === 'display' && (
+              <section className="bg-white rounded-3xl border border-slate-100 p-4 sm:p-6 shadow-2xs space-y-4 animate-in fade-in duration-150">
+                <div className="flex items-center gap-2.5 border-b border-slate-100 pb-3">
+                  <div className="w-8 h-8 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center shrink-0">
+                    <Layers className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h3 className="text-xs font-black text-slate-900 uppercase tracking-widest italic">
+                      2. Hiển Thị & Căn Lề Thẻ (Display & Alignment)
+                    </h3>
+                    <p className="text-[10px] font-medium text-slate-400">
+                      Tùy chọn hiển thị thông số thuật toán FSRS và vị trí căn lề các mặt thẻ flashcard
+                    </p>
+                  </div>
+                </div>
+
+                {/* FSRS Metrics Display Toggle */}
+                <div className="p-3.5 bg-slate-50/70 rounded-2xl border border-slate-100 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10.5px] font-black text-slate-700 uppercase tracking-wider flex items-center gap-1.5">
+                      <Brain className="w-3.5 h-3.5 text-indigo-500" /> Chỉ Số & Thông Số FSRS v6 (FSRS Metrics)
+                    </span>
+                    <span className={cn(
+                      "text-[9.5px] font-black px-2 py-0.5 rounded-full",
+                      (userSettings.show_fsrs ?? true) ? "text-emerald-700 bg-emerald-100" : "text-slate-500 bg-slate-200"
+                    )}>
+                      {(userSettings.show_fsrs ?? true) ? 'Đang bật' : 'Đang tắt'}
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    {[
+                      { 
+                        id: true, 
+                        label: 'Bật Hiển Thị Chỉ Số FSRS', 
+                        desc: 'Hiển thị độ ổn định (Stability - S), độ khó (Difficulty - D) và khoảng thời gian ôn tập tiếp theo trên mặt thẻ.' 
+                      },
+                      { 
+                        id: false, 
+                        label: 'Ẩn Thông Số FSRS (Gọn gàng)', 
+                        desc: 'Ẩn toàn bộ các chỉ số thuật toán, giữ cho giao diện học sạch sẽ và tối giản nhất.' 
+                      }
+                    ].map(opt => {
+                      const isCur = (userSettings.show_fsrs ?? true) === opt.id
+                      return (
+                        <button
+                          key={String(opt.id)}
+                          type="button"
+                          onClick={() => updateUserSettings({ show_fsrs: opt.id })}
+                          className={cn(
+                            "p-3 rounded-2xl border-2 text-left transition-all relative cursor-pointer",
+                            isCur ? "border-indigo-600 bg-indigo-50/40 shadow-xs" : "border-slate-100 bg-white hover:border-slate-200"
+                          )}
+                        >
+                          <div className="flex items-center justify-between mb-1">
+                            <h5 className="text-[11px] font-black text-slate-800 uppercase tracking-tight">{opt.label}</h5>
+                            {isCur && <Check className="w-3 h-3 text-indigo-600 shrink-0" />}
+                          </div>
+                          <p className="text-[9.5px] text-slate-400 font-medium leading-relaxed">{opt.desc}</p>
+                        </button>
+                      )
+                    })}
+                  </div>
+                </div>
+
+                {/* Alignment */}
+                <div className="space-y-2">
+                  <span className="text-[11px] font-black text-slate-700 uppercase tracking-wider block">
+                    Căn Lề Vị Trí Thẻ (Alignment)
+                  </span>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <div className="p-3.5 bg-slate-50/70 rounded-2xl border border-slate-100 space-y-2">
+                      <span className="text-[10.5px] font-black text-slate-700 uppercase tracking-wider block">
+                        Mặt Trước (Front Card)
+                      </span>
+                      <div className="grid grid-cols-2 gap-2">
+                        <div>
+                          <span className="text-[9.5px] font-bold text-slate-400 block mb-1">Dọc:</span>
+                          <div className="grid grid-cols-2 gap-1 bg-white p-1 rounded-xl border border-slate-200/60">
+                            {(['center', 'top'] as const).map(mode => (
+                              <button
+                                key={mode}
+                                type="button"
+                                onClick={() => updateUserSettings({ front_valign: mode })}
+                                className={cn(
+                                  "py-1 px-1 rounded-lg text-[10px] font-black uppercase transition-all cursor-pointer text-center",
+                                  (userSettings.front_valign || 'center') === mode ? "bg-indigo-600 text-white shadow-xs" : "text-slate-500 hover:text-slate-800"
+                                )}
+                              >
+                                {mode === 'center' ? 'Center' : 'Top'}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                        <div>
+                          <span className="text-[9.5px] font-bold text-slate-400 block mb-1">Ngang:</span>
+                          <div className="grid grid-cols-2 gap-1 bg-white p-1 rounded-xl border border-slate-200/60">
+                            {(['left', 'center'] as const).map(mode => (
+                              <button
+                                key={mode}
+                                type="button"
+                                onClick={() => updateUserSettings({ front_halign: mode })}
+                                className={cn(
+                                  "py-1 px-1 rounded-lg text-[10px] font-black uppercase transition-all cursor-pointer text-center",
+                                  (userSettings.front_halign || 'left') === mode ? "bg-indigo-600 text-white shadow-xs" : "text-slate-500 hover:text-slate-800"
+                                )}
+                              >
+                                {mode === 'left' ? 'Left' : 'Center'}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="p-3.5 bg-slate-50/70 rounded-2xl border border-slate-100 space-y-2">
+                      <span className="text-[10.5px] font-black text-slate-700 uppercase tracking-wider block">
+                        Mặt Sau (Back Card)
+                      </span>
+                      <div className="grid grid-cols-2 gap-2">
+                        <div>
+                          <span className="text-[9.5px] font-bold text-slate-400 block mb-1">Dọc:</span>
+                          <div className="grid grid-cols-2 gap-1 bg-white p-1 rounded-xl border border-slate-200/60">
+                            {(['center', 'top'] as const).map(mode => (
+                              <button
+                                key={mode}
+                                type="button"
+                                onClick={() => updateUserSettings({ back_valign: mode })}
+                                className={cn(
+                                  "py-1 px-1 rounded-lg text-[10px] font-black uppercase transition-all cursor-pointer text-center",
+                                  (userSettings.back_valign || 'center') === mode ? "bg-indigo-600 text-white shadow-xs" : "text-slate-500 hover:text-slate-800"
+                                )}
+                              >
+                                {mode === 'center' ? 'Center' : 'Top'}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                        <div>
+                          <span className="text-[9.5px] font-bold text-slate-400 block mb-1">Ngang:</span>
+                          <div className="grid grid-cols-2 gap-1 bg-white p-1 rounded-xl border border-slate-200/60">
+                            {(['left', 'center'] as const).map(mode => (
+                              <button
+                                key={mode}
+                                type="button"
+                                onClick={() => updateUserSettings({ back_halign: mode })}
+                                className={cn(
+                                  "py-1 px-1 rounded-lg text-[10px] font-black uppercase transition-all cursor-pointer text-center",
+                                  (userSettings.back_halign || 'left') === mode ? "bg-indigo-600 text-white shadow-xs" : "text-slate-500 hover:text-slate-800"
+                                )}
+                              >
+                                {mode === 'left' ? 'Left' : 'Center'}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </section>
+            )}
+
+            {/* Phân đoạn 3: Âm Thanh & Hình Ảnh (Nội dung Media) */}
+            {activeTunerTab === 'media' && (
+              <section className="bg-white rounded-3xl border border-slate-100 p-4 sm:p-6 shadow-2xs space-y-4 animate-in fade-in duration-150">
+                <div className="flex items-center gap-2.5 border-b border-slate-100 pb-3">
+                  <div className="w-8 h-8 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
+                    <Volume2 className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h3 className="text-xs font-black text-slate-900 uppercase tracking-widest italic">
+                      3. Âm Thanh & Hình Ảnh Thẻ (Media Content)
+                    </h3>
+                    <p className="text-[10px] font-medium text-slate-400">
+                      Tùy chọn tự động phát giọng đọc phát âm (TTS) và hiển thị hình ảnh minh họa của bộ thẻ
+                    </p>
+                  </div>
+                </div>
+
+                <div className="space-y-3">
+                  {/* TTS Autoplay */}
+                  <div className="p-3.5 bg-slate-50/70 rounded-2xl border border-slate-100 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10.5px] font-black text-slate-700 uppercase tracking-wider flex items-center gap-1.5">
+                        <Volume2 className="w-3.5 h-3.5 text-emerald-600" /> Tự Động Phát Âm Thanh (TTS / Audio Autoplay)
+                      </span>
+                      <span className="text-[9.5px] font-bold text-slate-400">
+                        {userSettings.autoplay_audio === 'always' ? 'Luôn phát' : (userSettings.autoplay_audio === 'none' ? 'Tắt phát' : (userSettings.autoplay_audio === 'front' ? 'Mặt trước' : 'Mặt sau'))}
+                      </span>
+                    </div>
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-1 bg-white p-1 rounded-xl border border-slate-200/60">
+                      {[
+                        { id: 'always', label: 'Luôn phát' },
+                        { id: 'front', label: 'Mặt trước' },
+                        { id: 'back', label: 'Mặt sau' },
+                        { id: 'none', label: 'Tắt' }
+                      ].map(opt => (
+                        <button
+                          key={opt.id}
+                          type="button"
+                          onClick={() => updateUserSettings({ autoplay_audio: opt.id })}
+                          className={cn(
+                            "py-1.5 px-1 rounded-lg text-[10px] font-black uppercase transition-all cursor-pointer text-center",
+                            (userSettings.autoplay_audio || 'always') === opt.id ? "bg-emerald-600 text-white shadow-xs" : "text-slate-500 hover:text-slate-800"
+                          )}
+                        >
+                          {opt.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Image Display Mode */}
+                  <div className="p-3.5 bg-slate-50/70 rounded-2xl border border-slate-100 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10.5px] font-black text-slate-700 uppercase tracking-wider flex items-center gap-1.5">
+                        <ImageIcon className="w-3.5 h-3.5 text-rose-500" /> Hiển Thị Hình Ảnh Minh Họa (Images)
+                      </span>
+                      <span className="text-[9.5px] font-bold text-slate-400">
+                        {userSettings.show_images === 'none' ? 'Đang tắt hình' : ((userSettings.show_images === 'back_only' || userSettings.show_images === 'back') ? 'Chỉ mặt sau' : (userSettings.show_images === 'front' ? 'Chỉ mặt trước' : 'Cả hai mặt'))}
+                      </span>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                      {[
+                        { id: 'both', label: 'Cả 2 Mặt (Trước & Sau)', desc: 'Hiện hình ảnh minh họa ở cả 2 mặt thẻ flashcard.' },
+                        { id: 'back_only', label: 'Chỉ Mặt Sau (Ẩn mặt trước)', desc: 'Giấu ảnh ở câu hỏi để gợi nhớ, chỉ hiện khi đã lật sang đáp án.' },
+                        { id: 'none', label: 'Tắt Hình Ảnh (Tối giản)', desc: 'Không tải hình ảnh, chỉ hiển thị mặt chữ và ngữ nghĩa.' }
+                      ].map(opt => {
+                        const isCur = (userSettings.show_images || 'both') === opt.id
+                        return (
+                          <button
+                            key={opt.id}
+                            type="button"
+                            onClick={() => updateUserSettings({ show_images: opt.id })}
+                            className={cn(
+                              "p-3 rounded-2xl border-2 text-left transition-all relative cursor-pointer",
+                              isCur ? "border-rose-500 bg-rose-50/40 shadow-xs" : "border-slate-100 bg-white hover:border-slate-200"
+                            )}
+                          >
+                            <div className="flex items-center justify-between mb-1">
+                              <h5 className="text-[11px] font-black text-slate-800 uppercase tracking-tight">{opt.label}</h5>
+                              {isCur && <Check className="w-3 h-3 text-rose-600 shrink-0" />}
+                            </div>
+                            <p className="text-[9.5px] text-slate-400 font-medium leading-relaxed">{opt.desc}</p>
+                          </button>
+                        )
+                      })}
+                    </div>
+                  </div>
+                </div>
+              </section>
+            )}
+
+            {/* Phân đoạn 4: Thuật Toán Mặc Định */}
             {activeTunerTab === 'algorithm' && (
               <section className="bg-white rounded-3xl border border-slate-100 p-4 sm:p-6 shadow-2xs space-y-4 animate-in fade-in duration-150">
                 <div className="flex items-center gap-2.5 border-b border-slate-100 pb-3">
@@ -1323,7 +1587,7 @@ export const Settings = () => {
                   </div>
                   <div>
                     <h3 className="text-xs font-black text-slate-900 uppercase tracking-widest italic">
-                      Thuật Toán & Trình Tự Học (Algorithm)
+                      4. Thuật Toán & Trình Tự Học Mặc Định (Default Algorithm)
                     </h3>
                     <p className="text-[10px] font-medium text-slate-400">
                       Lựa chọn cách thẻ được phân phối và sắp xếp trong các phiên học
@@ -1367,287 +1631,6 @@ export const Settings = () => {
                     active={userSettings.random_enabled ?? false}
                     onClick={() => updateUserSettings({ random_enabled: !(userSettings.random_enabled ?? false) })}
                   />
-                </div>
-              </section>
-            )}
-
-            {/* Sub-tab 3: Alignment */}
-            {activeTunerTab === 'alignment' && (
-              <section className="bg-white rounded-3xl border border-slate-100 p-4 sm:p-6 shadow-2xs space-y-4 animate-in fade-in duration-150">
-                <div className="flex items-center gap-2.5 border-b border-slate-100 pb-3">
-                  <div className="w-8 h-8 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center shrink-0">
-                    <Layers className="w-4 h-4" />
-                  </div>
-                  <div>
-                    <h3 className="text-xs font-black text-slate-900 uppercase tracking-widest italic">
-                      Căn Lề Thẻ Flashcard (Alignment)
-                    </h3>
-                    <p className="text-[10px] font-medium text-slate-400">
-                      Căn chỉnh vị trí hiển thị dọc và ngang cho cả Mặt Trước và Mặt Sau của thẻ
-                    </p>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  <div className="p-3.5 bg-slate-50/70 rounded-2xl border border-slate-100 space-y-2">
-                    <span className="text-[10.5px] font-black text-slate-700 uppercase tracking-wider block">
-                      Mặt Trước (Front Card)
-                    </span>
-                    <div className="grid grid-cols-2 gap-2">
-                      <div>
-                        <span className="text-[9.5px] font-bold text-slate-400 block mb-1">Dọc:</span>
-                        <div className="grid grid-cols-2 gap-1 bg-white p-1 rounded-xl border border-slate-200/60">
-                          {(['center', 'top'] as const).map(mode => (
-                            <button
-                              key={mode}
-                              type="button"
-                              onClick={() => updateUserSettings({ front_valign: mode })}
-                              className={cn(
-                                "py-1 px-1 rounded-lg text-[10px] font-black uppercase transition-all cursor-pointer text-center",
-                                (userSettings.front_valign || 'center') === mode ? "bg-indigo-600 text-white shadow-xs" : "text-slate-500 hover:text-slate-800"
-                              )}
-                            >
-                              {mode === 'center' ? 'Center' : 'Top'}
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                      <div>
-                        <span className="text-[9.5px] font-bold text-slate-400 block mb-1">Ngang:</span>
-                        <div className="grid grid-cols-2 gap-1 bg-white p-1 rounded-xl border border-slate-200/60">
-                          {(['left', 'center'] as const).map(mode => (
-                            <button
-                              key={mode}
-                              type="button"
-                              onClick={() => updateUserSettings({ front_halign: mode })}
-                              className={cn(
-                                "py-1 px-1 rounded-lg text-[10px] font-black uppercase transition-all cursor-pointer text-center",
-                                (userSettings.front_halign || 'left') === mode ? "bg-indigo-600 text-white shadow-xs" : "text-slate-500 hover:text-slate-800"
-                              )}
-                            >
-                              {mode === 'left' ? 'Left' : 'Center'}
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="p-3.5 bg-slate-50/70 rounded-2xl border border-slate-100 space-y-2">
-                    <span className="text-[10.5px] font-black text-slate-700 uppercase tracking-wider block">
-                      Mặt Sau (Back Card)
-                    </span>
-                    <div className="grid grid-cols-2 gap-2">
-                      <div>
-                        <span className="text-[9.5px] font-bold text-slate-400 block mb-1">Dọc:</span>
-                        <div className="grid grid-cols-2 gap-1 bg-white p-1 rounded-xl border border-slate-200/60">
-                          {(['center', 'top'] as const).map(mode => (
-                            <button
-                              key={mode}
-                              type="button"
-                              onClick={() => updateUserSettings({ back_valign: mode })}
-                              className={cn(
-                                "py-1 px-1 rounded-lg text-[10px] font-black uppercase transition-all cursor-pointer text-center",
-                                (userSettings.back_valign || 'center') === mode ? "bg-indigo-600 text-white shadow-xs" : "text-slate-500 hover:text-slate-800"
-                              )}
-                            >
-                              {mode === 'center' ? 'Center' : 'Top'}
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                      <div>
-                        <span className="text-[9.5px] font-bold text-slate-400 block mb-1">Ngang:</span>
-                        <div className="grid grid-cols-2 gap-1 bg-white p-1 rounded-xl border border-slate-200/60">
-                          {(['left', 'center'] as const).map(mode => (
-                            <button
-                              key={mode}
-                              type="button"
-                              onClick={() => updateUserSettings({ back_halign: mode })}
-                              className={cn(
-                                "py-1 px-1 rounded-lg text-[10px] font-black uppercase transition-all cursor-pointer text-center",
-                                (userSettings.back_halign || 'left') === mode ? "bg-indigo-600 text-white shadow-xs" : "text-slate-500 hover:text-slate-800"
-                              )}
-                            >
-                              {mode === 'left' ? 'Left' : 'Center'}
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </section>
-            )}
-
-            {/* Sub-tab 4: Images & FSRS Display */}
-            {activeTunerTab === 'display' && (
-              <section className="bg-white rounded-3xl border border-slate-100 p-4 sm:p-6 shadow-2xs space-y-4 animate-in fade-in duration-150">
-                <div className="flex items-center gap-2.5 border-b border-slate-100 pb-3">
-                  <div className="w-8 h-8 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center shrink-0">
-                    <Eye className="w-4 h-4" />
-                  </div>
-                  <div>
-                    <h3 className="text-xs font-black text-slate-900 uppercase tracking-widest italic">
-                      Hình Ảnh & Chỉ Số FSRS (Display & Metrics)
-                    </h3>
-                    <p className="text-[10px] font-medium text-slate-400">
-                      Tùy chọn hiển thị hình ảnh minh họa và các thông số thuật toán FSRS trên thẻ flashcard
-                    </p>
-                  </div>
-                </div>
-
-                <div className="space-y-3">
-                  {/* Image Display Mode */}
-                  <div className="p-3.5 bg-slate-50/70 rounded-2xl border border-slate-100 space-y-2">
-                    <div className="flex items-center justify-between">
-                      <span className="text-[10.5px] font-black text-slate-700 uppercase tracking-wider flex items-center gap-1.5">
-                        <ImageIcon className="w-3.5 h-3.5 text-rose-500" /> Hiển Thị Hình Ảnh Minh Họa (Images)
-                      </span>
-                      <span className="text-[9.5px] font-bold text-slate-400">
-                        {userSettings.show_images === 'none' ? 'Đang tắt hình' : ((userSettings.show_images === 'back_only' || userSettings.show_images === 'back') ? 'Chỉ mặt sau' : (userSettings.show_images === 'front' ? 'Chỉ mặt trước' : 'Cả hai mặt'))}
-                      </span>
-                    </div>
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                      {[
-                        { id: 'both', label: 'Cả 2 Mặt (Trước & Sau)', desc: 'Hiện hình ảnh minh họa ở cả 2 mặt thẻ flashcard.' },
-                        { id: 'back_only', label: 'Chỉ Mặt Sau (Ẩn mặt trước)', desc: 'Giấu ảnh ở câu hỏi để gợi nhớ, chỉ hiện khi đã lật sang đáp án.' },
-                        { id: 'none', label: 'Tắt Hình Ảnh (Tối giản)', desc: 'Không tải hình ảnh, chỉ hiển thị mặt chữ và ngữ nghĩa.' }
-                      ].map(opt => {
-                        const isCur = (userSettings.show_images || 'both') === opt.id
-                        return (
-                          <button
-                            key={opt.id}
-                            type="button"
-                            onClick={() => updateUserSettings({ show_images: opt.id })}
-                            className={cn(
-                              "p-3 rounded-2xl border-2 text-left transition-all relative cursor-pointer",
-                              isCur ? "border-rose-500 bg-rose-50/40 shadow-xs" : "border-slate-100 bg-white hover:border-slate-200"
-                            )}
-                          >
-                            <div className="flex items-center justify-between mb-1">
-                              <h5 className="text-[11px] font-black text-slate-800 uppercase tracking-tight">{opt.label}</h5>
-                              {isCur && <Check className="w-3 h-3 text-rose-600 shrink-0" />}
-                            </div>
-                            <p className="text-[9.5px] text-slate-400 font-medium leading-relaxed">{opt.desc}</p>
-                          </button>
-                        )
-                      })}
-                    </div>
-                  </div>
-
-                  {/* FSRS Metrics Display Toggle */}
-                  <div className="p-3.5 bg-slate-50/70 rounded-2xl border border-slate-100 space-y-2">
-                    <div className="flex items-center justify-between">
-                      <span className="text-[10.5px] font-black text-slate-700 uppercase tracking-wider flex items-center gap-1.5">
-                        <Brain className="w-3.5 h-3.5 text-indigo-500" /> Chỉ Số & Thông Số FSRS v6 (FSRS Metrics)
-                      </span>
-                      <span className={cn(
-                        "text-[9.5px] font-black px-2 py-0.5 rounded-full",
-                        (userSettings.show_fsrs ?? true) ? "text-emerald-700 bg-emerald-100" : "text-slate-500 bg-slate-200"
-                      )}>
-                        {(userSettings.show_fsrs ?? true) ? 'Đang bật' : 'Đang tắt'}
-                      </span>
-                    </div>
-
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                      {[
-                        { 
-                          id: true, 
-                          label: 'Bật Hiển Thị Chỉ Số FSRS', 
-                          desc: 'Hiển thị độ ổn định (Stability - S), độ khó (Difficulty - D) và khoảng thời gian ôn tập tiếp theo trên mặt thẻ.' 
-                        },
-                        { 
-                          id: false, 
-                          label: 'Ẩn Thông Số FSRS (Gọn gàng)', 
-                          desc: 'Ẩn toàn bộ các chỉ số thuật toán, giữ cho giao diện học sạch sẽ và tối giản nhất.' 
-                        }
-                      ].map(opt => {
-                        const isCur = (userSettings.show_fsrs ?? true) === opt.id
-                        return (
-                          <button
-                            key={String(opt.id)}
-                            type="button"
-                            onClick={() => updateUserSettings({ show_fsrs: opt.id })}
-                            className={cn(
-                              "p-3 rounded-2xl border-2 text-left transition-all relative cursor-pointer",
-                              isCur ? "border-indigo-600 bg-indigo-50/40 shadow-xs" : "border-slate-100 bg-white hover:border-slate-200"
-                            )}
-                          >
-                            <div className="flex items-center justify-between mb-1">
-                              <h5 className="text-[11px] font-black text-slate-800 uppercase tracking-tight">{opt.label}</h5>
-                              {isCur && <Check className="w-3 h-3 text-indigo-600 shrink-0" />}
-                            </div>
-                            <p className="text-[9.5px] text-slate-400 font-medium leading-relaxed">{opt.desc}</p>
-                          </button>
-                        )
-                      })}
-                    </div>
-                  </div>
-                </div>
-              </section>
-            )}
-
-            {/* Sub-tab 5: Audio & SFX */}
-            {activeTunerTab === 'audio' && (
-              <section className="bg-white rounded-3xl border border-slate-100 p-4 sm:p-6 shadow-2xs space-y-4 animate-in fade-in duration-150">
-                <div className="flex items-center gap-2.5 border-b border-slate-100 pb-3">
-                  <div className="w-8 h-8 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
-                    <Volume2 className="w-4 h-4" />
-                  </div>
-                  <div>
-                    <h3 className="text-xs font-black text-slate-900 uppercase tracking-widest italic">
-                      Âm Thanh & Hiệu Ứng (Audio & SFX)
-                    </h3>
-                    <p className="text-[10px] font-medium text-slate-400">
-                      Tự động phát giọng đọc phát âm (TTS), âm thanh hiệu ứng và rung phản hồi thao tác
-                    </p>
-                  </div>
-                </div>
-
-                <div className="space-y-3">
-                  <div className="p-3.5 bg-slate-50/70 rounded-2xl border border-slate-100 space-y-2">
-                    <span className="text-[10.5px] font-black text-slate-700 uppercase tracking-wider block">
-                      Tự Động Phát Âm Thanh (TTS / Audio Autoplay)
-                    </span>
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-1 bg-white p-1 rounded-xl border border-slate-200/60">
-                      {[
-                        { id: 'always', label: 'Luôn phát' },
-                        { id: 'front', label: 'Mặt trước' },
-                        { id: 'back', label: 'Mặt sau' },
-                        { id: 'none', label: 'Tắt' }
-                      ].map(opt => (
-                        <button
-                          key={opt.id}
-                          type="button"
-                          onClick={() => updateUserSettings({ autoplay_audio: opt.id })}
-                          className={cn(
-                            "py-1.5 px-1 rounded-lg text-[10px] font-black uppercase transition-all cursor-pointer text-center",
-                            (userSettings.autoplay_audio || 'always') === opt.id ? "bg-emerald-600 text-white shadow-xs" : "text-slate-500 hover:text-slate-800"
-                          )}
-                        >
-                          {opt.label}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div className="space-y-1.5 pt-2 border-t border-slate-100">
-                    <SettingItem 
-                      icon={Volume2} 
-                      label="Hiệu Ứng Âm Thanh (SFX)" 
-                      desc="Phát âm thanh phản hồi khi lật thẻ và đánh giá kết quả" 
-                      active={userSettings.sfx_enabled ?? true} 
-                      onClick={() => updateUserSettings({ sfx_enabled: !(userSettings.sfx_enabled ?? true) })}
-                    />
-                    <SettingItem 
-                      icon={Zap} 
-                      label="Rung Phản Hồi (Haptic Feedback)" 
-                      desc="Rung nhẹ khi vuốt và chạm nút trên điện thoại" 
-                      active={userSettings.haptic_enabled ?? true} 
-                      onClick={() => updateUserSettings({ haptic_enabled: !(userSettings.haptic_enabled ?? true) })}
-                    />
-                  </div>
                 </div>
               </section>
             )}
@@ -2097,15 +2080,14 @@ export const Settings = () => {
                 </div>
               )}
 
-              {/* 5 Internal Sub-tabs for the 5 facets of this Template */}
+              {/* 4 Internal Sub-tabs for the 4 facets of this Template */}
               <div className="bg-slate-100 p-1 rounded-2xl border border-slate-200/80 shadow-2xs">
-                <div className="grid grid-cols-2 sm:grid-cols-5 gap-1">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-1">
                   {[
-                    { id: 'gestures', label: 'Cử chỉ', icon: Move },
-                    { id: 'algorithm', label: 'Thuật toán', icon: Brain },
-                    { id: 'alignment', label: 'Căn lề', icon: Layers },
-                    { id: 'display', label: 'Hình ảnh & FSRS', icon: Eye },
-                    { id: 'audio', label: 'Âm thanh', icon: Volume2 }
+                    { id: 'gestures', label: '1. Cử chỉ & SFX', icon: Move },
+                    { id: 'display', label: '2. Hiển thị & Căn lề', icon: Layers },
+                    { id: 'media', label: '3. Âm thanh & Ảnh', icon: Volume2 },
+                    { id: 'algorithm', label: '4. Thuật toán', icon: Brain }
                   ].map((t) => {
                     const Icon = t.icon
                     const isCur = modalTab === t.id
@@ -2129,14 +2111,14 @@ export const Settings = () => {
                 </div>
               </div>
 
-              {/* Modal Tab 1: Gestures */}
+              {/* Modal Tab 1: Gestures & SFX */}
               {modalTab === 'gestures' && (
                 <div className="p-3.5 bg-purple-50/40 border border-purple-100 rounded-2xl space-y-3 animate-in fade-in duration-150">
                   <span className="text-[10px] font-black uppercase tracking-wider text-purple-700 flex items-center gap-1.5">
-                    <Move className="w-3 h-3" /> Thiết lập Cử chỉ Thẻ (Gestures)
+                    <Move className="w-3 h-3" /> 1. Thiết lập Cử chỉ & Hiệu ứng (Gestures & SFX)
                   </span>
 
-                  <div className="space-y-2">
+                  <div className="space-y-2.5">
                     <div>
                       <span className="text-[9.5px] font-bold text-slate-500 block mb-1">Cách lật thẻ (Flip Trigger)</span>
                       <div className="grid grid-cols-3 gap-1 bg-white p-1 rounded-xl border border-purple-100">
@@ -2187,15 +2169,252 @@ export const Settings = () => {
                         ))}
                       </div>
                     </div>
+
+                    <div className="grid grid-cols-2 gap-2 pt-1 border-t border-purple-100/60">
+                      <div>
+                        <span className="text-[9.5px] font-bold text-slate-500 block mb-1">Hiệu ứng âm thanh (SFX)</span>
+                        <div className="grid grid-cols-2 gap-1 bg-white p-1 rounded-xl border border-purple-100">
+                          {[
+                            { id: true, label: 'Bật SFX' },
+                            { id: false, label: 'Tắt SFX' },
+                          ].map((opt) => (
+                            <button
+                              key={String(opt.id)}
+                              type="button"
+                              onClick={() => setTemplateSettings(prev => ({ ...prev, sfx_enabled: opt.id }))}
+                              className={cn(
+                                "py-1 px-1 rounded-lg text-[9.5px] font-black uppercase transition-all cursor-pointer text-center",
+                                templateSettings.sfx_enabled === opt.id
+                                  ? "bg-purple-600 text-white shadow-xs"
+                                  : "text-slate-500 hover:text-slate-800"
+                              )}
+                            >
+                              {opt.label}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div>
+                        <span className="text-[9.5px] font-bold text-slate-500 block mb-1">Rung phản hồi (Haptic)</span>
+                        <div className="grid grid-cols-2 gap-1 bg-white p-1 rounded-xl border border-purple-100">
+                          {[
+                            { id: true, label: 'Bật Rung' },
+                            { id: false, label: 'Tắt Rung' },
+                          ].map((opt) => (
+                            <button
+                              key={String(opt.id)}
+                              type="button"
+                              onClick={() => setTemplateSettings(prev => ({ ...prev, haptic_enabled: opt.id }))}
+                              className={cn(
+                                "py-1 px-1 rounded-lg text-[9.5px] font-black uppercase transition-all cursor-pointer text-center",
+                                templateSettings.haptic_enabled === opt.id
+                                  ? "bg-purple-600 text-white shadow-xs"
+                                  : "text-slate-500 hover:text-slate-800"
+                              )}
+                            >
+                              {opt.label}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 </div>
               )}
 
-              {/* Modal Tab 2: Algorithm */}
+              {/* Modal Tab 2: Display & Alignment */}
+              {modalTab === 'display' && (
+                <div className="p-3.5 bg-amber-50/40 border border-amber-100 rounded-2xl space-y-3 animate-in fade-in duration-150">
+                  <span className="text-[10px] font-black uppercase tracking-wider text-amber-700 flex items-center gap-1.5">
+                    <Layers className="w-3 h-3" /> 2. Thiết lập Hiển thị & Căn lề (Display & Alignment)
+                  </span>
+
+                  <div className="space-y-2.5">
+                    {/* FSRS Metrics */}
+                    <div>
+                      <span className="text-[9.5px] font-bold text-slate-500 block mb-1">Chỉ số thuật toán FSRS trên mặt thẻ</span>
+                      <div className="grid grid-cols-2 gap-1 bg-white p-1 rounded-xl border border-amber-100">
+                        {[
+                          { id: true, label: 'Hiện chỉ số FSRS' },
+                          { id: false, label: 'Ẩn chỉ số FSRS' },
+                        ].map((opt) => (
+                          <button
+                            key={String(opt.id)}
+                            type="button"
+                            onClick={() => setTemplateSettings(prev => ({ ...prev, show_fsrs: opt.id }))}
+                            className={cn(
+                              "py-1.5 px-1 rounded-lg text-[9.5px] font-black uppercase transition-all cursor-pointer text-center",
+                              templateSettings.show_fsrs === opt.id
+                                ? "bg-amber-600 text-white shadow-xs"
+                                : "text-slate-500 hover:text-slate-800"
+                            )}
+                          >
+                            {opt.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Alignment */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                      {/* Front */}
+                      <div className="p-2.5 bg-white rounded-xl border border-amber-100 space-y-2">
+                        <span className="text-[10px] font-black text-slate-700 uppercase block">Mặt Trước (Front)</span>
+                        <div className="grid grid-cols-2 gap-1.5">
+                          <div>
+                            <span className="text-[9px] font-bold text-slate-400 block mb-0.5">Dọc:</span>
+                            <div className="grid grid-cols-2 gap-0.5 bg-slate-50 p-0.5 rounded-lg border border-slate-200/60">
+                              {(['center', 'top'] as const).map(v => (
+                                <button
+                                  key={v}
+                                  type="button"
+                                  onClick={() => setTemplateSettings(prev => ({ ...prev, front_valign: v }))}
+                                  className={cn(
+                                    "py-1 text-[9.5px] font-black uppercase rounded cursor-pointer text-center",
+                                    templateSettings.front_valign === v ? "bg-amber-500 text-white shadow-2xs" : "text-slate-500"
+                                  )}
+                                >
+                                  {v === 'center' ? 'Giữa' : 'Trên'}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                          <div>
+                            <span className="text-[9px] font-bold text-slate-400 block mb-0.5">Ngang:</span>
+                            <div className="grid grid-cols-2 gap-0.5 bg-slate-50 p-0.5 rounded-lg border border-slate-200/60">
+                              {(['left', 'center'] as const).map(h => (
+                                <button
+                                  key={h}
+                                  type="button"
+                                  onClick={() => setTemplateSettings(prev => ({ ...prev, front_halign: h }))}
+                                  className={cn(
+                                    "py-1 text-[9.5px] font-black uppercase rounded cursor-pointer text-center",
+                                    templateSettings.front_halign === h ? "bg-amber-500 text-white shadow-2xs" : "text-slate-500"
+                                  )}
+                                >
+                                  {h === 'left' ? 'Trái' : 'Giữa'}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Back */}
+                      <div className="p-2.5 bg-white rounded-xl border border-amber-100 space-y-2">
+                        <span className="text-[10px] font-black text-slate-700 uppercase block">Mặt Sau (Back)</span>
+                        <div className="grid grid-cols-2 gap-1.5">
+                          <div>
+                            <span className="text-[9px] font-bold text-slate-400 block mb-0.5">Dọc:</span>
+                            <div className="grid grid-cols-2 gap-0.5 bg-slate-50 p-0.5 rounded-lg border border-slate-200/60">
+                              {(['center', 'top'] as const).map(v => (
+                                <button
+                                  key={v}
+                                  type="button"
+                                  onClick={() => setTemplateSettings(prev => ({ ...prev, back_valign: v }))}
+                                  className={cn(
+                                    "py-1 text-[9.5px] font-black uppercase rounded cursor-pointer text-center",
+                                    templateSettings.back_valign === v ? "bg-amber-500 text-white shadow-2xs" : "text-slate-500"
+                                  )}
+                                >
+                                  {v === 'center' ? 'Giữa' : 'Trên'}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                          <div>
+                            <span className="text-[9px] font-bold text-slate-400 block mb-0.5">Ngang:</span>
+                            <div className="grid grid-cols-2 gap-0.5 bg-slate-50 p-0.5 rounded-lg border border-slate-200/60">
+                              {(['left', 'center'] as const).map(h => (
+                                <button
+                                  key={h}
+                                  type="button"
+                                  onClick={() => setTemplateSettings(prev => ({ ...prev, back_halign: h }))}
+                                  className={cn(
+                                    "py-1 text-[9.5px] font-black uppercase rounded cursor-pointer text-center",
+                                    templateSettings.back_halign === h ? "bg-amber-500 text-white shadow-2xs" : "text-slate-500"
+                                  )}
+                                >
+                                  {h === 'left' ? 'Trái' : 'Giữa'}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Modal Tab 3: Media (Audio & Images) */}
+              {modalTab === 'media' && (
+                <div className="p-3.5 bg-emerald-50/40 border border-emerald-100 rounded-2xl space-y-3 animate-in fade-in duration-150">
+                  <span className="text-[10px] font-black uppercase tracking-wider text-emerald-700 flex items-center gap-1.5">
+                    <Volume2 className="w-3 h-3" /> 3. Thiết lập Âm thanh & Hình ảnh (Media Content)
+                  </span>
+
+                  <div className="space-y-3">
+                    <div>
+                      <span className="text-[9.5px] font-bold text-slate-500 block mb-1">Tự động phát âm thanh (Audio TTS)</span>
+                      <div className="grid grid-cols-4 gap-1 bg-white p-1 rounded-xl border border-emerald-100">
+                        {[
+                          { id: 'always', label: 'Luôn phát' },
+                          { id: 'front', label: 'Mặt trước' },
+                          { id: 'back', label: 'Mặt sau' },
+                          { id: 'none', label: 'Tắt' },
+                        ].map((opt) => (
+                          <button
+                            key={opt.id}
+                            type="button"
+                            onClick={() => setTemplateSettings(prev => ({ ...prev, autoplay_audio: opt.id as any }))}
+                            className={cn(
+                              "py-1.5 px-1 rounded-lg text-[9.5px] font-black uppercase transition-all cursor-pointer text-center",
+                              templateSettings.autoplay_audio === opt.id
+                                ? "bg-emerald-600 text-white shadow-xs"
+                                : "text-slate-500 hover:text-slate-800"
+                            )}
+                          >
+                            {opt.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div>
+                      <span className="text-[9.5px] font-bold text-slate-500 block mb-1">Hiển thị hình ảnh minh họa (Images)</span>
+                      <div className="grid grid-cols-3 gap-1 bg-white p-1 rounded-xl border border-emerald-100">
+                        {[
+                          { id: 'both', label: 'Cả 2 mặt' },
+                          { id: 'back_only', label: 'Chỉ mặt sau' },
+                          { id: 'none', label: 'Tắt hình' },
+                        ].map((opt) => (
+                          <button
+                            key={opt.id}
+                            type="button"
+                            onClick={() => setTemplateSettings(prev => ({ ...prev, show_images: opt.id as any }))}
+                            className={cn(
+                              "py-1.5 px-1 rounded-lg text-[9.5px] font-black uppercase transition-all cursor-pointer text-center truncate",
+                              templateSettings.show_images === opt.id
+                                ? "bg-emerald-600 text-white shadow-xs"
+                                : "text-slate-500 hover:text-slate-800"
+                            )}
+                          >
+                            {opt.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Modal Tab 4: Algorithm */}
               {modalTab === 'algorithm' && (
                 <div className="p-3.5 bg-indigo-50/40 border border-indigo-100 rounded-2xl space-y-3 animate-in fade-in duration-150">
                   <span className="text-[10px] font-black uppercase tracking-wider text-indigo-700 flex items-center gap-1.5">
-                    <Brain className="w-3 h-3" /> Thuật toán & Trình tự học (Algorithm)
+                    <Brain className="w-3 h-3" /> 4. Thuật toán & Trình tự học mặc định (Default Algorithm)
                   </span>
 
                   <div className="space-y-2">
@@ -2230,258 +2449,14 @@ export const Settings = () => {
                         <span className="text-[10.5px] font-bold text-slate-700">Xáo trộn ngẫu nhiên thứ tự thẻ</span>
                         <button
                           type="button"
-                          onClick={() => setTemplateSettings(prev => ({ ...prev, random_enabled: !(prev as any).random_enabled }))}
+                          onClick={() => setTemplateSettings(prev => ({ ...prev, random_enabled: !prev.random_enabled }))}
                           className={cn(
                             "w-8 h-4.5 rounded-full transition-colors relative p-0.5 cursor-pointer shrink-0",
-                            (templateSettings as any).random_enabled ? "bg-indigo-600" : "bg-slate-200"
+                            templateSettings.random_enabled ? "bg-indigo-600" : "bg-slate-200"
                           )}
                         >
-                          <div className={cn("w-3.5 h-3.5 rounded-full bg-white transition-transform", (templateSettings as any).random_enabled ? "translate-x-3.5" : "translate-x-0")} />
+                          <div className={cn("w-3.5 h-3.5 rounded-full bg-white transition-transform", templateSettings.random_enabled ? "translate-x-3.5" : "translate-x-0")} />
                         </button>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Modal Tab 3: Alignment */}
-              {modalTab === 'alignment' && (
-                <div className="p-3.5 bg-amber-50/40 border border-amber-100 rounded-2xl space-y-3 animate-in fade-in duration-150">
-                  <span className="text-[10px] font-black uppercase tracking-wider text-amber-700 flex items-center gap-1.5">
-                    <Layers className="w-3 h-3" /> Căn lề thẻ (Alignment)
-                  </span>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                    {/* Front */}
-                    <div className="p-2.5 bg-white rounded-xl border border-amber-100 space-y-2">
-                      <span className="text-[10px] font-black text-slate-700 uppercase block">Mặt Trước (Front)</span>
-                      <div className="grid grid-cols-2 gap-1.5">
-                        <div>
-                          <span className="text-[9px] font-bold text-slate-400 block mb-0.5">Dọc:</span>
-                          <div className="grid grid-cols-2 gap-0.5 bg-slate-50 p-0.5 rounded-lg border border-slate-200/60">
-                            {(['center', 'top'] as const).map(v => (
-                              <button
-                                key={v}
-                                type="button"
-                                onClick={() => setTemplateSettings(prev => ({ ...prev, front_valign: v }))}
-                                className={cn(
-                                  "py-1 text-[9.5px] font-black uppercase rounded cursor-pointer text-center",
-                                  templateSettings.front_valign === v ? "bg-amber-500 text-white shadow-2xs" : "text-slate-500"
-                                )}
-                              >
-                                {v === 'center' ? 'Giữa' : 'Trên'}
-                              </button>
-                            ))}
-                          </div>
-                        </div>
-                        <div>
-                          <span className="text-[9px] font-bold text-slate-400 block mb-0.5">Ngang:</span>
-                          <div className="grid grid-cols-2 gap-0.5 bg-slate-50 p-0.5 rounded-lg border border-slate-200/60">
-                            {(['left', 'center'] as const).map(h => (
-                              <button
-                                key={h}
-                                type="button"
-                                onClick={() => setTemplateSettings(prev => ({ ...prev, front_halign: h }))}
-                                className={cn(
-                                  "py-1 text-[9.5px] font-black uppercase rounded cursor-pointer text-center",
-                                  templateSettings.front_halign === h ? "bg-amber-500 text-white shadow-2xs" : "text-slate-500"
-                                )}
-                              >
-                                {h === 'left' ? 'Trái' : 'Giữa'}
-                              </button>
-                            ))}
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Back */}
-                    <div className="p-2.5 bg-white rounded-xl border border-amber-100 space-y-2">
-                      <span className="text-[10px] font-black text-slate-700 uppercase block">Mặt Sau (Back)</span>
-                      <div className="grid grid-cols-2 gap-1.5">
-                        <div>
-                          <span className="text-[9px] font-bold text-slate-400 block mb-0.5">Dọc:</span>
-                          <div className="grid grid-cols-2 gap-0.5 bg-slate-50 p-0.5 rounded-lg border border-slate-200/60">
-                            {(['center', 'top'] as const).map(v => (
-                              <button
-                                key={v}
-                                type="button"
-                                onClick={() => setTemplateSettings(prev => ({ ...prev, back_valign: v }))}
-                                className={cn(
-                                  "py-1 text-[9.5px] font-black uppercase rounded cursor-pointer text-center",
-                                  templateSettings.back_valign === v ? "bg-amber-500 text-white shadow-2xs" : "text-slate-500"
-                                )}
-                              >
-                                {v === 'center' ? 'Giữa' : 'Trên'}
-                              </button>
-                            ))}
-                          </div>
-                        </div>
-                        <div>
-                          <span className="text-[9px] font-bold text-slate-400 block mb-0.5">Ngang:</span>
-                          <div className="grid grid-cols-2 gap-0.5 bg-slate-50 p-0.5 rounded-lg border border-slate-200/60">
-                            {(['left', 'center'] as const).map(h => (
-                              <button
-                                key={h}
-                                type="button"
-                                onClick={() => setTemplateSettings(prev => ({ ...prev, back_halign: h }))}
-                                className={cn(
-                                  "py-1 text-[9.5px] font-black uppercase rounded cursor-pointer text-center",
-                                  templateSettings.back_halign === h ? "bg-amber-500 text-white shadow-2xs" : "text-slate-500"
-                                )}
-                              >
-                                {h === 'left' ? 'Trái' : 'Giữa'}
-                              </button>
-                            ))}
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Modal Tab 4: Display & FSRS */}
-              {modalTab === 'display' && (
-                <div className="p-3.5 bg-rose-50/40 border border-rose-100 rounded-2xl space-y-3 animate-in fade-in duration-150">
-                  <span className="text-[10px] font-black uppercase tracking-wider text-rose-700 flex items-center gap-1.5">
-                    <Eye className="w-3 h-3" /> Thiết lập Hình Ảnh & Chỉ Số FSRS
-                  </span>
-
-                  <div className="space-y-3">
-                    <div>
-                      <span className="text-[9.5px] font-bold text-slate-500 block mb-1">Hiển thị hình ảnh minh họa (Images)</span>
-                      <div className="grid grid-cols-3 gap-1 bg-white p-1 rounded-xl border border-rose-100">
-                        {[
-                          { id: 'both', label: 'Cả 2 mặt' },
-                          { id: 'back_only', label: 'Chỉ mặt sau' },
-                          { id: 'none', label: 'Tắt hình' },
-                        ].map((opt) => (
-                          <button
-                            key={opt.id}
-                            type="button"
-                            onClick={() => setTemplateSettings(prev => ({ ...prev, show_images: opt.id as any }))}
-                            className={cn(
-                              "py-1.5 px-1 rounded-lg text-[9.5px] font-black uppercase transition-all cursor-pointer text-center truncate",
-                              templateSettings.show_images === opt.id
-                                ? "bg-rose-600 text-white shadow-xs"
-                                : "text-slate-500 hover:text-slate-800"
-                            )}
-                          >
-                            {opt.label}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-
-                    <div>
-                      <span className="text-[9.5px] font-bold text-slate-500 block mb-1">Chỉ số thuật toán FSRS trên mặt thẻ</span>
-                      <div className="grid grid-cols-2 gap-1 bg-white p-1 rounded-xl border border-rose-100">
-                        {[
-                          { id: true, label: 'Hiện chỉ số FSRS' },
-                          { id: false, label: 'Ẩn chỉ số FSRS' },
-                        ].map((opt) => (
-                          <button
-                            key={String(opt.id)}
-                            type="button"
-                            onClick={() => setTemplateSettings(prev => ({ ...prev, show_fsrs: opt.id }))}
-                            className={cn(
-                              "py-1.5 px-1 rounded-lg text-[9.5px] font-black uppercase transition-all cursor-pointer text-center",
-                              templateSettings.show_fsrs === opt.id
-                                ? "bg-rose-600 text-white shadow-xs"
-                                : "text-slate-500 hover:text-slate-800"
-                            )}
-                          >
-                            {opt.label}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Modal Tab 5: Audio & SFX */}
-              {modalTab === 'audio' && (
-                <div className="p-3.5 bg-emerald-50/40 border border-emerald-100 rounded-2xl space-y-3 animate-in fade-in duration-150">
-                  <span className="text-[10px] font-black uppercase tracking-wider text-emerald-700 flex items-center gap-1.5">
-                    <Volume2 className="w-3 h-3" /> Thiết lập Âm thanh & Hiệu ứng (Audio & SFX)
-                  </span>
-
-                  <div className="space-y-3">
-                    <div>
-                      <span className="text-[9.5px] font-bold text-slate-500 block mb-1">Tự động phát âm thanh (Audio TTS)</span>
-                      <div className="grid grid-cols-4 gap-1 bg-white p-1 rounded-xl border border-emerald-100">
-                        {[
-                          { id: 'always', label: 'Luôn phát' },
-                          { id: 'front', label: 'Mặt trước' },
-                          { id: 'back', label: 'Mặt sau' },
-                          { id: 'none', label: 'Tắt' },
-                        ].map((opt) => (
-                          <button
-                            key={opt.id}
-                            type="button"
-                            onClick={() => setTemplateSettings(prev => ({ ...prev, autoplay_audio: opt.id as any }))}
-                            className={cn(
-                              "py-1.5 px-1 rounded-lg text-[9.5px] font-black uppercase transition-all cursor-pointer text-center",
-                              templateSettings.autoplay_audio === opt.id
-                                ? "bg-emerald-600 text-white shadow-xs"
-                                : "text-slate-500 hover:text-slate-800"
-                            )}
-                          >
-                            {opt.label}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-2">
-                      <div>
-                        <span className="text-[9.5px] font-bold text-slate-500 block mb-1">Hiệu ứng âm thanh (SFX)</span>
-                        <div className="grid grid-cols-2 gap-1 bg-white p-1 rounded-xl border border-emerald-100">
-                          {[
-                            { id: true, label: 'Bật SFX' },
-                            { id: false, label: 'Tắt SFX' },
-                          ].map((opt) => (
-                            <button
-                              key={String(opt.id)}
-                              type="button"
-                              onClick={() => setTemplateSettings(prev => ({ ...prev, sfx_enabled: opt.id }))}
-                              className={cn(
-                                "py-1 px-1 rounded-lg text-[9.5px] font-black uppercase transition-all cursor-pointer text-center",
-                                templateSettings.sfx_enabled === opt.id
-                                  ? "bg-emerald-600 text-white shadow-xs"
-                                  : "text-slate-500 hover:text-slate-800"
-                              )}
-                            >
-                              {opt.label}
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-
-                      <div>
-                        <span className="text-[9.5px] font-bold text-slate-500 block mb-1">Rung phản hồi (Haptic)</span>
-                        <div className="grid grid-cols-2 gap-1 bg-white p-1 rounded-xl border border-emerald-100">
-                          {[
-                            { id: true, label: 'Bật Rung' },
-                            { id: false, label: 'Tắt Rung' },
-                          ].map((opt) => (
-                            <button
-                              key={String(opt.id)}
-                              type="button"
-                              onClick={() => setTemplateSettings(prev => ({ ...prev, haptic_enabled: opt.id }))}
-                              className={cn(
-                                "py-1 px-1 rounded-lg text-[9.5px] font-black uppercase transition-all cursor-pointer text-center",
-                                templateSettings.haptic_enabled === opt.id
-                                  ? "bg-emerald-600 text-white shadow-xs"
-                                  : "text-slate-500 hover:text-slate-800"
-                              )}
-                            >
-                              {opt.label}
-                            </button>
-                          ))}
-                        </div>
                       </div>
                     </div>
                   </div>
