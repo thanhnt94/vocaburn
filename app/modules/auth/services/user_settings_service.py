@@ -26,7 +26,8 @@ class UserSettingsService:
             "autoplay_audio", "quick_learn_enabled", "random_enabled",
             "show_images", "show_fsrs", "quiz_learning_mode",
             "practice_submode", "practice_range", "score_mode", "time_mode",
-            "last_deck_id", "paste_columns", "quick_add_columns"
+            "last_deck_id", "paste_columns", "quick_add_columns",
+            "card_flip_trigger", "card_rating_mode"
         }
         
         updated = False

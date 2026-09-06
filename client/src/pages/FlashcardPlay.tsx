@@ -270,6 +270,7 @@ export default function FlashcardPlay() {
 
   const effectiveCardFlipTrigger = deckCardFlipTrigger || userSettings.card_flip_trigger || 'both';
   const effectiveCardRatingMode = deckCardRatingMode || userSettings.card_rating_mode || 'both';
+  const effectiveShowFsrs = userSettings.show_fsrs !== undefined ? userSettings.show_fsrs : showFsrs;
 
   const {
     playCardAudio,
@@ -422,6 +423,26 @@ export default function FlashcardPlay() {
     setIsFlyingOut(false)
     cardDragControls.set({ x: 0, y: 0, opacity: 1, rotate: 0 })
   }, [currentIndex, isFlipped])
+
+  const backScrollRef = useRef<HTMLDivElement>(null)
+  const [hasBackOverflow, setHasBackOverflow] = useState(false)
+
+  useEffect(() => {
+    if (isFlipped && backScrollRef.current) {
+      const checkOverflow = () => {
+        const el = backScrollRef.current
+        if (el) {
+          const isOverflowing = el.scrollHeight > el.clientHeight + 6
+          setHasBackOverflow(isOverflowing)
+        }
+      }
+      checkOverflow()
+      const timer = setTimeout(checkOverflow, 80)
+      return () => clearTimeout(timer)
+    } else {
+      setHasBackOverflow(false)
+    }
+  }, [isFlipped, currentIndex, currentQuestion?.id, effectiveShowFsrs])
 
   const handleTouchStart = (e: React.TouchEvent) => {
     const touch = e.touches[0];
@@ -3624,7 +3645,9 @@ export default function FlashcardPlay() {
                     onDragEnd={handleCardDragEnd}
                     animate={cardDragControls}
                     style={{
-                      touchAction: canDragRate ? 'none' : 'auto',
+                      touchAction: canDragRate 
+                        ? (effectiveCardRatingMode === 'swipe_2way' || hasBackOverflow ? 'pan-y' : 'none') 
+                        : 'auto',
                     }}
                   >
                     <div
@@ -3751,7 +3774,10 @@ export default function FlashcardPlay() {
                     }}
                   >
                     {/* Top Banner */}
-                    <div className="flex items-center justify-between">
+                    <div 
+                      className="flex items-center justify-between select-none"
+                      style={{ touchAction: 'none' }}
+                    >
                       <div className="flex items-center gap-2">
                         <span className="text-[10px] font-black tracking-widest text-emerald-600 bg-emerald-50 px-3 py-1.5 rounded-xl border border-emerald-100 uppercase shadow-sm">
                           BACK CARD
@@ -3784,7 +3810,15 @@ export default function FlashcardPlay() {
                     </div>
 
                     {/* Definition & explanation */}
-                    <div className="flex-1 overflow-y-auto custom-scrollbar my-3 md:my-4 flex flex-col pr-1 md:pr-2">
+                    <div 
+                      ref={backScrollRef}
+                      className="flex-1 overflow-y-auto custom-scrollbar my-2 md:my-3 flex flex-col pr-1 md:pr-2"
+                      style={{
+                        touchAction: hasBackOverflow ? 'pan-y' : 'auto',
+                        WebkitOverflowScrolling: 'touch',
+                        overscrollBehavior: 'contain'
+                      }}
+                    >
                       <div className={cn(
                         "w-full flex flex-col gap-3 md:gap-4",
                         backValign === 'top' ? "mt-0 mb-auto" : "my-auto",
@@ -3882,7 +3916,7 @@ export default function FlashcardPlay() {
                       const allTimeWrong = stats.wrong || 0;
                       const allTimeAccuracy = allTimeTotal > 0 ? Math.round((allTimeCorrect / allTimeTotal) * 100) : 0;
 
-                      return showFsrs ? (
+                      return effectiveShowFsrs ? (
                         <div className="md:mt-3 mt-1.5 p-2.5 bg-slate-50/50 rounded-2xl border border-slate-100 flex flex-col gap-1.5 w-full">
                           <div className="flex items-center justify-between text-[8px] font-black text-slate-400 uppercase tracking-widest px-1">
                             <span>Card Performance Stats</span>
@@ -3912,7 +3946,7 @@ export default function FlashcardPlay() {
                     })()}
 
                     {/* FSRS Stats Row */}
-                    {showFsrs && currentQuestion?.fsrs && (() => {
+                    {effectiveShowFsrs && currentQuestion?.fsrs && (() => {
                       const stateLabels = ['New', 'Learning', 'Review', 'Relearning'];
                       const stateColors = [
                         'bg-blue-500/10 text-blue-600 border-blue-500/20 shadow-sm shadow-blue-500/5',
@@ -4013,63 +4047,9 @@ export default function FlashcardPlay() {
                     })()}
 
 
-                    {/* FSRS Buttons / Compass Gestures Guide */}
+                    {/* FSRS Buttons / Hidden in swipe-only modes (swipe_4way, swipe_2way) to save vertical screen space */}
                     {activeMode !== 'flip' && !hasRated && (
-                      effectiveCardRatingMode === 'swipe_4way' ? (
-                        <div className="mt-4 p-2.5 rounded-2xl bg-slate-50/90 border border-slate-200/60 shadow-xs flex items-center justify-between gap-1.5 text-[11px] font-black uppercase tracking-wider select-none">
-                          <button
-                            onClick={() => handleReviewRating(1)}
-                            className="flex-1 py-2 px-1 flex flex-col items-center rounded-xl bg-white border border-rose-100 text-rose-600 hover:bg-rose-50 active:scale-95 transition-all shadow-xs cursor-pointer"
-                            title="Swipe Left or Tap to rate Again"
-                          >
-                            <span className="text-xs">← Again</span>
-                            <span className="text-[9px] font-bold text-rose-400">{getFSRSIntervals(currentQuestion?.fsrs)[1] || '1m'}</span>
-                          </button>
-                          <button
-                            onClick={() => handleReviewRating(2)}
-                            className="flex-1 py-2 px-1 flex flex-col items-center rounded-xl bg-white border border-amber-100 text-amber-600 hover:bg-amber-50 active:scale-95 transition-all shadow-xs cursor-pointer"
-                            title="Swipe Down or Tap to rate Hard"
-                          >
-                            <span className="text-xs">↓ Hard</span>
-                            <span className="text-[9px] font-bold text-amber-400">{getFSRSIntervals(currentQuestion?.fsrs)[2] || '5m'}</span>
-                          </button>
-                          <button
-                            onClick={() => handleReviewRating(3)}
-                            className="flex-1 py-2 px-1 flex flex-col items-center rounded-xl bg-white border border-indigo-100 text-indigo-600 hover:bg-indigo-50 active:scale-95 transition-all shadow-xs cursor-pointer"
-                            title="Swipe Right or Tap to rate Good"
-                          >
-                            <span className="text-xs">Good →</span>
-                            <span className="text-[9px] font-bold text-indigo-400">{getFSRSIntervals(currentQuestion?.fsrs)[3] || '10m'}</span>
-                          </button>
-                          <button
-                            onClick={() => handleReviewRating(4)}
-                            className="flex-1 py-2 px-1 flex flex-col items-center rounded-xl bg-white border border-emerald-100 text-emerald-600 hover:bg-emerald-50 active:scale-95 transition-all shadow-xs cursor-pointer"
-                            title="Swipe Up or Tap to rate Easy"
-                          >
-                            <span className="text-xs">Easy ↑</span>
-                            <span className="text-[9px] font-bold text-emerald-400">{getFSRSIntervals(currentQuestion?.fsrs)[4] || '4d'}</span>
-                          </button>
-                        </div>
-                      ) : effectiveCardRatingMode === 'swipe_2way' ? (
-                        <div className="mt-4 p-2.5 rounded-2xl bg-slate-50/90 border border-slate-200/60 shadow-xs flex items-center justify-between gap-2 text-[11px] font-black uppercase tracking-wider select-none">
-                          <button
-                            onClick={() => handleReviewRating(1)}
-                            className="flex-1 py-2 px-2 flex items-center justify-center gap-2 rounded-xl bg-white border border-rose-100 text-rose-600 hover:bg-rose-50 active:scale-95 transition-all shadow-xs cursor-pointer"
-                            title="Swipe Left or Tap to rate Again"
-                          >
-                            <span>← Again</span>
-                            <span className="text-[9px] font-bold text-rose-400">{getFSRSIntervals(currentQuestion?.fsrs)[1] || '1m'}</span>
-                          </button>
-                          <button
-                            onClick={() => handleReviewRating(3)}
-                            className="flex-1 py-2 px-2 flex items-center justify-center gap-2 rounded-xl bg-white border border-indigo-100 text-indigo-600 hover:bg-indigo-50 active:scale-95 transition-all shadow-xs cursor-pointer"
-                            title="Swipe Right or Tap to rate Good"
-                          >
-                            <span>Good →</span>
-                            <span className="text-[9px] font-bold text-indigo-400">{getFSRSIntervals(currentQuestion?.fsrs)[3] || '10m'}</span>
-                          </button>
-                        </div>
-                      ) : (
+                      effectiveCardRatingMode === 'both' || effectiveCardRatingMode === 'buttons' ? (
                         <FSRSActionButtons
                           isFlipped={isFlipped}
                           hasRated={hasRated}
@@ -4077,7 +4057,7 @@ export default function FlashcardPlay() {
                           intervals={getFSRSIntervals(currentQuestion?.fsrs)}
                           onRate={handleReviewRating}
                         />
-                      )
+                      ) : null
                     )}
 
                     {/* After rating: show colorful dynamic rated badge with real-time unlocking countdown */}
@@ -4733,8 +4713,11 @@ export default function FlashcardPlay() {
         setQuickLearnEnabled={setQuickLearnEnabled}
         showImages={showImages}
         setShowImages={setShowImages}
-        showFsrs={showFsrs}
-        setShowFsrs={setShowFsrs}
+        showFsrs={effectiveShowFsrs}
+        setShowFsrs={(val: boolean) => {
+          setShowFsrs(val);
+          updateUserSettings({ show_fsrs: val });
+        }}
         randomEnabled={randomEnabled}
         setRandomEnabled={setRandomEnabled}
         isCustomized={isCustomized}

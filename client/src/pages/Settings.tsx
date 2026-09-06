@@ -521,6 +521,25 @@ const Settings = () => {
             </div>
           </div>
         </div>
+
+        {/* Sub-section 3: Card Back Display & FSRS Metrics */}
+        <div className="space-y-3 pt-2 border-t border-slate-100">
+          <div className="flex items-center gap-2">
+            <Brain className="w-3.5 h-3.5 text-indigo-500" />
+            <h3 className="text-[11px] font-black text-slate-700 uppercase tracking-wider">
+              Flashcard Metrics & FSRS Info
+            </h3>
+          </div>
+          <div className="bg-slate-50/50 rounded-2xl border border-slate-100 p-1">
+            <SettingItem 
+              icon={Brain} 
+              label="Show FSRS Statistics & Metrics" 
+              desc="Display stability, difficulty, overdue interval, and review history on flashcards" 
+              active={userSettings.show_fsrs ?? true} 
+              onClick={() => updateUserSettings({ show_fsrs: !(userSettings.show_fsrs ?? true) })}
+            />
+          </div>
+        </div>
       </section>
     </div>
   )
@@ -786,6 +805,13 @@ const Settings = () => {
             desc="Display time spent per neural node during sessions" 
             active={focusTimer}
             onClick={toggleFocusTimer}
+          />
+          <SettingItem 
+            icon={Brain} 
+            label="Show FSRS Statistics" 
+            desc="Display memory stability, difficulty, and review history on flashcards" 
+            active={userSettings.show_fsrs ?? true} 
+            onClick={() => updateUserSettings({ show_fsrs: !(userSettings.show_fsrs ?? true) })}
           />
         </div>
       </section>
