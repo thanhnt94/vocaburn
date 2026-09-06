@@ -34,7 +34,9 @@ import {
   User,
   Sliders,
   Copy,
-  Edit3
+  Edit3,
+  Eye,
+  Image as ImageIcon
 } from 'lucide-react'
 import { useAppStore } from '@/store/useAppStore'
 import type { StudyProfile } from '@/store/useSettingsStore'
@@ -80,7 +82,7 @@ const SYSTEM_PROFILES = [
     name: 'Tiêu chuẩn (FSRS)',
     icon: 'sparkles',
     badge: 'Khuyên dùng',
-    desc: 'Lật thẻ cả 2 chiều, FSRS đầy đủ, hình ảnh & âm thanh thông minh.',
+    desc: 'Lật thẻ cả 2 chiều, thuật toán FSRS v6 đầy đủ kèm chỉ số, ảnh 2 mặt & TTS phát âm tự động.',
     details: [
       { label: 'Lật thẻ', val: 'Chạm & Vuốt' },
       { label: 'Đánh giá', val: '4 hướng FSRS' },
@@ -110,7 +112,7 @@ const SYSTEM_PROFILES = [
     name: 'Tốc độ cao (Speedrun)',
     icon: 'zap',
     badge: 'Tốc độ',
-    desc: 'Bỏ qua hiệu ứng rườm rà, lướt 2 chiều nhanh gọn, tối ưu số lượng thẻ mỗi phút.',
+    desc: 'Bỏ qua hiệu ứng rườm rà và ẩn chỉ số FSRS, lướt 2 chiều nhanh gọn, tối ưu tốc độ.',
     details: [
       { label: 'Lật thẻ', val: 'Chạm thân thẻ' },
       { label: 'Đánh giá', val: 'Vuốt 2 chiều' },
@@ -140,7 +142,7 @@ const SYSTEM_PROFILES = [
     name: 'Luyện nghe phản xạ (Audio-First)',
     icon: 'headphones',
     badge: 'Phát âm',
-    desc: 'Tự động phát audio ngay khi vào thẻ, tối ưu học từ vựng qua âm thanh bản ngữ.',
+    desc: 'Tự động phát audio ngay khi vào thẻ, hiện ảnh mặt sau, tối ưu luyện nghe phát âm.',
     details: [
       { label: 'Lật thẻ', val: 'Cả 2 chiều' },
       { label: 'Đánh giá', val: 'Hỗn hợp' },
@@ -170,7 +172,7 @@ const SYSTEM_PROFILES = [
     name: 'Tập trung tối giản (Deep Focus)',
     icon: 'book',
     badge: 'Tối giản',
-    desc: 'Tắt toàn bộ âm thanh và FSRS rườm rà, tập trung 100% vào ngữ nghĩa và mặt chữ.',
+    desc: 'Tắt toàn bộ âm thanh và chỉ số FSRS, tắt hình ảnh, tập trung 100% vào ngữ nghĩa và mặt chữ.',
     details: [
       { label: 'Lật thẻ', val: 'Cả 2 chiều' },
       { label: 'Đánh giá', val: '4 nút bấm' },
@@ -214,26 +216,18 @@ function urlBase64ToUint8Array(base64String: string) {
   return outputArray;
 }
 
-const Settings = () => {
-  const { authConfig, userSettings, updateUserSettings } = useAppStore()
-  const location = useLocation()
+export const Settings = () => {
   const [searchParams, setSearchParams] = useSearchParams()
-  const tabParam = searchParams.get('tab') as SettingsTab
+  const location = useLocation()
+  const { user, userSettings, updateUserSettings, authConfig } = useAppStore()
 
-  const getInitialTab = (): SettingsTab => {
-    if (tabParam === 'alerts' || tabParam === 'general' || tabParam === 'deck_template') {
-      return tabParam
-    }
-    if (location.hash === '#preferences' || location.hash === '#security') {
-      return 'general'
-    }
-    if (location.hash === '#telegram') {
-      return 'alerts'
-    }
-    return 'deck_template'
-  }
+  // Read initial tab from URL query param, default to 'deck_template'
+  const tabFromUrl = searchParams.get('tab') as SettingsTab | null
+  const initialTab: SettingsTab = (tabFromUrl && SETTINGS_TABS.some(t => t.id === tabFromUrl))
+    ? tabFromUrl
+    : 'deck_template'
 
-  const [activeTab, setActiveTabState] = useState<SettingsTab>(getInitialTab)
+  const [activeTab, setActiveTabState] = useState<SettingsTab>(initialTab)
 
   const setActiveTab = (tab: SettingsTab) => {
     setActiveTabState(tab)
@@ -242,12 +236,12 @@ const Settings = () => {
 
   // Sub-Tab State for Deck Templates Tab: System Presets | My Custom Templates | Live Customizer
   const [templateTab, setTemplateTab] = useState<'system' | 'custom' | 'customize'>('system')
-  const [activeTunerTab, setActiveTunerTab] = useState<'gestures' | 'algorithm' | 'alignment' | 'display'>('gestures')
+  const [activeTunerTab, setActiveTunerTab] = useState<'gestures' | 'algorithm' | 'alignment' | 'display' | 'audio'>('gestures')
 
   // Profile / Template Creation & Editing State
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
   const [editingProfileId, setEditingProfileId] = useState<string | null>(null)
-  const [modalTab, setModalTab] = useState<'gestures' | 'algorithm' | 'alignment' | 'display'>('gestures')
+  const [modalTab, setModalTab] = useState<'gestures' | 'algorithm' | 'alignment' | 'display' | 'audio'>('gestures')
   const [newProfileName, setNewProfileName] = useState('')
   const [newProfileIcon, setNewProfileIcon] = useState('sparkles')
   const [newProfileBase, setNewProfileBase] = useState('preset-standard')
@@ -811,8 +805,8 @@ const Settings = () => {
                         {preset.desc}
                       </p>
 
-                      {/* 4 Complete Settings Dimensions Contained Inside this Template */}
-                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1">
+                      {/* 5 Complete Settings Dimensions Contained Inside this Template */}
+                      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 pt-1">
                         {/* 1. Gestures */}
                         <div className="p-2 rounded-xl bg-slate-50/80 border border-slate-100 space-y-1">
                           <span className="text-[9px] font-black text-slate-400 uppercase tracking-wider flex items-center gap-1">
@@ -832,7 +826,7 @@ const Settings = () => {
                             <Brain className="w-3 h-3 text-indigo-500" /> Thuật toán
                           </span>
                           <div className="text-[10.5px] font-black text-slate-800 truncate">
-                            {sett.quiz_learning_mode === 'fsrs' ? 'FSRS v6' : (sett.quiz_learning_mode === 'random' ? 'Ngẫu nhiên' : (sett.quiz_learning_mode === 'unseen' ? 'Chưa học' : 'Tuần tự'))}
+                            {sett.quiz_learning_mode === 'fsrs' ? 'FSRS v6' : (sett.quiz_learning_mode === 'random' ? 'Ngẫu nhiên' : (sett.quiz_learning_mode === 'unseen' ? 'Chưa học' : (sett.quiz_learning_mode === 'review' ? 'Ôn tập' : 'Tuần tự')))}
                           </div>
                           <div className="text-[9px] text-slate-500 font-bold truncate">
                             {sett.random_enabled ? 'Xáo trộn thẻ' : 'Thứ tự chuẩn'}
@@ -852,16 +846,35 @@ const Settings = () => {
                           </div>
                         </div>
 
-                        {/* 4. Display & Audio */}
+                        {/* 4. Display & FSRS */}
                         <div className="p-2 rounded-xl bg-slate-50/80 border border-slate-100 space-y-1">
                           <span className="text-[9px] font-black text-slate-400 uppercase tracking-wider flex items-center gap-1">
-                            <Volume2 className="w-3 h-3 text-emerald-500" /> Âm thanh
+                            <Eye className="w-3 h-3 text-rose-500" /> Hình ảnh & FSRS
                           </span>
                           <div className="text-[10.5px] font-black text-slate-800 truncate">
-                            TTS: {sett.autoplay_audio === 'always' ? 'Luôn phát' : (sett.autoplay_audio === 'none' ? 'Tắt' : sett.autoplay_audio)}
+                            Ảnh: {sett.show_images === 'none' ? 'Tắt ảnh' : ((sett.show_images === 'back_only' || sett.show_images === 'back') ? 'Chỉ mặt sau' : (sett.show_images === 'front' ? 'Chỉ mặt trước' : 'Cả 2 mặt'))}
+                          </div>
+                          <div className="text-[9px] text-slate-500 font-bold truncate flex items-center gap-1">
+                            <span>Thông số FSRS:</span>
+                            <span className={cn(
+                              "font-black px-1 rounded text-[8.5px]",
+                              sett.show_fsrs !== false ? "text-emerald-700 bg-emerald-50 border border-emerald-200/60" : "text-slate-400 bg-slate-100 border border-slate-200/60"
+                            )}>
+                              {sett.show_fsrs !== false ? 'Hiện trên thẻ' : 'Ẩn chỉ số'}
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* 5. Audio & SFX */}
+                        <div className="p-2 rounded-xl bg-slate-50/80 border border-slate-100 space-y-1 col-span-2 sm:col-span-1">
+                          <span className="text-[9px] font-black text-slate-400 uppercase tracking-wider flex items-center gap-1">
+                            <Volume2 className="w-3 h-3 text-emerald-500" /> Âm thanh & SFX
+                          </span>
+                          <div className="text-[10.5px] font-black text-slate-800 truncate">
+                            TTS: {sett.autoplay_audio === 'always' ? 'Luôn phát' : (sett.autoplay_audio === 'none' ? 'Tắt' : (sett.autoplay_audio === 'front' ? 'Mặt trước' : (sett.autoplay_audio === 'back' ? 'Mặt sau' : sett.autoplay_audio)))}
                           </div>
                           <div className="text-[9px] text-slate-500 font-bold truncate">
-                            Ảnh: {sett.show_images === 'none' ? 'Tắt ảnh' : (sett.show_images === 'back_only' ? 'Chỉ mặt sau' : 'Cả 2 mặt')}
+                            Hiệu ứng: {sett.sfx_enabled !== false ? 'Bật SFX & Rung' : 'Tắt hiệu ứng'}
                           </div>
                         </div>
                       </div>
@@ -1014,8 +1027,8 @@ const Settings = () => {
                           )}
                         </div>
 
-                        {/* 4 Complete Settings Dimensions Contained Inside this Template */}
-                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1">
+                        {/* 5 Complete Settings Dimensions Contained Inside this Template */}
+                        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 pt-1">
                           {/* 1. Gestures */}
                           <div className="p-2 rounded-xl bg-slate-50/80 border border-slate-100 space-y-1">
                             <span className="text-[9px] font-black text-slate-400 uppercase tracking-wider flex items-center gap-1">
@@ -1035,7 +1048,7 @@ const Settings = () => {
                               <Brain className="w-3 h-3 text-indigo-500" /> Thuật toán
                             </span>
                             <div className="text-[10.5px] font-black text-slate-800 truncate">
-                              {sett.quiz_learning_mode === 'fsrs' ? 'FSRS v6' : (sett.quiz_learning_mode === 'random' ? 'Ngẫu nhiên' : (sett.quiz_learning_mode === 'unseen' ? 'Chưa học' : 'Tuần tự'))}
+                              {sett.quiz_learning_mode === 'fsrs' ? 'FSRS v6' : (sett.quiz_learning_mode === 'random' ? 'Ngẫu nhiên' : (sett.quiz_learning_mode === 'unseen' ? 'Chưa học' : (sett.quiz_learning_mode === 'review' ? 'Ôn tập' : 'Tuần tự')))}
                             </div>
                             <div className="text-[9px] text-slate-500 font-bold truncate">
                               {sett.random_enabled ? 'Xáo trộn thẻ' : 'Thứ tự chuẩn'}
@@ -1055,16 +1068,35 @@ const Settings = () => {
                             </div>
                           </div>
 
-                          {/* 4. Display & Audio */}
+                          {/* 4. Display & FSRS */}
                           <div className="p-2 rounded-xl bg-slate-50/80 border border-slate-100 space-y-1">
                             <span className="text-[9px] font-black text-slate-400 uppercase tracking-wider flex items-center gap-1">
-                              <Volume2 className="w-3 h-3 text-emerald-500" /> Âm thanh
+                              <Eye className="w-3 h-3 text-rose-500" /> Hình ảnh & FSRS
                             </span>
                             <div className="text-[10.5px] font-black text-slate-800 truncate">
-                              TTS: {sett.autoplay_audio === 'always' ? 'Luôn phát' : (sett.autoplay_audio === 'none' ? 'Tắt' : sett.autoplay_audio)}
+                              Ảnh: {sett.show_images === 'none' ? 'Tắt ảnh' : ((sett.show_images === 'back_only' || sett.show_images === 'back') ? 'Chỉ mặt sau' : (sett.show_images === 'front' ? 'Chỉ mặt trước' : 'Cả 2 mặt'))}
+                            </div>
+                            <div className="text-[9px] text-slate-500 font-bold truncate flex items-center gap-1">
+                              <span>Thông số FSRS:</span>
+                              <span className={cn(
+                                "font-black px-1 rounded text-[8.5px]",
+                                sett.show_fsrs !== false ? "text-emerald-700 bg-emerald-50 border border-emerald-200/60" : "text-slate-400 bg-slate-100 border border-slate-200/60"
+                              )}>
+                                {sett.show_fsrs !== false ? 'Hiện trên thẻ' : 'Ẩn chỉ số'}
+                              </span>
+                            </div>
+                          </div>
+
+                          {/* 5. Audio & SFX */}
+                          <div className="p-2 rounded-xl bg-slate-50/80 border border-slate-100 space-y-1 col-span-2 sm:col-span-1">
+                            <span className="text-[9px] font-black text-slate-400 uppercase tracking-wider flex items-center gap-1">
+                              <Volume2 className="w-3 h-3 text-emerald-500" /> Âm thanh & SFX
+                            </span>
+                            <div className="text-[10.5px] font-black text-slate-800 truncate">
+                              TTS: {sett.autoplay_audio === 'always' ? 'Luôn phát' : (sett.autoplay_audio === 'none' ? 'Tắt' : (sett.autoplay_audio === 'front' ? 'Mặt trước' : (sett.autoplay_audio === 'back' ? 'Mặt sau' : sett.autoplay_audio)))}
                             </div>
                             <div className="text-[9px] text-slate-500 font-bold truncate">
-                              Ảnh: {sett.show_images === 'none' ? 'Tắt ảnh' : (sett.show_images === 'back_only' ? 'Chỉ mặt sau' : 'Cả 2 mặt')}
+                              Hiệu ứng: {sett.sfx_enabled !== false ? 'Bật SFX & Rung' : 'Tắt hiệu ứng'}
                             </div>
                           </div>
                         </div>
@@ -1155,14 +1187,15 @@ const Settings = () => {
               </button>
             </div>
 
-            {/* 4 Internal Sub-tabs for the 4 facets of this Template */}
+            {/* 5 Internal Sub-tabs for the 5 facets of this Template */}
             <div className="bg-slate-100/90 p-1 rounded-2xl border border-slate-200/80 shadow-2xs">
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-1">
+              <div className="grid grid-cols-2 sm:grid-cols-5 gap-1">
                 {[
                   { id: 'gestures', label: '1. Cử Chỉ', icon: Move, desc: 'Lật thẻ & Vuốt' },
                   { id: 'algorithm', label: '2. Thuật Toán', icon: Brain, desc: 'Thứ tự & Xáo trộn' },
                   { id: 'alignment', label: '3. Căn Lề', icon: Layers, desc: 'Mặt trước & Sau' },
-                  { id: 'display', label: '4. Hiển Thị', icon: Volume2, desc: 'Audio & Hình ảnh' }
+                  { id: 'display', label: '4. Hình Ảnh & FSRS', icon: Eye, desc: 'Ảnh & Chỉ số FSRS' },
+                  { id: 'audio', label: '5. Âm Thanh', icon: Volume2, desc: 'TTS & Hiệu ứng' }
                 ].map((t) => {
                   const Icon = t.icon
                   const isCur = activeTunerTab === t.id
@@ -1447,8 +1480,116 @@ const Settings = () => {
               </section>
             )}
 
-            {/* Sub-tab 4: Display & Audio */}
+            {/* Sub-tab 4: Images & FSRS Display */}
             {activeTunerTab === 'display' && (
+              <section className="bg-white rounded-3xl border border-slate-100 p-4 sm:p-6 shadow-2xs space-y-4 animate-in fade-in duration-150">
+                <div className="flex items-center gap-2.5 border-b border-slate-100 pb-3">
+                  <div className="w-8 h-8 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center shrink-0">
+                    <Eye className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h3 className="text-xs font-black text-slate-900 uppercase tracking-widest italic">
+                      Hình Ảnh & Chỉ Số FSRS (Display & Metrics)
+                    </h3>
+                    <p className="text-[10px] font-medium text-slate-400">
+                      Tùy chọn hiển thị hình ảnh minh họa và các thông số thuật toán FSRS trên thẻ flashcard
+                    </p>
+                  </div>
+                </div>
+
+                <div className="space-y-3">
+                  {/* Image Display Mode */}
+                  <div className="p-3.5 bg-slate-50/70 rounded-2xl border border-slate-100 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10.5px] font-black text-slate-700 uppercase tracking-wider flex items-center gap-1.5">
+                        <ImageIcon className="w-3.5 h-3.5 text-rose-500" /> Hiển Thị Hình Ảnh Minh Họa (Images)
+                      </span>
+                      <span className="text-[9.5px] font-bold text-slate-400">
+                        {userSettings.show_images === 'none' ? 'Đang tắt hình' : ((userSettings.show_images === 'back_only' || userSettings.show_images === 'back') ? 'Chỉ mặt sau' : (userSettings.show_images === 'front' ? 'Chỉ mặt trước' : 'Cả hai mặt'))}
+                      </span>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                      {[
+                        { id: 'both', label: 'Cả 2 Mặt (Trước & Sau)', desc: 'Hiện hình ảnh minh họa ở cả 2 mặt thẻ flashcard.' },
+                        { id: 'back_only', label: 'Chỉ Mặt Sau (Ẩn mặt trước)', desc: 'Giấu ảnh ở câu hỏi để gợi nhớ, chỉ hiện khi đã lật sang đáp án.' },
+                        { id: 'none', label: 'Tắt Hình Ảnh (Tối giản)', desc: 'Không tải hình ảnh, chỉ hiển thị mặt chữ và ngữ nghĩa.' }
+                      ].map(opt => {
+                        const isCur = (userSettings.show_images || 'both') === opt.id
+                        return (
+                          <button
+                            key={opt.id}
+                            type="button"
+                            onClick={() => updateUserSettings({ show_images: opt.id })}
+                            className={cn(
+                              "p-3 rounded-2xl border-2 text-left transition-all relative cursor-pointer",
+                              isCur ? "border-rose-500 bg-rose-50/40 shadow-xs" : "border-slate-100 bg-white hover:border-slate-200"
+                            )}
+                          >
+                            <div className="flex items-center justify-between mb-1">
+                              <h5 className="text-[11px] font-black text-slate-800 uppercase tracking-tight">{opt.label}</h5>
+                              {isCur && <Check className="w-3 h-3 text-rose-600 shrink-0" />}
+                            </div>
+                            <p className="text-[9.5px] text-slate-400 font-medium leading-relaxed">{opt.desc}</p>
+                          </button>
+                        )
+                      })}
+                    </div>
+                  </div>
+
+                  {/* FSRS Metrics Display Toggle */}
+                  <div className="p-3.5 bg-slate-50/70 rounded-2xl border border-slate-100 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10.5px] font-black text-slate-700 uppercase tracking-wider flex items-center gap-1.5">
+                        <Brain className="w-3.5 h-3.5 text-indigo-500" /> Chỉ Số & Thông Số FSRS v6 (FSRS Metrics)
+                      </span>
+                      <span className={cn(
+                        "text-[9.5px] font-black px-2 py-0.5 rounded-full",
+                        (userSettings.show_fsrs ?? true) ? "text-emerald-700 bg-emerald-100" : "text-slate-500 bg-slate-200"
+                      )}>
+                        {(userSettings.show_fsrs ?? true) ? 'Đang bật' : 'Đang tắt'}
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      {[
+                        { 
+                          id: true, 
+                          label: 'Bật Hiển Thị Chỉ Số FSRS', 
+                          desc: 'Hiển thị độ ổn định (Stability - S), độ khó (Difficulty - D) và khoảng thời gian ôn tập tiếp theo trên mặt thẻ.' 
+                        },
+                        { 
+                          id: false, 
+                          label: 'Ẩn Thông Số FSRS (Gọn gàng)', 
+                          desc: 'Ẩn toàn bộ các chỉ số thuật toán, giữ cho giao diện học sạch sẽ và tối giản nhất.' 
+                        }
+                      ].map(opt => {
+                        const isCur = (userSettings.show_fsrs ?? true) === opt.id
+                        return (
+                          <button
+                            key={String(opt.id)}
+                            type="button"
+                            onClick={() => updateUserSettings({ show_fsrs: opt.id })}
+                            className={cn(
+                              "p-3 rounded-2xl border-2 text-left transition-all relative cursor-pointer",
+                              isCur ? "border-indigo-600 bg-indigo-50/40 shadow-xs" : "border-slate-100 bg-white hover:border-slate-200"
+                            )}
+                          >
+                            <div className="flex items-center justify-between mb-1">
+                              <h5 className="text-[11px] font-black text-slate-800 uppercase tracking-tight">{opt.label}</h5>
+                              {isCur && <Check className="w-3 h-3 text-indigo-600 shrink-0" />}
+                            </div>
+                            <p className="text-[9.5px] text-slate-400 font-medium leading-relaxed">{opt.desc}</p>
+                          </button>
+                        )
+                      })}
+                    </div>
+                  </div>
+                </div>
+              </section>
+            )}
+
+            {/* Sub-tab 5: Audio & SFX */}
+            {activeTunerTab === 'audio' && (
               <section className="bg-white rounded-3xl border border-slate-100 p-4 sm:p-6 shadow-2xs space-y-4 animate-in fade-in duration-150">
                 <div className="flex items-center gap-2.5 border-b border-slate-100 pb-3">
                   <div className="w-8 h-8 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
@@ -1456,20 +1597,20 @@ const Settings = () => {
                   </div>
                   <div>
                     <h3 className="text-xs font-black text-slate-900 uppercase tracking-widest italic">
-                      Hiển Thị & Âm Thanh (Display & Audio)
+                      Âm Thanh & Hiệu Ứng (Audio & SFX)
                     </h3>
                     <p className="text-[10px] font-medium text-slate-400">
-                      Tự động phát TTS, hiển thị hình ảnh minh họa và các chỉ số bổ trợ
+                      Tự động phát giọng đọc phát âm (TTS), âm thanh hiệu ứng và rung phản hồi thao tác
                     </p>
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div className="space-y-3">
                   <div className="p-3.5 bg-slate-50/70 rounded-2xl border border-slate-100 space-y-2">
                     <span className="text-[10.5px] font-black text-slate-700 uppercase tracking-wider block">
-                      Tự Động Phát Âm Thanh (Audio)
+                      Tự Động Phát Âm Thanh (TTS / Audio Autoplay)
                     </span>
-                    <div className="grid grid-cols-4 gap-1 bg-white p-1 rounded-xl border border-slate-200/60">
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-1 bg-white p-1 rounded-xl border border-slate-200/60">
                       {[
                         { id: 'always', label: 'Luôn phát' },
                         { id: 'front', label: 'Mặt trước' },
@@ -1481,8 +1622,8 @@ const Settings = () => {
                           type="button"
                           onClick={() => updateUserSettings({ autoplay_audio: opt.id })}
                           className={cn(
-                            "py-1 px-1 rounded-lg text-[9.5px] font-black uppercase transition-all cursor-pointer text-center",
-                            (userSettings.autoplay_audio || 'always') === opt.id ? "bg-indigo-600 text-white shadow-xs" : "text-slate-500 hover:text-slate-800"
+                            "py-1.5 px-1 rounded-lg text-[10px] font-black uppercase transition-all cursor-pointer text-center",
+                            (userSettings.autoplay_audio || 'always') === opt.id ? "bg-emerald-600 text-white shadow-xs" : "text-slate-500 hover:text-slate-800"
                           )}
                         >
                           {opt.label}
@@ -1491,54 +1632,22 @@ const Settings = () => {
                     </div>
                   </div>
 
-                  <div className="p-3.5 bg-slate-50/70 rounded-2xl border border-slate-100 space-y-2">
-                    <span className="text-[10.5px] font-black text-slate-700 uppercase tracking-wider block">
-                      Hiển Thị Hình Ảnh (Images)
-                    </span>
-                    <div className="grid grid-cols-3 gap-1 bg-white p-1 rounded-xl border border-slate-200/60">
-                      {[
-                        { id: 'both', label: 'Cả 2 mặt' },
-                        { id: 'back_only', label: 'Chỉ mặt sau' },
-                        { id: 'none', label: 'Tắt hình' }
-                      ].map(opt => (
-                        <button
-                          key={opt.id}
-                          type="button"
-                          onClick={() => updateUserSettings({ show_images: opt.id })}
-                          className={cn(
-                            "py-1 px-1 rounded-lg text-[9.5px] font-black uppercase transition-all cursor-pointer text-center",
-                            (userSettings.show_images || 'both') === opt.id ? "bg-indigo-600 text-white shadow-xs" : "text-slate-500 hover:text-slate-800"
-                          )}
-                        >
-                          {opt.label}
-                        </button>
-                      ))}
-                    </div>
+                  <div className="space-y-1.5 pt-2 border-t border-slate-100">
+                    <SettingItem 
+                      icon={Volume2} 
+                      label="Hiệu Ứng Âm Thanh (SFX)" 
+                      desc="Phát âm thanh phản hồi khi lật thẻ và đánh giá kết quả" 
+                      active={userSettings.sfx_enabled ?? true} 
+                      onClick={() => updateUserSettings({ sfx_enabled: !(userSettings.sfx_enabled ?? true) })}
+                    />
+                    <SettingItem 
+                      icon={Zap} 
+                      label="Rung Phản Hồi (Haptic Feedback)" 
+                      desc="Rung nhẹ khi vuốt và chạm nút trên điện thoại" 
+                      active={userSettings.haptic_enabled ?? true} 
+                      onClick={() => updateUserSettings({ haptic_enabled: !(userSettings.haptic_enabled ?? true) })}
+                    />
                   </div>
-                </div>
-
-                <div className="space-y-1.5 pt-2 border-t border-slate-100">
-                  <SettingItem 
-                    icon={Brain} 
-                    label="Hiển Thị Chỉ Số & Thống Kê FSRS" 
-                    desc="Hiển thị độ ổn định (Stability), độ khó (Difficulty) và thời gian ôn tập trên thẻ" 
-                    active={userSettings.show_fsrs ?? true} 
-                    onClick={() => updateUserSettings({ show_fsrs: !(userSettings.show_fsrs ?? true) })}
-                  />
-                  <SettingItem 
-                    icon={Volume2} 
-                    label="Hiệu Ứng Âm Thanh (SFX)" 
-                    desc="Phát âm thanh phản hồi khi lật thẻ và đánh giá kết quả" 
-                    active={userSettings.sfx_enabled ?? true} 
-                    onClick={() => updateUserSettings({ sfx_enabled: !(userSettings.sfx_enabled ?? true) })}
-                  />
-                  <SettingItem 
-                    icon={Zap} 
-                    label="Rung Phản Hồi (Haptic Feedback)" 
-                    desc="Rung nhẹ khi vuốt và chạm nút trên điện thoại" 
-                    active={userSettings.haptic_enabled ?? true} 
-                    onClick={() => updateUserSettings({ haptic_enabled: !(userSettings.haptic_enabled ?? true) })}
-                  />
                 </div>
               </section>
             )}
@@ -1988,14 +2097,15 @@ const Settings = () => {
                 </div>
               )}
 
-              {/* 4 Internal Sub-tabs for the 4 facets of this Template */}
+              {/* 5 Internal Sub-tabs for the 5 facets of this Template */}
               <div className="bg-slate-100 p-1 rounded-2xl border border-slate-200/80 shadow-2xs">
-                <div className="grid grid-cols-4 gap-1">
+                <div className="grid grid-cols-2 sm:grid-cols-5 gap-1">
                   {[
                     { id: 'gestures', label: 'Cử chỉ', icon: Move },
                     { id: 'algorithm', label: 'Thuật toán', icon: Brain },
                     { id: 'alignment', label: 'Căn lề', icon: Layers },
-                    { id: 'display', label: 'Hiển thị', icon: Volume2 }
+                    { id: 'display', label: 'Hình ảnh & FSRS', icon: Eye },
+                    { id: 'audio', label: 'Âm thanh', icon: Volume2 }
                   ].map((t) => {
                     const Icon = t.icon
                     const isCur = modalTab === t.id
@@ -2231,14 +2341,74 @@ const Settings = () => {
                 </div>
               )}
 
-              {/* Modal Tab 4: Display & Audio */}
+              {/* Modal Tab 4: Display & FSRS */}
               {modalTab === 'display' && (
-                <div className="p-3.5 bg-emerald-50/40 border border-emerald-100 rounded-2xl space-y-3 animate-in fade-in duration-150">
-                  <span className="text-[10px] font-black uppercase tracking-wider text-emerald-700 flex items-center gap-1.5">
-                    <Volume2 className="w-3 h-3" /> Hiển thị & Âm thanh (Display & Audio)
+                <div className="p-3.5 bg-rose-50/40 border border-rose-100 rounded-2xl space-y-3 animate-in fade-in duration-150">
+                  <span className="text-[10px] font-black uppercase tracking-wider text-rose-700 flex items-center gap-1.5">
+                    <Eye className="w-3 h-3" /> Thiết lập Hình Ảnh & Chỉ Số FSRS
                   </span>
 
-                  <div className="space-y-2">
+                  <div className="space-y-3">
+                    <div>
+                      <span className="text-[9.5px] font-bold text-slate-500 block mb-1">Hiển thị hình ảnh minh họa (Images)</span>
+                      <div className="grid grid-cols-3 gap-1 bg-white p-1 rounded-xl border border-rose-100">
+                        {[
+                          { id: 'both', label: 'Cả 2 mặt' },
+                          { id: 'back_only', label: 'Chỉ mặt sau' },
+                          { id: 'none', label: 'Tắt hình' },
+                        ].map((opt) => (
+                          <button
+                            key={opt.id}
+                            type="button"
+                            onClick={() => setTemplateSettings(prev => ({ ...prev, show_images: opt.id as any }))}
+                            className={cn(
+                              "py-1.5 px-1 rounded-lg text-[9.5px] font-black uppercase transition-all cursor-pointer text-center truncate",
+                              templateSettings.show_images === opt.id
+                                ? "bg-rose-600 text-white shadow-xs"
+                                : "text-slate-500 hover:text-slate-800"
+                            )}
+                          >
+                            {opt.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div>
+                      <span className="text-[9.5px] font-bold text-slate-500 block mb-1">Chỉ số thuật toán FSRS trên mặt thẻ</span>
+                      <div className="grid grid-cols-2 gap-1 bg-white p-1 rounded-xl border border-rose-100">
+                        {[
+                          { id: true, label: 'Hiện chỉ số FSRS' },
+                          { id: false, label: 'Ẩn chỉ số FSRS' },
+                        ].map((opt) => (
+                          <button
+                            key={String(opt.id)}
+                            type="button"
+                            onClick={() => setTemplateSettings(prev => ({ ...prev, show_fsrs: opt.id }))}
+                            className={cn(
+                              "py-1.5 px-1 rounded-lg text-[9.5px] font-black uppercase transition-all cursor-pointer text-center",
+                              templateSettings.show_fsrs === opt.id
+                                ? "bg-rose-600 text-white shadow-xs"
+                                : "text-slate-500 hover:text-slate-800"
+                            )}
+                          >
+                            {opt.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Modal Tab 5: Audio & SFX */}
+              {modalTab === 'audio' && (
+                <div className="p-3.5 bg-emerald-50/40 border border-emerald-100 rounded-2xl space-y-3 animate-in fade-in duration-150">
+                  <span className="text-[10px] font-black uppercase tracking-wider text-emerald-700 flex items-center gap-1.5">
+                    <Volume2 className="w-3 h-3" /> Thiết lập Âm thanh & Hiệu ứng (Audio & SFX)
+                  </span>
+
+                  <div className="space-y-3">
                     <div>
                       <span className="text-[9.5px] font-bold text-slate-500 block mb-1">Tự động phát âm thanh (Audio TTS)</span>
                       <div className="grid grid-cols-4 gap-1 bg-white p-1 rounded-xl border border-emerald-100">
@@ -2253,7 +2423,7 @@ const Settings = () => {
                             type="button"
                             onClick={() => setTemplateSettings(prev => ({ ...prev, autoplay_audio: opt.id as any }))}
                             className={cn(
-                              "py-1 px-1 rounded-lg text-[9.5px] font-black uppercase transition-all cursor-pointer text-center",
+                              "py-1.5 px-1 rounded-lg text-[9.5px] font-black uppercase transition-all cursor-pointer text-center",
                               templateSettings.autoplay_audio === opt.id
                                 ? "bg-emerald-600 text-white shadow-xs"
                                 : "text-slate-500 hover:text-slate-800"
@@ -2267,20 +2437,19 @@ const Settings = () => {
 
                     <div className="grid grid-cols-2 gap-2">
                       <div>
-                        <span className="text-[9.5px] font-bold text-slate-500 block mb-1">Hiển thị hình ảnh</span>
-                        <div className="grid grid-cols-3 gap-0.5 bg-white p-1 rounded-xl border border-emerald-100">
+                        <span className="text-[9.5px] font-bold text-slate-500 block mb-1">Hiệu ứng âm thanh (SFX)</span>
+                        <div className="grid grid-cols-2 gap-1 bg-white p-1 rounded-xl border border-emerald-100">
                           {[
-                            { id: 'both', label: 'Cả 2' },
-                            { id: 'back_only', label: 'Mặt sau' },
-                            { id: 'none', label: 'Tắt' },
+                            { id: true, label: 'Bật SFX' },
+                            { id: false, label: 'Tắt SFX' },
                           ].map((opt) => (
                             <button
-                              key={opt.id}
+                              key={String(opt.id)}
                               type="button"
-                              onClick={() => setTemplateSettings(prev => ({ ...prev, show_images: opt.id as any }))}
+                              onClick={() => setTemplateSettings(prev => ({ ...prev, sfx_enabled: opt.id }))}
                               className={cn(
-                                "py-1 px-0.5 rounded-lg text-[9px] font-black uppercase transition-all cursor-pointer text-center truncate",
-                                templateSettings.show_images === opt.id
+                                "py-1 px-1 rounded-lg text-[9.5px] font-black uppercase transition-all cursor-pointer text-center",
+                                templateSettings.sfx_enabled === opt.id
                                   ? "bg-emerald-600 text-white shadow-xs"
                                   : "text-slate-500 hover:text-slate-800"
                               )}
@@ -2292,19 +2461,19 @@ const Settings = () => {
                       </div>
 
                       <div>
-                        <span className="text-[9.5px] font-bold text-slate-500 block mb-1">Chỉ số FSRS</span>
-                        <div className="grid grid-cols-2 gap-0.5 bg-white p-1 rounded-xl border border-emerald-100">
+                        <span className="text-[9.5px] font-bold text-slate-500 block mb-1">Rung phản hồi (Haptic)</span>
+                        <div className="grid grid-cols-2 gap-1 bg-white p-1 rounded-xl border border-emerald-100">
                           {[
-                            { id: true, label: 'Hiện' },
-                            { id: false, label: 'Ẩn' },
+                            { id: true, label: 'Bật Rung' },
+                            { id: false, label: 'Tắt Rung' },
                           ].map((opt) => (
                             <button
                               key={String(opt.id)}
                               type="button"
-                              onClick={() => setTemplateSettings(prev => ({ ...prev, show_fsrs: opt.id }))}
+                              onClick={() => setTemplateSettings(prev => ({ ...prev, haptic_enabled: opt.id }))}
                               className={cn(
                                 "py-1 px-1 rounded-lg text-[9.5px] font-black uppercase transition-all cursor-pointer text-center",
-                                templateSettings.show_fsrs === opt.id
+                                templateSettings.haptic_enabled === opt.id
                                   ? "bg-emerald-600 text-white shadow-xs"
                                   : "text-slate-500 hover:text-slate-800"
                               )}
