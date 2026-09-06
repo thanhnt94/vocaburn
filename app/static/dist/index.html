@@ -18,19 +18,30 @@
           src.indexOf("import.meta.resolve") !== -1 ||
           src.indexOf("legacy-guard") !== -1 ||
           err.indexOf("import.meta.resolve") !== -1 ||
-          err.indexOf("legacy-guard") !== -1
+          err.indexOf("legacy-guard") !== -1 ||
+          !src ||
+          src.indexOf("chrome-extension") !== -1 ||
+          src.indexOf("moz-extension") !== -1 ||
+          src.indexOf("<anonymous>") !== -1 ||
+          msg.indexOf("startTime") !== -1 ||
+          msg.indexOf("reportAllChanges") !== -1
         ) {
-          console.warn("Ignored Vite legacy detection error:", msg, src);
-          return true; // Ignore Vite legacy feature detection errors
+          console.warn("Ignored external or non-critical error:", msg, src);
+          return true; // Ignore external/extension/legacy errors
         }
         alert("Runtime Error: " + message + "\nSource: " + source + "\nLine: " + lineno + ":" + colno);
         return false;
       };
       window.addEventListener('unhandledrejection', function(event) {
         var reason = event.reason ? String(event.reason.message || event.reason) : "";
-        if (reason.indexOf("import.meta.resolve") !== -1 || reason.indexOf("legacy-guard") !== -1) {
-          console.warn("Ignored Vite legacy detection rejection:", reason);
-          return; // Ignore Vite legacy feature detection promise rejections
+        if (
+          reason.indexOf("import.meta.resolve") !== -1 || 
+          reason.indexOf("legacy-guard") !== -1 ||
+          reason.indexOf("startTime") !== -1 ||
+          reason.indexOf("reportAllChanges") !== -1
+        ) {
+          console.warn("Ignored Vite legacy or external rejection:", reason);
+          return; // Ignore Vite legacy and external promise rejections
         }
         alert("Unhandled Promise Rejection: " + event.reason);
       });

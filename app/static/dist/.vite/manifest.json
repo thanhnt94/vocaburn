@@ -17,8 +17,8 @@
       "_charts-vendor-legacy-7_6fOiAk.js",
       "_rolldown-runtime-legacy-Djb2rrqm.js",
       "index-legacy.html",
-      "_animations-vendor-legacy-DNJFOgUY.js",
       "_vendor-legacy-DoCIl6ga.js",
+      "_animations-vendor-legacy-DNJFOgUY.js",
       "_FlashcardEditModal-legacy-BhASZI5v.js",
       "_MediaUrlInput-legacy-C-ZK5ttK.js",
       "_DeckPagination-legacy-DpQbuflg.js",
@@ -32,8 +32,8 @@
     "imports": [
       "_react-core-vendor-legacy-Dv8iBNLR.js",
       "_rolldown-runtime-legacy-Djb2rrqm.js",
-      "_animations-vendor-legacy-DNJFOgUY.js",
-      "_vendor-legacy-DoCIl6ga.js"
+      "_vendor-legacy-DoCIl6ga.js",
+      "_animations-vendor-legacy-DNJFOgUY.js"
     ]
   },
   "_DeckPagination-legacy-DpQbuflg.js": {
@@ -53,8 +53,8 @@
     "imports": [
       "_react-core-vendor-legacy-Dv8iBNLR.js",
       "_rolldown-runtime-legacy-Djb2rrqm.js",
-      "_animations-vendor-legacy-DNJFOgUY.js",
       "_vendor-legacy-DoCIl6ga.js",
+      "_animations-vendor-legacy-DNJFOgUY.js",
       "_TelegramRoadmapReminderToggle-legacy-DfHbupPQ.js"
     ]
   },
@@ -65,8 +65,8 @@
       "_react-core-vendor-legacy-Dv8iBNLR.js",
       "_rolldown-runtime-legacy-Djb2rrqm.js",
       "index-legacy.html",
-      "_animations-vendor-legacy-DNJFOgUY.js",
       "_vendor-legacy-DoCIl6ga.js",
+      "_animations-vendor-legacy-DNJFOgUY.js",
       "_MediaUrlInput-legacy-C-ZK5ttK.js",
       "_utils-legacy-BJn6aEse.js"
     ]
@@ -78,8 +78,8 @@
       "_react-core-vendor-legacy-Dv8iBNLR.js",
       "_charts-vendor-legacy-7_6fOiAk.js",
       "_rolldown-runtime-legacy-Djb2rrqm.js",
-      "_animations-vendor-legacy-DNJFOgUY.js",
       "_vendor-legacy-DoCIl6ga.js",
+      "_animations-vendor-legacy-DNJFOgUY.js",
       "_MediaUrlInput-legacy-C-ZK5ttK.js",
       "_utils-legacy-BJn6aEse.js"
     ]
@@ -91,8 +91,8 @@
       "_react-core-vendor-legacy-Dv8iBNLR.js",
       "_rolldown-runtime-legacy-Djb2rrqm.js",
       "index-legacy.html",
-      "_animations-vendor-legacy-DNJFOgUY.js",
       "_vendor-legacy-DoCIl6ga.js",
+      "_animations-vendor-legacy-DNJFOgUY.js",
       "_DailyComparisonChart-legacy-VhVdMRrr.js",
       "_text-legacy-7ifFusew.js",
       "_utils-legacy-BJn6aEse.js"
@@ -104,8 +104,8 @@
     "imports": [
       "_react-core-vendor-legacy-Dv8iBNLR.js",
       "_rolldown-runtime-legacy-Djb2rrqm.js",
-      "_animations-vendor-legacy-DNJFOgUY.js",
       "_vendor-legacy-DoCIl6ga.js",
+      "_animations-vendor-legacy-DNJFOgUY.js",
       "_utils-legacy-BJn6aEse.js"
     ]
   },
@@ -115,8 +115,8 @@
     "imports": [
       "_react-core-vendor-legacy-Dv8iBNLR.js",
       "_rolldown-runtime-legacy-Djb2rrqm.js",
-      "_animations-vendor-legacy-DNJFOgUY.js",
       "_vendor-legacy-DoCIl6ga.js",
+      "_animations-vendor-legacy-DNJFOgUY.js",
       "_utils-legacy-BJn6aEse.js"
     ]
   },
@@ -176,8 +176,8 @@
     "imports": [
       "_react-core-vendor-legacy-Dv8iBNLR.js",
       "_rolldown-runtime-legacy-Djb2rrqm.js",
-      "_animations-vendor-legacy-DNJFOgUY.js",
       "_vendor-legacy-DoCIl6ga.js",
+      "_animations-vendor-legacy-DNJFOgUY.js",
       "_utils-legacy-BJn6aEse.js"
     ],
     "dynamicImports": [
@@ -204,8 +204,8 @@
       "_react-core-vendor-legacy-Dv8iBNLR.js",
       "_rolldown-runtime-legacy-Djb2rrqm.js",
       "index-legacy.html",
-      "_animations-vendor-legacy-DNJFOgUY.js",
-      "_vendor-legacy-DoCIl6ga.js"
+      "_vendor-legacy-DoCIl6ga.js",
+      "_animations-vendor-legacy-DNJFOgUY.js"
     ]
   },
   "src/pages/Dashboard-legacy.tsx": {
@@ -217,8 +217,8 @@
       "_react-core-vendor-legacy-Dv8iBNLR.js",
       "_rolldown-runtime-legacy-Djb2rrqm.js",
       "index-legacy.html",
-      "_animations-vendor-legacy-DNJFOgUY.js",
       "_vendor-legacy-DoCIl6ga.js",
+      "_animations-vendor-legacy-DNJFOgUY.js",
       "_DailyComparisonChart-legacy-VhVdMRrr.js",
       "_TelegramRoadmapReminderToggle-legacy-DfHbupPQ.js",
       "_utils-legacy-BJn6aEse.js"
@@ -233,8 +233,8 @@
       "_react-core-vendor-legacy-Dv8iBNLR.js",
       "_rolldown-runtime-legacy-Djb2rrqm.js",
       "index-legacy.html",
-      "_animations-vendor-legacy-DNJFOgUY.js",
       "_vendor-legacy-DoCIl6ga.js",
+      "_animations-vendor-legacy-DNJFOgUY.js",
       "_DeckPagination-legacy-DpQbuflg.js",
       "_utils-legacy-BJn6aEse.js"
     ],
@@ -254,8 +254,8 @@
       "_react-core-vendor-legacy-Dv8iBNLR.js",
       "_rolldown-runtime-legacy-Djb2rrqm.js",
       "index-legacy.html",
-      "_animations-vendor-legacy-DNJFOgUY.js",
       "_vendor-legacy-DoCIl6ga.js",
+      "_animations-vendor-legacy-DNJFOgUY.js",
       "_MediaUrlInput-legacy-C-ZK5ttK.js",
       "_DeckPagination-legacy-DpQbuflg.js",
       "_DeckCardsTab-legacy-D3S3-qUK.js",
@@ -274,8 +274,8 @@
       "_react-core-vendor-legacy-Dv8iBNLR.js",
       "_rolldown-runtime-legacy-Djb2rrqm.js",
       "index-legacy.html",
-      "_animations-vendor-legacy-DNJFOgUY.js",
       "_vendor-legacy-DoCIl6ga.js",
+      "_animations-vendor-legacy-DNJFOgUY.js",
       "_DailyComparisonChart-legacy-VhVdMRrr.js",
       "_FlashcardHeader-legacy-ChMsEsBy.js",
       "_FlashcardEditModal-legacy-BhASZI5v.js",
@@ -291,8 +291,8 @@
     "imports": [
       "_react-core-vendor-legacy-Dv8iBNLR.js",
       "_rolldown-runtime-legacy-Djb2rrqm.js",
-      "_animations-vendor-legacy-DNJFOgUY.js",
       "_vendor-legacy-DoCIl6ga.js",
+      "_animations-vendor-legacy-DNJFOgUY.js",
       "_text-legacy-7ifFusew.js",
       "_utils-legacy-BJn6aEse.js"
     ]
@@ -306,8 +306,8 @@
       "_react-core-vendor-legacy-Dv8iBNLR.js",
       "_rolldown-runtime-legacy-Djb2rrqm.js",
       "index-legacy.html",
-      "_animations-vendor-legacy-DNJFOgUY.js",
       "_vendor-legacy-DoCIl6ga.js",
+      "_animations-vendor-legacy-DNJFOgUY.js",
       "_DailyComparisonChart-legacy-VhVdMRrr.js",
       "_FlashcardHeader-legacy-ChMsEsBy.js",
       "_FlashcardEditModal-legacy-BhASZI5v.js",
@@ -324,8 +324,8 @@
       "_react-core-vendor-legacy-Dv8iBNLR.js",
       "_rolldown-runtime-legacy-Djb2rrqm.js",
       "index-legacy.html",
-      "_animations-vendor-legacy-DNJFOgUY.js",
       "_vendor-legacy-DoCIl6ga.js",
+      "_animations-vendor-legacy-DNJFOgUY.js",
       "_utils-legacy-BJn6aEse.js"
     ]
   },
@@ -337,8 +337,8 @@
     "imports": [
       "_react-core-vendor-legacy-Dv8iBNLR.js",
       "_rolldown-runtime-legacy-Djb2rrqm.js",
-      "_animations-vendor-legacy-DNJFOgUY.js",
       "_vendor-legacy-DoCIl6ga.js",
+      "_animations-vendor-legacy-DNJFOgUY.js",
       "_TelegramRoadmapReminderToggle-legacy-DfHbupPQ.js",
       "_utils-legacy-BJn6aEse.js"
     ]
@@ -351,8 +351,8 @@
     "imports": [
       "_react-core-vendor-legacy-Dv8iBNLR.js",
       "_rolldown-runtime-legacy-Djb2rrqm.js",
-      "_animations-vendor-legacy-DNJFOgUY.js",
       "_vendor-legacy-DoCIl6ga.js",
+      "_animations-vendor-legacy-DNJFOgUY.js",
       "_utils-legacy-BJn6aEse.js"
     ]
   },
@@ -365,8 +365,8 @@
       "_react-core-vendor-legacy-Dv8iBNLR.js",
       "_rolldown-runtime-legacy-Djb2rrqm.js",
       "index-legacy.html",
-      "_animations-vendor-legacy-DNJFOgUY.js",
       "_vendor-legacy-DoCIl6ga.js",
+      "_animations-vendor-legacy-DNJFOgUY.js",
       "_utils-legacy-BJn6aEse.js"
     ]
   },
@@ -379,8 +379,8 @@
       "_react-core-vendor-legacy-Dv8iBNLR.js",
       "_charts-vendor-legacy-7_6fOiAk.js",
       "_rolldown-runtime-legacy-Djb2rrqm.js",
-      "_animations-vendor-legacy-DNJFOgUY.js",
       "_vendor-legacy-DoCIl6ga.js",
+      "_animations-vendor-legacy-DNJFOgUY.js",
       "_DailyComparisonChart-legacy-VhVdMRrr.js",
       "_utils-legacy-BJn6aEse.js"
     ]
@@ -409,8 +409,8 @@
       "_charts-vendor-DAULSWhr.js",
       "_rolldown-runtime-BYbx6iT9.js",
       "index.html",
-      "_animations-vendor-_pkdLzeK.js",
       "_vendor-EbUON9dm.js",
+      "_animations-vendor-_pkdLzeK.js",
       "_FlashcardEditModal-BxDfSmpg.js",
       "_MediaUrlInput-34_PSVNa.js",
       "_DeckPagination-CN00bi6N.js",
@@ -424,8 +424,8 @@
     "imports": [
       "_react-core-vendor-BY4xuMgf.js",
       "_rolldown-runtime-BYbx6iT9.js",
-      "_animations-vendor-_pkdLzeK.js",
-      "_vendor-EbUON9dm.js"
+      "_vendor-EbUON9dm.js",
+      "_animations-vendor-_pkdLzeK.js"
     ]
   },
   "_DeckPagination-CN00bi6N.js": {
@@ -445,8 +445,8 @@
     "imports": [
       "_react-core-vendor-BY4xuMgf.js",
       "_rolldown-runtime-BYbx6iT9.js",
-      "_animations-vendor-_pkdLzeK.js",
       "_vendor-EbUON9dm.js",
+      "_animations-vendor-_pkdLzeK.js",
       "_TelegramRoadmapReminderToggle-Bx-VKNmM.js"
     ]
   },
@@ -457,8 +457,8 @@
       "_react-core-vendor-BY4xuMgf.js",
       "_rolldown-runtime-BYbx6iT9.js",
       "index.html",
-      "_animations-vendor-_pkdLzeK.js",
       "_vendor-EbUON9dm.js",
+      "_animations-vendor-_pkdLzeK.js",
       "_MediaUrlInput-34_PSVNa.js",
       "_utils-DlFA4ZLb.js"
     ]
@@ -470,8 +470,8 @@
       "_react-core-vendor-BY4xuMgf.js",
       "_charts-vendor-DAULSWhr.js",
       "_rolldown-runtime-BYbx6iT9.js",
-      "_animations-vendor-_pkdLzeK.js",
       "_vendor-EbUON9dm.js",
+      "_animations-vendor-_pkdLzeK.js",
       "_MediaUrlInput-34_PSVNa.js",
       "_utils-DlFA4ZLb.js"
     ]
@@ -483,8 +483,8 @@
       "_react-core-vendor-BY4xuMgf.js",
       "_rolldown-runtime-BYbx6iT9.js",
       "index.html",
-      "_animations-vendor-_pkdLzeK.js",
       "_vendor-EbUON9dm.js",
+      "_animations-vendor-_pkdLzeK.js",
       "_DailyComparisonChart-Dj4wIT3v.js",
       "_text-DODzR70U.js",
       "_utils-DlFA4ZLb.js"
@@ -496,8 +496,8 @@
     "imports": [
       "_react-core-vendor-BY4xuMgf.js",
       "_rolldown-runtime-BYbx6iT9.js",
-      "_animations-vendor-_pkdLzeK.js",
       "_vendor-EbUON9dm.js",
+      "_animations-vendor-_pkdLzeK.js",
       "_utils-DlFA4ZLb.js"
     ]
   },
@@ -507,8 +507,8 @@
     "imports": [
       "_react-core-vendor-BY4xuMgf.js",
       "_rolldown-runtime-BYbx6iT9.js",
-      "_animations-vendor-_pkdLzeK.js",
       "_vendor-EbUON9dm.js",
+      "_animations-vendor-_pkdLzeK.js",
       "_utils-DlFA4ZLb.js"
     ]
   },
@@ -568,8 +568,8 @@
     "imports": [
       "_react-core-vendor-BY4xuMgf.js",
       "_rolldown-runtime-BYbx6iT9.js",
-      "_animations-vendor-_pkdLzeK.js",
       "_vendor-EbUON9dm.js",
+      "_animations-vendor-_pkdLzeK.js",
       "_utils-DlFA4ZLb.js"
     ],
     "dynamicImports": [
@@ -599,8 +599,8 @@
       "_react-core-vendor-BY4xuMgf.js",
       "_rolldown-runtime-BYbx6iT9.js",
       "index.html",
-      "_animations-vendor-_pkdLzeK.js",
-      "_vendor-EbUON9dm.js"
+      "_vendor-EbUON9dm.js",
+      "_animations-vendor-_pkdLzeK.js"
     ]
   },
   "src/pages/Dashboard.tsx": {
@@ -612,8 +612,8 @@
       "_react-core-vendor-BY4xuMgf.js",
       "_rolldown-runtime-BYbx6iT9.js",
       "index.html",
-      "_animations-vendor-_pkdLzeK.js",
       "_vendor-EbUON9dm.js",
+      "_animations-vendor-_pkdLzeK.js",
       "_DailyComparisonChart-Dj4wIT3v.js",
       "_TelegramRoadmapReminderToggle-Bx-VKNmM.js",
       "_utils-DlFA4ZLb.js"
@@ -628,8 +628,8 @@
       "_react-core-vendor-BY4xuMgf.js",
       "_rolldown-runtime-BYbx6iT9.js",
       "index.html",
-      "_animations-vendor-_pkdLzeK.js",
       "_vendor-EbUON9dm.js",
+      "_animations-vendor-_pkdLzeK.js",
       "_DeckPagination-CN00bi6N.js",
       "_utils-DlFA4ZLb.js"
     ],
@@ -649,8 +649,8 @@
       "_react-core-vendor-BY4xuMgf.js",
       "_rolldown-runtime-BYbx6iT9.js",
       "index.html",
-      "_animations-vendor-_pkdLzeK.js",
       "_vendor-EbUON9dm.js",
+      "_animations-vendor-_pkdLzeK.js",
       "_MediaUrlInput-34_PSVNa.js",
       "_DeckPagination-CN00bi6N.js",
       "_DeckCardsTab-Fi2LLsY0.js",
@@ -669,8 +669,8 @@
       "_react-core-vendor-BY4xuMgf.js",
       "_rolldown-runtime-BYbx6iT9.js",
       "index.html",
-      "_animations-vendor-_pkdLzeK.js",
       "_vendor-EbUON9dm.js",
+      "_animations-vendor-_pkdLzeK.js",
       "_DailyComparisonChart-Dj4wIT3v.js",
       "_FlashcardHeader-CNEB6xVu.js",
       "_FlashcardEditModal-BxDfSmpg.js",
@@ -686,8 +686,8 @@
     "imports": [
       "_react-core-vendor-BY4xuMgf.js",
       "_rolldown-runtime-BYbx6iT9.js",
-      "_animations-vendor-_pkdLzeK.js",
       "_vendor-EbUON9dm.js",
+      "_animations-vendor-_pkdLzeK.js",
       "_text-DODzR70U.js",
       "_utils-DlFA4ZLb.js"
     ]
@@ -701,8 +701,8 @@
       "_react-core-vendor-BY4xuMgf.js",
       "_rolldown-runtime-BYbx6iT9.js",
       "index.html",
-      "_animations-vendor-_pkdLzeK.js",
       "_vendor-EbUON9dm.js",
+      "_animations-vendor-_pkdLzeK.js",
       "_DailyComparisonChart-Dj4wIT3v.js",
       "_FlashcardHeader-CNEB6xVu.js",
       "_FlashcardEditModal-BxDfSmpg.js",
@@ -719,8 +719,8 @@
       "_react-core-vendor-BY4xuMgf.js",
       "_rolldown-runtime-BYbx6iT9.js",
       "index.html",
-      "_animations-vendor-_pkdLzeK.js",
       "_vendor-EbUON9dm.js",
+      "_animations-vendor-_pkdLzeK.js",
       "_utils-DlFA4ZLb.js"
     ]
   },
@@ -732,8 +732,8 @@
     "imports": [
       "_react-core-vendor-BY4xuMgf.js",
       "_rolldown-runtime-BYbx6iT9.js",
-      "_animations-vendor-_pkdLzeK.js",
       "_vendor-EbUON9dm.js",
+      "_animations-vendor-_pkdLzeK.js",
       "_TelegramRoadmapReminderToggle-Bx-VKNmM.js",
       "_utils-DlFA4ZLb.js"
     ]
@@ -746,8 +746,8 @@
     "imports": [
       "_react-core-vendor-BY4xuMgf.js",
       "_rolldown-runtime-BYbx6iT9.js",
-      "_animations-vendor-_pkdLzeK.js",
       "_vendor-EbUON9dm.js",
+      "_animations-vendor-_pkdLzeK.js",
       "_utils-DlFA4ZLb.js"
     ]
   },
@@ -760,8 +760,8 @@
       "_react-core-vendor-BY4xuMgf.js",
       "_rolldown-runtime-BYbx6iT9.js",
       "index.html",
-      "_animations-vendor-_pkdLzeK.js",
       "_vendor-EbUON9dm.js",
+      "_animations-vendor-_pkdLzeK.js",
       "_utils-DlFA4ZLb.js"
     ]
   },
@@ -774,8 +774,8 @@
       "_react-core-vendor-BY4xuMgf.js",
       "_charts-vendor-DAULSWhr.js",
       "_rolldown-runtime-BYbx6iT9.js",
-      "_animations-vendor-_pkdLzeK.js",
       "_vendor-EbUON9dm.js",
+      "_animations-vendor-_pkdLzeK.js",
       "_DailyComparisonChart-Dj4wIT3v.js",
       "_utils-DlFA4ZLb.js"
     ]
