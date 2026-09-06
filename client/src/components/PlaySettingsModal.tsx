@@ -5,39 +5,32 @@ import {
   Brain, 
   Route, 
   Sparkles, 
-  Shuffle, 
   AlertCircle, 
   TrendingUp, 
   Copy, 
   EyeOff, 
   Edit3, 
   LogOut, 
-  Volume2, 
-  VolumeX,
-  Music, 
-  Zap, 
-  Image as ImageIcon, 
-  ImageOff,
-  Layers,
   Check, 
   X,
-  User,
   ShieldCheck,
   RotateCcw,
   Settings,
   BookOpen,
-  AlignLeft,
-  AlignCenter,
-  MousePointerClick,
   BookmarkPlus,
   BookmarkCheck,
-  Headphones,
-  Book
 } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useNavigate, useParams } from 'react-router-dom'
 import { cn } from '@/lib/utils'
 import type { StudyProfile } from '@/store/useSettingsStore'
+import {
+  SYSTEM_TEMPLATES,
+  StudyTemplateSelector,
+  StudySettingsEditor,
+  type StudySettings,
+  type StudyTemplateItem,
+} from '@/components/common/study'
 
 interface PlaySettingsModalProps {
   isOpen: boolean;
@@ -136,9 +129,8 @@ export const PlaySettingsModal: React.FC<PlaySettingsModalProps> = ({
   const navigate = useNavigate()
   const { id } = useParams<{ id: string }>()
 
-  // View Mode: Simple Mode (Templates) vs Advanced Mode (Detailed Tabs)
+  // View Mode: Simple Mode (Templates) vs Advanced Mode (Fine-Tuning)
   const [modalViewMode, setModalViewMode] = useState<'simple' | 'advanced'>('simple')
-  const [activeTab, setActiveTab] = useState<'modes' | 'audio' | 'display' | 'gestures'>('modes')
   const [isSyncing, setIsSyncing] = useState<boolean>(false)
   const [isSaveModalOpen, setIsSaveModalOpen] = useState<boolean>(false)
   const [newProfileName, setNewProfileName] = useState<string>('')
@@ -207,17 +199,6 @@ export const PlaySettingsModal: React.FC<PlaySettingsModalProps> = ({
     })
   }, [studyProfiles])
 
-  // Parse audio mode
-  const currentAudioMode: 'always' | 'front' | 'back' | 'none' = autoPlayAudio || 'none'
-  
-  // Parse image mode
-  const currentImageMode: 'always' | 'front' | 'back' | 'none' = (() => {
-    if (showImages === 'always' || showImages === true || showImages === 'true') return 'always'
-    if (showImages === 'front') return 'front'
-    if (showImages === 'back') return 'back'
-    return 'none'
-  })()
-
   const MODES_LIST = [
     { id: 'fsrs', label: 'FSRS v6', desc: 'Spaced repetition algorithm', icon: Brain, color: 'text-indigo-600', bg: 'bg-indigo-50/80', border: 'border-indigo-200' },
     { id: 'roadmap', label: 'Roadmap', desc: 'Step-by-step daily journey', icon: Route, color: 'text-emerald-600', bg: 'bg-emerald-50/80', border: 'border-emerald-200' },
@@ -226,6 +207,72 @@ export const PlaySettingsModal: React.FC<PlaySettingsModalProps> = ({
     { id: 'hardest', label: 'Hardest', desc: 'Frequently forgotten cards', icon: TrendingUp, color: 'text-purple-600', bg: 'bg-purple-50/80', border: 'border-purple-200' },
     { id: 'flip', label: 'Quick Flip', desc: 'Free-form flashcard flip', icon: RotateCcw, color: 'text-sky-600', bg: 'bg-sky-50/80', border: 'border-sky-200' }
   ]
+
+  const currentSettings: StudySettings = {
+    card_flip_trigger: cardFlipTrigger || 'both',
+    card_rating_mode: cardRatingMode || 'both',
+    quiz_learning_mode: activeMode,
+    learning_mode: activeMode,
+    front_valign: frontValign || 'center',
+    front_halign: frontHalign || 'left',
+    back_valign: backValign || 'center',
+    back_halign: backHalign || 'left',
+    autoplay_audio: autoPlayAudio || 'always',
+    show_images: showImages || 'both',
+    show_fsrs: showFsrs ?? true,
+    sfx_enabled: sfxEnabled ?? true,
+    haptic_enabled: hapticEnabled ?? true,
+    random_enabled: randomEnabled ?? false,
+    quick_learn_enabled: quickLearnEnabled ?? false,
+  }
+
+  const handleSettingChange = (key: string, val: any) => {
+    switch (key) {
+      case 'card_flip_trigger':
+        if (setCardFlipTrigger) setCardFlipTrigger(val)
+        break
+      case 'card_rating_mode':
+        if (setCardRatingMode) setCardRatingMode(val)
+        break
+      case 'front_valign':
+        if (setFrontValign) setFrontValign(val)
+        break
+      case 'front_halign':
+        if (setFrontHalign) setFrontHalign(val)
+        break
+      case 'back_valign':
+        if (setBackValign) setBackValign(val)
+        break
+      case 'back_halign':
+        if (setBackHalign) setBackHalign(val)
+        break
+      case 'autoplay_audio':
+        if (setAutoPlayAudio) setAutoPlayAudio(val)
+        break
+      case 'show_images':
+        if (setShowImages) setShowImages(val)
+        break
+      case 'show_fsrs':
+        if (setShowFsrs) setShowFsrs(val)
+        break
+      case 'sfx_enabled':
+        if (setSfxEnabled) setSfxEnabled(val)
+        break
+      case 'haptic_enabled':
+        if (setHapticEnabled) setHapticEnabled(val)
+        break
+      case 'random_enabled':
+        if (setRandomEnabled) setRandomEnabled(val)
+        break
+      case 'quick_learn_enabled':
+        if (setQuickLearnEnabled) setQuickLearnEnabled(val)
+        break
+      case 'quiz_learning_mode':
+      case 'learning_mode':
+        if (applyLearningMode) applyLearningMode(val)
+        break
+    }
+  }
 
   const handleSelectCurrentCustom = () => {
     setSelectedProfileId('current-custom')
@@ -271,6 +318,72 @@ export const PlaySettingsModal: React.FC<PlaySettingsModalProps> = ({
     }
   }
 
+  const allTemplates: StudyTemplateItem[] = React.useMemo(() => {
+    const list: StudyTemplateItem[] = []
+
+    if (isCustomized || selectedProfileId === 'current-custom') {
+      list.push({
+        id: 'current-custom',
+        name: 'Current Customization',
+        badge: 'Active Custom',
+        desc: 'Your personalized active study configuration for this session.',
+        icon: 'sparkles',
+        isCustom: true,
+        settings: currentSettings,
+      })
+    }
+
+    list.push({
+      id: 'deck-default',
+      name: 'Deck Creator Default',
+      badge: 'Creator Baseline',
+      desc: 'Original baseline settings designed specifically for this deck by the author.',
+      icon: 'sparkles',
+      isDeckDefault: true,
+      settings: {},
+    })
+
+    if (systemProfilesList.length > 0) {
+      systemProfilesList.forEach((p) => {
+        list.push({
+          id: p.id,
+          name: p.name,
+          badge: p.badge || 'System',
+          desc: p.description || '',
+          icon: p.icon || 'sparkles',
+          isSystem: true,
+          settings: p.settings || {},
+        })
+      })
+    } else {
+      list.push(...SYSTEM_TEMPLATES)
+    }
+
+    customProfilesList.forEach((p) => {
+      list.push({
+        id: p.id,
+        name: p.name,
+        badge: 'My Template',
+        desc: p.description || 'User saved template',
+        icon: p.icon || 'sparkles',
+        isCustom: true,
+        settings: p.settings || {},
+      })
+    })
+
+    return list
+  }, [isCustomized, selectedProfileId, currentSettings, systemProfilesList, customProfilesList])
+
+  const handleSelectTemplate = (tpl: StudyTemplateItem) => {
+    if (tpl.id === 'current-custom') {
+      handleSelectCurrentCustom()
+    } else if (tpl.id === 'deck-default') {
+      handleSelectDeckDefault()
+    } else {
+      handleApplyTemplateInstant(tpl.id)
+    }
+  }
+
   const handleSaveProfile = async () => {
     if (!onCreateCustomProfile || !newProfileName.trim()) return
     setIsSyncing(true)
@@ -307,88 +420,6 @@ export const PlaySettingsModal: React.FC<PlaySettingsModalProps> = ({
       }
     }
   }
-
-  const ToggleSwitch = ({ checked, onChange, label, sub, icon: Icon, color = 'text-indigo-600', bg = 'bg-indigo-50' }: any) => (
-    <div className="flex items-center justify-between p-2.5 sm:p-3 rounded-2xl bg-white border border-slate-100 hover:border-slate-200/80 transition-all shadow-2xs">
-      <div className="flex items-center gap-3 min-w-0 flex-1 mr-2">
-        {Icon && (
-          <div className={cn("w-8 h-8 rounded-xl flex items-center justify-center shrink-0 border border-slate-100/60", bg)}>
-            <Icon className={cn("w-4 h-4", color)} />
-          </div>
-        )}
-        <div className="min-w-0">
-          <span className="text-xs font-black text-slate-800 block truncate">{label}</span>
-          {sub && <span className="text-[10px] font-bold text-slate-400 block truncate">{sub}</span>}
-        </div>
-      </div>
-      <button
-        type="button"
-        onClick={onChange}
-        className={cn(
-          "w-11 h-6 rounded-full transition-all duration-300 relative p-0.5 shrink-0 cursor-pointer",
-          checked ? "bg-indigo-600 shadow-xs" : "bg-slate-200"
-        )}
-      >
-        <div
-          className={cn(
-            "w-5 h-5 rounded-full bg-white shadow-sm transition-all duration-300 transform",
-            checked ? "translate-x-5" : "translate-x-0"
-          )}
-        />
-      </button>
-    </div>
-  )
-
-  const SegmentedGroup = ({ 
-    label, 
-    sub,
-    value, 
-    onChange, 
-    options 
-  }: { 
-    label?: string; 
-    sub?: string;
-    value: string; 
-    onChange: (val: any) => void; 
-    options: { id: string; label: string; sub?: string; icon?: any }[] 
-  }) => (
-    <div className="p-3 bg-white rounded-2xl border border-slate-100 shadow-2xs space-y-2">
-      {(label || sub) && (
-        <div className="flex items-center justify-between">
-          {label && <span className="text-xs font-black text-slate-800">{label}</span>}
-          {sub && <span className="text-[10px] font-bold text-slate-400">{sub}</span>}
-        </div>
-      )}
-      <div className={cn(
-        "grid gap-1 p-1 bg-slate-100/80 rounded-xl",
-        options.length === 2 ? "grid-cols-2" : options.length === 3 ? "grid-cols-3" : "grid-cols-4"
-      )}>
-        {options.map(opt => {
-          const active = value === opt.id
-          const IconComp = opt.icon
-          return (
-            <button
-              key={opt.id}
-              type="button"
-              onClick={() => onChange(opt.id)}
-              className={cn(
-                "py-2 px-1 rounded-lg text-[10.5px] font-black tracking-tight transition-all text-center flex flex-col items-center justify-center gap-0.5 active:scale-95 cursor-pointer",
-                active 
-                  ? "bg-white text-indigo-600 shadow-sm font-black" 
-                  : "text-slate-500 hover:text-slate-800"
-              )}
-            >
-              <div className="flex items-center gap-1">
-                {IconComp && <IconComp className={cn("w-3 h-3 shrink-0", active ? "text-indigo-600" : "text-slate-400")} />}
-                <span className="truncate">{opt.label}</span>
-              </div>
-              {opt.sub && <span className="text-[8.5px] font-medium text-slate-400 truncate">{opt.sub}</span>}
-            </button>
-          )
-        })}
-      </div>
-    </div>
-  )
 
   const isDeckDefaultActive = selectedProfileId === 'deck-default'
 
@@ -492,7 +523,7 @@ export const PlaySettingsModal: React.FC<PlaySettingsModalProps> = ({
 
             {/* MODAL BODY */}
             <div className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-4">
-              {/* ═══════════ VIEW A: SIMPLE MODE (CIRCULAR RADIO TEMPLATES) ═══════════ */}
+              {/* ═══════════ VIEW A: SIMPLE MODE (TEMPLATES) ═══════════ */}
               {modalViewMode === 'simple' ? (
                 <div className="space-y-3">
                   <div className="flex items-center justify-between px-1">
@@ -506,597 +537,155 @@ export const PlaySettingsModal: React.FC<PlaySettingsModalProps> = ({
                         className="text-[10.5px] font-black text-indigo-600 hover:text-indigo-800 flex items-center gap-1 cursor-pointer"
                       >
                         <BookmarkPlus className="w-3 h-3" />
-                        <span>Save Current as New Template</span>
+                        <span>Save Current as Template</span>
                       </button>
                     )}
                   </div>
 
-                  {/* 0. Current Customization Card (if customized or currently active) */}
-                  {(isCustomized || selectedProfileId === 'current-custom') && (
-                    <div
-                      onClick={handleSelectCurrentCustom}
-                      className={cn(
-                        "p-3 rounded-2xl border transition-all cursor-pointer flex items-start gap-3 select-none",
-                        selectedProfileId === 'current-custom'
-                          ? "bg-amber-50/60 border-amber-500 shadow-xs ring-1 ring-amber-400/30"
-                          : "bg-white border-slate-200/80 hover:border-slate-300"
-                      )}
-                    >
-                      <div className="pt-0.5 shrink-0">
-                        <div className={cn(
-                          "w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all",
-                          selectedProfileId === 'current-custom' ? "border-amber-600 bg-amber-600" : "border-slate-300 bg-white"
-                        )}>
-                          {selectedProfileId === 'current-custom' && <div className="w-2 h-2 rounded-full bg-white" />}
-                        </div>
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-0.5">
-                          <span className={cn("text-xs font-black truncate", selectedProfileId === 'current-custom' ? "text-amber-950" : "text-slate-800")}>
-                            Current Customization
-                          </span>
-                          <span className="px-2 py-0.2 rounded-full text-[9px] font-black uppercase tracking-wider bg-amber-100 text-amber-800 border border-amber-200">
-                            Active Custom
-                          </span>
-                        </div>
-                        <p className="text-[10.5px] text-slate-500 font-medium leading-relaxed mb-1.5">
-                          Your personalized active study configuration for this deck.
-                        </p>
-                        <div className="flex items-center gap-1.5 flex-wrap">
-                          <span className="px-1.5 py-0.5 bg-slate-100/80 rounded-md text-[9px] font-bold text-slate-600">
-                            Flip: {cardFlipTrigger === 'button_only' ? 'Button Only' : cardFlipTrigger === 'tap' ? 'Tap Only' : 'Tap & Swipe'}
-                          </span>
-                          <span className="px-1.5 py-0.5 bg-slate-100/80 rounded-md text-[9px] font-bold text-slate-600">
-                            Rating: {cardRatingMode === 'buttons' ? '4 Buttons' : cardRatingMode === 'swipe_4way' ? '4-Way Swipe' : 'Both'}
-                          </span>
-                          <span className="px-1.5 py-0.5 bg-slate-100/80 rounded-md text-[9px] font-bold text-slate-600">
-                            Audio: {currentAudioMode === 'always' ? 'Always' : currentAudioMode === 'back' ? 'Back' : currentAudioMode === 'front' ? 'Front' : 'Off'}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* 1. Deck Creator Default Card */}
-                  <div
-                    onClick={handleSelectDeckDefault}
-                    className={cn(
-                      "p-3 rounded-2xl border transition-all cursor-pointer flex items-start gap-3 select-none",
-                      selectedProfileId === 'deck-default'
-                        ? "bg-emerald-50/50 border-emerald-500 shadow-xs ring-1 ring-emerald-400/30"
-                        : "bg-white border-slate-200/80 hover:border-slate-300"
-                    )}
-                  >
-                    <div className="pt-0.5 shrink-0">
-                      <div className={cn(
-                        "w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all",
-                        selectedProfileId === 'deck-default' ? "border-emerald-600 bg-emerald-600" : "border-slate-300 bg-white"
-                      )}>
-                        {selectedProfileId === 'deck-default' && <div className="w-2 h-2 rounded-full bg-white" />}
-                      </div>
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-0.5">
-                        <span className={cn("text-xs font-black truncate", selectedProfileId === 'deck-default' ? "text-emerald-950" : "text-slate-800")}>
-                          Deck Creator Default
-                        </span>
-                        <span className="px-2 py-0.2 rounded-full text-[9px] font-black uppercase tracking-wider bg-emerald-100 text-emerald-800 border border-emerald-200">
-                          Original
-                        </span>
-                      </div>
-                      <p className="text-[10.5px] text-slate-500 font-medium leading-relaxed">
-                        Original baseline settings designed specifically for this deck by the author.
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* 2. System Presets */}
-                  <div className="space-y-2 pt-1">
-                    <span className="text-[9.5px] font-black text-slate-400 uppercase tracking-wider block px-1">
-                      System Presets
+                  <StudyTemplateSelector
+                    templates={allTemplates}
+                    selectedId={selectedProfileId}
+                    onSelect={handleSelectTemplate}
+                    compact={true}
+                  />
+                </div>
+              ) : (
+                /* ═══════════ VIEW B: ADVANCED MODE (DETAILED CONTROLS) ═══════════ */
+                <div className="space-y-4">
+                  {/* Learning Mode Selection */}
+                  <div>
+                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-2">
+                      Learning Mode
                     </span>
-                    {systemProfilesList.map((p) => {
-                      const isSelected = selectedProfileId === p.id
-                      const s = p.settings || {}
-                      const flipText = s.card_flip_trigger === 'button_only' ? 'Button Only' : s.card_flip_trigger === 'tap' ? 'Tap Only' : 'Tap & Swipe'
-                      const ratingText = s.card_rating_mode === 'buttons' ? '4 Buttons' : s.card_rating_mode === 'swipe_4way' ? '4-Way Swipe' : 'Both'
-                      const audioText = s.autoplay_audio === 'always' ? 'Always' : s.autoplay_audio === 'back' ? 'Back' : s.autoplay_audio === 'front' ? 'Front' : 'Off'
-
-                      return (
-                        <div
-                          key={p.id}
-                          onClick={() => handleApplyTemplateInstant(p.id)}
-                          className={cn(
-                            "p-3 rounded-2xl border transition-all cursor-pointer flex items-start gap-3 select-none",
-                            isSelected
-                              ? "bg-orange-50/50 border-orange-500 shadow-xs ring-1 ring-orange-400/30"
-                              : "bg-white border-slate-200/80 hover:border-slate-300"
-                          )}
-                        >
-                          <div className="pt-0.5 shrink-0">
-                            <div className={cn(
-                              "w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all",
-                              isSelected ? "border-orange-500 bg-orange-500" : "border-slate-300 bg-white"
-                            )}>
-                              {isSelected && <div className="w-2 h-2 rounded-full bg-white" />}
-                            </div>
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2 mb-0.5">
-                              <span className={cn("text-xs font-black truncate", isSelected ? "text-orange-950" : "text-slate-800")}>
-                                {p.name}
-                              </span>
-                              {p.badge && (
-                                <span className={cn(
-                                  "px-2 py-0.2 rounded-full text-[9px] font-black uppercase tracking-wider border",
-                                  isSelected ? "bg-orange-100 text-orange-800 border-orange-200" : "bg-slate-100 text-slate-600 border-slate-200"
-                                )}>
-                                  {p.badge}
-                                </span>
-                              )}
-                            </div>
-                            <p className="text-[10.5px] text-slate-500 font-medium leading-relaxed mb-1.5">
-                              {p.description}
-                            </p>
-                            <div className="flex items-center gap-1.5 flex-wrap">
-                              <span className="px-1.5 py-0.5 bg-slate-100/80 rounded-md text-[9px] font-bold text-slate-600">
-                                Flip: {flipText}
-                              </span>
-                              <span className="px-1.5 py-0.5 bg-slate-100/80 rounded-md text-[9px] font-bold text-slate-600">
-                                Rating: {ratingText}
-                              </span>
-                              <span className="px-1.5 py-0.5 bg-slate-100/80 rounded-md text-[9px] font-bold text-slate-600">
-                                Audio: {audioText}
-                              </span>
-                            </div>
-                          </div>
-                        </div>
-                      )
-                    })}
-                  </div>
-
-                  {/* 3. My Custom Templates */}
-                  {customProfilesList.length > 0 && (
-                    <div className="space-y-2 pt-1">
-                      <span className="text-[9.5px] font-black text-slate-400 uppercase tracking-wider block px-1">
-                        My Saved Templates
-                      </span>
-                      {customProfilesList.map((p) => {
-                        const isSelected = selectedProfileId === p.id
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                      {MODES_LIST.map((mode) => {
+                        const Icon = mode.icon
+                        const isSelected = activeMode === mode.id
                         return (
-                          <div
-                            key={p.id}
-                            onClick={() => handleApplyTemplateInstant(p.id)}
+                          <button
+                            key={mode.id}
+                            type="button"
+                            onClick={() => applyLearningMode(mode.id)}
                             className={cn(
-                              "p-3 rounded-2xl border transition-all cursor-pointer flex items-start gap-3 select-none",
-                              isSelected
-                                ? "bg-indigo-50/50 border-indigo-500 shadow-xs ring-1 ring-indigo-400/30"
-                                : "bg-white border-slate-200/80 hover:border-slate-300"
+                              "p-3 rounded-2xl border text-left transition-all flex flex-col justify-between cursor-pointer active:scale-95 shadow-2xs",
+                              isSelected 
+                                ? cn("bg-white border-2 shadow-sm ring-1 ring-orange-400/30", mode.border) 
+                                : "bg-white border-slate-100 hover:border-slate-200"
                             )}
                           >
-                            <div className="pt-0.5 shrink-0">
-                              <div className={cn(
-                                "w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all",
-                                isSelected ? "border-indigo-600 bg-indigo-600" : "border-slate-300 bg-white"
-                              )}>
-                                {isSelected && <div className="w-2 h-2 rounded-full bg-white" />}
+                            <div className="flex items-center justify-between w-full mb-1.5">
+                              <div className={cn("w-7 h-7 rounded-xl flex items-center justify-center shrink-0 border border-slate-100", mode.bg)}>
+                                <Icon className={cn("w-3.5 h-3.5", mode.color)} />
                               </div>
+                              {isSelected && <span className="w-2 h-2 rounded-full bg-orange-500 ring-4 ring-orange-100" />}
                             </div>
-                            <div className="flex-1 min-w-0">
-                              <span className={cn("text-xs font-black truncate block", isSelected ? "text-indigo-950" : "text-slate-800")}>
-                                {p.name}
+                            <div>
+                              <span className={cn("text-xs font-black block truncate", isSelected ? "text-slate-900" : "text-slate-700")}>
+                                {mode.label}
                               </span>
-                              <span className="text-[10px] text-slate-400 font-medium">User custom profile</span>
+                              <span className="text-[9.5px] font-bold text-slate-400 block truncate">
+                                {mode.desc}
+                              </span>
                             </div>
-                          </div>
+                          </button>
                         )
                       })}
                     </div>
-                  )}
-                </div>
-              ) : (
-                /* ═══════════ VIEW B: ADVANCED MODE (DETAILED TABS) ═══════════ */
-                <div className="space-y-4">
-                  {/* Segmented Top Tabs */}
-                  <div className="grid grid-cols-4 gap-1 p-1 bg-slate-100/90 rounded-2xl border border-slate-200/60">
-                    <button
-                      type="button"
-                      onClick={() => setActiveTab('modes')}
-                      className={cn(
-                        "py-1.5 px-1 rounded-xl text-[10px] font-black tracking-tight transition-all flex items-center justify-center gap-1 cursor-pointer",
-                        activeTab === 'modes' ? "bg-white text-orange-600 shadow-sm" : "text-slate-500 hover:text-slate-800"
-                      )}
-                    >
-                      <Brain className="w-3.5 h-3.5" />
-                      <span>Modes</span>
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => setActiveTab('audio')}
-                      className={cn(
-                        "py-1.5 px-1 rounded-xl text-[10px] font-black tracking-tight transition-all flex items-center justify-center gap-1 cursor-pointer",
-                        activeTab === 'audio' ? "bg-white text-indigo-600 shadow-sm" : "text-slate-500 hover:text-slate-800"
-                      )}
-                    >
-                      <Volume2 className="w-3.5 h-3.5" />
-                      <span>Audio</span>
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => setActiveTab('display')}
-                      className={cn(
-                        "py-1.5 px-1 rounded-xl text-[10px] font-black tracking-tight transition-all flex items-center justify-center gap-1 cursor-pointer",
-                        activeTab === 'display' ? "bg-white text-blue-600 shadow-sm" : "text-slate-500 hover:text-slate-800"
-                      )}
-                    >
-                      <Layers className="w-3.5 h-3.5" />
-                      <span>Display</span>
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => setActiveTab('gestures')}
-                      className={cn(
-                        "py-1.5 px-1 rounded-xl text-[10px] font-black tracking-tight transition-all flex items-center justify-center gap-1 cursor-pointer",
-                        activeTab === 'gestures' ? "bg-white text-rose-600 shadow-sm" : "text-slate-500 hover:text-slate-800"
-                      )}
-                    >
-                      <MousePointerClick className="w-3.5 h-3.5" />
-                      <span>Gestures</span>
-                    </button>
                   </div>
 
-                  {/* TAB 1: MODES */}
-                  {activeTab === 'modes' && (
-                    <div className="space-y-4">
-                      <div>
-                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-2">
-                          Learning Mode & Queue Flow
-                        </span>
-                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                          {MODES_LIST.map((mode) => {
-                            const Icon = mode.icon
-                            const isSelected = activeMode === mode.id
-                            return (
-                              <button
-                                key={mode.id}
-                                type="button"
-                                onClick={() => applyLearningMode(mode.id)}
-                                className={cn(
-                                  "p-3 rounded-2xl border text-left transition-all flex flex-col justify-between cursor-pointer active:scale-95 shadow-2xs",
-                                  isSelected 
-                                    ? cn("bg-white border-2 shadow-sm ring-1 ring-orange-400/30", mode.border) 
-                                    : "bg-white border-slate-100 hover:border-slate-200"
-                                )}
-                              >
-                                <div className="flex items-center justify-between w-full mb-1.5">
-                                  <div className={cn("w-7 h-7 rounded-xl flex items-center justify-center shrink-0 border border-slate-100", mode.bg)}>
-                                    <Icon className={cn("w-3.5 h-3.5", mode.color)} />
-                                  </div>
-                                  {isSelected && <span className="w-2 h-2 rounded-full bg-orange-500 ring-4 ring-orange-100" />}
-                                </div>
-                                <div>
-                                  <span className={cn("text-xs font-black block truncate", isSelected ? "text-slate-900" : "text-slate-700")}>
-                                    {mode.label}
-                                  </span>
-                                  <span className="text-[9.5px] font-bold text-slate-400 block truncate">
-                                    {mode.desc}
-                                  </span>
-                                </div>
-                              </button>
-                            )
-                          })}
-                        </div>
-                      </div>
+                  {/* Fine-Tuning Controls */}
+                  <StudySettingsEditor
+                    settings={currentSettings}
+                    onChange={handleSettingChange}
+                    compact={true}
+                    hideQueue={false}
+                  />
 
-                      <div className="space-y-2 pt-2 border-t border-slate-100">
-                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">
-                          Queue Controls
-                        </span>
+                  {/* Quick in-session tools */}
+                  <div className="space-y-2 pt-2 border-t border-slate-100">
+                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">
+                      Current Card Actions
+                    </span>
 
-                        {setRandomEnabled && (
-                          <ToggleSwitch 
-                            checked={randomEnabled}
-                            onChange={() => setRandomEnabled(!randomEnabled)}
-                            label="Shuffle Questions"
-                            sub="Randomize order of cards in this study session"
-                            icon={Shuffle}
-                            color="text-amber-600"
-                            bg="bg-amber-50"
-                          />
-                        )}
-
-                        {setQuickLearnEnabled && (
-                          <ToggleSwitch 
-                            checked={quickLearnEnabled}
-                            onChange={() => setQuickLearnEnabled(!quickLearnEnabled)}
-                            label="Quick Learn Mode"
-                            sub="Automatically score Good and advance quickly"
-                            icon={Zap}
-                            color="text-orange-600"
-                            bg="bg-orange-50"
-                          />
-                        )}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* TAB 2: AUDIO */}
-                  {activeTab === 'audio' && (
-                    <div className="space-y-4">
-                      <div>
-                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-2">
-                          TTS Audio Autoplay
-                        </span>
-                        <SegmentedGroup 
-                          sub="Automatically pronounce text on card flip"
-                          value={currentAudioMode}
-                          onChange={(val) => setAutoPlayAudio(val)}
-                          options={[
-                            { id: 'none', label: 'Off', icon: VolumeX },
-                            { id: 'front', label: 'Front', icon: Volume2 },
-                            { id: 'back', label: 'Back', icon: Volume2 },
-                            { id: 'always', label: 'Both', icon: Volume2 }
-                          ]}
-                        />
-                      </div>
-
-                      <div className="space-y-2 pt-2 border-t border-slate-100">
-                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">
-                          Sensory Feedback
-                        </span>
-
-                        <ToggleSwitch 
-                          checked={sfxEnabled}
-                          onChange={() => setSfxEnabled(!sfxEnabled)}
-                          label="Sound Effects (SFX)"
-                          sub="Audio feedback on flip and grading"
-                          icon={Music}
-                          color="text-indigo-600"
-                          bg="bg-indigo-50"
-                        />
-
-                        <ToggleSwitch 
-                          checked={hapticEnabled}
-                          onChange={() => setHapticEnabled(!hapticEnabled)}
-                          label="Haptic Touch Feedback"
-                          sub="Vibration response on tap and swipe"
-                          icon={Zap}
-                          color="text-emerald-600"
-                          bg="bg-emerald-50"
-                        />
-                      </div>
-                    </div>
-                  )}
-
-                  {/* TAB 3: DISPLAY & ALIGNMENT */}
-                  {activeTab === 'display' && (
-                    <div className="space-y-4">
-                      {setShowFsrs && (
-                        <div className="space-y-2">
-                          <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">
-                            Card Metrics Indicator
-                          </span>
-                          <ToggleSwitch 
-                            checked={showFsrs}
-                            onChange={() => setShowFsrs(!showFsrs)}
-                            label="FSRS v6 Metrics Badge"
-                            sub="Show Stability (S), Difficulty (D), and Days due on card"
-                            icon={Brain}
-                            color="text-indigo-600"
-                            bg="bg-indigo-50"
-                          />
-                        </div>
+                    <div className="grid grid-cols-2 gap-2">
+                      {copyQuestionToClipboard && (
+                        <button
+                          type="button"
+                          onClick={copyQuestionToClipboard}
+                          className="flex items-center gap-2 p-2.5 bg-white hover:bg-slate-50 border border-slate-100 rounded-xl text-slate-700 transition-all shadow-2xs active:scale-95 cursor-pointer text-left"
+                        >
+                          <Copy className="w-3.5 h-3.5 text-slate-500 shrink-0" />
+                          <span className="text-xs font-black truncate">Copy Question</span>
+                        </button>
                       )}
 
-                      <div className="pt-2 border-t border-slate-100">
-                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-2">
-                          Front Card Alignment
-                        </span>
-                        <div className="grid grid-cols-2 gap-2">
-                          {setFrontValign && (
-                            <SegmentedGroup 
-                              label="Vertical"
-                              value={frontValign}
-                              onChange={(v) => setFrontValign(v)}
-                              options={[
-                                { id: 'center', label: 'Center' },
-                                { id: 'top', label: 'Top' }
-                              ]}
-                            />
-                          )}
-                          {setFrontHalign && (
-                            <SegmentedGroup 
-                              label="Horizontal"
-                              value={frontHalign}
-                              onChange={(v) => setFrontHalign(v)}
-                              options={[
-                                { id: 'left', label: 'Left', icon: AlignLeft },
-                                { id: 'center', label: 'Center', icon: AlignCenter }
-                              ]}
-                            />
-                          )}
-                        </div>
-                      </div>
+                      {handleIgnoreQuestion && (
+                        <button
+                          type="button"
+                          onClick={handleIgnoreQuestion}
+                          className="flex items-center gap-2 p-2.5 bg-white hover:bg-amber-50/50 border border-slate-100 hover:border-amber-200 rounded-xl text-slate-700 transition-all shadow-2xs active:scale-95 cursor-pointer text-left"
+                        >
+                          <EyeOff className="w-3.5 h-3.5 text-amber-500 shrink-0" />
+                          <span className="text-xs font-black truncate">Skip Question</span>
+                        </button>
+                      )}
 
-                      <div>
-                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-2">
-                          Back Card Alignment
-                        </span>
-                        <div className="grid grid-cols-2 gap-2">
-                          {setBackValign && (
-                            <SegmentedGroup 
-                              label="Vertical"
-                              value={backValign}
-                              onChange={(v) => setBackValign(v)}
-                              options={[
-                                { id: 'center', label: 'Center' },
-                                { id: 'top', label: 'Top' }
-                              ]}
-                            />
-                          )}
-                          {setBackHalign && (
-                            <SegmentedGroup 
-                              label="Horizontal"
-                              value={backHalign}
-                              onChange={(v) => setBackHalign(v)}
-                              options={[
-                                { id: 'left', label: 'Left', icon: AlignLeft },
-                                { id: 'center', label: 'Center', icon: AlignCenter }
-                              ]}
-                            />
-                          )}
-                        </div>
-                      </div>
-
-                      <div className="pt-2 border-t border-slate-100">
-                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-2">
-                          Illustrations & Images
-                        </span>
-                        <SegmentedGroup 
-                          sub="Card sides where illustrations are displayed"
-                          value={currentImageMode}
-                          onChange={(val) => setShowImages(val)}
-                          options={[
-                            { id: 'none', label: 'Off', icon: ImageOff },
-                            { id: 'front', label: 'Front', icon: ImageIcon },
-                            { id: 'back', label: 'Back', icon: ImageIcon },
-                            { id: 'always', label: 'Both', icon: ImageIcon }
-                          ]}
-                        />
-                      </div>
+                      {openEditModal && (
+                        <button
+                          type="button"
+                          onClick={openEditModal}
+                          className="flex items-center gap-2 p-2.5 bg-white hover:bg-indigo-50/50 border border-slate-100 hover:border-indigo-200 rounded-xl text-slate-700 transition-all shadow-2xs active:scale-95 cursor-pointer text-left col-span-2"
+                        >
+                          <Edit3 className="w-3.5 h-3.5 text-indigo-500 shrink-0" />
+                          <span className="text-xs font-black truncate">Quick Edit This Card</span>
+                        </button>
+                      )}
                     </div>
-                  )}
 
-                  {/* TAB 4: GESTURES */}
-                  {activeTab === 'gestures' && (
-                    <div className="space-y-4">
-                      <div>
-                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-2">
-                          Card Flip Trigger
-                        </span>
-                        {setCardFlipTrigger && (
-                          <SegmentedGroup 
-                            sub="How to reveal the back of the card"
-                            value={cardFlipTrigger}
-                            onChange={(v) => setCardFlipTrigger(v)}
-                            options={[
-                              { id: 'both', label: 'Both', sub: 'Tap & Button' },
-                              { id: 'tap', label: 'Tap Only', sub: 'Card area' },
-                              { id: 'button_only', label: 'Button Only', sub: 'Flip button' }
-                            ]}
-                          />
-                        )}
+                    {id && (
+                      <div className="grid grid-cols-2 gap-2 pt-1">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            onClose()
+                            navigate(`/decks/${id}?tab=settings`)
+                          }}
+                          className="flex items-center gap-2 p-2.5 bg-white hover:bg-indigo-50/50 border border-slate-100 hover:border-indigo-200 rounded-xl text-slate-700 transition-all shadow-2xs active:scale-95 cursor-pointer text-left"
+                        >
+                          <Settings className="w-3.5 h-3.5 text-indigo-500 shrink-0" />
+                          <span className="text-xs font-black truncate">Deck Settings</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => {
+                            onClose()
+                            navigate(`/decks/${id}?tab=cards`)
+                          }}
+                          className="flex items-center gap-2 p-2.5 bg-white hover:bg-emerald-50/50 border border-slate-100 hover:border-emerald-200 rounded-xl text-slate-700 transition-all shadow-2xs active:scale-95 cursor-pointer text-left"
+                        >
+                          <BookOpen className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+                          <span className="text-xs font-black truncate">Card Manager</span>
+                        </button>
                       </div>
+                    )}
 
-                      <div>
-                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-2">
-                          FSRS Recall Rating Mode
-                        </span>
-                        {setCardRatingMode && (
-                          <SegmentedGroup 
-                            sub="Recall evaluation interaction"
-                            value={cardRatingMode}
-                            onChange={(v) => setCardRatingMode(v)}
-                            options={[
-                              { id: 'both', label: 'Both', sub: 'Buttons & Swipe' },
-                              { id: 'buttons', label: '4 Buttons', sub: 'Button bar' },
-                              { id: 'swipe_4way', label: '4-Way Swipe', sub: '4 directions' },
-                              { id: 'swipe_2way', label: '2-Way Swipe', sub: 'Left / Right' }
-                            ]}
-                          />
-                        )}
+                    {setIsQuitModalOpen && (
+                      <div className="pt-2">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            onClose()
+                            setIsQuitModalOpen(true)
+                          }}
+                          className="w-full flex items-center justify-center gap-2 py-2.5 px-4 bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200/80 rounded-xl font-black text-xs uppercase tracking-wider transition-all active:scale-95 cursor-pointer shadow-2xs"
+                        >
+                          <LogOut className="w-3.5 h-3.5" />
+                          <span>Quit Session</span>
+                        </button>
                       </div>
-
-                      {/* Quick in-session tools */}
-                      <div className="space-y-2 pt-2 border-t border-slate-100">
-                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">
-                          Current Card Actions
-                        </span>
-
-                        <div className="grid grid-cols-2 gap-2">
-                          {copyQuestionToClipboard && (
-                            <button
-                              type="button"
-                              onClick={copyQuestionToClipboard}
-                              className="flex items-center gap-2 p-2.5 bg-white hover:bg-slate-50 border border-slate-100 rounded-xl text-slate-700 transition-all shadow-2xs active:scale-95 cursor-pointer text-left"
-                            >
-                              <Copy className="w-3.5 h-3.5 text-slate-500 shrink-0" />
-                              <span className="text-xs font-black truncate">Copy Question</span>
-                            </button>
-                          )}
-
-                          {handleIgnoreQuestion && (
-                            <button
-                              type="button"
-                              onClick={handleIgnoreQuestion}
-                              className="flex items-center gap-2 p-2.5 bg-white hover:bg-amber-50/50 border border-slate-100 hover:border-amber-200 rounded-xl text-slate-700 transition-all shadow-2xs active:scale-95 cursor-pointer text-left"
-                            >
-                              <EyeOff className="w-3.5 h-3.5 text-amber-500 shrink-0" />
-                              <span className="text-xs font-black truncate">Skip Question</span>
-                            </button>
-                          )}
-
-                          {openEditModal && (
-                            <button
-                              type="button"
-                              onClick={openEditModal}
-                              className="flex items-center gap-2 p-2.5 bg-white hover:bg-indigo-50/50 border border-slate-100 hover:border-indigo-200 rounded-xl text-slate-700 transition-all shadow-2xs active:scale-95 cursor-pointer text-left col-span-2"
-                            >
-                              <Edit3 className="w-3.5 h-3.5 text-indigo-500 shrink-0" />
-                              <span className="text-xs font-black truncate">Quick Edit This Card</span>
-                            </button>
-                          )}
-                        </div>
-
-                        {id && (
-                          <div className="grid grid-cols-2 gap-2 pt-1">
-                            <button
-                              type="button"
-                              onClick={() => {
-                                onClose()
-                                navigate(`/decks/${id}?tab=settings`)
-                              }}
-                              className="flex items-center gap-2 p-2.5 bg-white hover:bg-indigo-50/50 border border-slate-100 hover:border-indigo-200 rounded-xl text-slate-700 transition-all shadow-2xs active:scale-95 cursor-pointer text-left"
-                            >
-                              <Settings className="w-3.5 h-3.5 text-indigo-500 shrink-0" />
-                              <span className="text-xs font-black truncate">Deck Settings</span>
-                            </button>
-
-                            <button
-                              type="button"
-                              onClick={() => {
-                                onClose()
-                                navigate(`/decks/${id}?tab=cards`)
-                              }}
-                              className="flex items-center gap-2 p-2.5 bg-white hover:bg-emerald-50/50 border border-slate-100 hover:border-emerald-200 rounded-xl text-slate-700 transition-all shadow-2xs active:scale-95 cursor-pointer text-left"
-                            >
-                              <BookOpen className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
-                              <span className="text-xs font-black truncate">Card Manager</span>
-                            </button>
-                          </div>
-                        )}
-
-                        {setIsQuitModalOpen && (
-                          <div className="pt-2">
-                            <button
-                              type="button"
-                              onClick={() => {
-                                onClose()
-                                setIsQuitModalOpen(true)
-                              }}
-                              className="w-full flex items-center justify-center gap-2 py-2.5 px-4 bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200/80 rounded-xl font-black text-xs uppercase tracking-wider transition-all active:scale-95 cursor-pointer shadow-2xs"
-                            >
-                              <LogOut className="w-3.5 h-3.5" />
-                              <span>Quit Session</span>
-                            </button>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  )}
+                    )}
+                  </div>
                 </div>
               )}
             </div>
@@ -1194,3 +783,5 @@ export const PlaySettingsModal: React.FC<PlaySettingsModalProps> = ({
     </AnimatePresence>
   )
 }
+
+export default PlaySettingsModal

@@ -13,9 +13,10 @@ import {
   DeckExcelManager,
   DeckDangerZone,
   DeckCollaboratorsSettings,
-  DeckPersonalSettings
+  DeckPersonalSettings,
+  DeckStudyDefaults
 } from '../settings'
-import { Settings, Sparkles, Volume2, Sliders, FileSpreadsheet, Users, AlertTriangle, Columns3, User } from 'lucide-react'
+import { Settings, Sparkles, Volume2, Sliders, FileSpreadsheet, Users, AlertTriangle, Columns3, User, BookmarkCheck } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 export interface DeckSettingsTabProps {
@@ -24,9 +25,9 @@ export interface DeckSettingsTabProps {
 }
 
 export type SettingsScope = 'deck' | 'personal'
-export type SettingsSubTab = 'general' | 'columns' | 'ai' | 'audio' | 'practice' | 'excel' | 'collab' | 'danger'
+export type SettingsSubTab = 'general' | 'columns' | 'study' | 'practice' | 'ai' | 'audio' | 'excel' | 'collab' | 'danger'
 
-const VALID_SUB_TABS: SettingsSubTab[] = ['general', 'columns', 'ai', 'audio', 'practice', 'excel', 'collab', 'danger']
+const VALID_SUB_TABS: SettingsSubTab[] = ['general', 'columns', 'study', 'practice', 'ai', 'audio', 'excel', 'collab', 'danger']
 
 export function DeckSettingsTab({ embedded = false, deckId }: DeckSettingsTabProps) {
   const { id: paramId } = useParams()
@@ -92,9 +93,10 @@ export function DeckSettingsTab({ embedded = false, deckId }: DeckSettingsTabPro
   const subTabs = [
     { id: 'general' as const, label: 'General', shortLabel: 'General', icon: Settings, color: 'text-indigo-600', badge: null },
     { id: 'columns' as const, label: 'Columns', shortLabel: 'Columns', icon: Columns3, color: 'text-blue-600', badge: null },
+    { id: 'study' as const, label: 'Study Defaults', shortLabel: 'Study', icon: BookmarkCheck, color: 'text-indigo-600', badge: null },
+    { id: 'practice' as const, label: 'Practice Modes', shortLabel: 'Practice', icon: Sliders, color: 'text-amber-600', badge: null },
     { id: 'ai' as const, label: 'AI & Furigana', shortLabel: 'AI & Ruby', icon: Sparkles, color: 'text-purple-600', badge: 'AI' },
     { id: 'audio' as const, label: 'Audio TTS', shortLabel: 'Audio', icon: Volume2, color: 'text-sky-600', badge: 'TTS' },
-    { id: 'practice' as const, label: 'Practice', shortLabel: 'Practice', icon: Sliders, color: 'text-amber-600', badge: null },
     { id: 'excel' as const, label: 'Excel Data', shortLabel: 'Excel', icon: FileSpreadsheet, color: 'text-emerald-600', badge: null },
     { id: 'collab' as const, label: 'Collaborators', shortLabel: 'Collab', icon: Users, color: 'text-blue-600', badge: null },
     { id: 'danger' as const, label: 'Danger Zone', shortLabel: 'Danger', icon: AlertTriangle, color: 'text-rose-600', badge: null },
@@ -187,6 +189,13 @@ export function DeckSettingsTab({ embedded = false, deckId }: DeckSettingsTabPro
                 <DeckColumnSettings
                   deckId={id!}
                   isOwner={isOwner}
+                />
+              )}
+
+              {activeSubTab === 'study' && (
+                <DeckStudyDefaults
+                  deckId={id!}
+                  onSaved={() => refetch()}
                 />
               )}
 

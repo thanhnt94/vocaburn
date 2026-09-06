@@ -4,12 +4,6 @@ import { motion, AnimatePresence } from 'framer-motion'
 import axios from 'axios'
 import { 
   Settings as SettingsIcon, 
-  Brain, 
-  Zap, 
-  Clock, 
-  RotateCcw, 
-  Shuffle, 
-  ListOrdered,
   Sparkles,
   ShieldCheck,
   Bell,
@@ -17,34 +11,33 @@ import {
   Send,
   Lock,
   ExternalLink,
-  Move,
-  MousePointer,
-  Compass,
-  Layers,
-  AlignLeft,
-  AlignCenter,
-  Volume2,
-  VolumeX,
+  Clock,
   Plus,
   Trash2,
   Check,
   Headphones,
   BookOpen,
-  BookmarkCheck,
   User,
   Sliders,
-  Copy,
   Edit3,
   Eye,
-  ChevronDown,
   X,
-  Image as ImageIcon
+  Zap,
+  BookmarkCheck,
+  RotateCcw,
 } from 'lucide-react'
 import { useAppStore } from '@/store/useAppStore'
 import type { StudyProfile } from '@/store/useSettingsStore'
 import { cn } from '@/lib/utils'
+import {
+  SYSTEM_TEMPLATES,
+  getSettingsSpecPills,
+  StudyTemplateSelector,
+  StudySettingsEditor,
+  type StudyTemplateItem,
+} from '@/components/common/study'
 
-export type SettingsTab = 'deck_template' | 'alerts' | 'general'
+export type SettingsTab = 'study' | 'alerts' | 'general'
 
 interface TabConfig {
   id: SettingsTab
@@ -56,11 +49,11 @@ interface TabConfig {
 
 const SETTINGS_TABS: TabConfig[] = [
   {
-    id: 'deck_template',
-    label: 'Deck Templates',
-    shortLabel: 'Templates',
+    id: 'study',
+    label: 'Study Settings',
+    shortLabel: 'Study',
     icon: Sparkles,
-    description: 'Profiles, gestures, algorithm & card alignments'
+    description: 'Templates, gestures, audio & card display'
   },
   {
     id: 'alerts',
@@ -78,135 +71,10 @@ const SETTINGS_TABS: TabConfig[] = [
   }
 ]
 
-const SYSTEM_PROFILES = [
-  {
-    id: 'preset-minimal',
-    name: 'Minimalist',
-    icon: 'sparkles',
-    badge: 'Zero Distraction',
-    desc: 'Pure minimalist study: no images, no audio autoplay, hidden FSRS metrics, and swipe-only without button clutter.',
-    details: [
-      { label: 'Flip', val: 'Tap Body' },
-      { label: 'Rating', val: '4-Way Swipe' },
-      { label: 'Audio', val: 'Off' },
-      { label: 'Order', val: 'Standard' },
-    ],
-    settings: {
-      autoplay_audio: 'none',
-      show_images: 'none',
-      quiz_learning_mode: 'fsrs',
-      learning_mode: 'fsrs',
-      front_valign: 'center',
-      front_halign: 'center',
-      back_valign: 'center',
-      back_halign: 'center',
-      random_enabled: false,
-      sfx_enabled: false,
-      haptic_enabled: false,
-      quick_learn_enabled: false,
-      show_fsrs: false,
-      card_flip_trigger: 'tap',
-      card_rating_mode: 'swipe_4way',
-    }
-  },
-  {
-    id: 'preset-full',
-    name: 'Full Experience',
-    icon: 'zap',
-    badge: 'All Features',
-    desc: 'Everything enabled: dual-sided images, autoplay TTS audio, FSRS metrics, and combined swipe & buttons.',
-    details: [
-      { label: 'Flip', val: 'Tap & Swipe' },
-      { label: 'Rating', val: 'Swipe & 4 Buttons' },
-      { label: 'Audio', val: 'Always Play' },
-      { label: 'Order', val: 'Standard' },
-    ],
-    settings: {
-      autoplay_audio: 'always',
-      show_images: 'both',
-      quiz_learning_mode: 'fsrs',
-      learning_mode: 'fsrs',
-      front_valign: 'center',
-      front_halign: 'left',
-      back_valign: 'center',
-      back_halign: 'left',
-      random_enabled: false,
-      sfx_enabled: true,
-      haptic_enabled: true,
-      quick_learn_enabled: false,
-      show_fsrs: true,
-      card_flip_trigger: 'both',
-      card_rating_mode: 'both',
-    }
-  },
-  {
-    id: 'preset-standard',
-    name: 'Standard',
-    icon: 'sparkles',
-    badge: 'Recommended',
-    desc: 'Balanced recall: clean question on the front side; audio pronunciation and illustration appear only on the back side.',
-    details: [
-      { label: 'Flip', val: 'Tap & Swipe' },
-      { label: 'Rating', val: 'Swipe & 4 Buttons' },
-      { label: 'Audio', val: 'Back Side Only' },
-      { label: 'Order', val: 'Standard' },
-    ],
-    settings: {
-      autoplay_audio: 'back',
-      show_images: 'back_only',
-      quiz_learning_mode: 'fsrs',
-      learning_mode: 'fsrs',
-      front_valign: 'center',
-      front_halign: 'left',
-      back_valign: 'center',
-      back_halign: 'left',
-      random_enabled: false,
-      sfx_enabled: true,
-      haptic_enabled: true,
-      quick_learn_enabled: false,
-      show_fsrs: true,
-      card_flip_trigger: 'both',
-      card_rating_mode: 'both',
-    }
-  },
-  {
-    id: 'preset-classic',
-    name: 'Classic',
-    icon: 'book',
-    badge: 'Anki Style',
-    desc: 'Traditional 4-button workflow: flip strictly via button so you can easily select and copy text without accidental flips.',
-    details: [
-      { label: 'Flip', val: 'Button Only' },
-      { label: 'Rating', val: '4 Buttons Only' },
-      { label: 'Audio', val: 'Back Side Only' },
-      { label: 'Order', val: 'Standard' },
-    ],
-    settings: {
-      autoplay_audio: 'back',
-      show_images: 'both',
-      quiz_learning_mode: 'fsrs',
-      learning_mode: 'fsrs',
-      front_valign: 'top',
-      front_halign: 'left',
-      back_valign: 'top',
-      back_halign: 'left',
-      random_enabled: false,
-      sfx_enabled: true,
-      haptic_enabled: true,
-      quick_learn_enabled: false,
-      show_fsrs: true,
-      card_flip_trigger: 'button_only',
-      card_rating_mode: 'buttons',
-    }
-  }
-]
-
-type LearningMode = 'sequential' | 'random' | 'unseen' | 'review'
-
 function urlBase64ToUint8Array(base64String: string) {
   const padding = '='.repeat((4 - base64String.length % 4) % 4);
   const base64 = (base64String + padding)
-    .replace(/\-/g, '+')
+    .replace(/\\-/g, '+')
     .replace(/_/g, '/');
 
   const rawData = window.atob(base64);
@@ -218,98 +86,11 @@ function urlBase64ToUint8Array(base64String: string) {
   return outputArray;
 }
 
-const getPresetDetails = (preset: any) => {
-  const s = preset.settings || {}
-  const flip = s.card_flip_trigger === 'button_only' ? 'Button Only' : s.card_flip_trigger === 'tap' ? 'Tap Body' : 'Tap & Swipe'
-  const rating = s.card_rating_mode === 'buttons' ? '4 Buttons' : s.card_rating_mode === 'swipe_4way' ? '4-Way Swipe' : s.card_rating_mode === 'swipe_2way' ? '2-Way Swipe' : 'Swipe & 4 Buttons'
-  const audio = s.autoplay_audio === 'always' ? 'Always Play' : s.autoplay_audio === 'back' ? 'Back Only' : s.autoplay_audio === 'front' ? 'Front Only' : 'Off'
-  const img = s.show_images === 'none' ? 'Hidden' : s.show_images === 'back_only' || s.show_images === 'back' ? 'Back Only' : s.show_images === 'front' ? 'Front Only' : 'Both Sides'
-  return [
-    { label: 'Flip', val: flip },
-    { label: 'Rating', val: rating },
-    { label: 'Audio', val: audio },
-    { label: 'Images', val: img },
-  ]
-}
-
-interface SegmentedOption<T extends string | boolean> {
-  id: T
-  label: string
-  icon?: React.ComponentType<{ className?: string }>
-}
-
-interface SegmentedControlProps<T extends string | boolean> {
-  value: T
-  onChange: (val: T) => void
-  options: SegmentedOption<T>[]
-  className?: string
-}
-
-function SegmentedControl<T extends string | boolean>({
-  value,
-  onChange,
-  options,
-  className
-}: SegmentedControlProps<T>) {
-  return (
-    <div
-      className={cn("grid gap-1 p-1 bg-slate-100/90 rounded-2xl border border-slate-200/80 shadow-2xs", className)}
-      style={{ gridTemplateColumns: `repeat(${options.length}, minmax(0, 1fr))` }}
-    >
-      {options.map((opt) => {
-        const isSelected = value === opt.id
-        const Icon = opt.icon
-        return (
-          <button
-            key={String(opt.id)}
-            type="button"
-            onClick={() => onChange(opt.id)}
-            className={cn(
-              "relative flex items-center justify-center gap-1.5 py-2 px-1.5 rounded-xl text-xs font-black transition-all select-none cursor-pointer truncate",
-              isSelected
-                ? "bg-white text-indigo-600 shadow-xs border border-slate-200/90 font-black"
-                : "text-slate-500 hover:text-slate-800 hover:bg-white/50"
-            )}
-          >
-            {Icon && <Icon className="w-3.5 h-3.5 shrink-0" />}
-            <span className="truncate">{opt.label}</span>
-          </button>
-        )
-      })}
-    </div>
-  )
-}
-
-interface ToggleRowProps {
-  icon?: React.ComponentType<{ className?: string }>
-  label: string
-  desc: string
-  checked: boolean
-  onChange: (checked: boolean) => void
-}
-
-function ToggleRow({ icon: Icon, label, desc, checked, onChange }: ToggleRowProps) {
-  return (
-    <div
-      onClick={() => onChange(!checked)}
-      className="flex items-center justify-between p-3 sm:p-3.5 rounded-2xl bg-white border border-slate-200/70 hover:border-indigo-200 transition-all cursor-pointer group shadow-2xs"
-    >
-      <div className="flex items-center gap-3 min-w-0 pr-2">
-        {Icon && (
-          <div className="w-8 h-8 rounded-xl bg-slate-50 group-hover:bg-indigo-50 text-slate-400 group-hover:text-indigo-600 flex items-center justify-center transition-colors shrink-0">
-            <Icon className="w-4 h-4" />
-          </div>
-        )}
-        <div className="min-w-0">
-          <span className="text-xs font-black text-slate-800 uppercase tracking-tight block truncate">{label}</span>
-          <p className="text-[10px] font-medium text-slate-400 mt-0.5 truncate">{desc}</p>
-        </div>
-      </div>
-      <div className={cn("w-10 h-6 rounded-full transition-colors flex items-center px-1 shrink-0", checked ? "bg-indigo-600" : "bg-slate-200")}>
-        <div className={cn("w-4 h-4 rounded-full bg-white transition-transform shadow-xs", checked ? "translate-x-4" : "translate-x-0")} />
-      </div>
-    </div>
-  )
+const ICON_MAP: Record<string, React.ComponentType<{ className?: string }>> = {
+  sparkles: Sparkles,
+  zap: Zap,
+  headphones: Headphones,
+  book: BookOpen,
 }
 
 export const Settings = () => {
@@ -317,7 +98,29 @@ export const Settings = () => {
   const location = useLocation()
   const { user, userSettings, updateUserSettings, authConfig } = useAppStore()
 
-  // Dynamic system presets loaded from database with fallback to defaults
+  // ─── Tab navigation ───
+  const tabFromUrl = searchParams.get('tab') as SettingsTab | null
+  const initialTab: SettingsTab = (tabFromUrl && SETTINGS_TABS.some(t => t.id === tabFromUrl))
+    ? tabFromUrl
+    : 'study'
+
+  const [activeTab, setActiveTabState] = useState<SettingsTab>(initialTab)
+
+  const setActiveTab = (tab: SettingsTab) => {
+    setActiveTabState(tab)
+    setSearchParams({ tab }, { replace: true })
+  }
+
+  // ─── Study tab state ───
+  const [viewMode, setViewMode] = useState<'simple' | 'advanced'>('simple')
+  const [toastMessage, setToastMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
+  const [editingProfileId, setEditingProfileId] = useState<string | null>(null)
+  const [newProfileName, setNewProfileName] = useState('')
+  const [newProfileIcon, setNewProfileIcon] = useState('sparkles')
+  const [isSavingProfile, setIsSavingProfile] = useState(false)
+
+  // ─── Build template list ───
   const systemProfiles = useMemo(() => {
     const fromBackend = (userSettings.study_profiles || []).filter((p: any) => p.is_system)
     const seen = new Set<string>()
@@ -328,117 +131,76 @@ export const Settings = () => {
     })
     if (uniqueBackend.length > 0) {
       return uniqueBackend.map((bp: any) => {
-        const matchingFallback = SYSTEM_PROFILES.find(sp => sp.id === bp.id)
+        const matchingFallback = SYSTEM_TEMPLATES.find(sp => sp.id === bp.id)
         return {
           ...bp,
           icon: bp.icon || matchingFallback?.icon || 'sparkles',
           badge: bp.badge || matchingFallback?.badge || 'System',
           desc: bp.description || matchingFallback?.desc || '',
-          details: getPresetDetails(bp)
-        }
+          isSystem: true,
+        } as StudyTemplateItem
       })
     }
-    return SYSTEM_PROFILES
+    return SYSTEM_TEMPLATES
   }, [userSettings.study_profiles])
 
-  // Read initial tab from URL query param, default to 'deck_template'
-  const tabFromUrl = searchParams.get('tab') as SettingsTab | null
-  const initialTab: SettingsTab = (tabFromUrl && SETTINGS_TABS.some(t => t.id === tabFromUrl))
-    ? tabFromUrl
-    : 'deck_template'
+  const customProfiles: StudyTemplateItem[] = useMemo(() => {
+    const seen = new Set<string>()
+    return (userSettings.study_profiles || [])
+      .filter((p: any) => {
+        if (!p || !p.id || p.is_system || String(p.id).startsWith('preset-') || seen.has(p.id)) return false
+        seen.add(p.id)
+        return true
+      })
+      .map((p: any) => ({
+        id: p.id,
+        name: p.name || 'Custom Template',
+        icon: p.icon || 'sparkles',
+        badge: 'My Template',
+        desc: p.desc || 'Your saved custom study profile.',
+        isCustom: true,
+        settings: p.settings || {},
+      }))
+  }, [userSettings.study_profiles])
 
-  const [activeTab, setActiveTabState] = useState<SettingsTab>(initialTab)
+  const allTemplates: StudyTemplateItem[] = useMemo(
+    () => [...systemProfiles, ...customProfiles],
+    [systemProfiles, customProfiles]
+  )
 
-  const setActiveTab = (tab: SettingsTab) => {
-    setActiveTabState(tab)
-    setSearchParams({ tab }, { replace: true })
+  const activeProfileId = userSettings.active_profile_id || 'preset-standard'
+
+  // ─── Template actions ───
+  const handleApplyTemplate = async (template: StudyTemplateItem) => {
+    try {
+      const s = template.settings || {}
+      await updateUserSettings({
+        active_profile_id: template.id,
+        ...s,
+      } as any)
+      setToastMessage({ type: 'success', text: `Applied "${template.name}" template.` })
+      setTimeout(() => setToastMessage(null), 3000)
+    } catch (err) {
+      console.error('Failed to apply template', err)
+      setToastMessage({ type: 'error', text: 'Failed to apply template.' })
+    }
   }
 
-  // Scope and Filter State for Study Templates & Direct Preferences
-  const [selectedDeckId, setSelectedDeckId] = useState<string>(searchParams.get('deck_id') || 'global')
-  const [userDecks, setUserDecks] = useState<Array<{ id: string | number; title: string }>>([])
-  const [isResettingCreator, setIsResettingCreator] = useState(false)
-  const [templateFilter, setTemplateFilter] = useState<'all' | 'system' | 'custom'>('all')
-  const [toastMessage, setToastMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
-  const [templateTab, setTemplateTab] = useState<'system' | 'custom' | 'customize'>('system')
-  const [activeTunerTab, setActiveTunerTab] = useState<'gestures' | 'display' | 'media' | 'algorithm'>('gestures')
+  const handleResetToStandard = async () => {
+    const standardPreset = systemProfiles.find(p => p.id === 'preset-standard') || systemProfiles[0]
+    await updateUserSettings({
+      active_profile_id: standardPreset.id,
+      ...standardPreset.settings,
+    })
+    setToastMessage({ type: 'success', text: 'Reset to Standard defaults.' })
+    setTimeout(() => setToastMessage(null), 3000)
+  }
 
-  // Profile / Template Creation & Editing State
-  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
-  const [editingProfileId, setEditingProfileId] = useState<string | null>(null)
-  const [modalTab, setModalTab] = useState<'gestures' | 'display' | 'media' | 'algorithm'>('gestures')
-  const [newProfileName, setNewProfileName] = useState('')
-  const [newProfileIcon, setNewProfileIcon] = useState('sparkles')
-  const [newProfileBase, setNewProfileBase] = useState('preset-standard')
-  const [isSavingProfile, setIsSavingProfile] = useState(false)
-
-  // Detailed Template Gestures & Study Settings State for Creation Modal
-  const [templateSettings, setTemplateSettings] = useState<{
-    card_flip_trigger: 'both' | 'tap' | 'button_only';
-    card_rating_mode: 'both' | 'buttons' | 'swipe_4way' | 'swipe_2way';
-    quiz_learning_mode: 'sequential' | 'unseen' | 'review' | 'random' | 'fsrs';
-    front_valign: 'center' | 'top';
-    front_halign: 'left' | 'center';
-    back_valign: 'center' | 'top';
-    back_halign: 'left' | 'center';
-    autoplay_audio: 'always' | 'front' | 'back' | 'none';
-    show_images: 'both' | 'back_only' | 'none' | 'always';
-    show_fsrs: boolean;
-    sfx_enabled: boolean;
-    haptic_enabled: boolean;
-    random_enabled: boolean;
-  }>({
-    card_flip_trigger: 'both',
-    card_rating_mode: 'both',
-    quiz_learning_mode: 'fsrs',
-    front_valign: 'center',
-    front_halign: 'left',
-    back_valign: 'center',
-    back_halign: 'left',
-    autoplay_audio: 'always',
-    show_images: 'both',
-    show_fsrs: true,
-    sfx_enabled: true,
-    haptic_enabled: true,
-    random_enabled: false
-  })
-
-  const loadBaseSettings = (baseId: string) => {
-    setNewProfileBase(baseId)
-    if (baseId === 'current') {
-      setTemplateSettings({
-        card_flip_trigger: (userSettings.card_flip_trigger as any) || 'both',
-        card_rating_mode: (userSettings.card_rating_mode as any) || 'both',
-        quiz_learning_mode: (userSettings.quiz_learning_mode as any) || 'fsrs',
-        front_valign: (userSettings.front_valign as any) || 'center',
-        front_halign: (userSettings.front_halign as any) || 'left',
-        back_valign: (userSettings.back_valign as any) || 'center',
-        back_halign: (userSettings.back_halign as any) || 'left',
-        autoplay_audio: (userSettings.autoplay_audio as any) || 'always',
-        show_images: (userSettings.show_images as any) || 'both',
-        show_fsrs: userSettings.show_fsrs ?? true,
-        sfx_enabled: userSettings.sfx_enabled ?? true,
-        haptic_enabled: userSettings.haptic_enabled ?? true,
-        random_enabled: userSettings.random_enabled ?? false
-      })
-    } else {
-      const preset = systemProfiles.find(p => p.id === baseId) || systemProfiles[0]
-      const s = preset.settings as any
-      setTemplateSettings({
-        card_flip_trigger: s.card_flip_trigger || 'both',
-        card_rating_mode: s.card_rating_mode || 'both',
-        quiz_learning_mode: s.quiz_learning_mode || 'fsrs',
-        front_valign: s.front_valign || 'center',
-        front_halign: s.front_halign || 'left',
-        back_valign: s.back_valign || 'center',
-        back_halign: s.back_halign || 'left',
-        autoplay_audio: s.autoplay_audio || 'always',
-        show_images: s.show_images || 'both',
-        show_fsrs: s.show_fsrs ?? true,
-        sfx_enabled: s.sfx_enabled ?? true,
-        haptic_enabled: s.haptic_enabled ?? true,
-        random_enabled: s.random_enabled ?? false
-      })
+  const handleUpdateStudySetting = async (key: string, value: any) => {
+    try {
+      await updateUserSettings({ [key]: value })
+    } catch (err) {
+      console.error(`Failed to update ${key}`, err)
     }
   }
 
@@ -464,67 +226,15 @@ export const Settings = () => {
     const currentProfiles = userSettings.study_profiles || []
     const updatedProfiles = currentProfiles.map((p: any) => {
       if (p.id === profileId) {
-        return {
-          ...p,
-          name,
-          icon,
-          settings: updatedSettings
-        }
+        return { ...p, name, icon, settings: updatedSettings }
       }
       return p
     })
     const isCurrentActive = userSettings.active_profile_id === profileId
     await updateUserSettings({
       study_profiles: updatedProfiles as any,
-      ...(isCurrentActive ? updatedSettings : {})
+      ...(isCurrentActive ? updatedSettings : {}),
     } as any)
-  }
-
-  const handleClonePreset = (preset: any) => {
-    setEditingProfileId(null)
-    setNewProfileName(`${preset.name} (Customized)`)
-    setNewProfileIcon(preset.icon || 'sparkles')
-    setTemplateSettings({
-      card_flip_trigger: (preset.settings.card_flip_trigger as any) || 'both',
-      card_rating_mode: (preset.settings.card_rating_mode as any) || 'both',
-      quiz_learning_mode: (preset.settings.quiz_learning_mode as any) || 'fsrs',
-      front_valign: (preset.settings.front_valign as any) || 'center',
-      front_halign: (preset.settings.front_halign as any) || 'left',
-      back_valign: (preset.settings.back_valign as any) || 'center',
-      back_halign: (preset.settings.back_halign as any) || 'left',
-      autoplay_audio: (preset.settings.autoplay_audio as any) || 'always',
-      show_images: (preset.settings.show_images as any) || 'both',
-      show_fsrs: preset.settings.show_fsrs ?? true,
-      sfx_enabled: preset.settings.sfx_enabled ?? true,
-      haptic_enabled: preset.settings.haptic_enabled ?? true,
-      random_enabled: preset.settings.random_enabled ?? false
-    })
-    setModalTab('gestures')
-    setIsCreateModalOpen(true)
-  }
-
-  const handleEditCustomProfile = (prof: StudyProfile) => {
-    setEditingProfileId(prof.id)
-    setNewProfileName(prof.name)
-    setNewProfileIcon(prof.icon || 'sparkles')
-    const s = prof.settings || {}
-    setTemplateSettings({
-      card_flip_trigger: (s.card_flip_trigger as any) || 'both',
-      card_rating_mode: (s.card_rating_mode as any) || 'both',
-      quiz_learning_mode: (s.quiz_learning_mode as any) || 'fsrs',
-      front_valign: (s.front_valign as any) || 'center',
-      front_halign: (s.front_halign as any) || 'left',
-      back_valign: (s.back_valign as any) || 'center',
-      back_halign: (s.back_halign as any) || 'left',
-      autoplay_audio: (s.autoplay_audio as any) || 'always',
-      show_images: (s.show_images as any) || 'both',
-      show_fsrs: s.show_fsrs ?? true,
-      sfx_enabled: s.sfx_enabled ?? true,
-      haptic_enabled: s.haptic_enabled ?? true,
-      random_enabled: s.random_enabled ?? false
-    })
-    setModalTab('gestures')
-    setIsCreateModalOpen(true)
   }
 
   const handleDeleteProfile = async (profileId: string) => {
@@ -533,116 +243,24 @@ export const Settings = () => {
     const nextActiveId = userSettings.active_profile_id === profileId ? 'preset-standard' : userSettings.active_profile_id
     await updateUserSettings({
       study_profiles: updatedProfiles as any,
-      active_profile_id: nextActiveId
+      active_profile_id: nextActiveId,
     })
   }
 
-  const handleSetActiveProfile = async (profileId: string) => {
-    const seen = new Set<string>()
-    const customProfiles: StudyProfile[] = (userSettings.study_profiles || []).filter((p: any) => {
-      if (!p || !p.id || p.is_system || String(p.id).startsWith('preset-') || seen.has(p.id)) return false
-      seen.add(p.id)
-      return true
-    })
-    const targetProf = [...systemProfiles, ...customProfiles].find(p => p.id === profileId)
-    const profSettings = targetProf?.settings || {}
-
-    // Apply BOTH active profile ID AND all study + gesture settings to user's global settings
-    await updateUserSettings({
-      active_profile_id: profileId,
-      ...profSettings
-    } as any)
+  const handleEditCustomProfile = (prof: StudyProfile) => {
+    setEditingProfileId(prof.id)
+    setNewProfileName(prof.name)
+    setNewProfileIcon(prof.icon || 'sparkles')
+    setIsCreateModalOpen(true)
   }
 
-  useEffect(() => {
-    const fetchDecks = async () => {
-      try {
-        const res = await axios.get('/api/v1/deck/roadmap/decks')
-        const decks = res.data?.decks || []
-        setUserDecks(decks.map((d: any) => ({ id: d.id, title: d.title || d.name || `Deck #${d.id}` })))
-      } catch (e) {
-        console.error('Failed to fetch user decks for settings scope', e)
-      }
-    }
-    fetchDecks()
-  }, [])
-
-  const handleResetToCreator = async () => {
-    setIsResettingCreator(true)
-    try {
-      if (selectedDeckId === 'global') {
-        const standardPreset = systemProfiles.find(p => p.id === 'preset-standard') || systemProfiles[0]
-        await updateUserSettings({
-          active_profile_id: standardPreset.id,
-          ...standardPreset.settings
-        })
-        setToastMessage({ type: 'success', text: 'Global study settings restored to factory Standard template.' })
-      } else {
-        const res = await axios.post(`/api/v1/deck/${selectedDeckId}/practice-settings`, {
-          is_creator: false,
-          reset_study_defaults: true
-        })
-        if (res.data?.effective_study_settings) {
-          await updateUserSettings(res.data.effective_study_settings)
-        }
-        setToastMessage({ type: 'success', text: "Successfully reset to the deck creator's original template!" })
-      }
-    } catch (err) {
-      console.error('Failed to reset template', err)
-      setToastMessage({ type: 'error', text: 'Failed to reset settings. Please try again.' })
-    } finally {
-      setIsResettingCreator(false)
-    }
-  }
-
-  const handleApplyTemplate = async (profile: any) => {
-    try {
-      const s = profile.settings || {}
-      if (selectedDeckId === 'global') {
-        await updateUserSettings({
-          active_profile_id: profile.id,
-          ...s
-        })
-        setToastMessage({ type: 'success', text: `Applied "${profile.name}" template to account defaults.` })
-      } else {
-        await axios.post(`/api/v1/deck/${selectedDeckId}/practice-settings`, {
-          is_creator: false,
-          active_profile_id: profile.id,
-          ...s
-        })
-        await updateUserSettings({
-          active_profile_id: profile.id,
-          ...s
-        })
-        setToastMessage({ type: 'success', text: `Applied "${profile.name}" template to this deck!` })
-      }
-    } catch (err) {
-      console.error('Failed to apply template', err)
-      setToastMessage({ type: 'error', text: 'Failed to apply template. Please try again.' })
-    }
-  }
-
-  const handleUpdateStudySetting = async (key: string, value: any) => {
-    try {
-      await updateUserSettings({ [key]: value })
-      if (selectedDeckId !== 'global') {
-        await axios.post(`/api/v1/deck/${selectedDeckId}/practice-settings`, {
-          is_creator: false,
-          [key]: value
-        })
-      }
-    } catch (err) {
-      console.error(`Failed to update ${key}`, err)
-    }
-  }
-
+  // ─── Telegram & Alerts state ───
   const [pushActive, setPushActive] = useState(false)
   const [, setCheckingPush] = useState(true)
   const [telegramConfig, setTelegramConfig] = useState<any>(null)
   
   const darkMode = userSettings.theme === 'dark'
   const focusTimer = userSettings.focus_timer_active
-  const learningMode = (userSettings.quiz_learning_mode || 'fsrs') as LearningMode
 
   // Password Change State
   const [currentPassword, setCurrentPassword] = useState('')
@@ -685,7 +303,6 @@ export const Settings = () => {
   useEffect(() => {
     fetchTelegramConfig()
     
-    // Check if browser has push subscription active
     const checkSubscription = async () => {
       if ('serviceWorker' in navigator && 'PushManager' in window) {
         try {
@@ -708,18 +325,13 @@ export const Settings = () => {
       } else if (location.hash === '#telegram') {
         setActiveTabState('alerts')
       } else {
-        setActiveTabState('deck_template')
+        setActiveTabState('study')
       }
     }
   }, [location.hash])
 
-  const updateLearningMode = (mode: LearningMode) => {
-    updateUserSettings({ quiz_learning_mode: mode })
-  }
-
   const togglePushNotifications = async () => {
     if (pushActive) {
-      // Unsubscribe
       setPushActive(false)
       if ('serviceWorker' in navigator) {
         try {
@@ -736,7 +348,6 @@ export const Settings = () => {
         }
       }
     } else {
-      // Subscribe
       if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
         alert("Push notifications are not supported in this browser.")
         return
@@ -802,63 +413,11 @@ export const Settings = () => {
     }
   }
 
-  const modes = [
-    {
-      id: 'sequential',
-      name: 'Orderly Progression',
-      desc: 'Follow the original neural sequence (1, 2, 3...)',
-      icon: ListOrdered,
-      color: 'text-blue-500',
-      bg: 'bg-blue-50'
-    },
-    {
-      id: 'unseen',
-      name: 'Expansion Mode',
-      desc: 'Prioritize nodes you have never encountered before',
-      icon: Sparkles,
-      color: 'text-indigo-500',
-      bg: 'bg-indigo-50'
-    },
-    {
-      id: 'review',
-      name: 'Mastery Cycle',
-      desc: 'Focus on weak patterns and review session history',
-      icon: RotateCcw,
-      color: 'text-amber-500',
-      bg: 'bg-amber-50'
-    },
-    {
-      id: 'random',
-      name: 'Neural Entropy',
-      desc: 'Shuffle all nodes for maximum chaos and retention',
-      icon: Shuffle,
-      color: 'text-rose-500',
-      bg: 'bg-rose-50'
-    }
-  ]
-
-  // ══════════════ TAB 0: STREAMLINED STUDY TEMPLATES & LIVE PREFERENCES ══════════════
-  const renderDeckTemplateTab = () => {
-    const seen = new Set<string>()
-    const customProfiles: StudyProfile[] = (userSettings.study_profiles || []).filter((p: any) => {
-      if (!p || !p.id || p.is_system || String(p.id).startsWith('preset-') || seen.has(p.id)) return false
-      seen.add(p.id)
-      return true
-    })
-    const activeId = userSettings.active_profile_id || 'preset-standard'
-    const allProfiles = [...systemProfiles, ...customProfiles]
-    const activeProfileObj = allProfiles.find(p => p.id === activeId)
-    const selectedDeck = userDecks.find(d => String(d.id) === String(selectedDeckId))
-
-    const filteredProfiles = templateFilter === 'system' 
-      ? systemProfiles 
-      : templateFilter === 'custom' 
-        ? customProfiles 
-        : allProfiles
-
-    return (
-      <div className="space-y-6">
-        {/* Toast Alert */}
+  // ══════════════ TAB 1: STUDY SETTINGS ══════════════
+  const renderStudyTab = () => (
+    <div className="space-y-4 md:space-y-6">
+      {/* Toast */}
+      <AnimatePresence>
         {toastMessage && (
           <motion.div
             initial={{ opacity: 0, y: -8 }}
@@ -866,7 +425,7 @@ export const Settings = () => {
             exit={{ opacity: 0, y: -8 }}
             className={cn(
               "p-3.5 rounded-2xl text-xs font-bold flex items-center justify-between shadow-sm border",
-              toastMessage.type === 'success' 
+              toastMessage.type === 'success'
                 ? "bg-emerald-50 text-emerald-800 border-emerald-200"
                 : "bg-rose-50 text-rose-800 border-rose-200"
             )}
@@ -875,8 +434,8 @@ export const Settings = () => {
               <Check className="w-4 h-4 text-emerald-600 shrink-0" />
               <span>{toastMessage.text}</span>
             </div>
-            <button 
-              type="button" 
+            <button
+              type="button"
               onClick={() => setToastMessage(null)}
               className="text-slate-400 hover:text-slate-600 cursor-pointer"
             >
@@ -884,488 +443,205 @@ export const Settings = () => {
             </button>
           </motion.div>
         )}
+      </AnimatePresence>
 
-        {/* 1. TOP HERO & SCOPE SELECTOR */}
-        <section className="bg-white rounded-3xl md:rounded-[2.5rem] border border-slate-200/80 p-5 sm:p-7 shadow-xs space-y-5">
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-            <div className="space-y-1">
-              <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-indigo-50 text-indigo-700 text-[10px] font-black uppercase tracking-wider">
-                <Sparkles className="w-3 h-3 text-indigo-600" />
-                <span>Study Experience Settings</span>
-              </div>
-              <h2 className="text-lg sm:text-xl font-black text-slate-900 uppercase tracking-tight">
-                Study Templates & Preferences
-              </h2>
-              <p className="text-xs text-slate-500 font-medium">
-                Switch or customize gestures, card alignments, pronunciation, and algorithms for your study sessions.
-              </p>
+      {/* HEADER + SIMPLE/ADVANCED TOGGLE */}
+      <section className="bg-white rounded-3xl md:rounded-[2.5rem] border border-slate-200/80 p-5 sm:p-7 shadow-xs space-y-5">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="space-y-1">
+            <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-indigo-50 text-indigo-700 text-[10px] font-black uppercase tracking-wider">
+              <Sparkles className="w-3 h-3 text-indigo-600" />
+              <span>Default Account Study Settings</span>
             </div>
-
-            {/* Scope Switcher Pill */}
-            <div className="flex items-center gap-1 p-1 bg-slate-100 rounded-2xl border border-slate-200/80 self-start md:self-center shrink-0">
-              <button
-                type="button"
-                onClick={() => setSelectedDeckId('global')}
-                className={cn(
-                  "py-1.5 px-3 rounded-xl text-xs font-black transition-all cursor-pointer",
-                  selectedDeckId === 'global'
-                    ? "bg-white text-indigo-600 shadow-xs border border-slate-200/80"
-                    : "text-slate-500 hover:text-slate-800"
-                )}
-              >
-                Global Account
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  if (userDecks.length > 0 && selectedDeckId === 'global') {
-                    setSelectedDeckId(String(userDecks[0].id))
-                  }
-                }}
-                className={cn(
-                  "py-1.5 px-3 rounded-xl text-xs font-black transition-all cursor-pointer",
-                  selectedDeckId !== 'global'
-                    ? "bg-white text-indigo-600 shadow-xs border border-slate-200/80"
-                    : "text-slate-500 hover:text-slate-800"
-                )}
-              >
-                Specific Deck
-              </button>
-            </div>
-          </div>
-
-          {/* Scope Detail Card */}
-          <div className="p-4 rounded-2xl bg-slate-50/80 border border-slate-200/60 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-            <div className="flex items-center gap-3 min-w-0">
-              <div className="w-9 h-9 rounded-xl bg-white border border-slate-200/80 flex items-center justify-center text-indigo-600 font-black shrink-0">
-                {selectedDeckId === 'global' ? <Sliders className="w-4 h-4" /> : <BookOpen className="w-4 h-4" />}
-              </div>
-              <div className="min-w-0">
-                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">
-                  Current Target Scope
-                </span>
-                {selectedDeckId === 'global' ? (
-                  <span className="text-xs font-black text-slate-800 truncate block">
-                    All Decks (Default Account Profile: <span className="text-indigo-600">{activeProfileObj?.name || 'Standard'}</span>)
-                  </span>
-                ) : (
-                  <div className="flex items-center gap-2 mt-0.5">
-                    <select
-                      value={selectedDeckId}
-                      onChange={(e) => setSelectedDeckId(e.target.value)}
-                      className="bg-white border border-slate-200 text-xs font-bold text-slate-800 rounded-lg px-2 py-1 outline-none focus:border-indigo-500 cursor-pointer"
-                    >
-                      {userDecks.map((d) => (
-                        <option key={d.id} value={String(d.id)}>
-                          {d.title}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Reset Action Button */}
-            <button
-              type="button"
-              disabled={isResettingCreator}
-              onClick={handleResetToCreator}
-              className={cn(
-                "inline-flex items-center justify-center gap-2 py-2 px-3.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all cursor-pointer shrink-0 border",
-                selectedDeckId !== 'global'
-                  ? "bg-amber-500 text-white border-amber-600 hover:bg-amber-600 shadow-xs"
-                  : "bg-white text-slate-700 border-slate-200 hover:bg-slate-100"
-              )}
-            >
-              <RotateCcw className={cn("w-3.5 h-3.5", isResettingCreator && "animate-spin")} />
-              <span>
-                {selectedDeckId !== 'global'
-                  ? "↺ Reset to Creator's Template"
-                  : "↺ Reset to Standard Defaults"}
-              </span>
-            </button>
-          </div>
-        </section>
-
-        {/* 2. LOAD TEMPLATE HUB */}
-        <section className="bg-white rounded-3xl md:rounded-[2.5rem] border border-slate-200/80 p-5 sm:p-7 shadow-xs space-y-5">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-            <div>
-              <h3 className="text-base font-black text-slate-900 uppercase tracking-tight">
-                Load Study Template
-              </h3>
-              <p className="text-xs text-slate-400 font-medium">
-                Choose a pre-configured profile or apply your saved template.
-              </p>
-            </div>
-
-            <div className="flex items-center gap-2 self-start sm:self-center">
-              {/* Filter Tabs */}
-              <div className="flex items-center gap-1 p-0.5 bg-slate-100 rounded-xl border border-slate-200/70 text-[11px] font-black">
-                <button
-                  type="button"
-                  onClick={() => setTemplateFilter('all')}
-                  className={cn(
-                    "px-2.5 py-1 rounded-lg transition-all cursor-pointer",
-                    templateFilter === 'all' ? "bg-white text-indigo-700 shadow-2xs" : "text-slate-500 hover:text-slate-800"
-                  )}
-                >
-                  All ({allProfiles.length})
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setTemplateFilter('system')}
-                  className={cn(
-                    "px-2.5 py-1 rounded-lg transition-all cursor-pointer",
-                    templateFilter === 'system' ? "bg-white text-indigo-700 shadow-2xs" : "text-slate-500 hover:text-slate-800"
-                  )}
-                >
-                  System ({systemProfiles.length})
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setTemplateFilter('custom')}
-                  className={cn(
-                    "px-2.5 py-1 rounded-lg transition-all cursor-pointer",
-                    templateFilter === 'custom' ? "bg-white text-indigo-700 shadow-2xs" : "text-slate-500 hover:text-slate-800"
-                  )}
-                >
-                  My Templates ({customProfiles.length})
-                </button>
-              </div>
-
-              {/* Save As Template Button */}
-              <button
-                type="button"
-                onClick={() => {
-                  setEditingProfileId(null)
-                  setNewProfileName('')
-                  setNewProfileIcon('sparkles')
-                  loadBaseSettings('current')
-                  setIsCreateModalOpen(true)
-                }}
-                className="inline-flex items-center gap-1.5 py-1.5 px-3 rounded-xl bg-indigo-600 text-white text-xs font-black uppercase tracking-wider hover:bg-indigo-700 transition-all cursor-pointer shadow-xs shrink-0"
-              >
-                <Plus className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline">Save as Template</span>
-              </button>
-            </div>
-          </div>
-
-          {/* Template Cards Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
-            {filteredProfiles.map((prof: any) => {
-              const isActive = activeId === prof.id
-              const IconComp = prof.icon === 'zap' ? Zap : prof.icon === 'headphones' ? Headphones : prof.icon === 'book' ? BookOpen : Sparkles
-              const s = prof.settings || {}
-
-              return (
-                <div
-                  key={prof.id}
-                  className={cn(
-                    "p-4 rounded-2xl border transition-all flex flex-col justify-between gap-3 relative",
-                    isActive
-                      ? "border-indigo-500 bg-indigo-50/20 shadow-xs"
-                      : "border-slate-200/80 bg-white hover:border-slate-300"
-                  )}
-                >
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between gap-2">
-                      <div className="flex items-center gap-2 min-w-0">
-                        <div className={cn(
-                          "w-8 h-8 rounded-xl flex items-center justify-center shrink-0",
-                          isActive ? "bg-indigo-600 text-white" : "bg-slate-100 text-slate-600"
-                        )}>
-                          <IconComp className="w-4 h-4" />
-                        </div>
-                        <div className="min-w-0">
-                          <h4 className="text-xs font-black text-slate-900 uppercase tracking-tight truncate">
-                            {prof.name}
-                          </h4>
-                          <span className="text-[10px] text-slate-400 font-bold block truncate">
-                            {prof.is_system ? 'System Preset' : 'Custom Template'}
-                          </span>
-                        </div>
-                      </div>
-
-                      <div className="flex items-center gap-1.5 shrink-0">
-                        {isActive && (
-                          <span className="px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-700 text-[9.5px] font-black uppercase tracking-wider">
-                            Active
-                          </span>
-                        )}
-                        {!prof.is_system && (
-                          <div className="flex items-center gap-1">
-                            <button
-                              type="button"
-                              onClick={() => handleEditCustomProfile(prof)}
-                              className="p-1 rounded-lg text-slate-400 hover:text-indigo-600 hover:bg-slate-100 cursor-pointer"
-                              title="Edit Template"
-                            >
-                              <Edit3 className="w-3.5 h-3.5" />
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => handleDeleteProfile(prof.id)}
-                              className="p-1 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-slate-100 cursor-pointer"
-                              title="Delete Template"
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </button>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* Quick Specs Chips */}
-                    <div className="grid grid-cols-2 gap-1.5 text-[10px] font-bold text-slate-600 bg-slate-50/80 p-2 rounded-xl border border-slate-100">
-                      <div className="truncate">
-                        <span className="text-slate-400 font-medium">Flip: </span>
-                        {s.card_flip_trigger === 'button_only' ? 'Button' : s.card_flip_trigger === 'tap' ? 'Tap Body' : 'Tap & Swipe'}
-                      </div>
-                      <div className="truncate">
-                        <span className="text-slate-400 font-medium">Rating: </span>
-                        {s.card_rating_mode === 'buttons' ? '4 Buttons' : s.card_rating_mode === 'swipe_4way' ? '4-Way' : s.card_rating_mode === 'swipe_2way' ? '2-Way' : 'Hybrid'}
-                      </div>
-                      <div className="truncate">
-                        <span className="text-slate-400 font-medium">Audio: </span>
-                        {s.autoplay_audio === 'none' ? 'Muted' : s.autoplay_audio === 'back' ? 'Back' : 'Always'}
-                      </div>
-                      <div className="truncate">
-                        <span className="text-slate-400 font-medium">Align: </span>
-                        {s.front_valign === 'top' ? 'Top' : 'Center'}
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Apply Template Button */}
-                  <button
-                    type="button"
-                    onClick={() => handleApplyTemplate(prof)}
-                    className={cn(
-                      "w-full py-2 px-3 rounded-xl text-xs font-black uppercase tracking-wider transition-all cursor-pointer flex items-center justify-center gap-1.5",
-                      isActive
-                        ? "bg-slate-100 text-slate-500 hover:bg-slate-200"
-                        : "bg-indigo-600 text-white hover:bg-indigo-700 shadow-xs"
-                    )}
-                  >
-                    {isActive ? (
-                      <>
-                        <Check className="w-3.5 h-3.5 text-emerald-600" />
-                        <span>Currently Active</span>
-                      </>
-                    ) : (
-                      <>
-                        <Sparkles className="w-3.5 h-3.5" />
-                        <span>Apply to {selectedDeckId === 'global' ? 'Account Defaults' : 'This Deck'}</span>
-                      </>
-                    )}
-                  </button>
-                </div>
-              )
-            })}
-          </div>
-        </section>
-
-        {/* 3. DIRECT PREFERENCES (LIVE ADJUSTMENTS) */}
-        <section className="bg-white rounded-3xl md:rounded-[2.5rem] border border-slate-200/80 p-5 sm:p-7 shadow-xs space-y-6">
-          <div className="border-b border-slate-100 pb-4">
-            <h3 className="text-base font-black text-slate-900 uppercase tracking-tight">
-              Direct Preferences Tuning
-            </h3>
-            <p className="text-xs text-slate-400 font-medium">
-              Fine-tune study controls for {selectedDeckId === 'global' ? 'your entire account' : `deck: ${selectedDeck?.title || selectedDeckId}`}.
+            <h2 className="text-lg sm:text-xl font-black text-slate-900 uppercase tracking-tight">
+              Study Templates & Preferences
+            </h2>
+            <p className="text-xs text-slate-500 font-medium">
+              Configure default gestures, card display, audio, and algorithms for all your decks.
             </p>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-            {/* GROUP 1: Gestures & Feedback */}
-            <div className="space-y-3.5 p-4 sm:p-5 rounded-2xl bg-slate-50/70 border border-slate-200/70">
-              <div className="flex items-center gap-2 text-indigo-600">
-                <Move className="w-4 h-4" />
-                <h4 className="text-xs font-black text-slate-900 uppercase tracking-wider">
-                  Gestures & Controls
-                </h4>
-              </div>
+          {/* Simple / Advanced toggle */}
+          <div className="flex items-center p-1 bg-slate-100/90 rounded-2xl border border-slate-200/80 shrink-0 self-start sm:self-center">
+            <button
+              type="button"
+              onClick={() => setViewMode('simple')}
+              className={cn(
+                "py-1.5 px-3 rounded-xl text-xs font-black transition-all flex items-center gap-1.5 cursor-pointer",
+                viewMode === 'simple'
+                  ? "bg-white text-indigo-600 shadow-xs"
+                  : "text-slate-500 hover:text-slate-800"
+              )}
+            >
+              <BookmarkCheck className="w-3.5 h-3.5" />
+              <span>Templates</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setViewMode('advanced')}
+              className={cn(
+                "py-1.5 px-3 rounded-xl text-xs font-black transition-all flex items-center gap-1.5 cursor-pointer",
+                viewMode === 'advanced'
+                  ? "bg-white text-indigo-600 shadow-xs"
+                  : "text-slate-500 hover:text-slate-800"
+              )}
+            >
+              <Sliders className="w-3.5 h-3.5" />
+              <span>Fine-Tune</span>
+            </button>
+          </div>
+        </div>
 
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold text-slate-700 block">
-                  Card Flip Trigger
-                </label>
-                <SegmentedControl
-                  value={userSettings.card_flip_trigger || 'both'}
-                  onChange={(val) => handleUpdateStudySetting('card_flip_trigger', val)}
-                  options={[
-                    { id: 'both', label: 'Tap & Swipe' },
-                    { id: 'tap', label: 'Tap Card Body' },
-                    { id: 'button_only', label: 'Button Only' }
-                  ]}
-                />
-              </div>
-
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold text-slate-700 block">
-                  FSRS Rating Mode
-                </label>
-                <SegmentedControl
-                  value={userSettings.card_rating_mode || 'both'}
-                  onChange={(val) => handleUpdateStudySetting('card_rating_mode', val)}
-                  options={[
-                    { id: 'both', label: 'Hybrid' },
-                    { id: 'swipe_4way', label: '4-Way Swipe' },
-                    { id: 'swipe_2way', label: '2-Way Swipe' },
-                    { id: 'buttons', label: 'Buttons Only' }
-                  ]}
-                />
-              </div>
-
-              <ToggleRow
-                icon={Volume2}
-                label="Sound Effects (SFX)"
-                desc="Play audio feedback on card flips and answer ratings"
-                checked={userSettings.sfx_enabled ?? true}
-                onChange={(val) => handleUpdateStudySetting('sfx_enabled', val)}
-              />
-
-              <ToggleRow
-                icon={Zap}
-                label="Haptic Feedback"
-                desc="Vibrate on mobile devices when swiping cards"
-                checked={userSettings.haptic_enabled ?? true}
-                onChange={(val) => handleUpdateStudySetting('haptic_enabled', val)}
-              />
-            </div>
-
-            {/* GROUP 2: Display & Alignment */}
-            <div className="space-y-3.5 p-4 sm:p-5 rounded-2xl bg-slate-50/70 border border-slate-200/70">
-              <div className="flex items-center gap-2 text-indigo-600">
-                <Layers className="w-4 h-4" />
-                <h4 className="text-xs font-black text-slate-900 uppercase tracking-wider">
-                  Display & Card Alignment
-                </h4>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                <div className="space-y-1.5">
-                  <label className="text-[11px] font-bold text-slate-700 block">
-                    Front Card Alignment
-                  </label>
-                  <SegmentedControl
-                    value={userSettings.front_valign || 'center'}
-                    onChange={(val) => handleUpdateStudySetting('front_valign', val)}
-                    options={[
-                      { id: 'center', label: 'Center' },
-                      { id: 'top', label: 'Top' }
-                    ]}
-                  />
-                </div>
-
-                <div className="space-y-1.5">
-                  <label className="text-[11px] font-bold text-slate-700 block">
-                    Back Card Alignment
-                  </label>
-                  <SegmentedControl
-                    value={userSettings.back_valign || 'center'}
-                    onChange={(val) => handleUpdateStudySetting('back_valign', val)}
-                    options={[
-                      { id: 'center', label: 'Center' },
-                      { id: 'top', label: 'Top' }
-                    ]}
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold text-slate-700 block">
-                  Illustration Images
-                </label>
-                <SegmentedControl
-                  value={userSettings.show_images || 'both'}
-                  onChange={(val) => handleUpdateStudySetting('show_images', val)}
-                  options={[
-                    { id: 'both', label: 'Both Sides' },
-                    { id: 'back_only', label: 'Back Only' },
-                    { id: 'none', label: 'Hidden' }
-                  ]}
-                />
-              </div>
-
-              <ToggleRow
-                icon={Eye}
-                label="FSRS Algorithm Metrics"
-                desc="Show memory stability, retrievability, and interval on card"
-                checked={userSettings.show_fsrs ?? true}
-                onChange={(val) => handleUpdateStudySetting('show_fsrs', val)}
-              />
-            </div>
-
-            {/* GROUP 3: Audio & Speech */}
-            <div className="space-y-3.5 p-4 sm:p-5 rounded-2xl bg-slate-50/70 border border-slate-200/70">
-              <div className="flex items-center gap-2 text-indigo-600">
-                <Headphones className="w-4 h-4" />
-                <h4 className="text-xs font-black text-slate-900 uppercase tracking-wider">
-                  Audio & Pronunciation
-                </h4>
-              </div>
-
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold text-slate-700 block">
-                  Autoplay Pronunciation
-                </label>
-                <SegmentedControl
-                  value={userSettings.autoplay_audio || 'always'}
-                  onChange={(val) => handleUpdateStudySetting('autoplay_audio', val)}
-                  options={[
-                    { id: 'always', label: 'Always' },
-                    { id: 'back', label: 'Back Only' },
-                    { id: 'front', label: 'Front Only' },
-                    { id: 'none', label: 'Off' }
-                  ]}
-                />
+        {/* ═══ SIMPLE MODE: Template Selector ═══ */}
+        {viewMode === 'simple' && (
+          <div className="space-y-4">
+            {/* Action bar */}
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-black text-slate-400 uppercase tracking-wider">
+                {allTemplates.length} templates
+              </span>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={handleResetToStandard}
+                  className="inline-flex items-center gap-1.5 py-1.5 px-3 rounded-xl border border-slate-200 text-slate-600 hover:text-slate-900 bg-white hover:bg-slate-50 text-xs font-bold cursor-pointer transition-all"
+                >
+                  <RotateCcw className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline">Reset to Standard</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEditingProfileId(null)
+                    setNewProfileName('')
+                    setNewProfileIcon('sparkles')
+                    setIsCreateModalOpen(true)
+                  }}
+                  className="inline-flex items-center gap-1.5 py-1.5 px-3 rounded-xl bg-indigo-600 text-white text-xs font-black uppercase tracking-wider hover:bg-indigo-700 transition-all cursor-pointer shadow-xs"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline">Save as Template</span>
+                </button>
               </div>
             </div>
 
-            {/* GROUP 4: Queue & Algorithm */}
-            <div className="space-y-3.5 p-4 sm:p-5 rounded-2xl bg-slate-50/70 border border-slate-200/70">
-              <div className="flex items-center gap-2 text-indigo-600">
-                <Brain className="w-4 h-4" />
-                <h4 className="text-xs font-black text-slate-900 uppercase tracking-wider">
-                  Queue & Review Order
-                </h4>
-              </div>
+            {/* Template list (with edit/delete actions for custom) */}
+            <div className="space-y-2">
+              {allTemplates.map((tpl) => {
+                const isActive = activeProfileId === tpl.id
+                const IconComp = ICON_MAP[tpl.icon] || Sparkles
+                const specs = getSettingsSpecPills(tpl.settings)
 
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold text-slate-700 block">
-                  Card Order Mode
-                </label>
-                <SegmentedControl
-                  value={userSettings.quiz_learning_mode || 'fsrs'}
-                  onChange={(val) => handleUpdateStudySetting('quiz_learning_mode', val)}
-                  options={[
-                    { id: 'fsrs', label: 'FSRS v6' },
-                    { id: 'sequential', label: 'Sequential' },
-                    { id: 'unseen', label: 'New First' },
-                    { id: 'random', label: 'Shuffle' }
-                  ]}
-                />
-              </div>
+                return (
+                  <div
+                    key={tpl.id}
+                    onClick={() => handleApplyTemplate(tpl)}
+                    className={cn(
+                      "rounded-2xl border transition-all cursor-pointer flex items-start gap-3.5 p-3.5 select-none",
+                      isActive
+                        ? "bg-indigo-50/30 border-indigo-500 shadow-xs ring-1 ring-indigo-400/30"
+                        : "bg-white border-slate-200/80 hover:bg-slate-50 hover:border-slate-300"
+                    )}
+                  >
+                    {/* Radio */}
+                    <div className="pt-0.5 shrink-0">
+                      <div className={cn(
+                        "w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all",
+                        isActive ? "border-indigo-500 bg-indigo-500" : "border-slate-300 bg-white"
+                      )}>
+                        {isActive && <div className="w-2 h-2 rounded-full bg-white" />}
+                      </div>
+                    </div>
 
-              <ToggleRow
-                icon={Shuffle}
-                label="Randomize Card Order"
-                desc="Shuffle cards within the review queue"
-                checked={userSettings.random_enabled ?? false}
-                onChange={(val) => handleUpdateStudySetting('random_enabled', val)}
-              />
+                    {/* Content */}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-1 flex-wrap">
+                        <div className={cn(
+                          "w-6 h-6 rounded-lg flex items-center justify-center shrink-0",
+                          isActive ? "bg-indigo-100 text-indigo-600" : "bg-slate-100 text-slate-500"
+                        )}>
+                          <IconComp className="w-3.5 h-3.5" />
+                        </div>
+                        <span className={cn("text-xs font-black truncate", isActive ? "text-indigo-900" : "text-slate-800")}>
+                          {tpl.name}
+                        </span>
+                        <span className={cn(
+                          "px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider border",
+                          tpl.isCustom
+                            ? "bg-amber-100 text-amber-800 border-amber-200"
+                            : isActive
+                            ? "bg-indigo-100 text-indigo-700 border-indigo-200"
+                            : "bg-slate-100 text-slate-500 border-slate-200"
+                        )}>
+                          {tpl.badge}
+                        </span>
+                        {isActive && <Check className="w-3.5 h-3.5 text-indigo-600 shrink-0" />}
+                      </div>
+
+                      <p className="text-[11px] text-slate-500 font-medium leading-relaxed mb-2">
+                        {tpl.desc}
+                      </p>
+
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        {specs.map((spec) => (
+                          <span key={spec.label} className="px-2 py-0.5 bg-slate-50 rounded-lg border border-slate-200/60 text-[9.5px] font-bold text-slate-600">
+                            {spec.label}: {spec.val}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Custom template actions */}
+                    {tpl.isCustom && (
+                      <div className="flex items-center gap-1 shrink-0" onClick={(e) => e.stopPropagation()}>
+                        <button
+                          type="button"
+                          onClick={(e) => { e.stopPropagation(); handleEditCustomProfile(tpl as any) }}
+                          className="p-1 rounded-lg text-slate-400 hover:text-indigo-600 hover:bg-slate-100 cursor-pointer"
+                          title="Edit Template"
+                        >
+                          <Edit3 className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={(e) => { e.stopPropagation(); handleDeleteProfile(tpl.id) }}
+                          className="p-1 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-slate-100 cursor-pointer"
+                          title="Delete Template"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                )
+              })}
             </div>
           </div>
-        </section>
-      </div>
-    )
-  }
+        )}
 
-  // ══════════════ TAB 1: TELEGRAM & ALERTS ══════════════
+        {/* ═══ ADVANCED MODE: Direct Settings Editor ═══ */}
+        {viewMode === 'advanced' && (
+          <div className="space-y-4">
+            <div className="border-b border-slate-100 pb-3">
+              <h3 className="text-base font-black text-slate-900 uppercase tracking-tight">
+                Fine-Tune Preferences
+              </h3>
+              <p className="text-xs text-slate-400 font-medium">
+                Adjust individual settings directly. Changes apply to your account defaults.
+              </p>
+            </div>
+
+            <StudySettingsEditor
+              settings={userSettings as any}
+              onChange={handleUpdateStudySetting}
+            />
+          </div>
+        )}
+      </section>
+    </div>
+  )
+
+  // ══════════════ TAB 2: TELEGRAM & ALERTS ══════════════
   const renderAlertsTab = () => (
     <div className="space-y-4 md:space-y-6">
       {/* Telegram Settings */}
@@ -1501,10 +777,9 @@ export const Settings = () => {
     </div>
   )
 
-  // ══════════════ TAB 4: GENERAL & SECURITY ══════════════
+  // ══════════════ TAB 3: GENERAL & SECURITY ══════════════
   const renderGeneralTab = () => (
     <div className="space-y-4 md:space-y-6">
-      {/* General Settings */}
       <section id="preferences" className="bg-white rounded-3xl md:rounded-[2.5rem] border border-slate-100 p-4 sm:p-6 md:p-8 shadow-2xs">
         <div className="flex items-center gap-2.5 mb-4 border-b border-slate-100 pb-3">
           <div className="w-8 h-8 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
@@ -1654,7 +929,7 @@ export const Settings = () => {
         </div>
       </div>
 
-      {/* ═══════════ MAIN TAB CONTENT (SCROLLABLE CONTAINER) ═══════════ */}
+      {/* ═══════════ MAIN TAB CONTENT ═══════════ */}
       <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar px-3.5 sm:px-6 lg:px-8 xl:px-10 py-3.5 md:py-6">
         <div className="w-full max-w-[1400px] 2xl:max-w-[1600px] mx-auto space-y-4 md:space-y-6">
           <AnimatePresence mode="wait">
@@ -1666,7 +941,7 @@ export const Settings = () => {
               transition={{ duration: 0.15 }}
               className="space-y-4 md:space-y-6"
             >
-              {activeTab === 'deck_template' && renderDeckTemplateTab()}
+              {activeTab === 'study' && renderStudyTab()}
               {activeTab === 'alerts' && renderAlertsTab()}
               {activeTab === 'general' && renderGeneralTab()}
             </motion.div>
@@ -1678,7 +953,7 @@ export const Settings = () => {
         </div>
       </div>
 
-      {/* ═══════════ ONE-HAND CENTERED BOTTOM DOCKED TAB BAR (MOBILE ONLY) ═══════════ */}
+      {/* ═══════════ MOBILE BOTTOM TAB BAR ═══════════ */}
       <div className="md:hidden shrink-0 z-30 bg-white/95 backdrop-blur-2xl border-t border-slate-200/80 px-2 sm:px-4 py-1.5 shadow-[0_-4px_20px_rgba(0,0,0,0.05)]">
         <div className="w-full max-w-md mx-auto">
           <div className="grid grid-cols-3 w-full bg-slate-100/90 p-1 rounded-2xl border border-slate-200/60 shadow-2xs gap-1">
@@ -1715,7 +990,7 @@ export const Settings = () => {
         </div>
       </div>
 
-      {/* Sleek, Compact Save as Custom Template Modal */}
+      {/* ═══════════ SAVE AS TEMPLATE MODAL ═══════════ */}
       {isCreateModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in">
           <div className="bg-white rounded-3xl p-5 sm:p-6 w-full max-w-md shadow-2xl border border-slate-100 space-y-4">
@@ -1825,6 +1100,8 @@ export const Settings = () => {
                       await handleCreateProfile(newProfileName.trim(), newProfileIcon, capturedSettings)
                     }
                     setIsCreateModalOpen(false)
+                    setToastMessage({ type: 'success', text: editingProfileId ? 'Template updated!' : 'Template saved!' })
+                    setTimeout(() => setToastMessage(null), 3000)
                   } catch (e) {
                     console.error('Failed to save profile', e)
                   } finally {
