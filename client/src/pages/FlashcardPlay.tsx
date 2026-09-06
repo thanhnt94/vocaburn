@@ -36,6 +36,7 @@ import { useSessionStats } from '@/hooks/useSessionStats'
 import { usePracticeMode } from '@/hooks/usePracticeMode'
 import { FSRSActionButtons } from '@/components/FSRSActionButtons'
 import { FlashcardEditModal } from '@/components/FlashcardEditModal'
+import { resolveMediaUrl } from '@/components/common/MediaUrlInput'
 import DailyComparisonChart from '@/components/DailyComparisonChart'
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts'
 import { usePlaySettings } from '@/hooks/usePlaySettings'
@@ -120,9 +121,9 @@ export default function FlashcardPlay() {
     
     // Preload audio
     const audioUrls = [
-      nextQ.front_audio_url,
-      nextQ.back_audio_url,
-      nextQ.audio
+      resolveMediaUrl(nextQ.front_audio_url),
+      resolveMediaUrl(nextQ.back_audio_url),
+      resolveMediaUrl(nextQ.audio)
     ].filter(Boolean) as string[];
     
     audioUrls.forEach(url => {
@@ -137,9 +138,9 @@ export default function FlashcardPlay() {
     
     // Preload images
     const imgUrls = [
-      nextQ.image,
-      nextQ.front_img,
-      nextQ.back_img
+      resolveMediaUrl(nextQ.image),
+      resolveMediaUrl(nextQ.front_img),
+      resolveMediaUrl(nextQ.back_img)
     ].filter(Boolean) as string[];
     
     imgUrls.forEach(url => {
@@ -2573,10 +2574,10 @@ export default function FlashcardPlay() {
         <div className="flex-1 flex flex-col items-center justify-center py-6 text-center">
           {showImages && currentQuestion.image && practiceSubMode !== 'listening' && (
             <img 
-              src={currentQuestion.image} 
+              src={resolveMediaUrl(currentQuestion.image) || undefined} 
               alt="Question" 
               className="max-h-36 object-contain rounded-2xl mb-4 border border-slate-100 shadow-sm cursor-zoom-in hover:opacity-95 transition-opacity" 
-              onClick={() => setZoomedImage(currentQuestion.image || null)}
+              onClick={() => setZoomedImage(resolveMediaUrl(currentQuestion.image) || null)}
             />
           )}
           
@@ -3772,10 +3773,10 @@ export default function FlashcardPlay() {
                       )}>
                         {(showImages as any === 'always' || showImages as any === 'front' || showImages as any === true || showImages as any === 'true') && (currentQuestion?.front_img || currentQuestion?.others?.front_img) && (
                           <img 
-                            src={currentQuestion.front_img || currentQuestion.others?.front_img || undefined} 
+                            src={resolveMediaUrl(currentQuestion.front_img || currentQuestion.others?.front_img) || undefined} 
                             alt="Front Visual" 
                             className="max-h-40 md:max-h-48 object-contain rounded-3xl border border-slate-100/80 shadow-md bg-slate-50/50 p-1.5 animate-in zoom-in-95 duration-500 cursor-zoom-in hover:opacity-95 transition-opacity"
-                            onClick={() => setZoomedImage(currentQuestion.front_img || currentQuestion.others?.front_img || null)}
+                            onClick={() => setZoomedImage(resolveMediaUrl(currentQuestion.front_img || currentQuestion.others?.front_img) || null)}
                           />
                         )}
                         <div 
@@ -3935,10 +3936,10 @@ export default function FlashcardPlay() {
                         {(showImages as any === 'always' || showImages as any === 'back' || showImages as any === true || showImages as any === 'true') && (currentQuestion?.back_img || currentQuestion?.others?.back_img) && (
                           <div className="space-y-2 flex justify-center w-full">
                             <img 
-                              src={currentQuestion.back_img || currentQuestion.others?.back_img || undefined} 
+                              src={resolveMediaUrl(currentQuestion.back_img || currentQuestion.others?.back_img) || undefined} 
                               alt="Back Visual" 
                               className="max-h-40 md:max-h-48 object-contain rounded-3xl border border-slate-100/80 shadow-md bg-slate-50/50 p-1.5 animate-in zoom-in-95 duration-500 cursor-zoom-in hover:opacity-95 transition-opacity"
-                              onClick={() => setZoomedImage(currentQuestion.back_img || currentQuestion?.others?.back_img || null)}
+                              onClick={() => setZoomedImage(resolveMediaUrl(currentQuestion.back_img || currentQuestion?.others?.back_img) || null)}
                             />
                           </div>
                         )}

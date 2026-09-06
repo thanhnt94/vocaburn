@@ -29,20 +29,44 @@ export interface MediaUrlInputProps {
   showPreview?: boolean
 }
 
-// Helper to resolve CentralAuth URLs (supports legacy mindstack.click and inmind.site)
+// Helper to resolve CentralAuth URLs (supports dynamic SSO URL, legacy mindstack.click and inmind.site)
 export const resolveMediaUrl = (url: string | null | undefined): string => {
   if (!url) return ''
-  const ssoUrl = 'https://auth.inmind.site'
-  if (url.startsWith('central-media://')) {
-    return `${ssoUrl}/static/uploads/media/` + url.slice('central-media://'.length)
+  const trimmed = url.trim()
+  const ssoUrl = ((import.meta as any).env?.VITE_SSO_SERVER_URL || 'https://auth.inmind.site').replace(/\/$/, '')
+  if (trimmed.startsWith('central-media://')) {
+    return `${ssoUrl}/static/uploads/media/` + trimmed.slice('central-media://'.length)
   }
-  if (url.startsWith('central-tts://')) {
-    return `${ssoUrl}/static/uploads/tts/` + url.slice('central-tts://'.length)
+  if (trimmed.startsWith('central-tts://')) {
+    return `${ssoUrl}/static/uploads/tts/` + trimmed.slice('central-tts://'.length)
   }
-  if (url.startsWith('/static/uploads/')) {
-    return `${ssoUrl}${url}`
+  if (trimmed.startsWith('/static/uploads/')) {
+    return `${ssoUrl}${trimmed}`
   }
-  return url
+  return trimmed
+}
+
+// Helper to convert full or relative CentralAuth URLs to canonical pseudo-protocols
+export const unresolveMediaUrl = (url: string | null | undefined): string => {
+  if (!url) return ''
+  const trimmed = url.trim()
+  if (trimmed.startsWith('central-media://') || trimmed.startsWith('central-tts://')) {
+    return trimmed
+  }
+
+  // Audio TTS regex: e.g. (domain)/static/uploads/tts/<filename>
+  const ttsMatch = trimmed.match(/(?:https?:\/\/[^\/]+)?\/static\/uploads\/tts\/([^\s?#]+)/)
+  if (ttsMatch && ttsMatch[1]) {
+    return `central-tts://${ttsMatch[1]}`
+  }
+
+  // General Media regex: e.g. (domain)/static/uploads/media/<filename>
+  const mediaMatch = trimmed.match(/(?:https?:\/\/[^\/]+)?\/static\/uploads\/media\/([^\s?#]+)/)
+  if (mediaMatch && mediaMatch[1]) {
+    return `central-media://${mediaMatch[1]}`
+  }
+
+  return trimmed
 }
 
 export const MediaUrlInput: React.FC<MediaUrlInputProps> = ({
@@ -119,8 +143,9 @@ export const MediaUrlInput: React.FC<MediaUrlInputProps> = ({
           headers: { 'Content-Type': 'multipart/form-data' }
         })
 
-        if (res.data?.url) {
-          onChange(res.data.url)
+        if (res.data?.url || res.data?.canonical_url) {
+          const canonical = unresolveMediaUrl(res.data.canonical_url || res.data.url)
+          onChange(canonical)
           setUploadStatus('success')
           setStatusMessage('Uploaded to CentralAuth!')
           setTimeout(() => setUploadStatus('idle'), 3000)
@@ -223,7 +248,17 @@ export const MediaUrlInput: React.FC<MediaUrlInputProps> = ({
         }
       }
     }
-    // Default text paste handled naturally
+
+    // Check for text paste and auto-canonicalize CentralAuth URLs
+    const pastedText = e.clipboardData?.getData('text')
+    if (pastedText) {
+      const normalized = unresolveMediaUrl(pastedText)
+      if (normalized !== pastedText) {
+        e.preventDefault()
+        onChange(normalized)
+        return
+      }
+    }
   }
 
   // Handle Drag & Drop
@@ -277,10 +312,10 @@ export const MediaUrlInput: React.FC<MediaUrlInputProps> = ({
   const resolvedUrl = resolveMediaUrl(value)
   const isImage =
     mediaType === 'image' ||
-    (mediaType === 'all' && (/\.(png|jpg|jpeg|webp|gif|svg)$/i.test(value) || value.includes('/static/uploads/media/')))
+    (mediaType === 'all' && (/\.(png|jpg|jpeg|webp|gif|svg)$/i.test(value) || value.includes('/static/uploads/media/') || value.startsWith('central-media://')))
   const isAudio =
     mediaType === 'audio' ||
-    (mediaType === 'all' && (/\.(mp3|wav|m4a|ogg|aac)$/i.test(value) || value.includes('/static/uploads/tts/')))
+    (mediaType === 'all' && (/\.(mp3|wav|m4a|ogg|aac)$/i.test(value) || value.includes('/static/uploads/tts/') || value.startsWith('central-tts://')))
 
   return (
     <div className={cn("space-y-1.5", className)}>
@@ -324,8 +359,8 @@ export const MediaUrlInput: React.FC<MediaUrlInputProps> = ({
         {/* Text Input (supports typing URL, pasting URL, or Ctrl+V image blob) */}
         <input
           type="text"
-          value={value || ''}
-          onChange={(e) => onChange(e.target.value)}
+          value={unresolveMediaUrl(value) || ''}
+          onChange={(e) => onChange(unresolveMediaUrl(e.target.value))}
           onPaste={handlePaste}
           disabled={disabled || isUploading}
           placeholder={isUploading ? 'Uploading file...' : defaultPlaceholder}

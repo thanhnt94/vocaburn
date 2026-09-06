@@ -15,6 +15,7 @@ import {
 } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import type { Quiz } from '@/pages/DecksPage'
+import { resolveMediaUrl } from '@/components/common/MediaUrlInput'
 
 export interface DeckActionSheetProps {
   isOpen: boolean
@@ -70,7 +71,7 @@ export function DeckActionSheet({
           <div className="flex items-center gap-3 pb-4 border-b border-slate-100 shrink-0">
             <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white text-lg font-bold shadow-2xs overflow-hidden shrink-0">
               {deck.cover_image ? (
-                <img src={deck.cover_image} alt="" className="w-full h-full object-cover" />
+                <img src={resolveMediaUrl(deck.cover_image)} alt="" className="w-full h-full object-cover" />
               ) : (
                 <span>🎴</span>
               )}

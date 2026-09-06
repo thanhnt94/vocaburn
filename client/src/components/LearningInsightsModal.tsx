@@ -4,6 +4,7 @@ import { StickyNote, ChevronLeft, ChevronRight, ChevronDown, Edit2, X, Volume2 }
 import axios from 'axios'
 import { cn } from '@/lib/utils'
 import { speakWithEdgeTTS } from '@/lib/audio'
+import { resolveMediaUrl } from '@/components/common/MediaUrlInput'
 
 // Helper to parse BBCode to HTML
 const parseBBCodeToHtml = (text: string): string => {
@@ -143,7 +144,8 @@ const handlePlayTabAudio = async (cardId: number | undefined, tabId: string, tex
       console.log(`[INSIGHTS TTS] Requesting Edge TTS for card ${cardId} (${tabId})...`);
       const res = await axios.get(`/api/v1/deck/generate-audio/${cardId}?face=${encodeURIComponent(tabId)}`);
       if (res.data?.url) {
-        const audio = new Audio(`${res.data.url}?t=${Date.now()}`);
+        const resolvedUrl = resolveMediaUrl(res.data.url) || res.data.url;
+        const audio = new Audio(`${resolvedUrl}?t=${Date.now()}`);
         audio.play().catch(() => speakWithEdgeTTS(cleanText));
         return;
       }

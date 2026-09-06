@@ -6,6 +6,7 @@ import json
 import re
 import zipfile
 import html
+from app.modules.deck.routes.media_resolver import unresolve_central_url
 
 # MindStack COLUMN_ALIASES
 COLUMN_ALIASES = {
@@ -263,7 +264,7 @@ class ExcelDeckService:
                     if key == "title": metadata["title"] = value
                     elif key == "description": metadata["description"] = value
                     elif key == "category": metadata["category"] = value
-                    elif key == "cover_image": metadata["cover_image"] = value
+                    elif key == "cover_image": metadata["cover_image"] = unresolve_central_url(value)
                     elif key == "instruction": metadata["instruction"] = value
                     elif key in ("is_public", "public", "công khai"):
                         metadata["is_public"] = value.lower() in ("true", "1", "yes", "y", "công khai", "public")
@@ -782,10 +783,10 @@ class ExcelDeckService:
                         "id": row_dict.get("id") or row_dict.get("item_id") or None,
                         "content": front_text,
                         "explanation": explanation_text,
-                        "front_img": row_dict.get("front_img") or row_dict.get("image"),
-                        "back_img": row_dict.get("back_img"),
-                        "front_audio_url": row_dict.get("front_audio_url") or row_dict.get("audio"),
-                        "back_audio_url": row_dict.get("back_audio_url"),
+                        "front_img": unresolve_central_url(row_dict.get("front_img") or row_dict.get("image")),
+                        "back_img": unresolve_central_url(row_dict.get("back_img")),
+                        "front_audio_url": unresolve_central_url(row_dict.get("front_audio_url") or row_dict.get("audio")),
+                        "back_audio_url": unresolve_central_url(row_dict.get("back_audio_url")),
                         "front_audio_content": row_dict.get("front_audio_content"),
                         "back_audio_content": row_dict.get("back_audio_content"),
                         "options": options_list,
@@ -848,10 +849,10 @@ class ExcelDeckService:
                     "id": get_val("id") or get_val("item_id") or None,
                     "content": front_text,
                     "explanation": explanation_text,
-                    "front_img": get_val("front_img") or get_val("image"),
-                    "back_img": get_val("back_img"),
-                    "front_audio_url": get_val("front_audio_url") or get_val("audio"),
-                    "back_audio_url": get_val("back_audio_url"),
+                    "front_img": unresolve_central_url(get_val("front_img") or get_val("image")),
+                    "back_img": unresolve_central_url(get_val("back_img")),
+                    "front_audio_url": unresolve_central_url(get_val("front_audio_url") or get_val("audio")),
+                    "back_audio_url": unresolve_central_url(get_val("back_audio_url")),
                     "front_audio_content": get_val("front_audio_content"),
                     "back_audio_content": get_val("back_audio_content"),
                     "options": options_list,

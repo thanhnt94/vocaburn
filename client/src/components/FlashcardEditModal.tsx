@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { X, Save, Pencil, Sparkles, RefreshCw, Volume2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import axios from 'axios'
-import { MediaUrlInput, resolveMediaUrl } from './common/MediaUrlInput'
+import { MediaUrlInput, resolveMediaUrl, unresolveMediaUrl } from './common/MediaUrlInput'
 
 interface Option {
   id?: number
@@ -46,23 +46,7 @@ const STRUCTURED_KEYS = new Set([
 ])
 
 const unresolveUrl = (url: string | null | undefined): string => {
-  if (!url) return '';
-  const ssoUrls = ['https://auth.inmind.site', 'https://auth.mindstack.click'];
-  for (const sso of ssoUrls) {
-    if (url.startsWith(`${sso}/static/uploads/media/`)) {
-      return 'central-media://' + url.slice(`${sso}/static/uploads/media/`.length);
-    }
-    if (url.startsWith(`${sso}/static/uploads/tts/`)) {
-      return 'central-tts://' + url.slice(`${sso}/static/uploads/tts/`.length);
-    }
-  }
-  if (url.startsWith('/static/uploads/media/')) {
-    return 'central-media://' + url.slice('/static/uploads/media/'.length);
-  }
-  if (url.startsWith('/static/uploads/tts/')) {
-    return 'central-tts://' + url.slice('/static/uploads/tts/'.length);
-  }
-  return url;
+  return unresolveMediaUrl(url);
 };
 
 const resolveUrl = (url: string | null | undefined): string => {
@@ -534,7 +518,7 @@ export const FlashcardEditModal: React.FC<FlashcardEditModalProps> = ({
       const res = await axios.get(`/api/v1/deck/generate-audio/${currentCard.id}`, {
         params: { face, force: true }
       })
-      const newUrl = res.data.url
+      const newUrl = unresolveUrl(res.data.url)
       
       let updatedFormData = { ...currentCard }
       if (face === 'front') {

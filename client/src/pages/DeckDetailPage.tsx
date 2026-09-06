@@ -23,6 +23,7 @@ import axios from 'axios'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useAppStore } from '@/store/useAppStore'
 import { cn } from '@/lib/utils'
+import { resolveMediaUrl } from '@/components/common/MediaUrlInput'
 import { DeckPagination } from '@/components/deck/DeckPagination'
 
 // Lazy load tab components for optimal performance
@@ -152,7 +153,7 @@ export function DeckDetailPage() {
               <div className="flex items-center gap-2.5 min-w-0">
                 <div className="w-9 h-9 rounded-2xl bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 flex items-center justify-center text-white font-bold text-base shrink-0 overflow-hidden shadow-sm shadow-indigo-500/20">
                   {deckMeta?.cover_image ? (
-                    <img src={deckMeta.cover_image} alt="" className="w-full h-full object-cover" />
+                    <img src={resolveMediaUrl(deckMeta.cover_image)} alt="" className="w-full h-full object-cover" />
                   ) : (
                     <span>🎴</span>
                   )}

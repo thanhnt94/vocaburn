@@ -71,6 +71,10 @@ async def upload_media_file(
             
             if response.status_code == 200:
                 res_data = response.json()
+                filename = res_data.get("filename")
+                is_audio = ext in ALLOWED_AUDIO_EXTS
+                canonical_prefix = "central-tts://" if is_audio else "central-media://"
+                canonical_url = f"{canonical_prefix}{filename}" if filename else None
                 full_url = res_data.get("full_url")
                 if not full_url:
                     rel_url = res_data.get("url", "")
@@ -78,12 +82,14 @@ async def upload_media_file(
 
                 return {
                     "status": "success",
-                    "url": full_url,
+                    "url": canonical_url or full_url,
+                    "canonical_url": canonical_url,
+                    "full_url": full_url,
                     "relative_url": res_data.get("url"),
-                    "filename": res_data.get("filename"),
+                    "filename": filename,
                     "mime_type": res_data.get("mime_type"),
                     "size_bytes": res_data.get("size_bytes"),
-                    "media_type": res_data.get("media_type", "image" if ext in ALLOWED_IMAGE_EXTS else "audio")
+                    "media_type": "audio" if is_audio else "image"
                 }
             else:
                 logger.warning(f"CentralAuth upload returned status {response.status_code}: {response.text}")
@@ -99,14 +105,20 @@ async def upload_media_file(
         with open(local_path, "wb") as f:
             f.write(content)
 
+        is_audio = ext in ALLOWED_AUDIO_EXTS
+        canonical_prefix = "central-tts://" if is_audio else "central-media://"
+        canonical_url = f"{canonical_prefix}{unique_name}"
+
         return {
             "status": "success",
-            "url": f"/static/uploads/media/{unique_name}",
+            "url": canonical_url,
+            "canonical_url": canonical_url,
+            "full_url": f"/static/uploads/media/{unique_name}",
             "relative_url": f"/static/uploads/media/{unique_name}",
             "filename": unique_name,
             "mime_type": file.content_type,
             "size_bytes": len(content),
-            "media_type": "image" if ext in ALLOWED_IMAGE_EXTS else "audio",
+            "media_type": "audio" if is_audio else "image",
             "is_fallback": True
         }
     except Exception as err:

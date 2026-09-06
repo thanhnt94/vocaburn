@@ -1,6 +1,7 @@
 import React from 'react'
 import { Volume2, Star, EyeOff, Eye, Edit2, Trash2, Image as ImageIcon, Sparkles } from 'lucide-react'
 import { parseBBCodeToHtml } from '@/lib/text'
+import { resolveMediaUrl } from '@/components/common/MediaUrlInput'
 
 export interface CardData {
   id: number
@@ -53,9 +54,9 @@ export function DeckCardItem({
     audio.play().catch(() => setIsPlayingAudio(false))
   }
 
-  const frontAudio = card.front_audio_url || card.audio
-  const frontImg = card.front_img || card.image
-  const backImg = card.back_img
+  const frontAudio = resolveMediaUrl(card.front_audio_url || card.audio)
+  const frontImg = resolveMediaUrl(card.front_img || card.image)
+  const backImg = resolveMediaUrl(card.back_img)
 
   return (
     <div

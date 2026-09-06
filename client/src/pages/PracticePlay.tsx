@@ -5,6 +5,7 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { ChevronLeft, ChevronRight, ChevronDown, MessageSquare, Play, Volume2, Maximize2, Hash, Minimize2, Check, X, RotateCcw, AlertCircle, LayoutGrid, Timer, Flame, Trophy, Sparkles, Lightbulb, StickyNote, Target, CheckCircle2, XCircle, Clock, BookOpen, Copy, Edit3, Brain, FileText, HelpCircle, Sliders, ListOrdered, Shuffle, Eye, EyeOff, TrendingUp, Award, Lock, Keyboard, VolumeX, Settings, RefreshCw, Undo2, LogOut, Zap, Music, Image, Plus, Star, Bookmark } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { FlashcardEditModal } from '@/components/FlashcardEditModal'
+import { resolveMediaUrl } from '@/components/common/MediaUrlInput'
 import axios from 'axios'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
@@ -361,7 +362,8 @@ export default function PracticePlay() {
     }
 
     if (audioUrl) {
-      const cacheBustedUrl = `${audioUrl}${audioUrl.includes('?') ? '&' : '?'}t=${Date.now()}`;
+      const resolvedUrl = resolveMediaUrl(audioUrl) || audioUrl;
+      const cacheBustedUrl = `${resolvedUrl}${resolvedUrl.includes('?') ? '&' : '?'}t=${Date.now()}`;
       console.log(`[TTS PLAYBACK] Playing Edge TTS server audio: ${cacheBustedUrl}`);
       const audio = new Audio(cacheBustedUrl);
       audio.playbackRate = rate;
@@ -4543,10 +4545,10 @@ export default function PracticePlay() {
                           )}>
                             {(showImages as any === 'always' || showImages as any === 'front' || showImages as any === true || showImages as any === 'true') && (currentQuestion?.front_img || currentQuestion?.others?.front_img) && (
                               <img
-                                src={currentQuestion.front_img || currentQuestion.others?.front_img || undefined}
+                                src={resolveMediaUrl(currentQuestion.front_img || currentQuestion.others?.front_img) || undefined}
                                 alt="Front Visual"
                                 className="max-h-40 md:max-h-48 object-contain rounded-3xl border border-slate-100/80 shadow-md bg-slate-50/50 p-1.5 animate-in zoom-in-95 duration-500 cursor-zoom-in hover:opacity-95 transition-opacity"
-                                onClick={() => setZoomedImage(currentQuestion.front_img || currentQuestion.others?.front_img || null)}
+                                onClick={() => setZoomedImage(resolveMediaUrl(currentQuestion.front_img || currentQuestion.others?.front_img) || null)}
                               />
                             )}
                             <div className={cn(
@@ -4666,10 +4668,10 @@ export default function PracticePlay() {
                             {(showImages as any === 'always' || showImages as any === 'back' || showImages as any === true || showImages as any === 'true') && (currentQuestion?.back_img || currentQuestion?.others?.back_img) && (
                               <div className="space-y-2 flex justify-center w-full">
                                 <img
-                                  src={currentQuestion.back_img || currentQuestion?.others?.back_img || undefined}
+                                  src={resolveMediaUrl(currentQuestion.back_img || currentQuestion?.others?.back_img) || undefined}
                                   alt="Back Visual"
                                   className="max-h-40 md:max-h-48 object-contain rounded-3xl border border-slate-100/80 shadow-md bg-slate-50/50 p-1.5 animate-in zoom-in-95 duration-500 cursor-zoom-in hover:opacity-95 transition-opacity"
-                                  onClick={() => setZoomedImage(currentQuestion.back_img || currentQuestion?.others?.back_img || null)}
+                                  onClick={() => setZoomedImage(resolveMediaUrl(currentQuestion.back_img || currentQuestion?.others?.back_img) || null)}
                                 />
                               </div>
                             )}
@@ -6376,7 +6378,7 @@ export default function PracticePlay() {
               initial={{ scale: 0.95 }}
               animate={{ scale: 1 }}
               exit={{ scale: 0.95 }}
-              src={zoomedImage}
+              src={resolveMediaUrl(zoomedImage) || undefined}
               alt="Zoomed Visual"
               className="max-w-full max-h-[90vh] object-contain rounded-2xl shadow-2xl border border-white/10"
             />

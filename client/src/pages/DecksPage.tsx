@@ -18,6 +18,7 @@ import {
   DeckActionSheet,
   DeckPagination 
 } from '@/components/deck'
+import { resolveMediaUrl } from '@/components/common/MediaUrlInput'
 
 export interface Quiz {
   id: number
@@ -473,7 +474,7 @@ export default function DecksPage() {
                           )}
                         >
                           {quiz.cover_image ? (
-                            <img src={quiz.cover_image} alt="" className="w-full h-full object-cover" />
+                            <img src={resolveMediaUrl(quiz.cover_image)} alt="" className="w-full h-full object-cover" />
                           ) : (
                             <>
                               <span className="text-xl leading-none drop-shadow-sm">{theme.icon}</span>

@@ -232,8 +232,9 @@ async def create_deck_endpoint(request: Request, data: dict, db: AsyncSession = 
         user_id = AuthService.get_user_id(request)
         title = (data.get("title") or "").strip()
         description = (data.get("description") or "").strip()
+        from .media_resolver import unresolve_central_url
         raw_cover = data.get("cover_image")
-        cover_image = str(raw_cover).strip() if (raw_cover and str(raw_cover).strip()) else None
+        cover_image = unresolve_central_url(str(raw_cover).strip()) if (raw_cover and str(raw_cover).strip()) else None
         is_public = bool(data.get("is_public", True))
         
         if not title:
@@ -527,7 +528,9 @@ async def update_deck(request: Request, deck_id: int, data: dict, db: AsyncSessi
     if "category_id" in data: deck.category_id = data["category_id"]
     if "instruction" in data: deck.instruction = data["instruction"]
     if "is_public" in data: deck.is_public = data["is_public"]
-    if "cover_image" in data: deck.cover_image = data["cover_image"]
+    if "cover_image" in data:
+        from .media_resolver import unresolve_central_url
+        deck.cover_image = unresolve_central_url(str(data["cover_image"]).strip()) if data["cover_image"] else None
     
     if "tags" in data:
         await DeckService.set_deck_tags(db, deck_id, data["tags"])
@@ -742,8 +745,11 @@ async def create_card(request: Request, deck_id: int, data: dict, db: AsyncSessi
     }
 
 @router.patch("/question/{card_id}")
+@router.put("/question/{card_id}")
 @router.patch("/flashcard/{card_id}")
+@router.put("/flashcard/{card_id}")
 @router.patch("/card/{card_id}")
+@router.put("/card/{card_id}")
 async def update_card(request: Request, card_id: int, data: dict, db: AsyncSession = Depends(get_db)):
     user_id = AuthService.get_user_id(request)
     from app.modules.deck.interface import DeckInterface

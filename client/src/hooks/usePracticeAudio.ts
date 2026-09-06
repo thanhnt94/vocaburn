@@ -1,6 +1,7 @@
 import { useRef } from 'react'
 import axios from 'axios'
 import { speakWithEdgeTTS, speakEdgeTTSSequentially } from '@/lib/audio'
+import { resolveMediaUrl } from '@/components/common/MediaUrlInput'
 import type { Question } from '@/types/flashcard'
 import type { PracticeQuestionData } from '@/types/practice'
 
@@ -88,7 +89,8 @@ export function usePracticeAudio({
     }
 
     if (audioUrl) {
-      const cacheBustedUrl = `${audioUrl}${audioUrl.includes('?') ? '&' : '?'}t=${Date.now()}`
+      const resolvedUrl = resolveMediaUrl(audioUrl) || audioUrl
+      const cacheBustedUrl = `${resolvedUrl}${resolvedUrl.includes('?') ? '&' : '?'}t=${Date.now()}`
       const audio = new Audio(cacheBustedUrl)
       audio.playbackRate = rate
       activeAudioRef.current = audio

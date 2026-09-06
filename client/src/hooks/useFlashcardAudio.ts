@@ -1,6 +1,7 @@
 import { useRef } from 'react';
 import axios from 'axios';
 import { speakWithEdgeTTS } from '@/lib/audio';
+import { resolveMediaUrl } from '@/components/common/MediaUrlInput';
 import { useAppStore } from '@/store/useAppStore';
 
 export type AutoPlayMode = 'always' | 'front' | 'back' | 'none';
@@ -161,7 +162,8 @@ export function useFlashcardAudio(
     }
 
     if (audioUrl) {
-      const cacheBustedUrl = `${audioUrl}${audioUrl.includes('?') ? '&' : '?'}t=${Date.now()}`;
+      const resolvedUrl = resolveMediaUrl(audioUrl) || audioUrl;
+      const cacheBustedUrl = `${resolvedUrl}${resolvedUrl.includes('?') ? '&' : '?'}t=${Date.now()}`;
       console.log(`[TTS PLAYBACK] Playing Edge TTS audio: ${cacheBustedUrl}`);
       const audio = new Audio(cacheBustedUrl);
       activeAudioRef.current = audio;

@@ -6,6 +6,7 @@ import { motion } from 'framer-motion'
 import axios from 'axios'
 import { cn } from '@/lib/utils'
 import { TelegramRoadmapReminderToggle } from '@/components/TelegramRoadmapReminderToggle'
+import { resolveMediaUrl } from '@/components/common/MediaUrlInput'
 
 export default function RoadmapHub() {
   const navigate = useNavigate()
@@ -146,7 +147,7 @@ export default function RoadmapHub() {
                     <div className="flex items-start gap-3 pt-0.5">
                       <div className="w-13 h-13 rounded-2xl border bg-gradient-to-br from-indigo-50 via-purple-50 to-orange-50 border-slate-200 flex items-center justify-center shrink-0 overflow-hidden shadow-2xs">
                         {item.cover_image ? (
-                          <img src={item.cover_image} alt={item.title} className="w-full h-full object-cover" />
+                          <img src={resolveMediaUrl(item.cover_image)} alt={item.title} className="w-full h-full object-cover" />
                         ) : (
                           <BookOpen className="w-6 h-6 text-indigo-600" />
                         )}
@@ -362,7 +363,7 @@ export default function RoadmapHub() {
                     <div className="flex items-start gap-4 flex-1 min-w-0">
                       <div className="w-16 h-16 rounded-2xl border bg-gradient-to-br from-indigo-50 to-purple-50 border-slate-100 flex items-center justify-center flex-shrink-0 overflow-hidden">
                         {item.cover_image ? (
-                          <img src={item.cover_image} alt={item.title} className="w-full h-full object-cover" />
+                          <img src={resolveMediaUrl(item.cover_image)} alt={item.title} className="w-full h-full object-cover" />
                         ) : (
                           <BookOpen className="w-7 h-7 text-indigo-600" />
                         )}

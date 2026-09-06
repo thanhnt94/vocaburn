@@ -1,5 +1,6 @@
 import React from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
+import { resolveMediaUrl } from '@/components/common/MediaUrlInput'
 
 export interface ImageZoomOverlayProps {
   zoomedImage: string | null
@@ -24,7 +25,7 @@ export const ImageZoomOverlay: React.FC<ImageZoomOverlayProps> = ({
             initial={{ scale: 0.95 }}
             animate={{ scale: 1 }}
             exit={{ scale: 0.95 }}
-            src={zoomedImage}
+            src={resolveMediaUrl(zoomedImage) || undefined}
             alt="Zoomed Visual"
             className="max-w-full max-h-[90vh] object-contain rounded-2xl shadow-2xl border border-white/10"
           />
