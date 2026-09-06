@@ -146,13 +146,32 @@ export const PlaySettingsModal: React.FC<PlaySettingsModalProps> = ({
   const [isSaveModalOpen, setIsSaveModalOpen] = useState<boolean>(false)
   const [newProfileName, setNewProfileName] = useState<string>('')
 
+  // Deduplicate profiles strictly by id to guarantee no duplicates appear in dropdown
+  const systemProfilesList = React.useMemo(() => {
+    const seen = new Set<string>()
+    return (studyProfiles || []).filter(p => {
+      if (!p || !p.id || !p.is_system || seen.has(p.id)) return false
+      seen.add(p.id)
+      return true
+    })
+  }, [studyProfiles])
+
+  const customProfilesList = React.useMemo(() => {
+    const seen = new Set<string>()
+    return (studyProfiles || []).filter(p => {
+      if (!p || !p.id || p.is_system || String(p.id).startsWith('preset-') || seen.has(p.id)) return false
+      seen.add(p.id)
+      return true
+    })
+  }, [studyProfiles])
+
   React.useEffect(() => {
     if (activeProfileId) {
       setSelectedProfileId(activeProfileId)
-    } else if (studyProfiles.length > 0 && !selectedProfileId) {
-      setSelectedProfileId(studyProfiles[0].id)
+    } else if (systemProfilesList.length > 0 && !selectedProfileId) {
+      setSelectedProfileId(systemProfilesList[0].id)
     }
-  }, [activeProfileId, studyProfiles])
+  }, [activeProfileId, systemProfilesList, selectedProfileId])
 
   // Parse audio mode
   const currentAudioMode: 'always' | 'front' | 'back' | 'none' = autoPlayAudio || 'none'
@@ -428,15 +447,15 @@ export const PlaySettingsModal: React.FC<PlaySettingsModalProps> = ({
                   className="bg-white border border-slate-200 text-xs font-bold text-slate-800 rounded-xl px-2.5 py-1.5 outline-none focus:border-indigo-500 shadow-2xs cursor-pointer flex-1 truncate"
                 >
                   <optgroup label="Mẫu hệ thống (System Presets)">
-                    {studyProfiles.filter(p => p.is_system).map(p => (
+                    {systemProfilesList.map(p => (
                       <option key={p.id} value={p.id}>
                         {p.name} {p.id === activeProfileId ? '★ (Đang dùng)' : ''}
                       </option>
                     ))}
                   </optgroup>
-                  {studyProfiles.some(p => !p.is_system) && (
+                  {customProfilesList.length > 0 && (
                     <optgroup label="Mẫu cá nhân của tôi (My Templates)">
-                      {studyProfiles.filter(p => !p.is_system).map(p => (
+                      {customProfilesList.map(p => (
                         <option key={p.id} value={p.id}>
                           {p.name} {p.id === activeProfileId ? '★ (Đang dùng)' : ''}
                         </option>

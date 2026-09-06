@@ -35,6 +35,12 @@ class UserSettingsService:
         updated = False
         for k, v in data.items():
             if k in allowed_fields and hasattr(settings_obj, k):
+                if k == "study_profiles" and isinstance(v, list):
+                    # Sanitize: never persist system presets into user's custom study_profiles
+                    v = [
+                        p for p in v
+                        if isinstance(p, dict) and not p.get("is_system") and not str(p.get("id", "")).startswith("preset-")
+                    ]
                 setattr(settings_obj, k, v)
                 updated = True
                 
@@ -52,7 +58,11 @@ class UserSettingsService:
         if not settings_obj:
             return {}
         from app.modules.deck.utils import get_all_study_profiles
-        custom_profiles = getattr(settings_obj, 'study_profiles', None) or []
+        raw_profiles = getattr(settings_obj, 'study_profiles', None) or []
+        custom_profiles = [
+            p for p in raw_profiles
+            if isinstance(p, dict) and not p.get("is_system") and not str(p.get("id", "")).startswith("preset-")
+        ]
         return {
             "theme": settings_obj.theme,
             "focus_timer_active": settings_obj.focus_timer_active,

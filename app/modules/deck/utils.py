@@ -221,11 +221,24 @@ def set_cached_system_study_profiles(profiles: list[dict]) -> None:
         CACHED_SYSTEM_STUDY_PROFILES = list(profiles)
 
 def get_all_study_profiles(custom_profiles: Optional[list] = None) -> list[dict]:
-    profiles = [dict(p) for p in get_system_study_profiles()]
+    seen_ids = set()
+    profiles = []
+    
+    # 1. Base system presets first
+    for p in get_system_study_profiles():
+        pid = p.get("id")
+        if pid and pid not in seen_ids:
+            seen_ids.add(pid)
+            profiles.append(dict(p))
+
+    # 2. User custom profiles (deduplicated, never re-adding system presets)
     if custom_profiles and isinstance(custom_profiles, list):
         for cp in custom_profiles:
             if isinstance(cp, dict) and cp.get("id"):
-                profiles.append(cp)
+                pid = cp.get("id")
+                if pid not in seen_ids and not cp.get("is_system") and not str(pid).startswith("preset-"):
+                    seen_ids.add(pid)
+                    profiles.append(dict(cp))
     return profiles
 
 
@@ -374,7 +387,15 @@ def resolve_effective_study_settings(
     else:
         setting_origin = "deck_default"
 
-    custom_profiles = user_global_settings.get("study_profiles", []) if isinstance(user_global_settings, dict) else []
+    raw_custom = (
+        user_global_settings.get("custom_study_profiles")
+        or user_global_settings.get("study_profiles")
+        or []
+    ) if isinstance(user_global_settings, dict) else []
+    custom_profiles = [
+        p for p in raw_custom
+        if isinstance(p, dict) and not p.get("is_system") and not str(p.get("id", "")).startswith("preset-")
+    ]
     study_profiles = get_all_study_profiles(custom_profiles)
     active_profile_id = user_global_settings.get("active_profile_id") if isinstance(user_global_settings, dict) else None
 

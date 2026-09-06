@@ -320,8 +320,14 @@ export const Settings = () => {
   // Dynamic system presets loaded from database with fallback to defaults
   const systemProfiles = useMemo(() => {
     const fromBackend = (userSettings.study_profiles || []).filter((p: any) => p.is_system)
-    if (fromBackend.length > 0) {
-      return fromBackend.map((bp: any) => {
+    const seen = new Set<string>()
+    const uniqueBackend = fromBackend.filter((bp: any) => {
+      if (!bp || !bp.id || seen.has(bp.id)) return false
+      seen.add(bp.id)
+      return true
+    })
+    if (uniqueBackend.length > 0) {
+      return uniqueBackend.map((bp: any) => {
         const matchingFallback = SYSTEM_PROFILES.find(sp => sp.id === bp.id)
         return {
           ...bp,
@@ -532,7 +538,12 @@ export const Settings = () => {
   }
 
   const handleSetActiveProfile = async (profileId: string) => {
-    const customProfiles: StudyProfile[] = (userSettings.study_profiles || []).filter((p: any) => !p.is_system)
+    const seen = new Set<string>()
+    const customProfiles: StudyProfile[] = (userSettings.study_profiles || []).filter((p: any) => {
+      if (!p || !p.id || p.is_system || String(p.id).startsWith('preset-') || seen.has(p.id)) return false
+      seen.add(p.id)
+      return true
+    })
     const targetProf = [...systemProfiles, ...customProfiles].find(p => p.id === profileId)
     const profSettings = targetProf?.settings || {}
 
@@ -828,7 +839,12 @@ export const Settings = () => {
 
   // ══════════════ TAB 0: STREAMLINED STUDY TEMPLATES & LIVE PREFERENCES ══════════════
   const renderDeckTemplateTab = () => {
-    const customProfiles: StudyProfile[] = (userSettings.study_profiles || []).filter((p: any) => !p.is_system)
+    const seen = new Set<string>()
+    const customProfiles: StudyProfile[] = (userSettings.study_profiles || []).filter((p: any) => {
+      if (!p || !p.id || p.is_system || String(p.id).startsWith('preset-') || seen.has(p.id)) return false
+      seen.add(p.id)
+      return true
+    })
     const activeId = userSettings.active_profile_id || 'preset-standard'
     const allProfiles = [...systemProfiles, ...customProfiles]
     const activeProfileObj = allProfiles.find(p => p.id === activeId)

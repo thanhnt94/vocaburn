@@ -166,7 +166,14 @@ export function DeckPersonalSettings({
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
 
   const userSettings = useAppStore((state) => state.userSettings)
-  const customTemplates = (userSettings?.study_profiles || []).filter((p: any) => !p.is_system)
+  const customTemplates = React.useMemo(() => {
+    const seen = new Set<string>()
+    return (userSettings?.study_profiles || []).filter((p: any) => {
+      if (!p || !p.id || p.is_system || String(p.id).startsWith('preset-') || seen.has(p.id)) return false
+      seen.add(p.id)
+      return true
+    })
+  }, [userSettings?.study_profiles])
   const allTemplates = [...SYSTEM_TEMPLATES, ...customTemplates]
 
   const applyTemplate = (settings: any) => {
