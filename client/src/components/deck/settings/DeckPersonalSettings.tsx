@@ -48,6 +48,7 @@ interface StudyTemplateItem {
   desc: string
   isSystem?: boolean
   isDeckDefault?: boolean
+  isCustom?: boolean
   settings: Record<string, any>
 }
 
@@ -184,6 +185,20 @@ export function DeckPersonalSettings({
 
   // Build complete list of templates
   const allTemplates: StudyTemplateItem[] = useMemo(() => {
+    const items: StudyTemplateItem[] = []
+
+    // If user has customized settings, show Current Customization item at the top
+    if (isCustomized && Object.keys(userOverrides).length > 0) {
+      items.push({
+        id: 'current-custom',
+        name: 'Current Customization',
+        badge: 'Custom Settings',
+        desc: 'Your personalized study configuration currently saved for this deck.',
+        isCustom: true,
+        settings: userOverrides
+      })
+    }
+
     const deckDefaultItem: StudyTemplateItem = {
       id: 'deck-default',
       name: 'Deck Creator Default',
@@ -192,6 +207,8 @@ export function DeckPersonalSettings({
       isDeckDefault: true,
       settings: creatorDefs
     }
+    items.push(deckDefaultItem)
+    items.push(...SYSTEM_TEMPLATES)
 
     const seen = new Set<string>()
     const customList: StudyTemplateItem[] = (userSettings?.study_profiles || [])
@@ -208,8 +225,9 @@ export function DeckPersonalSettings({
         settings: p.settings || {}
       }))
 
-    return [deckDefaultItem, ...SYSTEM_TEMPLATES, ...customList]
-  }, [creatorDefs, userSettings?.study_profiles])
+    items.push(...customList)
+    return items
+  }, [creatorDefs, userOverrides, isCustomized, userSettings?.study_profiles])
 
   const applyTemplate = (settings: any, templateId?: string) => {
     if (!settings) return
@@ -267,7 +285,9 @@ export function DeckPersonalSettings({
       setCardFlipTrigger(initialFlip)
       setCardRatingMode(initialRating)
 
-      if (!isCustomized) {
+      if (isCustomized && Object.keys(userOverrides).length > 0) {
+        setSelectedTemplateId('current-custom')
+      } else {
         setSelectedTemplateId('deck-default')
       }
     }
@@ -492,7 +512,9 @@ export function DeckPersonalSettings({
                         </span>
                         <span className={cn(
                           "px-2 py-0.2 rounded-full text-[9px] font-black uppercase tracking-wider border",
-                          tpl.isDeckDefault
+                          tpl.isCustom
+                            ? "bg-amber-100 text-amber-800 border-amber-200"
+                            : tpl.isDeckDefault
                             ? "bg-emerald-50 text-emerald-700 border-emerald-200"
                             : isSelected
                             ? "bg-orange-100 text-orange-800 border-orange-200"

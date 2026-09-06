@@ -1,6 +1,7 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { 
   Sliders, 
+  SlidersHorizontal,
   Brain, 
   Route, 
   Sparkles, 
@@ -142,6 +143,51 @@ export const PlaySettingsModal: React.FC<PlaySettingsModalProps> = ({
   const [isSaveModalOpen, setIsSaveModalOpen] = useState<boolean>(false)
   const [newProfileName, setNewProfileName] = useState<string>('')
 
+  // Track selected template id
+  const [selectedProfileId, setSelectedProfileId] = useState<string>(() => {
+    if (activeProfileId) return activeProfileId
+    if (!isCustomized && settingOrigin === 'deck_default') return 'deck-default'
+    if (isCustomized) return 'current-custom'
+    return 'deck-default'
+  })
+
+  // Snapshot of custom settings to allow switching back to "Current Customization"
+  const customSnapshotRef = useRef<any>(null)
+
+  useEffect(() => {
+    if (isOpen && (isCustomized || selectedProfileId === 'current-custom') && !customSnapshotRef.current) {
+      customSnapshotRef.current = {
+        learningMode: activeMode,
+        autoPlayAudio,
+        showImages,
+        frontValign,
+        frontHalign,
+        backValign,
+        backHalign,
+        randomEnabled,
+        sfxEnabled,
+        hapticEnabled,
+        quickLearnEnabled,
+        showFsrs,
+        cardFlipTrigger,
+        cardRatingMode
+      }
+    }
+    if (!isOpen) {
+      customSnapshotRef.current = null
+    }
+  }, [isOpen, isCustomized, selectedProfileId, activeMode, autoPlayAudio, showImages, frontValign, frontHalign, backValign, backHalign, randomEnabled, sfxEnabled, hapticEnabled, quickLearnEnabled, showFsrs, cardFlipTrigger, cardRatingMode])
+
+  useEffect(() => {
+    if (activeProfileId) {
+      setSelectedProfileId(activeProfileId)
+    } else if (!isCustomized && settingOrigin === 'deck_default') {
+      setSelectedProfileId('deck-default')
+    } else if (isCustomized && selectedProfileId === 'deck-default') {
+      setSelectedProfileId('current-custom')
+    }
+  }, [activeProfileId, isCustomized, settingOrigin])
+
   // Deduplicate profiles strictly by id
   const systemProfilesList = React.useMemo(() => {
     const seen = new Set<string>()
@@ -181,7 +227,41 @@ export const PlaySettingsModal: React.FC<PlaySettingsModalProps> = ({
     { id: 'flip', label: 'Quick Flip', desc: 'Free-form flashcard flip', icon: RotateCcw, color: 'text-sky-600', bg: 'bg-sky-50/80', border: 'border-sky-200' }
   ]
 
+  const handleSelectCurrentCustom = () => {
+    setSelectedProfileId('current-custom')
+    if (customSnapshotRef.current) {
+      const s = customSnapshotRef.current
+      if (applyLearningMode && s.learningMode) applyLearningMode(s.learningMode)
+      if (setAutoPlayAudio && s.autoPlayAudio) setAutoPlayAudio(s.autoPlayAudio)
+      if (setShowImages && s.showImages) setShowImages(s.showImages)
+      if (setFrontValign && s.frontValign) setFrontValign(s.frontValign)
+      if (setFrontHalign && s.frontHalign) setFrontHalign(s.frontHalign)
+      if (setBackValign && s.backValign) setBackValign(s.backValign)
+      if (setBackHalign && s.backHalign) setBackHalign(s.backHalign)
+      if (setRandomEnabled && s.randomEnabled !== undefined) setRandomEnabled(s.randomEnabled)
+      if (setSfxEnabled && s.sfxEnabled !== undefined) setSfxEnabled(s.sfxEnabled)
+      if (setHapticEnabled && s.hapticEnabled !== undefined) setHapticEnabled(s.hapticEnabled)
+      if (setQuickLearnEnabled && s.quickLearnEnabled !== undefined) setQuickLearnEnabled(s.quickLearnEnabled)
+      if (setShowFsrs && s.showFsrs !== undefined) setShowFsrs(s.showFsrs)
+      if (setCardFlipTrigger && s.cardFlipTrigger) setCardFlipTrigger(s.cardFlipTrigger)
+      if (setCardRatingMode && s.cardRatingMode) setCardRatingMode(s.cardRatingMode)
+    }
+  }
+
+  const handleSelectDeckDefault = async () => {
+    setSelectedProfileId('deck-default')
+    if (onResetToCreatorDefaults) {
+      setIsSyncing(true)
+      try {
+        await onResetToCreatorDefaults()
+      } finally {
+        setIsSyncing(false)
+      }
+    }
+  }
+
   const handleApplyTemplateInstant = async (profileId: string) => {
+    setSelectedProfileId(profileId)
     if (!onApplyProfile) return
     setIsSyncing(true)
     try {
@@ -310,7 +390,7 @@ export const PlaySettingsModal: React.FC<PlaySettingsModalProps> = ({
     </div>
   )
 
-  const isDeckDefaultActive = !isCustomized && settingOrigin === 'deck_default'
+  const isDeckDefaultActive = selectedProfileId === 'deck-default'
 
   return (
     <AnimatePresence>
@@ -351,10 +431,15 @@ export const PlaySettingsModal: React.FC<PlaySettingsModalProps> = ({
                         <ShieldCheck className="w-2.5 h-2.5 text-emerald-600" />
                         Deck Default
                       </span>
+                    ) : selectedProfileId === 'current-custom' ? (
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider bg-amber-50 text-amber-700 border border-amber-200/80">
+                        <Sparkles className="w-2.5 h-2.5 text-amber-600" />
+                        Customized
+                      </span>
                     ) : (
                       <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider bg-indigo-50 text-indigo-700 border border-indigo-200/80">
                         <Sparkles className="w-2.5 h-2.5 text-indigo-600" />
-                        Customized
+                        Template Active
                       </span>
                     )}
                   </div>
@@ -390,13 +475,13 @@ export const PlaySettingsModal: React.FC<PlaySettingsModalProps> = ({
                         : "text-slate-500 hover:text-slate-800"
                     )}
                   >
-                    <Sliders className="w-3 h-3" />
+                    <SlidersHorizontal className="w-3 h-3" />
                     <span>Advanced</span>
                   </button>
                 </div>
 
-                <button 
-                  type="button" 
+                <button
+                  type="button"
                   onClick={onClose}
                   className="w-8 h-8 rounded-xl bg-slate-50 hover:bg-slate-100 text-slate-400 hover:text-slate-700 flex items-center justify-center transition-colors cursor-pointer border border-slate-100 active:scale-95"
                 >
@@ -426,14 +511,58 @@ export const PlaySettingsModal: React.FC<PlaySettingsModalProps> = ({
                     )}
                   </div>
 
+                  {/* 0. Current Customization Card (if customized or currently active) */}
+                  {(isCustomized || selectedProfileId === 'current-custom') && (
+                    <div
+                      onClick={handleSelectCurrentCustom}
+                      className={cn(
+                        "p-3 rounded-2xl border transition-all cursor-pointer flex items-start gap-3 select-none",
+                        selectedProfileId === 'current-custom'
+                          ? "bg-amber-50/60 border-amber-500 shadow-xs ring-1 ring-amber-400/30"
+                          : "bg-white border-slate-200/80 hover:border-slate-300"
+                      )}
+                    >
+                      <div className="pt-0.5 shrink-0">
+                        <div className={cn(
+                          "w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all",
+                          selectedProfileId === 'current-custom' ? "border-amber-600 bg-amber-600" : "border-slate-300 bg-white"
+                        )}>
+                          {selectedProfileId === 'current-custom' && <div className="w-2 h-2 rounded-full bg-white" />}
+                        </div>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-0.5">
+                          <span className={cn("text-xs font-black truncate", selectedProfileId === 'current-custom' ? "text-amber-950" : "text-slate-800")}>
+                            Current Customization
+                          </span>
+                          <span className="px-2 py-0.2 rounded-full text-[9px] font-black uppercase tracking-wider bg-amber-100 text-amber-800 border border-amber-200">
+                            Active Custom
+                          </span>
+                        </div>
+                        <p className="text-[10.5px] text-slate-500 font-medium leading-relaxed mb-1.5">
+                          Your personalized active study configuration for this deck.
+                        </p>
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <span className="px-1.5 py-0.5 bg-slate-100/80 rounded-md text-[9px] font-bold text-slate-600">
+                            Flip: {cardFlipTrigger === 'button_only' ? 'Button Only' : cardFlipTrigger === 'tap' ? 'Tap Only' : 'Tap & Swipe'}
+                          </span>
+                          <span className="px-1.5 py-0.5 bg-slate-100/80 rounded-md text-[9px] font-bold text-slate-600">
+                            Rating: {cardRatingMode === 'buttons' ? '4 Buttons' : cardRatingMode === 'swipe_4way' ? '4-Way Swipe' : 'Both'}
+                          </span>
+                          <span className="px-1.5 py-0.5 bg-slate-100/80 rounded-md text-[9px] font-bold text-slate-600">
+                            Audio: {currentAudioMode === 'always' ? 'Always' : currentAudioMode === 'back' ? 'Back' : currentAudioMode === 'front' ? 'Front' : 'Off'}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
                   {/* 1. Deck Creator Default Card */}
                   <div
-                    onClick={() => {
-                      if (onResetToCreatorDefaults) onResetToCreatorDefaults()
-                    }}
+                    onClick={handleSelectDeckDefault}
                     className={cn(
                       "p-3 rounded-2xl border transition-all cursor-pointer flex items-start gap-3 select-none",
-                      isDeckDefaultActive
+                      selectedProfileId === 'deck-default'
                         ? "bg-emerald-50/50 border-emerald-500 shadow-xs ring-1 ring-emerald-400/30"
                         : "bg-white border-slate-200/80 hover:border-slate-300"
                     )}
@@ -441,14 +570,14 @@ export const PlaySettingsModal: React.FC<PlaySettingsModalProps> = ({
                     <div className="pt-0.5 shrink-0">
                       <div className={cn(
                         "w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all",
-                        isDeckDefaultActive ? "border-emerald-600 bg-emerald-600" : "border-slate-300 bg-white"
+                        selectedProfileId === 'deck-default' ? "border-emerald-600 bg-emerald-600" : "border-slate-300 bg-white"
                       )}>
-                        {isDeckDefaultActive && <div className="w-2 h-2 rounded-full bg-white" />}
+                        {selectedProfileId === 'deck-default' && <div className="w-2 h-2 rounded-full bg-white" />}
                       </div>
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-0.5">
-                        <span className={cn("text-xs font-black truncate", isDeckDefaultActive ? "text-emerald-950" : "text-slate-800")}>
+                        <span className={cn("text-xs font-black truncate", selectedProfileId === 'deck-default' ? "text-emerald-950" : "text-slate-800")}>
                           Deck Creator Default
                         </span>
                         <span className="px-2 py-0.2 rounded-full text-[9px] font-black uppercase tracking-wider bg-emerald-100 text-emerald-800 border border-emerald-200">
@@ -467,7 +596,7 @@ export const PlaySettingsModal: React.FC<PlaySettingsModalProps> = ({
                       System Presets
                     </span>
                     {systemProfilesList.map((p) => {
-                      const isSelected = activeProfileId === p.id
+                      const isSelected = selectedProfileId === p.id
                       const s = p.settings || {}
                       const flipText = s.card_flip_trigger === 'button_only' ? 'Button Only' : s.card_flip_trigger === 'tap' ? 'Tap Only' : 'Tap & Swipe'
                       const ratingText = s.card_rating_mode === 'buttons' ? '4 Buttons' : s.card_rating_mode === 'swipe_4way' ? '4-Way Swipe' : 'Both'
@@ -533,7 +662,7 @@ export const PlaySettingsModal: React.FC<PlaySettingsModalProps> = ({
                         My Saved Templates
                       </span>
                       {customProfilesList.map((p) => {
-                        const isSelected = activeProfileId === p.id
+                        const isSelected = selectedProfileId === p.id
                         return (
                           <div
                             key={p.id}
