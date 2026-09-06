@@ -262,6 +262,60 @@ const Settings = () => {
   const [newProfileBase, setNewProfileBase] = useState('preset-standard')
   const [isSavingProfile, setIsSavingProfile] = useState(false)
 
+  // Detailed Template Gestures & Study Settings State for Creation Modal
+  const [templateSettings, setTemplateSettings] = useState<{
+    card_flip_trigger: 'both' | 'tap' | 'button_only';
+    card_rating_mode: 'both' | 'buttons' | 'swipe_4way' | 'swipe_2way';
+    front_valign: 'center' | 'top';
+    front_halign: 'left' | 'center';
+    back_valign: 'center' | 'top';
+    back_halign: 'left' | 'center';
+    autoplay_audio: 'always' | 'front' | 'back' | 'none';
+    show_images: 'both' | 'back_only' | 'none' | 'always';
+    show_fsrs: boolean;
+  }>({
+    card_flip_trigger: 'both',
+    card_rating_mode: 'both',
+    front_valign: 'center',
+    front_halign: 'left',
+    back_valign: 'center',
+    back_halign: 'left',
+    autoplay_audio: 'always',
+    show_images: 'both',
+    show_fsrs: true
+  })
+
+  const loadBaseSettings = (baseId: string) => {
+    setNewProfileBase(baseId)
+    if (baseId === 'current') {
+      setTemplateSettings({
+        card_flip_trigger: (userSettings.card_flip_trigger as any) || 'both',
+        card_rating_mode: (userSettings.card_rating_mode as any) || 'both',
+        front_valign: (userSettings.front_valign as any) || 'center',
+        front_halign: (userSettings.front_halign as any) || 'left',
+        back_valign: (userSettings.back_valign as any) || 'center',
+        back_halign: (userSettings.back_halign as any) || 'left',
+        autoplay_audio: (userSettings.autoplay_audio as any) || 'always',
+        show_images: (userSettings.show_images as any) || 'both',
+        show_fsrs: userSettings.show_fsrs ?? true
+      })
+    } else {
+      const preset = SYSTEM_PROFILES.find(p => p.id === baseId) || SYSTEM_PROFILES[0]
+      const s = preset.settings as any
+      setTemplateSettings({
+        card_flip_trigger: s.card_flip_trigger || 'both',
+        card_rating_mode: s.card_rating_mode || 'both',
+        front_valign: s.front_valign || 'center',
+        front_halign: s.front_halign || 'left',
+        back_valign: s.back_valign || 'center',
+        back_halign: s.back_halign || 'left',
+        autoplay_audio: s.autoplay_audio || 'always',
+        show_images: s.show_images || 'both',
+        show_fsrs: s.show_fsrs ?? true
+      })
+    }
+  }
+
   const handleCreateProfile = async (name: string, icon = 'sparkles', baseSettings: any = {}) => {
     const newId = `custom-${Date.now()}`
     const newProfile: StudyProfile = {
@@ -275,8 +329,9 @@ const Settings = () => {
     const updatedProfiles = [...currentProfiles.filter((p: any) => !p.is_system), newProfile]
     await updateUserSettings({
       study_profiles: updatedProfiles as any,
-      active_profile_id: newId
-    })
+      active_profile_id: newId,
+      ...baseSettings
+    } as any)
   }
 
   const handleDeleteProfile = async (profileId: string) => {
@@ -290,9 +345,15 @@ const Settings = () => {
   }
 
   const handleSetActiveProfile = async (profileId: string) => {
+    const customProfiles: StudyProfile[] = (userSettings.study_profiles || []).filter((p: any) => !p.is_system)
+    const targetProf = [...SYSTEM_PROFILES, ...customProfiles].find(p => p.id === profileId)
+    const profSettings = targetProf?.settings || {}
+
+    // Apply BOTH active profile ID AND all study + gesture settings to user's global settings
     await updateUserSettings({
-      active_profile_id: profileId
-    })
+      active_profile_id: profileId,
+      ...profSettings
+    } as any)
   }
 
   const [pushActive, setPushActive] = useState(false)
@@ -784,9 +845,76 @@ const Settings = () => {
   }
 
   // ══════════════ TAB 1: GESTURES & PLAY ══════════════
-  const renderGesturesTab = () => (
-    <div className="space-y-4 md:space-y-6">
-      <section className="bg-white rounded-3xl md:rounded-[2.5rem] border border-slate-100 p-4 sm:p-6 md:p-8 shadow-2xs space-y-6">
+  const renderGesturesTab = () => {
+    const customProfiles: StudyProfile[] = (userSettings.study_profiles || []).filter((p: any) => !p.is_system)
+    const activeId = userSettings.active_profile_id || 'preset-standard'
+    const allProfiles = [...SYSTEM_PROFILES, ...customProfiles]
+    const activeProfileObj = allProfiles.find(p => p.id === activeId)
+
+    return (
+      <div className="space-y-4 md:space-y-6">
+        {/* Template & Gestures Sync Bar */}
+        <div className="bg-white rounded-3xl border border-purple-100/80 p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-2xs">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-2xl bg-purple-50 text-purple-600 flex items-center justify-center font-bold border border-purple-100 shrink-0">
+              <Sparkles className="w-5 h-5 text-purple-600" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] font-black uppercase text-purple-600 tracking-wider">
+                  Template Cử Chỉ & Thao Tác
+                </span>
+                <span className="text-[9px] font-bold px-1.5 py-0.2 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200/60">
+                  Đồng bộ toàn cục
+                </span>
+              </div>
+              <div className="text-xs sm:text-sm font-black text-slate-800 flex items-center gap-2 mt-0.5">
+                <span>{activeProfileObj ? activeProfileObj.name : 'Tiêu chuẩn (FSRS)'}</span>
+                <span className="text-[10px] font-medium text-slate-400">
+                  (Lật: {(userSettings.card_flip_trigger || 'both') === 'both' ? 'Chạm & Vuốt' : ((userSettings.card_flip_trigger === 'tap') ? 'Chạm thẻ' : 'Nút bấm')} • Đánh giá: {(userSettings.card_rating_mode || 'both') === 'both' ? 'Cả hai' : ((userSettings.card_rating_mode === 'swipe_4way') ? 'Vuốt 4 hướng' : ((userSettings.card_rating_mode === 'swipe_2way') ? 'Vuốt 2 chiều' : '4 Nút'))})
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 shrink-0">
+            {/* Quick Template Switcher */}
+            <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl border border-slate-200/70">
+              {SYSTEM_PROFILES.slice(0, 3).map(p => {
+                const isSel = p.id === activeId
+                return (
+                  <button
+                    key={p.id}
+                    type="button"
+                    onClick={() => handleSetActiveProfile(p.id)}
+                    className={cn(
+                      "px-2.5 py-1 rounded-lg text-[10px] font-black uppercase transition-all cursor-pointer",
+                      isSel ? "bg-white text-purple-600 shadow-xs border border-purple-200" : "text-slate-500 hover:text-slate-800"
+                    )}
+                  >
+                    {p.name.split(' ')[0]}
+                  </button>
+                )
+              })}
+            </div>
+
+            <button
+              type="button"
+              onClick={() => {
+                setNewProfileName('')
+                setNewProfileIcon('sparkles')
+                loadBaseSettings('current')
+                setIsCreateModalOpen(true)
+              }}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-purple-600 text-white font-black text-xs uppercase hover:bg-purple-700 active:scale-95 transition-all cursor-pointer shadow-md shadow-purple-500/20"
+            >
+              <BookmarkCheck className="w-3.5 h-3.5" />
+              <span>Lưu cử chỉ thành Template</span>
+            </button>
+          </div>
+        </div>
+
+        <section className="bg-white rounded-3xl md:rounded-[2.5rem] border border-slate-100 p-4 sm:p-6 md:p-8 shadow-2xs space-y-6">
         <div className="flex items-center justify-between border-b border-slate-100 pb-3.5">
           <div className="flex items-center gap-2.5">
             <div className="w-8 h-8 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center shrink-0">
@@ -1121,7 +1249,8 @@ const Settings = () => {
         </div>
       </section>
     </div>
-  )
+    )
+  }
 
   // ══════════════ TAB 2: ALGORITHM & LEARNING ══════════════
   const renderAlgorithmTab = () => (
@@ -1650,14 +1779,167 @@ const Settings = () => {
                 </label>
                 <select
                   value={newProfileBase}
-                  onChange={(e) => setNewProfileBase(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 focus:outline-none focus:border-indigo-500 font-medium cursor-pointer"
+                  onChange={(e) => loadBaseSettings(e.target.value)}
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-xs text-slate-900 focus:outline-none focus:border-indigo-500 font-bold cursor-pointer"
                 >
+                  <option value="current">⚡ Sao chép toàn bộ Cử chỉ & Học tập hiện tại của bạn</option>
                   <option value="preset-standard">Tiêu chuẩn (FSRS) - Đầy đủ 2 chiều & âm thanh</option>
                   <option value="preset-speedrun">Tốc độ cao (Speedrun) - Vuốt nhanh 2 chiều, tắt audio</option>
                   <option value="preset-audio">Luyện nghe (Audio-First) - Tự động phát âm thanh</option>
                   <option value="preset-focus">Tập trung tối giản (Deep Focus) - Tắt âm thanh & FSRS</option>
                 </select>
+              </div>
+
+              {/* Explicit Gestures Configuration */}
+              <div className="p-3 bg-purple-50/50 border border-purple-100 rounded-2xl space-y-2.5">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] font-black uppercase tracking-wider text-purple-700 flex items-center gap-1.5">
+                    <Move className="w-3 h-3" /> Thao Tác Cử Chỉ (Gestures)
+                  </span>
+                  <span className="text-[9px] font-bold text-purple-600 bg-purple-100/70 px-1.5 py-0.2 rounded">Tùy biến</span>
+                </div>
+
+                <div className="space-y-2">
+                  <div>
+                    <span className="text-[9.5px] font-bold text-slate-500 block mb-1">Cách lật thẻ</span>
+                    <div className="grid grid-cols-3 gap-1 bg-white p-1 rounded-xl border border-purple-100">
+                      {[
+                        { id: 'both', label: 'Chạm & Vuốt' },
+                        { id: 'tap', label: 'Chạm thân thẻ' },
+                        { id: 'button_only', label: 'Chỉ nút' },
+                      ].map((opt) => (
+                        <button
+                          key={opt.id}
+                          type="button"
+                          onClick={() => setTemplateSettings(prev => ({ ...prev, card_flip_trigger: opt.id as any }))}
+                          className={cn(
+                            "py-1 px-1 rounded-lg text-[9.5px] font-black uppercase transition-all cursor-pointer text-center",
+                            templateSettings.card_flip_trigger === opt.id
+                              ? "bg-purple-600 text-white shadow-xs"
+                              : "text-slate-500 hover:text-slate-800"
+                          )}
+                        >
+                          {opt.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div>
+                    <span className="text-[9.5px] font-bold text-slate-500 block mb-1">Đánh giá kết quả FSRS</span>
+                    <div className="grid grid-cols-4 gap-1 bg-white p-1 rounded-xl border border-purple-100">
+                      {[
+                        { id: 'both', label: 'Cả hai' },
+                        { id: 'swipe_4way', label: 'Vuốt 4 hướng' },
+                        { id: 'swipe_2way', label: 'Vuốt 2 chiều' },
+                        { id: 'buttons', label: '4 Nút' },
+                      ].map((opt) => (
+                        <button
+                          key={opt.id}
+                          type="button"
+                          onClick={() => setTemplateSettings(prev => ({ ...prev, card_rating_mode: opt.id as any }))}
+                          className={cn(
+                            "py-1 px-0.5 rounded-lg text-[9px] font-black uppercase transition-all cursor-pointer text-center truncate",
+                            templateSettings.card_rating_mode === opt.id
+                              ? "bg-purple-600 text-white shadow-xs"
+                              : "text-slate-500 hover:text-slate-800"
+                          )}
+                        >
+                          {opt.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Explicit Study & Audio Configuration */}
+              <div className="p-3 bg-indigo-50/50 border border-indigo-100 rounded-2xl space-y-2.5">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] font-black uppercase tracking-wider text-indigo-700 flex items-center gap-1.5">
+                    <Brain className="w-3 h-3" /> Học Tập & Hiển Thị (Profile)
+                  </span>
+                  <span className="text-[9px] font-bold text-indigo-600 bg-indigo-100/70 px-1.5 py-0.2 rounded">Tùy biến</span>
+                </div>
+
+                <div className="space-y-2">
+                  <div>
+                    <span className="text-[9.5px] font-bold text-slate-500 block mb-1">Tự động phát âm thanh</span>
+                    <div className="grid grid-cols-4 gap-1 bg-white p-1 rounded-xl border border-indigo-100">
+                      {[
+                        { id: 'always', label: 'Luôn phát' },
+                        { id: 'front', label: 'Mặt trước' },
+                        { id: 'back', label: 'Mặt sau' },
+                        { id: 'none', label: 'Tắt' },
+                      ].map((opt) => (
+                        <button
+                          key={opt.id}
+                          type="button"
+                          onClick={() => setTemplateSettings(prev => ({ ...prev, autoplay_audio: opt.id as any }))}
+                          className={cn(
+                            "py-1 px-1 rounded-lg text-[9.5px] font-black uppercase transition-all cursor-pointer text-center",
+                            templateSettings.autoplay_audio === opt.id
+                              ? "bg-indigo-600 text-white shadow-xs"
+                              : "text-slate-500 hover:text-slate-800"
+                          )}
+                        >
+                          {opt.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <span className="text-[9.5px] font-bold text-slate-500 block mb-1">Hiển thị ảnh</span>
+                      <div className="grid grid-cols-3 gap-0.5 bg-white p-1 rounded-xl border border-indigo-100">
+                        {[
+                          { id: 'both', label: 'Cả 2' },
+                          { id: 'back_only', label: 'Mặt sau' },
+                          { id: 'none', label: 'Tắt' },
+                        ].map((opt) => (
+                          <button
+                            key={opt.id}
+                            type="button"
+                            onClick={() => setTemplateSettings(prev => ({ ...prev, show_images: opt.id as any }))}
+                            className={cn(
+                              "py-1 px-0.5 rounded-lg text-[9px] font-black uppercase transition-all cursor-pointer text-center truncate",
+                              templateSettings.show_images === opt.id
+                                ? "bg-indigo-600 text-white shadow-xs"
+                                : "text-slate-500 hover:text-slate-800"
+                            )}
+                          >
+                            {opt.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div>
+                      <span className="text-[9.5px] font-bold text-slate-500 block mb-1">Chỉ số FSRS</span>
+                      <div className="grid grid-cols-2 gap-0.5 bg-white p-1 rounded-xl border border-indigo-100">
+                        {[
+                          { id: true, label: 'Hiện' },
+                          { id: false, label: 'Ẩn' },
+                        ].map((opt) => (
+                          <button
+                            key={String(opt.id)}
+                            type="button"
+                            onClick={() => setTemplateSettings(prev => ({ ...prev, show_fsrs: opt.id }))}
+                            className={cn(
+                              "py-1 px-1 rounded-lg text-[9.5px] font-black uppercase transition-all cursor-pointer text-center",
+                              templateSettings.show_fsrs === opt.id
+                                ? "bg-indigo-600 text-white shadow-xs"
+                                : "text-slate-500 hover:text-slate-800"
+                            )}
+                          >
+                            {opt.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
 
@@ -1677,7 +1959,11 @@ const Settings = () => {
                   setIsSavingProfile(true)
                   try {
                     const basePreset = SYSTEM_PROFILES.find(p => p.id === newProfileBase) || SYSTEM_PROFILES[0]
-                    await handleCreateProfile(newProfileName.trim(), newProfileIcon, basePreset.settings)
+                    const finalSettings = {
+                      ...basePreset.settings,
+                      ...templateSettings
+                    }
+                    await handleCreateProfile(newProfileName.trim(), newProfileIcon, finalSettings)
                     setIsCreateModalOpen(false)
                   } catch (e) {
                     console.error('Failed to create profile', e)
@@ -1685,9 +1971,9 @@ const Settings = () => {
                     setIsSavingProfile(false)
                   }
                 }}
-                className="px-4 py-2 rounded-xl bg-indigo-600 text-white text-xs font-black uppercase tracking-wider hover:bg-indigo-700 disabled:opacity-50 transition-all cursor-pointer shadow-md shadow-indigo-500/20"
+                className="px-4 py-2 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 text-white text-xs font-black uppercase tracking-wider hover:from-indigo-700 hover:to-purple-700 disabled:opacity-50 transition-all cursor-pointer shadow-md shadow-indigo-500/20"
               >
-                {isSavingProfile ? 'Đang tạo...' : 'Tạo Template'}
+                {isSavingProfile ? 'Đang tạo...' : 'Lưu Template Cử Chỉ & Học Tập'}
               </button>
             </div>
           </div>

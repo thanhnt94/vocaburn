@@ -162,8 +162,10 @@ export function usePlaySettings(
       if (effectiveSettings.back_halign !== undefined) {
         setBackHalignState(effectiveSettings.back_halign === 'center' ? 'center' : 'left')
       }
-      // Only apply deck-scoped interaction override if user or creator explicitly set it on this deck
-      if (userStudySettings && userStudySettings.card_flip_trigger !== undefined) {
+      // Sync interaction and gesture settings from effective study settings (profile/user/creator)
+      if (effectiveSettings.card_flip_trigger !== undefined) {
+        setCardFlipTriggerState(effectiveSettings.card_flip_trigger)
+      } else if (userStudySettings && userStudySettings.card_flip_trigger !== undefined) {
         setCardFlipTriggerState(userStudySettings.card_flip_trigger)
       } else if (creatorStudyDefaults && creatorStudyDefaults.card_flip_trigger !== undefined) {
         setCardFlipTriggerState(creatorStudyDefaults.card_flip_trigger)
@@ -171,7 +173,9 @@ export function usePlaySettings(
         setCardFlipTriggerState(undefined)
       }
 
-      if (userStudySettings && userStudySettings.card_rating_mode !== undefined) {
+      if (effectiveSettings.card_rating_mode !== undefined) {
+        setCardRatingModeState(effectiveSettings.card_rating_mode)
+      } else if (userStudySettings && userStudySettings.card_rating_mode !== undefined) {
         setCardRatingModeState(userStudySettings.card_rating_mode)
       } else if (creatorStudyDefaults && creatorStudyDefaults.card_rating_mode !== undefined) {
         setCardRatingModeState(creatorStudyDefaults.card_rating_mode)
@@ -313,6 +317,8 @@ export function usePlaySettings(
         setFrontHalignState(baseline.front_halign)
         setBackValignState(baseline.back_valign)
         setBackHalignState(baseline.back_halign)
+        setCardFlipTriggerState(baseline.card_flip_trigger)
+        setCardRatingModeState(baseline.card_rating_mode)
         setIsCustomized(false)
         setSettingOrigin('deck_default')
       }
