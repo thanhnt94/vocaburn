@@ -137,17 +137,24 @@ def tokenize_formula(formula: str, current_row: int, col_letter_to_name: Dict[st
 def transpile_formula(tokenized_formula: str, target_row: int, col_name_to_letter: Dict[str, str]) -> str:
     """
     Converts semantic tokens {{col_name}} to physical cell coordinates (e.g. B2, K2) based on exported column layout.
+    Supports Unicode characters, Vietnamese accents, spaces, and parentheses in column names.
     """
     if not isinstance(tokenized_formula, str) or not tokenized_formula.startswith("="):
         return tokenized_formula
 
-    pattern = re.compile(r'\{\{([a-zA-Z0-9_]+)(?::(\d+))?\}\}')
+    pattern = re.compile(r'\{\{([^}:]+?)(?::(\d+))?\}\}')
 
     def replacer(match):
         col_name, explicit_row = match.groups()
-        target_col_letter = col_name_to_letter.get(col_name)
+        col_clean = col_name.strip()
+        target_col_letter = (
+            col_name_to_letter.get(col_clean)
+            or col_name_to_letter.get(col_clean.lower())
+            or col_name_to_letter.get(col_name)
+            or col_name_to_letter.get(col_name.lower())
+        )
         if not target_col_letter:
-            return f"#{col_name}!"
+            return f"#{col_clean}!"
         row_str = explicit_row if explicit_row else str(target_row)
         return f"{target_col_letter}{row_str}"
 
@@ -1088,7 +1095,13 @@ class ExcelDeckService:
             has_any_formulas = True
         else:
             for q in cards:
-                if hasattr(q, 'others') and isinstance(q.others, dict) and q.others.get("_formulas"):
+                others = getattr(q, 'others', None)
+                if isinstance(others, str):
+                    try:
+                        others = json.loads(others)
+                    except Exception:
+                        others = {}
+                if isinstance(others, dict) and others.get("_formulas"):
                     has_any_formulas = True
                     break
 
@@ -1100,7 +1113,12 @@ class ExcelDeckService:
             export_cols.extend(["option_a", "option_b", "option_c", "option_d"])
         export_cols.extend(custom_cols)
 
-        col_name_to_letter = {col: get_column_letter(idx) for idx, col in enumerate(export_cols, start=1)}
+        col_name_to_letter = {}
+        for idx, col in enumerate(export_cols, start=1):
+            letter = get_column_letter(idx)
+            col_name_to_letter[col] = letter
+            col_name_to_letter[col.lower()] = letter
+            col_name_to_letter[col.strip().lower()] = letter
         
         # Prepare rows for Data and Data_Formula
         rows_data = []
@@ -1108,16 +1126,18 @@ class ExcelDeckService:
 
         for idx, q in enumerate(cards, start=1):
             excel_row_num = idx + 1 # Header is row 1
+            front_val = getattr(q, 'front', None) or getattr(q, 'content', "") or ""
+            back_val = getattr(q, 'back', None) or getattr(q, 'explanation', "") or ""
             row = {
                 "id": getattr(q, 'id', None),
-                "front": getattr(q, 'content', ""),
-                "back": getattr(q, 'explanation', ""),
-                "front_audio_content": getattr(q, 'front_audio_content', ""),
-                "back_audio_content": getattr(q, 'back_audio_content', ""),
-                "front_audio_url": getattr(q, 'front_audio_url', ""),
-                "back_audio_url": getattr(q, 'back_audio_url', ""),
-                "front_img": getattr(q, 'front_img', ""),
-                "back_img": getattr(q, 'back_img', "")
+                "front": front_val,
+                "back": back_val,
+                "front_audio_content": getattr(q, 'front_audio_content', "") or "",
+                "back_audio_content": getattr(q, 'back_audio_content', "") or "",
+                "front_audio_url": getattr(q, 'front_audio_url', "") or "",
+                "back_audio_url": getattr(q, 'back_audio_url', "") or "",
+                "front_img": getattr(q, 'front_img', "") or "",
+                "back_img": getattr(q, 'back_img', "") or ""
             }
 
             if has_options:
@@ -1127,6 +1147,11 @@ class ExcelDeckService:
                     row[f"option_{chr(97+i)}"] = opt_content
 
             others = getattr(q, 'others', {})
+            if isinstance(others, str):
+                try:
+                    others = json.loads(others)
+                except Exception:
+                    others = {}
             card_formulas = {}
             if isinstance(others, dict):
                 card_formulas = dict(others.get("_formulas") or {})

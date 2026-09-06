@@ -754,12 +754,28 @@ async def export_deck(deck_id: int, request: Request, exclude_ids: bool = False,
     res = await db.execute(c_stmt)
     cards = res.scalars().all()
     
+    collaborators_list = []
+    seen_collabs = set()
+    
+    # 1. Always include the creator/owner as admin
+    if deck.creator_id:
+        creator_res = await db.execute(select(UserDB).where(UserDB.id == deck.creator_id))
+        creator_user = creator_res.scalar_one_or_none()
+        if creator_user:
+            uname = creator_user.username or creator_user.email
+            if uname:
+                collaborators_list.append({"username": uname, "role": "admin"})
+                seen_collabs.add(uname.lower())
+    
+    # 2. Append other collaborators
     collab_stmt = select(DeckCollaborator, UserDB.username, UserDB.email).join(UserDB, DeckCollaborator.user_id == UserDB.id).where(DeckCollaborator.deck_id == deck_id)
     collab_res = await db.execute(collab_stmt)
-    collaborators_list = []
     for c_row, username, email in collab_res.all():
-        role = getattr(c_row, "role", "editor") or "editor"
-        collaborators_list.append({"username": username or email, "role": role})
+        uname = username or email
+        if uname and uname.lower() not in seen_collabs:
+            role = getattr(c_row, "role", "editor") or "editor"
+            collaborators_list.append({"username": uname, "role": role})
+            seen_collabs.add(uname.lower())
     
     category_name = deck.category.name if deck.category else "General"
     tags = [t.name for t in deck.tags]
