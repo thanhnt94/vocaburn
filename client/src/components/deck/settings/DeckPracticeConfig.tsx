@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { Sliders, Save, Check, Trophy, Keyboard, Headphones, Brain, Plus, Trash2, RotateCcw, HelpCircle, Volume2, VolumeX, Image, ImageOff, Shuffle, Music, Sparkles } from 'lucide-react'
+import { Sliders, Save, Check, Trophy, Keyboard, Headphones, Brain, Plus, Trash2, RotateCcw, HelpCircle, Volume2, VolumeX, Image, ImageOff, Shuffle, Music, Sparkles, Move, Compass, MousePointer } from 'lucide-react'
 import axios from 'axios'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -42,20 +42,17 @@ function normalizePair(p: any): QuestionAnswerPair {
   return {
     q,
     a,
-    prompt_col: q,
-    answer_col: a,
-    name: p.name || ''
+    name: p.name || `${q} ➜ ${Array.isArray(a) ? a.join(', ') : a}`,
+    prompt_col: p.prompt_col || q,
+    answer_col: p.answer_col || a,
   }
 }
 
 export function DeckPracticeConfig({ deckId, initialSettings, onSaved }: DeckPracticeConfigProps) {
   const queryClient = useQueryClient()
-  
-  // Selected Practice Mode Tab
   const [activeModeTab, setActiveModeTab] = useState<PracticeModeKey>('mcq')
   const [disabledModes, setDisabledModes] = useState<string[]>([])
-  
-  // Per-mode Q&A Pairs & Settings
+
   const [mcqPairs, setMcqPairs] = useState<QuestionAnswerPair[]>([])
   const [mcqNumChoices, setMcqNumChoices] = useState<number>(4)
 
@@ -71,6 +68,14 @@ export function DeckPracticeConfig({ deckId, initialSettings, onSaved }: DeckPra
   const [studyRandomEnabled, setStudyRandomEnabled] = useState<boolean>(false)
   const [studySfxEnabled, setStudySfxEnabled] = useState<boolean>(true)
   const [studyQuickLearnEnabled, setStudyQuickLearnEnabled] = useState<boolean>(false)
+
+  // Flashcard Gestures & Alignment Defaults
+  const [studyCardFlipTrigger, setStudyCardFlipTrigger] = useState<'both' | 'tap' | 'button_only'>('both')
+  const [studyCardRatingMode, setStudyCardRatingMode] = useState<'both' | 'buttons' | 'swipe_4way' | 'swipe_2way'>('both')
+  const [studyFrontValign, setStudyFrontValign] = useState<'center' | 'top'>('center')
+  const [studyFrontHalign, setStudyFrontHalign] = useState<'left' | 'center'>('left')
+  const [studyBackValign, setStudyBackValign] = useState<'center' | 'top'>('center')
+  const [studyBackHalign, setStudyBackHalign] = useState<'left' | 'center'>('left')
 
   const [isSaving, setIsSaving] = useState(false)
   const [saveSuccess, setSaveSuccess] = useState(false)
@@ -160,6 +165,12 @@ export function DeckPracticeConfig({ deckId, initialSettings, onSaved }: DeckPra
         if (studyDefs.random_enabled !== undefined) setStudyRandomEnabled(Boolean(studyDefs.random_enabled))
         if (studyDefs.sfx_enabled !== undefined) setStudySfxEnabled(Boolean(studyDefs.sfx_enabled))
         if (studyDefs.quick_learn_enabled !== undefined) setStudyQuickLearnEnabled(Boolean(studyDefs.quick_learn_enabled))
+        if (studyDefs.card_flip_trigger) setStudyCardFlipTrigger(studyDefs.card_flip_trigger)
+        if (studyDefs.card_rating_mode) setStudyCardRatingMode(studyDefs.card_rating_mode)
+        if (studyDefs.front_valign) setStudyFrontValign(studyDefs.front_valign)
+        if (studyDefs.front_halign) setStudyFrontHalign(studyDefs.front_halign)
+        if (studyDefs.back_valign) setStudyBackValign(studyDefs.back_valign)
+        if (studyDefs.back_halign) setStudyBackHalign(studyDefs.back_halign)
       }
     } else {
       setMcqPairs([{ q: 'front', a: 'back', prompt_col: 'front', answer_col: 'back' }])
@@ -189,74 +200,71 @@ export function DeckPracticeConfig({ deckId, initialSettings, onSaved }: DeckPra
   }
 
   const handleAddPair = () => {
-    setCurrentPairs(prev => [
+    setCurrentPairs((prev) => [
       ...prev,
       {
-        q: activeModeTab === 'typing' ? 'back' : 'front',
-        a: activeModeTab === 'typing' ? 'front' : 'back',
-        prompt_col: activeModeTab === 'typing' ? 'back' : 'front',
-        answer_col: activeModeTab === 'typing' ? 'front' : 'back',
-        name: `Cặp #${prev.length + 1}`
-      }
+        q: availableColumns[0] || 'front',
+        a: availableColumns[1] || 'back',
+        name: `Cặp #${prev.length + 1}`,
+      },
     ])
   }
 
   const handleRemovePair = (index: number) => {
-    setCurrentPairs(prev => prev.filter((_, idx) => idx !== index))
+    setCurrentPairs((prev) => prev.filter((_, i) => i !== index))
   }
 
   const handleUpdatePair = (index: number, field: 'q' | 'a', value: string | string[]) => {
-    setCurrentPairs(prev => prev.map((item, idx) => {
-      if (idx === index) {
-        const updated = { ...item, [field]: value }
-        if (field === 'q') updated.prompt_col = typeof value === 'string' ? value : value[0]
-        if (field === 'a') updated.answer_col = value
-        return updated
-      }
-      return item
-    }))
-  }
-
-  const formatPairs = (pairs: QuestionAnswerPair[]) => {
-    return pairs.map(p => ({
-      q: p.q || 'front',
-      a: p.a || 'back',
-      prompt_col: p.q || 'front',
-      answer_col: p.a || 'back',
-      name: p.name || `${p.q} ➜ ${Array.isArray(p.a) ? p.a.join('/') : p.a}`
-    }))
+    setCurrentPairs((prev) => {
+      const next = [...prev]
+      next[index] = { ...next[index], [field]: value }
+      return next
+    })
   }
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsSaving(true)
-    setSaveSuccess(false)
-
-    const formattedMcqPairs = formatPairs(mcqPairs)
-    const formattedTypingPairs = formatPairs(typingPairs)
-    const formattedListeningPairs = formatPairs(listeningPairs)
-
-    const baseSettings = practiceSettingsData?.creator_settings || initialSettings || {}
-
     try {
+      const baseSettings = practiceSettingsData?.creator_settings || initialSettings || {}
+
+      const formattedMcqPairs = mcqPairs.map((p) => ({
+        q: p.q,
+        a: Array.isArray(p.a) ? p.a[0] : p.a,
+        prompt_col: p.q,
+        answer_col: Array.isArray(p.a) ? p.a[0] : p.a,
+      }))
+
+      const formattedTypingPairs = typingPairs.map((p) => ({
+        q: p.q,
+        a: Array.isArray(p.a) ? p.a : [p.a],
+        prompt_col: p.q,
+        answer_col: Array.isArray(p.a) ? p.a : [p.a],
+      }))
+
+      const formattedListeningPairs = listeningPairs.map((p) => ({
+        q: p.q,
+        a: Array.isArray(p.a) ? p.a : [p.a],
+        prompt_col: p.q,
+        answer_col: Array.isArray(p.a) ? p.a : [p.a],
+      }))
+
       const mcqSettings = {
-        active_pairs: formattedMcqPairs,
         num_choices: mcqNumChoices,
+        active_pairs: formattedMcqPairs,
       }
       const typingSettings = {
         active_pairs: formattedTypingPairs,
       }
       const listeningSettings = {
-        active_pairs: formattedListeningPairs,
         num_choices: listeningNumChoices,
+        active_pairs: formattedListeningPairs,
       }
 
       await axios.post(`/api/v1/deck/${deckId}/practice-settings`, {
         settings: {
           ...baseSettings,
           disabled_modes: disabledModes,
-          num_choices: mcqNumChoices,
-          active_pairs: formattedMcqPairs,
           mcq: mcqSettings,
           typing: typingSettings,
           listening: listeningSettings,
@@ -266,7 +274,13 @@ export function DeckPracticeConfig({ deckId, initialSettings, onSaved }: DeckPra
             learning_mode: studyLearningMode,
             random_enabled: studyRandomEnabled,
             sfx_enabled: studySfxEnabled,
-            quick_learn_enabled: studyQuickLearnEnabled
+            quick_learn_enabled: studyQuickLearnEnabled,
+            card_flip_trigger: studyCardFlipTrigger,
+            card_rating_mode: studyCardRatingMode,
+            front_valign: studyFrontValign,
+            front_halign: studyFrontHalign,
+            back_valign: studyBackValign,
+            back_halign: studyBackHalign,
           }
         },
         is_creator: true,
@@ -511,6 +525,180 @@ export function DeckPracticeConfig({ deckId, initialSettings, onSaved }: DeckPra
             >
               <div className={cn("w-4 h-4 rounded-full bg-white shadow-sm transition-transform", studyQuickLearnEnabled ? "translate-x-4" : "translate-x-0")} />
             </button>
+          </div>
+        </div>
+
+        {/* 4. Flashcard Gestures Default */}
+        <div className="pt-2 border-t border-slate-100 space-y-3">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-black text-slate-900 uppercase tracking-wider flex items-center gap-1.5">
+              <Move className="w-3.5 h-3.5 text-purple-600" />
+              Cử Chỉ Flashcard Mặc Định (Gestures)
+            </span>
+            <span className="text-[9px] font-bold text-slate-400">Áp dụng cho người học</span>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {/* Card Flip Trigger */}
+            <div className="p-3 bg-slate-50/80 rounded-2xl border border-slate-200/60 space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                  <MousePointer className="w-3.5 h-3.5 text-indigo-600" />
+                  Thao tác lật thẻ (Flip Trigger)
+                </span>
+              </div>
+              <div className="grid grid-cols-3 gap-1 p-1 bg-white rounded-xl border border-slate-200/50">
+                {[
+                  { id: 'both', label: 'Chạm & Vuốt' },
+                  { id: 'tap', label: 'Chỉ Chạm' },
+                  { id: 'button_only', label: 'Chỉ Nút' }
+                ].map(opt => (
+                  <button
+                    key={opt.id}
+                    type="button"
+                    onClick={() => setStudyCardFlipTrigger(opt.id as any)}
+                    className={cn(
+                      "py-1.5 px-1 rounded-lg text-[10px] font-black transition-all text-center cursor-pointer active:scale-95",
+                      studyCardFlipTrigger === opt.id
+                        ? "bg-indigo-600 text-white shadow-xs"
+                        : "text-slate-500 hover:text-slate-800 hover:bg-slate-100"
+                    )}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* FSRS Rating Mode */}
+            <div className="p-3 bg-slate-50/80 rounded-2xl border border-slate-200/60 space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                  <Compass className="w-3.5 h-3.5 text-purple-600" />
+                  Đánh giá FSRS (Rating Mode)
+                </span>
+              </div>
+              <div className="grid grid-cols-4 gap-1 p-1 bg-white rounded-xl border border-slate-200/50">
+                {[
+                  { id: 'both', label: 'Hỗn hợp' },
+                  { id: 'swipe_4way', label: '4 hướng' },
+                  { id: 'swipe_2way', label: '2 chiều' },
+                  { id: 'buttons', label: '4 Nút' }
+                ].map(opt => (
+                  <button
+                    key={opt.id}
+                    type="button"
+                    onClick={() => setStudyCardRatingMode(opt.id as any)}
+                    className={cn(
+                      "py-1.5 px-0.5 rounded-lg text-[9.5px] font-black transition-all text-center cursor-pointer active:scale-95 truncate",
+                      studyCardRatingMode === opt.id
+                        ? "bg-purple-600 text-white shadow-xs"
+                        : "text-slate-500 hover:text-slate-800 hover:bg-slate-100"
+                    )}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* 5. Card Alignment Defaults */}
+        <div className="pt-2 border-t border-slate-100 space-y-3">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-black text-slate-900 uppercase tracking-wider flex items-center gap-1.5">
+              <Sliders className="w-3.5 h-3.5 text-indigo-600" />
+              Căn Lề Nội Dung Thẻ Mặc Định (Card Alignment)
+            </span>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {/* Front Card Alignment */}
+            <div className="p-3 bg-slate-50/80 rounded-2xl border border-slate-200/60 space-y-2">
+              <span className="text-xs font-bold text-slate-800 block">🎴 Mặt trước (Front Card)</span>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <span className="text-[9.5px] font-bold text-slate-400 block mb-1">Dọc:</span>
+                  <div className="grid grid-cols-2 gap-1 p-1 bg-white rounded-xl border border-slate-200/50">
+                    {(['center', 'top'] as const).map(v => (
+                      <button
+                        key={v}
+                        type="button"
+                        onClick={() => setStudyFrontValign(v)}
+                        className={cn(
+                          "py-1 px-1 rounded-lg text-[10px] font-black uppercase transition-all text-center cursor-pointer",
+                          studyFrontValign === v ? "bg-indigo-600 text-white shadow-xs" : "text-slate-500 hover:text-slate-800"
+                        )}
+                      >
+                        {v === 'center' ? 'Giữa' : 'Trên'}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div>
+                  <span className="text-[9.5px] font-bold text-slate-400 block mb-1">Ngang:</span>
+                  <div className="grid grid-cols-2 gap-1 p-1 bg-white rounded-xl border border-slate-200/50">
+                    {(['left', 'center'] as const).map(h => (
+                      <button
+                        key={h}
+                        type="button"
+                        onClick={() => setStudyFrontHalign(h)}
+                        className={cn(
+                          "py-1 px-1 rounded-lg text-[10px] font-black uppercase transition-all text-center cursor-pointer",
+                          studyFrontHalign === h ? "bg-indigo-600 text-white shadow-xs" : "text-slate-500 hover:text-slate-800"
+                        )}
+                      >
+                        {h === 'left' ? 'Trái' : 'Giữa'}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Back Card Alignment */}
+            <div className="p-3 bg-slate-50/80 rounded-2xl border border-slate-200/60 space-y-2">
+              <span className="text-xs font-bold text-slate-800 block">📖 Mặt sau (Back Card)</span>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <span className="text-[9.5px] font-bold text-slate-400 block mb-1">Dọc:</span>
+                  <div className="grid grid-cols-2 gap-1 p-1 bg-white rounded-xl border border-slate-200/50">
+                    {(['center', 'top'] as const).map(v => (
+                      <button
+                        key={v}
+                        type="button"
+                        onClick={() => setStudyBackValign(v)}
+                        className={cn(
+                          "py-1 px-1 rounded-lg text-[10px] font-black uppercase transition-all text-center cursor-pointer",
+                          studyBackValign === v ? "bg-indigo-600 text-white shadow-xs" : "text-slate-500 hover:text-slate-800"
+                        )}
+                      >
+                        {v === 'center' ? 'Giữa' : 'Trên'}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div>
+                  <span className="text-[9.5px] font-bold text-slate-400 block mb-1">Ngang:</span>
+                  <div className="grid grid-cols-2 gap-1 p-1 bg-white rounded-xl border border-slate-200/50">
+                    {(['left', 'center'] as const).map(h => (
+                      <button
+                        key={h}
+                        type="button"
+                        onClick={() => setStudyBackHalign(h)}
+                        className={cn(
+                          "py-1 px-1 rounded-lg text-[10px] font-black uppercase transition-all text-center cursor-pointer",
+                          studyBackHalign === h ? "bg-indigo-600 text-white shadow-xs" : "text-slate-500 hover:text-slate-800"
+                        )}
+                      >
+                        {h === 'left' ? 'Trái' : 'Giữa'}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>

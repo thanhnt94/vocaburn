@@ -16,11 +16,14 @@ import {
   Save,
   User,
   ShieldAlert,
-  Sliders
+  Sliders,
+  BookmarkCheck,
+  Zap
 } from 'lucide-react'
 import axios from 'axios'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { cn } from '@/lib/utils'
+import { useAppStore } from '@/store/useAppStore'
 
 export interface DeckPersonalSettingsProps {
   deckId: string | number
@@ -32,6 +35,81 @@ export interface DeckPersonalSettingsProps {
 type PreferredMode = 'fsrs' | 'roadmap' | 'flip' | 'mcq' | 'typing' | 'listening'
 type AudioChoice = 'none' | 'front' | 'back' | 'always'
 type ImageChoice = 'always' | 'front' | 'back' | 'none'
+
+const SYSTEM_TEMPLATES = [
+  {
+    id: 'preset-standard',
+    name: 'Tiêu chuẩn (FSRS)',
+    settings: {
+      learning_mode: 'fsrs',
+      autoplay_audio: 'always',
+      show_images: 'always',
+      front_valign: 'center',
+      front_halign: 'left',
+      back_valign: 'center',
+      back_halign: 'left',
+      random_enabled: false,
+      sfx_enabled: true,
+      quick_learn_enabled: false,
+      card_flip_trigger: 'both',
+      card_rating_mode: 'both',
+    }
+  },
+  {
+    id: 'preset-speedrun',
+    name: 'Tốc độ cao (Speedrun)',
+    settings: {
+      learning_mode: 'flip',
+      autoplay_audio: 'none',
+      show_images: 'none',
+      front_valign: 'center',
+      front_halign: 'center',
+      back_valign: 'center',
+      back_halign: 'center',
+      random_enabled: true,
+      sfx_enabled: true,
+      quick_learn_enabled: true,
+      card_flip_trigger: 'tap',
+      card_rating_mode: 'swipe_2way',
+    }
+  },
+  {
+    id: 'preset-audio',
+    name: 'Luyện nghe (Audio-First)',
+    settings: {
+      learning_mode: 'listening',
+      autoplay_audio: 'always',
+      show_images: 'always',
+      front_valign: 'center',
+      front_halign: 'left',
+      back_valign: 'center',
+      back_halign: 'left',
+      random_enabled: false,
+      sfx_enabled: true,
+      quick_learn_enabled: false,
+      card_flip_trigger: 'both',
+      card_rating_mode: 'both',
+    }
+  },
+  {
+    id: 'preset-focus',
+    name: 'Tập trung tối giản (Deep Focus)',
+    settings: {
+      learning_mode: 'flip',
+      autoplay_audio: 'none',
+      show_images: 'none',
+      front_valign: 'center',
+      front_halign: 'left',
+      back_valign: 'center',
+      back_halign: 'left',
+      random_enabled: false,
+      sfx_enabled: false,
+      quick_learn_enabled: false,
+      card_flip_trigger: 'both',
+      card_rating_mode: 'buttons',
+    }
+  },
+]
 
 const audioLabelMap: Record<string, string> = {
   none: 'Tắt',
@@ -86,6 +164,33 @@ export function DeckPersonalSettings({
   const [isSaving, setIsSaving] = useState(false)
   const [isResetting, setIsResetting] = useState(false)
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
+
+  const userSettings = useAppStore((state) => state.userSettings)
+  const customTemplates = (userSettings?.study_profiles || []).filter((p: any) => !p.is_system)
+  const allTemplates = [...SYSTEM_TEMPLATES, ...customTemplates]
+
+  const applyTemplate = (settings: any) => {
+    if (!settings) return
+    if (settings.learning_mode || settings.quiz_learning_mode) {
+      const lm = settings.learning_mode || settings.quiz_learning_mode
+      if (['fsrs', 'roadmap', 'flip', 'mcq', 'typing', 'listening'].includes(lm)) {
+        setPreferredMode(lm as any)
+      }
+    }
+    if (settings.autoplay_audio) setAutoplayAudio(settings.autoplay_audio as any)
+    if (settings.show_images) setShowImages(settings.show_images as any)
+    if (settings.front_valign) setFrontValign(settings.front_valign)
+    if (settings.front_halign) setFrontHalign(settings.front_halign)
+    if (settings.back_valign) setBackValign(settings.back_valign)
+    if (settings.back_halign) setBackHalign(settings.back_halign)
+    if (settings.random_enabled !== undefined) setRandomEnabled(Boolean(settings.random_enabled))
+    if (settings.sfx_enabled !== undefined) setSfxEnabled(Boolean(settings.sfx_enabled))
+    if (settings.quick_learn_enabled !== undefined) setQuickLearnEnabled(Boolean(settings.quick_learn_enabled))
+    if (settings.card_flip_trigger) setCardFlipTrigger(settings.card_flip_trigger)
+    if (settings.card_rating_mode) setCardRatingMode(settings.card_rating_mode)
+    setMessage({ type: 'success', text: 'Đã áp dụng cử chỉ & thông số từ Template vào biểu mẫu! Bấm "Lưu Thay Đổi" để kích hoạt.' })
+    setTimeout(() => setMessage(null), 3500)
+  }
 
   // Sync state when data loads: copy user settings if customized, otherwise copy deck's original default settings
   useEffect(() => {
@@ -249,6 +354,8 @@ export function DeckPersonalSettings({
     const creatorRandom = Boolean(creatorDefs.random_enabled ?? false)
     const creatorSfx = Boolean(creatorDefs.sfx_enabled ?? true)
     const creatorQuickLearn = Boolean(creatorDefs.quick_learn_enabled ?? false)
+    const creatorFlip = (creatorDefs.card_flip_trigger || 'both') as 'both' | 'tap' | 'button_only'
+    const creatorRating = (creatorDefs.card_rating_mode || 'both') as 'both' | 'buttons' | 'swipe_4way' | 'swipe_2way'
 
     setPreferredMode(creatorMode)
     setAutoplayAudio(creatorAudio)
@@ -260,6 +367,8 @@ export function DeckPersonalSettings({
     setRandomEnabled(creatorRandom)
     setSfxEnabled(creatorSfx)
     setQuickLearnEnabled(creatorQuickLearn)
+    setCardFlipTrigger(creatorFlip)
+    setCardRatingMode(creatorRating)
 
     try {
       await axios.post(`/api/v1/deck/${deckId}/practice-settings`, {
@@ -336,6 +445,33 @@ export function DeckPersonalSettings({
             <span>{message.text}</span>
           </div>
         )}
+
+        {/* ═══════════ QUICK APPLY TEMPLATE SELECTOR ═══════════ */}
+        <div className="p-3.5 bg-gradient-to-r from-indigo-50/70 to-purple-50/70 rounded-2xl border border-indigo-100/80 space-y-2.5">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-black text-indigo-900 uppercase tracking-wide flex items-center gap-1.5">
+              <Sparkles className="w-3.5 h-3.5 text-indigo-600" />
+              Áp Dụng Nhanh Từ Mẫu Template (Quick Apply)
+            </span>
+            <span className="text-[10px] font-bold text-indigo-600/80">
+              1-click điền toàn bộ cử chỉ & thuật toán
+            </span>
+          </div>
+
+          <div className="flex flex-wrap gap-1.5">
+            {allTemplates.map((tpl) => (
+              <button
+                key={tpl.id}
+                type="button"
+                onClick={() => applyTemplate(tpl.settings)}
+                className="px-2.5 py-1.5 rounded-xl bg-white hover:bg-indigo-600 text-slate-700 hover:text-white border border-indigo-200/60 hover:border-indigo-600 text-[11px] font-black transition-all flex items-center gap-1.5 cursor-pointer shadow-2xs active:scale-95"
+              >
+                <BookmarkCheck className="w-3 h-3 text-indigo-500 group-hover:text-white" />
+                <span>{tpl.name}</span>
+              </button>
+            ))}
+          </div>
+        </div>
 
         {/* ═══════════ 1. PREFERRED STUDY MODE ═══════════ */}
         <div className="space-y-2.5 pt-1">

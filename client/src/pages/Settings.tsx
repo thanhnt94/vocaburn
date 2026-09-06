@@ -236,6 +236,9 @@ const Settings = () => {
     setSearchParams({ tab }, { replace: true })
   }
 
+  // Nested Sub-Tab State for Deck Templates Tab
+  const [deckSubTab, setDeckSubTab] = useState<'presets' | 'gestures' | 'algorithm' | 'display'>('presets')
+
   // Profile / Template Creation State
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
   const [newProfileName, setNewProfileName] = useState('')
@@ -622,8 +625,52 @@ const Settings = () => {
           </div>
         </section>
 
+        {/* ══════════ NESTED SUB-TAB SWITCHER ══════════ */}
+        <div className="bg-slate-100/90 p-1 sm:p-1.5 rounded-2xl md:rounded-3xl border border-slate-200/80 shadow-2xs">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-1 sm:gap-1.5">
+            {[
+              { id: 'presets', label: 'Mẫu Templates', icon: Sparkles, desc: 'Presets & Cá nhân' },
+              { id: 'gestures', label: 'Cử chỉ (Gestures)', icon: Move, desc: 'Lật thẻ & Đánh giá' },
+              { id: 'algorithm', label: 'Thuật toán học', icon: Brain, desc: 'Thứ tự ôn tập' },
+              { id: 'display', label: 'Căn lề & Hiển thị', icon: Layers, desc: 'Lề, Âm thanh & SFX' },
+            ].map((tab) => {
+              const isSubActive = deckSubTab === tab.id
+              const Icon = tab.icon
+              return (
+                <button
+                  key={tab.id}
+                  type="button"
+                  onClick={() => setDeckSubTab(tab.id as any)}
+                  className={cn(
+                    "p-2.5 sm:p-3 rounded-xl md:rounded-2xl transition-all text-left flex items-center gap-2.5 cursor-pointer select-none",
+                    isSubActive
+                      ? "bg-indigo-600 text-white shadow-md shadow-indigo-600/20"
+                      : "bg-white/80 hover:bg-white text-slate-600 border border-slate-200/60"
+                  )}
+                >
+                  <div className={cn(
+                    "w-8 h-8 rounded-xl flex items-center justify-center shrink-0 transition-colors",
+                    isSubActive ? "bg-white/20 text-white" : "bg-slate-50 text-indigo-600 shadow-2xs"
+                  )}>
+                    <Icon className="w-4 h-4" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <h4 className={cn("text-xs font-black uppercase tracking-tight truncate", isSubActive ? "text-white" : "text-slate-800")}>
+                      {tab.label}
+                    </h4>
+                    <p className={cn("text-[9.5px] font-bold truncate hidden sm:block", isSubActive ? "text-indigo-100" : "text-slate-400")}>
+                      {tab.desc}
+                    </p>
+                  </div>
+                </button>
+              )
+            })}
+          </div>
+        </div>
+
         {/* ══════════ SECTION 1: SYSTEM PRESETS & USER TEMPLATES ══════════ */}
-        <section className="bg-white rounded-3xl md:rounded-[2.5rem] border border-slate-100 p-4 sm:p-6 md:p-8 shadow-2xs space-y-6">
+        {deckSubTab === 'presets' && (
+          <section className="bg-white rounded-3xl md:rounded-[2.5rem] border border-slate-100 p-4 sm:p-6 md:p-8 shadow-2xs space-y-6">
           <div className="flex items-center justify-between border-b border-slate-100 pb-3.5">
             <div className="flex items-center gap-2.5">
               <div className="w-8 h-8 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0">
@@ -858,8 +905,10 @@ const Settings = () => {
             )}
           </div>
         </section>
+      )}
 
-        {/* ══════════ SECTION 2: GESTURES & INTERACTION ══════════ */}
+      {/* ══════════ SECTION 2: GESTURES & INTERACTION ══════════ */}
+      {deckSubTab === 'gestures' && (
         <section className="bg-white rounded-3xl md:rounded-[2.5rem] border border-slate-100 p-4 sm:p-6 md:p-8 shadow-2xs space-y-6">
           <div className="flex items-center justify-between border-b border-slate-100 pb-3.5">
             <div className="flex items-center gap-2.5">
@@ -1062,8 +1111,10 @@ const Settings = () => {
             </div>
           </div>
         </section>
+      )}
 
-        {/* ══════════ SECTION 3: LEARNING ALGORITHM & ORDER ══════════ */}
+      {/* ══════════ SECTION 3: LEARNING ALGORITHM & ORDER ══════════ */}
+      {deckSubTab === 'algorithm' && (
         <section className="bg-white rounded-3xl md:rounded-[2.5rem] border border-slate-100 p-4 sm:p-6 md:p-8 shadow-2xs space-y-4">
           <div className="flex items-center gap-2.5 border-b border-slate-100 pb-3.5">
             <div className="w-8 h-8 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0">
@@ -1151,8 +1202,10 @@ const Settings = () => {
             ))}
           </div>
         </section>
+      )}
 
-        {/* ══════════ SECTION 4: CARD ALIGNMENT, AUDIO & DISPLAY DEFAULTS ══════════ */}
+      {/* ══════════ SECTION 4: CARD ALIGNMENT, AUDIO & DISPLAY DEFAULTS ══════════ */}
+      {deckSubTab === 'display' && (
         <section className="bg-white rounded-3xl md:rounded-[2.5rem] border border-slate-100 p-4 sm:p-6 md:p-8 shadow-2xs space-y-6">
           <div className="flex items-center justify-between border-b border-slate-100 pb-3.5">
             <div className="flex items-center gap-2.5">
@@ -1384,6 +1437,7 @@ const Settings = () => {
             </button>
           </div>
         </section>
+      )}
       </div>
     )
   }
