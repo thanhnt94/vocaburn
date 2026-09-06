@@ -126,6 +126,77 @@ SYSTEM_STUDY_DEFAULTS = {
 
 STUDY_SETTINGS_KEYS = set(SYSTEM_STUDY_DEFAULTS.keys())
 
+SYSTEM_STUDY_PROFILES = [
+    {
+        "id": "preset-standard",
+        "name": "Tiêu chuẩn (Cân bằng)",
+        "description": "FSRS v6, căn giữa, hiển thị hình ảnh, hỗ trợ cả nút bấm & vuốt cử chỉ",
+        "icon": "sparkles",
+        "is_system": True,
+        "settings": dict(SYSTEM_STUDY_DEFAULTS)
+    },
+    {
+        "id": "preset-speedrun",
+        "name": "Tốc độ cao (Lướt nhanh)",
+        "description": "Học nhanh, chạm lật thẻ, vuốt 2 hướng, tắt hình ảnh, tối đa tốc độ",
+        "icon": "zap",
+        "is_system": True,
+        "settings": {
+            **SYSTEM_STUDY_DEFAULTS,
+            "learning_mode": "flip",
+            "quick_learn_enabled": True,
+            "card_flip_trigger": "tap",
+            "card_rating_mode": "swipe_2way",
+            "show_images": "none",
+            "show_fsrs": False
+        }
+    },
+    {
+        "id": "preset-audio",
+        "name": "Luyện nghe (Audio Immersion)",
+        "description": "Tự động phát giọng đọc TTS cả 2 mặt thẻ, bật toàn bộ hiệu ứng âm thanh",
+        "icon": "headphones",
+        "is_system": True,
+        "settings": {
+            **SYSTEM_STUDY_DEFAULTS,
+            "autoplay_audio": "always",
+            "sfx_enabled": True,
+            "haptic_enabled": True,
+            "front_valign": "center",
+            "front_halign": "center",
+            "back_valign": "center",
+            "back_halign": "center"
+        }
+    },
+    {
+        "id": "preset-focus",
+        "name": "Đọc sâu (Deep Study)",
+        "description": "Căn lề trên/trái chuẩn sách giáo khoa, hiện FSRS chi tiết, dùng 4 nút đánh giá",
+        "icon": "book",
+        "is_system": True,
+        "settings": {
+            **SYSTEM_STUDY_DEFAULTS,
+            "learning_mode": "fsrs",
+            "front_valign": "top",
+            "front_halign": "left",
+            "back_valign": "top",
+            "back_halign": "left",
+            "show_images": "always",
+            "show_fsrs": True,
+            "card_flip_trigger": "both",
+            "card_rating_mode": "buttons"
+        }
+    }
+]
+
+def get_all_study_profiles(custom_profiles: Optional[list] = None) -> list[dict]:
+    profiles = [dict(p) for p in SYSTEM_STUDY_PROFILES]
+    if custom_profiles and isinstance(custom_profiles, list):
+        for cp in custom_profiles:
+            if isinstance(cp, dict) and cp.get("id"):
+                profiles.append(cp)
+    return profiles
+
 
 def normalize_study_setting_value(key: str, val: Any) -> Any:
     if val is None:
@@ -267,16 +338,22 @@ def resolve_effective_study_settings(
     
     # Determine setting origin
     if is_customized:
-        is_from_global = isinstance(user_deck_settings, dict) and user_deck_settings.get("_origin") == "user_global"
-        setting_origin = "user_global" if is_from_global else "deck_override"
+        raw_origin = user_deck_settings.get("_origin") if isinstance(user_deck_settings, dict) else None
+        setting_origin = raw_origin if raw_origin else "deck_override"
     else:
         setting_origin = "deck_default"
+
+    custom_profiles = user_global_settings.get("study_profiles", []) if isinstance(user_global_settings, dict) else []
+    study_profiles = get_all_study_profiles(custom_profiles)
+    active_profile_id = user_global_settings.get("active_profile_id") if isinstance(user_global_settings, dict) else None
 
     return {
         "effective_study_settings": effective,
         "creator_study_defaults": creator_defaults,
         "user_study_settings": user_overrides,
         "user_global_settings": global_defaults,
+        "study_profiles": study_profiles,
+        "active_profile_id": active_profile_id,
         "setting_origin": setting_origin,
         "is_customized": is_customized
     }

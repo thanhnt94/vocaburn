@@ -28,14 +28,17 @@ import {
   BookOpen,
   AlignLeft,
   AlignCenter,
-  AlignVerticalSpaceAround,
-  MousePointerClick
+  MousePointerClick,
+  ChevronDown,
+  BookmarkPlus,
+  Trash2,
+  Headphones,
+  Book
 } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useNavigate, useParams } from 'react-router-dom'
 import { cn } from '@/lib/utils'
-
-export type SettingOrigin = 'deck_override' | 'user_global' | 'deck_default'
+import type { StudyProfile } from '@/store/useSettingsStore'
 
 interface PlaySettingsModalProps {
   isOpen: boolean;
@@ -63,10 +66,13 @@ interface PlaySettingsModalProps {
   randomEnabled?: boolean;
   setRandomEnabled?: (enabled: boolean) => void;
   isCustomized?: boolean;
-  settingOrigin?: SettingOrigin;
+  settingOrigin?: string;
+  studyProfiles?: StudyProfile[];
+  activeProfileId?: string | null;
+  onApplyProfile?: (profileId: string) => Promise<void> | void;
+  onCreateCustomProfile?: (name: string, icon?: string) => Promise<void> | void;
+  onDeleteCustomProfile?: (profileId: string) => Promise<void> | void;
   onResetToCreatorDefaults?: () => Promise<void> | void;
-  onApplyGlobalSettings?: () => Promise<void> | void;
-  onSaveAsGlobalSettings?: () => Promise<void> | void;
   onSaveAsCreatorDefaults?: () => Promise<void> | void;
   frontHalign?: 'center' | 'left';
   setFrontHalign?: (val: 'center' | 'left') => void;
@@ -110,9 +116,12 @@ export const PlaySettingsModal: React.FC<PlaySettingsModalProps> = ({
   setRandomEnabled,
   isCustomized = false,
   settingOrigin = 'deck_default',
+  studyProfiles = [],
+  activeProfileId = null,
+  onApplyProfile,
+  onCreateCustomProfile,
+  onDeleteCustomProfile,
   onResetToCreatorDefaults,
-  onApplyGlobalSettings,
-  onSaveAsGlobalSettings,
   onSaveAsCreatorDefaults,
   frontHalign = 'left',
   setFrontHalign,
@@ -132,6 +141,9 @@ export const PlaySettingsModal: React.FC<PlaySettingsModalProps> = ({
   const { id } = useParams<{ id: string }>()
   const [activeTab, setActiveTab] = useState<'modes' | 'audio' | 'display' | 'gestures'>('modes')
   const [isSyncing, setIsSyncing] = useState<boolean>(false)
+  const [isProfileMenuOpen, setIsProfileMenuOpen] = useState<boolean>(false)
+  const [isSaveModalOpen, setIsSaveModalOpen] = useState<boolean>(false)
+  const [newProfileName, setNewProfileName] = useState<string>('')
 
   // Parse audio mode
   const currentAudioMode: 'always' | 'front' | 'back' | 'none' = autoPlayAudio || 'none'
@@ -144,6 +156,13 @@ export const PlaySettingsModal: React.FC<PlaySettingsModalProps> = ({
     return 'none'
   })()
 
+  // Determine current active profile name
+  const currentProfile = studyProfiles.find(p => p.id === activeProfileId) || 
+    (settingOrigin.startsWith('profile:') ? {
+      name: settingOrigin.split(':')[2] || 'Hồ sơ đã áp dụng',
+      icon: 'sparkles'
+    } : null)
+
   const MODES_LIST = [
     { id: 'fsrs', label: 'FSRS v6', desc: 'Lặp lại ngắt quãng', icon: Brain, color: 'text-indigo-600', bg: 'bg-indigo-50/80', border: 'border-indigo-200' },
     { id: 'roadmap', label: 'Lộ trình', desc: 'Theo từng chặng', icon: Route, color: 'text-emerald-600', bg: 'bg-emerald-50/80', border: 'border-emerald-200' },
@@ -152,6 +171,15 @@ export const PlaySettingsModal: React.FC<PlaySettingsModalProps> = ({
     { id: 'hardest', label: 'Khó nhất', desc: 'Thẻ hay quên', icon: TrendingUp, color: 'text-purple-600', bg: 'bg-purple-50/80', border: 'border-purple-200' },
     { id: 'flip', label: 'Lật nhanh', desc: 'Lướt thẻ tự do', icon: RotateCcw, color: 'text-sky-600', bg: 'bg-sky-50/80', border: 'border-sky-200' }
   ]
+
+  const getProfileIcon = (iconName?: string) => {
+    switch (iconName) {
+      case 'zap': return Zap
+      case 'headphones': return Headphones
+      case 'book': return Book
+      default: return Sparkles
+    }
+  }
 
   const ToggleSwitch = ({ checked, onChange, label, sub, icon: Icon, color = 'text-indigo-600', bg = 'bg-indigo-50' }: any) => (
     <div className="flex items-center justify-between p-2.5 sm:p-3 rounded-2xl bg-white border border-slate-100 hover:border-slate-200/80 transition-all shadow-2xs">
@@ -235,22 +263,24 @@ export const PlaySettingsModal: React.FC<PlaySettingsModalProps> = ({
     </div>
   )
 
-  const handleApplyGlobal = async () => {
-    if (!onApplyGlobalSettings) return
+  const handleApplyProfile = async (profileId: string) => {
+    if (!onApplyProfile) return
     setIsSyncing(true)
+    setIsProfileMenuOpen(false)
     try {
-      await onApplyGlobalSettings()
+      await onApplyProfile(profileId)
     } finally {
       setIsSyncing(false)
     }
   }
 
-  const handleSaveAsGlobal = async () => {
-    if (!onSaveAsGlobalSettings) return
+  const handleSaveProfile = async () => {
+    if (!onCreateCustomProfile || !newProfileName.trim()) return
     setIsSyncing(true)
     try {
-      await onSaveAsGlobalSettings()
-      alert("Đã lưu cấu hình học hiện tại thành cài đặt toàn cục thành công!")
+      await onCreateCustomProfile(newProfileName.trim())
+      setIsSaveModalOpen(false)
+      setNewProfileName('')
     } finally {
       setIsSyncing(false)
     }
@@ -315,25 +345,25 @@ export const PlaySettingsModal: React.FC<PlaySettingsModalProps> = ({
                     <h3 className="text-sm font-black uppercase tracking-wider text-slate-900 leading-tight">
                       Cấu hình học tập
                     </h3>
-                    {settingOrigin === 'deck_override' || (isCustomized && settingOrigin !== 'user_global') ? (
+                    {settingOrigin.startsWith('profile:') ? (
                       <span 
-                        title="Đang áp dụng cấu hình riêng cho bộ thẻ này (ưu tiên cao nhất)"
+                        title="Đang áp dụng từ Hồ sơ mẫu / Template"
+                        className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider bg-indigo-50 text-indigo-700 border border-indigo-200/80"
+                      >
+                        <Sparkles className="w-2.5 h-2.5 text-indigo-600" />
+                        {settingOrigin.split(':')[2] || 'Hồ sơ mẫu'}
+                      </span>
+                    ) : isCustomized ? (
+                      <span 
+                        title="Đang áp dụng cấu hình tùy biến riêng cho bộ thẻ này"
                         className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider bg-purple-50 text-purple-700 border border-purple-200/80"
                       >
-                        <Sparkles className="w-2.5 h-2.5 text-purple-600" />
+                        <User className="w-2.5 h-2.5 text-purple-600" />
                         Tùy chỉnh riêng
-                      </span>
-                    ) : settingOrigin === 'user_global' ? (
-                      <span 
-                        title="Đang đồng bộ theo cấu hình mặc định tài khoản toàn cục của bạn"
-                        className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider bg-blue-50 text-blue-700 border border-blue-200/80"
-                      >
-                        <Globe className="w-2.5 h-2.5 text-blue-600" />
-                        Cài đặt toàn cục
                       </span>
                     ) : (
                       <span 
-                        title="Đang dùng cấu hình mặc định gốc do người tạo bộ thẻ thiết lập"
+                        title="Đang dùng cấu hình mặc định gốc của người tạo bộ thẻ"
                         className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider bg-emerald-50 text-emerald-700 border border-emerald-200/80"
                       >
                         <ShieldCheck className="w-2.5 h-2.5 text-emerald-600" />
@@ -342,7 +372,7 @@ export const PlaySettingsModal: React.FC<PlaySettingsModalProps> = ({
                     )}
                   </div>
                   <p className="text-[9.5px] font-bold text-slate-400 leading-none mt-0.5">
-                    Bộ thẻ phân cấp: Tùy chỉnh riêng &gt; Toàn cục &gt; Mặc định
+                    Tùy biến thuật toán, hiển thị & công cụ cho phiên học này
                   </p>
                 </div>
               </div>
@@ -353,6 +383,102 @@ export const PlaySettingsModal: React.FC<PlaySettingsModalProps> = ({
               >
                 <X className="w-4 h-4" />
               </button>
+            </div>
+
+            {/* Smart Profile Quick Bar */}
+            <div className="px-4 py-2 bg-slate-50 border-b border-slate-100 flex items-center justify-between gap-2 shrink-0 relative">
+              {/* Profile Dropdown Toggle */}
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)}
+                  className="flex items-center gap-1.5 px-3 py-1.5 bg-white hover:bg-indigo-50/60 border border-slate-200/80 hover:border-indigo-200 rounded-xl text-xs font-black text-slate-700 hover:text-indigo-600 transition-all shadow-2xs cursor-pointer active:scale-95"
+                >
+                  <Sparkles className="w-3.5 h-3.5 text-indigo-500" />
+                  <span className="truncate max-w-[140px] sm:max-w-[200px]">
+                    {currentProfile ? currentProfile.name : 'Chọn Profile mẫu'}
+                  </span>
+                  <ChevronDown className={cn("w-3.5 h-3.5 text-slate-400 transition-transform", isProfileMenuOpen && "rotate-180")} />
+                </button>
+
+                {/* Profile Dropdown Menu */}
+                {isProfileMenuOpen && (
+                  <div className="absolute top-full left-0 mt-1.5 w-72 bg-white rounded-2xl shadow-xl border border-slate-200/80 p-2 z-50 space-y-1">
+                    <div className="px-2 py-1 text-[9.5px] font-black text-slate-400 uppercase tracking-wider flex items-center justify-between">
+                      <span>Chọn Profile mẫu</span>
+                      <span className="text-[8.5px] font-medium text-slate-300">1-click áp dụng</span>
+                    </div>
+
+                    <div className="max-h-56 overflow-y-auto space-y-1">
+                      {studyProfiles.map(prof => {
+                        const Icon = getProfileIcon(prof.icon)
+                        const isCurrent = (prof.id === activeProfileId) || (settingOrigin === `profile:${prof.id}:${prof.name}`)
+                        return (
+                          <div 
+                            key={prof.id}
+                            className={cn(
+                              "flex items-center justify-between p-2 rounded-xl transition-all group",
+                              isCurrent ? "bg-indigo-50 border border-indigo-100" : "hover:bg-slate-50 cursor-pointer"
+                            )}
+                          >
+                            <button
+                              type="button"
+                              onClick={() => handleApplyProfile(prof.id)}
+                              className="flex items-center gap-2.5 flex-1 min-w-0 text-left cursor-pointer"
+                            >
+                              <div className={cn(
+                                "w-6 h-6 rounded-lg flex items-center justify-center shrink-0",
+                                isCurrent ? "bg-indigo-600 text-white" : "bg-slate-100 text-slate-600 group-hover:bg-indigo-100 group-hover:text-indigo-600"
+                              )}>
+                                <Icon className="w-3 h-3" />
+                              </div>
+                              <div className="min-w-0">
+                                <span className={cn("text-xs font-black block truncate", isCurrent ? "text-indigo-900" : "text-slate-800")}>
+                                  {prof.name}
+                                </span>
+                                {prof.description && (
+                                  <span className="text-[9px] font-medium text-slate-400 block truncate">
+                                    {prof.description}
+                                  </span>
+                                )}
+                              </div>
+                            </button>
+
+                            {!prof.is_system && onDeleteCustomProfile && (
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  if (window.confirm(`Xóa profile "${prof.name}"?`)) {
+                                    onDeleteCustomProfile(prof.id)
+                                  }
+                                }}
+                                className="p-1 text-slate-300 hover:text-rose-500 rounded-lg hover:bg-rose-50 transition-colors ml-1 cursor-pointer"
+                                title="Xóa template này"
+                              >
+                                <Trash2 className="w-3 h-3" />
+                              </button>
+                            )}
+                          </div>
+                        )
+                      })}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Save As Template Button */}
+              {onCreateCustomProfile && (
+                <button
+                  type="button"
+                  onClick={() => setIsSaveModalOpen(true)}
+                  className="flex items-center gap-1.5 px-2.5 py-1.5 bg-indigo-50/80 hover:bg-indigo-100 text-indigo-600 border border-indigo-200/60 rounded-xl text-xs font-black uppercase tracking-wider transition-all cursor-pointer active:scale-95"
+                >
+                  <BookmarkPlus className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline">Lưu làm Template</span>
+                  <span className="sm:hidden">Lưu mẫu</span>
+                </button>
+              )}
             </div>
 
             {/* Segmented Top Tabs (4 Tabs) */}
@@ -677,7 +803,7 @@ export const PlaySettingsModal: React.FC<PlaySettingsModalProps> = ({
                     )}
                   </div>
 
-                  {/* Study Actions & Management */}
+                  {/* Quick in-session tools */}
                   <div className="space-y-2 pt-2 border-t border-slate-100">
                     <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">
                       Thao tác trên thẻ hiện tại
@@ -766,48 +892,21 @@ export const PlaySettingsModal: React.FC<PlaySettingsModalProps> = ({
               )}
             </div>
 
-            {/* Footer Action Bar: 3-Tier Synchronization Controls */}
-            <div className="px-4 py-3 bg-white border-t border-slate-100 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2 shrink-0">
-              <div className="flex flex-wrap items-center gap-1.5">
-                {/* Reset to creator defaults */}
-                {onResetToCreatorDefaults && (
+            {/* Clean, Minimalist Footer */}
+            <div className="px-5 py-3 bg-white border-t border-slate-100 flex items-center justify-between gap-3 shrink-0">
+              <div className="flex items-center gap-2">
+                {/* Reset to creator baseline */}
+                {onResetToCreatorDefaults && (isCustomized || settingOrigin !== 'deck_default') && (
                   <button
                     type="button"
                     disabled={isSyncing}
                     onClick={handleResetToCreator}
-                    className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-wider text-slate-600 hover:text-indigo-600 bg-slate-50 hover:bg-indigo-50 border border-slate-200 transition-all active:scale-95 cursor-pointer disabled:opacity-50"
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[10.5px] font-black uppercase tracking-wider text-slate-600 hover:text-indigo-600 bg-slate-50 hover:bg-indigo-50 border border-slate-200 transition-all active:scale-95 cursor-pointer disabled:opacity-50"
                     title="Khôi phục lại toàn bộ cấu hình học về mặc định ban đầu của người tạo bộ thẻ"
                   >
                     <RotateCcw className="w-3 h-3" />
-                    <span>Mặc định bộ thẻ</span>
-                  </button>
-                )}
-
-                {/* Apply global settings */}
-                {onApplyGlobalSettings && (
-                  <button
-                    type="button"
-                    disabled={isSyncing}
-                    onClick={handleApplyGlobal}
-                    className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-wider text-blue-700 hover:text-blue-800 bg-blue-50 hover:bg-blue-100/80 border border-blue-200 transition-all active:scale-95 cursor-pointer disabled:opacity-50"
-                    title="Áp dụng cấu hình mặc định tài khoản toàn cục của bạn vào bộ thẻ này"
-                  >
-                    <Globe className="w-3 h-3 text-blue-600" />
-                    <span>Áp dụng toàn cục</span>
-                  </button>
-                )}
-
-                {/* Save as global settings */}
-                {onSaveAsGlobalSettings && (
-                  <button
-                    type="button"
-                    disabled={isSyncing}
-                    onClick={handleSaveAsGlobal}
-                    className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-wider text-purple-700 hover:text-purple-800 bg-purple-50 hover:bg-purple-100/80 border border-purple-200 transition-all active:scale-95 cursor-pointer disabled:opacity-50"
-                    title="Lưu cấu hình của bộ thẻ này thành cấu hình toàn cục mặc định của tài khoản"
-                  >
-                    <User className="w-3 h-3 text-purple-600" />
-                    <span>Lưu làm toàn cục</span>
+                    <span className="hidden sm:inline">Mặc định bộ thẻ</span>
+                    <span className="sm:hidden">Mặc định</span>
                   </button>
                 )}
 
@@ -817,23 +916,76 @@ export const PlaySettingsModal: React.FC<PlaySettingsModalProps> = ({
                     type="button"
                     disabled={isSyncing}
                     onClick={handleSaveAsCreator}
-                    className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-wider text-emerald-700 hover:text-emerald-800 bg-emerald-50 hover:bg-emerald-100/80 border border-emerald-200 transition-all active:scale-95 cursor-pointer disabled:opacity-50"
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[10.5px] font-black uppercase tracking-wider text-emerald-700 hover:text-emerald-800 bg-emerald-50 hover:bg-emerald-100/80 border border-emerald-200 transition-all active:scale-95 cursor-pointer disabled:opacity-50"
                     title="Lưu cấu hình này thành mặc định chung của bộ thẻ cho tất cả người học"
                   >
                     <Check className="w-3 h-3 text-emerald-600" />
-                    <span>Đặt mặc định bộ thẻ</span>
+                    <span className="hidden sm:inline">Đặt mặc định bộ thẻ</span>
+                    <span className="sm:hidden">Đặt mặc định</span>
                   </button>
                 )}
               </div>
 
+              {/* Close Button */}
               <button 
                 type="button"
                 onClick={onClose}
-                className="px-5 py-2 bg-gradient-to-r from-orange-500 via-rose-500 to-indigo-600 hover:from-orange-600 hover:to-indigo-700 text-white rounded-xl font-black text-xs uppercase tracking-wider shadow-md hover:shadow-lg active:scale-95 transition-all flex items-center justify-center gap-1.5 cursor-pointer shrink-0"
+                className="px-6 py-2 bg-gradient-to-r from-orange-500 via-rose-500 to-indigo-600 hover:from-orange-600 hover:to-indigo-700 text-white rounded-xl font-black text-xs uppercase tracking-wider shadow-md hover:shadow-lg active:scale-95 transition-all flex items-center justify-center gap-1.5 cursor-pointer shrink-0"
               >
                 <span>Xong / Đóng</span>
               </button>
             </div>
+
+            {/* Save New Template Modal Dialog */}
+            {isSaveModalOpen && (
+              <div className="absolute inset-0 bg-slate-950/40 backdrop-blur-xs flex items-center justify-center p-4 z-50">
+                <div className="w-full max-w-sm bg-white rounded-2xl p-4 shadow-2xl border border-slate-200 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-black uppercase tracking-wider text-slate-800">
+                      Lưu thành Template mới
+                    </span>
+                    <button 
+                      type="button" 
+                      onClick={() => setIsSaveModalOpen(false)}
+                      className="text-slate-400 hover:text-slate-700 cursor-pointer"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                  <p className="text-[10px] text-slate-500 font-medium">
+                    Toàn bộ 14 thiết lập hiện tại sẽ được lưu thành một hồ sơ mẫu để áp dụng nhanh cho mọi bộ thẻ.
+                  </p>
+                  <input
+                    type="text"
+                    value={newProfileName}
+                    onChange={(e) => setNewProfileName(e.target.value)}
+                    placeholder="Ví dụ: Luyện nghe tiếng Nhật, Cày N2..."
+                    className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-indigo-500 font-medium"
+                    autoFocus
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') handleSaveProfile()
+                    }}
+                  />
+                  <div className="flex items-center justify-end gap-2 pt-1">
+                    <button
+                      type="button"
+                      onClick={() => setIsSaveModalOpen(false)}
+                      className="px-3 py-1.5 text-[10.5px] font-bold text-slate-500 hover:text-slate-800 cursor-pointer"
+                    >
+                      Hủy
+                    </button>
+                    <button
+                      type="button"
+                      disabled={!newProfileName.trim() || isSyncing}
+                      onClick={handleSaveProfile}
+                      className="px-4 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-[10.5px] font-black uppercase tracking-wider transition-all disabled:opacity-50 cursor-pointer shadow-sm"
+                    >
+                      {isSyncing ? 'Đang lưu...' : 'Lưu Template'}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
           </motion.div>
         </div>
       )}

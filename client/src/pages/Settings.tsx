@@ -24,12 +24,19 @@ import {
   AlignLeft,
   AlignCenter,
   Volume2,
-  VolumeX
+  VolumeX,
+  Plus,
+  Trash2,
+  Check,
+  Headphones,
+  BookOpen,
+  BookmarkCheck
 } from 'lucide-react'
 import { useAppStore } from '@/store/useAppStore'
+import type { StudyProfile } from '@/store/useSettingsStore'
 import { cn } from '@/lib/utils'
 
-export type SettingsTab = 'gestures' | 'algorithm' | 'alerts' | 'general'
+export type SettingsTab = 'profiles' | 'gestures' | 'algorithm' | 'alerts' | 'general'
 
 interface TabConfig {
   id: SettingsTab
@@ -40,6 +47,13 @@ interface TabConfig {
 }
 
 const SETTINGS_TABS: TabConfig[] = [
+  {
+    id: 'profiles',
+    label: 'Study Profiles',
+    shortLabel: 'Profiles',
+    icon: Sparkles,
+    description: 'Presets and custom study templates for instant apply across decks'
+  },
   {
     id: 'gestures',
     label: 'Flashcard Gestures',
@@ -70,6 +84,125 @@ const SETTINGS_TABS: TabConfig[] = [
   }
 ]
 
+const SYSTEM_PROFILES = [
+  {
+    id: 'preset-standard',
+    name: 'Tiêu chuẩn (FSRS)',
+    icon: 'sparkles',
+    badge: 'Khuyên dùng',
+    desc: 'Lật thẻ cả 2 chiều, FSRS đầy đủ, hình ảnh & âm thanh thông minh.',
+    details: [
+      { label: 'Lật thẻ', val: 'Chạm & Vuốt' },
+      { label: 'Đánh giá', val: '4 hướng FSRS' },
+      { label: 'Âm thanh', val: 'Luôn phát' },
+      { label: 'Hình ảnh', val: 'Cả 2 mặt' },
+    ],
+    settings: {
+      autoplay_audio: 'always',
+      show_images: 'both',
+      learning_mode: 'fsrs',
+      front_valign: 'center',
+      front_halign: 'left',
+      back_valign: 'center',
+      back_halign: 'left',
+      random_enabled: false,
+      sfx_enabled: true,
+      haptic_enabled: true,
+      quick_learn_enabled: false,
+      show_fsrs: true,
+      card_flip_trigger: 'both',
+      card_rating_mode: 'both',
+    }
+  },
+  {
+    id: 'preset-speedrun',
+    name: 'Tốc độ cao (Speedrun)',
+    icon: 'zap',
+    badge: 'Tốc độ',
+    desc: 'Bỏ qua hiệu ứng rườm rà, lướt 2 chiều nhanh gọn, tối ưu số lượng thẻ mỗi phút.',
+    details: [
+      { label: 'Lật thẻ', val: 'Chạm thân thẻ' },
+      { label: 'Đánh giá', val: 'Vuốt 2 chiều' },
+      { label: 'Âm thanh', val: 'Tắt' },
+      { label: 'Thứ tự', val: 'Xáo trộn' },
+    ],
+    settings: {
+      autoplay_audio: 'none',
+      show_images: 'both',
+      learning_mode: 'fsrs',
+      front_valign: 'center',
+      front_halign: 'center',
+      back_valign: 'center',
+      back_halign: 'center',
+      random_enabled: true,
+      sfx_enabled: true,
+      haptic_enabled: true,
+      quick_learn_enabled: true,
+      show_fsrs: false,
+      card_flip_trigger: 'tap',
+      card_rating_mode: 'swipe_2way',
+    }
+  },
+  {
+    id: 'preset-audio',
+    name: 'Luyện nghe phản xạ (Audio-First)',
+    icon: 'headphones',
+    badge: 'Phát âm',
+    desc: 'Tự động phát audio ngay khi vào thẻ, tối ưu học từ vựng qua âm thanh bản ngữ.',
+    details: [
+      { label: 'Lật thẻ', val: 'Cả 2 chiều' },
+      { label: 'Đánh giá', val: 'Hỗn hợp' },
+      { label: 'Âm thanh', val: 'Tự động phát' },
+      { label: 'Hình ảnh', val: 'Chỉ mặt sau' },
+    ],
+    settings: {
+      autoplay_audio: 'always',
+      show_images: 'back_only',
+      learning_mode: 'fsrs',
+      front_valign: 'center',
+      front_halign: 'center',
+      back_valign: 'center',
+      back_halign: 'center',
+      random_enabled: false,
+      sfx_enabled: true,
+      haptic_enabled: true,
+      quick_learn_enabled: false,
+      show_fsrs: true,
+      card_flip_trigger: 'both',
+      card_rating_mode: 'both',
+    }
+  },
+  {
+    id: 'preset-focus',
+    name: 'Tập trung tối giản (Deep Focus)',
+    icon: 'book',
+    badge: 'Tối giản',
+    desc: 'Tắt toàn bộ âm thanh và FSRS rườm rà, tập trung 100% vào ngữ nghĩa và mặt chữ.',
+    details: [
+      { label: 'Lật thẻ', val: 'Cả 2 chiều' },
+      { label: 'Đánh giá', val: '4 nút bấm' },
+      { label: 'Âm thanh', val: 'Tắt hoàn toàn' },
+      { label: 'Hình ảnh', val: 'Ẩn hình' },
+    ],
+    settings: {
+      autoplay_audio: 'none',
+      show_images: 'none',
+      learning_mode: 'fsrs',
+      front_valign: 'center',
+      front_halign: 'left',
+      back_valign: 'center',
+      back_halign: 'left',
+      random_enabled: false,
+      sfx_enabled: false,
+      haptic_enabled: false,
+      quick_learn_enabled: false,
+      show_fsrs: false,
+      card_flip_trigger: 'both',
+      card_rating_mode: 'buttons',
+    }
+  }
+]
+
 type LearningMode = 'sequential' | 'random' | 'unseen' | 'review'
 
 function urlBase64ToUint8Array(base64String: string) {
@@ -94,7 +227,7 @@ const Settings = () => {
   const tabParam = searchParams.get('tab') as SettingsTab
 
   const getInitialTab = (): SettingsTab => {
-    if (['gestures', 'algorithm', 'alerts', 'general'].includes(tabParam)) {
+    if (['profiles', 'gestures', 'algorithm', 'alerts', 'general'].includes(tabParam)) {
       return tabParam
     }
     if (location.hash === '#preferences' || location.hash === '#security') {
@@ -109,7 +242,10 @@ const Settings = () => {
     if (location.hash === '#algorithm') {
       return 'algorithm'
     }
-    return 'gestures'
+    if (location.hash === '#profiles') {
+      return 'profiles'
+    }
+    return 'profiles'
   }
 
   const [activeTab, setActiveTabState] = useState<SettingsTab>(getInitialTab)
@@ -117,6 +253,46 @@ const Settings = () => {
   const setActiveTab = (tab: SettingsTab) => {
     setActiveTabState(tab)
     setSearchParams({ tab }, { replace: true })
+  }
+
+  // Profile / Template Creation State
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
+  const [newProfileName, setNewProfileName] = useState('')
+  const [newProfileIcon, setNewProfileIcon] = useState('sparkles')
+  const [newProfileBase, setNewProfileBase] = useState('preset-standard')
+  const [isSavingProfile, setIsSavingProfile] = useState(false)
+
+  const handleCreateProfile = async (name: string, icon = 'sparkles', baseSettings: any = {}) => {
+    const newId = `custom-${Date.now()}`
+    const newProfile: StudyProfile = {
+      id: newId,
+      name,
+      icon,
+      is_system: false,
+      settings: baseSettings
+    }
+    const currentProfiles = userSettings.study_profiles || []
+    const updatedProfiles = [...currentProfiles.filter((p: any) => !p.is_system), newProfile]
+    await updateUserSettings({
+      study_profiles: updatedProfiles as any,
+      active_profile_id: newId
+    })
+  }
+
+  const handleDeleteProfile = async (profileId: string) => {
+    const currentProfiles = userSettings.study_profiles || []
+    const updatedProfiles = currentProfiles.filter((p: any) => p.id !== profileId && !p.is_system)
+    const nextActiveId = userSettings.active_profile_id === profileId ? 'preset-standard' : userSettings.active_profile_id
+    await updateUserSettings({
+      study_profiles: updatedProfiles as any,
+      active_profile_id: nextActiveId
+    })
+  }
+
+  const handleSetActiveProfile = async (profileId: string) => {
+    await updateUserSettings({
+      active_profile_id: profileId
+    })
   }
 
   const [pushActive, setPushActive] = useState(false)
@@ -194,6 +370,8 @@ const Settings = () => {
         setActiveTabState('gestures')
       } else if (location.hash === '#algorithm') {
         setActiveTabState('algorithm')
+      } else if (location.hash === '#profiles') {
+        setActiveTabState('profiles')
       }
     }
   }, [location.hash])
@@ -321,6 +499,289 @@ const Settings = () => {
       bg: 'bg-rose-50'
     }
   ]
+
+  // ══════════════ TAB 0: STUDY PROFILES & TEMPLATES ══════════════
+  const renderProfilesTab = () => {
+    const customProfiles: StudyProfile[] = (userSettings.study_profiles || []).filter((p: any) => !p.is_system)
+    const activeId = userSettings.active_profile_id || 'preset-standard'
+    const activeProfileObj = [...SYSTEM_PROFILES, ...customProfiles].find(p => p.id === activeId)
+
+    return (
+      <div className="space-y-4 md:space-y-6">
+        {/* Banner Card */}
+        <section className="bg-gradient-to-r from-indigo-600 via-indigo-700 to-purple-700 rounded-3xl md:rounded-[2.5rem] p-5 sm:p-7 text-white shadow-xl shadow-indigo-500/15 relative overflow-hidden">
+          <div className="absolute top-0 right-0 -mt-8 -mr-8 w-48 h-48 bg-white/10 rounded-full blur-2xl pointer-events-none" />
+          <div className="relative z-10 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="space-y-1.5">
+              <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-white/20 backdrop-blur-md text-[10px] font-black uppercase tracking-wider">
+                <Sparkles className="w-3 h-3 text-amber-300" />
+                <span>Hệ thống Cấu hình Học tập</span>
+              </div>
+              <h2 className="text-base sm:text-lg font-black uppercase tracking-tight">
+                Study Profiles & Templates
+              </h2>
+              <p className="text-xs text-indigo-100 max-w-xl font-medium leading-relaxed">
+                Tạo và lưu các cấu hình học thẻ ưa thích thành template để áp dụng nhanh chỉ với 1-click cho mọi bộ thẻ bạn học.
+              </p>
+              <div className="pt-1 flex items-center gap-2 text-xs font-bold text-white/90">
+                <span>Đang áp dụng toàn cục:</span>
+                <span className="px-2 py-0.5 rounded-md bg-white/25 text-white font-black">
+                  {activeProfileObj ? activeProfileObj.name : 'Tiêu chuẩn (FSRS)'}
+                </span>
+              </div>
+            </div>
+
+            <button
+              onClick={() => {
+                setNewProfileName('')
+                setNewProfileIcon('sparkles')
+                setNewProfileBase('preset-standard')
+                setIsCreateModalOpen(true)
+              }}
+              className="inline-flex items-center justify-center gap-2 px-4 py-2.5 sm:py-3 bg-white text-indigo-700 font-black text-xs uppercase tracking-wider rounded-2xl shadow-lg hover:bg-indigo-50 active:scale-95 transition-all cursor-pointer shrink-0"
+            >
+              <Plus className="w-4 h-4" />
+              <span>Tạo Template Mới</span>
+            </button>
+          </div>
+        </section>
+
+        {/* Section 1: System Presets */}
+        <section className="bg-white rounded-3xl md:rounded-[2.5rem] border border-slate-100 p-4 sm:p-6 md:p-8 shadow-2xs space-y-4">
+          <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0">
+                <Sparkles className="w-4 h-4" />
+              </div>
+              <div>
+                <h3 className="text-xs font-black text-slate-900 uppercase tracking-widest italic">
+                  Presets Hệ Thống Có Sẵn
+                </h3>
+                <p className="text-[10px] font-medium text-slate-400">
+                  4 cấu hình tối ưu sẵn sàng sử dụng cho các phong cách học khác nhau
+                </p>
+              </div>
+            </div>
+            <span className="text-[10px] font-black text-indigo-600 uppercase bg-indigo-50 px-2.5 py-1 rounded-full">
+              4 Presets
+            </span>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
+            {SYSTEM_PROFILES.map((preset) => {
+              const isDefaultActive = activeId === preset.id
+              const IconComp = preset.icon === 'zap' ? Zap : (preset.icon === 'headphones' ? Headphones : (preset.icon === 'book' ? BookOpen : Sparkles))
+              return (
+                <div
+                  key={preset.id}
+                  className={cn(
+                    "p-4 sm:p-5 rounded-2xl border-2 transition-all flex flex-col justify-between relative",
+                    isDefaultActive
+                      ? "border-indigo-600 bg-indigo-50/20 shadow-xs"
+                      : "border-slate-100 bg-slate-50/40 hover:border-slate-200 hover:bg-white"
+                  )}
+                >
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-9 h-9 rounded-xl bg-indigo-100 text-indigo-600 flex items-center justify-center font-bold">
+                          <IconComp className="w-4.5 h-4.5" />
+                        </div>
+                        <div>
+                          <div className="flex items-center gap-1.5">
+                            <h4 className="text-xs font-black text-slate-800 uppercase tracking-tight">
+                              {preset.name}
+                            </h4>
+                            <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-slate-200/70 text-slate-600">
+                              {preset.badge}
+                            </span>
+                          </div>
+                          <span className="text-[9px] font-bold text-slate-400 uppercase">Hệ thống</span>
+                        </div>
+                      </div>
+
+                      {isDefaultActive && (
+                        <span className="inline-flex items-center gap-1 text-[10px] font-black text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full">
+                          <Check className="w-3 h-3" /> Mặc định
+                        </span>
+                      )}
+                    </div>
+
+                    <p className="text-[11px] text-slate-500 font-medium leading-relaxed">
+                      {preset.desc}
+                    </p>
+
+                    <div className="grid grid-cols-2 gap-1.5 pt-1">
+                      {preset.details.map((d, idx) => (
+                        <div key={idx} className="bg-white/80 border border-slate-200/60 rounded-lg px-2 py-1 flex items-center justify-between text-[10px]">
+                          <span className="text-slate-400 font-bold">{d.label}:</span>
+                          <span className="text-slate-700 font-black">{d.val}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="pt-4 mt-2 border-t border-slate-100 flex items-center justify-end">
+                    {isDefaultActive ? (
+                      <button
+                        disabled
+                        className="px-3 py-1.5 rounded-xl bg-emerald-100 text-emerald-700 font-black text-[11px] uppercase cursor-default flex items-center gap-1.5"
+                      >
+                        <Check className="w-3.5 h-3.5" /> Đang dùng làm mặc định
+                      </button>
+                    ) : (
+                      <button
+                        onClick={() => handleSetActiveProfile(preset.id)}
+                        className="px-3 py-1.5 rounded-xl bg-white border border-slate-200 text-slate-700 font-black text-[11px] uppercase hover:border-indigo-600 hover:text-indigo-600 hover:bg-indigo-50/50 transition-all cursor-pointer flex items-center gap-1.5 shadow-2xs"
+                      >
+                        <BookmarkCheck className="w-3.5 h-3.5" /> Đặt làm mặc định
+                      </button>
+                    )}
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        </section>
+
+        {/* Section 2: Custom Templates */}
+        <section className="bg-white rounded-3xl md:rounded-[2.5rem] border border-slate-100 p-4 sm:p-6 md:p-8 shadow-2xs space-y-4">
+          <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center shrink-0">
+                <BookmarkCheck className="w-4 h-4" />
+              </div>
+              <div>
+                <h3 className="text-xs font-black text-slate-900 uppercase tracking-widest italic">
+                  Template Tuỳ Chỉnh Của Bạn
+                </h3>
+                <p className="text-[10px] font-medium text-slate-400">
+                  Các cấu hình do bạn tự tạo hoặc lưu từ các phiên học thẻ
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={() => {
+                setNewProfileName('')
+                setNewProfileIcon('sparkles')
+                setNewProfileBase('preset-standard')
+                setIsCreateModalOpen(true)
+              }}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-indigo-50 text-indigo-600 font-black text-xs uppercase hover:bg-indigo-100 transition-all cursor-pointer"
+            >
+              <Plus className="w-3.5 h-3.5" /> Thêm mới
+            </button>
+          </div>
+
+          {customProfiles.length === 0 ? (
+            <div className="p-8 rounded-2xl border-2 border-dashed border-slate-200 text-center space-y-2 bg-slate-50/50">
+              <Sparkles className="w-8 h-8 text-slate-300 mx-auto" />
+              <h4 className="text-xs font-black text-slate-600 uppercase tracking-wider">
+                Chưa có template tuỳ chỉnh nào
+              </h4>
+              <p className="text-[11px] text-slate-400 font-medium max-w-sm mx-auto">
+                Khi đang học bất kỳ bộ thẻ nào, mở Cài đặt và chọn <strong>"Lưu làm Template mới"</strong> hoặc bấm nút phía trên để tạo ngay bây giờ!
+              </p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
+              {customProfiles.map((prof) => {
+                const isDefaultActive = activeId === prof.id
+                const IconComp = prof.icon === 'zap' ? Zap : (prof.icon === 'headphones' ? Headphones : (prof.icon === 'book' ? BookOpen : Sparkles))
+                const sett = prof.settings || {}
+                return (
+                  <div
+                    key={prof.id}
+                    className={cn(
+                      "p-4 sm:p-5 rounded-2xl border-2 transition-all flex flex-col justify-between relative",
+                      isDefaultActive
+                        ? "border-amber-500 bg-amber-50/20 shadow-xs"
+                        : "border-slate-100 bg-slate-50/40 hover:border-slate-200 hover:bg-white"
+                    )}
+                  >
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2.5">
+                          <div className="w-9 h-9 rounded-xl bg-amber-100 text-amber-600 flex items-center justify-center font-bold">
+                            <IconComp className="w-4.5 h-4.5" />
+                          </div>
+                          <div>
+                            <div className="flex items-center gap-1.5">
+                              <h4 className="text-xs font-black text-slate-800 uppercase tracking-tight">
+                                {prof.name}
+                              </h4>
+                              <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-amber-100 text-amber-700">
+                                Cá nhân
+                              </span>
+                            </div>
+                            <span className="text-[9px] font-bold text-slate-400 uppercase">Template người dùng</span>
+                          </div>
+                        </div>
+
+                        {isDefaultActive && (
+                          <span className="inline-flex items-center gap-1 text-[10px] font-black text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full">
+                            <Check className="w-3 h-3" /> Mặc định
+                          </span>
+                        )}
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-1.5 pt-1">
+                        <div className="bg-white/80 border border-slate-200/60 rounded-lg px-2 py-1 flex items-center justify-between text-[10px]">
+                          <span className="text-slate-400 font-bold">Âm thanh:</span>
+                          <span className="text-slate-700 font-black">{sett.autoplay_audio || 'always'}</span>
+                        </div>
+                        <div className="bg-white/80 border border-slate-200/60 rounded-lg px-2 py-1 flex items-center justify-between text-[10px]">
+                          <span className="text-slate-400 font-bold">Lật thẻ:</span>
+                          <span className="text-slate-700 font-black">{sett.card_flip_trigger || 'both'}</span>
+                        </div>
+                        <div className="bg-white/80 border border-slate-200/60 rounded-lg px-2 py-1 flex items-center justify-between text-[10px]">
+                          <span className="text-slate-400 font-bold">Đánh giá:</span>
+                          <span className="text-slate-700 font-black">{sett.card_rating_mode || 'both'}</span>
+                        </div>
+                        <div className="bg-white/80 border border-slate-200/60 rounded-lg px-2 py-1 flex items-center justify-between text-[10px]">
+                          <span className="text-slate-400 font-bold">FSRS:</span>
+                          <span className="text-slate-700 font-black">{sett.show_fsrs !== false ? 'Bật' : 'Tắt'}</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="pt-4 mt-2 border-t border-slate-100 flex items-center justify-between">
+                      <button
+                        onClick={() => {
+                          if (confirm(`Bạn có chắc muốn xoá template "${prof.name}"?`)) {
+                            handleDeleteProfile(prof.id)
+                          }
+                        }}
+                        className="px-2.5 py-1.5 rounded-xl text-rose-500 hover:bg-rose-50 font-bold text-[11px] uppercase transition-all cursor-pointer flex items-center gap-1"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" /> Xoá
+                      </button>
+
+                      {isDefaultActive ? (
+                        <button
+                          disabled
+                          className="px-3 py-1.5 rounded-xl bg-emerald-100 text-emerald-700 font-black text-[11px] uppercase cursor-default flex items-center gap-1.5"
+                        >
+                          <Check className="w-3.5 h-3.5" /> Đang dùng làm mặc định
+                        </button>
+                      ) : (
+                        <button
+                          onClick={() => handleSetActiveProfile(prof.id)}
+                          className="px-3 py-1.5 rounded-xl bg-white border border-slate-200 text-slate-700 font-black text-[11px] uppercase hover:border-amber-600 hover:text-amber-600 hover:bg-amber-50/50 transition-all cursor-pointer flex items-center gap-1.5 shadow-2xs"
+                        >
+                          <BookmarkCheck className="w-3.5 h-3.5" /> Đặt làm mặc định
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          )}
+        </section>
+      </div>
+    )
+  }
 
   // ══════════════ TAB 1: GESTURES & PLAY ══════════════
   const renderGesturesTab = () => (
@@ -1066,6 +1527,7 @@ const Settings = () => {
               transition={{ duration: 0.15 }}
               className="space-y-4 md:space-y-6"
             >
+              {activeTab === 'profiles' && renderProfilesTab()}
               {activeTab === 'gestures' && renderGesturesTab()}
               {activeTab === 'algorithm' && renderAlgorithmTab()}
               {activeTab === 'alerts' && renderAlertsTab()}
@@ -1080,9 +1542,9 @@ const Settings = () => {
       </div>
 
       {/* ═══════════ ONE-HAND CENTERED BOTTOM DOCKED TAB BAR (MOBILE ONLY) ═══════════ */}
-      <div className="md:hidden shrink-0 z-30 bg-white/95 backdrop-blur-2xl border-t border-slate-200/80 px-2 sm:px-4 py-1.5 shadow-[0_-4px_20px_rgba(0,0,0,0.05)]">
+      <div className="md:hidden shrink-0 z-30 bg-white/95 backdrop-blur-2xl border-t border-slate-200/80 px-1.5 sm:px-4 py-1.5 shadow-[0_-4px_20px_rgba(0,0,0,0.05)]">
         <div className="w-full max-w-md mx-auto">
-          <div className="grid grid-cols-4 w-full bg-slate-100/90 p-1 rounded-2xl border border-slate-200/60 shadow-2xs gap-1">
+          <div className="grid grid-cols-5 w-full bg-slate-100/90 p-1 rounded-2xl border border-slate-200/60 shadow-2xs gap-0.5 sm:gap-1">
             {SETTINGS_TABS.map((tab) => {
               const isActive = activeTab === tab.id
               const TabIcon = tab.icon
@@ -1091,7 +1553,7 @@ const Settings = () => {
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
                   className={cn(
-                    "relative flex flex-col items-center justify-center py-1.5 px-1 rounded-xl transition-all select-none cursor-pointer",
+                    "relative flex flex-col items-center justify-center py-1.5 px-0.5 rounded-xl transition-all select-none cursor-pointer",
                     isActive ? "text-indigo-600 font-black" : "text-slate-500 hover:text-slate-800 font-bold"
                   )}
                 >
@@ -1106,7 +1568,7 @@ const Settings = () => {
                     "w-4 h-4 relative z-10 shrink-0 mb-0.5 transition-colors",
                     isActive ? "text-indigo-600 stroke-[2.3]" : "text-slate-400 stroke-[1.8]"
                   )} />
-                  <span className="relative z-10 text-[10px] tracking-tight truncate w-full text-center leading-tight">
+                  <span className="relative z-10 text-[9px] sm:text-[10px] tracking-tight truncate w-full text-center leading-tight">
                     {tab.shortLabel}
                   </span>
                 </button>
@@ -1115,6 +1577,122 @@ const Settings = () => {
           </div>
         </div>
       </div>
+
+      {/* Create New Profile Modal */}
+      {isCreateModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm animate-in fade-in">
+          <div className="bg-white rounded-3xl p-5 sm:p-6 w-full max-w-md shadow-2xl border border-slate-100 space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <div className="flex items-center gap-2">
+                <Sparkles className="w-5 h-5 text-indigo-600" />
+                <h3 className="text-sm font-black text-slate-800 uppercase tracking-wider">
+                  Tạo Template Mới
+                </h3>
+              </div>
+              <button
+                onClick={() => setIsCreateModalOpen(false)}
+                className="w-7 h-7 rounded-lg bg-slate-100 text-slate-400 hover:text-slate-700 font-bold flex items-center justify-center cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="space-y-3">
+              <div>
+                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">
+                  Tên Template
+                </label>
+                <input
+                  type="text"
+                  placeholder="Ví dụ: Ôn thi JLPT N2, Luyện phát âm..."
+                  value={newProfileName}
+                  onChange={(e) => setNewProfileName(e.target.value)}
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 focus:outline-none focus:border-indigo-500 font-medium"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">
+                  Biểu tượng (Icon)
+                </label>
+                <div className="grid grid-cols-4 gap-2">
+                  {[
+                    { id: 'sparkles', label: 'Lấp lánh', icon: Sparkles },
+                    { id: 'zap', label: 'Tia chớp', icon: Zap },
+                    { id: 'headphones', label: 'Tai nghe', icon: Headphones },
+                    { id: 'book', label: 'Sách', icon: BookOpen },
+                  ].map((ic) => {
+                    const isSel = newProfileIcon === ic.id
+                    const IconComp = ic.icon
+                    return (
+                      <button
+                        key={ic.id}
+                        type="button"
+                        onClick={() => setNewProfileIcon(ic.id)}
+                        className={cn(
+                          "py-2 px-1 rounded-xl border flex flex-col items-center gap-1 text-[10px] font-bold transition-all cursor-pointer",
+                          isSel
+                            ? "border-indigo-600 bg-indigo-50 text-indigo-700 shadow-xs"
+                            : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
+                        )}
+                      >
+                        <IconComp className="w-4 h-4" />
+                        <span>{ic.label}</span>
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">
+                  Mẫu Cấu Hình Gốc (Baseline)
+                </label>
+                <select
+                  value={newProfileBase}
+                  onChange={(e) => setNewProfileBase(e.target.value)}
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 focus:outline-none focus:border-indigo-500 font-medium cursor-pointer"
+                >
+                  <option value="preset-standard">Tiêu chuẩn (FSRS) - Đầy đủ 2 chiều & âm thanh</option>
+                  <option value="preset-speedrun">Tốc độ cao (Speedrun) - Vuốt nhanh 2 chiều, tắt audio</option>
+                  <option value="preset-audio">Luyện nghe (Audio-First) - Tự động phát âm thanh</option>
+                  <option value="preset-focus">Tập trung tối giản (Deep Focus) - Tắt âm thanh & FSRS</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="pt-3 border-t border-slate-100 flex items-center justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setIsCreateModalOpen(false)}
+                className="px-4 py-2 rounded-xl text-xs font-bold text-slate-500 hover:bg-slate-100 transition-all cursor-pointer"
+              >
+                Hủy
+              </button>
+              <button
+                type="button"
+                disabled={!newProfileName.trim() || isSavingProfile}
+                onClick={async () => {
+                  if (!newProfileName.trim()) return
+                  setIsSavingProfile(true)
+                  try {
+                    const basePreset = SYSTEM_PROFILES.find(p => p.id === newProfileBase) || SYSTEM_PROFILES[0]
+                    await handleCreateProfile(newProfileName.trim(), newProfileIcon, basePreset.settings)
+                    setIsCreateModalOpen(false)
+                  } catch (e) {
+                    console.error('Failed to create profile', e)
+                  } finally {
+                    setIsSavingProfile(false)
+                  }
+                }}
+                className="px-4 py-2 rounded-xl bg-indigo-600 text-white text-xs font-black uppercase tracking-wider hover:bg-indigo-700 disabled:opacity-50 transition-all cursor-pointer shadow-md shadow-indigo-500/20"
+              >
+                {isSavingProfile ? 'Đang tạo...' : 'Tạo Template'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

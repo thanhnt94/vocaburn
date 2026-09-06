@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react'
 import axios from 'axios'
-import { useSettingsStore } from '@/store/useSettingsStore'
+import { useSettingsStore, type StudyProfile } from '@/store/useSettingsStore'
 
 export type AutoPlayMode = 'always' | 'front' | 'back' | 'none'
 export type ImageDisplayMode = 'always' | 'front' | 'back' | 'none'
@@ -8,7 +8,7 @@ export type VAlignMode = 'center' | 'top'
 export type HAlignMode = 'center' | 'left'
 export type CardFlipTrigger = 'both' | 'tap' | 'button_only'
 export type CardRatingMode = 'both' | 'swipe_4way' | 'swipe_2way' | 'buttons'
-export type SettingOrigin = 'deck_override' | 'user_global' | 'deck_default'
+export type SettingOrigin = string
 
 export interface StudySettingsState {
   autoplay_audio: AutoPlayMode
@@ -65,9 +65,11 @@ export function usePlaySettings(
   const [cardFlipTrigger, setCardFlipTriggerState] = useState<CardFlipTrigger | undefined>(undefined)
   const [cardRatingMode, setCardRatingModeState] = useState<CardRatingMode | undefined>(undefined)
 
-  // Creator baseline & user customization status & 3-tier origin
+  // Creator baseline & user customization status & 3-tier origin & profiles
   const [creatorDefaults, setCreatorDefaults] = useState<Partial<StudySettingsState>>({})
   const [userGlobalSettings, setUserGlobalSettings] = useState<Partial<StudySettingsState>>({})
+  const [studyProfiles, setStudyProfiles] = useState<StudyProfile[]>([])
+  const [activeProfileId, setActiveProfileId] = useState<string | null>(null)
   const [isCustomized, setIsCustomized] = useState<boolean>(false)
   const [settingOrigin, setSettingOrigin] = useState<SettingOrigin>('deck_default')
 
@@ -78,13 +80,21 @@ export function usePlaySettings(
     userStudySettings?: Partial<StudySettingsState>,
     customizedFlag?: boolean,
     origin?: SettingOrigin,
-    globalSettings?: Partial<StudySettingsState>
+    globalSettings?: Partial<StudySettingsState>,
+    profiles?: StudyProfile[],
+    activeProfId?: string | null
   ) => {
     if (creatorStudyDefaults && typeof creatorStudyDefaults === 'object') {
       setCreatorDefaults(creatorStudyDefaults)
     }
     if (globalSettings && typeof globalSettings === 'object') {
       setUserGlobalSettings(globalSettings)
+    }
+    if (profiles && Array.isArray(profiles)) {
+      setStudyProfiles(profiles)
+    }
+    if (activeProfId !== undefined) {
+      setActiveProfileId(activeProfId)
     }
 
     if (origin) {
@@ -426,6 +436,93 @@ export function usePlaySettings(
     }
   }, [deckId, autoPlayAudio, showImages, learningMode, frontValign, frontHalign, backValign, backHalign, randomEnabled, sfxEnabled, hapticEnabled, quickLearnEnabled, showFsrs, cardFlipTrigger, cardRatingMode, syncStudySettings])
 
+  // Apply a specific profile/template to this deck
+  const applyProfile = useCallback(async (profileId: string) => {
+    if (!deckId || deckId === 'quick') return
+    try {
+      const res = await axios.post(`/api/v1/deck/${deckId}/practice-settings`, {
+        is_creator: false,
+        apply_profile_id: profileId
+      })
+      setActiveProfileId(profileId)
+      if (res.data?.effective_study_settings) {
+        syncStudySettings(
+          res.data.effective_study_settings,
+          res.data.creator_study_defaults,
+          res.data.user_study_settings,
+          res.data.is_study_customized,
+          res.data.setting_origin,
+          res.data.user_global_settings,
+          res.data.study_profiles,
+          res.data.active_profile_id
+        )
+      }
+    } catch (err) {
+      console.error('[usePlaySettings] Failed to apply profile:', err)
+    }
+  }, [deckId, syncStudySettings])
+
+  // Save current settings as a new custom profile/template
+  const createCustomProfile = useCallback(async (name: string, icon = 'sparkles') => {
+    if (!deckId || deckId === 'quick') return
+    const currentStudySettings = {
+      autoplay_audio: autoPlayAudio,
+      show_images: showImages,
+      learning_mode: learningMode,
+      front_valign: frontValign,
+      front_halign: frontHalign,
+      back_valign: backValign,
+      back_halign: backHalign,
+      random_enabled: randomEnabled,
+      sfx_enabled: sfxEnabled,
+      haptic_enabled: hapticEnabled,
+      quick_learn_enabled: quickLearnEnabled,
+      show_fsrs: showFsrs,
+      card_flip_trigger: cardFlipTrigger || 'both',
+      card_rating_mode: cardRatingMode || 'both'
+    }
+    try {
+      const res = await axios.post(`/api/v1/deck/${deckId}/practice-settings`, {
+        is_creator: false,
+        create_study_profile: {
+          name,
+          icon,
+          settings: currentStudySettings
+        }
+      })
+      if (res.data?.effective_study_settings) {
+        syncStudySettings(
+          res.data.effective_study_settings,
+          res.data.creator_study_defaults,
+          res.data.user_study_settings,
+          res.data.is_study_customized,
+          res.data.setting_origin,
+          res.data.user_global_settings,
+          res.data.study_profiles,
+          res.data.active_profile_id
+        )
+      }
+    } catch (err) {
+      console.error('[usePlaySettings] Failed to create custom profile:', err)
+    }
+  }, [deckId, autoPlayAudio, showImages, learningMode, frontValign, frontHalign, backValign, backHalign, randomEnabled, sfxEnabled, hapticEnabled, quickLearnEnabled, showFsrs, cardFlipTrigger, cardRatingMode, syncStudySettings])
+
+  // Delete a custom profile
+  const deleteCustomProfile = useCallback(async (profileId: string) => {
+    if (!deckId || deckId === 'quick') return
+    try {
+      const res = await axios.post(`/api/v1/deck/${deckId}/practice-settings`, {
+        is_creator: false,
+        delete_study_profile_id: profileId
+      })
+      if (res.data?.study_profiles) {
+        setStudyProfiles(res.data.study_profiles)
+      }
+    } catch (err) {
+      console.error('[usePlaySettings] Failed to delete custom profile:', err)
+    }
+  }, [deckId])
+
   return {
     sfxEnabled,
     setSfxEnabled,
@@ -457,6 +554,8 @@ export function usePlaySettings(
     setCardRatingMode: setCardRatingModeState,
     creatorDefaults,
     userGlobalSettings,
+    studyProfiles,
+    activeProfileId,
     isCustomized,
     settingOrigin,
     setSettingOrigin,
@@ -465,6 +564,9 @@ export function usePlaySettings(
     resetToCreatorDefaults,
     applyGlobalSettings,
     saveAsGlobalSettings,
-    saveAsCreatorDefaults
+    saveAsCreatorDefaults,
+    applyProfile,
+    createCustomProfile,
+    deleteCustomProfile
   }
 }

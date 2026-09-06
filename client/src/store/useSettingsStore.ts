@@ -25,6 +25,17 @@ export interface UserSettings {
   front_halign?: 'left' | 'center'
   back_valign?: 'center' | 'top'
   back_halign?: 'left' | 'center'
+  study_profiles?: StudyProfile[]
+  active_profile_id?: string | null
+}
+
+export interface StudyProfile {
+  id: string
+  name: string
+  description?: string
+  icon?: string
+  is_system?: boolean
+  settings: Record<string, any>
 }
 
 export const DEFAULT_USER_SETTINGS: UserSettings = {
@@ -51,6 +62,8 @@ export const DEFAULT_USER_SETTINGS: UserSettings = {
   front_halign: 'left',
   back_valign: 'center',
   back_halign: 'left',
+  study_profiles: [],
+  active_profile_id: 'preset-standard',
 }
 
 interface SettingsState {
@@ -58,9 +71,12 @@ interface SettingsState {
   setUserSettings: (settings: Partial<UserSettings>) => void;
   updateUserSettings: (partialSettings: Partial<UserSettings>) => Promise<void>;
   fetchUserSettings: () => Promise<void>;
+  createStudyProfile: (name: string, icon?: string, settings?: Record<string, any>) => Promise<void>;
+  deleteStudyProfile: (profileId: string) => Promise<void>;
+  setActiveProfile: (profileId: string) => Promise<void>;
 }
 
-export const useSettingsStore = create<SettingsState>((set) => ({
+export const useSettingsStore = create<SettingsState>((set, get) => ({
   userSettings: DEFAULT_USER_SETTINGS,
 
   setUserSettings: (settings) => set((state) => ({
@@ -89,5 +105,36 @@ export const useSettingsStore = create<SettingsState>((set) => ({
     } catch (e) {
       console.error('Failed to fetch user settings', e)
     }
+  },
+
+  createStudyProfile: async (name: string, icon = 'sparkles', settings = {}) => {
+    const newId = `custom-${Date.now()}`
+    const newProfile: StudyProfile = {
+      id: newId,
+      name,
+      icon,
+      is_system: false,
+      settings
+    }
+    const currentProfiles = get().userSettings.study_profiles || []
+    const updatedProfiles = [...currentProfiles.filter(p => !p.is_system), newProfile]
+    await get().updateUserSettings({
+      study_profiles: updatedProfiles as any,
+      active_profile_id: newId
+    })
+  },
+
+  deleteStudyProfile: async (profileId: string) => {
+    const currentProfiles = get().userSettings.study_profiles || []
+    const updatedProfiles = currentProfiles.filter(p => p.id !== profileId && !p.is_system)
+    await get().updateUserSettings({
+      study_profiles: updatedProfiles as any
+    })
+  },
+
+  setActiveProfile: async (profileId: string) => {
+    await get().updateUserSettings({
+      active_profile_id: profileId
+    })
   }
 }))

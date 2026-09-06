@@ -28,7 +28,8 @@ class UserSettingsService:
             "practice_submode", "practice_range", "score_mode", "time_mode",
             "last_deck_id", "paste_columns", "quick_add_columns",
             "card_flip_trigger", "card_rating_mode",
-            "front_valign", "front_halign", "back_valign", "back_halign"
+            "front_valign", "front_halign", "back_valign", "back_halign",
+            "study_profiles", "active_profile_id"
         }
         
         updated = False
@@ -38,6 +39,9 @@ class UserSettingsService:
                 updated = True
                 
         if updated:
+            from sqlalchemy.orm.attributes import flag_modified
+            if "study_profiles" in data:
+                flag_modified(settings_obj, "study_profiles")
             await db.commit()
             await db.refresh(settings_obj)
             
@@ -47,6 +51,8 @@ class UserSettingsService:
     def to_dict(settings_obj: UserGlobalSettings) -> dict:
         if not settings_obj:
             return {}
+        from app.modules.deck.utils import get_all_study_profiles
+        custom_profiles = getattr(settings_obj, 'study_profiles', None) or []
         return {
             "theme": settings_obj.theme,
             "focus_timer_active": settings_obj.focus_timer_active,
@@ -71,4 +77,7 @@ class UserSettingsService:
             "front_halign": getattr(settings_obj, 'front_halign', 'left') or "left",
             "back_valign": getattr(settings_obj, 'back_valign', 'center') or "center",
             "back_halign": getattr(settings_obj, 'back_halign', 'left') or "left",
+            "study_profiles": get_all_study_profiles(custom_profiles),
+            "custom_study_profiles": custom_profiles,
+            "active_profile_id": getattr(settings_obj, 'active_profile_id', None),
         }

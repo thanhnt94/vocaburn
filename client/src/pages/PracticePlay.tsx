@@ -623,11 +623,14 @@ export default function PracticePlay() {
     setCardRatingMode,
     isCustomized,
     settingOrigin,
+    studyProfiles,
+    activeProfileId,
     syncStudySettings,
     saveGeneralSettings,
     resetToCreatorDefaults,
-    applyGlobalSettings,
-    saveAsGlobalSettings,
+    applyProfile,
+    createCustomProfile,
+    deleteCustomProfile,
     saveAsCreatorDefaults
   } = usePlaySettings(id || '', modeSettings, setModeSettings);
 
@@ -1350,7 +1353,16 @@ export default function PracticePlay() {
       const origin = quizRes.data.setting_origin;
       const userGlobal = quizRes.data.user_global_settings;
 
-      syncStudySettings(effectiveStudy, creatorStudyDefs, userStudyOverrides, isCustom, origin, userGlobal);
+      syncStudySettings(
+        effectiveStudy,
+        creatorStudyDefs,
+        userStudyOverrides,
+        isCustom,
+        origin,
+        userGlobal,
+        quizRes.data.study_profiles,
+        quizRes.data.active_profile_id
+      );
 
       const hasLearned = questions.some((q: any) => (q.stats?.total || 0) > 0);
       if (activeTab === 'practice' && practiceRange === 'learned' && !hasLearned) {
@@ -6401,8 +6413,11 @@ export default function PracticePlay() {
         isCustomized={isCustomized}
         settingOrigin={settingOrigin}
         onResetToCreatorDefaults={resetToCreatorDefaults}
-        onApplyGlobalSettings={applyGlobalSettings}
-        onSaveAsGlobalSettings={saveAsGlobalSettings}
+        studyProfiles={studyProfiles}
+        activeProfileId={activeProfileId}
+        onApplyProfile={applyProfile}
+        onCreateCustomProfile={createCustomProfile}
+        onDeleteCustomProfile={deleteCustomProfile}
         frontHalign={frontHalign}
         setFrontHalign={setFrontHalign}
         backHalign={backHalign}

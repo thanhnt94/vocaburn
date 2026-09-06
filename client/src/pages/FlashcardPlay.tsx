@@ -271,11 +271,14 @@ export default function FlashcardPlay() {
     creatorDefaults,
     isCustomized,
     settingOrigin,
+    studyProfiles,
+    activeProfileId,
     syncStudySettings,
     saveGeneralSettings,
     resetToCreatorDefaults,
-    applyGlobalSettings,
-    saveAsGlobalSettings,
+    applyProfile,
+    createCustomProfile,
+    deleteCustomProfile,
     saveAsCreatorDefaults
   } = usePlaySettings(id || '', modeSettings, setModeSettings);
 
@@ -651,8 +654,10 @@ export default function FlashcardPlay() {
       const isCustom = quizRes.data.is_study_customized;
       const origin = quizRes.data.setting_origin;
       const userGlobal = quizRes.data.user_global_settings;
+      const profiles = quizRes.data.study_profiles;
+      const activeProfId = quizRes.data.active_profile_id;
 
-      syncStudySettings(effectiveStudy, creatorStudyDefs, userStudyOverrides, isCustom, origin, userGlobal);
+      syncStudySettings(effectiveStudy, creatorStudyDefs, userStudyOverrides, isCustom, origin, userGlobal, profiles, activeProfId);
 
       const searchParams = new URLSearchParams(window.location.search);
       const urlMode = searchParams.get('mode');
@@ -4832,8 +4837,11 @@ export default function FlashcardPlay() {
         isCustomized={isCustomized}
         settingOrigin={settingOrigin}
         onResetToCreatorDefaults={resetToCreatorDefaults}
-        onApplyGlobalSettings={applyGlobalSettings}
-        onSaveAsGlobalSettings={saveAsGlobalSettings}
+        studyProfiles={studyProfiles}
+        activeProfileId={activeProfileId}
+        onApplyProfile={applyProfile}
+        onCreateCustomProfile={createCustomProfile}
+        onDeleteCustomProfile={deleteCustomProfile}
         frontHalign={frontHalign}
         setFrontHalign={setFrontHalign}
         backHalign={backHalign}

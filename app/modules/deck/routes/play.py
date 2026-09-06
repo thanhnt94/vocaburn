@@ -1368,6 +1368,8 @@ async def get_deck_play_data(request: Request, deck_id: int, mode: Optional[str]
         "creator_study_defaults": study_resolved["creator_study_defaults"],
         "user_study_settings": study_resolved["user_study_settings"],
         "user_global_settings": study_resolved["user_global_settings"],
+        "study_profiles": study_resolved["study_profiles"],
+        "active_profile_id": study_resolved["active_profile_id"],
         "effective_study_settings": study_resolved["effective_study_settings"],
         "setting_origin": study_resolved["setting_origin"],
         "is_study_customized": study_resolved["is_customized"]

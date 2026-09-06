@@ -51,6 +51,8 @@ class UserGlobalSettings(Base):
     last_deck_id = Column(Integer, nullable=True)
     paste_columns = Column(JSON, nullable=True, default=lambda: ["front", "back"])
     quick_add_columns = Column(JSON, nullable=True, default=lambda: ["front", "back"])
+    study_profiles = Column(JSON, nullable=True, default=list)
+    active_profile_id = Column(String(50), nullable=True, default=None)
     
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
