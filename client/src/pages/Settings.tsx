@@ -36,7 +36,7 @@ import { useAppStore } from '@/store/useAppStore'
 import type { StudyProfile } from '@/store/useSettingsStore'
 import { cn } from '@/lib/utils'
 
-export type SettingsTab = 'profiles' | 'gestures' | 'algorithm' | 'alerts' | 'general'
+export type SettingsTab = 'deck_template' | 'alerts' | 'general'
 
 interface TabConfig {
   id: SettingsTab
@@ -48,25 +48,11 @@ interface TabConfig {
 
 const SETTINGS_TABS: TabConfig[] = [
   {
-    id: 'profiles',
-    label: 'Study Profiles',
-    shortLabel: 'Profiles',
+    id: 'deck_template',
+    label: 'Deck Templates',
+    shortLabel: 'Templates',
     icon: Sparkles,
-    description: 'Presets and custom study templates for instant apply across decks'
-  },
-  {
-    id: 'gestures',
-    label: 'Flashcard Gestures',
-    shortLabel: 'Gestures',
-    icon: Move,
-    description: 'Card flip triggers & FSRS rating gestures'
-  },
-  {
-    id: 'algorithm',
-    label: 'Learning Algorithm',
-    shortLabel: 'Algorithm',
-    icon: Brain,
-    description: 'Progression sequence & entropy modes'
+    description: 'Profiles, gestures, algorithm & card alignments'
   },
   {
     id: 'alerts',
@@ -95,11 +81,12 @@ const SYSTEM_PROFILES = [
       { label: 'Lật thẻ', val: 'Chạm & Vuốt' },
       { label: 'Đánh giá', val: '4 hướng FSRS' },
       { label: 'Âm thanh', val: 'Luôn phát' },
-      { label: 'Hình ảnh', val: 'Cả 2 mặt' },
+      { label: 'Thứ tự', val: 'Tuần tự' },
     ],
     settings: {
       autoplay_audio: 'always',
       show_images: 'both',
+      quiz_learning_mode: 'fsrs',
       learning_mode: 'fsrs',
       front_valign: 'center',
       front_halign: 'left',
@@ -129,6 +116,7 @@ const SYSTEM_PROFILES = [
     settings: {
       autoplay_audio: 'none',
       show_images: 'both',
+      quiz_learning_mode: 'random',
       learning_mode: 'fsrs',
       front_valign: 'center',
       front_halign: 'center',
@@ -153,11 +141,12 @@ const SYSTEM_PROFILES = [
       { label: 'Lật thẻ', val: 'Cả 2 chiều' },
       { label: 'Đánh giá', val: 'Hỗn hợp' },
       { label: 'Âm thanh', val: 'Tự động phát' },
-      { label: 'Hình ảnh', val: 'Chỉ mặt sau' },
+      { label: 'Thứ tự', val: 'Thẻ chưa học' },
     ],
     settings: {
       autoplay_audio: 'always',
       show_images: 'back_only',
+      quiz_learning_mode: 'unseen',
       learning_mode: 'fsrs',
       front_valign: 'center',
       front_halign: 'center',
@@ -182,11 +171,12 @@ const SYSTEM_PROFILES = [
       { label: 'Lật thẻ', val: 'Cả 2 chiều' },
       { label: 'Đánh giá', val: '4 nút bấm' },
       { label: 'Âm thanh', val: 'Tắt hoàn toàn' },
-      { label: 'Hình ảnh', val: 'Ẩn hình' },
+      { label: 'Thứ tự', val: 'Ôn tập' },
     ],
     settings: {
       autoplay_audio: 'none',
       show_images: 'none',
+      quiz_learning_mode: 'review',
       learning_mode: 'fsrs',
       front_valign: 'center',
       front_halign: 'left',
@@ -227,7 +217,7 @@ const Settings = () => {
   const tabParam = searchParams.get('tab') as SettingsTab
 
   const getInitialTab = (): SettingsTab => {
-    if (['profiles', 'gestures', 'algorithm', 'alerts', 'general'].includes(tabParam)) {
+    if (tabParam === 'alerts' || tabParam === 'general' || tabParam === 'deck_template') {
       return tabParam
     }
     if (location.hash === '#preferences' || location.hash === '#security') {
@@ -236,16 +226,7 @@ const Settings = () => {
     if (location.hash === '#telegram') {
       return 'alerts'
     }
-    if (location.hash === '#gestures') {
-      return 'gestures'
-    }
-    if (location.hash === '#algorithm') {
-      return 'algorithm'
-    }
-    if (location.hash === '#profiles') {
-      return 'profiles'
-    }
-    return 'profiles'
+    return 'deck_template'
   }
 
   const [activeTab, setActiveTabState] = useState<SettingsTab>(getInitialTab)
@@ -266,6 +247,7 @@ const Settings = () => {
   const [templateSettings, setTemplateSettings] = useState<{
     card_flip_trigger: 'both' | 'tap' | 'button_only';
     card_rating_mode: 'both' | 'buttons' | 'swipe_4way' | 'swipe_2way';
+    quiz_learning_mode: 'sequential' | 'unseen' | 'review' | 'random' | 'fsrs';
     front_valign: 'center' | 'top';
     front_halign: 'left' | 'center';
     back_valign: 'center' | 'top';
@@ -273,16 +255,21 @@ const Settings = () => {
     autoplay_audio: 'always' | 'front' | 'back' | 'none';
     show_images: 'both' | 'back_only' | 'none' | 'always';
     show_fsrs: boolean;
+    sfx_enabled: boolean;
+    haptic_enabled: boolean;
   }>({
     card_flip_trigger: 'both',
     card_rating_mode: 'both',
+    quiz_learning_mode: 'fsrs',
     front_valign: 'center',
     front_halign: 'left',
     back_valign: 'center',
     back_halign: 'left',
     autoplay_audio: 'always',
     show_images: 'both',
-    show_fsrs: true
+    show_fsrs: true,
+    sfx_enabled: true,
+    haptic_enabled: true
   })
 
   const loadBaseSettings = (baseId: string) => {
@@ -291,13 +278,16 @@ const Settings = () => {
       setTemplateSettings({
         card_flip_trigger: (userSettings.card_flip_trigger as any) || 'both',
         card_rating_mode: (userSettings.card_rating_mode as any) || 'both',
+        quiz_learning_mode: (userSettings.quiz_learning_mode as any) || 'fsrs',
         front_valign: (userSettings.front_valign as any) || 'center',
         front_halign: (userSettings.front_halign as any) || 'left',
         back_valign: (userSettings.back_valign as any) || 'center',
         back_halign: (userSettings.back_halign as any) || 'left',
         autoplay_audio: (userSettings.autoplay_audio as any) || 'always',
         show_images: (userSettings.show_images as any) || 'both',
-        show_fsrs: userSettings.show_fsrs ?? true
+        show_fsrs: userSettings.show_fsrs ?? true,
+        sfx_enabled: userSettings.sfx_enabled ?? true,
+        haptic_enabled: userSettings.haptic_enabled ?? true
       })
     } else {
       const preset = SYSTEM_PROFILES.find(p => p.id === baseId) || SYSTEM_PROFILES[0]
@@ -305,13 +295,16 @@ const Settings = () => {
       setTemplateSettings({
         card_flip_trigger: s.card_flip_trigger || 'both',
         card_rating_mode: s.card_rating_mode || 'both',
+        quiz_learning_mode: s.quiz_learning_mode || 'fsrs',
         front_valign: s.front_valign || 'center',
         front_halign: s.front_halign || 'left',
         back_valign: s.back_valign || 'center',
         back_halign: s.back_halign || 'left',
         autoplay_audio: s.autoplay_audio || 'always',
         show_images: s.show_images || 'both',
-        show_fsrs: s.show_fsrs ?? true
+        show_fsrs: s.show_fsrs ?? true,
+        sfx_enabled: s.sfx_enabled ?? true,
+        haptic_enabled: s.haptic_enabled ?? true
       })
     }
   }
@@ -427,12 +420,8 @@ const Settings = () => {
         setActiveTabState('general')
       } else if (location.hash === '#telegram') {
         setActiveTabState('alerts')
-      } else if (location.hash === '#gestures') {
-        setActiveTabState('gestures')
-      } else if (location.hash === '#algorithm') {
-        setActiveTabState('algorithm')
-      } else if (location.hash === '#profiles') {
-        setActiveTabState('profiles')
+      } else {
+        setActiveTabState('deck_template')
       }
     }
   }, [location.hash])
@@ -561,163 +550,91 @@ const Settings = () => {
     }
   ]
 
-  // ══════════════ TAB 0: STUDY PROFILES & TEMPLATES ══════════════
-  const renderProfilesTab = () => {
+  // ══════════════ TAB 0: ALL-IN-ONE DECK TEMPLATES (PROFILES + GESTURES + ALGORITHM + ALIGNMENT) ══════════════
+  const renderDeckTemplateTab = () => {
     const customProfiles: StudyProfile[] = (userSettings.study_profiles || []).filter((p: any) => !p.is_system)
     const activeId = userSettings.active_profile_id || 'preset-standard'
-    const activeProfileObj = [...SYSTEM_PROFILES, ...customProfiles].find(p => p.id === activeId)
+    const allProfiles = [...SYSTEM_PROFILES, ...customProfiles]
+    const activeProfileObj = allProfiles.find(p => p.id === activeId)
+
+    // Current gesture labels for summary
+    const flipLabel = (userSettings.card_flip_trigger || 'both') === 'both' 
+      ? 'Chạm & Vuốt' 
+      : (userSettings.card_flip_trigger === 'tap' ? 'Chạm thẻ' : 'Nút bấm')
+    const ratingLabel = (userSettings.card_rating_mode || 'both') === 'both'
+      ? 'Hỗn hợp'
+      : (userSettings.card_rating_mode === 'swipe_4way' ? 'Vuốt 4 hướng' : (userSettings.card_rating_mode === 'swipe_2way' ? 'Vuốt 2 chiều' : '4 Nút'))
+    const algoLabel = modes.find(m => m.id === learningMode)?.name || 'Tuần tự'
+    const audioLabel = (userSettings.autoplay_audio || 'always') === 'always'
+      ? 'Luôn phát'
+      : (userSettings.autoplay_audio === 'none' ? 'Tắt' : userSettings.autoplay_audio)
 
     return (
       <div className="space-y-4 md:space-y-6">
-        {/* Banner Card */}
+        {/* Banner Card: Active Profile Overview */}
         <section className="bg-gradient-to-r from-indigo-600 via-indigo-700 to-purple-700 rounded-3xl md:rounded-[2.5rem] p-5 sm:p-7 text-white shadow-xl shadow-indigo-500/15 relative overflow-hidden">
           <div className="absolute top-0 right-0 -mt-8 -mr-8 w-48 h-48 bg-white/10 rounded-full blur-2xl pointer-events-none" />
-          <div className="relative z-10 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <div className="space-y-1.5">
+          <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-5">
+            <div className="space-y-2">
               <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-white/20 backdrop-blur-md text-[10px] font-black uppercase tracking-wider">
                 <Sparkles className="w-3 h-3 text-amber-300" />
-                <span>Hệ thống Cấu hình Học tập</span>
+                <span>All-in-One Deck Profile System</span>
               </div>
-              <h2 className="text-base sm:text-lg font-black uppercase tracking-tight">
-                Study Profiles & Templates
+              <h2 className="text-base sm:text-xl font-black uppercase tracking-tight">
+                Mẫu Cấu Hình Bộ Thẻ (Deck Templates)
               </h2>
-              <p className="text-xs text-indigo-100 max-w-xl font-medium leading-relaxed">
-                Tạo và lưu các cấu hình học thẻ ưa thích thành template để áp dụng nhanh chỉ với 1-click cho mọi bộ thẻ bạn học.
+              <p className="text-xs text-indigo-100 max-w-2xl font-medium leading-relaxed">
+                Toàn bộ thiết lập bộ thẻ (Cử chỉ lật, Đánh giá FSRS, Thuật toán thứ tự, Căn lề thẻ & Âm thanh) được gói gọn trong một Template duy nhất để áp dụng nhanh chỉ với 1-click.
               </p>
-              <div className="pt-1 flex items-center gap-2 text-xs font-bold text-white/90">
-                <span>Đang áp dụng toàn cục:</span>
-                <span className="px-2 py-0.5 rounded-md bg-white/25 text-white font-black">
+
+              {/* Active Profile Pill & Quick Summary Badges */}
+              <div className="pt-2 flex flex-wrap items-center gap-2 text-xs">
+                <span className="font-bold text-white/80 text-[11px]">Đang áp dụng toàn cục:</span>
+                <span className="px-2.5 py-1 rounded-xl bg-white text-indigo-700 font-black text-xs shadow-xs flex items-center gap-1.5">
+                  <BookmarkCheck className="w-3.5 h-3.5 text-indigo-600" />
                   {activeProfileObj ? activeProfileObj.name : 'Tiêu chuẩn (FSRS)'}
                 </span>
+
+                <div className="hidden sm:flex items-center gap-1.5 text-[10px] text-white/90">
+                  <span className="px-2 py-0.5 rounded-lg bg-white/20 font-bold backdrop-blur-xs">Lật: {flipLabel}</span>
+                  <span className="px-2 py-0.5 rounded-lg bg-white/20 font-bold backdrop-blur-xs">Đánh giá: {ratingLabel}</span>
+                  <span className="px-2 py-0.5 rounded-lg bg-white/20 font-bold backdrop-blur-xs">Thứ tự: {algoLabel}</span>
+                  <span className="px-2 py-0.5 rounded-lg bg-white/20 font-bold backdrop-blur-xs">Audio: {audioLabel}</span>
+                </div>
               </div>
             </div>
 
-            <button
-              onClick={() => {
-                setNewProfileName('')
-                setNewProfileIcon('sparkles')
-                setNewProfileBase('preset-standard')
-                setIsCreateModalOpen(true)
-              }}
-              className="inline-flex items-center justify-center gap-2 px-4 py-2.5 sm:py-3 bg-white text-indigo-700 font-black text-xs uppercase tracking-wider rounded-2xl shadow-lg hover:bg-indigo-50 active:scale-95 transition-all cursor-pointer shrink-0"
-            >
-              <Plus className="w-4 h-4" />
-              <span>Tạo Template Mới</span>
-            </button>
+            <div className="flex items-center gap-2.5 shrink-0 self-start lg:self-center">
+              <button
+                type="button"
+                onClick={() => {
+                  setNewProfileName('')
+                  setNewProfileIcon('sparkles')
+                  loadBaseSettings('current')
+                  setIsCreateModalOpen(true)
+                }}
+                className="inline-flex items-center justify-center gap-2 px-4 py-2.5 sm:py-3 bg-white text-indigo-700 font-black text-xs uppercase tracking-wider rounded-2xl shadow-lg hover:bg-indigo-50 active:scale-95 transition-all cursor-pointer shrink-0"
+              >
+                <Plus className="w-4 h-4" />
+                <span>Tạo Template Mới</span>
+              </button>
+            </div>
           </div>
         </section>
 
-        {/* Section 1: System Presets */}
-        <section className="bg-white rounded-3xl md:rounded-[2.5rem] border border-slate-100 p-4 sm:p-6 md:p-8 shadow-2xs space-y-4">
-          <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+        {/* ══════════ SECTION 1: SYSTEM PRESETS & USER TEMPLATES ══════════ */}
+        <section className="bg-white rounded-3xl md:rounded-[2.5rem] border border-slate-100 p-4 sm:p-6 md:p-8 shadow-2xs space-y-6">
+          <div className="flex items-center justify-between border-b border-slate-100 pb-3.5">
             <div className="flex items-center gap-2.5">
               <div className="w-8 h-8 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0">
                 <Sparkles className="w-4 h-4" />
               </div>
               <div>
                 <h3 className="text-xs font-black text-slate-900 uppercase tracking-widest italic">
-                  Presets Hệ Thống Có Sẵn
+                  1. Danh Sách Templates & Presets
                 </h3>
                 <p className="text-[10px] font-medium text-slate-400">
-                  4 cấu hình tối ưu sẵn sàng sử dụng cho các phong cách học khác nhau
-                </p>
-              </div>
-            </div>
-            <span className="text-[10px] font-black text-indigo-600 uppercase bg-indigo-50 px-2.5 py-1 rounded-full">
-              4 Presets
-            </span>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
-            {SYSTEM_PROFILES.map((preset) => {
-              const isDefaultActive = activeId === preset.id
-              const IconComp = preset.icon === 'zap' ? Zap : (preset.icon === 'headphones' ? Headphones : (preset.icon === 'book' ? BookOpen : Sparkles))
-              return (
-                <div
-                  key={preset.id}
-                  className={cn(
-                    "p-4 sm:p-5 rounded-2xl border-2 transition-all flex flex-col justify-between relative",
-                    isDefaultActive
-                      ? "border-indigo-600 bg-indigo-50/20 shadow-xs"
-                      : "border-slate-100 bg-slate-50/40 hover:border-slate-200 hover:bg-white"
-                  )}
-                >
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2.5">
-                        <div className="w-9 h-9 rounded-xl bg-indigo-100 text-indigo-600 flex items-center justify-center font-bold">
-                          <IconComp className="w-4.5 h-4.5" />
-                        </div>
-                        <div>
-                          <div className="flex items-center gap-1.5">
-                            <h4 className="text-xs font-black text-slate-800 uppercase tracking-tight">
-                              {preset.name}
-                            </h4>
-                            <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-slate-200/70 text-slate-600">
-                              {preset.badge}
-                            </span>
-                          </div>
-                          <span className="text-[9px] font-bold text-slate-400 uppercase">Hệ thống</span>
-                        </div>
-                      </div>
-
-                      {isDefaultActive && (
-                        <span className="inline-flex items-center gap-1 text-[10px] font-black text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full">
-                          <Check className="w-3 h-3" /> Mặc định
-                        </span>
-                      )}
-                    </div>
-
-                    <p className="text-[11px] text-slate-500 font-medium leading-relaxed">
-                      {preset.desc}
-                    </p>
-
-                    <div className="grid grid-cols-2 gap-1.5 pt-1">
-                      {preset.details.map((d, idx) => (
-                        <div key={idx} className="bg-white/80 border border-slate-200/60 rounded-lg px-2 py-1 flex items-center justify-between text-[10px]">
-                          <span className="text-slate-400 font-bold">{d.label}:</span>
-                          <span className="text-slate-700 font-black">{d.val}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div className="pt-4 mt-2 border-t border-slate-100 flex items-center justify-end">
-                    {isDefaultActive ? (
-                      <button
-                        disabled
-                        className="px-3 py-1.5 rounded-xl bg-emerald-100 text-emerald-700 font-black text-[11px] uppercase cursor-default flex items-center gap-1.5"
-                      >
-                        <Check className="w-3.5 h-3.5" /> Đang dùng làm mặc định
-                      </button>
-                    ) : (
-                      <button
-                        onClick={() => handleSetActiveProfile(preset.id)}
-                        className="px-3 py-1.5 rounded-xl bg-white border border-slate-200 text-slate-700 font-black text-[11px] uppercase hover:border-indigo-600 hover:text-indigo-600 hover:bg-indigo-50/50 transition-all cursor-pointer flex items-center gap-1.5 shadow-2xs"
-                      >
-                        <BookmarkCheck className="w-3.5 h-3.5" /> Đặt làm mặc định
-                      </button>
-                    )}
-                  </div>
-                </div>
-              )
-            })}
-          </div>
-        </section>
-
-        {/* Section 2: Custom Templates */}
-        <section className="bg-white rounded-3xl md:rounded-[2.5rem] border border-slate-100 p-4 sm:p-6 md:p-8 shadow-2xs space-y-4">
-          <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-            <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center shrink-0">
-                <BookmarkCheck className="w-4 h-4" />
-              </div>
-              <div>
-                <h3 className="text-xs font-black text-slate-900 uppercase tracking-widest italic">
-                  Template Tuỳ Chỉnh Của Bạn
-                </h3>
-                <p className="text-[10px] font-medium text-slate-400">
-                  Các cấu hình do bạn tự tạo hoặc lưu từ các phiên học thẻ
+                  Chọn một template làm mặc định hoặc áp dụng cho mọi bộ thẻ bạn học
                 </p>
               </div>
             </div>
@@ -725,57 +642,55 @@ const Settings = () => {
               onClick={() => {
                 setNewProfileName('')
                 setNewProfileIcon('sparkles')
-                setNewProfileBase('preset-standard')
+                loadBaseSettings('preset-standard')
                 setIsCreateModalOpen(true)
               }}
               className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-indigo-50 text-indigo-600 font-black text-xs uppercase hover:bg-indigo-100 transition-all cursor-pointer"
             >
-              <Plus className="w-3.5 h-3.5" /> Thêm mới
+              <Plus className="w-3.5 h-3.5" /> Thêm template
             </button>
           </div>
 
-          {customProfiles.length === 0 ? (
-            <div className="p-8 rounded-2xl border-2 border-dashed border-slate-200 text-center space-y-2 bg-slate-50/50">
-              <Sparkles className="w-8 h-8 text-slate-300 mx-auto" />
-              <h4 className="text-xs font-black text-slate-600 uppercase tracking-wider">
-                Chưa có template tuỳ chỉnh nào
-              </h4>
-              <p className="text-[11px] text-slate-400 font-medium max-w-sm mx-auto">
-                Khi đang học bất kỳ bộ thẻ nào, mở Cài đặt và chọn <strong>"Lưu làm Template mới"</strong> hoặc bấm nút phía trên để tạo ngay bây giờ!
-              </p>
+          {/* System Presets Grid */}
+          <div className="space-y-2.5">
+            <div className="flex items-center justify-between">
+              <span className="text-[10.5px] font-black text-slate-400 uppercase tracking-widest">
+                Presets Chuẩn Hệ Thống
+              </span>
+              <span className="text-[9px] font-black text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-full">
+                4 mẫu tối ưu
+              </span>
             </div>
-          ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
-              {customProfiles.map((prof) => {
-                const isDefaultActive = activeId === prof.id
-                const IconComp = prof.icon === 'zap' ? Zap : (prof.icon === 'headphones' ? Headphones : (prof.icon === 'book' ? BookOpen : Sparkles))
-                const sett = prof.settings || {}
+              {SYSTEM_PROFILES.map((preset) => {
+                const isDefaultActive = activeId === preset.id
+                const IconComp = preset.icon === 'zap' ? Zap : (preset.icon === 'headphones' ? Headphones : (preset.icon === 'book' ? BookOpen : Sparkles))
                 return (
                   <div
-                    key={prof.id}
+                    key={preset.id}
                     className={cn(
                       "p-4 sm:p-5 rounded-2xl border-2 transition-all flex flex-col justify-between relative",
                       isDefaultActive
-                        ? "border-amber-500 bg-amber-50/20 shadow-xs"
+                        ? "border-indigo-600 bg-indigo-50/20 shadow-xs"
                         : "border-slate-100 bg-slate-50/40 hover:border-slate-200 hover:bg-white"
                     )}
                   >
                     <div className="space-y-3">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2.5">
-                          <div className="w-9 h-9 rounded-xl bg-amber-100 text-amber-600 flex items-center justify-center font-bold">
+                          <div className="w-9 h-9 rounded-xl bg-indigo-100 text-indigo-600 flex items-center justify-center font-bold">
                             <IconComp className="w-4.5 h-4.5" />
                           </div>
                           <div>
                             <div className="flex items-center gap-1.5">
                               <h4 className="text-xs font-black text-slate-800 uppercase tracking-tight">
-                                {prof.name}
+                                {preset.name}
                               </h4>
-                              <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-amber-100 text-amber-700">
-                                Cá nhân
+                              <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-slate-200/70 text-slate-600">
+                                {preset.badge}
                               </span>
                             </div>
-                            <span className="text-[9px] font-bold text-slate-400 uppercase">Template người dùng</span>
+                            <span className="text-[9px] font-bold text-slate-400 uppercase">Hệ thống</span>
                           </div>
                         </div>
 
@@ -786,38 +701,21 @@ const Settings = () => {
                         )}
                       </div>
 
+                      <p className="text-[11px] text-slate-500 font-medium leading-relaxed">
+                        {preset.desc}
+                      </p>
+
                       <div className="grid grid-cols-2 gap-1.5 pt-1">
-                        <div className="bg-white/80 border border-slate-200/60 rounded-lg px-2 py-1 flex items-center justify-between text-[10px]">
-                          <span className="text-slate-400 font-bold">Âm thanh:</span>
-                          <span className="text-slate-700 font-black">{sett.autoplay_audio || 'always'}</span>
-                        </div>
-                        <div className="bg-white/80 border border-slate-200/60 rounded-lg px-2 py-1 flex items-center justify-between text-[10px]">
-                          <span className="text-slate-400 font-bold">Lật thẻ:</span>
-                          <span className="text-slate-700 font-black">{sett.card_flip_trigger || 'both'}</span>
-                        </div>
-                        <div className="bg-white/80 border border-slate-200/60 rounded-lg px-2 py-1 flex items-center justify-between text-[10px]">
-                          <span className="text-slate-400 font-bold">Đánh giá:</span>
-                          <span className="text-slate-700 font-black">{sett.card_rating_mode || 'both'}</span>
-                        </div>
-                        <div className="bg-white/80 border border-slate-200/60 rounded-lg px-2 py-1 flex items-center justify-between text-[10px]">
-                          <span className="text-slate-400 font-bold">FSRS:</span>
-                          <span className="text-slate-700 font-black">{sett.show_fsrs !== false ? 'Bật' : 'Tắt'}</span>
-                        </div>
+                        {preset.details.map((d, idx) => (
+                          <div key={idx} className="bg-white/80 border border-slate-200/60 rounded-lg px-2 py-1 flex items-center justify-between text-[10px]">
+                            <span className="text-slate-400 font-bold">{d.label}:</span>
+                            <span className="text-slate-700 font-black">{d.val}</span>
+                          </div>
+                        ))}
                       </div>
                     </div>
 
-                    <div className="pt-4 mt-2 border-t border-slate-100 flex items-center justify-between">
-                      <button
-                        onClick={() => {
-                          if (confirm(`Bạn có chắc muốn xoá template "${prof.name}"?`)) {
-                            handleDeleteProfile(prof.id)
-                          }
-                        }}
-                        className="px-2.5 py-1.5 rounded-xl text-rose-500 hover:bg-rose-50 font-bold text-[11px] uppercase transition-all cursor-pointer flex items-center gap-1"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" /> Xoá
-                      </button>
-
+                    <div className="pt-3.5 mt-2 border-t border-slate-100 flex items-center justify-end">
                       {isDefaultActive ? (
                         <button
                           disabled
@@ -827,8 +725,8 @@ const Settings = () => {
                         </button>
                       ) : (
                         <button
-                          onClick={() => handleSetActiveProfile(prof.id)}
-                          className="px-3 py-1.5 rounded-xl bg-white border border-slate-200 text-slate-700 font-black text-[11px] uppercase hover:border-amber-600 hover:text-amber-600 hover:bg-amber-50/50 transition-all cursor-pointer flex items-center gap-1.5 shadow-2xs"
+                          onClick={() => handleSetActiveProfile(preset.id)}
+                          className="px-3 py-1.5 rounded-xl bg-white border border-slate-200 text-slate-700 font-black text-[11px] uppercase hover:border-indigo-600 hover:text-indigo-600 hover:bg-indigo-50/50 transition-all cursor-pointer flex items-center gap-1.5 shadow-2xs"
                         >
                           <BookmarkCheck className="w-3.5 h-3.5" /> Đặt làm mặc định
                         </button>
@@ -838,66 +736,640 @@ const Settings = () => {
                 )
               })}
             </div>
-          )}
-        </section>
-      </div>
-    )
-  }
+          </div>
 
-  // ══════════════ TAB 1: GESTURES & PLAY ══════════════
-  const renderGesturesTab = () => {
-    const customProfiles: StudyProfile[] = (userSettings.study_profiles || []).filter((p: any) => !p.is_system)
-    const activeId = userSettings.active_profile_id || 'preset-standard'
-    const allProfiles = [...SYSTEM_PROFILES, ...customProfiles]
-    const activeProfileObj = allProfiles.find(p => p.id === activeId)
-
-    return (
-      <div className="space-y-4 md:space-y-6">
-        {/* Template & Gestures Sync Bar */}
-        <div className="bg-white rounded-3xl border border-purple-100/80 p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-2xs">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-purple-50 text-purple-600 flex items-center justify-center font-bold border border-purple-100 shrink-0">
-              <Sparkles className="w-5 h-5 text-purple-600" />
+          {/* User Custom Templates */}
+          <div className="space-y-2.5 pt-3 border-t border-slate-100">
+            <div className="flex items-center justify-between">
+              <span className="text-[10.5px] font-black text-slate-400 uppercase tracking-widest">
+                Template Cá Nhân Của Bạn
+              </span>
+              {customProfiles.length > 0 && (
+                <span className="text-[9px] font-black text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full">
+                  {customProfiles.length} template
+                </span>
+              )}
             </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="text-[10px] font-black uppercase text-purple-600 tracking-wider">
-                  Template Cử Chỉ & Thao Tác
-                </span>
-                <span className="text-[9px] font-bold px-1.5 py-0.2 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200/60">
-                  Đồng bộ toàn cục
-                </span>
+
+            {customProfiles.length === 0 ? (
+              <div className="p-6 rounded-2xl border-2 border-dashed border-slate-200 text-center space-y-2 bg-slate-50/50">
+                <Sparkles className="w-7 h-7 text-slate-300 mx-auto" />
+                <h4 className="text-xs font-black text-slate-600 uppercase tracking-wider">
+                  Chưa có template tuỳ chỉnh nào
+                </h4>
+                <p className="text-[11px] text-slate-400 font-medium max-w-sm mx-auto">
+                  Bạn có thể tinh chỉnh các thông số Cử chỉ, Thuật toán và Căn lề bên dưới rồi bấm <strong>"Lưu thành Template mới"</strong>!
+                </p>
               </div>
-              <div className="text-xs sm:text-sm font-black text-slate-800 flex items-center gap-2 mt-0.5">
-                <span>{activeProfileObj ? activeProfileObj.name : 'Tiêu chuẩn (FSRS)'}</span>
-                <span className="text-[10px] font-medium text-slate-400">
-                  (Lật: {(userSettings.card_flip_trigger || 'both') === 'both' ? 'Chạm & Vuốt' : ((userSettings.card_flip_trigger === 'tap') ? 'Chạm thẻ' : 'Nút bấm')} • Đánh giá: {(userSettings.card_rating_mode || 'both') === 'both' ? 'Cả hai' : ((userSettings.card_rating_mode === 'swipe_4way') ? 'Vuốt 4 hướng' : ((userSettings.card_rating_mode === 'swipe_2way') ? 'Vuốt 2 chiều' : '4 Nút'))})
-                </span>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
+                {customProfiles.map((prof) => {
+                  const isDefaultActive = activeId === prof.id
+                  const IconComp = prof.icon === 'zap' ? Zap : (prof.icon === 'headphones' ? Headphones : (prof.icon === 'book' ? BookOpen : Sparkles))
+                  const sett = prof.settings || {}
+                  return (
+                    <div
+                      key={prof.id}
+                      className={cn(
+                        "p-4 sm:p-5 rounded-2xl border-2 transition-all flex flex-col justify-between relative",
+                        isDefaultActive
+                          ? "border-amber-500 bg-amber-50/20 shadow-xs"
+                          : "border-slate-100 bg-slate-50/40 hover:border-slate-200 hover:bg-white"
+                      )}
+                    >
+                      <div className="space-y-3">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2.5">
+                            <div className="w-9 h-9 rounded-xl bg-amber-100 text-amber-600 flex items-center justify-center font-bold">
+                              <IconComp className="w-4.5 h-4.5" />
+                            </div>
+                            <div>
+                              <div className="flex items-center gap-1.5">
+                                <h4 className="text-xs font-black text-slate-800 uppercase tracking-tight">
+                                  {prof.name}
+                                </h4>
+                                <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-amber-100 text-amber-700">
+                                  Cá nhân
+                                </span>
+                              </div>
+                              <span className="text-[9px] font-bold text-slate-400 uppercase">Template người dùng</span>
+                            </div>
+                          </div>
+
+                          {isDefaultActive && (
+                            <span className="inline-flex items-center gap-1 text-[10px] font-black text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full">
+                              <Check className="w-3 h-3" /> Mặc định
+                            </span>
+                          )}
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-1.5 pt-1">
+                          <div className="bg-white/80 border border-slate-200/60 rounded-lg px-2 py-1 flex items-center justify-between text-[10px]">
+                            <span className="text-slate-400 font-bold">Lật thẻ:</span>
+                            <span className="text-slate-700 font-black">{sett.card_flip_trigger || 'both'}</span>
+                          </div>
+                          <div className="bg-white/80 border border-slate-200/60 rounded-lg px-2 py-1 flex items-center justify-between text-[10px]">
+                            <span className="text-slate-400 font-bold">Đánh giá:</span>
+                            <span className="text-slate-700 font-black">{sett.card_rating_mode || 'both'}</span>
+                          </div>
+                          <div className="bg-white/80 border border-slate-200/60 rounded-lg px-2 py-1 flex items-center justify-between text-[10px]">
+                            <span className="text-slate-400 font-bold">Thứ tự:</span>
+                            <span className="text-slate-700 font-black">{sett.quiz_learning_mode || 'fsrs'}</span>
+                          </div>
+                          <div className="bg-white/80 border border-slate-200/60 rounded-lg px-2 py-1 flex items-center justify-between text-[10px]">
+                            <span className="text-slate-400 font-bold">Âm thanh:</span>
+                            <span className="text-slate-700 font-black">{sett.autoplay_audio || 'always'}</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="pt-3.5 mt-2 border-t border-slate-100 flex items-center justify-between">
+                        <button
+                          onClick={() => {
+                            if (confirm(`Bạn có chắc muốn xoá template "${prof.name}"?`)) {
+                              handleDeleteProfile(prof.id)
+                            }
+                          }}
+                          className="px-2.5 py-1.5 rounded-xl text-rose-500 hover:bg-rose-50 font-bold text-[11px] uppercase transition-all cursor-pointer flex items-center gap-1"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" /> Xoá
+                        </button>
+
+                        {isDefaultActive ? (
+                          <button
+                            disabled
+                            className="px-3 py-1.5 rounded-xl bg-emerald-100 text-emerald-700 font-black text-[11px] uppercase cursor-default flex items-center gap-1.5"
+                          >
+                            <Check className="w-3.5 h-3.5" /> Đang dùng làm mặc định
+                          </button>
+                        ) : (
+                          <button
+                            onClick={() => handleSetActiveProfile(prof.id)}
+                            className="px-3 py-1.5 rounded-xl bg-white border border-slate-200 text-slate-700 font-black text-[11px] uppercase hover:border-amber-600 hover:text-amber-600 hover:bg-amber-50/50 transition-all cursor-pointer flex items-center gap-1.5 shadow-2xs"
+                          >
+                            <BookmarkCheck className="w-3.5 h-3.5" /> Đặt làm mặc định
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+          </div>
+        </section>
+
+        {/* ══════════ SECTION 2: GESTURES & INTERACTION ══════════ */}
+        <section className="bg-white rounded-3xl md:rounded-[2.5rem] border border-slate-100 p-4 sm:p-6 md:p-8 shadow-2xs space-y-6">
+          <div className="flex items-center justify-between border-b border-slate-100 pb-3.5">
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center shrink-0">
+                <Move className="w-4 h-4" />
+              </div>
+              <div>
+                <h3 className="text-xs font-black text-slate-900 uppercase tracking-widest italic">
+                  2. Thao Tác Cử Chỉ Flashcard (Gestures)
+                </h3>
+                <p className="text-[10px] font-medium text-slate-400">
+                  Cách lật mặt thẻ và vuốt 4 hướng để chấm điểm FSRS
+                </p>
               </div>
             </div>
           </div>
 
-          <div className="flex items-center gap-2 shrink-0">
-            {/* Quick Template Switcher */}
-            <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl border border-slate-200/70">
-              {SYSTEM_PROFILES.slice(0, 3).map(p => {
-                const isSel = p.id === activeId
+          {/* Sub-section 2.1: Card Flipping Trigger */}
+          <div className="space-y-3">
+            <div className="flex items-center gap-2">
+              <MousePointer className="w-3.5 h-3.5 text-indigo-500" />
+              <h4 className="text-[11px] font-black text-slate-700 uppercase tracking-wider">
+                Cách Lật Thẻ (Flip Trigger)
+              </h4>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-2.5 sm:gap-3">
+              {[
+                {
+                  id: 'both',
+                  title: 'Chạm & Vuốt (Hybrid)',
+                  desc: 'Chạm thân thẻ hoặc hất nhẹ để lật giữa 2 mặt.',
+                  icon: Sparkles,
+                  color: 'text-indigo-600',
+                  bg: 'bg-indigo-50'
+                },
+                {
+                  id: 'tap',
+                  title: 'Chạm Thân Thẻ',
+                  desc: 'Chạm vào bất cứ vị trí nào trên thẻ để lật ngay lập tức.',
+                  icon: MousePointer,
+                  color: 'text-blue-600',
+                  bg: 'bg-blue-50'
+                },
+                {
+                  id: 'button_only',
+                  title: 'Chỉ Bấm Nút Dưới',
+                  desc: 'Lật nghiêm ngặt bằng nút (tránh lật nhầm khi bôi đen sao chép chữ).',
+                  icon: Lock,
+                  color: 'text-slate-600',
+                  bg: 'bg-slate-50'
+                }
+              ].map((opt) => {
+                const isSelected = (userSettings.card_flip_trigger || 'both') === opt.id;
+                const Icon = opt.icon;
                 return (
                   <button
-                    key={p.id}
-                    type="button"
-                    onClick={() => handleSetActiveProfile(p.id)}
+                    key={opt.id}
+                    onClick={() => updateUserSettings({ card_flip_trigger: opt.id as any })}
                     className={cn(
-                      "px-2.5 py-1 rounded-lg text-[10px] font-black uppercase transition-all cursor-pointer",
-                      isSel ? "bg-white text-purple-600 shadow-xs border border-purple-200" : "text-slate-500 hover:text-slate-800"
+                      "p-3.5 sm:p-4 rounded-2xl border-2 text-left transition-all relative cursor-pointer",
+                      isSelected
+                        ? "border-indigo-600 bg-indigo-50/30 shadow-xs"
+                        : "border-slate-100 bg-slate-50/50 hover:border-slate-200 hover:bg-white"
                     )}
                   >
-                    {p.name.split(' ')[0]}
+                    <div className="flex items-center justify-between mb-2">
+                      <div className={cn("p-2 rounded-xl", opt.bg, opt.color)}>
+                        <Icon className="w-4 h-4" />
+                      </div>
+                      <div className={cn(
+                        "w-4 h-4 rounded-full border flex items-center justify-center transition-all",
+                        isSelected ? "border-indigo-600 bg-indigo-600 text-white" : "border-slate-300 bg-white"
+                      )}>
+                        {isSelected && <Zap className="w-2 h-2 fill-current" />}
+                      </div>
+                    </div>
+                    <h5 className="text-xs font-black text-slate-800 uppercase tracking-tight mb-1">{opt.title}</h5>
+                    <p className="text-[10px] text-slate-400 font-medium leading-relaxed">{opt.desc}</p>
                   </button>
-                )
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Sub-section 2.2: FSRS Rating Mode */}
+          <div className="space-y-3 pt-2">
+            <div className="flex items-center gap-2">
+              <Compass className="w-3.5 h-3.5 text-purple-500" />
+              <h4 className="text-[11px] font-black text-slate-700 uppercase tracking-wider">
+                Đánh Giá Kết Quả FSRS (Rating Mode)
+              </h4>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-3">
+              {[
+                {
+                  id: 'both',
+                  title: 'Hỗn Hợp (Vuốt & Nút)',
+                  badge: 'Khuyên dùng',
+                  desc: 'Tự do tối đa: vừa vuốt thẻ 4 hướng VỪA bấm 4 nút bên dưới.',
+                  color: 'border-purple-500 text-purple-600',
+                  bg: 'bg-purple-50'
+                },
+                {
+                  id: 'swipe_4way',
+                  title: 'Vuốt La Bàn 4 Hướng',
+                  badge: 'Gamified',
+                  desc: 'Vuốt Trái (Again), Dưới (Hard), Phải (Good), Lên (Easy) với bay 3D.',
+                  color: 'border-indigo-500 text-indigo-600',
+                  bg: 'bg-indigo-50'
+                },
+                {
+                  id: 'swipe_2way',
+                  title: 'Vuốt Nhanh 2 Chiều',
+                  badge: 'Tốc độ cao',
+                  desc: 'Vuốt Trái (Again) & Phải (Good). Có nút phụ cho Hard/Easy.',
+                  color: 'border-emerald-500 text-emerald-600',
+                  bg: 'bg-emerald-50'
+                },
+                {
+                  id: 'buttons',
+                  title: 'Chỉ 4 Nút Bấm',
+                  badge: 'Cổ điển',
+                  desc: 'Chuẩn 4 nút kiểu Anki truyền thống. Tắt cử chỉ vuốt đánh giá.',
+                  color: 'border-slate-500 text-slate-600',
+                  bg: 'bg-slate-50'
+                }
+              ].map((opt) => {
+                const isSelected = (userSettings.card_rating_mode || 'both') === opt.id;
+                return (
+                  <button
+                    key={opt.id}
+                    onClick={() => updateUserSettings({ card_rating_mode: opt.id as any })}
+                    className={cn(
+                      "p-3.5 sm:p-4 rounded-2xl border-2 text-left transition-all relative cursor-pointer flex flex-col justify-between",
+                      isSelected
+                        ? "border-purple-600 bg-purple-50/30 shadow-xs"
+                        : "border-slate-100 bg-slate-50/50 hover:border-slate-200 hover:bg-white"
+                    )}
+                  >
+                    <div>
+                      <div className="flex items-center justify-between mb-2">
+                        <span className={cn("text-[9px] font-black uppercase px-2 py-0.5 rounded-md", opt.bg, opt.color)}>
+                          {opt.badge}
+                        </span>
+                        <div className={cn(
+                          "w-4 h-4 rounded-full border flex items-center justify-center transition-all",
+                          isSelected ? "border-purple-600 bg-purple-600 text-white" : "border-slate-300 bg-white"
+                        )}>
+                          {isSelected && <Zap className="w-2 h-2 fill-current" />}
+                        </div>
+                      </div>
+                      <h5 className="text-xs font-black text-slate-800 uppercase tracking-tight mb-1">{opt.title}</h5>
+                      <p className="text-[10px] text-slate-400 font-medium leading-relaxed">{opt.desc}</p>
+                    </div>
+                  </button>
+                );
               })}
             </div>
 
+            {/* Visual 4-Way Compass Guide Preview */}
+            <div className="bg-slate-50 rounded-2xl border border-slate-200/60 p-3.5 sm:p-4 mt-2">
+              <div className="flex items-center justify-between mb-2.5">
+                <span className="text-[10px] font-black text-slate-500 uppercase tracking-wider">
+                  Sơ Đồ Vuốt La Bàn 4 Hướng
+                </span>
+                <span className="text-[9px] font-bold text-slate-400">
+                  Vuốt quá 65px để kích hoạt
+                </span>
+              </div>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                <div className="bg-white p-2.5 rounded-xl border border-rose-200 shadow-xs flex items-center gap-2">
+                  <span className="text-base">⬅️</span>
+                  <div>
+                    <span className="text-[10px] font-black text-rose-600 uppercase block">Vuốt Trái</span>
+                    <span className="text-[9px] text-slate-500 font-bold">Again (Quên)</span>
+                  </div>
+                </div>
+                <div className="bg-white p-2.5 rounded-xl border border-amber-200 shadow-xs flex items-center gap-2">
+                  <span className="text-base">⬇️</span>
+                  <div>
+                    <span className="text-[10px] font-black text-amber-600 uppercase block">Vuốt Xuống</span>
+                    <span className="text-[9px] text-slate-500 font-bold">Hard (Khó)</span>
+                  </div>
+                </div>
+                <div className="bg-white p-2.5 rounded-xl border border-indigo-200 shadow-xs flex items-center gap-2">
+                  <span className="text-base">➡️</span>
+                  <div>
+                    <span className="text-[10px] font-black text-indigo-600 uppercase block">Vuốt Phải</span>
+                    <span className="text-[9px] text-slate-500 font-bold">Good (Nhớ)</span>
+                  </div>
+                </div>
+                <div className="bg-white p-2.5 rounded-xl border border-emerald-200 shadow-xs flex items-center gap-2">
+                  <span className="text-base">⬆️</span>
+                  <div>
+                    <span className="text-[10px] font-black text-emerald-600 uppercase block">Vuốt Lên</span>
+                    <span className="text-[9px] text-slate-500 font-bold">Easy (Dễ)</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* ══════════ SECTION 3: LEARNING ALGORITHM & ORDER ══════════ */}
+        <section className="bg-white rounded-3xl md:rounded-[2.5rem] border border-slate-100 p-4 sm:p-6 md:p-8 shadow-2xs space-y-4">
+          <div className="flex items-center gap-2.5 border-b border-slate-100 pb-3.5">
+            <div className="w-8 h-8 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0">
+              <Brain className="w-4 h-4" />
+            </div>
+            <div>
+              <h3 className="text-xs font-black text-slate-900 uppercase tracking-widest italic">
+                3. Thuật Toán & Trình Tự Học (Learning Algorithm)
+              </h3>
+              <p className="text-[10px] font-medium text-slate-400">
+                Lựa chọn cách thẻ được phân phối và sắp xếp trong các phiên học
+              </p>
+            </div>
+          </div>
+
+          {/* Mobile view: Compact cohesive option list */}
+          <div className="md:hidden space-y-2">
+            {modes.map((mode) => {
+              const isSelected = learningMode === mode.id
+              const Icon = mode.icon
+              return (
+                <button
+                  key={mode.id}
+                  onClick={() => updateLearningMode(mode.id as LearningMode)}
+                  className={cn(
+                    "w-full flex items-center justify-between p-3 rounded-2xl transition-all text-left",
+                    isSelected
+                      ? "bg-indigo-50/70 border border-indigo-200/80 shadow-2xs"
+                      : "bg-slate-50/50 hover:bg-slate-100/60 border border-slate-100"
+                  )}
+                >
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className={cn("w-10 h-10 rounded-xl flex items-center justify-center shrink-0", mode.bg, mode.color)}>
+                      <Icon className="w-5 h-5" />
+                    </div>
+                    <div className="min-w-0 pr-2">
+                      <h4 className={cn("text-xs font-black uppercase tracking-tight truncate", isSelected ? "text-indigo-950" : "text-slate-800")}>
+                        {mode.name}
+                      </h4>
+                      <p className="text-[10px] font-medium text-slate-400 truncate leading-relaxed">
+                        {mode.desc}
+                      </p>
+                    </div>
+                  </div>
+                  
+                  <div className={cn(
+                    "w-5 h-5 rounded-full flex items-center justify-center shrink-0 border transition-all",
+                    isSelected 
+                      ? "bg-indigo-600 border-indigo-600 text-white shadow-2xs" 
+                      : "border-slate-300 bg-white"
+                  )}>
+                    {isSelected && <Zap className="w-2.5 h-2.5 fill-current" />}
+                  </div>
+                </button>
+              )
+            })}
+          </div>
+
+          {/* Desktop view: 2-column cards layout */}
+          <div className="hidden md:grid md:grid-cols-2 gap-4">
+            {modes.map((mode) => (
+              <button
+                key={mode.id}
+                onClick={() => updateLearningMode(mode.id as LearningMode)}
+                className={cn(
+                  "relative p-5 rounded-2xl border-2 transition-all text-left group",
+                  learningMode === mode.id 
+                    ? 'border-indigo-600 bg-white shadow-xl shadow-indigo-50' 
+                    : 'border-slate-100 bg-slate-50/40 hover:border-slate-200 hover:bg-white hover:shadow-lg'
+                )}
+              >
+                <div className="flex items-start justify-between mb-3">
+                  <div className={`p-2.5 rounded-xl ${mode.bg} ${mode.color}`}>
+                    <mode.icon className="w-5 h-5" />
+                  </div>
+                  {learningMode === mode.id && (
+                    <div className="w-6 h-6 bg-indigo-600 rounded-full flex items-center justify-center text-white shadow-xs">
+                      <Zap className="w-3 h-3 fill-current" />
+                    </div>
+                  )}
+                </div>
+                <h4 className="text-xs font-black text-slate-900 uppercase tracking-tight mb-1">{mode.name}</h4>
+                <p className="text-[10px] font-medium text-slate-400 leading-relaxed">{mode.desc}</p>
+              </button>
+            ))}
+          </div>
+        </section>
+
+        {/* ══════════ SECTION 4: CARD ALIGNMENT, AUDIO & DISPLAY DEFAULTS ══════════ */}
+        <section className="bg-white rounded-3xl md:rounded-[2.5rem] border border-slate-100 p-4 sm:p-6 md:p-8 shadow-2xs space-y-6">
+          <div className="flex items-center justify-between border-b border-slate-100 pb-3.5">
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0">
+                <Layers className="w-4 h-4" />
+              </div>
+              <div>
+                <h3 className="text-xs font-black text-slate-900 uppercase tracking-widest italic">
+                  4. Căn Lề & Tùy Chọn Hiển Thị (Alignment & Display)
+                </h3>
+                <p className="text-[10px] font-medium text-slate-400">
+                  Căn chỉnh lề thẻ, âm thanh tự động, hình ảnh và hiển thị chỉ số FSRS
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Alignment Controls */}
+          <div className="space-y-3">
+            <span className="text-[10.5px] font-black text-slate-700 uppercase tracking-wider block">
+              Căn Lề Thẻ Mặt Trước & Mặt Sau
+            </span>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              {/* Front Card Alignment */}
+              <div className="p-3.5 bg-slate-50/70 rounded-2xl border border-slate-100 space-y-2.5">
+                <span className="text-[10.5px] font-black text-slate-700 uppercase tracking-wider block">
+                  Mặt Trước (Front Card)
+                </span>
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <span className="text-[9.5px] font-bold text-slate-400 block mb-1">Dọc (Vertical)</span>
+                    <div className="grid grid-cols-2 gap-1 bg-white p-1 rounded-xl border border-slate-200/60">
+                      {(['center', 'top'] as const).map(mode => (
+                        <button
+                          key={mode}
+                          type="button"
+                          onClick={() => updateUserSettings({ front_valign: mode })}
+                          className={cn(
+                            "py-1 px-2 rounded-lg text-[10px] font-black uppercase transition-all cursor-pointer text-center",
+                            (userSettings.front_valign || 'center') === mode
+                              ? "bg-indigo-600 text-white shadow-xs"
+                              : "text-slate-500 hover:text-slate-800"
+                          )}
+                        >
+                          {mode === 'center' ? 'Center' : 'Top'}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  <div>
+                    <span className="text-[9.5px] font-bold text-slate-400 block mb-1">Ngang (Horizontal)</span>
+                    <div className="grid grid-cols-2 gap-1 bg-white p-1 rounded-xl border border-slate-200/60">
+                      {(['left', 'center'] as const).map(mode => (
+                        <button
+                          key={mode}
+                          type="button"
+                          onClick={() => updateUserSettings({ front_halign: mode })}
+                          className={cn(
+                            "py-1 px-2 rounded-lg text-[10px] font-black uppercase transition-all cursor-pointer text-center",
+                            (userSettings.front_halign || 'left') === mode
+                              ? "bg-indigo-600 text-white shadow-xs"
+                              : "text-slate-500 hover:text-slate-800"
+                          )}
+                        >
+                          {mode === 'left' ? 'Left' : 'Center'}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Back Card Alignment */}
+              <div className="p-3.5 bg-slate-50/70 rounded-2xl border border-slate-100 space-y-2.5">
+                <span className="text-[10.5px] font-black text-slate-700 uppercase tracking-wider block">
+                  Mặt Sau (Back Card)
+                </span>
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <span className="text-[9.5px] font-bold text-slate-400 block mb-1">Dọc (Vertical)</span>
+                    <div className="grid grid-cols-2 gap-1 bg-white p-1 rounded-xl border border-slate-200/60">
+                      {(['center', 'top'] as const).map(mode => (
+                        <button
+                          key={mode}
+                          type="button"
+                          onClick={() => updateUserSettings({ back_valign: mode })}
+                          className={cn(
+                            "py-1 px-2 rounded-lg text-[10px] font-black uppercase transition-all cursor-pointer text-center",
+                            (userSettings.back_valign || 'center') === mode
+                              ? "bg-indigo-600 text-white shadow-xs"
+                              : "text-slate-500 hover:text-slate-800"
+                          )}
+                        >
+                          {mode === 'center' ? 'Center' : 'Top'}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  <div>
+                    <span className="text-[9.5px] font-bold text-slate-400 block mb-1">Ngang (Horizontal)</span>
+                    <div className="grid grid-cols-2 gap-1 bg-white p-1 rounded-xl border border-slate-200/60">
+                      {(['left', 'center'] as const).map(mode => (
+                        <button
+                          key={mode}
+                          type="button"
+                          onClick={() => updateUserSettings({ back_halign: mode })}
+                          className={cn(
+                            "py-1 px-2 rounded-lg text-[10px] font-black uppercase transition-all cursor-pointer text-center",
+                            (userSettings.back_halign || 'left') === mode
+                              ? "bg-indigo-600 text-white shadow-xs"
+                              : "text-slate-500 hover:text-slate-800"
+                          )}
+                        >
+                          {mode === 'left' ? 'Left' : 'Center'}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Audio & Image Settings */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-2">
+            <div className="p-3.5 bg-slate-50/70 rounded-2xl border border-slate-100 space-y-2">
+              <span className="text-[10.5px] font-black text-slate-700 uppercase tracking-wider block">
+                Tự Động Phát Âm Thanh (Audio)
+              </span>
+              <div className="grid grid-cols-4 gap-1 bg-white p-1 rounded-xl border border-slate-200/60">
+                {[
+                  { id: 'always', label: 'Luôn phát' },
+                  { id: 'front', label: 'Mặt trước' },
+                  { id: 'back', label: 'Mặt sau' },
+                  { id: 'none', label: 'Tắt' }
+                ].map(opt => (
+                  <button
+                    key={opt.id}
+                    type="button"
+                    onClick={() => updateUserSettings({ autoplay_audio: opt.id })}
+                    className={cn(
+                      "py-1 px-1 rounded-lg text-[9.5px] font-black uppercase transition-all cursor-pointer text-center",
+                      (userSettings.autoplay_audio || 'always') === opt.id
+                        ? "bg-indigo-600 text-white shadow-xs"
+                        : "text-slate-500 hover:text-slate-800"
+                    )}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="p-3.5 bg-slate-50/70 rounded-2xl border border-slate-100 space-y-2">
+              <span className="text-[10.5px] font-black text-slate-700 uppercase tracking-wider block">
+                Hiển Thị Hình Ảnh (Images)
+              </span>
+              <div className="grid grid-cols-3 gap-1 bg-white p-1 rounded-xl border border-slate-200/60">
+                {[
+                  { id: 'both', label: 'Cả 2 mặt' },
+                  { id: 'back_only', label: 'Chỉ mặt sau' },
+                  { id: 'none', label: 'Tắt hình' }
+                ].map(opt => (
+                  <button
+                    key={opt.id}
+                    type="button"
+                    onClick={() => updateUserSettings({ show_images: opt.id })}
+                    className={cn(
+                      "py-1 px-1 rounded-lg text-[9.5px] font-black uppercase transition-all cursor-pointer text-center",
+                      (userSettings.show_images || 'both') === opt.id
+                        ? "bg-indigo-600 text-white shadow-xs"
+                        : "text-slate-500 hover:text-slate-800"
+                    )}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Toggle Items */}
+          <div className="space-y-1.5 pt-2 border-t border-slate-100">
+            <SettingItem 
+              icon={Brain} 
+              label="Hiển Thị Chỉ Số & Thống Kê FSRS" 
+              desc="Hiển thị độ ổn định (Stability), độ khó (Difficulty) và thời gian ôn tập trên thẻ" 
+              active={userSettings.show_fsrs ?? true} 
+              onClick={() => updateUserSettings({ show_fsrs: !(userSettings.show_fsrs ?? true) })}
+            />
+            <SettingItem 
+              icon={Volume2} 
+              label="Hiệu Ứng Âm Thanh (SFX)" 
+              desc="Phát âm thanh phản hồi khi lật thẻ và đánh giá kết quả" 
+              active={userSettings.sfx_enabled ?? true} 
+              onClick={() => updateUserSettings({ sfx_enabled: !(userSettings.sfx_enabled ?? true) })}
+            />
+            <SettingItem 
+              icon={Zap} 
+              label="Rung Phản Hồi (Haptic Feedback)" 
+              desc="Rung nhẹ khi vuốt và chạm nút trên điện thoại" 
+              active={userSettings.haptic_enabled ?? true} 
+              onClick={() => updateUserSettings({ haptic_enabled: !(userSettings.haptic_enabled ?? true) })}
+            />
+          </div>
+
+          {/* Bottom Save as Custom Template Callout */}
+          <div className="p-4 bg-gradient-to-r from-amber-50 to-orange-50 rounded-2xl border border-amber-200/70 flex flex-col sm:flex-row items-center justify-between gap-3">
+            <div className="space-y-0.5 text-center sm:text-left">
+              <h4 className="text-xs font-black text-amber-900 uppercase tracking-tight flex items-center justify-center sm:justify-start gap-1.5">
+                <BookmarkCheck className="w-4 h-4 text-amber-600" />
+                Lưu cấu hình hiện tại thành Template mới?
+              </h4>
+              <p className="text-[10px] font-medium text-amber-700 leading-relaxed">
+                Đóng gói toàn bộ cử chỉ, thuật toán và căn lề vừa thiết lập thành một template mang tên bạn.
+              </p>
+            </div>
             <button
               type="button"
               onClick={() => {
@@ -906,449 +1378,17 @@ const Settings = () => {
                 loadBaseSettings('current')
                 setIsCreateModalOpen(true)
               }}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-purple-600 text-white font-black text-xs uppercase hover:bg-purple-700 active:scale-95 transition-all cursor-pointer shadow-md shadow-purple-500/20"
+              className="px-4 py-2 rounded-xl bg-amber-600 text-white font-black text-xs uppercase tracking-wider hover:bg-amber-700 active:scale-95 transition-all cursor-pointer shadow-md shadow-amber-500/20 shrink-0"
             >
-              <BookmarkCheck className="w-3.5 h-3.5" />
-              <span>Lưu cử chỉ thành Template</span>
+              Lưu thành Template
             </button>
           </div>
-        </div>
-
-        <section className="bg-white rounded-3xl md:rounded-[2.5rem] border border-slate-100 p-4 sm:p-6 md:p-8 shadow-2xs space-y-6">
-        <div className="flex items-center justify-between border-b border-slate-100 pb-3.5">
-          <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center shrink-0">
-              <Move className="w-4 h-4" />
-            </div>
-            <div>
-              <h2 className="text-xs font-black text-slate-900 uppercase tracking-widest italic">
-                Flashcard Gestures & Interaction
-              </h2>
-              <p className="text-[10px] font-medium text-slate-400">
-                Configure card flipping triggers and FSRS rating gesture controls
-              </p>
-            </div>
-          </div>
-        </div>
-
-        {/* Sub-section 1: Card Flipping Trigger */}
-        <div className="space-y-3">
-          <div className="flex items-center gap-2">
-            <MousePointer className="w-3.5 h-3.5 text-indigo-500" />
-            <h3 className="text-[11px] font-black text-slate-700 uppercase tracking-wider">
-              Card Flip Trigger
-            </h3>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-2.5 sm:gap-3">
-            {[
-              {
-                id: 'both',
-                title: 'Tap & Swipe (Hybrid)',
-                desc: 'Tap card body or flick/swipe to flip between front and back.',
-                icon: Sparkles,
-                color: 'text-indigo-600',
-                bg: 'bg-indigo-50'
-              },
-              {
-                id: 'tap',
-                title: 'Tap Card Body',
-                desc: 'Click or touch anywhere on the card to flip immediately.',
-                icon: MousePointer,
-                color: 'text-blue-600',
-                bg: 'bg-blue-50'
-              },
-              {
-                id: 'button_only',
-                title: 'Bottom Button Only',
-                desc: 'Flip strictly using the bottom button (prevents accidental flips when selecting text).',
-                icon: Lock,
-                color: 'text-slate-600',
-                bg: 'bg-slate-50'
-              }
-            ].map((opt) => {
-              const isSelected = (userSettings.card_flip_trigger || 'both') === opt.id;
-              const Icon = opt.icon;
-              return (
-                <button
-                  key={opt.id}
-                  onClick={() => updateUserSettings({ card_flip_trigger: opt.id as any })}
-                  className={cn(
-                    "p-3.5 sm:p-4 rounded-2xl border-2 text-left transition-all relative cursor-pointer",
-                    isSelected
-                      ? "border-indigo-600 bg-indigo-50/30 shadow-xs"
-                      : "border-slate-100 bg-slate-50/50 hover:border-slate-200 hover:bg-white"
-                  )}
-                >
-                  <div className="flex items-center justify-between mb-2">
-                    <div className={cn("p-2 rounded-xl", opt.bg, opt.color)}>
-                      <Icon className="w-4 h-4" />
-                    </div>
-                    <div className={cn(
-                      "w-4 h-4 rounded-full border flex items-center justify-center transition-all",
-                      isSelected ? "border-indigo-600 bg-indigo-600 text-white" : "border-slate-300 bg-white"
-                    )}>
-                      {isSelected && <Zap className="w-2 h-2 fill-current" />}
-                    </div>
-                  </div>
-                  <h4 className="text-xs font-black text-slate-800 uppercase tracking-tight mb-1">{opt.title}</h4>
-                  <p className="text-[10px] text-slate-400 font-medium leading-relaxed">{opt.desc}</p>
-                </button>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* Sub-section 2: FSRS Rating Mode */}
-        <div className="space-y-3 pt-2">
-          <div className="flex items-center gap-2">
-            <Compass className="w-3.5 h-3.5 text-purple-500" />
-            <h3 className="text-[11px] font-black text-slate-700 uppercase tracking-wider">
-              FSRS Rating Control
-            </h3>
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-3">
-            {[
-              {
-                id: 'both',
-                title: 'Hybrid (Gestures & Buttons)',
-                badge: 'Recommended',
-                desc: 'Full freedom: swipe card in 4 directions OR tap the 4 action buttons.',
-                color: 'border-purple-500 text-purple-600',
-                bg: 'bg-purple-50'
-              },
-              {
-                id: 'swipe_4way',
-                title: '4-Way Compass Swipe',
-                badge: 'Gamified',
-                desc: 'Swipe Left (Again), Down (Hard), Right (Good), Up (Easy) with 3D fly-out.',
-                color: 'border-indigo-500 text-indigo-600',
-                bg: 'bg-indigo-50'
-              },
-              {
-                id: 'swipe_2way',
-                title: '2-Way Quick Swipe',
-                badge: 'High Speed',
-                desc: 'Swipe Left (Again) & Right (Good). Helper buttons for Hard/Easy.',
-                color: 'border-emerald-500 text-emerald-600',
-                bg: 'bg-emerald-50'
-              },
-              {
-                id: 'buttons',
-                title: '4-Button Grid Only',
-                badge: 'Classic',
-                desc: 'Traditional Anki-style 4 buttons at the bottom. Disables swipe rating.',
-                color: 'border-slate-500 text-slate-600',
-                bg: 'bg-slate-50'
-              }
-            ].map((opt) => {
-              const isSelected = (userSettings.card_rating_mode || 'both') === opt.id;
-              return (
-                <button
-                  key={opt.id}
-                  onClick={() => updateUserSettings({ card_rating_mode: opt.id as any })}
-                  className={cn(
-                    "p-3.5 sm:p-4 rounded-2xl border-2 text-left transition-all relative cursor-pointer flex flex-col justify-between",
-                    isSelected
-                      ? "border-purple-600 bg-purple-50/30 shadow-xs"
-                      : "border-slate-100 bg-slate-50/50 hover:border-slate-200 hover:bg-white"
-                  )}
-                >
-                  <div>
-                    <div className="flex items-center justify-between mb-2">
-                      <span className={cn("text-[9px] font-black uppercase px-2 py-0.5 rounded-md", opt.bg, opt.color)}>
-                        {opt.badge}
-                      </span>
-                      <div className={cn(
-                        "w-4 h-4 rounded-full border flex items-center justify-center transition-all",
-                        isSelected ? "border-purple-600 bg-purple-600 text-white" : "border-slate-300 bg-white"
-                      )}>
-                        {isSelected && <Zap className="w-2 h-2 fill-current" />}
-                      </div>
-                    </div>
-                    <h4 className="text-xs font-black text-slate-800 uppercase tracking-tight mb-1">{opt.title}</h4>
-                    <p className="text-[10px] text-slate-400 font-medium leading-relaxed">{opt.desc}</p>
-                  </div>
-                </button>
-              );
-            })}
-          </div>
-
-          {/* Visual 4-Way Compass Guide Preview */}
-          <div className="bg-slate-50 rounded-2xl border border-slate-200/60 p-3.5 sm:p-4 mt-2">
-            <div className="flex items-center justify-between mb-2.5">
-              <span className="text-[10px] font-black text-slate-500 uppercase tracking-wider">
-                4-Way Gesture Mapping Legend
-              </span>
-              <span className="text-[9px] font-bold text-slate-400">
-                Swipe past 65px to trigger
-              </span>
-            </div>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-              <div className="bg-white p-2.5 rounded-xl border border-rose-200 shadow-xs flex items-center gap-2">
-                <span className="text-base">⬅️</span>
-                <div>
-                  <span className="text-[10px] font-black text-rose-600 uppercase block">Swipe Left</span>
-                  <span className="text-[9px] text-slate-500 font-bold">Again (Grade 1)</span>
-                </div>
-              </div>
-              <div className="bg-white p-2.5 rounded-xl border border-amber-200 shadow-xs flex items-center gap-2">
-                <span className="text-base">⬇️</span>
-                <div>
-                  <span className="text-[10px] font-black text-amber-600 uppercase block">Swipe Down</span>
-                  <span className="text-[9px] text-slate-500 font-bold">Hard (Grade 2)</span>
-                </div>
-              </div>
-              <div className="bg-white p-2.5 rounded-xl border border-indigo-200 shadow-xs flex items-center gap-2">
-                <span className="text-base">➡️</span>
-                <div>
-                  <span className="text-[10px] font-black text-indigo-600 uppercase block">Swipe Right</span>
-                  <span className="text-[9px] text-slate-500 font-bold">Good (Grade 3)</span>
-                </div>
-              </div>
-              <div className="bg-white p-2.5 rounded-xl border border-emerald-200 shadow-xs flex items-center gap-2">
-                <span className="text-base">⬆️</span>
-                <div>
-                  <span className="text-[10px] font-black text-emerald-600 uppercase block">Swipe Up</span>
-                  <span className="text-[9px] text-slate-500 font-bold">Easy (Grade 4)</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Sub-section 3: Card Back Display & FSRS Metrics */}
-        <div className="space-y-3 pt-2 border-t border-slate-100">
-          <div className="flex items-center gap-2">
-            <Brain className="w-3.5 h-3.5 text-indigo-500" />
-            <h3 className="text-[11px] font-black text-slate-700 uppercase tracking-wider">
-              Flashcard Metrics & FSRS Info
-            </h3>
-          </div>
-          <div className="bg-slate-50/50 rounded-2xl border border-slate-100 p-1">
-            <SettingItem 
-              icon={Brain} 
-              label="Show FSRS Statistics & Metrics" 
-              desc="Display stability, difficulty, overdue interval, and review history on flashcards" 
-              active={userSettings.show_fsrs ?? true} 
-              onClick={() => updateUserSettings({ show_fsrs: !(userSettings.show_fsrs ?? true) })}
-            />
-          </div>
-        </div>
-
-        {/* Sub-section 4: Global Card Layout & Alignment Defaults */}
-        <div className="space-y-4 pt-3 border-t border-slate-100">
-          <div className="flex items-center gap-2">
-            <Layers className="w-3.5 h-3.5 text-indigo-500" />
-            <h3 className="text-[11px] font-black text-slate-700 uppercase tracking-wider">
-              Global Card Alignment & Display Defaults
-            </h3>
-          </div>
-          <p className="text-[10px] text-slate-400 font-medium">
-            Default alignment preferences applied across all decks unless overridden per deck.
-          </p>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            {/* Front Card Alignment */}
-            <div className="p-3.5 bg-slate-50/70 rounded-2xl border border-slate-100 space-y-2.5">
-              <span className="text-[10.5px] font-black text-slate-700 uppercase tracking-wider block">
-                Front Card Alignment
-              </span>
-              <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <span className="text-[9.5px] font-bold text-slate-400 block mb-1">Vertical</span>
-                  <div className="grid grid-cols-2 gap-1 bg-white p-1 rounded-xl border border-slate-200/60">
-                    {(['center', 'top'] as const).map(mode => (
-                      <button
-                        key={mode}
-                        type="button"
-                        onClick={() => updateUserSettings({ front_valign: mode })}
-                        className={cn(
-                          "py-1 px-2 rounded-lg text-[10px] font-black uppercase transition-all cursor-pointer text-center",
-                          (userSettings.front_valign || 'center') === mode
-                            ? "bg-indigo-600 text-white shadow-xs"
-                            : "text-slate-500 hover:text-slate-800"
-                        )}
-                      >
-                        {mode === 'center' ? 'Center' : 'Top'}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-                <div>
-                  <span className="text-[9.5px] font-bold text-slate-400 block mb-1">Horizontal</span>
-                  <div className="grid grid-cols-2 gap-1 bg-white p-1 rounded-xl border border-slate-200/60">
-                    {(['left', 'center'] as const).map(mode => (
-                      <button
-                        key={mode}
-                        type="button"
-                        onClick={() => updateUserSettings({ front_halign: mode })}
-                        className={cn(
-                          "py-1 px-2 rounded-lg text-[10px] font-black uppercase transition-all cursor-pointer text-center",
-                          (userSettings.front_halign || 'left') === mode
-                            ? "bg-indigo-600 text-white shadow-xs"
-                            : "text-slate-500 hover:text-slate-800"
-                        )}
-                      >
-                        {mode === 'left' ? 'Left' : 'Center'}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Back Card Alignment */}
-            <div className="p-3.5 bg-slate-50/70 rounded-2xl border border-slate-100 space-y-2.5">
-              <span className="text-[10.5px] font-black text-slate-700 uppercase tracking-wider block">
-                Back Card Alignment
-              </span>
-              <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <span className="text-[9.5px] font-bold text-slate-400 block mb-1">Vertical</span>
-                  <div className="grid grid-cols-2 gap-1 bg-white p-1 rounded-xl border border-slate-200/60">
-                    {(['center', 'top'] as const).map(mode => (
-                      <button
-                        key={mode}
-                        type="button"
-                        onClick={() => updateUserSettings({ back_valign: mode })}
-                        className={cn(
-                          "py-1 px-2 rounded-lg text-[10px] font-black uppercase transition-all cursor-pointer text-center",
-                          (userSettings.back_valign || 'center') === mode
-                            ? "bg-indigo-600 text-white shadow-xs"
-                            : "text-slate-500 hover:text-slate-800"
-                        )}
-                      >
-                        {mode === 'center' ? 'Center' : 'Top'}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-                <div>
-                  <span className="text-[9.5px] font-bold text-slate-400 block mb-1">Horizontal</span>
-                  <div className="grid grid-cols-2 gap-1 bg-white p-1 rounded-xl border border-slate-200/60">
-                    {(['left', 'center'] as const).map(mode => (
-                      <button
-                        key={mode}
-                        type="button"
-                        onClick={() => updateUserSettings({ back_halign: mode })}
-                        className={cn(
-                          "py-1 px-2 rounded-lg text-[10px] font-black uppercase transition-all cursor-pointer text-center",
-                          (userSettings.back_halign || 'left') === mode
-                            ? "bg-indigo-600 text-white shadow-xs"
-                            : "text-slate-500 hover:text-slate-800"
-                        )}
-                      >
-                        {mode === 'left' ? 'Left' : 'Center'}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-    </div>
+        </section>
+      </div>
     )
   }
 
-  // ══════════════ TAB 2: ALGORITHM & LEARNING ══════════════
-  const renderAlgorithmTab = () => (
-    <div className="space-y-4 md:space-y-6">
-      <section className="bg-white rounded-3xl md:rounded-[2.5rem] border border-slate-100 p-4 sm:p-6 md:p-8 shadow-2xs">
-        <div className="flex items-center gap-2.5 mb-4 sm:mb-6 border-b border-slate-100 pb-3.5">
-          <div className="w-8 h-8 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0">
-            <Brain className="w-4 h-4" />
-          </div>
-          <div>
-            <h2 className="text-xs font-black text-slate-900 uppercase tracking-widest italic">Learning Algorithm</h2>
-            <p className="text-[10px] font-medium text-slate-400">Select how flashcards are ordered during study sessions</p>
-          </div>
-        </div>
-
-        {/* Mobile view: Compact cohesive option list */}
-        <div className="md:hidden space-y-2">
-          {modes.map((mode) => {
-            const isSelected = learningMode === mode.id
-            const Icon = mode.icon
-            return (
-              <button
-                key={mode.id}
-                onClick={() => updateLearningMode(mode.id as LearningMode)}
-                className={cn(
-                  "w-full flex items-center justify-between p-3 rounded-2xl transition-all text-left",
-                  isSelected
-                    ? "bg-indigo-50/70 border border-indigo-200/80 shadow-2xs"
-                    : "bg-slate-50/50 hover:bg-slate-100/60 border border-slate-100"
-                )}
-              >
-                <div className="flex items-center gap-3 min-w-0">
-                  <div className={cn("w-10 h-10 rounded-xl flex items-center justify-center shrink-0", mode.bg, mode.color)}>
-                    <Icon className="w-5 h-5" />
-                  </div>
-                  <div className="min-w-0 pr-2">
-                    <h3 className={cn("text-xs font-black uppercase tracking-tight truncate", isSelected ? "text-indigo-950" : "text-slate-800")}>
-                      {mode.name}
-                    </h3>
-                    <p className="text-[10px] font-medium text-slate-400 truncate leading-relaxed">
-                      {mode.desc}
-                    </p>
-                  </div>
-                </div>
-                
-                <div className={cn(
-                  "w-5 h-5 rounded-full flex items-center justify-center shrink-0 border transition-all",
-                  isSelected 
-                    ? "bg-indigo-600 border-indigo-600 text-white shadow-2xs" 
-                    : "border-slate-300 bg-white"
-                )}>
-                  {isSelected && <Zap className="w-2.5 h-2.5 fill-current" />}
-                </div>
-              </button>
-            )
-          })}
-        </div>
-
-        {/* Desktop view: 2-column cards layout */}
-        <div className="hidden md:grid md:grid-cols-2 gap-4">
-          {modes.map((mode) => (
-            <button
-              key={mode.id}
-              onClick={() => updateLearningMode(mode.id as LearningMode)}
-              className={cn(
-                "relative p-6 rounded-[2.5rem] border-2 transition-all text-left group",
-                learningMode === mode.id 
-                  ? 'border-indigo-600 bg-white shadow-xl shadow-indigo-50' 
-                  : 'border-slate-100 bg-slate-50/40 hover:border-slate-200 hover:bg-white hover:shadow-lg'
-              )}
-            >
-              <div className="flex items-start justify-between mb-4">
-                <div className={`p-3 rounded-2xl ${mode.bg} ${mode.color}`}>
-                  <mode.icon className="w-5 h-5" />
-                </div>
-                {learningMode === mode.id && (
-                  <div className="w-6 h-6 bg-indigo-600 rounded-full flex items-center justify-center text-white shadow-xs">
-                    <Zap className="w-3 h-3 fill-current" />
-                  </div>
-                )}
-              </div>
-              <h3 className="text-sm font-black text-slate-900 uppercase tracking-tight mb-1">{mode.name}</h3>
-              <p className="text-[10px] font-medium text-slate-400 leading-relaxed">{mode.desc}</p>
-              
-              {learningMode === mode.id && (
-                <motion.div 
-                  layoutId="activeGlow"
-                  className="absolute -inset-1 border border-indigo-100 rounded-[2.6rem] z-[-1]"
-                />
-              )}
-            </button>
-          ))}
-        </div>
-      </section>
-    </div>
-  )
-
-  // ══════════════ TAB 3: TELEGRAM & ALERTS ══════════════
+  // ══════════════ TAB 1: TELEGRAM & ALERTS ══════════════
   const renderAlertsTab = () => (
     <div className="space-y-4 md:space-y-6">
       {/* Telegram Settings */}
@@ -1514,13 +1554,6 @@ const Settings = () => {
             active={focusTimer}
             onClick={toggleFocusTimer}
           />
-          <SettingItem 
-            icon={Brain} 
-            label="Show FSRS Statistics" 
-            desc="Display memory stability, difficulty, and review history on flashcards" 
-            active={userSettings.show_fsrs ?? true} 
-            onClick={() => updateUserSettings({ show_fsrs: !(userSettings.show_fsrs ?? true) })}
-          />
         </div>
       </section>
 
@@ -1656,9 +1689,7 @@ const Settings = () => {
               transition={{ duration: 0.15 }}
               className="space-y-4 md:space-y-6"
             >
-              {activeTab === 'profiles' && renderProfilesTab()}
-              {activeTab === 'gestures' && renderGesturesTab()}
-              {activeTab === 'algorithm' && renderAlgorithmTab()}
+              {activeTab === 'deck_template' && renderDeckTemplateTab()}
               {activeTab === 'alerts' && renderAlertsTab()}
               {activeTab === 'general' && renderGeneralTab()}
             </motion.div>
@@ -1671,9 +1702,9 @@ const Settings = () => {
       </div>
 
       {/* ═══════════ ONE-HAND CENTERED BOTTOM DOCKED TAB BAR (MOBILE ONLY) ═══════════ */}
-      <div className="md:hidden shrink-0 z-30 bg-white/95 backdrop-blur-2xl border-t border-slate-200/80 px-1.5 sm:px-4 py-1.5 shadow-[0_-4px_20px_rgba(0,0,0,0.05)]">
+      <div className="md:hidden shrink-0 z-30 bg-white/95 backdrop-blur-2xl border-t border-slate-200/80 px-2 sm:px-4 py-1.5 shadow-[0_-4px_20px_rgba(0,0,0,0.05)]">
         <div className="w-full max-w-md mx-auto">
-          <div className="grid grid-cols-5 w-full bg-slate-100/90 p-1 rounded-2xl border border-slate-200/60 shadow-2xs gap-0.5 sm:gap-1">
+          <div className="grid grid-cols-3 w-full bg-slate-100/90 p-1 rounded-2xl border border-slate-200/60 shadow-2xs gap-1">
             {SETTINGS_TABS.map((tab) => {
               const isActive = activeTab === tab.id
               const TabIcon = tab.icon
@@ -1682,7 +1713,7 @@ const Settings = () => {
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
                   className={cn(
-                    "relative flex flex-col items-center justify-center py-1.5 px-0.5 rounded-xl transition-all select-none cursor-pointer",
+                    "relative flex flex-col items-center justify-center py-2 px-1 rounded-xl transition-all select-none cursor-pointer",
                     isActive ? "text-indigo-600 font-black" : "text-slate-500 hover:text-slate-800 font-bold"
                   )}
                 >
@@ -1697,7 +1728,7 @@ const Settings = () => {
                     "w-4 h-4 relative z-10 shrink-0 mb-0.5 transition-colors",
                     isActive ? "text-indigo-600 stroke-[2.3]" : "text-slate-400 stroke-[1.8]"
                   )} />
-                  <span className="relative z-10 text-[9px] sm:text-[10px] tracking-tight truncate w-full text-center leading-tight">
+                  <span className="relative z-10 text-[10px] sm:text-xs tracking-tight truncate w-full text-center leading-tight font-black">
                     {tab.shortLabel}
                   </span>
                 </button>
@@ -1853,16 +1884,42 @@ const Settings = () => {
                 </div>
               </div>
 
-              {/* Explicit Study & Audio Configuration */}
+              {/* Explicit Study, Algorithm & Audio Configuration */}
               <div className="p-3 bg-indigo-50/50 border border-indigo-100 rounded-2xl space-y-2.5">
                 <div className="flex items-center justify-between">
                   <span className="text-[10px] font-black uppercase tracking-wider text-indigo-700 flex items-center gap-1.5">
-                    <Brain className="w-3 h-3" /> Học Tập & Hiển Thị (Profile)
+                    <Brain className="w-3 h-3" /> Thuật Toán & Hiển Thị
                   </span>
                   <span className="text-[9px] font-bold text-indigo-600 bg-indigo-100/70 px-1.5 py-0.2 rounded">Tùy biến</span>
                 </div>
 
                 <div className="space-y-2">
+                  <div>
+                    <span className="text-[9.5px] font-bold text-slate-500 block mb-1">Thuật toán thứ tự học</span>
+                    <div className="grid grid-cols-4 gap-1 bg-white p-1 rounded-xl border border-indigo-100">
+                      {[
+                        { id: 'fsrs', label: 'FSRS' },
+                        { id: 'unseen', label: 'Chưa học' },
+                        { id: 'review', label: 'Ôn tập' },
+                        { id: 'random', label: 'Xáo trộn' },
+                      ].map((opt) => (
+                        <button
+                          key={opt.id}
+                          type="button"
+                          onClick={() => setTemplateSettings(prev => ({ ...prev, quiz_learning_mode: opt.id as any }))}
+                          className={cn(
+                            "py-1 px-1 rounded-lg text-[9px] font-black uppercase transition-all cursor-pointer text-center",
+                            templateSettings.quiz_learning_mode === opt.id
+                              ? "bg-indigo-600 text-white shadow-xs"
+                              : "text-slate-500 hover:text-slate-800"
+                          )}
+                        >
+                          {opt.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
                   <div>
                     <span className="text-[9.5px] font-bold text-slate-500 block mb-1">Tự động phát âm thanh</span>
                     <div className="grid grid-cols-4 gap-1 bg-white p-1 rounded-xl border border-indigo-100">
